@@ -1,0 +1,94 @@
+{
+  "schema_version": "tos_source_revision_history_v1",
+  "record_id": "tos.quotation-passage.burnet.early-greek-philosophy.parmenides-eight",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:6fe5cd26af93d7b40cbba2d8",
+      "request_digest": "sha256:003191209419fa9fe2609223648ee16bb134839fcae2455607b0f37b3f8cfd15",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:e1b9df474761b14fdff1e13837d07426df3f6b6633230b310141e111be18144c",
+      "recorded_at": "2026-09-22T05:08:32.783081+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.quotation-passage.burnet.early-greek-philosophy.parmenides-eight",
+        "version": 1,
+        "digest": "sha256:604c8425f23d3c036c964a3cf0f56ff021ea63cef356f827c4ff9dec35604526"
+      },
+      "source": {
+        "id": "tos.quotation-passage.burnet.early-greek-philosophy.parmenides-eight",
+        "version": 2,
+        "digest": "sha256:f5e19f4c81cd8733eaa9283bdb36358ab59bb42585189dc758844dbfcb0eabeb"
+      },
+      "previous_revision": "sha256:a83db05143eeb2039273de373f1b44013a50973660b341e98f3815c0825b5af2",
+      "archive_path": "ToS/source-witnesses/.record-revisions/6fe5cd26af93d7b40cbba2d8030298b604576ea168372ff9b3b994677ebf4ba2-a83db05143eeb2039273de373f1b44013a50973660b341e98f3815c0825b5af2",
+      "dependencies": "sha256:1071bc3c1b6ab18da5d8c34d288b797156e2ddf5f09874e2b709613f43b32e81",
+      "changed_fields": [
+        "notes",
+        "semantic_content",
+        "semantic_scope"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.burnet-fragments.quotation.name-primary",
+          "version": 2,
+          "digest": "sha256:79428991d63a7fceaf9cea33b3ea24e3db8d6bf279bab4ce84749eac25f42d33"
+        },
+        {
+          "id": "tos.form.burnet-fragments.quotation.name-alternate",
+          "version": 2,
+          "digest": "sha256:c6094a9ab8260f429eed4c4fcf0cc5ab167ca5c09fbcfd052105432843b6be73"
+        },
+        {
+          "id": "tos.form.burnet-fragments.quotation.note-ru",
+          "version": 2,
+          "digest": "sha256:cc9b159f866c963cd90453844f171e0bcf093fcd35423e7ce6f74238906d6ec2"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:6fe5cd26af93d7b40cbba2d8",
+        "expected_configuration": "sha256:e1b9df474761b14fdff1e13837d07426df3f6b6633230b310141e111be18144c",
+        "expected_dependencies": "sha256:1071bc3c1b6ab18da5d8c34d288b797156e2ddf5f09874e2b709613f43b32e81",
+        "expected_revision": "sha256:a83db05143eeb2039273de373f1b44013a50973660b341e98f3815c0825b5af2",
+        "expected_source": {
+          "digest": "sha256:604c8425f23d3c036c964a3cf0f56ff021ea63cef356f827c4ff9dec35604526",
+          "id": "tos.quotation-passage.burnet.early-greek-philosophy.parmenides-eight",
+          "version": 1
+        },
+        "fields": {
+          "notes": "Конкретное английское представление фрагмента Парменида в книге Бёрнета.",
+          "semantic_content": {
+            "language": "ru",
+            "location_account": "Структурный библиографический локатор: глава IV, §85, пункт (8), в репрезентации второго издания 1908 года.",
+            "quotation_account": "Английское представление выделенного фрагмента; качество передачи и выбранных чтений не оценено.",
+            "script": "Cyrl"
+          },
+          "semantic_scope": {
+            "identity_criterion": "Идентичность определяется цитирующим местом в контексте книги. Соотношение с иными цитатами и редакциями требует отдельного основания.",
+            "language": "ru",
+            "scope_note": "Цитирующее место в главе IV, §85, под номером (8), по исследованной репрезентации второго издания.",
+            "script": "Cyrl"
+          }
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.burnet-fragments.quotation.name-primary"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.burnet-fragments.quotation.name-alternate"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.burnet-fragments.quotation.note-ru"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    }
+  ]
+}

@@ -7,14 +7,17 @@ aligned witness packets.
 The exact division between project evidence and host-managed caches/runtimes is
 recorded in [`LOCAL_STORAGE_BOUNDARY.md`](LOCAL_STORAGE_BOUNDARY.md).
 
-It does not own semantic canon, laboratory runtimes, or generated graph/index
-stores.
+Semantic canon lives in `ToS/canon/`; laboratory runtimes belong to their host
+owner; catalogs and graphs are derived from these source records.
+Source-visible review evaluates meaning and quality, while the rights and
+publication owners decide permitted use. Each section below records its actual
+evidence and source-specific limits under that common law.
 
 Curated authored records remain Git-backed. Bulk imports use immutable corpus
 revisions in permanent local storage, with permitted private R2 backups.
 Catalogs and projections are built into a separate data snapshot. The same
 stable IDs, exact source bytes, provenance, rights and review posture survive
-the move; generated navigation does not become source authority. Use the
+the move; authored records remain the authority behind generated navigation. Use the
 [corpus and data release route](../../docs/RELEASING.md#data-and-corpus-operations)
 for admission, compilation and explicit reader selection.
 
@@ -38,7 +41,7 @@ source-witnesses/
 │   └── <historical-organization>/organization.json
 ├── social-bodies/                          # source-described groups, communities, institutions
 │   └── <kind>-<subject>/<kind>.json         # separate membership and activity Claims
-├── intellectual-formations/               # schools, traditions and movements, not atlas categories
+├── intellectual-formations/               # source-described schools, traditions and movements
 │   └── <kind>-<subject>/<kind>.json         # source-described continuity, separate association Claims
 ├── links/                                  # first-class observed web/API/file routes
 │   └── <provider>/<object>/<route>/link.json
@@ -60,7 +63,7 @@ source-witnesses/
 │   ├── collections.jsonl
 │   ├── items.jsonl
 │   ├── links.jsonl
-│   ├── artifacts.jsonl                    # native physical IDs; no book-ladder coercion
+│   ├── artifacts.jsonl                    # native physical IDs and witness metadata
 │   └── claims.jsonl                       # generated source-returnable relation index
 ├── relations/                             # corpus-wide identity-ladder assertions
 │   ├── work-expression/
@@ -116,40 +119,39 @@ The corpus-wide `provision-activities/` route holds digest-bound provenance
 for bounded Edition-owned provision claims; a named subbranch may own one
 multi-Edition research episode while every claim stays beside its exact
 subject Edition. Shared discovery episodes are recorded under
-`discovery/provenance.jsonl`; neither provenance surface becomes claim truth.
+`discovery/provenance.jsonl`; Claim assessment remains bound to each Claim’s source grounds.
 The authored reviewed-candidate ledger owns only queue eligibility, ordering,
 and the frozen pre-run target. Immutable candidate receipts own terminal loop
 transitions, while `discovery/candidates/queue.current.json` is generated
 navigation. Work identity, rights, acquired Items, claims, and review remain
 with their stronger source-witness surfaces. The latest terminal receipt must
-bind an external positive per-channel timing receipt; transport timing does not
-become research, rights-review, or human-effort evidence.
+bind an external positive per-channel timing receipt; transport timing measures the recorded channel operations.
 
-`<responsibility-or-tradition>` is a navigational route, not an authorship
-claim. Anonymous, disputed, collective, and tradition-owned works receive
+`<responsibility-or-tradition>` groups sources for navigation; responsibility
+Claims state attributed authorship. Anonymous, disputed, collective, and tradition-owned works receive
 speaking routes and explicit responsibility claims in the catalog.
 
 ## Identity and path boundary
 
 Historical people and collective descriptions use the
 [social profile and relationship contract](../doctrine/semantic-interchange/README.md#social-bodies-and-source-attributed-relationships).
-The source-described body, its place, an intellectual formation and an atlas
-navigation category are not interchangeable. Adjacent native Corpus and
+Social bodies, places, intellectual formations and atlas navigation categories
+each retain their own referent and source type. Adjacent native Corpus and
 declared-profile human forms reach both source graph carriers with their exact
-bindings and quality gaps; catalog presence does not admit their content.
+bindings and quality gaps; source-visible assessment evaluates their content.
 
 Source-described reception, legacy, historical canon formation, forgetting and
 rediscovery use the [reception profiles](../doctrine/semantic-interchange/README.md#reception-historical-recognition-and-later-life).
 Their historical scope and receiving context remain content. Claims separately
-identify targets, carriers, participants and dates; a historical canon is not a
-ToS admission, and catalog absence is not evidence of forgetting.
+identify targets, carriers, participants and dates; historical canon formation retains the receiving community’s criteria, and
+forgetting requires evidence of diminished transmission in that context.
 
 Object and claim records own stable ToS IDs. The catalog is their rebuildable
 navigation projection: `claims.jsonl` makes tracked membership, responsibility,
 publication, provision activity, chronology, and identity-ladder assertions
 queryable while preserving exact source file, source line, canonical claim
-digest, evidence, maker, provenance event, and review posture. It is not a
-second claim authority and cannot promote an unreviewed relation. The tracked
+digest, evidence, maker, provenance event, and review posture. Each catalog entry retains the original Claim’s review posture and source
+authority. The tracked
 projection admits only `public` or
 `public_metadata_only` packets; less-visible claims require an explicitly
 reviewed public-safe derivative. Filesystem paths are human navigation and may
@@ -161,12 +163,12 @@ object or claim identity.
 The additive [catalog-v2 contract](../contracts/source-catalog-projection-v2.schema.json)
 and [`source_catalog_projection.py`](../../scripts/source_catalog_projection.py)
 provide an explicit immutable `records` collection keyed and ordered by stable
-record ID. This is not a replacement publication of the tracked legacy catalog.
+record ID. The addressed catalog is published separately from the tracked legacy catalog.
 Each row preserves its exact legacy entry plus the original source locator,
 raw-byte SHA-256/length and canonical record ref. The legacy canonical record
 digest, raw source-byte digest and addressed row digest are different bindings.
 Source body, HumanForms and retained history remain with their source owners;
-the catalog does not copy them into another authority surface.
+the catalog returns their exact source bindings.
 
 `bootstrap_source_catalog(root, namespace_path, catalog_namespace=...,
 expected_manifest_sha256=..., expected_publication_token=..., work_dir=...)`
@@ -177,9 +179,9 @@ bytes, membership, profile inputs and the cooperating publication snapshot.
 The existing full collector and pure file renderer remain the parity owner;
 native Agent validation uses its actual Corpus schema and registry mappings,
 never the declared-profile adapter. Native reservation/text dependencies retain
-their owner's bounded opaque snapshot checks. This is catalog/source mechanical
-closure, not the whole foundation validator, reference closure, historical
-completeness, rights, assessment, or Claim admission.
+their owner's bounded opaque snapshot checks. This verifies catalog/source mechanical closure. The foundation validator and
+source review separately check reference closure, historical coverage, rights
+and Claim admission.
 
 The full writer uses only explicit disposable bootstrap scratch. Immutable parts
 are installed without replacement into the caller's existing namespace parent;
@@ -194,8 +196,8 @@ absence in that explicit snapshot; `get(record_id)` requires presence. Returned
 `CatalogRecord.entry`, `.source` and `.provenance` are detached. A row's provenance
 contains stable catalog namespace/profile, key, row digest and exact source/ref
 bindings only. Global catalog root digests, publication tokens, baseline anchors,
-processor/schema bindings and prepared epochs belong to the outer envelope, not
-to every record/history/version row. An unrelated Agent revision must not change
+processor/schema bindings and prepared epochs belong to the outer envelope.
+Record/history/version rows retain their local provenance. An unrelated Agent revision must not change
 another record's provenance merely by changing the catalog root.
 
 `stage_agent_catalog_transition(root, before, transaction_id=...,
@@ -281,8 +283,8 @@ bounds. A limit refusal returns no partial cohort. The addressed current-slot
 lane performs no source discovery or whole-JSONL lookup. An explicit
 collection-order version basis is different by design: its owner
 `ClaimVersionReader` reads the bounded Claim catalog and selected source package
-to resolve each exact retained ref; its aggregate work is exposed in the
-`claim_versions` accounting, but is not a selected-work scaling proof. Neither
+to resolve each exact retained ref; its aggregate work is exposed in the `claim_versions` accounting and includes
+those bounded catalog and package reads. Neither
 lane accepts a caller-supplied node/verification flag, performs an implicit
 bootstrap or fetches remote schemas. Unsupported metadata transport and
 historical Claim versions outside the explicit collection-order basis fail
@@ -294,9 +296,9 @@ source publication, observed protected metadata and source-slot inputs, plus
 adjacent-form absence. The calling source/prepared owner must maintain its
 guarded publication boundary. A before cohort must be captured before a real
 source revision; an old catalog after revision is rejected, not dressed up as
-a historical current-source snapshot. Assembly neither mutates source nor
-selects roots, proves reverse incidence, normalizes neighborhoods, authorizes
-new membership, admits Claims or establishes a prepared epoch. A result's
+a historical current-source snapshot. The assembler returns the selected exact source cohort. Source writes,
+prepared publication, dependency closure, normalization and admission retain
+their separate owner operations. A result's
 detached public fields may be modified by its caller without changing the
 assembler's private snapshot; such edits are not source verification.
 
@@ -310,10 +312,9 @@ an explicit root-vector/WAL bootstrap and verifies the old prepared cohort;
 it does not silently adopt the legacy global-catalog-provenance profile.
 `build_source_navigation(..., catalog_snapshot=...)` provides the full new-profile
 bootstrap/oracle using the same actual addressed metadata reader; its legacy
-default is unchanged. General source membership, Claim mutation transport and
-non-descriptive transitions remain outside this bounded profile, not
-implicitly covered by a green Agent correction. Explicit collection-order
-version bases are a separate exact reader path, not membership admission.
+default is unchanged. General source membership, Claim mutation transport and non-descriptive
+transitions require their own publication profiles. Collection-order bases use
+the exact version reader and retain the membership Claims’ assessment context.
 
 `scripts/source_claim_catalog.py` adds a separate addressed **catalog** step
 for an exact, already committed initial `claims.create` package. The caller
@@ -333,11 +334,11 @@ Current scope and bytes are rechecked through `verify_current()` while its
 context is open. Revocation, drift, occupied identities and exhausted budgets
 refuse; staged parts may remain unselected and are not automatically deleted.
 
-This initial profile supports existing identity endpoints and exact public
-metadata path evidence, not temporal/structured values, identity proposals,
-correction/history, assessment or arbitrary evidence transports. It does not
-replay the source command, assess meaning, establish global source currentness
-or prove reverse dependency closure. A prepared publisher still must assemble
+This initial profile stages catalog entries for existing identity endpoints
+and exact public metadata path evidence. Other value families, proposals,
+correction history and evidence transports require their corresponding
+profiles. Source currentness and reverse dependency closure are checked by the
+prepared publisher. A prepared publisher still must assemble
 the new Claim and affected shared contexts, update declarations and all reader
 lanes atomically, and verify source guards before its own commit. Catalog
 staging alone does not make a new Claim visible to a running human/agent reader.
@@ -361,19 +362,18 @@ notes in `ToS/review-ledger/` and in
 `ToS/research-packets/foundation-laboratory-2026-07/` can supply their exact first
 H1 when that exact reference is selected by the existing verified public Claim
 catalog. The citing Claim, digest and public visibility must agree with its
-catalog entry; an unselected local file is not eligible. Git tracking remains
-an authoring concern, not a runtime dependency: an exported source snapshot
+catalog entry; an unselected local file is not eligible. Git tracking belongs to authoring; runtime reading uses the exported catalog
+and source bytes: an exported source snapshot
 with the same catalog and bytes yields the same title without `.git`.
 This selected-public-Evidence route uses the protected owner metadata reader:
 no symlink component or special file, at most 1 MiB, same-read file digest,
 change/replacement detection, and a first-line UTF-8 header of at most 4096 bytes.
-Research titles retain research-lead provenance, not source-witness authority.
+Research titles retain their research-lead provenance.
 Other repository references or missing/overlong headings use the exact filename;
 anchors and provenance events use their source-file slot, and external citations
 use the declared address.
-Fallbacks remain explicitly marked as navigation, not supplied source titles.
-Descriptions explain the reference role and source return, not the contents or
-credibility of the evidence; external content remains unobserved. This route
+Fallbacks are explicitly marked as navigation. Descriptions explain the
+reference role and source return; external content remains unobserved. This route
 does not scan arbitrary document headings, open source payloads, fetch remote
 titles, create HumanForms, translate names, or confer assessment authority.
 Full addresses, source references, IDs and digests remain unchanged in their
@@ -388,8 +388,7 @@ builder), and compares complete retained JSON fields in the ordinary normalized
 reader. Rows distinguish direct/adapted mapping, missing carriers, conflicting
 records and unresolved source return. The final summary alone confirms that
 enumeration completed; an interrupted or stale-input stream is incomplete.
-This is an offline diagnostic, not a query hot path, automatic repair or new
-source registry. It reports no source wording, private native inventory or
+This offline diagnostic measures retained source fields and carrier coverage. It reports no source wording, private native inventory or
 payload. Exact JSON-field retention is separate from source-file byte formatting,
 semantic understanding, form quality and admission. Uncatalogued families and
 the rest of the ToS corpus remain outside this bounded report and require their
@@ -425,19 +424,17 @@ provider coverage observations, and later interpretations are separate
 layers. Approximate publication totals and mutable corpus result counts cannot
 silently become one exact membership set.
 
-Physical artifacts that do not naturally enter that bibliographic ladder use
-the parallel `artifacts/` spine. Its route is based on physical, excavation, or
+Physical artifacts use the parallel `artifacts/` spine. Its route is based on physical, excavation, or
 custody identity rather than a current provider. The artifact, catalog record,
 inscription or transliteration, scholarly composite, photograph, and line art
 remain separate. A philosophy branch may cite an artifact through a tracked
-source planting, but that relation alone establishes neither philosophy,
-semantics, graph truth, nor canon.
+source planting, but the planting records its source-return route and frontier qualifications.
 
 An exact artifact photograph may be retained only as its own content-addressed
 File-backed visual representation with exact provider, rights, acquisition,
-fixity, and provenance closure. The visual payload does not become the
-physical artifact, embedded source text, a transcription, a translation, a
-philosophy planting, or publication authority. An artifact with no honest
+fixity, and provenance closure. The photograph retains its own representation identity, source context and
+rights posture. Text extraction, translation and philosophical interpretation
+require separately grounded records. An artifact with no honest
 backlog anchor remains unplanted rather than borrowing a neighboring source's
 identity.
 
@@ -456,8 +453,8 @@ whole-page title, table-of-contents, and non-work boundary anchors plus
 an optional evidence-bearing expression-responsibility claim. Translation
 responsibility remains explicit where applicable and is `null`, not
 manufactured, for a source-language member without a separate responsibility
-claim. Such a map is bibliographic structure, not accepted text, edition
-equivalence, translation quality, semantics, rights clearance, or canon.
+claim. Such a map describes bibliographic structure with its proposed anchors and
+recorded review posture.
 
 The first four identity levels also close over three explicit corpus-wide
 claim families under `relations/`. Work records cite their exact
@@ -467,9 +464,8 @@ cite `exemplified_by` packets through `exemplar_claim_refs`. The direct record
 fields retain speaking structural topology, while the claim packets add stable
 claim IDs, exact record/manifest evidence, maker, provenance, visibility, and
 review posture. The validator requires bidirectional exact closure, not merely
-that both surfaces happen to exist. These relations remain bibliographic:
-`embodied_by` never implies textual identity, critical equivalence, accepted
-source text, translation quality, or semantics.
+that both surfaces happen to exist. These relations describe the bibliographic ladder; textual identity, critical
+equivalence and translation quality require their own evidence and assessment.
 
 Native growth retains those legacy streams unchanged. The separate
 [local Item adoption command](../../mechanics/growth-cycle/parts/branch-growth-cycle/docs/NATIVE_ITEM_ADOPTION.md)
@@ -477,8 +473,8 @@ can retain one already obtained file at the canonical local payload root,
 create its provisional Item and distinct `exemplified_by` Claim, and append
 only the existing Edition's exact backlink. The source-safe metadata package
 and private byte-copy continuation are separate; their receipts preserve the
-compound history. This operation does not fetch a URL, clear rights, establish
-textual equivalence, or publish the local file. Generic Claim correction cannot
+compound history. The operation retains an already obtained file under its existing rights and
+local visibility conditions. Generic Claim correction cannot
 rewrite that compound topology independently.
 
 Expression derivation is a separate evidence-bearing claim family rather than
@@ -494,10 +490,9 @@ The initial typed predicates are `authored_by` and `contributed_by` on a Work,
 `translated_by` on an Expression, and `edited_by`, `afterword_by`, or
 `designed_by` on an Edition. Every object resolves to an Agent. Every claim is
 referenced by its actual subject, its file is digest-bound by the cited
-provenance event, and unreferenced or cross-subject claims fail validation. A
-role statement remains a versioned claim: it does not collapse author,
-contributor, translator, copyist, editor, paratext author, designer, publisher,
-or rights holder into one generic “creator”.
+provenance event, and unreferenced or cross-subject claims fail validation. Each role statement remains a versioned Claim: author, contributor,
+translator, copyist, editor, paratext author, designer, publisher and rights
+holder retain their specific responsibilities.
 
 The [native translator attachment](../../mechanics/growth-cycle/parts/branch-growth-cycle/docs/NATIVE_EXPRESSION_RESPONSIBILITY.md)
 adds a separately scoped Expression-to-existing-Agent Claim in a new
@@ -511,8 +506,7 @@ In the current bounded corpus, all seven Nietzsche Work records close over one
 `authored_by` claim to the GND-backed Friedrich Nietzsche Agent. Each claim
 returns to its recorded authorial-witness discovery and research route and is
 digest-bound by an annotation event. All seven remain model-made,
-`public_metadata_only`, and `unreviewed`; neither the author-named directory nor
-catalog presence supplies authorship truth by itself.
+`public_metadata_only`, and `unreviewed`; their authorship assessments remain bound to the cited evidence.
 
 The exact 1911 fourth-edition Antonovsky Expression closes over its own
 `translated_by` claim and a separate RSL/RuNEB Item. Proposed whole-page
@@ -594,9 +588,7 @@ identity pass resolves the Agent to `Юлий Михайлович Антоно�
 `123235553` joins the initials to `Julij Michajlovič`, translator occupation,
 and *Tak govoril Zaratustra*, while RSL supplies the Cyrillic full-name bridge
 and dates `1857-1913`. This does not establish textual equivalence among the
-1911, 1913, 1981, 1996, 2007, and later Expressions. The anchor and claim are
-model-made and unreviewed; neither admits OCR, source text, or translation
-quality.
+1911, 1913, 1981, 1996, 2007, and later Expressions. The anchor and Claim retain their model-made, unreviewed state.
 
 The 2007 Cultural Revolution Expression now closes over a separate
 `translated_by` claim to the same stable Agent. Proposed whole-page anchors on
@@ -604,9 +596,8 @@ PDF pages 3 and 4 preserve both the direct translator credit and the fuller
 statement that the historical translation was checked and newly edited. The
 source-visible general editor, scientific editor/checker, commentary
 translator, and designer remain exact deferred-role evidence because the
-current predicates cannot express them without loss. No equivalence with the
-1898, 1911, 1913, 1996, or later witnesses, accepted source text, translation
-quality, semantics, rights clearance, or human review is inferred.
+current predicates cannot express them without loss. Textual equivalence across witnesses and translation quality remain open to
+source-visible comparison and assessment.
 
 The three other translator Agents named by the 1996 Mysl boundary map follow
 the same separation between a source credit and a person identity. An ordered
@@ -616,8 +607,8 @@ source-bound variants and their existing stable Agent refs do not change.
 `В. А. Флёрова` remains provisional with no external identifier because the
 official record chain stops at initials. `Вера Александровна Флёрова`, born in
 1913, is explicitly rejected as a chronologically impossible match to a 1907
-translator credit. Identity enrichment creates no new responsibility claim,
-Expression equivalence, accepted translation, or human review.
+translator credit. The existing responsibility Claims, Expression identities and review states
+remain unchanged.
 
 The exact 1996 Mysl operator PDF now has an eleven-layer RU/US rights record
 rather than one undifferentiated unevaluated status. Nietzsche's seven Works
@@ -641,8 +632,7 @@ Agent without rehabilitating the rejected name expansion. The path migration
 and claim reuse create no new Agent, text, or equivalence.
 
 Those seven Work records also each close over one
-`first_publication_chronology` claim under `chronology/`. This is a bounded
-ordering facet, not a universal Work date: composition, manuscript, printing,
+`first_publication_chronology` claim under `chronology/`. This ordering facet records first publication; composition, manuscript, printing,
 title-page dating, private issue, public sale, reception, and digitization
 remain distinct chronologies. The staged *Zarathustra* profile preserves the
 1883–1884 public parts and the private 1885 fourth part; *Götzen-Dämmerung*
@@ -657,9 +647,8 @@ evidence resolve, and its review state remains explicit. A title-page year,
 printing date, authorial receipt, sale release, publication role, print-run
 extent, and later edition or issue state are separate assertions. An issue
 claim must preserve unresolved textual identity and difference when no
-compared witness supports either conclusion. The claims' presence does not
-turn a reported chronology into an observed fact, equate editions, create a
-remote Item, accept a text, or promote anything to canon.
+compared witness supports either conclusion. Each chronology retains its reported or observed assertion layer and its own
+assessment state.
 
 An Edition may separately close over sibling `provision-activity-claims.jsonl`
 rows through `provision_activity_claim_refs`. A provision claim groups one
@@ -701,10 +690,9 @@ case without copying either 1893 claim. Its page-3 `Druck und Verlag` wording
 supports separate publication and manufacture claims through the same
 role-specific provisional publisher and printer Organizations. A separate
 page-4 anchor preserves `Alle Rechte vorbehalten.` only as historical rights
-evidence. All twelve Edition provision claims remain model-made,
-`public_metadata_only`, and `unreviewed`; no Edition statement, exact release,
-textual equivalence, rights conclusion from the provision claim, or publication
-authority is created. A later independent layer-specific assessment reviews
+evidence. All twelve Edition provision Claims retain their model-made,
+`public_metadata_only`, `unreviewed` state and their stated
+publication/manufacture scope. A later independent layer-specific assessment reviews
 current rights evidence without changing any provision claim.
 
 The 1892 second *Zur Genealogie der Moral* Item adds two more claims without
@@ -764,8 +752,8 @@ exact payload digest. It enumerates PDF page geometry and image counts, bundled
 DjVu page order and geometry, EPUB member/spine order and member fixity, TEI
 page-break/division structure, or provider DjVu/ABBYY OCR page geometry and
 counts. Text-bearing EPUB, TEI, and OCR resources may carry only one-way
-normalized fingerprints and character or word counts. The inventory cannot
-accept a reading, settle an edition, clear rights, or expose source text.
+normalized fingerprints and character or word counts. The inventory supplies text-free mechanical structure; reading, edition
+identification and rights assessment retain their owner routes.
 The bounded `plain_utf8_file_v1` profile adds one inert complete plain-text or
 Markdown file: exact raw-byte extent/fixity and UTF-8/BOM, code-point, newline
 and observed Unicode-form facts only. It neither rewrites bytes nor interprets
@@ -773,7 +761,7 @@ markup, follows links, executes code or supplies a TextLayer/segmentation.
 
 Large working derivatives, model caches, OCR scratch, page renders, and
 benchmark outputs belong to the `abyss-stack` laboratory or host-managed cache,
-not beside the source payload. Reviewed text or annotation small enough to be
+in their designated storage homes. Reviewed text or annotation small enough to be
 authored may return through `texts/`, `alignments/`, candidate intake, or canon
 according to its authority layer and rights posture.
 
@@ -781,18 +769,18 @@ The first whole-work lexical observation index is a deliberately split
 exception with no runtime authority. Its source-bearing SQLite/FTS5 database
 stays inside the foundation pilot's ignored `local-content/`; its tracked
 companion contains only form hashes, counts, and references to existing TEI
-page/division resources. The form hashes are dictionary-recoverable
-navigational fingerprints, not secrecy. The route remains `local_only` and
-blocked from the future site until rights review, and it does not accept
-German or create a lexeme, lemma, phrase assertion, sign, or semantic claim.
+page/division resources. The form hashes are dictionary-recoverable navigational fingerprints and
+retain the source’s access restrictions. The route remains `local_only` and
+blocked from the future site until rights review, with language and semantic assessment still pending.
 
-Question-scoped exact context remains a second private source-bearing layer,
-not a tracked export. Its first control preserves a complete page-bounded KWIC
+Question-scoped exact context lives in a separate private source-bearing
+layer. Its first control preserves a complete page-bounded KWIC
 census under ignored mode-0600 `local-content/usage-context/`; only a
 string-free plan, fixity/count/selector receipt, and provenance remain tracked
-beside the lexical plan. The tracked records authorize neither source reuse nor
-publication, and a context row is not a sentence, sense, lexeme, sign, or
-semantic assertion.
+beside the lexical plan. The tracked records describe the extraction’s fixity, scope and provenance.
+Linguistic units and semantic assertions require their own source-grounded
+analysis; reuse and publication retain the source’s recorded rights
+conditions.
 
 ## Current seed
 
@@ -941,9 +929,8 @@ the complete PDF: edition presentation, exact scan production, embedded text,
 and handwritten annotations remain unresolved, no reusable-file license was
 found, and no non-Russian serving jurisdiction was reviewed. The aggregate
 Item/File therefore stays `copyright_undetermined`, `local_only`, and blocked
-from the future site. Its `layer_assessments` are positive and negative
-evidence, not a mechanism for lifting the most restrictive content-bearing
-gate.
+from the future site. Its `layer_assessments` preserve positive and negative evidence under the
+aggregate’s restrictive content-bearing gate.
 
 The four DTA TEIs add an institutionally corrected, source-structured German
 sequence without inventing whole-work textual unity. DTA reports OCR followed
@@ -962,9 +949,8 @@ The transfer seed now also includes the exact 274-page Google/Harvard scan
 package of Nietzsche's 1886 Naumann *Jenseits von Gut und Böse*: the Internet
 Archive PDF, its DjVu XML word-coordinate companion, and its compressed ABBYY
 XML coordinate companion. All three provider files are checksum-reconciled,
-gitignored, and local-only. The OCR companions are not independent textual
-witnesses and are not accepted German; they exist to make structure experiments
-reproducible without hiding machine navigation behind the PDF's embedded text.
+gitignored, and local-only. The OCR companions share the scan’s source lineage and retain their unassessed
+German text. Their coordinate data make structure experiments reproducible.
 The historical Work and Edition, faithful historical page scan, and automatic
 historical OCR text are `public_domain_reviewed` for DE/US, but the generated
 Google cover, Harvard holding furniture, coordinate XML, package structure, and
@@ -1063,9 +1049,9 @@ flattening the book into one creator. The Work points to Nietzsche through
 through `edited_by` and `afterword_by`, and to Henry van de Velde through
 `designed_by`. All three Agent identities resolve to current GND identifiers,
 and the four claims are model-made, unreviewed, subject-closed, and
-digest-bound to evidence. This is bibliographic routing, not an author-final
-text, a measurement of Richter's intervention, a rights conclusion, graph
-truth, or canon.
+digest-bound to evidence. These Claims describe bibliographic responsibilities; author-final
+reconstruction and the extent of Richter’s intervention remain separate
+research questions.
 
 The metadata-only authorial follow-up gives that publication witness an exact
 upstream and critical comparison route without pretending ToS holds the
@@ -1075,9 +1061,8 @@ surviving replacement-section copy as `GSA 102/734`, the undigitized
 deletions/change file as `GSA 102/735`, and four relevant notebook/loose-leaf
 complexes. DFGA supplies matching book identities; eKGWB supplies stable
 critical section addresses. Since no payload was acquired, no new
-Expression/Edition/Item branch is manufactured. The route admits only remote
-identity and provenance evidence, not author-final reconstruction, accepted
-German, rights clearance, or publication.
+Expression/Edition/Item branch is manufactured. The route records remote identities and their provenance; source bodies remain
+with the remote owners.
 
 The *Zarathustra* golden kernel now has the same responsibility-aware
 upstream discipline. Current GSA ORES and DFGA records separate mixed
@@ -1087,7 +1072,7 @@ Gast ensemble (`GSA 71/25a`). The current critical route reports that print
 manuscripts for parts I-III are not preserved. Whole-notebook work membership
 is therefore prohibited: an exact region and sourced attribution claim are
 required. The eKGWB route supplies 181 stable critical comparison addresses,
-not an admitted text or manuscript map. No remote manuscript or print becomes
+for source comparison. No remote manuscript or print becomes
 a local Item without custody, fixity, rights evidence, and an acquisition
 event.
 
@@ -1120,9 +1105,8 @@ addresses distinct. D 22's leaf order and mixed reverse-side evidence may not
 be silently normalized. GSA 71/32 fol. 47 is recorded separately as a
 contested associated adjunct: its physical D 25 container, proposed
 *Antichrist* association, and later editorial placement are different claims,
-and it is not `AC 63`. Open IIIF and Public Domain Mark evidence creates no
-admitted source body, accepted German, author-final reconstruction,
-publication permission, transfer unit, semantic object, or human queue.
+and it is not `AC 63`. The route retains IIIF and Public Domain Mark observations as metadata
+evidence under the source’s actual acquisition and review state.
 
 The exact 1888 *Der Fall Wagner* Item now also has a metadata-only
 documentary route. W II 6 (`GSA 71/162`) and W II 7 (`GSA 71/163`) remain
@@ -1133,9 +1117,8 @@ layers. `D 21 / GSA 71/28` is explicitly *Götzen-Dämmerung*, not
 not either complete manuscript. Nietzsche's changes and later
 Köselitz/Lauterbach notes remain distinct. The unlabelled existing Item and
 nominal `Zweite Auflage` half of the 1000-copy run have no presumed textual
-identity or difference. Open archive routes create no admitted source body,
-accepted German, author-final reconstruction, publication permission,
-transfer unit, semantic object, or human queue.
+identity or difference. The archive routes retain metadata evidence; source acquisition and textual
+assessment remain pending.
 
 Its current layered-rights pass now separates Nietzsche's public-domain Work,
 the public-domain 1888 presentation, faithful historical printed-page capture,
@@ -1161,9 +1144,7 @@ the single 1000-copy run, and the nominal later issue state remain scholarly
 reports. The issue-state object explicitly keeps both textual identity and
 textual difference `unresolved`, records that the current Item is unlabelled,
 and creates no separate Item. The claims are digest-bound to provenance and
-evidence; they are not human acceptance, collation, critical equivalence,
-publication authority, a canonical graph, or a signal to bulk-populate every
-Edition.
+evidence; each retains its exact Edition scope and unreviewed posture.
 
 The exact 1889-dated *Götzen-Dämmerung* Item now also has a metadata-only
 documentary route. W II preparatory notebooks remain mixed surfaces whose
@@ -1176,9 +1157,8 @@ November 1888 printing and authorial receipt, the 1889 title-page date, and
 late-January 1889 sale remain distinct chronology claims. The
 Köselitz-edited, textually changed, non-author-approved 1893 second edition
 and the modern *Magnum in parvo* editorial reconstruction remain separate
-downstream routes. Open archive records create no admitted source body,
-accepted German, synthetic author-final text, publication permission,
-transfer unit, semantic object, or human queue.
+downstream routes. The archive records provide metadata evidence for these distinct textual and
+historical routes.
 
 Its current layered-rights pass uses the same five-layer topology without
 copying the *Fall Wagner* result. The historical Work, 1889 presentation, and
@@ -1203,11 +1183,11 @@ contract through six sibling, unreviewed claim packets. They keep the
 title-page year, printing completion, authorial receipt, public-sale release,
 first-publication role, and the separate changed 1893 editorial state
 queryable without collapsing them into one date or one immutable text. The
-claims are digest-bound to provenance and evidence; they are not human
-acceptance, a remote 1893 Item, critical equivalence, publication authority,
-or a canonical graph.
+claims are digest-bound to provenance and evidence; each retains its exact evidence and unreviewed posture; the 1893 witness
+remains a remote comparison route.
 
-These items are laboratory witnesses, not assumed critical editions. Their
+These laboratory witnesses retain their actual edition, acquisition and
+quality states. Their
 catalog, rights, and forensic records must remain honest about what is known,
 claimed, inferred, and unresolved.
 
@@ -1222,7 +1202,7 @@ payload + receipt
           -> candidate observation or claim
 ```
 
-Do not skip from acquired file to semantic canon.
+Semantic admission follows the source-visible review stages in this route.
 
 ## Source-anchor v2 laboratory boundary
 
@@ -1238,9 +1218,8 @@ The current A/B/C under
 uses only invented public resources. Direct JSON, Unicode, and XHTML checks
 confirm three exact selections and six rejected controls, including digest
 drift, UTF-16 offset substitution, divergent alternatives, reversed
-refinement, copied nonpublic quote text, and region overflow. This proves only
-the mechanic. It creates no source witness, accepted text, review, translation,
-semantic claim, graph truth, or canon effect.
+refinement, copied nonpublic quote text, and region overflow. These synthetic controls verify selector mechanics; the source corpus retains
+its existing records and review states.
 
 All current corpus anchors remain v1. No source-bearing migration is implied.
 A future v2 successor may be created only for one concrete source question,
@@ -1261,10 +1240,7 @@ The current A/B/C under
 `ToS/research-packets/foundation-laboratory-2026-07/source-text-layer-abc/`
 uses only invented public UTF-8 bytes. It replays one correction and one
 NFD-to-NFC normalization transition and rejects nine overclaim or lineage
-failures. All three layers remain unreviewed and use-free. No real Item gains a
-text layer, no source is published, and no accepted transcription, German
-competence, translation, semantics, graph truth, canon effect, migration, or
-human backlog follows.
+failures. All three synthetic layers retain their unreviewed, use-free state.
 
 The first bounded real continuation is deliberately smaller than a sentence
 or translation pass. The tracked
@@ -1276,9 +1252,8 @@ TEI Item; `tos_source_text_layer_v1` records one deterministic
 `structural_extraction`; and `tos_source_text_unit_packet_v1` records seven
 physical lines plus six standalone line-break units. The 353 private bytes
 remain mode `0600` below ignored `local-content/source-text-foundation/`.
-Tracked records contain no paragraph string and authorize no accepted German,
-sentence or word boundary, translation input, semantic use, graph/canon
-effect, redistribution, publication, or routine human task.
+Tracked records contain only text-free metadata and retain the private layer’s
+unreviewed posture.
 
 The exact check command is owned by the validation card in
 `scripts/AGENTS.md`. Use `--build` only to intentionally recreate the exact
@@ -1297,13 +1272,10 @@ and five line-break units. The source-visible page check confirms the selected
 region and line count while also exposing one unresolved spacing conflict:
 the embedded layer returns a visually joined historical word as four tokens.
 The raw layer therefore remains `raw_ocr`, lossy for the declared use,
-unreviewed, and use-free. Neither the DTA source layer nor this target layer is
-accepted, and their co-presence creates no bilingual passage, correspondence,
-translation alignment, Russian judgment, semantic relation, graph/canon
-effect, redistribution right, publication route, or human task.
+unreviewed, and use-free. Both layers retain their unreviewed source states; the spacing conflict
+remains an explicit target-quality issue.
 
-The next bounded question now creates the first real alignment *proposal*, not
-an accepted pair. The text-free
+The next bounded question creates the first real alignment *proposal*. The text-free
 `za-i-vorrede-1-opening-sentence-alignment.plan.v1.json` binds offsets
 `[0,115)` and `[0,107)` to the exact private German and Russian paragraph
 digests, materializes one proposed sentence unit per side plus an exact
@@ -1314,20 +1286,17 @@ uncertainty, language competence, translation fidelity, lexical equivalence,
 semantics, projection, graph/canon authority, rights clearance, and
 publication remain open.
 
-The separate Antonovsky 2007/1911 question is witness collation, not
-translation alignment. It reuses only the already preserved, unattested
+The separate Antonovsky 2007/1911 question compares two translation-edition
+witnesses through witness collation. It reuses only the already preserved, unattested
 `tos-sample-antonovsky-p011` Workbench observation, copies its exact 1503-code-
 point layer into ignored owner-local custody, and compares the proposed first
 prose sentence with the existing Antonovsky 1911 sentence proposal. The
 tracked `witness-text-collation-packet-v1` record exposes exact selectors,
 digests, four declared character-comparison views, aggregate edit counts, and
 the digest of local reconstructive detail; it exposes neither witness text nor
-the human feedback. The observation remains an observation, not human review
-or gold. Both boundaries and the cross-edition correspondence stay
-`proposed`; no preferred reading, textual equivalence, Edition genealogy,
-Expression derivation, translation relation, lexical or semantic identity,
-projection, graph/canon effect, redistribution, publication, or routine human
-task follows. Release validation closes only tracked metadata and therefore
+the human feedback. The retained observation keeps its Workbench provenance. Both boundaries and
+the cross-edition correspondence stay `proposed`, with preferred reading,
+textual equivalence and edition genealogy open to further source comparison. Release validation closes only tracked metadata and therefore
 does not require the private source or Workbench artifact; the owner-local
 builder owns exact replay against both.
 
@@ -1343,12 +1312,10 @@ remain mode-`0600` below `local-content/authored-canon-evidence-bridge/`.
 
 This closes representation and source-return debt without rewriting the
 authored route. Its `canonical_source`, `working_translation`, and
-`bridge_translation` values remain route-local authored roles. Eight legacy
-review notes remain historical review records, not modern machine-readable
-human attestations. The current 92 nodes and 125 relations remain in canon, but
-this bridge creates zero modern claim/evidence closure, accepted German,
-accepted translation, sign/concept promotion, graph admission, canon revision,
-routine human work, publication permission, or server transfer.
+`bridge_translation` values remain route-local authored roles. Eight legacy review notes retain their historical format. The current 92 nodes
+and 125 relations retain their canon state; the bridge adds exact source
+return while modern Claim/evidence closure and language assessment remain
+pending.
 
 ## Provenance-event v2 laboratory boundary
 
@@ -1369,8 +1336,8 @@ derivation, missing model/manual evidence, false signature or human-review
 claims, publication without authority, and self-supersession.
 
 All three receipts are unsigned, model-free, unreviewed, and publication-
-unauthorized. Their schema and exact-byte closure does not prove execution
-truth or content quality. Use v2 for new materialized work, or migrate one v1
+unauthorized. Their schema and byte closure verify the recorded structure and fixity.
+Execution attestation and content quality require their own evidence. Use v2 for new materialized work, or migrate one v1
 lineage only when a concrete discrepancy, replay, security, or source-return
 question requires it.
 
@@ -1391,10 +1358,8 @@ records two exact occurrences, two reciprocal competing proposed readings,
 and one deliberately invalid model-shaped promotion. No corresponding model,
 software, or human act occurred; the fixture says so explicitly. Validation
 rejects the invalid promotion and twelve identity, evidence, competition,
-review, relation, graph, and publication-boundary failures. This proves only
-the mechanic. It creates no source witness, accepted reading, language
-competence, sign, concept, relation, graph truth, publication authority, human
-task, or canon effect, and it does not alter the existing semantic ladders.
+review, relation, graph, and publication-boundary failures. These synthetic cases verify semantic-packet closure and rejection behavior;
+existing semantic records retain their source states.
 
 ## Translation-alignment v1 laboratory boundary
 
@@ -1414,10 +1379,8 @@ uses only invented `x-tos-src` and `x-tos-tgt` bytes. A records one one-to-one
 proposal; B preserves reciprocal one-to-one and one-to-many proposals; C
 attempts an invalid unreviewed acceptance. Seventeen controls exercise exact
 side/layer/anchor closure, identity, cardinality, unaligned members,
-competition, acceptance, projection visibility, and supersession. No
-translation, model/aligner run, real review, accepted mapping, lexical
-equivalence, TEI/Web Annotation/XLIFF/TMX/graph authority, rights clearance,
-publication, human task, or canon effect exists. Existing structural
+competition, acceptance, projection visibility, and supersession. These fixtures record synthetic proposals and rejection controls, with their
+review and publication states explicit. Existing structural
 crosswalks and translation packets are unchanged.
 
 ## Rebuild local resource inventories
@@ -1443,15 +1406,12 @@ IDs, paths inside the containers, one-way fingerprints, and match metrics.
 The companion `structure-anchor-set.json` and `structure-anchors.jsonl`
 materialize three stable proposed addresses for every correspondence: the DTA
 TEI structural path, the exact Naumann EPUB member, and the whole Naumann scan
-page. These are reusable IDs for later source review; they contain no source
-text and remain `proposed`. A binding between the three addresses means only
-that the structure-map method selected them as one candidate route. It does
-not turn a page or container member into an exact passage boundary.
+page. These reusable, text-free IDs remain `proposed` for later source review. A binding between the three addresses means only
+that the structure-map method selected them as one candidate route. Exact passage boundaries require their own resolved anchors and review.
 
-Every result remains a `mechanical_candidate_only` locator. A unique normalized
-heading, context score, monotonic route, or matching page number does not prove
-textual identity, edition equivalence, correct German, translation
-correspondence, semantic correspondence, or canon fitness. The local rebuild
+Every result remains a `mechanical_candidate_only` locator. Headings, context scores, monotonic routes and page numbers supply locator
+evidence. Textual identity, translation correspondence and semantic
+interpretation require source-visible assessment. The local rebuild
 and tracked validation routes live in [`scripts/AGENTS.md`](../../scripts/AGENTS.md).
 
 The Jenseits Naumann 1886 ↔ Polilov/Mysl 1996 map under
@@ -1471,7 +1431,8 @@ printed `237.` on PDF page 189, retained locally as `237a`. The result is 299
 monotonic proposed start-page candidates for §§1–296 plus 65a, 73a, and 237a,
 with 299 whole-page proposed source anchors.
 
-This does not turn the OCR into text or a page into an exact line boundary.
+The OCR supplies proposed page starts; exact line boundaries require
+separately resolved anchors.
 The parallel German ↔ Russian map still stops at division granularity and
 materializes zero exact target-unit starts. In the Mysl witness, the prose
 corresponding to source `237a` follows the Seven Sayings without a repeated
@@ -1484,19 +1445,16 @@ Its A/B/C route rejects plain embedded text as a complete map source, rejects
 unordered bbox numerals without an order constraint, and selects ordered bbox
 candidates plus bounded source-visible gap review. It materializes 298
 monotonic proposed target-label starts for 1–296, `65a`, and `73a`, with the
-absent target label `237a` recorded only as a source-map asymmetry. This layer
-does not pair any target unit to a source unit. Shared order, numbering, or
-separate proposed page addresses do not establish textual identity,
-critical-edition equivalence, translation alignment, translation quality,
-semantics, or acceptance.
+absent target label `237a` recorded only as a source-map asymmetry. This target-only layer records proposed label starts. Source-to-target passage
+correspondence remains a separate research question.
 
 A release-safe companion under the existing parallel-structure route now
 intersects only the number-label keys already materialized independently by
 those two maps. It yields 298 proposed shared-label pairing candidates and
 keeps source-only `237a` unpaired. The builder reads tracked maps and rights
-records, not either payload or text. A pairing means only “both witnesses
-materialize this structural label”; it is not an exact passage alignment or a
-translation claim.
+records, not either payload or text. A pairing records that both witnesses materialize the same structural label,
+with passage alignment and translation assessment left to their source-visible
+routes.
 
 The same exact Mysl Item supplies two additional target structure routes
 without exposing its prose. *Zur Genealogie der Moral* preserves 78 proposed
@@ -1513,10 +1471,8 @@ the address witness, while a separately registered 525-page Internet Archive
 DjVuXML Item is navigation evidence under a source-visible, bounded two-page
 offset. This relation is not full-container or textual identity. A payload-free
 intersection pairs only identical `series:unit` keys, and a second composition
-gives all twelve frozen pages twenty possible German structural routes. These
-source routes create no German source passage end, accepted German or Russian,
-source-to-target passage alignment, translation relation, eligible transfer
-unit, target gold, semantics, rights clearance, canon effect, or human work.
+gives all twelve frozen pages twenty possible German structural routes. These routes provide proposed German structural starts; passage ends and
+source-to-target correspondences remain unresolved.
 
 The frozen target side now has a separate exact-layer boundary preparation
 step over the ignored Mysl PDF. It expands the twenty page candidates into
@@ -1527,10 +1483,8 @@ page 399, `Jenseits` 46 on page 279, and `Antichrist` 35 on page 661) are kept
 as explicit rejected nonintersections instead of being silently discarded.
 Private strings remain mode 0600 below ignored `local-content/`; Git receives
 only selectors, geometry, counts, digests, proposed/rejected anchors, and
-provenance. These are layer-exact target candidates, not diplomatic or accepted
-Russian, exact German passages, passage alignments, translation evidence,
-eligible units, target gold, semantic claims, canon effects, publication
-authority, or new human work.
+provenance. These candidates have exact target-layer selectors and retain their proposed
+or rejected status pending textual and boundary assessment.
 
 The German side now has a matching but deliberately partial exact-layer pass.
 It keeps all thirty-five conservative routes and materializes thirty-two
@@ -1542,9 +1496,8 @@ explicit unresolved-boundary records: *Jenseits* 32 and 201 and *Genealogie*
 `essay-1:10`. Tracked artifacts remain text-free and retain content/address
 witness separation; the *Antichrist* two-page navigation offset still asserts
 no textual identity. The JP2 ZIP and scandata remain ignored local source
-payloads. These candidates are not diplomatic or accepted German,
-source-to-target passage alignments, translation evidence, eligible units,
-gold, human tasks, semantic claims, publication objects, or canon effects.
+payloads. These candidates retain the source layers’ quality limits and their
+provisional boundary states.
 
 The Zarathustra foundation pilot also carries one deliberately narrower
 German source-triangulation packet. A deterministic local builder compares an
@@ -1552,9 +1505,8 @@ ignored eKGWB HTTP response, the exact DTA part-I TEI, and two exact members of
 the Naumann automatic EPUB, then emits only fixity, selectors, aggregate
 counts, and one-way fingerprints. It preserves the failed HTTPS route,
 unencrypted-transport risk, a source-aware dehyphenation control, and the OCR
-residual. Machine agreement is reusable evidence, but it does not admit the
-critical edition, accept German, authorize publication, open translation, or
-create semantic authority.
+residual. Machine agreement supplies reproducible comparison evidence for later
+source-visible assessment.
 
 A later tracked discovery receipt adds a distinct evidence layer: Arquivo.pt
 preserves a 2023 snapshot of the same owner URL with capture timestamp,

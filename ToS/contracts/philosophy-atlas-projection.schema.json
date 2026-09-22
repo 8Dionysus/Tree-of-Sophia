@@ -40,7 +40,11 @@
     "runtime_projection_boundary": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["runtime_owner", "runtime_scope", "tos_authority_scope"],
+      "required": [
+        "runtime_owner",
+        "runtime_scope",
+        "tos_authority_scope"
+      ],
       "properties": {
         "runtime_owner": {
           "const": "abyss-stack"
@@ -98,77 +102,224 @@
   },
   "$defs": {
     "authoredSourceProperties": {
-      "description": "Lossless public philosophy input, not a native Corpus Record. JSONL source_row is a parsed-record ordinal, source_line a physical line; file and canonical record digests remain distinct.",
+      "description": "Complete public philosophy input retained in its native source shape. JSONL source_row is a parsed-record ordinal and source_line is a physical line; file and canonical record digests have separate bindings.",
       "type": "object",
       "properties": {
-        "source_record": {"type": "object"},
-        "source_backlogs": {"$ref": "#/$defs/dossierSourceBacklogs"},
-        "source_record_ref": {"type": "string", "pattern": "^ToS/philosophy/"},
-        "source_file_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
-        "source_record_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
-        "source_format": {"enum": ["json", "jsonl"]},
-        "source_row": {"type": "integer", "minimum": 1},
-        "source_line": {"type": "integer", "minimum": 1},
-        "source_pointer": {"const": ""},
-        "endpoint_alias_source": {"$ref": "#/$defs/authoredSourceProperties"},
-        "endpoint_alias_pointers": {"type": "array", "minItems": 1, "uniqueItems": true,
-          "items": {"type": "string", "pattern": "^/aliases/[0-9]+$"}}
+        "source_record": {
+          "type": "object"
+        },
+        "source_backlogs": {
+          "$ref": "#/$defs/dossierSourceBacklogs"
+        },
+        "source_record_ref": {
+          "type": "string",
+          "pattern": "^ToS/philosophy/"
+        },
+        "source_file_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "source_record_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "source_format": {
+          "enum": [
+            "json",
+            "jsonl"
+          ]
+        },
+        "source_row": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "source_line": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "source_pointer": {
+          "const": ""
+        },
+        "endpoint_alias_source": {
+          "$ref": "#/$defs/authoredSourceProperties"
+        },
+        "endpoint_alias_pointers": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^/aliases/[0-9]+$"
+          }
+        }
       },
       "dependentRequired": {
-        "source_record": ["source_record_ref", "source_file_sha256", "source_record_sha256", "source_format"],
-        "source_format": ["source_record"],
-        "source_backlogs": ["source_record"],
-        "endpoint_alias_source": ["endpoint_alias_ref", "endpoint_alias_pointers"]
+        "source_record": [
+          "source_record_ref",
+          "source_file_sha256",
+          "source_record_sha256",
+          "source_format"
+        ],
+        "source_format": [
+          "source_record"
+        ],
+        "source_backlogs": [
+          "source_record"
+        ],
+        "endpoint_alias_source": [
+          "endpoint_alias_ref",
+          "endpoint_alias_pointers"
+        ]
       },
       "allOf": [
         {
-          "if": {"required": ["source_format"], "properties": {"source_format": {"const": "jsonl"}}},
-          "then": {"required": ["source_row", "source_line"], "not": {"required": ["source_pointer"]}}
+          "if": {
+            "required": [
+              "source_format"
+            ],
+            "properties": {
+              "source_format": {
+                "const": "jsonl"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "source_row",
+              "source_line"
+            ],
+            "not": {
+              "required": [
+                "source_pointer"
+              ]
+            }
+          }
         },
         {
-          "if": {"required": ["source_format"], "properties": {"source_format": {"const": "json"}}},
-          "then": {"required": ["source_pointer"], "not": {"anyOf": [{"required": ["source_row"]}, {"required": ["source_line"]}]}}
+          "if": {
+            "required": [
+              "source_format"
+            ],
+            "properties": {
+              "source_format": {
+                "const": "json"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "source_pointer"
+            ],
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "source_row"
+                  ]
+                },
+                {
+                  "required": [
+                    "source_line"
+                  ]
+                }
+              ]
+            }
+          }
         }
       ]
     },
     "dossierSourceBacklogs": {
-      "description": "Complete source rows grouped under an existing dossier, not new graph identities or semantic assertions. Family source refs follow the authored dossier manifest. Empty records means no rows for this dossier, not a missing source file.",
+      "description": "Complete source rows grouped under their existing dossier identity. Family source refs follow the authored dossier manifest. An empty records list reports zero rows in the available dossier source.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["source_anchor_backlog", "term_index", "transmission_backlog"],
+      "required": [
+        "source_anchor_backlog",
+        "term_index",
+        "transmission_backlog"
+      ],
       "properties": {
-        "source_anchor_backlog": {"$ref": "#/$defs/dossierBacklogFamily"},
-        "term_index": {"$ref": "#/$defs/dossierBacklogFamily"},
-        "transmission_backlog": {"$ref": "#/$defs/dossierBacklogFamily"}
+        "source_anchor_backlog": {
+          "$ref": "#/$defs/dossierBacklogFamily"
+        },
+        "term_index": {
+          "$ref": "#/$defs/dossierBacklogFamily"
+        },
+        "transmission_backlog": {
+          "$ref": "#/$defs/dossierBacklogFamily"
+        }
       }
     },
     "dossierBacklogFamily": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["source_ref", "source_file_sha256", "record_count", "records"],
+      "required": [
+        "source_ref",
+        "source_file_sha256",
+        "record_count",
+        "records"
+      ],
       "properties": {
-        "source_ref": {"type": "string", "pattern": "^ToS/philosophy/.*[.]jsonl$"},
-        "source_file_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
-        "record_count": {"type": "integer", "minimum": 0},
-        "records": {"type": "array", "items": {"$ref": "#/$defs/backlogSourceRecord"}}
+        "source_ref": {
+          "type": "string",
+          "pattern": "^ToS/philosophy/.*[.]jsonl$"
+        },
+        "source_file_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "record_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "records": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/backlogSourceRecord"
+          }
+        }
       }
     },
     "backlogSourceRecord": {
-      "description": "An occurrence at an exact byte-snapshot JSONL locator. Identical records on different lines remain distinct occurrences; the locator is not a stable source identity.",
-      "allOf": [{"$ref": "#/$defs/authoredSourceProperties"}],
+      "description": "An occurrence at an exact byte-snapshot JSONL locator. Identical records on different lines remain distinct occurrences; stable source identity is recorded separately.",
+      "allOf": [
+        {
+          "$ref": "#/$defs/authoredSourceProperties"
+        }
+      ],
       "type": "object",
       "additionalProperties": false,
-      "required": ["source_record", "source_record_ref", "source_file_sha256", "source_record_sha256", "source_format", "source_row", "source_line"],
+      "required": [
+        "source_record",
+        "source_record_ref",
+        "source_file_sha256",
+        "source_record_sha256",
+        "source_format",
+        "source_row",
+        "source_line"
+      ],
       "properties": {
-        "source_record": {}, "source_record_ref": {}, "source_file_sha256": {},
-        "source_record_sha256": {}, "source_format": {"const": "jsonl"},
-        "source_row": {}, "source_line": {}
+        "source_record": {},
+        "source_record_ref": {},
+        "source_file_sha256": {},
+        "source_record_sha256": {},
+        "source_format": {
+          "const": "jsonl"
+        },
+        "source_row": {},
+        "source_line": {}
       }
     },
     "node": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["node_id", "node_type", "label", "multilingual", "source_ref", "properties"],
+      "required": [
+        "node_id",
+        "node_type",
+        "label",
+        "multilingual",
+        "source_ref",
+        "properties"
+      ],
       "properties": {
         "node_id": {
           "type": "string",
@@ -197,7 +348,14 @@
     "edge": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["edge_id", "from_id", "predicate_id", "to_id", "source_ref", "properties"],
+      "required": [
+        "edge_id",
+        "from_id",
+        "predicate_id",
+        "to_id",
+        "source_ref",
+        "properties"
+      ],
       "properties": {
         "edge_id": {
           "type": "string",
@@ -227,10 +385,17 @@
     "diagnostic": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["level", "path", "message"],
+      "required": [
+        "level",
+        "path",
+        "message"
+      ],
       "properties": {
         "level": {
-          "enum": ["warning", "error"]
+          "enum": [
+            "warning",
+            "error"
+          ]
         },
         "path": {
           "type": "string",
@@ -292,7 +457,13 @@
     "multilingual_label": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["schema_version", "label", "language", "translation_status", "source_ref"],
+      "required": [
+        "schema_version",
+        "label",
+        "language",
+        "translation_status",
+        "source_ref"
+      ],
       "properties": {
         "schema_version": {
           "const": "tos_multilingual_label_v1"
@@ -315,10 +486,17 @@
     "localized_label": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["original", "ru", "en"],
+      "required": [
+        "original",
+        "ru",
+        "en"
+      ],
       "properties": {
         "original": {
-          "type": ["string", "null"]
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "ru": {
           "type": "string",
@@ -333,32 +511,61 @@
     "language_identity": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["original_language", "original_script", "transliteration"],
+      "required": [
+        "original_language",
+        "original_script",
+        "transliteration"
+      ],
       "properties": {
         "original_language": {
-          "type": ["string", "null"]
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "original_script": {
-          "type": ["string", "null"]
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "transliteration": {
-          "type": ["string", "null"]
+          "type": [
+            "string",
+            "null"
+          ]
         }
       }
     },
     "translation_status": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["original", "ru", "en"],
+      "required": [
+        "original",
+        "ru",
+        "en"
+      ],
       "properties": {
         "original": {
-          "enum": ["source", "pending", "not_applicable"]
+          "enum": [
+            "source",
+            "pending",
+            "not_applicable"
+          ]
         },
         "ru": {
-          "enum": ["source", "reviewed", "draft"]
+          "enum": [
+            "source",
+            "reviewed",
+            "draft"
+          ]
         },
         "en": {
-          "enum": ["source", "reviewed", "draft"]
+          "enum": [
+            "source",
+            "reviewed",
+            "draft"
+          ]
         }
       }
     },

@@ -1,0 +1,87 @@
+{
+  "schema_version": "tos_source_revision_history_v1",
+  "record_id": "tos.institutional-body.university-leipzig",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:36358c19513f4b5e2b169332",
+      "request_digest": "sha256:b8ea5a644a0e8647dd0f3dbb8e31610e23abf1155c72cec9e2e522e60dcb8b33",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:5b7e8050c6d02675c0ba7150bdcbaaa63bf66de43871f098e043f2e07eb8dc12",
+      "recorded_at": "2026-09-22T05:08:27.506445+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.institutional-body.university-leipzig",
+        "version": 1,
+        "digest": "sha256:1b50a8799a46dea831a6193bba033442731e657b7e8380cda0239408c5fe83a4"
+      },
+      "source": {
+        "id": "tos.institutional-body.university-leipzig",
+        "version": 2,
+        "digest": "sha256:a13d447b2091a269b5b5448b0587c7cc000e6cd65b72ac0a09ef338df0bce87f"
+      },
+      "previous_revision": "sha256:fb459bee666f2fa70aacf0d2104a0f3a03324f7bf4c3992af8b40cccc1e1e51e",
+      "archive_path": "ToS/source-witnesses/.record-revisions/36358c19513f4b5e2b169332a25ee0de486279e9f6a602d0806e38d3e48c77c1-fb459bee666f2fa70aacf0d2104a0f3a03324f7bf4c3992af8b40cccc1e1e51e",
+      "dependencies": "sha256:8a0889fd60c5c998beb1aa1cd761f687ea0776785f0c1ff14d12ed8e1c911888",
+      "changed_fields": [
+        "notes",
+        "semantic_scope"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.institutional-body.university-leipzig.name-ru",
+          "version": 2,
+          "digest": "sha256:d158b439eda1ba5f68caee86c0ad23e2813d70de939ffdb28dcfda6dfc3d8aaf"
+        },
+        {
+          "id": "tos.form.institutional-body.university-leipzig.name-de",
+          "version": 2,
+          "digest": "sha256:53315e5f117217c43a4707a4777ba1a9b169c83dc9220a31eccd2da8db8301ca"
+        },
+        {
+          "id": "tos.form.institutional-body.university-leipzig.note-ru",
+          "version": 2,
+          "digest": "sha256:e5e2bca8464b0c49bf251c4a60e01f91917f94c2717ce110703c4db5769b9ea3"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:36358c19513f4b5e2b169332",
+        "expected_configuration": "sha256:5b7e8050c6d02675c0ba7150bdcbaaa63bf66de43871f098e043f2e07eb8dc12",
+        "expected_dependencies": "sha256:8a0889fd60c5c998beb1aa1cd761f687ea0776785f0c1ff14d12ed8e1c911888",
+        "expected_revision": "sha256:fb459bee666f2fa70aacf0d2104a0f3a03324f7bf4c3992af8b40cccc1e1e51e",
+        "expected_source": {
+          "digest": "sha256:1b50a8799a46dea831a6193bba033442731e657b7e8380cda0239408c5fe83a4",
+          "id": "tos.institutional-body.university-leipzig",
+          "version": 1
+        },
+        "fields": {
+          "notes": "Университет Лейпцига как учреждение, с которым архивный очерк связывает обучение Ницше.",
+          "semantic_scope": {
+            "identity_criterion": "Предмет сохраняется как тот же университет при исправлении учебных сведений о конкретном человеке.",
+            "language": "ru",
+            "scope_note": "Лейпцигский университет как учреждение, без полной реконструкции его подразделений.",
+            "script": "Cyrl"
+          }
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.institutional-body.university-leipzig.name-ru"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.institutional-body.university-leipzig.name-de"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.institutional-body.university-leipzig.note-ru"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    }
+  ]
+}

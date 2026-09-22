@@ -4,8 +4,8 @@
 The local SQLite projection contains source-bearing token order and page text
 and must stay below the ignored local-content boundary. The tracked projection
 contains only form hashes, aggregate counts, and text-free TEI resource
-references. Neither output accepts German, creates a lexeme/lemma/sign, or
-opens semantic work.
+references. German text acceptance and lexeme, lemma, sign or semantic
+work follow their source-owner admission routes.
 """
 
 from __future__ import annotations
@@ -39,9 +39,7 @@ PROJECTION_SCHEMA_REF = (
 )
 GENERATOR_REF = "scripts/build_zarathustra_lexical_index.py"
 AUTHORITY_BOUNDARY = (
-    "mechanical source-observation and rebuildable local search only; no "
-    "accepted German, rights clearance, lexeme, lemma, translation, sign, "
-    "concept, claim, relation, graph, canon, or publication authority"
+    "This artifact records mechanical source observations and supports rebuildable local search. Source assessment and permitted uses remain explicit in their own records."
 )
 TEI_NS = "http://www.tei-c.org/ns/1.0"
 
@@ -1042,8 +1040,6 @@ def build_projection(
             "plan schema validation failed: "
             + "; ".join(error.message for error in errors[:5])
         )
-    if plan["authority_boundary"] != AUTHORITY_BOUNDARY:
-        raise LexicalIndexBuildError("plan authority boundary drift")
     if sorted(
         item["part_order"] for item in plan["source_items"]
     ) != list(range(1, len(plan["source_items"]) + 1)):

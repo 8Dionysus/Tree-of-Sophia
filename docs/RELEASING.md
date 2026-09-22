@@ -8,21 +8,21 @@ KAG indexes, stats projections or documentation currentness carriers.
 
 ## Software changes and merge
 
-1. Use a clean branch/worktree from the current remote `main`. Preserve other
-   sessions' dirty work; another working session is not a global release lock.
+1. Use a clean branch/worktree from the current remote `main`. Preserve other sessions' dirty work and coordinate through the exact changed
+owner surfaces.
 2. Install Python test dependencies from `requirements-dev.txt`, the MCP extra,
    and locked browser dependencies with `npm ci --prefix access/web`. Review the
    changed behavior and source contracts. Run `python scripts/release_check.py`
    to check contracts, build browser assets and run program fixture tests.
-   This command does not inspect production data or fetch sibling repositories.
+   This command uses program fixtures and repository-owned dependencies.
 3. For browser changes, install the locked dependencies with
    `npm ci --prefix access/web`, then run the software check above and
    `python scripts/validation_lanes.py --run software_browser`.
    Browser tests require Playwright and Chromium. They create their own small
-   dataset. `access/web/dist` is a build output, not a Git companion.
+   dataset. `access/web/dist` remains an ignored build output.
 4. For Worker code, run its locked dependency install, `npm run typecheck
    --prefix access/deploy/cloudflare-worker` and `npm test --prefix
-   access/deploy/cloudflare-worker`. This does not import D1 or deploy.
+   access/deploy/cloudflare-worker`. These checks run against local fixtures.
 5. Build and verify an installable candidate from the reviewed commit:
 
    ```sh
@@ -73,9 +73,9 @@ software, even when the last change was documentation.
 When the software job is selected, the workflow uploads
 `tree-of-sophia-software.zip` and its digest manifest.
 It contains program code, API contracts, static schemas and browser assets;
-`data_included` is false. CI candidate publication is not a production deploy.
-Tags and public releases require their intended scope and authorization; an
-AbyssOS release helper is not a prerequisite for standalone ToS software.
+`data_included` is false. Production activation, tags and public releases require their intended scope
+and authorization. Standalone ToS software follows this repository's release
+route independently of AbyssOS helpers.
 
 ## Data and corpus operations
 

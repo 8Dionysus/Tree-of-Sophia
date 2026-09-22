@@ -596,7 +596,7 @@ def command_handlers():
         contract.inspect_version()), run_command, 'Declared semantic metadata in an independently protected owner-local source context.',
         configure=configuration, typed_handles=(*contract.RECORD_HANDLES, *contract.FORM_HANDLES,
             'ToS/contracts/native-text-unit-binding.schema.json'),
-        profile_selection='Explicit profile_type_id must have an understood semantic-metadata-v1 source_record_profile; profile readability is not a grant.',
+        profile_selection="Explicit profile_type_id must have an understood semantic-metadata-v1 source_record_profile and an independently issued operation grant.",
         preconditions=('Requires separately selected confidential context, bounded source access and native bindings.',
                        'Generic private profile creation cannot issue a Sign identity.')),)
 

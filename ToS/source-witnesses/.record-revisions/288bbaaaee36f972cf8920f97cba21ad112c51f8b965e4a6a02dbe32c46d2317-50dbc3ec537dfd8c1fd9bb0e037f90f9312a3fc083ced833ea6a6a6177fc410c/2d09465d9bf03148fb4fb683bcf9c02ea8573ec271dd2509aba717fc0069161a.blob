@@ -1,0 +1,149 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.sense.sid-bc1a456cd57447c08f6118bf128c2b92",
+    "version": 1,
+    "digest": "sha256:8ff3a976d274c072e5420f944b0f4217125ef02bb511ced0a77dd4f58814cb82"
+  },
+  "forms": [
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.sid-668b2cdd4c2e404da1795823036c68af",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.sense.sid-bc1a456cd57447c08f6118bf128c2b92",
+        "version": 1,
+        "digest": "sha256:8ff3a976d274c072e5420f944b0f4217125ef02bb511ced0a77dd4f58814cb82"
+      },
+      "role": "name",
+      "language": "ru",
+      "script": "Cyrl",
+      "creator_id": "agent:codex-tos-foundation",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.sense.sid-bc1a456cd57447c08f6118bf128c2b92",
+            "version": 1,
+            "digest": "sha256:8ff3a976d274c072e5420f944b0f4217125ef02bb511ced0a77dd4f58814cb82"
+          },
+          "pointer": "/preferred_label"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.sense.sid-bc1a456cd57447c08f6118bf128c2b92",
+            "version": 1,
+            "digest": "sha256:8ff3a976d274c072e5420f944b0f4217125ef02bb511ced0a77dd4f58814cb82"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.sense.sid-bc1a456cd57447c08f6118bf128c2b92",
+            "version": 1,
+            "digest": "sha256:8ff3a976d274c072e5420f944b0f4217125ef02bb511ced0a77dd4f58814cb82"
+          },
+          "pointer": "/same_as_posture"
+        },
+        "context-2": {
+          "record": {
+            "id": "tos.sense.sid-bc1a456cd57447c08f6118bf128c2b92",
+            "version": 1,
+            "digest": "sha256:8ff3a976d274c072e5420f944b0f4217125ef02bb511ced0a77dd4f58814cb82"
+          },
+          "pointer": "/semantic_scope"
+        },
+        "context-3": {
+          "record": {
+            "id": "tos.sense.sid-bc1a456cd57447c08f6118bf128c2b92",
+            "version": 1,
+            "digest": "sha256:8ff3a976d274c072e5420f944b0f4217125ef02bb511ced0a77dd4f58814cb82"
+          },
+          "pointer": "/semantic_content"
+        },
+        "context-4": {
+          "record": {
+            "id": "tos.sense.sid-bc1a456cd57447c08f6118bf128c2b92",
+            "version": 1,
+            "digest": "sha256:8ff3a976d274c072e5420f944b0f4217125ef02bb511ced0a77dd4f58814cb82"
+          },
+          "pointer": "/field_languages/preferred_label"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    },
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.sid-af9d83a564374a9aaa76a277fc8fd4af",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.sense.sid-bc1a456cd57447c08f6118bf128c2b92",
+        "version": 1,
+        "digest": "sha256:8ff3a976d274c072e5420f944b0f4217125ef02bb511ced0a77dd4f58814cb82"
+      },
+      "role": "hover",
+      "language": "ru",
+      "script": "Cyrl",
+      "creator_id": "agent:codex-tos-foundation",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.sense.sid-bc1a456cd57447c08f6118bf128c2b92",
+            "version": 1,
+            "digest": "sha256:8ff3a976d274c072e5420f944b0f4217125ef02bb511ced0a77dd4f58814cb82"
+          },
+          "pointer": "/notes"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.sense.sid-bc1a456cd57447c08f6118bf128c2b92",
+            "version": 1,
+            "digest": "sha256:8ff3a976d274c072e5420f944b0f4217125ef02bb511ced0a77dd4f58814cb82"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.sense.sid-bc1a456cd57447c08f6118bf128c2b92",
+            "version": 1,
+            "digest": "sha256:8ff3a976d274c072e5420f944b0f4217125ef02bb511ced0a77dd4f58814cb82"
+          },
+          "pointer": "/same_as_posture"
+        },
+        "context-2": {
+          "record": {
+            "id": "tos.sense.sid-bc1a456cd57447c08f6118bf128c2b92",
+            "version": 1,
+            "digest": "sha256:8ff3a976d274c072e5420f944b0f4217125ef02bb511ced0a77dd4f58814cb82"
+          },
+          "pointer": "/semantic_scope"
+        },
+        "context-3": {
+          "record": {
+            "id": "tos.sense.sid-bc1a456cd57447c08f6118bf128c2b92",
+            "version": 1,
+            "digest": "sha256:8ff3a976d274c072e5420f944b0f4217125ef02bb511ced0a77dd4f58814cb82"
+          },
+          "pointer": "/semantic_content"
+        },
+        "context-4": {
+          "record": {
+            "id": "tos.sense.sid-bc1a456cd57447c08f6118bf128c2b92",
+            "version": 1,
+            "digest": "sha256:8ff3a976d274c072e5420f944b0f4217125ef02bb511ced0a77dd4f58814cb82"
+          },
+          "pointer": "/field_languages/notes"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    }
+  ],
+  "prior_forms": []
+}

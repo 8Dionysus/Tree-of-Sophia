@@ -562,6 +562,55 @@ class ProfileSourceRevisionTests(SourceRevisionTests):
             self.run_command('describe')
         self.assertEqual(self.package(), before)
 
+    def test_scope_wording_requires_v2_delegation_and_preserves_exact_history(self):
+        schema = 'semantic-description-record.schema.json'
+        (self.root / 'ToS/contracts' / schema).write_bytes((ROOT / 'ToS/contracts' / schema).read_bytes())
+        self.path.unlink()
+        self.formpath.unlink()
+        self.path = self.path.with_name('conception.json')
+        self.formpath = self.path.with_name('conception.human-forms.json')
+        self.record.update(schema_version='tos_semantic_description_record_v1', record_type='conception',
+            record_id='tos.conception.revision-fixture',
+            field_languages={'preferred_label': {'language': 'ru', 'script': 'Cyrl'},
+                             'notes': {'language': 'ru', 'script': 'Cyrl'}},
+            semantic_scope={'scope_note': 'Only the fictional passage, not a historical theory.',
+                'identity_criterion': 'The conception in the fictional passage.', 'language': 'en', 'script': 'Latn'})
+        self.path.write_text(json.dumps(self.record, indent=3))
+        changes = [commands.prepare_metadata_change(self.record, None, 'test:author', **item)
+                   for item in self.selections]
+        forms = commands._apply(None, commands.metadata_subject(self.record), changes)
+        self.formpath.write_text(json.dumps(forms, indent=3))
+        original = self.package()
+        self.config.update(source_path=self.path.relative_to(self.root).as_posix(),
+            record_id=self.record['record_id'], profile_type_id='tos.entity.conception',
+            allowed_fields=['semantic_scope'])
+        self.owner.write_text(json.dumps(self.config))
+        proposal = {'fields': {'semantic_scope': {**self.record['semantic_scope'],
+                    'scope_note': 'The conception within the fictional passage.'}},
+                    'forms': self.selections, 'reason': 'Clarify wording of the same fictional referent.'}
+        with self.assertRaises(ValueError):
+            self.run_command('prepare-revise', **proposal)
+        self.assertEqual(self.package(), original)
+        self.config['schema_version'] = commands.PROFILE_SCOPE_REVISION_CONFIG
+        self.owner.write_text(json.dumps(self.config))
+        for field, value in (('record_id', 'tos.conception.other'), ('identity_status', 'verified'),
+                             ('visibility', 'local_only'), ('record_type', 'crosscutting-concept')):
+            with self.subTest(field=field), self.assertRaises(PermissionError):
+                self.run_command('prepare-revise', **{**proposal, 'fields': {field: value}})
+        preview = self.run_command('prepare-revise', **proposal)
+        result = self.run_command('record.revise', command_id='synthetic:scope-wording',
+            expected_configuration=preview['owner_configuration'], expected_source=preview['source'],
+            expected_revision=preview['revision'], expected_dependencies=preview['expected_dependencies'], **proposal)
+        self.assertEqual(json.loads(self.path.read_bytes()),
+                         {**self.record, **proposal['fields'], 'record_version': 2})
+        self.assertFalse(result['grants_admission'])
+        self.assertTrue(all(view['state'] == 'ready' and view['admission'] is None
+                            for view in result['materializations']))
+        prior = self.run_command('inspect-version', source=preview['source'])
+        self.assertEqual(prior['record'], self.record)
+        for name, binding in prior['files'].items():
+            self.assertEqual((self.root / binding['archive_path']).read_bytes(), original[name])
+
 
 if __name__ == '__main__':
     unittest.main()

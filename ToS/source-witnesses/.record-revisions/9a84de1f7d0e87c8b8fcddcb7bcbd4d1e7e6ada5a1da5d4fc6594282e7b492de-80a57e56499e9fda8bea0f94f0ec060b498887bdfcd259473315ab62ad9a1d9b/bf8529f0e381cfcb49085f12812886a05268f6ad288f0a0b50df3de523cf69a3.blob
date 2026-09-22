@@ -1,0 +1,128 @@
+{
+  "schema_version": "tos_claim_revision_history_v1",
+  "source_path": "ToS/source-witnesses/relations/jgb-inquiry-research/source-claims.jsonl",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:c03b11cb08e7d4492aa3b953",
+      "request_digest": "sha256:31c5e7c1a473373e5b5612963076b40ada2e2ac3d19e3968d78c97d4ac5dc879",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:ff6fc1f8815f7a1d36040603ca4215e4bf24bcc23bcae3fa1c818015a14189b6",
+      "recorded_at": "2026-09-22T06:46:39.634279+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+      "previous_source": {
+        "id": "tos.claim.jgb-inquiry-family-responsibility",
+        "version": 1,
+        "digest": "sha256:8f8867c288f232208cf41f449088afbe70931247ed93ec5d736bf23f24590c93"
+      },
+      "source": {
+        "id": "tos.claim.jgb-inquiry-family-responsibility",
+        "version": 2,
+        "digest": "sha256:a0f2a9d09d11bbb8825cf09632474b714a0c887c1a9d00ed3e471b834cc239aa"
+      },
+      "previous_revision": "sha256:9335742b4e62a1eb45111273715c1444e243ebc8a6e1c3f0ce906f29a61e369e",
+      "archive_path": "ToS/source-witnesses/.record-revisions/c03b11cb08e7d4492aa3b953cc1cbf3ee2804d91725e7eeeac4e9917918d77a9-9335742b4e62a1eb45111273715c1444e243ebc8a6e1c3f0ce906f29a61e369e",
+      "dependencies": "sha256:3fb8c58c78dbdf4ea8040d8598086738ca26d789a1ca9cef989398bfcb62cdea",
+      "source_bindings": {
+        "objects": {
+          "tos.problem-family.agency-responsibility-jgb": {
+            "source_ref": "ToS/source-witnesses/semantic-descriptions/problem-family-agency-responsibility-jgb/problem-family.json",
+            "source_sha256": "sha256:ed4eb8870d6165e10617763a2ebe10a8ccb5a18fdef9697cf0df3469a2a38d07",
+            "canonical_record_sha256": "sha256:63c50aa98569d948578f010ffcc7bef7e0305a92d9658e929341cb8882bcdf3c",
+            "schema_version": "tos_thought_topic_record_v1",
+            "record_version": 2
+          },
+          "tos.problem.ultimate-responsibility-jgb21": {
+            "source_ref": "ToS/source-witnesses/semantic-descriptions/problem-ultimate-responsibility-jgb21/problem.json",
+            "source_sha256": "sha256:36eeca37c86ece07cc343935e5c77fbcae9c234d95119989664c01cc8dfbbab7",
+            "canonical_record_sha256": "sha256:5aaa718afc10baf49f8b7426b56f476beaf03783e0e3bc1a26b0577c2f705ec5",
+            "schema_version": "tos_thought_topic_record_v1",
+            "record_version": 2
+          }
+        },
+        "evidence": {
+          "ToS/review-ledger/2026-09-07-jgb-inquiry-source-reading.md": {
+            "source_ref": "ToS/review-ledger/2026-09-07-jgb-inquiry-source-reading.md",
+            "source_sha256": "sha256:b07429682c2aa205794a9eebc20022cebb93edf2e07b2eb530c494147036506e",
+            "source_line": null,
+            "evidence_kind": "repo_path"
+          }
+        }
+      },
+      "changed_fields": [
+        "qualifiers"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.jgb-inquiry-family-responsibility.statement-ru",
+          "version": 2,
+          "digest": "sha256:debb4e3d2777810f38545632b97af0224f1f8cbc76fda5521cab575062864d94"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:c03b11cb08e7d4492aa3b953",
+        "expected_configuration": "sha256:ff6fc1f8815f7a1d36040603ca4215e4bf24bcc23bcae3fa1c818015a14189b6",
+        "expected_dependencies": "sha256:3fb8c58c78dbdf4ea8040d8598086738ca26d789a1ca9cef989398bfcb62cdea",
+        "expected_inputs": {
+          "evidence": {
+            "ToS/review-ledger/2026-09-07-jgb-inquiry-source-reading.md": {
+              "evidence_kind": "repo_path",
+              "source_line": null,
+              "source_ref": "ToS/review-ledger/2026-09-07-jgb-inquiry-source-reading.md",
+              "source_sha256": "sha256:b07429682c2aa205794a9eebc20022cebb93edf2e07b2eb530c494147036506e"
+            }
+          },
+          "objects": {
+            "tos.problem-family.agency-responsibility-jgb": {
+              "canonical_record_sha256": "sha256:63c50aa98569d948578f010ffcc7bef7e0305a92d9658e929341cb8882bcdf3c",
+              "record_version": 2,
+              "schema_version": "tos_thought_topic_record_v1",
+              "source_ref": "ToS/source-witnesses/semantic-descriptions/problem-family-agency-responsibility-jgb/problem-family.json",
+              "source_sha256": "sha256:ed4eb8870d6165e10617763a2ebe10a8ccb5a18fdef9697cf0df3469a2a38d07"
+            },
+            "tos.problem.ultimate-responsibility-jgb21": {
+              "canonical_record_sha256": "sha256:5aaa718afc10baf49f8b7426b56f476beaf03783e0e3bc1a26b0577c2f705ec5",
+              "record_version": 2,
+              "schema_version": "tos_thought_topic_record_v1",
+              "source_ref": "ToS/source-witnesses/semantic-descriptions/problem-ultimate-responsibility-jgb21/problem.json",
+              "source_sha256": "sha256:36eeca37c86ece07cc343935e5c77fbcae9c234d95119989664c01cc8dfbbab7"
+            }
+          }
+        },
+        "expected_revision": "sha256:9335742b4e62a1eb45111273715c1444e243ebc8a6e1c3f0ce906f29a61e369e",
+        "expected_source": {
+          "digest": "sha256:8f8867c288f232208cf41f449088afbe70931247ed93ec5d736bf23f24590c93",
+          "id": "tos.claim.jgb-inquiry-family-responsibility",
+          "version": 1
+        },
+        "fields": {
+          "qualifiers": {
+            "relation_basis": "Its focus on conditions for attributing ultimate responsibility meets the grouping criterion. The grouping is attributed to the researcher.",
+            "relation_basis_language": "en",
+            "relation_basis_script": "Latn",
+            "scope": "Provisional passage-bound research; no calibrated assessment, admission, logical validity, exhaustive taxonomy or canon assertion.",
+            "source_locator": [
+              "http://www.nietzschesource.org/eKGWB/JGB-19",
+              "http://www.nietzschesource.org/eKGWB/JGB-21"
+            ],
+            "source_representation_sha256": "143d6330c94bf00b135f887eeed5f20f6caee6a98174746227af255583ae8b20",
+            "source_section": "JGB 19/21",
+            "statement": "Проблема предельной ответственности включается в исследовательское семейство агентности и ответственности без отождествления с другими его проблемами.",
+            "statement_language": "ru",
+            "statement_script": "Cyrl"
+          }
+        },
+        "forms": [
+          {
+            "field_id": "claim.statement",
+            "form_id": "tos.form.jgb-inquiry-family-responsibility.statement-ru"
+          }
+        ],
+        "operation": "claim.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    }
+  ]
+}

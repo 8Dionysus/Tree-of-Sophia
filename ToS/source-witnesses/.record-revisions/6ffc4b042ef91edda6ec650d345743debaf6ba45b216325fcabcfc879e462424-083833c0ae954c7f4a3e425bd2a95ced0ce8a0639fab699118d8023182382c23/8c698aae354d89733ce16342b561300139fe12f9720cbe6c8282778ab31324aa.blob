@@ -1,0 +1,430 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.edition.friedrich-nietzsche.jenseits-von-gut-und-boese.project-gutenberg-4363",
+  "receipts": [
+    {
+      "command_id": "tos.foundation.native-item-adoption.gutenberg-4363.20260909.v1",
+      "request_digest": "sha256:cf8f1ea95a24d011d683f67ed75995010976373cf7806fd81e28e4351e3b9020",
+      "principal_id": "model:foundation-native-growth-source-review",
+      "authority_ref": "operator:tos-foundation-v1:native-item-metadata-adoption:2026-09-09",
+      "owner_configuration": "sha256:a8e12ae9e174ebac7a8d229a991e8edae0739c33949c95838a8f777ec74eae76",
+      "recorded_at": "2026-09-09T07:21:59.761443+00:00",
+      "reason": "Retain one already obtained EPUB File as a distinct provisional local Item of the existing electronic Edition, with an exact parent append and source-copy forms. Preserve the original bytes, previous Edition/Expression/Work versions and all older receipts; grant no textual, historical, rights, publication or canon admission.",
+      "previous_source": {
+        "id": "tos.edition.friedrich-nietzsche.jenseits-von-gut-und-boese.project-gutenberg-4363",
+        "version": 1,
+        "digest": "sha256:bed759d58c51148bf8a7c62ed0d431a3f2b11a2783805df2707e717cfa53a5a5"
+      },
+      "source": {
+        "id": "tos.edition.friedrich-nietzsche.jenseits-von-gut-und-boese.project-gutenberg-4363",
+        "version": 2,
+        "digest": "sha256:83b08f31df0fe87469a1471ea688b12bd78e7197d6a959a48bc574c26f3582ac"
+      },
+      "previous_revision": "sha256:e504036a8fbc15b97fecfcf825d418ec3491108d566e4fcfb06933ed572fe393",
+      "archive_path": "ToS/source-witnesses/.record-revisions/6ffc4b042ef91edda6ec650d345743debaf6ba45b216325fcabcfc879e462424-e504036a8fbc15b97fecfcf825d418ec3491108d566e4fcfb06933ed572fe393",
+      "dependencies": "sha256:906cb847d9b3f9e58e07ec615c30c2946352ec367fd7fa1a57493b3d2739d4dc",
+      "changed_fields": [
+        "exemplar_claim_refs"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.jenseits-project-gutenberg-4363-edition.name-ru",
+          "version": 2,
+          "digest": "sha256:ff8f2c25c8e60c66acda67d748c150ab6ea97fbfce72f33436f796ae64f31a92"
+        },
+        {
+          "id": "tos.form.jenseits-project-gutenberg-4363-edition.name-en",
+          "version": 2,
+          "digest": "sha256:ac5e7c46cb34522c28d4244c238261a37b6e67b3f28d850991bf1e5b64dae363"
+        },
+        {
+          "id": "tos.form.jenseits-project-gutenberg-4363-edition.source-note",
+          "version": 2,
+          "digest": "sha256:53a41e88801f47b0cff8f262eb35532b7b1715e185b45bb6f28f03cf90ee1928"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "claim": {
+          "assertion_layer": "bibliographic_assertion",
+          "assessment_refs": [],
+          "claim_id": "tos.claim.topology.edition-item.jenseits-gutenberg-4363.exemplified-by.local-epub3-20260909",
+          "claim_type": "relation",
+          "claim_version": 1,
+          "epistemic_status": "observed",
+          "evidence_refs": [
+            "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/en-zimmern-gutenberg-4363/editions/project-gutenberg-4363/edition.json",
+            "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/en-zimmern-gutenberg-4363/editions/project-gutenberg-4363/items/local-epub3-20260909/item.json"
+          ],
+          "maker": {
+            "agent_ref": "model:foundation-native-growth-source-review",
+            "maker_type": "model"
+          },
+          "object": "tos.item.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363.local-epub3-20260909",
+          "polarity": "positive",
+          "predicate": "exemplified_by",
+          "provenance_event_ref": "tos.event.annotation.jenseits-gutenberg-4363.item-metadata-link.2026-09-09",
+          "qualifiers": {
+            "observation_scope": "declared_source_metadata_link_only",
+            "statement": "Предварительная запись электронного издания Project Gutenberg № 4363 связывается с отдельным локально полученным EPUB 3-контейнером. Наблюдается заявленная связь двух метаданных; сохранность конкретных байтов имеет отдельные fixity и provenance. Эта связь не устанавливает исторический печатный экземпляр, тождество всех форматов, точность перевода, содержательный допуск или разрешение распространения.",
+            "statement_language": "ru",
+            "statement_script": "Cyrl"
+          },
+          "review_status": "unreviewed",
+          "schema_version": "tos_source_relation_claim_v1",
+          "subject_ref": "tos.edition.friedrich-nietzsche.jenseits-von-gut-und-boese.project-gutenberg-4363",
+          "supersedes_claim_ref": null,
+          "visibility": "public_metadata_only"
+        },
+        "claim_forms": [
+          {
+            "field_id": "claim.statement",
+            "form_id": "tos.form.jenseits-gutenberg-4363-local-epub3-20260909.exemplar-statement-ru"
+          }
+        ],
+        "command_id": "tos.foundation.native-item-adoption.gutenberg-4363.20260909.v1",
+        "expected_configuration": "sha256:a8e12ae9e174ebac7a8d229a991e8edae0739c33949c95838a8f777ec74eae76",
+        "expected_dependencies": "sha256:906cb847d9b3f9e58e07ec615c30c2946352ec367fd7fa1a57493b3d2739d4dc",
+        "expected_publication": "sha256:2b9002e73551ce1b68473a677af204514d4d123a0f09742c1a2bb90925101b82",
+        "expected_revision": "sha256:e504036a8fbc15b97fecfcf825d418ec3491108d566e4fcfb06933ed572fe393",
+        "expected_source": {
+          "digest": "sha256:bed759d58c51148bf8a7c62ed0d431a3f2b11a2783805df2707e717cfa53a5a5",
+          "id": "tos.edition.friedrich-nietzsche.jenseits-von-gut-und-boese.project-gutenberg-4363",
+          "version": 1
+        },
+        "fields": {
+          "exemplar_claim_refs": [
+            "tos.claim.topology.edition-item.jenseits-gutenberg-4363.exemplified-by.local-epub3-20260909"
+          ]
+        },
+        "fixity_verified_at": "2026-09-09T07:20:24.611607+00:00",
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.jenseits-project-gutenberg-4363-edition.name-ru"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.jenseits-project-gutenberg-4363-edition.name-en"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.jenseits-project-gutenberg-4363-edition.source-note"
+          }
+        ],
+        "inventory": {
+          "file_id": "tos.file.sha256.9c894ce0ab9e1861b8326be82e95657e9d81d3a1ab3720a66b0649d156d019e1",
+          "file_sha256": "9c894ce0ab9e1861b8326be82e95657e9d81d3a1ab3720a66b0649d156d019e1",
+          "media_type": "application/epub+zip",
+          "profile": "epub_resources_v1",
+          "resources": [
+            {
+              "byte_size": 20,
+              "locator": {
+                "container_order": 1,
+                "member_path": "mimetype"
+              },
+              "media_type": "application/epub+zip",
+              "resource_id": "epub-member-0001",
+              "resource_kind": "epub_member",
+              "sha256": "e468e350d1143eb648f60c7b0bd6031101ec0544a361ca74ecef256ac901f48b",
+              "structural_role": "auxiliary_resource"
+            },
+            {
+              "byte_size": 252,
+              "locator": {
+                "container_order": 2,
+                "member_path": "META-INF/container.xml"
+              },
+              "media_type": "text/xml",
+              "resource_id": "epub-member-0002",
+              "resource_kind": "epub_member",
+              "sha256": "623bec1644397fb6daa6d642704225fa03445e0b08b83e8f95fc64572f42071f",
+              "structural_role": "container_metadata"
+            },
+            {
+              "byte_size": 62161,
+              "locator": {
+                "container_order": 3,
+                "member_path": "OEBPS/100412449285727333_4363-cover.png"
+              },
+              "media_type": "image/png",
+              "resource_id": "epub-member-0003",
+              "resource_kind": "epub_member",
+              "sha256": "3f09c6c390aabc5ee924696c08b0314fffb62f05c43f3d6e03fb2ac1f4fb9e52",
+              "structural_role": "auxiliary_resource"
+            },
+            {
+              "byte_size": 986,
+              "locator": {
+                "container_order": 4,
+                "member_path": "OEBPS/pgepub.css"
+              },
+              "media_type": "text/css",
+              "resource_id": "epub-member-0004",
+              "resource_kind": "epub_member",
+              "sha256": "3fad3bf44c2283b3990bdb953ed1066b04184eb723cd585b9ddc1ba58e1770a7",
+              "structural_role": "auxiliary_resource"
+            },
+            {
+              "byte_size": 1535,
+              "locator": {
+                "container_order": 5,
+                "member_path": "OEBPS/0.css"
+              },
+              "media_type": "text/css",
+              "resource_id": "epub-member-0005",
+              "resource_kind": "epub_member",
+              "sha256": "7ad92450463f4023142f43a5ac88f6a389140577f0d97a1ee24cbfa7f0ada260",
+              "structural_role": "auxiliary_resource"
+            },
+            {
+              "byte_size": 1545,
+              "locator": {
+                "container_order": 6,
+                "member_path": "OEBPS/1.css"
+              },
+              "media_type": "text/css",
+              "resource_id": "epub-member-0006",
+              "resource_kind": "epub_member",
+              "sha256": "09b0d2b9797777999e40b3378c739c82fbcb005cb3bbc626cc21722aa1035aa2",
+              "structural_role": "auxiliary_resource"
+            },
+            {
+              "byte_size": 158949,
+              "content_fingerprint": {
+                "algorithm": "sha256",
+                "character_count": 139527,
+                "normalization": "unicode-nfc-whitespace-collapse",
+                "sha256": "848b4272cf09b528290bb78ca20c4e35886c3c022136f478bb4b7ab507cbd3f7"
+              },
+              "locator": {
+                "container_order": 7,
+                "member_path": "OEBPS/3723322922754755846_4363-h-0.htm.xhtml",
+                "spine_index": 2
+              },
+              "media_type": "application/xhtml+xml",
+              "resource_id": "epub-member-0007",
+              "resource_kind": "epub_member",
+              "sha256": "41b592b8ef7ad584c13484df2dadb62fc09b3816eb60f0e812b75b75f4b34a44",
+              "structural_role": "spine_resource"
+            },
+            {
+              "byte_size": 194789,
+              "content_fingerprint": {
+                "algorithm": "sha256",
+                "character_count": 176411,
+                "normalization": "unicode-nfc-whitespace-collapse",
+                "sha256": "73e58ea23d077046ed1fb96fcb691209247f30859fae9649d28bf4263a45dd23"
+              },
+              "locator": {
+                "container_order": 8,
+                "member_path": "OEBPS/3723322922754755846_4363-h-1.htm.xhtml",
+                "spine_index": 3
+              },
+              "media_type": "application/xhtml+xml",
+              "resource_id": "epub-member-0008",
+              "resource_kind": "epub_member",
+              "sha256": "3923e1a269bd6ca49d63f9ec1770c9a11202c31da1c42ea2b734e55d423f5762",
+              "structural_role": "spine_resource"
+            },
+            {
+              "byte_size": 73352,
+              "content_fingerprint": {
+                "algorithm": "sha256",
+                "character_count": 65141,
+                "normalization": "unicode-nfc-whitespace-collapse",
+                "sha256": "1e235a712c7402709b305ec22dba7ee063cabe5019b4420998bba41a90946347"
+              },
+              "locator": {
+                "container_order": 9,
+                "member_path": "OEBPS/3723322922754755846_4363-h-2.htm.xhtml",
+                "spine_index": 4
+              },
+              "media_type": "application/xhtml+xml",
+              "resource_id": "epub-member-0009",
+              "resource_kind": "epub_member",
+              "sha256": "689d6c278648cbc15e8da6e51921ee38db70f68c9805c7fa21fdff8bf9f43ab2",
+              "structural_role": "spine_resource"
+            },
+            {
+              "byte_size": 20018,
+              "content_fingerprint": {
+                "algorithm": "sha256",
+                "character_count": 18199,
+                "normalization": "unicode-nfc-whitespace-collapse",
+                "sha256": "f5ca819b2b2b1b82f947e3749aaa78e033630a054a0dc7d0562eb8a7175b5687"
+              },
+              "locator": {
+                "container_order": 10,
+                "member_path": "OEBPS/3723322922754755846_4363-h-3.htm.xhtml",
+                "spine_index": 5
+              },
+              "media_type": "application/xhtml+xml",
+              "resource_id": "epub-member-0010",
+              "resource_kind": "epub_member",
+              "sha256": "dab8d2f745ce25d0dd9282b802cba74b1774862818d2a657ef284b36a798614f",
+              "structural_role": "spine_resource"
+            },
+            {
+              "byte_size": 2961,
+              "content_fingerprint": {
+                "algorithm": "sha256",
+                "character_count": 456,
+                "normalization": "unicode-nfc-whitespace-collapse",
+                "sha256": "a5e4a70ac6538220f3a986f4b2cfd57648ad95f530a80de2f925f0f8a17ffbe7"
+              },
+              "locator": {
+                "container_order": 11,
+                "member_path": "OEBPS/toc.xhtml"
+              },
+              "media_type": "application/xhtml+xml",
+              "resource_id": "epub-member-0011",
+              "resource_kind": "epub_member",
+              "sha256": "afcdc08873edd6d277b6f222459546fe8684a3ea1c9ab17eb1bd030c27234832",
+              "structural_role": "navigation"
+            },
+            {
+              "byte_size": 3985,
+              "locator": {
+                "container_order": 12,
+                "member_path": "OEBPS/toc.ncx"
+              },
+              "media_type": "application/x-dtbncx+xml",
+              "resource_id": "epub-member-0012",
+              "resource_kind": "epub_member",
+              "sha256": "7d9cdb851867edca1fd5f9e4261943dd8bf65de688649f16ddc0b2f533a309e4",
+              "structural_role": "auxiliary_resource"
+            },
+            {
+              "byte_size": 559,
+              "content_fingerprint": {
+                "algorithm": "sha256",
+                "character_count": 7,
+                "normalization": "unicode-nfc-whitespace-collapse",
+                "sha256": "cab8efccf91a591cdffb997fb40f2bc19c4aeaa4f980e833a17477e9a910a4b0"
+              },
+              "locator": {
+                "container_order": 13,
+                "member_path": "OEBPS/wrap0000.xhtml",
+                "spine_index": 1
+              },
+              "media_type": "application/xhtml+xml",
+              "resource_id": "epub-member-0013",
+              "resource_kind": "epub_member",
+              "sha256": "e6ebd38177166d7fd588dde612bb2a08d48061152e7787ec8a931df595134a16",
+              "structural_role": "spine_resource"
+            },
+            {
+              "byte_size": 3117,
+              "locator": {
+                "container_order": 14,
+                "member_path": "OEBPS/content.opf"
+              },
+              "media_type": "application/oebps-package+xml",
+              "resource_id": "epub-member-0014",
+              "resource_kind": "epub_member",
+              "sha256": "3aa34037fc9b8052a06d987efc36a387e929c84f7c15ddb413fbecb5a6f2eeee",
+              "structural_role": "package_metadata"
+            }
+          ],
+          "summary": {
+            "image_resource_count": 1,
+            "member_count": 14,
+            "resource_count": 14,
+            "spine_item_count": 5,
+            "xhtml_count": 6
+          }
+        },
+        "inventory_limitation": null,
+        "item_forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.jenseits-gutenberg-4363-local-epub3-20260909.name-ru"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.jenseits-gutenberg-4363-local-epub3-20260909.source-note-ru"
+          }
+        ],
+        "item_kind": "derived_publication",
+        "operation": "item.adopt",
+        "reason": "Retain one already obtained EPUB File as a distinct provisional local Item of the existing electronic Edition, with an exact parent append and source-copy forms. Preserve the original bytes, previous Edition/Expression/Work versions and all older receipts; grant no textual, historical, rights, publication or canon admission.",
+        "record": {
+          "external_identifiers": [],
+          "field_languages": {
+            "notes": {
+              "language": "ru",
+              "script": "Cyrl"
+            },
+            "preferred_label": {
+              "language": "ru",
+              "script": "Cyrl"
+            }
+          },
+          "identity_status": "provisional",
+          "item_manifest_ref": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/en-zimmern-gutenberg-4363/editions/project-gutenberg-4363/items/local-epub3-20260909/item.manifest.json",
+          "notes": "Один отдельно полученный цифровой EPUB-контейнер электронного издания Project Gutenberg № 4363, а не исторический печатный экземпляр, класс переводов Helen Zimmern или все предлагаемые электронные форматы. Исходный файл pg4363-images-3.epub размером 238143 байта получен 9 сентября 2026 года из объявленного зеркала; SHA-256 9c894ce0ab9e1861b8326be82e95657e9d81d3a1ab3720a66b0649d156d019e1 связывает сохранённые локальные байты, но не удостоверяет неподписанную передачу от сервера. Проверены ZIP-каталог и CRC всех 14 членов, OPF, начальная часть заголовка с примечанием транскрибировщика и начало приложенной лицензии. OPF объявляет английский язык, Nietzsche как автора и Helen Zimmern как переводчика; эти объявления не являются полной проверкой текста или атрибуции. Дата выпуска 2003-08-01, обновление 2019-01-09 из заголовка и OPF modified 2026-09-02T14:33:23Z относятся к разным сообщениям провайдера; они не датируют сочинение или историческое издание. Примечание сообщает типографические, сносочные и орфографические изменения и общее издание Complete Works 1909–1913, не точный печатный источник. Полный философский текст, качество перевода и равенство другим форматам не оценивались. Байты сохраняются без изменения; их локальное размещение, перечисление ресурсов и публикация метаданных — отдельные события. Положительное заявление провайдера о public domain в США сохранено как свидетельство, не как собственное юридическое заключение для всех юрисдикций или разрешение передачи файла на публичный сайт. Метаданные имеют предварительный статус; содержательный допуск, право публикации payload и канонизация не предоставлены.",
+          "preferred_label": "По ту сторону добра и зла — локальный EPUB 3 Project Gutenberg № 4363, полученный 9 сентября 2026 года",
+          "record_id": "tos.item.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363.local-epub3-20260909",
+          "record_type": "item",
+          "record_version": 1,
+          "same_as_posture": "no_equivalence_claim",
+          "schema_version": "tos_corpus_record_v1",
+          "source_refs": [
+            "https://www.gutenberg.org/ebooks/4363",
+            "https://www.gutenberg.org/ebooks/4363.epub3.images",
+            "rsync://rsync.ibiblio.org/gutenberg-epub/4363/pg4363-images-3.epub"
+          ],
+          "supersedes_ref": null,
+          "variant_labels": []
+        },
+        "rights": {
+          "assessed_at": "2026-09-09T06:44:33Z",
+          "assessed_by": {
+            "agent_ref": "model:foundation-native-growth-source-review",
+            "maker_type": "model"
+          },
+          "assessment_status": "copyright_undetermined",
+          "derivative_posture": "local_research_only",
+          "jurisdictions_reviewed": [],
+          "license_uri": "https://www.gutenberg.org/policy/license.html",
+          "permissions": [],
+          "rationale": "Conservative local gate, not a legal determination or a finding that the provider prohibits ordinary use. The catalog and OPF positively declare a US public-domain posture; the attached license distinguishes US use, other jurisdictions, conditions and Project Gutenberg marks. No independent jurisdiction-wide or all-layer legal review was performed, so jurisdictions_reviewed remains empty and no permission is manufactured. Package OPF OEBPS/content.opf SHA-256 3aa34037fc9b8052a06d987efc36a387e929c84f7c15ddb413fbecb5a6f2eeee and the inspected initial license member OEBPS/3723322922754755846_4363-h-3.htm.xhtml SHA-256 dab8d2f745ce25d0dd9282b802cba74b1774862818d2a657ef284b36a798614f identify the retained observations; member hashes cover complete bytes, not a claim that every license paragraph was reviewed. This gate does not grant public payload publication or transfer to the future site.",
+          "record_version": 1,
+          "redistribution_posture": "not_authorized",
+          "restrictions": [
+            "Retain the original bytes, included license, provider marks and notices intact.",
+            "Local preservation and bounded research only; no public redistribution or remote/server payload transfer is authorized by this record.",
+            "Content-bearing derivatives require their own exact rights and visibility assessment; public-safe metadata is not payload publication."
+          ],
+          "review_status": "unreviewed",
+          "rights_id": "tos.rights.jenseits-gutenberg-4363.local-epub3-20260909",
+          "rights_statement_uri": null,
+          "schema_version": "tos_rights_record_v1",
+          "scope_refs": [
+            "tos.item.friedrich-nietzsche.jenseits-von-gut-und-boese.en-zimmern-gutenberg-4363.local-epub3-20260909",
+            "tos.file.sha256.9c894ce0ab9e1861b8326be82e95657e9d81d3a1ab3720a66b0649d156d019e1"
+          ],
+          "source_refs": [
+            "https://www.gutenberg.org/ebooks/4363",
+            "https://www.gutenberg.org/policy/license.html",
+            "tos.file.sha256.9c894ce0ab9e1861b8326be82e95657e9d81d3a1ab3720a66b0649d156d019e1"
+          ],
+          "supersedes_rights_ref": null,
+          "visibility": "local_only"
+        },
+        "schema_version": "tos_local_item_adoption_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:fd5e00f8798907518f8034815581b09faf4a54dada844c55cd3cf19bc8ba5813",
+        "selected_files": [
+          "edition.human-forms.json",
+          "edition.json",
+          "source-revision-history.json"
+        ]
+      }
+    }
+  ]
+}

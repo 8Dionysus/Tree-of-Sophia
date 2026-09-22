@@ -43,11 +43,7 @@ PROVENANCE_EVENT_ID = (
     "tos.event.annotation.zarathustra-morphology-context-b-v1.2026-08-10"
 )
 AUTHORITY_BOUNDARY = (
-    "one output-blind private raw-TEI context packet for a concrete "
-    "machine-only B disambiguation proposal; no accepted German, sentence, "
-    "tokenization, morphology, lemma, lexeme, normalization, sign, "
-    "translation, semantic claim, graph fact, canon effect, public route, or "
-    "human backlog"
+    "This output-blind private raw-TEI context packet supports the selected machine disambiguation proposal B."
 )
 ELEMENT_STEP = re.compile(r"^([A-Za-z_][A-Za-z0-9_.:-]*)(\[[1-9][0-9]*\])?$")
 TEXT_STEP = re.compile(r"^(text|tail)\(\)(\[[1-9][0-9]*\])?$")
@@ -605,7 +601,7 @@ def build_provenance(
             "paragraph and verse-group boundaries are transparent TEI context units, not accepted sentence or sense boundaries",
             "the packet admits only a machine B proposal after separate artifact and host gates",
             "C remains blocked because normalization is not decision-relevant to this episode",
-            "no German competence, accepted morphology, lemma, semantic effect, publication route, or human backlog is created",
+            "This event records the morphology context packet. German competence, morphology and lemma assessment, semantics, publication and human work retain their recorded states.",
         ],
         "receipt_refs": [
             receipt_path.relative_to(REPO_ROOT).as_posix(),

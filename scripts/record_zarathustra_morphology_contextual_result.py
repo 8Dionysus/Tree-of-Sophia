@@ -117,11 +117,7 @@ EXPECTED_PROVIDER = {
     "confidence_scores_exposed": False,
 }
 AUTHORITY_BOUNDARY = (
-    "This receipt proves one private, deterministic, source-bound contextual "
-    "provider execution and its measured resource cost. It does not accept a "
-    "German reading, token boundary, morphology, lemma, lexeme, sign, concept, "
-    "translation, semantic claim, relation, graph edge, canon effect, rights "
-    "clearance, publication route, winner, or human task."
+    "This receipt records one private, deterministic, source-bound contextual provider execution and its measured resource cost."
 )
 PROVENANCE_EVENT_REF = (
     "tos.event.annotation.zarathustra-morphology-context-b-result.2026-08-12"
@@ -837,7 +833,7 @@ def build_provenance(receipt: dict[str, Any], receipt_sha256: str) -> dict[str, 
             "provider output is an unreviewed machine proposal and German accuracy remains unmeasured",
             "source packet and raw provider output remain owner-local and redistribution-blocked",
             "the earlier denied artifact remains retained historical evidence rather than being rewritten",
-            "no linguistic, semantic, graph, canon, publication, or human-backlog authority was created",
+            "linguistic, semantic, graph, canon, publication and human-backlog decisions retain their existing owners and status",
         ],
         "receipt_refs": [RESULT_REF],
         "rights_basis_ref": None,

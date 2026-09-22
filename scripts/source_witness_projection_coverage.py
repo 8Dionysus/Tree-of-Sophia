@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Observe exact public catalog records in the ordinary normalized read model.
 
-Explicit offline scan, not a query hot path, new registry or content assessment.
+Run an explicit offline coverage scan over the selected source catalog.
 Rows disclose identities, source references, field names and mechanical states,
 not source wording. No payloads, native private identity inventory or grants
 are exported. A stream without its final summary is incomplete.
@@ -79,7 +79,7 @@ def _file_digest(path):
 
 
 def _catalog_objects(root, manifest):
-    """Read the entire verified source catalog, not a consumer's selected families."""
+    """Read the entire verified source catalog across all declared families."""
     objects = {}
     for kind, catalog_ref in manifest['record_files'].items():
         for _, entry in iter_jsonl(root / catalog_ref, root):
@@ -179,7 +179,7 @@ def coverage_report(root, graph, *, emit_row=None, verify_graph=None):
             'Direct/adapted mapping means exact retained JSON fields and source return, not semantic understanding.',
             'Source-file hashes bind observed bytes; a JSON carrier does not preserve file formatting.',
             'Historical versions, form quality, assessment, rights and canon require their separate owner routes.',
-            'The report compares this snapshot; it does not certify full generated, runtime or deployment currentness.',
+            "The report compares the selected snapshot. Generated artifacts, runtime and deployment have their own revision and currentness checks.",
             'Boundary rechecks do not provide an atomic snapshot against arbitrary non-cooperating editors.'],
         'performs_assessment': False, 'grants_admission': False, 'writes_to_source': False}
 

@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://tree-of-sophia.local/ToS/contracts/social-relation-claim.schema.json",
   "title": "Grounded social relationship with explicit scope",
-  "description": "This is a source-attributed relationship claim, not inference from co-presence, graph proximity, matching names or study of a person's text. Its required time note may explicitly state unknown bounds; it is not a normalized temporal assertion.",
+  "description": "A source-attributed social relationship with explicit grounds, social scope and historical time note. Unknown time bounds remain explicit; structured dating uses the temporal assertion contract.",
   "allOf": [
     {
       "$ref": "https://tree-of-sophia.local/ToS/contracts/source-claim-record.schema.json"
@@ -57,12 +57,12 @@
             "social_scope": {
               "type": "string",
               "pattern": "\\S",
-              "description": "The activity, affiliation or relational dimension actually asserted, including qualifications; not the person's whole life."
+              "description": "The activity, affiliation or relational dimension asserted, with its scope and qualifications."
             },
             "time_scope_note": {
               "type": "string",
               "pattern": "\\S",
-              "description": "The historical span or explicit absence of known bounds. Data capture time is not relationship time; prose does not create sortable date keys."
+              "description": "The relationship’s historical span or explicit unknown bounds. Record-capture time has its own provenance; structured temporal assertions supply sortable date keys."
             }
           }
         }

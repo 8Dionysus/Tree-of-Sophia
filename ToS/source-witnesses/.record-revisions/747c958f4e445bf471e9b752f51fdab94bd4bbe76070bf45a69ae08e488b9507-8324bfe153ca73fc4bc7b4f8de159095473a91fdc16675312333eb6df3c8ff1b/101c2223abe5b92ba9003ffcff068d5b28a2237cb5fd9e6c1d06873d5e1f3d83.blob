@@ -1,0 +1,82 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.claim.jgb-practice-method-value",
+    "version": 1,
+    "digest": "sha256:a8279bf4c927874a509458642a6f57cd1f062eb1e173d2223a9dccb73ed70dfd"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "",
+          "record": {
+            "digest": "sha256:a8279bf4c927874a509458642a6f57cd1f062eb1e173d2223a9dccb73ed70dfd",
+            "id": "tos.claim.jgb-practice-method-value",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/qualifiers/statement",
+          "record": {
+            "digest": "sha256:a8279bf4c927874a509458642a6f57cd1f062eb1e173d2223a9dccb73ed70dfd",
+            "id": "tos.claim.jgb-practice-method-value",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.jgb-practice-method-value.statement-ru",
+      "form_version": 1,
+      "language": "ru",
+      "revises": null,
+      "role": "statement",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:a8279bf4c927874a509458642a6f57cd1f062eb1e173d2223a9dccb73ed70dfd",
+        "id": "tos.claim.jgb-practice-method-value",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "jgb-practice:20260907:statement:jgb-practice-method-value",
+      "request_digest": "sha256:72820443ad63c128bc772ecb1c9370b914d61b56203080bc7ae86bbe002f6d64",
+      "principal_id": "agent:codex-tos-foundation",
+      "authority_ref": "operator:tos-foundation-v1-20260905",
+      "owner_configuration": "sha256:ebb49bd6784ade15776f33eab97257d1ce47ca0c79d3a12104af5316f71e4c2a",
+      "recorded_at": "2026-09-07T15:10:42.101791+00:00",
+      "source_contracts": {
+        "ToS/doctrine/semantic-interchange/relation-types.v1.json": "sha256:245483de93578952558e76259b93e87749a6f316f743eed4d7832ce3d6a3893d",
+        "ToS/contracts/semantic-relation-type-registry.schema.json": "sha256:2fc1c9b36d58d64dc628a5592eedfc5e90ab960fff55ba84f3d64e8b2a92a09e",
+        "ToS/doctrine/semantic-interchange/entity-types.v1.json": "sha256:44f66f427900462367df6c879d0906f6834e1a1604ab7c5a8d9d5b550afc4f2b",
+        "ToS/contracts/semantic-entity-type-registry.schema.json": "sha256:a6effb9f6339c237a994334df7389e04892a5ba7ddd54b4552b2e3dc78fae088",
+        "ToS/contracts/claim-packet.schema.json": "sha256:cc982ceeaa3a62dc8cb1367cd4b10cc76073b252a1ac5c9977f6b0ee6d47588c",
+        "ToS/contracts/knowledge-assessment.schema.json": "sha256:83163d105944db9a54bd57a8e730c3d459a00239de0df65cb63ac18c305e60be",
+        "ToS/contracts/source-claim-record.schema.json": "sha256:2c744903214248c4de29a17e1e21e67745cf838da46508cc05ec4dac6aa75430",
+        "ToS/contracts/corpus-record.schema.json": "sha256:baccf59bc5c6ffd1560848610ac812751d1e5182c89658814eeb2eedde4b6db1",
+        "ToS/contracts/semantic-relation-claim.schema.json": "sha256:49a82dbcacbc1c186a0fb51768fa84227bdd4b8c9a35bd93f7b2f86c4527563e"
+      },
+      "source": {
+        "id": "tos.claim.jgb-practice-method-value",
+        "version": 1,
+        "digest": "sha256:a8279bf4c927874a509458642a6f57cd1f062eb1e173d2223a9dccb73ed70dfd"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.jgb-practice-method-value.statement-ru",
+          "version": 1,
+          "digest": "sha256:adbcee78ea3c260f526c89f8ea25b2e3fded0bd9451617eb1a8b86655cdeb413"
+        }
+      ]
+    }
+  ]
+}

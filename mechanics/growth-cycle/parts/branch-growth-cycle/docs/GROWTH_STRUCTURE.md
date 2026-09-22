@@ -9,8 +9,8 @@ It should grow through explicit choices about nodes, branches, depth, and relati
 
 Growth counts when structure becomes clearer.
 
-More files, more fragments, or more notes do not automatically mean stronger growth.
-Healthy growth keeps source anchoring visible and makes the tree easier to traverse, not harder.
+Healthy growth strengthens source anchoring and makes the tree easier to
+traverse. Assess added files, fragments and notes by those effects.
 
 ## Three main growth moves
 
@@ -20,7 +20,7 @@ Deepen a node when:
 
 - the same source route remains central
 - the existing node can carry the added extraction, context, or interpretation cleanly
-- the new material clarifies rather than overloads the current authored surface
+- the new material clarifies the current authored surface while keeping it readable
 
 ### Create a new node
 

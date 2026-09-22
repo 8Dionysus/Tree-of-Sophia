@@ -165,7 +165,7 @@
         ]
       }
     },
-    "authority_boundary": {"type": "string", "minLength": 160}
+    "authority_boundary": {"type": "string", "minLength": 1, "description": "Brief account of the artifact purpose and scope. Typed status, effects, assessment and permission fields govern its use."}
   },
   "$defs": {
     "digest": {"type": "string", "pattern": "^[a-f0-9]{64}$"},

@@ -67,11 +67,7 @@ SUPERSEDED_EVENT_ID = (
     "jenseits-von-gut-und-boese.rights-refresh.2026-08-01"
 )
 AUTHORITY_BOUNDARY = (
-    "mechanical pairing of identical structural number-label keys already "
-    "materialized independently in two exact witness maps; no text comparison, "
-    "exact passage boundary, source-to-target passage alignment, translation "
-    "correspondence, equivalence or quality, semantics, rights clearance, or "
-    "canon authority"
+    "This map pairs identical structural number-label keys from two independently prepared exact witness maps."
 )
 DOES_NOT_ESTABLISH = [
     "source_text",
@@ -358,17 +354,14 @@ def build_outputs(
                 "accepted by this pairing route."
             ),
             (
-                "Shared numbering does not establish exact passage alignment, "
-                "translation correspondence, equivalence, quality, or semantics."
+                "Shared numbering supports structural navigation. Exact passage alignment, translation correspondence, equivalence, quality and semantics require their own source-visible assessment."
             ),
             (
                 "Source-only 237a remains unpaired because the target does not "
                 "materialize a repeated 237/237a label."
             ),
             (
-                "The superseding event refreshes the source rights-basis digest "
-                "after a layered assessment; it does not rerun payload or text "
-                "comparison and does not establish rights clearance."
+                "The superseding event refreshes the source rights-basis digest after a layered assessment. Payload and text comparison retain their earlier execution evidence; rights clearance follows its own owner decision."
             ),
         ],
         "receipt_refs": [MAP_PATH.as_posix()],
@@ -422,8 +415,7 @@ def main() -> int:
         path.write_text(rendered, encoding="utf-8")
     print("[ok] wrote 298 proposed shared-number-label pairing candidates")
     print(
-        "[boundary] no payload, text comparison, passage alignment, "
-        "translation equivalence, quality, or semantics"
+        "[scope] Shared structural label candidates from two independently prepared witness maps."
     )
     return 0
 

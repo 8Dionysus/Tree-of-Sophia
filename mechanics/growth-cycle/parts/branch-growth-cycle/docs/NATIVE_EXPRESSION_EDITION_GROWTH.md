@@ -15,12 +15,11 @@ remain retained. Work metadata, existing editions and descendants are not
 rewritten. The new Claim lives inside the new Edition home, never in the
 Expression's immutable `has_expression` source carrier.
 
-An Edition identifies a published or edited manifestation, not an acquired
-copy or downloaded file. The caller owns its explicit referent and evidence.
-Nothing infers a historical printing from an ebook identifier, a publication
-year from a download/update date, or translator responsibility for later
-editorial changes. Metadata, source visibility and serialization do not accept
-bibliographic identity, equivalence, rights, publication or canon.
+An Edition identifies a published or edited manifestation. The caller supplies
+its explicit referent and evidence, distinguishing historical printing from an
+ebook release, publication dates from download/update dates, and translator
+responsibility from later editorial changes. Bibliographic assessment,
+equivalence, rights, publication and canon follow their owner routes.
 
 The initial Edition is version 1, provisional, with `no_equivalence_claim`,
 no supersession, one explicit `embodies_expression_refs` backlink, unverified
@@ -31,11 +30,11 @@ public metadata, with no assessment admission. `observed` describes the declared
 record link only. Its evidence is exactly the two linked metadata paths and
 its qualified statement has explicit language and script.
 
-One Expression is this operation's bounded write set, not global bibliographic
-cardinality. Existing Editions may embody several Expressions or belong to a
-collection; an Edition need not yet have an Item. Attaching an existing Edition
-or creating an Item/File requires a separate owner route and grant. Do not
-duplicate an Edition merely to fit this creation operation.
+This operation writes one selected Expression. Existing Editions may embody
+several Expressions or belong to a collection, and an Edition may await
+acquisition of an Item. Attaching an existing Edition or creating an Item/File
+requires the corresponding owner route and grant. Reuse an existing Edition
+identity whenever the evidence identifies the same manifestation.
 
 ## Exact delegation and ABI
 

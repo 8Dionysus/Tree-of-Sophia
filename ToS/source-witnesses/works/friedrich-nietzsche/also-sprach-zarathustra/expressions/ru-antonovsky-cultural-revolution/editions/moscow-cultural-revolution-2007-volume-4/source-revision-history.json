@@ -1,0 +1,81 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.moscow-cultural-revolution-2007-volume-4",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:2274ee49477ea69a4ed6a4c9",
+      "request_digest": "sha256:3a994e9d1fc9aea9ee24c61cff24ef28803bb04521c94866ca2e254f3c608f24",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:0fbe1098e98aca229bcdfb15667c244aeebd62a1e16ef8adbea16400851fd053",
+      "recorded_at": "2026-09-22T05:08:56.049208+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.moscow-cultural-revolution-2007-volume-4",
+        "version": 3,
+        "digest": "sha256:d75a2987801c3478f59de7d7dc664efb429d0354fb81139143973181ed598389"
+      },
+      "source": {
+        "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.moscow-cultural-revolution-2007-volume-4",
+        "version": 4,
+        "digest": "sha256:d0d316974e5b312adc343f9ae3714e4700dbf66f7e5389fae66cb2fa66d8588b"
+      },
+      "previous_revision": "sha256:c769682a95db16e94607cf7225196f588b2c7b49df39a5e5eea14e94fc451c69",
+      "archive_path": "ToS/source-witnesses/.record-revisions/2274ee49477ea69a4ed6a4c9c9c55c1b22397b885135a85f0d3971804b78b749-c769682a95db16e94607cf7225196f588b2c7b49df39a5e5eea14e94fc451c69",
+      "dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+      "changed_fields": [
+        "notes"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.metadata.48f4a65a8ca7d6660c845ff8453bc0d39746a8ca5f6b7062028f63e423d7e44a",
+          "version": 2,
+          "digest": "sha256:919eff5f5330d604afafb9385d218577a54e1db1cebb26bf64e3d4f072de3bbc"
+        },
+        {
+          "id": "tos.form.metadata.efc67bf86b31d2d9ce207f722224d51f2722cda55d25d1406ca495edbf4519ce",
+          "version": 2,
+          "digest": "sha256:6ddf1e35b69068a2b7b7d1f25d31082166b7adbb5be461fb100f4f8bbfd2e217"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:2274ee49477ea69a4ed6a4c9",
+        "expected_configuration": "sha256:0fbe1098e98aca229bcdfb15667c244aeebd62a1e16ef8adbea16400851fd053",
+        "expected_dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+        "expected_publication": "sha256:6cbd57968e5edad6586df39a5cb41482434640273fd86543aa34b5880ea9322f",
+        "expected_revision": "sha256:c769682a95db16e94607cf7225196f588b2c7b49df39a5e5eea14e94fc451c69",
+        "expected_source": {
+          "digest": "sha256:d75a2987801c3478f59de7d7dc664efb429d0354fb81139143973181ed598389",
+          "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.moscow-cultural-revolution-2007-volume-4",
+          "version": 3
+        },
+        "fields": {
+          "notes": "The visible copyright page names editor E. V. Oznobkina and commentary translator A. G. Zhavoronkov. The RSL record reconciles the Edition identity; the operator-provided PDF has its own acquisition and fixity evidence."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.metadata.48f4a65a8ca7d6660c845ff8453bc0d39746a8ca5f6b7062028f63e423d7e44a"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.metadata.efc67bf86b31d2d9ce207f722224d51f2722cda55d25d1406ca495edbf4519ce"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:200f63b621d61c2d4ccf838329d298deda86744890d3b1d72b76d587f1cdfef3",
+        "selected_files": [
+          "edition.human-forms.json",
+          "edition.json",
+          "source-revision-history.json"
+        ]
+      }
+    }
+  ]
+}

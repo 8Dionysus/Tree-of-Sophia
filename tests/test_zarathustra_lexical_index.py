@@ -170,6 +170,16 @@ class ZarathustraLexicalIndexTests(unittest.TestCase):
         )
         cls.validation = VALIDATOR.validate()
 
+    def test_recorded_generator_is_bound_to_original_script_and_bytes(self):
+        generator = self.recurrence_projection["generator"]
+        self.assertEqual(generator["sha256"], VALIDATOR._recorded_generator_digest(
+            generator["ref"], generator["sha256"]
+        ))
+        for ref, digest in ((generator["ref"], "0" * 64),
+                            ("scripts/build_source_witness_catalog.py", generator["sha256"])):
+            with self.subTest(ref=ref, digest=digest), self.assertRaises(VALIDATOR.LexicalIndexValidationError):
+                VALIDATOR._recorded_generator_digest(ref, digest)
+
     def test_unicode_tokenizer_preserves_exact_forms_and_internal_joiners(self) -> None:
         text = "Über-Mensch O’Connor Straße 123 -- Wort"
         tokens = [
@@ -422,9 +432,9 @@ class ZarathustraLexicalIndexTests(unittest.TestCase):
             projection["source_projection"]["sha256"],
         )
         self.assertEqual(
-            hashlib.sha256(
-                (ROOT / projection["generator"]["ref"]).read_bytes()
-            ).hexdigest(),
+            VALIDATOR._recorded_generator_digest(
+                projection["generator"]["ref"], projection["generator"]["sha256"]
+            ),
             projection["generator"]["sha256"],
         )
         self.assertEqual(11352, projection["summary"]["row_count"])
@@ -606,9 +616,9 @@ class ZarathustraLexicalIndexTests(unittest.TestCase):
             receipt["plan"]["sha256"],
         )
         self.assertEqual(
-            hashlib.sha256(
-                (ROOT / receipt["generator"]["ref"]).read_bytes()
-            ).hexdigest(),
+            VALIDATOR._recorded_generator_digest(
+                receipt["generator"]["ref"], receipt["generator"]["sha256"]
+            ),
             receipt["generator"]["sha256"],
         )
         self.assertEqual(
@@ -794,7 +804,9 @@ class ZarathustraLexicalIndexTests(unittest.TestCase):
             receipt["plan_sha256"],
         )
         self.assertEqual(
-            hashlib.sha256((ROOT / receipt["generator_ref"]).read_bytes()).hexdigest(),
+            VALIDATOR._recorded_generator_digest(
+                receipt["generator_ref"], receipt["generator_sha256"]
+            ),
             receipt["generator_sha256"],
         )
         self.assertEqual(
@@ -851,9 +863,9 @@ class ZarathustraLexicalIndexTests(unittest.TestCase):
             result["plan"]["sha256"],
         )
         self.assertEqual(
-            hashlib.sha256(
-                (ROOT / result["generator"]["ref"]).read_bytes()
-            ).hexdigest(),
+            VALIDATOR._recorded_generator_digest(
+                result["generator"]["ref"], result["generator"]["sha256"]
+            ),
             result["generator"]["sha256"],
         )
         coverage = result["coverage"]

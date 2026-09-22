@@ -1,0 +1,94 @@
+{
+  "schema_version": "tos_source_revision_history_v1",
+  "record_id": "tos.intellectual-movement.lipsian-neostoicism",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:c8f3205f780976f06913331d",
+      "request_digest": "sha256:a6b5a4f7f86caf21933b62a893809be15bdd698becac5488411ee7b0a612179b",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:6ab9b710304aa6054bcb5417409e15a8e6e78d5277664697091123ca63dc1777",
+      "recorded_at": "2026-09-22T05:05:01.409741+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.intellectual-movement.lipsian-neostoicism",
+        "version": 1,
+        "digest": "sha256:a1fe4f735074c12f365f6a97e8e9307d90266b5b206b5c79a2702402d3d6c343"
+      },
+      "source": {
+        "id": "tos.intellectual-movement.lipsian-neostoicism",
+        "version": 2,
+        "digest": "sha256:99466391595aee9474e0297ce506bcb5febe5c9fdef4737c5f39844d8e56b01f"
+      },
+      "previous_revision": "sha256:9d0f94495cefa25810885d7962a50806ea08b126434569f2b6177f4ddbc15e7c",
+      "archive_path": "ToS/source-witnesses/.record-revisions/c8f3205f780976f06913331d7047da02bb8f581bf3f6881bcd23308d3b16e390-9d0f94495cefa25810885d7962a50806ea08b126434569f2b6177f4ddbc15e7c",
+      "dependencies": "sha256:224aa018c8de4b330c5d4cafcdd678899859a6fbb0c20231b2a8d64f8a8b89be",
+      "changed_fields": [
+        "notes",
+        "semantic_content",
+        "semantic_scope"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.intellectual-movement.lipsian-neostoicism.name-ru",
+          "version": 2,
+          "digest": "sha256:1ea7e968b0ef8b42ea33ced371250c828d6df73863204696289af40f0d3d4747"
+        },
+        {
+          "id": "tos.form.intellectual-movement.lipsian-neostoicism.name-alt",
+          "version": 2,
+          "digest": "sha256:f1f8018286e40f48a3659d35765ca749e618fd6f5bd02b4c7597b262ee313111"
+        },
+        {
+          "id": "tos.form.intellectual-movement.lipsian-neostoicism.note-ru",
+          "version": 2,
+          "digest": "sha256:303ab24f353f284cc07854def854b7d6918c1f350d6098fdb570cd22d3a461b9"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:c8f3205f780976f06913331d",
+        "expected_configuration": "sha256:6ab9b710304aa6054bcb5417409e15a8e6e78d5277664697091123ca63dc1777",
+        "expected_dependencies": "sha256:224aa018c8de4b330c5d4cafcdd678899859a6fbb0c20231b2a8d64f8a8b89be",
+        "expected_revision": "sha256:9d0f94495cefa25810885d7962a50806ea08b126434569f2b6177f4ddbc15e7c",
+        "expected_source": {
+          "digest": "sha256:a1fe4f735074c12f365f6a97e8e9307d90266b5b206b5c79a2702402d3d6c343",
+          "id": "tos.intellectual-movement.lipsian-neostoicism",
+          "version": 1
+        },
+        "fields": {
+          "notes": "Неостоицизм в линии Липсия: новое христианское прочтение римской стоической мысли. Рассматривается преобразование античного наследия в этой конкретной линии.",
+          "semantic_content": {
+            "formation_account": "Интеллектуальное движение, рассматриваемое здесь через проект Липсия и его De constantia.",
+            "language": "ru",
+            "movement_orientation": "Соединение стоического материала с христианским пониманием жизни в новой исторической трактовке.",
+            "script": "Cyrl"
+          },
+          "semantic_scope": {
+            "identity_criterion": "Идентичность определяется этой исторической линией переработки стоического материала; другие линии получают самостоятельные описания.",
+            "language": "ru",
+            "scope_note": "Исследовательский фокус на липсианском проекте конца XVI — начала XVII века, без полной карты последователей.",
+            "script": "Cyrl"
+          }
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.intellectual-movement.lipsian-neostoicism.name-ru"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.intellectual-movement.lipsian-neostoicism.name-alt"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.intellectual-movement.lipsian-neostoicism.note-ru"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    }
+  ]
+}

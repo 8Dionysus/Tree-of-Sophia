@@ -1,0 +1,94 @@
+{
+  "schema_version": "tos_source_revision_history_v1",
+  "record_id": "tos.intellectual-tradition.stoic-transmission",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:2008518a10bc3a7bea2e9dfc",
+      "request_digest": "sha256:40e80fea907dc451fee6a7490ca1097bdaedda0dd47d88051f92db129fe8444b",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:c392543810253ea55effe7f6d32a11943efd646ee6005a5b59b88404ef4009db",
+      "recorded_at": "2026-09-22T05:05:09.190435+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.intellectual-tradition.stoic-transmission",
+        "version": 1,
+        "digest": "sha256:11b19417053098650989bca4f6a78bb8f70c6c42c0da53535d6055f8ea6404f3"
+      },
+      "source": {
+        "id": "tos.intellectual-tradition.stoic-transmission",
+        "version": 2,
+        "digest": "sha256:85d3fb1b70be3d74df609b35c72e5407ce2c39fa8edee3fc1b7cb9379db95374"
+      },
+      "previous_revision": "sha256:85e3cf4862543cf745bb95dbd4100b2a93fffe5ab17a86b342a45dd3ae574c6c",
+      "archive_path": "ToS/source-witnesses/.record-revisions/2008518a10bc3a7bea2e9dfc145acabde8cf47c9e62652f763ead7a1c6ea963f-85e3cf4862543cf745bb95dbd4100b2a93fffe5ab17a86b342a45dd3ae574c6c",
+      "dependencies": "sha256:224aa018c8de4b330c5d4cafcdd678899859a6fbb0c20231b2a8d64f8a8b89be",
+      "changed_fields": [
+        "notes",
+        "semantic_content",
+        "semantic_scope"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.intellectual-tradition.stoic-transmission.name-ru",
+          "version": 2,
+          "digest": "sha256:3b02d2725acda9e8fc2491a41f028486a06a174db0ef27376ea4254de42ab772"
+        },
+        {
+          "id": "tos.form.intellectual-tradition.stoic-transmission.name-alt",
+          "version": 2,
+          "digest": "sha256:dc7be39b2db05f19031a0a43507a5dced9e2730f415a5cc3a08713a1d5168fe4"
+        },
+        {
+          "id": "tos.form.intellectual-tradition.stoic-transmission.note-ru",
+          "version": 2,
+          "digest": "sha256:3ca38ec8c195ee8c55fa08ab4b05645ba7df53ad4dad12831cd1d1156d718b38"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:2008518a10bc3a7bea2e9dfc",
+        "expected_configuration": "sha256:c392543810253ea55effe7f6d32a11943efd646ee6005a5b59b88404ef4009db",
+        "expected_dependencies": "sha256:224aa018c8de4b330c5d4cafcdd678899859a6fbb0c20231b2a8d64f8a8b89be",
+        "expected_revision": "sha256:85e3cf4862543cf745bb95dbd4100b2a93fffe5ab17a86b342a45dd3ae574c6c",
+        "expected_source": {
+          "digest": "sha256:11b19417053098650989bca4f6a78bb8f70c6c42c0da53535d6055f8ea6404f3",
+          "id": "tos.intellectual-tradition.stoic-transmission",
+          "version": 1
+        },
+        "fields": {
+          "notes": "Передача и переосмысление стоической мысли на протяжении нескольких исторических этапов, с учётом различий между их свидетельствами.",
+          "semantic_content": {
+            "formation_account": "Историческая преемственность учения через меняющиеся позиции, тексты и читателей.",
+            "language": "ru",
+            "script": "Cyrl",
+            "transmission_account": "Поздние свидетельства и римские произведения дают неодинаковый доступ к ранним стоикам; лакуны и спорные реконструкции сохраняются."
+          },
+          "semantic_scope": {
+            "identity_criterion": "Преемственность должна обосновываться историей передачи и прочтения; общее слово «стоический» само по себе недостаточно.",
+            "language": "ru",
+            "scope_note": "Древнегреческое и римское развитие с последующей рецепцией; начальная карта охватывает часть этой истории.",
+            "script": "Cyrl"
+          }
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.intellectual-tradition.stoic-transmission.name-ru"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.intellectual-tradition.stoic-transmission.name-alt"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.intellectual-tradition.stoic-transmission.note-ru"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    }
+  ]
+}

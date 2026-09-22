@@ -33,10 +33,7 @@ OUTPUT_SCHEMA = Path("ToS/contracts/lexical-recurrence-projection.schema.json")
 PROVENANCE_SCHEMA = Path("ToS/contracts/provenance-event.schema.json")
 GENERATOR_REF = "scripts/build_zarathustra_recurrence_projection.py"
 AUTHORITY_BOUNDARY = (
-    "deterministic hash-only exact-form recurrence observation over the current "
-    "tracked lexical projection; no accepted German, occurrence authority, "
-    "morphology, lemma, lexeme, translation, sign candidate, sign, concept, "
-    "relation, graph, canon, public route, or human backlog"
+    "This projection records deterministic hash-based exact-form recurrence observations from the selected lexical projection."
 )
 
 

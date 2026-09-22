@@ -3,8 +3,7 @@
 `source_responsibility_commands.py`, dispatched through `source_commands.py`,
 owns one separately delegated `translated_by` attachment from an existing
 Expression to an existing Agent. It uses the canonical relation registry and
-`tos_source_relation_claim_v1`; no second semantic store or new Claim schema is
-introduced. Its source reader profile is not a flat Claim-create grant.
+`tos_source_relation_claim_v1`, with its own compound attachment grant.
 
 ## Exact source change
 
@@ -39,9 +38,9 @@ explicit operation before this narrow command can grow into a family.
 
 `evidence_refs` and `counterevidence_refs` cite the attribution's declared
 evidence. They are checked against an exact protected allowlist. HTTP(S) URLs
-remain addresses, not proof of fetching, source reading, reliability or
-independent witnesses. Several pages from one provider do not become several
-independent attestations through this operation.
+locate sources; fetching, source reading, reliability and witness independence
+require their own evidence. Several pages from one provider retain that common
+provenance.
 
 The graph carries each external citation as a Claim-specific occurrence. Its
 top-level path, line and canonical hash identify the local citing Claim; the
@@ -104,12 +103,12 @@ catalog, form, dependency and lifecycle mechanics live in
 delta and complete before/after reconstruction. Old Work/Expression receipt
 serialization and historical replay remain unchanged.
 
-The new home retains the exact request, runtime capture, version-2 serialization
-provenance and `responsibility-attachment-receipt.json`. This is unsigned buffer
-capture, not proof that the caller read a source. Prepared or orphaned evidence
-does not establish a committed attachment. Current authority, expiry and exact
-dependencies are rechecked during new publication and recovery; an external
-third state is never overwritten by resume or rollback.
+The new home retains the exact request, runtime capture, version-2
+serialization provenance and `responsibility-attachment-receipt.json`. This
+unsigned capture records serialization; source reading requires its own
+evidence. The committed transaction establishes the attachment. Current
+authority, expiry and exact dependencies are rechecked during publication and
+recovery; resume and rollback reject an external third state.
 
 Historical verification requires the exact committed attachment plan, immutable
 capture bytes and its transition in the current Expression lineage. A later
@@ -128,16 +127,15 @@ writer bindings and older receipt reconstruction remain unchanged. Qualification
 is checked again before publishing the Claim successor; completed attachment
 replay reads that current verified successor while matching its original request.
 
-The foundation validator joins unchanged legacy responsibility streams and only
+The foundation validator joins unchanged legacy responsibility streams and
 verified native translator attachments, then checks exact parent/ref closure.
-It does not turn the union into acceptance of the attribution. Source review,
-translation judgment, equivalence, rights, publication and canon retain their
-actual owners.
+Source review, attribution and translation judgment, equivalence, rights,
+publication and canon follow their owner routes.
 
 ## Verification
 
-`mechanics/growth-cycle/tests/test_source_responsibility_commands.py` exercises
-the actual adapter and transaction engine on bounded synthetic metadata,
-including current grants, competing assertions, process death/recovery,
-historical raw-byte resolution and independent Claim corrections. It does not
-write the corpus or treat green mechanics as source admission.
+`mechanics/growth-cycle/tests/test_source_responsibility_commands.py`
+exercises the actual adapter and transaction engine on bounded synthetic
+metadata, including current grants, competing assertions, process
+death/recovery, historical raw-byte resolution and independent Claim
+corrections.

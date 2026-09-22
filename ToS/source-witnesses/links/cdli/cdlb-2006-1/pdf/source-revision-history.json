@@ -1,0 +1,81 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.link.cdli.cdlb-2006-1.pdf",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:dab7689d2e96153ac4e89588",
+      "request_digest": "sha256:255b3939d864ba17c5c72cbfac0800b1c97411007497095f8f5ebd7688a7dde0",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:8940088be27f8fdf0990994f7033bf2a32b5fa820ee8315bee63a761b62c0ace",
+      "recorded_at": "2026-09-22T05:06:02.675795+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.link.cdli.cdlb-2006-1.pdf",
+        "version": 1,
+        "digest": "sha256:d36c703c4a728405de4bc081eac035181e49c4191cedb33e8b43bb292c4546c6"
+      },
+      "source": {
+        "id": "tos.link.cdli.cdlb-2006-1.pdf",
+        "version": 2,
+        "digest": "sha256:fc1ed7a4313353ecffa9ff793470606bbadb4a72ee6d3b9506bde6e55c644a6c"
+      },
+      "previous_revision": "sha256:70e4fce14a7a8fdc4c0fd5ea1cb10991dec2b4641464bee7542ea5cda43be1ec",
+      "archive_path": "ToS/source-witnesses/.record-revisions/dab7689d2e96153ac4e895882e32c9be93f2bff4660dca94daf681e8835b7b45-70e4fce14a7a8fdc4c0fd5ea1cb10991dec2b4641464bee7542ea5cda43be1ec",
+      "dependencies": "sha256:cb46854196bd1ec502545bb6604152f3b74eefcb4f638814f5c384ef3b7118de",
+      "changed_fields": [
+        "notes"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.language-cleanup.dab7689d2e96153ac4e89588.name",
+          "version": 1,
+          "digest": "sha256:c93688f1c3753b95db9f45c458ac5386b9e10c1e23e75c8281968553f1fccef9"
+        },
+        {
+          "id": "tos.form.language-cleanup.dab7689d2e96153ac4e89588.note",
+          "version": 1,
+          "digest": "sha256:5d205b21830c6bc8db607f0320750a8121302e9f4180317ea77207f108cda248"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:dab7689d2e96153ac4e89588",
+        "expected_configuration": "sha256:8940088be27f8fdf0990994f7033bf2a32b5fa820ee8315bee63a761b62c0ace",
+        "expected_dependencies": "sha256:cb46854196bd1ec502545bb6604152f3b74eefcb4f638814f5c384ef3b7118de",
+        "expected_publication": "sha256:5145c82eb0585824e721cb6d79f17b92dbf0237f4b817baee16863e191d6b731",
+        "expected_revision": "sha256:70e4fce14a7a8fdc4c0fd5ea1cb10991dec2b4641464bee7542ea5cda43be1ec",
+        "expected_source": {
+          "digest": "sha256:d36c703c4a728405de4bc081eac035181e49c4191cedb33e8b43bb292c4546c6",
+          "id": "tos.link.cdli.cdlb-2006-1.pdf",
+          "version": 1
+        },
+        "fields": {
+          "notes": "Observed direct provider PDF route for the CDLI article."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.language-cleanup.dab7689d2e96153ac4e89588.name"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.language-cleanup.dab7689d2e96153ac4e89588.note"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:d862dbda245201d0fb32c8d2655faa0c51411195721513d254a6893f42c491d3",
+        "selected_files": [
+          "link.human-forms.json",
+          "link.json",
+          "source-revision-history.json"
+        ]
+      }
+    }
+  ]
+}

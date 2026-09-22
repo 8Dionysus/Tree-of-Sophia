@@ -2,8 +2,8 @@
 """Immutable local corpus revisions and atomic, validator-owned admission.
 
 Bytes and admission state live outside the software checkout. A revision is
-mechanically admitted only by the supplied *program-owned* validator; this
-transport does not assess source meaning, grant rights or promote canon.
+mechanically admitted only by the supplied *program-owned* validator; source
+meaning, rights and canon retain their respective owner decision routes.
 """
 from __future__ import annotations
 

@@ -63,7 +63,7 @@
               "method_account": {
                 "type": "string",
                 "pattern": "\\S",
-                "description": "What inquiry this method conducts and how; its description does not prove that it succeeds."
+                "description": "The inquiry this method conducts, how it proceeds and the basis for its claimed effectiveness."
               },
               "applicability_conditions": {
                 "type": "array",
@@ -71,7 +71,7 @@
                   "type": "string",
                   "pattern": "\\S"
                 },
-                "description": "Declared conditions for applying the method. An empty list records no known conditions, not unconditional applicability."
+                "description": "Declared conditions for applying the method. An empty list records that no conditions have been supplied; applicability remains subject to the source account and assessment."
               }
             }
           }
@@ -107,7 +107,7 @@
               "operation_account": {
                 "type": "string",
                 "pattern": "\\S",
-                "description": "What is done conceptually and what is not implied by doing it; no executable is selected."
+                "description": "The conceptual operation, its scope and the change it makes in the inquiry."
               },
               "prerequisites": {
                 "type": "array",
@@ -115,7 +115,7 @@
                   "type": "string",
                   "pattern": "\\S"
                 },
-                "description": "Source-described prerequisites; an empty list means none recorded, not proof that none exist."
+                "description": "Source-described prerequisites, with an empty list recording that none have been supplied."
               }
             }
           }
@@ -194,7 +194,7 @@
               "scenario_account": {
                 "type": "string",
                 "pattern": "\\S",
-                "description": "What is supposed for the inquiry; this is not a claim that the scenario occurred."
+                "description": "The scenario supposed for the inquiry, including its hypothetical setting and conditions."
               },
               "assumptions": {
                 "type": "array",
@@ -202,7 +202,7 @@
                   "type": "string",
                   "pattern": "\\S"
                 },
-                "description": "Conditions granted for examining the scenario, not accepted propositions; empty means none recorded."
+                "description": "Conditions granted hypothetically for examining the scenario; an empty list records that none have been supplied."
               },
               "assumption_coverage": {
                 "type": "string",
@@ -213,12 +213,12 @@
                   "claimed_complete",
                   "unknown"
                 ],
-                "description": "Declared coverage of recorded assumptions; claimed completeness is not mechanically established."
+                "description": "Declared coverage of recorded assumptions, with any completeness claim retaining its attributed research posture."
               },
               "examined_consequence": {
                 "type": "string",
                 "pattern": "\\S",
-                "description": "What consequence or possibility is examined under the stated assumptions; it is not an unconditional conclusion."
+                "description": "The consequence or possibility examined under the stated assumptions, retaining their conditional force."
               }
             }
           }
@@ -294,7 +294,7 @@
               "figure_account": {
                 "type": "string",
                 "pattern": "\\S",
-                "description": "The identified rhetorical arrangement and its role in the source, not a historical person or automatic interpretation."
+                "description": "The identified rhetorical arrangement and its expressive role in the source."
               }
             }
           }
@@ -332,12 +332,12 @@
               "figure_account": {
                 "type": "string",
                 "pattern": "\\S",
-                "description": "The identified rhetorical arrangement and its role in the source, not a historical person or automatic interpretation."
+                "description": "The identified rhetorical arrangement and its expressive role in the source."
               },
               "source_domain": {
                 "type": "string",
                 "pattern": "\\S",
-                "description": "The domain supplying the figurative presentation, not a bibliographic source locator."
+                "description": "The conceptual domain supplying the figurative presentation."
               },
               "target_domain": {
                 "type": "string",
@@ -388,7 +388,7 @@
               "valuation_context": {
                 "type": "string",
                 "pattern": "\\S",
-                "description": "Whose or which discourse's valuation is described; recording it does not adopt it."
+                "description": "The person, community or discourse whose valuation is described, with its particular context."
               }
             }
           }
@@ -424,7 +424,7 @@
               "ideal_account": {
                 "type": "string",
                 "pattern": "\\S",
-                "description": "The model or desired form and its limits; neither realization nor endorsement is implied."
+                "description": "The normative model or desired form and its limits, with realization posture stated separately."
               },
               "realization_posture": {
                 "type": "string",

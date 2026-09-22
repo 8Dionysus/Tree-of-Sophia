@@ -1,0 +1,81 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-reader-1899-uncredited",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:1d1e82f467a5f18143c95c7f",
+      "request_digest": "sha256:4f5836b273d1f0b445ae8fcfa14a0fa33cedebd5dceff5b4c1610d3a8407ea52",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:f8660e359c349db857dbe33d2bd53701c238371dc2e6e57a149a1b9c1722b891",
+      "recorded_at": "2026-09-22T05:09:02.287198+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-reader-1899-uncredited",
+        "version": 1,
+        "digest": "sha256:bf10d565ec911e20fb1ef73434ce2a32feaeb8c04320bed390e0d1f4f666e296"
+      },
+      "source": {
+        "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-reader-1899-uncredited",
+        "version": 2,
+        "digest": "sha256:85421254f9f82be4e6411d96501760f592acfed9b2a7ceb499c415301ba8fd92"
+      },
+      "previous_revision": "sha256:72e2429c4496bca7c89f1574c59a4c669af1edbf8c413abdb843d1af7aef63ac",
+      "archive_path": "ToS/source-witnesses/.record-revisions/1d1e82f467a5f18143c95c7fdfae10d5099bb8499ade685da6677c630a5b56fa-72e2429c4496bca7c89f1574c59a4c669af1edbf8c413abdb843d1af7aef63ac",
+      "dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+      "changed_fields": [
+        "notes"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.metadata.5cfa4db639e23776175c3249d21d3576a209f7f23505bdbdc883e75f53b27812",
+          "version": 2,
+          "digest": "sha256:2fca08263e1913b466ab00b06aa39fe15beb295016f1130ddd878a1fac96d872"
+        },
+        {
+          "id": "tos.form.metadata.38b4afc27721c46ea8df17ea7034b9574fe567b6f7e14cfd03a27e21ea91ea9e",
+          "version": 2,
+          "digest": "sha256:979b6cf7231c176710b0a1129174dd07b79a70a7ce35289bdeb90ba4bd17f79e"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:1d1e82f467a5f18143c95c7f",
+        "expected_configuration": "sha256:f8660e359c349db857dbe33d2bd53701c238371dc2e6e57a149a1b9c1722b891",
+        "expected_dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+        "expected_publication": "sha256:8816b39dac13d8d22c3ffafab0182f12900752897d8b711176befc299086ae82",
+        "expected_revision": "sha256:72e2429c4496bca7c89f1574c59a4c669af1edbf8c413abdb843d1af7aef63ac",
+        "expected_source": {
+          "digest": "sha256:bf10d565ec911e20fb1ef73434ce2a32feaeb8c04320bed390e0d1f4f666e296",
+          "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-reader-1899-uncredited",
+          "version": 1
+        },
+        "fields": {
+          "notes": "The source-visible title page describes a Russian translation from German and leaves the translator unnamed. A contemporary 1901 report associates the Reader book with material reprinted from the New Journal and thus with Antonovsky’s historical route. Responsibility and derivation remain unresolved pending source-page attribution or collation; the Expression retains a provisional identity."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.metadata.5cfa4db639e23776175c3249d21d3576a209f7f23505bdbdc883e75f53b27812"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.metadata.38b4afc27721c46ea8df17ea7034b9574fe567b6f7e14cfd03a27e21ea91ea9e"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:49c21680aa97692bf4ca75d294134c780e1137e637196e223ef68318aebed593",
+        "selected_files": [
+          "expression.human-forms.json",
+          "expression.json",
+          "source-revision-history.json"
+        ]
+      }
+    }
+  ]
+}

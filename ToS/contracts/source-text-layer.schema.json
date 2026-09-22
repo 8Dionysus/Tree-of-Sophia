@@ -43,9 +43,7 @@
     "uncertainty": {"$ref": "#/$defs/uncertainty"},
     "admission": {"$ref": "#/$defs/admission"},
     "provenance_event_ref": {"$ref": "#/$defs/eventId"},
-    "authority_boundary": {
-      "const": "a source text layer is one immutable, source-returnable representation with explicit derivation, uncertainty, review, competence, rights, and use scope; mechanical validation, model output, normalization, or agreement with another layer does not make it accepted source text, translation evidence, linguistic truth, semantic evidence, graph truth, canon authority, or publication permission"
-    },
+    "authority_boundary": {"type": "string", "minLength": 1, "description": "Brief account of the artifact purpose and scope. Typed status, effects, assessment and permission fields govern its use."},
     "layer_version": {"type": "integer", "minimum": 1},
     "supersedes_layer_ref": {
       "oneOf": [

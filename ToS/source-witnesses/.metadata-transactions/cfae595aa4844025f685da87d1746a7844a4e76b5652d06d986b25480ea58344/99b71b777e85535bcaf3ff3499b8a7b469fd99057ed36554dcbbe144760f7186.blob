@@ -1,0 +1,90 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.agent.morris-jastrow-jr",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:9ec2f59c16952e577c38ecec",
+      "request_digest": "sha256:4189635179569ef774d5628189d8a53318fce635accfca02cfebbc91ae54e808",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:0f3e73f4b362896b92bd4b3c1af3ada4d81f77feb0ae818f79ae7ac0dc933afc",
+      "recorded_at": "2026-09-22T05:04:15.497608+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.agent.morris-jastrow-jr",
+        "version": 1,
+        "digest": "sha256:e829813107dcaea54403e98575ae5f42253eaccaf9ab7ae019e33ed561328445"
+      },
+      "source": {
+        "id": "tos.agent.morris-jastrow-jr",
+        "version": 2,
+        "digest": "sha256:80215a3dbdb522bc84952f10e678acf221676602c50863a10c6015c7a056b474"
+      },
+      "previous_revision": "sha256:4b2eed2f0dccd6f61239a53c0b6f82d40903d1fe214f73f809d678b46f981763",
+      "archive_path": "ToS/source-witnesses/.record-revisions/9ec2f59c16952e577c38ecec75473f9c2aec7461616971c959cb5db28b6f58e4-4b2eed2f0dccd6f61239a53c0b6f82d40903d1fe214f73f809d678b46f981763",
+      "dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+      "changed_fields": [
+        "notes"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.metadata.cdaf288f57e120fdaae83f31736ffbdd23d7e512ea088f74ba6faade7cefda26",
+          "version": 2,
+          "digest": "sha256:1d12fe2073d3b0411e348a899cc63040f9fa3c2177a2b9f7adb712c2a5a6e4ca"
+        },
+        {
+          "id": "tos.form.metadata.460da7d3a9f132cfcd13f5f9492ed81154994a3d6c0a8333764e95f9808ebf62",
+          "version": 2,
+          "digest": "sha256:d6b0659de96eed649643b674aaaf6c255a2fe2838d80cdbc3127d4f1f3db2825"
+        },
+        {
+          "id": "tos.form.metadata.6774ae7a08f90c8010591c7e0fae5e918591360b7b2dda1e7b335d366d9132d3",
+          "version": 2,
+          "digest": "sha256:9bd8ac1733101e107de8a899e66bcfe61ed2debc38b73ef96efc412de7c28293"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:9ec2f59c16952e577c38ecec",
+        "expected_configuration": "sha256:0f3e73f4b362896b92bd4b3c1af3ada4d81f77feb0ae818f79ae7ac0dc933afc",
+        "expected_dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+        "expected_publication": "sha256:075d959f19255095dd6793637c44433e6ada8d9c4b4e0b854972ef2afe7dca43",
+        "expected_revision": "sha256:4b2eed2f0dccd6f61239a53c0b6f82d40903d1fe214f73f809d678b46f981763",
+        "expected_source": {
+          "digest": "sha256:e829813107dcaea54403e98575ae5f42253eaccaf9ab7ae019e33ed561328445",
+          "id": "tos.agent.morris-jastrow-jr",
+          "version": 1
+        },
+        "fields": {
+          "notes": "Authority sources identify the assyriologist Morris Jastrow, Jr. (1861-08-13–1921-06-22). This record supports bibliographic responsibility claims for his publications."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.metadata.cdaf288f57e120fdaae83f31736ffbdd23d7e512ea088f74ba6faade7cefda26"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.metadata.460da7d3a9f132cfcd13f5f9492ed81154994a3d6c0a8333764e95f9808ebf62"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.metadata.6774ae7a08f90c8010591c7e0fae5e918591360b7b2dda1e7b335d366d9132d3"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:cfae595aa4844025f685da87d1746a7844a4e76b5652d06d986b25480ea58344",
+        "selected_files": [
+          "agent.human-forms.json",
+          "agent.json",
+          "source-revision-history.json"
+        ]
+      }
+    }
+  ]
+}

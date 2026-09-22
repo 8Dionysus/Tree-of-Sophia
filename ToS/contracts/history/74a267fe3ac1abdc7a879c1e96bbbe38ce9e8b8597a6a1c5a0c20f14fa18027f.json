@@ -1,0 +1,465 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/bounded-translation-research-input.schema.json",
+  "title": "Tree of Sophia bounded local translation research input",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "packet_id",
+    "status",
+    "prepared_at",
+    "work_ref",
+    "target",
+    "bindings",
+    "source_derivation",
+    "local_artifact",
+    "machine_corroboration",
+    "experiment_scope",
+    "rights_and_visibility",
+    "gate_effects",
+    "authority_boundary",
+    "does_not_establish"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://tree-of-sophia.local/ToS/contracts/bounded-translation-research-input.schema.json"
+    },
+    "schema_version": {
+      "const": "tos_bounded_translation_research_input_v1"
+    },
+    "packet_id": {
+      "const": "tos.bounded-translation-research-input.za-i-vorrede-1-opening-sentence.v1"
+    },
+    "status": {
+      "const": "eligible_for_local_machine_calibration"
+    },
+    "prepared_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "work_ref": {
+      "const": "tos.work.friedrich-nietzsche.also-sprach-zarathustra"
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "review_unit_id",
+        "context_anchor_ref",
+        "critical_locator_siglum",
+        "unit_kind",
+        "unit_ordinal"
+      ],
+      "properties": {
+        "review_unit_id": {
+          "const": "tos-translation-source-review-v2-001"
+        },
+        "context_anchor_ref": {
+          "const": "tos.anchor.zarathustra-translation-pilot-v1.t001"
+        },
+        "critical_locator_siglum": {
+          "const": "Za-I-Vorrede-1"
+        },
+        "unit_kind": {
+          "const": "first-complete-sentence"
+        },
+        "unit_ordinal": {
+          "const": 1
+        }
+      }
+    },
+    "bindings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "corpus_decision",
+        "admission_research",
+        "source_review_plan",
+        "accepted_translation_plan",
+        "german_source_triangulation",
+        "preexisting_authored_canon_node",
+        "preexisting_public_compatibility_mirror",
+        "dta_item_manifest",
+        "dta_rights_record"
+      ],
+      "properties": {
+        "corpus_decision": {
+          "$ref": "#/$defs/digestBoundRef"
+        },
+        "admission_research": {
+          "$ref": "#/$defs/digestBoundRef"
+        },
+        "source_review_plan": {
+          "$ref": "#/$defs/digestBoundRef"
+        },
+        "accepted_translation_plan": {
+          "$ref": "#/$defs/digestBoundRef"
+        },
+        "german_source_triangulation": {
+          "$ref": "#/$defs/digestBoundRef"
+        },
+        "preexisting_authored_canon_node": {
+          "$ref": "#/$defs/digestBoundRef"
+        },
+        "preexisting_public_compatibility_mirror": {
+          "$ref": "#/$defs/digestBoundRef"
+        },
+        "dta_item_manifest": {
+          "$ref": "#/$defs/digestBoundRef"
+        },
+        "dta_rights_record": {
+          "$ref": "#/$defs/digestBoundRef"
+        }
+      }
+    },
+    "source_derivation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_role",
+        "item_ref",
+        "file_ref",
+        "file_sha256",
+        "payload_relative_path",
+        "selector",
+        "transformations",
+        "model_used_for_boundary_or_text",
+        "source_text_emitted_to_tracked_packet"
+      ],
+      "properties": {
+        "source_role": {
+          "const": "registered_dta_provider_transcription"
+        },
+        "item_ref": {
+          "const": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5"
+        },
+        "file_ref": {
+          "const": "tos.file.sha256.d3fa5f8af39d87c8f0ede7a0b52b26da0c57e73125d3b0bd2a836b80eae24a4b"
+        },
+        "file_sha256": {
+          "const": "d3fa5f8af39d87c8f0ede7a0b52b26da0c57e73125d3b0bd2a836b80eae24a4b"
+        },
+        "payload_relative_path": {
+          "const": "works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/payload/nietzsche_zarathustra01_1883.tei.xml"
+        },
+        "selector": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "section",
+            "paragraph_ordinal",
+            "sentence_ordinal",
+            "boundary_rule"
+          ],
+          "properties": {
+            "kind": {
+              "const": "tei-structural-plus-deterministic-sentence-boundary"
+            },
+            "section": {
+              "const": "TEI/text[1]/body[1]/div[1]/div[1]"
+            },
+            "paragraph_ordinal": {
+              "const": 1
+            },
+            "sentence_ordinal": {
+              "const": 1
+            },
+            "boundary_rule": {
+              "const": "first-full-stop-inclusive-after-source-aware-dta-dehyphenation"
+            }
+          }
+        },
+        "transformations": {
+          "type": "array",
+          "prefixItems": [
+            {
+              "const": "remove_dta_printed_hyphen_marker_u00ac_and_following_whitespace"
+            },
+            {
+              "const": "select_first_full_stop_inclusive"
+            },
+            {
+              "const": "collapse_unicode_whitespace_to_ascii_space"
+            }
+          ],
+          "items": false,
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "model_used_for_boundary_or_text": {
+          "const": false
+        },
+        "source_text_emitted_to_tracked_packet": {
+          "const": false
+        }
+      }
+    },
+    "local_artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ref",
+        "artifact_sha256",
+        "artifact_byte_size",
+        "source_text_sha256",
+        "source_text_codepoints",
+        "normalized_alpha_tokens",
+        "normalized_sequence_sha256",
+        "gitignored",
+        "source_text_copied_into_tracked_admission",
+        "source_text_present_locally"
+      ],
+      "properties": {
+        "ref": {
+          "$ref": "#/$defs/repoRef"
+        },
+        "artifact_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "artifact_byte_size": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "source_text_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "source_text_codepoints": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "normalized_alpha_tokens": {
+          "const": 20
+        },
+        "normalized_sequence_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "gitignored": {
+          "const": true
+        },
+        "source_text_copied_into_tracked_admission": {
+          "const": false
+        },
+        "source_text_present_locally": {
+          "const": true
+        }
+      }
+    },
+    "machine_corroboration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dta_ekgwb_whitespace_collapsed_exact",
+        "dta_ekgwb_normalized_tokens_exact",
+        "naumann_first_twenty_normalized_tokens_exact",
+        "ekgwb_is_one_way_corroboration_only",
+        "philological_acceptance_performed"
+      ],
+      "properties": {
+        "dta_ekgwb_whitespace_collapsed_exact": {
+          "const": true
+        },
+        "dta_ekgwb_normalized_tokens_exact": {
+          "const": true
+        },
+        "naumann_first_twenty_normalized_tokens_exact": {
+          "const": true
+        },
+        "ekgwb_is_one_way_corroboration_only": {
+          "const": true
+        },
+        "philological_acceptance_performed": {
+          "const": false
+        }
+      }
+    },
+    "experiment_scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "purpose",
+        "runtime_owner",
+        "environment",
+        "allowed_uses",
+        "recognized_comparator_visible",
+        "preexisting_authored_translation_surfaces_visible",
+        "outputs_are_candidates_only"
+      ],
+      "properties": {
+        "purpose": {
+          "const": "translation_method_calibration"
+        },
+        "runtime_owner": {
+          "const": "abyss-stack"
+        },
+        "environment": {
+          "const": "local-only"
+        },
+        "allowed_uses": {
+          "type": "array",
+          "prefixItems": [
+            {
+              "const": "blind-ai-only-model-prompt-decoding-calibration"
+            },
+            {
+              "const": "runtime-cost-speed-and-resource-measurement"
+            },
+            {
+              "const": "source-return-and-reproducibility-checks"
+            },
+            {
+              "const": "operator-russian-readability-rhythm-and-usefulness-feedback"
+            },
+            {
+              "const": "sourced-or-unresolved-machine-analysis-proposals"
+            }
+          ],
+          "items": false,
+          "minItems": 5,
+          "maxItems": 5
+        },
+        "recognized_comparator_visible": {
+          "const": false
+        },
+        "preexisting_authored_translation_surfaces_visible": {
+          "const": false
+        },
+        "outputs_are_candidates_only": {
+          "const": true
+        }
+      }
+    },
+    "rights_and_visibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dta_rights_posture",
+        "human_rights_review",
+        "local_research_only",
+        "source_or_derivative_redistribution_authorized_by_this_route",
+        "public_site_upload_authorized",
+        "tracked_packet_contains_source_text"
+      ],
+      "properties": {
+        "dta_rights_posture": {
+          "enum": [
+            "conflicting-provider-fields-unreviewed",
+            "licensed-current-header-and-terms-stale-oai-preserved-unreviewed"
+          ]
+        },
+        "human_rights_review": {
+          "const": false
+        },
+        "local_research_only": {
+          "const": true
+        },
+        "source_or_derivative_redistribution_authorized_by_this_route": {
+          "const": false
+        },
+        "public_site_upload_authorized": {
+          "const": false
+        },
+        "tracked_packet_contains_source_text": {
+          "const": false
+        }
+      }
+    },
+    "gate_effects": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "bounded_local_research_inputs",
+        "human_debt_units",
+        "accepted_german_units",
+        "accepted_translation_lanes_opened",
+        "semantic_tasks_opened",
+        "canon_or_graph_promotion_authorized"
+      ],
+      "properties": {
+        "bounded_local_research_inputs": {
+          "const": 1
+        },
+        "human_debt_units": {
+          "const": 0
+        },
+        "accepted_german_units": {
+          "const": 0
+        },
+        "accepted_translation_lanes_opened": {
+          "type": "array",
+          "maxItems": 0
+        },
+        "semantic_tasks_opened": {
+          "const": 0
+        },
+        "canon_or_graph_promotion_authorized": {
+          "const": false
+        }
+      }
+    },
+    "authority_boundary": {
+      "const": "one exact local DTA-derived string is eligible only for blind local machine-method calibration; the packet grants no German, translation, semantic, rights, graph, or canon authority"
+    },
+    "does_not_establish": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "const": "philologically_accepted_source"
+        },
+        {
+          "const": "accepted_german_orthography_or_grammar"
+        },
+        {
+          "const": "translation_fidelity_or_quality"
+        },
+        {
+          "const": "accepted_translation_lane"
+        },
+        {
+          "const": "rights_clearance_or_redistribution"
+        },
+        {
+          "const": "semantic_sign_or_relation"
+        },
+        {
+          "const": "graph_truth_or_canon_promotion"
+        },
+        {
+          "const": "preexisting_authored_canon_source_revalidated"
+        }
+      ],
+      "items": false,
+      "minItems": 8,
+      "maxItems": 8
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "repoRef": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?![A-Za-z][A-Za-z0-9+.-]*:)(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[^\\u0000]+$"
+    },
+    "digestBoundRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ref",
+        "sha256"
+      ],
+      "properties": {
+        "ref": {
+          "$ref": "#/$defs/repoRef"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    }
+  }
+}

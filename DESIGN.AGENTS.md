@@ -7,7 +7,7 @@ This document names how agent-facing guidance should look inside
 
 An agent card is inherited prompt-visible route law: role, input, output,
 owner, next route, semantic stop-lines, and the name of an on-demand
-verification route. It does not carry the procedure body.
+verification route. The named route owns the procedure body.
 
 ## Thesis
 
@@ -50,8 +50,8 @@ when that function is relevant.
 The package-level model-facing route and owner-port map lives in
 [.agents/README](.agents/README.md), with its authored machine companion at
 [.agents/agent-surface.manifest.json](.agents/agent-surface.manifest.json).
-Those surfaces describe progressive loading and handoff; they do not replace
-the nearer card or a stronger AoA owner.
+Those surfaces describe progressive loading and handoff to the nearer card and
+the responsible AoA owner.
 
 The nearer card owns local risk. The root card owns repository identity and the
 route back to stronger owners.
@@ -69,11 +69,11 @@ The machine-readable route map is
 [`docs/validation/agents_route_inventory.json`](docs/validation/agents_route_inventory.json).
 The generated companion
 `.agents/agents-route.current.json` records tracked/discovered parity,
-inheritance stacks, hashes, and context budgets. The deterministic
-`scripts/agents_route_harness.py` evaluates declared task routes and explicitly
-makes no model, semantic, or human time-to-owner claim. `DESIGN.AGENTS.md` is
-the shape reference, not an inherited card; `docs/AGENTS_ROOT_REFERENCE.md`
-is preserved historical law and not a competing root.
+inheritance stacks, hashes, and context budgets. The deterministic `scripts/agents_route_harness.py` evaluates declared task
+routes. Model behavior, semantic assessment and human time-to-owner require
+their own evaluations. `DESIGN.AGENTS.md` provides the shape reference;
+`docs/AGENTS_ROOT_REFERENCE.md` preserves historical law. Active inheritance
+begins at the root `AGENTS.md`.
 
 ## Movement
 
@@ -90,8 +90,7 @@ Good agent movement in ToS:
 
 ## Golden-Kernel Work Cards
 
-Agent guidance for a Zarathustra gold slice must be operational rather than
-merely inspirational. The nearest card should let the agent determine:
+Agent guidance for a Zarathustra gold slice must describe concrete operations. The nearest card should let the agent determine:
 
 | Field | Required answer |
 | --- | --- |

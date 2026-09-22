@@ -1,0 +1,463 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/translation-reference-register.schema.json",
+  "title": "Tree of Sophia translation reference research register",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "register_id",
+    "work_ref",
+    "laboratory_plan_ref",
+    "research_snapshot",
+    "status",
+    "research_order",
+    "selection_law",
+    "required_categories",
+    "entries",
+    "coverage",
+    "authority_boundary"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://tree-of-sophia.local/ToS/contracts/translation-reference-register.schema.json"
+    },
+    "schema_version": {
+      "const": "tos_translation_reference_register_v1"
+    },
+    "register_id": {
+      "type": "string",
+      "pattern": "^tos\\.translation-reference-register\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "work_ref": {
+      "$ref": "#/$defs/tosId"
+    },
+    "laboratory_plan_ref": {
+      "$ref": "#/$defs/repoRef"
+    },
+    "research_snapshot": {
+      "type": "string",
+      "format": "date"
+    },
+    "status": {
+      "const": "researched-not-content-admitted"
+    },
+    "research_order": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "prefixItems": [
+        {"const": "classical-official-documentation"},
+        {"const": "established-scholarly-resources"},
+        {"const": "current-access-rights-and-version-surfaces"}
+      ],
+      "items": false
+    },
+    "selection_law": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reference_witness_is_not_ground_truth",
+        "bibliographic_identity_precedes_textual_equivalence",
+        "citation_permission_is_not_ingestion_permission",
+        "resource_license_does_not_replace_item_review",
+        "recognized_translation_stays_sealed_until_independent_lanes_freeze",
+        "model_memory_is_not_lexical_or_etymological_evidence",
+        "no_entry_is_accepted_translation_etymology_or_semantic_truth"
+      ],
+      "properties": {
+        "reference_witness_is_not_ground_truth": {"const": true},
+        "bibliographic_identity_precedes_textual_equivalence": {"const": true},
+        "citation_permission_is_not_ingestion_permission": {"const": true},
+        "resource_license_does_not_replace_item_review": {"const": true},
+        "recognized_translation_stays_sealed_until_independent_lanes_freeze": {
+          "const": true
+        },
+        "model_memory_is_not_lexical_or_etymological_evidence": {"const": true},
+        "no_entry_is_accepted_translation_etymology_or_semantic_truth": {
+          "const": true
+        }
+      }
+    },
+    "required_categories": {
+      "type": "array",
+      "minItems": 9,
+      "maxItems": 9,
+      "uniqueItems": true,
+      "prefixItems": [
+        {"const": "historical_dictionary"},
+        {"const": "modern_dictionary"},
+        {"const": "etymological_dictionary"},
+        {"const": "historical_corpus"},
+        {"const": "nietzsche_critical_edition"},
+        {"const": "nietzsche_lexical_resource"},
+        {"const": "recognized_ru_translation_candidate"},
+        {"const": "additional_ru_translation_candidate"},
+        {"const": "additional_en_translation_candidate"}
+      ],
+      "items": false
+    },
+    "entries": {
+      "type": "array",
+      "minItems": 9,
+      "items": {
+        "$ref": "#/$defs/entry"
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "required_category_count",
+        "entry_count",
+        "all_required_categories_present",
+        "content_admitted_entries",
+        "human_bibliographic_reviews",
+        "human_rights_reviews",
+        "permission_requests_sent"
+      ],
+      "properties": {
+        "required_category_count": {"const": 9},
+        "entry_count": {"type": "integer", "minimum": 9},
+        "all_required_categories_present": {"const": true},
+        "content_admitted_entries": {"const": 0},
+        "human_bibliographic_reviews": {"const": 0},
+        "human_rights_reviews": {"const": 0},
+        "permission_requests_sent": {"const": 0}
+      }
+    },
+    "authority_boundary": {
+      "const": "research register only: entries are versioned reference candidates, not admitted corpus bytes, accepted dictionary senses, accepted etymologies, accepted translations, semantic truth, or permission grants"
+    }
+  },
+  "$defs": {
+    "tosId": {
+      "type": "string",
+      "pattern": "^tos\\.(work|expression|edition|collection|item|file|rights)\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "repoRef": {
+      "type": "string",
+      "pattern": "^ToS/[A-Za-z0-9._/-]+$"
+    },
+    "uriOrNull": {
+      "anyOf": [
+        {"type": "string", "format": "uri"},
+        {"type": "null"}
+      ]
+    },
+    "responsibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "institutions",
+        "publishers",
+        "authors",
+        "editors",
+        "translators"
+      ],
+      "properties": {
+        "institutions": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "publishers": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "authors": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "editors": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "translators": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "dating": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "original_or_coverage_date",
+        "edition_or_version",
+        "verified_at"
+      ],
+      "properties": {
+        "original_or_coverage_date": {"type": "string", "minLength": 1},
+        "edition_or_version": {"type": "string", "minLength": 1},
+        "verified_at": {"type": "string", "format": "date"}
+      }
+    },
+    "identifier": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scheme", "value"],
+      "properties": {
+        "scheme": {"type": "string", "minLength": 1},
+        "value": {"type": "string", "minLength": 1}
+      }
+    },
+    "access": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "access_state",
+        "acquisition_state",
+        "content_ingested_for_translation_lab",
+        "access_request_required_before_content_use",
+        "contact_routes",
+        "request_state"
+      ],
+      "properties": {
+        "access_state": {
+          "enum": [
+            "open-web",
+            "open-download-candidate",
+            "local-only",
+            "institutional-or-purchase",
+            "subscription-or-permission",
+            "metadata-only"
+          ]
+        },
+        "acquisition_state": {
+          "enum": [
+            "web-consultation-only",
+            "local-item-registered",
+            "not-acquired",
+            "metadata-only"
+          ]
+        },
+        "content_ingested_for_translation_lab": {"const": false},
+        "access_request_required_before_content_use": {"type": "boolean"},
+        "contact_routes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "format": "uri"}
+        },
+        "request_state": {
+          "enum": [
+            "not-required-for-web-consultation",
+            "prepared-not-sent",
+            "blocked-pending-rights-route"
+          ]
+        }
+      }
+    },
+    "rights": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "assessment",
+        "license_uri",
+        "redistribution",
+        "derivative_use",
+        "citation_requirements",
+        "rights_evidence_urls"
+      ],
+      "properties": {
+        "assessment": {
+          "enum": [
+            "unreviewed",
+            "resource-specific-review-required",
+            "declared-license",
+            "in-copyright",
+            "copyright-not-evaluated",
+            "metadata-only"
+          ]
+        },
+        "license_uri": {"$ref": "#/$defs/uriOrNull"},
+        "redistribution": {
+          "enum": [
+            "not-authorized",
+            "metadata-only",
+            "authorized-with-conditions",
+            "per-item-review-required",
+            "unknown"
+          ]
+        },
+        "derivative_use": {
+          "enum": [
+            "not-authorized",
+            "local-research-only",
+            "allowed-with-conditions",
+            "per-item-review-required",
+            "unknown"
+          ]
+        },
+        "citation_requirements": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "rights_evidence_urls": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "format": "uri"}
+        }
+      }
+    },
+    "tosRefs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["record_refs", "path_refs"],
+      "properties": {
+        "record_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/tosId"}
+        },
+        "path_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/repoRef"}
+        }
+      }
+    },
+    "admission": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state",
+        "human_bibliographic_review",
+        "human_rights_review",
+        "accepted_as_truth",
+        "blocking_reasons"
+      ],
+      "properties": {
+        "state": {
+          "enum": [
+            "research-candidate",
+            "citation-only-candidate",
+            "local-research-candidate",
+            "access-request-candidate",
+            "bibliographic-review-blocked",
+            "rights-review-blocked"
+          ]
+        },
+        "human_bibliographic_review": {"const": false},
+        "human_rights_review": {"const": false},
+        "accepted_as_truth": {"const": false},
+        "blocking_reasons": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reference_id",
+        "category",
+        "research_tier",
+        "title",
+        "languages",
+        "responsibility",
+        "dating",
+        "identifiers",
+        "primary_url",
+        "evidence_urls",
+        "scholarly_posture",
+        "intended_uses",
+        "limits",
+        "access",
+        "rights",
+        "tos_refs",
+        "admission",
+        "notes"
+      ],
+      "properties": {
+        "reference_id": {
+          "type": "string",
+          "pattern": "^tos-ref\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+        },
+        "category": {
+          "enum": [
+            "historical_dictionary",
+            "modern_dictionary",
+            "etymological_dictionary",
+            "historical_corpus",
+            "nietzsche_critical_edition",
+            "nietzsche_lexical_resource",
+            "recognized_ru_translation_candidate",
+            "additional_ru_translation_candidate",
+            "additional_en_translation_candidate"
+          ]
+        },
+        "research_tier": {
+          "enum": [
+            "classical-official-documentation",
+            "established-scholarly-resources",
+            "current-access-rights-and-version-surfaces"
+          ]
+        },
+        "title": {"type": "string", "minLength": 1},
+        "languages": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "pattern": "^[a-z]{2,3}$"}
+        },
+        "responsibility": {"$ref": "#/$defs/responsibility"},
+        "dating": {"$ref": "#/$defs/dating"},
+        "identifiers": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/identifier"}
+        },
+        "primary_url": {"type": "string", "format": "uri"},
+        "evidence_urls": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "format": "uri"}
+        },
+        "scholarly_posture": {"type": "string", "minLength": 1},
+        "intended_uses": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "historical-sense-evidence",
+              "modern-sense-control",
+              "etymology-evidence",
+              "historical-concordance",
+              "critical-source-comparison",
+              "nietzsche-recurrence",
+              "word-index-routing",
+              "translation-witness",
+              "allusion-notes",
+              "bibliographic-identity"
+            ]
+          }
+        },
+        "limits": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "access": {"$ref": "#/$defs/access"},
+        "rights": {"$ref": "#/$defs/rights"},
+        "tos_refs": {"$ref": "#/$defs/tosRefs"},
+        "admission": {"$ref": "#/$defs/admission"},
+        "notes": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}

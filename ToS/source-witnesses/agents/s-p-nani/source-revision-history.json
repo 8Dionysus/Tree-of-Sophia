@@ -1,0 +1,90 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.agent.s-p-nani",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:7e3a74ff447dd339bb0e63bf",
+      "request_digest": "sha256:1ff578b1a7b9957a7c4264ec241317850973491d4b3b9546e2d26572baae59fc",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:1fc8d77bdfd064eb517510caf8218ff125088a53bc72f3996523f1b240f89065",
+      "recorded_at": "2026-09-22T05:04:21.336816+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.agent.s-p-nani",
+        "version": 1,
+        "digest": "sha256:6f660a6a37dfd709fdfcf8f34ac44dd9b9822754fbabc2d3c6bb8559d60f4389"
+      },
+      "source": {
+        "id": "tos.agent.s-p-nani",
+        "version": 2,
+        "digest": "sha256:a06202c307378700188c5cecb5a966d42ee6cd967161288979384434eddd5f5a"
+      },
+      "previous_revision": "sha256:f44d11e6a7aa8bd1e29362fb0974a9ac968e15ac36005b7561f4991f2f6ff877",
+      "archive_path": "ToS/source-witnesses/.record-revisions/7e3a74ff447dd339bb0e63bfde7799205ea5bc8cf6a23f97c875085321167533-f44d11e6a7aa8bd1e29362fb0974a9ac968e15ac36005b7561f4991f2f6ff877",
+      "dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+      "changed_fields": [
+        "notes"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.metadata.3221a4938c292d2cc0935dbdf1f4c7109e7b4e9cb69ea12157ee5800e7af2399",
+          "version": 2,
+          "digest": "sha256:9f9455a584fd27005264b08123ac6250f3376c5579770751e45e778ec6bbad3d"
+        },
+        {
+          "id": "tos.form.metadata.33ba7c40cdce7285a3668968ba291cf277ed9cf6f9c74702c14da90fe2dcb2c3",
+          "version": 2,
+          "digest": "sha256:ad1dc27f1c0de8e8ac3b138635b1df9d13e3e946762f4eff42190e46f3c43c29"
+        },
+        {
+          "id": "tos.form.metadata.f73455c46217e0299d62cad46938150bd7df6f895147b9d845b0d6f7708a7b1c",
+          "version": 2,
+          "digest": "sha256:f550bf5e246542c6b1f0669580a1a47b9ab1fecf7f067ca769eec62f1266dcb0"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:7e3a74ff447dd339bb0e63bf",
+        "expected_configuration": "sha256:1fc8d77bdfd064eb517510caf8218ff125088a53bc72f3996523f1b240f89065",
+        "expected_dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+        "expected_publication": "sha256:d60e7cda5151fd7b7baa170caf9d01f3ca6f4f0bee0e0558d4fe66d7244a68c4",
+        "expected_revision": "sha256:f44d11e6a7aa8bd1e29362fb0974a9ac968e15ac36005b7561f4991f2f6ff877",
+        "expected_source": {
+          "digest": "sha256:6f660a6a37dfd709fdfcf8f34ac44dd9b9822754fbabc2d3c6bb8559d60f4389",
+          "id": "tos.agent.s-p-nani",
+          "version": 1
+        },
+        "fields": {
+          "notes": "The exact parallel title pages credit С. П. Нани / S. P. Nani as translator of nine selected Zarathustra fragments. Institutional, specialist, scholarly, and general-web checks left the full personal name and authority identifier unresolved. The record preserves the printed initials."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.metadata.3221a4938c292d2cc0935dbdf1f4c7109e7b4e9cb69ea12157ee5800e7af2399"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.metadata.33ba7c40cdce7285a3668968ba291cf277ed9cf6f9c74702c14da90fe2dcb2c3"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.metadata.f73455c46217e0299d62cad46938150bd7df6f895147b9d845b0d6f7708a7b1c"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:6153c7cde1915ee7d44566f4ffa06c48fe4f2434b09d2bf088658c186298d3f9",
+        "selected_files": [
+          "agent.human-forms.json",
+          "agent.json",
+          "source-revision-history.json"
+        ]
+      }
+    }
+  ]
+}

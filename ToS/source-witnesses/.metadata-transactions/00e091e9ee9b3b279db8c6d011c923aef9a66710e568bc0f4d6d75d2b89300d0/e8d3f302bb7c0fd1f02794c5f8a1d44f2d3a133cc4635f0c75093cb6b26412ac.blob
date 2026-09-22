@@ -1,0 +1,39 @@
+{
+  "schema_version": "tos_corpus_record_v1",
+  "record_type": "organization",
+  "record_id": "tos.organization.c-g-naumann-verlag-leipzig",
+  "preferred_label": "C. G. Naumann Verlag (Leipzig)",
+  "variant_labels": [
+    {
+      "value": "Naumann-Verlag (Leipzig)",
+      "language": "de",
+      "source_ref": "ToS/source-witnesses/discovery/runs/naumann-1893-provision-identity.2026-08-01.v1.json",
+      "status": "verified"
+    },
+    {
+      "value": "Verlag von C. G. Naumann",
+      "language": "de",
+      "source_ref": "ToS/source-witnesses/discovery/runs/naumann-1893-provision-identity.2026-08-01.v1.json",
+      "status": "verified"
+    }
+  ],
+  "identity_status": "provisional",
+  "source_refs": [
+    "ToS/research-packets/foundation-laboratory-2026-07/BIBLIOGRAPHIC_TIME_PLACE_RESPONSIBILITY_RESEARCH.md",
+    "ToS/research-packets/foundation-laboratory-2026-07/NAUMANN_1893_PROVISION_IDENTITY_RESEARCH.md",
+    "ToS/source-witnesses/discovery/runs/naumann-1893-provision-identity.2026-08-01.v1.json",
+    "https://d-nb.info/gnd/1072998033"
+  ],
+  "external_identifiers": [
+    {
+      "scheme": "GND",
+      "value": "1072998033",
+      "source_ref": "ToS/source-witnesses/discovery/runs/naumann-1893-provision-identity.2026-08-01.v1.json",
+      "status": "verified"
+    }
+  ],
+  "same_as_posture": "no_equivalence_claim",
+  "notes": "The official GND record identifies the Leipzig publishing company established in 1871 and includes Verlag von C. G. Naumann as a variant. It remains distinct from GND 16034133-4, Druckerei C. G. Naumann, and from later corporate successors. The exact 1893 title page assigns both Druck and Verlag to the literal C. G. Naumann, but this provisional local identity asserts neither legal unity nor separation between the two authority records.",
+  "record_version": 2,
+  "supersedes_ref": null
+}

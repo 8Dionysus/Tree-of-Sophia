@@ -1,71 +1,69 @@
 {
-  "schema_version": "tos_human_form_set_v1",
-  "subject": {
-    "id": "tos.community.vienna-circle-schlick",
-    "version": 1,
-    "digest": "sha256:963ddcde3448c14cfff054c2663a0f90f705207b16e9f105a872bd3eafeacbd0"
-  },
   "forms": [
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.community.vienna-circle-schlick.name-ru",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.community.vienna-circle-schlick",
-        "version": 1,
-        "digest": "sha256:963ddcde3448c14cfff054c2663a0f90f705207b16e9f105a872bd3eafeacbd0"
+        "version": 2,
+        "digest": "sha256:d68ffaefcca82ba8cc83810566081c64f4197449b6e8682ccf4f2b19e97dc219"
       },
       "role": "name",
       "language": "ru",
       "script": "Cyrl",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.community.vienna-circle-schlick.name-ru",
+        "version": 1,
+        "digest": "sha256:f16b1bc96121340754610f9eadca91af6fdbd42d2ab5734c9510ee21db672953"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.community.vienna-circle-schlick",
-            "version": 1,
-            "digest": "sha256:963ddcde3448c14cfff054c2663a0f90f705207b16e9f105a872bd3eafeacbd0"
+            "version": 2,
+            "digest": "sha256:d68ffaefcca82ba8cc83810566081c64f4197449b6e8682ccf4f2b19e97dc219"
           },
           "pointer": "/preferred_label"
         },
         "context-0": {
           "record": {
             "id": "tos.community.vienna-circle-schlick",
-            "version": 1,
-            "digest": "sha256:963ddcde3448c14cfff054c2663a0f90f705207b16e9f105a872bd3eafeacbd0"
+            "version": 2,
+            "digest": "sha256:d68ffaefcca82ba8cc83810566081c64f4197449b6e8682ccf4f2b19e97dc219"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.community.vienna-circle-schlick",
-            "version": 1,
-            "digest": "sha256:963ddcde3448c14cfff054c2663a0f90f705207b16e9f105a872bd3eafeacbd0"
+            "version": 2,
+            "digest": "sha256:d68ffaefcca82ba8cc83810566081c64f4197449b6e8682ccf4f2b19e97dc219"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.community.vienna-circle-schlick",
-            "version": 1,
-            "digest": "sha256:963ddcde3448c14cfff054c2663a0f90f705207b16e9f105a872bd3eafeacbd0"
+            "version": 2,
+            "digest": "sha256:d68ffaefcca82ba8cc83810566081c64f4197449b6e8682ccf4f2b19e97dc219"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.community.vienna-circle-schlick",
-            "version": 1,
-            "digest": "sha256:963ddcde3448c14cfff054c2663a0f90f705207b16e9f105a872bd3eafeacbd0"
+            "version": 2,
+            "digest": "sha256:d68ffaefcca82ba8cc83810566081c64f4197449b6e8682ccf4f2b19e97dc219"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.community.vienna-circle-schlick",
-            "version": 1,
-            "digest": "sha256:963ddcde3448c14cfff054c2663a0f90f705207b16e9f105a872bd3eafeacbd0"
+            "version": 2,
+            "digest": "sha256:d68ffaefcca82ba8cc83810566081c64f4197449b6e8682ccf4f2b19e97dc219"
           },
           "pointer": "/field_languages/preferred_label"
         }
@@ -78,87 +76,91 @@
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.community.vienna-circle-schlick.name-de",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.community.vienna-circle-schlick",
-        "version": 1,
-        "digest": "sha256:963ddcde3448c14cfff054c2663a0f90f705207b16e9f105a872bd3eafeacbd0"
+        "version": 2,
+        "digest": "sha256:d68ffaefcca82ba8cc83810566081c64f4197449b6e8682ccf4f2b19e97dc219"
       },
       "role": "name",
       "language": "de",
       "script": "Latn",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.community.vienna-circle-schlick.name-de",
+        "version": 1,
+        "digest": "sha256:90ad73418564659959e26e2da0d26d7244267da30f1c27f52e62c4a2822ad098"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.community.vienna-circle-schlick",
-            "version": 1,
-            "digest": "sha256:963ddcde3448c14cfff054c2663a0f90f705207b16e9f105a872bd3eafeacbd0"
+            "version": 2,
+            "digest": "sha256:d68ffaefcca82ba8cc83810566081c64f4197449b6e8682ccf4f2b19e97dc219"
           },
           "pointer": "/variant_labels/0/value"
         },
         "context-0": {
           "record": {
             "id": "tos.community.vienna-circle-schlick",
-            "version": 1,
-            "digest": "sha256:963ddcde3448c14cfff054c2663a0f90f705207b16e9f105a872bd3eafeacbd0"
+            "version": 2,
+            "digest": "sha256:d68ffaefcca82ba8cc83810566081c64f4197449b6e8682ccf4f2b19e97dc219"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.community.vienna-circle-schlick",
-            "version": 1,
-            "digest": "sha256:963ddcde3448c14cfff054c2663a0f90f705207b16e9f105a872bd3eafeacbd0"
+            "version": 2,
+            "digest": "sha256:d68ffaefcca82ba8cc83810566081c64f4197449b6e8682ccf4f2b19e97dc219"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.community.vienna-circle-schlick",
-            "version": 1,
-            "digest": "sha256:963ddcde3448c14cfff054c2663a0f90f705207b16e9f105a872bd3eafeacbd0"
+            "version": 2,
+            "digest": "sha256:d68ffaefcca82ba8cc83810566081c64f4197449b6e8682ccf4f2b19e97dc219"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.community.vienna-circle-schlick",
-            "version": 1,
-            "digest": "sha256:963ddcde3448c14cfff054c2663a0f90f705207b16e9f105a872bd3eafeacbd0"
+            "version": 2,
+            "digest": "sha256:d68ffaefcca82ba8cc83810566081c64f4197449b6e8682ccf4f2b19e97dc219"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.community.vienna-circle-schlick",
-            "version": 1,
-            "digest": "sha256:963ddcde3448c14cfff054c2663a0f90f705207b16e9f105a872bd3eafeacbd0"
+            "version": 2,
+            "digest": "sha256:d68ffaefcca82ba8cc83810566081c64f4197449b6e8682ccf4f2b19e97dc219"
           },
           "pointer": "/variant_labels/0/language"
         },
         "context-5": {
           "record": {
             "id": "tos.community.vienna-circle-schlick",
-            "version": 1,
-            "digest": "sha256:963ddcde3448c14cfff054c2663a0f90f705207b16e9f105a872bd3eafeacbd0"
+            "version": 2,
+            "digest": "sha256:d68ffaefcca82ba8cc83810566081c64f4197449b6e8682ccf4f2b19e97dc219"
           },
           "pointer": "/variant_labels/0/script"
         },
         "context-6": {
           "record": {
             "id": "tos.community.vienna-circle-schlick",
-            "version": 1,
-            "digest": "sha256:963ddcde3448c14cfff054c2663a0f90f705207b16e9f105a872bd3eafeacbd0"
+            "version": 2,
+            "digest": "sha256:d68ffaefcca82ba8cc83810566081c64f4197449b6e8682ccf4f2b19e97dc219"
           },
           "pointer": "/variant_labels/0/source_ref"
         },
         "context-7": {
           "record": {
             "id": "tos.community.vienna-circle-schlick",
-            "version": 1,
-            "digest": "sha256:963ddcde3448c14cfff054c2663a0f90f705207b16e9f105a872bd3eafeacbd0"
+            "version": 2,
+            "digest": "sha256:d68ffaefcca82ba8cc83810566081c64f4197449b6e8682ccf4f2b19e97dc219"
           },
           "pointer": "/variant_labels/0/status"
         }
@@ -171,63 +173,67 @@
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.community.vienna-circle-schlick.note-ru",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.community.vienna-circle-schlick",
-        "version": 1,
-        "digest": "sha256:963ddcde3448c14cfff054c2663a0f90f705207b16e9f105a872bd3eafeacbd0"
+        "version": 2,
+        "digest": "sha256:d68ffaefcca82ba8cc83810566081c64f4197449b6e8682ccf4f2b19e97dc219"
       },
       "role": "hover",
       "language": "ru",
       "script": "Cyrl",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.community.vienna-circle-schlick.note-ru",
+        "version": 1,
+        "digest": "sha256:f08c50e5ed6bf1a6d7910a793927a29d16897cc8a46138fefe0cd0fb57651eeb"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.community.vienna-circle-schlick",
-            "version": 1,
-            "digest": "sha256:963ddcde3448c14cfff054c2663a0f90f705207b16e9f105a872bd3eafeacbd0"
+            "version": 2,
+            "digest": "sha256:d68ffaefcca82ba8cc83810566081c64f4197449b6e8682ccf4f2b19e97dc219"
           },
           "pointer": "/notes"
         },
         "context-0": {
           "record": {
             "id": "tos.community.vienna-circle-schlick",
-            "version": 1,
-            "digest": "sha256:963ddcde3448c14cfff054c2663a0f90f705207b16e9f105a872bd3eafeacbd0"
+            "version": 2,
+            "digest": "sha256:d68ffaefcca82ba8cc83810566081c64f4197449b6e8682ccf4f2b19e97dc219"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.community.vienna-circle-schlick",
-            "version": 1,
-            "digest": "sha256:963ddcde3448c14cfff054c2663a0f90f705207b16e9f105a872bd3eafeacbd0"
+            "version": 2,
+            "digest": "sha256:d68ffaefcca82ba8cc83810566081c64f4197449b6e8682ccf4f2b19e97dc219"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.community.vienna-circle-schlick",
-            "version": 1,
-            "digest": "sha256:963ddcde3448c14cfff054c2663a0f90f705207b16e9f105a872bd3eafeacbd0"
+            "version": 2,
+            "digest": "sha256:d68ffaefcca82ba8cc83810566081c64f4197449b6e8682ccf4f2b19e97dc219"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.community.vienna-circle-schlick",
-            "version": 1,
-            "digest": "sha256:963ddcde3448c14cfff054c2663a0f90f705207b16e9f105a872bd3eafeacbd0"
+            "version": 2,
+            "digest": "sha256:d68ffaefcca82ba8cc83810566081c64f4197449b6e8682ccf4f2b19e97dc219"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.community.vienna-circle-schlick",
-            "version": 1,
-            "digest": "sha256:963ddcde3448c14cfff054c2663a0f90f705207b16e9f105a872bd3eafeacbd0"
+            "version": 2,
+            "digest": "sha256:d68ffaefcca82ba8cc83810566081c64f4197449b6e8682ccf4f2b19e97dc219"
           },
           "pointer": "/field_languages/notes"
         }
@@ -238,5 +244,243 @@
       }
     }
   ],
-  "prior_forms": []
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:963ddcde3448c14cfff054c2663a0f90f705207b16e9f105a872bd3eafeacbd0",
+            "id": "tos.community.vienna-circle-schlick",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:963ddcde3448c14cfff054c2663a0f90f705207b16e9f105a872bd3eafeacbd0",
+            "id": "tos.community.vienna-circle-schlick",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:963ddcde3448c14cfff054c2663a0f90f705207b16e9f105a872bd3eafeacbd0",
+            "id": "tos.community.vienna-circle-schlick",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:963ddcde3448c14cfff054c2663a0f90f705207b16e9f105a872bd3eafeacbd0",
+            "id": "tos.community.vienna-circle-schlick",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:963ddcde3448c14cfff054c2663a0f90f705207b16e9f105a872bd3eafeacbd0",
+            "id": "tos.community.vienna-circle-schlick",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:963ddcde3448c14cfff054c2663a0f90f705207b16e9f105a872bd3eafeacbd0",
+            "id": "tos.community.vienna-circle-schlick",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.community.vienna-circle-schlick.name-ru",
+      "form_version": 1,
+      "language": "ru",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:963ddcde3448c14cfff054c2663a0f90f705207b16e9f105a872bd3eafeacbd0",
+        "id": "tos.community.vienna-circle-schlick",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:963ddcde3448c14cfff054c2663a0f90f705207b16e9f105a872bd3eafeacbd0",
+            "id": "tos.community.vienna-circle-schlick",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:963ddcde3448c14cfff054c2663a0f90f705207b16e9f105a872bd3eafeacbd0",
+            "id": "tos.community.vienna-circle-schlick",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:963ddcde3448c14cfff054c2663a0f90f705207b16e9f105a872bd3eafeacbd0",
+            "id": "tos.community.vienna-circle-schlick",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:963ddcde3448c14cfff054c2663a0f90f705207b16e9f105a872bd3eafeacbd0",
+            "id": "tos.community.vienna-circle-schlick",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/variant_labels/0/language",
+          "record": {
+            "digest": "sha256:963ddcde3448c14cfff054c2663a0f90f705207b16e9f105a872bd3eafeacbd0",
+            "id": "tos.community.vienna-circle-schlick",
+            "version": 1
+          }
+        },
+        "context-5": {
+          "pointer": "/variant_labels/0/script",
+          "record": {
+            "digest": "sha256:963ddcde3448c14cfff054c2663a0f90f705207b16e9f105a872bd3eafeacbd0",
+            "id": "tos.community.vienna-circle-schlick",
+            "version": 1
+          }
+        },
+        "context-6": {
+          "pointer": "/variant_labels/0/source_ref",
+          "record": {
+            "digest": "sha256:963ddcde3448c14cfff054c2663a0f90f705207b16e9f105a872bd3eafeacbd0",
+            "id": "tos.community.vienna-circle-schlick",
+            "version": 1
+          }
+        },
+        "context-7": {
+          "pointer": "/variant_labels/0/status",
+          "record": {
+            "digest": "sha256:963ddcde3448c14cfff054c2663a0f90f705207b16e9f105a872bd3eafeacbd0",
+            "id": "tos.community.vienna-circle-schlick",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/variant_labels/0/value",
+          "record": {
+            "digest": "sha256:963ddcde3448c14cfff054c2663a0f90f705207b16e9f105a872bd3eafeacbd0",
+            "id": "tos.community.vienna-circle-schlick",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.community.vienna-circle-schlick.name-de",
+      "form_version": 1,
+      "language": "de",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:963ddcde3448c14cfff054c2663a0f90f705207b16e9f105a872bd3eafeacbd0",
+        "id": "tos.community.vienna-circle-schlick",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:963ddcde3448c14cfff054c2663a0f90f705207b16e9f105a872bd3eafeacbd0",
+            "id": "tos.community.vienna-circle-schlick",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:963ddcde3448c14cfff054c2663a0f90f705207b16e9f105a872bd3eafeacbd0",
+            "id": "tos.community.vienna-circle-schlick",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:963ddcde3448c14cfff054c2663a0f90f705207b16e9f105a872bd3eafeacbd0",
+            "id": "tos.community.vienna-circle-schlick",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:963ddcde3448c14cfff054c2663a0f90f705207b16e9f105a872bd3eafeacbd0",
+            "id": "tos.community.vienna-circle-schlick",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:963ddcde3448c14cfff054c2663a0f90f705207b16e9f105a872bd3eafeacbd0",
+            "id": "tos.community.vienna-circle-schlick",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:963ddcde3448c14cfff054c2663a0f90f705207b16e9f105a872bd3eafeacbd0",
+            "id": "tos.community.vienna-circle-schlick",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.community.vienna-circle-schlick.note-ru",
+      "form_version": 1,
+      "language": "ru",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:963ddcde3448c14cfff054c2663a0f90f705207b16e9f105a872bd3eafeacbd0",
+        "id": "tos.community.vienna-circle-schlick",
+        "version": 1
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.community.vienna-circle-schlick",
+    "version": 2,
+    "digest": "sha256:d68ffaefcca82ba8cc83810566081c64f4197449b6e8682ccf4f2b19e97dc219"
+  }
 }

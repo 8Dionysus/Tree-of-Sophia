@@ -1,0 +1,99 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.agent.n-polilov",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:c482a8801e24216d1ec45950",
+      "request_digest": "sha256:ff4bc8fad25ec17135a21bd644233275cc20b763cba3c0c439c903f6de21ff01",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:d9ca70a57db919df717ebe0e61d52427135e64dd27ca423577fd75f7001e2918",
+      "recorded_at": "2026-09-22T05:04:16.038298+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.agent.n-polilov",
+        "version": 2,
+        "digest": "sha256:067484460a2a44546dc0cc25f0e835214d9500ba80ea3c4b45deb6d1ed2daaf8"
+      },
+      "source": {
+        "id": "tos.agent.n-polilov",
+        "version": 3,
+        "digest": "sha256:4c1d8d485ad3f0f05a10efd3bd4d99f113fd38c7ad9d72bf4cf0d7878d1a0500"
+      },
+      "previous_revision": "sha256:db19706338a718b87e3fa70b86b679f9dbe7468012e905a90c761dc45e120747",
+      "archive_path": "ToS/source-witnesses/.record-revisions/c482a8801e24216d1ec45950ac8aaa669a19972dc652f975d92862fd8aa29f21-db19706338a718b87e3fa70b86b679f9dbe7468012e905a90c761dc45e120747",
+      "dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+      "changed_fields": [
+        "notes"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.metadata.0c4c61e0731947b0e8cb9435948f02546cf4e54177472053c0815fa043547090",
+          "version": 2,
+          "digest": "sha256:b3f12e1d202ea0afac36a7ae0a6dee4c5de601f90c629569b0a4f86888202260"
+        },
+        {
+          "id": "tos.form.metadata.d6acc044f3222b042720c6f87ee8a0824ea8753b4f5b878fc76173bc5d0d6c06",
+          "version": 2,
+          "digest": "sha256:988af5562436cd55650b767161a22a77d08988a3d0226c9581917a5052f3dbf0"
+        },
+        {
+          "id": "tos.form.metadata.02df1a3259bf239f6a4f6632e6eb0fddef91bf5eb5f0edec3b3c84f06dcdba4e",
+          "version": 2,
+          "digest": "sha256:5443b1bc945666990629babb78fd1c08be4333625f57ef9b1462960eb418a03d"
+        },
+        {
+          "id": "tos.form.metadata.f9b9461221a8160cd283513347bcbbefd75d9e3461ffef6e6adb73541659ef3d",
+          "version": 2,
+          "digest": "sha256:532676f886ca8f088cb88ffd1993ddfdb763eb64f6fc244c2f148c5946b8e537"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:c482a8801e24216d1ec45950",
+        "expected_configuration": "sha256:d9ca70a57db919df717ebe0e61d52427135e64dd27ca423577fd75f7001e2918",
+        "expected_dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+        "expected_publication": "sha256:975deac3ace981e236fd48c0ce8af8eabc92ade2ea6c066f53af9a97d8a2cfb3",
+        "expected_revision": "sha256:db19706338a718b87e3fa70b86b679f9dbe7468012e905a90c761dc45e120747",
+        "expected_source": {
+          "digest": "sha256:067484460a2a44546dc0cc25f0e835214d9500ba80ea3c4b45deb6d1ed2daaf8",
+          "id": "tos.agent.n-polilov",
+          "version": 2
+        },
+        "fields": {
+          "notes": "The exact local volume credits Н. Полилов as translator of three contained works. DNB GND 1012315509 identifies translator N. Polilov and explicitly names «По ту сторону добра и зла»; RSL expands Н. Н. Полилов to Николай Николаевич Полилов, and the established critical Nietzsche edition preserves that full-initial form."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.metadata.0c4c61e0731947b0e8cb9435948f02546cf4e54177472053c0815fa043547090"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.metadata.d6acc044f3222b042720c6f87ee8a0824ea8753b4f5b878fc76173bc5d0d6c06"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.metadata.02df1a3259bf239f6a4f6632e6eb0fddef91bf5eb5f0edec3b3c84f06dcdba4e"
+          },
+          {
+            "field_id": "metadata.variant-name:1",
+            "form_id": "tos.form.metadata.f9b9461221a8160cd283513347bcbbefd75d9e3461ffef6e6adb73541659ef3d"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:3d4f0059ffeaf41733847d57fe1f7305ce951ef1561175fed88e538d67651a02",
+        "selected_files": [
+          "agent.human-forms.json",
+          "agent.json",
+          "source-revision-history.json"
+        ]
+      }
+    }
+  ]
+}

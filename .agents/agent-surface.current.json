@@ -46,9 +46,9 @@
           "sha256": "22b2c1d4d6aee339250857b96e9388ed4c6cdd1e3834bd182bb7e8820498d893"
         },
         {
-          "bytes": 1000,
+          "bytes": 1043,
           "path": "evals/README.md",
-          "sha256": "92897a1065dce8e8ba59b0b163a7250b106df730bc33b171e7426833db012905"
+          "sha256": "b7ed6c0905edaf5709895f2c0a44165abf9aed95fa22f1b0288d4f6789505c4d"
         },
         {
           "bytes": 355,
@@ -72,74 +72,64 @@
       "id": "kag_provider",
       "inputs": [
         {
-          "bytes": 2552,
+          "bytes": 2094,
           "path": "kag/AGENTS.md",
-          "sha256": "54b1f5ae337baef90f1d1e7bee10ae43cb580cbe6ec66f394691d7a7c89d1483"
+          "sha256": "7ef05e98e563c3d882dbaebed19b85372c157b955bf33b19ef7593ad02c4464c"
         },
         {
-          "bytes": 1778,
-          "path": "kag/manifest.json",
-          "sha256": "1a8ad98aefbf1cd3202470ae5b3c1789274047dcc839ae91ce3d8a4983f5f081"
+          "missing": true,
+          "path": "kag/manifest.json"
         },
         {
-          "bytes": 1151,
-          "path": "kag/provider_pin.json",
-          "sha256": "744acf941940f70c85ebea0748c733c7c774d5b2981ce77bf8ce9aeec07d7bb5"
+          "missing": true,
+          "path": "kag/provider_pin.json"
         },
         {
-          "bytes": 1727,
+          "bytes": 1829,
           "path": "kag/README.md",
-          "sha256": "c9e44f9f1fabbac82a0d85239753ff717cdf5eae52ef72fd73fc57be490436dd"
+          "sha256": "c176d4549e354a5eac24e545e9d4f20bc6042a211634e9c9068176ef27bf5c2d"
         },
         {
-          "bytes": 14967,
+          "bytes": 1098,
           "path": "scripts/validate_local_kag_provider.py",
-          "sha256": "d4dcd1458e627aa7897870c59c428446d5309881f4bb841a975ce36589b73817"
+          "sha256": "456cc189ffc47ee58463d59a67e741a9197975102038fb6e0ba68a30b8c69325"
         },
         {
-          "bytes": 9674,
-          "path": "scripts/validate_local_segmented_kag_provider.py",
-          "sha256": "1e10870882b1e6f9de1758e10e73c8bf654a792194f2de84b6c83fa8810d1395"
+          "missing": true,
+          "path": "scripts/validate_local_segmented_kag_provider.py"
         },
         {
-          "bytes": 1436,
-          "path": "kag/indexes/provider_readiness_index.json",
-          "sha256": "43d09f54c04d1de8476a3930d4bf75bc2d329dc12591e7bcb8c94dd17687bb02"
+          "missing": true,
+          "path": "kag/indexes/provider_readiness_index.json"
         },
         {
-          "bytes": 1406,
-          "path": "kag/nodes/kag_export_capsule.json",
-          "sha256": "1c136c729e1ea771ddf8b398c4f0f7f1f5ed8d46289b627b56c71555c5e64484"
+          "missing": true,
+          "path": "kag/nodes/kag_export_capsule.json"
         },
         {
-          "bytes": 1279,
-          "path": "kag/nodes/derived_export_route.json",
-          "sha256": "09ff66e3e8fc00fff8592a95c235d48c4e5ed9e9aeee49fcac6dd7f087c45649"
+          "missing": true,
+          "path": "kag/nodes/derived_export_route.json"
         },
         {
-          "bytes": 1553,
-          "path": "kag/edges/kag_export_returns_to_route.json",
-          "sha256": "36b2723b2420333bdd967e047030e31c28d778e2c8753276757c26dca4b4b8e2"
+          "missing": true,
+          "path": "kag/edges/kag_export_returns_to_route.json"
         },
         {
-          "bytes": 1749,
-          "path": "kag/projections/mcp_source_return.json",
-          "sha256": "55a598899f9a50a8f688098536afc0887101159ad9e1266cb6e390baae5cc3ef"
+          "missing": true,
+          "path": "kag/projections/mcp_source_return.json"
         },
         {
-          "bytes": 1788,
-          "path": "ToS/derived-exports/kag_export.min.json",
-          "sha256": "c8b725a325b27034a8ed1e22e481c80e5a6c31e751d56bd094d530738a2c1fa1"
+          "missing": true,
+          "path": "ToS/derived-exports/kag_export.min.json"
         },
         {
-          "bytes": 73585222,
-          "path": "ToS/derived-exports/philosophy_graph_projection.min.json",
-          "sha256": "c3eb2241fbab1bc80098a027ce2c25dbb13e37acdb8ccc912705d1fa59d2fc18"
+          "missing": true,
+          "path": "ToS/derived-exports/philosophy_graph_projection.min.json"
         },
         {
-          "bytes": 2741,
+          "bytes": 3723,
           "path": "mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md",
-          "sha256": "04f1c878382f1d8bd7f5b9712627bdc312f8205f17f3632f1a66278fd13c3827"
+          "sha256": "45d6e5c54559eb511782e5729ceaadd3413a215e203be9502309a1f98f13db3a"
         }
       ],
       "manifest": "kag/manifest.json"
@@ -179,9 +169,9 @@
       "id": "stats_port",
       "inputs": [
         {
-          "bytes": 2106,
+          "bytes": 2168,
           "path": "stats/AGENTS.md",
-          "sha256": "33e3e94863a359f99c502ba7fe4fb2b607b83047a6b03d92369f302bb0206c5a"
+          "sha256": "2dc41fe34854f4e80323be557c9188be5cb0ff35f83a422fbb2ee51060d4332b"
         },
         {
           "bytes": 4062,
@@ -189,9 +179,9 @@
           "sha256": "733089f2ee84ee4be4bb627ce894584a8447c021c7c7c73cab5ba4872b551ac7"
         },
         {
-          "bytes": 2059,
+          "bytes": 2435,
           "path": "stats/README.md",
-          "sha256": "4a534fa6395da31527177020dedeb2de4ea04d84b7eb76ec0166c42efc31370f"
+          "sha256": "86af031ab31a74f81cb888f8de8544680c6f552e528dbb69a316334017ebea29"
         },
         {
           "bytes": 2504,
@@ -204,9 +194,9 @@
           "sha256": "5667ddf70b9a196bf7d86823ff0e388ddedc6d119aa0f816956bd7d8a1cdef0f"
         },
         {
-          "bytes": 65015,
+          "bytes": 64989,
           "path": "ToS/philosophy/atlas/dossiers/prepared-dossier-routes.json",
-          "sha256": "1cf9e3be8fd47b3b3c9d38d0b4189feb86a0879c05f5e61551cacc4e43952707"
+          "sha256": "b9bdd45c797287bcc6a5f2f7d3f9cce6ef4f930108760170f1f1a4e365b544d7"
         }
       ],
       "manifest": "stats/port.manifest.json"

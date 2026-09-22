@@ -2,7 +2,8 @@
 
 Source adapters supply the current subject, mandatory context, access decision,
 trusted templates and authenticated assessment inputs separately from a form.
-The result is disposable; a ready form is not an admitted historical assertion.
+The result is disposable. Historical assertion admission requires the
+source-owner assessment route.
 """
 from __future__ import annotations
 

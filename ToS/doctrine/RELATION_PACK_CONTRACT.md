@@ -5,19 +5,17 @@ for Tree of Sophia.
 
 ## Role
 
-The current relation pass does not introduce a new node family.
-It introduces one reviewed carrier for canonical route-local relations:
+This contract defines one reviewed carrier for canonical route-local
+relations:
 
 - `ToS/canon/relations/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/edges.csv`
 
-This surface exists so ToS can carry reviewed graph-bearing relations in canon
-without pretending that every candidate edge in `ToS/candidate-intake/` has already crossed
-the review boundary.
+The carrier holds reviewed relations; intake retains the complete candidate
+set and each row’s review outcome.
 
 ## Carrier
 
-The canonical carrier remains tabular and route-local.
-It is not a `node.json` payload.
+The canonical carrier is a route-local CSV relation pack.
 
 The current pack keeps these fields:
 
@@ -63,8 +61,8 @@ Its current required split is:
 - 125 `promoted`
 - 3 `deferred_literal`
 
-The canonical relation pack is therefore a reviewed projection from intake, not
-a second unrelated table.
+The canonical relation pack retains the reviewed rows and their source
+relationship to intake.
 
 ## Validation
 

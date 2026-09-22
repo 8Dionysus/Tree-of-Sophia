@@ -99,7 +99,7 @@ def native_witness_contract(payload: dict, relative: str) -> tuple[str, str, str
     """Resolve a native subject's exact owner path, schema and identity field.
 
     Callers retain their own protected byte-read, schema validation and digest
-    checks. This descriptor neither rewrites a payload nor supplies authority.
+    checks. This descriptor supplies source-location metadata for those checks.
     """
     ref = Path(relative)
     composite = payload.get('schema_version') == 'tos_scholarly_composite_witness_v1'
@@ -120,8 +120,8 @@ def canonical_json(payload: object) -> str:
 def render_native_catalog_entry(payload: dict, relative: str) -> dict:
     """Pure native Corpus/Link projection; callers own schema/source checks.
 
-    This is the exact legacy full collector rendering, not a profile adapter
-    or a source-admission function. Nested source values remain borrowed.
+    This preserves the exact legacy full collector rendering. Profile adaptation
+    and source admission remain caller responsibilities. Nested source values remain borrowed.
     """
     return {
         "schema_version": "tos_source_witness_catalog_entry_v1",
@@ -161,7 +161,8 @@ def artifact_catalog_entry(repo_root: Path, payload: dict, relative: str,
                            validators: dict | None = None) -> dict:
     """Project native physical identity; never manufacture a Corpus record.
 
-    Inventory wording is an attributed navigation label, not an assessed title.
+    Inventory wording supplies an attributed navigation label; title assessment
+    retains its own source evidence.
     A missing identity assessment remains null rather than inferred from the
     legacy metadata review state. All native fields stay in the source record.
     """
@@ -250,8 +251,8 @@ def composite_catalog_entry(repo_root: Path, payload: dict, relative: str,
                             validators: dict | None = None) -> dict:
     """Return native scholarly identity without recasting it as an original.
 
-    Member/coverage observations remain exact source metadata, not accepted
-    relations. The source's identity status does not grant textual authority.
+    Member/coverage observations retain their exact source status. Relation
+    acceptance and textual authority follow their corresponding review routes.
     """
     if payload.get('schema_version') != 'tos_scholarly_composite_witness_v1':
         raise CatalogBuildError(f'{relative}: unsupported scholarly composite source schema')
@@ -536,8 +537,7 @@ def render_catalog_rows(records, claims, *, profile_files, publication_token) ->
             'files': {str(ref): hashlib.sha256(text.encode('utf-8')).hexdigest()
                       for ref, text in outputs.items()}}} if publication_token is not None else {}),
         "authority_boundary": (
-            "generated navigation over tracked object and claim records; not "
-            "bibliographic, textual, rights, review, or semantic authority"
+            "This generated catalog provides navigation to the tracked object and claim records that own its contents."
         ),
     }
     outputs[MANIFEST_PATH] = json.dumps(manifest, ensure_ascii=False, indent=2) + "\n"

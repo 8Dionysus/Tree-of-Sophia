@@ -339,7 +339,7 @@ def main():
         policy_input = next(e for e in manifest["inputs"] if e["role"] == "source_visible_voice_policy")
         if file_sha(owned_path(source_root, policy_input["ref"])) != policy_input["sha256"]:
             raise ValueError("voice policy changed without rebuild")
-        print("reading workbench tracked currentness OK; no semantic acceptance")
+        print("Reading workbench tracked currentness verified.")
         return
     target = owned_path(output_root, DATABASE)
     if args.build and (target.exists() or owned_path(output_root, ROUTE).exists()):

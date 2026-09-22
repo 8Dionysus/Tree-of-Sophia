@@ -17,11 +17,12 @@ source witness -> addressed observation or proposal -> review outcome
   -> canon or explicit deferral -> public or derived projection
 ```
 
-Keep the layers distinct: provenance, rights, uncertainty, competing readings,
-review state, witness identity, and source lineage are evidence, not context
-to summarize away. Research packets and candidate intake remain provisional;
-validators prove mechanics, while source-visible human review owns textual,
-translation, interpretive, rights, and canon judgments.
+Preserve provenance, rights, uncertainty, competing readings, review state,
+witness identity and source lineage as distinct evidence. Research packets and
+candidate intake remain provisional. Validators check mechanics;
+source-visible assessment evaluates text, translation and interpretation under
+[knowledge assessment law](doctrine/KNOWLEDGE_ASSESSMENT.md). Rights, personal
+consent, publication and canon retain their actual owner authority.
 
 ## Family reading map
 
@@ -29,7 +30,7 @@ translation, interpretive, rights, and canon judgments.
 | --- | --- | --- | --- |
 | Source witnesses | Work/expression/edition/item/file identity, physical artifacts, scholarly composites, text layers, provenance, rights, and source-facing claims | [`doctrine/CORPUS_FOUNDATION.md`](doctrine/CORPUS_FOUNDATION.md) -> [`source-witnesses/README.md`](source-witnesses/README.md) -> [`source-witnesses/AGENTS.md`](source-witnesses/AGENTS.md) | The exact item, claim, or witness record |
 | Doctrine | Knowledge model, node/relation law, interpretation posture, and authored route boundaries | [`doctrine/AGENTS.md`](doctrine/AGENTS.md) · [`doctrine/KNOWLEDGE_MODEL.md`](doctrine/KNOWLEDGE_MODEL.md) | [`doctrine/NODE_CONTRACT.md`](doctrine/NODE_CONTRACT.md) and the owning contract or review route |
-| Contracts | Machine-checkable structure for source, translation, semantic, canon, compatibility, and export surfaces | [`contracts/AGENTS.md`](contracts/AGENTS.md) | The exact schema plus its example and validator; contracts do not decide meaning |
+| Contracts | Machine-checkable structure for source, translation, semantic, canon, compatibility, and export surfaces | [`contracts/AGENTS.md`](contracts/AGENTS.md) | The exact schema, example and validator for mechanics, followed by source-visible assessment of meaning |
 | Research packets | Non-authoritative AI-assisted or secondary research scaffolds and capture metadata | [`research-packets/AGENTS.md`](research-packets/AGENTS.md) | The nearest packet card, then [`deep-research/philosophy/AGENTS.md`](research-packets/deep-research/philosophy/AGENTS.md) or philosophy review; never source or canon authority |
 | Candidate intake | Source-linked observations, proposals, uncertainty, and promotion residue before review | [`candidate-intake/AGENTS.md`](candidate-intake/AGENTS.md) | The pass-local pack, then philosophy or review/canon; never a public or derived authority |
 | Review ledger | Dated inspection notes, outcomes, ambiguity, rejection, deferral, and migration evidence | [`review-ledger/AGENTS.md`](review-ledger/AGENTS.md) | The owning doctrine, source, canon, contract, or durable decision surface |
@@ -74,9 +75,9 @@ green lab probe does not inspect or accept the real record.
 
 ## Boundary Routes
 
-- `ToS/source-witnesses/` is the evidence spine; a file, composite, catalog
-  row, or generated claim index is not by itself a reading, translation,
-  semantic fact, or canon decision.
+- `ToS/source-witnesses/` holds the evidence spine. Source reading, translation,
+semantic assessment and canon each record their own decisions and exact
+evidence.
 - `ToS/doctrine/`, `candidate-intake/`, `review-ledger/`, and `canon/` keep
   law, proposal, judgment, and authored meaning separate. Preserve competing
   readings and unresolved states instead of smoothing them into a summary.

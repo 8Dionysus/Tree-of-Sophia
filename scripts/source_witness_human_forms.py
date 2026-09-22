@@ -2,7 +2,8 @@
 
 The default adapter copies already public metadata. Explicit local snapshots
 can read protected source/journal inputs for current source-form policy admission.
-Neither route performs substantive assessment or authorizes public release.
+Substantive assessment and public-release authorization follow their
+respective owner decision routes.
 """
 from __future__ import annotations
 
@@ -221,7 +222,8 @@ def assessed_build_input(args, repo_root, standard_path):
 def write_assessed_candidate(target, rendered, snapshot):
     """Publish one complete local candidate without replacing any existing file.
 
-    This filesystem publication is not a public release or artifact admission.
+    This publication creates the local candidate. Public release and artifact
+    admission follow their separate owner routes.
     A final currentness check follows serialization and precedes file creation.
     """
     import os

@@ -1,10 +1,9 @@
 # Exact text-layer comparison and current quality use
 
-This is a confidential source-owner extension of the existing assessment
-journal, not a public graph reader or a second assessment engine. It uses
-`assessment_journal.py --owner-config /absolute/protected-owner.json` and the
-existing `tos_local_assessment_command_v1` request envelope. Source creation
-remains with [native layer construction](NATIVE_TEXT_LAYER_CONSTRUCTION.md).
+This confidential source-owner extension uses the existing assessment journal
+through `assessment_journal.py --owner-config /absolute/protected-owner.json`
+and the `tos_local_assessment_command_v1` request envelope. Source creation
+belongs to [native layer construction](NATIVE_TEXT_LAYER_CONSTRUCTION.md).
 
 ## Protected configuration v5
 
@@ -16,10 +15,10 @@ remains with [native layer construction](NATIVE_TEXT_LAYER_CONSTRUCTION.md).
 | `quality_dependencies` | Object keyed by configured target ID, with at most eight `{layer_id, use}` entries per target. No duplicate layers, extra groundings or self-dependencies. |
 
 Each layer selection has `binding`, `origin_id`, `source_access` and
-`payload_access`. The binding is `tos_native_text_layer_binding_v1`: exact
-layer metadata plus its Work/Expression/Edition/Item source locators. It does
-not require a predecessor TextUnit. The target's assessment reference is the
-canonical digest of the unchanged raw layer, not the metadata file digest.
+`payload_access`. The `tos_native_text_layer_binding_v1` binding selects exact
+layer metadata and its Work/Expression/Edition/Item source locators directly.
+The target's assessment reference uses the canonical digest of the unchanged
+raw layer; raw metadata-file fixity has its own digest.
 
 `source_access` has exactly `read_scope`, `access_allowed: true` and an
 independently issued `authority_ref`. A `metadata_only` selection requires
@@ -89,19 +88,18 @@ one supported structural anchor. An image/PDF or another anchor needs a
 separately implemented source renderer; its File digest cannot substitute for
 source visibility. This does not run an OCR or transcription provider.
 
-`native-text-layer-derivation-comparison.schema.json` is a separate additive
-contract. It does not rewrite the old extraction schema or old comparisons.
-The returned `tos_native_text_layer_derivation_comparison_v1` record contains
-the original member and selected character data, complete oldest-to-newest
-layer records and representations, exact policies/configuration digests,
-declared operations and unverified supplied-producer metadata. Source and
-output can intentionally differ. Every native delta is independently replayed;
-neither that integrity check nor `source_text_equals_output` is a quality
-verdict. `positive_use_allowed` means that an authorized competent reviewer
-can reach a positive or negative judgment from this available exact evidence,
-not that the comparison has already accepted a correction or normalized text.
-The unchanged assessment engine still requires the exact comparison in review
-evidence and applies current purpose, risk, authority and competence policy.
+`native-text-layer-derivation-comparison.schema.json` adds a comparison route
+alongside the retained extraction schema. The returned
+`tos_native_text_layer_derivation_comparison_v1` record contains the original
+member and selected character data, complete oldest-to-newest layer records
+and representations, exact policies/configuration digests, declared operations
+and unverified supplied-producer metadata. Source and output can intentionally
+differ. Every native delta is independently replayed, and
+`source_text_equals_output` records byte comparison. `positive_use_allowed`
+identifies evidence from which an authorized competent reviewer can reach a
+positive or negative judgment. The assessment engine requires this exact
+comparison in review evidence and applies current purpose, risk, authority and
+competence policy.
 
 Each predecessor's current rights are checked in the metadata pass before any
 selection's content is opened. Retained construction grants, even expired or
@@ -144,30 +142,27 @@ runtime-owned result. See [assessed form materialization](../README.md#assessed-
 
 A v5 Claim form additionally resolves current parent Claim admission under an
 explicit exact same-use parent scope and the combined form/parent/layer locks.
-The complete `subject_assessment` companion retains current state/limits and
+The complete `subject_assessment` companion retains current state, limits and
 historical withdrawals; its observed head/current result joins the owner
-snapshot and is checked before return. Parent raw initial review posture is
-not silently presented as current status. Unreviewed or negative parent
-admission does not by itself prohibit qualified display, but the parent state
-and its restrictions are mandatory reading context. Positive form admission is
-not Claim endorsement. This current parent observation is separate from the
-layer quality basis and cannot substitute for its evidence or use gate.
+snapshot and is checked before return. Display distinguishes initial source
+posture from current parent assessment. Qualified display remains possible
+with an unreviewed or negatively assessed parent, with that state and its
+restrictions included as mandatory context. Form admission covers the form's
+selected use; Claim assessment and the layer quality basis retain their
+separate evidence and use conditions.
 
 Withdrawal, revocation, scope expiry, changed comparison or replaced quality
-evidence makes the affected dependent result unusable without deleting source
-or history. A renewed positive quality event changes the exact basis; it does
-not automatically resurrect a dependent assessment of another basis. Merely
-appending an unrelated journal event does not change semantic evidence. Current
-quality and target history are rechecked before returning; historical receipts
-remain statements about their original commit, not current permission.
+evidence makes the affected dependent result unusable while source and history
+remain retained. A renewed positive quality event changes the exact basis and
+requires a corresponding dependent assessment. Unrelated journal events leave
+semantic evidence unchanged. Current quality and target history are rechecked
+before returning; historical receipts retain their original commit scope.
 
-Closing the quality-use gate does not prevent an authorized negative review or
-explicit withdrawal of a dependent judgment. These acts still require all
-exact current source and quality-basis evidence and the ordinary supersession
-authority. Every required original comparison must remain available; a
-metadata-only dependency cannot qualify even a negative append. The current
-quality condition gates positive use, not the ability to record why such use
-must stop.
+An authorized negative review or explicit withdrawal remains available after
+the quality-use gate closes. These acts require exact current source and
+quality-basis evidence and ordinary supersession authority. Every required
+original comparison must remain available, including for a negative append.
+This preserves the evidence route for recording why positive use must stop.
 
 ## Bounds and compatibility
 
@@ -182,13 +177,13 @@ preemptive timer for one filesystem or parser operation. Locks use a shared boun
 and stable order. They coordinate current reads and one target append, not an
 atomic multi-target write transaction.
 
-Configurations v1–v4 retain their existing meaning. No legacy layer's
-`human_review_performed`, review status or source bytes are rewritten. Public
-assessed graph builds and Sign issuance still reject confidential v4/v5
-configurations before opening the private source context. This route grants
-neither publication nor diplomatic fidelity, full translation verification or
-canon. Source comparison tests and synthetic journal tests are separate from
-actual language competence and real source-visible quality assessment.
+Configurations v1–v4 retain their meaning, source bytes,
+`human_review_performed` fields and review status. Public assessed graph
+builds and Sign issuance reject confidential v4/v5 configurations before
+opening the private source context. Publication, diplomatic fidelity, full
+translation verification and canon follow their owner routes. Synthetic tests
+cover comparison and journal mechanics; real source-visible quality assessment
+requires applicable language competence.
 
 The separate [image/OCR comparison v6](NATIVE_IMAGE_OCR_ASSESSMENT.md) accepts
 one authenticated retained PDF-page raw OCR layer or one explicitly selected

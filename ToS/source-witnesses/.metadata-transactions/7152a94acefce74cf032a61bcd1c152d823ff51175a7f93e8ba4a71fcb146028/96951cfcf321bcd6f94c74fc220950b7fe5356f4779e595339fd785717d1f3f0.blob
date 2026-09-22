@@ -1,0 +1,90 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.agent.hans-j-nissen",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:28828badf920fa243b0b8169",
+      "request_digest": "sha256:560cfac52e60e38b433b398e0fd2abb17e82f1273935b92e1f96425db86d7105",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:855964c2bee953f649ff44a1841820c866b65a67428a0d7961dff41fbe261907",
+      "recorded_at": "2026-09-22T05:04:05.025870+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.agent.hans-j-nissen",
+        "version": 1,
+        "digest": "sha256:d131b932ded01f36c64acd453ea9a3672f6e8bad52a5671861559fc244cdf9aa"
+      },
+      "source": {
+        "id": "tos.agent.hans-j-nissen",
+        "version": 2,
+        "digest": "sha256:fbd31228a10d095d77f5e0817c27e7d7fb0dbf5b9864c9b2152a1a3e353435d8"
+      },
+      "previous_revision": "sha256:972cc7dd2d006e37cb4f8583de402a858d3080a831a6d02cce04843ae0076330",
+      "archive_path": "ToS/source-witnesses/.record-revisions/28828badf920fa243b0b816918a52234870353130d10e7153e4ab661b55292b2-972cc7dd2d006e37cb4f8583de402a858d3080a831a6d02cce04843ae0076330",
+      "dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+      "changed_fields": [
+        "notes"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.metadata.00fbd87c1a1919364dd7b6de16ae637c8620b00684141106416b9b6a51491fa1",
+          "version": 2,
+          "digest": "sha256:1a3aeae21b8ca744873c379fdee140cd0752d3f472753032bdcf886d88a835db"
+        },
+        {
+          "id": "tos.form.metadata.d2b9be876c947a60078d02f706015d244526bec50968b1b63b18c47f35bfe777",
+          "version": 2,
+          "digest": "sha256:f98a66126d90620506a2da5ef1895884f60220d67894490005af8dd49aa9848f"
+        },
+        {
+          "id": "tos.form.metadata.99d60ed05e6344ea10a287ae3441153c15b946a63798c25b75055ffa38c3541b",
+          "version": 2,
+          "digest": "sha256:16df616fc0974703658e6b8db4e30be788f7d36530dc5f678ac96610fb55d8e5"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:28828badf920fa243b0b8169",
+        "expected_configuration": "sha256:855964c2bee953f649ff44a1841820c866b65a67428a0d7961dff41fbe261907",
+        "expected_dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+        "expected_publication": "sha256:0373a8a7e21aef63210875608ad20f6ff55098b54811ea68dac112036afbf344",
+        "expected_revision": "sha256:972cc7dd2d006e37cb4f8583de402a858d3080a831a6d02cce04843ae0076330",
+        "expected_source": {
+          "digest": "sha256:d131b932ded01f36c64acd453ea9a3672f6e8bad52a5671861559fc244cdf9aa",
+          "id": "tos.agent.hans-j-nissen",
+          "version": 1
+        },
+        "fields": {
+          "notes": "Name and ATU 3 responsibility are source-reported."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.metadata.00fbd87c1a1919364dd7b6de16ae637c8620b00684141106416b9b6a51491fa1"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.metadata.d2b9be876c947a60078d02f706015d244526bec50968b1b63b18c47f35bfe777"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.metadata.99d60ed05e6344ea10a287ae3441153c15b946a63798c25b75055ffa38c3541b"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:7152a94acefce74cf032a61bcd1c152d823ff51175a7f93e8ba4a71fcb146028",
+        "selected_files": [
+          "agent.human-forms.json",
+          "agent.json",
+          "source-revision-history.json"
+        ]
+      }
+    }
+  ]
+}

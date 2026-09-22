@@ -1,0 +1,78 @@
+{
+  "schema_version": "tos_source_revision_history_v1",
+  "record_id": "tos.occurrence.sid-0405e33f53d54b8f9c0d5325dd9858d6",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:fbee78bea19759f41634b122",
+      "request_digest": "sha256:e4a77f1a7028399ca5d7b0b01d4346984cea2238d69cdde20d72b4b49d9ba606",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:a560c2fbc15b242fcbf1624321cb9b8bc933e23d41bc8ed615053316398ab487",
+      "recorded_at": "2026-09-22T05:05:30.968060+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.occurrence.sid-0405e33f53d54b8f9c0d5325dd9858d6",
+        "version": 1,
+        "digest": "sha256:4b0a715199c55b722aa1cacb746d17d80adc5e2a7260ec4ccd4477dc3499da1f"
+      },
+      "source": {
+        "id": "tos.occurrence.sid-0405e33f53d54b8f9c0d5325dd9858d6",
+        "version": 2,
+        "digest": "sha256:3e27d4d30bef97d559f5c55c34e4d4f7970a1948ec9b015a5096f6f0f2323dd6"
+      },
+      "previous_revision": "sha256:48d2fae85041f88a59b3b326d0ad787d1b2f6bcd746a356755c5ce29e7868b79",
+      "archive_path": "ToS/source-witnesses/.record-revisions/fbee78bea19759f41634b1226b5f2144be3db18ebba9878a1627894b767904a7-48d2fae85041f88a59b3b326d0ad787d1b2f6bcd746a356755c5ce29e7868b79",
+      "dependencies": "sha256:3200beb3ed84c6f7678b8ca3f87e5c0603ba8064188db1129ec8b53cf2e0d0cd",
+      "changed_fields": [
+        "notes",
+        "semantic_content"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.sid-0a4fe5428b9a4b75aad1554eaeec94de",
+          "version": 2,
+          "digest": "sha256:dfeb5816a5abf505538fc59710ac62f3680c2e5a0d16f8d5c122037112ba8d48"
+        },
+        {
+          "id": "tos.form.sid-72fc067fd1634077ab9114a63ba98887",
+          "version": 2,
+          "digest": "sha256:c17f50335a0aae4084e9638a394a379ce153db45a7cb96b2955a17d27a8d18e1"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:fbee78bea19759f41634b122",
+        "expected_configuration": "sha256:a560c2fbc15b242fcbf1624321cb9b8bc933e23d41bc8ed615053316398ab487",
+        "expected_dependencies": "sha256:3200beb3ed84c6f7678b8ca3f87e5c0603ba8064188db1129ec8b53cf2e0d0cd",
+        "expected_revision": "sha256:48d2fae85041f88a59b3b326d0ad787d1b2f6bcd746a356755c5ce29e7868b79",
+        "expected_source": {
+          "digest": "sha256:4b0a715199c55b722aa1cacb746d17d80adc5e2a7260ec4ccd4477dc3499da1f",
+          "id": "tos.occurrence.sid-0405e33f53d54b8f9c0d5325dd9858d6",
+          "version": 1
+        },
+        "fields": {
+          "notes": "Situated use of corpus in the project-authored note, anchored to its exact public native surface-token proposal.",
+          "semantic_content": {
+            "context_account": "The surrounding paragraph compares routes from intellectual Work to textual portions and later presentations, keeping the thought, periods, and witnesses of the selected routes distinct. This proposed metadata description concerns that paragraph.",
+            "language": "en",
+            "occurrence_account": "The note uses corpus as the subject of supports while introducing its own selected comparative research collection.",
+            "script": "Latn"
+          }
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.sid-0a4fe5428b9a4b75aad1554eaeec94de"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.sid-72fc067fd1634077ab9114a63ba98887"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    }
+  ]
+}

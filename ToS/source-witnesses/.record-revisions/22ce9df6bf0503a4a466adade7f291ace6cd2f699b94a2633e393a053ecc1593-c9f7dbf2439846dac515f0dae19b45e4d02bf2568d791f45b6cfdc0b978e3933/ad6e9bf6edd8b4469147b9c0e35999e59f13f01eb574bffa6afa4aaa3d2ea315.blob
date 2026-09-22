@@ -1,0 +1,1559 @@
+{
+  "schema_version": "tos_claim_revision_history_v1",
+  "source_path": "ToS/source-witnesses/relations/jgb-inquiry-research/source-claims.jsonl",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:c03b11cb08e7d4492aa3b953",
+      "request_digest": "sha256:31c5e7c1a473373e5b5612963076b40ada2e2ac3d19e3968d78c97d4ac5dc879",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:ff6fc1f8815f7a1d36040603ca4215e4bf24bcc23bcae3fa1c818015a14189b6",
+      "recorded_at": "2026-09-22T06:46:39.634279+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+      "previous_source": {
+        "id": "tos.claim.jgb-inquiry-family-responsibility",
+        "version": 1,
+        "digest": "sha256:8f8867c288f232208cf41f449088afbe70931247ed93ec5d736bf23f24590c93"
+      },
+      "source": {
+        "id": "tos.claim.jgb-inquiry-family-responsibility",
+        "version": 2,
+        "digest": "sha256:a0f2a9d09d11bbb8825cf09632474b714a0c887c1a9d00ed3e471b834cc239aa"
+      },
+      "previous_revision": "sha256:9335742b4e62a1eb45111273715c1444e243ebc8a6e1c3f0ce906f29a61e369e",
+      "archive_path": "ToS/source-witnesses/.record-revisions/c03b11cb08e7d4492aa3b953cc1cbf3ee2804d91725e7eeeac4e9917918d77a9-9335742b4e62a1eb45111273715c1444e243ebc8a6e1c3f0ce906f29a61e369e",
+      "dependencies": "sha256:3fb8c58c78dbdf4ea8040d8598086738ca26d789a1ca9cef989398bfcb62cdea",
+      "source_bindings": {
+        "objects": {
+          "tos.problem-family.agency-responsibility-jgb": {
+            "source_ref": "ToS/source-witnesses/semantic-descriptions/problem-family-agency-responsibility-jgb/problem-family.json",
+            "source_sha256": "sha256:ed4eb8870d6165e10617763a2ebe10a8ccb5a18fdef9697cf0df3469a2a38d07",
+            "canonical_record_sha256": "sha256:63c50aa98569d948578f010ffcc7bef7e0305a92d9658e929341cb8882bcdf3c",
+            "schema_version": "tos_thought_topic_record_v1",
+            "record_version": 2
+          },
+          "tos.problem.ultimate-responsibility-jgb21": {
+            "source_ref": "ToS/source-witnesses/semantic-descriptions/problem-ultimate-responsibility-jgb21/problem.json",
+            "source_sha256": "sha256:36eeca37c86ece07cc343935e5c77fbcae9c234d95119989664c01cc8dfbbab7",
+            "canonical_record_sha256": "sha256:5aaa718afc10baf49f8b7426b56f476beaf03783e0e3bc1a26b0577c2f705ec5",
+            "schema_version": "tos_thought_topic_record_v1",
+            "record_version": 2
+          }
+        },
+        "evidence": {
+          "ToS/review-ledger/2026-09-07-jgb-inquiry-source-reading.md": {
+            "source_ref": "ToS/review-ledger/2026-09-07-jgb-inquiry-source-reading.md",
+            "source_sha256": "sha256:b07429682c2aa205794a9eebc20022cebb93edf2e07b2eb530c494147036506e",
+            "source_line": null,
+            "evidence_kind": "repo_path"
+          }
+        }
+      },
+      "changed_fields": [
+        "qualifiers"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.jgb-inquiry-family-responsibility.statement-ru",
+          "version": 2,
+          "digest": "sha256:debb4e3d2777810f38545632b97af0224f1f8cbc76fda5521cab575062864d94"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:c03b11cb08e7d4492aa3b953",
+        "expected_configuration": "sha256:ff6fc1f8815f7a1d36040603ca4215e4bf24bcc23bcae3fa1c818015a14189b6",
+        "expected_dependencies": "sha256:3fb8c58c78dbdf4ea8040d8598086738ca26d789a1ca9cef989398bfcb62cdea",
+        "expected_inputs": {
+          "evidence": {
+            "ToS/review-ledger/2026-09-07-jgb-inquiry-source-reading.md": {
+              "evidence_kind": "repo_path",
+              "source_line": null,
+              "source_ref": "ToS/review-ledger/2026-09-07-jgb-inquiry-source-reading.md",
+              "source_sha256": "sha256:b07429682c2aa205794a9eebc20022cebb93edf2e07b2eb530c494147036506e"
+            }
+          },
+          "objects": {
+            "tos.problem-family.agency-responsibility-jgb": {
+              "canonical_record_sha256": "sha256:63c50aa98569d948578f010ffcc7bef7e0305a92d9658e929341cb8882bcdf3c",
+              "record_version": 2,
+              "schema_version": "tos_thought_topic_record_v1",
+              "source_ref": "ToS/source-witnesses/semantic-descriptions/problem-family-agency-responsibility-jgb/problem-family.json",
+              "source_sha256": "sha256:ed4eb8870d6165e10617763a2ebe10a8ccb5a18fdef9697cf0df3469a2a38d07"
+            },
+            "tos.problem.ultimate-responsibility-jgb21": {
+              "canonical_record_sha256": "sha256:5aaa718afc10baf49f8b7426b56f476beaf03783e0e3bc1a26b0577c2f705ec5",
+              "record_version": 2,
+              "schema_version": "tos_thought_topic_record_v1",
+              "source_ref": "ToS/source-witnesses/semantic-descriptions/problem-ultimate-responsibility-jgb21/problem.json",
+              "source_sha256": "sha256:36eeca37c86ece07cc343935e5c77fbcae9c234d95119989664c01cc8dfbbab7"
+            }
+          }
+        },
+        "expected_revision": "sha256:9335742b4e62a1eb45111273715c1444e243ebc8a6e1c3f0ce906f29a61e369e",
+        "expected_source": {
+          "digest": "sha256:8f8867c288f232208cf41f449088afbe70931247ed93ec5d736bf23f24590c93",
+          "id": "tos.claim.jgb-inquiry-family-responsibility",
+          "version": 1
+        },
+        "fields": {
+          "qualifiers": {
+            "relation_basis": "Its focus on conditions for attributing ultimate responsibility meets the grouping criterion. The grouping is attributed to the researcher.",
+            "relation_basis_language": "en",
+            "relation_basis_script": "Latn",
+            "scope": "Provisional passage-bound research; no calibrated assessment, admission, logical validity, exhaustive taxonomy or canon assertion.",
+            "source_locator": [
+              "http://www.nietzschesource.org/eKGWB/JGB-19",
+              "http://www.nietzschesource.org/eKGWB/JGB-21"
+            ],
+            "source_representation_sha256": "143d6330c94bf00b135f887eeed5f20f6caee6a98174746227af255583ae8b20",
+            "source_section": "JGB 19/21",
+            "statement": "Проблема предельной ответственности включается в исследовательское семейство агентности и ответственности без отождествления с другими его проблемами.",
+            "statement_language": "ru",
+            "statement_script": "Cyrl"
+          }
+        },
+        "forms": [
+          {
+            "field_id": "claim.statement",
+            "form_id": "tos.form.jgb-inquiry-family-responsibility.statement-ru"
+          }
+        ],
+        "operation": "claim.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    },
+    {
+      "command_id": "tos-language-cleanup-20260922:9a84de1f7d0e87c8b8fcddcb",
+      "request_digest": "sha256:60f620c89d531032f75221f53bbbe56c4b8332e184cac6bbebd3fe46875858b0",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:bdebfda9662b4cd9053c82d4bc6f9e99a3401a631126fa355b2d403290feda19",
+      "recorded_at": "2026-09-22T06:47:03.542391+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+      "previous_source": {
+        "id": "tos.claim.jgb-inquiry-reversal-question",
+        "version": 1,
+        "digest": "sha256:cfe0fa2ca3292a98c3e9e441dedc277f97d14a4a47df7b966df45d6b35cab443"
+      },
+      "source": {
+        "id": "tos.claim.jgb-inquiry-reversal-question",
+        "version": 2,
+        "digest": "sha256:1b89e6ea13100b3cea2b110965660f0d60b3b09a0c70a86bbb706b36d6f7c009"
+      },
+      "previous_revision": "sha256:80a57e56499e9fda8bea0f94f0ec060b498887bdfcd259473315ab62ad9a1d9b",
+      "archive_path": "ToS/source-witnesses/.record-revisions/9a84de1f7d0e87c8b8fcddcb7bcbd4d1e7e6ada5a1da5d4fc6594282e7b492de-80a57e56499e9fda8bea0f94f0ec060b498887bdfcd259473315ab62ad9a1d9b",
+      "dependencies": "sha256:db53af01db783cf6645a629466dae649d78807f05bcc42128a76684446a04b2b",
+      "source_bindings": {
+        "objects": {
+          "tos.problem.ultimate-responsibility-jgb21": {
+            "source_ref": "ToS/source-witnesses/semantic-descriptions/problem-ultimate-responsibility-jgb21/problem.json",
+            "source_sha256": "sha256:36eeca37c86ece07cc343935e5c77fbcae9c234d95119989664c01cc8dfbbab7",
+            "canonical_record_sha256": "sha256:5aaa718afc10baf49f8b7426b56f476beaf03783e0e3bc1a26b0577c2f705ec5",
+            "schema_version": "tos_thought_topic_record_v1",
+            "record_version": 2
+          },
+          "tos.question.reversal-after-rejection-jgb21": {
+            "source_ref": "ToS/source-witnesses/semantic-descriptions/question-reversal-after-rejection-jgb21/question.json",
+            "source_sha256": "sha256:4b1d931933a194aa6d3c0286223e66bcbc48e3db7e9967a7a53023c70b15bfcd",
+            "canonical_record_sha256": "sha256:98a9093cc6565f5287d540d169ec1e520bd98f73d1c36840927f834d75ce0aba",
+            "schema_version": "tos_thought_topic_record_v1",
+            "record_version": 2
+          }
+        },
+        "evidence": {
+          "ToS/review-ledger/2026-09-07-jgb-inquiry-source-reading.md": {
+            "source_ref": "ToS/review-ledger/2026-09-07-jgb-inquiry-source-reading.md",
+            "source_sha256": "sha256:b07429682c2aa205794a9eebc20022cebb93edf2e07b2eb530c494147036506e",
+            "source_line": null,
+            "evidence_kind": "repo_path"
+          }
+        }
+      },
+      "changed_fields": [
+        "qualifiers"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.jgb-inquiry-reversal-question.statement-ru",
+          "version": 2,
+          "digest": "sha256:025a0dbc4a27da81292d911791de571701617a7c33eae604ac2a388c044dacef"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:9a84de1f7d0e87c8b8fcddcb",
+        "expected_configuration": "sha256:bdebfda9662b4cd9053c82d4bc6f9e99a3401a631126fa355b2d403290feda19",
+        "expected_dependencies": "sha256:db53af01db783cf6645a629466dae649d78807f05bcc42128a76684446a04b2b",
+        "expected_inputs": {
+          "evidence": {
+            "ToS/review-ledger/2026-09-07-jgb-inquiry-source-reading.md": {
+              "evidence_kind": "repo_path",
+              "source_line": null,
+              "source_ref": "ToS/review-ledger/2026-09-07-jgb-inquiry-source-reading.md",
+              "source_sha256": "sha256:b07429682c2aa205794a9eebc20022cebb93edf2e07b2eb530c494147036506e"
+            }
+          },
+          "objects": {
+            "tos.problem.ultimate-responsibility-jgb21": {
+              "canonical_record_sha256": "sha256:5aaa718afc10baf49f8b7426b56f476beaf03783e0e3bc1a26b0577c2f705ec5",
+              "record_version": 2,
+              "schema_version": "tos_thought_topic_record_v1",
+              "source_ref": "ToS/source-witnesses/semantic-descriptions/problem-ultimate-responsibility-jgb21/problem.json",
+              "source_sha256": "sha256:36eeca37c86ece07cc343935e5c77fbcae9c234d95119989664c01cc8dfbbab7"
+            },
+            "tos.question.reversal-after-rejection-jgb21": {
+              "canonical_record_sha256": "sha256:98a9093cc6565f5287d540d169ec1e520bd98f73d1c36840927f834d75ce0aba",
+              "record_version": 2,
+              "schema_version": "tos_thought_topic_record_v1",
+              "source_ref": "ToS/source-witnesses/semantic-descriptions/question-reversal-after-rejection-jgb21/question.json",
+              "source_sha256": "sha256:4b1d931933a194aa6d3c0286223e66bcbc48e3db7e9967a7a53023c70b15bfcd"
+            }
+          }
+        },
+        "expected_revision": "sha256:80a57e56499e9fda8bea0f94f0ec060b498887bdfcd259473315ab62ad9a1d9b",
+        "expected_source": {
+          "digest": "sha256:cfe0fa2ca3292a98c3e9e441dedc277f97d14a4a47df7b966df45d6b35cab443",
+          "id": "tos.claim.jgb-inquiry-reversal-question",
+          "version": 1
+        },
+        "fields": {
+          "qualifiers": {
+            "relation_basis": "The second question tests what may follow from the initial critique while preserving the source's warning and the question's open status.",
+            "relation_basis_language": "en",
+            "relation_basis_script": "Latn",
+            "scope": "Provisional passage-bound research; no calibrated assessment, admission, logical validity, exhaustive taxonomy or canon assertion.",
+            "source_locator": "http://www.nietzschesource.org/eKGWB/JGB-21",
+            "source_representation_sha256": "143d6330c94bf00b135f887eeed5f20f6caee6a98174746227af255583ae8b20",
+            "source_section": "JGB 21",
+            "statement": "Вопрос о переходе к несвободе формулирует границу вывода из критики предельного самооснования.",
+            "statement_language": "ru",
+            "statement_script": "Cyrl"
+          }
+        },
+        "forms": [
+          {
+            "field_id": "claim.statement",
+            "form_id": "tos.form.jgb-inquiry-reversal-question.statement-ru"
+          }
+        ],
+        "operation": "claim.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    },
+    {
+      "command_id": "tos-language-cleanup-20260922:d91e0a6b5b53cb1c88ffcd5c",
+      "request_digest": "sha256:cfe54822ee2ed75f3c97ee21890413168f57f64b8ac45f817fee39e176934c70",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:51bd5f81ba3f3e43ddb88d06d4a31aee7ae2c78f88ddef770196a5f194ce139c",
+      "recorded_at": "2026-09-22T06:47:38.876840+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+      "previous_source": {
+        "id": "tos.claim.jgb-inquiry-responsibility-answer",
+        "version": 1,
+        "digest": "sha256:1262bb54dae33f281300d258006f7d578984a9bcd2aa9e4334e1e224d14abaca"
+      },
+      "source": {
+        "id": "tos.claim.jgb-inquiry-responsibility-answer",
+        "version": 2,
+        "digest": "sha256:1c3f6e960e1703d41ebf25e4113d3c14d895b09b4b3d1703f96a8be30d63c87d"
+      },
+      "previous_revision": "sha256:7417a4ee59f540d3a40832ca8661bd10157e652a3728f6855239229c415be1bb",
+      "archive_path": "ToS/source-witnesses/.record-revisions/d91e0a6b5b53cb1c88ffcd5caf567371f5cd8695868d2a9368f8a99af8ff9456-7417a4ee59f540d3a40832ca8661bd10157e652a3728f6855239229c415be1bb",
+      "dependencies": "sha256:21be9f0e335753b59ce6d3e62d59f002d1c9772455dc2934f6f2696942bef7c6",
+      "source_bindings": {
+        "objects": {
+          "tos.question.self-origination-required-jgb21": {
+            "source_ref": "ToS/source-witnesses/semantic-descriptions/question-self-origination-required-jgb21/question.json",
+            "source_sha256": "sha256:dae49d8a2b822e6cc1020c7dc2a6aab81b9334d735109b33a8757efe454400f1",
+            "canonical_record_sha256": "sha256:b7944913aca26b52a649f29fad7124491a5c90fd2e6b0c387cac7ee33e465b78",
+            "schema_version": "tos_thought_topic_record_v1",
+            "record_version": 2
+          },
+          "tos.thesis.ultimate-responsibility-requires-self-origination-jgb21": {
+            "source_ref": "ToS/source-witnesses/semantic-descriptions/thesis-ultimate-responsibility-requires-self-origination-jgb21/thesis.json",
+            "source_sha256": "sha256:1106ab95a7186c83fe39ef6d69dcc9655aa72d270d3f05b2bd95a0fe917b539c",
+            "canonical_record_sha256": "sha256:238327b71bf763686f61ec61cc21ceb789bf067b4690edac2960a06ed1cf5966",
+            "schema_version": "tos_thought_description_record_v1",
+            "record_version": 2
+          }
+        },
+        "evidence": {
+          "ToS/review-ledger/2026-09-07-jgb-inquiry-source-reading.md": {
+            "source_ref": "ToS/review-ledger/2026-09-07-jgb-inquiry-source-reading.md",
+            "source_sha256": "sha256:b07429682c2aa205794a9eebc20022cebb93edf2e07b2eb530c494147036506e",
+            "source_line": null,
+            "evidence_kind": "repo_path"
+          }
+        }
+      },
+      "changed_fields": [
+        "qualifiers"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.jgb-inquiry-responsibility-answer.statement-ru",
+          "version": 2,
+          "digest": "sha256:c53f5ed1821cddf69adedd267f83212edc142ba385b44bd6d97353798d2c5cfb"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:d91e0a6b5b53cb1c88ffcd5c",
+        "expected_configuration": "sha256:51bd5f81ba3f3e43ddb88d06d4a31aee7ae2c78f88ddef770196a5f194ce139c",
+        "expected_dependencies": "sha256:21be9f0e335753b59ce6d3e62d59f002d1c9772455dc2934f6f2696942bef7c6",
+        "expected_inputs": {
+          "evidence": {
+            "ToS/review-ledger/2026-09-07-jgb-inquiry-source-reading.md": {
+              "evidence_kind": "repo_path",
+              "source_line": null,
+              "source_ref": "ToS/review-ledger/2026-09-07-jgb-inquiry-source-reading.md",
+              "source_sha256": "sha256:b07429682c2aa205794a9eebc20022cebb93edf2e07b2eb530c494147036506e"
+            }
+          },
+          "objects": {
+            "tos.question.self-origination-required-jgb21": {
+              "canonical_record_sha256": "sha256:b7944913aca26b52a649f29fad7124491a5c90fd2e6b0c387cac7ee33e465b78",
+              "record_version": 2,
+              "schema_version": "tos_thought_topic_record_v1",
+              "source_ref": "ToS/source-witnesses/semantic-descriptions/question-self-origination-required-jgb21/question.json",
+              "source_sha256": "sha256:dae49d8a2b822e6cc1020c7dc2a6aab81b9334d735109b33a8757efe454400f1"
+            },
+            "tos.thesis.ultimate-responsibility-requires-self-origination-jgb21": {
+              "canonical_record_sha256": "sha256:238327b71bf763686f61ec61cc21ceb789bf067b4690edac2960a06ed1cf5966",
+              "record_version": 2,
+              "schema_version": "tos_thought_description_record_v1",
+              "source_ref": "ToS/source-witnesses/semantic-descriptions/thesis-ultimate-responsibility-requires-self-origination-jgb21/thesis.json",
+              "source_sha256": "sha256:1106ab95a7186c83fe39ef6d69dcc9655aa72d270d3f05b2bd95a0fe917b539c"
+            }
+          }
+        },
+        "expected_revision": "sha256:7417a4ee59f540d3a40832ca8661bd10157e652a3728f6855239229c415be1bb",
+        "expected_source": {
+          "digest": "sha256:1262bb54dae33f281300d258006f7d578984a9bcd2aa9e4334e1e224d14abaca",
+          "id": "tos.claim.jgb-inquiry-responsibility-answer",
+          "version": 1
+        },
+        "fields": {
+          "qualifiers": {
+            "relation_basis": "The thesis reconstructs the dependency asserted in the passage. This question-answer linkage stays within that responsibility conception; acceptance of the dependency remains a separate judgment.",
+            "relation_basis_language": "en",
+            "relation_basis_script": "Latn",
+            "scope": "Provisional passage-bound research; no calibrated assessment, admission, logical validity, exhaustive taxonomy or canon assertion.",
+            "source_locator": "http://www.nietzschesource.org/eKGWB/JGB-21",
+            "source_representation_sha256": "143d6330c94bf00b135f887eeed5f20f6caee6a98174746227af255583ae8b20",
+            "source_section": "JGB 21",
+            "statement": "Тезис о зависимости предельной ответственности от самопричинения предлагается как чтение ответа в §21, а не как установленная истина.",
+            "statement_language": "ru",
+            "statement_script": "Cyrl"
+          }
+        },
+        "forms": [
+          {
+            "field_id": "claim.statement",
+            "form_id": "tos.form.jgb-inquiry-responsibility-answer.statement-ru"
+          }
+        ],
+        "operation": "claim.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    },
+    {
+      "command_id": "tos-language-cleanup-20260922:3e36a3e04f1786c3b2110a19",
+      "request_digest": "sha256:451a7ea4454873253158bdbafc57574cbae92cdb273ffb5a0a0947e9dbc996de",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:cb3fb61ab447eeabe71bbd9bbc5b43b0dc810d764796b6fd89e806758c5272af",
+      "recorded_at": "2026-09-22T06:50:05.100184+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+      "previous_source": {
+        "id": "tos.claim.jgb-inquiry-reversal-hypothesis",
+        "version": 1,
+        "digest": "sha256:cbfe3cacc8f012c545a27b1a5e6265c2546344147c7105e62c8e63fe754315af"
+      },
+      "source": {
+        "id": "tos.claim.jgb-inquiry-reversal-hypothesis",
+        "version": 2,
+        "digest": "sha256:7b17c9d9795bbf90a438b86c486f6d45b937bc5289b4a2fb553ef9100ca1be00"
+      },
+      "previous_revision": "sha256:0e462a56782fdea27eae810faeb63123ecec6ee61d254cb8b712864e9953a6f8",
+      "archive_path": "ToS/source-witnesses/.record-revisions/3e36a3e04f1786c3b2110a19fbf9e7ac852db2d622ed5c66a148e495c75b37f7-0e462a56782fdea27eae810faeb63123ecec6ee61d254cb8b712864e9953a6f8",
+      "dependencies": "sha256:6cdfedb42e0d3a8d38a5445fc7f137106812e9f504b99caec0929dd784595f1b",
+      "source_bindings": {
+        "objects": {
+          "tos.question.reversal-after-rejection-jgb21": {
+            "source_ref": "ToS/source-witnesses/semantic-descriptions/question-reversal-after-rejection-jgb21/question.json",
+            "source_sha256": "sha256:4b1d931933a194aa6d3c0286223e66bcbc48e3db7e9967a7a53023c70b15bfcd",
+            "canonical_record_sha256": "sha256:98a9093cc6565f5287d540d169ec1e520bd98f73d1c36840927f834d75ce0aba",
+            "schema_version": "tos_thought_topic_record_v1",
+            "record_version": 2
+          },
+          "tos.thesis.unfree-will-follows-jgb21": {
+            "source_ref": "ToS/source-witnesses/semantic-descriptions/thesis-unfree-will-follows-jgb21/thesis.json",
+            "source_sha256": "sha256:21e70f8586d6c9f671cfff5a265df9140c35372b673038aefbe32ca57df3392e",
+            "canonical_record_sha256": "sha256:46f7da67653341065ead3220d6a1d03ecdf275dfd7371a6c628572f5fdc6bfd3",
+            "schema_version": "tos_thought_description_record_v1",
+            "record_version": 2
+          }
+        },
+        "evidence": {
+          "ToS/review-ledger/2026-09-07-jgb-inquiry-source-reading.md": {
+            "source_ref": "ToS/review-ledger/2026-09-07-jgb-inquiry-source-reading.md",
+            "source_sha256": "sha256:b07429682c2aa205794a9eebc20022cebb93edf2e07b2eb530c494147036506e",
+            "source_line": null,
+            "evidence_kind": "repo_path"
+          }
+        }
+      },
+      "changed_fields": [
+        "qualifiers"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.jgb-inquiry-reversal-hypothesis.statement-ru",
+          "version": 2,
+          "digest": "sha256:e7145020bdce8a6e43904f231df414d386617eaaa31f1f8ef356d89cbed4c93c"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:3e36a3e04f1786c3b2110a19",
+        "expected_configuration": "sha256:cb3fb61ab447eeabe71bbd9bbc5b43b0dc810d764796b6fd89e806758c5272af",
+        "expected_dependencies": "sha256:6cdfedb42e0d3a8d38a5445fc7f137106812e9f504b99caec0929dd784595f1b",
+        "expected_inputs": {
+          "evidence": {
+            "ToS/review-ledger/2026-09-07-jgb-inquiry-source-reading.md": {
+              "evidence_kind": "repo_path",
+              "source_line": null,
+              "source_ref": "ToS/review-ledger/2026-09-07-jgb-inquiry-source-reading.md",
+              "source_sha256": "sha256:b07429682c2aa205794a9eebc20022cebb93edf2e07b2eb530c494147036506e"
+            }
+          },
+          "objects": {
+            "tos.question.reversal-after-rejection-jgb21": {
+              "canonical_record_sha256": "sha256:98a9093cc6565f5287d540d169ec1e520bd98f73d1c36840927f834d75ce0aba",
+              "record_version": 2,
+              "schema_version": "tos_thought_topic_record_v1",
+              "source_ref": "ToS/source-witnesses/semantic-descriptions/question-reversal-after-rejection-jgb21/question.json",
+              "source_sha256": "sha256:4b1d931933a194aa6d3c0286223e66bcbc48e3db7e9967a7a53023c70b15bfcd"
+            },
+            "tos.thesis.unfree-will-follows-jgb21": {
+              "canonical_record_sha256": "sha256:46f7da67653341065ead3220d6a1d03ecdf275dfd7371a6c628572f5fdc6bfd3",
+              "record_version": 2,
+              "schema_version": "tos_thought_description_record_v1",
+              "source_ref": "ToS/source-witnesses/semantic-descriptions/thesis-unfree-will-follows-jgb21/thesis.json",
+              "source_sha256": "sha256:21e70f8586d6c9f671cfff5a265df9140c35372b673038aefbe32ca57df3392e"
+            }
+          }
+        },
+        "expected_revision": "sha256:0e462a56782fdea27eae810faeb63123ecec6ee61d254cb8b712864e9953a6f8",
+        "expected_source": {
+          "digest": "sha256:cbfe3cacc8f012c545a27b1a5e6265c2546344147c7105e62c8e63fe754315af",
+          "id": "tos.claim.jgb-inquiry-reversal-hypothesis",
+          "version": 1
+        },
+        "fields": {
+          "qualifiers": {
+            "relation_basis": "The hypothetical thesis articulates a candidate positive answer against which the source-grounded objection is directed. It remains an answer under examination.",
+            "relation_basis_language": "en",
+            "relation_basis_script": "Latn",
+            "scope": "Provisional passage-bound research; no calibrated assessment, admission, logical validity, exhaustive taxonomy or canon assertion.",
+            "source_locator": "http://www.nietzschesource.org/eKGWB/JGB-21",
+            "source_representation_sha256": "143d6330c94bf00b135f887eeed5f20f6caee6a98174746227af255583ae8b20",
+            "source_section": "JGB 21",
+            "statement": "Положительный ответ о несвободе представлен только как гипотетическое оспариваемое чтение; Ницше или историческому читателю он не приписывается.",
+            "statement_language": "ru",
+            "statement_script": "Cyrl"
+          }
+        },
+        "forms": [
+          {
+            "field_id": "claim.statement",
+            "form_id": "tos.form.jgb-inquiry-reversal-hypothesis.statement-ru"
+          }
+        ],
+        "operation": "claim.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    },
+    {
+      "command_id": "tos-language-cleanup-20260922:82ca18eaacb600fb14298450",
+      "request_digest": "sha256:2fd9a726b90b1e8c20eb178290dcd601364dd3de37fa4373f6d47a4af4a004ea",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:fe0b944ec6b84b64e394a15c991d08dd9b403c8711732b47e980b44519f3ec5c",
+      "recorded_at": "2026-09-22T06:50:23.274476+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+      "previous_source": {
+        "id": "tos.claim.jgb-inquiry-position-thesis",
+        "version": 1,
+        "digest": "sha256:84bbe3e572eceb855a208f0cae266e74395ab88065baca2eb406481c00fd0841"
+      },
+      "source": {
+        "id": "tos.claim.jgb-inquiry-position-thesis",
+        "version": 2,
+        "digest": "sha256:c4872be60503a0d53caef0983f8153f6deb68965e02e862f32acb889752782fd"
+      },
+      "previous_revision": "sha256:12338d4f57a17ae9eb0ad4b3a5213d364a297ecabd3815d4ee911b2486d0fa73",
+      "archive_path": "ToS/source-witnesses/.record-revisions/82ca18eaacb600fb14298450e29e8b2ab490c2329d6aeca3d5ab79da078d3168-12338d4f57a17ae9eb0ad4b3a5213d364a297ecabd3815d4ee911b2486d0fa73",
+      "dependencies": "sha256:511f0d94bd9d8d050075600495cb1f7d1a02aae5a8dd45516a358ab6c019eada",
+      "source_bindings": {
+        "objects": {
+          "tos.position.critical-double-refusal-jgb21": {
+            "source_ref": "ToS/source-witnesses/semantic-descriptions/position-critical-double-refusal-jgb21/position.json",
+            "source_sha256": "sha256:67b6dd366784a9bd054148370d5c6bb54dc08cf016bc0e0c7a269481d672a603",
+            "canonical_record_sha256": "sha256:12e410b17fa6f9b25da389127f1f86ecaff5f43125eb5273ae443ad6386deae7",
+            "schema_version": "tos_thought_topic_record_v1",
+            "record_version": 2
+          },
+          "tos.thesis.metaphysical-freedom-rejected-jgb21": {
+            "source_ref": "ToS/source-witnesses/semantic-descriptions/thesis-metaphysical-freedom-rejected-jgb21/thesis.json",
+            "source_sha256": "sha256:fb0f61699cfc1e4e9ce49fb8252f3c8f2d3320db22ed7667328ae58251ecdfb2",
+            "canonical_record_sha256": "sha256:6e5ca425b77ea23ec2f15973304f663dce7d1a34921af366650f8f339a572fcf",
+            "schema_version": "tos_thought_description_record_v1",
+            "record_version": 2
+          }
+        },
+        "evidence": {
+          "ToS/review-ledger/2026-09-07-jgb-inquiry-source-reading.md": {
+            "source_ref": "ToS/review-ledger/2026-09-07-jgb-inquiry-source-reading.md",
+            "source_sha256": "sha256:b07429682c2aa205794a9eebc20022cebb93edf2e07b2eb530c494147036506e",
+            "source_line": null,
+            "evidence_kind": "repo_path"
+          }
+        }
+      },
+      "changed_fields": [
+        "qualifiers"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.jgb-inquiry-position-thesis.statement-ru",
+          "version": 2,
+          "digest": "sha256:af77a28674084c0a9ba397d700489d6e60ff0c94511a29041955f7cb439d86f0"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:82ca18eaacb600fb14298450",
+        "expected_configuration": "sha256:fe0b944ec6b84b64e394a15c991d08dd9b403c8711732b47e980b44519f3ec5c",
+        "expected_dependencies": "sha256:511f0d94bd9d8d050075600495cb1f7d1a02aae5a8dd45516a358ab6c019eada",
+        "expected_inputs": {
+          "evidence": {
+            "ToS/review-ledger/2026-09-07-jgb-inquiry-source-reading.md": {
+              "evidence_kind": "repo_path",
+              "source_line": null,
+              "source_ref": "ToS/review-ledger/2026-09-07-jgb-inquiry-source-reading.md",
+              "source_sha256": "sha256:b07429682c2aa205794a9eebc20022cebb93edf2e07b2eb530c494147036506e"
+            }
+          },
+          "objects": {
+            "tos.position.critical-double-refusal-jgb21": {
+              "canonical_record_sha256": "sha256:12e410b17fa6f9b25da389127f1f86ecaff5f43125eb5273ae443ad6386deae7",
+              "record_version": 2,
+              "schema_version": "tos_thought_topic_record_v1",
+              "source_ref": "ToS/source-witnesses/semantic-descriptions/position-critical-double-refusal-jgb21/position.json",
+              "source_sha256": "sha256:67b6dd366784a9bd054148370d5c6bb54dc08cf016bc0e0c7a269481d672a603"
+            },
+            "tos.thesis.metaphysical-freedom-rejected-jgb21": {
+              "canonical_record_sha256": "sha256:6e5ca425b77ea23ec2f15973304f663dce7d1a34921af366650f8f339a572fcf",
+              "record_version": 2,
+              "schema_version": "tos_thought_description_record_v1",
+              "source_ref": "ToS/source-witnesses/semantic-descriptions/thesis-metaphysical-freedom-rejected-jgb21/thesis.json",
+              "source_sha256": "sha256:fb0f61699cfc1e4e9ce49fb8252f3c8f2d3320db22ed7667328ae58251ecdfb2"
+            }
+          }
+        },
+        "expected_revision": "sha256:12338d4f57a17ae9eb0ad4b3a5213d364a297ecabd3815d4ee911b2486d0fa73",
+        "expected_source": {
+          "digest": "sha256:84bbe3e572eceb855a208f0cae266e74395ab88065baca2eb406481c00fd0841",
+          "id": "tos.claim.jgb-inquiry-position-thesis",
+          "version": 1
+        },
+        "fields": {
+          "qualifiers": {
+            "relation_basis": "The thesis records the bounded rejection in this position. The relation covers that aspect; broader position content and later authorial views require their own evidence.",
+            "relation_basis_language": "en",
+            "relation_basis_script": "Latn",
+            "scope": "Provisional passage-bound research; no calibrated assessment, admission, logical validity, exhaustive taxonomy or canon assertion.",
+            "source_locator": "http://www.nietzschesource.org/eKGWB/JGB-21",
+            "source_representation_sha256": "143d6330c94bf00b135f887eeed5f20f6caee6a98174746227af255583ae8b20",
+            "source_section": "JGB 21",
+            "statement": "Реконструируемая критическая позиция включает отказ от метафизической свободы без автоматического отказа от всех её смыслов.",
+            "statement_language": "ru",
+            "statement_script": "Cyrl"
+          }
+        },
+        "forms": [
+          {
+            "field_id": "claim.statement",
+            "form_id": "tos.form.jgb-inquiry-position-thesis.statement-ru"
+          }
+        ],
+        "operation": "claim.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    },
+    {
+      "command_id": "tos-language-cleanup-20260922:d056c5c5acfedd817d00fa1a",
+      "request_digest": "sha256:75bc591d78a21e8c6ace180efe527131ea034812050e021343dfccf8bb1d3e3e",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:13df138131c993f709de0c60fd88f417791921f859789645d3aa6fe8d92edf6b",
+      "recorded_at": "2026-09-22T06:50:58.304908+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+      "previous_source": {
+        "id": "tos.claim.jgb-inquiry-position-problem",
+        "version": 1,
+        "digest": "sha256:3eff490ac0e6d234a8e56106e308d38c26b4014645e8bfdb517fb283dbfb16e1"
+      },
+      "source": {
+        "id": "tos.claim.jgb-inquiry-position-problem",
+        "version": 2,
+        "digest": "sha256:d0ebd14ebe43172b9445844d2a64689d3dd11799eaa7200e276905b2b3c3c525"
+      },
+      "previous_revision": "sha256:afe537a07c77a2e94e49fb572a3dd8ea817c158cd3417b3e1881471e23ca2a1c",
+      "archive_path": "ToS/source-witnesses/.record-revisions/d056c5c5acfedd817d00fa1a7f16610eebce0f4d160b0fafa0f930a61e8a96e0-afe537a07c77a2e94e49fb572a3dd8ea817c158cd3417b3e1881471e23ca2a1c",
+      "dependencies": "sha256:2838131e5dff7e8e91bd8dc7a1d01c4a118597ba5e18f64b06d61c1ef5154102",
+      "source_bindings": {
+        "objects": {
+          "tos.position.critical-double-refusal-jgb21": {
+            "source_ref": "ToS/source-witnesses/semantic-descriptions/position-critical-double-refusal-jgb21/position.json",
+            "source_sha256": "sha256:67b6dd366784a9bd054148370d5c6bb54dc08cf016bc0e0c7a269481d672a603",
+            "canonical_record_sha256": "sha256:12e410b17fa6f9b25da389127f1f86ecaff5f43125eb5273ae443ad6386deae7",
+            "schema_version": "tos_thought_topic_record_v1",
+            "record_version": 2
+          },
+          "tos.problem.ultimate-responsibility-jgb21": {
+            "source_ref": "ToS/source-witnesses/semantic-descriptions/problem-ultimate-responsibility-jgb21/problem.json",
+            "source_sha256": "sha256:36eeca37c86ece07cc343935e5c77fbcae9c234d95119989664c01cc8dfbbab7",
+            "canonical_record_sha256": "sha256:5aaa718afc10baf49f8b7426b56f476beaf03783e0e3bc1a26b0577c2f705ec5",
+            "schema_version": "tos_thought_topic_record_v1",
+            "record_version": 2
+          }
+        },
+        "evidence": {
+          "ToS/review-ledger/2026-09-07-jgb-inquiry-source-reading.md": {
+            "source_ref": "ToS/review-ledger/2026-09-07-jgb-inquiry-source-reading.md",
+            "source_sha256": "sha256:b07429682c2aa205794a9eebc20022cebb93edf2e07b2eb530c494147036506e",
+            "source_line": null,
+            "evidence_kind": "repo_path"
+          }
+        }
+      },
+      "changed_fields": [
+        "qualifiers"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.jgb-inquiry-position-problem.statement-ru",
+          "version": 2,
+          "digest": "sha256:25a9fda8cbc651ee817d29a94afdc1eb280b7ac79b0e95640abd4f46de2bddd2"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:d056c5c5acfedd817d00fa1a",
+        "expected_configuration": "sha256:13df138131c993f709de0c60fd88f417791921f859789645d3aa6fe8d92edf6b",
+        "expected_dependencies": "sha256:2838131e5dff7e8e91bd8dc7a1d01c4a118597ba5e18f64b06d61c1ef5154102",
+        "expected_inputs": {
+          "evidence": {
+            "ToS/review-ledger/2026-09-07-jgb-inquiry-source-reading.md": {
+              "evidence_kind": "repo_path",
+              "source_line": null,
+              "source_ref": "ToS/review-ledger/2026-09-07-jgb-inquiry-source-reading.md",
+              "source_sha256": "sha256:b07429682c2aa205794a9eebc20022cebb93edf2e07b2eb530c494147036506e"
+            }
+          },
+          "objects": {
+            "tos.position.critical-double-refusal-jgb21": {
+              "canonical_record_sha256": "sha256:12e410b17fa6f9b25da389127f1f86ecaff5f43125eb5273ae443ad6386deae7",
+              "record_version": 2,
+              "schema_version": "tos_thought_topic_record_v1",
+              "source_ref": "ToS/source-witnesses/semantic-descriptions/position-critical-double-refusal-jgb21/position.json",
+              "source_sha256": "sha256:67b6dd366784a9bd054148370d5c6bb54dc08cf016bc0e0c7a269481d672a603"
+            },
+            "tos.problem.ultimate-responsibility-jgb21": {
+              "canonical_record_sha256": "sha256:5aaa718afc10baf49f8b7426b56f476beaf03783e0e3bc1a26b0577c2f705ec5",
+              "record_version": 2,
+              "schema_version": "tos_thought_topic_record_v1",
+              "source_ref": "ToS/source-witnesses/semantic-descriptions/problem-ultimate-responsibility-jgb21/problem.json",
+              "source_sha256": "sha256:36eeca37c86ece07cc343935e5c77fbcae9c234d95119989664c01cc8dfbbab7"
+            }
+          }
+        },
+        "expected_revision": "sha256:afe537a07c77a2e94e49fb572a3dd8ea817c158cd3417b3e1881471e23ca2a1c",
+        "expected_source": {
+          "digest": "sha256:3eff490ac0e6d234a8e56106e308d38c26b4014645e8bfdb517fb283dbfb16e1",
+          "id": "tos.claim.jgb-inquiry-position-problem",
+          "version": 1
+        },
+        "fields": {
+          "qualifiers": {
+            "relation_basis": "The two critical moves engage the question and its tempting reversal. The relation records that engagement, with completeness of the solution left open.",
+            "relation_basis_language": "en",
+            "relation_basis_script": "Latn",
+            "scope": "Provisional passage-bound research; no calibrated assessment, admission, logical validity, exhaustive taxonomy or canon assertion.",
+            "source_locator": "http://www.nietzschesource.org/eKGWB/JGB-21",
+            "source_representation_sha256": "143d6330c94bf00b135f887eeed5f20f6caee6a98174746227af255583ae8b20",
+            "source_section": "JGB 21",
+            "statement": "Ограниченная позиция двойного отказа обращается к проблеме предельной ответственности и границ её критики.",
+            "statement_language": "ru",
+            "statement_script": "Cyrl"
+          }
+        },
+        "forms": [
+          {
+            "field_id": "claim.statement",
+            "form_id": "tos.form.jgb-inquiry-position-problem.statement-ru"
+          }
+        ],
+        "operation": "claim.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    },
+    {
+      "command_id": "tos-language-cleanup-20260922:64061eaf0e755d316e3a666d",
+      "request_digest": "sha256:eef3ab56c7943290a788fd1fc35358c6738392404a10d3ff1cfebd547ffb4220",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:95f0669c4db271e66920a6042fa399b58ce4246fb7dc0f135b3c607010e97fc9",
+      "recorded_at": "2026-09-22T06:51:31.994601+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+      "previous_source": {
+        "id": "tos.claim.jgb-inquiry-aspect-freedom",
+        "version": 1,
+        "digest": "sha256:a43cc01d2cc6d519ec686ff207ef344d967b2faeae625044a9f7c9c6ce5f38eb"
+      },
+      "source": {
+        "id": "tos.claim.jgb-inquiry-aspect-freedom",
+        "version": 2,
+        "digest": "sha256:c8d4599741614106d6d1540ec30b9f8a1b20ea040f06a5b2cad9583db62fa03f"
+      },
+      "previous_revision": "sha256:f0f1ca3547e949c4e429a8d990c845d19f97ea18fd2caa0f40f38a2f9a6a198e",
+      "archive_path": "ToS/source-witnesses/.record-revisions/64061eaf0e755d316e3a666d9bc8229478b269d820ff212bdc141671c5a7be68-f0f1ca3547e949c4e429a8d990c845d19f97ea18fd2caa0f40f38a2f9a6a198e",
+      "dependencies": "sha256:3f811b93da35cf3e173d14911f7a88c654e7608fea6c4466511e9cbc7520fc21",
+      "source_bindings": {
+        "objects": {
+          "tos.aspect.experienced-agency-jgb19": {
+            "source_ref": "ToS/source-witnesses/semantic-descriptions/aspect-experienced-agency-jgb19/aspect.json",
+            "source_sha256": "sha256:39728f81b1456dcf35f075b0f66c7bb20ae3c3c80355a3d2f60d51f78e53f349",
+            "canonical_record_sha256": "sha256:b248583df82f66bec4cfff234aba611db607320a1d555efb14ba7691c6e82563",
+            "schema_version": "tos_thought_topic_record_v1",
+            "record_version": 2
+          },
+          "tos.crosscutting-concept.freedom": {
+            "source_ref": "ToS/source-witnesses/semantic-descriptions/crosscutting-concept-freedom/crosscutting-concept.json",
+            "source_sha256": "sha256:91634bc8729445bea6f8c24d33b7b34b55c09ec08e392f3ac0d8f1ea9024b899",
+            "canonical_record_sha256": "sha256:67a297ab86e5e808712b3ff75c3626c14657a82ea4e9029f2752ae9a0420316c",
+            "schema_version": "tos_semantic_description_record_v1",
+            "record_version": 2
+          }
+        },
+        "evidence": {
+          "ToS/review-ledger/2026-09-07-jgb-inquiry-source-reading.md": {
+            "source_ref": "ToS/review-ledger/2026-09-07-jgb-inquiry-source-reading.md",
+            "source_sha256": "sha256:b07429682c2aa205794a9eebc20022cebb93edf2e07b2eb530c494147036506e",
+            "source_line": null,
+            "evidence_kind": "repo_path"
+          }
+        }
+      },
+      "changed_fields": [
+        "qualifiers"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.jgb-inquiry-aspect-freedom.statement-ru",
+          "version": 2,
+          "digest": "sha256:801f79e34a49ba95972fa31496555979411c8b69c68e7cb3ddea81c21b645f8a"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:64061eaf0e755d316e3a666d",
+        "expected_configuration": "sha256:95f0669c4db271e66920a6042fa399b58ce4246fb7dc0f135b3c607010e97fc9",
+        "expected_dependencies": "sha256:3f811b93da35cf3e173d14911f7a88c654e7608fea6c4466511e9cbc7520fc21",
+        "expected_inputs": {
+          "evidence": {
+            "ToS/review-ledger/2026-09-07-jgb-inquiry-source-reading.md": {
+              "evidence_kind": "repo_path",
+              "source_line": null,
+              "source_ref": "ToS/review-ledger/2026-09-07-jgb-inquiry-source-reading.md",
+              "source_sha256": "sha256:b07429682c2aa205794a9eebc20022cebb93edf2e07b2eb530c494147036506e"
+            }
+          },
+          "objects": {
+            "tos.aspect.experienced-agency-jgb19": {
+              "canonical_record_sha256": "sha256:b248583df82f66bec4cfff234aba611db607320a1d555efb14ba7691c6e82563",
+              "record_version": 2,
+              "schema_version": "tos_thought_topic_record_v1",
+              "source_ref": "ToS/source-witnesses/semantic-descriptions/aspect-experienced-agency-jgb19/aspect.json",
+              "source_sha256": "sha256:39728f81b1456dcf35f075b0f66c7bb20ae3c3c80355a3d2f60d51f78e53f349"
+            },
+            "tos.crosscutting-concept.freedom": {
+              "canonical_record_sha256": "sha256:67a297ab86e5e808712b3ff75c3626c14657a82ea4e9029f2752ae9a0420316c",
+              "record_version": 2,
+              "schema_version": "tos_semantic_description_record_v1",
+              "source_ref": "ToS/source-witnesses/semantic-descriptions/crosscutting-concept-freedom/crosscutting-concept.json",
+              "source_sha256": "sha256:91634bc8729445bea6f8c24d33b7b34b55c09ec08e392f3ac0d8f1ea9024b899"
+            }
+          }
+        },
+        "expected_revision": "sha256:f0f1ca3547e949c4e429a8d990c845d19f97ea18fd2caa0f40f38a2f9a6a198e",
+        "expected_source": {
+          "digest": "sha256:a43cc01d2cc6d519ec686ff207ef344d967b2faeae625044a9f7c9c6ce5f38eb",
+          "id": "tos.claim.jgb-inquiry-aspect-freedom",
+          "version": 1
+        },
+        "fields": {
+          "qualifiers": {
+            "relation_basis": "The passage connects these experiences with freedom of willing. The relation describes that connection within the passage's scope.",
+            "relation_basis_language": "en",
+            "relation_basis_script": "Latn",
+            "scope": "Provisional passage-bound research; no calibrated assessment, admission, logical validity, exhaustive taxonomy or canon assertion.",
+            "source_locator": "http://www.nietzschesource.org/eKGWB/JGB-19",
+            "source_representation_sha256": "143d6330c94bf00b135f887eeed5f20f6caee6a98174746227af255583ae8b20",
+            "source_section": "JGB 19",
+            "statement": "Переживаемая действенность исследуется как аспект свободы в пределах чтения §19.",
+            "statement_language": "ru",
+            "statement_script": "Cyrl"
+          }
+        },
+        "forms": [
+          {
+            "field_id": "claim.statement",
+            "form_id": "tos.form.jgb-inquiry-aspect-freedom.statement-ru"
+          }
+        ],
+        "operation": "claim.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    },
+    {
+      "command_id": "tos-language-cleanup-20260922:62d9a300c6a88dc80b009deb",
+      "request_digest": "sha256:74cee368f7f9bf80230315fe744d7c4da29df87cd65a46a1b8a7513eabf50f70",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:31976001564e3db5bc37ee832ebfa614909e81a3c4e0698c90f1dc8756f8a647",
+      "recorded_at": "2026-09-22T06:52:05.166792+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+      "previous_source": {
+        "id": "tos.claim.jgb-inquiry-category-freedom",
+        "version": 1,
+        "digest": "sha256:9c7cae698aa436217d14c5b6940757ebd1b109223041e5952fc114a41e039d05"
+      },
+      "source": {
+        "id": "tos.claim.jgb-inquiry-category-freedom",
+        "version": 2,
+        "digest": "sha256:7fcb10165deffaca2986ca1177fdc714cec2fe2ff7ec2ba8e9000182d5f72a61"
+      },
+      "previous_revision": "sha256:0704f3ad85565e44c9fed6b4d1313ec688fe4346ebdebd5874b18be69fd69c68",
+      "archive_path": "ToS/source-witnesses/.record-revisions/62d9a300c6a88dc80b009deb248fa1e7c766ae5c1b1e266e2c99aaaf68c7ffbc-0704f3ad85565e44c9fed6b4d1313ec688fe4346ebdebd5874b18be69fd69c68",
+      "dependencies": "sha256:5d9a105ee1a177ba43bb55d9106634a34e5276d7169d9564ff14f28bb5250c4c",
+      "source_bindings": {
+        "objects": {
+          "tos.crosscutting-concept.freedom": {
+            "source_ref": "ToS/source-witnesses/semantic-descriptions/crosscutting-concept-freedom/crosscutting-concept.json",
+            "source_sha256": "sha256:91634bc8729445bea6f8c24d33b7b34b55c09ec08e392f3ac0d8f1ea9024b899",
+            "canonical_record_sha256": "sha256:67a297ab86e5e808712b3ff75c3626c14657a82ea4e9029f2752ae9a0420316c",
+            "schema_version": "tos_semantic_description_record_v1",
+            "record_version": 2
+          },
+          "tos.philosophical-category.causality-as-conceptual-convention-jgb21": {
+            "source_ref": "ToS/source-witnesses/semantic-descriptions/philosophical-category-causality-as-conceptual-convention-jgb21/philosophical-category.json",
+            "source_sha256": "sha256:1194360294d88e7b16ba9371d8c7af9a5a3c6459278aafe76f837f4b10de9730",
+            "canonical_record_sha256": "sha256:bd8bf1f206d425850ee79a68978ed138dc723fc4edaa9b02e839f9dc9d3c9c14",
+            "schema_version": "tos_thought_topic_record_v1",
+            "record_version": 2
+          }
+        },
+        "evidence": {
+          "ToS/review-ledger/2026-09-07-jgb-inquiry-source-reading.md": {
+            "source_ref": "ToS/review-ledger/2026-09-07-jgb-inquiry-source-reading.md",
+            "source_sha256": "sha256:b07429682c2aa205794a9eebc20022cebb93edf2e07b2eb530c494147036506e",
+            "source_line": null,
+            "evidence_kind": "repo_path"
+          }
+        }
+      },
+      "changed_fields": [
+        "qualifiers"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.jgb-inquiry-category-freedom.statement-ru",
+          "version": 2,
+          "digest": "sha256:74c5697ed32082c72989b24678f3fcb2c7ebd80a67a1c27691209da3a7e49f94"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:62d9a300c6a88dc80b009deb",
+        "expected_configuration": "sha256:31976001564e3db5bc37ee832ebfa614909e81a3c4e0698c90f1dc8756f8a647",
+        "expected_dependencies": "sha256:5d9a105ee1a177ba43bb55d9106634a34e5276d7169d9564ff14f28bb5250c4c",
+        "expected_inputs": {
+          "evidence": {
+            "ToS/review-ledger/2026-09-07-jgb-inquiry-source-reading.md": {
+              "evidence_kind": "repo_path",
+              "source_line": null,
+              "source_ref": "ToS/review-ledger/2026-09-07-jgb-inquiry-source-reading.md",
+              "source_sha256": "sha256:b07429682c2aa205794a9eebc20022cebb93edf2e07b2eb530c494147036506e"
+            }
+          },
+          "objects": {
+            "tos.crosscutting-concept.freedom": {
+              "canonical_record_sha256": "sha256:67a297ab86e5e808712b3ff75c3626c14657a82ea4e9029f2752ae9a0420316c",
+              "record_version": 2,
+              "schema_version": "tos_semantic_description_record_v1",
+              "source_ref": "ToS/source-witnesses/semantic-descriptions/crosscutting-concept-freedom/crosscutting-concept.json",
+              "source_sha256": "sha256:91634bc8729445bea6f8c24d33b7b34b55c09ec08e392f3ac0d8f1ea9024b899"
+            },
+            "tos.philosophical-category.causality-as-conceptual-convention-jgb21": {
+              "canonical_record_sha256": "sha256:bd8bf1f206d425850ee79a68978ed138dc723fc4edaa9b02e839f9dc9d3c9c14",
+              "record_version": 2,
+              "schema_version": "tos_thought_topic_record_v1",
+              "source_ref": "ToS/source-witnesses/semantic-descriptions/philosophical-category-causality-as-conceptual-convention-jgb21/philosophical-category.json",
+              "source_sha256": "sha256:1194360294d88e7b16ba9371d8c7af9a5a3c6459278aafe76f837f4b10de9730"
+            }
+          }
+        },
+        "expected_revision": "sha256:0704f3ad85565e44c9fed6b4d1313ec688fe4346ebdebd5874b18be69fd69c68",
+        "expected_source": {
+          "digest": "sha256:9c7cae698aa436217d14c5b6940757ebd1b109223041e5952fc114a41e039d05",
+          "id": "tos.claim.jgb-inquiry-category-freedom",
+          "version": 1
+        },
+        "fields": {
+          "qualifiers": {
+            "relation_basis": "The section's critique of mechanistic unfree will turns on the treatment of cause and effect. The relation records this philosophical organizing connection.",
+            "relation_basis_language": "en",
+            "relation_basis_script": "Latn",
+            "scope": "Provisional passage-bound research; no calibrated assessment, admission, logical validity, exhaustive taxonomy or canon assertion.",
+            "source_locator": "http://www.nietzschesource.org/eKGWB/JGB-21",
+            "source_representation_sha256": "143d6330c94bf00b135f887eeed5f20f6caee6a98174746227af255583ae8b20",
+            "source_section": "JGB 21",
+            "statement": "Категория причинности участвует в рассмотрении свободы в §21; связь описывает философское содержание этого рассмотрения.",
+            "statement_language": "ru",
+            "statement_script": "Cyrl"
+          }
+        },
+        "forms": [
+          {
+            "field_id": "claim.statement",
+            "form_id": "tos.form.jgb-inquiry-category-freedom.statement-ru"
+          }
+        ],
+        "operation": "claim.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    },
+    {
+      "command_id": "tos-language-cleanup-20260922:4ed8553d53c18f8aa6e31d6e",
+      "request_digest": "sha256:21ba94032a88f924e9862c20e5185d811f431150e5a4b65465af5a513c2fd4a6",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:2469c692805da5a3a3fca3d9fc97de7e44f938885a6477974efc45b6aa977f57",
+      "recorded_at": "2026-09-22T06:52:52.792016+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+      "previous_source": {
+        "id": "tos.claim.jgb-inquiry-distinction-experience",
+        "version": 1,
+        "digest": "sha256:f1597e7348366a0ebb2967600bedb9539dce8a8d249fbd54e8ea1277aa0eeb8e"
+      },
+      "source": {
+        "id": "tos.claim.jgb-inquiry-distinction-experience",
+        "version": 2,
+        "digest": "sha256:0db6cb0e00dddcc4f4f3c02c68b3cc5c62473b971d4daa8d7ae70f17fb03c439"
+      },
+      "previous_revision": "sha256:fb2c0a454ac727b100c02b691b59b0acb9d40a310c19eca04d28360fd8f3bed4",
+      "archive_path": "ToS/source-witnesses/.record-revisions/4ed8553d53c18f8aa6e31d6ef17d48b20fa8b6c89c099a708d525e6f110e7c92-fb2c0a454ac727b100c02b691b59b0acb9d40a310c19eca04d28360fd8f3bed4",
+      "dependencies": "sha256:449e145565fbb97d0af7a1e8632c404c6de19b59a3671bb1ad08ca5797eed4a7",
+      "source_bindings": {
+        "objects": {
+          "tos.conception.commanding-affect-jgb19": {
+            "source_ref": "ToS/source-witnesses/semantic-descriptions/conception-commanding-affect-jgb19/conception.json",
+            "source_sha256": "sha256:cefdcc69b3cdbc5584ad6a0f49ae1aadaf45f16f4ec68913d84e4b2de8a50e6f",
+            "canonical_record_sha256": "sha256:1aba03503f1876a891cc77d52a12e9c298d5533ae5215bf597c5e74eb656cfaf",
+            "schema_version": "tos_semantic_description_record_v1",
+            "record_version": 2
+          },
+          "tos.distinction.experienced-and-metaphysical-freedom-jgb": {
+            "source_ref": "ToS/source-witnesses/semantic-descriptions/distinction-experienced-and-metaphysical-freedom-jgb/distinction.json",
+            "source_sha256": "sha256:93be44c75fa75ebc7a830ec021a81150b219399d2536eca512486d554998bd2c",
+            "canonical_record_sha256": "sha256:32269ea8fbabfca564b891e80b51c4791587b86025505fe76c82f314903234c5",
+            "schema_version": "tos_thought_topic_record_v1",
+            "record_version": 2
+          }
+        },
+        "evidence": {
+          "ToS/review-ledger/2026-09-07-jgb-inquiry-source-reading.md": {
+            "source_ref": "ToS/review-ledger/2026-09-07-jgb-inquiry-source-reading.md",
+            "source_sha256": "sha256:b07429682c2aa205794a9eebc20022cebb93edf2e07b2eb530c494147036506e",
+            "source_line": null,
+            "evidence_kind": "repo_path"
+          }
+        }
+      },
+      "changed_fields": [
+        "qualifiers"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.jgb-inquiry-distinction-experience.statement-ru",
+          "version": 2,
+          "digest": "sha256:2c2a7dd73591d33ac45cfb8e0603e4bc80e3a868b6aab0ddf2c1337e28d3ce0c"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:4ed8553d53c18f8aa6e31d6e",
+        "expected_configuration": "sha256:2469c692805da5a3a3fca3d9fc97de7e44f938885a6477974efc45b6aa977f57",
+        "expected_dependencies": "sha256:449e145565fbb97d0af7a1e8632c404c6de19b59a3671bb1ad08ca5797eed4a7",
+        "expected_inputs": {
+          "evidence": {
+            "ToS/review-ledger/2026-09-07-jgb-inquiry-source-reading.md": {
+              "evidence_kind": "repo_path",
+              "source_line": null,
+              "source_ref": "ToS/review-ledger/2026-09-07-jgb-inquiry-source-reading.md",
+              "source_sha256": "sha256:b07429682c2aa205794a9eebc20022cebb93edf2e07b2eb530c494147036506e"
+            }
+          },
+          "objects": {
+            "tos.conception.commanding-affect-jgb19": {
+              "canonical_record_sha256": "sha256:1aba03503f1876a891cc77d52a12e9c298d5533ae5215bf597c5e74eb656cfaf",
+              "record_version": 2,
+              "schema_version": "tos_semantic_description_record_v1",
+              "source_ref": "ToS/source-witnesses/semantic-descriptions/conception-commanding-affect-jgb19/conception.json",
+              "source_sha256": "sha256:cefdcc69b3cdbc5584ad6a0f49ae1aadaf45f16f4ec68913d84e4b2de8a50e6f"
+            },
+            "tos.distinction.experienced-and-metaphysical-freedom-jgb": {
+              "canonical_record_sha256": "sha256:32269ea8fbabfca564b891e80b51c4791587b86025505fe76c82f314903234c5",
+              "record_version": 2,
+              "schema_version": "tos_thought_topic_record_v1",
+              "source_ref": "ToS/source-witnesses/semantic-descriptions/distinction-experienced-and-metaphysical-freedom-jgb/distinction.json",
+              "source_sha256": "sha256:93be44c75fa75ebc7a830ec021a81150b219399d2536eca512486d554998bd2c"
+            }
+          }
+        },
+        "expected_revision": "sha256:fb2c0a454ac727b100c02b691b59b0acb9d40a310c19eca04d28360fd8f3bed4",
+        "expected_source": {
+          "digest": "sha256:f1597e7348366a0ebb2967600bedb9539dce8a8d249fbd54e8ea1277aa0eeb8e",
+          "id": "tos.claim.jgb-inquiry-distinction-experience",
+          "version": 1
+        },
+        "fields": {
+          "qualifiers": {
+            "relation_basis": "The comparison's criterion selects the experienced-agency account as one term. Section order supplies textual location; development and logical priority remain open.",
+            "relation_basis_language": "en",
+            "relation_basis_script": "Latn",
+            "scope": "Provisional passage-bound research; no calibrated assessment, admission, logical validity, exhaustive taxonomy or canon assertion.",
+            "source_locator": [
+              "http://www.nietzschesource.org/eKGWB/JGB-19",
+              "http://www.nietzschesource.org/eKGWB/JGB-21"
+            ],
+            "source_representation_sha256": "143d6330c94bf00b135f887eeed5f20f6caee6a98174746227af255583ae8b20",
+            "source_section": "JGB 19/21",
+            "statement": "Первый член исследовательского различения — переживаемая свобода в трактовке §19; первый не означает более ранний или более истинный.",
+            "statement_language": "ru",
+            "statement_script": "Cyrl"
+          }
+        },
+        "forms": [
+          {
+            "field_id": "claim.statement",
+            "form_id": "tos.form.jgb-inquiry-distinction-experience.statement-ru"
+          }
+        ],
+        "operation": "claim.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    },
+    {
+      "command_id": "tos-language-cleanup-20260922:fc42326d25858c338e2006eb",
+      "request_digest": "sha256:86a2685e005e20282727cf9f2a00786c53149b496cce02e02c8ba51c304c4808",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:847591364110b887280666be878bae38b00648565a980b754b8d85124156dfbe",
+      "recorded_at": "2026-09-22T06:54:22.971221+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+      "previous_source": {
+        "id": "tos.claim.jgb-inquiry-opposition-metaphysical",
+        "version": 1,
+        "digest": "sha256:c4edbaab5f7c7a89e02192925eab91111f94aedd0e3b9d568b2005b5d79d77c1"
+      },
+      "source": {
+        "id": "tos.claim.jgb-inquiry-opposition-metaphysical",
+        "version": 2,
+        "digest": "sha256:42261c12a76139ce006e8ba108bf8bded8111c211366cca4792f0a56d3ca8bc5"
+      },
+      "previous_revision": "sha256:d31c97ecc11a012dca598b5cd391f6b982cf3c15dd8f38d1ebda6152aadf3000",
+      "archive_path": "ToS/source-witnesses/.record-revisions/fc42326d25858c338e2006ebb66cb6e19c5ebb23fd51807b555a5928bb82261a-d31c97ecc11a012dca598b5cd391f6b982cf3c15dd8f38d1ebda6152aadf3000",
+      "dependencies": "sha256:b057c716d3e299c86ddfce83c629c74ea42706bb4c4dddad41687c28eddc4451",
+      "source_bindings": {
+        "objects": {
+          "tos.conception.metaphysical-self-origination-jgb21": {
+            "source_ref": "ToS/source-witnesses/semantic-descriptions/conception-metaphysical-self-origination-jgb21/conception.json",
+            "source_sha256": "sha256:fdc12001060b948584b7f80e956f733d9b58fadee2d5f3a74d1b92ed61db139f",
+            "canonical_record_sha256": "sha256:eb9e52a1d6d825310cd60ccfeb3ef176138c097f06209a27d8f5d1931c8032fd",
+            "schema_version": "tos_semantic_description_record_v1",
+            "record_version": 2
+          },
+          "tos.opposition.metaphysical-and-mechanistic-freedom-jgb21": {
+            "source_ref": "ToS/source-witnesses/semantic-descriptions/opposition-metaphysical-and-mechanistic-freedom-jgb21/opposition.json",
+            "source_sha256": "sha256:141b2ce3dc09b72f68d10566285a23943f50ec099ae8649a44f6dde5aee5ccb8",
+            "canonical_record_sha256": "sha256:68aa781ec47a7b51f51c42a542aa6a1d8d1472cae9a8a3b9b4c9e189a17bd07b",
+            "schema_version": "tos_thought_topic_record_v1",
+            "record_version": 2
+          }
+        },
+        "evidence": {
+          "ToS/review-ledger/2026-09-07-jgb-inquiry-source-reading.md": {
+            "source_ref": "ToS/review-ledger/2026-09-07-jgb-inquiry-source-reading.md",
+            "source_sha256": "sha256:b07429682c2aa205794a9eebc20022cebb93edf2e07b2eb530c494147036506e",
+            "source_line": null,
+            "evidence_kind": "repo_path"
+          }
+        }
+      },
+      "changed_fields": [
+        "qualifiers"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.jgb-inquiry-opposition-metaphysical.statement-ru",
+          "version": 2,
+          "digest": "sha256:0b03b13154b3b94b742006c4bfb4f70b47ac24c72db7eeadcfeaa80cb2413894"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:fc42326d25858c338e2006eb",
+        "expected_configuration": "sha256:847591364110b887280666be878bae38b00648565a980b754b8d85124156dfbe",
+        "expected_dependencies": "sha256:b057c716d3e299c86ddfce83c629c74ea42706bb4c4dddad41687c28eddc4451",
+        "expected_inputs": {
+          "evidence": {
+            "ToS/review-ledger/2026-09-07-jgb-inquiry-source-reading.md": {
+              "evidence_kind": "repo_path",
+              "source_line": null,
+              "source_ref": "ToS/review-ledger/2026-09-07-jgb-inquiry-source-reading.md",
+              "source_sha256": "sha256:b07429682c2aa205794a9eebc20022cebb93edf2e07b2eb530c494147036506e"
+            }
+          },
+          "objects": {
+            "tos.conception.metaphysical-self-origination-jgb21": {
+              "canonical_record_sha256": "sha256:eb9e52a1d6d825310cd60ccfeb3ef176138c097f06209a27d8f5d1931c8032fd",
+              "record_version": 2,
+              "schema_version": "tos_semantic_description_record_v1",
+              "source_ref": "ToS/source-witnesses/semantic-descriptions/conception-metaphysical-self-origination-jgb21/conception.json",
+              "source_sha256": "sha256:fdc12001060b948584b7f80e956f733d9b58fadee2d5f3a74d1b92ed61db139f"
+            },
+            "tos.opposition.metaphysical-and-mechanistic-freedom-jgb21": {
+              "canonical_record_sha256": "sha256:68aa781ec47a7b51f51c42a542aa6a1d8d1472cae9a8a3b9b4c9e189a17bd07b",
+              "record_version": 2,
+              "schema_version": "tos_thought_topic_record_v1",
+              "source_ref": "ToS/source-witnesses/semantic-descriptions/opposition-metaphysical-and-mechanistic-freedom-jgb21/opposition.json",
+              "source_sha256": "sha256:141b2ce3dc09b72f68d10566285a23943f50ec099ae8649a44f6dde5aee5ccb8"
+            }
+          }
+        },
+        "expected_revision": "sha256:d31c97ecc11a012dca598b5cd391f6b982cf3c15dd8f38d1ebda6152aadf3000",
+        "expected_source": {
+          "digest": "sha256:c4edbaab5f7c7a89e02192925eab91111f94aedd0e3b9d568b2005b5d79d77c1",
+          "id": "tos.claim.jgb-inquiry-opposition-metaphysical",
+          "version": 1
+        },
+        "fields": {
+          "qualifiers": {
+            "relation_basis": "This is the notion whose mechanistic reversal the section warns against. Membership places it within the reconstructed opposition, retaining its critical context.",
+            "relation_basis_language": "en",
+            "relation_basis_script": "Latn",
+            "scope": "Provisional passage-bound research; no calibrated assessment, admission, logical validity, exhaustive taxonomy or canon assertion.",
+            "source_locator": "http://www.nietzschesource.org/eKGWB/JGB-21",
+            "source_representation_sha256": "143d6330c94bf00b135f887eeed5f20f6caee6a98174746227af255583ae8b20",
+            "source_section": "JGB 21",
+            "statement": "Один член оппозиции §21 — метафизическая свобода как самооснование, описанная как мишень критики.",
+            "statement_language": "ru",
+            "statement_script": "Cyrl"
+          }
+        },
+        "forms": [
+          {
+            "field_id": "claim.statement",
+            "form_id": "tos.form.jgb-inquiry-opposition-metaphysical.statement-ru"
+          }
+        ],
+        "operation": "claim.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    },
+    {
+      "command_id": "tos-language-cleanup-20260922:2fdd1b31bf1536923a9e4a90",
+      "request_digest": "sha256:ae8dd075307f122b363b263c3bf686b02cdd1757a767fdfb81e7cf2db77995e5",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:4c11677377fd54d98532974e15869e42bd2d231bb04860b5124d49a1d28fde6b",
+      "recorded_at": "2026-09-22T06:54:59.530416+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+      "previous_source": {
+        "id": "tos.claim.jgb-inquiry-opposition-mechanistic",
+        "version": 1,
+        "digest": "sha256:7431314b7381116ac638f05a2291261e54ca7215d04b08ac37ff6012cdc7f56d"
+      },
+      "source": {
+        "id": "tos.claim.jgb-inquiry-opposition-mechanistic",
+        "version": 2,
+        "digest": "sha256:b397522c344152453a157890c9abd4c4180fb960fc246378aa028d956f25e389"
+      },
+      "previous_revision": "sha256:40174e69550d7e2e833a55e0ebd1c1711dd4c72e5123bcd349bdb51a8597891d",
+      "archive_path": "ToS/source-witnesses/.record-revisions/2fdd1b31bf1536923a9e4a90beea332c39e6d80539f160e8d378ce6f6f7ee511-40174e69550d7e2e833a55e0ebd1c1711dd4c72e5123bcd349bdb51a8597891d",
+      "dependencies": "sha256:4b62a8bb629594dffa80231c7797ed4f84d7919908d989622bf44f0809ea02d2",
+      "source_bindings": {
+        "objects": {
+          "tos.conception.unfree-will-reversal-jgb21": {
+            "source_ref": "ToS/source-witnesses/semantic-descriptions/conception-unfree-will-reversal-jgb21/conception.json",
+            "source_sha256": "sha256:25acfbe2f6591d297877bbfab4e6425d0f32cf82306ec03fefa4ef1476470cfb",
+            "canonical_record_sha256": "sha256:8ae47f02db0922b30a456c4ef4f689b3e8ca76dd950ae4d2f26f229061aa61a9",
+            "schema_version": "tos_semantic_description_record_v1",
+            "record_version": 2
+          },
+          "tos.opposition.metaphysical-and-mechanistic-freedom-jgb21": {
+            "source_ref": "ToS/source-witnesses/semantic-descriptions/opposition-metaphysical-and-mechanistic-freedom-jgb21/opposition.json",
+            "source_sha256": "sha256:141b2ce3dc09b72f68d10566285a23943f50ec099ae8649a44f6dde5aee5ccb8",
+            "canonical_record_sha256": "sha256:68aa781ec47a7b51f51c42a542aa6a1d8d1472cae9a8a3b9b4c9e189a17bd07b",
+            "schema_version": "tos_thought_topic_record_v1",
+            "record_version": 2
+          }
+        },
+        "evidence": {
+          "ToS/review-ledger/2026-09-07-jgb-inquiry-source-reading.md": {
+            "source_ref": "ToS/review-ledger/2026-09-07-jgb-inquiry-source-reading.md",
+            "source_sha256": "sha256:b07429682c2aa205794a9eebc20022cebb93edf2e07b2eb530c494147036506e",
+            "source_line": null,
+            "evidence_kind": "repo_path"
+          }
+        }
+      },
+      "changed_fields": [
+        "qualifiers"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.jgb-inquiry-opposition-mechanistic.statement-ru",
+          "version": 2,
+          "digest": "sha256:8f53c4858046ceeca9a997c1336826ad5198ec16bd0359e904ee499a9ffa29cd"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:2fdd1b31bf1536923a9e4a90",
+        "expected_configuration": "sha256:4c11677377fd54d98532974e15869e42bd2d231bb04860b5124d49a1d28fde6b",
+        "expected_dependencies": "sha256:4b62a8bb629594dffa80231c7797ed4f84d7919908d989622bf44f0809ea02d2",
+        "expected_inputs": {
+          "evidence": {
+            "ToS/review-ledger/2026-09-07-jgb-inquiry-source-reading.md": {
+              "evidence_kind": "repo_path",
+              "source_line": null,
+              "source_ref": "ToS/review-ledger/2026-09-07-jgb-inquiry-source-reading.md",
+              "source_sha256": "sha256:b07429682c2aa205794a9eebc20022cebb93edf2e07b2eb530c494147036506e"
+            }
+          },
+          "objects": {
+            "tos.conception.unfree-will-reversal-jgb21": {
+              "canonical_record_sha256": "sha256:8ae47f02db0922b30a456c4ef4f689b3e8ca76dd950ae4d2f26f229061aa61a9",
+              "record_version": 2,
+              "schema_version": "tos_semantic_description_record_v1",
+              "source_ref": "ToS/source-witnesses/semantic-descriptions/conception-unfree-will-reversal-jgb21/conception.json",
+              "source_sha256": "sha256:25acfbe2f6591d297877bbfab4e6425d0f32cf82306ec03fefa4ef1476470cfb"
+            },
+            "tos.opposition.metaphysical-and-mechanistic-freedom-jgb21": {
+              "canonical_record_sha256": "sha256:68aa781ec47a7b51f51c42a542aa6a1d8d1472cae9a8a3b9b4c9e189a17bd07b",
+              "record_version": 2,
+              "schema_version": "tos_thought_topic_record_v1",
+              "source_ref": "ToS/source-witnesses/semantic-descriptions/opposition-metaphysical-and-mechanistic-freedom-jgb21/opposition.json",
+              "source_sha256": "sha256:141b2ce3dc09b72f68d10566285a23943f50ec099ae8649a44f6dde5aee5ccb8"
+            }
+          }
+        },
+        "expected_revision": "sha256:40174e69550d7e2e833a55e0ebd1c1711dd4c72e5123bcd349bdb51a8597891d",
+        "expected_source": {
+          "digest": "sha256:7431314b7381116ac638f05a2291261e54ca7215d04b08ac37ff6012cdc7f56d",
+          "id": "tos.claim.jgb-inquiry-opposition-mechanistic",
+          "version": 1
+        },
+        "fields": {
+          "qualifiers": {
+            "relation_basis": "The passage identifies unfree will as the reversal and criticizes its reification of cause and effect. This grounds its term role; formal contradiction requires separate assessment.",
+            "relation_basis_language": "en",
+            "relation_basis_script": "Latn",
+            "scope": "Provisional passage-bound research; no calibrated assessment, admission, logical validity, exhaustive taxonomy or canon assertion.",
+            "source_locator": "http://www.nietzschesource.org/eKGWB/JGB-21",
+            "source_representation_sha256": "143d6330c94bf00b135f887eeed5f20f6caee6a98174746227af255583ae8b20",
+            "source_section": "JGB 21",
+            "statement": "Другой член оппозиции — механистическая несвобода, которую §21 также критикует, не объявляя два члена исчерпывающим выбором.",
+            "statement_language": "ru",
+            "statement_script": "Cyrl"
+          }
+        },
+        "forms": [
+          {
+            "field_id": "claim.statement",
+            "form_id": "tos.form.jgb-inquiry-opposition-mechanistic.statement-ru"
+          }
+        ],
+        "operation": "claim.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    },
+    {
+      "command_id": "tos-language-cleanup-20260922:de1bc4c9c2dc6ff4163d28df",
+      "request_digest": "sha256:672d0ffd02aa6cf2b8794d5f9d8a6980a25ba2cedd3c571b13cf6a4feb599b33",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:6bf68f3cbecfde3b1090835f293947766e441459a21037de0cc840438f6d8401",
+      "recorded_at": "2026-09-22T06:55:31.099968+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+      "previous_source": {
+        "id": "tos.claim.jgb-inquiry-experienced-agency-jgb19-expression",
+        "version": 1,
+        "digest": "sha256:c1b38569a367bad22e91f89de42286b5988ea430d19b55ecdd291a91068b08f1"
+      },
+      "source": {
+        "id": "tos.claim.jgb-inquiry-experienced-agency-jgb19-expression",
+        "version": 2,
+        "digest": "sha256:19771bc048ce9e9d343daa721331eca0f68d6d2195b62e30abaa1edfe1a2fd69"
+      },
+      "previous_revision": "sha256:b7bf9845d80c18c6811f89a8fb64307aca83ea44d2c2c4bce53b5223fc70e81e",
+      "archive_path": "ToS/source-witnesses/.record-revisions/de1bc4c9c2dc6ff4163d28df5e389807cb23c585e3d77f328c980122faab8386-b7bf9845d80c18c6811f89a8fb64307aca83ea44d2c2c4bce53b5223fc70e81e",
+      "dependencies": "sha256:b0b70479febf1653f9ec222aa81c72bd8b80ba9558f1bef0f179db39cced4ad3",
+      "source_bindings": {
+        "objects": {
+          "tos.aspect.experienced-agency-jgb19": {
+            "source_ref": "ToS/source-witnesses/semantic-descriptions/aspect-experienced-agency-jgb19/aspect.json",
+            "source_sha256": "sha256:39728f81b1456dcf35f075b0f66c7bb20ae3c3c80355a3d2f60d51f78e53f349",
+            "canonical_record_sha256": "sha256:b248583df82f66bec4cfff234aba611db607320a1d555efb14ba7691c6e82563",
+            "schema_version": "tos_thought_topic_record_v1",
+            "record_version": 2
+          },
+          "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese": {
+            "source_ref": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/work.json",
+            "source_sha256": "sha256:032d3acdc89f751943c98a0b450835effdf0bcc8e0c1ddd362bb9e2d90658f3c",
+            "canonical_record_sha256": "sha256:8a767a4380b00a2d6895bba8949972e33d37baec0513d87e5c0b60ed2fb1055e",
+            "schema_version": "tos_corpus_record_v1",
+            "record_version": 7
+          }
+        },
+        "evidence": {
+          "ToS/review-ledger/2026-09-07-jgb-inquiry-source-reading.md": {
+            "source_ref": "ToS/review-ledger/2026-09-07-jgb-inquiry-source-reading.md",
+            "source_sha256": "sha256:b07429682c2aa205794a9eebc20022cebb93edf2e07b2eb530c494147036506e",
+            "source_line": null,
+            "evidence_kind": "repo_path"
+          }
+        }
+      },
+      "changed_fields": [
+        "qualifiers"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.jgb-inquiry-experienced-agency-jgb19-expression.statement-ru",
+          "version": 2,
+          "digest": "sha256:7fee0aa33c981a7a8fba6debde222ee4899a7870c289a5118175b0832a3e2c33"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:de1bc4c9c2dc6ff4163d28df",
+        "expected_configuration": "sha256:6bf68f3cbecfde3b1090835f293947766e441459a21037de0cc840438f6d8401",
+        "expected_dependencies": "sha256:b0b70479febf1653f9ec222aa81c72bd8b80ba9558f1bef0f179db39cced4ad3",
+        "expected_inputs": {
+          "evidence": {
+            "ToS/review-ledger/2026-09-07-jgb-inquiry-source-reading.md": {
+              "evidence_kind": "repo_path",
+              "source_line": null,
+              "source_ref": "ToS/review-ledger/2026-09-07-jgb-inquiry-source-reading.md",
+              "source_sha256": "sha256:b07429682c2aa205794a9eebc20022cebb93edf2e07b2eb530c494147036506e"
+            }
+          },
+          "objects": {
+            "tos.aspect.experienced-agency-jgb19": {
+              "canonical_record_sha256": "sha256:b248583df82f66bec4cfff234aba611db607320a1d555efb14ba7691c6e82563",
+              "record_version": 2,
+              "schema_version": "tos_thought_topic_record_v1",
+              "source_ref": "ToS/source-witnesses/semantic-descriptions/aspect-experienced-agency-jgb19/aspect.json",
+              "source_sha256": "sha256:39728f81b1456dcf35f075b0f66c7bb20ae3c3c80355a3d2f60d51f78e53f349"
+            },
+            "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese": {
+              "canonical_record_sha256": "sha256:8a767a4380b00a2d6895bba8949972e33d37baec0513d87e5c0b60ed2fb1055e",
+              "record_version": 7,
+              "schema_version": "tos_corpus_record_v1",
+              "source_ref": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/work.json",
+              "source_sha256": "sha256:032d3acdc89f751943c98a0b450835effdf0bcc8e0c1ddd362bb9e2d90658f3c"
+            }
+          }
+        },
+        "expected_revision": "sha256:b7bf9845d80c18c6811f89a8fb64307aca83ea44d2c2c4bce53b5223fc70e81e",
+        "expected_source": {
+          "digest": "sha256:c1b38569a367bad22e91f89de42286b5988ea430d19b55ecdd291a91068b08f1",
+          "id": "tos.claim.jgb-inquiry-experienced-agency-jgb19-expression",
+          "version": 1
+        },
+        "fields": {
+          "qualifiers": {
+            "relation_basis": "The complete section was read. The relation interprets the specified content within its recorded limits and retains the status of a research proposal.",
+            "relation_basis_language": "en",
+            "relation_basis_script": "Latn",
+            "scope": "Provisional passage-bound research; no calibrated assessment, admission, logical validity, exhaustive taxonomy or canon assertion.",
+            "source_locator": "http://www.nietzschesource.org/eKGWB/JGB-19",
+            "source_representation_sha256": "143d6330c94bf00b135f887eeed5f20f6caee6a98174746227af255583ae8b20",
+            "source_section": "JGB 19",
+            "statement": "Этот предмет исследования интерпретируется по указанному месту JGB; связь не означает дословную авторскую формулировку.",
+            "statement_language": "ru",
+            "statement_script": "Cyrl"
+          }
+        },
+        "forms": [
+          {
+            "field_id": "claim.statement",
+            "form_id": "tos.form.jgb-inquiry-experienced-agency-jgb19-expression.statement-ru"
+          }
+        ],
+        "operation": "claim.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    },
+    {
+      "command_id": "tos-language-cleanup-20260922:1c22de8faecac2062f17f084",
+      "request_digest": "sha256:ea14fd87362657df095b1a6b239a863e45ada83efcab535dcf35e05918dfb253",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:d0f225492525b1e140e215e633708ecc15e35ece5a6a918c6bb50937333a957a",
+      "recorded_at": "2026-09-22T06:56:07.576630+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+      "previous_source": {
+        "id": "tos.claim.jgb-inquiry-causality-as-conceptual-convention-jgb21-expression",
+        "version": 1,
+        "digest": "sha256:1ebf9acda017d6687463cff21e4e7b606a9333ecb7054baab99172ef9b7cf41f"
+      },
+      "source": {
+        "id": "tos.claim.jgb-inquiry-causality-as-conceptual-convention-jgb21-expression",
+        "version": 2,
+        "digest": "sha256:36b7f6d9e510d70cf1f98b5518aa2a302f1b88ae1aad51678d999a6d76280848"
+      },
+      "previous_revision": "sha256:39fdc6ba4ae9bca2223f0a60060be04274d453616019f69c720d835a1257ad01",
+      "archive_path": "ToS/source-witnesses/.record-revisions/1c22de8faecac2062f17f084a1f8c47657d70fa7fc2684f68d7f442a03d20e7e-39fdc6ba4ae9bca2223f0a60060be04274d453616019f69c720d835a1257ad01",
+      "dependencies": "sha256:7e0c5baf22a096e49097484e93bb97a46fa10064f75fa3c0a3a1061d67d424a8",
+      "source_bindings": {
+        "objects": {
+          "tos.philosophical-category.causality-as-conceptual-convention-jgb21": {
+            "source_ref": "ToS/source-witnesses/semantic-descriptions/philosophical-category-causality-as-conceptual-convention-jgb21/philosophical-category.json",
+            "source_sha256": "sha256:1194360294d88e7b16ba9371d8c7af9a5a3c6459278aafe76f837f4b10de9730",
+            "canonical_record_sha256": "sha256:bd8bf1f206d425850ee79a68978ed138dc723fc4edaa9b02e839f9dc9d3c9c14",
+            "schema_version": "tos_thought_topic_record_v1",
+            "record_version": 2
+          },
+          "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese": {
+            "source_ref": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/work.json",
+            "source_sha256": "sha256:032d3acdc89f751943c98a0b450835effdf0bcc8e0c1ddd362bb9e2d90658f3c",
+            "canonical_record_sha256": "sha256:8a767a4380b00a2d6895bba8949972e33d37baec0513d87e5c0b60ed2fb1055e",
+            "schema_version": "tos_corpus_record_v1",
+            "record_version": 7
+          }
+        },
+        "evidence": {
+          "ToS/review-ledger/2026-09-07-jgb-inquiry-source-reading.md": {
+            "source_ref": "ToS/review-ledger/2026-09-07-jgb-inquiry-source-reading.md",
+            "source_sha256": "sha256:b07429682c2aa205794a9eebc20022cebb93edf2e07b2eb530c494147036506e",
+            "source_line": null,
+            "evidence_kind": "repo_path"
+          }
+        }
+      },
+      "changed_fields": [
+        "qualifiers"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.jgb-inquiry-causality-as-conceptual-convention-jgb21-expression.statement-ru",
+          "version": 2,
+          "digest": "sha256:80f8b5ba3a0fdffcc7e23d8a097457c6b7db0aa949a0a3522b58373911bd1a2a"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:1c22de8faecac2062f17f084",
+        "expected_configuration": "sha256:d0f225492525b1e140e215e633708ecc15e35ece5a6a918c6bb50937333a957a",
+        "expected_dependencies": "sha256:7e0c5baf22a096e49097484e93bb97a46fa10064f75fa3c0a3a1061d67d424a8",
+        "expected_inputs": {
+          "evidence": {
+            "ToS/review-ledger/2026-09-07-jgb-inquiry-source-reading.md": {
+              "evidence_kind": "repo_path",
+              "source_line": null,
+              "source_ref": "ToS/review-ledger/2026-09-07-jgb-inquiry-source-reading.md",
+              "source_sha256": "sha256:b07429682c2aa205794a9eebc20022cebb93edf2e07b2eb530c494147036506e"
+            }
+          },
+          "objects": {
+            "tos.philosophical-category.causality-as-conceptual-convention-jgb21": {
+              "canonical_record_sha256": "sha256:bd8bf1f206d425850ee79a68978ed138dc723fc4edaa9b02e839f9dc9d3c9c14",
+              "record_version": 2,
+              "schema_version": "tos_thought_topic_record_v1",
+              "source_ref": "ToS/source-witnesses/semantic-descriptions/philosophical-category-causality-as-conceptual-convention-jgb21/philosophical-category.json",
+              "source_sha256": "sha256:1194360294d88e7b16ba9371d8c7af9a5a3c6459278aafe76f837f4b10de9730"
+            },
+            "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese": {
+              "canonical_record_sha256": "sha256:8a767a4380b00a2d6895bba8949972e33d37baec0513d87e5c0b60ed2fb1055e",
+              "record_version": 7,
+              "schema_version": "tos_corpus_record_v1",
+              "source_ref": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/work.json",
+              "source_sha256": "sha256:032d3acdc89f751943c98a0b450835effdf0bcc8e0c1ddd362bb9e2d90658f3c"
+            }
+          }
+        },
+        "expected_revision": "sha256:39fdc6ba4ae9bca2223f0a60060be04274d453616019f69c720d835a1257ad01",
+        "expected_source": {
+          "digest": "sha256:1ebf9acda017d6687463cff21e4e7b606a9333ecb7054baab99172ef9b7cf41f",
+          "id": "tos.claim.jgb-inquiry-causality-as-conceptual-convention-jgb21-expression",
+          "version": 1
+        },
+        "fields": {
+          "qualifiers": {
+            "relation_basis": "The complete section was read. The relation interprets the specified content within its recorded limits and retains the status of a research proposal.",
+            "relation_basis_language": "en",
+            "relation_basis_script": "Latn",
+            "scope": "Provisional passage-bound research; no calibrated assessment, admission, logical validity, exhaustive taxonomy or canon assertion.",
+            "source_locator": "http://www.nietzschesource.org/eKGWB/JGB-21",
+            "source_representation_sha256": "143d6330c94bf00b135f887eeed5f20f6caee6a98174746227af255583ae8b20",
+            "source_section": "JGB 21",
+            "statement": "Этот предмет исследования интерпретируется по указанному месту JGB; связь не означает дословную авторскую формулировку.",
+            "statement_language": "ru",
+            "statement_script": "Cyrl"
+          }
+        },
+        "forms": [
+          {
+            "field_id": "claim.statement",
+            "form_id": "tos.form.jgb-inquiry-causality-as-conceptual-convention-jgb21-expression.statement-ru"
+          }
+        ],
+        "operation": "claim.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    }
+  ]
+}

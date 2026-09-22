@@ -662,7 +662,10 @@ def readable_analysis(families: list[dict[str, Any]], forms: dict[str, dict[str,
         "families": private_families, "clusters": private_clusters,
         "typed_relations": [{**x, "relation_id": ids[("relation", x["binding"])]} for x in relations],
         "named_probe_examples": examples,
-        "authority_boundary": "readable agent proposals only; no accepted morphology, lemma, lexeme, sense, sign, concept, relation, graph fact, canon, or human review",
+        "authority_boundary": (
+            "Private readable agent proposals for surface families, theme clusters and "
+            "typed relations, retaining their source bindings and proposal status."
+        ),
     }
 
 

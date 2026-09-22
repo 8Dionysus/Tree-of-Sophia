@@ -35,11 +35,7 @@ PROVENANCE_EVENT_ID = (
     "zarathustra-semantic-source-recurrence-v1.2026-08-10"
 )
 AUTHORITY_BOUNDARY = (
-    "complete private raw-witness return for one previously selected exact-form "
-    "hash plus tracked aggregate recurrence evidence; no accepted German, "
-    "morphology, lemma, sense, motif, philosophical importance, translation, "
-    "sign candidate, human task, semantic claim, relation, graph, canon, "
-    "transfer, promotion, or publication authority"
+    "This bundle returns the complete private witness context for one preselected exact-form hash and records aggregate recurrence observations."
 )
 ELEMENT_STEP = re.compile(r"^([A-Za-z_][A-Za-z0-9_.:-]*)(\[[1-9][0-9]*\])?$")
 

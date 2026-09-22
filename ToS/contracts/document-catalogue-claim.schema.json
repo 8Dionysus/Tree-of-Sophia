@@ -2,54 +2,277 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://tree-of-sophia.local/ToS/contracts/document-catalogue-claim.schema.json",
   "title": "Catalogue-assigned Document date, origin or destination",
-  "description": "An attributed catalogue field about one Document. This does not assert composition, dispatch, receipt, an associated historical event or independent source truth.",
+  "description": "An attributed catalogue field about one Document, retaining the reporting source, original field, role and wording. Composition, dispatch, receipt and historical events use separately grounded Claims.",
   "allOf": [
-    {"$ref": "https://tree-of-sophia.local/ToS/contracts/source-claim-record.schema.json"},
-    {"required": ["qualifiers"], "properties": {
-      "schema_version": {"const": "tos_document_catalogue_claim_v1"},
-      "claim_type": {"const": "relation"},
-      "predicate": {"enum": ["document_catalogue_date", "document_catalogue_origin", "document_catalogue_destination"]},
-      "assertion_layer": {"const": "bibliographic_assertion"},
-      "qualifiers": {"type": "object", "required": ["statement", "statement_language", "statement_script", "catalogue_attribution"], "properties": {
-        "statement": {"type": "string", "pattern": "\\S"},
-        "statement_language": {"anyOf": [{"$ref": "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json#/$defs/languageTagOrUnd"}, {"type": "null"}]},
-        "statement_script": {"$ref": "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json#/$defs/scriptTagOrNull"},
-        "catalogue_attribution": {"type": "object", "additionalProperties": false,
-          "required": ["evidence_ref", "source_field", "field_role", "source_wording"], "properties": {
-            "evidence_ref": {"type": "string", "pattern": "\\S"},
-            "source_field": {"type": "string", "pattern": "\\S"},
-            "field_role": {"enum": ["assigned-date", "origin", "destination"]},
-            "source_wording": {"$ref": "https://tree-of-sophia.local/ToS/contracts/historical-claim.schema.json#/$defs/historicalDate/properties/source_wording"}
-          }}
-      }}
-    }},
-    {"if": {"properties": {"predicate": {"const": "document_catalogue_date"}}},
-      "then": {"properties": {"object": {"$ref": "#/$defs/documentDate"}, "qualifiers": {"properties": {"catalogue_attribution": {"properties": {"field_role": {"const": "assigned-date"}}}}}}}},
-    {"if": {"properties": {"predicate": {"const": "document_catalogue_origin"}}},
-      "then": {"properties": {"object": {"type": "string", "pattern": "^tos\\.place\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"}, "qualifiers": {"properties": {"catalogue_attribution": {"properties": {"field_role": {"const": "origin"}}}}}}}},
-    {"if": {"properties": {"predicate": {"const": "document_catalogue_destination"}}},
-      "then": {"properties": {"object": {"type": "string", "pattern": "^tos\\.place\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"}, "qualifiers": {"properties": {"catalogue_attribution": {"properties": {"field_role": {"const": "destination"}}}}}}}}
+    {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/source-claim-record.schema.json"
+    },
+    {
+      "required": [
+        "qualifiers"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "tos_document_catalogue_claim_v1"
+        },
+        "claim_type": {
+          "const": "relation"
+        },
+        "predicate": {
+          "enum": [
+            "document_catalogue_date",
+            "document_catalogue_origin",
+            "document_catalogue_destination"
+          ]
+        },
+        "assertion_layer": {
+          "const": "bibliographic_assertion"
+        },
+        "qualifiers": {
+          "type": "object",
+          "required": [
+            "statement",
+            "statement_language",
+            "statement_script",
+            "catalogue_attribution"
+          ],
+          "properties": {
+            "statement": {
+              "type": "string",
+              "pattern": "\\S"
+            },
+            "statement_language": {
+              "anyOf": [
+                {
+                  "$ref": "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json#/$defs/languageTagOrUnd"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "statement_script": {
+              "$ref": "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json#/$defs/scriptTagOrNull"
+            },
+            "catalogue_attribution": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "evidence_ref",
+                "source_field",
+                "field_role",
+                "source_wording"
+              ],
+              "properties": {
+                "evidence_ref": {
+                  "type": "string",
+                  "pattern": "\\S"
+                },
+                "source_field": {
+                  "type": "string",
+                  "pattern": "\\S"
+                },
+                "field_role": {
+                  "enum": [
+                    "assigned-date",
+                    "origin",
+                    "destination"
+                  ]
+                },
+                "source_wording": {
+                  "$ref": "https://tree-of-sophia.local/ToS/contracts/historical-claim.schema.json#/$defs/historicalDate/properties/source_wording"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "predicate": {
+            "const": "document_catalogue_date"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "object": {
+            "$ref": "#/$defs/documentDate"
+          },
+          "qualifiers": {
+            "properties": {
+              "catalogue_attribution": {
+                "properties": {
+                  "field_role": {
+                    "const": "assigned-date"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "predicate": {
+            "const": "document_catalogue_origin"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "object": {
+            "type": "string",
+            "pattern": "^tos\\.place\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+          },
+          "qualifiers": {
+            "properties": {
+              "catalogue_attribution": {
+                "properties": {
+                  "field_role": {
+                    "const": "origin"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "predicate": {
+            "const": "document_catalogue_destination"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "object": {
+            "type": "string",
+            "pattern": "^tos\\.place\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+          },
+          "qualifiers": {
+            "properties": {
+              "catalogue_attribution": {
+                "properties": {
+                  "field_role": {
+                    "const": "destination"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
   ],
   "unevaluatedProperties": false,
   "$defs": {
     "documentDate": {
-      "type": "object", "additionalProperties": false,
-      "required": ["kind", "role", "calendar", "year_numbering", "certainty", "source_wording"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "role",
+        "calendar",
+        "year_numbering",
+        "certainty",
+        "source_wording"
+      ],
       "properties": {
-        "kind": {"enum": ["date-assertion", "interval-assertion", "unknown-date"]},
-        "role": {"const": "catalogue-assigned-document-date"},
-        "calendar": {"$ref": "https://tree-of-sophia.local/ToS/contracts/historical-claim.schema.json#/$defs/historicalDate/properties/calendar"},
-        "year_numbering": {"$ref": "https://tree-of-sophia.local/ToS/contracts/historical-claim.schema.json#/$defs/historicalDate/properties/year_numbering"},
-        "certainty": {"$ref": "https://tree-of-sophia.local/ToS/contracts/historical-claim.schema.json#/$defs/historicalDate/properties/certainty"},
-        "source_wording": {"$ref": "https://tree-of-sophia.local/ToS/contracts/historical-claim.schema.json#/$defs/historicalDate/properties/source_wording"},
-        "value": {"$ref": "https://tree-of-sophia.local/ToS/contracts/historical-claim.schema.json#/$defs/historicalDate/properties/value"},
-        "interval": {"$ref": "https://tree-of-sophia.local/ToS/contracts/historical-claim.schema.json#/$defs/historicalDate/properties/interval"},
-        "extensions": {"type": "object"}
+        "kind": {
+          "enum": [
+            "date-assertion",
+            "interval-assertion",
+            "unknown-date"
+          ]
+        },
+        "role": {
+          "const": "catalogue-assigned-document-date"
+        },
+        "calendar": {
+          "$ref": "https://tree-of-sophia.local/ToS/contracts/historical-claim.schema.json#/$defs/historicalDate/properties/calendar"
+        },
+        "year_numbering": {
+          "$ref": "https://tree-of-sophia.local/ToS/contracts/historical-claim.schema.json#/$defs/historicalDate/properties/year_numbering"
+        },
+        "certainty": {
+          "$ref": "https://tree-of-sophia.local/ToS/contracts/historical-claim.schema.json#/$defs/historicalDate/properties/certainty"
+        },
+        "source_wording": {
+          "$ref": "https://tree-of-sophia.local/ToS/contracts/historical-claim.schema.json#/$defs/historicalDate/properties/source_wording"
+        },
+        "value": {
+          "$ref": "https://tree-of-sophia.local/ToS/contracts/historical-claim.schema.json#/$defs/historicalDate/properties/value"
+        },
+        "interval": {
+          "$ref": "https://tree-of-sophia.local/ToS/contracts/historical-claim.schema.json#/$defs/historicalDate/properties/interval"
+        },
+        "extensions": {
+          "type": "object"
+        }
       },
       "oneOf": [
-        {"properties": {"kind": {"const": "date-assertion"}}, "required": ["value"], "not": {"required": ["interval"]}},
-        {"properties": {"kind": {"const": "interval-assertion"}}, "required": ["interval"], "not": {"required": ["value"]}},
-        {"properties": {"kind": {"const": "unknown-date"}, "certainty": {"const": "unknown"}}, "not": {"anyOf": [{"required": ["value"]}, {"required": ["interval"]}]}}
+        {
+          "properties": {
+            "kind": {
+              "const": "date-assertion"
+            }
+          },
+          "required": [
+            "value"
+          ],
+          "not": {
+            "required": [
+              "interval"
+            ]
+          }
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "interval-assertion"
+            }
+          },
+          "required": [
+            "interval"
+          ],
+          "not": {
+            "required": [
+              "value"
+            ]
+          }
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "unknown-date"
+            },
+            "certainty": {
+              "const": "unknown"
+            }
+          },
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "value"
+                ]
+              },
+              {
+                "required": [
+                  "interval"
+                ]
+              }
+            ]
+          }
+        }
       ]
     }
   }

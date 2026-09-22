@@ -3,35 +3,35 @@
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.linguistic.atf-notation.statement-ru",
-      "form_version": 2,
+      "form_version": 3,
       "subject": {
         "id": "tos.claim.linguistic.atf-notation",
-        "version": 2,
-        "digest": "sha256:bb9a31d0282ab577fdede9f6f23b790f6da621dfaf27c5e3dc55ee0f256c091b"
+        "version": 3,
+        "digest": "sha256:f73634cfe349adf5ab3e6c7f22faa6a31ff8b9499fee562bc58725762328e247"
       },
       "role": "statement",
       "language": "ru",
       "script": "Cyrl",
-      "creator_id": "agent:codex-tos-foundation",
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
       "revises": {
         "id": "tos.form.linguistic.atf-notation.statement-ru",
-        "version": 1,
-        "digest": "sha256:2202f2b18dc330d6b0075d8b344087d65d9ee414824f74a3bb1508c58d5c86a0"
+        "version": 2,
+        "digest": "sha256:08ed45c65b7409aff947aad9f005ef02c23e6e99db1b4120eddbe35df1da03cc"
       },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.claim.linguistic.atf-notation",
-            "version": 2,
-            "digest": "sha256:bb9a31d0282ab577fdede9f6f23b790f6da621dfaf27c5e3dc55ee0f256c091b"
+            "version": 3,
+            "digest": "sha256:f73634cfe349adf5ab3e6c7f22faa6a31ff8b9499fee562bc58725762328e247"
           },
           "pointer": "/qualifiers/statement"
         },
         "context-0": {
           "record": {
             "id": "tos.claim.linguistic.atf-notation",
-            "version": 2,
-            "digest": "sha256:bb9a31d0282ab577fdede9f6f23b790f6da621dfaf27c5e3dc55ee0f256c091b"
+            "version": 3,
+            "digest": "sha256:f73634cfe349adf5ab3e6c7f22faa6a31ff8b9499fee562bc58725762328e247"
           },
           "pointer": ""
         }
@@ -114,12 +114,53 @@
         "id": "tos.claim.linguistic.atf-notation",
         "version": 1
       }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "",
+          "record": {
+            "digest": "sha256:bb9a31d0282ab577fdede9f6f23b790f6da621dfaf27c5e3dc55ee0f256c091b",
+            "id": "tos.claim.linguistic.atf-notation",
+            "version": 2
+          }
+        },
+        "wording": {
+          "pointer": "/qualifiers/statement",
+          "record": {
+            "digest": "sha256:bb9a31d0282ab577fdede9f6f23b790f6da621dfaf27c5e3dc55ee0f256c091b",
+            "id": "tos.claim.linguistic.atf-notation",
+            "version": 2
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.linguistic.atf-notation.statement-ru",
+      "form_version": 2,
+      "language": "ru",
+      "revises": {
+        "digest": "sha256:2202f2b18dc330d6b0075d8b344087d65d9ee414824f74a3bb1508c58d5c86a0",
+        "id": "tos.form.linguistic.atf-notation.statement-ru",
+        "version": 1
+      },
+      "role": "statement",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:bb9a31d0282ab577fdede9f6f23b790f6da621dfaf27c5e3dc55ee0f256c091b",
+        "id": "tos.claim.linguistic.atf-notation",
+        "version": 2
+      }
     }
   ],
   "schema_version": "tos_human_form_set_v1",
   "subject": {
     "id": "tos.claim.linguistic.atf-notation",
-    "version": 2,
-    "digest": "sha256:bb9a31d0282ab577fdede9f6f23b790f6da621dfaf27c5e3dc55ee0f256c091b"
+    "version": 3,
+    "digest": "sha256:f73634cfe349adf5ab3e6c7f22faa6a31ff8b9499fee562bc58725762328e247"
   }
 }

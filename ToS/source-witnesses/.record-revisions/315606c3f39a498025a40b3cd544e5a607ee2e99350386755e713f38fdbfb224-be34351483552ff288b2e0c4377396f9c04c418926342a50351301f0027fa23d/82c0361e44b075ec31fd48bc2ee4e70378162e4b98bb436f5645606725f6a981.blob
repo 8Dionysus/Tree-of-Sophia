@@ -1,0 +1,125 @@
+{
+  "schema_version": "tos_claim_revision_history_v1",
+  "source_path": "ToS/source-witnesses/relations/duden-philosophie-lexical-proposals/source-claims.jsonl",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:efc90fbe3b81780e040f7b4f",
+      "request_digest": "sha256:7673f988e61944d5852c8394bd8eb569d9cbb80446e6f9f4efad38131da1f3f5",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:861d681a5bf293ddb405c00db38e47b2301514e55ec4436e830975f370175455",
+      "recorded_at": "2026-09-22T06:29:04.364113+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+      "previous_source": {
+        "id": "tos.claim.sid-c24722adc6314341953485c35962c7d0",
+        "version": 1,
+        "digest": "sha256:5f4e39c36cb343b23374d093ba6cfdb2c79df86705819a580d684b335b0e3722"
+      },
+      "source": {
+        "id": "tos.claim.sid-c24722adc6314341953485c35962c7d0",
+        "version": 2,
+        "digest": "sha256:ad791fbcad669c9e16e07e3ed1166e26e11e70d19ca86a4351311de6c386627c"
+      },
+      "previous_revision": "sha256:acfa59d3e8e2b28e9138530e85eaf3422852f1bffe2506b74fae5c6b3546e18c",
+      "archive_path": "ToS/source-witnesses/.record-revisions/efc90fbe3b81780e040f7b4f3ac7982512babdf585421e59cf9b8fa60e8c12f4-acfa59d3e8e2b28e9138530e85eaf3422852f1bffe2506b74fae5c6b3546e18c",
+      "dependencies": "sha256:1bc28df17972da36d3ef0ca02e78df0ebf3d50d7421f65e7ba659bf96d1a925e",
+      "source_bindings": {
+        "objects": {
+          "tos.lexeme.sid-4a20e565751a45998c99ea7cace60a10": {
+            "source_ref": "ToS/source-witnesses/lexical-descriptions/sid-4a20e565751a45998c99ea7cace60a10/lexeme.json",
+            "source_sha256": "sha256:c915ee028d48e34af292b105e1765661dafaa57f83abc277900c19e63ad2a022",
+            "canonical_record_sha256": "sha256:5b3209b378295983d3e07cd0891344eb1c8f096914f73f4c3af36671b040fdb8",
+            "schema_version": "tos_lexical_description_record_v1",
+            "record_version": 2
+          },
+          "tos.lexeme.sid-4d6a52aef228463c80f278c866ee74ce": {
+            "source_ref": "ToS/source-witnesses/lexical-descriptions/sid-4d6a52aef228463c80f278c866ee74ce/lexeme.json",
+            "source_sha256": "sha256:eea45127ad0a8863a2f4030223c2753acd9c2a1d2c8e3f275acf49de281d17dc",
+            "canonical_record_sha256": "sha256:8ab42cb018976ae3397a5fb6da9c39296d1120ab33431e300fb86ade1a7a26b6",
+            "schema_version": "tos_lexical_description_record_v1",
+            "record_version": 2
+          }
+        },
+        "evidence": {
+          "ToS/review-ledger/2026-09-08-duden-lexical-source-reading.md": {
+            "source_ref": "ToS/review-ledger/2026-09-08-duden-lexical-source-reading.md",
+            "source_sha256": "sha256:21335e7fc25ca287ba31c8046435f5ac112b9a89cdcfc6c12bae8366c99d2801",
+            "source_line": null,
+            "evidence_kind": "repo_path"
+          }
+        }
+      },
+      "changed_fields": [
+        "qualifiers"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.sid-b63c271aecac4195a61ec24a3b62f1e3",
+          "version": 2,
+          "digest": "sha256:ac04cb89786e850bee4af115c9d374c79d2dcf82252ad8d500e4163ded542f34"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:efc90fbe3b81780e040f7b4f",
+        "expected_configuration": "sha256:861d681a5bf293ddb405c00db38e47b2301514e55ec4436e830975f370175455",
+        "expected_dependencies": "sha256:1bc28df17972da36d3ef0ca02e78df0ebf3d50d7421f65e7ba659bf96d1a925e",
+        "expected_inputs": {
+          "evidence": {
+            "ToS/review-ledger/2026-09-08-duden-lexical-source-reading.md": {
+              "evidence_kind": "repo_path",
+              "source_line": null,
+              "source_ref": "ToS/review-ledger/2026-09-08-duden-lexical-source-reading.md",
+              "source_sha256": "sha256:21335e7fc25ca287ba31c8046435f5ac112b9a89cdcfc6c12bae8366c99d2801"
+            }
+          },
+          "objects": {
+            "tos.lexeme.sid-4a20e565751a45998c99ea7cace60a10": {
+              "canonical_record_sha256": "sha256:5b3209b378295983d3e07cd0891344eb1c8f096914f73f4c3af36671b040fdb8",
+              "record_version": 2,
+              "schema_version": "tos_lexical_description_record_v1",
+              "source_ref": "ToS/source-witnesses/lexical-descriptions/sid-4a20e565751a45998c99ea7cace60a10/lexeme.json",
+              "source_sha256": "sha256:c915ee028d48e34af292b105e1765661dafaa57f83abc277900c19e63ad2a022"
+            },
+            "tos.lexeme.sid-4d6a52aef228463c80f278c866ee74ce": {
+              "canonical_record_sha256": "sha256:8ab42cb018976ae3397a5fb6da9c39296d1120ab33431e300fb86ade1a7a26b6",
+              "record_version": 2,
+              "schema_version": "tos_lexical_description_record_v1",
+              "source_ref": "ToS/source-witnesses/lexical-descriptions/sid-4d6a52aef228463c80f278c866ee74ce/lexeme.json",
+              "source_sha256": "sha256:eea45127ad0a8863a2f4030223c2753acd9c2a1d2c8e3f275acf49de281d17dc"
+            }
+          }
+        },
+        "expected_revision": "sha256:acfa59d3e8e2b28e9138530e85eaf3422852f1bffe2506b74fae5c6b3546e18c",
+        "expected_source": {
+          "digest": "sha256:5f4e39c36cb343b23374d093ba6cfdb2c79df86705819a580d684b335b0e3722",
+          "id": "tos.claim.sid-c24722adc6314341953485c35962c7d0",
+          "version": 1
+        },
+        "fields": {
+          "qualifiers": {
+            "attestation_scope": "Только сообщаемая словарная статья, прочитанная 2026-09-08; не корпусная аттестация, не полный языковой охват и не независимое подтверждение.",
+            "chronology_basis": "Относительное направление взято из цепочки происхождения в статье Duden. Точные даты и промежуточные передачи остаются неизвестными; время записи Claim относится к регистрации этого утверждения.",
+            "relation_basis": "Источник — одна сохранённая словарная статья Duden; отображение её цепочки происхождения в направленный предикат заимствования явно является предварительным исследовательским решением.",
+            "source_language": "de",
+            "source_scope": "Немецкая лексема, описываемая статьёй Duden Philosophie в сохранённом чтении 2026-09-08; не все исторические употребления слова.",
+            "statement": "Предварительный этимологический разбор по Duden: немецкая лексема Philosophie предложена как заимствованная из латинской philosophia. Это представление сообщаемой словарём цепочки, а не независимо проверенная история заимствования; точные даты, промежуточные передачи и равенство всех значений не установлены.",
+            "statement_language": "ru",
+            "statement_script": "Cyrl",
+            "target_language": "la",
+            "target_scope": "Латинская лексема, названная в заметке Duden о происхождении немецкого Philosophie; отдельный латинский корпус здесь не исследован."
+          }
+        },
+        "forms": [
+          {
+            "field_id": "claim.statement",
+            "form_id": "tos.form.sid-b63c271aecac4195a61ec24a3b62f1e3"
+          }
+        ],
+        "operation": "claim.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    }
+  ]
+}

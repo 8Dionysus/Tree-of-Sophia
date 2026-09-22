@@ -24,9 +24,7 @@ SUMMARY_200 = (
     "ToS-owned orientation surfaces."
 )
 PROVENANCE_NOTE = (
-    "Guide to the current canonical tree node, its public compatibility mirror, "
-    "and the supporting capsule and tiny-entry slice; it does not replace the "
-    "authored source node."
+    "Guide to the current authored tree node, its public compatibility mirror, and the supporting capsule and tiny-entry slice. Follow the authored node for its full meaning and review history."
 )
 NON_IDENTITY_BOUNDARY = (
     "Derived export capsule for downstream KAG consumers; ToS-authored authority "

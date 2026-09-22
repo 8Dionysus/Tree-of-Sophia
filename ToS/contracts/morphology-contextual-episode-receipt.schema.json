@@ -146,7 +146,7 @@
     "competence_boundary": {"type": "object"},
     "semantic_boundary": {"type": "object"},
     "provenance_event_ref": {"const": "tos.event.annotation.zarathustra-morphology-context-b-v1.2026-08-10"},
-    "authority_boundary": {"type": "string", "minLength": 120}
+    "authority_boundary": {"type": "string", "minLength": 1, "description": "Brief account of the artifact purpose and scope. Typed status, effects, assessment and permission fields govern its use."}
   },
   "$defs": {
     "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},

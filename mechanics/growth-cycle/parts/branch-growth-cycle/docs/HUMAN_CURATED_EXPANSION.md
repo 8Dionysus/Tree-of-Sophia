@@ -8,11 +8,11 @@ separate execution platform.
 
 ## Core rule
 
-Growth is not bounded by the number of records a human can manually inspect.
-A competent agent with a trusted grant may read sources, evaluate content,
-admit scoped use, limit, reject, dispute or request reassessment. A grant may
-cover many records; it is not a hidden per-record approval queue. The source
-and versioned review remain visible whichever kind of reviewer acted.
+Growth can draw on competent human and agent assessment. An agent with a
+trusted grant may read sources, evaluate content, admit scoped use, limit,
+reject, dispute or request reassessment. A grant may cover many records. Each
+assessment retains its source and versioned review, with escalation governed
+by actual authority and competence needs.
 
 ## What AI may propose
 
@@ -25,9 +25,9 @@ AI may assist with:
 - lineage hypotheses
 - candidate branch shapes
 
-Generation alone does not accept these proposals. A distinct assessment can
-accept, revise, limit or reject them under the applicable policy. Repeating a
-generation does not create an independent review or independent evidence.
+A distinct assessment accepts, revises, limits or rejects generated proposals
+under the applicable policy. Review independence depends on the reviewer and
+evidence route; repeated generation retains its original evidential basis.
 
 ## Concrete human and stronger-owner boundaries
 

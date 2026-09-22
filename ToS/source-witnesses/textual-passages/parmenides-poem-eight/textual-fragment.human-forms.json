@@ -1,71 +1,69 @@
 {
-  "schema_version": "tos_human_form_set_v1",
-  "subject": {
-    "id": "tos.textual-fragment.parmenides.poem-eight",
-    "version": 1,
-    "digest": "sha256:6c4efda2f442d630cfffcb8d490d4c3de578b95f619ce5dae71f7fb6b73b536f"
-  },
   "forms": [
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.burnet-fragments.fragment.name-primary",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.textual-fragment.parmenides.poem-eight",
-        "version": 1,
-        "digest": "sha256:6c4efda2f442d630cfffcb8d490d4c3de578b95f619ce5dae71f7fb6b73b536f"
+        "version": 2,
+        "digest": "sha256:a2dc72653c857dd4897eaa0e89e2517e84a25f04992e80c061e3736a88784222"
       },
       "role": "name",
       "language": "ru",
       "script": "Cyrl",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.burnet-fragments.fragment.name-primary",
+        "version": 1,
+        "digest": "sha256:45f6f30828d81423ce8ef1ee8e350b655068ceddf6865e23f95d8edcf11cf06b"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.textual-fragment.parmenides.poem-eight",
-            "version": 1,
-            "digest": "sha256:6c4efda2f442d630cfffcb8d490d4c3de578b95f619ce5dae71f7fb6b73b536f"
+            "version": 2,
+            "digest": "sha256:a2dc72653c857dd4897eaa0e89e2517e84a25f04992e80c061e3736a88784222"
           },
           "pointer": "/preferred_label"
         },
         "context-0": {
           "record": {
             "id": "tos.textual-fragment.parmenides.poem-eight",
-            "version": 1,
-            "digest": "sha256:6c4efda2f442d630cfffcb8d490d4c3de578b95f619ce5dae71f7fb6b73b536f"
+            "version": 2,
+            "digest": "sha256:a2dc72653c857dd4897eaa0e89e2517e84a25f04992e80c061e3736a88784222"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.textual-fragment.parmenides.poem-eight",
-            "version": 1,
-            "digest": "sha256:6c4efda2f442d630cfffcb8d490d4c3de578b95f619ce5dae71f7fb6b73b536f"
+            "version": 2,
+            "digest": "sha256:a2dc72653c857dd4897eaa0e89e2517e84a25f04992e80c061e3736a88784222"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.textual-fragment.parmenides.poem-eight",
-            "version": 1,
-            "digest": "sha256:6c4efda2f442d630cfffcb8d490d4c3de578b95f619ce5dae71f7fb6b73b536f"
+            "version": 2,
+            "digest": "sha256:a2dc72653c857dd4897eaa0e89e2517e84a25f04992e80c061e3736a88784222"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.textual-fragment.parmenides.poem-eight",
-            "version": 1,
-            "digest": "sha256:6c4efda2f442d630cfffcb8d490d4c3de578b95f619ce5dae71f7fb6b73b536f"
+            "version": 2,
+            "digest": "sha256:a2dc72653c857dd4897eaa0e89e2517e84a25f04992e80c061e3736a88784222"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.textual-fragment.parmenides.poem-eight",
-            "version": 1,
-            "digest": "sha256:6c4efda2f442d630cfffcb8d490d4c3de578b95f619ce5dae71f7fb6b73b536f"
+            "version": 2,
+            "digest": "sha256:a2dc72653c857dd4897eaa0e89e2517e84a25f04992e80c061e3736a88784222"
           },
           "pointer": "/field_languages/preferred_label"
         }
@@ -78,87 +76,91 @@
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.burnet-fragments.fragment.name-alternate",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.textual-fragment.parmenides.poem-eight",
-        "version": 1,
-        "digest": "sha256:6c4efda2f442d630cfffcb8d490d4c3de578b95f619ce5dae71f7fb6b73b536f"
+        "version": 2,
+        "digest": "sha256:a2dc72653c857dd4897eaa0e89e2517e84a25f04992e80c061e3736a88784222"
       },
       "role": "name",
       "language": "en",
       "script": "Latn",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.burnet-fragments.fragment.name-alternate",
+        "version": 1,
+        "digest": "sha256:1bbe9dbe4013788524b9ed49b7b4c27ba70c5c2985fd784ebd7e50012148d48f"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.textual-fragment.parmenides.poem-eight",
-            "version": 1,
-            "digest": "sha256:6c4efda2f442d630cfffcb8d490d4c3de578b95f619ce5dae71f7fb6b73b536f"
+            "version": 2,
+            "digest": "sha256:a2dc72653c857dd4897eaa0e89e2517e84a25f04992e80c061e3736a88784222"
           },
           "pointer": "/variant_labels/0/value"
         },
         "context-0": {
           "record": {
             "id": "tos.textual-fragment.parmenides.poem-eight",
-            "version": 1,
-            "digest": "sha256:6c4efda2f442d630cfffcb8d490d4c3de578b95f619ce5dae71f7fb6b73b536f"
+            "version": 2,
+            "digest": "sha256:a2dc72653c857dd4897eaa0e89e2517e84a25f04992e80c061e3736a88784222"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.textual-fragment.parmenides.poem-eight",
-            "version": 1,
-            "digest": "sha256:6c4efda2f442d630cfffcb8d490d4c3de578b95f619ce5dae71f7fb6b73b536f"
+            "version": 2,
+            "digest": "sha256:a2dc72653c857dd4897eaa0e89e2517e84a25f04992e80c061e3736a88784222"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.textual-fragment.parmenides.poem-eight",
-            "version": 1,
-            "digest": "sha256:6c4efda2f442d630cfffcb8d490d4c3de578b95f619ce5dae71f7fb6b73b536f"
+            "version": 2,
+            "digest": "sha256:a2dc72653c857dd4897eaa0e89e2517e84a25f04992e80c061e3736a88784222"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.textual-fragment.parmenides.poem-eight",
-            "version": 1,
-            "digest": "sha256:6c4efda2f442d630cfffcb8d490d4c3de578b95f619ce5dae71f7fb6b73b536f"
+            "version": 2,
+            "digest": "sha256:a2dc72653c857dd4897eaa0e89e2517e84a25f04992e80c061e3736a88784222"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.textual-fragment.parmenides.poem-eight",
-            "version": 1,
-            "digest": "sha256:6c4efda2f442d630cfffcb8d490d4c3de578b95f619ce5dae71f7fb6b73b536f"
+            "version": 2,
+            "digest": "sha256:a2dc72653c857dd4897eaa0e89e2517e84a25f04992e80c061e3736a88784222"
           },
           "pointer": "/variant_labels/0/language"
         },
         "context-5": {
           "record": {
             "id": "tos.textual-fragment.parmenides.poem-eight",
-            "version": 1,
-            "digest": "sha256:6c4efda2f442d630cfffcb8d490d4c3de578b95f619ce5dae71f7fb6b73b536f"
+            "version": 2,
+            "digest": "sha256:a2dc72653c857dd4897eaa0e89e2517e84a25f04992e80c061e3736a88784222"
           },
           "pointer": "/variant_labels/0/script"
         },
         "context-6": {
           "record": {
             "id": "tos.textual-fragment.parmenides.poem-eight",
-            "version": 1,
-            "digest": "sha256:6c4efda2f442d630cfffcb8d490d4c3de578b95f619ce5dae71f7fb6b73b536f"
+            "version": 2,
+            "digest": "sha256:a2dc72653c857dd4897eaa0e89e2517e84a25f04992e80c061e3736a88784222"
           },
           "pointer": "/variant_labels/0/source_ref"
         },
         "context-7": {
           "record": {
             "id": "tos.textual-fragment.parmenides.poem-eight",
-            "version": 1,
-            "digest": "sha256:6c4efda2f442d630cfffcb8d490d4c3de578b95f619ce5dae71f7fb6b73b536f"
+            "version": 2,
+            "digest": "sha256:a2dc72653c857dd4897eaa0e89e2517e84a25f04992e80c061e3736a88784222"
           },
           "pointer": "/variant_labels/0/status"
         }
@@ -171,63 +173,67 @@
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.burnet-fragments.fragment.note-ru",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.textual-fragment.parmenides.poem-eight",
-        "version": 1,
-        "digest": "sha256:6c4efda2f442d630cfffcb8d490d4c3de578b95f619ce5dae71f7fb6b73b536f"
+        "version": 2,
+        "digest": "sha256:a2dc72653c857dd4897eaa0e89e2517e84a25f04992e80c061e3736a88784222"
       },
       "role": "hover",
       "language": "ru",
       "script": "Cyrl",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.burnet-fragments.fragment.note-ru",
+        "version": 1,
+        "digest": "sha256:a3710b00086522051e60a2b38681e637c80cb2a9e5a86c878203883b3a333695"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.textual-fragment.parmenides.poem-eight",
-            "version": 1,
-            "digest": "sha256:6c4efda2f442d630cfffcb8d490d4c3de578b95f619ce5dae71f7fb6b73b536f"
+            "version": 2,
+            "digest": "sha256:a2dc72653c857dd4897eaa0e89e2517e84a25f04992e80c061e3736a88784222"
           },
           "pointer": "/notes"
         },
         "context-0": {
           "record": {
             "id": "tos.textual-fragment.parmenides.poem-eight",
-            "version": 1,
-            "digest": "sha256:6c4efda2f442d630cfffcb8d490d4c3de578b95f619ce5dae71f7fb6b73b536f"
+            "version": 2,
+            "digest": "sha256:a2dc72653c857dd4897eaa0e89e2517e84a25f04992e80c061e3736a88784222"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.textual-fragment.parmenides.poem-eight",
-            "version": 1,
-            "digest": "sha256:6c4efda2f442d630cfffcb8d490d4c3de578b95f619ce5dae71f7fb6b73b536f"
+            "version": 2,
+            "digest": "sha256:a2dc72653c857dd4897eaa0e89e2517e84a25f04992e80c061e3736a88784222"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.textual-fragment.parmenides.poem-eight",
-            "version": 1,
-            "digest": "sha256:6c4efda2f442d630cfffcb8d490d4c3de578b95f619ce5dae71f7fb6b73b536f"
+            "version": 2,
+            "digest": "sha256:a2dc72653c857dd4897eaa0e89e2517e84a25f04992e80c061e3736a88784222"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.textual-fragment.parmenides.poem-eight",
-            "version": 1,
-            "digest": "sha256:6c4efda2f442d630cfffcb8d490d4c3de578b95f619ce5dae71f7fb6b73b536f"
+            "version": 2,
+            "digest": "sha256:a2dc72653c857dd4897eaa0e89e2517e84a25f04992e80c061e3736a88784222"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.textual-fragment.parmenides.poem-eight",
-            "version": 1,
-            "digest": "sha256:6c4efda2f442d630cfffcb8d490d4c3de578b95f619ce5dae71f7fb6b73b536f"
+            "version": 2,
+            "digest": "sha256:a2dc72653c857dd4897eaa0e89e2517e84a25f04992e80c061e3736a88784222"
           },
           "pointer": "/field_languages/notes"
         }
@@ -238,5 +244,243 @@
       }
     }
   ],
-  "prior_forms": []
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:6c4efda2f442d630cfffcb8d490d4c3de578b95f619ce5dae71f7fb6b73b536f",
+            "id": "tos.textual-fragment.parmenides.poem-eight",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:6c4efda2f442d630cfffcb8d490d4c3de578b95f619ce5dae71f7fb6b73b536f",
+            "id": "tos.textual-fragment.parmenides.poem-eight",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:6c4efda2f442d630cfffcb8d490d4c3de578b95f619ce5dae71f7fb6b73b536f",
+            "id": "tos.textual-fragment.parmenides.poem-eight",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:6c4efda2f442d630cfffcb8d490d4c3de578b95f619ce5dae71f7fb6b73b536f",
+            "id": "tos.textual-fragment.parmenides.poem-eight",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:6c4efda2f442d630cfffcb8d490d4c3de578b95f619ce5dae71f7fb6b73b536f",
+            "id": "tos.textual-fragment.parmenides.poem-eight",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:6c4efda2f442d630cfffcb8d490d4c3de578b95f619ce5dae71f7fb6b73b536f",
+            "id": "tos.textual-fragment.parmenides.poem-eight",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.burnet-fragments.fragment.name-primary",
+      "form_version": 1,
+      "language": "ru",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:6c4efda2f442d630cfffcb8d490d4c3de578b95f619ce5dae71f7fb6b73b536f",
+        "id": "tos.textual-fragment.parmenides.poem-eight",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:6c4efda2f442d630cfffcb8d490d4c3de578b95f619ce5dae71f7fb6b73b536f",
+            "id": "tos.textual-fragment.parmenides.poem-eight",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:6c4efda2f442d630cfffcb8d490d4c3de578b95f619ce5dae71f7fb6b73b536f",
+            "id": "tos.textual-fragment.parmenides.poem-eight",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:6c4efda2f442d630cfffcb8d490d4c3de578b95f619ce5dae71f7fb6b73b536f",
+            "id": "tos.textual-fragment.parmenides.poem-eight",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:6c4efda2f442d630cfffcb8d490d4c3de578b95f619ce5dae71f7fb6b73b536f",
+            "id": "tos.textual-fragment.parmenides.poem-eight",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/variant_labels/0/language",
+          "record": {
+            "digest": "sha256:6c4efda2f442d630cfffcb8d490d4c3de578b95f619ce5dae71f7fb6b73b536f",
+            "id": "tos.textual-fragment.parmenides.poem-eight",
+            "version": 1
+          }
+        },
+        "context-5": {
+          "pointer": "/variant_labels/0/script",
+          "record": {
+            "digest": "sha256:6c4efda2f442d630cfffcb8d490d4c3de578b95f619ce5dae71f7fb6b73b536f",
+            "id": "tos.textual-fragment.parmenides.poem-eight",
+            "version": 1
+          }
+        },
+        "context-6": {
+          "pointer": "/variant_labels/0/source_ref",
+          "record": {
+            "digest": "sha256:6c4efda2f442d630cfffcb8d490d4c3de578b95f619ce5dae71f7fb6b73b536f",
+            "id": "tos.textual-fragment.parmenides.poem-eight",
+            "version": 1
+          }
+        },
+        "context-7": {
+          "pointer": "/variant_labels/0/status",
+          "record": {
+            "digest": "sha256:6c4efda2f442d630cfffcb8d490d4c3de578b95f619ce5dae71f7fb6b73b536f",
+            "id": "tos.textual-fragment.parmenides.poem-eight",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/variant_labels/0/value",
+          "record": {
+            "digest": "sha256:6c4efda2f442d630cfffcb8d490d4c3de578b95f619ce5dae71f7fb6b73b536f",
+            "id": "tos.textual-fragment.parmenides.poem-eight",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.burnet-fragments.fragment.name-alternate",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:6c4efda2f442d630cfffcb8d490d4c3de578b95f619ce5dae71f7fb6b73b536f",
+        "id": "tos.textual-fragment.parmenides.poem-eight",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:6c4efda2f442d630cfffcb8d490d4c3de578b95f619ce5dae71f7fb6b73b536f",
+            "id": "tos.textual-fragment.parmenides.poem-eight",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:6c4efda2f442d630cfffcb8d490d4c3de578b95f619ce5dae71f7fb6b73b536f",
+            "id": "tos.textual-fragment.parmenides.poem-eight",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:6c4efda2f442d630cfffcb8d490d4c3de578b95f619ce5dae71f7fb6b73b536f",
+            "id": "tos.textual-fragment.parmenides.poem-eight",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:6c4efda2f442d630cfffcb8d490d4c3de578b95f619ce5dae71f7fb6b73b536f",
+            "id": "tos.textual-fragment.parmenides.poem-eight",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:6c4efda2f442d630cfffcb8d490d4c3de578b95f619ce5dae71f7fb6b73b536f",
+            "id": "tos.textual-fragment.parmenides.poem-eight",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:6c4efda2f442d630cfffcb8d490d4c3de578b95f619ce5dae71f7fb6b73b536f",
+            "id": "tos.textual-fragment.parmenides.poem-eight",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.burnet-fragments.fragment.note-ru",
+      "form_version": 1,
+      "language": "ru",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:6c4efda2f442d630cfffcb8d490d4c3de578b95f619ce5dae71f7fb6b73b536f",
+        "id": "tos.textual-fragment.parmenides.poem-eight",
+        "version": 1
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.textual-fragment.parmenides.poem-eight",
+    "version": 2,
+    "digest": "sha256:a2dc72653c857dd4897eaa0e89e2517e84a25f04992e80c061e3736a88784222"
+  }
 }

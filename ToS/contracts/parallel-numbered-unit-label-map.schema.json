@@ -140,9 +140,7 @@
         {"type": "null"}
       ]
     },
-    "authority_boundary": {
-      "const": "mechanical pairing of identical structural number-label keys already materialized independently in two exact witness maps; no text comparison, exact passage boundary, source-to-target passage alignment, translation correspondence, equivalence or quality, semantics, rights clearance, or canon authority"
-    },
+    "authority_boundary": {"type": "string", "minLength": 1, "description": "Brief account of the artifact purpose and scope. Typed status, effects, assessment and permission fields govern its use."},
     "does_not_establish": {
       "const": [
         "source_text",

@@ -1,0 +1,81 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.agent.eleanor-robson",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:5b402a9bea7d5a7508cc92b9",
+      "request_digest": "sha256:4e236acfb10076d15161ddb103741a40d5005d0483fb1236bd25ba39ea18fb80",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:2f835e14a2aabc0cf74bda3b4b1de63df9dd7a00ce28af5865bec525a2572108",
+      "recorded_at": "2026-09-22T05:04:00.289100+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.agent.eleanor-robson",
+        "version": 1,
+        "digest": "sha256:8f56b1eab7d5169743c6bab0dc60304deff9a101f727b7c57eb822a12e490ebe"
+      },
+      "source": {
+        "id": "tos.agent.eleanor-robson",
+        "version": 2,
+        "digest": "sha256:781ed77f15082e53766ffeb9f8828c67a0070c6ed6e9a0ab239b836371ccbd5b"
+      },
+      "previous_revision": "sha256:945d10b7ab519cde6bf3147316e462ecdfa6f2a13af622a0fb0eef3173ec168d",
+      "archive_path": "ToS/source-witnesses/.record-revisions/5b402a9bea7d5a7508cc92b9389e4f3001ecd23c02d4f7e26ac25a3a7dd606f5-945d10b7ab519cde6bf3147316e462ecdfa6f2a13af622a0fb0eef3173ec168d",
+      "dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+      "changed_fields": [
+        "notes"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.metadata.a1e8fc47c02bca3d80393f83470d64f85ec22130ac97aa3e851f4d0e1bcd4c3a",
+          "version": 2,
+          "digest": "sha256:3aec4b352ab25227f4010a43a87353e9f397d45b7d47db146e8c0b2c3c37d52f"
+        },
+        {
+          "id": "tos.form.metadata.56665c57ec0d05156654bb689521c34fc12a480b54425526f4b5b409573c294e",
+          "version": 2,
+          "digest": "sha256:21e0701c82b29e1e23675aaa8c174e9275f3255128e45bcc3180cd2f2d58c9ca"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:5b402a9bea7d5a7508cc92b9",
+        "expected_configuration": "sha256:2f835e14a2aabc0cf74bda3b4b1de63df9dd7a00ce28af5865bec525a2572108",
+        "expected_dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+        "expected_publication": "sha256:0ed2a74ebe97d45c3687d1acb87a2ffc24057f379b9a42130aafac6c7820be84",
+        "expected_revision": "sha256:945d10b7ab519cde6bf3147316e462ecdfa6f2a13af622a0fb0eef3173ec168d",
+        "expected_source": {
+          "digest": "sha256:8f56b1eab7d5169743c6bab0dc60304deff9a101f727b7c57eb822a12e490ebe",
+          "id": "tos.agent.eleanor-robson",
+          "version": 1
+        },
+        "fields": {
+          "notes": "The official ETCSL credits identify Eleanor Robson as technical developer and project associate and include her in the prescribed corpus citation."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.metadata.a1e8fc47c02bca3d80393f83470d64f85ec22130ac97aa3e851f4d0e1bcd4c3a"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.metadata.56665c57ec0d05156654bb689521c34fc12a480b54425526f4b5b409573c294e"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:22279c0d4946617ea06f2e9be5da20fcdc827c40499536e94bdae9905ee87ed2",
+        "selected_files": [
+          "agent.human-forms.json",
+          "agent.json",
+          "source-revision-history.json"
+        ]
+      }
+    }
+  ]
+}

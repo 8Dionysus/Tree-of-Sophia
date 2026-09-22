@@ -1,0 +1,93 @@
+{
+  "schema_version": "tos_source_revision_history_v1",
+  "record_id": "tos.aspect.experienced-agency-jgb19",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:ecca4e6c7f56a97c3e588e8a",
+      "request_digest": "sha256:ef10dbcfff5f48cc3b9fd4bfb8795335f85409ddc9707f3fb465714a2f874671",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:55a3f0185698edbcb49a5b8364a0fbcf400e66eb8dfc9bb2b506bdf6dedcb1f6",
+      "recorded_at": "2026-09-22T05:06:27.864626+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.aspect.experienced-agency-jgb19",
+        "version": 1,
+        "digest": "sha256:8264433351e05ccaae6cd8cab4394e3625bfb0fa1f6ff26efb1985bebcd6c004"
+      },
+      "source": {
+        "id": "tos.aspect.experienced-agency-jgb19",
+        "version": 2,
+        "digest": "sha256:b248583df82f66bec4cfff234aba611db607320a1d555efb14ba7691c6e82563"
+      },
+      "previous_revision": "sha256:068c01677a0873b1bba40c2db1cd24ba23823bea8dc084ea4da95d003ef3701e",
+      "archive_path": "ToS/source-witnesses/.record-revisions/ecca4e6c7f56a97c3e588e8a6fd3f90d31afd451308cf5710101e97135f2eafd-068c01677a0873b1bba40c2db1cd24ba23823bea8dc084ea4da95d003ef3701e",
+      "dependencies": "sha256:ad99651426db4f995c841ba8ba27f697bf197a1f43d7ac3d97e8038dc39eb01d",
+      "changed_fields": [
+        "notes",
+        "semantic_content",
+        "semantic_scope"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.aspect.experienced-agency-jgb19.name-ru",
+          "version": 2,
+          "digest": "sha256:2756c234fa178d5010850852e7d037eb3193b520d2e4bb09f03c657d6a3a0c5d"
+        },
+        {
+          "id": "tos.form.aspect.experienced-agency-jgb19.name-en",
+          "version": 2,
+          "digest": "sha256:202ebc3d3d8b996e5a6c53479cbf410cb6992860145e75013ce20116a20a6459"
+        },
+        {
+          "id": "tos.form.aspect.experienced-agency-jgb19.note-ru",
+          "version": 2,
+          "digest": "sha256:234ca66e05aa275aa79106a0046e9e90f56e025fc792ae9a7fa05ccdbe13d2cf"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:ecca4e6c7f56a97c3e588e8a",
+        "expected_configuration": "sha256:55a3f0185698edbcb49a5b8364a0fbcf400e66eb8dfc9bb2b506bdf6dedcb1f6",
+        "expected_dependencies": "sha256:ad99651426db4f995c841ba8ba27f697bf197a1f43d7ac3d97e8038dc39eb01d",
+        "expected_revision": "sha256:068c01677a0873b1bba40c2db1cd24ba23823bea8dc084ea4da95d003ef3701e",
+        "expected_source": {
+          "digest": "sha256:8264433351e05ccaae6cd8cab4394e3625bfb0fa1f6ff26efb1985bebcd6c004",
+          "id": "tos.aspect.experienced-agency-jgb19",
+          "version": 1
+        },
+        "fields": {
+          "notes": "Исследовательский аспект свободы, выделяющий переживание командования, ожидаемого повиновения и присвоения успешного действия в §19. Предмет разбора — переживаемое авторство действия; вопрос о его причинном объяснении остаётся отдельным.",
+          "semantic_content": {
+            "language": "en",
+            "perspective_account": "The passage’s account of how the willing person experiences command, expected obedience, and successful execution as their own agency.",
+            "script": "Latn"
+          },
+          "semantic_scope": {
+            "identity_criterion": "Retain this perspective while the inquiry examines experienced authorship of willing and action in this passage; a causal explanation or different experiential dimension needs its own aspect.",
+            "language": "en",
+            "scope_note": "The experienced relation between command, obedience, and attributed success in JGB 19.",
+            "script": "Latn"
+          }
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.aspect.experienced-agency-jgb19.name-ru"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.aspect.experienced-agency-jgb19.name-en"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.aspect.experienced-agency-jgb19.note-ru"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    }
+  ]
+}

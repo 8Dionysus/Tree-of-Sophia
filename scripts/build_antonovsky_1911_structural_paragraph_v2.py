@@ -4,7 +4,8 @@
 Tracked outputs are text-free.  The builder reads the exact frozen v1 source
 observation, applies the independently verified paragraph/verse algorithm, and
 compares all adjacent physical-line boundaries with the primary challenger.
-It does not accept text, alignment, semantics, interpretation, or canon.
+Text, alignment, semantics, interpretation and canon retain their assessment
+and admission routes.
 """
 
 from __future__ import annotations

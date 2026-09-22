@@ -1,0 +1,90 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.item.old-babylonian-scholarship.an-old-babylonian-version-of-the-gilgamesh-epic.en-jastrow-clay-1920.commons-internet-archive-robarts-scan-djvu",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:31216895b4afe6ecaf15769e",
+      "request_digest": "sha256:d9d2d76e95aeff29fc3420a4dc7f1ede51165592f107921245c4925f7f4868ab",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:a635f59bb9d1bcfdf3a5ea4490dd09586e5e93c66ad59cc7dea1502067feeaf5",
+      "recorded_at": "2026-09-22T05:09:19.552144+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.item.old-babylonian-scholarship.an-old-babylonian-version-of-the-gilgamesh-epic.en-jastrow-clay-1920.commons-internet-archive-robarts-scan-djvu",
+        "version": 1,
+        "digest": "sha256:ab1a0fda93bc4116ce24860efd797409c385ebfc23af1eca0d05077551b47e5d"
+      },
+      "source": {
+        "id": "tos.item.old-babylonian-scholarship.an-old-babylonian-version-of-the-gilgamesh-epic.en-jastrow-clay-1920.commons-internet-archive-robarts-scan-djvu",
+        "version": 2,
+        "digest": "sha256:15636f8b6931f70e8d5aaea6d1d097699c5888b5a2f594e30ed58ac91282b2a9"
+      },
+      "previous_revision": "sha256:926d5af7cfec5407022a18a4e4ce1b4f9097c5db6a771afde49e7244fd672e78",
+      "archive_path": "ToS/source-witnesses/.record-revisions/31216895b4afe6ecaf15769e102d621b8e22e0fb0f559e2b3a531f0458156cc1-926d5af7cfec5407022a18a4e4ce1b4f9097c5db6a771afde49e7244fd672e78",
+      "dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+      "changed_fields": [
+        "notes"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.metadata.17125e6c9af024faf4a5777cc8233b8f85a8ad645dd4272a61c4ac019d33f182",
+          "version": 2,
+          "digest": "sha256:b7d668f6aceeacfbe3b9a0db7aee7d4e7d535dac5fd13ff6019a4a6fad485bb8"
+        },
+        {
+          "id": "tos.form.metadata.dc7d1f14dc8ce75579beecf16f1b2409d70b9d6f384551842a269a96ef02f25d",
+          "version": 2,
+          "digest": "sha256:2ef1773fe2f14023965c49f1f1ef3934fc4e48a11e5a9cd1a73e966e7100afd9"
+        },
+        {
+          "id": "tos.form.metadata.1443cfe31f844371456080f68ca06c45b02aa0e4e99c86eaeb919db7f9831744",
+          "version": 2,
+          "digest": "sha256:8e85120bd88ee1f9fc28122bbbe5905ae85aa41ee7e99d6c1d97b0eafe9dfa99"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:31216895b4afe6ecaf15769e",
+        "expected_configuration": "sha256:a635f59bb9d1bcfdf3a5ea4490dd09586e5e93c66ad59cc7dea1502067feeaf5",
+        "expected_dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+        "expected_publication": "sha256:e33956a5165e262f4e4439e5409690f2019ab3e19bfde98d9a5e4738b16c1dfa",
+        "expected_revision": "sha256:926d5af7cfec5407022a18a4e4ce1b4f9097c5db6a771afde49e7244fd672e78",
+        "expected_source": {
+          "digest": "sha256:ab1a0fda93bc4116ce24860efd797409c385ebfc23af1eca0d05077551b47e5d",
+          "id": "tos.item.old-babylonian-scholarship.an-old-babylonian-version-of-the-gilgamesh-epic.en-jastrow-clay-1920.commons-internet-archive-robarts-scan-djvu",
+          "version": 1
+        },
+        "fields": {
+          "notes": "The local payload is the 4,493,186-byte 138-page DjVu downloaded from Wikimedia Commons and attributed there to the Internet Archive Robarts scan. It is a scan surrogate of the 1920 Edition."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.metadata.17125e6c9af024faf4a5777cc8233b8f85a8ad645dd4272a61c4ac019d33f182"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.metadata.dc7d1f14dc8ce75579beecf16f1b2409d70b9d6f384551842a269a96ef02f25d"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.metadata.1443cfe31f844371456080f68ca06c45b02aa0e4e99c86eaeb919db7f9831744"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:594c30765d4ca1c58bb678cc6f34bfba1eb81353ce15b8eea6abf3f0f05c87d8",
+        "selected_files": [
+          "item.human-forms.json",
+          "item.json",
+          "source-revision-history.json"
+        ]
+      }
+    }
+  ]
+}

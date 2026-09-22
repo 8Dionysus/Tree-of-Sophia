@@ -1724,6 +1724,36 @@ def _synthetic_discovery_record() -> dict:
 
 
 class SourceWitnessFoundationTests(unittest.TestCase):
+    def test_recorded_builder_input_requires_original_path_exact_bytes_and_safe_archive(self):
+        ref = 'scripts/example_builder.py'
+        raw = b'# exact historical builder input\n'
+        digest = hashlib.sha256(raw).hexdigest()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            current = root / ref
+            current.parent.mkdir()
+            current.write_bytes(b'# current builder\n')
+            archive = (root / 'ToS/research-packets/retained-builder-inputs'
+                       / 'example_builder' / (digest + '.py'))
+            archive.parent.mkdir(parents=True)
+            self.assertIsNone(foundation._recorded_provenance_input_path(root, ref, digest))
+            archive.write_bytes(raw)
+            self.assertEqual(foundation._recorded_provenance_input_path(root, ref, digest), archive)
+            other_ref = 'scripts/other_builder.py'
+            (root / other_ref).write_bytes(current.read_bytes())
+            self.assertIsNone(foundation._recorded_provenance_input_path(root, other_ref, digest))
+            archive.write_bytes(raw + b' ')
+            self.assertIsNone(foundation._recorded_provenance_input_path(root, ref, digest))
+            archive.unlink()
+            outside = root / 'outside.py'
+            outside.write_bytes(raw)
+            archive.symlink_to(outside)
+            self.assertIsNone(foundation._recorded_provenance_input_path(root, ref, digest))
+            archive.unlink()
+            archive.write_bytes(raw)
+            current.unlink()
+            self.assertIsNone(foundation._recorded_provenance_input_path(root, ref, digest))
+
     def test_recorded_provenance_input_resolves_exact_current_or_retained_contract_bytes(self):
         ref = 'ToS/contracts/example.schema.json'
         payload = {'$schema': 'https://json-schema.org/draft/2020-12/schema',

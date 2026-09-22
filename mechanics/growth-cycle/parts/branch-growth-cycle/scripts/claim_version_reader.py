@@ -1,9 +1,9 @@
 """Read one exact public Claim version, never its current permission to use.
 
-The tracked catalog provides a source locator, not assertion authority. Current
+The tracked catalog locates the authored Claim and its assessment route. Current
 source bytes must agree with that locator before a retained correction chain
-can expose one predecessor. This is not the configured command/assessment API,
-a historical form materializer, or a reader for private/native payloads.
+can expose one predecessor. Commands, current-use assessment, historical form materialization and
+private/native payload reading use their separate owner APIs.
 """
 from __future__ import annotations
 
@@ -231,7 +231,7 @@ class ClaimVersionReader:
 
     @property
     def accounting(self):
-        """Read-only bounded work counters, not availability or admission."""
+        """Read-only counters of work performed by this bounded reader."""
         return {
             'read_bytes': self._snapshot.bytes,
             'max_read_bytes': MAX_TOTAL_BYTES,

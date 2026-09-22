@@ -30,23 +30,23 @@ remains authoritative for ToS meaning.
 
 Raw source material, research packets, source witnesses, doctrine, canon,
 public compatibility, generated exports, review notes, tests, and validators
-are different layers. They may connect, but they should not silently merge.
+are different layers. Their connections preserve each layer’s identity, evidence and authority.
 
-Generated, public, statistical, graph-ready, and downstream-facing surfaces do
-not replace ToS-authored authority. A bounded route to `aoa-stats`, `aoa-kag`,
-the `aoa-sdk` routing control plane, its stable `aoa-routing` compatibility
-namespace, or any other derived consumer does not delegate authority to that
-downstream system.
+Generated, public, statistical, graph and downstream surfaces return to
+ToS-authored meaning. `aoa-stats`, `aoa-kag`, the `aoa-sdk` routing control
+plane and its `aoa-routing` compatibility namespace retain authority over
+their own operational surfaces.
 
-The standalone runtime is a ToS-owned consumer of derived exports, not a new
-meaning layer. Existing projection fields that name `abyss-stack` remain a
+The standalone runtime is a ToS-owned consumer of derived exports whose
+meanings are authored under `ToS/`. Existing projection fields that name `abyss-stack` remain a
 compatibility contract for that deployment profile; the consumer-neutral
 profile split is owned by `access/contracts/runtime-manifest.v1.json`.
 
 ## Growth Boundary
 
 Growth means clearer branch structure, stronger source anchoring, better
-review, or more legible graph readiness. Quantity alone is not growth.
+review, or more legible graph readiness. Growth is assessed through these improvements, with quantity recorded
+separately.
 
 Before widening the corpus:
 
@@ -65,29 +65,27 @@ Agents may author interpretations and perform source-visible assessment within
 explicit operator delegation and relevant competence under
 [Knowledge Assessment](ToS/doctrine/KNOWLEDGE_ASSESSMENT.md). Their findings can
 support scoped research admission without a mandatory human signature per
-record. They cannot appoint themselves, manufacture competence or replace
-source evidence with a model verdict. Operator direction, personal consent,
-rights, publication and canon retain their actual owner authority; research
-admission does not grant those separate permissions.
+record. Operator delegation establishes authority, verified evidence establishes
+competence, and the source grounds the judgment. Operator direction, personal consent,
+rights, publication and canon retain their actual owner authority; each requires its own scoped decision.
 
 ## Calibration Boundary
 
-A guiding axis may orient the architecture. It should not erase plurality,
-language difference, tradition difference, or civilizational context.
+A guiding axis orients the architecture while preserving plurality and the
+differences between languages, traditions and civilizational contexts.
 
-Calibration roots guide relation and comparison. They do not make the tree a
-single doctrine.
+Calibration roots guide relation and comparison among independently grounded
+readings.
 
 ## Golden Kernel Boundary
 
-*Thus Spoke Zarathustra* is the first golden growth kernel, not the universal
-schema of philosophy.
+*Thus Spoke Zarathustra* is the first golden growth kernel for developing and
+testing the source-to-review method.
 
 The transferable layer is the source-first growth method: stable address,
 observable evidence, explicit interpretation layers, reviewed semantic
 objects, visible rejection and uncertainty, canon promotion, and
-source-returning projections. Nietzsche's concepts and relation vocabulary do
-not automatically govern another source. Resistance from a new work or
+source-returning projections. Each source supplies its concepts and relation vocabulary through reading. Resistance from a new work or
 tradition may require the contract to grow.
 
 ## Lived Witness Boundary
@@ -97,8 +95,8 @@ how attention was sustained, and why a reading has unusual depth or salience.
 
 Lived witness remains distinct from primary text, bibliographic evidence,
 published translation, scholarship, textual observation, interpretation, and
-canon. It may guide attention and review; it cannot settle source meaning or
-promotion by itself.
+canon. It guides attention and review, with source meaning and promotion established
+through their respective evidence routes.
 
 ## Current Manual Review Route
 

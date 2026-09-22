@@ -140,7 +140,7 @@ def main() -> int:
         return 1
 
     print("[ok] validated reviewed open-work candidate queue and generated parity")
-    print("[boundary] mechanics only: candidate review does not accept identity, chronology, rights, text, semantics, canon, or publication")
+    print("[scope] Queue eligibility, ordering, source references and terminal receipt mechanics.")
     return 0
 
 

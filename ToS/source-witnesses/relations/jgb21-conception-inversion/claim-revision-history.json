@@ -1,0 +1,124 @@
+{
+  "schema_version": "tos_claim_revision_history_v1",
+  "source_path": "ToS/source-witnesses/relations/jgb21-conception-inversion/source-claims.jsonl",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:b901b58aa187e99ebaeedd91",
+      "request_digest": "sha256:340517d9ced726c1b258593f03ba827b9ebff9e13827917318dcb473aa712a51",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:7c552ed50fc7dd2d57911598b180f437d0120f4f407e708fffafffdc5e0e225f",
+      "recorded_at": "2026-09-22T06:36:31.914081+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+      "previous_source": {
+        "id": "tos.claim.jgb21-conception-inversion",
+        "version": 1,
+        "digest": "sha256:3a1bef428f11f9b61a2ef5e46bd03f47407313d85e0653df7e99844815a5ee94"
+      },
+      "source": {
+        "id": "tos.claim.jgb21-conception-inversion",
+        "version": 2,
+        "digest": "sha256:de76e53a8b59b4a22cbf5d233edc02290e4cd4498da8c88d92e6e57034a3a6dc"
+      },
+      "previous_revision": "sha256:84b65c4871f24940f29f496484f2a288b0c629e5b6b696d27136f682db4e6c75",
+      "archive_path": "ToS/source-witnesses/.record-revisions/b901b58aa187e99ebaeedd91602ead753a06173f787366521e226701064389f5-84b65c4871f24940f29f496484f2a288b0c629e5b6b696d27136f682db4e6c75",
+      "dependencies": "sha256:0d681fe6e146c470d010d0c963bff1c4d0e606349284ba07a6b182dbbe9c4189",
+      "source_bindings": {
+        "objects": {
+          "tos.conception.metaphysical-self-origination-jgb21": {
+            "source_ref": "ToS/source-witnesses/semantic-descriptions/conception-metaphysical-self-origination-jgb21/conception.json",
+            "source_sha256": "sha256:fdc12001060b948584b7f80e956f733d9b58fadee2d5f3a74d1b92ed61db139f",
+            "canonical_record_sha256": "sha256:eb9e52a1d6d825310cd60ccfeb3ef176138c097f06209a27d8f5d1931c8032fd",
+            "schema_version": "tos_semantic_description_record_v1",
+            "record_version": 2
+          },
+          "tos.conception.unfree-will-reversal-jgb21": {
+            "source_ref": "ToS/source-witnesses/semantic-descriptions/conception-unfree-will-reversal-jgb21/conception.json",
+            "source_sha256": "sha256:25acfbe2f6591d297877bbfab4e6425d0f32cf82306ec03fefa4ef1476470cfb",
+            "canonical_record_sha256": "sha256:8ae47f02db0922b30a456c4ef4f689b3e8ca76dd950ae4d2f26f229061aa61a9",
+            "schema_version": "tos_semantic_description_record_v1",
+            "record_version": 2
+          }
+        },
+        "evidence": {
+          "ToS/review-ledger/2026-09-09-jgb21-inversion-source-reading.md": {
+            "source_ref": "ToS/review-ledger/2026-09-09-jgb21-inversion-source-reading.md",
+            "source_sha256": "sha256:bb48a2ccee473a498a09d492563ce12b20a24e0c10726ffe11434dd6983166e1",
+            "source_line": null,
+            "evidence_kind": "repo_path"
+          }
+        }
+      },
+      "changed_fields": [
+        "qualifiers"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.jgb21-conception-inversion.statement-en",
+          "version": 2,
+          "digest": "sha256:e371ac2b621e0c8628f644f373ab835702fb7d1e333b1838ef3e2b97d348433d"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:b901b58aa187e99ebaeedd91",
+        "expected_configuration": "sha256:7c552ed50fc7dd2d57911598b180f437d0120f4f407e708fffafffdc5e0e225f",
+        "expected_dependencies": "sha256:0d681fe6e146c470d010d0c963bff1c4d0e606349284ba07a6b182dbbe9c4189",
+        "expected_inputs": {
+          "evidence": {
+            "ToS/review-ledger/2026-09-09-jgb21-inversion-source-reading.md": {
+              "evidence_kind": "repo_path",
+              "source_line": null,
+              "source_ref": "ToS/review-ledger/2026-09-09-jgb21-inversion-source-reading.md",
+              "source_sha256": "sha256:bb48a2ccee473a498a09d492563ce12b20a24e0c10726ffe11434dd6983166e1"
+            }
+          },
+          "objects": {
+            "tos.conception.metaphysical-self-origination-jgb21": {
+              "canonical_record_sha256": "sha256:eb9e52a1d6d825310cd60ccfeb3ef176138c097f06209a27d8f5d1931c8032fd",
+              "record_version": 2,
+              "schema_version": "tos_semantic_description_record_v1",
+              "source_ref": "ToS/source-witnesses/semantic-descriptions/conception-metaphysical-self-origination-jgb21/conception.json",
+              "source_sha256": "sha256:fdc12001060b948584b7f80e956f733d9b58fadee2d5f3a74d1b92ed61db139f"
+            },
+            "tos.conception.unfree-will-reversal-jgb21": {
+              "canonical_record_sha256": "sha256:8ae47f02db0922b30a456c4ef4f689b3e8ca76dd950ae4d2f26f229061aa61a9",
+              "record_version": 2,
+              "schema_version": "tos_semantic_description_record_v1",
+              "source_ref": "ToS/source-witnesses/semantic-descriptions/conception-unfree-will-reversal-jgb21/conception.json",
+              "source_sha256": "sha256:25acfbe2f6591d297877bbfab4e6425d0f32cf82306ec03fefa4ef1476470cfb"
+            }
+          }
+        },
+        "expected_revision": "sha256:84b65c4871f24940f29f496484f2a288b0c629e5b6b696d27136f682db4e6c75",
+        "expected_source": {
+          "digest": "sha256:3a1bef428f11f9b61a2ef5e46bd03f47407313d85e0653df7e99844815a5ee94",
+          "id": "tos.claim.jgb21-conception-inversion",
+          "version": 1
+        },
+        "fields": {
+          "qualifiers": {
+            "comparison_scope": "JGB 21, English rendering; research comparison of the two critical targets within that passage.",
+            "counterevidence_posture": "The same passage defeats an overreading in which Nietzsche endorses mechanical non-freedom. It does not defeat the qualified inversion asserted here.",
+            "evidence_posture": "One currently read translated text, cited through the source-reading note; no independent witness count or remote fixity claim.",
+            "relation_basis": "The reversal concerns ultimate self-determination and mechanical necessity. The passage rejects adopting the opposite account. This grounds a comparative relation between the two reconstructed targets, while their identities and assessment remain separate.",
+            "source_locator": "Chapter I, section 21",
+            "source_url": "https://www.gutenberg.org/files/4363/4363-h/4363-h.htm",
+            "statement": "In this research reading of JGB 21 through Zimmern's English rendering, mechanically unfree will inverts the criticized account of ultimate self-origination. The passage criticizes both accounts. The relation compares these targets within the passage; Nietzsche's positive commitments and their chronology require separate evidence.",
+            "statement_language": "en",
+            "statement_script": "Latn"
+          }
+        },
+        "forms": [
+          {
+            "field_id": "claim.statement",
+            "form_id": "tos.form.jgb21-conception-inversion.statement-en"
+          }
+        ],
+        "operation": "claim.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    }
+  ]
+}

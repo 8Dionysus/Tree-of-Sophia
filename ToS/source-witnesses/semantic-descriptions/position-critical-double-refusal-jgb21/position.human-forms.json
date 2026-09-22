@@ -1,71 +1,69 @@
 {
-  "schema_version": "tos_human_form_set_v1",
-  "subject": {
-    "id": "tos.position.critical-double-refusal-jgb21",
-    "version": 1,
-    "digest": "sha256:64ffc7aebcf61eedb4a99323221e8fb2f953daa1c6ccbdf8741ca0e95c07df48"
-  },
   "forms": [
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.position.critical-double-refusal-jgb21.name-ru",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.position.critical-double-refusal-jgb21",
-        "version": 1,
-        "digest": "sha256:64ffc7aebcf61eedb4a99323221e8fb2f953daa1c6ccbdf8741ca0e95c07df48"
+        "version": 2,
+        "digest": "sha256:12e410b17fa6f9b25da389127f1f86ecaff5f43125eb5273ae443ad6386deae7"
       },
       "role": "name",
       "language": "ru",
       "script": "Cyrl",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.position.critical-double-refusal-jgb21.name-ru",
+        "version": 1,
+        "digest": "sha256:60373b1558cb6f0c517a1f8acb8058c3a4fe3b2b78129b49bf106acaa1047fef"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.position.critical-double-refusal-jgb21",
-            "version": 1,
-            "digest": "sha256:64ffc7aebcf61eedb4a99323221e8fb2f953daa1c6ccbdf8741ca0e95c07df48"
+            "version": 2,
+            "digest": "sha256:12e410b17fa6f9b25da389127f1f86ecaff5f43125eb5273ae443ad6386deae7"
           },
           "pointer": "/preferred_label"
         },
         "context-0": {
           "record": {
             "id": "tos.position.critical-double-refusal-jgb21",
-            "version": 1,
-            "digest": "sha256:64ffc7aebcf61eedb4a99323221e8fb2f953daa1c6ccbdf8741ca0e95c07df48"
+            "version": 2,
+            "digest": "sha256:12e410b17fa6f9b25da389127f1f86ecaff5f43125eb5273ae443ad6386deae7"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.position.critical-double-refusal-jgb21",
-            "version": 1,
-            "digest": "sha256:64ffc7aebcf61eedb4a99323221e8fb2f953daa1c6ccbdf8741ca0e95c07df48"
+            "version": 2,
+            "digest": "sha256:12e410b17fa6f9b25da389127f1f86ecaff5f43125eb5273ae443ad6386deae7"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.position.critical-double-refusal-jgb21",
-            "version": 1,
-            "digest": "sha256:64ffc7aebcf61eedb4a99323221e8fb2f953daa1c6ccbdf8741ca0e95c07df48"
+            "version": 2,
+            "digest": "sha256:12e410b17fa6f9b25da389127f1f86ecaff5f43125eb5273ae443ad6386deae7"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.position.critical-double-refusal-jgb21",
-            "version": 1,
-            "digest": "sha256:64ffc7aebcf61eedb4a99323221e8fb2f953daa1c6ccbdf8741ca0e95c07df48"
+            "version": 2,
+            "digest": "sha256:12e410b17fa6f9b25da389127f1f86ecaff5f43125eb5273ae443ad6386deae7"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.position.critical-double-refusal-jgb21",
-            "version": 1,
-            "digest": "sha256:64ffc7aebcf61eedb4a99323221e8fb2f953daa1c6ccbdf8741ca0e95c07df48"
+            "version": 2,
+            "digest": "sha256:12e410b17fa6f9b25da389127f1f86ecaff5f43125eb5273ae443ad6386deae7"
           },
           "pointer": "/field_languages/preferred_label"
         }
@@ -78,87 +76,91 @@
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.position.critical-double-refusal-jgb21.name-en",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.position.critical-double-refusal-jgb21",
-        "version": 1,
-        "digest": "sha256:64ffc7aebcf61eedb4a99323221e8fb2f953daa1c6ccbdf8741ca0e95c07df48"
+        "version": 2,
+        "digest": "sha256:12e410b17fa6f9b25da389127f1f86ecaff5f43125eb5273ae443ad6386deae7"
       },
       "role": "name",
       "language": "en",
       "script": "Latn",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.position.critical-double-refusal-jgb21.name-en",
+        "version": 1,
+        "digest": "sha256:df02c86f4e93beb6a103ae4bf0ae045816b6f283c5132a6d7c89b631518a98db"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.position.critical-double-refusal-jgb21",
-            "version": 1,
-            "digest": "sha256:64ffc7aebcf61eedb4a99323221e8fb2f953daa1c6ccbdf8741ca0e95c07df48"
+            "version": 2,
+            "digest": "sha256:12e410b17fa6f9b25da389127f1f86ecaff5f43125eb5273ae443ad6386deae7"
           },
           "pointer": "/variant_labels/0/value"
         },
         "context-0": {
           "record": {
             "id": "tos.position.critical-double-refusal-jgb21",
-            "version": 1,
-            "digest": "sha256:64ffc7aebcf61eedb4a99323221e8fb2f953daa1c6ccbdf8741ca0e95c07df48"
+            "version": 2,
+            "digest": "sha256:12e410b17fa6f9b25da389127f1f86ecaff5f43125eb5273ae443ad6386deae7"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.position.critical-double-refusal-jgb21",
-            "version": 1,
-            "digest": "sha256:64ffc7aebcf61eedb4a99323221e8fb2f953daa1c6ccbdf8741ca0e95c07df48"
+            "version": 2,
+            "digest": "sha256:12e410b17fa6f9b25da389127f1f86ecaff5f43125eb5273ae443ad6386deae7"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.position.critical-double-refusal-jgb21",
-            "version": 1,
-            "digest": "sha256:64ffc7aebcf61eedb4a99323221e8fb2f953daa1c6ccbdf8741ca0e95c07df48"
+            "version": 2,
+            "digest": "sha256:12e410b17fa6f9b25da389127f1f86ecaff5f43125eb5273ae443ad6386deae7"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.position.critical-double-refusal-jgb21",
-            "version": 1,
-            "digest": "sha256:64ffc7aebcf61eedb4a99323221e8fb2f953daa1c6ccbdf8741ca0e95c07df48"
+            "version": 2,
+            "digest": "sha256:12e410b17fa6f9b25da389127f1f86ecaff5f43125eb5273ae443ad6386deae7"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.position.critical-double-refusal-jgb21",
-            "version": 1,
-            "digest": "sha256:64ffc7aebcf61eedb4a99323221e8fb2f953daa1c6ccbdf8741ca0e95c07df48"
+            "version": 2,
+            "digest": "sha256:12e410b17fa6f9b25da389127f1f86ecaff5f43125eb5273ae443ad6386deae7"
           },
           "pointer": "/variant_labels/0/language"
         },
         "context-5": {
           "record": {
             "id": "tos.position.critical-double-refusal-jgb21",
-            "version": 1,
-            "digest": "sha256:64ffc7aebcf61eedb4a99323221e8fb2f953daa1c6ccbdf8741ca0e95c07df48"
+            "version": 2,
+            "digest": "sha256:12e410b17fa6f9b25da389127f1f86ecaff5f43125eb5273ae443ad6386deae7"
           },
           "pointer": "/variant_labels/0/script"
         },
         "context-6": {
           "record": {
             "id": "tos.position.critical-double-refusal-jgb21",
-            "version": 1,
-            "digest": "sha256:64ffc7aebcf61eedb4a99323221e8fb2f953daa1c6ccbdf8741ca0e95c07df48"
+            "version": 2,
+            "digest": "sha256:12e410b17fa6f9b25da389127f1f86ecaff5f43125eb5273ae443ad6386deae7"
           },
           "pointer": "/variant_labels/0/source_ref"
         },
         "context-7": {
           "record": {
             "id": "tos.position.critical-double-refusal-jgb21",
-            "version": 1,
-            "digest": "sha256:64ffc7aebcf61eedb4a99323221e8fb2f953daa1c6ccbdf8741ca0e95c07df48"
+            "version": 2,
+            "digest": "sha256:12e410b17fa6f9b25da389127f1f86ecaff5f43125eb5273ae443ad6386deae7"
           },
           "pointer": "/variant_labels/0/status"
         }
@@ -171,63 +173,67 @@
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.position.critical-double-refusal-jgb21.note-ru",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.position.critical-double-refusal-jgb21",
-        "version": 1,
-        "digest": "sha256:64ffc7aebcf61eedb4a99323221e8fb2f953daa1c6ccbdf8741ca0e95c07df48"
+        "version": 2,
+        "digest": "sha256:12e410b17fa6f9b25da389127f1f86ecaff5f43125eb5273ae443ad6386deae7"
       },
       "role": "hover",
       "language": "ru",
       "script": "Cyrl",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.position.critical-double-refusal-jgb21.note-ru",
+        "version": 1,
+        "digest": "sha256:3138d256b47d8cf5c6a3dae7f3d1c6eb01eefcf42f124c0340f3ba18b852486b"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.position.critical-double-refusal-jgb21",
-            "version": 1,
-            "digest": "sha256:64ffc7aebcf61eedb4a99323221e8fb2f953daa1c6ccbdf8741ca0e95c07df48"
+            "version": 2,
+            "digest": "sha256:12e410b17fa6f9b25da389127f1f86ecaff5f43125eb5273ae443ad6386deae7"
           },
           "pointer": "/notes"
         },
         "context-0": {
           "record": {
             "id": "tos.position.critical-double-refusal-jgb21",
-            "version": 1,
-            "digest": "sha256:64ffc7aebcf61eedb4a99323221e8fb2f953daa1c6ccbdf8741ca0e95c07df48"
+            "version": 2,
+            "digest": "sha256:12e410b17fa6f9b25da389127f1f86ecaff5f43125eb5273ae443ad6386deae7"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.position.critical-double-refusal-jgb21",
-            "version": 1,
-            "digest": "sha256:64ffc7aebcf61eedb4a99323221e8fb2f953daa1c6ccbdf8741ca0e95c07df48"
+            "version": 2,
+            "digest": "sha256:12e410b17fa6f9b25da389127f1f86ecaff5f43125eb5273ae443ad6386deae7"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.position.critical-double-refusal-jgb21",
-            "version": 1,
-            "digest": "sha256:64ffc7aebcf61eedb4a99323221e8fb2f953daa1c6ccbdf8741ca0e95c07df48"
+            "version": 2,
+            "digest": "sha256:12e410b17fa6f9b25da389127f1f86ecaff5f43125eb5273ae443ad6386deae7"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.position.critical-double-refusal-jgb21",
-            "version": 1,
-            "digest": "sha256:64ffc7aebcf61eedb4a99323221e8fb2f953daa1c6ccbdf8741ca0e95c07df48"
+            "version": 2,
+            "digest": "sha256:12e410b17fa6f9b25da389127f1f86ecaff5f43125eb5273ae443ad6386deae7"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.position.critical-double-refusal-jgb21",
-            "version": 1,
-            "digest": "sha256:64ffc7aebcf61eedb4a99323221e8fb2f953daa1c6ccbdf8741ca0e95c07df48"
+            "version": 2,
+            "digest": "sha256:12e410b17fa6f9b25da389127f1f86ecaff5f43125eb5273ae443ad6386deae7"
           },
           "pointer": "/field_languages/notes"
         }
@@ -238,5 +244,243 @@
       }
     }
   ],
-  "prior_forms": []
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:64ffc7aebcf61eedb4a99323221e8fb2f953daa1c6ccbdf8741ca0e95c07df48",
+            "id": "tos.position.critical-double-refusal-jgb21",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:64ffc7aebcf61eedb4a99323221e8fb2f953daa1c6ccbdf8741ca0e95c07df48",
+            "id": "tos.position.critical-double-refusal-jgb21",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:64ffc7aebcf61eedb4a99323221e8fb2f953daa1c6ccbdf8741ca0e95c07df48",
+            "id": "tos.position.critical-double-refusal-jgb21",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:64ffc7aebcf61eedb4a99323221e8fb2f953daa1c6ccbdf8741ca0e95c07df48",
+            "id": "tos.position.critical-double-refusal-jgb21",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:64ffc7aebcf61eedb4a99323221e8fb2f953daa1c6ccbdf8741ca0e95c07df48",
+            "id": "tos.position.critical-double-refusal-jgb21",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:64ffc7aebcf61eedb4a99323221e8fb2f953daa1c6ccbdf8741ca0e95c07df48",
+            "id": "tos.position.critical-double-refusal-jgb21",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.position.critical-double-refusal-jgb21.name-ru",
+      "form_version": 1,
+      "language": "ru",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:64ffc7aebcf61eedb4a99323221e8fb2f953daa1c6ccbdf8741ca0e95c07df48",
+        "id": "tos.position.critical-double-refusal-jgb21",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:64ffc7aebcf61eedb4a99323221e8fb2f953daa1c6ccbdf8741ca0e95c07df48",
+            "id": "tos.position.critical-double-refusal-jgb21",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:64ffc7aebcf61eedb4a99323221e8fb2f953daa1c6ccbdf8741ca0e95c07df48",
+            "id": "tos.position.critical-double-refusal-jgb21",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:64ffc7aebcf61eedb4a99323221e8fb2f953daa1c6ccbdf8741ca0e95c07df48",
+            "id": "tos.position.critical-double-refusal-jgb21",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:64ffc7aebcf61eedb4a99323221e8fb2f953daa1c6ccbdf8741ca0e95c07df48",
+            "id": "tos.position.critical-double-refusal-jgb21",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/variant_labels/0/language",
+          "record": {
+            "digest": "sha256:64ffc7aebcf61eedb4a99323221e8fb2f953daa1c6ccbdf8741ca0e95c07df48",
+            "id": "tos.position.critical-double-refusal-jgb21",
+            "version": 1
+          }
+        },
+        "context-5": {
+          "pointer": "/variant_labels/0/script",
+          "record": {
+            "digest": "sha256:64ffc7aebcf61eedb4a99323221e8fb2f953daa1c6ccbdf8741ca0e95c07df48",
+            "id": "tos.position.critical-double-refusal-jgb21",
+            "version": 1
+          }
+        },
+        "context-6": {
+          "pointer": "/variant_labels/0/source_ref",
+          "record": {
+            "digest": "sha256:64ffc7aebcf61eedb4a99323221e8fb2f953daa1c6ccbdf8741ca0e95c07df48",
+            "id": "tos.position.critical-double-refusal-jgb21",
+            "version": 1
+          }
+        },
+        "context-7": {
+          "pointer": "/variant_labels/0/status",
+          "record": {
+            "digest": "sha256:64ffc7aebcf61eedb4a99323221e8fb2f953daa1c6ccbdf8741ca0e95c07df48",
+            "id": "tos.position.critical-double-refusal-jgb21",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/variant_labels/0/value",
+          "record": {
+            "digest": "sha256:64ffc7aebcf61eedb4a99323221e8fb2f953daa1c6ccbdf8741ca0e95c07df48",
+            "id": "tos.position.critical-double-refusal-jgb21",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.position.critical-double-refusal-jgb21.name-en",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:64ffc7aebcf61eedb4a99323221e8fb2f953daa1c6ccbdf8741ca0e95c07df48",
+        "id": "tos.position.critical-double-refusal-jgb21",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:64ffc7aebcf61eedb4a99323221e8fb2f953daa1c6ccbdf8741ca0e95c07df48",
+            "id": "tos.position.critical-double-refusal-jgb21",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:64ffc7aebcf61eedb4a99323221e8fb2f953daa1c6ccbdf8741ca0e95c07df48",
+            "id": "tos.position.critical-double-refusal-jgb21",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:64ffc7aebcf61eedb4a99323221e8fb2f953daa1c6ccbdf8741ca0e95c07df48",
+            "id": "tos.position.critical-double-refusal-jgb21",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:64ffc7aebcf61eedb4a99323221e8fb2f953daa1c6ccbdf8741ca0e95c07df48",
+            "id": "tos.position.critical-double-refusal-jgb21",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:64ffc7aebcf61eedb4a99323221e8fb2f953daa1c6ccbdf8741ca0e95c07df48",
+            "id": "tos.position.critical-double-refusal-jgb21",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:64ffc7aebcf61eedb4a99323221e8fb2f953daa1c6ccbdf8741ca0e95c07df48",
+            "id": "tos.position.critical-double-refusal-jgb21",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.position.critical-double-refusal-jgb21.note-ru",
+      "form_version": 1,
+      "language": "ru",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:64ffc7aebcf61eedb4a99323221e8fb2f953daa1c6ccbdf8741ca0e95c07df48",
+        "id": "tos.position.critical-double-refusal-jgb21",
+        "version": 1
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.position.critical-double-refusal-jgb21",
+    "version": 2,
+    "digest": "sha256:12e410b17fa6f9b25da389127f1f86ecaff5f43125eb5273ae443ad6386deae7"
+  }
 }

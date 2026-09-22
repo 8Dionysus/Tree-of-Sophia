@@ -1,13 +1,13 @@
 # Native local Item adoption
 
 `source_item_commands.py` adds `item.adopt` and `item.adoption.recover` to the
-existing `source_commands.py` front door. It adopts one **already obtained local
-file**, creates one provisional acquired Item and distinct `exemplified_by`
-Claim, and appends only the existing Edition's `exemplar_claim_refs` with one
-version/form successor. It performs no URL fetch, OCR, model call, correction,
-translation, source reading, rights admission or publication. Artifact and
-scholarly Composite representation routes remain separate; a Work/Expression
-directory ladder is not a global bibliographic requirement.
+existing `source_commands.py` front door. It adopts one **already obtained
+local file**, creates one provisional acquired Item and distinct
+`exemplified_by` Claim, and appends the existing Edition's
+`exemplar_claim_refs` with one version/form successor. Acquisition, text
+processing, source assessment, rights and publication use their dedicated
+routes. Artifact and scholarly Composite representations also retain their own
+routes; the corpus supports each declared bibliographic topology.
 
 ## Exact delegation
 
@@ -78,11 +78,11 @@ Standalone/generic Claim creation or correction cannot bypass the compound
 handler, including when the separate payload root leaves a flat Item metadata
 package. Changing this native topology Claim needs its compound owner route.
 
-This first handler only serializes a conservative supplied local-only rights
-record: exact Item/File scope, unreviewed, not assessed/evaluated/determined,
-no permissions or layer clearances, `not_authorized` redistribution and
-`local_research_only` derivatives. The supplied rationale/source references
-remain attributed input, not a new legal conclusion by this command.
+This handler serializes the supplied local-only rights record for the exact
+Item/File: unreviewed status, empty permissions and layer clearances,
+`not_authorized` redistribution and `local_research_only` derivatives.
+Rationale and source references remain attributed to their supplier. Rights
+assessment follows the rights-owner route.
 
 ## Two stages, not cross-root atomicity
 
@@ -124,8 +124,12 @@ using only STORED or DEFLATED compression, no duplicate/unsafe members or
 encryption. Other codecs are rejected before decoder creation (an LZMA member
 can otherwise request a large dictionary before expanded-byte checks).
 Actual member streams are bounded before invoking the existing
-`build_file_inventory` enumerator. It emits resource structure/counts and
-one-way fingerprints, not source text.
+`build_file_inventory` enumerator. It emits resource structure, counts and one-way fingerprints. Source text
+remains with the acquired File.
+
+Inventory generator version 2 uses a concise purpose statement. Retained version-1
+receipts reconstruct their original descriptive bytes through the explicitly
+versioned producer; current source construction emits version 2.
 
 The separate `plain_utf8_file_v1` profile supports `text/plain` and
 `text/markdown` up to 128 KiB. It enumerates one complete inert file with exact
@@ -150,9 +154,9 @@ File catalog. Readers preserve exact Edition and older Expression/Edition
 compound history; stable identity never implies bibliographic or textual truth.
 
 The same Unix-account trust boundary remains: hashes and unsigned local
-receipts detect mismatches, not malicious self-forgery by that account. This
-command is not a filesystem-wide transaction, external execution proof,
-current payload resolver, legacy migration, publication gate or source review.
+receipts detect mismatches, not malicious self-forgery by that account. The command's transaction covers the selected Item package. Execution
+assessment, payload resolution, legacy migration, publication and source
+review follow their respective owner routes.
 Catalog/derived regeneration, wider validation, checkpoint review and landing
 remain separate owner steps. Before source-foundation closure, create the
 new Item's exact future-server plan under

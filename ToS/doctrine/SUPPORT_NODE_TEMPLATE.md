@@ -1,16 +1,10 @@
 # Support Node Template
 
-This document records the current route-local scaffold for canonical support
-nodes in ToS.
-
-Support nodes do not replace source, concept, principle, event, or state
-surfaces.
-They stabilize the reviewed `n.*` layer that helps the current route stay
-legible without forcing an early split into many semantic families.
+A support node gives a reviewed carrier, symbol, place, hinge or recipient within a route its own authored handle.
 
 ## Core fields
 
-A support-node scaffold should expose at least:
+The scaffold uses the shared [node contract](NODE_CONTRACT.md):
 
 - `node_id`
 - `node_type = support`
@@ -20,40 +14,20 @@ A support-node scaffold should expose at least:
 - `relations`
 - `interpretation_layers`
 
-The shape stays compact because it reuses the current minimal node contract.
+## Use the scaffold when
 
-## Template posture
+- The subject helps explain the surrounding route.
+- Its reading is stable enough to move from intake through review.
+- The existing support family expresses the subject at the required level of detail.
 
-Use the support-node scaffold when:
+## Source and family scope
 
-- a route-local carrier, symbol, place, hinge, or recipient surface needs its
-  own authored handle
-- the row is stable enough to move beyond raw intake
-- opening a whole new semantic family would be premature
-
-Support nodes should stay:
-
-- source-first
-- route-local
-- review-gated
-- bounded rather than taxonomic
-
-## Boundary against concept and residue
-
-A support node is not:
-
-- the source node itself
-- a substitute for concept, principle, event, or state nodes
-- a claim that every remaining `n.*` row should already be canonical
-
-The support family is the current bounded home for the route's reviewed
-non-literal `n.*` surfaces.
-Literal helpers remain in `ToS/candidate-intake/` until a later dedicated literal pass.
+The support family currently holds reviewed non-literal `n.*` subjects. Use
+source, concept, principle, event and state nodes according to their defined
+roles. Literal helpers remain in `ToS/candidate-intake/` for their dedicated
+review pass. Each promotion records its own source and assessment.
 
 ## Worked scaffold
 
-The first worked example is route-local and narrow:
-
-- one bounded support family under `ToS/canon/support/`
-- one worked example mirrored into `ToS/public-compatibility/support_node.example.json`
-- no claim yet that ToS now owns a broad support ontology
+The current family is under `ToS/canon/support/`; its public example is
+`ToS/public-compatibility/support_node.example.json`.

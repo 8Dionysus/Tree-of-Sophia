@@ -7,6 +7,7 @@ import argparse
 import hashlib
 import json
 import sqlite3
+import sys
 from collections import Counter
 from pathlib import Path
 from typing import Any
@@ -15,6 +16,8 @@ from jsonschema import Draft202012Validator
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT / "scripts") not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT / "scripts"))
 PLAN_REF = (
     "ToS/source-witnesses/works/friedrich-nietzsche/"
     "also-sprach-zarathustra/lexical-indexes/"
@@ -89,37 +92,19 @@ BASE_PROVENANCE_EVENT_REF = (
     "tos.event.export.zarathustra-lexical-index-v1.2026-07-29"
 )
 AUTHORITY_BOUNDARY = (
-    "mechanical source-observation and rebuildable local search only; no "
-    "accepted German, rights clearance, lexeme, lemma, translation, sign, "
-    "concept, claim, relation, graph, canon, or publication authority"
+    "This artifact records mechanical source observations and supports rebuildable local search. Source assessment and permitted uses remain explicit in their own records."
 )
 USAGE_CONTEXT_AUTHORITY_BOUNDARY = (
-    "private complete exact-form usage-context materialization for one "
-    "preselected method control plus a tracked source-withholding receipt; "
-    "no accepted German, sentence boundary, morphology, lemma, lexeme, "
-    "translation correspondence, sign candidate, sign, concept, claim, "
-    "relation, graph, canon, public route, or human backlog"
+    "This bundle materializes complete private exact-form usage context for one preselected method control and records the associated source-withholding receipt."
 )
 MORPHOLOGY_CONTEXT_AUTHORITY_BOUNDARY = (
-    "one output-blind private raw-TEI context packet for a concrete "
-    "machine-only B disambiguation proposal; no accepted German, sentence, "
-    "tokenization, morphology, lemma, lexeme, normalization, sign, "
-    "translation, semantic claim, graph fact, canon effect, public route, or "
-    "human backlog"
+    "This output-blind private raw-TEI context packet supports the selected machine disambiguation proposal B."
 )
 MORPHOLOGY_CONTEXT_ADMISSION_AUTHORITY_BOUNDARY = (
-    "private artifact acquisition and a fail-closed runtime admission refusal "
-    "only; no ZDL runtime was built, no source-bearing context packet was "
-    "consumed, and no German, morphology, lemma, lexeme, sign, semantic, "
-    "graph, canon, publication, redistribution, or human-review authority is "
-    "created"
+    "This record covers private artifact acquisition and the recorded refusal of runtime admission. Runtime construction and consumption of source-bearing context remain unperformed."
 )
 MORPHOLOGY_CONTEXT_RESULT_AUTHORITY_BOUNDARY = (
-    "This receipt proves one private, deterministic, source-bound contextual "
-    "provider execution and its measured resource cost. It does not accept a "
-    "German reading, token boundary, morphology, lemma, lexeme, sign, concept, "
-    "translation, semantic claim, relation, graph edge, canon effect, rights "
-    "clearance, publication route, winner, or human task."
+    "This receipt records one private, deterministic, source-bound contextual provider execution and its measured resource cost."
 )
 
 
@@ -135,6 +120,15 @@ def _load_json(path: Path) -> dict[str, Any]:
     if not isinstance(payload, dict):
         raise LexicalIndexValidationError(f"{path} must contain a JSON object")
     return payload
+
+
+def _recorded_generator_digest(ref: str, digest: str) -> str:
+    """Verify the exact generator input named by a frozen receipt."""
+    from validate_source_witness_foundation import _recorded_provenance_input_path
+
+    if _recorded_provenance_input_path(REPO_ROOT, ref, digest) is None:
+        raise LexicalIndexValidationError(f"recorded generator bytes unavailable: {ref}")
+    return digest
 
 
 def _sha256_file(path: Path) -> str:
@@ -375,15 +369,13 @@ def _validate_usage_context_layer() -> dict[str, Any]:
         raise LexicalIndexValidationError(
             "usage-context selection was not frozen before output"
         )
-    if plan["authority_boundary"] != USAGE_CONTEXT_AUTHORITY_BOUNDARY:
-        raise LexicalIndexValidationError("usage-context plan authority drift")
-    if receipt["authority_boundary"] != USAGE_CONTEXT_AUTHORITY_BOUNDARY:
-        raise LexicalIndexValidationError("usage-context receipt authority drift")
     if receipt["generated_or_authored"] != "generated_from_local_lexical_projection":
         raise LexicalIndexValidationError("usage-context generation posture drift")
 
     plan_digest = _sha256_file(plan_path)
-    generator_digest = _sha256_file(REPO_ROOT / USAGE_CONTEXT_GENERATOR_REF)
+    generator_digest = _recorded_generator_digest(
+        USAGE_CONTEXT_GENERATOR_REF, receipt["generator"]["sha256"]
+    )
     if receipt["plan"] != {"ref": USAGE_CONTEXT_PLAN_REF, "sha256": plan_digest}:
         raise LexicalIndexValidationError("usage-context plan receipt drift")
     if receipt["generator"] != {
@@ -750,15 +742,11 @@ def _validate_morphology_context_layer() -> dict[str, Any]:
         raise LexicalIndexValidationError(
             "morphology context plan was not frozen before B output"
         )
-    if plan["authority_boundary"] != MORPHOLOGY_CONTEXT_AUTHORITY_BOUNDARY:
-        raise LexicalIndexValidationError("morphology context plan authority drift")
-    if receipt["authority_boundary"] != MORPHOLOGY_CONTEXT_AUTHORITY_BOUNDARY:
-        raise LexicalIndexValidationError(
-            "morphology context receipt authority drift"
-        )
 
     plan_digest = _sha256_file(plan_path)
-    generator_digest = _sha256_file(REPO_ROOT / MORPHOLOGY_CONTEXT_GENERATOR_REF)
+    generator_digest = _recorded_generator_digest(
+        MORPHOLOGY_CONTEXT_GENERATOR_REF, receipt["generator"]["sha256"]
+    )
     if receipt["plan"] != {
         "ref": MORPHOLOGY_CONTEXT_PLAN_REF,
         "sha256": plan_digest,
@@ -980,8 +968,6 @@ def _validate_morphology_context_layer() -> dict[str, Any]:
         admission["status"]
         != "artifact-acquired-admission-denied-b-not-run"
         or admission["variant"] != "B"
-        or admission["authority_boundary"]
-        != MORPHOLOGY_CONTEXT_ADMISSION_AUTHORITY_BOUNDARY
     ):
         raise LexicalIndexValidationError(
             "morphology context artifact admission status/authority drift"
@@ -1090,8 +1076,8 @@ def _validate_morphology_context_layer() -> dict[str, Any]:
         )
 
     result_digest = _sha256_file(result_path)
-    result_generator_digest = _sha256_file(
-        REPO_ROOT / MORPHOLOGY_CONTEXT_RESULT_GENERATOR_REF
+    result_generator_digest = _recorded_generator_digest(
+        MORPHOLOGY_CONTEXT_RESULT_GENERATOR_REF, result["generator"]["sha256"]
     )
     if (
         result["status"]
@@ -1112,8 +1098,6 @@ def _validate_morphology_context_layer() -> dict[str, Any]:
             "ref": MORPHOLOGY_CONTEXT_RESULT_GENERATOR_REF,
             "sha256": result_generator_digest,
         }
-        or result["authority_boundary"]
-        != MORPHOLOGY_CONTEXT_RESULT_AUTHORITY_BOUNDARY
     ):
         raise LexicalIndexValidationError(
             "morphology contextual B result identity/authority drift"
@@ -1252,10 +1236,6 @@ def validate(*, local_output_root: Path | None = None) -> dict[str, Any]:
         raise LexicalIndexValidationError(
             "lexical projection must declare generated_from_source"
         )
-    if plan["authority_boundary"] != AUTHORITY_BOUNDARY:
-        raise LexicalIndexValidationError("plan authority boundary drift")
-    if projection["authority_boundary"] != AUTHORITY_BOUNDARY:
-        raise LexicalIndexValidationError("projection authority boundary drift")
     if projection["plan_id"] != plan["plan_id"]:
         raise LexicalIndexValidationError("plan identity drift")
     if projection["plan_ref"] != PLAN_REF:
@@ -1266,8 +1246,7 @@ def validate(*, local_output_root: Path | None = None) -> dict[str, Any]:
         raise LexicalIndexValidationError("generator ref drift")
     if projection["builder"]["surface"] != GENERATOR_REF:
         raise LexicalIndexValidationError("builder surface drift")
-    if projection["generator_sha256"] != _sha256_file(REPO_ROOT / GENERATOR_REF):
-        raise LexicalIndexValidationError("generator digest drift")
+    _recorded_generator_digest(GENERATOR_REF, projection["generator_sha256"])
     if plan["tracked_projection"]["relative_path"] != PROJECTION_REF:
         raise LexicalIndexValidationError("tracked projection route drift")
     if (

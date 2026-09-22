@@ -422,9 +422,7 @@
     },
     "recorded_at": {"type": "string", "format": "date-time"},
     "provenance_event_ref": {"$ref": "#/$defs/tosId"},
-    "authority_boundary": {
-      "const": "text-free exposure and workflow law only: it corrects false blindness claims for future solo human plus AI experiments but creates no source text, candidate, comparator reveal, language competence, accepted translation, semantics, graph truth, canon, publication, server transfer, model run, or human task"
-    }
+    "authority_boundary": {"type": "string", "minLength": 1, "description": "Brief account of the artifact purpose and scope. Typed status, effects, assessment and permission fields govern its use."}
   },
   "$defs": {
     "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},

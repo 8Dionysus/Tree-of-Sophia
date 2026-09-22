@@ -1,0 +1,94 @@
+{
+  "schema_version": "tos_source_revision_history_v1",
+  "record_id": "tos.problem.ultimate-responsibility-jgb21",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:f26edbfe4881c36a7aacc291",
+      "request_digest": "sha256:0c0cef40871e8c05c0d88258b5715ad6bc757bf8e4a2e2abc57004feda70cf7f",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:2294356ed2d106f77f43adf13da8548a2ad1954dcad9f738830b92a4fef8a82d",
+      "recorded_at": "2026-09-22T05:07:25.012672+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.problem.ultimate-responsibility-jgb21",
+        "version": 1,
+        "digest": "sha256:94769308becb67cd273c97b6653cea0a842f37e4b35f1e5948bd900ffcc289c8"
+      },
+      "source": {
+        "id": "tos.problem.ultimate-responsibility-jgb21",
+        "version": 2,
+        "digest": "sha256:5aaa718afc10baf49f8b7426b56f476beaf03783e0e3bc1a26b0577c2f705ec5"
+      },
+      "previous_revision": "sha256:43cd1b835890ef5460ccc41d96c562c5ac56b400d517acf9b44ab6613abb987b",
+      "archive_path": "ToS/source-witnesses/.record-revisions/f26edbfe4881c36a7aacc291dac312afa3095880cabf2612140aaa7e15bd1a78-43cd1b835890ef5460ccc41d96c562c5ac56b400d517acf9b44ab6613abb987b",
+      "dependencies": "sha256:ad99651426db4f995c841ba8ba27f697bf197a1f43d7ac3d97e8038dc39eb01d",
+      "changed_fields": [
+        "notes",
+        "semantic_content",
+        "semantic_scope"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.problem.ultimate-responsibility-jgb21.name-ru",
+          "version": 2,
+          "digest": "sha256:6d056d8eac3a62265132e80552f02bb723fffd37ea10ec77bdb364a3addb87f4"
+        },
+        {
+          "id": "tos.form.problem.ultimate-responsibility-jgb21.name-en",
+          "version": 2,
+          "digest": "sha256:123c9470cb798c9a1d4cc2f18e0cf7bd5ece98aa592a928db01c7f28d9fdede8"
+        },
+        {
+          "id": "tos.form.problem.ultimate-responsibility-jgb21.note-ru",
+          "version": 2,
+          "digest": "sha256:796ca0c78f78e95d02bea3fbc8bce245ca895585e2ef4aabfd1d7bfaecd2e7a6"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:f26edbfe4881c36a7aacc291",
+        "expected_configuration": "sha256:2294356ed2d106f77f43adf13da8548a2ad1954dcad9f738830b92a4fef8a82d",
+        "expected_dependencies": "sha256:ad99651426db4f995c841ba8ba27f697bf197a1f43d7ac3d97e8038dc39eb01d",
+        "expected_revision": "sha256:43cd1b835890ef5460ccc41d96c562c5ac56b400d517acf9b44ab6613abb987b",
+        "expected_source": {
+          "digest": "sha256:94769308becb67cd273c97b6653cea0a842f37e4b35f1e5948bd900ffcc289c8",
+          "id": "tos.problem.ultimate-responsibility-jgb21",
+          "version": 1
+        },
+        "fields": {
+          "notes": "Проблема исследователя: как §21 связывает требование последней ответственности с самопричинением и что именно отрицается этой критикой. Формулировка выделяет трудность чтения данного фрагмента.",
+          "semantic_content": {
+            "inquiry_stakes": "Avoid confusing a critique of a specified metaphysical requirement with denial of every sense of agency or responsibility.",
+            "language": "en",
+            "problem_statement": "How the demand for ultimate personal responsibility is connected to self-origination in JGB 21, and the scope of the resulting criticism.",
+            "script": "Latn"
+          },
+          "semantic_scope": {
+            "identity_criterion": "Identity follows the inquiry into this passage’s relation between ultimate responsibility and self-origination, including its limits.",
+            "language": "en",
+            "scope_note": "The relation between ultimate responsibility, self-origination and the scope of the rejection in JGB 21.",
+            "script": "Latn"
+          }
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.problem.ultimate-responsibility-jgb21.name-ru"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.problem.ultimate-responsibility-jgb21.name-en"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.problem.ultimate-responsibility-jgb21.note-ru"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    }
+  ]
+}

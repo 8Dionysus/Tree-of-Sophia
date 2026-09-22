@@ -1,0 +1,94 @@
+{
+  "schema_version": "tos_source_revision_history_v1",
+  "record_id": "tos.life-circumstance.friedrich-nietzsche.basel-teaching-illness",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:56ef2662aef775f287dc9590",
+      "request_digest": "sha256:80559d05234589360f68a28ed8bd670b419252d0d495eafa2c482589ad84135d",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:d0730ba576195906c6e2e23dd231b31383270ae58d576c2776a1ed105c75457c",
+      "recorded_at": "2026-09-22T05:04:43.315057+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.life-circumstance.friedrich-nietzsche.basel-teaching-illness",
+        "version": 1,
+        "digest": "sha256:6fa3f9dcf6c292555f56c6e3886b64ef5a3b04d5e6a40a04626cbc14841bbfea"
+      },
+      "source": {
+        "id": "tos.life-circumstance.friedrich-nietzsche.basel-teaching-illness",
+        "version": 2,
+        "digest": "sha256:588421e19532b84cba66b4a519680c877cfd162b4306ec21f0365485d5dc384e"
+      },
+      "previous_revision": "sha256:5dc1212b03e2fe0d379c06a125e23ef5e22ddedd5f3d76a9c8d971b7817204bb",
+      "archive_path": "ToS/source-witnesses/.record-revisions/56ef2662aef775f287dc95908a0528a2bc124d4bf87a546b4acbffbd3d944003-5dc1212b03e2fe0d379c06a125e23ef5e22ddedd5f3d76a9c8d971b7817204bb",
+      "dependencies": "sha256:ee36ec01c29f45d3ea68455c79cd36c2419deeb2105f60dece091265fbfb7d58",
+      "changed_fields": [
+        "semantic_content",
+        "semantic_scope"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.basel-research.basel-teaching-illness.name-ru",
+          "version": 2,
+          "digest": "sha256:4d735cf770370d7c49ca8ed50ee0075d35e84ef39700756c1f91da766db2c569"
+        },
+        {
+          "id": "tos.form.basel-research.basel-teaching-illness.name-en",
+          "version": 2,
+          "digest": "sha256:c4db4de60bca112b182ba16d264e84abd9a276461e4741e2f2fb06450f8d6a38"
+        },
+        {
+          "id": "tos.form.basel-research.basel-teaching-illness.note-ru",
+          "version": 2,
+          "digest": "sha256:c929a62f670abd58dcacff2010b720392e29797b48b444eaf5a57fcfbd79e096"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:56ef2662aef775f287dc9590",
+        "expected_configuration": "sha256:d0730ba576195906c6e2e23dd231b31383270ae58d576c2776a1ed105c75457c",
+        "expected_dependencies": "sha256:ee36ec01c29f45d3ea68455c79cd36c2419deeb2105f60dece091265fbfb7d58",
+        "expected_revision": "sha256:5dc1212b03e2fe0d379c06a125e23ef5e22ddedd5f3d76a9c8d971b7817204bb",
+        "expected_source": {
+          "digest": "sha256:6fa3f9dcf6c292555f56c6e3886b64ef5a3b04d5e6a40a04626cbc14841bbfea",
+          "id": "tos.life-circumstance.friedrich-nietzsche.basel-teaching-illness",
+          "version": 1
+        },
+        "fields": {
+          "semantic_content": {
+            "bodily_account": "Болезненные состояния в сообщении университетского очерка.",
+            "circumstance_account": "Сообщённые болезненные состояния и ограничения преподавательской деятельности.",
+            "documented_relevance": "Источник связывает эти состояния с перерывами и уходом с кафедры; медицинское объяснение требует отдельной проверки.",
+            "evidence_limitations": "Первичные медицинские записи не прочитаны; диагностические и философско-каузальные выводы не допускаются этим описанием.",
+            "language": "ru",
+            "script": "Cyrl"
+          },
+          "semantic_scope": {
+            "identity_criterion": "Идентичность определяется описанными обстоятельствами преподавательской жизни и их исследовательским охватом.",
+            "language": "ru",
+            "scope_note": "Обстоятельства преподавательской жизни в пределах сообщения источника.",
+            "script": "Cyrl"
+          }
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.basel-research.basel-teaching-illness.name-ru"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.basel-research.basel-teaching-illness.name-en"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.basel-research.basel-teaching-illness.note-ru"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    }
+  ]
+}

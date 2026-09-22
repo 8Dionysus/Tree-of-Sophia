@@ -1,0 +1,95 @@
+{
+  "schema_version": "tos_source_revision_history_v1",
+  "record_id": "tos.sense.willing-jgb19",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:0e4f78b271bd1aa2c7ab1291",
+      "request_digest": "sha256:d2fa0bc46629fa21a4445a4f38ace8f80c507ad11381132e899d8da062939686",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:2f9407d88bbc804d1f05ee115fb2e7e428d043b5e3404a16b878ca04127c0068",
+      "recorded_at": "2026-09-22T05:06:01.144346+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.sense.willing-jgb19",
+        "version": 1,
+        "digest": "sha256:9b60ce6b04dc9167e332861ef3361614de627f8c73ae7a0a670e480e25331280"
+      },
+      "source": {
+        "id": "tos.sense.willing-jgb19",
+        "version": 2,
+        "digest": "sha256:b5e2b8744968d71e84dc522fda6026d3f0f6c6c884bd87d5f444ed0510bb3d4c"
+      },
+      "previous_revision": "sha256:1bab0f7a54983ceb945f5f65673bfa3f55f1b928bdcc4997aecc4ab870c38f2a",
+      "archive_path": "ToS/source-witnesses/.record-revisions/0e4f78b271bd1aa2c7ab12918fe6be23f4a358f87c3b36a4f6f57af3fc0457e8-1bab0f7a54983ceb945f5f65673bfa3f55f1b928bdcc4997aecc4ab870c38f2a",
+      "dependencies": "sha256:59d2413ee5fd50c849ed1211b66944dfdc2e0edfe05ee8cf6a3c6f1d57e9ebc9",
+      "changed_fields": [
+        "notes",
+        "semantic_content",
+        "semantic_scope"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.lexical.willing-jgb19.name-ru",
+          "version": 2,
+          "digest": "sha256:1f2fd8323806b4abab59bd5ab9fccaf22321a3a6fad732eded90de8a855ac62d"
+        },
+        {
+          "id": "tos.form.lexical.willing-jgb19.name-en",
+          "version": 2,
+          "digest": "sha256:05ba19a6767eb926396ec82cee6725718b5cf063ec4fa28bf70b288ccbee1077"
+        },
+        {
+          "id": "tos.form.lexical.willing-jgb19.note-ru",
+          "version": 2,
+          "digest": "sha256:06a6934d47efe43b8e572486338885fb707e2fd96e09b144e3153bc58fd5e73c"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:0e4f78b271bd1aa2c7ab1291",
+        "expected_configuration": "sha256:2f9407d88bbc804d1f05ee115fb2e7e428d043b5e3404a16b878ca04127c0068",
+        "expected_dependencies": "sha256:59d2413ee5fd50c849ed1211b66944dfdc2e0edfe05ee8cf6a3c6f1d57e9ebc9",
+        "expected_revision": "sha256:1bab0f7a54983ceb945f5f65673bfa3f55f1b928bdcc4997aecc4ab870c38f2a",
+        "expected_source": {
+          "digest": "sha256:9b60ce6b04dc9167e332861ef3361614de627f8c73ae7a0a670e480e25331280",
+          "id": "tos.sense.willing-jgb19",
+          "version": 1
+        },
+        "fields": {
+          "notes": "Предварительное толкование исследуемой лексемы как обозначения воления в JGB 19.",
+          "semantic_content": {
+            "interpretation_context": "Немецкий текст JGB 19. Употребления, атрибуции и подробная философская трактовка остаются отдельными предметами исследования.",
+            "language": "ru",
+            "script": "Cyrl",
+            "semantic_range": "Контекстное чтение исследуемой лексемы в JGB 19; другие употребления и трактовки требуют самостоятельного анализа.",
+            "sense_account": "Значение, в котором исследуемое слово отсылает к волению, обсуждаемому в данном разделе."
+          },
+          "semantic_scope": {
+            "identity_criterion": "Идентичность определяется этим чтением в его контексте. Конкурирующие смыслы, другие контексты и философские концепции получают отдельные описания.",
+            "language": "ru",
+            "scope_note": "Предложенное контекстное лексическое чтение JGB 19.",
+            "script": "Cyrl"
+          }
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.lexical.willing-jgb19.name-ru"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.lexical.willing-jgb19.name-en"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.lexical.willing-jgb19.note-ru"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    }
+  ]
+}

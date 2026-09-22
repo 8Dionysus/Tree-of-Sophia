@@ -365,7 +365,7 @@ def _plan(scope, authorization, before, parent, child, directories):
 
 
 def _validate_plan(root, plan):
-    """Reconstruct every intended byte, not an authorization claim in prose."""
+    """Reconstruct every intended byte from the admitted creation inputs."""
     authority = plan['authorization']
     source._keys(authority, {'schema_version', 'scope', 'principal_id', 'maker_type', 'authority_ref',
                              'owner_configuration', 'command_id', 'request_digest', 'dependency_bindings'})

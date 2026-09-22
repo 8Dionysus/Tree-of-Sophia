@@ -1,0 +1,86 @@
+{
+  "schema_version": "tos_source_revision_history_v1",
+  "record_id": "tos.research-corpus.sid-8304245ab3a045c79eeefad18ea266ee",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:e9580f77725d9d932bd437b2",
+      "request_digest": "sha256:42239f3d67d9b190d05196e3d1217a12bae1bad0f397cca8716794861348865f",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:307f009d553f097a9ee94c79e9fc83ef8dfb66f68ff1056c1a8c1484a28eb342",
+      "recorded_at": "2026-09-22T05:06:17.272392+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.research-corpus.sid-8304245ab3a045c79eeefad18ea266ee",
+        "version": 1,
+        "digest": "sha256:9d12892e05360f0e355be82d3415a5097809027fd3a11635efde731ec8b41ba5"
+      },
+      "source": {
+        "id": "tos.research-corpus.sid-8304245ab3a045c79eeefad18ea266ee",
+        "version": 2,
+        "digest": "sha256:43c8319e4fbea59e28e233d18fc3348ec7676e59036a57eab3ca402fc3b55368"
+      },
+      "previous_revision": "sha256:638c695f6199cfadd1a5172b5c955e9c4b980976c73402759600ba32c383e982",
+      "archive_path": "ToS/source-witnesses/.record-revisions/e9580f77725d9d932bd437b245ed714c9cdbcf53a4745f21df38276f0b4270a4-638c695f6199cfadd1a5172b5c955e9c4b980976c73402759600ba32c383e982",
+      "dependencies": "sha256:44be4d943d6138d47049c2867039c926101bef852462d61a33a646ad003fe274",
+      "changed_fields": [
+        "notes",
+        "semantic_content",
+        "semantic_scope"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.sid-3a637a957a6e4d9fa8c84c0c77d33dfe.name",
+          "version": 2,
+          "digest": "sha256:e3321d0a34a8393437949187152b4ae533932d7d29d508a16e7e9095d4a0f908"
+        },
+        {
+          "id": "tos.form.sid-3a637a957a6e4d9fa8c84c0c77d33dfe.note",
+          "version": 2,
+          "digest": "sha256:607d29869398974ed79e35aadeb320d5a7be08c16467012323499fba523b4784"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:e9580f77725d9d932bd437b2",
+        "expected_configuration": "sha256:307f009d553f097a9ee94c79e9fc83ef8dfb66f68ff1056c1a8c1484a28eb342",
+        "expected_dependencies": "sha256:44be4d943d6138d47049c2867039c926101bef852462d61a33a646ad003fe274",
+        "expected_revision": "sha256:638c695f6199cfadd1a5172b5c955e9c4b980976c73402759600ba32c383e982",
+        "expected_source": {
+          "digest": "sha256:9d12892e05360f0e355be82d3415a5097809027fd3a11635efde731ec8b41ba5",
+          "id": "tos.research-corpus.sid-8304245ab3a045c79eeefad18ea266ee",
+          "version": 1
+        },
+        "fields": {
+          "notes": "Неполный исследовательский отбор, связывающий существующие маршруты Ницше и Парменида/Бёрнета. В нём отдельно представлены произведения, выделяемые части и позднейшие представления текста.",
+          "semantic_content": {
+            "coverage_account": "Частичный исследовательский набор; точное членство и порядок определены отдельным утверждением.",
+            "language": "ru",
+            "research_purpose": "Исследовать различия произведения, выделенной части и позднейшего представления на уже записанных материалах Ницше и Парменида/Бёрнета.",
+            "script": "Cyrl",
+            "selection_criterion": "Явно выбранные существующие источниковые предметы, позволяющие пройти от целого к части и принимающему контексту без отождествления этих слоёв."
+          },
+          "semantic_scope": {
+            "identity_criterion": "Продолжение той же сравнительной исследовательской задачи при исправлении описаний, состава и маршрута; смена задачи требует отдельного предмета или явного перехода.",
+            "language": "ru",
+            "scope_note": "Сопоставление существующих маршрутов от интеллектуального произведения к его частям и позднейшим представлениям.",
+            "script": "Cyrl"
+          }
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.sid-3a637a957a6e4d9fa8c84c0c77d33dfe.name"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.sid-3a637a957a6e4d9fa8c84c0c77d33dfe.note"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    }
+  ]
+}

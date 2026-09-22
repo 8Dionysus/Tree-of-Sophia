@@ -127,9 +127,7 @@
         "permission_requests_sent": {"const": 0}
       }
     },
-    "authority_boundary": {
-      "const": "research register only: entries are versioned reference candidates, not admitted corpus bytes, accepted dictionary senses, accepted etymologies, accepted translations, semantic truth, or permission grants"
-    }
+    "authority_boundary": {"type": "string", "minLength": 1, "description": "Brief account of the artifact purpose and scope. Typed status, effects, assessment and permission fields govern its use."}
   },
   "$defs": {
     "tosId": {

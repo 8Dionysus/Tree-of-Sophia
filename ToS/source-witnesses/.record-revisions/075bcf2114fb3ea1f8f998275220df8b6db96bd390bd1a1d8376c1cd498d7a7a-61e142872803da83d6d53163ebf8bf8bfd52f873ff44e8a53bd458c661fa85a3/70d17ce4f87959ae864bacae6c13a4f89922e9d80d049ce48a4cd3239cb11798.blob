@@ -1,0 +1,46 @@
+{
+  "external_identifiers": [],
+  "field_languages": {
+    "notes": {
+      "language": "ru",
+      "script": "Cyrl"
+    },
+    "preferred_label": {
+      "language": "ru",
+      "script": "Cyrl"
+    }
+  },
+  "identity_status": "provisional",
+  "notes": "По описанию Оксфордского университета, аккадский — исторический семитский язык Месопотамии, употреблявшийся ассирийцами и вавилонянами. Здесь исследуется языковая традиция, а не государство, один диалект, надпись или письменность.",
+  "preferred_label": "Аккадский язык",
+  "record_id": "tos.language.akkadian",
+  "record_type": "language",
+  "record_version": 1,
+  "same_as_posture": "no_equivalence_claim",
+  "schema_version": "tos_linguistic_description_record_v1",
+  "semantic_content": {
+    "language": "en",
+    "script": "Latn",
+    "system_account": "Oxford describes a Mesopotamian Semitic language with Assyrian and Babylonian use. The referent is not a particular inscription or script."
+  },
+  "semantic_scope": {
+    "identity_criterion": "Новые описания той же языковой традиции сохраняют ID; имя или общий код сами по себе не устанавливают тождество с другой традицией.",
+    "language": "ru",
+    "scope_note": "Историческая языковая традиция, именуемая аккадской; внутренние разновидности и употребления рассматриваются отдельно.",
+    "script": "Cyrl"
+  },
+  "source_refs": [
+    "ToS/review-ledger/2026-09-08-linguistic-source-reading.md",
+    "https://www.orinst.ox.ac.uk/akkadian"
+  ],
+  "variant_labels": [
+    {
+      "language": "en",
+      "script": "Latn",
+      "source_ref": "ToS/review-ledger/2026-09-08-linguistic-source-reading.md",
+      "status": "unverified",
+      "value": "Akkadian language"
+    }
+  ],
+  "visibility": "public_metadata_only"
+}

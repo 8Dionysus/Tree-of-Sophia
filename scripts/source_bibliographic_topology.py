@@ -1,4 +1,4 @@
-"""Pure checks for declared bibliographic closure, not admission or write grants.
+"""Check declared bibliographic closure from caller-verified source evidence.
 
 Callers own schema validation, exact byte/provenance resolution, authorization,
 forms and atomic publication. Historical and native carriers can participate in

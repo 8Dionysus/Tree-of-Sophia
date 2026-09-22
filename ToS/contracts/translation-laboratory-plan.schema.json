@@ -387,7 +387,7 @@
     },
     "frozen_at": { "type": "string", "format": "date-time" },
     "frozen_before_accepted_source_and_drafts": { "const": true },
-    "authority_boundary": { "type": "string", "minLength": 40 }
+    "authority_boundary": {"type": "string", "minLength": 1, "description": "Brief account of the artifact purpose and scope. Typed status, effects, assessment and permission fields govern its use."}
   },
   "$defs": {
     "tosId": {

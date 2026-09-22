@@ -1,71 +1,69 @@
 {
-  "schema_version": "tos_human_form_set_v1",
-  "subject": {
-    "id": "tos.script.cuneiform-writing-tradition",
-    "version": 1,
-    "digest": "sha256:81dcdab0ab56d75a026e90b07cdf39dbc03fd34c92c45eac0d6aeea0fae9720a"
-  },
   "forms": [
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.linguistic.cuneiform-writing-tradition.name-ru",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.script.cuneiform-writing-tradition",
-        "version": 1,
-        "digest": "sha256:81dcdab0ab56d75a026e90b07cdf39dbc03fd34c92c45eac0d6aeea0fae9720a"
+        "version": 2,
+        "digest": "sha256:7d64bd6c329926c04951c863058bb207ce0b77c310a7fb81760a00406b165163"
       },
       "role": "name",
       "language": "ru",
       "script": "Cyrl",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.linguistic.cuneiform-writing-tradition.name-ru",
+        "version": 1,
+        "digest": "sha256:0f8aa5f0011a77ea59af65119984b0024b3594e7488286892cf9ffb6aa763d42"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.script.cuneiform-writing-tradition",
-            "version": 1,
-            "digest": "sha256:81dcdab0ab56d75a026e90b07cdf39dbc03fd34c92c45eac0d6aeea0fae9720a"
+            "version": 2,
+            "digest": "sha256:7d64bd6c329926c04951c863058bb207ce0b77c310a7fb81760a00406b165163"
           },
           "pointer": "/preferred_label"
         },
         "context-0": {
           "record": {
             "id": "tos.script.cuneiform-writing-tradition",
-            "version": 1,
-            "digest": "sha256:81dcdab0ab56d75a026e90b07cdf39dbc03fd34c92c45eac0d6aeea0fae9720a"
+            "version": 2,
+            "digest": "sha256:7d64bd6c329926c04951c863058bb207ce0b77c310a7fb81760a00406b165163"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.script.cuneiform-writing-tradition",
-            "version": 1,
-            "digest": "sha256:81dcdab0ab56d75a026e90b07cdf39dbc03fd34c92c45eac0d6aeea0fae9720a"
+            "version": 2,
+            "digest": "sha256:7d64bd6c329926c04951c863058bb207ce0b77c310a7fb81760a00406b165163"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.script.cuneiform-writing-tradition",
-            "version": 1,
-            "digest": "sha256:81dcdab0ab56d75a026e90b07cdf39dbc03fd34c92c45eac0d6aeea0fae9720a"
+            "version": 2,
+            "digest": "sha256:7d64bd6c329926c04951c863058bb207ce0b77c310a7fb81760a00406b165163"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.script.cuneiform-writing-tradition",
-            "version": 1,
-            "digest": "sha256:81dcdab0ab56d75a026e90b07cdf39dbc03fd34c92c45eac0d6aeea0fae9720a"
+            "version": 2,
+            "digest": "sha256:7d64bd6c329926c04951c863058bb207ce0b77c310a7fb81760a00406b165163"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.script.cuneiform-writing-tradition",
-            "version": 1,
-            "digest": "sha256:81dcdab0ab56d75a026e90b07cdf39dbc03fd34c92c45eac0d6aeea0fae9720a"
+            "version": 2,
+            "digest": "sha256:7d64bd6c329926c04951c863058bb207ce0b77c310a7fb81760a00406b165163"
           },
           "pointer": "/field_languages/preferred_label"
         }
@@ -78,87 +76,91 @@
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.linguistic.cuneiform-writing-tradition.name-en",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.script.cuneiform-writing-tradition",
-        "version": 1,
-        "digest": "sha256:81dcdab0ab56d75a026e90b07cdf39dbc03fd34c92c45eac0d6aeea0fae9720a"
+        "version": 2,
+        "digest": "sha256:7d64bd6c329926c04951c863058bb207ce0b77c310a7fb81760a00406b165163"
       },
       "role": "name",
       "language": "en",
       "script": "Latn",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.linguistic.cuneiform-writing-tradition.name-en",
+        "version": 1,
+        "digest": "sha256:5a20ffabef54e211be4a37c90ae108c3aef68f4b71507b8211ca57b1f3e48383"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.script.cuneiform-writing-tradition",
-            "version": 1,
-            "digest": "sha256:81dcdab0ab56d75a026e90b07cdf39dbc03fd34c92c45eac0d6aeea0fae9720a"
+            "version": 2,
+            "digest": "sha256:7d64bd6c329926c04951c863058bb207ce0b77c310a7fb81760a00406b165163"
           },
           "pointer": "/variant_labels/0/value"
         },
         "context-0": {
           "record": {
             "id": "tos.script.cuneiform-writing-tradition",
-            "version": 1,
-            "digest": "sha256:81dcdab0ab56d75a026e90b07cdf39dbc03fd34c92c45eac0d6aeea0fae9720a"
+            "version": 2,
+            "digest": "sha256:7d64bd6c329926c04951c863058bb207ce0b77c310a7fb81760a00406b165163"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.script.cuneiform-writing-tradition",
-            "version": 1,
-            "digest": "sha256:81dcdab0ab56d75a026e90b07cdf39dbc03fd34c92c45eac0d6aeea0fae9720a"
+            "version": 2,
+            "digest": "sha256:7d64bd6c329926c04951c863058bb207ce0b77c310a7fb81760a00406b165163"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.script.cuneiform-writing-tradition",
-            "version": 1,
-            "digest": "sha256:81dcdab0ab56d75a026e90b07cdf39dbc03fd34c92c45eac0d6aeea0fae9720a"
+            "version": 2,
+            "digest": "sha256:7d64bd6c329926c04951c863058bb207ce0b77c310a7fb81760a00406b165163"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.script.cuneiform-writing-tradition",
-            "version": 1,
-            "digest": "sha256:81dcdab0ab56d75a026e90b07cdf39dbc03fd34c92c45eac0d6aeea0fae9720a"
+            "version": 2,
+            "digest": "sha256:7d64bd6c329926c04951c863058bb207ce0b77c310a7fb81760a00406b165163"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.script.cuneiform-writing-tradition",
-            "version": 1,
-            "digest": "sha256:81dcdab0ab56d75a026e90b07cdf39dbc03fd34c92c45eac0d6aeea0fae9720a"
+            "version": 2,
+            "digest": "sha256:7d64bd6c329926c04951c863058bb207ce0b77c310a7fb81760a00406b165163"
           },
           "pointer": "/variant_labels/0/language"
         },
         "context-5": {
           "record": {
             "id": "tos.script.cuneiform-writing-tradition",
-            "version": 1,
-            "digest": "sha256:81dcdab0ab56d75a026e90b07cdf39dbc03fd34c92c45eac0d6aeea0fae9720a"
+            "version": 2,
+            "digest": "sha256:7d64bd6c329926c04951c863058bb207ce0b77c310a7fb81760a00406b165163"
           },
           "pointer": "/variant_labels/0/script"
         },
         "context-6": {
           "record": {
             "id": "tos.script.cuneiform-writing-tradition",
-            "version": 1,
-            "digest": "sha256:81dcdab0ab56d75a026e90b07cdf39dbc03fd34c92c45eac0d6aeea0fae9720a"
+            "version": 2,
+            "digest": "sha256:7d64bd6c329926c04951c863058bb207ce0b77c310a7fb81760a00406b165163"
           },
           "pointer": "/variant_labels/0/source_ref"
         },
         "context-7": {
           "record": {
             "id": "tos.script.cuneiform-writing-tradition",
-            "version": 1,
-            "digest": "sha256:81dcdab0ab56d75a026e90b07cdf39dbc03fd34c92c45eac0d6aeea0fae9720a"
+            "version": 2,
+            "digest": "sha256:7d64bd6c329926c04951c863058bb207ce0b77c310a7fb81760a00406b165163"
           },
           "pointer": "/variant_labels/0/status"
         }
@@ -171,63 +173,67 @@
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.linguistic.cuneiform-writing-tradition.note-ru",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.script.cuneiform-writing-tradition",
-        "version": 1,
-        "digest": "sha256:81dcdab0ab56d75a026e90b07cdf39dbc03fd34c92c45eac0d6aeea0fae9720a"
+        "version": 2,
+        "digest": "sha256:7d64bd6c329926c04951c863058bb207ce0b77c310a7fb81760a00406b165163"
       },
       "role": "hover",
       "language": "ru",
       "script": "Cyrl",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.linguistic.cuneiform-writing-tradition.note-ru",
+        "version": 1,
+        "digest": "sha256:bde74df09c11b256ab1afae6e844a9dc5e48df56086188aa150a1205802235a7"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.script.cuneiform-writing-tradition",
-            "version": 1,
-            "digest": "sha256:81dcdab0ab56d75a026e90b07cdf39dbc03fd34c92c45eac0d6aeea0fae9720a"
+            "version": 2,
+            "digest": "sha256:7d64bd6c329926c04951c863058bb207ce0b77c310a7fb81760a00406b165163"
           },
           "pointer": "/notes"
         },
         "context-0": {
           "record": {
             "id": "tos.script.cuneiform-writing-tradition",
-            "version": 1,
-            "digest": "sha256:81dcdab0ab56d75a026e90b07cdf39dbc03fd34c92c45eac0d6aeea0fae9720a"
+            "version": 2,
+            "digest": "sha256:7d64bd6c329926c04951c863058bb207ce0b77c310a7fb81760a00406b165163"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.script.cuneiform-writing-tradition",
-            "version": 1,
-            "digest": "sha256:81dcdab0ab56d75a026e90b07cdf39dbc03fd34c92c45eac0d6aeea0fae9720a"
+            "version": 2,
+            "digest": "sha256:7d64bd6c329926c04951c863058bb207ce0b77c310a7fb81760a00406b165163"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.script.cuneiform-writing-tradition",
-            "version": 1,
-            "digest": "sha256:81dcdab0ab56d75a026e90b07cdf39dbc03fd34c92c45eac0d6aeea0fae9720a"
+            "version": 2,
+            "digest": "sha256:7d64bd6c329926c04951c863058bb207ce0b77c310a7fb81760a00406b165163"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.script.cuneiform-writing-tradition",
-            "version": 1,
-            "digest": "sha256:81dcdab0ab56d75a026e90b07cdf39dbc03fd34c92c45eac0d6aeea0fae9720a"
+            "version": 2,
+            "digest": "sha256:7d64bd6c329926c04951c863058bb207ce0b77c310a7fb81760a00406b165163"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.script.cuneiform-writing-tradition",
-            "version": 1,
-            "digest": "sha256:81dcdab0ab56d75a026e90b07cdf39dbc03fd34c92c45eac0d6aeea0fae9720a"
+            "version": 2,
+            "digest": "sha256:7d64bd6c329926c04951c863058bb207ce0b77c310a7fb81760a00406b165163"
           },
           "pointer": "/field_languages/notes"
         }
@@ -238,5 +244,243 @@
       }
     }
   ],
-  "prior_forms": []
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:81dcdab0ab56d75a026e90b07cdf39dbc03fd34c92c45eac0d6aeea0fae9720a",
+            "id": "tos.script.cuneiform-writing-tradition",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:81dcdab0ab56d75a026e90b07cdf39dbc03fd34c92c45eac0d6aeea0fae9720a",
+            "id": "tos.script.cuneiform-writing-tradition",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:81dcdab0ab56d75a026e90b07cdf39dbc03fd34c92c45eac0d6aeea0fae9720a",
+            "id": "tos.script.cuneiform-writing-tradition",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:81dcdab0ab56d75a026e90b07cdf39dbc03fd34c92c45eac0d6aeea0fae9720a",
+            "id": "tos.script.cuneiform-writing-tradition",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:81dcdab0ab56d75a026e90b07cdf39dbc03fd34c92c45eac0d6aeea0fae9720a",
+            "id": "tos.script.cuneiform-writing-tradition",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:81dcdab0ab56d75a026e90b07cdf39dbc03fd34c92c45eac0d6aeea0fae9720a",
+            "id": "tos.script.cuneiform-writing-tradition",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.linguistic.cuneiform-writing-tradition.name-ru",
+      "form_version": 1,
+      "language": "ru",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:81dcdab0ab56d75a026e90b07cdf39dbc03fd34c92c45eac0d6aeea0fae9720a",
+        "id": "tos.script.cuneiform-writing-tradition",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:81dcdab0ab56d75a026e90b07cdf39dbc03fd34c92c45eac0d6aeea0fae9720a",
+            "id": "tos.script.cuneiform-writing-tradition",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:81dcdab0ab56d75a026e90b07cdf39dbc03fd34c92c45eac0d6aeea0fae9720a",
+            "id": "tos.script.cuneiform-writing-tradition",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:81dcdab0ab56d75a026e90b07cdf39dbc03fd34c92c45eac0d6aeea0fae9720a",
+            "id": "tos.script.cuneiform-writing-tradition",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:81dcdab0ab56d75a026e90b07cdf39dbc03fd34c92c45eac0d6aeea0fae9720a",
+            "id": "tos.script.cuneiform-writing-tradition",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/variant_labels/0/language",
+          "record": {
+            "digest": "sha256:81dcdab0ab56d75a026e90b07cdf39dbc03fd34c92c45eac0d6aeea0fae9720a",
+            "id": "tos.script.cuneiform-writing-tradition",
+            "version": 1
+          }
+        },
+        "context-5": {
+          "pointer": "/variant_labels/0/script",
+          "record": {
+            "digest": "sha256:81dcdab0ab56d75a026e90b07cdf39dbc03fd34c92c45eac0d6aeea0fae9720a",
+            "id": "tos.script.cuneiform-writing-tradition",
+            "version": 1
+          }
+        },
+        "context-6": {
+          "pointer": "/variant_labels/0/source_ref",
+          "record": {
+            "digest": "sha256:81dcdab0ab56d75a026e90b07cdf39dbc03fd34c92c45eac0d6aeea0fae9720a",
+            "id": "tos.script.cuneiform-writing-tradition",
+            "version": 1
+          }
+        },
+        "context-7": {
+          "pointer": "/variant_labels/0/status",
+          "record": {
+            "digest": "sha256:81dcdab0ab56d75a026e90b07cdf39dbc03fd34c92c45eac0d6aeea0fae9720a",
+            "id": "tos.script.cuneiform-writing-tradition",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/variant_labels/0/value",
+          "record": {
+            "digest": "sha256:81dcdab0ab56d75a026e90b07cdf39dbc03fd34c92c45eac0d6aeea0fae9720a",
+            "id": "tos.script.cuneiform-writing-tradition",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.linguistic.cuneiform-writing-tradition.name-en",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:81dcdab0ab56d75a026e90b07cdf39dbc03fd34c92c45eac0d6aeea0fae9720a",
+        "id": "tos.script.cuneiform-writing-tradition",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:81dcdab0ab56d75a026e90b07cdf39dbc03fd34c92c45eac0d6aeea0fae9720a",
+            "id": "tos.script.cuneiform-writing-tradition",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:81dcdab0ab56d75a026e90b07cdf39dbc03fd34c92c45eac0d6aeea0fae9720a",
+            "id": "tos.script.cuneiform-writing-tradition",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:81dcdab0ab56d75a026e90b07cdf39dbc03fd34c92c45eac0d6aeea0fae9720a",
+            "id": "tos.script.cuneiform-writing-tradition",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:81dcdab0ab56d75a026e90b07cdf39dbc03fd34c92c45eac0d6aeea0fae9720a",
+            "id": "tos.script.cuneiform-writing-tradition",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:81dcdab0ab56d75a026e90b07cdf39dbc03fd34c92c45eac0d6aeea0fae9720a",
+            "id": "tos.script.cuneiform-writing-tradition",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:81dcdab0ab56d75a026e90b07cdf39dbc03fd34c92c45eac0d6aeea0fae9720a",
+            "id": "tos.script.cuneiform-writing-tradition",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.linguistic.cuneiform-writing-tradition.note-ru",
+      "form_version": 1,
+      "language": "ru",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:81dcdab0ab56d75a026e90b07cdf39dbc03fd34c92c45eac0d6aeea0fae9720a",
+        "id": "tos.script.cuneiform-writing-tradition",
+        "version": 1
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.script.cuneiform-writing-tradition",
+    "version": 2,
+    "digest": "sha256:7d64bd6c329926c04951c863058bb207ce0b77c310a7fb81760a00406b165163"
+  }
 }

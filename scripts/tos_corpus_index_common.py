@@ -636,7 +636,7 @@ def _nearest_branch_parents(branch_paths: list[str]) -> dict[str, str]:
 
 @dataclass(frozen=True)
 class SourceNavigationRecordInput:
-    """Caller-supplied owner inputs, not a source-verification receipt.
+    """Caller-supplied owner inputs for rendering after source verification.
 
     The full loader verifies its inputs before rendering. Addressed callers
     must independently retain those checks; this type does not perform them.

@@ -6,8 +6,9 @@ This file applies to non-authoritative research packets under
 ## Role
 
 `ToS/research-packets/` holds AI-assisted, secondary, or provisional research
-scaffolds that may help grow the philosophy tree. It does not hold source
-witness authority, doctrine, canon, or final graph truth.
+scaffolds for source investigation and philosophical growth. Source witnesses,
+doctrine, canon and graph assessment retain their corresponding authored owner
+routes.
 
 ## Operating Card
 
@@ -23,7 +24,8 @@ witness authority, doctrine, canon, or final graph truth.
 
 ## Boundary Routes
 
-- Classify these packets as research leads, not source witnesses.
+- Classify these packets as research leads and anchor their claims in source
+witnesses.
 - Cite author, work, school, doctrine, and canon authority from source-owned
   or reviewed surfaces.
 - Keep capture containers and UI titles as metadata only.

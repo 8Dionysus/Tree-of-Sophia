@@ -2,8 +2,9 @@
 """Validate the tracked source-witness evidence spine and optional local payloads.
 
 This validator proves contract shape, reference closure, generated catalog parity,
-and byte fixity. It does not prove bibliographic truth, OCR quality, translation
-quality, semantic correctness, rights clearance, or human review.
+and byte fixity. Bibliographic truth, OCR and translation quality, semantics,
+rights clearance and source-visible review retain their corresponding
+assessment and authorization routes.
 """
 
 from __future__ import annotations
@@ -455,18 +456,17 @@ def _sha256(path: Path) -> str:
 
 
 def _recorded_provenance_input_path(repo_root: Path, ref: object, digest: object) -> Path | None:
-    """Resolve recorded input bytes without treating history as current law.
+    """Resolve exact recorded schema or builder bytes from their owner archives.
 
-    Only a named active ToS schema may use the bounded, content-addressed
-    historical-contract lane. Ordinary source/evidence inputs still require
-    their current exact bytes. No Git history, network or fallback search runs.
+    Active paths keep current contract and execution authority. Historical
+    source bytes are read solely to verify the original provenance binding.
     """
     if (not isinstance(ref, str) or not isinstance(digest, str)
             or re.fullmatch(r'[a-f0-9]{64}', digest) is None):
         return None
     relative = Path(ref)
     if (relative.as_posix() != ref or relative.is_absolute() or '..' in relative.parts
-            or not relative.parts or relative.parts[0] != 'ToS'
+            or not relative.parts or relative.parts[0] not in {'ToS', 'scripts'}
             or any((repo_root / Path(*relative.parts[:i])).is_symlink() for i in range(1, len(relative.parts) + 1))):
         return None
     current = repo_root / relative
@@ -475,6 +475,19 @@ def _recorded_provenance_input_path(repo_root: Path, ref: object, digest: object
             return None
         if _sha256(current) == digest:
             return current
+        if re.fullmatch(r'scripts/[a-z][a-z0-9_]*\.py', ref):
+            archived_relative = (Path('ToS/research-packets/retained-builder-inputs')
+                                 / relative.stem / (digest + '.py'))
+            if any((repo_root / Path(*archived_relative.parts[:i])).is_symlink()
+                   for i in range(1, len(archived_relative.parts) + 1)):
+                return None
+            archived = repo_root / archived_relative
+            if not archived.is_file():
+                return None
+            with archived.open('rb') as stream:
+                raw = stream.read(1_048_577)
+            return (archived if len(raw) <= 1_048_576
+                    and hashlib.sha256(raw).hexdigest() == digest else None)
         if re.fullmatch(r'ToS/contracts/[a-z][a-z0-9-]*\.schema\.json', ref) is None:
             return None
         history = repo_root / 'ToS/contracts/history'
@@ -510,12 +523,7 @@ def _topology_input_index(event_inputs):
 def _topology_evidence_matches(
     repo_root, evidence_ref, event_inputs, metadata_reader, *, input_index=None,
 ):
-    """Bind a legacy batch input to current or committed retained exact bytes.
-
-    Only supported Work/Expression metadata may use its retained lineage. No
-    current-version substitution, arbitrary blob search or Git fallback is
-    allowed. The caller reuses the reader and verifies its snapshot at the end.
-    """
+    """Bind one unique legacy batch input to its exact recorded source version."""
     if not isinstance(evidence_ref, str) or not isinstance(event_inputs, list):
         return False
     if input_index is None:
@@ -526,29 +534,49 @@ def _topology_evidence_matches(
     if len(matches) != 1:
         return False
     digest = matches[0].get('sha256')
+    return _recorded_provenance_matches(repo_root, evidence_ref, digest, metadata_reader)
+
+
+def _recorded_provenance_matches(repo_root, evidence_ref, digest, metadata_reader):
+    """Verify recorded bytes through current files or committed owner history.
+
+    The metadata reader restricts resolution to declared public source families
+    and verifies their complete retained lineage. The caller reuses its snapshot
+    and verifies currentness before returning the validation result.
+    """
+    if not isinstance(evidence_ref, str):
+        return False
     if not isinstance(digest, str) or re.fullmatch(r'[a-f0-9]{64}', digest) is None:
         return False
     current = _recorded_provenance_input_path(repo_root, evidence_ref, digest)
     if current is not None:
         return True
-    if Path(evidence_ref).name not in {'work.json', 'expression.json'}:
+    relative = Path(evidence_ref)
+    if (relative.parts[:2] != ('ToS', 'source-witnesses')
+            or relative.suffix != '.json' or relative.as_posix() != evidence_ref
+            or '..' in relative.parts):
         return False
     result = metadata_reader.resolve_source_bytes(evidence_ref, digest)
     if not isinstance(result, dict) or result.get('status') != 'available':
         return False
     provenance = result.get('provenance')
     source = provenance.get('source') if isinstance(provenance, dict) else None
+    descriptor = provenance.get('descriptor') if isinstance(provenance, dict) else None
+    identity_field = descriptor.get('identity_field') if isinstance(descriptor, dict) else None
     record, exact = result.get('record'), result.get('exact_ref')
     return (result.get('source_path') == evidence_ref and result.get('requested_sha256') == digest
             and isinstance(source, dict) and source.get('source_ref') == evidence_ref
             and source.get('record_sha256') == 'sha256:' + digest
             and isinstance(record, dict) and isinstance(exact, dict)
-            and exact.get('id') == record.get('record_id')
+            and isinstance(identity_field, str) and identity_field in record
+            and descriptor.get('record_kind') == 'subject'
+            and descriptor.get('source_scope') == 'public_metadata_only'
+            and isinstance(exact.get('id'), str) and exact['id'] == record[identity_field]
             and type(exact.get('version')) is int and exact['version'] == record.get('record_version'))
 
 
 def _legacy_topology_configuration(claims):
-    """An immutable batch describes itself, not the subsequently grown tree."""
+    """Read immutable batch membership at its recorded source revision."""
     counts = Counter(claim.get('predicate') for claim in claims
                      if isinstance(claim.get('predicate'), str))
     return {
@@ -1955,7 +1983,10 @@ def validate_provenance_v2_lab(repo_root: Path) -> tuple[list[Issue], dict[str, 
         ref = binding.get("ref")
         digest = binding.get("sha256")
         path = repo_root / ref if isinstance(ref, str) else manifest_path
-        if path.is_symlink() or not path.is_file() or _sha256(path) != digest:
+        valid = (_recorded_provenance_input_path(repo_root, ref, digest) is not None
+                 if label in {"contract", "builder"} else
+                 path.is_file() and not path.is_symlink() and _sha256(path) == digest)
+        if not valid:
             issues.append((PROVENANCE_V2_LAB_MANIFEST.as_posix(), f"{label} binding drifted"))
             return False
         return True
@@ -6479,13 +6510,19 @@ def validate_zarathustra_opening_sentence_alignment(
         ("target", "responsibility_claims_ref", "responsibility_claims_sha256"),
         ("target", "rights_ref", "rights_sha256"),
     )
+    from metadata_version_reader import MetadataVersionReader
+    binding_reader = MetadataVersionReader(repo_root)
     for side_name, ref_field, digest_field in tracked_bindings:
         side_plan = plan.get(side_name, {})
         ref = side_plan.get(ref_field)
         expected_digest = side_plan.get(digest_field)
         path = repo_root / ref if isinstance(ref, str) else plan_path
-        if path.is_symlink() or not path.is_file() or _sha256(path) != expected_digest:
+        if not _recorded_provenance_matches(repo_root, ref, expected_digest, binding_reader):
             issues.append((location, f"tracked {side_name} binding drifted: {ref_field}"))
+    try:
+        binding_reader.verify_current()
+    except (OSError, ValueError) as error:
+        issues.append((location, f"opening-sentence retained input snapshot changed: {type(error).__name__}"))
 
     event_outputs = {
         row.get("entity_ref"): row.get("sha256")
@@ -8580,7 +8617,7 @@ def _validate_foundation(
             if (
                 not isinstance(generator_ref, str)
                 or not generator_path.is_file()
-                or generator.get("sha256") != _sha256(generator_path)
+                or _recorded_provenance_input_path(repo_root, generator_ref, generator.get("sha256")) is None
             ):
                 issues.append(
                     (
@@ -9080,7 +9117,7 @@ def _validate_foundation(
                     "sha256": _sha256(semantic_source_recurrence_plan_path),
                 }
                 or not generator_path.is_file()
-                or generator.get("sha256") != _sha256(generator_path)
+                or _recorded_provenance_input_path(repo_root, generator.get("ref"), generator.get("sha256")) is None
                 or receipt_selected.get("exact_form_sha256") != expected_hash
                 or receipt_selected.get("packet_ref")
                 != _relative(initial_sign_packet_path, repo_root)
@@ -11622,7 +11659,9 @@ def _validate_foundation(
                             "transfer candidate builder ref is unresolved",
                         )
                     )
-                elif builder_binding.get("sha256") != _sha256(builder_path):
+                elif _recorded_provenance_input_path(
+                    repo_root, builder_ref, builder_binding.get("sha256")
+                ) is None:
                     issues.append(
                         (
                             transfer_location,
@@ -14264,11 +14303,6 @@ def _validate_foundation(
             record = records_by_id.get(identity)
             location = _relative(record[1], repo_root) if record else identity
             issues.append((location, message))
-    try:
-        topology_metadata_reader.verify_current()
-    except (OSError, ValueError) as error:
-        issues.append((BIBLIOGRAPHIC_TOPOLOGY_PROVENANCE.as_posix(),
-                       f'legacy topology retained input snapshot changed: {type(error).__name__}'))
 
     if topology_event is not None:
         configuration = topology_event.get("method", {}).get("configuration", {})
@@ -14507,7 +14541,7 @@ def _validate_foundation(
                 )
             )
         for input_ref, input_digest in actual_inputs.items():
-            if _recorded_provenance_input_path(repo_root, input_ref, input_digest) is None:
+            if not _recorded_provenance_matches(repo_root, input_ref, input_digest, topology_metadata_reader):
                 issues.append(
                     (
                         EXPRESSION_DERIVATION_PROVENANCE.as_posix(),
@@ -14576,9 +14610,9 @@ def _validate_foundation(
                         issues.append(
                             (location, f"provision-activity {field} is missing: {ref}")
                         )
-                    elif ((field == "inputs" and
-                           _recorded_provenance_input_path(repo_root, ref, expected_digest) is None)
-                          or (field == "outputs" and _sha256(path) != expected_digest)):
+                    elif not _recorded_provenance_matches(
+                        repo_root, ref, expected_digest, topology_metadata_reader
+                    ):
                         issues.append(
                             (location, f"provision-activity {field} digest drifted: {ref}")
                         )
@@ -14771,7 +14805,7 @@ def _validate_foundation(
                                         f"input is missing: {input_ref}",
                                     )
                                 )
-                            elif _recorded_provenance_input_path(repo_root, input_ref, input_digest) is None:
+                            elif not _recorded_provenance_matches(repo_root, input_ref, input_digest, topology_metadata_reader):
                                 issues.append(
                                     (
                                         location,
@@ -14932,7 +14966,7 @@ def _validate_foundation(
                                         f"is missing: {input_ref}",
                                     )
                                 )
-                            elif _recorded_provenance_input_path(repo_root, input_ref, input_digest) is None:
+                            elif not _recorded_provenance_matches(repo_root, input_ref, input_digest, topology_metadata_reader):
                                 issues.append(
                                     (
                                         location,
@@ -15353,7 +15387,7 @@ def _validate_foundation(
                         f"work chronology provenance input is missing: {input_ref}",
                     )
                 )
-            elif _recorded_provenance_input_path(repo_root, input_ref, input_digest) is None:
+            elif not _recorded_provenance_matches(repo_root, input_ref, input_digest, topology_metadata_reader):
                 issues.append(
                     (
                         WORK_CHRONOLOGY_PROVENANCE.as_posix(),
@@ -15739,6 +15773,12 @@ def _validate_foundation(
                 issues,
             )
 
+    try:
+        topology_metadata_reader.verify_current()
+    except (OSError, ValueError) as error:
+        issues.append((BIBLIOGRAPHIC_TOPOLOGY_PROVENANCE.as_posix(),
+                       f'retained provenance snapshot changed: {type(error).__name__}'))
+
     return issues
 
 
@@ -15795,7 +15835,7 @@ def main(argv: list[str] | None = None) -> int:
             for location, message in issues:
                 print(f"- {location}: {message}", file=sys.stderr)
             return 1
-        print("[boundary] synthetic mechanical resolution only; no source, review, translation, semantic, or canon authority")
+        print("[scope] Synthetic anchor selection, digest and resolution controls.")
         return 0
 
     if args.source_text_layer_lab_only:
@@ -15806,7 +15846,7 @@ def main(argv: list[str] | None = None) -> int:
             for location, message in issues:
                 print(f"- {location}: {message}", file=sys.stderr)
             return 1
-        print("[boundary] public synthetic layer mechanics only; no human review, accepted text, translation, linguistic, semantic, graph, canon, or publication authority")
+        print("[scope] Synthetic text-layer lineage, correction and normalization controls.")
         return 0
 
     if args.provenance_v2_lab_only:
@@ -15817,7 +15857,7 @@ def main(argv: list[str] | None = None) -> int:
             for location, message in issues:
                 print(f"- {location}: {message}", file=sys.stderr)
             return 1
-        print("[boundary] public synthetic provenance mechanics only; unsigned receipts and green closure do not establish execution truth, content quality, rights, human review, semantics, canon, or publication authority")
+        print("[scope] Synthetic provenance shape, byte binding and rejection controls.")
         return 0
 
     if args.semantic_annotation_v2_lab_only:
@@ -15828,7 +15868,7 @@ def main(argv: list[str] | None = None) -> int:
             for location, message in issues:
                 print(f"- {location}: {message}", file=sys.stderr)
             return 1
-        print("[boundary] public synthetic contract mechanics only; green closure establishes no model run, human review, stable sign, concept, semantic truth, graph truth, canon effect, or private-source publication authority")
+        print("[scope] Synthetic semantic-packet identity, evidence, competition and review-state controls.")
         return 0
 
     if args.translation_alignment_v1_lab_only:
@@ -15839,7 +15879,7 @@ def main(argv: list[str] | None = None) -> int:
             for location, message in issues:
                 print(f"- {location}: {message}", file=sys.stderr)
             return 1
-        print("[boundary] public synthetic mapping mechanics only; green closure establishes no translation act, model or aligner run, human review, accepted alignment, lexical equivalence, semantic truth, graph truth, canon effect, or private-source publication authority")
+        print("[scope] Synthetic translation-mapping shape, exact side bindings and acceptance-state controls.")
         return 0
 
     if args.source_text_unit_v1_lab_only:
@@ -15850,7 +15890,7 @@ def main(argv: list[str] | None = None) -> int:
             for location, message in issues:
                 print(f"- {location}: {message}", file=sys.stderr)
             return 1
-        print("[boundary] public synthetic unit and segmentation mechanics only; green closure establishes no real-language boundary, model run, human review, accepted word or sentence, lexeme, sign, semantic or graph truth, canon effect, legacy migration, or private-source publication authority")
+        print("[scope] Synthetic TextUnit and segmentation identity, anchor, coverage and review-state controls.")
         return 0
 
     issues = validate_foundation(
@@ -15866,7 +15906,7 @@ def main(argv: list[str] | None = None) -> int:
 
     payload_posture = "required and fixity-checked" if args.require_local_payloads else "optional; present bytes fixity-checked"
     print(f"[ok] validated source-witness evidence spine ({payload_posture})")
-    print("[boundary] mechanics only: source-visible assessment remains with authorized competent humans or agents; rights, consent, canon and publication retain their owners")
+    print("[scope] Source identity, reference, fixity and record mechanics. Source-visible assessment, rights, consent, canon and publication retain their owner decisions.")
     return 0
 
 

@@ -58,13 +58,7 @@ EXPECTED_VECTOR_DIMENSION = 2048
 PRE_NORMALIZATION_LIMIT = 0.02
 POST_NORMALIZATION_LIMIT = 0.00001
 AUTHORITY_BOUNDARY = (
-    "This receipt proves one exact offline direct-page-image retrieval run, "
-    "its frozen inputs, private artifact fixity, persisted normalization "
-    "audit, source-anchor closure, measured resource cost, and a narrow "
-    "trigger decision. It does not accept relevance, transcription, "
-    "quotation, German or Russian text, translation, semantics, a sign, "
-    "concept, claim, relation, graph edge, rights clearance, publication, "
-    "method adoption, winner, or promotion."
+    "This receipt records one exact offline page-image retrieval run, its frozen inputs, private artifact fixity, normalization audit, source-anchor closure, resource cost and stated trigger decision."
 )
 
 
@@ -1410,8 +1404,7 @@ def main(argv: list[str] | None = None) -> int:
         os.chmod(args.output, 0o644)
         print(f"[ok] wrote {args.output}")
         print(
-            "[boundary] result is mechanical and trigger-scoped; "
-            "relevance and promotion remain human-unjudged"
+            "[scope] Recorded retrieval observations and declared review triggers; relevance and promotion await their specified review."
         )
         return 0
     except VisualRetrievalResultError as exc:

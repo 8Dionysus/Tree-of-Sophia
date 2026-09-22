@@ -1,0 +1,81 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:db67dcf410e4540a31332c2d",
+      "request_digest": "sha256:a25cf9a2851293cd089488629a4247c05061c3f75dbcd541e3ad18602f986811",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:791918fc93b5600c8973b580f92af514a55698e963976c97136c45ccf24f5cbb",
+      "recorded_at": "2026-09-22T05:08:53.712909+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911",
+        "version": 1,
+        "digest": "sha256:56b6e32743df20b48d94bb803b9521fb939016861d8ff3a8d6a9bc1586437cea"
+      },
+      "source": {
+        "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911",
+        "version": 2,
+        "digest": "sha256:2a214514869281156099f9feeadf16aee2553ed8c15391ddb377cbc011551071"
+      },
+      "previous_revision": "sha256:ae276688f6c734286bbc6156e61029db7a21970c57a5ba722d0620191e21cb8f",
+      "archive_path": "ToS/source-witnesses/.record-revisions/db67dcf410e4540a31332c2dca779062e71029605454f6e6a5fb54567cb0728e-ae276688f6c734286bbc6156e61029db7a21970c57a5ba722d0620191e21cb8f",
+      "dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+      "changed_fields": [
+        "notes"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.metadata.86de5bc72b93056454b9d7af60ddf5a9fde1bc2300728a0bd0a265145ab87fee",
+          "version": 2,
+          "digest": "sha256:9483c2728cfac8f97fbee000f2edb37af544fb37d656c3401ca0ae24345754cf"
+        },
+        {
+          "id": "tos.form.metadata.b1522af7230483abc891eb8fdcfc8ce0f5514526eee3b5bb7678d89a77ca2966",
+          "version": 2,
+          "digest": "sha256:2a17bb62ccacf61e8435ad06a44d1ba9e8438b25ffe50f43fb0f2b1c71a01ae5"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:db67dcf410e4540a31332c2d",
+        "expected_configuration": "sha256:791918fc93b5600c8973b580f92af514a55698e963976c97136c45ccf24f5cbb",
+        "expected_dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+        "expected_publication": "sha256:6b5e7a5a8bb9f96d258763bd1bd107a03c6968fb925a022e94e7fafe96d13d86",
+        "expected_revision": "sha256:ae276688f6c734286bbc6156e61029db7a21970c57a5ba722d0620191e21cb8f",
+        "expected_source": {
+          "digest": "sha256:56b6e32743df20b48d94bb803b9521fb939016861d8ff3a8d6a9bc1586437cea",
+          "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911",
+          "version": 1
+        },
+        "fields": {
+          "notes": "Edition-specific Antonovsky translation grounded by the 1911 fourth-edition title page and translator's preface. The preface describes the 1900, 1903, 1907, and 1911 editions as successive reworkings. Collation with the 1913, 1996, newly edited 2007, and later expressions remains open."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.metadata.86de5bc72b93056454b9d7af60ddf5a9fde1bc2300728a0bd0a265145ab87fee"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.metadata.b1522af7230483abc891eb8fdcfc8ce0f5514526eee3b5bb7678d89a77ca2966"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:99d78cae77be4dfe0bdb12123ac995f7797fed428b2f64f8c7d6483ec77c44ae",
+        "selected_files": [
+          "expression.human-forms.json",
+          "expression.json",
+          "source-revision-history.json"
+        ]
+      }
+    }
+  ]
+}

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Project text-free co-availability over frozen transfer source/target routes.
 
-The projection joins candidate identities and mechanical statuses only. It
-does not read private content and does not create a bilingual passage pair,
-alignment, accepted text, eligibility, gold, human work, or semantics.
+The projection joins candidate identities and mechanical statuses using
+text-free metadata. Passage pairing, alignment, text acceptance, eligibility,
+gold qualification and semantic assessment follow their declared review routes.
 """
 
 from __future__ import annotations
@@ -261,11 +261,9 @@ def build_projection(repo_root: Path) -> tuple[dict[str, Any], dict[str, Any]]:
         "provenance_event_ref": EVENT_ID,
         "status": "mechanically-prepared-ineligible",
         "authority_boundary": (
-            "text-free co-availability over independently materialized source "
-            "and target candidates only; shared structural route identity and "
-            "frozen-page intersection create no bilingual passage pair, "
-            "alignment, accepted text, eligibility, gold, human task, semantic "
-            "claim, publication authority, or canon effect"
+            "This text-free projection records co-availability of independently "
+            "materialized source and target candidates, using their shared structural "
+            "route and frozen-page intersections."
         ),
         "does_not_establish": [
             "accepted_german",
@@ -328,10 +326,10 @@ def build_projection(repo_root: Path) -> tuple[dict[str, Any], dict[str, Any]]:
         },
         "status": "completed_with_warnings",
         "warnings": [
-            "co-availability is not source-to-target passage alignment",
-            "frozen-page intersection is not accepted target text or target gold",
+            "Co-availability records independently materialized source and target candidates; passage alignment retains its recorded status.",
+            "Frozen-page intersection records overlap between independently proposed candidates; target-text assessment and target-gold status remain as recorded.",
             "no private source or target content was read or copied",
-            "no eligibility, human task, semantics, publication, or canon effect was created",
+            "This event records candidate co-availability. Eligibility, human work, semantic assessment, publication and canon retain their existing states.",
         ],
         "receipt_refs": [OUTPUT_PATH.as_posix()],
         "rights_basis_ref": None,
@@ -383,8 +381,7 @@ def main(argv: list[str] | None = None) -> int:
         "pages, 3 do not; all 20 pages retain an intersecting route"
     )
     print(
-        "[boundary] 0 source-target alignments, eligible units, target gold, "
-        "human tasks, semantic effects, publication grants, or canon effects"
+        "[scope] Proposed structural source routes with their recorded eligibility and review states."
     )
     return 0
 

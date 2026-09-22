@@ -11,21 +11,21 @@
     }
   },
   "identity_status": "provisional",
-  "notes": "Реконструируемый переход связывает характеристику самопричинения как противоречия и зависимость от него предельной ответственности с ограниченным выводом о критикуемом смысле свободы. Посылки и вывод заданы отдельными Claims; запись шага не подтверждает их истинность.",
+  "notes": "Реконструируемый переход связывает характеристику самопричинения как противоречия и зависимость от него предельной ответственности с ограниченным выводом о критикуемом смысле свободы. Посылки и вывод заданы отдельными утверждениями.",
   "preferred_label": "Переход от двух посылок к критике метафизической свободы — JGB 21",
   "record_id": "tos.inference-step.anti-self-origination-jgb21",
   "record_type": "inference-step",
-  "record_version": 1,
+  "record_version": 2,
   "same_as_posture": "no_equivalence_claim",
   "schema_version": "tos_thought_description_record_v1",
   "semantic_content": {
     "language": "en",
     "reasoning_mode": "reconstructed_dependency_rejection",
     "script": "Latn",
-    "transition_account": "Given the passage's rejection of self-origination and its claim that metaphysical ultimate responsibility requires self-origination, infer rejection of that metaphysical freedom. This explicates a proposed passage reading rather than executes a proof."
+    "transition_account": "Given the passage’s rejection of self-origination and its claim that metaphysical ultimate responsibility requires self-origination, infer rejection of that metaphysical freedom. This describes a proposed reading of the passage’s inference."
   },
   "semantic_scope": {
-    "identity_criterion": "Retain this same relation of proposed premises to conclusion. Altering which argument is reconstructed creates a different step, not merely a new record version.",
+    "identity_criterion": "Identity follows this relation of proposed premises to conclusion. A different reconstructed argument has a separate step identity.",
     "language": "en",
     "scope_note": "The one inferential transition explicitly reconstructed from the opening part of JGB 21, without an exhaustive formal reconstruction.",
     "script": "Latn"

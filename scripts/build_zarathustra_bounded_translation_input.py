@@ -89,9 +89,7 @@ DTA_RIGHTS_PATH = (
 )
 
 AUTHORITY_BOUNDARY = (
-    "one exact local DTA-derived string is eligible only for blind local "
-    "machine-method calibration; the packet grants no German, translation, "
-    "semantic, rights, graph, or canon authority"
+    "One exact local DTA-derived string is prepared for blind local machine-method calibration under the packet's recorded use and rights conditions."
 )
 
 
@@ -507,8 +505,7 @@ def build_outputs(
                 "fields and has no human rights review"
             ),
             (
-                "machine agreement across witnesses is not philological "
-                "acceptance"
+                "Machine agreement records the observed correspondence across witnesses; philological acceptance requires its own source-visible assessment."
             ),
             (
                 "the local source string may be used only for bounded local "

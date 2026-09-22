@@ -341,9 +341,7 @@
       "uniqueItems": true,
       "items": {"$ref": "#/$defs/eventId"}
     },
-    "authority_boundary": {
-      "const": "this packet keeps edition-reading evidence independent from language competence: exact-form, frequency, context, and explicitly typed model proposals may return to an attested Edition reading, but no linguistic claim becomes reviewed and no sign, interpretation, relation, concept, claim, graph, canon, transfer, or publication authority follows without its own competence-appropriate and real-human evidence"
-    },
+    "authority_boundary": {"type": "string", "minLength": 1, "description": "Brief account of the artifact purpose and scope. Typed status, effects, assessment and permission fields govern its use."},
     "packet_version": {"type": "integer", "minimum": 1},
     "supersedes_packet_ref": {
       "oneOf": [

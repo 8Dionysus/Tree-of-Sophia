@@ -26,7 +26,7 @@ python scripts/publish_stats_release.py status --release-root /path/to/stats-rel
 ```
 
 The source revision returned by this command identifies the five exact port
-files, not a newly measured corpus. The observation keeps its original evidence
+files. Corpus measurement retains its own observation identity. The observation keeps its original evidence
 revision, observation ID, time and reference posture. Status freshness compares
 the selected port bytes; it does not turn a reference observation into a live one.
 

@@ -1,0 +1,81 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.link.internet-archive.onfoursongsconta00good.landing",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:e3d5872b94511aa7f531486e",
+      "request_digest": "sha256:964a0dde83c4f758c1d00c6730179f46795e982833f5c07cc3c7bc1537f8afe0",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:03ef069433295f1317454fd3c9588bc53cffc70824f17d519ba3f4427f1aba58",
+      "recorded_at": "2026-09-22T05:06:03.018875+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.link.internet-archive.onfoursongsconta00good.landing",
+        "version": 1,
+        "digest": "sha256:961d33c1ca4c32eadf310fb13ecae005eed3fb6fcfef1d1cc104cf66d29d7645"
+      },
+      "source": {
+        "id": "tos.link.internet-archive.onfoursongsconta00good.landing",
+        "version": 2,
+        "digest": "sha256:fe8198bcc6eb98adf937ea433d5126d67d96f83bc0d612685b172ae58fae5933"
+      },
+      "previous_revision": "sha256:263906d7061b11ca91ecbbb1e17b31f27774ffaea206f8030360eac968a72f91",
+      "archive_path": "ToS/source-witnesses/.record-revisions/e3d5872b94511aa7f531486ed5fc92e988306a2ff5d3c0dba42a592ede764e55-263906d7061b11ca91ecbbb1e17b31f27774ffaea206f8030360eac968a72f91",
+      "dependencies": "sha256:cb46854196bd1ec502545bb6604152f3b74eefcb4f638814f5c384ef3b7118de",
+      "changed_fields": [
+        "notes"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.language-cleanup.e3d5872b94511aa7f531486e.name",
+          "version": 1,
+          "digest": "sha256:46097f034eec3735577bafff6c1b293bc0744f149cfea3f3912960dac7345a7b"
+        },
+        {
+          "id": "tos.form.language-cleanup.e3d5872b94511aa7f531486e.note",
+          "version": 1,
+          "digest": "sha256:51e868d5608d67a321cd9ec78dc897799643d4f401c325263c25eacdf6271045"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:e3d5872b94511aa7f531486e",
+        "expected_configuration": "sha256:03ef069433295f1317454fd3c9588bc53cffc70824f17d519ba3f4427f1aba58",
+        "expected_dependencies": "sha256:cb46854196bd1ec502545bb6604152f3b74eefcb4f638814f5c384ef3b7118de",
+        "expected_publication": "sha256:df90ccaf04abbdbc10671a3b3442eacaca539525541befe1dc792661538246dc",
+        "expected_revision": "sha256:263906d7061b11ca91ecbbb1e17b31f27774ffaea206f8030360eac968a72f91",
+        "expected_source": {
+          "digest": "sha256:961d33c1ca4c32eadf310fb13ecae005eed3fb6fcfef1d1cc104cf66d29d7645",
+          "id": "tos.link.internet-archive.onfoursongsconta00good.landing",
+          "version": 1
+        },
+        "fields": {
+          "notes": "Observed Internet Archive item landing page."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.language-cleanup.e3d5872b94511aa7f531486e.name"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.language-cleanup.e3d5872b94511aa7f531486e.note"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:22e843ca9d6adf15dd934ff8db58f9340c5d5b8ae39177ffa02171e9c666b3ac",
+        "selected_files": [
+          "link.human-forms.json",
+          "link.json",
+          "source-revision-history.json"
+        ]
+      }
+    }
+  ]
+}

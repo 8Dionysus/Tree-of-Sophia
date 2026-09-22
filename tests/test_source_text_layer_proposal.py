@@ -252,6 +252,27 @@ class TextLayerProposalTests(unittest.TestCase):
         mutated["admission"].update(review_status="accepted", review_ref=opaque("review", 1), accepted_uses=["citation"])
         self.assertFalse(self.validators["source-text-layer"].is_valid(mutated))
 
+    def test_scope_wording_is_editable_while_admission_remains_typed(self):
+        layer = self.build()["layer"]
+        validator = self.validators["source-text-layer"]
+        for wording in (
+            "Exact extracted source representation.",
+            "Точная извлечённая запись источника.",
+            "Mechanical validation does not assess textual quality.",
+        ):
+            with self.subTest(wording=wording):
+                revised = {**layer, "authority_boundary": wording}
+                validator.validate(revised)
+                self.assertEqual(_source_text_layer_semantic_issues(revised), [])
+                promoted = copy.deepcopy(revised)
+                promoted["admission"].update(
+                    review_status="accepted", review_ref=opaque("review", 1),
+                    accepted_uses=["citation"],
+                )
+                self.assertFalse(validator.is_valid(promoted))
+        for missing_description in ("", None, []):
+            self.assertFalse(validator.is_valid({**layer, "authority_boundary": missing_description}))
+
     def test_finite_canonical_json_lf_not_assessment_canonical_bytes(self):
         raw = record_bytes({"z": "\u00e9", "a": 1})
         self.assertEqual(raw, '{"a":1,"z":"\u00e9"}\n'.encode("utf-8"))

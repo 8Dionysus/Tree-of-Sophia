@@ -1,12 +1,13 @@
 # Calibration Axis
 
-This document records the current fifth-phase ToS doctrine for `Calibration Axis, Not Neutral Dust`.
+This document records the guiding axis for ToS interpretation and curation.
 
 It sits alongside [NODE_CONTRACT](NODE_CONTRACT.md),
 [COUNTERPART_POLICY](COUNTERPART_POLICY.md), and
 [CONTEXT_COMPOST](../../mechanics/distillation/parts/source-compost/docs/CONTEXT_COMPOST.md).
 Those notes explain node law, derived bridges, and compost-cycle digestion.
-This note explains how ToS keeps a living axis of orientation without turning that axis into an ideological flattening machine.
+The axis gives the tree an explicit direction while preserving the plurality
+of its sources and the contestability of its readings.
 
 ## Core rule
 
@@ -21,43 +22,41 @@ In the current public architecture, that axis is:
 
 *Thus Spoke Zarathustra* acts as a recurring calibration root for this axis.
 
-The axis should guide orientation and curation.
-It should not replace source reading or declare every text solved in advance.
+The axis guides orientation and curation. Each reading remains answerable to
+the particular source, its language and its historical setting.
 
 ## What calibration does
 
 Calibration may help ToS:
 
-- decide what kinds of growth deepen the architecture rather than diffuse it
-- keep curation from dissolving into neutral dust
+- choose growth that deepens the tree's guiding questions
+- give curation a coherent direction
 - ask whether a node, synthesis, or branch carries living interpretive force
 - preserve a visible internal gravity as the knowledge world broadens
 
-## What calibration does not do
+<a id="what-calibration-does-not-do"></a>
+## Source plurality
 
-Do not use calibration to:
+Calibration keeps these conditions visible:
 
-- force every source through one doctrinal template
-- erase plurality across traditions, languages, or civilizational contexts
-- substitute a favorite interpretation for the source itself
-- treat the calibration root as a monopoly of meaning
+- each source receives a reading grounded in its own terms
+- traditions, languages and civilizational contexts retain their differences
+- interpretations expose their evidence and alternatives
+- the calibration root supplies one situated direction for inquiry
 
-Calibration is a compass, not a proof.
+Calibration directs questions. Evidence and review support their answers.
 
 ## Golden-kernel distinction
 
-The calibration axis is not what makes the Zarathustra route a transferable
-golden kernel.
-
-The kernel is transferable because it should expose the complete
+The Zarathustra kernel is transferable through its complete
 source-to-review method: stable address, observation, proposal, ambiguity,
 counter-reading, review, promotion, and return to source. Becoming,
 overcoming, creation of values, and affirmation of life remain interpretive
-gravity for this route; they are not default labels for every other work or
-tradition.
+gravity for this route. Other works and traditions supply their own vocabulary
+through source reading.
 
 If a new source resists this vocabulary, preserve the resistance and review
-the contract. Do not score forced agreement as successful transfer.
+the contract. Successful transfer preserves the source's distinctions.
 
 ## Curation posture
 

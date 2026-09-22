@@ -64,9 +64,7 @@ ANCHOR_EVENT_ID = (
 )
 WORK_REF = "tos.work.friedrich-nietzsche.also-sprach-zarathustra"
 AUTHORITY_BOUNDARY = (
-    "named structural starts and locator candidates only; no source text, "
-    "textual identity, edition equivalence, accepted German, translation, "
-    "semantics, or canon authority"
+    "This record connects named structural starts and locator candidates to their source witnesses."
 )
 DOES_NOT_ESTABLISH = [
     "source_text",
@@ -78,10 +76,7 @@ DOES_NOT_ESTABLISH = [
     "canon_promotion",
 ]
 ANCHOR_AUTHORITY_BOUNDARY = (
-    "stable proposed addresses for named structural-start candidates only; "
-    "no source text, exact passage boundary, textual identity, edition "
-    "equivalence, accepted German, translation, semantics, rights clearance, "
-    "or canon authority"
+    "This set gives named structural-start candidates stable proposed addresses."
 )
 ANCHOR_DOES_NOT_ESTABLISH = [
     "source_text",
@@ -990,7 +985,7 @@ def build_provenance(
         "warnings": [
             "Normalized heading and context agreement is a locator candidate, not exact textual identity or edition equivalence.",
             "The EPUB-to-PDF page formula is a mechanical enumeration candidate and not a content-identity assertion.",
-            "No German correctness, translation, semantic, or canon conclusion was produced.",
+            "This event records structural correspondence; German-text assessment, translation, semantics and canon retain their existing states.",
         ],
         "receipt_refs": [OUTPUT_PATH.as_posix()],
         "rights_basis_ref": None,
@@ -1058,7 +1053,7 @@ def build_anchor_provenance(
         "warnings": [
             "Every emitted anchor remains proposed and identifies only a structural path, exact container member, or whole scan page.",
             "A three-way anchor binding does not establish an exact passage boundary, textual identity, or edition equivalence.",
-            "No rights clearance, German correctness, translation, semantic, or canon conclusion was produced.",
+            "This event records structural correspondence; rights, German-text assessment, translation, semantics and canon retain their existing states.",
         ],
         "receipt_refs": [
             ANCHOR_SET_PATH.as_posix(),
@@ -1169,8 +1164,7 @@ def main() -> int:
         f"{len(anchor_records)} proposed structural anchors"
     )
     print(
-        "[boundary] locator candidates only; no source text, textual identity, "
-        "accepted German, translation, semantics, or canon promotion"
+        "[scope] Proposed witness locators with exact resource bindings for later source-visible review."
     )
     return 0
 

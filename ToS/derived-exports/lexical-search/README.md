@@ -1,8 +1,7 @@
 # Lexical Search Projections
 
-This directory exposes source-returning, rebuildable lexical read models. It
-does not own source text, linguistic acceptance, semantics, runtime search, or
-canon.
+This directory exposes source-returning, rebuildable lexical read models. Source text, linguistic assessment, semantics, runtime search and canon follow
+their corresponding owner routes.
 
 The first projection covers the four DTA first-edition part witnesses of
 *Also sprach Zarathustra*. Because the exact TEI rights records are still
@@ -11,8 +10,9 @@ non-sequential and string-free: it carries form hashes, counts, and references
 to tracked TEI page/division resources. The exact searchable SQLite/FTS5
 projection remains in the pilot's gitignored `local-content/` route.
 
-A form hash is not a lexeme, lemma, sign, or secrecy mechanism. Dictionary
-recovery is possible for low-entropy words. Future public/site routing
+A form hash identifies a lexical-search key. Lexeme, lemma and sign identities
+require their own source records. Dictionary recovery is possible for
+low-entropy words, so these hashes offer limited confidentiality. Future public/site routing
 therefore remains independently blocked even though no source sequence or
 context is tracked here.
 
@@ -25,8 +25,8 @@ linguistic identity, sign proposal, semantic claim, public route, or human
 task. Its frozen plan and provenance remain source-owned beside the lexical
 index.
 
-Question-scoped exact context does not become a third tracked lexical export.
-Its plan, text-free receipt, and provenance stay with the source-owned lexical
-index, while exact KWIC rows remain ignored local evidence. This preserves a
-direct return route without turning source sequence into a reusable public
-read model or confusing usage evidence with a lexeme, sign, or sense.
+Question-scoped exact context retains its plan, text-free receipt and
+provenance in the source-owned lexical index; exact KWIC rows remain ignored
+local evidence. The direct return route binds usage evidence to that local
+source. Public export, lexeme, sign and sense assessment follow their
+respective source and permission contracts.

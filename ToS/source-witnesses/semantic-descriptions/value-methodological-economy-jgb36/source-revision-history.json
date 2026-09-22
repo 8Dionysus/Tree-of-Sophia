@@ -1,0 +1,94 @@
+{
+  "schema_version": "tos_source_revision_history_v1",
+  "record_id": "tos.value.methodological-economy-jgb36",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:24a0136651bc10d59b45a15c",
+      "request_digest": "sha256:b626c0bd08dc9d1353e02215a43a3ce79889c426ff374ef95bf717553948c117",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:0cb08badcc523b44cfde793ec08395626c7673d8deca9198002edff53d1eec71",
+      "recorded_at": "2026-09-22T05:08:19.595720+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.value.methodological-economy-jgb36",
+        "version": 1,
+        "digest": "sha256:e90350919a8f09e5fb849e764fe1666b8af0fad1954aea9a19e3a6097ebd558d"
+      },
+      "source": {
+        "id": "tos.value.methodological-economy-jgb36",
+        "version": 2,
+        "digest": "sha256:c7d56fa610b0988401650d7c2315d5e52f63b73e9bcc9f7eba023120862d04c6"
+      },
+      "previous_revision": "sha256:f96833ea9432e4fac12ebc5643b354353a9ed2b7d9e2e2e2babe06d25fce0fbc",
+      "archive_path": "ToS/source-witnesses/.record-revisions/24a0136651bc10d59b45a15c42088028079b317ba0221263146ce921f7d6a8fe-f96833ea9432e4fac12ebc5643b354353a9ed2b7d9e2e2e2babe06d25fce0fbc",
+      "dependencies": "sha256:e5921a25152f776dce88be3f5d47601fcb16d877ca21d77d52431686ab100212",
+      "changed_fields": [
+        "notes",
+        "semantic_content",
+        "semantic_scope"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.value.methodological-economy-jgb36.name-ru",
+          "version": 2,
+          "digest": "sha256:913e170e7b550836c21e73be7a65b86c0316d014d9b29294a27e9cdb34308d44"
+        },
+        {
+          "id": "tos.form.value.methodological-economy-jgb36.name-en",
+          "version": 2,
+          "digest": "sha256:35f7cc8c92dc19edd2050fe49379941c7dc8f05d79012c530810e903613ebe4d"
+        },
+        {
+          "id": "tos.form.value.methodological-economy-jgb36.note-ru",
+          "version": 2,
+          "digest": "sha256:f6e0bd527ceaf386062bb5a17770adebb2c71c0c6000c9ae21d361941ae99b61"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:24a0136651bc10d59b45a15c",
+        "expected_configuration": "sha256:0cb08badcc523b44cfde793ec08395626c7673d8deca9198002edff53d1eec71",
+        "expected_dependencies": "sha256:e5921a25152f776dce88be3f5d47601fcb16d877ca21d77d52431686ab100212",
+        "expected_revision": "sha256:f96833ea9432e4fac12ebc5643b354353a9ed2b7d9e2e2e2babe06d25fce0fbc",
+        "expected_source": {
+          "digest": "sha256:e90350919a8f09e5fb849e764fe1666b8af0fad1954aea9a19e3a6097ebd558d",
+          "id": "tos.value.methodological-economy-jgb36",
+          "version": 1
+        },
+        "fields": {
+          "notes": "§36 связывает испытание единого вида причинности с требованием метода: дополнительные виды не принимаются, пока не испытан один. Здесь описана ценность методической экономии в этом рассуждении; успешность предложенного объяснения остаётся открытой.",
+          "semantic_content": {
+            "language": "en",
+            "script": "Latn",
+            "valuation_context": "The methodological argument within JGB 36.",
+            "value_account": "Exhausting the explanatory trial of one causal kind before multiplying kinds is presented as a methodological demand."
+          },
+          "semantic_scope": {
+            "identity_criterion": "Identity follows this passage’s methodological preference; other simplicity criteria have their own referents.",
+            "language": "en",
+            "scope_note": "The normative preference for not multiplying kinds of causality before the single-kind trial in JGB 36.",
+            "script": "Latn"
+          }
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.value.methodological-economy-jgb36.name-ru"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.value.methodological-economy-jgb36.name-en"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.value.methodological-economy-jgb36.note-ru"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    }
+  ]
+}

@@ -3,8 +3,8 @@
 Scripts in Tree of Sophia are command-plane organs for source-first
 philosophical growth. They build generated companions, validate route
 boundaries, run release lanes, and provide small deterministic helper contracts.
-They do not create philosophical authority, runtime policy, proof verdicts, or
-graph service truth.
+Authored ToS sources own philosophical meaning. Runtime policy, proof verdicts
+and graph service behavior follow their respective owner routes.
 
 Existing script navigation lives in
 [`script_inventory.json`](script_inventory.json). TOS-D-0062 ends mandatory
@@ -17,14 +17,15 @@ navigation aid for the surfaces it describes.
 Blocking command sequences live in
 [`validation_lanes.json`](validation_lanes.json). The script inventory is
 descriptive: a selected entry names its owner, inputs, side effects and test
-route. Inventory coverage is not software correctness or release authority.
+route. Executable checks evaluate software correctness; the release procedure governs
+landing.
 
 The cross-corpus pair is intentionally split. `build_documentation_family_currentness.py`
 projects the authored `documentation_family_map.json` and the tracked Git
 surface into an exact hash/family carrier. `validate_documentation_cross_corpus.py`
 coordinates that projection with the existing link, mechanics, decision,
-AGENTS-route, agent-surface, KAG, and public-entry contracts. Neither script
-creates philosophical meaning, runtime status, or receipt acceptance.
+AGENTS-route, agent-surface, KAG, and public-entry contracts. Philosophical meaning, runtime status and receipt acceptance retain their
+source and decision owners.
 
 Inventories describe script surfaces. They do not store release command order
 and do not promote advisory helpers into hard gates.
@@ -69,19 +70,19 @@ Each entry records:
 
 | Family | Owns | Boundary |
 | --- | --- | --- |
-| `script_route_card` | Local route guidance for `scripts/`. | Covered by route-card validation and script topology; not a command sequence. |
-| `projection_builder` | Generated/read-model writes from source surfaces. | May write tracked generated companions; must not define source meaning. |
+| `script_route_card` | Local route guidance for `scripts/`. | Covered by route-card validation and script topology. |
+| `projection_builder` | Generated/read-model writes from source surfaces. | Produces companions from the meaning declared by their source owners. |
 | `projection_helper` | Shared builder library code. | Library only; command posture comes from callers. |
-| `projection_validator` | Generated/read-model parity checks. | Compares projections against source and builder expectations; does not own source meaning. |
-| `source_validator` | Source-home, domain, route-card, intake, canon, or mechanics checks. | Validates source-owned boundaries without becoming doctrine. |
+| `projection_validator` | Generated/read-model parity checks. | Compares projections against source and builder expectations. |
+| `source_validator` | Source-home, domain, route-card, intake, canon, or mechanics checks. | Checks the rules declared by the source owner. |
 | `compatibility_builder` | Public compatibility mirrors and public-safe examples. | Writes mirrors only from canonical source routes. |
 | `compatibility_helper` | Shared compatibility mirror code. | Library only. |
-| `lane_loader` | Validation lane manifest loading and checking. | Loads command authority; does not own lane meaning by itself. |
+| `lane_loader` | Validation lane manifest loading and checking. | Loads the command sequences declared by each lane owner. |
 | `release_entrypoint` | Release lane execution. | Runs command sequences from the lane manifest. |
-| `standalone_bundle_builder` | Deterministic assembly of the allowlisted standalone access candidate. | Writes only the requested archive and manifest; does not publish, sign, or admit it. |
+| `standalone_bundle_builder` | Deterministic assembly of the allowlisted standalone access candidate. | Writes only the requested archive and manifest. |
 | `standalone_bundle_validator` | Source and extracted-package smoke validation for the standalone access profile. | Uses disposable local state and proves mechanics only. |
-| `mechanics_local_runner` | Discovery of mechanic package-local and part-local tests, builders, and validators. | Runs only source-discovered mechanics homes; does not own mechanic meaning. |
-| `skill_local_contract_tool` | Deterministic helper contracts shipped with local agent skills. | Advisory/local-only; not ToS release authority, runtime policy, or hidden hard gates. |
+| `mechanics_local_runner` | Discovery of mechanic package-local and part-local tests, builders, and validators. | Runs the checks declared by discovered mechanics homes. |
+| `skill_local_contract_tool` | Deterministic helper contracts shipped with local agent skills. | Provides local advice under its owning skill contract. |
 
 ## Root Scripts
 
@@ -188,12 +189,12 @@ normalized identity, Edition reference, evidence, and provenance in exact
 closure. This mechanics cannot promote an authority match, equate a publisher
 with a printer or successor, or turn a statement date into public release.
 
-The source-witness bibliographic graph pair is a downstream generated route,
-not a second source validator. Its builder and validator read the public-safe
+The source-witness bibliographic graph pair materializes and checks the
+downstream claim graph. Its builder and validator read the public-safe
 catalog plus exact claim, evidence, anchor, and provenance records, keep every
 assertion reified as a claim node, and reject any edge that loses source return.
-They do not emit direct subject-object truth edges or own graph runtime
-behavior.
+Every edge retains its reified Claim and source qualification. Graph runtime
+behavior belongs to the selected consumer.
 
 Normalized provision participants are emitted only as claim-originating
 `has_normalized_place` or `has_normalized_agent` edges. Querying one of those
@@ -232,11 +233,9 @@ related checks.
 ## Skill Helper Scripts
 
 The selected profile may carry deterministic contract helpers for owner skill
-material. Tree-of-Sophia does not mirror those helpers under `.agents/skills`;
-their source owner decides whether a helper can model dry-run, readiness, or
-risk contracts. A helper does not become ToS runtime policy enforcement or a
-release blocker unless a future owner decision explicitly promotes one concrete
-check.
+material. The helpers stay with their source owner, who defines their dry-run, readiness
+or risk contracts. Incorporating a concrete helper into ToS runtime policy or
+release checks requires an explicit owner decision.
 
 ## Promotion Rule
 

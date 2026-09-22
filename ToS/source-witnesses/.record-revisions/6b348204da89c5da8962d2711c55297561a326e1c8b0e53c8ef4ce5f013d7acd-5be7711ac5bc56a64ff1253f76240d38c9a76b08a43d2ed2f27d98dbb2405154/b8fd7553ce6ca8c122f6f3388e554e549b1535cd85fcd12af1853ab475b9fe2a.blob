@@ -1,0 +1,55 @@
+{
+  "schema_version": "tos_corpus_record_v1",
+  "record_type": "work",
+  "record_id": "tos.work.mesopotamian-scholarship.ancient-mesopotamia-speaks-highlights-of-the-yale-babylonian-collection",
+  "preferred_label": "Ancient Mesopotamia Speaks: Highlights of the Yale Babylonian Collection",
+  "variant_labels": [
+    {
+      "value": "Ancient Mesopotamia Speaks: Highlights from the Yale Babylonian Collection",
+      "language": "en",
+      "source_ref": "https://babylonian-collection.yale.edu/outreach/exhibits",
+      "status": "unverified"
+    }
+  ],
+  "identity_status": "verified",
+  "source_refs": [
+    "ToS/research-packets/foundation-laboratory-2026-07/A02_YALE_BABYLONIAN_COLLECTION_ANCIENT_MESOPOTAMIA_SPEAKS_SOURCE_PLANTING_RESEARCH_2026-08-23.md",
+    "ToS/source-witnesses/discovery/runs/old-babylonian-yale-babylonian-collection-ancient-mesopotamia-speaks.2026-08-23.v1.json",
+    "https://peabody.yale.edu/explore/publications/exhibitions-catalogs-more",
+    "https://babylonian-collection.yale.edu/publications",
+    "https://babylonian-collection.yale.edu/outreach/exhibits",
+    "https://search.worldcat.org/title/Ancient-Mesopotamia-speaks-highlights-of-the-Yale-Babylonian-collection/oclc/1099939906",
+    "https://doi.org/10.1080/00182370.2020.1778940",
+    "https://doi.org/10.7817/jaos.143.3.2023.br010"
+  ],
+  "external_identifiers": [
+    {
+      "scheme": "ISBN-13",
+      "value": "9781933789378",
+      "source_ref": "https://peabody.yale.edu/explore/publications/exhibitions-catalogs-more",
+      "status": "verified"
+    },
+    {
+      "scheme": "ISBN-10",
+      "value": "1933789379",
+      "source_ref": "https://search.worldcat.org/title/Ancient-Mesopotamia-speaks-highlights-of-the-Yale-Babylonian-collection/oclc/1099939906",
+      "status": "verified"
+    },
+    {
+      "scheme": "OCLC",
+      "value": "1099939906",
+      "source_ref": "https://search.worldcat.org/title/Ancient-Mesopotamia-speaks-highlights-of-the-Yale-Babylonian-collection/oclc/1099939906",
+      "status": "verified"
+    }
+  ],
+  "same_as_posture": "no_equivalence_claim",
+  "responsibility_claim_refs": [
+    "tos.claim.work.mesopotamian-scholarship.ancient-mesopotamia-speaks.contributed-by-agnete-wisti-lassen-as-editor",
+    "tos.claim.work.mesopotamian-scholarship.ancient-mesopotamia-speaks.contributed-by-eckart-frahm-as-editor",
+    "tos.claim.work.mesopotamian-scholarship.ancient-mesopotamia-speaks.contributed-by-klaus-wagensonner-as-editor"
+  ],
+  "expression_claim_refs": [],
+  "notes": "Verified 2019 modern exhibition-catalog Work with source-reported editor credits for Agnete W. Lassen, Eckart Frahm, and Klaus Wagensonner. Because no exact Edition is created in this slice, those credits are retained as role-qualified Work-level contributed_by claims rather than false Edition-level edited_by relations. The Work combines thematic scholarly essays with a catalog of more than one hundred Yale-held artifacts and remains distinct from the Yale Babylonian Collection institution, the 2019-2020 physical exhibition, the virtual exhibition, current Peabody or LUX catalog states, each physical object, ancient Works, and object-specific editions. Provider metadata disagrees on physical extent, so no Edition or Item is created. No catalog body, image, transcription, translation, passage, semantic claim, graph relation, or canon state is admitted.",
+  "record_version": 1,
+  "supersedes_ref": null
+}

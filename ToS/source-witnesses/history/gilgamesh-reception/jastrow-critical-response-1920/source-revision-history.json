@@ -1,0 +1,93 @@
+{
+  "schema_version": "tos_source_revision_history_v1",
+  "record_id": "tos.reception-process.gilgamesh-reception.jastrow-critical-response-1920",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:56bcf7a4fa67783d73125da7",
+      "request_digest": "sha256:f6c3e1af2f45bbbfa55946d39a49155d2db2fb99071c47e961352ca57d7c156b",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:d4933490151cbab58e76371d1bd621eeabe1682f5aabd96074dee776aa641f81",
+      "recorded_at": "2026-09-22T05:04:53.113029+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.reception-process.gilgamesh-reception.jastrow-critical-response-1920",
+        "version": 1,
+        "digest": "sha256:05d918a4c03e9f404202c0265b0eccb0f48f44cbc9ad35c2bf4bd38ccea49abd"
+      },
+      "source": {
+        "id": "tos.reception-process.gilgamesh-reception.jastrow-critical-response-1920",
+        "version": 2,
+        "digest": "sha256:4b2377d44838c09607dd6bf54aa70ea18eb2a7f048a4039032c470acce7fdfbc"
+      },
+      "previous_revision": "sha256:6abac5f365ef716af647982c94f5516bff7d7889fafc9dd92238c6b33600b23e",
+      "archive_path": "ToS/source-witnesses/.record-revisions/56bcf7a4fa67783d73125da70daa849a2df3ddf4822016a0168068bec2507457-6abac5f365ef716af647982c94f5516bff7d7889fafc9dd92238c6b33600b23e",
+      "dependencies": "sha256:f483f38246835eb36919854dd8ca6911c9bc2f2807435719504a77cd5d94d764",
+      "changed_fields": [
+        "semantic_content",
+        "semantic_scope"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.gilgamesh-reception.jastrow-critical-response-1920.name-ru",
+          "version": 2,
+          "digest": "sha256:d3eaac8d5e3f77fed358c099182a4990f7d162d5a5e1ad7ac6be08210fa60718"
+        },
+        {
+          "id": "tos.form.gilgamesh-reception.jastrow-critical-response-1920.name-en",
+          "version": 2,
+          "digest": "sha256:3f79ad88e3444c79ca547bf3718776fedaf9f7e0376e7b6bd5c18a890c32254d"
+        },
+        {
+          "id": "tos.form.gilgamesh-reception.jastrow-critical-response-1920.note-ru",
+          "version": 2,
+          "digest": "sha256:78108bbbcac4d9a9963b7d17173d62b45aecf66e5f955d72b8450467abbbe897"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:56bcf7a4fa67783d73125da7",
+        "expected_configuration": "sha256:d4933490151cbab58e76371d1bd621eeabe1682f5aabd96074dee776aa641f81",
+        "expected_dependencies": "sha256:f483f38246835eb36919854dd8ca6911c9bc2f2807435719504a77cd5d94d764",
+        "expected_revision": "sha256:6abac5f365ef716af647982c94f5516bff7d7889fafc9dd92238c6b33600b23e",
+        "expected_source": {
+          "digest": "sha256:05d918a4c03e9f404202c0265b0eccb0f48f44cbc9ad35c2bf4bd38ccea49abd",
+          "id": "tos.reception-process.gilgamesh-reception.jastrow-critical-response-1920",
+          "version": 1
+        },
+        "fields": {
+          "semantic_content": {
+            "engagement_basis": "Введение, с. 16, сообщает о сверке и отсылает к исправлениям в приложении. Правильность исправлений требует текстологической оценки.",
+            "language": "ru",
+            "receiving_context": "Названные исследователи и читатели научной публикации; степень последующего согласия не установлена.",
+            "reception_account": "Джастроу описывает сверку пенсильванской таблички с участием Кьеры и предлагает исправления и перевод, расходящийся с Лэнгдоном.",
+            "script": "Cyrl"
+          },
+          "semantic_scope": {
+            "identity_criterion": "Описанный Джастроу процесс сверки и критического ответа.",
+            "language": "ru",
+            "scope_note": "Научная рецепция старовавилонского материала в описанном Джастроу критическом перечтении.",
+            "script": "Cyrl"
+          }
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.gilgamesh-reception.jastrow-critical-response-1920.name-ru"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.gilgamesh-reception.jastrow-critical-response-1920.name-en"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.gilgamesh-reception.jastrow-critical-response-1920.note-ru"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    }
+  ]
+}

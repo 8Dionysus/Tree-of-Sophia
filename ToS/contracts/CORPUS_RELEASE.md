@@ -37,11 +37,9 @@ the accepted base's indexes. `read_bytes(path)` verifies the selected object's
 SHA-256. `materialize(paths)` gives existing path-based tools private copies of
 an explicitly selected closure. Accessed objects, materialized inputs and changed
 members are verified again before promotion; unrelated accepted objects are not
-copied or rehashed by the transaction itself. This is not a new whole-store
-health assertion: full `load(..., verify_objects=True)` and restore still check
-all selected revision bytes. The current source adapter still requests the full
-view until its owner checks are scoped; the storage API alone does not complete
-that source-validation transition.
+copied or rehashed by the transaction itself. Whole-store verification uses `load(..., verify_objects=True)`; restore also
+checks all selected revision bytes. The current source adapter still requests
+the full view until its owner checks acquire their own scoped implementation.
 
 ### Source retirement event
 
@@ -123,9 +121,9 @@ rights reviews and transfer receipts. This contract does not relocate, delete,
 publish or grant additional processing rights for those bytes.
 
 Public source metadata and its private backup are evaluated as their own layer.
-A payload's `local_only` posture is not a prohibition on preserving its public
-bibliographic identity or text-free provenance metadata; see the layer rule in
-`ToS/doctrine/CORPUS_FOUNDATION.md`. Conversely, payload availability or bucket
+The layer rule in `ToS/doctrine/CORPUS_FOUNDATION.md` permits preservation of
+public bibliographic identity and text-free provenance metadata alongside a
+`local_only` payload. Conversely, payload availability or bucket
 access does not authorize copying protected source-bearing annotations.
 
 A complete local historical capture may preserve exact tracked Git bytes without

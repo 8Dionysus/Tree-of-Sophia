@@ -31,15 +31,7 @@ SCHEMA_REF = (
 PDFTOTEXT_VERSION = "26.01.0"
 XHTML_NAMESPACE = "{http://www.w3.org/1999/xhtml}"
 AUTHORITY_BOUNDARY = (
-    "fixity-bound German source-page start candidates for independently named "
-    "series-qualified printed number labels only, verified through disposable "
-    "embedded or provider OCR navigation plus a bounded model-visible review "
-    "of explicit OCR gaps; all anchors remain proposed whole-page addresses, "
-    "the provider OCR remains unaccepted, and no source prose, exact passage "
-    "end, accepted German, source-to-target passage alignment, translation "
-    "relation, equivalence, quality, textual or edition identity, semantics, "
-    "rights clearance, transfer eligibility, target gold, or canon authority "
-    "follows"
+    "This map binds German start-page candidates to exact scans and independently named, series-qualified printed number labels. Embedded or provider OCR supports navigation; explicit OCR gaps receive model-visible review. Anchors retain proposed whole-page scope and OCR retains its recorded assessment status."
 )
 DOES_NOT_ESTABLISH = [
     "source_text",
@@ -998,9 +990,7 @@ def _build_one(
                 "textual identity."
             ),
             (
-                "No source-to-target passage alignment, translation relation, "
-                "accepted German, semantics, eligible target unit, target gold, "
-                "publication route, human task, or canon effect was created."
+                "This event records source structure. Alignment, translation, German-text assessment, semantics, eligibility, target gold, publication, human work and canon retain their existing states."
             ),
         ],
         "receipt_refs": [outputs["map"].as_posix(), outputs["anchors"].as_posix()],

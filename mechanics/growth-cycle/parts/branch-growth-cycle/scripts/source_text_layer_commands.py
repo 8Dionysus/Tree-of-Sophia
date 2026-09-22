@@ -917,4 +917,4 @@ def command_handlers():
             configure=owner_page_ocr_configuration, typed_handles=(LAYER_SCHEMA, ANCHOR_SCHEMA, units.PROVENANCE_SCHEMA),
             profile_selection='A separate protected grant pins original PDF, one-based whole-page anchor, retained PNG, plan/render digests and signed capture.',
             preconditions=('Current source and new-layer rights precede original PDF and authenticated result reads.',
-                'The old render receipt remains unsigned; a new verification capture is not a new render or source-visible assessment.')))
+                "The old render receipt remains unsigned. This capture verifies its retained output; rendering and source-visible assessment retain their original event identities.")))

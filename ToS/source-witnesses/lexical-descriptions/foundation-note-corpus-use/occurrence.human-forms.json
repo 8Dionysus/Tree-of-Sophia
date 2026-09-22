@@ -1,79 +1,77 @@
 {
-  "schema_version": "tos_human_form_set_v1",
-  "subject": {
-    "id": "tos.occurrence.sid-0405e33f53d54b8f9c0d5325dd9858d6",
-    "version": 1,
-    "digest": "sha256:4b0a715199c55b722aa1cacb746d17d80adc5e2a7260ec4ccd4477dc3499da1f"
-  },
   "forms": [
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.sid-0a4fe5428b9a4b75aad1554eaeec94de",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.occurrence.sid-0405e33f53d54b8f9c0d5325dd9858d6",
-        "version": 1,
-        "digest": "sha256:4b0a715199c55b722aa1cacb746d17d80adc5e2a7260ec4ccd4477dc3499da1f"
+        "version": 2,
+        "digest": "sha256:3e27d4d30bef97d559f5c55c34e4d4f7970a1948ec9b015a5096f6f0f2323dd6"
       },
       "role": "name",
       "language": "en",
       "script": "Latn",
-      "creator_id": "agent:codex-tos-public-native-occurrence",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.sid-0a4fe5428b9a4b75aad1554eaeec94de",
+        "version": 1,
+        "digest": "sha256:43bec6f905901cfa5fbef5620826296c32327a4eb09a7b2681e0cc1d578123ef"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.occurrence.sid-0405e33f53d54b8f9c0d5325dd9858d6",
-            "version": 1,
-            "digest": "sha256:4b0a715199c55b722aa1cacb746d17d80adc5e2a7260ec4ccd4477dc3499da1f"
+            "version": 2,
+            "digest": "sha256:3e27d4d30bef97d559f5c55c34e4d4f7970a1948ec9b015a5096f6f0f2323dd6"
           },
           "pointer": "/preferred_label"
         },
         "context-0": {
           "record": {
             "id": "tos.occurrence.sid-0405e33f53d54b8f9c0d5325dd9858d6",
-            "version": 1,
-            "digest": "sha256:4b0a715199c55b722aa1cacb746d17d80adc5e2a7260ec4ccd4477dc3499da1f"
+            "version": 2,
+            "digest": "sha256:3e27d4d30bef97d559f5c55c34e4d4f7970a1948ec9b015a5096f6f0f2323dd6"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.occurrence.sid-0405e33f53d54b8f9c0d5325dd9858d6",
-            "version": 1,
-            "digest": "sha256:4b0a715199c55b722aa1cacb746d17d80adc5e2a7260ec4ccd4477dc3499da1f"
+            "version": 2,
+            "digest": "sha256:3e27d4d30bef97d559f5c55c34e4d4f7970a1948ec9b015a5096f6f0f2323dd6"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.occurrence.sid-0405e33f53d54b8f9c0d5325dd9858d6",
-            "version": 1,
-            "digest": "sha256:4b0a715199c55b722aa1cacb746d17d80adc5e2a7260ec4ccd4477dc3499da1f"
+            "version": 2,
+            "digest": "sha256:3e27d4d30bef97d559f5c55c34e4d4f7970a1948ec9b015a5096f6f0f2323dd6"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.occurrence.sid-0405e33f53d54b8f9c0d5325dd9858d6",
-            "version": 1,
-            "digest": "sha256:4b0a715199c55b722aa1cacb746d17d80adc5e2a7260ec4ccd4477dc3499da1f"
+            "version": 2,
+            "digest": "sha256:3e27d4d30bef97d559f5c55c34e4d4f7970a1948ec9b015a5096f6f0f2323dd6"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.occurrence.sid-0405e33f53d54b8f9c0d5325dd9858d6",
-            "version": 1,
-            "digest": "sha256:4b0a715199c55b722aa1cacb746d17d80adc5e2a7260ec4ccd4477dc3499da1f"
+            "version": 2,
+            "digest": "sha256:3e27d4d30bef97d559f5c55c34e4d4f7970a1948ec9b015a5096f6f0f2323dd6"
           },
           "pointer": "/native_text_binding"
         },
         "context-5": {
           "record": {
             "id": "tos.occurrence.sid-0405e33f53d54b8f9c0d5325dd9858d6",
-            "version": 1,
-            "digest": "sha256:4b0a715199c55b722aa1cacb746d17d80adc5e2a7260ec4ccd4477dc3499da1f"
+            "version": 2,
+            "digest": "sha256:3e27d4d30bef97d559f5c55c34e4d4f7970a1948ec9b015a5096f6f0f2323dd6"
           },
           "pointer": "/field_languages/preferred_label"
         }
@@ -86,71 +84,75 @@
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.sid-72fc067fd1634077ab9114a63ba98887",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.occurrence.sid-0405e33f53d54b8f9c0d5325dd9858d6",
-        "version": 1,
-        "digest": "sha256:4b0a715199c55b722aa1cacb746d17d80adc5e2a7260ec4ccd4477dc3499da1f"
+        "version": 2,
+        "digest": "sha256:3e27d4d30bef97d559f5c55c34e4d4f7970a1948ec9b015a5096f6f0f2323dd6"
       },
       "role": "hover",
       "language": "en",
       "script": "Latn",
-      "creator_id": "agent:codex-tos-public-native-occurrence",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.sid-72fc067fd1634077ab9114a63ba98887",
+        "version": 1,
+        "digest": "sha256:33391bf61c355beacb6843c68997c5557a908174f4bee3995489f328cfe3a43d"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.occurrence.sid-0405e33f53d54b8f9c0d5325dd9858d6",
-            "version": 1,
-            "digest": "sha256:4b0a715199c55b722aa1cacb746d17d80adc5e2a7260ec4ccd4477dc3499da1f"
+            "version": 2,
+            "digest": "sha256:3e27d4d30bef97d559f5c55c34e4d4f7970a1948ec9b015a5096f6f0f2323dd6"
           },
           "pointer": "/notes"
         },
         "context-0": {
           "record": {
             "id": "tos.occurrence.sid-0405e33f53d54b8f9c0d5325dd9858d6",
-            "version": 1,
-            "digest": "sha256:4b0a715199c55b722aa1cacb746d17d80adc5e2a7260ec4ccd4477dc3499da1f"
+            "version": 2,
+            "digest": "sha256:3e27d4d30bef97d559f5c55c34e4d4f7970a1948ec9b015a5096f6f0f2323dd6"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.occurrence.sid-0405e33f53d54b8f9c0d5325dd9858d6",
-            "version": 1,
-            "digest": "sha256:4b0a715199c55b722aa1cacb746d17d80adc5e2a7260ec4ccd4477dc3499da1f"
+            "version": 2,
+            "digest": "sha256:3e27d4d30bef97d559f5c55c34e4d4f7970a1948ec9b015a5096f6f0f2323dd6"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.occurrence.sid-0405e33f53d54b8f9c0d5325dd9858d6",
-            "version": 1,
-            "digest": "sha256:4b0a715199c55b722aa1cacb746d17d80adc5e2a7260ec4ccd4477dc3499da1f"
+            "version": 2,
+            "digest": "sha256:3e27d4d30bef97d559f5c55c34e4d4f7970a1948ec9b015a5096f6f0f2323dd6"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.occurrence.sid-0405e33f53d54b8f9c0d5325dd9858d6",
-            "version": 1,
-            "digest": "sha256:4b0a715199c55b722aa1cacb746d17d80adc5e2a7260ec4ccd4477dc3499da1f"
+            "version": 2,
+            "digest": "sha256:3e27d4d30bef97d559f5c55c34e4d4f7970a1948ec9b015a5096f6f0f2323dd6"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.occurrence.sid-0405e33f53d54b8f9c0d5325dd9858d6",
-            "version": 1,
-            "digest": "sha256:4b0a715199c55b722aa1cacb746d17d80adc5e2a7260ec4ccd4477dc3499da1f"
+            "version": 2,
+            "digest": "sha256:3e27d4d30bef97d559f5c55c34e4d4f7970a1948ec9b015a5096f6f0f2323dd6"
           },
           "pointer": "/native_text_binding"
         },
         "context-5": {
           "record": {
             "id": "tos.occurrence.sid-0405e33f53d54b8f9c0d5325dd9858d6",
-            "version": 1,
-            "digest": "sha256:4b0a715199c55b722aa1cacb746d17d80adc5e2a7260ec4ccd4477dc3499da1f"
+            "version": 2,
+            "digest": "sha256:3e27d4d30bef97d559f5c55c34e4d4f7970a1948ec9b015a5096f6f0f2323dd6"
           },
           "pointer": "/field_languages/notes"
         }
@@ -161,5 +163,166 @@
       }
     }
   ],
-  "prior_forms": []
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:4b0a715199c55b722aa1cacb746d17d80adc5e2a7260ec4ccd4477dc3499da1f",
+            "id": "tos.occurrence.sid-0405e33f53d54b8f9c0d5325dd9858d6",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:4b0a715199c55b722aa1cacb746d17d80adc5e2a7260ec4ccd4477dc3499da1f",
+            "id": "tos.occurrence.sid-0405e33f53d54b8f9c0d5325dd9858d6",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:4b0a715199c55b722aa1cacb746d17d80adc5e2a7260ec4ccd4477dc3499da1f",
+            "id": "tos.occurrence.sid-0405e33f53d54b8f9c0d5325dd9858d6",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:4b0a715199c55b722aa1cacb746d17d80adc5e2a7260ec4ccd4477dc3499da1f",
+            "id": "tos.occurrence.sid-0405e33f53d54b8f9c0d5325dd9858d6",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/native_text_binding",
+          "record": {
+            "digest": "sha256:4b0a715199c55b722aa1cacb746d17d80adc5e2a7260ec4ccd4477dc3499da1f",
+            "id": "tos.occurrence.sid-0405e33f53d54b8f9c0d5325dd9858d6",
+            "version": 1
+          }
+        },
+        "context-5": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:4b0a715199c55b722aa1cacb746d17d80adc5e2a7260ec4ccd4477dc3499da1f",
+            "id": "tos.occurrence.sid-0405e33f53d54b8f9c0d5325dd9858d6",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:4b0a715199c55b722aa1cacb746d17d80adc5e2a7260ec4ccd4477dc3499da1f",
+            "id": "tos.occurrence.sid-0405e33f53d54b8f9c0d5325dd9858d6",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-public-native-occurrence",
+      "form_id": "tos.form.sid-0a4fe5428b9a4b75aad1554eaeec94de",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:4b0a715199c55b722aa1cacb746d17d80adc5e2a7260ec4ccd4477dc3499da1f",
+        "id": "tos.occurrence.sid-0405e33f53d54b8f9c0d5325dd9858d6",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:4b0a715199c55b722aa1cacb746d17d80adc5e2a7260ec4ccd4477dc3499da1f",
+            "id": "tos.occurrence.sid-0405e33f53d54b8f9c0d5325dd9858d6",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:4b0a715199c55b722aa1cacb746d17d80adc5e2a7260ec4ccd4477dc3499da1f",
+            "id": "tos.occurrence.sid-0405e33f53d54b8f9c0d5325dd9858d6",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:4b0a715199c55b722aa1cacb746d17d80adc5e2a7260ec4ccd4477dc3499da1f",
+            "id": "tos.occurrence.sid-0405e33f53d54b8f9c0d5325dd9858d6",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:4b0a715199c55b722aa1cacb746d17d80adc5e2a7260ec4ccd4477dc3499da1f",
+            "id": "tos.occurrence.sid-0405e33f53d54b8f9c0d5325dd9858d6",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/native_text_binding",
+          "record": {
+            "digest": "sha256:4b0a715199c55b722aa1cacb746d17d80adc5e2a7260ec4ccd4477dc3499da1f",
+            "id": "tos.occurrence.sid-0405e33f53d54b8f9c0d5325dd9858d6",
+            "version": 1
+          }
+        },
+        "context-5": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:4b0a715199c55b722aa1cacb746d17d80adc5e2a7260ec4ccd4477dc3499da1f",
+            "id": "tos.occurrence.sid-0405e33f53d54b8f9c0d5325dd9858d6",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:4b0a715199c55b722aa1cacb746d17d80adc5e2a7260ec4ccd4477dc3499da1f",
+            "id": "tos.occurrence.sid-0405e33f53d54b8f9c0d5325dd9858d6",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-public-native-occurrence",
+      "form_id": "tos.form.sid-72fc067fd1634077ab9114a63ba98887",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:4b0a715199c55b722aa1cacb746d17d80adc5e2a7260ec4ccd4477dc3499da1f",
+        "id": "tos.occurrence.sid-0405e33f53d54b8f9c0d5325dd9858d6",
+        "version": 1
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.occurrence.sid-0405e33f53d54b8f9c0d5325dd9858d6",
+    "version": 2,
+    "digest": "sha256:3e27d4d30bef97d559f5c55c34e4d4f7970a1948ec9b015a5096f6f0f2323dd6"
+  }
 }

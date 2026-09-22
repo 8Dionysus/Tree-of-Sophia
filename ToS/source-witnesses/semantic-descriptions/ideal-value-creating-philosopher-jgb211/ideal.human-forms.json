@@ -1,71 +1,69 @@
 {
-  "schema_version": "tos_human_form_set_v1",
-  "subject": {
-    "id": "tos.ideal.value-creating-philosopher-jgb211",
-    "version": 1,
-    "digest": "sha256:6b7f6c0a3b47c4224b469216aec9bccafc43a802a1ab0f67038754749ad58f96"
-  },
   "forms": [
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.ideal.value-creating-philosopher-jgb211.name-ru",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.ideal.value-creating-philosopher-jgb211",
-        "version": 1,
-        "digest": "sha256:6b7f6c0a3b47c4224b469216aec9bccafc43a802a1ab0f67038754749ad58f96"
+        "version": 2,
+        "digest": "sha256:08538beff90694f951ab67521a7c5a330caa1545075e113ee30f720dfa0a7e04"
       },
       "role": "name",
       "language": "ru",
       "script": "Cyrl",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.ideal.value-creating-philosopher-jgb211.name-ru",
+        "version": 1,
+        "digest": "sha256:467fe7aa30f928763654fb895ae02f354c05574ac4cb127d83ae84e95072e452"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.ideal.value-creating-philosopher-jgb211",
-            "version": 1,
-            "digest": "sha256:6b7f6c0a3b47c4224b469216aec9bccafc43a802a1ab0f67038754749ad58f96"
+            "version": 2,
+            "digest": "sha256:08538beff90694f951ab67521a7c5a330caa1545075e113ee30f720dfa0a7e04"
           },
           "pointer": "/preferred_label"
         },
         "context-0": {
           "record": {
             "id": "tos.ideal.value-creating-philosopher-jgb211",
-            "version": 1,
-            "digest": "sha256:6b7f6c0a3b47c4224b469216aec9bccafc43a802a1ab0f67038754749ad58f96"
+            "version": 2,
+            "digest": "sha256:08538beff90694f951ab67521a7c5a330caa1545075e113ee30f720dfa0a7e04"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.ideal.value-creating-philosopher-jgb211",
-            "version": 1,
-            "digest": "sha256:6b7f6c0a3b47c4224b469216aec9bccafc43a802a1ab0f67038754749ad58f96"
+            "version": 2,
+            "digest": "sha256:08538beff90694f951ab67521a7c5a330caa1545075e113ee30f720dfa0a7e04"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.ideal.value-creating-philosopher-jgb211",
-            "version": 1,
-            "digest": "sha256:6b7f6c0a3b47c4224b469216aec9bccafc43a802a1ab0f67038754749ad58f96"
+            "version": 2,
+            "digest": "sha256:08538beff90694f951ab67521a7c5a330caa1545075e113ee30f720dfa0a7e04"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.ideal.value-creating-philosopher-jgb211",
-            "version": 1,
-            "digest": "sha256:6b7f6c0a3b47c4224b469216aec9bccafc43a802a1ab0f67038754749ad58f96"
+            "version": 2,
+            "digest": "sha256:08538beff90694f951ab67521a7c5a330caa1545075e113ee30f720dfa0a7e04"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.ideal.value-creating-philosopher-jgb211",
-            "version": 1,
-            "digest": "sha256:6b7f6c0a3b47c4224b469216aec9bccafc43a802a1ab0f67038754749ad58f96"
+            "version": 2,
+            "digest": "sha256:08538beff90694f951ab67521a7c5a330caa1545075e113ee30f720dfa0a7e04"
           },
           "pointer": "/field_languages/preferred_label"
         }
@@ -78,87 +76,91 @@
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.ideal.value-creating-philosopher-jgb211.name-en",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.ideal.value-creating-philosopher-jgb211",
-        "version": 1,
-        "digest": "sha256:6b7f6c0a3b47c4224b469216aec9bccafc43a802a1ab0f67038754749ad58f96"
+        "version": 2,
+        "digest": "sha256:08538beff90694f951ab67521a7c5a330caa1545075e113ee30f720dfa0a7e04"
       },
       "role": "name",
       "language": "en",
       "script": "Latn",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.ideal.value-creating-philosopher-jgb211.name-en",
+        "version": 1,
+        "digest": "sha256:2a0cb1e4225cd64de45165eff47fa4a20050e849e051c9c3d9ad871cbfda7db7"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.ideal.value-creating-philosopher-jgb211",
-            "version": 1,
-            "digest": "sha256:6b7f6c0a3b47c4224b469216aec9bccafc43a802a1ab0f67038754749ad58f96"
+            "version": 2,
+            "digest": "sha256:08538beff90694f951ab67521a7c5a330caa1545075e113ee30f720dfa0a7e04"
           },
           "pointer": "/variant_labels/0/value"
         },
         "context-0": {
           "record": {
             "id": "tos.ideal.value-creating-philosopher-jgb211",
-            "version": 1,
-            "digest": "sha256:6b7f6c0a3b47c4224b469216aec9bccafc43a802a1ab0f67038754749ad58f96"
+            "version": 2,
+            "digest": "sha256:08538beff90694f951ab67521a7c5a330caa1545075e113ee30f720dfa0a7e04"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.ideal.value-creating-philosopher-jgb211",
-            "version": 1,
-            "digest": "sha256:6b7f6c0a3b47c4224b469216aec9bccafc43a802a1ab0f67038754749ad58f96"
+            "version": 2,
+            "digest": "sha256:08538beff90694f951ab67521a7c5a330caa1545075e113ee30f720dfa0a7e04"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.ideal.value-creating-philosopher-jgb211",
-            "version": 1,
-            "digest": "sha256:6b7f6c0a3b47c4224b469216aec9bccafc43a802a1ab0f67038754749ad58f96"
+            "version": 2,
+            "digest": "sha256:08538beff90694f951ab67521a7c5a330caa1545075e113ee30f720dfa0a7e04"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.ideal.value-creating-philosopher-jgb211",
-            "version": 1,
-            "digest": "sha256:6b7f6c0a3b47c4224b469216aec9bccafc43a802a1ab0f67038754749ad58f96"
+            "version": 2,
+            "digest": "sha256:08538beff90694f951ab67521a7c5a330caa1545075e113ee30f720dfa0a7e04"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.ideal.value-creating-philosopher-jgb211",
-            "version": 1,
-            "digest": "sha256:6b7f6c0a3b47c4224b469216aec9bccafc43a802a1ab0f67038754749ad58f96"
+            "version": 2,
+            "digest": "sha256:08538beff90694f951ab67521a7c5a330caa1545075e113ee30f720dfa0a7e04"
           },
           "pointer": "/variant_labels/0/language"
         },
         "context-5": {
           "record": {
             "id": "tos.ideal.value-creating-philosopher-jgb211",
-            "version": 1,
-            "digest": "sha256:6b7f6c0a3b47c4224b469216aec9bccafc43a802a1ab0f67038754749ad58f96"
+            "version": 2,
+            "digest": "sha256:08538beff90694f951ab67521a7c5a330caa1545075e113ee30f720dfa0a7e04"
           },
           "pointer": "/variant_labels/0/script"
         },
         "context-6": {
           "record": {
             "id": "tos.ideal.value-creating-philosopher-jgb211",
-            "version": 1,
-            "digest": "sha256:6b7f6c0a3b47c4224b469216aec9bccafc43a802a1ab0f67038754749ad58f96"
+            "version": 2,
+            "digest": "sha256:08538beff90694f951ab67521a7c5a330caa1545075e113ee30f720dfa0a7e04"
           },
           "pointer": "/variant_labels/0/source_ref"
         },
         "context-7": {
           "record": {
             "id": "tos.ideal.value-creating-philosopher-jgb211",
-            "version": 1,
-            "digest": "sha256:6b7f6c0a3b47c4224b469216aec9bccafc43a802a1ab0f67038754749ad58f96"
+            "version": 2,
+            "digest": "sha256:08538beff90694f951ab67521a7c5a330caa1545075e113ee30f720dfa0a7e04"
           },
           "pointer": "/variant_labels/0/status"
         }
@@ -171,63 +173,67 @@
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.ideal.value-creating-philosopher-jgb211.note-ru",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.ideal.value-creating-philosopher-jgb211",
-        "version": 1,
-        "digest": "sha256:6b7f6c0a3b47c4224b469216aec9bccafc43a802a1ab0f67038754749ad58f96"
+        "version": 2,
+        "digest": "sha256:08538beff90694f951ab67521a7c5a330caa1545075e113ee30f720dfa0a7e04"
       },
       "role": "hover",
       "language": "ru",
       "script": "Cyrl",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.ideal.value-creating-philosopher-jgb211.note-ru",
+        "version": 1,
+        "digest": "sha256:f3fa244a6e0c28247d4d7496ea0743fc0136de1970a378f706cd4ce148436be3"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.ideal.value-creating-philosopher-jgb211",
-            "version": 1,
-            "digest": "sha256:6b7f6c0a3b47c4224b469216aec9bccafc43a802a1ab0f67038754749ad58f96"
+            "version": 2,
+            "digest": "sha256:08538beff90694f951ab67521a7c5a330caa1545075e113ee30f720dfa0a7e04"
           },
           "pointer": "/notes"
         },
         "context-0": {
           "record": {
             "id": "tos.ideal.value-creating-philosopher-jgb211",
-            "version": 1,
-            "digest": "sha256:6b7f6c0a3b47c4224b469216aec9bccafc43a802a1ab0f67038754749ad58f96"
+            "version": 2,
+            "digest": "sha256:08538beff90694f951ab67521a7c5a330caa1545075e113ee30f720dfa0a7e04"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.ideal.value-creating-philosopher-jgb211",
-            "version": 1,
-            "digest": "sha256:6b7f6c0a3b47c4224b469216aec9bccafc43a802a1ab0f67038754749ad58f96"
+            "version": 2,
+            "digest": "sha256:08538beff90694f951ab67521a7c5a330caa1545075e113ee30f720dfa0a7e04"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.ideal.value-creating-philosopher-jgb211",
-            "version": 1,
-            "digest": "sha256:6b7f6c0a3b47c4224b469216aec9bccafc43a802a1ab0f67038754749ad58f96"
+            "version": 2,
+            "digest": "sha256:08538beff90694f951ab67521a7c5a330caa1545075e113ee30f720dfa0a7e04"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.ideal.value-creating-philosopher-jgb211",
-            "version": 1,
-            "digest": "sha256:6b7f6c0a3b47c4224b469216aec9bccafc43a802a1ab0f67038754749ad58f96"
+            "version": 2,
+            "digest": "sha256:08538beff90694f951ab67521a7c5a330caa1545075e113ee30f720dfa0a7e04"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.ideal.value-creating-philosopher-jgb211",
-            "version": 1,
-            "digest": "sha256:6b7f6c0a3b47c4224b469216aec9bccafc43a802a1ab0f67038754749ad58f96"
+            "version": 2,
+            "digest": "sha256:08538beff90694f951ab67521a7c5a330caa1545075e113ee30f720dfa0a7e04"
           },
           "pointer": "/field_languages/notes"
         }
@@ -238,5 +244,243 @@
       }
     }
   ],
-  "prior_forms": []
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:6b7f6c0a3b47c4224b469216aec9bccafc43a802a1ab0f67038754749ad58f96",
+            "id": "tos.ideal.value-creating-philosopher-jgb211",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:6b7f6c0a3b47c4224b469216aec9bccafc43a802a1ab0f67038754749ad58f96",
+            "id": "tos.ideal.value-creating-philosopher-jgb211",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:6b7f6c0a3b47c4224b469216aec9bccafc43a802a1ab0f67038754749ad58f96",
+            "id": "tos.ideal.value-creating-philosopher-jgb211",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:6b7f6c0a3b47c4224b469216aec9bccafc43a802a1ab0f67038754749ad58f96",
+            "id": "tos.ideal.value-creating-philosopher-jgb211",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:6b7f6c0a3b47c4224b469216aec9bccafc43a802a1ab0f67038754749ad58f96",
+            "id": "tos.ideal.value-creating-philosopher-jgb211",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:6b7f6c0a3b47c4224b469216aec9bccafc43a802a1ab0f67038754749ad58f96",
+            "id": "tos.ideal.value-creating-philosopher-jgb211",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.ideal.value-creating-philosopher-jgb211.name-ru",
+      "form_version": 1,
+      "language": "ru",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:6b7f6c0a3b47c4224b469216aec9bccafc43a802a1ab0f67038754749ad58f96",
+        "id": "tos.ideal.value-creating-philosopher-jgb211",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:6b7f6c0a3b47c4224b469216aec9bccafc43a802a1ab0f67038754749ad58f96",
+            "id": "tos.ideal.value-creating-philosopher-jgb211",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:6b7f6c0a3b47c4224b469216aec9bccafc43a802a1ab0f67038754749ad58f96",
+            "id": "tos.ideal.value-creating-philosopher-jgb211",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:6b7f6c0a3b47c4224b469216aec9bccafc43a802a1ab0f67038754749ad58f96",
+            "id": "tos.ideal.value-creating-philosopher-jgb211",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:6b7f6c0a3b47c4224b469216aec9bccafc43a802a1ab0f67038754749ad58f96",
+            "id": "tos.ideal.value-creating-philosopher-jgb211",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/variant_labels/0/language",
+          "record": {
+            "digest": "sha256:6b7f6c0a3b47c4224b469216aec9bccafc43a802a1ab0f67038754749ad58f96",
+            "id": "tos.ideal.value-creating-philosopher-jgb211",
+            "version": 1
+          }
+        },
+        "context-5": {
+          "pointer": "/variant_labels/0/script",
+          "record": {
+            "digest": "sha256:6b7f6c0a3b47c4224b469216aec9bccafc43a802a1ab0f67038754749ad58f96",
+            "id": "tos.ideal.value-creating-philosopher-jgb211",
+            "version": 1
+          }
+        },
+        "context-6": {
+          "pointer": "/variant_labels/0/source_ref",
+          "record": {
+            "digest": "sha256:6b7f6c0a3b47c4224b469216aec9bccafc43a802a1ab0f67038754749ad58f96",
+            "id": "tos.ideal.value-creating-philosopher-jgb211",
+            "version": 1
+          }
+        },
+        "context-7": {
+          "pointer": "/variant_labels/0/status",
+          "record": {
+            "digest": "sha256:6b7f6c0a3b47c4224b469216aec9bccafc43a802a1ab0f67038754749ad58f96",
+            "id": "tos.ideal.value-creating-philosopher-jgb211",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/variant_labels/0/value",
+          "record": {
+            "digest": "sha256:6b7f6c0a3b47c4224b469216aec9bccafc43a802a1ab0f67038754749ad58f96",
+            "id": "tos.ideal.value-creating-philosopher-jgb211",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.ideal.value-creating-philosopher-jgb211.name-en",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:6b7f6c0a3b47c4224b469216aec9bccafc43a802a1ab0f67038754749ad58f96",
+        "id": "tos.ideal.value-creating-philosopher-jgb211",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:6b7f6c0a3b47c4224b469216aec9bccafc43a802a1ab0f67038754749ad58f96",
+            "id": "tos.ideal.value-creating-philosopher-jgb211",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:6b7f6c0a3b47c4224b469216aec9bccafc43a802a1ab0f67038754749ad58f96",
+            "id": "tos.ideal.value-creating-philosopher-jgb211",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:6b7f6c0a3b47c4224b469216aec9bccafc43a802a1ab0f67038754749ad58f96",
+            "id": "tos.ideal.value-creating-philosopher-jgb211",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:6b7f6c0a3b47c4224b469216aec9bccafc43a802a1ab0f67038754749ad58f96",
+            "id": "tos.ideal.value-creating-philosopher-jgb211",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:6b7f6c0a3b47c4224b469216aec9bccafc43a802a1ab0f67038754749ad58f96",
+            "id": "tos.ideal.value-creating-philosopher-jgb211",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:6b7f6c0a3b47c4224b469216aec9bccafc43a802a1ab0f67038754749ad58f96",
+            "id": "tos.ideal.value-creating-philosopher-jgb211",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.ideal.value-creating-philosopher-jgb211.note-ru",
+      "form_version": 1,
+      "language": "ru",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:6b7f6c0a3b47c4224b469216aec9bccafc43a802a1ab0f67038754749ad58f96",
+        "id": "tos.ideal.value-creating-philosopher-jgb211",
+        "version": 1
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.ideal.value-creating-philosopher-jgb211",
+    "version": 2,
+    "digest": "sha256:08538beff90694f951ab67521a7c5a330caa1545075e113ee30f720dfa0a7e04"
+  }
 }

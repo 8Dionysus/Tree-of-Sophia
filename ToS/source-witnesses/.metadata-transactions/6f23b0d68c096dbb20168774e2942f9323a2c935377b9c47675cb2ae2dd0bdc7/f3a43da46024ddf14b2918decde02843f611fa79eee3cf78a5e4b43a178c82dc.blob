@@ -1,0 +1,129 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+    "version": 2,
+    "digest": "sha256:5e936badeedf576f4451daf490f1bcc2b54bf546e39045153765b513de252516"
+  },
+  "forms": [
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.3067287a139ebe7f3663b95889eff9079626b327074aa95951e10f8e2a1c08e7",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "version": 2,
+        "digest": "sha256:5e936badeedf576f4451daf490f1bcc2b54bf546e39045153765b513de252516"
+      },
+      "role": "name",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+            "version": 2,
+            "digest": "sha256:5e936badeedf576f4451daf490f1bcc2b54bf546e39045153765b513de252516"
+          },
+          "pointer": "/preferred_label"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+            "version": 2,
+            "digest": "sha256:5e936badeedf576f4451daf490f1bcc2b54bf546e39045153765b513de252516"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+            "version": 2,
+            "digest": "sha256:5e936badeedf576f4451daf490f1bcc2b54bf546e39045153765b513de252516"
+          },
+          "pointer": "/same_as_posture"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    },
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.1a2b726baa788189098dc6e2a7e73e382eb380951ce3789d1c930a607c838a29",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "version": 2,
+        "digest": "sha256:5e936badeedf576f4451daf490f1bcc2b54bf546e39045153765b513de252516"
+      },
+      "role": "hover",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+            "version": 2,
+            "digest": "sha256:5e936badeedf576f4451daf490f1bcc2b54bf546e39045153765b513de252516"
+          },
+          "pointer": "/notes"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+            "version": 2,
+            "digest": "sha256:5e936badeedf576f4451daf490f1bcc2b54bf546e39045153765b513de252516"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+            "version": 2,
+            "digest": "sha256:5e936badeedf576f4451daf490f1bcc2b54bf546e39045153765b513de252516"
+          },
+          "pointer": "/same_as_posture"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation-source-forms-v1:tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+      "request_digest": "sha256:bb9a5f84abc9644b2e53c88a43c50d75557c147ad882e175962380f84c43c637",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-07",
+      "owner_configuration": "sha256:46f5e81cd805a5fc18f1e1d4d1050d7c3dcf417d5046eba99a031dfd10714ac1",
+      "recorded_at": "2026-09-07T03:13:29.630450+00:00",
+      "source": {
+        "id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub",
+        "version": 2,
+        "digest": "sha256:5e936badeedf576f4451daf490f1bcc2b54bf546e39045153765b513de252516"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.3067287a139ebe7f3663b95889eff9079626b327074aa95951e10f8e2a1c08e7",
+          "version": 1,
+          "digest": "sha256:6bc161539ab0d869eb3c0fa79ce923e5bcdb320650fdb6185f21a8bb9583aca8"
+        },
+        {
+          "id": "tos.form.metadata.1a2b726baa788189098dc6e2a7e73e382eb380951ce3789d1c930a607c838a29",
+          "version": 1,
+          "digest": "sha256:78877f3c293edd242d5b0a843a7a0eca8d852dd5236d2bfec6a462a059bd9570"
+        }
+      ]
+    }
+  ]
+}

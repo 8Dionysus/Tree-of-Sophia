@@ -1,0 +1,108 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.work.sumerian-literature.instructions-of-shuruppag",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:069d06e161f60d1affd88b9c",
+      "request_digest": "sha256:393d1c2869847e4f4204cd8e4b2c54806887d6ac1dd215ed03d07b18dd6e63f3",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:e9df9cd078ab5d43100725250ec3606c865287820fa3d75ba0f0c7df4fa04c28",
+      "recorded_at": "2026-09-22T05:09:37.780614+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.work.sumerian-literature.instructions-of-shuruppag",
+        "version": 1,
+        "digest": "sha256:2edd227115a6feb354b57be760bad381ab2f35dd0fba12d0a930efd17e4ad4f9"
+      },
+      "source": {
+        "id": "tos.work.sumerian-literature.instructions-of-shuruppag",
+        "version": 2,
+        "digest": "sha256:17a97fa87906f220f1d750bb244fe06b255e0edb0258dcfa275b12d706c28f33"
+      },
+      "previous_revision": "sha256:4539cf16b61b2d6bc65c929f75aceb8d8a75c71630387bbf109be8e0f372e47a",
+      "archive_path": "ToS/source-witnesses/.record-revisions/069d06e161f60d1affd88b9c650555118ef419bd2371f2c2b26af4d1ad6ea93b-4539cf16b61b2d6bc65c929f75aceb8d8a75c71630387bbf109be8e0f372e47a",
+      "dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+      "changed_fields": [
+        "notes"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.metadata.a708307e37ee8faadbe72a0a1ab86301f7a1159961c6dcdaaa22480b57decdb6",
+          "version": 2,
+          "digest": "sha256:2208fc34936807c7c3e91a594b3c500305336258f0ea280506865cde7db15270"
+        },
+        {
+          "id": "tos.form.metadata.e09e6f28a5b701142a0918a98d0f44afe569c546a6fe8a398449cf23eb35dea3",
+          "version": 2,
+          "digest": "sha256:fe1afa46941adeefa54e5df9da0c92ec00e196d8b3e8d235b4da214b3362763f"
+        },
+        {
+          "id": "tos.form.metadata.5872191411ca8e627601b2630ab3aa5b6be6f4c11391982352f16ca6e05bd625",
+          "version": 2,
+          "digest": "sha256:c3967907ec5e9768bc38fd73f582fabf84aa247ee6dc6cbcbb0babc88da228c2"
+        },
+        {
+          "id": "tos.form.metadata.71b6df257c67a3ab7a88a211d8dc762363427ffb73e7652a916624ac2fc7d3a5",
+          "version": 2,
+          "digest": "sha256:335c9af35f9300520b2634b2573a731da3b7a2e9d96473b22d3517bfa9d56a2c"
+        },
+        {
+          "id": "tos.form.metadata.caadbe32165d459644486cc6109d0bd79b46cd806ae565941da9ddd52e881316",
+          "version": 2,
+          "digest": "sha256:3e05893aa907f6a360580dee719d7758c49e6cc288fd4add706436f41db11f18"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:069d06e161f60d1affd88b9c",
+        "expected_configuration": "sha256:e9df9cd078ab5d43100725250ec3606c865287820fa3d75ba0f0c7df4fa04c28",
+        "expected_dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+        "expected_publication": "sha256:1eb3876751f945eab469819247e6935e8fd90281010ff26b85f572b37b8f5912",
+        "expected_revision": "sha256:4539cf16b61b2d6bc65c929f75aceb8d8a75c71630387bbf109be8e0f372e47a",
+        "expected_source": {
+          "digest": "sha256:2edd227115a6feb354b57be760bad381ab2f35dd0fba12d0a930efd17e4ad4f9",
+          "id": "tos.work.sumerian-literature.instructions-of-shuruppag",
+          "version": 1
+        },
+        "fields": {
+          "notes": "Ancient composition identified through the modern labels used by ETCSL and CDLI, with ancient wording transmitted through incipit and manuscript tradition. ETCSL 5.6.1 and CDLI Q000782/P478969 provide modern representations; the two recorded Early Dynastic tablets provide physical witnesses, and Alster 1974 supplies a scholarly edition."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.metadata.a708307e37ee8faadbe72a0a1ab86301f7a1159961c6dcdaaa22480b57decdb6"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.metadata.e09e6f28a5b701142a0918a98d0f44afe569c546a6fe8a398449cf23eb35dea3"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.metadata.5872191411ca8e627601b2630ab3aa5b6be6f4c11391982352f16ca6e05bd625"
+          },
+          {
+            "field_id": "metadata.variant-name:1",
+            "form_id": "tos.form.metadata.71b6df257c67a3ab7a88a211d8dc762363427ffb73e7652a916624ac2fc7d3a5"
+          },
+          {
+            "field_id": "metadata.variant-name:2",
+            "form_id": "tos.form.metadata.caadbe32165d459644486cc6109d0bd79b46cd806ae565941da9ddd52e881316"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:f0a910fc412a2d9931aac2ecd6b8a6cc38d88b6bcbe8be41d62327cc2557948e",
+        "selected_files": [
+          "source-revision-history.json",
+          "work.human-forms.json",
+          "work.json"
+        ]
+      }
+    }
+  ]
+}

@@ -39,11 +39,7 @@ ROOT_ELEMENTS = frozenset((*INLINE_ELEMENTS, "p", "h1", "h2", "h3", "h4",
 LAYER_SCHEMA = "https://tree-of-sophia.local/ToS/contracts/source-text-layer.schema.json"
 ANCHOR_SCHEMA = "https://tree-of-sophia.local/ToS/contracts/source-anchor-v2.schema.json"
 AUTHORITY_BOUNDARY = (
-    "a source text layer is one immutable, source-returnable representation with explicit "
-    "derivation, uncertainty, review, competence, rights, and use scope; mechanical validation, "
-    "model output, normalization, or agreement with another layer does not make it accepted "
-    "source text, translation evidence, linguistic truth, semantic evidence, graph truth, "
-    "canon authority, or publication permission"
+    "A source text layer preserves one immutable, source-returnable representation and its derivation, uncertainty, assessment, competence, rights and use scope."
 )
 
 
@@ -532,7 +528,7 @@ DERIVE_OPERATIONS = {
 
 
 def derivation_policy(operation, *, unicode_form="none", transcription_method="manual_transcription"):
-    """Exact, versioned rules, not a caller-selected program or quality claim."""
+    """Apply the exact versioned transformation rules selected by the owner."""
     if operation not in {*DERIVE_OPERATIONS, *OWNER_OCR_PROFILES}:
         _fail("unsupported native TextLayer operation")
     normalize = operation == "text-layer.normalize"

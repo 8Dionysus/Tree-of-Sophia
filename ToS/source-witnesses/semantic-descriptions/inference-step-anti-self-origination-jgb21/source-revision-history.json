@@ -1,0 +1,94 @@
+{
+  "schema_version": "tos_source_revision_history_v1",
+  "record_id": "tos.inference-step.anti-self-origination-jgb21",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:5c7b36aaf6ddffbaeb049149",
+      "request_digest": "sha256:dc6b3f0d57344c7441d21bb0e9ce17ee0599ddceb1e3cbf642d2a26d92095d8c",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:e45246706f393adb07ce7aa0fa75d87237e78fe4272899da1ff9a02f5b30f76e",
+      "recorded_at": "2026-09-22T05:06:54.197762+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.inference-step.anti-self-origination-jgb21",
+        "version": 1,
+        "digest": "sha256:9469f265953b9e9323632e6c29d6139cceb6c704b5fcf1889812793f243e0c19"
+      },
+      "source": {
+        "id": "tos.inference-step.anti-self-origination-jgb21",
+        "version": 2,
+        "digest": "sha256:2156be5348bd6dfbd320da1325e15663e1296d7635dcf97ae1e3e54118af675b"
+      },
+      "previous_revision": "sha256:e9d1da4342da1d324b340cbe45d4c2a6680c6d43d8b22af00053e26290d75b31",
+      "archive_path": "ToS/source-witnesses/.record-revisions/5c7b36aaf6ddffbaeb0491495115b15a90e0577bee574ccf9b699a50beae47d6-e9d1da4342da1d324b340cbe45d4c2a6680c6d43d8b22af00053e26290d75b31",
+      "dependencies": "sha256:2a608575334accc28ce2cf344c2152b471be4c83b8eb34ddee8c4077f3a5500f",
+      "changed_fields": [
+        "notes",
+        "semantic_content",
+        "semantic_scope"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.inference-step.anti-self-origination-jgb21.name-ru",
+          "version": 2,
+          "digest": "sha256:bc8e2453e34e37623942f739d6c9e9eac0eb9bd4d4178cf96fc8842f694f1765"
+        },
+        {
+          "id": "tos.form.inference-step.anti-self-origination-jgb21.name-en",
+          "version": 2,
+          "digest": "sha256:66a3bda6df982f9e9f20479ac86d18baab6a2c38df73572e0082278819095c64"
+        },
+        {
+          "id": "tos.form.inference-step.anti-self-origination-jgb21.note-ru",
+          "version": 2,
+          "digest": "sha256:875257c904f0d5689ac677948270dc0769db3320c1697d4f38508f69f71c1686"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:5c7b36aaf6ddffbaeb049149",
+        "expected_configuration": "sha256:e45246706f393adb07ce7aa0fa75d87237e78fe4272899da1ff9a02f5b30f76e",
+        "expected_dependencies": "sha256:2a608575334accc28ce2cf344c2152b471be4c83b8eb34ddee8c4077f3a5500f",
+        "expected_revision": "sha256:e9d1da4342da1d324b340cbe45d4c2a6680c6d43d8b22af00053e26290d75b31",
+        "expected_source": {
+          "digest": "sha256:9469f265953b9e9323632e6c29d6139cceb6c704b5fcf1889812793f243e0c19",
+          "id": "tos.inference-step.anti-self-origination-jgb21",
+          "version": 1
+        },
+        "fields": {
+          "notes": "Реконструируемый переход связывает характеристику самопричинения как противоречия и зависимость от него предельной ответственности с ограниченным выводом о критикуемом смысле свободы. Посылки и вывод заданы отдельными утверждениями.",
+          "semantic_content": {
+            "language": "en",
+            "reasoning_mode": "reconstructed_dependency_rejection",
+            "script": "Latn",
+            "transition_account": "Given the passage’s rejection of self-origination and its claim that metaphysical ultimate responsibility requires self-origination, infer rejection of that metaphysical freedom. This describes a proposed reading of the passage’s inference."
+          },
+          "semantic_scope": {
+            "identity_criterion": "Identity follows this relation of proposed premises to conclusion. A different reconstructed argument has a separate step identity.",
+            "language": "en",
+            "scope_note": "The one inferential transition explicitly reconstructed from the opening part of JGB 21, without an exhaustive formal reconstruction.",
+            "script": "Latn"
+          }
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.inference-step.anti-self-origination-jgb21.name-ru"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.inference-step.anti-self-origination-jgb21.name-en"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.inference-step.anti-self-origination-jgb21.note-ru"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    }
+  ]
+}

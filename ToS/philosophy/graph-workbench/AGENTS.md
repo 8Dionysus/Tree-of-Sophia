@@ -8,9 +8,8 @@ This card applies to `ToS/philosophy/graph-workbench/`.
 branch: view lenses, cluster contracts, review-packet contracts, proposed nodes,
 proposed relations, language packets, branch fragments, and promotion ledgers before canon.
 
-It does not own runtime rendering, Neo4j storage, MCP service behavior, or UI
-state. Those routes belong to `abyss-stack` after ToS exports the generated
-projection.
+After ToS exports the generated projection, runtime rendering, Neo4j storage,
+MCP service behavior and UI state follow their `abyss-stack` owner routes.
 
 ## Operating Card
 

@@ -9,6 +9,13 @@ Tracking starts with the community-docs baseline for this repository.
 
 ### Changed
 
+- Rewrites foundation guidance, node templates, semantic definitions and current
+  source descriptions around their subject, purpose and evidence. Explanatory
+  prose is editable within typed contracts; source and Claim revisions preserve
+  exact predecessors and rebind their forms. Explicit public scope-wording
+  delegation, retained provenance inputs and versioned inventory generation
+  preserve compatibility under TOS-D-0068.
+
 - Separates standalone software build, tests, packaging and merge from corpus
   admission, full data snapshots, KAG currentness and stats federation under
   TOS-D-0062. Required Repo Validation builds and installs a software-only

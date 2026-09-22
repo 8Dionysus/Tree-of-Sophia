@@ -148,8 +148,8 @@ def targets() -> list[dict]:
             version_description="SuttaCentral Mahāsaṅgīti-derived Pāli root text, Roman script, preserved in the pinned Bilara published snapshot. Root edition metadata reports Dhamma Society Fund, Bangkok, 2010; SuttaCentral adapted structure/markup and sometimes punctuation.",
             responsibility="The Dhamma Society prepared the Mahāsaṅgīti edition; Ven. Yuttadhammo preserved and supplied its XML; SuttaCentral maintains the supplied structure, markup and punctuation. No modern actor is asserted to be the ancient author.",
             limits=["Only the root/pli/ms source layer is selected; English Sujato translations, comments, variants, parallels and HTML are separate layers.",
-                    "A supplied root text does not establish a universally original reading or ToS textual acceptance.",
-                    "For MN 9 the registry describes a Sujato translation and also points to the cognate root; this selects the separate root version as an antecedent to the later commentarial branch." if uid == "mn9" else "Collection/file coverage is checked within this version, not as complete coverage of the Tipiṭaka or all recensions."]))
+                    "The supplied root text identifies this edition and recension; original-reading claims and textual acceptance require their own source-visible assessment.",
+                    "For MN 9 the registry describes a Sujato translation and also points to the cognate root; this selects the separate root version as an antecedent to the later commentarial branch." if uid == "mn9" else "Collection and file coverage are checked within this exact version; wider Tipiṭaka and recension coverage requires separate inventories."]))
     return result
 
 
@@ -226,7 +226,11 @@ def build_manifest(files: dict[str, list[dict]], receipts: list[dict]) -> dict:
             "provider_pins": {"morphhb": MORPH, "oraec": ORAEC, "bilara": BILARA, "suttacentral_metadata": SC_DATA, "suttacentral_license": SC_LICENSE},
             "metadata_observations": receipts, "targets": all_targets,
             "totals": {"works": len(all_targets), "payload_files": sum(len(t["files"]) for t in all_targets), "payload_bytes": sum(t["byte_size"] for t in all_targets)},
-            "authority_boundary": "Preparation only. Registry leads, upstream metadata and reviewed access evidence do not establish payload custody, textual acceptance, branch planting, semantics or canon."}
+            "authority_boundary": (
+                "Prepared acquisition plan based on registry leads, upstream metadata and "
+                "reviewed access evidence. Source acquisition and assessment proceed through "
+                "their owning routes."
+            )}
 
 
 def source_refs(target: dict) -> list[str]:
@@ -329,7 +333,7 @@ def prepare_package(target: dict, assessed_at: str, *, evidence_refs: list[str] 
             work_ref=ids["work"], language=target["language"], expression_role=target.get("expression_role", "source_language"),
             responsibility_claim_refs=[], embodiment_claim_refs=[claim_ids["expression_edition"]],
             notes=target["version_description"] + " " + target["responsibility"] +
-                (" This identity denotes only the Egyptian written-form/transliteration component within the shared mixed JSON Item. German translation/glosses have a separate Expression; exact source fields are recorded by post-acquisition forensic inspection." if target["provider"] == "oraec" else " Supplied annotation or punctuation does not establish ToS source-text acceptance.")),
+                (" This identity denotes only the Egyptian written-form/transliteration component within the shared mixed JSON Item. German translation/glosses have a separate Expression; exact source fields are recorded by post-acquisition forensic inspection." if target["provider"] == "oraec" else " Supplied annotation and punctuation retain their source attribution and recorded textual-assessment status.")),
         paths["edition"]: record("edition", f"{title} — {target['provider']} Git snapshot {target['pin'][:12]}",
             embodies_expression_refs=expression_refs, publication_claim_refs=[], exemplar_claim_refs=[claim_ids["edition_item"]],
             edition_statement=f"Immutable {target['repository']} commit {target['pin']}; " + target["version_description"],
@@ -340,7 +344,7 @@ def prepare_package(target: dict, assessed_at: str, *, evidence_refs: list[str] 
         records[paths["translation_expression"]] = record("translation_expression", f"{title} — supplied German translation and gloss layer",
             work_ref=ids["work"], language="de", expression_role="translation", responsibility_claim_refs=[],
             embodiment_claim_refs=[claim_ids["translation_edition"]],
-            notes="Modern German sentence translations and lexical glosses supplied with the AED-TEI/ORAEC scholarly JSON bundle. " + target["responsibility"] + " This is a distinct component of the same exact Edition and Item, not a translation generated by ToS or an accepted translation. Its exact source field selectors are recorded after acquisition.")
+            notes="Modern German sentence translations and lexical glosses supplied with the AED-TEI/ORAEC scholarly JSON bundle. " + target["responsibility"] + " This supplied German translation component has its own Expression within the shared Edition and Item and retains its source-assessment status. Exact source field selectors are recorded after acquisition.")
     claims = []
     for key, predicate, left, right, filename in [
         ("work_expression", "has_expression", "work", "expression", "work-expression/work-expression-claims.jsonl"),

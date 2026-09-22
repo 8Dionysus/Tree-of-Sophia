@@ -1,0 +1,90 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.work.friedrich-nietzsche.der-antichrist",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:8c318e3a9044621f43cb2ac6",
+      "request_digest": "sha256:b49b92f63006113d32fc291f3f9d1c5ef56110be1815db4c75f4f21181ccb26a",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:28b389c293ba56f52e3d1ce17ea2124e7fcc770dbeb95619ba25a293170f2f1f",
+      "recorded_at": "2026-09-22T05:09:04.308237+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.work.friedrich-nietzsche.der-antichrist",
+        "version": 6,
+        "digest": "sha256:0056e40f35989a6b2e2978aa361e104b25efe68ece6f8cd4017ab02caefae9a2"
+      },
+      "source": {
+        "id": "tos.work.friedrich-nietzsche.der-antichrist",
+        "version": 7,
+        "digest": "sha256:02b2a42a0647198f9d0da16afaac6970a57f88c439c2a6ec574805f1b5729b06"
+      },
+      "previous_revision": "sha256:0a34ab071850aad4b1273fb41705f79e78736ff15cac0b789d4f26a5deaf3677",
+      "archive_path": "ToS/source-witnesses/.record-revisions/8c318e3a9044621f43cb2ac63ace535b7135e19101ca72de7f81db4a94c022c1-0a34ab071850aad4b1273fb41705f79e78736ff15cac0b789d4f26a5deaf3677",
+      "dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+      "changed_fields": [
+        "notes"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.metadata.7065f3320916eaf131fb205f3f1b7c9e407ca982d837d3281b7fcd433e062a3d",
+          "version": 2,
+          "digest": "sha256:45babc6d5091884d1df5b7f5cf719abb0b71c6eaccaf71f1dc5e19567fc8ae25"
+        },
+        {
+          "id": "tos.form.metadata.d7e066436c43bf05d0c06453622b3f1e793419bdc98bf218736540ec83e60242",
+          "version": 2,
+          "digest": "sha256:8b4f8dbc96dd3e6047737f55b7e692028c2ed9b2edf350cb8a9aedc29c4ed2a6"
+        },
+        {
+          "id": "tos.form.metadata.0fbbc315a451ded9b9d5c61b1e67d84049532b5721bf7decc30e1a3fe8e1c303",
+          "version": 2,
+          "digest": "sha256:f80eb4ace83c780195aa005477ae05d9f4b3e625e474ebd595063e0a58877be0"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:8c318e3a9044621f43cb2ac6",
+        "expected_configuration": "sha256:28b389c293ba56f52e3d1ce17ea2124e7fcc770dbeb95619ba25a293170f2f1f",
+        "expected_dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+        "expected_publication": "sha256:cec09236a4f047c3b94b52c53ccda3cc249cec96fb927be10effcfa4f6e0992b",
+        "expected_revision": "sha256:0a34ab071850aad4b1273fb41705f79e78736ff15cac0b789d4f26a5deaf3677",
+        "expected_source": {
+          "digest": "sha256:0056e40f35989a6b2e2978aa361e104b25efe68ece6f8cd4017ab02caefae9a2",
+          "id": "tos.work.friedrich-nietzsche.der-antichrist",
+          "version": 6
+        },
+        "fields": {
+          "notes": "Work identity follows the current GND work authority. The documentary route now distinguishes region-only preparatory evidence in W II notebooks; the D 22 / GSA 71/29 print manuscript; the independent Overbeck NL 53 : A 311 copy; the editorially intervened Koegel/Naumann 1895 first print; the source-visible 1906 Naumann collection member; later de-suppressed and critical layers; and eKGWB addresses without admitting any remote text body. The proposed Gesetz wider das Christenthum route remains a separate contested associated adjunct at GSA 71/32 fol. 47, not AC 63 and not part of the D 22 object. The provisional Russian translation remains a separate expression."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.metadata.7065f3320916eaf131fb205f3f1b7c9e407ca982d837d3281b7fcd433e062a3d"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.metadata.d7e066436c43bf05d0c06453622b3f1e793419bdc98bf218736540ec83e60242"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.metadata.0fbbc315a451ded9b9d5c61b1e67d84049532b5721bf7decc30e1a3fe8e1c303"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:252a28cbce7b040633068370a4846f21757779a1ea8b0c799e3dcf571521a2fa",
+        "selected_files": [
+          "source-revision-history.json",
+          "work.human-forms.json",
+          "work.json"
+        ]
+      }
+    }
+  ]
+}

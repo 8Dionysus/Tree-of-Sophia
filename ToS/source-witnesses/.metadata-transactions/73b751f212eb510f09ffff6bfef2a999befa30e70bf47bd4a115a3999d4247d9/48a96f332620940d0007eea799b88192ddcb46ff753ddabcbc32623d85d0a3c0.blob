@@ -1,0 +1,32 @@
+{
+  "schema_version": "tos_corpus_record_v1",
+  "record_type": "agent",
+  "record_id": "tos.agent.madeleine-fitzgerald",
+  "preferred_label": "Madeleine Fitzgerald",
+  "variant_labels": [
+    {
+      "value": "Fitzgerald, Madeleine",
+      "language": "und",
+      "source_ref": "https://cdli.earth/authors/1263",
+      "status": "verified"
+    }
+  ],
+  "identity_status": "provisional",
+  "source_refs": [
+    "ToS/source-witnesses/discovery/runs/proto-cuneiform-cdlb-2003-2-script-direction.2026-08-12.v1.json",
+    "https://cdli.earth/articles/cdlb/2003-2",
+    "https://cdli.earth/authors/1263"
+  ],
+  "external_identifiers": [
+    {
+      "scheme": "CDLI author",
+      "value": "1263",
+      "source_ref": "https://cdli.earth/authors/1263",
+      "status": "verified"
+    }
+  ],
+  "same_as_posture": "no_equivalence_claim",
+  "notes": "Name and article authorship are source-reported by CDLI. The publisher PDF reports a 2003 UCLA affiliation, while CDLI author profile 1263 links a 2002 Yale dissertation but exposes neither a current institution nor ORCID. KeiBi's Madeleine A. Fitzgerald form is not silently admitted as an identity expansion. No broader authority-file or third-party-profile equivalence is asserted.",
+  "record_version": 1,
+  "supersedes_ref": null
+}

@@ -1,71 +1,69 @@
 {
-  "schema_version": "tos_human_form_set_v1",
-  "subject": {
-    "id": "tos.institutional-body.university-leipzig",
-    "version": 1,
-    "digest": "sha256:1b50a8799a46dea831a6193bba033442731e657b7e8380cda0239408c5fe83a4"
-  },
   "forms": [
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.institutional-body.university-leipzig.name-ru",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.institutional-body.university-leipzig",
-        "version": 1,
-        "digest": "sha256:1b50a8799a46dea831a6193bba033442731e657b7e8380cda0239408c5fe83a4"
+        "version": 2,
+        "digest": "sha256:a13d447b2091a269b5b5448b0587c7cc000e6cd65b72ac0a09ef338df0bce87f"
       },
       "role": "name",
       "language": "ru",
       "script": "Cyrl",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.institutional-body.university-leipzig.name-ru",
+        "version": 1,
+        "digest": "sha256:ae84b1cb71f7800f118a8e34c2247fb9e9bd50833e5001ce82a698ab6a3fb1fa"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.institutional-body.university-leipzig",
-            "version": 1,
-            "digest": "sha256:1b50a8799a46dea831a6193bba033442731e657b7e8380cda0239408c5fe83a4"
+            "version": 2,
+            "digest": "sha256:a13d447b2091a269b5b5448b0587c7cc000e6cd65b72ac0a09ef338df0bce87f"
           },
           "pointer": "/preferred_label"
         },
         "context-0": {
           "record": {
             "id": "tos.institutional-body.university-leipzig",
-            "version": 1,
-            "digest": "sha256:1b50a8799a46dea831a6193bba033442731e657b7e8380cda0239408c5fe83a4"
+            "version": 2,
+            "digest": "sha256:a13d447b2091a269b5b5448b0587c7cc000e6cd65b72ac0a09ef338df0bce87f"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.institutional-body.university-leipzig",
-            "version": 1,
-            "digest": "sha256:1b50a8799a46dea831a6193bba033442731e657b7e8380cda0239408c5fe83a4"
+            "version": 2,
+            "digest": "sha256:a13d447b2091a269b5b5448b0587c7cc000e6cd65b72ac0a09ef338df0bce87f"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.institutional-body.university-leipzig",
-            "version": 1,
-            "digest": "sha256:1b50a8799a46dea831a6193bba033442731e657b7e8380cda0239408c5fe83a4"
+            "version": 2,
+            "digest": "sha256:a13d447b2091a269b5b5448b0587c7cc000e6cd65b72ac0a09ef338df0bce87f"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.institutional-body.university-leipzig",
-            "version": 1,
-            "digest": "sha256:1b50a8799a46dea831a6193bba033442731e657b7e8380cda0239408c5fe83a4"
+            "version": 2,
+            "digest": "sha256:a13d447b2091a269b5b5448b0587c7cc000e6cd65b72ac0a09ef338df0bce87f"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.institutional-body.university-leipzig",
-            "version": 1,
-            "digest": "sha256:1b50a8799a46dea831a6193bba033442731e657b7e8380cda0239408c5fe83a4"
+            "version": 2,
+            "digest": "sha256:a13d447b2091a269b5b5448b0587c7cc000e6cd65b72ac0a09ef338df0bce87f"
           },
           "pointer": "/field_languages/preferred_label"
         }
@@ -78,87 +76,91 @@
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.institutional-body.university-leipzig.name-de",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.institutional-body.university-leipzig",
-        "version": 1,
-        "digest": "sha256:1b50a8799a46dea831a6193bba033442731e657b7e8380cda0239408c5fe83a4"
+        "version": 2,
+        "digest": "sha256:a13d447b2091a269b5b5448b0587c7cc000e6cd65b72ac0a09ef338df0bce87f"
       },
       "role": "name",
       "language": "de",
       "script": "Latn",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.institutional-body.university-leipzig.name-de",
+        "version": 1,
+        "digest": "sha256:ce09580e4e415e5eea499d64acc135e4954f66fad68058f9ce5af0824369f903"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.institutional-body.university-leipzig",
-            "version": 1,
-            "digest": "sha256:1b50a8799a46dea831a6193bba033442731e657b7e8380cda0239408c5fe83a4"
+            "version": 2,
+            "digest": "sha256:a13d447b2091a269b5b5448b0587c7cc000e6cd65b72ac0a09ef338df0bce87f"
           },
           "pointer": "/variant_labels/0/value"
         },
         "context-0": {
           "record": {
             "id": "tos.institutional-body.university-leipzig",
-            "version": 1,
-            "digest": "sha256:1b50a8799a46dea831a6193bba033442731e657b7e8380cda0239408c5fe83a4"
+            "version": 2,
+            "digest": "sha256:a13d447b2091a269b5b5448b0587c7cc000e6cd65b72ac0a09ef338df0bce87f"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.institutional-body.university-leipzig",
-            "version": 1,
-            "digest": "sha256:1b50a8799a46dea831a6193bba033442731e657b7e8380cda0239408c5fe83a4"
+            "version": 2,
+            "digest": "sha256:a13d447b2091a269b5b5448b0587c7cc000e6cd65b72ac0a09ef338df0bce87f"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.institutional-body.university-leipzig",
-            "version": 1,
-            "digest": "sha256:1b50a8799a46dea831a6193bba033442731e657b7e8380cda0239408c5fe83a4"
+            "version": 2,
+            "digest": "sha256:a13d447b2091a269b5b5448b0587c7cc000e6cd65b72ac0a09ef338df0bce87f"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.institutional-body.university-leipzig",
-            "version": 1,
-            "digest": "sha256:1b50a8799a46dea831a6193bba033442731e657b7e8380cda0239408c5fe83a4"
+            "version": 2,
+            "digest": "sha256:a13d447b2091a269b5b5448b0587c7cc000e6cd65b72ac0a09ef338df0bce87f"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.institutional-body.university-leipzig",
-            "version": 1,
-            "digest": "sha256:1b50a8799a46dea831a6193bba033442731e657b7e8380cda0239408c5fe83a4"
+            "version": 2,
+            "digest": "sha256:a13d447b2091a269b5b5448b0587c7cc000e6cd65b72ac0a09ef338df0bce87f"
           },
           "pointer": "/variant_labels/0/language"
         },
         "context-5": {
           "record": {
             "id": "tos.institutional-body.university-leipzig",
-            "version": 1,
-            "digest": "sha256:1b50a8799a46dea831a6193bba033442731e657b7e8380cda0239408c5fe83a4"
+            "version": 2,
+            "digest": "sha256:a13d447b2091a269b5b5448b0587c7cc000e6cd65b72ac0a09ef338df0bce87f"
           },
           "pointer": "/variant_labels/0/script"
         },
         "context-6": {
           "record": {
             "id": "tos.institutional-body.university-leipzig",
-            "version": 1,
-            "digest": "sha256:1b50a8799a46dea831a6193bba033442731e657b7e8380cda0239408c5fe83a4"
+            "version": 2,
+            "digest": "sha256:a13d447b2091a269b5b5448b0587c7cc000e6cd65b72ac0a09ef338df0bce87f"
           },
           "pointer": "/variant_labels/0/source_ref"
         },
         "context-7": {
           "record": {
             "id": "tos.institutional-body.university-leipzig",
-            "version": 1,
-            "digest": "sha256:1b50a8799a46dea831a6193bba033442731e657b7e8380cda0239408c5fe83a4"
+            "version": 2,
+            "digest": "sha256:a13d447b2091a269b5b5448b0587c7cc000e6cd65b72ac0a09ef338df0bce87f"
           },
           "pointer": "/variant_labels/0/status"
         }
@@ -171,63 +173,67 @@
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.institutional-body.university-leipzig.note-ru",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.institutional-body.university-leipzig",
-        "version": 1,
-        "digest": "sha256:1b50a8799a46dea831a6193bba033442731e657b7e8380cda0239408c5fe83a4"
+        "version": 2,
+        "digest": "sha256:a13d447b2091a269b5b5448b0587c7cc000e6cd65b72ac0a09ef338df0bce87f"
       },
       "role": "hover",
       "language": "ru",
       "script": "Cyrl",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.institutional-body.university-leipzig.note-ru",
+        "version": 1,
+        "digest": "sha256:d6c8a64064a9dd9dcefb676c208dc1f11d786c71795a27b543ee4cf1f32e14f6"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.institutional-body.university-leipzig",
-            "version": 1,
-            "digest": "sha256:1b50a8799a46dea831a6193bba033442731e657b7e8380cda0239408c5fe83a4"
+            "version": 2,
+            "digest": "sha256:a13d447b2091a269b5b5448b0587c7cc000e6cd65b72ac0a09ef338df0bce87f"
           },
           "pointer": "/notes"
         },
         "context-0": {
           "record": {
             "id": "tos.institutional-body.university-leipzig",
-            "version": 1,
-            "digest": "sha256:1b50a8799a46dea831a6193bba033442731e657b7e8380cda0239408c5fe83a4"
+            "version": 2,
+            "digest": "sha256:a13d447b2091a269b5b5448b0587c7cc000e6cd65b72ac0a09ef338df0bce87f"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.institutional-body.university-leipzig",
-            "version": 1,
-            "digest": "sha256:1b50a8799a46dea831a6193bba033442731e657b7e8380cda0239408c5fe83a4"
+            "version": 2,
+            "digest": "sha256:a13d447b2091a269b5b5448b0587c7cc000e6cd65b72ac0a09ef338df0bce87f"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.institutional-body.university-leipzig",
-            "version": 1,
-            "digest": "sha256:1b50a8799a46dea831a6193bba033442731e657b7e8380cda0239408c5fe83a4"
+            "version": 2,
+            "digest": "sha256:a13d447b2091a269b5b5448b0587c7cc000e6cd65b72ac0a09ef338df0bce87f"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.institutional-body.university-leipzig",
-            "version": 1,
-            "digest": "sha256:1b50a8799a46dea831a6193bba033442731e657b7e8380cda0239408c5fe83a4"
+            "version": 2,
+            "digest": "sha256:a13d447b2091a269b5b5448b0587c7cc000e6cd65b72ac0a09ef338df0bce87f"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.institutional-body.university-leipzig",
-            "version": 1,
-            "digest": "sha256:1b50a8799a46dea831a6193bba033442731e657b7e8380cda0239408c5fe83a4"
+            "version": 2,
+            "digest": "sha256:a13d447b2091a269b5b5448b0587c7cc000e6cd65b72ac0a09ef338df0bce87f"
           },
           "pointer": "/field_languages/notes"
         }
@@ -238,5 +244,243 @@
       }
     }
   ],
-  "prior_forms": []
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:1b50a8799a46dea831a6193bba033442731e657b7e8380cda0239408c5fe83a4",
+            "id": "tos.institutional-body.university-leipzig",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:1b50a8799a46dea831a6193bba033442731e657b7e8380cda0239408c5fe83a4",
+            "id": "tos.institutional-body.university-leipzig",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:1b50a8799a46dea831a6193bba033442731e657b7e8380cda0239408c5fe83a4",
+            "id": "tos.institutional-body.university-leipzig",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:1b50a8799a46dea831a6193bba033442731e657b7e8380cda0239408c5fe83a4",
+            "id": "tos.institutional-body.university-leipzig",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:1b50a8799a46dea831a6193bba033442731e657b7e8380cda0239408c5fe83a4",
+            "id": "tos.institutional-body.university-leipzig",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:1b50a8799a46dea831a6193bba033442731e657b7e8380cda0239408c5fe83a4",
+            "id": "tos.institutional-body.university-leipzig",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.institutional-body.university-leipzig.name-ru",
+      "form_version": 1,
+      "language": "ru",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:1b50a8799a46dea831a6193bba033442731e657b7e8380cda0239408c5fe83a4",
+        "id": "tos.institutional-body.university-leipzig",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:1b50a8799a46dea831a6193bba033442731e657b7e8380cda0239408c5fe83a4",
+            "id": "tos.institutional-body.university-leipzig",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:1b50a8799a46dea831a6193bba033442731e657b7e8380cda0239408c5fe83a4",
+            "id": "tos.institutional-body.university-leipzig",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:1b50a8799a46dea831a6193bba033442731e657b7e8380cda0239408c5fe83a4",
+            "id": "tos.institutional-body.university-leipzig",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:1b50a8799a46dea831a6193bba033442731e657b7e8380cda0239408c5fe83a4",
+            "id": "tos.institutional-body.university-leipzig",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/variant_labels/0/language",
+          "record": {
+            "digest": "sha256:1b50a8799a46dea831a6193bba033442731e657b7e8380cda0239408c5fe83a4",
+            "id": "tos.institutional-body.university-leipzig",
+            "version": 1
+          }
+        },
+        "context-5": {
+          "pointer": "/variant_labels/0/script",
+          "record": {
+            "digest": "sha256:1b50a8799a46dea831a6193bba033442731e657b7e8380cda0239408c5fe83a4",
+            "id": "tos.institutional-body.university-leipzig",
+            "version": 1
+          }
+        },
+        "context-6": {
+          "pointer": "/variant_labels/0/source_ref",
+          "record": {
+            "digest": "sha256:1b50a8799a46dea831a6193bba033442731e657b7e8380cda0239408c5fe83a4",
+            "id": "tos.institutional-body.university-leipzig",
+            "version": 1
+          }
+        },
+        "context-7": {
+          "pointer": "/variant_labels/0/status",
+          "record": {
+            "digest": "sha256:1b50a8799a46dea831a6193bba033442731e657b7e8380cda0239408c5fe83a4",
+            "id": "tos.institutional-body.university-leipzig",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/variant_labels/0/value",
+          "record": {
+            "digest": "sha256:1b50a8799a46dea831a6193bba033442731e657b7e8380cda0239408c5fe83a4",
+            "id": "tos.institutional-body.university-leipzig",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.institutional-body.university-leipzig.name-de",
+      "form_version": 1,
+      "language": "de",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:1b50a8799a46dea831a6193bba033442731e657b7e8380cda0239408c5fe83a4",
+        "id": "tos.institutional-body.university-leipzig",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:1b50a8799a46dea831a6193bba033442731e657b7e8380cda0239408c5fe83a4",
+            "id": "tos.institutional-body.university-leipzig",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:1b50a8799a46dea831a6193bba033442731e657b7e8380cda0239408c5fe83a4",
+            "id": "tos.institutional-body.university-leipzig",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:1b50a8799a46dea831a6193bba033442731e657b7e8380cda0239408c5fe83a4",
+            "id": "tos.institutional-body.university-leipzig",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:1b50a8799a46dea831a6193bba033442731e657b7e8380cda0239408c5fe83a4",
+            "id": "tos.institutional-body.university-leipzig",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:1b50a8799a46dea831a6193bba033442731e657b7e8380cda0239408c5fe83a4",
+            "id": "tos.institutional-body.university-leipzig",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:1b50a8799a46dea831a6193bba033442731e657b7e8380cda0239408c5fe83a4",
+            "id": "tos.institutional-body.university-leipzig",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.institutional-body.university-leipzig.note-ru",
+      "form_version": 1,
+      "language": "ru",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:1b50a8799a46dea831a6193bba033442731e657b7e8380cda0239408c5fe83a4",
+        "id": "tos.institutional-body.university-leipzig",
+        "version": 1
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.institutional-body.university-leipzig",
+    "version": 2,
+    "digest": "sha256:a13d447b2091a269b5b5448b0587c7cc000e6cd65b72ac0a09ef338df0bce87f"
+  }
 }

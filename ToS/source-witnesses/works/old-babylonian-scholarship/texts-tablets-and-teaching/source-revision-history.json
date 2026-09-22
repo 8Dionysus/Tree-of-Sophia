@@ -1,0 +1,90 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.work.old-babylonian-scholarship.texts-tablets-and-teaching",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:67e6f5aacfe3af1eaf18ad2f",
+      "request_digest": "sha256:417b2ab11e35cf74bb705d72b89772914cb03507877e013e81a5f975b8e84b19",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:34d776fb8b65b6cdf595aee1d51afd0e0f62ace0244f0ae57ab64d2b64d1d318",
+      "recorded_at": "2026-09-22T05:09:24.931803+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.work.old-babylonian-scholarship.texts-tablets-and-teaching",
+        "version": 1,
+        "digest": "sha256:d54a4f589c4ea724bac729f116a27bddff1c02ec5b105b64d9151c95b1651d1f"
+      },
+      "source": {
+        "id": "tos.work.old-babylonian-scholarship.texts-tablets-and-teaching",
+        "version": 2,
+        "digest": "sha256:20a81cd8cdeb8b7adb7137205fc6fea3614c410b810dc424cb2dfd2384c793f0"
+      },
+      "previous_revision": "sha256:62422834c85bee22f8c32d1a2e9067b3f4150f418e74536c9568ca2257b3842f",
+      "archive_path": "ToS/source-witnesses/.record-revisions/67e6f5aacfe3af1eaf18ad2f1030030593514496975e08a2a585b82254fe8eac-62422834c85bee22f8c32d1a2e9067b3f4150f418e74536c9568ca2257b3842f",
+      "dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+      "changed_fields": [
+        "notes"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.metadata.8a138fdd6a9ae49f60299d709abd51787981761b3c490d1af0540b4e7f0f9c12",
+          "version": 2,
+          "digest": "sha256:de18f20b83523fe9b22debc2ae8a1143702481440cf1b97d52c0f5e35c860b69"
+        },
+        {
+          "id": "tos.form.metadata.9690d56125124bdb2c99961fd0d0a9f40fcbff5cfc8f5d8b3a88c1e300ecbaa2",
+          "version": 2,
+          "digest": "sha256:f988e2be8a3fb12dfbe1cfc6de0bd4d30acc4ee1c2cd051576487264fb1c8e51"
+        },
+        {
+          "id": "tos.form.metadata.2b9c21f95fd455efb6f69ccfd062917e373577db846925d5ac38ed0f21a92424",
+          "version": 2,
+          "digest": "sha256:2965eb05c12c818712f08ba197053e4ab53f10f2c54885c5dfdcac9e290345d0"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:67e6f5aacfe3af1eaf18ad2f",
+        "expected_configuration": "sha256:34d776fb8b65b6cdf595aee1d51afd0e0f62ace0244f0ae57ab64d2b64d1d318",
+        "expected_dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+        "expected_publication": "sha256:be6c68a00be5df72da76c63633d09a6263c2449a3c1c3f2a6c1f2c8c31b3abc5",
+        "expected_revision": "sha256:62422834c85bee22f8c32d1a2e9067b3f4150f418e74536c9568ca2257b3842f",
+        "expected_source": {
+          "digest": "sha256:d54a4f589c4ea724bac729f116a27bddff1c02ec5b105b64d9151c95b1651d1f",
+          "id": "tos.work.old-babylonian-scholarship.texts-tablets-and-teaching",
+          "version": 1
+        },
+        "fields": {
+          "notes": "Scholarly article originally published in Expedition 40(2), July 1998. It grounds the A02 route to exercise tablets, curricular extracts, and lexical and literary training at Nippur and Ur, attending to tablet type, archaeological context, formation process, and survival bias. Penn presents the digitization as a historical reference whose views may differ from current museum positions. Current coverage is bibliographic, with source-reported authorship awaiting review. Later A02 references reuse this Work identity."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.metadata.8a138fdd6a9ae49f60299d709abd51787981761b3c490d1af0540b4e7f0f9c12"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.metadata.9690d56125124bdb2c99961fd0d0a9f40fcbff5cfc8f5d8b3a88c1e300ecbaa2"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.metadata.2b9c21f95fd455efb6f69ccfd062917e373577db846925d5ac38ed0f21a92424"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:5ef27a8c7cd2b5c37e3315cff3db5472720a2c58622f68d77aa35f3469e17412",
+        "selected_files": [
+          "source-revision-history.json",
+          "work.human-forms.json",
+          "work.json"
+        ]
+      }
+    }
+  ]
+}

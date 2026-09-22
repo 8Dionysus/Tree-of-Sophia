@@ -1,0 +1,99 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.work.sumerian-scholarship.the-instructions-of-shurruppak-a-sumerian-proverb-collection",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:689ea2ead15c5e144b1b5857",
+      "request_digest": "sha256:a6a0cdad5ef50601861d060fd341795f550bb35ef568113b957d75fa3d6bab9e",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:4d87e932ca933bf31685d2cfc72f86a3381cc77be6954447c34b104ec48bf880",
+      "recorded_at": "2026-09-22T05:09:38.438818+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.work.sumerian-scholarship.the-instructions-of-shurruppak-a-sumerian-proverb-collection",
+        "version": 1,
+        "digest": "sha256:edc9cc02ca2aba0cb79a80e4c06d7f98839df5dcf4cfd90f761d3958e9ee16a5"
+      },
+      "source": {
+        "id": "tos.work.sumerian-scholarship.the-instructions-of-shurruppak-a-sumerian-proverb-collection",
+        "version": 2,
+        "digest": "sha256:5a5902edfeec2716a260c097836536658d4075040c20c37a4ac32f6403a816c2"
+      },
+      "previous_revision": "sha256:ecc06810bd5b616206882f944544458eb297e366f2bbd9872b2ee4d114893fce",
+      "archive_path": "ToS/source-witnesses/.record-revisions/689ea2ead15c5e144b1b585752d0c7ee34db219b7f0d468f0b72ca640b48affc-ecc06810bd5b616206882f944544458eb297e366f2bbd9872b2ee4d114893fce",
+      "dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+      "changed_fields": [
+        "notes"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.metadata.4b36e77b84837724306552e84bca8b9bf20eedc2f6246ba09dbef122a40dcc8d",
+          "version": 2,
+          "digest": "sha256:5073501e6c93033449731c2a2a0db2a697450cd099680153264cc8123d4d971a"
+        },
+        {
+          "id": "tos.form.metadata.e6d3f2bb378ced8f2c27a7951dbb39ae330bd542421ac3bf7bcd891927c05521",
+          "version": 2,
+          "digest": "sha256:5d012983296fd486a17a4985ad8d09deab99855824b15c381078d389bac21b29"
+        },
+        {
+          "id": "tos.form.metadata.a008ddd9c6edba6ea0a3ab9be9ccc9432d6351faf2cfeed9479435b44cc0fa06",
+          "version": 2,
+          "digest": "sha256:e8fb839fe507fed3d37c78fb016f45a86bcf783ec29932a0a485479ad1c30a51"
+        },
+        {
+          "id": "tos.form.metadata.765b332b0d478df36e9154b26c094c506e1cf4767d8a92543c67796713369e05",
+          "version": 2,
+          "digest": "sha256:e816a6fe4015ad4528c52e16468e4b71f3a8cf5aed7a8197c54b9eacb3ff6afa"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:689ea2ead15c5e144b1b5857",
+        "expected_configuration": "sha256:4d87e932ca933bf31685d2cfc72f86a3381cc77be6954447c34b104ec48bf880",
+        "expected_dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+        "expected_publication": "sha256:2b6cea086f3cb0f45f8b44dba67f38f12e38a9d10572944f189f9e0e98eff905",
+        "expected_revision": "sha256:ecc06810bd5b616206882f944544458eb297e366f2bbd9872b2ee4d114893fce",
+        "expected_source": {
+          "digest": "sha256:edc9cc02ca2aba0cb79a80e4c06d7f98839df5dcf4cfd90f761d3958e9ee16a5",
+          "id": "tos.work.sumerian-scholarship.the-instructions-of-shurruppak-a-sumerian-proverb-collection",
+          "version": 1
+        },
+        "fields": {
+          "notes": "Scholarly book published by Akademisk Forlag in Copenhagen in 1974 as Mesopotamia 2. It reconstructs and translates multiple versions and supplies the central edition for the A02 Bendt Alster control anchor."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.metadata.4b36e77b84837724306552e84bca8b9bf20eedc2f6246ba09dbef122a40dcc8d"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.metadata.e6d3f2bb378ced8f2c27a7951dbb39ae330bd542421ac3bf7bcd891927c05521"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.metadata.a008ddd9c6edba6ea0a3ab9be9ccc9432d6351faf2cfeed9479435b44cc0fa06"
+          },
+          {
+            "field_id": "metadata.variant-name:1",
+            "form_id": "tos.form.metadata.765b332b0d478df36e9154b26c094c506e1cf4767d8a92543c67796713369e05"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:e026a2b898400f11a1f5d156a483c260634caeed53ccd659e91783d50dd18306",
+        "selected_files": [
+          "source-revision-history.json",
+          "work.human-forms.json",
+          "work.json"
+        ]
+      }
+    }
+  ]
+}

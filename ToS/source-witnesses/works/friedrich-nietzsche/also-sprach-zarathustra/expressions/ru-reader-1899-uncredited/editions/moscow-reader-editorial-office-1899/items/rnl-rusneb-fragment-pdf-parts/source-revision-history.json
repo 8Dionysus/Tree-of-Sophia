@@ -1,0 +1,81 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-reader-1899-uncredited.rnl-rusneb-fragment-pdf-parts",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:8dda85e47ce079384f9df62e",
+      "request_digest": "sha256:2726fb8af2cbf548e24389a4b3d01fcb4ea3febb08ce01a0578093a29731d16a",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:0868986da027ac8f5ad0aa1324f478d1dcd716c912f2a51ea5dd57b0580513f7",
+      "recorded_at": "2026-09-22T05:09:01.653609+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-reader-1899-uncredited.rnl-rusneb-fragment-pdf-parts",
+        "version": 1,
+        "digest": "sha256:7136c8cc2b7ab5fff5a64f290358e4e7224e409da58c038d32c9d1bd8c8e324e"
+      },
+      "source": {
+        "id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-reader-1899-uncredited.rnl-rusneb-fragment-pdf-parts",
+        "version": 2,
+        "digest": "sha256:beb99f12808d056aa0d60d53dcf6e9244479d0932eb18d8658508ec2b81e9e4b"
+      },
+      "previous_revision": "sha256:14aba6942e0758e335f8a3087b142cc1455ffecfc6a3ab6d276f36056484a2d6",
+      "archive_path": "ToS/source-witnesses/.record-revisions/8dda85e47ce079384f9df62e3efca1705308c7a8a129c4036a11cbb1e141e396-14aba6942e0758e335f8a3087b142cc1455ffecfc6a3ab6d276f36056484a2d6",
+      "dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+      "changed_fields": [
+        "notes"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.metadata.a6f2815fa5a21ec7efacd6cc8d56eb437bbe240c39d61390b9e0d068d4a86546",
+          "version": 2,
+          "digest": "sha256:0139fc8a374366a025b96676a714ba8d0afa6d8446dc25f97fee8acb9b621cb5"
+        },
+        {
+          "id": "tos.form.metadata.0cbfff7ace938768815168da957286716db3bddbeee27ed2a72ec93f7a9f45a9",
+          "version": 2,
+          "digest": "sha256:25c27deed057167b1e04e5977c29278819fdee0f4e7a378c6435c3c7fcc02ceb"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:8dda85e47ce079384f9df62e",
+        "expected_configuration": "sha256:0868986da027ac8f5ad0aa1324f478d1dcd716c912f2a51ea5dd57b0580513f7",
+        "expected_dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+        "expected_publication": "sha256:5cc5c75f4d42c16f55eb0a14512534da5cea72f5e01e192c4f2ecb4ac67a27dd",
+        "expected_revision": "sha256:14aba6942e0758e335f8a3087b142cc1455ffecfc6a3ab6d276f36056484a2d6",
+        "expected_source": {
+          "digest": "sha256:7136c8cc2b7ab5fff5a64f290358e4e7224e409da58c038d32c9d1bd8c8e324e",
+          "id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-reader-1899-uncredited.rnl-rusneb-fragment-pdf-parts",
+          "version": 1
+        },
+        "fields": {
+          "notes": "One official RuNEB ZIP download yielded three intact provider-named PDF parts derived from an RNL physical copy. The acquired Item is fragmentary: 22 photographed surfaces include the title page and selected spreads through printed pages 138–139 of the cataloged 236-page Edition."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.metadata.a6f2815fa5a21ec7efacd6cc8d56eb437bbe240c39d61390b9e0d068d4a86546"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.metadata.0cbfff7ace938768815168da957286716db3bddbeee27ed2a72ec93f7a9f45a9"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:05966ab2eeb3f955fb6b2515adcbe9c5dbfb925664b6b4a972fe0a044b7b71c4",
+        "selected_files": [
+          "item.human-forms.json",
+          "item.json",
+          "source-revision-history.json"
+        ]
+      }
+    }
+  ]
+}

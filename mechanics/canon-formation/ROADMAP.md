@@ -1,7 +1,6 @@
 # Canon Formation Roadmap
 
-Canon Formation is planted as the ToS local promotion gate. It protects the
-fact that canon is an earned reviewed layer, not a convenient destination.
+Canon Formation is planted as the ToS local promotion gate. Canon admission follows the declared source evidence and review route.
 
 ## Current Contour
 

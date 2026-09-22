@@ -81,6 +81,7 @@
 - [TOS-D-0063 - Document catalogue dates and locations are separate attributed Claims](../TOS-D-0063-document-catalogue-attributions.md) (`docs/decisions/TOS-D-0063-document-catalogue-attributions.md`)
 - [TOS-D-0064 - Explicit Claim display fields retain source and permission boundaries](../TOS-D-0064-scoped-claim-display-fields.md) (`docs/decisions/TOS-D-0064-scoped-claim-display-fields.md`)
 - [TOS-D-0067 - Typed historical-time source wording in Claim navigation](../TOS-D-0067-typed-time-claim-navigation.md) (`docs/decisions/TOS-D-0067-typed-time-claim-navigation.md`)
+- [TOS-D-0068 - Subject-first foundation wording with exact historical continuity](../TOS-D-0068-subject-first-foundation-wording-and-retained-history.md) (`docs/decisions/TOS-D-0068-subject-first-foundation-wording-and-retained-history.md`)
 
 ## derived exports
 
@@ -185,6 +186,7 @@
 - [TOS-D-0063 - Document catalogue dates and locations are separate attributed Claims](../TOS-D-0063-document-catalogue-attributions.md) (`docs/decisions/TOS-D-0063-document-catalogue-attributions.md`)
 - [TOS-D-0064 - Explicit Claim display fields retain source and permission boundaries](../TOS-D-0064-scoped-claim-display-fields.md) (`docs/decisions/TOS-D-0064-scoped-claim-display-fields.md`)
 - [TOS-D-0067 - Typed historical-time source wording in Claim navigation](../TOS-D-0067-typed-time-claim-navigation.md) (`docs/decisions/TOS-D-0067-typed-time-claim-navigation.md`)
+- [TOS-D-0068 - Subject-first foundation wording with exact historical continuity](../TOS-D-0068-subject-first-foundation-wording-and-retained-history.md) (`docs/decisions/TOS-D-0068-subject-first-foundation-wording-and-retained-history.md`)
 
 ## examples
 
@@ -222,6 +224,7 @@
 - [TOS-D-0058 - Traceable research registry imports and local source planting](../TOS-D-0058-research-registry-import-and-local-source-planting.md) (`docs/decisions/TOS-D-0058-research-registry-import-and-local-source-planting.md`)
 - [TOS-D-0063 - Document catalogue dates and locations are separate attributed Claims](../TOS-D-0063-document-catalogue-attributions.md) (`docs/decisions/TOS-D-0063-document-catalogue-attributions.md`)
 - [TOS-D-0064 - Explicit Claim display fields retain source and permission boundaries](../TOS-D-0064-scoped-claim-display-fields.md) (`docs/decisions/TOS-D-0064-scoped-claim-display-fields.md`)
+- [TOS-D-0068 - Subject-first foundation wording with exact historical continuity](../TOS-D-0068-subject-first-foundation-wording-and-retained-history.md) (`docs/decisions/TOS-D-0068-subject-first-foundation-wording-and-retained-history.md`)
 
 ## owner-handoff
 
@@ -357,6 +360,7 @@
 - [TOS-D-0063 - Document catalogue dates and locations are separate attributed Claims](../TOS-D-0063-document-catalogue-attributions.md) (`docs/decisions/TOS-D-0063-document-catalogue-attributions.md`)
 - [TOS-D-0064 - Explicit Claim display fields retain source and permission boundaries](../TOS-D-0064-scoped-claim-display-fields.md) (`docs/decisions/TOS-D-0064-scoped-claim-display-fields.md`)
 - [TOS-D-0067 - Typed historical-time source wording in Claim navigation](../TOS-D-0067-typed-time-claim-navigation.md) (`docs/decisions/TOS-D-0067-typed-time-claim-navigation.md`)
+- [TOS-D-0068 - Subject-first foundation wording with exact historical continuity](../TOS-D-0068-subject-first-foundation-wording-and-retained-history.md) (`docs/decisions/TOS-D-0068-subject-first-foundation-wording-and-retained-history.md`)
 
 ## tests
 

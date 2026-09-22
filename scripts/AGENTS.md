@@ -26,15 +26,16 @@ Read the root `AGENTS.md`, then the owner surfaces that carry the action:
 
 Scripts are a bounded command and evidence plane. They build generated
 companions, check structural contracts, load executable validation lanes, and
-produce deterministic diagnostics. They do not author ToS meaning, accept
-semantic or rights judgments, become runtime policy, or replace proof, memory,
-KAG, stats, eval, or deployment owners.
+produce deterministic diagnostics. Authored ToS sources own meaning and semantic assessment. Rights, runtime
+policy, proof, memory, KAG, stats, eval and deployment decisions follow their
+named owner routes.
 
 The source/derived split is part of every script contract: a builder may write
 an explicitly owned generated companion; a validator proves its declared
-mechanics only. Passing a source-witness, segmentation, semantic, translation,
-graph, public-entry, or export check never proves human truth, review,
-translation, rights, canon, or runtime acceptance.
+mechanics only. Record the exact scope of a successful source-witness, segmentation, semantic,
+translation, graph, public-entry or export check. Source-visible review,
+rights, canon and runtime acceptance each require evidence from their own
+decision route.
 
 ## Operating Card
 
@@ -59,7 +60,7 @@ translation, rights, canon, or runtime acceptance.
 | mechanics package or part | nearest `mechanics/` card and package validator; scripts only carry repeatable operation law |
 | decision rationale or indexes | `docs/decisions/`; generate and validate indexes after the authored record is reviewed |
 | agent route cards and disclosure | `DESIGN.AGENTS.md`, `docs/validation/agents_route_inventory.json`, and the route currentness/harness scripts |
-| eval, stats, KAG, or memo port | local `evals/`, `stats/`, `kag/`, or `memo/` card, then the named sibling owner; a local receipt is not central acceptance |
+| eval, stats, KAG, or memo port | local `evals/`, `stats/`, `kag/`, or `memo/` card, then the named sibling owner; central acceptance follows the named sibling owner's review |
 
 ## Editing posture
 
@@ -73,17 +74,17 @@ those facts affect admission.
 Do not hide command order in Python. `scripts/release_check.py` runs the
 `release_check` sequence from `docs/validation/validation_lanes.json`.
 `docs/validation/script_inventory.json` describes owner routes and side effects.
-Under TOS-D-0062, adding code does not require a registry row or regenerating an
-inventory. Update a navigation entry when its actual consumer needs that route;
-software validation follows executable code and tests, not inventory parity.
+Under TOS-D-0062, software validation follows executable code and tests.
+Update a navigation entry when its actual consumer needs that route; inventory
+regeneration follows that navigation need.
 
 Generated indexes, catalogs, graph packets, public mirrors, and route
 currentness are read models subordinate to their authored source. A green
 validator is evidence for its named contract only. Source-visible assessment
 by authorized, competent humans or agents owns bibliographic, textual,
 translation and semantic judgments under `ToS/doctrine/KNOWLEDGE_ASSESSMENT.md`.
-Rights, personal consent, canon and publication retain their actual owner
-authority; an assessment does not acquire those permissions by implication.
+Rights, personal consent, canon and publication require authorization from
+their actual owners.
 
 ## Boundary routes
 

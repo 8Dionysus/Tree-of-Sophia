@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://tree-of-sophia.local/ToS/contracts/social-body-record.schema.json",
   "title": "Source-described social groups, communities and institutional bodies",
-  "description": "Correctable descriptions of historical collective identities; membership, activity, role and intellectual affinity remain separate Claims. Shared schema field names describe research scope, not a retyping into the SemanticObject family.",
+  "description": "Correctable descriptions of historical collective identities. Membership, activity, roles and intellectual affinity use separate Claims. Shared research-scope fields preserve the subject’s Organization-family type.",
   "allOf": [
     {
       "$ref": "https://tree-of-sophia.local/ToS/contracts/source-metadata-record.schema.json"
@@ -61,7 +61,7 @@
               "membership_boundary": {
                 "type": "string",
                 "pattern": "\\S",
-                "description": "How membership is understood and where it is unknown or disputed; this is not a list of accepted members."
+                "description": "The group’s membership criterion and its unknown or disputed boundaries. Separate Claims describe particular memberships."
               }
             }
           }
@@ -103,12 +103,12 @@
               "membership_boundary": {
                 "type": "string",
                 "pattern": "\\S",
-                "description": "How membership is understood and where it is unknown or disputed; this is not a list of accepted members."
+                "description": "The group’s membership criterion and its unknown or disputed boundaries. Separate Claims describe particular memberships."
               },
               "community_practice": {
                 "type": "string",
                 "pattern": "\\S",
-                "description": "The continuing interaction or practice grounding this community, not proof of unanimous belief."
+                "description": "The continuing interaction or shared practice grounding this community, including relevant internal variation."
               }
             }
           }

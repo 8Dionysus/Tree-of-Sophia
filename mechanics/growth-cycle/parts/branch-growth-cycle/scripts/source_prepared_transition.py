@@ -16,7 +16,7 @@ from source_metadata_snapshot import PublicationSnapshot
 
 @dataclass(frozen=True)
 class SelectedPreparedTransition:
-    """Detached exact bytes and bindings, not a transferable authority grant.
+    """Detached exact bytes and bindings for the selected local transition.
 
     Only immutable byte/string/tuple values are retained. Decode a copy when
     handing a record to a projector. Root and owner are private local locators;

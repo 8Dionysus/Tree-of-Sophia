@@ -36,7 +36,7 @@
       "required": ["name", "version"],
       "properties": {
         "name": {"const": "build_source_resource_inventories.py"},
-        "version": {"const": "1"}
+        "version": {"enum": ["1", "2"]}
       }
     },
     "provenance_event_ref": {"$ref": "#/$defs/tosId"},
@@ -47,9 +47,7 @@
         {"type": "null"}
       ]
     },
-    "authority_boundary": {
-      "const": "resource enumeration, geometry, ordering, counts, and one-way fingerprints only; no source text, bibliographic acceptance, textual acceptance, rights clearance, translation, semantics, or canon authority"
-    }
+    "authority_boundary": {"type": "string", "minLength": 1, "description": "Brief account of the artifact purpose and scope. Typed status, effects, assessment and permission fields govern its use."}
   },
   "$defs": {
     "tosId": {

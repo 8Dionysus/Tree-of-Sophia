@@ -1,0 +1,108 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.item.friedrich-nietzsche.nietzsches-werke-band-8.naumann-1906.internet-archive-google-stanford-djvu-xml",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:3fd8dc3440e504924ebf2762",
+      "request_digest": "sha256:8aecec5ae73b30a312e6f21ee13ba2664d2b1b4b94fee4084c6487bf48c138ad",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:c6708ae92e0496ec5fd96f8785418e2cf33d3bbbfd3a002a7971ca2e845c8918",
+      "recorded_at": "2026-09-22T05:04:25.535743+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.item.friedrich-nietzsche.nietzsches-werke-band-8.naumann-1906.internet-archive-google-stanford-djvu-xml",
+        "version": 2,
+        "digest": "sha256:0e6f5b24cebadcbd3f42f8c27b662e884a88afd8d467dc26e0c13f9efc827591"
+      },
+      "source": {
+        "id": "tos.item.friedrich-nietzsche.nietzsches-werke-band-8.naumann-1906.internet-archive-google-stanford-djvu-xml",
+        "version": 3,
+        "digest": "sha256:7fd578283e0c58b483fd74bf1e84ec7a9c43c973d36e59903088be7c0ab22b52"
+      },
+      "previous_revision": "sha256:bd081de00343baaf2d071970b4525b81a2c10318a2e341cbf275e1db1aede4c4",
+      "archive_path": "ToS/source-witnesses/.record-revisions/3fd8dc3440e504924ebf276240d380e34cf5b87c936a51042c99d23711305abd-bd081de00343baaf2d071970b4525b81a2c10318a2e341cbf275e1db1aede4c4",
+      "dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+      "changed_fields": [
+        "notes"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.metadata.69f8c2a2cc4f60a4ff0ccb7c19a2f685acaa7bd5b1219180d532080a364286b6",
+          "version": 2,
+          "digest": "sha256:437502288edc0345cd4d732216151e388b3aadc58f129bee91bf55173b637920"
+        },
+        {
+          "id": "tos.form.metadata.71cfc248c68f3522bcf3599304a158fad6992eb66a850bddd95da8277b39068a",
+          "version": 2,
+          "digest": "sha256:e76e65437f244d59d8ffbb285c41f658f484aff913894ca6133680c50b467036"
+        },
+        {
+          "id": "tos.form.metadata.61ee7767a3a84b25dbce5faefa2023f45196bf378d74d03e7c1a71d8b014b04c",
+          "version": 2,
+          "digest": "sha256:bd952bad8eba6192f96feb5269e8200ce99005fa148b9a1ef8c5665af2d77e37"
+        },
+        {
+          "id": "tos.form.metadata.01a3be0c5c12f83e0fdb0fbaf34e9e94573df0f536b51f385ae09f0650bd97de",
+          "version": 2,
+          "digest": "sha256:39a80c4c427928a243ffda47c36781ee71266222335ac3425bb234faa8c30205"
+        },
+        {
+          "id": "tos.form.metadata.9b7d2e5626c4a73cfaf09c2d300ce94643224c4870297d19a359e004cfcbbcf5",
+          "version": 2,
+          "digest": "sha256:1e1f1bc1f17f2ae037369acf03bae69a9168575cd52486ad70f4591ce249e9b1"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:3fd8dc3440e504924ebf2762",
+        "expected_configuration": "sha256:c6708ae92e0496ec5fd96f8785418e2cf33d3bbbfd3a002a7971ca2e845c8918",
+        "expected_dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+        "expected_publication": "sha256:738b6398dd3bcf1fb225eab614b7e600570c182d47b69e8618a5bfa578c6cab2",
+        "expected_revision": "sha256:bd081de00343baaf2d071970b4525b81a2c10318a2e341cbf275e1db1aede4c4",
+        "expected_source": {
+          "digest": "sha256:0e6f5b24cebadcbd3f42f8c27b662e884a88afd8d467dc26e0c13f9efc827591",
+          "id": "tos.item.friedrich-nietzsche.nietzsches-werke-band-8.naumann-1906.internet-archive-google-stanford-djvu-xml",
+          "version": 2
+        },
+        "fields": {
+          "notes": "Provider-generated page-image, scandata, and OCR/layout derivatives for the 1906 Naumann scan lineage. Bibliographic identification rests on the source-visible pages because the Internet Archive descriptive title is contaminated. The internal relation from zero-based leaf/member to one-based navigation page is fixed separately. Correspondence to the Commons scan covers the examined source-visible structural anchors."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.metadata.69f8c2a2cc4f60a4ff0ccb7c19a2f685acaa7bd5b1219180d532080a364286b6"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.metadata.71cfc248c68f3522bcf3599304a158fad6992eb66a850bddd95da8277b39068a"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.metadata.61ee7767a3a84b25dbce5faefa2023f45196bf378d74d03e7c1a71d8b014b04c"
+          },
+          {
+            "field_id": "metadata.variant-name:1",
+            "form_id": "tos.form.metadata.01a3be0c5c12f83e0fdb0fbaf34e9e94573df0f536b51f385ae09f0650bd97de"
+          },
+          {
+            "field_id": "metadata.variant-name:2",
+            "form_id": "tos.form.metadata.9b7d2e5626c4a73cfaf09c2d300ce94643224c4870297d19a359e004cfcbbcf5"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:5083467f473ae7ad5901fe6ac24a5301943b33460837f366899e60bb1a7c75ce",
+        "selected_files": [
+          "item.human-forms.json",
+          "item.json",
+          "source-revision-history.json"
+        ]
+      }
+    }
+  ]
+}

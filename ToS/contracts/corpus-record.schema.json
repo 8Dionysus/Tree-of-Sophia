@@ -20,7 +20,16 @@
       "const": "tos_corpus_record_v1"
     },
     "record_type": {
-      "enum": ["agent", "place", "organization", "work", "expression", "edition", "collection", "item"]
+      "enum": [
+        "agent",
+        "place",
+        "organization",
+        "work",
+        "expression",
+        "edition",
+        "collection",
+        "item"
+      ]
     },
     "record_id": {
       "$ref": "#/$defs/tosId"
@@ -33,144 +42,292 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "preferred_label": {"$ref": "#/$defs/fieldLanguage"},
-        "notes": {"$ref": "#/$defs/fieldLanguage"}
+        "preferred_label": {
+          "$ref": "#/$defs/fieldLanguage"
+        },
+        "notes": {
+          "$ref": "#/$defs/fieldLanguage"
+        }
       },
-      "description": "Language and script of the exact catalog wording, not the Work or Expression language, linguistic originality, translation quality or interface locale. Additional qualifications inside each declaration are retained as mandatory human-form context."
+      "description": "Language and script of the exact catalog wording. The Work or Expression language, linguistic derivation and interface locale have separate declarations. Additional qualifications in each declaration remain mandatory human-form context."
     },
     "variant_labels": {
       "type": "array",
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["value", "language", "source_ref", "status"],
+        "required": [
+          "value",
+          "language",
+          "source_ref",
+          "status"
+        ],
         "properties": {
-          "value": {"type": "string", "minLength": 1},
-          "language": {"$ref": "#/$defs/languageTagOrUnd"},
-          "script": {"$ref": "#/$defs/scriptTagOrNull"},
-          "source_ref": {"$ref": "#/$defs/sourceRef"},
-          "status": {"$ref": "#/$defs/assertionStatus"}
+          "value": {
+            "type": "string",
+            "minLength": 1
+          },
+          "language": {
+            "$ref": "#/$defs/languageTagOrUnd"
+          },
+          "script": {
+            "$ref": "#/$defs/scriptTagOrNull"
+          },
+          "source_ref": {
+            "$ref": "#/$defs/sourceRef"
+          },
+          "status": {
+            "$ref": "#/$defs/assertionStatus"
+          }
         }
       }
     },
     "identity_status": {
-      "enum": ["provisional", "verified", "disputed", "superseded"]
+      "enum": [
+        "provisional",
+        "verified",
+        "disputed",
+        "superseded"
+      ]
     },
     "source_refs": {
       "type": "array",
       "minItems": 1,
       "uniqueItems": true,
-      "items": {"$ref": "#/$defs/sourceRef"}
+      "items": {
+        "$ref": "#/$defs/sourceRef"
+      }
     },
     "external_identifiers": {
       "type": "array",
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["scheme", "value", "source_ref", "status"],
+        "required": [
+          "scheme",
+          "value",
+          "source_ref",
+          "status"
+        ],
         "properties": {
-          "scheme": {"type": "string", "minLength": 1},
-          "value": {"type": "string", "minLength": 1},
-          "source_ref": {"$ref": "#/$defs/sourceRef"},
-          "status": {"$ref": "#/$defs/assertionStatus"}
+          "scheme": {
+            "type": "string",
+            "minLength": 1
+          },
+          "value": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_ref": {
+            "$ref": "#/$defs/sourceRef"
+          },
+          "status": {
+            "$ref": "#/$defs/assertionStatus"
+          }
         }
       }
     },
     "same_as_posture": {
-      "enum": ["not_assessed", "no_equivalence_claim", "candidate_equivalence", "reviewed_equivalence", "reviewed_distinct"]
+      "enum": [
+        "not_assessed",
+        "no_equivalence_claim",
+        "candidate_equivalence",
+        "reviewed_equivalence",
+        "reviewed_distinct"
+      ]
     },
-    "work_ref": {"$ref": "#/$defs/tosId"},
+    "work_ref": {
+      "$ref": "#/$defs/tosId"
+    },
     "expression_claim_refs": {
       "type": "array",
       "uniqueItems": true,
-      "items": {"$ref": "#/$defs/tosId"}
+      "items": {
+        "$ref": "#/$defs/tosId"
+      }
     },
-    "language": {"$ref": "#/$defs/languageTagOrUnd"},
+    "language": {
+      "$ref": "#/$defs/languageTagOrUnd"
+    },
     "expression_role": {
-      "enum": ["source_language", "translation", "adaptation", "critical_text", "other", "unknown"]
+      "enum": [
+        "source_language",
+        "translation",
+        "adaptation",
+        "critical_text",
+        "other",
+        "unknown"
+      ]
     },
     "responsibility_claim_refs": {
       "type": "array",
       "uniqueItems": true,
-      "items": {"$ref": "#/$defs/tosId"}
+      "items": {
+        "$ref": "#/$defs/tosId"
+      }
     },
     "chronology_claim_refs": {
       "type": "array",
       "uniqueItems": true,
-      "items": {"$ref": "#/$defs/tosId"}
+      "items": {
+        "$ref": "#/$defs/tosId"
+      }
     },
     "embodiment_claim_refs": {
       "type": "array",
       "uniqueItems": true,
-      "items": {"$ref": "#/$defs/tosId"}
+      "items": {
+        "$ref": "#/$defs/tosId"
+      }
     },
     "derivation_claim_refs": {
       "type": "array",
       "uniqueItems": true,
-      "items": {"$ref": "#/$defs/tosId"}
+      "items": {
+        "$ref": "#/$defs/tosId"
+      }
     },
     "embodies_expression_refs": {
       "type": "array",
       "uniqueItems": true,
-      "items": {"$ref": "#/$defs/tosId"}
+      "items": {
+        "$ref": "#/$defs/tosId"
+      }
     },
     "edition_statement": {
-      "type": ["string", "null"]
+      "type": [
+        "string",
+        "null"
+      ]
     },
     "publication_claim_refs": {
       "type": "array",
       "uniqueItems": true,
-      "items": {"$ref": "#/$defs/tosId"}
+      "items": {
+        "$ref": "#/$defs/tosId"
+      }
     },
     "provision_activity_claim_refs": {
       "type": "array",
       "uniqueItems": true,
-      "items": {"$ref": "#/$defs/tosId"}
+      "items": {
+        "$ref": "#/$defs/tosId"
+      }
     },
     "exemplar_claim_refs": {
       "type": "array",
       "uniqueItems": true,
-      "items": {"$ref": "#/$defs/tosId"}
+      "items": {
+        "$ref": "#/$defs/tosId"
+      }
     },
-    "collection_ref": {"$ref": "#/$defs/tosId"},
+    "collection_ref": {
+      "$ref": "#/$defs/tosId"
+    },
     "membership_claim_refs": {
       "type": "array",
       "uniqueItems": true,
-      "items": {"$ref": "#/$defs/tosId"}
+      "items": {
+        "$ref": "#/$defs/tosId"
+      }
     },
-    "item_manifest_ref": {"$ref": "#/$defs/repoRelativePath"},
-    "notes": {"type": "string"},
+    "item_manifest_ref": {
+      "$ref": "#/$defs/repoRelativePath"
+    },
+    "notes": {
+      "type": "string"
+    },
     "record_version": {
       "type": "integer",
       "minimum": 1
     },
     "supersedes_ref": {
       "anyOf": [
-        {"$ref": "#/$defs/tosId"},
-        {"type": "null"}
+        {
+          "$ref": "#/$defs/tosId"
+        },
+        {
+          "type": "null"
+        }
       ]
     }
   },
   "allOf": [
     {
-      "if": {"properties": {"record_type": {"const": "work"}}},
-      "then": {"required": ["expression_claim_refs"]}
+      "if": {
+        "properties": {
+          "record_type": {
+            "const": "work"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "expression_claim_refs"
+        ]
+      }
     },
     {
-      "if": {"properties": {"record_type": {"const": "expression"}}},
-      "then": {"required": ["work_ref", "language", "expression_role", "responsibility_claim_refs", "embodiment_claim_refs"]}
+      "if": {
+        "properties": {
+          "record_type": {
+            "const": "expression"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "work_ref",
+          "language",
+          "expression_role",
+          "responsibility_claim_refs",
+          "embodiment_claim_refs"
+        ]
+      }
     },
     {
-      "if": {"properties": {"record_type": {"const": "edition"}}},
-      "then": {"required": ["embodies_expression_refs", "publication_claim_refs", "exemplar_claim_refs"]}
+      "if": {
+        "properties": {
+          "record_type": {
+            "const": "edition"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "embodies_expression_refs",
+          "publication_claim_refs",
+          "exemplar_claim_refs"
+        ]
+      }
     },
     {
-      "if": {"properties": {"record_type": {"const": "collection"}}},
-      "then": {"required": ["membership_claim_refs"]}
+      "if": {
+        "properties": {
+          "record_type": {
+            "const": "collection"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "membership_claim_refs"
+        ]
+      }
     },
     {
-      "if": {"properties": {"record_type": {"const": "item"}}},
-      "then": {"required": ["item_manifest_ref"]}
+      "if": {
+        "properties": {
+          "record_type": {
+            "const": "item"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "item_manifest_ref"
+        ]
+      }
     }
   ],
   "$defs": {
@@ -185,30 +342,60 @@
     },
     "sourceRef": {
       "anyOf": [
-        {"$ref": "#/$defs/tosId"},
-        {"$ref": "#/$defs/repoRelativePath"},
-        {"type": "string", "format": "uri"}
+        {
+          "$ref": "#/$defs/tosId"
+        },
+        {
+          "$ref": "#/$defs/repoRelativePath"
+        },
+        {
+          "type": "string",
+          "format": "uri"
+        }
       ]
     },
     "assertionStatus": {
-      "enum": ["unverified", "verified", "disputed", "rejected", "superseded"]
+      "enum": [
+        "unverified",
+        "verified",
+        "disputed",
+        "rejected",
+        "superseded"
+      ]
     },
     "languageTagOrUnd": {
       "type": "string",
       "pattern": "^(?:[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*|[iIxX](?:-[A-Za-z0-9]{1,8})+)$(?![\\s\\S])"
     },
     "scriptTagOrNull": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "pattern": "^[A-Za-z]{4}$(?![\\s\\S])"
     },
     "fieldLanguage": {
       "type": "object",
-      "required": ["language", "script"],
+      "required": [
+        "language",
+        "script"
+      ],
       "properties": {
-        "language": {"anyOf": [{"$ref": "#/$defs/languageTagOrUnd"}, {"type": "null"}]},
-        "script": {"$ref": "#/$defs/scriptTagOrNull"}
+        "language": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/languageTagOrUnd"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "script": {
+          "$ref": "#/$defs/scriptTagOrNull"
+        }
       },
-      "description": "An explicit source declaration. Unknown language/script remain null; private-use and unknown but structurally supported tags are preserved, not certified as registered. Qualifications are open and retained; they confer no assessment or admission."
+      "description": "An explicit source language/script declaration. Unknown values remain null. Structurally supported private-use and unknown tags are preserved with their qualifications. Tag registration, linguistic quality and admission require their applicable checks."
     }
   }
 }

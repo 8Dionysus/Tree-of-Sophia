@@ -1,0 +1,90 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.agent.otto-neurath",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:70dc0e36b5e12dd17fd09f28",
+      "request_digest": "sha256:c307bf32ac2f5dcecf1e453face5bccb0fded90a97f3e4a525c588779f1b7334",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:701ef6d9abf72cc4c9c3b671026664641e86d5f38323e08647012def33037648",
+      "recorded_at": "2026-09-22T05:04:17.126669+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.agent.otto-neurath",
+        "version": 1,
+        "digest": "sha256:eedfc4010f7f3d8f93cadf349b188b64ce8c8d02725ecdfe8bd9ed8fb74ea227"
+      },
+      "source": {
+        "id": "tos.agent.otto-neurath",
+        "version": 2,
+        "digest": "sha256:ef051ba27a84c0048250d726bd1cd69dd90d22fd1a56b574f1799b7d8b54fd28"
+      },
+      "previous_revision": "sha256:af518bf063b63d7de0e2c2bba8aae00810f79f2d3c82c2c916994e592fa37a48",
+      "archive_path": "ToS/source-witnesses/.record-revisions/70dc0e36b5e12dd17fd09f2873b269d76ac1c3e9b714e28975d20d303a8ce001-af518bf063b63d7de0e2c2bba8aae00810f79f2d3c82c2c916994e592fa37a48",
+      "dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+      "changed_fields": [
+        "notes"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.agent.otto-neurath.name-ru",
+          "version": 2,
+          "digest": "sha256:9da899a4d93e5e84f8017d5363471ad487a7a09db0195471edd938cc7264c638"
+        },
+        {
+          "id": "tos.form.agent.otto-neurath.name-de",
+          "version": 2,
+          "digest": "sha256:b5e45cc20e4ac265dad7d4402f25d1e0145dea326d96f2d30772945d6ec126cd"
+        },
+        {
+          "id": "tos.form.agent.otto-neurath.note-ru",
+          "version": 2,
+          "digest": "sha256:d21134c45999d81ad0445112e9bea6b4032a622df7d9165ba91b2eb8b697ffc1"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:70dc0e36b5e12dd17fd09f28",
+        "expected_configuration": "sha256:701ef6d9abf72cc4c9c3b671026664641e86d5f38323e08647012def33037648",
+        "expected_dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+        "expected_publication": "sha256:3d157d65f1032d803eb88698e3ff9fd45dc1b093600552a5ac59d68aaf91ff1e",
+        "expected_revision": "sha256:af518bf063b63d7de0e2c2bba8aae00810f79f2d3c82c2c916994e592fa37a48",
+        "expected_source": {
+          "digest": "sha256:eedfc4010f7f3d8f93cadf349b188b64ce8c8d02725ecdfe8bd9ed8fb74ea227",
+          "id": "tos.agent.otto-neurath",
+          "version": 1
+        },
+        "fields": {
+          "notes": "Историческое лицо, названное в венском очерке среди основателей кружка."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.agent.otto-neurath.name-ru"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.agent.otto-neurath.name-de"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.agent.otto-neurath.note-ru"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:834b0947745667deff2dcb2ca59db8520bf1a18f5932adb74b9f6ac3e99b92b9",
+        "selected_files": [
+          "agent.human-forms.json",
+          "agent.json",
+          "source-revision-history.json"
+        ]
+      }
+    }
+  ]
+}

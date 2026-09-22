@@ -1,0 +1,90 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.work.friedrich-nietzsche.ecce-homo",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:7f862280de1e39ee9eefb456",
+      "request_digest": "sha256:f0b9ab938f74111707b0439af9bbb1e9e9a2c9ea6bdb5c36da1cc6a192142430",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:94315b5add6e311be44db8f0844460bbfcc050e8a037e6adeff76183919936f4",
+      "recorded_at": "2026-09-22T05:09:07.347636+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.work.friedrich-nietzsche.ecce-homo",
+        "version": 6,
+        "digest": "sha256:29f29d6af134e9517e788fe22dd8efb80a746f11f67db491b9ebd2febb9b23e6"
+      },
+      "source": {
+        "id": "tos.work.friedrich-nietzsche.ecce-homo",
+        "version": 7,
+        "digest": "sha256:a55306af0745d77ecbd142c07f6a8aa79a5c969f78442f94497094b6de6317f2"
+      },
+      "previous_revision": "sha256:b67d01b82094cc5f085de7dfa9f3bc4d92586f2022b512caac417f0d95e576d6",
+      "archive_path": "ToS/source-witnesses/.record-revisions/7f862280de1e39ee9eefb456c351c9d74d1cc5835ec55e6d864d6933607f6eeb-b67d01b82094cc5f085de7dfa9f3bc4d92586f2022b512caac417f0d95e576d6",
+      "dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+      "changed_fields": [
+        "notes"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.metadata.ef650bd4ae7147a44b781f6df513aff40418dcaddc36176614476994a78716a5",
+          "version": 2,
+          "digest": "sha256:658651d0a85b733ddf64706a6cd4801a5218784d12b2e420db54ab9ef316f5cd"
+        },
+        {
+          "id": "tos.form.metadata.2c51f2b0f6a67b4ed5ccd456cdf8fe116c53b624099a8a231aba8b0d83c1ee7d",
+          "version": 2,
+          "digest": "sha256:fd98ac8e2839eece8589be8569b126c412eb253c796fe0630a9acc61524662bd"
+        },
+        {
+          "id": "tos.form.metadata.b480843c676af0c5b084a6a0c852ac3f2ce45b9fdf02f24a23a33671e5ded9c7",
+          "version": 2,
+          "digest": "sha256:dfa7123113a2bad6aec7d69284f035bf0b9f42d698db349039b00a1cc62ea9b6"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:7f862280de1e39ee9eefb456",
+        "expected_configuration": "sha256:94315b5add6e311be44db8f0844460bbfcc050e8a037e6adeff76183919936f4",
+        "expected_dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+        "expected_publication": "sha256:ea4f74e82da0a13bff81423655321f0c95e7c20a08ffc7af8e4184c3b9d6aa18",
+        "expected_revision": "sha256:b67d01b82094cc5f085de7dfa9f3bc4d92586f2022b512caac417f0d95e576d6",
+        "expected_source": {
+          "digest": "sha256:29f29d6af134e9517e788fe22dd8efb80a746f11f67db491b9ebd2febb9b23e6",
+          "id": "tos.work.friedrich-nietzsche.ecce-homo",
+          "version": 6
+        },
+        "fields": {
+          "notes": "Work identity follows the GND work authority. The local Mysl translation and the 1908 Insel posthumous editorial expression are represented separately. The authorial-witness metadata route resolves GSA 71/32 (D 25), GSA 71/33 (D 25a), related late notebooks and loose leaves, the surviving replacement-section copy, and the eKGWB critical address family."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.metadata.ef650bd4ae7147a44b781f6df513aff40418dcaddc36176614476994a78716a5"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.metadata.2c51f2b0f6a67b4ed5ccd456cdf8fe116c53b624099a8a231aba8b0d83c1ee7d"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.metadata.b480843c676af0c5b084a6a0c852ac3f2ce45b9fdf02f24a23a33671e5ded9c7"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:e99aaab63dc1fd2be4f226c5612f079715ded4975b6b0ee281c755df0c2842fb",
+        "selected_files": [
+          "source-revision-history.json",
+          "work.human-forms.json",
+          "work.json"
+        ]
+      }
+    }
+  ]
+}

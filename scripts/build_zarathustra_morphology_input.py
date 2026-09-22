@@ -30,9 +30,7 @@ PLAN_SCHEMA = Path("ToS/contracts/morphology-evaluation-plan.schema.json")
 RECEIPT_SCHEMA = Path("ToS/contracts/morphology-input-receipt.schema.json")
 GENERATOR_REF = "scripts/build_zarathustra_morphology_input.py"
 AUTHORITY_BOUNDARY = (
-    "private exact-form morphology input materialization only; no accepted "
-    "German, source correction, lemma, lexeme, sign, concept, translation, "
-    "claim, relation, graph, canon, rights clearance, publication, or human backlog"
+    "This artifact materializes private exact-form input for the selected morphology experiment."
 )
 ROW_FIELDS = [
     "schema_version",
@@ -423,8 +421,7 @@ def main() -> int:
         f"forms / {receipt['summary']['token_occurrence_count']} occurrences"
     )
     print(
-        "[boundary] input materialization creates no morphology output, "
-        "accepted German, lemma, lexeme, sign, or human work"
+        "[scope] Exact private morphology input with tracked fixity, counts and source-return metadata."
     )
     return 0
 

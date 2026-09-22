@@ -1,0 +1,81 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.agent.denise-schmandt-besserat",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:97c81e826388d6a6a17515c3",
+      "request_digest": "sha256:41190b1f527ea7fd478fb433164e6ab077912e3660b35cf0daf1808651d76f17",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:c56833aaed36aaf3152b5b2d281dc13ce7328627bb8842b26601fc5853c233c9",
+      "recorded_at": "2026-09-22T05:03:59.194424+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.agent.denise-schmandt-besserat",
+        "version": 1,
+        "digest": "sha256:a99734616c783a42af811e81738931010763f19a7cf64d9ddb734c201234143f"
+      },
+      "source": {
+        "id": "tos.agent.denise-schmandt-besserat",
+        "version": 2,
+        "digest": "sha256:74529439a7aec6586683bf689a21a25e6e49608fd0c4e71ae0a4a087948579e9"
+      },
+      "previous_revision": "sha256:9baa07f972946880ecf2c7764401261be3372ccf69d7f3d67426c895d603ed99",
+      "archive_path": "ToS/source-witnesses/.record-revisions/97c81e826388d6a6a17515c360655a44b889813c976c9d8cd2ca66647a1f72fc-9baa07f972946880ecf2c7764401261be3372ccf69d7f3d67426c895d603ed99",
+      "dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+      "changed_fields": [
+        "notes"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.metadata.a73d327072443d025d8df31d6f50e15478d9749345096f0e66f7715216b6667e",
+          "version": 2,
+          "digest": "sha256:47a19677b6b5a48a4696db8854896aef0e182d39e69475eb11c7072fdd35a334"
+        },
+        {
+          "id": "tos.form.metadata.2508ca4dfb23951551ce46942daa899bb77c9a49dbdc341fd548e6c1e6af71bc",
+          "version": 2,
+          "digest": "sha256:5de403d9c1a1fbce0f2bd00600d20c61b55bc7e46ea58317630887d4743e811d"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:97c81e826388d6a6a17515c3",
+        "expected_configuration": "sha256:c56833aaed36aaf3152b5b2d281dc13ce7328627bb8842b26601fc5853c233c9",
+        "expected_dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+        "expected_publication": "sha256:76f65050a464d3f820d9bc0493a7b00c4930da90e82a1baa3344537acf7bb0b5",
+        "expected_revision": "sha256:9baa07f972946880ecf2c7764401261be3372ccf69d7f3d67426c895d603ed99",
+        "expected_source": {
+          "digest": "sha256:a99734616c783a42af811e81738931010763f19a7cf64d9ddb734c201234143f",
+          "id": "tos.agent.denise-schmandt-besserat",
+          "version": 1
+        },
+        "fields": {
+          "notes": "Name and authorship of Before Writing, Vol. I are reported consistently by University of Texas Press, BiblioVault, and the author-maintained UT Austin site."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.metadata.a73d327072443d025d8df31d6f50e15478d9749345096f0e66f7715216b6667e"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.metadata.2508ca4dfb23951551ce46942daa899bb77c9a49dbdc341fd548e6c1e6af71bc"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:f77ed6eadb0b28c43ba10c8cb71e7a62f4b3a012e48e5b216589699d02c9de11",
+        "selected_files": [
+          "agent.human-forms.json",
+          "agent.json",
+          "source-revision-history.json"
+        ]
+      }
+    }
+  ]
+}

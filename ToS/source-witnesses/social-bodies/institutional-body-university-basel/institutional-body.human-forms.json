@@ -1,71 +1,69 @@
 {
-  "schema_version": "tos_human_form_set_v1",
-  "subject": {
-    "id": "tos.institutional-body.university-basel",
-    "version": 1,
-    "digest": "sha256:e3f13ce0a76db14ccf05ffe039a23f2df51b1aaf974f613359573268ce9e3d78"
-  },
   "forms": [
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.institutional-body.university-basel.name-ru",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.institutional-body.university-basel",
-        "version": 1,
-        "digest": "sha256:e3f13ce0a76db14ccf05ffe039a23f2df51b1aaf974f613359573268ce9e3d78"
+        "version": 2,
+        "digest": "sha256:a0fba07fb15237af6f1691ed467ebb30149f954928e9bf707dee08fad2dc5fee"
       },
       "role": "name",
       "language": "ru",
       "script": "Cyrl",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.institutional-body.university-basel.name-ru",
+        "version": 1,
+        "digest": "sha256:53e23089a6f3c6e671bdb02ba77539d83acd1ff9b962f0175feb2db70ec34bda"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.institutional-body.university-basel",
-            "version": 1,
-            "digest": "sha256:e3f13ce0a76db14ccf05ffe039a23f2df51b1aaf974f613359573268ce9e3d78"
+            "version": 2,
+            "digest": "sha256:a0fba07fb15237af6f1691ed467ebb30149f954928e9bf707dee08fad2dc5fee"
           },
           "pointer": "/preferred_label"
         },
         "context-0": {
           "record": {
             "id": "tos.institutional-body.university-basel",
-            "version": 1,
-            "digest": "sha256:e3f13ce0a76db14ccf05ffe039a23f2df51b1aaf974f613359573268ce9e3d78"
+            "version": 2,
+            "digest": "sha256:a0fba07fb15237af6f1691ed467ebb30149f954928e9bf707dee08fad2dc5fee"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.institutional-body.university-basel",
-            "version": 1,
-            "digest": "sha256:e3f13ce0a76db14ccf05ffe039a23f2df51b1aaf974f613359573268ce9e3d78"
+            "version": 2,
+            "digest": "sha256:a0fba07fb15237af6f1691ed467ebb30149f954928e9bf707dee08fad2dc5fee"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.institutional-body.university-basel",
-            "version": 1,
-            "digest": "sha256:e3f13ce0a76db14ccf05ffe039a23f2df51b1aaf974f613359573268ce9e3d78"
+            "version": 2,
+            "digest": "sha256:a0fba07fb15237af6f1691ed467ebb30149f954928e9bf707dee08fad2dc5fee"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.institutional-body.university-basel",
-            "version": 1,
-            "digest": "sha256:e3f13ce0a76db14ccf05ffe039a23f2df51b1aaf974f613359573268ce9e3d78"
+            "version": 2,
+            "digest": "sha256:a0fba07fb15237af6f1691ed467ebb30149f954928e9bf707dee08fad2dc5fee"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.institutional-body.university-basel",
-            "version": 1,
-            "digest": "sha256:e3f13ce0a76db14ccf05ffe039a23f2df51b1aaf974f613359573268ce9e3d78"
+            "version": 2,
+            "digest": "sha256:a0fba07fb15237af6f1691ed467ebb30149f954928e9bf707dee08fad2dc5fee"
           },
           "pointer": "/field_languages/preferred_label"
         }
@@ -78,87 +76,91 @@
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.institutional-body.university-basel.name-de",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.institutional-body.university-basel",
-        "version": 1,
-        "digest": "sha256:e3f13ce0a76db14ccf05ffe039a23f2df51b1aaf974f613359573268ce9e3d78"
+        "version": 2,
+        "digest": "sha256:a0fba07fb15237af6f1691ed467ebb30149f954928e9bf707dee08fad2dc5fee"
       },
       "role": "name",
       "language": "de",
       "script": "Latn",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.institutional-body.university-basel.name-de",
+        "version": 1,
+        "digest": "sha256:77ccd9ea4aaf6d426e5a56ab0ceb9a4c4dd9b42dadb080c1464e11c90e0fe056"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.institutional-body.university-basel",
-            "version": 1,
-            "digest": "sha256:e3f13ce0a76db14ccf05ffe039a23f2df51b1aaf974f613359573268ce9e3d78"
+            "version": 2,
+            "digest": "sha256:a0fba07fb15237af6f1691ed467ebb30149f954928e9bf707dee08fad2dc5fee"
           },
           "pointer": "/variant_labels/0/value"
         },
         "context-0": {
           "record": {
             "id": "tos.institutional-body.university-basel",
-            "version": 1,
-            "digest": "sha256:e3f13ce0a76db14ccf05ffe039a23f2df51b1aaf974f613359573268ce9e3d78"
+            "version": 2,
+            "digest": "sha256:a0fba07fb15237af6f1691ed467ebb30149f954928e9bf707dee08fad2dc5fee"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.institutional-body.university-basel",
-            "version": 1,
-            "digest": "sha256:e3f13ce0a76db14ccf05ffe039a23f2df51b1aaf974f613359573268ce9e3d78"
+            "version": 2,
+            "digest": "sha256:a0fba07fb15237af6f1691ed467ebb30149f954928e9bf707dee08fad2dc5fee"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.institutional-body.university-basel",
-            "version": 1,
-            "digest": "sha256:e3f13ce0a76db14ccf05ffe039a23f2df51b1aaf974f613359573268ce9e3d78"
+            "version": 2,
+            "digest": "sha256:a0fba07fb15237af6f1691ed467ebb30149f954928e9bf707dee08fad2dc5fee"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.institutional-body.university-basel",
-            "version": 1,
-            "digest": "sha256:e3f13ce0a76db14ccf05ffe039a23f2df51b1aaf974f613359573268ce9e3d78"
+            "version": 2,
+            "digest": "sha256:a0fba07fb15237af6f1691ed467ebb30149f954928e9bf707dee08fad2dc5fee"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.institutional-body.university-basel",
-            "version": 1,
-            "digest": "sha256:e3f13ce0a76db14ccf05ffe039a23f2df51b1aaf974f613359573268ce9e3d78"
+            "version": 2,
+            "digest": "sha256:a0fba07fb15237af6f1691ed467ebb30149f954928e9bf707dee08fad2dc5fee"
           },
           "pointer": "/variant_labels/0/language"
         },
         "context-5": {
           "record": {
             "id": "tos.institutional-body.university-basel",
-            "version": 1,
-            "digest": "sha256:e3f13ce0a76db14ccf05ffe039a23f2df51b1aaf974f613359573268ce9e3d78"
+            "version": 2,
+            "digest": "sha256:a0fba07fb15237af6f1691ed467ebb30149f954928e9bf707dee08fad2dc5fee"
           },
           "pointer": "/variant_labels/0/script"
         },
         "context-6": {
           "record": {
             "id": "tos.institutional-body.university-basel",
-            "version": 1,
-            "digest": "sha256:e3f13ce0a76db14ccf05ffe039a23f2df51b1aaf974f613359573268ce9e3d78"
+            "version": 2,
+            "digest": "sha256:a0fba07fb15237af6f1691ed467ebb30149f954928e9bf707dee08fad2dc5fee"
           },
           "pointer": "/variant_labels/0/source_ref"
         },
         "context-7": {
           "record": {
             "id": "tos.institutional-body.university-basel",
-            "version": 1,
-            "digest": "sha256:e3f13ce0a76db14ccf05ffe039a23f2df51b1aaf974f613359573268ce9e3d78"
+            "version": 2,
+            "digest": "sha256:a0fba07fb15237af6f1691ed467ebb30149f954928e9bf707dee08fad2dc5fee"
           },
           "pointer": "/variant_labels/0/status"
         }
@@ -171,63 +173,67 @@
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.institutional-body.university-basel.note-ru",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.institutional-body.university-basel",
-        "version": 1,
-        "digest": "sha256:e3f13ce0a76db14ccf05ffe039a23f2df51b1aaf974f613359573268ce9e3d78"
+        "version": 2,
+        "digest": "sha256:a0fba07fb15237af6f1691ed467ebb30149f954928e9bf707dee08fad2dc5fee"
       },
       "role": "hover",
       "language": "ru",
       "script": "Cyrl",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.institutional-body.university-basel.note-ru",
+        "version": 1,
+        "digest": "sha256:add25293b3d1a2a42e51a82e76123b9f73e8b0a3a96b2fd715c2f577e9fb2fcd"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.institutional-body.university-basel",
-            "version": 1,
-            "digest": "sha256:e3f13ce0a76db14ccf05ffe039a23f2df51b1aaf974f613359573268ce9e3d78"
+            "version": 2,
+            "digest": "sha256:a0fba07fb15237af6f1691ed467ebb30149f954928e9bf707dee08fad2dc5fee"
           },
           "pointer": "/notes"
         },
         "context-0": {
           "record": {
             "id": "tos.institutional-body.university-basel",
-            "version": 1,
-            "digest": "sha256:e3f13ce0a76db14ccf05ffe039a23f2df51b1aaf974f613359573268ce9e3d78"
+            "version": 2,
+            "digest": "sha256:a0fba07fb15237af6f1691ed467ebb30149f954928e9bf707dee08fad2dc5fee"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.institutional-body.university-basel",
-            "version": 1,
-            "digest": "sha256:e3f13ce0a76db14ccf05ffe039a23f2df51b1aaf974f613359573268ce9e3d78"
+            "version": 2,
+            "digest": "sha256:a0fba07fb15237af6f1691ed467ebb30149f954928e9bf707dee08fad2dc5fee"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.institutional-body.university-basel",
-            "version": 1,
-            "digest": "sha256:e3f13ce0a76db14ccf05ffe039a23f2df51b1aaf974f613359573268ce9e3d78"
+            "version": 2,
+            "digest": "sha256:a0fba07fb15237af6f1691ed467ebb30149f954928e9bf707dee08fad2dc5fee"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.institutional-body.university-basel",
-            "version": 1,
-            "digest": "sha256:e3f13ce0a76db14ccf05ffe039a23f2df51b1aaf974f613359573268ce9e3d78"
+            "version": 2,
+            "digest": "sha256:a0fba07fb15237af6f1691ed467ebb30149f954928e9bf707dee08fad2dc5fee"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.institutional-body.university-basel",
-            "version": 1,
-            "digest": "sha256:e3f13ce0a76db14ccf05ffe039a23f2df51b1aaf974f613359573268ce9e3d78"
+            "version": 2,
+            "digest": "sha256:a0fba07fb15237af6f1691ed467ebb30149f954928e9bf707dee08fad2dc5fee"
           },
           "pointer": "/field_languages/notes"
         }
@@ -238,5 +244,243 @@
       }
     }
   ],
-  "prior_forms": []
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:e3f13ce0a76db14ccf05ffe039a23f2df51b1aaf974f613359573268ce9e3d78",
+            "id": "tos.institutional-body.university-basel",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:e3f13ce0a76db14ccf05ffe039a23f2df51b1aaf974f613359573268ce9e3d78",
+            "id": "tos.institutional-body.university-basel",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:e3f13ce0a76db14ccf05ffe039a23f2df51b1aaf974f613359573268ce9e3d78",
+            "id": "tos.institutional-body.university-basel",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:e3f13ce0a76db14ccf05ffe039a23f2df51b1aaf974f613359573268ce9e3d78",
+            "id": "tos.institutional-body.university-basel",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:e3f13ce0a76db14ccf05ffe039a23f2df51b1aaf974f613359573268ce9e3d78",
+            "id": "tos.institutional-body.university-basel",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:e3f13ce0a76db14ccf05ffe039a23f2df51b1aaf974f613359573268ce9e3d78",
+            "id": "tos.institutional-body.university-basel",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.institutional-body.university-basel.name-ru",
+      "form_version": 1,
+      "language": "ru",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:e3f13ce0a76db14ccf05ffe039a23f2df51b1aaf974f613359573268ce9e3d78",
+        "id": "tos.institutional-body.university-basel",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:e3f13ce0a76db14ccf05ffe039a23f2df51b1aaf974f613359573268ce9e3d78",
+            "id": "tos.institutional-body.university-basel",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:e3f13ce0a76db14ccf05ffe039a23f2df51b1aaf974f613359573268ce9e3d78",
+            "id": "tos.institutional-body.university-basel",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:e3f13ce0a76db14ccf05ffe039a23f2df51b1aaf974f613359573268ce9e3d78",
+            "id": "tos.institutional-body.university-basel",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:e3f13ce0a76db14ccf05ffe039a23f2df51b1aaf974f613359573268ce9e3d78",
+            "id": "tos.institutional-body.university-basel",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/variant_labels/0/language",
+          "record": {
+            "digest": "sha256:e3f13ce0a76db14ccf05ffe039a23f2df51b1aaf974f613359573268ce9e3d78",
+            "id": "tos.institutional-body.university-basel",
+            "version": 1
+          }
+        },
+        "context-5": {
+          "pointer": "/variant_labels/0/script",
+          "record": {
+            "digest": "sha256:e3f13ce0a76db14ccf05ffe039a23f2df51b1aaf974f613359573268ce9e3d78",
+            "id": "tos.institutional-body.university-basel",
+            "version": 1
+          }
+        },
+        "context-6": {
+          "pointer": "/variant_labels/0/source_ref",
+          "record": {
+            "digest": "sha256:e3f13ce0a76db14ccf05ffe039a23f2df51b1aaf974f613359573268ce9e3d78",
+            "id": "tos.institutional-body.university-basel",
+            "version": 1
+          }
+        },
+        "context-7": {
+          "pointer": "/variant_labels/0/status",
+          "record": {
+            "digest": "sha256:e3f13ce0a76db14ccf05ffe039a23f2df51b1aaf974f613359573268ce9e3d78",
+            "id": "tos.institutional-body.university-basel",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/variant_labels/0/value",
+          "record": {
+            "digest": "sha256:e3f13ce0a76db14ccf05ffe039a23f2df51b1aaf974f613359573268ce9e3d78",
+            "id": "tos.institutional-body.university-basel",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.institutional-body.university-basel.name-de",
+      "form_version": 1,
+      "language": "de",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:e3f13ce0a76db14ccf05ffe039a23f2df51b1aaf974f613359573268ce9e3d78",
+        "id": "tos.institutional-body.university-basel",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:e3f13ce0a76db14ccf05ffe039a23f2df51b1aaf974f613359573268ce9e3d78",
+            "id": "tos.institutional-body.university-basel",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:e3f13ce0a76db14ccf05ffe039a23f2df51b1aaf974f613359573268ce9e3d78",
+            "id": "tos.institutional-body.university-basel",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:e3f13ce0a76db14ccf05ffe039a23f2df51b1aaf974f613359573268ce9e3d78",
+            "id": "tos.institutional-body.university-basel",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:e3f13ce0a76db14ccf05ffe039a23f2df51b1aaf974f613359573268ce9e3d78",
+            "id": "tos.institutional-body.university-basel",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:e3f13ce0a76db14ccf05ffe039a23f2df51b1aaf974f613359573268ce9e3d78",
+            "id": "tos.institutional-body.university-basel",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:e3f13ce0a76db14ccf05ffe039a23f2df51b1aaf974f613359573268ce9e3d78",
+            "id": "tos.institutional-body.university-basel",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.institutional-body.university-basel.note-ru",
+      "form_version": 1,
+      "language": "ru",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:e3f13ce0a76db14ccf05ffe039a23f2df51b1aaf974f613359573268ce9e3d78",
+        "id": "tos.institutional-body.university-basel",
+        "version": 1
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.institutional-body.university-basel",
+    "version": 2,
+    "digest": "sha256:a0fba07fb15237af6f1691ed467ebb30149f954928e9bf707dee08fad2dc5fee"
+  }
 }

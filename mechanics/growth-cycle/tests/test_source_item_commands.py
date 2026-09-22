@@ -214,6 +214,27 @@ class NativeItemTests(unittest.TestCase):
                 self.assertNotIn(str(self.input).encode(), raw, str(path))
                 self.assertNotIn(str(self.recovery_root).encode(), raw, str(path))
 
+    def test_retained_inventory_v1_replays_after_current_prose_revision(self):
+        before = self.edition_path.read_bytes()
+        with patch.object(item, 'INVENTORY_GENERATOR_VERSION', '1'):
+            request = self.request()
+            commands.run_local_command(self.owner, request)
+        self.rebuild()
+        kept = item.verify_compound(self.root, item._claim_source_ref(self.config), request['claim'])
+        self.assertFalse(kept['grants_admission'])
+        inventory = json.loads((self.root / self.config['item_source_path']).with_name('resource-inventory.json').read_bytes())
+        self.assertEqual(inventory['generator']['version'], '1')
+        self.assertEqual(inventory['authority_boundary'], item.inventory_authority_boundary('1'))
+        self.assertNotEqual(inventory['authority_boundary'], item.inventory_authority_boundary('2'))
+        from metadata_version_reader import MetadataVersionReader
+        from validate_source_witness_foundation import _recorded_provenance_matches
+        reader = MetadataVersionReader(self.root)
+        self.assertTrue(_recorded_provenance_matches(self.root, self.config['edition_source_path'],
+            hashlib.sha256(before).hexdigest(), reader))
+        self.assertFalse(_recorded_provenance_matches(self.root, self.config['edition_source_path'],
+            '0' * 64, reader))
+        reader.verify_current()
+
     def test_unsupported_format_retained_without_acquired_metadata(self):
         self.input.write_bytes(b'Synthetic opaque octet stream.\n')
         self.config.update(media_type='application/octet-stream', byte_size=self.input.stat().st_size,

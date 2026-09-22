@@ -1,0 +1,90 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.expression.friedrich-nietzsche.ecce-homo.de-richter-insel-1908",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:db0d6f17e1e29191d7dfef93",
+      "request_digest": "sha256:378427d31df978c5768b144981b194c12117d25cbd113cac8b1adbe3226ccc1e",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:a99280954470ddb3ca1a6ed6a9c80d59f41c7fcfbc7af47b61ce100c5e6d7bd8",
+      "recorded_at": "2026-09-22T05:09:06.722821+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.expression.friedrich-nietzsche.ecce-homo.de-richter-insel-1908",
+        "version": 2,
+        "digest": "sha256:43a5d9fe3d000bca326a7e37bee0a4aeef464ac404e7165908a18953c21f76cd"
+      },
+      "source": {
+        "id": "tos.expression.friedrich-nietzsche.ecce-homo.de-richter-insel-1908",
+        "version": 3,
+        "digest": "sha256:e34438003120a6e63632523ee293db83e6b521aba7c141a4a2ecc25422377abc"
+      },
+      "previous_revision": "sha256:1ea621d74efd8acd6b69b4aeeaf613d5c735b3175e007a8b62c85fe6c669515f",
+      "archive_path": "ToS/source-witnesses/.record-revisions/db0d6f17e1e29191d7dfef93814b2001a985304b31d4f37c04ed41e1f1b1cdee-1ea621d74efd8acd6b69b4aeeaf613d5c735b3175e007a8b62c85fe6c669515f",
+      "dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+      "changed_fields": [
+        "notes"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.metadata.c97429e0d167e337434162fb71c5cdd8a65438c1bb3a361c118844ea1de237ec",
+          "version": 2,
+          "digest": "sha256:a8dca848cd192c03fb013ec822559af0aec1243e5214d14d427b29834aa3640b"
+        },
+        {
+          "id": "tos.form.metadata.a5ab5f96f8a348137e82b11199971fd6265e6ce32253dde072d2540c24aa4dd8",
+          "version": 2,
+          "digest": "sha256:9c208b0feda0657668c96e5a24ab951312c2c87f63dc0f1201611db2918d494d"
+        },
+        {
+          "id": "tos.form.metadata.ef53922cb1fafa2d701fe6a71ded73d2652b52e63afcd0d910dd2df5f6086398",
+          "version": 2,
+          "digest": "sha256:6d0ab06beed56d67b0d902c4d9949d9c840c6299bf67540d782ead31fb318814"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:db0d6f17e1e29191d7dfef93",
+        "expected_configuration": "sha256:a99280954470ddb3ca1a6ed6a9c80d59f41c7fcfbc7af47b61ce100c5e6d7bd8",
+        "expected_dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+        "expected_publication": "sha256:b05e4664cc1a0e687255132f5da7d10df5fba699355175d59cb96bdf4065751b",
+        "expected_revision": "sha256:1ea621d74efd8acd6b69b4aeeaf613d5c735b3175e007a8b62c85fe6c669515f",
+        "expected_source": {
+          "digest": "sha256:43a5d9fe3d000bca326a7e37bee0a4aeef464ac404e7165908a18953c21f76cd",
+          "id": "tos.expression.friedrich-nietzsche.ecce-homo.de-richter-insel-1908",
+          "version": 2
+        },
+        "fields": {
+          "notes": "Source-language expression for Raoul Richter's posthumous 1908 Insel edition, which substantially follows the Köselitz copy and includes a separate editor's afterword. Collation with manuscript strata, Montinari’s reconstruction, and modern critical texts remains open."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.metadata.c97429e0d167e337434162fb71c5cdd8a65438c1bb3a361c118844ea1de237ec"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.metadata.a5ab5f96f8a348137e82b11199971fd6265e6ce32253dde072d2540c24aa4dd8"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.metadata.ef53922cb1fafa2d701fe6a71ded73d2652b52e63afcd0d910dd2df5f6086398"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:aa5387a43775a2c087bc1b09cb2b92649388d8395bdc4e51eb3416607ffcbcfe",
+        "selected_files": [
+          "expression.human-forms.json",
+          "expression.json",
+          "source-revision-history.json"
+        ]
+      }
+    }
+  ]
+}

@@ -45,14 +45,7 @@ RECEIPT_REF = (
 GENERATOR_REF = "scripts/record_golden_kernel_transfer_source_visible_review.py"
 ALLOWED_TEMP_ROOT = Path("/srv/abyss-machine/tmp")
 AUTHORITY_BOUNDARY = (
-    "This text-free receipt proves deterministic reconstruction of four exact "
-    "page renders, private-bundle and input fixity, a bounded critical-edition "
-    "selector, and aggregate alpha-token diagnostics produced from a private "
-    "model source-visible transcript. It does not make that transcript human "
-    "evidence or accept German or Russian text; it does not establish historical-"
-    "critical identity, source-to-target alignment, translation quality, rights "
-    "clearance, eligibility, gold, a sign, concept, claim, relation, graph edge, "
-    "canon effect, publication authority, or scheduled human work."
+    "This text-free receipt records reconstruction of four exact page renders, private-bundle and input fixity, a critical-edition selector, and aggregate alpha-token diagnostics from a private model source-visible transcript. The transcript retains its model authorship and recorded assessment status."
 )
 
 

@@ -5,13 +5,12 @@
 Start with `python mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py --discover`.
 It returns handler-owned JSON operation and request shapes without a private
 grant or source target. Use `--discover --handler HANDLER_ID` for one exact
-family. [Discovery contract](docs/SOURCE_COMMAND_DISCOVERY.md) explains the
-compact API, typed owner handles and limits: implemented is not authorized-now,
-and access adapters remain read-only.
+family. [Discovery contract](docs/SOURCE_COMMAND_DISCOVERY.md) explains the compact API, typed owner handles and limits. Discovery reports
+implemented operations; a separately selected current owner grant authorizes
+execution. Access adapters remain read-only.
 
 The separately selected [loopback command transport](docs/SOURCE_COMMAND_HTTP.md)
-can carry that same grammar to authenticated browser or agent clients. It owns
-no new grants and does not add writes to the access API.
+can carry that same grammar to authenticated browser or agent clients. It carries the selected source command’s existing grant and request scope.
 
 ### Explicit Claim display fields
 
@@ -35,14 +34,12 @@ Discovery separates existing `source_fields` from actually permitted fields.
 
 See [Human Forms](../../../../ToS/doctrine/HUMAN_FORMS.md#explicit-compact-claim-fields)
 and `ToS/contracts/claim-display-fields.schema.json` for source wording,
-unknown-version and assessment boundaries. Materialization readiness does not
-prove compact delivery budget or UI acceptance; those need consumer checks.
+unknown-version and assessment boundaries. Consumer checks separately verify compact delivery budgets and presentation.
 
 ### Captured legacy historical Claims
 
-`legacy-historical-claim-revision` and `legacy-historical-claim-forms` are
-separate adapters for `history/**/historical-claims.jsonl`, not aliases of the
-native `source-claims.jsonl` profile. Their owner schemas are respectively
+`legacy-historical-claim-revision` and `legacy-historical-claim-forms` operate the `history/**/historical-claims.jsonl` family through its own legacy
+schema and captured origin. Their owner schemas are respectively
 `tos_local_historical_claim_revision_owner_v1` and
 `tos_local_historical_claim_form_owner_v1`. Both require exact `claim_id`,
 `historical_record_id`, `creation_receipt_sha256` (the prefixed raw SHA-256),
@@ -75,10 +72,9 @@ The read-only exact Claim version reader follows this legacy family explicitly,
 preserving its schema and IDs. It budgets its current package, contracts and
 Claim archives, and checks captured Claim origin; it does not traverse or certify
 the HistoricalEvent's separate record archives (`record_history_verified: false`).
-The mutating adapter additionally verifies those record archives. Graph and
-assessed-form consumers use the same adjacent Claim forms, not fabricated
-labels, Event prose, or a new profile/schema coercion. Readiness and retained
-origin are not historical assessment, public-use admission, or current authority.
+The mutating adapter additionally verifies those record archives. Graph and assessed-form consumers use the adjacent forms of that exact Claim.
+Historical assessment, public-use admission and current execution authority
+retain their own source-bound checks.
 
 ### Catalogue-assigned Document dates
 
@@ -98,10 +94,10 @@ the existing `claim.statement` form route retains the complete Claim context.
 Unknown calendar or year numbering remain unknown. No grant follows from
 discovery or a readable profile. Public v1–v4 and private owner-local grants
 do not gain this date reader. `document_catalogue_origin` and
-`document_catalogue_destination` remain separately allowlisted identity
-relations using existing public Claim creation, not a new grant hierarchy.
-No actual composition, sending, receipt, historical event or Place creation
-is authorized by a catalogue-field operation.
+`document_catalogue_destination` remain separately allowlisted identity relations using existing public Claim
+creation.
+Composition, sending, receipt, historical events and Place creation each
+require the grant for that separate operation.
 
 [Native Expression/Edition growth](docs/NATIVE_EXPRESSION_EDITION_GROWTH.md)
 adds one separately delegated provisional Edition and exact `embodied_by`
@@ -109,9 +105,9 @@ Claim without creating an Item/File or changing global bibliographic cardinality
 
 [Native local Item adoption](docs/NATIVE_ITEM_ADOPTION.md) separately retains
 one already obtained File under an exact canonical payload grant, then publishes
-an acquired Item and `exemplified_by` Claim with one Edition append. Private
-byte recovery and public metadata evidence are distinct; no download, source
-reading, rights clearance or publication authority is implied.
+an acquired Item and `exemplified_by` Claim with one Edition append. Private byte recovery and public metadata evidence retain their separate
+scopes. Download, source reading, rights decisions and publication each follow
+their owner route.
 
 ## Operating Card
 
@@ -132,8 +128,8 @@ reading, rights clearance or publication authority is implied.
 network, model calls or source writes. It distinguishes substantive assessment
 from current admission. The caller supplies trusted policy, grants, competence,
 current exact records and complete bounded subject history; submitted prose
-cannot provide its own authority. This pure engine is not a command
-adapter or proof of agent competence. Local invariant checks belong to
+cannot provide its own authority. The pure engine evaluates the supplied authenticated inputs; command adapters
+bind them to actual source and authority records. Local invariant checks belong to
 `mechanics/growth-cycle/tests/test_knowledge_assessment.py` and the existing
 `mechanics_local` discovery lane.
 
@@ -171,7 +167,7 @@ same record/forms transaction preview. Apply `sign.promote` with
 `expected_dependencies`, and null `expected_source`/`expected_revision`.
 The caller cannot insert an assessment, scope, clock, grant or owner path into
 the command request. Name/notes forms retain the complete issuance basis and
-limits as required context; their wording is not automatically assessed prose.
+limits as required context; their wording retains its own assessment state.
 
 The command reevaluates the selected assessment before preparation and again
 at the publication edge, holding the same subject journal lock through final
@@ -192,9 +188,8 @@ The registry marks this profile with an executable `creation_gate`; both
 generic public `source.create` and generic private profile creation refuse it.
 Ordinary descriptive revision cannot edit `promotion_basis`. This first
 transition does not support arbitrary annotation candidates, private Sign
-issuance, identity merges/splits or canon transitions. The exact historical
-candidate is inspectable through the read-only version route below, not an
-implied accepted fact.
+issuance, identity merges/splits or canon transitions. The read-only version route below exposes the exact historical candidate with
+its original assertion and review context.
 
 ### Read-only exact Claim versions
 
@@ -203,8 +198,8 @@ absolute public repository root and exact `{id, version, digest}` Claim ref.
 It requires no command delegation, assessment journal or model invocation.
 For a build with several references, reuse one `ClaimVersionReader(root)` and
 call `verify_current()` immediately before publishing the derived result.
-This invocation-local snapshot batches the catalog and shared package reads;
-it is not a persistent cache or concurrent-reader object. Detected drift raises
+This snapshot batches catalog and shared package reads for one invocation by
+one caller. Detected drift raises
 at final verification rather than refreshing a partially assembled snapshot.
 
 The reader resolves only public declared `source-claims.jsonl` metadata. It
@@ -259,17 +254,17 @@ supplied snapshot's `MutationLimits` separately from the source reader's existin
 limits; either budget can refuse without partial evidence. An immutable catalog
 alone grants no source currentness, reference closure, admission or publication.
 The read-only `accounting` property exposes actual read bytes, the aggregate
-byte ceiling and observed file/directory/record/contract counts. Counters are
-work accounting, not availability, source completeness or admission evidence.
+byte ceiling and observed file/directory/record/contract counts. Counters report work performed; availability and admission use their explicit
+result fields and checks.
 
 `resolve_typed` returns the same envelope plus `descriptor`: the validated
 owner `adapter`, `record_kind` (`subject`), `record_type`, `identity_field`,
 `schema_version`, `schema_ref`, `source_basename` and `type_id`. It is not a
 tuple. An unavailable result has `descriptor: null`, never an inferred type
 or latest fallback. Claim references retain their separate Claim reader.
-Artifact uses `artifact_id`; retained Composite uses `composite_id`. A schema,
-descriptive record and the persistent subject are not interchangeable, and
-the descriptor supplies neither a semantic verdict nor transition authority.
+Artifact uses `artifact_id`; retained Composite uses `composite_id`. The descriptor identifies the record’s typed source route. The schema owns its
+shape, the record describes the persistent subject, and assessment evaluates
+its meaning. Identity transitions require their own operation grant.
 
 `exact_refs` returns a continuous retained baseline through current, never
 inventing versions before that baseline. Available results include `current_ref`,
@@ -285,7 +280,7 @@ inventory. Accordingly provenance says `verification_scope=selected-record-chain
 and `all_package_bytes_verified=false`. Unread companion bytes may be missing
 without making the selected record unavailable; selected bytes may not. Historical
 records preserve all fields, including unknown language/context qualifications.
-Current schema validation is not retroactive semantic admission of old records.
+Historical versions retain their original semantic assessment state.
 
 Work is bounded to 8 MiB/8,192 rows per catalog, 128 selected contracts, 128
 corrections, existing package-manifest bounds and 64 MiB cumulative read work per
@@ -318,14 +313,13 @@ The writer reads and publishes only the record, adjacent form set and revision
 history, preserves exact predecessor bytes, and explicitly rebinds every
 current form. Descendants, representations and payloads are not enumerated.
 Link forms include the exact URI, provider, observation and association
-context; source-copy readiness still carries no semantic admission.
+context; source-visible assessment separately evaluates the copied wording.
 
 `resolve_source_bytes(original_source_path, raw_sha256)` joins a provenance
 input to the exact current or retained metadata bytes at its original logical
 source path. `raw_sha256` is the bare 64-hex digest, not the canonical record
 digest. The catalog must uniquely locate that logical source, and the current
-record or committed retained chain must bind the requested raw bytes. The reply
-contains the exact record/ref and byte provenance, not arbitrary file contents.
+record or committed retained chain must bind the requested raw bytes. The reply contains the resolved exact record/ref and its byte provenance.
 It never searches Git, orphan archives or a private store, and never substitutes
 the latest version. This lets an immutable provenance input survive a later
 descriptive correction without rewriting its old digest.
@@ -335,21 +329,20 @@ Both exact readers also hold a
 from construction through success **or unavailable** results. Pending or changed
 source publication returns an explicit stale result; a catalog bound to another
 publication cannot hide a newly created subject behind an old membership list.
-The token does not replace the readers' independent exact-file/schema checks
-and does not certify arbitrary manual or legacy writes.
+The readers also perform independent exact-file/schema checks; the token
+covers the selected publication protocol.
 
 Access quotes only each available record's own notes (Claim: its own statement),
 preserving its explicit language even when a requested translation is missing.
 Missing language is null, never inferred from prose. Compact metadata versions
-retain the entire exact record context with the quotation. No historical freeform
-HumanForm, current assessment, grant, meaning change or publication is inferred.
+retain the entire exact record context with the quotation. Historical freeform HumanForms, current assessments, grants and publication
+decisions retain their own source records and readers.
 
 `scripts/assessment_journal.py` implements immutable source-owned assessment
 batches and an atomic per-subject head pointer under an explicitly configured
 owner directory. `ToS/contracts/knowledge-assessment-batch.schema.json` owns
-their shape. The parent directory must already exist. A hash partitions storage;
-it does not replace the subject's ToS ID. No corpus assertions are copied into
-a second database. Original assessment rationale and refs remain in the owned
+their shape. The parent directory must already exist. A hash partitions assessment storage while the subject retains its ToS ID.
+Corpus assertions remain in their source-owned records. Original assessment rationale and refs remain in the owned
 batches; derived current admission can be rebuilt.
 
 `append(engine, context, reviews, command_id=..., expected_revision=..., now=...)`
@@ -357,22 +350,23 @@ requires authenticated bindings and an agreed source snapshot from the command
 owner. It records a valid assessment even when the judgment rejects, disputes
 or defers use. It rejects the entire new batch on qualification failure or a
 stale expected head. Replaying the exact command returns its old receipt and
-fresh current admission separately. `inspect` materializes one subject's
-complete committed history; it is not a corpus-wide scan or a public endpoint.
+fresh current admission separately. `inspect` materializes the selected subject’s complete committed history
+through the local owner route.
 
 Unix locking serializes writers with a bounded wait (five seconds by default);
 `JournalBusy` means retry, not discard or restart the live writer. Immutable blobs are fsynced before atomic head
 publication; interrupted unreferenced blobs are not active history and are not
 silently deleted. Missing/corrupt committed data fails closed. Committed
 supersession stays effective even after the old grant expires or is revoked.
-Tests cover these mechanics with synthetic records, not OS power-loss hardware
-proof, trusted runtime identity, semantic quality or a deployed growth API.
+Tests cover journal mechanics with synthetic records. Hardware durability,
+runtime identity, semantic quality and deployed operation require evidence
+from their respective owners.
 
 Materialization currently bounds one history at 1,024 assessment events and
-each batch at 1 MiB; it refuses truncation. Larger histories need a source-owned
-checkpoint/archive reader, not deletion of history. Orphan retention, actual
+each batch at 1 MiB; it refuses truncation. Larger histories need a source-owned checkpoint/archive reader that retains
+the complete history. Orphan retention, actual
 corpus-adapter binding, cross-object transactions and research/UI integration
-remain foundation work; this journal alone does not close the Growth profile.
+remain foundation work; the journal provides the assessment-history component of the Growth profile.
 
 ### Local account command contract
 
@@ -387,13 +381,14 @@ This is an explicit local owner operation, never part of read-only `access`.
 The operator/command issuer selects the configuration independently of incoming
 requests. It must contain already authorized policy, grants, calibrated
 competence, source scope and an execution profile whose provenance the issuer
-has checked. The command does not create these records or approve its own model.
-Unix UID authenticates an account, **not** a model invocation or competence.
+has checked. The issuer supplies those independently established records. Unix UID
+authenticates the local account; execution-profile and competence records
+identify and qualify the actual reviewer.
 Processes sharing that UID share this trust boundary; use a separately owned
 runtime adapter for mutually untrusted agents or remote callers.
 
-The configuration is one bounded (8 MiB) agreed source snapshot, not a second
-authoritative corpus. It has exactly these fields:
+The configuration supplies one bounded (8 MiB) agreed snapshot of source-owned
+inputs. It has exactly these fields:
 
 | Field | Owner value |
 | --- | --- |
@@ -412,8 +407,8 @@ where independent-source support is not claimed). A subject scope is exactly
 not interpreted as commands. Publish an updated configuration atomically when
 source, permissions, policy or calibration changes. Each command samples it
 once; configuration publishers must preserve the agreed snapshot during the
-operation. This is not a cross-file transaction with a concurrently edited
-corpus. A subsequent call loads current configuration and rechecks admission.
+operation. The issuer must coordinate concurrent source edits to keep this agreed
+snapshot stable. A subsequent call loads current configuration and rechecks admission.
 
 The `inspect` and `append` request operations use `schema_version: tos_local_assessment_command_v1`,
 `operation` (`append` or `inspect`), `subject_id`, `expected_subject` (exact ref)
@@ -430,7 +425,7 @@ nonfinite numbers, and never executes source instructions. Protected owner
 paths must have no symlinks and no group/other write permissions; root-owned
 sticky ancestors are allowed, but not as the final owner directory. Setuid
 execution is refused. Owner directory contents must remain protected from
-untrusted same-account processes; filesystem ownership is not a sandbox.
+untrusted same-account processes; processes sharing the account can access that account’s protected files.
 The local entrypoint also checks each accessed journal descendant; new subject
 directories and locks are private even under a permissive process umask.
 
@@ -446,8 +441,9 @@ current state; busy writers require retry, never deleting their journal.
 `describe` takes exactly `{schema_version, operation, subject_id}` and returns
 the current owner snapshot, subject and policy refs, trusted scope, journal
 revision and freshly checked admission in `result.command_context` and the
-usual journal result. `supported_operations` describes command grammar, not
-authorization (`grants_authority: false`). A caller can use those exact refs
+usual journal result. `supported_operations` describes command grammar and retains
+`grants_authority: false`; current execution depends on the selected owner
+grant. A caller can use those exact refs
 to construct `inspect` or `append`; it need not calculate the owner's snapshot
 or guess file/JSON selectors. Read operations need no configured execution
 profile: null is valid until an actual qualified writer binding exists.
@@ -484,16 +480,14 @@ them as current assessment targets. The source-only writer/metadata reader
 retains its separate ready-copy result with `admission: null`. Trusted template
 admission is not expanded by this operation.
 
-The adapter enables trusted `FormScope.require_current_assessment`; this is
-an internal owner input, not a request/configuration flag or a permission a
-form can grant itself. The same pure materializer then evaluates current form
+The adapter enables trusted `FormScope.require_current_assessment`; the adapter sets this internal owner input from its source-bound operation
+contract. The same pure materializer then evaluates current form
 admission for source-copy as well as freeform. V5 quality bases still come from
 exact native closure and purpose under the existing target/dependency locks.
 Their complete current payloads become mandatory `owner:quality:<index>` output
 context and exact dependencies without changing authored form bindings. The
 colon-separated slots cannot collide with authored binding names. Current
-source limits and form limits are retained in the admission; the copied subject
-remains full context and is not itself admitted by a form review.
+source limits and form limits are retained in the admission; the copied subject remains full context with its own separate admission state.
 
 A changed current basis invalidates earlier dependent review evidence and
 requires renewed review of the unchanged form. Existing explicit authored basis
@@ -512,10 +506,9 @@ and batch count, and historical withdrawals in the exact parent scope. That
 observation participates in the expected owner snapshot and its head is rechecked
 before return. No inline parent status can supply it.
 
-The whole immutable Claim remains authored context; `subject_assessment` is
-separately derived current context, not a rewritten `review_status`. A positive
-form admission permits qualified presentation of an unreviewed, rejected,
-disputed or withdrawn Claim, not its endorsement. Consumers must retain both
+The whole immutable Claim remains authored context; `subject_assessment` carries separately derived current context alongside the
+unchanged authored `review_status`. A positive form admission permits qualified presentation of the Claim with its
+actual state, including unreviewed, rejected, disputed or withdrawn. Consumers must retain both
 the current parent state/limits and the form's distinct admission. Parent
 withdrawal or dispute changes the observation and invalidates an older prepared
 read; a fresh read exposes that state without inventing a new review or changing
@@ -530,7 +523,7 @@ the protected owner configuration, not copied from the submitted form. A
 non-null binding must refer to a selected source record other than the form;
 the existing language-context schema, derivation source and binding checks
 then apply. The owner still needs evidence for that linguistic declaration;
-the command does not infer originality, translation or language competence.
+originality, translation and language competence require their own evidence.
 Other subject scopes cannot carry this field.
 
 The normal result adds `materialization` beside `revision`, `batch_count` and
@@ -539,15 +532,13 @@ or null when structural/access/context validation prevented policy application.
 Only a mechanically valid form with current scoped admission emits wording.
 Missing assessment, revoked authority, withdrawal or a successor without a
 current review emits no wording. The full-subject context and existing 64 KiB
-materialization ceiling remain; this is not a guarantee that every result fits
-the smaller public scene-selection budget. Source and journal snapshots, not an
+materialization ceiling remain; the smaller public scene-selection budget requires its own consumer check. Source and journal snapshots, not an
 old ready packet, govern each invocation.
 
 This joins the local source/journal command to human-form output. The local
 graph route below carries the result into the common reader; public snapshot
-publication and runtime connection remain separate integration work. A
-synthetic admitted test proves this boundary's behavior, not a real reviewer's
-competence or actual corpus admission.
+publication and runtime connection remain separate integration work. Synthetic admitted cases test the contract’s behavior. Actual corpus admission
+depends on a real source-visible review and its competence evidence.
 
 ### Local assessed graph builds
 
@@ -568,12 +559,12 @@ python scripts/build_tos_corpus_index.py \
   --output /absolute/private/corpus-candidate.json
 ```
 
-The paths and ID above are placeholders for owner-selected inputs, not issued
-grants. Reserve storage through the host owner before a large artifact write.
+The paths and ID above are placeholders to replace with the actual
+owner-selected inputs. Reserve storage through the host owner before a large artifact write.
 Each output is atomically created with mode `0600` and no replacement; adding
 `--check` compares an existing candidate to current source/journal inputs and
-writes nothing. These are local research candidates, not public-safe artifact
-bundles, live grants, reader switches or publication decisions. The ordinary
+writes nothing. These local research candidates retain their selected owner context. Public
+export and publication require the corresponding review and owner decision. The ordinary
 source-parity query reader intentionally does not load them as standard exports.
 
 For overlapping metadata forms in coherent in-process assembly, create one
@@ -584,12 +575,12 @@ functions (`source_witness_bibliographic_graph_common` and
 `tos_access.knowledge.build_knowledge_graph`, then call `verify_current()`
 before returning or persisting the result. Separate CLI invocations are not a
 transaction across both files; common-reader carrier parity rejects a mixed
-pair. Double collection observes source/configuration and committed per-form
-journal changes; it is not a lock across all subjects or a runtime lease.
+pair. Double collection detects changes in source/configuration and committed
+per-form journals between observations; subjects retain their individual
+locks.
 
 Claim forms belong to the bibliographic projection's reified Claim nodes;
-the corpus's source-navigation projection carries metadata forms, not duplicate
-Claim nodes. For a Claim-only selection, build the assessed bibliographic input
+the corpus’s source-navigation projection carries metadata forms. For a Claim-only selection, build the assessed bibliographic input
 and the ordinary corpus input, join them through the same common reader, and
 verify the assessment snapshot before returning the joint result. A selection
 not present on a builder's own carriers fails closed. This route distinction
@@ -621,8 +612,8 @@ continues through the unchanged journal lock/replay/commit-edge checks.
 Both existing Python builders reuse this same instance when the caller passes
 it explicitly; separate CLI processes do not share a cache. Candidate writing
 rechecks the assembly after staging-file fsync immediately before the atomic
-no-replace link, as well as before staging. This remains observed currentness,
-not an atomic transaction across journals, sources or the two output files.
+no-replace link, as well as before staging. These checks establish observed currentness at the read and publication edges.
+Journals, sources and output files retain their separate transactions.
 Focused synthetic regression belongs to
 `mechanics/growth-cycle/tests/test_assessment_read_batch.py`; preparation-count
 bounds protect the reuse mechanism without treating timing as authority.
@@ -658,8 +649,7 @@ exact registry/schema versions. A legacy schema name cannot bypass the
 declared stream or metadata file's contract.
 
 Finite public `history/**/historical-claims.jsonl` inputs retain their original
-`tos_historical_claim_v1` schema and historical registry domains. They are not
-coerced into native source-Claim profiles. Their historical subject and typed
+`tos_historical_claim_v1` schema and historical registry domains. They retain their original legacy adapters. Their historical subject and typed
 object, or relative-date anchor, must be explicitly source-selected; these
 exact dependencies also ground each selected adjacent HumanForm. The existing
 orphan-form and exact current subject guards remain mandatory. Uncaptured
@@ -691,16 +681,15 @@ their exact owner schema and actual identity field, retaining the unchanged
 payload. Their schema digests join the source-bound snapshot. Typed endpoint
 descriptors support declared Claim domain/range checks but never become
 replacement source records. A legacy schema label cannot bypass either native
-filename. This is not a replacement for whole-corpus reference, provenance,
-rights or substantive source assessment.
+filename. Whole-corpus reference closure, provenance, rights and substantive source
+assessment retain their own validation and review routes.
 
 Claims and historical records must explicitly allow `public` or `public_metadata_only` visibility;
 other or missing visibility requires a separately authorized adapter. A
 source-bound claim's maker and assertion layer must agree with the configured
 scope; a form binds its creator and the `human_projection` layer. Risk, use,
 access and calibrated languages still belong to the trusted issuer. Inline
-copies cannot shadow source-bound IDs. An origin ID is issuer-owned provenance,
-not manufactured from a file path or a count of copies.
+copies cannot shadow source-bound IDs. The issuer supplies each origin ID from the actual provenance of the source.
 
 For declared Claims in `source-claims.jsonl`, the adapter also derives an exact
 mandatory grounding set from the profile's identity endpoints. Each endpoint
@@ -709,8 +698,8 @@ loading it into the snapshot is insufficient. A selected form of that Claim
 inherits its Claim and the same endpoint grounding. Matching native TextUnit
 views and layers are added for native-bound endpoints, using their exact full
 binding and original origin. Unknown value fields and unrelated selected
-records are not inferred dependencies. This is the declared endpoint/native
-closure, not automatic resolution of arbitrary source URLs or evidence prose.
+records are not inferred dependencies. This closure covers the declared endpoints and native bindings. Other source
+URLs and evidence references need explicit source selection and reading.
 `describe.command_context.required_sources` exposes the exact required record
 refs. Correction of an endpoint invalidates dependent use without rewriting
 the Claim or prior assessment; an unrelated selected record does not invalidate
@@ -742,13 +731,13 @@ otherwise valid schema or registry invalidates the old command snapshot.
 The integration test reads the real Jenseits Work, 1886 German Expression,
 Work-to-Expression Claim and name form through this CLI, preserving empty
 assessment history as `unreviewed`. Mutation/refusal checks use explicitly
-temporary copies. This is real source/command integration, not a positive
-historical, linguistic or calibration verdict.
+temporary copies. This check verifies real source/command integration; the records retain their
+unreviewed state.
 
 Tests exercise the real CLI describe/inspect/error boundary and local command append,
 replay, revocation, protected paths and adversarial requests with synthetic
-review records. No real-language calibration or authenticated remote/model
-execution is inferred from these checks.
+review records. Real-language calibration and authenticated remote/model execution require
+their own evidence.
 
 ### Native TextUnit return and assessment
 
@@ -759,9 +748,8 @@ selections. `binding` follows
 It identifies one frozen native packet and layer by path, native ID/version and
 raw-byte digest, plus one segmentation, unit and ordered anchor sequence. It
 also explicitly selects the Work/Expression/Edition/Item metadata of that
-packet; no corpus search supplies missing dependencies. This adapter is for
-native packet v1 source-bearing units, not synthetic laboratory packets,
-semantic annotation v2, unbound spans, a new TextLayer or a source writer.
+packet; no corpus search supplies missing dependencies. This adapter reads native packet v1 source-bearing units through their frozen
+source bindings.
 
 | `read_scope` | Read and command boundary |
 | --- | --- |
@@ -776,8 +764,8 @@ selected segmentation maker and either `textual_observation` or
 retain the existing issuer/engine contract. Read permission alone does not
 qualify a judgment. Each configured native selection must have an exact read
 for `append`; metadata-only layer evidence cannot bypass that restriction by
-being used for another subject. Supporting layers are evidence, not implicitly
-authorized assessment targets. Existing ordinary source-form materialization
+being used for another subject. Supporting layers supply evidence; selecting a layer as an assessment target
+requires its own subject scope. Existing ordinary source-form materialization
 remains separate; a native unit requires its own explicit form adapter.
 
 The read-only `scripts/native_text_binding.py` library provides
@@ -790,8 +778,9 @@ It never reads the original Item payload, fetches a URL, executes a selector or
 method, reruns OCR, or grants semantic, legal or publication authority.
 Exact mode reads full representation bytes without universal-newline or
 Unicode rewriting, then checks absolute Unicode-code-point half-open anchors,
-span hashes, declared scope, coverage and gaps. Successful return is not proof
-of the original payload, OCR/transcription quality or linguistic correctness.
+span hashes, declared scope, coverage and gaps. Successful return verifies the selected metadata and exact representation
+bytes. Original-payload fidelity, OCR/transcription quality and linguistic
+correctness require their corresponding source-visible assessment.
 
 The separate `scripts/native_text_return.py` delivery helper exposes
 `read_public_unit(resolver, binding, max_return_bytes=65536)` as a
@@ -799,7 +788,8 @@ read-only public-text route; `resolve()` remains text-free. It first verifies
 metadata and public packet/layer/transport gates, then requires applicable
 recorded redistribution `authorized` and derivative `allowed` postures before
 opening content. Conditional rights are refused on this public route.
-This consumes existing publication authority; it does not grant it.
+This read consumes the existing publication authority recorded in the source
+closure.
 The `tos_native_public_unit_return_v1` result contains the unchanged verification
 summary, exact packet identity/version/digest, layer-record and representation
 digests, opaque rechecked closure fingerprint, and ordered `spans`. Each span
@@ -808,9 +798,8 @@ has its native `anchor_ref`, unchanged absolute half-open Unicode-code-point
 no inferred context, concatenation, Unicode/newline rewriting or partial output
 is supplied. No content locator or supporting rights record is exported.
 The complete compact UTF-8 JSON result must fit the requested limit (at most
-1 MiB). Input bounds and snapshot refusal remain unchanged. This library return
-is not itself a fresh legal assessment, source admission, or acceptance of the
-unit's linguistic boundary. The optional access owner adapter consumes it
+1 MiB). Input bounds and snapshot refusal remain unchanged. Rights assessment, source admission and linguistic-boundary judgment remain
+with their respective owner records. The optional access owner adapter consumes it
 through an exact metadata handle and a separate `native_public_unit`
 representation; generic metadata access cannot grant text permission.
 Keeping delivery outside `native_text_binding.py` leaves the catalog's
@@ -839,8 +828,8 @@ Both carry the issuer's same `origin_id`, not two independent sources.
 The unit retains its native ID/version but its canonical digest describes
 [`tos_native_text_unit_assessment_subject_v1`](../../../../ToS/contracts/native-text-unit-assessment-subject.schema.json):
 the full unchanged packet, immutable binding, canonical layer ref, opaque
-closure fingerprint and content-verification posture. It is neither a new
-authored subject nor a raw packet-file digest. All packet fields survive;
+closure fingerprint and content-verification posture. The digest binds this complete derived assessment view; the packet retains its
+native subject identity and separate raw-byte fixity. All packet fields survive;
 the complete view must fit the existing 1 MiB Record limit. Metadata and exact
 views deliberately have different assessment targets. Native historical review,
 boundary and segmentation statuses are not rewritten by journal admission.
@@ -850,7 +839,8 @@ dependencies, with at most 1 MiB per metadata file and 16 predecessor levels.
 A v3 command additionally shares a 16 MiB/128-distinct-file native budget
 across all selections; native and ordinary records together retain the
 existing 1,024-record and engine snapshot limits. Overflow is explicit refusal,
-never partial evidence. These are defensive bounds, not measured UI budgets.
+never partial evidence. These bounds limit native resolution work; consumers apply their own delivery
+budgets.
 No directory scan is performed for native-unit resolution. The ordinary v2
 metadata-profile identity check, if selected separately, retains its own
 documented bounded inventory and budget.
@@ -859,8 +849,8 @@ documented bounded inventory and budget.
 read posture and original native statuses) and `native_contracts` (public
 schema paths/digests only). It does not return native packet bodies, source
 text, private locators, rights inputs or short-span hashes. Opaque dependency
-fingerprints bind those inputs inside the owner snapshot. This is a local
-owner response, not automatic public-safe export clearance.
+fingerprints bind those inputs inside the owner snapshot. This local owner response retains the selected disclosure scope; public export
+requires its own clearance.
 
 For v3 append the journal calls a snapshot guard after acquiring the subject
 lock, before replay/evaluation, and again after writing an immutable blob but
@@ -970,9 +960,9 @@ separate downstream source creation. Private originals remain private.
 
 `source_commands.py` dispatches the separately selected
 `tos_local_text_unit_create_owner_v1` configuration to
-`source_text_unit_commands.py`. Its operation is `text-unit.create`; this does
-not create a semantic Description, Occurrence, Lexeme, accepted segmentation
-or human-form set. The output uses the existing
+`source_text_unit_commands.py`. Its operation is `text-unit.create`, producing one native proposed TextUnit
+packet. Semantic descriptions, Occurrences, Lexemes, forms and segmentation
+assessment use their own source routes. The output uses the existing
 [`source-text-unit-packet-v1` schema](../../../../ToS/contracts/source-text-unit-packet-v1.schema.json).
 The common native resolver can read the new packet immediately through the
 same owner-local context and exact binding contract.
@@ -1066,12 +1056,12 @@ Unpublished process-loss staging remains outside source discovery and is not
 accepted as a completed transaction. The issuer still owns source stability
 against noncooperating external edits; this is not a cross-filesystem transaction.
 
-This is immutable native packet creation and retry, not native revision,
-source-layer bootstrap, private Description/Occurrence/form creation, private
-assessment admission or public projection. Those routes retain their own
-explicit contracts; no public collector gains access to the private store.
-Pure-constructor and command/CLI tests use synthetic evidence, not historical
-or linguistic acceptance.
+This route creates and replays immutable native packets. Native revision,
+source-layer construction, private descriptions and forms, assessment and
+public projection retain their own explicit contracts; no public collector gains access to the private store.
+Pure-constructor and command/CLI tests use synthetic evidence to verify
+operation behavior; historical and linguistic acceptance require actual source
+review.
 
 ### Confidential native translation alignment
 
@@ -1135,9 +1125,8 @@ The discoverable operations are:
 
 Creation stores the source, source-copy forms, protected owner configuration,
 request, environment, annotation-serialization provenance and the existing
-`tos_local_source_create_receipt_v1`. It records no model call or linguistic
-review that did not happen. Revision uses `tos_source_revision_history_v1`
-and `tos_source_package_archive_v1`, not a private history grammar. Its archive
+`tos_local_source_create_receipt_v1`. It records the actual source transaction and its serialization provenance. Revision uses the shared `tos_source_revision_history_v1` and
+`tos_source_package_archive_v1` contracts. Its archive
 reference starts with the selected private prefix followed by
 `.record-revisions/`; merely changing the physical root of a public archive
 reference would select the wrong owner and is refused.
@@ -1167,17 +1156,15 @@ silently delete that earlier invocation's evidence.
 The common 64-file/8-MiB package, 2-MiB file, 1-MiB source/request and
 128-record-correction budgets apply. Identity discovery is bounded to 32,768
 directory entries, 2,048 selected metadata files and 64 MiB, with at most
-32 MiB per older metadata file. This is not an indexed or constant-cost writer,
-a cross-subject transaction, a hostile-same-account security boundary, or a
-private Claim/assessment implementation by itself. The separate Claim writer
+32 MiB per older metadata file. Discovery cost follows the bounded metadata scan; transactions cover the
+selected package and assume cooperating processes under the same account. The separate Claim writer
 below and v4 assessment keep their own delegation. No public projection is created.
 
 ### Confidential source Claim growth
 
 `tos_local_owner_claim_command_v1` selects `source_owner_claim_commands.py`
 through the same `source_commands.py` CLI and `tos_local_source_command_v1`
-request envelope. It creates or corrects an explicitly selected private Claim
-package, not a public relation file. The source context must independently
+request envelope. It creates or corrects the explicitly selected private Claim package. The source context must independently
 select the existing mode-0700 parent
 `<private_prefix>/claims/`; the target is one new named child ending with
 `source-claims.jsonl`. Its source, forms, requests, receipts and archives remain
@@ -1202,8 +1189,7 @@ The exact configuration fields are:
 
 An explicit `source_records` selector may also name a native Corpus metadata
 endpoint with `profile_type_id: tos.entity.<kind>` for Agent, Place,
-Organization, Work, Expression, Edition, Collection or Item. This uses the
-existing `tos_corpus_record_v1` grammar and identity mapping, not a new profile.
+Organization, Work, Expression, Edition, Collection or Item. This uses the existing `tos_corpus_record_v1` grammar and identity mapping.
 The exact public metadata path must end in `<kind>.json`; `record_id` must
 match its actual typed identity, `source_binding` must be null and access must
 be `metadata_only`. Private Corpus aliases and visibility overrides are
@@ -1217,9 +1203,8 @@ Claim and form scopes contain at most 32 identities; subject, object and
 evidence scopes at most 128. The selected relation must have an understood
 `semantic-relation-v1` or `identity-relation-v1` source profile. Temporal and
 structured values, identity endpoint replacement and assertion-layer
-transitions are not aliases for this correction route. A new supported
-semantic predicate uses its existing registry/profile contract, not another
-private registry. Initial Claims are version 1, `local_only`, `unreviewed`,
+transitions are not aliases for this correction route. Supported semantic predicates use the source-owned registry and profile
+contract. Initial Claims are version 1, `local_only`, `unreviewed`,
 without assessments or supersession. A correction preserves identity,
 endpoints, predicate, maker, layer, visibility and all unpatched fields.
 
@@ -1229,8 +1214,8 @@ endpoints, predicate, maker, layer, visibility and all unpatched fields.
 v1 does not acquire this reader through a registry change. Each declared
 member must independently occur in `allowed_object_refs`, including the focal
 subject when it also plays a member role. The subject and predicate remain
-immutable; adding or removing members replaces the qualified value, not a
-Group or Sign identity. The exact next value must be allowed independently.
+immutable; adding or removing members replaces the qualified value while retaining the
+governing Claim identity. The exact next value must be allowed independently.
 
 For this new reader only, a Claim's independently supplied `source_records`
 and `native_bindings` may cover the finite union of present and proposed
@@ -1250,8 +1235,8 @@ Native grounding requires `verify_content: true` and independently delegated
 source selector remains `metadata_only`. Each Claim's native closure checks
 rights before reading its exact representation; a denial is not repaired by
 the write grant. Quoted anchor identities also require an independent
-`allowed_evidence_refs` entry. Source/schema validation and exact byte reading
-do not authenticate the authored quotation or accept its interpretation.
+`allowed_evidence_refs` entry. Source-visible assessment checks the authored quotation and its interpretation
+against the exact read.
 Alternatives in this bounded writer must name another Claim in the same
 explicit batch; arbitrary existing Claim refs are not silently resolved.
 
@@ -1286,15 +1271,14 @@ unrelated corpus growth. All current forms keep their predecessors.
 Identity-only discovery includes public and selected private source Claim
 streams, native annotation identities, source profiles, forms and provenance;
 it excludes payload, catalog, archive and staging homes. The same bounded
-metadata scan and package/history ceilings apply as above. This is not an
-indexed writer or a same-UID sandbox. Interrupted unpublished staging is not
+metadata scan and package/history ceilings apply as above. The writer’s cost follows that scan, and its trust scope includes cooperating
+processes under the same account. Interrupted unpublished staging is not
 adopted by a retry; committed history is not deleted by reader rollback.
 
 Every result declares `visibility: local_only`, `publication_authorized: false`
 and `grants_admission: false`. Public Claim/form readers retain their refusal
 gates. To use the result for source-visible assessment, independently select
-the stored Claim and its exact grounding through v4; creation is neither
-assessment nor permission to publish.
+the stored Claim and its exact grounding through v4; assessment and publication retain their independently selected authority.
 
 #### Historical retries while the source corpus grows
 
@@ -1321,8 +1305,8 @@ manifest versions, harmless unpinned schema-byte changes or implementation
 updates. Current validation does not supply missing past fixity. The native
 packet/layer/content bindings and current configuration/context bindings stay
 exact; semantic schema refusal, changed bound text, withdrawn rights, identity
-collision and drift during the retry still fail. A changed validator accepting
-the same original bytes is not a new content assessment or admission. Existing
+collision and drift during the retry still fail. The content retains its recorded assessment and admission history when a
+changed validator accepts the same original bytes. Existing
 v1 receipts need no rewriting or fabricated retroactive dependency manifest;
 new writes retain their full expected-snapshot gate.
 
@@ -1338,8 +1322,8 @@ identities. Commands provide those separate checks.
 ### Confidential source assessment v4
 
 `tos_local_assessment_owner_v4` uses the same assessment policy, authority,
-competence, subject, command and journal grammar. It adds confidential source
-selection, not a second assessment engine or implicit permission to publish.
+competence, subject, command and journal grammar. It adds confidential source selection to the shared engine under an explicit
+local disclosure scope.
 V1/v2/v3 remain supported. In particular, v3 already supports authorized private
 representation bytes inside `source_root`; v4 adds the explicit authored-store
 transport described above, rather than reclassifying that existing access.
@@ -1417,12 +1401,11 @@ and materializer receive the same freshly built validators through internal
 dependencies, never request fields. A cached validator from another checkout
 cannot override that selected grammar; v1/v2/v3 keep their existing defaults.
 
-The description's maker is an issuer-owned descriptive act, not automatically
-the segmentation maker. A form retains its own `creator_id` and
+The description’s maker identifies its own descriptive act; the segmentation
+records its own maker. A form retains its own `creator_id` and
 `human_projection` layer. Private description/form scopes must cover their
 actual authored languages, selected public or private form bindings and native source language;
-omitting a language cannot evade competence requirements. Unknown language
-remains unknown, not an invented translation or linguistic classification.
+omitting a language cannot evade competence requirements. Unknown language retains its explicit unknown state.
 
 An Occurrence or form based on it requires an explicitly selected **same full
 native binding** with verified exact text. Metadata-only selection permits
@@ -1467,15 +1450,15 @@ The existing `AssessedFormSnapshot` graph adapter uses
 reading the protected version discriminator. V4 is refused before opening its
 source context, private records, native content or journal. The ordinary
 `source_records` selector likewise rejects the reserved owner-local namespace
-before file reading. No UI, public-reader or publication route is added here.
+before file reading. Public reading and publication retain their separate adapters and grants.
 
 Reproduce with the synthetic checks in
 `mechanics/growth-cycle/tests/test_owner_local_assessment.py`, plus the existing
 native and common assessment tests. Private Claim reader and journal integration
 checks live in `tests/test_source_owner_claim_profiles.py` and
 `mechanics/growth-cycle/tests/test_owner_local_claim_assessment.py`.
-Successful synthetic qualification proves
-the mechanics, not real-language competence, source quality or legal permission.
+Successful synthetic qualification verifies the mechanics. Real-language
+competence, source quality and rights depend on their actual owner evidence.
 
 ### Confidential text-layer quality v5
 
@@ -1492,7 +1475,7 @@ The separate [image/OCR comparison v6](docs/NATIVE_IMAGE_OCR_ASSESSMENT.md)
 adds bounded retained-PDF-page and operator-created synthetic-PNG profiles,
 each over an authenticated owner OCR layer. Historical pages remain
 undisclosed by this profile; synthetic assistant disclosure needs its own
-exact current grant. Comparison readiness is not quality admission.
+exact current grant. Quality admission requires the purpose-scoped comparison assessment.
 
 ### Descriptions bound to native text
 
@@ -1502,8 +1485,8 @@ creation contract verifies exact public content; catalog, form and descriptive
 revision reads check the complete metadata closure without reading payload.
 Their dependency fingerprints include the separately held opaque native text
 snapshot. The fixed binding is outside the ordinary `record.revise` fields;
-name and hover forms must retain it as context. This is not a private source
-writer or a grant to release an operator-held text.
+name and hover forms must retain it as context. Private source writes and release of operator-held text require their
+respective owner routes.
 
 For assessment, v2 metadata-only inspection remains available, but a source
 record with `native_text_binding` requires a v3 exact selection of that same
@@ -1520,17 +1503,16 @@ exact-read admission; retained review events and receipts are not erased.
 Any assessment command selecting native-bound source metadata rechecks that
 closure under the journal lock and again after blob creation, before head
 publication. Creation/form/revision likewise bind their protected native
-dependency snapshot. This closes observed stale-input edges; the issuer still
-owns a stable multi-file snapshot, not a filesystem transaction.
+dependency snapshot. This closes observed stale-input edges; the issuer must keep the selected multi-file snapshot stable through the
+operation.
 
 ## Human-form materialization
 
 `scripts/human_forms.py` renders the source-owned
 `ToS/doctrine/HUMAN_FORMS.md` contract. `materialize_form` takes an immutable
 form record, trusted `FormScope`, exact access-filtered source records and an
-owner-admitted template set. `SourceBinding` identifies a whole JSON field, not
-an executable expression. Required context comes from the source owner, not
-the proposed wording. Freeform rendering requires the existing assessment
+owner-admitted template set. `SourceBinding` identifies a whole JSON field. The source owner declares its
+required context. Freeform rendering requires the existing assessment
 engine and authenticated reviews/history against the current form and source
 snapshot; it cannot use a submitted positive status as permission.
 
@@ -1539,15 +1521,14 @@ wording and context are a single read contract; `standalone_reading: false`
 forbids consuming the string as an unqualified assertion. The current output
 budget is 64 KiB with explicit refusal, not semantic truncation. Missing,
 restricted, stale and assessment-required states have no emitted wording.
-Rendering mechanics do not prove an adapter's authentication, a template's
-semantic quality, an agent's real-language competence or UI consumption.
+Adapter authentication, template quality, reviewer language competence and
+consumer behavior each require their corresponding validation or review.
 `mechanics/growth-cycle/tests/test_human_forms.py` protects these boundaries.
 
 Optional `FormScope.language_context` names exact source-owned language and
 linguistic-derivation metadata. The form must bind the same object and any
 translation/transliteration/adaptation source field. Both remain current
-dependencies and mandatory context; source-copy is not a declaration of
-originality. These checks preserve the source owner's declaration without
+dependencies and mandatory context; the source-owned derivation record states originality or translation status. These checks preserve the source owner's declaration without
 performing linguistic assessment or granting a submission its own scope.
 
 ## Local source growth commands
@@ -1556,7 +1537,8 @@ performing linguistic assessment or granting a submission its own scope.
 adapter creates and revises forms adjacent to one bibliographic or historical source record;
 that adapter does not mutate the subject. The separately delegated historical
 creation adapter below publishes a new subject with its initial claims and
-forms. Neither exposes writes through `access` or creates a second corpus database.
+forms. Both write to the source-owned corpus through this explicit command route;
+`access` remains read-only.
 The same form-only delegation also supports the native physical-witness and
 scholarly-composite paths described in
 [`HUMAN_FORMS.md`](../../../../ToS/doctrine/HUMAN_FORMS.md#native-material-witnesses-and-scholarly-composites).
@@ -1579,7 +1561,7 @@ The independently selected protected configuration has exactly these fields:
 | `schema_version` | `tos_local_source_command_owner_v1` |
 | `uid`, `principal_id` | actual Unix account and delegated source-form creator |
 | `source_root`, `source_path` | absolute protected repository root and exact relative `ToS/source-witnesses/.../*.json` corpus record |
-| `authority_ref` | issuer-provided reference to the source-write delegation, not a semantic assessment |
+| `authority_ref` | issuer-provided reference to the source-write delegation |
 | `allowed_form_ids` | at most 32 exact existing or newly delegated `tos.form.*` identities |
 | `allowed_operations` | a subset of `form.create`, `form.revise`; empty revokes writes |
 | `expires_at` | timezone-aware exclusive expiry |
@@ -1588,9 +1570,8 @@ The issuer must allocate noncolliding form identities before delegating them;
 this bounded adapter does not scan other subjects or issue globally unique IDs.
 The subject must already be owned, public metadata. Historical-record v1
 requires explicit `public` or `public_metadata_only` visibility on every call,
-including replay. The command
-does not validate its historical truth, reclassify private text as metadata or
-authorize a generic new corpus schema.
+including replay. Historical truth requires source-visible assessment. The command reads the
+declared public-metadata schema and preserves its visibility contract.
 
 All requests use `schema_version: tos_local_source_command_v1`:
 
@@ -1599,8 +1580,8 @@ All requests use `schema_version: tos_local_source_command_v1`:
    current form refs, reader states, operation/ID scope and `source_fields`.
 2. `prepare` adds `form_id` and `field_id` from that catalog. Select
    `metadata.preferred-name`, `metadata.source-note` or an advertised
-   `metadata.variant-name:N`. The variant ordinal is snapshot-local, not name
-   identity. Preparation returns one `prepared_change`, selecting create or
+   `metadata.variant-name:N`. The variant ordinal selects a field within this exact snapshot; the form
+retains its independently allocated ID. Preparation returns one `prepared_change`, selecting create or
    revise and binding the full source field, current predecessor, creator,
    language and every mandatory qualifier. It performs no write or admission.
 3. `apply` adds `command_id`, `expected_source`, `expected_configuration`,
@@ -1634,8 +1615,8 @@ sibling `.<set-name>.writer.lock`. The former also coordinates whole-package
 source revision, so exchanging a directory cannot split active writer locks.
 Both coordinate cooperating local command writers with a
 five-second bounded wait (`JournalBusy` means retry, not restart/delete).
-Lock and unpublished staging files are local operation state, not corpus
-records or files to include in a source commit.
+Lock and unpublished staging files are local operation state and stay outside
+source commits.
 Protected-path and UID rules match the assessment entrypoint: no symlinks,
 setuid execution or other-account writable paths; same-account hostile code is
 outside the boundary. Temporary publication files are mode 0600 and fsynced
@@ -1657,8 +1638,8 @@ publication, model execution and assessment are separate owner operations.
 creation/revision batches, restart/replay, concurrent writers, loss before/after
 publication, revocation, protected paths, inert input, preparation and partial
 source rebinding. Its catalog-wide test prepares existing public bibliographic
-fields **in memory** and verifies source-byte preservation. It is not evidence
-of an actual whole-corpus migration or substantive source/translation quality.
+fields **in memory** and verifies source-byte preservation. This in-memory check covers preparation and byte preservation; actual
+migrations and source/translation quality require their own evidence.
 
 ### Initial historical subject creation
 
@@ -1706,8 +1687,9 @@ unreviewed posture, and no supplied assessment or supersession. Typed endpoints,
 relative date anchors, existing provenance events, evidence/counterevidence
 and alternative-claim closure are checked using the authored catalogs and
 the existing graph reader's schema/registry rules. Evidence paths must name
-protected metadata, not payloads or traversal paths. This resolves references,
-not historical truth, source quality, competence or admission. Unknown source
+protected metadata, not payloads or traversal paths. This step resolves the declared references. Source-visible review evaluates
+historical truth and source quality under the applicable competence and
+admission policy. Unknown source
 extensions and claim qualifiers are retained verbatim as JSON values.
 
 With the v1 configuration publication creates exactly four files in the new directory: the typed
@@ -1715,8 +1697,8 @@ record, `historical-claims.jsonl`, the adjacent human-form set, and
 `source-create-receipt.json`. They keep the existing source formats and
 readers; there is no new source envelope or duplicate graph store. The receipt
 binds the canonical request, account/delegation, exact subject, observed
-dependency digest and each output's bytes/digest. It records this source
-transaction, not a claim's research provenance or an assessment event.
+dependency digest and each output's bytes/digest. It records this source transaction; Claim research provenance and assessment
+events retain their own source records.
 
 The prepared dependency digest also binds the exact source-profile registry,
 profile contract and source schemas consumed while reading existing metadata,
@@ -1743,14 +1725,13 @@ readers preserve the original public-metadata v2 event alongside normalized
 activity fields. Historical dating remains in historical claims.
 
 The recorded activity is completed **buffer serialization**, before staging
-and the atomic commit. Digests are captured from buffers; independent stored-byte
-fixity is explicitly not attested. Its software executor, script/runtime
+and the atomic commit. Digests are captured from buffers; stored-byte fixity requires a separate read after publication. Its software executor, script/runtime
 digests, Unicode version, withheld process-argv digest, request/environment
 bindings, derivations and measured pre-commit wall duration are captured by
 the command itself. The event is unsigned and only partially specified for
-replay. Upstream source reading, author/model reasoning and substantive
-assessment are not captured or impersonated. No model is invoked. Publication,
-rights, competence and admission are not granted by this event. A failed
+replay. Upstream source reading, author/model reasoning, substantive assessment and
+rights decisions retain their own provenance and authority. The command
+records its actual software serialization activity. A failed
 publication exposes none of these source files; retry preserves the successful
 event rather than generating a second historical execution record.
 
@@ -1815,8 +1796,7 @@ metadata profile under their own existing form configuration. This does not
 grant source creation to a form writer. Profile source-record revision uses
 its separate [delegation below](#versioned-source-correction);
 subject-specific relations, substantive assessment, identity merge/split,
-publication and admission remain separate operations. A metadata declaration
-does not implement them or declare an entire subject profile finished.
+publication and admission remain separate operations. Each follows its explicit source-owner contract.
 
 ### Native standalone identities
 
@@ -1826,9 +1806,8 @@ existing native `Agent`, `Place`, `Organization` and initial `Work` families.
 Its configuration replaces `profile_type_id` with `record_type`
 (`agent`, `place`, `organization`, `work`);
 the other declared-profile configuration fields remain required. Discovery
-returns `record_type` and the exact native source descriptor. The existing
-`corpus-record.schema.json` is authoritative; no new Person schema or
-author/addressee subclass is introduced.
+returns `record_type` and the exact native source descriptor. The existing `corpus-record.schema.json` owns these record shapes;
+responsibility relations describe roles such as author or addressee.
 
 The initial record must match the delegated typed ID/basename, version 1,
 provisional identity and no equivalence claim. Supersession, pre-reviewed
@@ -1836,14 +1815,14 @@ labels/identifiers and metadata relation-link fields are refused. Native
 Corpus metadata has no `visibility` extension; this route is explicitly
 public-metadata-only and cannot store private payloads. Schema-permitted
 unknown language qualifications are retained; unsupported fields are refused,
-never silently dropped. At least one exact name form is required. The event
-names `source-corpus-metadata-serialization`, not an identity assessment.
+never silently dropped. At least one exact name form is required. The event records `source-corpus-metadata-serialization`; identity assessment
+retains its own source record.
 
 An initial Work must retain the Corpus-required `expression_claim_refs` as
 an empty list. This records no supplied expression assertions, not evidence
 that no expression exists. Nonempty expression refs and every other metadata
-relation-link field are refused by this initial transaction. Names and notes
-do not create an author, Expression, publication date, Edition or Item.
+relation-link field are refused by this initial transaction. Authors, Expressions, publication dates, Editions and Items each use their own
+source records and grounded Claims.
 The existing `works/friedrich-nietzsche/` source home has stronger authorship
 and chronology closure and is refused by this standalone Work route; that
 source-home rule is not weakened to accommodate a new metadata record.
@@ -1865,8 +1844,7 @@ and declared Claim form sets, including retained predecessors. The consumed
 sets include native Claims and finite public `history/**/historical-claims.jsonl`
 locators without treating historical schemas as native write grants. Consumed
 sets enter the preparation dependency digest, so new collisions or observed
-changes before publication fail. This is still a metadata scan, not proof of
-an indexed or incremental writer.
+changes before publication fail. This operation’s work follows the bounded metadata scan.
 
 The same current/prior identity reservation covers native Claim correction,
 excluding only that Claim's own adjacent set so legitimate successors remain
@@ -1894,24 +1872,24 @@ the current history and all bound archives, recovering the initial source
 bytes without restoring them over the current record. Creation receipts and
 other initial files must remain unchanged. Missing archives, undocumented
 source changes, corrupt outputs, unexpected package files and nonempty writer
-locks fail closed. These are bounded unsigned local-storage checks, not
-authentication against a hostile process with the same Unix UID.
+locks fail closed. These bounded unsigned local-storage checks assume cooperating processes under
+the same Unix UID.
 
 An abrupt process loss before commit may leave an invisible staging directory;
 retry does not delete or publish that abandoned directory. An ordinary exception
 removes only its own unpublished staging files. Committed sources and receipts
 are never removed by retry or derived-reader rollback. The request/configuration
 budget is 1 MiB; each source output is bounded at 2 MiB, with the existing form
-and rendering limits. These are safety ceilings, not latency guarantees.
+and rendering limits. These ceilings bound read and write volume; latency depends on the selected
+data and storage.
 
 Catalog/graph rebuild and public publication remain separate operations. A
 builder traversing across a concurrent creation may need a fresh build; this
 adapter does not make several catalog files one snapshot. Synthetic integration
 tests cover the existing catalog → graph → access reader, scope and reference
 refusals, competing writers, process loss before commit, response loss after
-commit, and restart/replay. They do not establish a real historical episode,
-atomic revisions of an existing subject, all-profile growth or real-agent
-assessment quality.
+commit, and restart/replay. Actual historical episodes and reviewer quality require source-visible
+assessment; subject revisions use the separate route below.
 
 ### Versioned source correction
 
@@ -1921,8 +1899,7 @@ configuration, plus exact `record_id` and `allowed_fields`. This historical
 configuration keeps its existing schema and ID scope. A separate
 `tos_local_profile_revision_owner_v1` adds `profile_type_id` and selects the
 current declared `source_record_profile`, including Document, Letter or a
-new supported metadata kind added through that registry. It uses the same
-revision transaction, not another per-kind writer. The exact declared basename,
+new supported metadata kind added through that registry. It uses the shared revision transaction. The exact declared basename,
 ID prefix, source schema version and public-metadata visibility are required.
 Existing form, creation and historical-only grants gain no new permissions.
 The separate `tos_local_corpus_revision_owner_v1` uses `record_type` instead of
@@ -1933,8 +1910,8 @@ default for other schemas. It reuses the same package/history transaction.
 Its `allowed_fields` is restricted to `preferred_label`, `notes`,
 `field_languages` and `source_refs`; it cannot edit alternate-name judgments,
 external identifiers, identity/equivalence status or any Claim/link field.
-Creation permission is not correction permission. No native source is migrated
-to a declared-profile schema to gain this operation.
+Correction requires its own explicit grant and preserves the native source
+schema.
 None of these revision configurations
 revises claims, identities, rights, visibility or assessment decisions.
 The profile route also cannot change the record kind, source schema version,
@@ -1946,9 +1923,15 @@ is a subset of `preferred_label`, `variant_labels`, `notes`, `field_languages`,
 `source_refs`, `extensions`, `semantic_content`. The latter is available only
 when the exact source schema permits it, as in thought-description profiles;
 older profiles still reject it. The independently selected grant must name
-the field. `semantic_scope` and its referent criterion remain immutable in
-this correction route. Changing an allowed value is an explicit authored
-correction, not a judgment by the serializer. Unselected fields and all
+the field. `semantic_scope` remains immutable under public v1. The explicit
+`tos_local_profile_revision_owner_v2` configuration has the same fields and
+transaction grammar and may additionally name `semantic_scope` in
+`allowed_fields`. Its purpose is correction of scope wording for the same
+referent and continuity criterion. Review must preserve that criterion’s
+meaning; a change of referent or criterion requires the identity route.
+Private v1 and the historical/Corpus/native grants retain their existing field
+scopes. Changing any allowed value records an authored correction;
+source-visible assessment evaluates its adequacy. Unselected fields and all
 unselected companion bytes stay unchanged, including unknown extensions.
 
 The request has `schema_version: tos_local_source_command_v1`:
@@ -1985,8 +1968,8 @@ The active package stays at the original source path. Before any replacement,
 the complete old flat package is durably stored under
 `ToS/source-witnesses/.record-revisions/<subject-hash>-<package-hash>/`.
 `manifest.json` binds original filenames, exact source ref, file sizes/digests
-and content-addressed `.blob` files. These are tracked source-history bytes,
-not a cache or another current corpus. The blob suffix prevents old record or
+and content-addressed `.blob` files. These tracked bytes retain exact source history and remain addressable through
+the version reader. The blob suffix prevents old record or
 provenance filenames from becoming duplicate current identities in existing
 scanners. `inspect-version` verifies every retained byte and reconstructs the
 successor from its retained request; a missing/corrupt archive fails closed.
@@ -1995,8 +1978,8 @@ whose exact original output bytes can now be returned through this archive.
 
 `source-revision-history.json` in the current package records the complete
 canonical request, its digest, issuer/delegation, reason, exact predecessor
-and successor, dependency digest, form results and archive locator. The receipt
-grants no admission and does not impersonate upstream research/model execution.
+and successor, dependency digest, form results and archive locator. The receipt records the correction transaction and its issuer. Admission and
+upstream research execution retain their own evidence.
 Existing historical claims, maker and provenance are not upgraded because a
 record description was corrected. Exact retries return the original receipt
 plus fresh current reader state; current scope revocation still applies.
@@ -2033,8 +2016,7 @@ successor correction; switching a derived reader does not erase source history.
 This representation was chosen to retain compatibility with existing source
 paths while correcting related record/forms atomically. Separate file renames
 would expose partial changes; a new pointer-only source store would require
-migrating every existing reader. The accepted cost is bounded package copying
-and Linux-specific exchange, not global corpus copying or an indexed writer.
+migrating every existing reader. The accepted cost is bounded package copying and Linux-specific exchange.
 General multi-subject changes, correction of other native record families and
 automatic retirement of abandoned staging remain separate Growth work.
 
@@ -2056,8 +2038,7 @@ kinds. V1 and v2 retain their original type scopes. V3 permits only
 issuer's narrower `allowed_fields`. Edition embodiment/publication/exemplar
 refs, Collection membership, Item manifests, rights, payloads, identity status
 and all other structural fields are preserved, not followed or modified by
-this metadata command. Their semantic or source-quality validity is not
-established by correcting a description. Initial Collection creation and
+this metadata command. Their semantic and source-quality judgments retain their own assessment state. Initial Collection creation and
 membership growth remain separate operations; this grant does not supply them.
 
 The v2/v3 revision unit is exactly the selected `<type>.json`, adjacent
@@ -2089,8 +2070,9 @@ descendant inspection. An uncommitted archive alone is not an addressable versio
 Byte movement uses the internal
 [selected-metadata transport](docs/SELECTED_METADATA_TRANSACTIONS.md), under the
 existing corpus writer lock. Official readers and other common-lock writers
-refuse a pending transaction. This is a cooperative publication barrier, not
-filesystem-wide atomic visibility for arbitrary raw readers. Catalog and graph
+refuse a pending transaction. This publication barrier coordinates readers and writers that participate in
+the common protocol. Raw filesystem readers must provide their own snapshot
+checks. Catalog and graph
 rebuilds remain separate derived operations; their failure does not undo source.
 
 While pending, the exact original command may resume only under its unchanged
@@ -2109,8 +2091,8 @@ publication token, so a reader spanning the interrupted interval must restart.
 The focused command checks live in
 `mechanics/growth-cycle/tests/test_source_selected_revisions.py`; transport and
 reader-boundary checks are separate. Existing 8 MiB selected-package, 128-history
-and source/form byte limits refuse rather than truncate. Readiness here grants
-no semantic assessment, current use, rights, canon, release or deployment.
+and source/form byte limits refuse rather than truncate. Semantic assessment, current use, rights, canon, release and deployment retain
+their owner decisions.
 
 ### Native Work / Expression growth
 
@@ -2122,9 +2104,9 @@ their selected form identities. `source_commands.py` dispatches
 The parent gains only a version increment and the appended Claim reference;
 existing descendants and all other Work fields stay outside the change.
 New source-copy forms, exact predecessor history and serialization provenance
-travel together through the selected-metadata protocol. A committed metadata
-link is not bibliographic or textual admission, an Edition/Item, a responsibility
-assertion or publication permission. Standalone Claim grants cannot write or
+travel together through the selected-metadata protocol. The committed link records this Work-to-Expression relationship. Bibliographic
+or textual admission, Edition/Item growth, responsibility attribution and
+publication use their separate routes. Standalone Claim grants cannot write or
 revise this topology predicate merely because a read profile understands it.
 
 ### Native Expression responsibility attachment
@@ -2174,8 +2156,7 @@ For a relative date, its `anchor_ref` must additionally appear in
 schema declarations and the ability to inspect a value do not grant writes.
 
 `tos_local_claim_create_owner_v3` has the same exact fields and bounds as v2
-and can additionally delegate `structured-value-v1` profiles. Its exact-value
-allowlist is data, not a predicate language; the source profile still validates
+and can additionally delegate `structured-value-v1` profiles. Its allowlist contains exact JSON values; the source profile still validates
 the specific literal kind, shape and domain. Unknown nested references are
 not resolved or executed. Temporal values retain their declared anchor scope.
 An anchor needs object permission even when it is also the Claim subject.
@@ -2209,8 +2190,7 @@ native record versions stay null. Evidence bindings retain path, digest, line
 when relevant and evidence kind. These values travel in the request and receipt,
 not merely an opaque digest. The broader dependency digest also binds the
 catalog inputs, consumed profiles/schemas, evidence, anchors, provenance and
-implementation. Changes before or during staging conflict. This still scans
-source metadata; it does not prove an incremental or indexed writer.
+implementation. Changes before or during staging conflict. This operation reads a bounded scan of source metadata.
 Temporal `source_bindings.values` separately names each Claim's exact value,
 digest and declared range types. The identity bindings contain the subject and
 any relative anchor, never a fabricated identity for the value. This distinction
@@ -2228,8 +2208,8 @@ Publication is five files: `source-claims.jsonl`, `source-create-request.json`,
 `source-create-environment.json`, `source-create-provenance.jsonl` and
 `source-create-receipt.json`. Shared account/path checks, source lock, fsync and
 Linux no-replace directory commit are reused. Capture names the actual Claim
-serializer and both implementation modules; it remains unsigned pre-commit
-buffer serialization, not upstream research or content assessment. The 1 MiB
+serializer and both implementation modules; it retains its unsigned pre-commit buffer-serialization scope. Upstream
+research and content assessment keep their own provenance. The 1 MiB
 request/Claim-stream ceilings do not reserve host storage.
 
 Exact replay rechecks current delegation and verifies the original request,
@@ -2242,8 +2222,8 @@ Uncooperative same-account editors must still remain quiescent during the
 transaction; this is not a sandbox or a cross-file reader snapshot.
 
 Claim correction/history, scoped assessment/admission and human-form production
-remain their own operations. Initial creation alone does not complete Growth,
-all subject profiles, source quality, publication or the full foundation.
+remain their own operations. Together these separately owned operations support source growth, review and
+publication.
 
 ### Forms of a declared Claim
 
@@ -2267,7 +2247,8 @@ declared registry/schema inputs (at most 128, total snapshot at most 8 MiB).
 It requires exactly one occurrence of the selected ID, the current declared
 schema, predicate, assertion layer and public-metadata visibility. It does
 not crawl endpoint records: source and graph validators retain endpoint
-existence/domain/range checks. A form write is not Claim validation or admission.
+existence/domain/range checks. Claim validation and admission retain their separate validation and assessment
+routes.
 The source contracts appear in discovery and the new form receipt and are
 bound into `expected_configuration`; changing a source contract invalidates
 prepared writes. Current schema and visibility are also checked before replay.
@@ -2289,8 +2270,8 @@ identity endpoints, original maker/provenance and initial review flag. Ordinary
 v1/v2/v3/v4 corrections also preserve its assertion layer; only the separate exact
 layer-classification route below can correct that field.
 Its `claim_version` advances once. The correction issuer and reason belong to
-the new history receipt; the original maker is origin attribution, not a claim
-that the original actor authored every later correction. Assessment, identity
+the new history receipt; the original maker retains attribution for the initial act, while each
+correction records its own issuer. Assessment, identity
 merge/split, reattribution, visibility and publication are separate operations.
 
 The protected `tos_local_claim_revision_owner_v1` configuration contains exactly
@@ -2333,13 +2314,13 @@ value must be allowed, including for wording-only correction. The focal
 subject stays fixed and remains a member under the motif profile; removing
 it requires a separately formulated successor Claim. Membership correction
 retains the same qualified proposal's identity, exact predecessor bytes and
-source-copy form history; it does not accept a motif or mint a Sign.
+source-copy form history; motif assessment and Sign issuance retain their separate routes.
 Current complete source/native grounding is checked again on retry, including
 the historical result when a subsequent correction has removed one of that
 request's members. Older grant versions do not gain this reader mode.
 
-`tos_local_claim_layer_revision_owner_v1` is a separate grant, not an expansion
-of v1/v2/v3. It has the v1 configuration fields plus mandatory
+`tos_local_claim_layer_revision_owner_v1` explicitly delegates assertion-layer
+correction; v1/v2/v3 retain their existing scopes. It has the v1 configuration fields plus mandatory
 `allowed_layer_transitions`: at most 32 distinct exact `{"from": "…", "to": "…"}`
 pairs. Wildcards, empty layer names, repeated pairs and `from = to` are refused;
 an empty list revokes transitions. `allowed_fields` can contain only
@@ -2348,8 +2329,8 @@ an empty list revokes transitions. `allowed_fields` can contain only
 and the proposed field value. The corrected Claim must still satisfy its
 existing schema and predicate profile. A grant cannot admit a forbidden layer.
 
-This route corrects the classification of the **same already recorded
-assertion**, not its proposition, attribution or act of judgment. For example,
+This route corrects the layer classification of the **same already recorded
+assertion**, preserving its proposition, attribution and original judgment. For example,
 an assertion whose statement and basis already identify an analyst's inference
 can have an erroneous `scholarly_report` label corrected to `linguistic_analysis`.
 Changing “S reports P” into the operator's own “P” changes the assertion and
@@ -2389,8 +2370,8 @@ and receipt, not just an opaque dependency digest. Existing selected-Claim
 forms must all be explicitly rebound; source copies include a ready statement
 and the full qualified Claim context. Prior forms and exact prior source refs
 remain retained. Another catalog subject's current or prior form identity
-cannot be reused, including historical Claims. This route does
-not turn a newly written form into a calibrated or admitted interpretation.
+cannot be reused, including historical Claims. Each newly written form retains its own calibration and assessment
+requirements.
 
 Only the selected JSONL row is serialized; all other rows retain exact bytes
 and order. Stream, selected forms and `claim-revision-history.json` are committed
@@ -2408,11 +2389,9 @@ form-history limits apply; the Claim stream additionally stays within 1 MiB.
 Exact retries return the old receipt and fresh current source/forms separately,
 and current revocation still blocks a retry. Crash recovery, abandoned staging,
 Linux exchange, same-account trust and concurrent-reader limits are those of
-record correction above. Every archive remains source history, not a duplicate
-current Claim catalog or a cache to discard. This implementation still scans
-source metadata for grounding and can inspect up to 128 bounded archives. It
-does not prove an indexed writer, constant-cost history access, an incremental
-graph rebuild or global cross-subject transaction support.
+record correction above. Every archive remains retained, addressable source history. This implementation still scans
+source metadata for grounding and can inspect up to 128 bounded archives. Its costs follow the metadata scan and selected archive chain; graph rebuilds
+and cross-subject operations retain their own contracts.
 
 ### Separately delegated identity proposals
 
@@ -2453,8 +2432,8 @@ Preparation and publication resolve each participant through
 `ClaimVersionReader.resolve(exact_ref)`. Missing, stale, corrupt, restricted or
 over-budget returns fail closed; no current-version fallback is performed.
 Both snapshots are checked for drift and their source provenance and descriptor
-bindings survive in the receipt. This is metadata/history reading, not payload
-reading. Existing source locks, no-replace publication, exact package archives,
+bindings survive in the receipt. These readers resolve metadata and retained history within their explicit byte
+budgets. Existing source locks, no-replace publication, exact package archives,
 form rebinding, configuration rechecks and retry validation remain the common
 transaction engine rather than a second identity command store.
 
@@ -2477,5 +2456,5 @@ The [native Artifact route](docs/NATIVE_ARTIFACT_GROWTH.md) uses its own
 `tos_local_artifact_create_owner_v1` grant and the existing `source.create`
 publication engine. Artifact v2 metadata and source-copy forms have an exact
 serialization origin; existing rights, discovery and research remain separately
-bound inputs. This does not acquire content, accept a witness or manufacture
-the older discovery/planting provenance.
+bound inputs. Acquisition, witness assessment and earlier discovery/planting provenance
+remain separately owned source records.

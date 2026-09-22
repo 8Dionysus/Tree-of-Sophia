@@ -1,0 +1,81 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.agent.margaret-w-green",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:7c8c3393c10267966ed36d6b",
+      "request_digest": "sha256:eac9e2b5b49c4eba85b53c23e42ddf0685da98c71faf5096801d0c1e65aefd47",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:a3fa503410b95e883fd4883f66fa3dad3c8c7d8b8e8d5f8b924f705313aacd88",
+      "recorded_at": "2026-09-22T05:04:13.180361+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.agent.margaret-w-green",
+        "version": 1,
+        "digest": "sha256:c075e35a0b29d72041889453191f597ffcb6c3cf090749c4b3bcafce722198cd"
+      },
+      "source": {
+        "id": "tos.agent.margaret-w-green",
+        "version": 2,
+        "digest": "sha256:5e89b3d48a6c5461961b13ee84f27496f7c9c3281578625ac8bc9f78bfff810f"
+      },
+      "previous_revision": "sha256:d035b4a37cd0facb59251b5ce36663bdb7b73e4b1f260ece67041d1483e39659",
+      "archive_path": "ToS/source-witnesses/.record-revisions/7c8c3393c10267966ed36d6b0f996676946da418d8c4a799519a8064184dd18a-d035b4a37cd0facb59251b5ce36663bdb7b73e4b1f260ece67041d1483e39659",
+      "dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+      "changed_fields": [
+        "notes"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.metadata.36b85618d48cf3f6b67b2fdd172430c22d92ff177c4d038c8a6b983cf655042e",
+          "version": 2,
+          "digest": "sha256:7f91b3d3768fdb54fdb2dd934b7d3330af169704fbe86ab01f13e7f4fc52bda0"
+        },
+        {
+          "id": "tos.form.metadata.507d5df40dfd6803a343217334bbed6ac7f242d7a61b3c769c380980d030655b",
+          "version": 2,
+          "digest": "sha256:b89362c5fbab2f83f8f42a87959d162f7642faa6d7f800c7f9d84db4d5221b9c"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:7c8c3393c10267966ed36d6b",
+        "expected_configuration": "sha256:a3fa503410b95e883fd4883f66fa3dad3c8c7d8b8e8d5f8b924f705313aacd88",
+        "expected_dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+        "expected_publication": "sha256:9ed1825bfddf5974a159d138201256c601916e95615aec16ac2fb6cb625a65ca",
+        "expected_revision": "sha256:d035b4a37cd0facb59251b5ce36663bdb7b73e4b1f260ece67041d1483e39659",
+        "expected_source": {
+          "digest": "sha256:c075e35a0b29d72041889453191f597ffcb6c3cf090749c4b3bcafce722198cd",
+          "id": "tos.agent.margaret-w-green",
+          "version": 1
+        },
+        "fields": {
+          "notes": "Name and ATU 2 responsibility are source-reported."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.metadata.36b85618d48cf3f6b67b2fdd172430c22d92ff177c4d038c8a6b983cf655042e"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.metadata.507d5df40dfd6803a343217334bbed6ac7f242d7a61b3c769c380980d030655b"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:218370d83e0814ad4444a1b7a61cfa18a9926f2cb2bf95a3275c3820b7a9246e",
+        "selected_files": [
+          "agent.human-forms.json",
+          "agent.json",
+          "source-revision-history.json"
+        ]
+      }
+    }
+  ]
+}

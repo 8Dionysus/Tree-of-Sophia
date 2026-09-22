@@ -52,11 +52,7 @@ EXPECTED_PROVIDER = {
 }
 JOINERS = frozenset({"-", "'", "’", "‐", "‑"})
 AUTHORITY_BOUNDARY = (
-    "This receipt proves one exhaustive, deterministic, text-free mechanical "
-    "provider census and its measured resource cost. It does not accept a "
-    "German source reading, morphological analysis, lemma, lexeme, sign, "
-    "concept, translation, claim, relation, graph edge, rights clearance, "
-    "publication route, winner, contextual follow-up, or human task."
+    "This receipt records an exhaustive, deterministic, text-free mechanical provider census and its measured resource cost."
 )
 
 

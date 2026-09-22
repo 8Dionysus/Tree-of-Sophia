@@ -30,8 +30,7 @@ ARTIFACT_IDENTITY = {
         "capsule as usable root-entry orientation, then verify the OS Abyss ABI bundle when release-facing"
     ),
     "privacy_boundary": (
-        "public route and derived-export references only; no private host evidence, session "
-        "memory, source corpora dumps, runtime graph state, or media credential claims"
+        "Public route and derived-export references, with private host, session, corpus, runtime and credential material kept in their owning private storage routes."
     ),
     "content_identity": (
         "ToS/derived-exports/root_entry_map.min.json rebuilt from scripts/root_entry_map_common.py "

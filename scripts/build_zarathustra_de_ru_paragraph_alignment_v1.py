@@ -449,7 +449,7 @@ def proposal_posture(primary: dict[str, Any], audit: dict[str, Any]) -> tuple[st
         return ("ambiguous", primary["mapping_type"],
                 "length-profile result is unstable or low-fit; source-and-target-visible review required")
     return ("proposed", primary["mapping_type"],
-            "machine grouping agrees across compared technical profiles; proposal is not translation truth")
+            "Machine grouping agrees across the compared technical profiles; the grouping retains proposal status pending source-and-target-visible translation assessment.")
 
 
 def build_artifacts(material: dict[str, Any]) -> tuple[dict[str, bytes], dict[str, bytes]]:

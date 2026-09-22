@@ -1,0 +1,87 @@
+{
+  "schema_version": "tos_source_revision_history_v1",
+  "record_id": "tos.thought-method.single-causality-trial-jgb36",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:abbd8839c1b43b99625f979e",
+      "request_digest": "sha256:9e2bebd39d72024b67a5cc6751631f30bc7826eb17d3b8ac6c21b66fabba75e9",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:4890ed5f8c69005170af18ff5fb45d44add48e9c27f6749d25e51c9001a18dd6",
+      "recorded_at": "2026-09-22T05:08:01.688063+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.thought-method.single-causality-trial-jgb36",
+        "version": 1,
+        "digest": "sha256:d713b19d018f614ff55588df5edcfa97c65bfe7b7a14da18e9de921e1b5152fa"
+      },
+      "source": {
+        "id": "tos.thought-method.single-causality-trial-jgb36",
+        "version": 2,
+        "digest": "sha256:015bf171eef139bd1d82120dcc8b1f98e2577989697768ae7856e65be6b1c8a9"
+      },
+      "previous_revision": "sha256:76cae56eeddf82705b7f06ff88d9261bd4c2049d48fac74f5374b401bce1331e",
+      "archive_path": "ToS/source-witnesses/.record-revisions/abbd8839c1b43b99625f979eadea0265618484956289b348d0b1db0fb9104084-76cae56eeddf82705b7f06ff88d9261bd4c2049d48fac74f5374b401bce1331e",
+      "dependencies": "sha256:e5921a25152f776dce88be3f5d47601fcb16d877ca21d77d52431686ab100212",
+      "changed_fields": [
+        "notes",
+        "semantic_scope"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.thought-method.single-causality-trial-jgb36.name-ru",
+          "version": 2,
+          "digest": "sha256:bda1fdd05fe67f1d52600e7cc07d272d644334addc4a9a922737bd810a5ea632"
+        },
+        {
+          "id": "tos.form.thought-method.single-causality-trial-jgb36.name-en",
+          "version": 2,
+          "digest": "sha256:d8d518238d26f380ea8902ce5acc0a563159d386c6462a6d6beeba34ae42d2db"
+        },
+        {
+          "id": "tos.form.thought-method.single-causality-trial-jgb36.note-ru",
+          "version": 2,
+          "digest": "sha256:15e4a1d0ccf5729def82af67987ae0dc76e547818cd994ac64ab4833729e58d3"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:abbd8839c1b43b99625f979e",
+        "expected_configuration": "sha256:4890ed5f8c69005170af18ff5fb45d44add48e9c27f6749d25e51c9001a18dd6",
+        "expected_dependencies": "sha256:e5921a25152f776dce88be3f5d47601fcb16d877ca21d77d52431686ab100212",
+        "expected_revision": "sha256:76cae56eeddf82705b7f06ff88d9261bd4c2049d48fac74f5374b401bce1331e",
+        "expected_source": {
+          "digest": "sha256:d713b19d018f614ff55588df5edcfa97c65bfe7b7a14da18e9de921e1b5152fa",
+          "id": "tos.thought-method.single-causality-trial-jgb36",
+          "version": 1
+        },
+        "fields": {
+          "notes": "В §36 предлагается не умножать виды причинности, пока попытка обойтись одним не доведена до предела. Здесь описан методический принцип этого рассуждения.",
+          "semantic_scope": {
+            "identity_criterion": "Retain this subject while describing the one-causality trial and its limits in this passage; another inquiry procedure needs a distinct referent.",
+            "language": "en",
+            "scope_note": "The methodological trial of one kind of causality in JGB 36.",
+            "script": "Latn"
+          }
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.thought-method.single-causality-trial-jgb36.name-ru"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.thought-method.single-causality-trial-jgb36.name-en"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.thought-method.single-causality-trial-jgb36.note-ru"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    }
+  ]
+}

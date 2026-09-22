@@ -1,0 +1,83 @@
+{
+  "schema_version": "tos_source_revision_history_v1",
+  "record_id": "tos.historical-environment.gilgamesh-reception.penn-collation",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:6249d1c722a4a0aea42fc2ad",
+      "request_digest": "sha256:2df3ebbaad89457d5bc631f712e9a1a2b2012ff1d0dbab2d29586098347db90f",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:69d95e3451b95cba22ccbd3ece19e52bd04ab2e782dc210d6af8f3faed545743",
+      "recorded_at": "2026-09-22T05:04:58.709432+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.historical-environment.gilgamesh-reception.penn-collation",
+        "version": 1,
+        "digest": "sha256:282912d6cf4dfba65d845f0c2a6b89f5a5009a455248bad43a809e151d9552b0"
+      },
+      "source": {
+        "id": "tos.historical-environment.gilgamesh-reception.penn-collation",
+        "version": 2,
+        "digest": "sha256:97a341b1b2fa22eb70c1de1a541aa6c034519329771e8e903ad89fbc56d181e6"
+      },
+      "previous_revision": "sha256:6ea0c55fc34d6fd465f1da29fea5ab0abd7adeb696e8fb2ee399eef1f9dec187",
+      "archive_path": "ToS/source-witnesses/.record-revisions/6249d1c722a4a0aea42fc2ad0333a7879437c5bc9a8a481f06bb33aca84c3b3e-6ea0c55fc34d6fd465f1da29fea5ab0abd7adeb696e8fb2ee399eef1f9dec187",
+      "dependencies": "sha256:ee36ec01c29f45d3ea68455c79cd36c2419deeb2105f60dece091265fbfb7d58",
+      "changed_fields": [
+        "semantic_content",
+        "semantic_scope"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.gilgamesh-reception.penn-collation-environment.name-ru",
+          "version": 2,
+          "digest": "sha256:040e5fa6c4150e12ffc342941094c75833a28c109c752c2d465f694400b862ce"
+        },
+        {
+          "id": "tos.form.gilgamesh-reception.penn-collation-environment.note-ru",
+          "version": 2,
+          "digest": "sha256:bbcdaf520f73e56c479778588ffb2f0470576da5875cbe68a9c01f2f4f84c406"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:6249d1c722a4a0aea42fc2ad",
+        "expected_configuration": "sha256:69d95e3451b95cba22ccbd3ece19e52bd04ab2e782dc210d6af8f3faed545743",
+        "expected_dependencies": "sha256:ee36ec01c29f45d3ea68455c79cd36c2419deeb2105f60dece091265fbfb7d58",
+        "expected_revision": "sha256:6ea0c55fc34d6fd465f1da29fea5ab0abd7adeb696e8fb2ee399eef1f9dec187",
+        "expected_source": {
+          "digest": "sha256:282912d6cf4dfba65d845f0c2a6b89f5a5009a455248bad43a809e151d9552b0",
+          "id": "tos.historical-environment.gilgamesh-reception.penn-collation",
+          "version": 1
+        },
+        "fields": {
+          "semantic_content": {
+            "environment_account": "Сообщённые условия критического сопоставления издания с оригинальной табличкой; точная дата сверки и другие области среды не установлены.",
+            "language": "ru",
+            "scientific_technological_account": "Джастроу описывает музейный доступ к оригиналу, сверку с участием Кьеры и публикацию исправлений; обсуждаемое издание Лэнгдона включало копию, фотографию, транслитерацию и перевод. Правильность чтений требует текстологической оценки.",
+            "script": "Cyrl"
+          },
+          "semantic_scope": {
+            "identity_criterion": "Конфигурация источников и способов сверки в описанном Джастроу исследовании; уточнение описания сохраняет этот предмет.",
+            "language": "ru",
+            "scope_note": "Условия описанной критической работы с пенсильванской табличкой.",
+            "script": "Cyrl"
+          }
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.gilgamesh-reception.penn-collation-environment.name-ru"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.gilgamesh-reception.penn-collation-environment.note-ru"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    }
+  ]
+}
