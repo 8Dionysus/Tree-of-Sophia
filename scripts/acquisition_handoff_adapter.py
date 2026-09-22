@@ -13,6 +13,7 @@ the existing corpus-admission command.
 from __future__ import annotations
 
 import argparse
+from dataclasses import dataclass
 import hashlib
 import json
 import os
@@ -43,6 +44,23 @@ HEX64 = re.compile(r"^[a-f0-9]{64}$")
 
 class HandoffAdapterError(ValueError):
     """The selected acquisition handoff cannot form a closed batch input."""
+
+
+@dataclass(frozen=True)
+class VerifiedHandoff:
+    """Verified acquired handoff data for the intake closure owner.
+
+    This result intentionally contains no accepted-store object or corpus
+    batch.  Intake can use the verified source/payload rows with its one
+    streamed accepted index before constructing additive topology successors.
+    """
+
+    root: Path
+    handoff_path: Path
+    handoff: dict[str, Any]
+    context: acquisition.BatchContext
+    selected_source_rows: list[dict[str, Any]]
+    payloads: list[dict[str, Any]]
 
 
 def _canonical(value: Any) -> bytes:
@@ -439,8 +457,8 @@ def _verify_handoff(
     handoff: dict[str, Any],
     context: acquisition.BatchContext,
     expected_base_revision: str,
-    accepted_source_root: Path,
-    accepted_manifest: dict[str, Any],
+    accepted_source_root: Path | None,
+    accepted_manifest: dict[str, Any] | None,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     if handoff.get("batch_id") != context.manifest["batch_id"]:
         raise HandoffAdapterError("handoff batch differs from its manifest")
@@ -462,9 +480,13 @@ def _verify_handoff(
     if input_selection.get("sha256") != context.manifest_sha256:
         raise HandoffAdapterError("handoff manifest digest differs")
 
-    accepted_files = {
-        entry["path"]: entry for entry in accepted_manifest.get("files", [])
-    }
+    if (accepted_source_root is None) != (accepted_manifest is None):
+        raise HandoffAdapterError("accepted source view and manifest must be supplied together")
+    accepted_files = (
+        {entry["path"]: entry for entry in accepted_manifest.get("files", [])}
+        if accepted_manifest is not None
+        else None
+    )
     expected_records = _expected_records(context)
     source_rows = handoff.get("source_records")
     if (
@@ -493,23 +515,24 @@ def _verify_handoff(
             raise HandoffAdapterError(f"handoff source size differs: {ref}")
         if _sha256_file(source) != record["sha256"]:
             raise HandoffAdapterError(f"handoff source bytes differ: {ref}")
-        accepted_entry = accepted_files.get(ref)
-        accepted = _path_under(accepted_source_root, ref, label="accepted source reference")
-        if accepted_entry is None:
-            if accepted.exists() or accepted.is_symlink():
-                raise HandoffAdapterError(
-                    f"accepted source view contains a path absent from selected base manifest: {ref}"
-                )
-        else:
-            if accepted_entry["sha256"] != record["sha256"]:
-                raise HandoffAdapterError(f"handoff would replace accepted source bytes: {ref}")
-            if not accepted.exists() or accepted.is_symlink():
-                raise HandoffAdapterError(
-                    f"accepted source view is missing selected base member: {ref}"
-                )
-            info = _regular(accepted, label="accepted base source")
-            if info.st_size != accepted_entry["size_bytes"] or _sha256_file(accepted) != accepted_entry["sha256"]:
-                raise HandoffAdapterError(f"accepted source view differs from base manifest: {ref}")
+        if accepted_files is not None:
+            accepted_entry = accepted_files.get(ref)
+            accepted = _path_under(accepted_source_root, ref, label="accepted source reference")
+            if accepted_entry is None:
+                if accepted.exists() or accepted.is_symlink():
+                    raise HandoffAdapterError(
+                        f"accepted source view contains a path absent from selected base manifest: {ref}"
+                    )
+            else:
+                if accepted_entry["sha256"] != record["sha256"]:
+                    raise HandoffAdapterError(f"handoff would replace accepted source bytes: {ref}")
+                if not accepted.exists() or accepted.is_symlink():
+                    raise HandoffAdapterError(
+                        f"accepted source view is missing selected base member: {ref}"
+                    )
+                info = _regular(accepted, label="accepted base source")
+                if info.st_size != accepted_entry["size_bytes"] or _sha256_file(accepted) != accepted_entry["sha256"]:
+                    raise HandoffAdapterError(f"accepted source view differs from base manifest: {ref}")
         selected_source_rows.append(row)
 
     provenance = handoff.get("provenance_delta")
@@ -598,6 +621,56 @@ def _verify_handoff(
         if row.get("expected_byte_size") != payload["byte_size"] or row.get("expected_sha256") != payload["sha256"]:
             raise HandoffAdapterError(f"handoff payload digest binding differs: {row['file_ref']}")
     return selected_source_rows, [expected_payloads[file_ref].payload for file_ref in sorted(expected_payloads)]
+
+
+def verify_handoff_for_intake(
+    *,
+    acquisition_root: Path | str,
+    handoff_ref: str,
+    expected_base_revision: str,
+    repo_root: Path | str = acquisition.REPO_ROOT,
+) -> VerifiedHandoff:
+    """Verify one original handoff for direct intake closure.
+
+    This is the shared acquisition manifest/record/Item/File/rights/fixity/
+    custody verifier.  It deliberately does not load ``CorpusStore`` or an
+    accepted snapshot: intake supplies its one streamed accepted index and
+    applies additive claim/identity closure after this function returns.
+    """
+
+    root = acquisition._checked_root(acquisition_root)
+    handoff_path, handoff = _load_handoff(root, handoff_ref)
+    input_selection = handoff.get("input_selection")
+    if not isinstance(input_selection, dict) or input_selection.get("ref") != "manifest.json":
+        raise HandoffAdapterError("handoff input selection must name manifest.json")
+    manifest_path = _path_under(root, "manifest.json", label="handoff manifest")
+    context = acquisition.load_manifest(
+        manifest_path,
+        repo_root=repo_root,
+        expected_sha256=input_selection.get("sha256"),
+    )
+    try:
+        acquisition._verify_prepared_output(context, root)
+    except (acquisition.AcquisitionBatchError, acquisition.SourceIntegrityError) as exc:
+        raise HandoffAdapterError(str(exc)) from exc
+    _verify_item_payload_bindings(context, root)
+    selected_source_rows, payloads = _verify_handoff(
+        acquisition_root=root,
+        handoff_path=handoff_path,
+        handoff=handoff,
+        context=context,
+        expected_base_revision=expected_base_revision,
+        accepted_source_root=None,
+        accepted_manifest=None,
+    )
+    return VerifiedHandoff(
+        root=root,
+        handoff_path=handoff_path,
+        handoff=handoff,
+        context=context,
+        selected_source_rows=selected_source_rows,
+        payloads=payloads,
+    )
 
 
 def adapt_handoff(
