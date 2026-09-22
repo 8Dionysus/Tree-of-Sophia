@@ -208,15 +208,22 @@ def run_preflight(
     input_root: Path,
     grammar_root: Path,
     software_root: Path,
-    historical_captures: list[Path],
-    historical_roots: list[Path],
+    historical_captures: list[Path] | None = None,
+    historical_roots: list[Path] | None = None,
 ) -> dict[str, Any]:
     if not HEX64.fullmatch(base_revision):
         raise PreflightError("base revision must be a lowercase SHA-256 revision")
-    if not historical_captures or len(historical_captures) != len(historical_roots):
+    if (historical_captures is None) != (historical_roots is None):
         raise PreflightError(
-            "historical evidence selection is required and must contain paired capture/root paths"
+            "historical evidence requires one capture and restored root for every pack"
         )
+    if historical_captures is not None and len(historical_captures) != len(historical_roots):
+        raise PreflightError(
+            "historical evidence selection must contain paired capture/root paths"
+        )
+    if not historical_captures:
+        historical_captures = None
+        historical_roots = None
     store_root = store_root.absolute()
     batch_path = batch_path.absolute()
     input_root = input_root.absolute()
@@ -304,11 +311,13 @@ def run_preflight(
         if actual["mode"] != expected["mode"]:
             mode_mismatches.append({"path": relative, "expected": expected["mode"], "actual": actual["mode"]})
 
-    validator = SourceValidator(
-        grammar_root,
-        historical_capture=[path.absolute() for path in historical_captures],
-        historical_root=[path.absolute() for path in historical_roots],
-    )
+    validator_options = {}
+    if historical_captures is not None:
+        validator_options.update(
+            historical_capture=[path.absolute() for path in historical_captures],
+            historical_root=[path.absolute() for path in historical_roots],
+        )
+    validator = SourceValidator(grammar_root, **validator_options)
     batch_validator = batch["validator_sha256"]
     identity_match = validator.sha256 == batch_validator
     grammar_identity = getattr(validator, "grammar_sha256", None)
@@ -366,8 +375,9 @@ def run_preflight(
             "validator_sha256_actual": validator.sha256,
             "grammar_identity_actual": grammar_identity,
             "validator_identity_matches_batch": identity_match,
-            "historical_captures": [str(path.absolute()) for path in historical_captures],
-            "historical_roots": [str(path.absolute()) for path in historical_roots],
+            "historical_captures": [str(path.absolute()) for path in historical_captures or []],
+            "historical_roots": [str(path.absolute()) for path in historical_roots or []],
+            "historical_selection_explicit": historical_captures is not None,
             "historical_evidence_member_count": len(getattr(validator, "evidence", [])),
         },
         "overlay": {
@@ -403,8 +413,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--input-root", type=Path, required=True)
     parser.add_argument("--grammar-root", type=Path, required=True)
     parser.add_argument("--software-root", type=Path, required=True)
-    parser.add_argument("--historical-capture", type=Path, action="append", required=True)
-    parser.add_argument("--historical-root", type=Path, action="append", required=True)
+    parser.add_argument("--historical-capture", type=Path, action="append")
+    parser.add_argument("--historical-root", type=Path, action="append")
     parser.add_argument("--output", type=Path)
     args = parser.parse_args(argv)
     try:
