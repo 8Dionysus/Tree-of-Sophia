@@ -11,6 +11,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 import fcntl
 import ctypes
+import copy
 import errno
 import hashlib
 import json
@@ -33,6 +34,53 @@ class CorpusStoreError(ValueError):
 def canonical(value) -> bytes:
     return (json.dumps(value, sort_keys=True, ensure_ascii=False,
                        separators=(',', ':'), allow_nan=False) + '\n').encode()
+
+
+def _canonical_chunks(value):
+    """Yield canonical JSON bytes without retaining the complete encoding."""
+    encoder = json.JSONEncoder(sort_keys=True, ensure_ascii=False,
+                               separators=(',', ':'), allow_nan=False)
+    for chunk in encoder.iterencode(value):
+        yield chunk.encode()
+    yield b'\n'
+
+
+def _canonical_blocks(value, *, block_size: int = 1024 * 1024):
+    """Coalesce encoder chunks into blocks; one scalar may exceed the target."""
+    if type(block_size) is not int or block_size <= 0:
+        raise ValueError('canonical block size must be positive')
+    pending = bytearray()
+    for chunk in _canonical_chunks(value):
+        pending.extend(chunk)
+        if len(pending) >= block_size:
+            yield bytes(pending)
+            pending.clear()
+    if pending:
+        yield bytes(pending)
+
+
+def _canonical_digest(value) -> str:
+    digest = hashlib.sha256()
+    for block in _canonical_blocks(value):
+        digest.update(block)
+    return digest.hexdigest()
+
+
+def _canonical_matches(raw: bytes, value) -> bool:
+    """Compare one already-read file image with canonical JSON bytes."""
+    view = memoryview(raw)
+    offset = 0
+    for block in _canonical_blocks(value):
+        end = offset + len(block)
+        if view[offset:end] != block:
+            return False
+        offset = end
+    return offset == len(view)
+
+
+def _write_canonical(stream, value) -> None:
+    for block in _canonical_blocks(value):
+        stream.write(block)
 
 
 def digest_file(path: Path) -> str:
@@ -165,7 +213,7 @@ def read_json(path: Path):
     raw = path.read_bytes()
     try:
         value = json.loads(raw, object_pairs_hook=pairs)
-        if raw != canonical(value):
+        if not _canonical_matches(raw, value):
             raise CorpusStoreError('noncanonical corpus manifest')
     except (ValueError, UnicodeError) as error:
         raise CorpusStoreError('invalid canonical corpus manifest') from error
@@ -200,7 +248,7 @@ def _sync_dir(path: Path):
 
 def _write(path: Path, value):
     with path.open('xb') as stream:
-        stream.write(canonical(value))
+        _write_canonical(stream, value)
         stream.flush()
         os.fsync(stream.fileno())
 
@@ -383,7 +431,7 @@ class CorpusStore:
         if set(manifest) != expected or manifest['schema_version'] != 'tos_corpus_snapshot_v1':
             raise CorpusStoreError('unsupported corpus snapshot')
         body = {key: value for key, value in manifest.items() if key != 'revision'}
-        if manifest['revision'] != revision or hashlib.sha256(canonical(body)).hexdigest() != revision:
+        if manifest['revision'] != revision or _canonical_digest(body) != revision:
             raise CorpusStoreError('corpus revision digest mismatch')
         hex_digest(manifest['validator_sha256'])
         if manifest['base_revision'] is not None:
@@ -609,7 +657,11 @@ class CorpusStore:
             candidate = CorpusCandidate(self, files, Path(raw),
                                         retirements=events[len((base or {}).get('retirements', [])):])
             try:
-                index = validate(candidate, json.loads(canonical(base)), frozenset(affected))
+                index = validate(
+                    candidate,
+                    copy.deepcopy(base) if base is not None else None,
+                    frozenset(affected),
+                )
                 candidate.verify_reads(additional=changed & files.keys())
             finally:
                 candidate.close()
@@ -630,7 +682,7 @@ class CorpusStore:
                     'validator_sha256': validator_sha256, 'files': [files[path] for path in sorted(files)],
                     'identities': index.identities, 'dependencies': index.dependencies,
                     'retirements': events}
-            revision = hashlib.sha256(canonical(body)).hexdigest()
+            revision = _canonical_digest(body)
             manifest = {**body, 'revision': revision}
             self._validate_manifest(manifest, revision)
             destination = self.root / 'revisions' / revision
@@ -652,8 +704,8 @@ class CorpusStore:
                     pointer = self.root / 'current.json'
                     with tempfile.NamedTemporaryFile(dir=self.root, delete=False) as output:
                         temporary = Path(output.name)
-                        output.write(canonical({'schema_version': 'tos_corpus_pointer_v1',
-                                                'current': revision, 'previous': current}))
+                        _write_canonical(output, {'schema_version': 'tos_corpus_pointer_v1',
+                                                  'current': revision, 'previous': current})
                         output.flush()
                         os.fsync(output.fileno())
                     try:
