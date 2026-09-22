@@ -1407,9 +1407,7 @@ def build_intake_manifest(dossiers: list[Dossier]) -> dict[str, Any]:
         ),
         "files": records,
         "claim_limit": (
-            "This manifest proves only the bytes, sizes, logical section paths, and OOXML metadata observed in the "
-            "operator-local capture at planting time. It does not prove authorship, export-session identity, origin, "
-            "signature trust, source-witness status, claim truth, rights, review, doctrine, or canon acceptance."
+            "This manifest records exact bytes, sizes, logical section paths and OOXML metadata observed in the operator-local capture at planting time. Authorship, export-session identity, origin, signature trust, source-witness status, claim truth, rights, review, doctrine and canon each require evidence from their corresponding owner route."
         ),
     }
 
@@ -1535,16 +1533,14 @@ def build_extraction_coverage(dossiers: list[Dossier]) -> dict[str, Any]:
             "the package table and ROW_TO_EXPAND identity; other metadata values are not represented as full dossier transfer."
         ),
         "deferred_context_rule": (
-            "Context table rows remain in the operator-local DOCX and are counted here; they are not silently "
-            "promoted into nodes, relations, source anchors, terms, transmissions, source witnesses, or canon."
+            "Context table rows remain in the operator-local DOCX and contribute to the coverage count. Transfer into authored tree or source records follows the selected owner route."
         ),
         "summary": coverage_summary(dossiers),
         "sections": by_section,
         "dossiers": dossier_rows,
         "diagnostics": diagnostics,
         "claim_limit": (
-            "Coverage accounts for non-empty DOCX table-body rows under the current parser. It does not cover prose "
-            "paragraph semantics, verify citations, accept risk judgments, or establish complete dossier transfer."
+            "Coverage counts non-empty DOCX table-body rows recognized by the current parser. Prose interpretation, citation verification, risk assessment and complete dossier transfer each require their own review."
         ),
     }
 

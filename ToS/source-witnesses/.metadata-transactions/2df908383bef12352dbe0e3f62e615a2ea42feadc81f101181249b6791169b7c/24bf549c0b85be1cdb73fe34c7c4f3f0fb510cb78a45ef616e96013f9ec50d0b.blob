@@ -1,0 +1,90 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.work.digital-sumerian-corpora.electronic-text-corpus-of-sumerian-literature",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:63c4449fccd6731515c29519",
+      "request_digest": "sha256:33a3668675788ef9691e69b87319da4798e8df16251b5bc20a522f8a602714f3",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:afd0a0f9a640063a7a493dc0f8dde75803366d9e6de8ff1ddad151f507772fa3",
+      "recorded_at": "2026-09-22T05:08:38.067507+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.work.digital-sumerian-corpora.electronic-text-corpus-of-sumerian-literature",
+        "version": 1,
+        "digest": "sha256:7832ba8dc09d341da4c8c41f5ad1518ba9a7ce636d8b0767429bf4067936d42e"
+      },
+      "source": {
+        "id": "tos.work.digital-sumerian-corpora.electronic-text-corpus-of-sumerian-literature",
+        "version": 2,
+        "digest": "sha256:aa5bbc24b5b0aaac55ca1da5a79261be50b08939c070c94c96a04e85d8d7da2f"
+      },
+      "previous_revision": "sha256:e69203aee04803ae95e3f28fc2c25937a40072a7e23c88dad6fe36db4dd3ecba",
+      "archive_path": "ToS/source-witnesses/.record-revisions/63c4449fccd6731515c2951968a0b5df9abd704b6dddb4c2bfc873adf7660414-e69203aee04803ae95e3f28fc2c25937a40072a7e23c88dad6fe36db4dd3ecba",
+      "dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+      "changed_fields": [
+        "notes"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.metadata.bf587f9185316577ab68f77647601bc23acfadf0c3b96a5e3a41afc875b6cdbd",
+          "version": 2,
+          "digest": "sha256:da5900c0784a584a273fb517512f111cdb30fa062ac2c7588b091960a1b43b7c"
+        },
+        {
+          "id": "tos.form.metadata.c57135f52fe2d133f7b742adb02be0036dfa5aa06995fcc3583d3bcc787db5ea",
+          "version": 2,
+          "digest": "sha256:1bfbb50caa3adb69063f2f7bddfd69d85f4af90826cd7a5a61a303995fde288d"
+        },
+        {
+          "id": "tos.form.metadata.ad02eb4259c4e7b98208c4ae231e1671a6d60551cfe61bfdd8044b39259b8649",
+          "version": 2,
+          "digest": "sha256:5f302b0bf24276489cd3e7ae44285e1cccba61aff4a3975ec42bb13d436c4983"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:63c4449fccd6731515c29519",
+        "expected_configuration": "sha256:afd0a0f9a640063a7a493dc0f8dde75803366d9e6de8ff1ddad151f507772fa3",
+        "expected_dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+        "expected_publication": "sha256:704f56a963c936283815956bac7d9cd9aa0816a87efd8229c183eeda3ff3eb77",
+        "expected_revision": "sha256:e69203aee04803ae95e3f28fc2c25937a40072a7e23c88dad6fe36db4dd3ecba",
+        "expected_source": {
+          "digest": "sha256:7832ba8dc09d341da4c8c41f5ad1518ba9a7ce636d8b0767429bf4067936d42e",
+          "id": "tos.work.digital-sumerian-corpora.electronic-text-corpus-of-sumerian-literature",
+          "version": 1
+        },
+        "fields": {
+          "notes": "Completed 1998–2006 collaborative digital scholarly corpus. Seven responsibility claims preserve the project's prescribed citation; their evidence records the specific editor, developer, associate, and director roles represented by the broader contributed_by relation."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.metadata.bf587f9185316577ab68f77647601bc23acfadf0c3b96a5e3a41afc875b6cdbd"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.metadata.c57135f52fe2d133f7b742adb02be0036dfa5aa06995fcc3583d3bcc787db5ea"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.metadata.ad02eb4259c4e7b98208c4ae231e1671a6d60551cfe61bfdd8044b39259b8649"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:2df908383bef12352dbe0e3f62e615a2ea42feadc81f101181249b6791169b7c",
+        "selected_files": [
+          "source-revision-history.json",
+          "work.human-forms.json",
+          "work.json"
+        ]
+      }
+    }
+  ]
+}

@@ -58,7 +58,7 @@
     },
     "effects": {"$ref": "#/$defs/effects"},
     "rights_and_visibility": {"$ref": "#/$defs/rightsVisibility"},
-    "authority_boundary": {"type": "string", "minLength": 220}
+    "authority_boundary": {"type": "string", "minLength": 1, "description": "Brief account of the artifact purpose and scope. Typed status, effects, assessment and permission fields govern its use."}
   },
   "$defs": {
     "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},

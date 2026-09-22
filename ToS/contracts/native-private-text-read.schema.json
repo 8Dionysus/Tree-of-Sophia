@@ -2,41 +2,153 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://tree-of-sophia.local/ToS/contracts/native-private-text-read.schema.json",
   "title": "Protected exact owner-local native text reading selection",
-  "description": "A separate owner-selected local research read, not public visibility, redistribution, assessment or rights authority. No consumer or source record may select this configuration. The adapter must independently enforce owner-local transport and retain the returned rights notices.",
-  "type": "object", "additionalProperties": false,
-  "required": ["schema_version", "source_root", "owner_uid", "issuer", "mandate", "owner_context", "issued_at", "expires_at", "transport_scope", "external_publication_authorized", "selections"],
+  "description": "A separately selected local-owner configuration for confidential research reading. The owner chooses it independently of consumers and source records. The adapter enforces owner-local transport and retains returned rights notices; assessment, redistribution and publication retain their own authority.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "source_root",
+    "owner_uid",
+    "issuer",
+    "mandate",
+    "owner_context",
+    "issued_at",
+    "expires_at",
+    "transport_scope",
+    "external_publication_authorized",
+    "selections"
+  ],
   "properties": {
-    "schema_version": {"const": "tos_native_private_text_read_v1"},
-    "source_root": {"type": "string", "minLength": 2, "maxLength": 4096},
-    "owner_uid": {"type": "integer", "minimum": 0},
-    "issuer": {"type": "string", "minLength": 1, "maxLength": 256},
+    "schema_version": {
+      "const": "tos_native_private_text_read_v1"
+    },
+    "source_root": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 4096
+    },
+    "owner_uid": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "issuer": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
     "mandate": {
-      "type": "object", "additionalProperties": false, "required": ["path", "sha256", "scope"],
-      "properties": {"path": {"type": "string", "minLength": 2, "maxLength": 4096}, "sha256": {"$ref": "#/$defs/hash"}, "scope": {"type": "string", "minLength": 1, "maxLength": 2048}}
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "sha256",
+        "scope"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 4096
+        },
+        "sha256": {
+          "$ref": "#/$defs/hash"
+        },
+        "scope": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        }
+      }
     },
     "owner_context": {
-      "type": "object", "additionalProperties": false, "required": ["path", "sha256"],
-      "properties": {"path": {"type": "string", "minLength": 2, "maxLength": 4096}, "sha256": {"$ref": "#/$defs/hash"}}
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 4096
+        },
+        "sha256": {
+          "$ref": "#/$defs/hash"
+        }
+      }
     },
-    "issued_at": {"type": "string", "format": "date-time"},
-    "expires_at": {"type": "string", "format": "date-time"},
-    "external_publication_authorized": {"const": false},
-    "transport_scope": {"const": "owner_process_only"},
+    "issued_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "external_publication_authorized": {
+      "const": false
+    },
+    "transport_scope": {
+      "const": "owner_process_only"
+    },
     "selections": {
-      "type": "array", "minItems": 1, "maxItems": 64,
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 64,
       "items": {
-        "type": "object", "additionalProperties": false,
-        "required": ["binding_sha256", "rights_record_refs", "condition_review"],
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "binding_sha256",
+          "rights_record_refs",
+          "condition_review"
+        ],
         "properties": {
-          "binding_sha256": {"$ref": "#/$defs/hash"},
-          "rights_record_refs": {"type": "array", "minItems": 1, "maxItems": 16, "uniqueItems": true, "items": {"$ref": "#/$defs/ref"}},
-          "condition_review": {"type": "string", "minLength": 1, "maxLength": 4096}
+          "binding_sha256": {
+            "$ref": "#/$defs/hash"
+          },
+          "rights_record_refs": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 16,
+            "uniqueItems": true,
+            "items": {
+              "$ref": "#/$defs/ref"
+            }
+          },
+          "condition_review": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          }
         }
       }
     }
   },
   "$defs": {
-    "hash": {"type": "string", "pattern": "^[a-f0-9]{64}$", "maxLength": 64},
-    "ref": {"type": "object", "additionalProperties": false, "required": ["ref", "sha256"], "properties": {"ref": {"type": "string", "minLength": 1, "maxLength": 2048}, "sha256": {"$ref": "#/$defs/hash"}}}
+    "hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "maxLength": 64
+    },
+    "ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ref",
+        "sha256"
+      ],
+      "properties": {
+        "ref": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "sha256": {
+          "$ref": "#/$defs/hash"
+        }
+      }
+    }
   }
 }

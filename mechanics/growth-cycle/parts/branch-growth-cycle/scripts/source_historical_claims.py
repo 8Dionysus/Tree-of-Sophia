@@ -1,4 +1,4 @@
-"""Explicit adapter for captured historical Claims, not a schema migration.
+"""Revise descriptive wording on explicitly selected captured historical Claims.
 
 Only descriptive qualifiers and adjacent source-copy forms may grow. The
 original historical.create bytes, historical record history, Claim identity,

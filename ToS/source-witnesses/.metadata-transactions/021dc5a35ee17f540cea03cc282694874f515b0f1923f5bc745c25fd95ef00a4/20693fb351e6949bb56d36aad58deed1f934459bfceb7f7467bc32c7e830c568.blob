@@ -1,0 +1,90 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.work.egyptian-scholarship.on-four-songs-contained-in-an-egyptian-papyrus-in-the-british-museum",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:30cf9ea2d9c8ea5aa7ec9f74",
+      "request_digest": "sha256:aed7eb9a4acec41c69e91239c2eebe86e5e646ab7782dd852d68858564786c97",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:b01b205e95bafdf91fe27669a8a9e6155bb3e90f3e3f057722aa2ee232c5f00e",
+      "recorded_at": "2026-09-22T05:08:40.251995+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.work.egyptian-scholarship.on-four-songs-contained-in-an-egyptian-papyrus-in-the-british-museum",
+        "version": 1,
+        "digest": "sha256:b04b7ad63c2c0129e4871cfed8d6be939018da87de319e90953070c00a969470"
+      },
+      "source": {
+        "id": "tos.work.egyptian-scholarship.on-four-songs-contained-in-an-egyptian-papyrus-in-the-british-museum",
+        "version": 2,
+        "digest": "sha256:c26dbe7abbe4426e0c5be15e0b97581d180c8dad18f7abf0c744cc777f4a6e14"
+      },
+      "previous_revision": "sha256:754a1a8c2e530d997af4b6b94d92c30ef6df389db7d26fdf0469d3b744c6e1cd",
+      "archive_path": "ToS/source-witnesses/.record-revisions/30cf9ea2d9c8ea5aa7ec9f74b25464af3338ec8b664a8980398b44b1ac361997-754a1a8c2e530d997af4b6b94d92c30ef6df389db7d26fdf0469d3b744c6e1cd",
+      "dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+      "changed_fields": [
+        "notes"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.metadata.426a67f99e8b0024f19d3a11591b1a131a0215fb1b3c2615fb39fdb5d26bab61",
+          "version": 2,
+          "digest": "sha256:d3dae30b88de8ec7aee8eeaefa1761574f5d8a8fa935b5af6c09594a4017cdd0"
+        },
+        {
+          "id": "tos.form.metadata.cf2f71993432bf118fb04fe231ebce5ec177f2dc54f5851dd2b1cf1dac0451d8",
+          "version": 2,
+          "digest": "sha256:7be05c4c73596286521fbbba01d827cf8009dd27cdb0feb9742856cd15a8dd7e"
+        },
+        {
+          "id": "tos.form.metadata.c1cc74b5e2965fec9f37161b292c8a9d185e0fba818d0247c9372e68de2a1944",
+          "version": 2,
+          "digest": "sha256:be2fb8c60a105a4bc4d0d976c483d0a204993811b97e93aa9ce7773becd63f62"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:30cf9ea2d9c8ea5aa7ec9f74",
+        "expected_configuration": "sha256:b01b205e95bafdf91fe27669a8a9e6155bb3e90f3e3f057722aa2ee232c5f00e",
+        "expected_dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+        "expected_publication": "sha256:c9aa0d3161507715f583fdf1f675dec4cd76baf6d56869ca352f57a8a70846d2",
+        "expected_revision": "sha256:754a1a8c2e530d997af4b6b94d92c30ef6df389db7d26fdf0469d3b744c6e1cd",
+        "expected_source": {
+          "digest": "sha256:b04b7ad63c2c0129e4871cfed8d6be939018da87de319e90953070c00a969470",
+          "id": "tos.work.egyptian-scholarship.on-four-songs-contained-in-an-egyptian-papyrus-in-the-british-museum",
+          "version": 1
+        },
+        "fields": {
+          "notes": "Verified modern scholarly article published in 1874, including Goodwin's historical treatment and rough English rendering of four songs, among them the Song of the house of King Antuf."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.metadata.426a67f99e8b0024f19d3a11591b1a131a0215fb1b3c2615fb39fdb5d26bab61"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.metadata.cf2f71993432bf118fb04fe231ebce5ec177f2dc54f5851dd2b1cf1dac0451d8"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.metadata.c1cc74b5e2965fec9f37161b292c8a9d185e0fba818d0247c9372e68de2a1944"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:021dc5a35ee17f540cea03cc282694874f515b0f1923f5bc745c25fd95ef00a4",
+        "selected_files": [
+          "source-revision-history.json",
+          "work.human-forms.json",
+          "work.json"
+        ]
+      }
+    }
+  ]
+}

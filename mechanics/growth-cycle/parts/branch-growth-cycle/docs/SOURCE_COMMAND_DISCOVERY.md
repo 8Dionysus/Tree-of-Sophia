@@ -31,11 +31,10 @@ typed source schema/profile handles, preconditions and operation shapes.
 
 Each `request_shape` is an exact top-level JSON Schema: required fields,
 constant envelope/operation tags and `additionalProperties: false`. Empty
-property schemas deliberately leave nested values to the named handler and
-its typed contracts; they are not claims that arbitrary records or fields are
-valid. Profile handles point back to the canonical type/relation registries.
-Discovery does not load those registries or turn their read profiles into
-writer operations. A profile schema being readable never grants writing.
+property schemas delegate nested validation to the named handler and its typed
+contracts. Profile handles point to the canonical type/relation registries.
+Discovery exposes those handles; execution loads applicable contracts and
+checks the independently issued writer grant.
 
 `mutation` names the operation's possible source effect under an independently
 valid grant. `none` means the command does not publish source changes; the
@@ -56,11 +55,10 @@ precondition; discovery and serialization do not grant it.
 ## One implementation grammar
 
 `source_command_contracts.py` supplies pure descriptors. Each connected
-handler owns its descriptors beside its implementation. The front door's
-fixed implementation imports collect those descriptors and use them for
-configuration dispatch, operation dispatch and exact request-key validation.
-The JSON catalogue is their projection, not a separately maintained operation
-registry, an import path from caller data, or an executable schema extension.
+handler owns its descriptors beside its implementation. The front door's fixed
+implementation imports collect them for configuration dispatch, operation
+dispatch and exact request-key validation. The JSON catalogue is generated
+from those descriptors.
 
 Currently connected families include public source/Claim forms;
 historical, declared-profile and standalone native creation; Sign promotion;
@@ -80,13 +78,14 @@ correction, Unicode normalization and recording supplied OCR/transcription.
 One independent grant chooses one operation; reported upstream methods are not
 provider execution receipts and new layers do not inherit prior quality.
 
-The existing translation-alignment owner also exposes its additive
-[native record route](NATIVE_TRANSLATION_ALIGNMENT.md) through
+The translation-alignment owner exposes its [native record
+route](NATIVE_TRANSLATION_ALIGNMENT.md) through
 `owner-local-native-translation-alignment`: exact private create/revise,
-metadata-only version inspection and retained native recovery. Its stable
-Alignment subject, descriptive record and Claim versions remain distinct.
-Capturing a supplied mapping never claims an executed aligner or assessed
-translation; legacy packet-v1 review semantics remain unchanged.
+metadata-only version inspection and retained native recovery. Alignment
+subject identity, descriptive record and Claim versions each retain their own
+role. The operation captures supplied mappings; aligner execution and
+translation assessment require their respective evidence. Packet-v1 review
+semantics remain unchanged.
 
 The distinct `owner-local-text-layer-record-owner-ocr` handler records one
 authenticated signed `abyss-stack` OCR result under a separate protected grant.
@@ -97,10 +96,10 @@ the original PDF identity and separately pinned retained page image, authenticat
 the owner's new execution/capture receipt and never claims a fresh render.
 Neither handler grants image disclosure or textual quality.
 
-Assessment-journal and semantic-registry evolution remain explicit owner
-handoffs, not operations dispatched by this front door. Access CLI, HTTP,
-WebMCP and native MCP remain read-only access surfaces; this catalogue does not
-connect them to a writer or expose confidential configurations.
+Assessment-journal and semantic-registry evolution use their explicit owner
+routes. Access CLI, HTTP, WebMCP and native MCP retain read-only access
+contracts. Source commands execute through the separately configured
+source-owner front door.
 
 ## Verification and limits
 

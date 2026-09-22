@@ -10,9 +10,9 @@ and the contextual metadata together in a local ignored packet. Ask only the
 next useful question, show the exact body back to the author, and require an
 explicit confirmation before the packet becomes `author-confirmed`.
 
-The protocol is intentionally not a recurring Human Gold task. It opens only
-when the author chooses to speak, and it may stop at any point without creating
-debt.
+The author initiates each capture and may stop it at any point. Every future
+capture requires a new voluntary choice; participation carries no recurring
+obligation.
 
 ## Capture sequence
 

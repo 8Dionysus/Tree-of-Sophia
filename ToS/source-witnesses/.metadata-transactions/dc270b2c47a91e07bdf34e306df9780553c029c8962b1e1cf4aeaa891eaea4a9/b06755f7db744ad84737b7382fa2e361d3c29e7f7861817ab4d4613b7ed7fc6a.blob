@@ -1,0 +1,90 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.work.old-babylonian-scholarship.the-epic-of-gilgamesh-george-translation",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:f98f32e6d63e96be876e0ba7",
+      "request_digest": "sha256:16bcea0952e8036a5aef818128c552173bef0e3903c8fcadb1c525ef59800d40",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:6b37d5b0e11f70e0678f20d0775c3037a9c7d1284bf3311c5cde7d7532002feb",
+      "recorded_at": "2026-09-22T05:09:26.086544+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.work.old-babylonian-scholarship.the-epic-of-gilgamesh-george-translation",
+        "version": 1,
+        "digest": "sha256:8f598e9f82dba677845f9f467753e92d2d6b3028b1f73e872edd95b0c9d03a33"
+      },
+      "source": {
+        "id": "tos.work.old-babylonian-scholarship.the-epic-of-gilgamesh-george-translation",
+        "version": 2,
+        "digest": "sha256:ea7ae4509a1b2353367006d89124fe20ad380b66b6b06f16ca71a987dd3ffd3e"
+      },
+      "previous_revision": "sha256:d21443404bd47c2182916acdc131d7be6eb1e12f81e78231e7c4a6559d36f196",
+      "archive_path": "ToS/source-witnesses/.record-revisions/f98f32e6d63e96be876e0ba7e48c9af7796511bbec0a9c51e9fe73ffc3ec39c6-d21443404bd47c2182916acdc131d7be6eb1e12f81e78231e7c4a6559d36f196",
+      "dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+      "changed_fields": [
+        "notes"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.metadata.0700caa96023d56606c6752f3879c350a5bc45ac33f39e7cdae7950576c5acfe",
+          "version": 2,
+          "digest": "sha256:e17bf014fe9c180286926b1e11ac67df854bd6b5a78650f88e1c0992572a4d83"
+        },
+        {
+          "id": "tos.form.metadata.8dd080626393045930f19b973013302a98c4c1c9238a6b7fdd540697cd146169",
+          "version": 2,
+          "digest": "sha256:d5e1482e6529d8bdfe5258a64c4e91409d33c1425e62af2dd3e3eb3d30540d2c"
+        },
+        {
+          "id": "tos.form.metadata.3435411a44101b42b8657510b951c72dab56415fd773adb004b5bbd1971323fb",
+          "version": 2,
+          "digest": "sha256:1df3c7b56b3a9b4f9cd9029a35b9101ac6775256202f8c1e31cf50334629913e"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:f98f32e6d63e96be876e0ba7",
+        "expected_configuration": "sha256:6b37d5b0e11f70e0678f20d0775c3037a9c7d1284bf3311c5cde7d7532002feb",
+        "expected_dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+        "expected_publication": "sha256:b3cd5538f9bbed5b24671a3a4e411536750440bbf84602c00e6f1e6e1e17dea9",
+        "expected_revision": "sha256:d21443404bd47c2182916acdc131d7be6eb1e12f81e78231e7c4a6559d36f196",
+        "expected_source": {
+          "digest": "sha256:8f598e9f82dba677845f9f467753e92d2d6b3028b1f73e872edd95b0c9d03a33",
+          "id": "tos.work.old-babylonian-scholarship.the-epic-of-gilgamesh-george-translation",
+          "version": 1
+        },
+        "fields": {
+          "notes": "Reader-facing English translation Work first published by Allen Lane / Penguin Press in 1999 and represented by a 2000 Penguin Classics route. Andrew George’s translator and introduction-author credits are preserved as two role-qualified contributed_by claims at Work level. Later Penguin catalog states include a 2016 eBook and an extensively revised 2020 second-edition paperback, each requiring its own bibliographic and textual examination. George’s 2003 specialist critical edition and its translations have a separate Work identity."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.metadata.0700caa96023d56606c6752f3879c350a5bc45ac33f39e7cdae7950576c5acfe"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.metadata.8dd080626393045930f19b973013302a98c4c1c9238a6b7fdd540697cd146169"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.metadata.3435411a44101b42b8657510b951c72dab56415fd773adb004b5bbd1971323fb"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:dc270b2c47a91e07bdf34e306df9780553c029c8962b1e1cf4aeaa891eaea4a9",
+        "selected_files": [
+          "source-revision-history.json",
+          "work.human-forms.json",
+          "work.json"
+        ]
+      }
+    }
+  ]
+}

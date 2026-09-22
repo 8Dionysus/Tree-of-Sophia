@@ -1,8 +1,7 @@
 # ToS Node Contract
 
-This document records the first-phase working law for ToS nodes.
-
-It keeps Tree of Sophia source-first, lineage-aware, and explicit about interpretation layers.
+ToS nodes give source-linked thought a stable, reviewable form. Each node
+connects its subject, source, interpretation and relations.
 
 The same minimum contract currently covers source, concept, principle, lineage,
 event, state, support, context, analogy, and synthesis nodes unless a more specific
@@ -10,16 +9,32 @@ family template narrows the posture.
 
 ## Minimum node contract
 
-At the first-phase baseline, a node should not be treated as a flat note.
-
-Each serious node should preserve at least:
+Each node preserves at least:
 
 - a source anchor or canonical reference
 - key terms or concepts
 - a distilled thesis or extraction layer
 - explicit relations
 
-These are the minimum layers that keep a node tied to meaning rather than turning it into archive dust.
+Together these layers let a reader recover the basis of a thesis and follow
+its relations to other thought.
+
+## Authored description
+
+Describe the subject through its content, purpose, properties, relations and
+source-grounded examples. State the scope and uncertainty that affect this
+particular reading. Preserve a source's negation, conditional reasoning and
+disagreement when they carry its meaning.
+
+Use type, identity, review, rights and operation fields for their respective
+conditions. Explain shared processing and permission rules in the owning
+contract. Keep a node's description focused on the subject; include a type
+distinction there when it resolves an actual ambiguity in the material.
+
+Review a proposed description for both fidelity and explanatory value. Each
+qualification should identify the specific reading, evidence or use it limits.
+Language revisions retain the subject's identity, substantive scope and
+version history under the owning record contract.
 
 ## Optional but strongly preferred layers
 
@@ -35,8 +50,8 @@ As the node deepens, it may also include:
 - speculative synthesis
 - translation-tension notes when witness drift matters
 
-Optional does not mean vague.
-Every added layer should remain distinguishable from the source anchor beneath it.
+Give every added layer an explicit role and a visible relationship to its
+source anchor.
 
 ## Optional multilingual witness layers
 
@@ -64,50 +79,48 @@ The current public roles are:
 - `working_translation`
 - `bridge_translation`
 
-These are authored route roles, not automatic assurance verdicts.
-`canonical_source` identifies the source-facing witness used by that node; it
-does not by itself establish a critical edition, accepted German reading, or
-modern source review. Likewise, `working_translation` and
-`bridge_translation` identify authored translation functions, not accepted
-translation packets or competence-scoped Human Gold. Any stronger use must
-return through the exact source/translation evidence spine and its own review.
+These roles describe how a witness serves the authored node.
+`canonical_source` identifies its source-facing witness;
+`working_translation` and `bridge_translation` identify translation functions.
+Edition identity, text quality, language competence and permitted uses belong
+to the exact source or translation evidence and its scoped assessment.
 
-Each witness block keeps the same `segment_id` values across languages so the node stays one node rather than three copies.
-When a witness is maintainer-curated rather than bibliographically fixed, that posture should be named explicitly instead of being left implicit.
+Each witness block keeps the same `segment_id` values across languages within
+one node. Identify the translator, edition or maintainer responsible for each
+witness.
 
 `translation_tensions` is an optional array of `{ segment_id, note }`.
 Use it only when drift is philosophically load-bearing.
 
-These fields do not change the required minimum node contract.
-They make multilingual witness surfaces inspectable without splitting node identity by language.
+These optional fields add inspectable multilingual evidence to the shared
+node and its required source, thesis and relation layers.
 
 ## Human representations
 
 An existing native node may explicitly opt into `tos_canonical_node_v1` with
 `schema_version` and a positive `record_version`. Its native `node_id` remains
-its identity; no bibliographic `record_id` is introduced. Unversioned historical
-nodes remain valid legacy records, not implicitly version 1. The first explicit
+its identity. Unversioned historical nodes retain their legacy status. The first explicit
 version is a source-owner migration: preserve the prior bytes and review in
-history, and name that adoption rather than fabricating a past version sequence.
+history, and record the adoption date and baseline.
 Further corrections preserve identity, advance the explicit version and retain
-their predecessors; a changed digest with an unchanged version cannot rescue
-old forms or assessments.
+their predecessors. Forms and assessments resolve the exact version and digest
+they were issued for.
 
 Only this opt-in permits `preferred_label`, `variant_labels` and
 `field_languages` for `preferred_label` and `distilled_thesis`. Variant names
 retain their language, optional script, source reference and separate wording
-status. They are not new subject identities or identity-equivalence assertions.
-Field language describes that wording, not the witness, the author's language
-or the interface. Unknown declarations remain unknown. Adding a name does not
-certify translation quality, accept an interpretation or grant canon/publication
-authority. The source anchor, thesis, relations and interpretation layers remain
-the same minimum contract; names cannot replace them.
+status. Names share the node's subject identity. Field language describes the
+wording; witness language and author language have their own source fields.
+Unknown declarations remain unknown. Translation quality, interpretation,
+canon and publication follow their respective assessment and permission
+routes. Named nodes retain the source anchor, thesis, relations and
+interpretation layers required above.
 
 [HUMAN_FORMS](HUMAN_FORMS.md) governs versioned names, captions, hover text,
 exact statements, grounds, history and technical readings of the same subject.
 Forms bind source records and mandatory context; source-copy, admitted-template
-rendering and assessed freeform wording remain distinct. This is an additive
-form contract, not a replacement for a node's source or witness layers.
+rendering and assessed freeform wording each retain their own provenance and
+assessment requirements alongside the node's source and witness layers.
 
 ## Lineage before archive
 
@@ -126,7 +139,8 @@ When context or commentary needs a more precise fit, use explicit relation names
 - `contextualized-by`
 - `commentary-on`
 
-Topic labels and era labels may help orientation, but they do not replace genealogical movement.
+Topic and era labels support navigation; explicit relations carry genealogical
+movement.
 
 ## Interpretation ladder
 
@@ -138,16 +152,6 @@ Interpretation should stay visibly layered:
 4. cross-text comparison
 5. speculative synthesis
 
-No node should collapse these five levels into one undifferentiated paragraph.
-
-## Anti-goals
-
-Avoid turning ToS into:
-
-- a flat archive of notes
-- a summary pile detached from source anchors
-- a graph theater that hides provenance behind edges
-- a speculative essay machine with no visible interpretation ladder
-- three parallel language trees for one authored node
-- anonymous multilingual witness blocks that erase translator, edition, or maintainer posture
-- synonym piles masquerading as multilingual concept identity
+Give each level a visible location and label. A reader should be able to trace
+an interpretation through its thesis to the cited source, inspect a relation's
+basis, and identify each language witness and its responsible contributor.

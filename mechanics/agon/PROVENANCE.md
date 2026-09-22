@@ -1,7 +1,7 @@
 # Agon Provenance Bridge
 
 This is the active bridge from current Agon routes to former-path accounting.
-It is not the archive itself.
+The package-local legacy archive preserves the former source material.
 
 ## Current Route First
 

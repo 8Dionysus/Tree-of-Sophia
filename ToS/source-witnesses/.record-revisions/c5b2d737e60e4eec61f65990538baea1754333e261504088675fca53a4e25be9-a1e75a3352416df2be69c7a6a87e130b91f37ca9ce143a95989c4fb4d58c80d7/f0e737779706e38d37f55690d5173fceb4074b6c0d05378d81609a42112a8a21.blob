@@ -1,0 +1,83 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.claim.sid-513a7130b7de448bb08d276c23bfb686",
+    "version": 1,
+    "digest": "sha256:a8dd23e943c45a3a3a89272527ec3e9abcd88e0db396354e628584cddb5d038b"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "",
+          "record": {
+            "digest": "sha256:a8dd23e943c45a3a3a89272527ec3e9abcd88e0db396354e628584cddb5d038b",
+            "id": "tos.claim.sid-513a7130b7de448bb08d276c23bfb686",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/qualifiers/statement",
+          "record": {
+            "digest": "sha256:a8dd23e943c45a3a3a89272527ec3e9abcd88e0db396354e628584cddb5d038b",
+            "id": "tos.claim.sid-513a7130b7de448bb08d276c23bfb686",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.sid-681212ff8b604f589e1fdc4046a4c994",
+      "form_version": 1,
+      "language": "ru",
+      "revises": null,
+      "role": "statement",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:a8dd23e943c45a3a3a89272527ec3e9abcd88e0db396354e628584cddb5d038b",
+        "id": "tos.claim.sid-513a7130b7de448bb08d276c23bfb686",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation-duden-lexical:claim-form-4",
+      "request_digest": "sha256:d2a761c8e45aec6f7d526401377e26362109791e7df6148b672b1681cb175023",
+      "principal_id": "agent:codex-tos-foundation",
+      "authority_ref": "operator-goal:01a06cc7-0452-77f2-b89a-fb77fb86c3bf:sha256:58a14c36933d864d22d6a3485c8240b37459894448dd9580d53d6c7ac834e798",
+      "owner_configuration": "sha256:1b3bab9c9422e032d61759c02a9fa983f75820ed945454466299c2750b21e197",
+      "recorded_at": "2026-09-08T12:26:56.007979+00:00",
+      "source_contracts": {
+        "ToS/doctrine/semantic-interchange/relation-types.v1.json": "sha256:f7ef71e82a683de9664a9fbfafd250e4205780bd95068ac586f8bdcd176b07f4",
+        "ToS/contracts/semantic-relation-type-registry.schema.json": "sha256:5b3eea795cf81ce2cd8872f21f20fa37ebb52d874fe195c653bf116601cee4da",
+        "ToS/doctrine/semantic-interchange/entity-types.v1.json": "sha256:9aebccc34f0f0d637f8d0e2c4474bcd7219ff92f9fd396f1d5f98ebd2d8fdac1",
+        "ToS/contracts/semantic-entity-type-registry.schema.json": "sha256:1aa305cc7cb1fe31338180d95563141ed4596fb6d33ed3d320a7e667475cdf3d",
+        "ToS/contracts/claim-packet.schema.json": "sha256:cc982ceeaa3a62dc8cb1367cd4b10cc76073b252a1ac5c9977f6b0ee6d47588c",
+        "ToS/contracts/knowledge-assessment.schema.json": "sha256:83163d105944db9a54bd57a8e730c3d459a00239de0df65cb63ac18c305e60be",
+        "ToS/contracts/source-claim-record.schema.json": "sha256:0c6a03c978999586c9a13c153bde5dabe7ccb4c31c732afb8cca6a536eb65bd0",
+        "ToS/contracts/corpus-record.schema.json": "sha256:baccf59bc5c6ffd1560848610ac812751d1e5182c89658814eeb2eedde4b6db1",
+        "ToS/contracts/semantic-relation-claim.schema.json": "sha256:49a82dbcacbc1c186a0fb51768fa84227bdd4b8c9a35bd93f7b2f86c4527563e",
+        "ToS/contracts/linguistic-relation-claim.schema.json": "sha256:1add9fc5130493473e3d97347b224281337ede74d5baba5a303940e74c1ce5ba"
+      },
+      "source": {
+        "id": "tos.claim.sid-513a7130b7de448bb08d276c23bfb686",
+        "version": 1,
+        "digest": "sha256:a8dd23e943c45a3a3a89272527ec3e9abcd88e0db396354e628584cddb5d038b"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.sid-681212ff8b604f589e1fdc4046a4c994",
+          "version": 1,
+          "digest": "sha256:7e8cd1a334ea76fb164e64980b0246d3e5dfa4c20168121daaf4917625d8179e"
+        }
+      ]
+    }
+  ]
+}

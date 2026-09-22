@@ -24,7 +24,7 @@ branch-shaped topology.
 
 ## Boundary Routes
 
-- Name paths by philosophical branch identity, not UI labels or packet titles.
+- Name paths by philosophical branch identity.
 - Keep prepared master-table rows in `atlas/`; route their branch expansion
   through the owning era, region, or tradition.
 - Keep the main shape tree-first: atlas -> trunk -> eras -> regions -> traditions ->
@@ -32,8 +32,8 @@ branch-shaped topology.
   media, scripts, transmissions, controversies, sources, graph fragments.
 - Use `frontiers/` only for an explicit non-era guardrail whose chronology,
   geography, readability, or evidence posture cannot be represented honestly
-  as one era/region/tradition branch. A frontier remains pre-canon and must
-  state its unresolved boundary; it is not a shortcut around branch review.
+  as one era/region/tradition branch. A frontier remains pre-canon, states its unresolved boundary and follows
+branch review.
 - Treat corpora, archives, inscriptions, institutions, media, scripts,
   transmissions, and controversies as first-class infrastructure for
   philosophical growth.

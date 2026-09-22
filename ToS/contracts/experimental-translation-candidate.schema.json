@@ -211,9 +211,7 @@
       }
     },
     "provenance_event_ref": {"$ref": "#/$defs/tosId"},
-    "authority_boundary": {
-      "const": "verified private model runs may be recorded and triaged as experimental candidates before any optional human Russian-surface review; this is not accepted German, translation quality, publication permission, semantic evidence, graph truth, or canon authority"
-    }
+    "authority_boundary": {"type": "string", "minLength": 1, "description": "Brief account of the artifact purpose and scope. Typed status, effects, assessment and permission fields govern its use."}
   },
   "$defs": {
     "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},

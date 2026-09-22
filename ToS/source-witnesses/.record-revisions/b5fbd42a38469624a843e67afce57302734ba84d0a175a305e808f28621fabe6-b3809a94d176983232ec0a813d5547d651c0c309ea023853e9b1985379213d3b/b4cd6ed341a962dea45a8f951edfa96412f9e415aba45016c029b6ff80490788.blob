@@ -1,0 +1,118 @@
+{
+  "schema_version": "tos_claim_revision_history_v1",
+  "source_path": "ToS/source-witnesses/relations/linguistic/source-claims.jsonl",
+  "receipts": [
+    {
+      "command_id": "tos:linguistic:atf-layer:20260908",
+      "request_digest": "sha256:f330ee70d7dbc673b260db091410081c82c51ffe717fecd76277311bae475e59",
+      "principal_id": "agent:codex-tos-foundation",
+      "authority_ref": "operator:tos-foundation-v1-20260905",
+      "owner_configuration": "sha256:aa5455ba6221481efa826195583e326fc8352370cba5edf21a2271730c8d38d2",
+      "recorded_at": "2026-09-08T03:25:09.668633+00:00",
+      "reason": "The existing statement and relation_basis explicitly describe our limited inference from the indexed ATF character table and Unicode §7.1, not a source's explicit declaration. Correct only that assertion's erroneous layer classification; preserve its proposition, attribution, scope, evidence, uncertainty and unreviewed status. Independent boundary review identified this mismatch. This correction grants no linguistic competence or research admission.",
+      "previous_source": {
+        "id": "tos.claim.linguistic.atf-notation",
+        "version": 1,
+        "digest": "sha256:f349743da0a669a01ebf006b5555109203a6843d05241a68679d8e05bf4e1bb2"
+      },
+      "source": {
+        "id": "tos.claim.linguistic.atf-notation",
+        "version": 2,
+        "digest": "sha256:bb9a31d0282ab577fdede9f6f23b790f6da621dfaf27c5e3dc55ee0f256c091b"
+      },
+      "previous_revision": "sha256:e2c6e44320f49c66b0af85da39fa7669c78f5d3860dc0c1843b62d7daed9de16",
+      "archive_path": "ToS/source-witnesses/.record-revisions/dcf354c87aa1c7d5a35db061961633728c503bb591628f1ddd3f0250c9ef33a7-e2c6e44320f49c66b0af85da39fa7669c78f5d3860dc0c1843b62d7daed9de16",
+      "dependencies": "sha256:268bff2eff32976d3d61e017738b448c9543926609cbd5b0246fcf4a6d530b3f",
+      "source_bindings": {
+        "objects": {
+          "tos.script.latin-writing-tradition": {
+            "source_ref": "ToS/source-witnesses/languages/latin-writing-tradition/script.json",
+            "source_sha256": "sha256:73218d4c6097e0019553885ae7ba4c9b841044182b6ebd8c7bb83c249ea06d23",
+            "canonical_record_sha256": "sha256:28a8db7d3c024ddc91837766380137bed49208c54a2e9a1aac08318e8e16c684",
+            "schema_version": "tos_linguistic_description_record_v1",
+            "record_version": 1
+          },
+          "tos.transliteration-scheme.oracc-atf": {
+            "source_ref": "ToS/source-witnesses/languages/oracc-atf/transliteration-scheme.json",
+            "source_sha256": "sha256:4f9d65f375375c7dc1d9191127f5508712734558d57dd3d78f6d3f3b11cf0f3f",
+            "canonical_record_sha256": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf",
+            "schema_version": "tos_linguistic_description_record_v1",
+            "record_version": 1
+          }
+        },
+        "evidence": {
+          "ToS/review-ledger/2026-09-08-linguistic-source-reading.md": {
+            "source_ref": "ToS/review-ledger/2026-09-08-linguistic-source-reading.md",
+            "source_sha256": "sha256:baf20a5de2a69535baad82ca3ea75124a91f8bf221351ccd46d30028e3a6b0c4",
+            "source_line": null,
+            "evidence_kind": "repo_path"
+          }
+        }
+      },
+      "changed_fields": [
+        "assertion_layer"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.linguistic.atf-notation.statement-ru",
+          "version": 2,
+          "digest": "sha256:08ed45c65b7409aff947aad9f005ef02c23e6e99db1b4120eddbe35df1da03cc"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos:linguistic:atf-layer:20260908",
+        "expected_configuration": "sha256:aa5455ba6221481efa826195583e326fc8352370cba5edf21a2271730c8d38d2",
+        "expected_dependencies": "sha256:268bff2eff32976d3d61e017738b448c9543926609cbd5b0246fcf4a6d530b3f",
+        "expected_inputs": {
+          "evidence": {
+            "ToS/review-ledger/2026-09-08-linguistic-source-reading.md": {
+              "evidence_kind": "repo_path",
+              "source_line": null,
+              "source_ref": "ToS/review-ledger/2026-09-08-linguistic-source-reading.md",
+              "source_sha256": "sha256:baf20a5de2a69535baad82ca3ea75124a91f8bf221351ccd46d30028e3a6b0c4"
+            }
+          },
+          "objects": {
+            "tos.script.latin-writing-tradition": {
+              "canonical_record_sha256": "sha256:28a8db7d3c024ddc91837766380137bed49208c54a2e9a1aac08318e8e16c684",
+              "record_version": 1,
+              "schema_version": "tos_linguistic_description_record_v1",
+              "source_ref": "ToS/source-witnesses/languages/latin-writing-tradition/script.json",
+              "source_sha256": "sha256:73218d4c6097e0019553885ae7ba4c9b841044182b6ebd8c7bb83c249ea06d23"
+            },
+            "tos.transliteration-scheme.oracc-atf": {
+              "canonical_record_sha256": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf",
+              "record_version": 1,
+              "schema_version": "tos_linguistic_description_record_v1",
+              "source_ref": "ToS/source-witnesses/languages/oracc-atf/transliteration-scheme.json",
+              "source_sha256": "sha256:4f9d65f375375c7dc1d9191127f5508712734558d57dd3d78f6d3f3b11cf0f3f"
+            }
+          }
+        },
+        "expected_revision": "sha256:e2c6e44320f49c66b0af85da39fa7669c78f5d3860dc0c1843b62d7daed9de16",
+        "expected_source": {
+          "digest": "sha256:f349743da0a669a01ebf006b5555109203a6843d05241a68679d8e05bf4e1bb2",
+          "id": "tos.claim.linguistic.atf-notation",
+          "version": 1
+        },
+        "fields": {
+          "assertion_layer": "linguistic_analysis"
+        },
+        "forms": [
+          {
+            "field_id": "claim.statement",
+            "form_id": "tos.form.linguistic.atf-notation.statement-ru"
+          }
+        ],
+        "layer_transition": {
+          "from": "scholarly_report",
+          "to": "linguistic_analysis"
+        },
+        "operation": "claim.revise",
+        "reason": "The existing statement and relation_basis explicitly describe our limited inference from the indexed ATF character table and Unicode §7.1, not a source's explicit declaration. Correct only that assertion's erroneous layer classification; preserve its proposition, attribution, scope, evidence, uncertainty and unreviewed status. Independent boundary review identified this mismatch. This correction grants no linguistic competence or research admission.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    }
+  ]
+}

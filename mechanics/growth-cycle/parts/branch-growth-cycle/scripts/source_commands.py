@@ -59,6 +59,8 @@ NATIVE_METADATA_REVISION_CONFIG = 'tos_local_native_metadata_revision_owner_v1'
 SELECTED_REVISION_CONFIGS = {*CORPUS_SELECTED_REVISION_CONFIGS, NATIVE_METADATA_REVISION_CONFIG}
 REVISION_CONFIG = 'tos_local_source_revision_owner_v1'
 PROFILE_REVISION_CONFIG = 'tos_local_profile_revision_owner_v1'
+PROFILE_SCOPE_REVISION_CONFIG = 'tos_local_profile_revision_owner_v2'
+PROFILE_REVISION_CONFIGS = {PROFILE_REVISION_CONFIG, PROFILE_SCOPE_REVISION_CONFIG}
 CLAIM_REVISION_CONFIG = 'tos_local_claim_revision_owner_v1'
 CLAIM_CONFIG = 'tos_local_claim_create_owner_v1'
 CLAIM_VALUE_CONFIG = 'tos_local_claim_create_owner_v2'
@@ -127,8 +129,8 @@ def _builtin_configuration(config, path, *, _creation_recorded_at=None):
     sign_promotion = config.get('schema_version') == SIGN_CONFIG
     corpus_creation = config.get('schema_version') in CORPUS_CREATION_CONFIGS
     corpus_revision = config.get('schema_version') in {CORPUS_REVISION_CONFIG, *CORPUS_SELECTED_REVISION_CONFIGS}
-    profile_revision = config.get('schema_version') == PROFILE_REVISION_CONFIG
-    revision = config.get('schema_version') in {REVISION_CONFIG, PROFILE_REVISION_CONFIG, CORPUS_REVISION_CONFIG,
+    profile_revision = config.get('schema_version') in PROFILE_REVISION_CONFIGS
+    revision = config.get('schema_version') in {REVISION_CONFIG, *PROFILE_REVISION_CONFIGS, CORPUS_REVISION_CONFIG,
                                                *CORPUS_SELECTED_REVISION_CONFIGS}
     claim_forms = config.get('schema_version') in CLAIM_FORM_CONFIGS
     canonical_forms = config.get('schema_version') in CANONICAL_FORM_CONFIGS
@@ -145,7 +147,7 @@ def _builtin_configuration(config, path, *, _creation_recorded_at=None):
           | ({'claim_id'} if claim_forms else set())
           | ({'allowed_field_ids'} if config.get('schema_version') == CLAIM_DISPLAY_FORM_CONFIG else set())
           | ({'provenance_event_id'} if captures_provenance else set()))
-    if (config['schema_version'] not in {'tos_local_source_command_owner_v1', REVISION_CONFIG, PROFILE_REVISION_CONFIG, CORPUS_REVISION_CONFIG, *CORPUS_SELECTED_REVISION_CONFIGS, *PROFILE_CREATION_CONFIGS, *CORPUS_CREATION_CONFIGS, *CLAIM_FORM_CONFIGS, *CANONICAL_FORM_CONFIGS, *CREATION_CONFIGS}
+    if (config['schema_version'] not in {'tos_local_source_command_owner_v1', REVISION_CONFIG, *PROFILE_REVISION_CONFIGS, CORPUS_REVISION_CONFIG, *CORPUS_SELECTED_REVISION_CONFIGS, *PROFILE_CREATION_CONFIGS, *CORPUS_CREATION_CONFIGS, *CLAIM_FORM_CONFIGS, *CANONICAL_FORM_CONFIGS, *CREATION_CONFIGS}
             or type(config['uid']) is not int or config['uid'] != os.getuid()
             or any(not isinstance(config[key], str) or not config[key].strip()
                    for key in ('principal_id', 'authority_ref'))
@@ -164,7 +166,9 @@ def _builtin_configuration(config, path, *, _creation_recorded_at=None):
             raise ValueError('invalid source-command delegation scope')
     if revision:
         values = config['allowed_fields']
-        allowed_fields = CORPUS_REVISION_FIELDS if corpus_revision else REVISION_FIELDS
+        allowed_fields = (CORPUS_REVISION_FIELDS if corpus_revision else
+                          REVISION_FIELDS | {'semantic_scope'}
+                          if config['schema_version'] == PROFILE_SCOPE_REVISION_CONFIG else REVISION_FIELDS)
         if (not isinstance(values, list) or any(not isinstance(value, str) or value not in allowed_fields for value in values)
                 or len(set(values)) != len(values)
                 or not isinstance(config['record_id'], str)
@@ -1067,10 +1071,11 @@ def _capture_creation_provenance(config, request, files, started_at, started_ns,
                                  *, procedure_name=None, additional_software_refs=(),
                                  native_inputs=None, owner_local_metadata=False,
                                  public_native_inputs=None):
-    """Capture buffer serialization, not upstream research or future publication.
+    """Capture the exact buffer serialization event.
 
     The event and its hash-bearing receipt travel with the atomic directory.
-    Output digests describe serialized buffers, not an independent disk audit.
+    Output digests describe serialized buffers; disk verification follows its
+    own readback route.
     """
     base = Path(config['source_path']).parent
     script_ref = Path(__file__).resolve().relative_to(ROOT).as_posix()
@@ -1761,7 +1766,7 @@ def _builtin_handlers():
             ('ToS/contracts/sign-description-record.schema.json', *contract.RECORD_HANDLES,
              'ToS/doctrine/KNOWLEDGE_ASSESSMENT.md'),
             selection='Only tos.entity.sign and its declared sign-promotion-v1 gate.',
-            preconditions=('Requires separate public source-bound assessment-owner selection and current sign-promotion admission; this handler does not grant that admission.',)))
+            preconditions=("Requires separate public source-bound assessment-owner selection and current sign-promotion admission from that owner.",)))
 
 
 @lru_cache(maxsize=1)

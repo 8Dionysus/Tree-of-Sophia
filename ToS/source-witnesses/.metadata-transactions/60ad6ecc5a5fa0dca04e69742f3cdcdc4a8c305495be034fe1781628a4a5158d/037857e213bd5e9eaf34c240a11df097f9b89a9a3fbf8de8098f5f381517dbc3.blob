@@ -1,0 +1,90 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.work.digital-cuneiform-corpora.cuneiform-digital-library-initiative",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:b8122a67f7102dc0eed5e60b",
+      "request_digest": "sha256:538e5ad68bfbd30108d808bd20afe74d2ef6dd9bd9aaf73f3efff7a29a1dfacc",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:b9f5e9afd0d84ff4984597f1b25294d0c949be4eb4f413d430fa4b085c4eeb82",
+      "recorded_at": "2026-09-22T05:08:37.517348+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.work.digital-cuneiform-corpora.cuneiform-digital-library-initiative",
+        "version": 1,
+        "digest": "sha256:c9b1732a74af1cf265a20ec642a2e8ba75d30c8b023962a8ece9ad3c1ea82a7d"
+      },
+      "source": {
+        "id": "tos.work.digital-cuneiform-corpora.cuneiform-digital-library-initiative",
+        "version": 2,
+        "digest": "sha256:9cae25b5a373ccfa6eddc8a688468d951eb139db5e356fc882963de12b92f77d"
+      },
+      "previous_revision": "sha256:06401027ce732b435878f1cc3a92e6d0035e6d7ca1ace20f4b4178f70846354d",
+      "archive_path": "ToS/source-witnesses/.record-revisions/b8122a67f7102dc0eed5e60b5b26170279a0f37b09afd2f5b80284b449437106-06401027ce732b435878f1cc3a92e6d0035e6d7ca1ace20f4b4178f70846354d",
+      "dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+      "changed_fields": [
+        "notes"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.metadata.b3bdac7188dc3eac14fa08719ad5489e889c1675c064ec9374e6cd6adc388ef0",
+          "version": 2,
+          "digest": "sha256:4b6eacae2d24b5389db74ada2632eea44929dcc49f2c8fd6f8b0fa7e13e67621"
+        },
+        {
+          "id": "tos.form.metadata.ce75e8d667943668b56cc3954dd8decb874d2b76f4acad7ca4f111c3f3c2edbc",
+          "version": 2,
+          "digest": "sha256:38b740bc6f5de1cc2cb27a7cf7299d09b6ab3bb393363f9db43ccdb155a2ab54"
+        },
+        {
+          "id": "tos.form.metadata.ab2e48b3182a88dc960a7429df6b9886930e55bfe9e4c8e470c6b70d668c284e",
+          "version": 2,
+          "digest": "sha256:1f2969b4fd3a1dc2b5eac7841e9807cf138d9ffd69664e9d2f0532b908a2c2ca"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:b8122a67f7102dc0eed5e60b",
+        "expected_configuration": "sha256:b9f5e9afd0d84ff4984597f1b25294d0c949be4eb4f413d430fa4b085c4eeb82",
+        "expected_dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+        "expected_publication": "sha256:2fe82171776056dea0e828110b9ec0ec16a6e132bfd83a935e038598733af381",
+        "expected_revision": "sha256:06401027ce732b435878f1cc3a92e6d0035e6d7ca1ace20f4b4178f70846354d",
+        "expected_source": {
+          "digest": "sha256:c9b1732a74af1cf265a20ec642a2e8ba75d30c8b023962a8ece9ad3c1ea82a7d",
+          "id": "tos.work.digital-cuneiform-corpora.cuneiform-digital-library-initiative",
+          "version": 1
+        },
+        "fields": {
+          "notes": "Evolving collaborative scholarly digital resource launched in 1998. Official documentation provides artifact, provenience, custody, publication, representation, uncertainty, update-event, API, and linked-data routes. Descriptions and contributor roles are versioned, source-reported assertions tied to the relevant release or observation date."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.metadata.b3bdac7188dc3eac14fa08719ad5489e889c1675c064ec9374e6cd6adc388ef0"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.metadata.ce75e8d667943668b56cc3954dd8decb874d2b76f4acad7ca4f111c3f3c2edbc"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.metadata.ab2e48b3182a88dc960a7429df6b9886930e55bfe9e4c8e470c6b70d668c284e"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:60ad6ecc5a5fa0dca04e69742f3cdcdc4a8c305495be034fe1781628a4a5158d",
+        "selected_files": [
+          "source-revision-history.json",
+          "work.human-forms.json",
+          "work.json"
+        ]
+      }
+    }
+  ]
+}

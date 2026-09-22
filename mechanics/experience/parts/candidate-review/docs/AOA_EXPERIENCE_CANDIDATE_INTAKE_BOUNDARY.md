@@ -22,12 +22,12 @@ owner-local signals -> cross-repo recurrence -> pattern candidate -> candidate-r
 - reviewable artifacts and gates
 - owner-local landing hints where applicable
 
-## This surface does not own
+## Stronger owner routes
 
-- source ownership of other repos
-- direct Tree-of-Sophia canonization
-- silent assistant or agent self-rewrite
-- proof outside bounded eval verdicts
+- Source ownership stays with each source repository.
+- Canon admission follows `ToS/canon/` and its review route.
+- Persistent assistant or agent changes require the explicit release and adoption route.
+- Proof requires the responsible eval owner and its bounded verdict.
 
 ## Inputs
 
@@ -58,8 +58,10 @@ owner-local signals -> cross-repo recurrence -> pattern candidate -> candidate-r
 - no new aoa-experience repo; candidate review is a center-aligned program with owner-local landings
 - no direct Tree-of-Sophia write from arena, deployment, Codex, assistants, or candidate review
 - cross-repo pattern promotion requires source-owner evidence and bounded eval verdicts
-- aoa-stats summarizes recurrence; it does not judge meaning or certify patterns
-- aoa-memo stores bounded lessons and lineage memories; it does not become proof
+- aoa-stats summarizes recurrence; meaning and pattern assessment follow
+source-owner and eval review
+- aoa-memo stores bounded lessons and lineage memories; proof remains with the
+eval owner
 - aoa-kag receives derived candidates only after evidence, retention, and owner consent gates
 - assistant adoption of shared patterns remains release/version based, never hidden self-rewrite
 - agonic adoption of shared patterns remains scar/retention based, never assistant-service laundering

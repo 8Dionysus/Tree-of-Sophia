@@ -2,14 +2,13 @@
 
 *Thus Spoke Zarathustra* is the first golden growth kernel of Tree of Sophia.
 
-It is not a convenient demo corpus and not a universal ontology for all
-philosophy. It is the first route that should eventually make the whole path
-from source witness to reviewed, graph-readable knowledge legible enough that
-humans and agents can learn how ToS grows.
+This first worked route develops an inspectable path from source witness to
+reviewed, graph-readable knowledge, through which humans and agents can learn
+how ToS grows.
 
 ## Why this seed
 
-This seed is carried rather than merely selected.
+This seed has a sustained personal reading history.
 
 Dionysus has lived with *Thus Spoke Zarathustra* for five years through
 repeated reading, listening, recitation, and memorization, and has carried it
@@ -17,8 +16,8 @@ through love, war, death, suffering, and joy.
 
 That lived provenance explains why this work bears the first full growth
 cycle. It gives the route depth, continuity, and accountable human attention.
-It does not replace Nietzsche's text, bibliographic evidence, translation
-provenance, scholarship, or review.
+Nietzsche's text, bibliographic evidence, translation provenance, scholarship
+and review each retain their own evidential role.
 
 ## Two coupled growth fronts
 
@@ -31,16 +30,13 @@ Tree of Sophia grows through two different but interdependent fronts:
    through which ToS learns how a source becomes observations, candidates,
    interpretations, concepts, relations, reviewed canon, and derived views.
 
-The corpus soil gives the tree breadth and somewhere to root. The golden
-kernel gives it a first complete path of growth. Neither substitutes for the
-other.
+The corpus soil gives the tree breadth and source grounding; the golden kernel
+supplies its first complete worked path of growth.
 
 ## What is stable enough to build on
 
-The foundation is not a frozen universal inventory of entities that can be
-tagged correctly once and never revisited.
-
-The durable base is an evidence spine:
+The durable foundation is an evidence spine that supports revisable
+descriptions:
 
 - identity and provenance of a work, witness, edition, translation, or
   manuscript;
@@ -53,11 +49,11 @@ The durable base is an evidence spine:
 - versioned review history showing who proposed, accepted, revised, rejected,
   or left a reading unresolved.
 
-Concept boundaries, semantic entities, motif identity, relations, and
-interpretations are not immutable in the same way. They remain versioned,
-contestable, and able to deepen without severing the evidence beneath them.
+Concept boundaries, semantic entities, motif identity, relations and
+interpretations remain versioned and contestable. Their development preserves
+the evidence and lineage of each judgment.
 
-The stable foundation therefore protects change. It does not deny it.
+The stable foundation makes those changes traceable.
 
 ## The full growth cycle
 
@@ -76,15 +72,13 @@ The golden kernel should make this movement inspectable:
 8. derive graph, search, KAG, visualization, and evaluation views downstream
    without transferring authority to them.
 
-This is a growth cycle, not a one-way extraction pipeline. Later evidence may
-return an object to an earlier layer, split it, merge it, rename it, or leave
-it unresolved while preserving its lineage.
+Later evidence can reopen any stage of this cycle: an object may return to an
+earlier layer, split, merge, change name or remain unresolved while preserving
+its lineage.
 
 ## What makes a gold example
 
-A gold example is more than an accepted label.
-
-It should preserve:
+A gold example preserves the evidence and reasoning of its judgment:
 
 - exact source anchors and witness scope;
 - the layer at which each assertion belongs;
@@ -95,8 +89,8 @@ It should preserve:
 - the boundary between human judgment and agent proposal;
 - the route from the authored object back to the source.
 
-Agents should learn the path of judgment, including refusal and uncertainty,
-not merely imitate a final answer.
+Agents should learn the path of judgment, including refusal, uncertainty and
+the reasons for the recorded outcome.
 
 ## Transfer rule
 
@@ -113,8 +107,7 @@ What transfers from Zarathustra is the method:
 Nietzsche's concepts, predicates, calibration axis, and branch shape do not
 automatically transfer to another work or tradition. A new source may resist
 the learned vocabulary, expose a missing distinction, or require the contract
-to grow. That resistance is evidence about the architecture, not noise to be
-forced away.
+to grow. That resistance provides evidence for revising the architecture.
 
 ## Lived-witness boundary
 
@@ -135,15 +128,13 @@ itself settle what Nietzsche wrote, what a passage must mean, or what all
 philosophy should become.
 
 The prepared capture, privacy, authorship, revision, and permission route is
-`ToS/zarathustra/lived-witness/`. Its existence creates no testimony and no
-human backlog; it opens only when the author explicitly chooses to record one
-first-person account.
+`ToS/zarathustra/lived-witness/`. The route opens when the author explicitly chooses to record a first-person
+account.
 
 ## Preparation boundary
 
-This note prepares the repository for the kernel. It does not claim that the
-whole book has already been gold-annotated or that corpus soil is already
-defined.
+This architecture note prepares the repository for the kernel. Whole-book gold
+annotation and the corpus-soil contract remain future work within this plan.
 
 Before wider planting, the next owner work should define:
 

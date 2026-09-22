@@ -1,0 +1,90 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.work.justus-lipsius.de-constantia",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:258a0c7c063d66fece54f560",
+      "request_digest": "sha256:48df6a2612fa1953f5e23c0fd04857589972f39987fb9c5fcb682239a6cfbf53",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:e66fbb0e083331135db43db2e1a983d9e59f524f94bf58626841526e66893466",
+      "recorded_at": "2026-09-22T05:09:17.431655+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.work.justus-lipsius.de-constantia",
+        "version": 1,
+        "digest": "sha256:e8530db9365288373dc0fa1bda7066e70659196701bc47f8efd0e5d0ba31481f"
+      },
+      "source": {
+        "id": "tos.work.justus-lipsius.de-constantia",
+        "version": 2,
+        "digest": "sha256:5fd7077c7107ae88bcd3709ecd92a6e4e06ce6a6a2bcb0efa37e711828159283"
+      },
+      "previous_revision": "sha256:11e44271711c306e61f0d6e625bb3261485789a03eec10e0a22f0781fb6ebcd3",
+      "archive_path": "ToS/source-witnesses/.record-revisions/258a0c7c063d66fece54f5603ef23781f9e6e05a9cd97003e9eb5db8a73eeb68-11e44271711c306e61f0d6e625bb3261485789a03eec10e0a22f0781fb6ebcd3",
+      "dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+      "changed_fields": [
+        "notes"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.work.justus-lipsius.de-constantia.name-ru",
+          "version": 2,
+          "digest": "sha256:5d1ca6fd835568dcefa73a6fbb84d8243692df2fd92ec18ba771250c7417bc00"
+        },
+        {
+          "id": "tos.form.work.justus-lipsius.de-constantia.name-alt",
+          "version": 2,
+          "digest": "sha256:cd9a317e6c65c776a0d134684a053dcd88fbdedef7fd2ce26ec3ce68907f6811"
+        },
+        {
+          "id": "tos.form.work.justus-lipsius.de-constantia.note-ru",
+          "version": 2,
+          "digest": "sha256:888eb2d6ed9a8954003279debc68b0be255483618e183e7975cafafda0e05d32"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:258a0c7c063d66fece54f560",
+        "expected_configuration": "sha256:e66fbb0e083331135db43db2e1a983d9e59f524f94bf58626841526e66893466",
+        "expected_dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+        "expected_publication": "sha256:32d282a28463fe28305a9a3d59a923a8ac07ab456e5824beeb81551a47e01eac",
+        "expected_revision": "sha256:11e44271711c306e61f0d6e625bb3261485789a03eec10e0a22f0781fb6ebcd3",
+        "expected_source": {
+          "digest": "sha256:e8530db9365288373dc0fa1bda7066e70659196701bc47f8efd0e5d0ba31481f",
+          "id": "tos.work.justus-lipsius.de-constantia",
+          "version": 1
+        },
+        "fields": {
+          "notes": "Произведение, обсуждаемое в очерке о Липсии. Описание опирается на этот очерк; установление конкретных изданий и их хронологии остаётся открытым."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.work.justus-lipsius.de-constantia.name-ru"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.work.justus-lipsius.de-constantia.name-alt"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.work.justus-lipsius.de-constantia.note-ru"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:abaf7b44e70bb13b934b8a98e3996a600dc2a8d733ac32e39da22c25f5a285eb",
+        "selected_files": [
+          "source-revision-history.json",
+          "work.human-forms.json",
+          "work.json"
+        ]
+      }
+    }
+  ]
+}

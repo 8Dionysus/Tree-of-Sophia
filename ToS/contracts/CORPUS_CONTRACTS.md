@@ -1,15 +1,17 @@
 # Corpus Foundation Contracts
 
 These contracts make the corpus evidence spine mechanically exchangeable.
-They do not make a bibliographic, textual, translation, semantic, or rights
-judgment true.
+Source-visible assessment evaluates bibliographic, textual, translation and
+semantic judgments; rights and publication retain their actual owner
+decisions. The table states each contract’s purpose. Exact status, permission
+and admission requirements live in the referenced schema and its owner route.
 
 ## Contract family
 
 | Contract | Owns |
 | --- | --- |
 | `artifact-source-witness.schema.json` / `artifact-source-witness-v2.schema.json` | provider-independent physical-artifact metadata and layer separation; v2 permits an exact unplanted artifact without manufacturing a philosophy-backlog relation |
-| `artifact-visual-representation.schema.json` | one exact File-backed visual representation with provider records, payload fixity, rights, acquisition, storage scope, and zero embedded-text or publication authority |
+| `artifact-visual-representation.schema.json` | one exact File-backed visual representation with provider records, payload fixity, rights, acquisition and storage scope |
 | `open-work-channel-timing-receipt.schema.json` | external positive per-channel monotonic HTTP transport measurements for the active reviewed open-Work loop, explicitly excluding research, interpretation, rights-review, and human time |
 | `corpus-record.schema.json` | persistent agent/work/expression/edition/collection/item identity plus exact outgoing Work→Expression, Expression→Edition, Edition→Item, and optional Expression-derivation claim closure refs |
 | `research-corpus-record.schema.json` | persistent research selection, substantive purpose, selection criterion, coverage account and continuity; exact members remain Claims |
@@ -20,52 +22,52 @@ judgment true.
 | `human-form-set.schema.json` | adjacent exact-subject collection of current human forms and retained predecessors; discovery and metadata-only adapter limits follow `HUMAN_FORMS.md` |
 | `source-item-manifest.schema.json` | immutable local payload inventory, digest, and tracked companion refs |
 | `source-resource-inventory.schema.json` | text-free PDF or bundled-DjVu page, EPUB member/spine, TEI page-break/division, and provider DjVu/ABBYY OCR-page inventory with geometry, ordering, counts, member fixity, and one-way fingerprints |
-| `lexical-index-plan.schema.json` | source-gated exact-form observation plan with explicit local source-bearing versus tracked hash-only outputs, field-by-field authority, rights routing, and a semantic non-effect boundary |
-| `lexical-index-projection.schema.json` | rebuild receipt and non-sequential form-hash/count/page/division read model over exact local witnesses, with working local query probes but no accepted source, lemma, sign, context, or publication claim |
-| `lexical-recurrence-plan.schema.json` | frozen exact-form recurrence question over the tracked lexical projection, preserving A frequency, B structural range, and C tupleized part-size-aware dispersion without a composite score or semantic effect |
-| `lexical-recurrence-projection.schema.json` | deterministic hash-only frequency/range/DP observation tuples with exact source totals, integer rounding law, residue accounting, and explicit zero authority for source acceptance, linguistic analysis, signs, semantics, or human work |
-| `lexical-usage-context-plan.schema.json` | one frozen question, preselected exact-form control, complete occurrence census, page-bounded context law, composite source selectors, ignored local-output route, tracked exposure ceiling, rights gate, and explicit non-semantic effect |
-| `lexical-usage-context-row.schema.json` | private source-bearing exact usage row with deterministic context/occurrence identity, source state, structural and position selectors, exact page-bounded token window, clipping, and no semantic field |
-| `lexical-usage-context-receipt.schema.json` | tracked source-withholding fixity/count/selector-closure receipt for the private context bundle, binding the frozen question, lexical/recurrence inputs, local database, generator, rights posture, and zero linguistic, semantic, graph, public, or human-work authority |
-| `morphology-evaluation-plan.schema.json` | source-gated historical-German morphology question with an identity control, exhaustive direct-form A census, sequentially blocked contextual A/B/C follow-up, explicit layer/competence/rights boundaries, and zero automatic linguistic or semantic promotion |
+| `lexical-index-plan.schema.json` | exact-form observation plan declaring local source-bearing and tracked hash-only outputs, field scope and rights conditions |
+| `lexical-index-projection.schema.json` | rebuild receipt and form-hash/count/page/division read model over exact local witnesses, with bounded local query probes |
+| `lexical-recurrence-plan.schema.json` | frozen exact-form recurrence question preserving separate A frequency, B structural range and C part-size-aware dispersion observations |
+| `lexical-recurrence-projection.schema.json` | deterministic hash-only frequency/range/DP tuples with exact source totals, integer rounding law and residue accounting |
+| `lexical-usage-context-plan.schema.json` | one frozen question, preselected exact-form control, complete occurrence census, page-bounded context, composite selectors, local output and tracked disclosure scope |
+| `lexical-usage-context-row.schema.json` | private exact usage row with deterministic context/occurrence identity, source state, structural and positional selectors, page-bounded token window and clipping |
+| `lexical-usage-context-receipt.schema.json` | text-free fixity/count/selector receipt binding the private context bundle to its question, lexical inputs, local database, generator and rights posture |
+| `morphology-evaluation-plan.schema.json` | source-gated historical-German morphology question with an identity control, exhaustive direct-form A census, staged contextual A/B/C follow-up and explicit competence and rights requirements |
 | `morphology-input-receipt.schema.json` | text-free fixity and count receipt for the ignored exact-form morphology input packet, binding it to the exact lexical database, tracked projection, plan, and generator without tracking source strings |
-| `morphology-contextual-episode-plan.schema.json` | additive one-question morphology follow-up that binds a concrete A ambiguity, complete source recurrence, output-blind first/median/last selection, B-only relevance, local context route, rights and competence gates, and zero semantic or human-backlog effect |
-| `morphology-contextual-episode-row.schema.json` | private exact raw-TEI context row with one selected occurrence, composite source selectors, exact target offsets, unchanged historical input, and no accepted linguistic authority |
+| `morphology-contextual-episode-plan.schema.json` | one-question morphology follow-up binding a concrete A ambiguity, complete source recurrence, output-blind selection, B relevance, local context and assessment conditions |
+| `morphology-contextual-episode-row.schema.json` | private exact raw-TEI context row with one selected occurrence, composite selectors, target offsets and unchanged historical input |
 | `morphology-contextual-episode-receipt.schema.json` | tracked text- and position-free receipt for the private contextual packet, proving trigger, selection, source-return and variant-state closure while B remains unacquired and C question-inapplicable |
-| `morphology-contextual-artifact-admission.schema.json` | additive source- and path-free record of exact private artifact acquisition, rights metadata gaps, owner resource cost, required/present/verified trust controls, fail-closed runtime admission, and zero execution or linguistic/semantic effect without rewriting the frozen pre-output plan |
-| `morphology-contextual-result-receipt.schema.json` | additive text-free return from one exact private contextual B run, binding the frozen question, retained negative admission, admitted runtime subject, five-control trust closure, output repeatability, provider-label aggregates, resource cost, local-only rights, zero German accuracy, and zero linguistic, semantic, graph, canon, publication, or human-backlog authority |
-| `witness-structure-correspondence.schema.json` | text-free named-division locator candidates between exact witness inventories, with transient matching metrics, monotonic routes, provenance, and an explicit non-identity ceiling |
-| `witness-structure-anchor-set.schema.json` | stable proposed TEI, EPUB-member, and PDF-page addresses bound to a witness-structure correspondence without asserting an exact passage boundary or textual identity |
-| `numbered-unit-page-map.schema.json` | text-free source-only numbered-unit start-page candidates bound to one exact scan package, its PDF/DjVu/ABBYY inventories, proposed whole-page anchors, explicit review basis, and no textual or critical-edition acceptance |
-| `target-numbered-unit-page-map.schema.json` | text-free target-expression numbered-label start-page candidates bound to one exact translation scan, its work boundary and source-map asymmetry reference, while forbidding source-to-target alignment, equivalence, quality, or semantic claims |
-| `hierarchical-target-numbered-unit-page-map.schema.json` | text-free target-expression numbering with independently resetting series such as a preface and multiple essays, preserving series-qualified unit identity, proposed page starts, machine/model review basis, and zero textual or transfer authority |
-| `hierarchical-source-numbered-unit-page-map.schema.json` | text-free source-expression numbering with independently resetting series, exact address and navigation witness bindings, proposed page starts, bounded page-relation evidence, and zero accepted-text or alignment authority |
-| `hierarchical-numbered-unit-label-correspondence.schema.json` | release-safe intersection of independently materialized source and target `series:unit` labels, binding maps and layered rights without comparing prose or asserting passage/translation alignment |
-| `parallel-numbered-unit-label-map.schema.json` | release-safe intersection of independently materialized source and target number-label keys, binding both maps, anchors, rights records, and source-only asymmetries without comparing text or asserting passage/translation alignment |
-| `transfer-candidate-structural-crosswalk.schema.json` | text-free narrowing of frozen whole-page transfer candidates through an already tracked target unit-start map and shared-label correspondence, preserving spill ambiguity, exact-next-start context, zero eligible units, and zero translation/semantic authority |
-| `transfer-candidate-target-structural-crosswalk.schema.json` | target-only narrowing when a hierarchical target unit map exists but no source parallel map does, retaining spill ambiguity, an explicit zero source-route count, zero eligibility, and no alignment or translation authority |
-| `transfer-candidate-source-structural-route.schema.json` | composition of a frozen target-only candidate crosswalk with shared hierarchical labels, materializing possible German structural routes while exact passage ends, alignment, accepted text, eligibility, gold, human and semantic effects remain false |
-| `transfer-target-passage-candidate-set.schema.json` | private local materialization of complete target numbered-unit slices from an expected label to the next same-series label in one exact embedded-PDF bbox layer, with tracked text-free geometry/digests, preserved nonintersection negatives, and zero accepted text, alignment, eligibility, gold, human, semantic, publication, or canon authority |
-| `transfer-source-passage-candidate-set.schema.json` | private local materialization of German numbered-unit slices only where an expected source label and the next same-series label resolve inside one named automatic layer, with tracked text-free geometry/digests, explicit unresolved boundaries and address/navigation witness relations, and zero accepted German, source-target alignment, eligibility, gold, human, semantic, publication, or canon authority |
-| `private-transfer-source-visible-review-bundle.schema.json` | ignored mode-0600 model-source-visible diplomatic candidates over one exact source/target page pair, with exact local payloads, automatic candidates, page-render fixity, a separate critical-edition comparison layer, explicit model maker, and no human, acceptance, alignment, linguistic, semantic, publication, or canon authority |
-| `transfer-source-visible-review-receipt.schema.json` | tracked text-free projection of one private review bundle: input and generator fixity, deterministic page-render reproduction, aggregate alphabetic-token discrepancy topology, separate historical/critical posture, material finding classes, and closed acceptance, alignment, eligibility, gold, human-debt, semantic, publication, and canon gates |
-| `parallel-witness-structure-map.schema.json` | text-free parallel PDF division starts and division-level numbered-unit spans across an original-language expression and one translation expression, bound to any separate source-only numbered-unit map while preserving supplemental-unit asymmetries, zero exact target-unit pages, and no translation-equivalence claim |
-| `collection-work-boundary-map.schema.json` | text-free complete or explicitly partial member-work representation, contiguous represented/non-member/unrepresented container-page coverage, exact Work/Expression/claim refs, optional evidence-bearing responsibility refs, source order and anchors, and an explicit bibliographic-only ceiling for aggregate items |
+| `morphology-contextual-artifact-admission.schema.json` | source- and path-free artifact record preserving private acquisition, rights gaps, resource cost, trust controls and runtime admission, linked to the frozen pre-output plan |
+| `morphology-contextual-result-receipt.schema.json` | text-free result of one private contextual B run, binding the question, retained admission history, runtime subject, trust checks, repeatability, provider-label aggregates, cost and local rights posture |
+| `witness-structure-correspondence.schema.json` | text-free named-division locator candidates between exact witness inventories, with matching metrics, monotonic routes and provenance |
+| `witness-structure-anchor-set.schema.json` | stable proposed TEI, EPUB-member and PDF-page addresses bound to a witness-structure correspondence |
+| `numbered-unit-page-map.schema.json` | text-free source-only numbered-unit start-page candidates bound to one exact scan, resource inventories, proposed whole-page anchors and explicit review basis |
+| `target-numbered-unit-page-map.schema.json` | text-free target numbered-label start-page candidates bound to one exact translation scan, its work boundary and source-map asymmetries |
+| `hierarchical-target-numbered-unit-page-map.schema.json` | target numbering with independently resetting series, series-qualified identity, proposed page starts and machine/model review basis |
+| `hierarchical-source-numbered-unit-page-map.schema.json` | source numbering with independently resetting series, exact address/navigation witnesses, proposed page starts and bounded page-relation evidence |
+| `hierarchical-numbered-unit-label-correspondence.schema.json` | intersection of independently materialized source and target series:unit labels, binding both maps and their layered rights |
+| `parallel-numbered-unit-label-map.schema.json` | intersection of independently materialized number-label keys, retaining both maps, anchors, rights and source-only asymmetries |
+| `transfer-candidate-structural-crosswalk.schema.json` | text-free narrowing of frozen whole-page candidates through a target unit-start map and shared-label correspondence, preserving spill ambiguity and exact next-start context |
+| `transfer-candidate-target-structural-crosswalk.schema.json` | target-only narrowing through a hierarchical target map, retaining spill ambiguity and explicitly recording the absent source parallel route |
+| `transfer-candidate-source-structural-route.schema.json` | composition of target-only candidates with shared hierarchical labels to identify possible German structural routes and their unresolved passage boundaries |
+| `transfer-target-passage-candidate-set.schema.json` | private target numbered-unit slices within one exact PDF-bbox layer, with text-free tracked geometry/digests and preserved proposed/rejected intersections |
+| `transfer-source-passage-candidate-set.schema.json` | private German numbered-unit slices within named automatic layers, with text-free geometry/digests, unresolved boundaries and explicit address/navigation witness relations |
+| `private-transfer-source-visible-review-bundle.schema.json` | private mode-0600 model-source-visible diplomatic candidates over an exact page pair, with payload and render fixity, automatic candidates, critical comparison and explicit maker |
+| `transfer-source-visible-review-receipt.schema.json` | text-free return from one private review bundle: input/generator fixity, page-render reproduction, aggregate discrepancy topology, historical/critical context and finding classes |
+| `parallel-witness-structure-map.schema.json` | text-free division starts and numbered-unit spans across source and translation PDF witnesses, preserving supplemental-unit asymmetries and the available target-address granularity |
+| `collection-work-boundary-map.schema.json` | complete or explicitly partial member-work representation over exact container pages, with Work/Expression/Claim refs, optional responsibility Claims, source order and proposed anchors |
 | `source-anchor.schema.json` | structural, quote, position, and page-region selectors tied to one file digest |
 | `source-text-layer.schema.json` | immutable role-bearing source-text representation bound to exact Work/Expression/Edition/Item/File and source-anchor-v2 identity, with predecessor and edit/normalization lineage, uncertainty, editorial policy, explicit rights/publication-authority refs, and separate mechanical, review, language-competence, accepted-use, rights, and publication gates |
 | `source-text-unit-packet-v1.schema.json` | additive frozen-layer unit and segmentation owner with opaque label-independent scheme/segmentation/unit identities, exact ordered anchor return, distinct layout/source-structure/orthographic/linguistic/model-input kinds, explicit coverage/gaps/overlap/whitespace/punctuation/line-break/hyphenation posture, reciprocal alternatives, scoped source-visible human review, status-preserving projections, and no model-subword-to-semantic promotion |
 | `witness-text-collation-packet-v1.schema.json` | stand-off same-language witness comparison with exact witness, layer, unit, selector, digest, rights, method, normalized-view, and private-detail bindings; proposed/decided status and projection admission stay separate from preferred reading, textual equivalence, Expression derivation, translation, semantics, graph truth, canon, and publication |
-| `authored-route-evidence-bridge-v1.schema.json` | text-free reconciliation of one pre-existing authored route with exact source anchor/layers and reciprocal source/authored segmentations; binds legacy witness, node, relation, and review inventories by digest while keeping modern human attestation, claim/evidence closure, source/translation acceptance, sign/concept promotion, graph admission, canon revision, publication, server transfer, and bulk migration at zero |
+| `authored-route-evidence-bridge-v1.schema.json` | text-free reconciliation of an authored route with exact source anchors/layers and reciprocal segmentations, preserving digest-bound legacy witness, node, relation and review inventories |
 | `provenance-event.schema.json` | legacy v1 acquisition and transformation entity/activity/agent trail, preserved without reinterpretation |
 | `provenance-event-v2.schema.json` | additive immutable execution receipt with exact input/output/byproduct entities, explicit derivation, terminal state, command/configuration/software/runtime/model capture, responsibility, manual changes, measurements, authentication, rights, review, and bounded replay posture |
-| `lived-witness-packet.schema.json` | private-by-default first-person authored body, distinct experience/capture time, work or passage targets, raw/AI/transformation provenance, third-party posture, separate downstream permissions, author confirmation, revision/withdrawal, and explicit zero source/philology/semantic/canon authority |
+| `lived-witness-packet.schema.json` | private-by-default first-person testimony with experience/capture time, Work/passage targets, raw and transformed provenance, third-party context, downstream permissions, author confirmation and revision/withdrawal |
 | `rights-record.schema.json` | researched rights, permission, visibility, and redistribution posture |
 | `material-discovery-record.schema.json` | exact ordered queries, result order, originating-record links, declared-rights evidence, acquisition/snapshot posture, and channel cost comparison |
 | `access-request.schema.json` | public-safe request scope, institutional contact route, separate permission purposes, private-correspondence boundary, response/expiry state, and no-bypass law |
-| `server-import-contract.schema.json` | future item/file manifest handoff, checksum and rights gates, access class, derivative matrix, operator approval, publication/takedown state, and server non-authority |
+| `server-import-contract.schema.json` | item/file manifest handoff with checksum and rights checks, access class, derivative scope, operator approval and publication/takedown state |
 | `private-laboratory-evidence-handoff.schema.json` | exact private-raw custody boundary, a distinct active-goal authorization state before raw read, public-safe aggregate allowlist, reconstructive-detail denylist, governed destination, separate creation/publication effects, and human publication gate |
-| `public-laboratory-evidence-derivative.schema.json` | actual aggregate derivative payload: opaque private return, minimum-cell suppression, method/outcome/error/cost summaries, explicit confounds, review state, and zero source/translation/semantic/canon authority |
-| `manual-error-ledger-record.schema.json` | append-only historical ledger state plus one bounded aggregate source-visible human candidate-review episode, digest-bound to its governed handoff, public-safe derivative, and provenance while accepting no transcription, independent gold, method winner, content authority, or routine human backlog |
+| `public-laboratory-evidence-derivative.schema.json` | aggregate derivative with opaque private source return, minimum-cell suppression, method/outcome/error/cost summaries, explicit confounds and review state |
+| `manual-error-ledger-record.schema.json` | append-only historical ledger plus one bounded aggregate source-visible review episode, bound to its governed handoff, public-safe derivative and provenance |
 | `sign-annotation.schema.json` | occurrence-to-concept sign ladder without layer collapse, using distinct occurrence, lexeme, sign, and concept identities |
 | `semantic-annotation-packet-v2.schema.json` | additive stand-off semantic packet with label-independent opaque identities for lexeme, lexical sense, sign, concept, annotation, claim, relation, and review; exact occurrence/source-anchor return; first-class competing claims; real-human competence and unassisted sign-promotion review; and accepted-claim-only downstream graph projection |
 | `claim-packet.schema.json` | evidence-bearing assertion over a stable ToS subject, with alternatives, lineage, and human review state |
@@ -89,14 +91,14 @@ judgment true.
 | `translation-source-review-plan.schema.json` | v2 page-triplet source review routing after selector failure, without reusing rejected automatic text |
 | `german-assisted-source-review.schema.json` | solo+AI evidence lanes, visual-only competence boundary, critical-edition witness route, triggered 1-3 unit scheduling, and fail-closed translation consequences |
 | `critical-edition-witness-admission.schema.json` | one exact critical-edition locator, reference identity, local witness structural context distinct from exact critical-text comparison, provenance, content non-capture, rights review, and fail-closed effects before citation-witness admission |
-| `german-source-triangulation.schema.json` | text-free machine comparison of one local critical-edition candidate, one structured TEI witness, and one OCR witness, including source-aware normalization failure controls, transport/rights limits, and zero human/translation/semantic gate effects |
-| `edition-reading-admission.schema.json` | edition-local admission of what one exact documented scholarly transcription reads, bound to Item/file fixity, source selector, editorial method, rights, exact text-free comparison evidence, and a distinct critical-edition witness; it permits later source-observational work while accepted German, linguistic correctness, Edition identity, author-finality, accepted translation, sign, semantics, graph, canon, transfer, publication, and routine human debt remain false |
-| `bounded-translation-research-input.schema.json` | one DTA-derived ignored local source artifact admitted only to blind machine-method calibration, with exact selector, transformation, digest, corroboration, rights posture, explicit sealing of pre-existing authored translation surfaces, and zero accepted-German, translation, semantic, graph, or canon effects |
+| `german-source-triangulation.schema.json` | text-free comparison of one critical-edition candidate, structured TEI witness and OCR witness, with normalization controls, transport observations and rights conditions |
+| `edition-reading-admission.schema.json` | edition-local admission of a documented scholarly transcription reading, bound to exact Item/File, selector, editorial method, rights and comparison evidence; subsequent linguistic and semantic uses retain their own assessment requirements |
+| `bounded-translation-research-input.schema.json` | one private DTA-derived artifact selected for blind machine-method calibration, with exact selector, transformation, digest, corroboration, rights and sealed authored translation comparators |
 | `retrieval-query-plan.schema.json` | frozen query intents, languages, expected anchors, hard negatives, and local-only query-content digest |
 | `visual-retrieval-plan.schema.json` | output-blind direct page-image retrieval challenger over the same frozen queries, digest-bound visual crosswalk and local renders, immutable completed text controls, exact model revision, triggered-only human review, and zero automatic promotion |
-| `visual-retrieval-result-receipt.schema.json` | text-free return receipt for one exact owner-local direct-page-image run: frozen-input and private-artifact fixity, persisted normalization, source-anchor closure, measured resource cost, preserved audit-incomplete lineage, narrow declared review triggers, and closed relevance, adoption, promotion, publication, and routine-human-work gates |
+| `visual-retrieval-result-receipt.schema.json` | text-free return of a private direct-page-image run, retaining frozen inputs, artifact fixity, normalization, source-anchor closure, cost, audit history and declared review triggers |
 | `graph-query-plan.schema.json` | frozen four-layer graph questions, allowed predicates, claim-set digest, and unreviewed expectations |
-| `source-witness-bibliographic-graph.schema.json` | generated claim-reified bibliographic graph with exact source return, typed literal objects, evidence/maker/provenance/review closure, and no unqualified subject-object edge |
+| `source-witness-bibliographic-graph.schema.json` | derived bibliographic graph with reified Claims, exact source return, typed literal values and evidence/maker/provenance/review context |
 
 ## Common laws
 
@@ -106,31 +108,30 @@ judgment true.
 - Every source-bearing record cites an exact file digest or an anchor that does.
 - Every automated action identifies software/model/configuration through a
   provenance event or receipt.
-- Earlier transcription, correction, translation, annotation, and claim
-  versions are superseded, not overwritten.
-- Translation alignment is a versioned claim over two exact frozen sides, not
-  an intrinsic property of either string. Unaligned members, reorder, and
+- Successor records retain the exact previous transcription, correction,
+translation, annotation and Claim versions.
+- Translation alignment is a separately versioned Claim over two exact frozen
+sides. Unaligned members, reorder, and
   reciprocal competing maps remain explicit; interchange IDs and graph edges
   never replace ToS owner identity.
 - Review states retain rejection, ambiguity, deferral, and counterevidence.
 - Rights/visibility constraints travel into derivatives and projections.
 - A tracked lexical projection may expose only the content posture authorized
-  by its plan. A hash-only form row is a navigational fingerprint, not
-  confidentiality, source acceptance, a lexeme, a lemma, or a sign.
+  by its plan. A hash-only form row supplies a dictionary-recoverable navigation fingerprint
+and retains the source’s access restrictions.
 - A recurrence projection may derive frequency, structural range, and
   part-size-aware dispersion only from a fixity-bound lexical projection.
-  Those dimensions remain separate observations: they are not a rank,
-  philosophical-importance score, motif, sign candidate, sign, or semantic
-  promotion.
+  Each dimension retains its own observational meaning; motif or Sign proposals
+require separately grounded interpretation.
 - A usage-context plan must name and freeze the exact question and selection
   law before source-bearing output. Exact context and occurrence positions
   remain ignored local evidence; a tracked receipt may expose only fixity,
   counts, source-state and selector closure, rights posture, and explicit
-  non-authority. A concordance window is not a sentence, sense, lexeme, sign,
-  semantic relation, publication object, or human-work schedule.
+  non-authority. The window supplies exact context for a selected occurrence; linguistic
+segmentation and semantic interpretation follow their own source routes.
 - A morphology input receipt may prove that every exact-form row was
-  deterministically materialized into a private packet. It does not prove
-  provider coverage, correctness, German competence, a lemma, or a lexeme.
+  deterministically materialized into a private packet. Provider coverage, correctness and linguistic interpretation require their own
+assessment evidence.
 - Search availability never settles rights; discovery, request, acquisition,
   server import, and publication remain separate events.
 - Search and graph exports never satisfy the source-evidence fields by
@@ -356,7 +357,7 @@ A schema validator can establish that:
   runtime, consume source content after denial, or claim quality from download
   cost.
 
-It cannot establish that:
+Source-visible assessment must separately determine:
 
 - two catalog records describe the same historical object;
 - metadata, OCR, segmentation, lemma, etymology, or alignment is correct;
@@ -372,7 +373,10 @@ It cannot establish that:
 - a declared language competence is actually sufficient for the reviewed
   material.
 
-Those require source-visible human review and a reasoned decision record.
+Use authorized, competent source-visible review and a reasoned record under
+`ToS/doctrine/KNOWLEDGE_ASSESSMENT.md`. Legacy human-only formats retain
+their explicit historical review requirements until connected through an
+authorized adapter.
 
 ## Versioning
 

@@ -1,7 +1,7 @@
 """Bounded v4 source selection through the existing confidential transport.
 
-This adapter neither authors a second corpus nor gives private material a
-public form. Records and adjacent current forms retain their shared grammar;
+This adapter reads confidential source material within the selected private
+transport. Records and adjacent current forms retain their shared grammar;
 the issuer chooses exact sources and read scope independently of commands.
 """
 from __future__ import annotations

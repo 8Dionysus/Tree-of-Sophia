@@ -1,0 +1,99 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.work.sumerian-law.laws-of-ur-namma",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:e6a990622d9c66ccc6c6b607",
+      "request_digest": "sha256:a08d3a19926da75f9624e9101ecc09ef33071191885961956cf5828d1edd615e",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:fe008e26d48750e302b984776b6107537bd2161a4a30b221fb3bf4ca2817dabd",
+      "recorded_at": "2026-09-22T05:09:37.141429+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.work.sumerian-law.laws-of-ur-namma",
+        "version": 1,
+        "digest": "sha256:6e408ae803aff99be98dab14b3bd438400912700a496f6d2ea47974eb4254994"
+      },
+      "source": {
+        "id": "tos.work.sumerian-law.laws-of-ur-namma",
+        "version": 2,
+        "digest": "sha256:0e4a7606f372cc6ff5eda7e06a13b311a841455974ff942fb4e9a7255b44357d"
+      },
+      "previous_revision": "sha256:2fd1e1b5696189955a1ca99aced651b4d8e88ceb61b3f0d8339b2e4a9f9f39e8",
+      "archive_path": "ToS/source-witnesses/.record-revisions/e6a990622d9c66ccc6c6b6070d7db90240e0ae226b019032473f5f96085c6058-2fd1e1b5696189955a1ca99aced651b4d8e88ceb61b3f0d8339b2e4a9f9f39e8",
+      "dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+      "changed_fields": [
+        "notes"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.metadata.d97ee2b336d84e34e1f1a5c693e49b1653ebab92a5abd613c0dfe6e8cca4b820",
+          "version": 2,
+          "digest": "sha256:6d723d32176c184b153ff02d6ad213968d5ad7a5c1a77d900933510811381dcd"
+        },
+        {
+          "id": "tos.form.metadata.2f5bdb8c31eb5d99dd0a3b1d3219f54621428cf924cc9ccfeaef59f0f208bc38",
+          "version": 2,
+          "digest": "sha256:941dcd8ebdf7c0989237cf74884bc0b342868dd542ef4ae5f1688e577aaed064"
+        },
+        {
+          "id": "tos.form.metadata.ca549ef40bdfd021a8cb046a6526609104000ff5cbc72d724d25c1a5f8c7dc80",
+          "version": 2,
+          "digest": "sha256:52221fcf261fd6cfa332382024400cf405a7f23ebb2f4f0506f47c66b7a4000c"
+        },
+        {
+          "id": "tos.form.metadata.cec748654adae93193d5ae5d5b08cc60ef42687f7b223ce8c9319ad8b96698f5",
+          "version": 2,
+          "digest": "sha256:5c9f480c3b72943fdf07d9f7d326b0d7f739f23aef3858a24694cf2f9cd97f30"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:e6a990622d9c66ccc6c6b607",
+        "expected_configuration": "sha256:fe008e26d48750e302b984776b6107537bd2161a4a30b221fb3bf4ca2817dabd",
+        "expected_dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+        "expected_publication": "sha256:3cb967dbfc44b4132b6a158234cfc4fce601f8db3b0c3268549d99757288f781",
+        "expected_revision": "sha256:2fd1e1b5696189955a1ca99aced651b4d8e88ceb61b3f0d8339b2e4a9f9f39e8",
+        "expected_source": {
+          "digest": "sha256:6e408ae803aff99be98dab14b3bd438400912700a496f6d2ea47974eb4254994",
+          "id": "tos.work.sumerian-law.laws-of-ur-namma",
+          "version": 1
+        },
+        "fields": {
+          "notes": "Ancient composition under a conventional modern English label. Ur-Namma belongs to its received label and royal framing; authorship, historical legal use, and reconstruction of the surviving wording require their own evidence. Physical witnesses, CDLI Q000947/P432130, modern critical editions, line numbering, and translations provide separately identified routes into the composition."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.metadata.d97ee2b336d84e34e1f1a5c693e49b1653ebab92a5abd613c0dfe6e8cca4b820"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.metadata.2f5bdb8c31eb5d99dd0a3b1d3219f54621428cf924cc9ccfeaef59f0f208bc38"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.metadata.ca549ef40bdfd021a8cb046a6526609104000ff5cbc72d724d25c1a5f8c7dc80"
+          },
+          {
+            "field_id": "metadata.variant-name:1",
+            "form_id": "tos.form.metadata.cec748654adae93193d5ae5d5b08cc60ef42687f7b223ce8c9319ad8b96698f5"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:cc13b029460f1e8d41d2f8a63931d04dbe03c32cb269ef0c8d35e764e298e5fe",
+        "selected_files": [
+          "source-revision-history.json",
+          "work.human-forms.json",
+          "work.json"
+        ]
+      }
+    }
+  ]
+}

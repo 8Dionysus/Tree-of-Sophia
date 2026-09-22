@@ -2,66 +2,484 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://tree-of-sophia.local/ToS/contracts/native-page-ocr-comparison.schema.json",
   "title": "Private exact image and authenticated OCR comparison",
-  "description": "Inert comparison evidence, not an OCR quality verdict. Historical retained-page fidelity and source disclosure remain separate. Only the explicitly selected operator-created synthetic PNG profile can carry a current exact assistant-session disclosure grant.",
-  "type": "object", "additionalProperties": false,
-  "required": ["schema_version", "comparison_id", "comparison_version", "comparison_profile", "layer", "source_scope", "source_anchor", "input_representation", "source_image", "representation_text", "representation", "editorial_policy", "maker", "configuration_sha256", "input_fixity", "owner_execution", "disclosure_access", "deterministic_text_match", "source_visible_judgment", "historical_render_fidelity", "limits", "visibility", "publication_authorized", "performs_semantic_assessment"],
+  "description": "Inert source-visible OCR comparison evidence. Historical retained-page fidelity and source disclosure have separate bindings. Only the explicitly selected operator-created synthetic PNG profile can carry a current exact assistant-session disclosure grant. Quality assessment uses this evidence under its own policy.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "comparison_id",
+    "comparison_version",
+    "comparison_profile",
+    "layer",
+    "source_scope",
+    "source_anchor",
+    "input_representation",
+    "source_image",
+    "representation_text",
+    "representation",
+    "editorial_policy",
+    "maker",
+    "configuration_sha256",
+    "input_fixity",
+    "owner_execution",
+    "disclosure_access",
+    "deterministic_text_match",
+    "source_visible_judgment",
+    "historical_render_fidelity",
+    "limits",
+    "visibility",
+    "publication_authorized",
+    "performs_semantic_assessment"
+  ],
   "properties": {
-    "schema_version": {"const": "tos_native_page_ocr_comparison_v1"},
-    "comparison_id": {"type": "string", "pattern": "^tos\\.text-comparison\\.sha256\\.[a-f0-9]{64}$"},
-    "comparison_version": {"const": 1},
-    "comparison_profile": {"enum": ["tos_retained_page_ocr_image_comparison_v1", "tos_operator_synthetic_png_ocr_image_comparison_v1"]},
-    "layer": {"$ref": "native-text-layer-comparison.schema.json#/$defs/exactRef"},
-    "source_scope": {"$ref": "native-text-layer-comparison.schema.json#/properties/source_scope"},
-    "source_anchor": {"type": "object", "additionalProperties": false,
-      "required": ["anchor_id", "anchor_record_ref", "anchor_record_sha256"],
-      "properties": {"anchor_id": {"type": "string", "minLength": 1}, "anchor_record_ref": {"type": "string", "minLength": 1}, "anchor_record_sha256": {"$ref": "#/$defs/sha256"}}},
-    "input_representation": {"description": "Exact independently validated input binding; retained PDF-page provenance is not a fresh render receipt.",
-      "type": "object", "required": ["schema_version", "source_file_ref", "source_file_sha256", "input_file_ref", "input_sha256", "input_bytes", "media_type", "page_number", "page_index_origin", "width_pixels", "height_pixels"],
-      "properties": {"schema_version": {"enum": ["tos_retained_pdf_page_input_binding_v1", "tos_operator_synthetic_png_input_binding_v1"]},
-        "source_file_sha256": {"$ref": "#/$defs/sha256"}, "input_sha256": {"$ref": "#/$defs/sha256"},
-        "input_bytes": {"type": "integer", "minimum": 1, "maximum": 10485760}, "media_type": {"const": "image/png"},
-        "page_number": {"type": "integer", "minimum": 1, "maximum": 10000}, "page_index_origin": {"const": 1},
-        "width_pixels": {"type": "integer", "minimum": 1}, "height_pixels": {"type": "integer", "minimum": 1}}},
-    "source_image": {"type": "object", "additionalProperties": false,
-      "required": ["path", "media_type", "sha256", "byte_size", "width_pixels", "height_pixels", "page_number", "page_index_origin", "processing_boundary", "model_disclosure_authorized"],
-      "properties": {"path": {"type": "string", "minLength": 1, "maxLength": 4096}, "media_type": {"const": "image/png"},
-        "sha256": {"$ref": "#/$defs/sha256"}, "byte_size": {"type": "integer", "minimum": 1, "maximum": 10485760},
-        "width_pixels": {"type": "integer", "minimum": 1}, "height_pixels": {"type": "integer", "minimum": 1},
-        "page_number": {"type": "integer", "minimum": 1, "maximum": 10000}, "page_index_origin": {"const": 1},
-        "processing_boundary": {"enum": ["local_only", "current_assistant_session"]}, "model_disclosure_authorized": {"type": "boolean"}}},
-    "representation_text": {"type": "string", "minLength": 1, "maxLength": 131072},
-    "representation": {"$ref": "native-text-layer-comparison.schema.json#/properties/representation"},
-    "editorial_policy": {"type": "object", "required": ["provider_execution_verified", "quality_assessment"],
-      "properties": {"provider_execution_verified": {"const": true}, "quality_assessment": {"const": "not-performed"}}},
-    "maker": {"$ref": "native-text-layer-comparison.schema.json#/properties/maker"},
-    "configuration_sha256": {"$ref": "#/$defs/sha256"},
-    "input_fixity": {"type": "array", "minItems": 1, "maxItems": 128, "uniqueItems": true, "items": {
-      "type": "object", "additionalProperties": false, "required": ["ref", "category", "sha256"], "properties": {
-        "ref": {"type": "string", "minLength": 1}, "category": {"enum": ["metadata", "content", "original_payload", "retained_image"]}, "sha256": {"$ref": "#/$defs/sha256"}}}},
-    "owner_execution": {"type": "object", "additionalProperties": false, "required": ["receipt_sha256", "owner", "input_verification"],
-      "properties": {"receipt_sha256": {"$ref": "#/$defs/sha256"}, "owner": {"type": "object", "additionalProperties": false,
-        "required": ["owner_repo", "source_ref", "adapter_path", "adapter_sha256"],
-        "properties": {"owner_repo": {"const": "abyss-stack"}, "source_ref": {"type": "string", "pattern": "^commit:[a-f0-9]{40}$"},
-          "adapter_path": {"type": "string", "minLength": 1}, "adapter_sha256": {"$ref": "#/$defs/sha256"}}},
-        "input_verification": {"oneOf": [{"type": "null"}, {"type": "object", "required": ["schema_version", "render_execution", "historical_receipt_signature"],
-          "properties": {"schema_version": {"const": "tos_retained_pdf_page_verification_capture_v1"}, "render_execution": {"const": "not_performed"}, "historical_receipt_signature": {"const": "absent"}}}]}}},
-    "disclosure_access": {"oneOf": [{"type": "null"}, {"type": "object", "additionalProperties": false,
-      "required": ["allowed", "authority_ref", "expires_at", "read_scope", "basis", "processing_boundary", "source_file_ref", "source_file_sha256", "image_sha256", "layer_record_sha256"],
-      "properties": {"allowed": {"const": true}, "authority_ref": {"type": "string", "minLength": 1}, "expires_at": {"type": "string", "format": "date-time"},
-        "read_scope": {"const": "exact_source_image_and_ocr"}, "basis": {"const": "operator_created_synthetic_source"},
-        "processing_boundary": {"const": "current_assistant_session"}, "source_file_ref": {"type": "string", "minLength": 1},
-        "source_file_sha256": {"$ref": "#/$defs/sha256"}, "image_sha256": {"$ref": "#/$defs/sha256"}, "layer_record_sha256": {"$ref": "#/$defs/sha256"}}}]},
-    "deterministic_text_match": {"type": "null"}, "source_visible_judgment": {"const": "not_performed"},
-    "historical_render_fidelity": {"enum": ["not_independently_assessed", "not_applicable"]},
-    "limits": {"type": "array", "minItems": 3, "items": {"type": "string", "minLength": 1}},
-    "visibility": {"const": "local_only"}, "publication_authorized": {"const": false}, "performs_semantic_assessment": {"const": false}
+    "schema_version": {
+      "const": "tos_native_page_ocr_comparison_v1"
+    },
+    "comparison_id": {
+      "type": "string",
+      "pattern": "^tos\\.text-comparison\\.sha256\\.[a-f0-9]{64}$"
+    },
+    "comparison_version": {
+      "const": 1
+    },
+    "comparison_profile": {
+      "enum": [
+        "tos_retained_page_ocr_image_comparison_v1",
+        "tos_operator_synthetic_png_ocr_image_comparison_v1"
+      ]
+    },
+    "layer": {
+      "$ref": "native-text-layer-comparison.schema.json#/$defs/exactRef"
+    },
+    "source_scope": {
+      "$ref": "native-text-layer-comparison.schema.json#/properties/source_scope"
+    },
+    "source_anchor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "anchor_id",
+        "anchor_record_ref",
+        "anchor_record_sha256"
+      ],
+      "properties": {
+        "anchor_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "anchor_record_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "anchor_record_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "input_representation": {
+      "description": "Exact independently validated input binding retaining the PDF-page representation’s original render provenance.",
+      "type": "object",
+      "required": [
+        "schema_version",
+        "source_file_ref",
+        "source_file_sha256",
+        "input_file_ref",
+        "input_sha256",
+        "input_bytes",
+        "media_type",
+        "page_number",
+        "page_index_origin",
+        "width_pixels",
+        "height_pixels"
+      ],
+      "properties": {
+        "schema_version": {
+          "enum": [
+            "tos_retained_pdf_page_input_binding_v1",
+            "tos_operator_synthetic_png_input_binding_v1"
+          ]
+        },
+        "source_file_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "input_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "input_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10485760
+        },
+        "media_type": {
+          "const": "image/png"
+        },
+        "page_number": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000
+        },
+        "page_index_origin": {
+          "const": 1
+        },
+        "width_pixels": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "height_pixels": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "source_image": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "media_type",
+        "sha256",
+        "byte_size",
+        "width_pixels",
+        "height_pixels",
+        "page_number",
+        "page_index_origin",
+        "processing_boundary",
+        "model_disclosure_authorized"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "media_type": {
+          "const": "image/png"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "byte_size": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10485760
+        },
+        "width_pixels": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "height_pixels": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "page_number": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000
+        },
+        "page_index_origin": {
+          "const": 1
+        },
+        "processing_boundary": {
+          "enum": [
+            "local_only",
+            "current_assistant_session"
+          ]
+        },
+        "model_disclosure_authorized": {
+          "type": "boolean"
+        }
+      }
+    },
+    "representation_text": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 131072
+    },
+    "representation": {
+      "$ref": "native-text-layer-comparison.schema.json#/properties/representation"
+    },
+    "editorial_policy": {
+      "type": "object",
+      "required": [
+        "provider_execution_verified",
+        "quality_assessment"
+      ],
+      "properties": {
+        "provider_execution_verified": {
+          "const": true
+        },
+        "quality_assessment": {
+          "const": "not-performed"
+        }
+      }
+    },
+    "maker": {
+      "$ref": "native-text-layer-comparison.schema.json#/properties/maker"
+    },
+    "configuration_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "input_fixity": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 128,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ref",
+          "category",
+          "sha256"
+        ],
+        "properties": {
+          "ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "category": {
+            "enum": [
+              "metadata",
+              "content",
+              "original_payload",
+              "retained_image"
+            ]
+          },
+          "sha256": {
+            "$ref": "#/$defs/sha256"
+          }
+        }
+      }
+    },
+    "owner_execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "receipt_sha256",
+        "owner",
+        "input_verification"
+      ],
+      "properties": {
+        "receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "owner": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "owner_repo",
+            "source_ref",
+            "adapter_path",
+            "adapter_sha256"
+          ],
+          "properties": {
+            "owner_repo": {
+              "const": "abyss-stack"
+            },
+            "source_ref": {
+              "type": "string",
+              "pattern": "^commit:[a-f0-9]{40}$"
+            },
+            "adapter_path": {
+              "type": "string",
+              "minLength": 1
+            },
+            "adapter_sha256": {
+              "$ref": "#/$defs/sha256"
+            }
+          }
+        },
+        "input_verification": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "required": [
+                "schema_version",
+                "render_execution",
+                "historical_receipt_signature"
+              ],
+              "properties": {
+                "schema_version": {
+                  "const": "tos_retained_pdf_page_verification_capture_v1"
+                },
+                "render_execution": {
+                  "const": "not_performed"
+                },
+                "historical_receipt_signature": {
+                  "const": "absent"
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "disclosure_access": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "allowed",
+            "authority_ref",
+            "expires_at",
+            "read_scope",
+            "basis",
+            "processing_boundary",
+            "source_file_ref",
+            "source_file_sha256",
+            "image_sha256",
+            "layer_record_sha256"
+          ],
+          "properties": {
+            "allowed": {
+              "const": true
+            },
+            "authority_ref": {
+              "type": "string",
+              "minLength": 1
+            },
+            "expires_at": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "read_scope": {
+              "const": "exact_source_image_and_ocr"
+            },
+            "basis": {
+              "const": "operator_created_synthetic_source"
+            },
+            "processing_boundary": {
+              "const": "current_assistant_session"
+            },
+            "source_file_ref": {
+              "type": "string",
+              "minLength": 1
+            },
+            "source_file_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "image_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "layer_record_sha256": {
+              "$ref": "#/$defs/sha256"
+            }
+          }
+        }
+      ]
+    },
+    "deterministic_text_match": {
+      "type": "null"
+    },
+    "source_visible_judgment": {
+      "const": "not_performed"
+    },
+    "historical_render_fidelity": {
+      "enum": [
+        "not_independently_assessed",
+        "not_applicable"
+      ]
+    },
+    "limits": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "visibility": {
+      "const": "local_only"
+    },
+    "publication_authorized": {
+      "const": false
+    },
+    "performs_semantic_assessment": {
+      "const": false
+    }
   },
-  "allOf": [{"if": {"properties": {"comparison_profile": {"const": "tos_retained_page_ocr_image_comparison_v1"}}},
-    "then": {"properties": {"disclosure_access": {"type": "null"}, "historical_render_fidelity": {"const": "not_independently_assessed"},
-      "source_image": {"properties": {"processing_boundary": {"const": "local_only"}, "model_disclosure_authorized": {"const": false}}}}}},
-    {"if": {"properties": {"disclosure_access": {"type": "null"}}},
-      "then": {"properties": {"source_image": {"properties": {"processing_boundary": {"const": "local_only"}, "model_disclosure_authorized": {"const": false}}}}},
-      "else": {"properties": {"comparison_profile": {"const": "tos_operator_synthetic_png_ocr_image_comparison_v1"},
-        "source_image": {"properties": {"processing_boundary": {"const": "current_assistant_session"}, "model_disclosure_authorized": {"const": true}}}}}}],
-  "$defs": {"sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}}
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "comparison_profile": {
+            "const": "tos_retained_page_ocr_image_comparison_v1"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "disclosure_access": {
+            "type": "null"
+          },
+          "historical_render_fidelity": {
+            "const": "not_independently_assessed"
+          },
+          "source_image": {
+            "properties": {
+              "processing_boundary": {
+                "const": "local_only"
+              },
+              "model_disclosure_authorized": {
+                "const": false
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "disclosure_access": {
+            "type": "null"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "source_image": {
+            "properties": {
+              "processing_boundary": {
+                "const": "local_only"
+              },
+              "model_disclosure_authorized": {
+                "const": false
+              }
+            }
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "comparison_profile": {
+            "const": "tos_operator_synthetic_png_ocr_image_comparison_v1"
+          },
+          "source_image": {
+            "properties": {
+              "processing_boundary": {
+                "const": "current_assistant_session"
+              },
+              "model_disclosure_authorized": {
+                "const": true
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    }
+  }
 }

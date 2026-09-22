@@ -2,14 +2,13 @@
 
 This document records the current ToS note on `idea lineage` versus `practice lineage`.
 
-It does not turn ToS into a technique repository.
-It gives conceptual legitimacy to a neighboring branch of practices while keeping operational ownership in AoA repositories.
+It describes a neighboring genealogy of practices and connects it to the AoA
+repositories that own their operation.
 
 ## Core rule
 
-ToS may recognize a genealogy of practices.
-
-That does not mean operational detail becomes ToS-authored source truth.
+ToS describes the conceptual lineage of practices. The operational owner
+records how a practice is implemented, validated and maintained.
 
 ## Idea lineage vs practice lineage
 
@@ -51,19 +50,18 @@ Operational implementation still stays in AoA repositories:
 
 ## Counterpart examples
 
-Example pairs that stay suggestive rather than identical:
+The two lineages can be compared through these patterns:
 
 - `origin / mutation / adaptation`
 - `promotion / canonization / deprecation`
 - `lineage of ideas / lineage of practices`
 
-These are counterpart forms.
-They are not identity claims.
+Each comparison states the shared pattern and preserves the specific meaning
+and evidence of each lineage.
 
-## Anti-collapse rule
+<a id="anti-collapse-rule"></a>
+## Scope of a counterpart
 
-Do not:
-
-- move operational detail into ToS source nodes
-- treat every practice as a philosophical concept
-- treat every philosophical concept as if it demands an operational counterpart
+Link operational detail to its AoA owner. Describe a practice as a
+philosophical subject when the source material supports that inquiry. Add a
+counterpart when the relation helps explain both sides and has its own grounds.

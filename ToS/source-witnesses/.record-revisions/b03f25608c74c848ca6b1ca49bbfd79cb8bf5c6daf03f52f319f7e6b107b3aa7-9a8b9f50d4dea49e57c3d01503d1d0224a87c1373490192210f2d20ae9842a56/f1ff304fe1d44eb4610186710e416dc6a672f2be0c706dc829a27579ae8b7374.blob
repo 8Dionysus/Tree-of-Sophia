@@ -1,0 +1,51 @@
+{
+  "schema_version": "tos_corpus_record_v1",
+  "record_type": "item",
+  "record_id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-2.dta-sbb-corrected-tei-p5",
+  "preferred_label": "DTA corrected TEI P5 transcription of the SBB-PK 1883 part-2 copy",
+  "variant_labels": [
+    {
+      "value": "DTA 16841",
+      "language": "und",
+      "source_ref": "https://www.deutschestextarchiv.de/api/tei_header/nietzsche_zarathustra02_1883",
+      "status": "verified"
+    },
+    {
+      "value": "nietzsche_zarathustra02_1883",
+      "language": "und",
+      "source_ref": "https://www.deutschestextarchiv.de/api/tei_header/nietzsche_zarathustra02_1883",
+      "status": "verified"
+    }
+  ],
+  "identity_status": "verified",
+  "source_refs": [
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-2/editions/chemnitz-schmeitzner-1883-part-2/items/dta-sbb-corrected-tei-p5/source-metadata-snapshot.json",
+    "https://www.deutschestextarchiv.de/book/download_xml/nietzsche_zarathustra02_1883",
+    "https://www.deutschestextarchiv.de/book/show/nietzsche_zarathustra02_1883"
+  ],
+  "external_identifiers": [
+    {
+      "scheme": "DTA ID",
+      "value": "16841",
+      "source_ref": "https://www.deutschestextarchiv.de/api/tei_header/nietzsche_zarathustra02_1883",
+      "status": "verified"
+    },
+    {
+      "scheme": "DTA directory name",
+      "value": "nietzsche_zarathustra02_1883",
+      "source_ref": "https://www.deutschestextarchiv.de/api/tei_header/nietzsche_zarathustra02_1883",
+      "status": "verified"
+    },
+    {
+      "scheme": "URN",
+      "value": "urn:nbn:de:kobv:b4-200905194308",
+      "source_ref": "https://www.deutschestextarchiv.de/api/tei_header/nietzsche_zarathustra02_1883",
+      "status": "verified"
+    }
+  ],
+  "same_as_posture": "no_equivalence_claim",
+  "item_manifest_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-2/editions/chemnitz-schmeitzner-1883-part-2/items/dta-sbb-corrected-tei-p5/item.manifest.json",
+  "notes": "This acquired object is DTA's annotated structured transcription, not the SBB-PK physical copy or its 117 facsimile images. DTA reports native-speaker post-OCR checking; ToS has not independently accepted the German text.",
+  "record_version": 1,
+  "supersedes_ref": null
+}

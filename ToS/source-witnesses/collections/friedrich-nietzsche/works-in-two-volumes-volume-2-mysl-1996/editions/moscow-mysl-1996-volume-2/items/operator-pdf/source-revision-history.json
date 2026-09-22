@@ -1,0 +1,81 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.item.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996.operator-pdf",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:fefadf7bcee05ffeec7cb7f8",
+      "request_digest": "sha256:1220e8c6cb4a40dd258c936676ec32eabadbdd360e7b035bb399340efae3f0be",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:6738c6b31464ded65acb0ce98d556d7546992633c8877399e842817ecaad5be8",
+      "recorded_at": "2026-09-22T05:04:27.867564+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.item.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996.operator-pdf",
+        "version": 1,
+        "digest": "sha256:309216d11f817b8ac9d20719cd16318406aad25451d575bdd7cce17c60294954"
+      },
+      "source": {
+        "id": "tos.item.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996.operator-pdf",
+        "version": 2,
+        "digest": "sha256:865f5a8c3d2cce6ef8e13e7a0be5c8b0ebbf0d55df9f2e8ba55d50b74807227f"
+      },
+      "previous_revision": "sha256:de62ccf68fbe9d18f0b9f4068068cd1b48f5928772be2305fffef9b9b7fe839f",
+      "archive_path": "ToS/source-witnesses/.record-revisions/fefadf7bcee05ffeec7cb7f8f634cd94a1204026e1b370bc676521b1c6f1dc5a-de62ccf68fbe9d18f0b9f4068068cd1b48f5928772be2305fffef9b9b7fe839f",
+      "dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+      "changed_fields": [
+        "notes"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.metadata.c90481ee810623a9c4b77616db4edc12222269aac7aa38f898467028abc0f3aa",
+          "version": 2,
+          "digest": "sha256:f09ec49fb577e02d0bf4e1917f1bdaf7188bb505222fb8b95560b2e5ca945b45"
+        },
+        {
+          "id": "tos.form.metadata.1186d751c3923f53e81bf2f010e98714ef83f77891d6847969b16edf21013d8f",
+          "version": 2,
+          "digest": "sha256:90e96a6193b00735392ed264b7d00cf5f16744089ab47c9674013ce956eb259f"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:fefadf7bcee05ffeec7cb7f8",
+        "expected_configuration": "sha256:6738c6b31464ded65acb0ce98d556d7546992633c8877399e842817ecaad5be8",
+        "expected_dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+        "expected_publication": "sha256:d9666a9d5c42ba18b026b8617e1da2dbd44a9d501de72b03ab814fcff14daeac",
+        "expected_revision": "sha256:de62ccf68fbe9d18f0b9f4068068cd1b48f5928772be2305fffef9b9b7fe839f",
+        "expected_source": {
+          "digest": "sha256:309216d11f817b8ac9d20719cd16318406aad25451d575bdd7cce17c60294954",
+          "id": "tos.item.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996.operator-pdf",
+          "version": 1
+        },
+        "fields": {
+          "notes": "Digital item identity is fixed by its local acquisition record and SHA-256."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.metadata.c90481ee810623a9c4b77616db4edc12222269aac7aa38f898467028abc0f3aa"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.metadata.1186d751c3923f53e81bf2f010e98714ef83f77891d6847969b16edf21013d8f"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:d2d9da39c6c3c6632a26b4b41534b253786a746d02765760d8f7537cb18c5c70",
+        "selected_files": [
+          "item.human-forms.json",
+          "item.json",
+          "source-revision-history.json"
+        ]
+      }
+    }
+  ]
+}

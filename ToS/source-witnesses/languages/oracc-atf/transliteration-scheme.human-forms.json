@@ -1,71 +1,69 @@
 {
-  "schema_version": "tos_human_form_set_v1",
-  "subject": {
-    "id": "tos.transliteration-scheme.oracc-atf",
-    "version": 1,
-    "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf"
-  },
   "forms": [
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.linguistic.oracc-atf.name-ru",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.transliteration-scheme.oracc-atf",
-        "version": 1,
-        "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf"
+        "version": 2,
+        "digest": "sha256:bb2c47e5c9b6f7240edb7c4bcd6b624b61fd83b03543c6bad8380b78c89c4367"
       },
       "role": "name",
       "language": "ru",
       "script": "Cyrl",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.linguistic.oracc-atf.name-ru",
+        "version": 1,
+        "digest": "sha256:73dff6c3a8741edfdffa31efcbfd1ac28134c84e1e07f578166d413a4fe6ac21"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.transliteration-scheme.oracc-atf",
-            "version": 1,
-            "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf"
+            "version": 2,
+            "digest": "sha256:bb2c47e5c9b6f7240edb7c4bcd6b624b61fd83b03543c6bad8380b78c89c4367"
           },
           "pointer": "/preferred_label"
         },
         "context-0": {
           "record": {
             "id": "tos.transliteration-scheme.oracc-atf",
-            "version": 1,
-            "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf"
+            "version": 2,
+            "digest": "sha256:bb2c47e5c9b6f7240edb7c4bcd6b624b61fd83b03543c6bad8380b78c89c4367"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.transliteration-scheme.oracc-atf",
-            "version": 1,
-            "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf"
+            "version": 2,
+            "digest": "sha256:bb2c47e5c9b6f7240edb7c4bcd6b624b61fd83b03543c6bad8380b78c89c4367"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.transliteration-scheme.oracc-atf",
-            "version": 1,
-            "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf"
+            "version": 2,
+            "digest": "sha256:bb2c47e5c9b6f7240edb7c4bcd6b624b61fd83b03543c6bad8380b78c89c4367"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.transliteration-scheme.oracc-atf",
-            "version": 1,
-            "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf"
+            "version": 2,
+            "digest": "sha256:bb2c47e5c9b6f7240edb7c4bcd6b624b61fd83b03543c6bad8380b78c89c4367"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.transliteration-scheme.oracc-atf",
-            "version": 1,
-            "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf"
+            "version": 2,
+            "digest": "sha256:bb2c47e5c9b6f7240edb7c4bcd6b624b61fd83b03543c6bad8380b78c89c4367"
           },
           "pointer": "/field_languages/preferred_label"
         }
@@ -78,87 +76,91 @@
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.linguistic.oracc-atf.name-en",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.transliteration-scheme.oracc-atf",
-        "version": 1,
-        "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf"
+        "version": 2,
+        "digest": "sha256:bb2c47e5c9b6f7240edb7c4bcd6b624b61fd83b03543c6bad8380b78c89c4367"
       },
       "role": "name",
       "language": "en",
       "script": "Latn",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.linguistic.oracc-atf.name-en",
+        "version": 1,
+        "digest": "sha256:a57790436e98a7349ad890d4019813d22270d983570dd89292019ac20c83f24c"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.transliteration-scheme.oracc-atf",
-            "version": 1,
-            "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf"
+            "version": 2,
+            "digest": "sha256:bb2c47e5c9b6f7240edb7c4bcd6b624b61fd83b03543c6bad8380b78c89c4367"
           },
           "pointer": "/variant_labels/0/value"
         },
         "context-0": {
           "record": {
             "id": "tos.transliteration-scheme.oracc-atf",
-            "version": 1,
-            "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf"
+            "version": 2,
+            "digest": "sha256:bb2c47e5c9b6f7240edb7c4bcd6b624b61fd83b03543c6bad8380b78c89c4367"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.transliteration-scheme.oracc-atf",
-            "version": 1,
-            "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf"
+            "version": 2,
+            "digest": "sha256:bb2c47e5c9b6f7240edb7c4bcd6b624b61fd83b03543c6bad8380b78c89c4367"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.transliteration-scheme.oracc-atf",
-            "version": 1,
-            "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf"
+            "version": 2,
+            "digest": "sha256:bb2c47e5c9b6f7240edb7c4bcd6b624b61fd83b03543c6bad8380b78c89c4367"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.transliteration-scheme.oracc-atf",
-            "version": 1,
-            "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf"
+            "version": 2,
+            "digest": "sha256:bb2c47e5c9b6f7240edb7c4bcd6b624b61fd83b03543c6bad8380b78c89c4367"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.transliteration-scheme.oracc-atf",
-            "version": 1,
-            "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf"
+            "version": 2,
+            "digest": "sha256:bb2c47e5c9b6f7240edb7c4bcd6b624b61fd83b03543c6bad8380b78c89c4367"
           },
           "pointer": "/variant_labels/0/language"
         },
         "context-5": {
           "record": {
             "id": "tos.transliteration-scheme.oracc-atf",
-            "version": 1,
-            "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf"
+            "version": 2,
+            "digest": "sha256:bb2c47e5c9b6f7240edb7c4bcd6b624b61fd83b03543c6bad8380b78c89c4367"
           },
           "pointer": "/variant_labels/0/script"
         },
         "context-6": {
           "record": {
             "id": "tos.transliteration-scheme.oracc-atf",
-            "version": 1,
-            "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf"
+            "version": 2,
+            "digest": "sha256:bb2c47e5c9b6f7240edb7c4bcd6b624b61fd83b03543c6bad8380b78c89c4367"
           },
           "pointer": "/variant_labels/0/source_ref"
         },
         "context-7": {
           "record": {
             "id": "tos.transliteration-scheme.oracc-atf",
-            "version": 1,
-            "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf"
+            "version": 2,
+            "digest": "sha256:bb2c47e5c9b6f7240edb7c4bcd6b624b61fd83b03543c6bad8380b78c89c4367"
           },
           "pointer": "/variant_labels/0/status"
         }
@@ -171,63 +173,67 @@
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.linguistic.oracc-atf.note-ru",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.transliteration-scheme.oracc-atf",
-        "version": 1,
-        "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf"
+        "version": 2,
+        "digest": "sha256:bb2c47e5c9b6f7240edb7c4bcd6b624b61fd83b03543c6bad8380b78c89c4367"
       },
       "role": "hover",
       "language": "ru",
       "script": "Cyrl",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.linguistic.oracc-atf.note-ru",
+        "version": 1,
+        "digest": "sha256:5ba1e3d4a1dc5f681c9991c352ae5c0b9ce2ba5ba0f7e6d44fa8e56efbbcaf68"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.transliteration-scheme.oracc-atf",
-            "version": 1,
-            "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf"
+            "version": 2,
+            "digest": "sha256:bb2c47e5c9b6f7240edb7c4bcd6b624b61fd83b03543c6bad8380b78c89c4367"
           },
           "pointer": "/notes"
         },
         "context-0": {
           "record": {
             "id": "tos.transliteration-scheme.oracc-atf",
-            "version": 1,
-            "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf"
+            "version": 2,
+            "digest": "sha256:bb2c47e5c9b6f7240edb7c4bcd6b624b61fd83b03543c6bad8380b78c89c4367"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.transliteration-scheme.oracc-atf",
-            "version": 1,
-            "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf"
+            "version": 2,
+            "digest": "sha256:bb2c47e5c9b6f7240edb7c4bcd6b624b61fd83b03543c6bad8380b78c89c4367"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.transliteration-scheme.oracc-atf",
-            "version": 1,
-            "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf"
+            "version": 2,
+            "digest": "sha256:bb2c47e5c9b6f7240edb7c4bcd6b624b61fd83b03543c6bad8380b78c89c4367"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.transliteration-scheme.oracc-atf",
-            "version": 1,
-            "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf"
+            "version": 2,
+            "digest": "sha256:bb2c47e5c9b6f7240edb7c4bcd6b624b61fd83b03543c6bad8380b78c89c4367"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.transliteration-scheme.oracc-atf",
-            "version": 1,
-            "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf"
+            "version": 2,
+            "digest": "sha256:bb2c47e5c9b6f7240edb7c4bcd6b624b61fd83b03543c6bad8380b78c89c4367"
           },
           "pointer": "/field_languages/notes"
         }
@@ -238,5 +244,243 @@
       }
     }
   ],
-  "prior_forms": []
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf",
+            "id": "tos.transliteration-scheme.oracc-atf",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf",
+            "id": "tos.transliteration-scheme.oracc-atf",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf",
+            "id": "tos.transliteration-scheme.oracc-atf",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf",
+            "id": "tos.transliteration-scheme.oracc-atf",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf",
+            "id": "tos.transliteration-scheme.oracc-atf",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf",
+            "id": "tos.transliteration-scheme.oracc-atf",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.linguistic.oracc-atf.name-ru",
+      "form_version": 1,
+      "language": "ru",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf",
+        "id": "tos.transliteration-scheme.oracc-atf",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf",
+            "id": "tos.transliteration-scheme.oracc-atf",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf",
+            "id": "tos.transliteration-scheme.oracc-atf",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf",
+            "id": "tos.transliteration-scheme.oracc-atf",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf",
+            "id": "tos.transliteration-scheme.oracc-atf",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/variant_labels/0/language",
+          "record": {
+            "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf",
+            "id": "tos.transliteration-scheme.oracc-atf",
+            "version": 1
+          }
+        },
+        "context-5": {
+          "pointer": "/variant_labels/0/script",
+          "record": {
+            "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf",
+            "id": "tos.transliteration-scheme.oracc-atf",
+            "version": 1
+          }
+        },
+        "context-6": {
+          "pointer": "/variant_labels/0/source_ref",
+          "record": {
+            "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf",
+            "id": "tos.transliteration-scheme.oracc-atf",
+            "version": 1
+          }
+        },
+        "context-7": {
+          "pointer": "/variant_labels/0/status",
+          "record": {
+            "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf",
+            "id": "tos.transliteration-scheme.oracc-atf",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/variant_labels/0/value",
+          "record": {
+            "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf",
+            "id": "tos.transliteration-scheme.oracc-atf",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.linguistic.oracc-atf.name-en",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf",
+        "id": "tos.transliteration-scheme.oracc-atf",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf",
+            "id": "tos.transliteration-scheme.oracc-atf",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf",
+            "id": "tos.transliteration-scheme.oracc-atf",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf",
+            "id": "tos.transliteration-scheme.oracc-atf",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf",
+            "id": "tos.transliteration-scheme.oracc-atf",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf",
+            "id": "tos.transliteration-scheme.oracc-atf",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf",
+            "id": "tos.transliteration-scheme.oracc-atf",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.linguistic.oracc-atf.note-ru",
+      "form_version": 1,
+      "language": "ru",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf",
+        "id": "tos.transliteration-scheme.oracc-atf",
+        "version": 1
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.transliteration-scheme.oracc-atf",
+    "version": 2,
+    "digest": "sha256:bb2c47e5c9b6f7240edb7c4bcd6b624b61fd83b03543c6bad8380b78c89c4367"
+  }
 }

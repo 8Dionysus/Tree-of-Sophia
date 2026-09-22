@@ -16,7 +16,7 @@ def canonical_digest(value: Any) -> str:
 
 
 def _navigation_source_endpoint(node: dict[str, Any], identity_ref: Any) -> dict[str, Any] | None:
-    """Bind a whole navigation name to exact source bytes, not a carrier label."""
+    """Bind the complete authored navigation name to its exact source bytes."""
     properties = node.get('properties')
     if not isinstance(properties, dict):
         return None

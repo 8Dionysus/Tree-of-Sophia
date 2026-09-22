@@ -1,10 +1,10 @@
 # Selected metadata publication and recovery
 
-This part-local transport moves an adapter's exact bounded source-metadata plan
-without exchanging or copying a nested source home. Current authored files still
-own source meaning. Retained manifests and blobs are byte/recovery evidence;
-neither their presence, a transaction ID, a completion receipt nor a ready token
-grants bibliographic, textual, rights, assessment, admission or canon authority.
+This part-local transport publishes an adapter's exact bounded source-metadata
+plan through selected-file changes, preserving nested source homes. Authored
+files own source meaning. Retained manifests and blobs support byte
+verification and recovery; bibliographic judgment, textual assessment, rights,
+admission and canon follow their source-owner routes.
 
 The earlier flat-package revision/exchange route remains a separate contract.
 Its whole-directory package digest must not silently become a digest of selected
@@ -106,7 +106,7 @@ The library deliberately does not acquire it recursively. Independent adapters
 must preserve that same lock locator and order. Arbitrary unlocked callers are
 outside this internal API contract.
 
-The adapter provides an exact plan, not a directory discovery request:
+The adapter provides an exact selected-file plan:
 
 ```python
 plan = {

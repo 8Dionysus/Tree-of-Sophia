@@ -2,94 +2,440 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://tree-of-sophia.local/ToS/contracts/public-native-text-create-owner.schema.json",
   "title": "Independent public project-text native construction delegation",
-  "description": "Protected local command selection, not a publication license, assessment or extension of private construction grants.",
+  "description": "Protected local command selection for public project-text construction. Publication permission and source assessment remain independently bound inputs; private construction grants retain their existing scopes.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "uid", "principal_id", "authority_ref", "expires_at", "allowed_operations", "source_root", "recovery_root", "source_path", "source", "source_scope", "source_record_refs", "source_record_sha256", "manifest_sha256", "rights_record_refs", "publication_authority", "license_bindings", "language", "identities", "unit_proposal", "limits"],
+  "required": [
+    "schema_version",
+    "uid",
+    "principal_id",
+    "authority_ref",
+    "expires_at",
+    "allowed_operations",
+    "source_root",
+    "recovery_root",
+    "source_path",
+    "source",
+    "source_scope",
+    "source_record_refs",
+    "source_record_sha256",
+    "manifest_sha256",
+    "rights_record_refs",
+    "publication_authority",
+    "license_bindings",
+    "language",
+    "identities",
+    "unit_proposal",
+    "limits"
+  ],
   "properties": {
-    "schema_version": {"const": "tos_public_native_text_create_owner_v1"},
-    "uid": {"type": "integer", "minimum": 0},
-    "principal_id": {"type": "string", "minLength": 1},
-    "authority_ref": {"type": "string", "minLength": 1},
-    "expires_at": {"type": "string", "format": "date-time"},
-    "allowed_operations": {"const": ["native-text.create"]},
-    "source_root": {"type": "string", "pattern": "^/"},
-    "recovery_root": {"type": "string", "pattern": "^/"},
-    "source_path": {"$ref": "#/$defs/sourceRef"},
-    "source": {"$ref": "#/$defs/input"},
-    "source_scope": {"$ref": "source-text-unit-packet-v1.schema.json#/$defs/sourceScope"},
+    "schema_version": {
+      "const": "tos_public_native_text_create_owner_v1"
+    },
+    "uid": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "principal_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "authority_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "allowed_operations": {
+      "const": [
+        "native-text.create"
+      ]
+    },
+    "source_root": {
+      "type": "string",
+      "pattern": "^/"
+    },
+    "recovery_root": {
+      "type": "string",
+      "pattern": "^/"
+    },
+    "source_path": {
+      "$ref": "#/$defs/sourceRef"
+    },
+    "source": {
+      "$ref": "#/$defs/input"
+    },
+    "source_scope": {
+      "$ref": "source-text-unit-packet-v1.schema.json#/$defs/sourceScope"
+    },
     "source_record_refs": {
-      "type": "object", "additionalProperties": false,
-      "required": ["work", "expression", "edition", "item"],
-      "properties": {"work": {"$ref": "#/$defs/sourceRef"}, "expression": {"$ref": "#/$defs/sourceRef"}, "edition": {"$ref": "#/$defs/sourceRef"}, "item": {"$ref": "#/$defs/sourceRef"}}
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "work",
+        "expression",
+        "edition",
+        "item"
+      ],
+      "properties": {
+        "work": {
+          "$ref": "#/$defs/sourceRef"
+        },
+        "expression": {
+          "$ref": "#/$defs/sourceRef"
+        },
+        "edition": {
+          "$ref": "#/$defs/sourceRef"
+        },
+        "item": {
+          "$ref": "#/$defs/sourceRef"
+        }
+      }
     },
     "source_record_sha256": {
-      "type": "object", "additionalProperties": false,
-      "required": ["work", "expression", "edition", "item"],
-      "properties": {"work": {"$ref": "#/$defs/sha256"}, "expression": {"$ref": "#/$defs/sha256"}, "edition": {"$ref": "#/$defs/sha256"}, "item": {"$ref": "#/$defs/sha256"}}
-    },
-    "manifest_sha256": {"$ref": "#/$defs/sha256"},
-    "rights_record_refs": {"type": "array", "minItems": 2, "maxItems": 16, "uniqueItems": true, "items": {"$ref": "#/$defs/binding"}},
-    "publication_authority": {"$ref": "#/$defs/binding"},
-    "license_bindings": {"type": "array", "minItems": 1, "maxItems": 4, "uniqueItems": true, "items": {"$ref": "#/$defs/binding"}},
-    "language": {"type": "string", "pattern": "^(?:und|[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*)$"},
-    "identities": {
-      "type": "object", "additionalProperties": false,
-      "required": ["layer_id", "anchor_id", "passage_id", "provenance_event_id", "packet_id", "scheme_id", "segmentation_id", "scope_anchor_ref", "unit_slots", "gap_anchor_refs"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "work",
+        "expression",
+        "edition",
+        "item"
+      ],
       "properties": {
-        "layer_id": {"type": "string", "pattern": "^tos\\.text-layer\\.sid-[a-f0-9]{32}$"},
-        "anchor_id": {"type": "string", "pattern": "^tos\\.anchor\\.sid-[a-f0-9]{32}$"},
-        "passage_id": {"type": "string", "pattern": "^tos\\.passage\\.sid-[a-f0-9]{32}$"},
-        "provenance_event_id": {"type": "string", "pattern": "^tos\\.event\\.sid-[a-f0-9]{32}$"},
-        "packet_id": {"type": "string", "pattern": "^tos\\.source-text-unit-packet\\.sid-[a-f0-9]{32}$"},
-        "scheme_id": {"type": "string", "pattern": "^tos\\.text-unit-scheme\\.sid-[a-f0-9]{32}$"},
-        "segmentation_id": {"type": "string", "pattern": "^tos\\.text-segmentation\\.sid-[a-f0-9]{32}$"},
-        "scope_anchor_ref": {"type": "string", "pattern": "^tos\\.anchor\\.sid-[a-f0-9]{32}$"},
-        "unit_slots": {"type": "array", "minItems": 1, "maxItems": 256, "items": {
-          "type": "object", "additionalProperties": false, "required": ["unit_id", "anchor_ref", "unit_kind"],
-          "properties": {
-            "unit_id": {"type": "string", "pattern": "^tos\\.text-unit\\.sid-[a-f0-9]{32}$"},
-            "anchor_ref": {"type": "string", "pattern": "^tos\\.anchor\\.sid-[a-f0-9]{32}$"},
-            "unit_kind": {"$ref": "source-text-unit-packet-v1.schema.json#/$defs/unitKind"}
+        "work": {
+          "$ref": "#/$defs/sha256"
+        },
+        "expression": {
+          "$ref": "#/$defs/sha256"
+        },
+        "edition": {
+          "$ref": "#/$defs/sha256"
+        },
+        "item": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "manifest_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "rights_record_refs": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 16,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/binding"
+      }
+    },
+    "publication_authority": {
+      "$ref": "#/$defs/binding"
+    },
+    "license_bindings": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 4,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/binding"
+      }
+    },
+    "language": {
+      "type": "string",
+      "pattern": "^(?:und|[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*)$"
+    },
+    "identities": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "layer_id",
+        "anchor_id",
+        "passage_id",
+        "provenance_event_id",
+        "packet_id",
+        "scheme_id",
+        "segmentation_id",
+        "scope_anchor_ref",
+        "unit_slots",
+        "gap_anchor_refs"
+      ],
+      "properties": {
+        "layer_id": {
+          "type": "string",
+          "pattern": "^tos\\.text-layer\\.sid-[a-f0-9]{32}$"
+        },
+        "anchor_id": {
+          "type": "string",
+          "pattern": "^tos\\.anchor\\.sid-[a-f0-9]{32}$"
+        },
+        "passage_id": {
+          "type": "string",
+          "pattern": "^tos\\.passage\\.sid-[a-f0-9]{32}$"
+        },
+        "provenance_event_id": {
+          "type": "string",
+          "pattern": "^tos\\.event\\.sid-[a-f0-9]{32}$"
+        },
+        "packet_id": {
+          "type": "string",
+          "pattern": "^tos\\.source-text-unit-packet\\.sid-[a-f0-9]{32}$"
+        },
+        "scheme_id": {
+          "type": "string",
+          "pattern": "^tos\\.text-unit-scheme\\.sid-[a-f0-9]{32}$"
+        },
+        "segmentation_id": {
+          "type": "string",
+          "pattern": "^tos\\.text-segmentation\\.sid-[a-f0-9]{32}$"
+        },
+        "scope_anchor_ref": {
+          "type": "string",
+          "pattern": "^tos\\.anchor\\.sid-[a-f0-9]{32}$"
+        },
+        "unit_slots": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 256,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "unit_id",
+              "anchor_ref",
+              "unit_kind"
+            ],
+            "properties": {
+              "unit_id": {
+                "type": "string",
+                "pattern": "^tos\\.text-unit\\.sid-[a-f0-9]{32}$"
+              },
+              "anchor_ref": {
+                "type": "string",
+                "pattern": "^tos\\.anchor\\.sid-[a-f0-9]{32}$"
+              },
+              "unit_kind": {
+                "$ref": "source-text-unit-packet-v1.schema.json#/$defs/unitKind"
+              }
+            }
           }
-        }},
-        "gap_anchor_refs": {"type": "array", "maxItems": 257, "uniqueItems": true, "items": {"type": "string", "pattern": "^tos\\.anchor\\.sid-[a-f0-9]{32}$"}}
+        },
+        "gap_anchor_refs": {
+          "type": "array",
+          "maxItems": 257,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^tos\\.anchor\\.sid-[a-f0-9]{32}$"
+          }
+        }
       }
     },
     "unit_proposal": {
-      "type": "object", "additionalProperties": false, "required": ["spans", "excluded_gaps", "scheme", "method"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "spans",
+        "excluded_gaps",
+        "scheme",
+        "method"
+      ],
       "properties": {
-        "spans": {"type": "array", "minItems": 1, "maxItems": 256, "items": {
-          "type": "object", "additionalProperties": false,
-          "required": ["unit_id", "start", "end", "certainty", "status_reason"],
-          "properties": {
-            "unit_id": {"type": "string"}, "start": {"type": "integer", "minimum": 0}, "end": {"type": "integer", "minimum": 1},
-            "certainty": {"$ref": "source-text-unit-packet-v1.schema.json#/$defs/unit/properties/certainty"},
-            "status_reason": {"type": "string", "minLength": 1}
+        "spans": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 256,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "unit_id",
+              "start",
+              "end",
+              "certainty",
+              "status_reason"
+            ],
+            "properties": {
+              "unit_id": {
+                "type": "string"
+              },
+              "start": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "end": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "certainty": {
+                "$ref": "source-text-unit-packet-v1.schema.json#/$defs/unit/properties/certainty"
+              },
+              "status_reason": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
           }
-        }},
-        "excluded_gaps": {"type": "array", "maxItems": 257, "items": {
-          "type": "object", "additionalProperties": false, "required": ["anchor_ref", "start", "end"],
-          "properties": {"anchor_ref": {"type": "string"}, "start": {"type": "integer", "minimum": 0}, "end": {"type": "integer", "minimum": 1}}
-        }},
-        "scheme": {"type": "object", "additionalProperties": false, "required": ["scheme_name", "analysis_role", "boundary_basis", "policies"],
-          "properties": {"scheme_name": {"type": "string", "minLength": 1}, "analysis_role": {"type": "string"}, "boundary_basis": {"type": "string"}, "policies": {"type": "object"}}},
-        "method": {"$ref": "source-text-unit-packet-v1.schema.json#/$defs/method"}
+        },
+        "excluded_gaps": {
+          "type": "array",
+          "maxItems": 257,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "anchor_ref",
+              "start",
+              "end"
+            ],
+            "properties": {
+              "anchor_ref": {
+                "type": "string"
+              },
+              "start": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "end": {
+                "type": "integer",
+                "minimum": 1
+              }
+            }
+          }
+        },
+        "scheme": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "scheme_name",
+            "analysis_role",
+            "boundary_basis",
+            "policies"
+          ],
+          "properties": {
+            "scheme_name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "analysis_role": {
+              "type": "string"
+            },
+            "boundary_basis": {
+              "type": "string"
+            },
+            "policies": {
+              "type": "object"
+            }
+          }
+        },
+        "method": {
+          "$ref": "source-text-unit-packet-v1.schema.json#/$defs/method"
+        }
       }
     },
-    "limits": {"type": "object", "additionalProperties": false, "required": ["max_source_bytes", "max_output_bytes", "max_seconds"],
-      "properties": {"max_source_bytes": {"type": "integer", "minimum": 1, "maximum": 131072}, "max_output_bytes": {"type": "integer", "minimum": 1, "maximum": 131072}, "max_seconds": {"type": "integer", "minimum": 1, "maximum": 60}}}
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "max_source_bytes",
+        "max_output_bytes",
+        "max_seconds"
+      ],
+      "properties": {
+        "max_source_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 131072
+        },
+        "max_output_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 131072
+        },
+        "max_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 60
+        }
+      }
+    }
   },
   "$defs": {
-    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
-    "sourceRef": {"type": "string", "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.?(?:/|$))[^\\\\\\u0000]+$"},
-    "binding": {"type": "object", "additionalProperties": false, "required": ["ref", "sha256"], "properties": {"ref": {"$ref": "#/$defs/sourceRef"}, "sha256": {"$ref": "#/$defs/sha256"}}},
-    "input": {"type": "object", "additionalProperties": false, "required": ["ref", "sha256", "byte_size", "media_type", "selector", "source_posture"],
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "sourceRef": {
+      "type": "string",
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.?(?:/|$))[^\\\\\\u0000]+$"
+    },
+    "binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ref",
+        "sha256"
+      ],
       "properties": {
-        "ref": {"$ref": "#/$defs/sourceRef"}, "sha256": {"$ref": "#/$defs/sha256"},
-        "byte_size": {"type": "integer", "minimum": 1, "maximum": 131072},
-        "media_type": {"enum": ["text/plain", "text/markdown"]}, "source_posture": {"const": "project_authored"},
-        "selector": {"type": "object", "additionalProperties": false, "required": ["start", "end"], "properties": {"start": {"type": "integer", "minimum": 0}, "end": {"type": "integer", "minimum": 1}}}
+        "ref": {
+          "$ref": "#/$defs/sourceRef"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "input": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ref",
+        "sha256",
+        "byte_size",
+        "media_type",
+        "selector",
+        "source_posture"
+      ],
+      "properties": {
+        "ref": {
+          "$ref": "#/$defs/sourceRef"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "byte_size": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 131072
+        },
+        "media_type": {
+          "enum": [
+            "text/plain",
+            "text/markdown"
+          ]
+        },
+        "source_posture": {
+          "const": "project_authored"
+        },
+        "selector": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "start",
+            "end"
+          ],
+          "properties": {
+            "start": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "end": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        }
       }
     }
   }

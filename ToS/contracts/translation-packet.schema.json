@@ -292,9 +292,7 @@
       "uniqueItems": true,
       "items": {"$ref": "#/$defs/tosId"}
     },
-    "authority_boundary": {
-      "const": "a translation packet preserves source, independent blind analyses and drafts, comparator influence, alternatives, and human decisions; it does not make a recognized translation, model output, metric, or validator ground truth"
-    },
+    "authority_boundary": {"type": "string", "minLength": 1, "description": "Brief account of the artifact purpose and scope. Typed status, effects, assessment and permission fields govern its use."},
     "packet_version": {"type": "integer", "minimum": 1},
     "supersedes_packet_ref": {
       "oneOf": [

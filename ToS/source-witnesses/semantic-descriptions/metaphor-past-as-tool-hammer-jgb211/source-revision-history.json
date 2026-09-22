@@ -1,0 +1,96 @@
+{
+  "schema_version": "tos_source_revision_history_v1",
+  "record_id": "tos.metaphor.past-as-tool-hammer-jgb211",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:9d044afd42942ea3df33661a",
+      "request_digest": "sha256:395307f86a77ec08910077241db58f98caccc810bfa493841f42d33c7b77826b",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:293a1e78ad071998bbb7e6d9dc9f89c73da54145cff40629492713f6375ed582",
+      "recorded_at": "2026-09-22T05:07:00.226045+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.metaphor.past-as-tool-hammer-jgb211",
+        "version": 1,
+        "digest": "sha256:7495f955c14916326f810cf6cad12f3f8a5c37f08c0804e19564f6832a06dcda"
+      },
+      "source": {
+        "id": "tos.metaphor.past-as-tool-hammer-jgb211",
+        "version": 2,
+        "digest": "sha256:35e317c4e0baaada92991239bd7e6a4ce9dac7bc8938af33230208aeb7d9cc89"
+      },
+      "previous_revision": "sha256:0fe8e9143990243d7d6e1de41869e8f49aa6cd819e3f4a71d55ac5c072679143",
+      "archive_path": "ToS/source-witnesses/.record-revisions/9d044afd42942ea3df33661a92e109987ad86b95b95fceb76bc5a3775aa2bda9-0fe8e9143990243d7d6e1de41869e8f49aa6cd819e3f4a71d55ac5c072679143",
+      "dependencies": "sha256:e5921a25152f776dce88be3f5d47601fcb16d877ca21d77d52431686ab100212",
+      "changed_fields": [
+        "notes",
+        "semantic_content",
+        "semantic_scope"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.metaphor.past-as-tool-hammer-jgb211.name-ru",
+          "version": 2,
+          "digest": "sha256:489bfde24010956113794a15f16003fd4746e2ad00270d25d63d8783531c70fc"
+        },
+        {
+          "id": "tos.form.metaphor.past-as-tool-hammer-jgb211.name-en",
+          "version": 2,
+          "digest": "sha256:b00900e54b8d742539d1dbfdc1366f91bd655fa20e08c5b7a580921f65794de3"
+        },
+        {
+          "id": "tos.form.metaphor.past-as-tool-hammer-jgb211.note-ru",
+          "version": 2,
+          "digest": "sha256:794a4ebcb5044fdb41a2a0996856fe34c2ef9497fdc2b09eaf6c5355ef10413f"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:9d044afd42942ea3df33661a",
+        "expected_configuration": "sha256:293a1e78ad071998bbb7e6d9dc9f89c73da54145cff40629492713f6375ed582",
+        "expected_dependencies": "sha256:e5921a25152f776dce88be3f5d47601fcb16d877ca21d77d52431686ab100212",
+        "expected_revision": "sha256:0fe8e9143990243d7d6e1de41869e8f49aa6cd819e3f4a71d55ac5c072679143",
+        "expected_source": {
+          "digest": "sha256:7495f955c14916326f810cf6cad12f3f8a5c37f08c0804e19564f6832a06dcda",
+          "id": "tos.metaphor.past-as-tool-hammer-jgb211",
+          "version": 1
+        },
+        "fields": {
+          "notes": "При описании творящих ценности философов §211 представляет существующее и прошлое как средства, орудие и молот. Исследовательское прочтение выделяет перенос от практического формирования к определению будущих целей.",
+          "semantic_content": {
+            "figure_account": "The passage presents what is and has been as means, tools and hammer for the value-creating philosopher.",
+            "language": "en",
+            "mapping_basis": "Availability for active shaping is the proposed figurative transfer from tools to the treatment of the existing and the past.",
+            "script": "Latn",
+            "source_domain": "Practical means and shaping tools, including a hammer.",
+            "target_domain": "The ideal philosopher's use of prior work and what exists in creating values and determining future ends."
+          },
+          "semantic_scope": {
+            "identity_criterion": "Identity follows the tool-domain presentation and future-shaping target in this passage through corrections to the mapping description.",
+            "language": "en",
+            "scope_note": "The tool-and-hammer figurative presentation within the value-creating philosopher ideal in JGB 211.",
+            "script": "Latn"
+          }
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.metaphor.past-as-tool-hammer-jgb211.name-ru"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.metaphor.past-as-tool-hammer-jgb211.name-en"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.metaphor.past-as-tool-hammer-jgb211.note-ru"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    }
+  ]
+}

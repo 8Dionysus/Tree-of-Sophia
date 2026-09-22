@@ -1,8 +1,9 @@
 # ToS Roadmap
 
 This roadmap tracks the growth of `Tree-of-Sophia` at the source-home level.
-It points direction for the philosophical tree; it is not a branch inventory,
-mechanic backlog, release history, or validator sheet.
+It sets direction for the philosophical tree. Branch inventories, mechanic
+backlogs, release history and validation procedures follow the owner routes
+below.
 
 ## Authority
 
@@ -122,7 +123,7 @@ review the tree before canon promotion.
 
 | Field | Direction |
 | --- | --- |
-| Current posture | The bounded Zarathustra route proves several authored layers, while the philosophy atlas provides broad pre-canon corpus structure. The repository now names them as a golden kernel and corpus soil rather than unrelated tracks. |
+| Current posture | The bounded Zarathustra route proves several authored layers, while the philosophy atlas provides broad pre-canon corpus structure. The golden kernel supplies a source-to-canon method; the corpus soil supplies broader material for its transfer. |
 | Next honest move | Define the corpus-soil record and address spine, then define one reviewable gold-packet contract that carries observations, proposals, accepted/rejected/ambiguous outcomes, reviewer rationale, uncertainty, and version lineage through a real bounded Zarathustra slice. |
 | Transfer check | Test whether an agent can return to source, separate layers, refuse a bad label, and expose a missing distinction on unseen material before using the kernel across works. |
 | Guardrail | Stable evidence is foundational; semantic entities remain revisable. Lived witness remains first-person provenance, and Nietzsche-specific vocabulary is never a cross-corpus default. |
@@ -141,7 +142,7 @@ review the tree before canon promotion.
 | --- | --- |
 | Current posture | Graph views, semantic graph layers, clusters, review packets, and a derived graph projection exist as source-owned preparation for downstream visualization. |
 | Next honest move | Use the review packets to inspect candidate nodes, proposed relations, weak source posture, clusters, and lens usefulness before canon promotion. |
-| Guardrail | Graph readability is a projection of source-rooted tree growth. It is not canon, proof, or runtime authority. |
+| Guardrail | Graph readability follows source-rooted tree growth. Canon, proof and runtime decisions retain their respective owner routes. |
 
 ## Horizon: Canon Formation
 

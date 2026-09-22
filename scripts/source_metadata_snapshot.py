@@ -1,9 +1,9 @@
 """Read-only publication guard for participating selected-metadata transactions.
 
 The source files still own meaning. This small control record says only whether
-cooperating readers may finish a snapshot. It is not a catalog, source resolver,
-filesystem-wide snapshot, authorization grant, or detector for legacy/manual
-writes. No code in this module creates a file or takes a writer lock.
+cooperating readers may finish a snapshot. Catalog lookup, source resolution, filesystem-wide snapshots and
+authorization follow their separate owner routes. Legacy/manual writes are
+outside this cooperating-writer protocol. No code in this module creates a file or takes a writer lock.
 """
 from __future__ import annotations
 

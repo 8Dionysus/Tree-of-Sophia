@@ -87,7 +87,10 @@ def prepare_anchor(
         "backlog_sha256": hashlib.sha256(backlog_bytes).hexdigest(),
         "backlog_row_sha256": row_digest,
         "source_backlog_record": row,
-        "authority_boundary": "exact route preparation only; no source witness, payload, rights, semantics or canon is admitted",
+        "authority_boundary": (
+            "This plan records the exact source-planting routes prepared from the "
+            "supplied inputs."
+        ),
     }
 
 

@@ -39,6 +39,16 @@ class GoldenKernelTransferRouteReadinessTests(unittest.TestCase):
     def test_release_safe_readiness_closure_passes(self) -> None:
         self.assertEqual(0, validator.main(["--repo-root", str(REPO_ROOT)]))
 
+    def test_recorded_builder_requires_exact_retained_digest(self) -> None:
+        events = validator._read_jsonl(REPO_ROOT / validator.PROVENANCE_PATH)
+        event = next(row for row in events if row.get("event_id") == validator.EVENT_ID)
+        builder = next(row for row in event["inputs"] if row["ref"] == validator.BUILDER_PATH.as_posix())
+        builder["sha256"] = "0" * 64
+        with self.assertRaisesRegex(validator.ReadinessValidationFailure, "readiness input unavailable"):
+            validator._validate_inputs_and_provenance(
+                REPO_ROOT, self.payload, events, self.provenance_schema
+            )
+
     def test_raw_candidate_statuses_recompute_projection_counts(self) -> None:
         target_by_id = {
             candidate["passage_candidate_id"]: candidate

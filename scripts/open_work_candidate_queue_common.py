@@ -2715,8 +2715,7 @@ def _build_queue_payload(
         "next_candidate_id": next_candidate_id,
         "candidates": queue_entries,
         "authority_boundary": (
-            "generated queue navigation over reviewed candidate records and terminal receipts; "
-            "not identity, rights, semantic, or canon authority"
+            "This generated queue provides navigation to reviewed candidate records and terminal receipts."
         ),
     }
     payload["queue_sha256"] = _queue_sha256(payload)

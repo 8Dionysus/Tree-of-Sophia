@@ -1,71 +1,69 @@
 {
-  "schema_version": "tos_human_form_set_v1",
-  "subject": {
-    "id": "tos.aspect.experienced-agency-jgb19",
-    "version": 1,
-    "digest": "sha256:8264433351e05ccaae6cd8cab4394e3625bfb0fa1f6ff26efb1985bebcd6c004"
-  },
   "forms": [
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.aspect.experienced-agency-jgb19.name-ru",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.aspect.experienced-agency-jgb19",
-        "version": 1,
-        "digest": "sha256:8264433351e05ccaae6cd8cab4394e3625bfb0fa1f6ff26efb1985bebcd6c004"
+        "version": 2,
+        "digest": "sha256:b248583df82f66bec4cfff234aba611db607320a1d555efb14ba7691c6e82563"
       },
       "role": "name",
       "language": "ru",
       "script": "Cyrl",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.aspect.experienced-agency-jgb19.name-ru",
+        "version": 1,
+        "digest": "sha256:1e558d32f1fd4b8c712f49dd63f1ff2f325260d35be781748f7365035f97d958"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.aspect.experienced-agency-jgb19",
-            "version": 1,
-            "digest": "sha256:8264433351e05ccaae6cd8cab4394e3625bfb0fa1f6ff26efb1985bebcd6c004"
+            "version": 2,
+            "digest": "sha256:b248583df82f66bec4cfff234aba611db607320a1d555efb14ba7691c6e82563"
           },
           "pointer": "/preferred_label"
         },
         "context-0": {
           "record": {
             "id": "tos.aspect.experienced-agency-jgb19",
-            "version": 1,
-            "digest": "sha256:8264433351e05ccaae6cd8cab4394e3625bfb0fa1f6ff26efb1985bebcd6c004"
+            "version": 2,
+            "digest": "sha256:b248583df82f66bec4cfff234aba611db607320a1d555efb14ba7691c6e82563"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.aspect.experienced-agency-jgb19",
-            "version": 1,
-            "digest": "sha256:8264433351e05ccaae6cd8cab4394e3625bfb0fa1f6ff26efb1985bebcd6c004"
+            "version": 2,
+            "digest": "sha256:b248583df82f66bec4cfff234aba611db607320a1d555efb14ba7691c6e82563"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.aspect.experienced-agency-jgb19",
-            "version": 1,
-            "digest": "sha256:8264433351e05ccaae6cd8cab4394e3625bfb0fa1f6ff26efb1985bebcd6c004"
+            "version": 2,
+            "digest": "sha256:b248583df82f66bec4cfff234aba611db607320a1d555efb14ba7691c6e82563"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.aspect.experienced-agency-jgb19",
-            "version": 1,
-            "digest": "sha256:8264433351e05ccaae6cd8cab4394e3625bfb0fa1f6ff26efb1985bebcd6c004"
+            "version": 2,
+            "digest": "sha256:b248583df82f66bec4cfff234aba611db607320a1d555efb14ba7691c6e82563"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.aspect.experienced-agency-jgb19",
-            "version": 1,
-            "digest": "sha256:8264433351e05ccaae6cd8cab4394e3625bfb0fa1f6ff26efb1985bebcd6c004"
+            "version": 2,
+            "digest": "sha256:b248583df82f66bec4cfff234aba611db607320a1d555efb14ba7691c6e82563"
           },
           "pointer": "/field_languages/preferred_label"
         }
@@ -78,87 +76,91 @@
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.aspect.experienced-agency-jgb19.name-en",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.aspect.experienced-agency-jgb19",
-        "version": 1,
-        "digest": "sha256:8264433351e05ccaae6cd8cab4394e3625bfb0fa1f6ff26efb1985bebcd6c004"
+        "version": 2,
+        "digest": "sha256:b248583df82f66bec4cfff234aba611db607320a1d555efb14ba7691c6e82563"
       },
       "role": "name",
       "language": "en",
       "script": "Latn",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.aspect.experienced-agency-jgb19.name-en",
+        "version": 1,
+        "digest": "sha256:3c07232b76b7ecfbeed41681fc8cefc4de214bd86157cbaf87db1759c18e26d4"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.aspect.experienced-agency-jgb19",
-            "version": 1,
-            "digest": "sha256:8264433351e05ccaae6cd8cab4394e3625bfb0fa1f6ff26efb1985bebcd6c004"
+            "version": 2,
+            "digest": "sha256:b248583df82f66bec4cfff234aba611db607320a1d555efb14ba7691c6e82563"
           },
           "pointer": "/variant_labels/0/value"
         },
         "context-0": {
           "record": {
             "id": "tos.aspect.experienced-agency-jgb19",
-            "version": 1,
-            "digest": "sha256:8264433351e05ccaae6cd8cab4394e3625bfb0fa1f6ff26efb1985bebcd6c004"
+            "version": 2,
+            "digest": "sha256:b248583df82f66bec4cfff234aba611db607320a1d555efb14ba7691c6e82563"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.aspect.experienced-agency-jgb19",
-            "version": 1,
-            "digest": "sha256:8264433351e05ccaae6cd8cab4394e3625bfb0fa1f6ff26efb1985bebcd6c004"
+            "version": 2,
+            "digest": "sha256:b248583df82f66bec4cfff234aba611db607320a1d555efb14ba7691c6e82563"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.aspect.experienced-agency-jgb19",
-            "version": 1,
-            "digest": "sha256:8264433351e05ccaae6cd8cab4394e3625bfb0fa1f6ff26efb1985bebcd6c004"
+            "version": 2,
+            "digest": "sha256:b248583df82f66bec4cfff234aba611db607320a1d555efb14ba7691c6e82563"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.aspect.experienced-agency-jgb19",
-            "version": 1,
-            "digest": "sha256:8264433351e05ccaae6cd8cab4394e3625bfb0fa1f6ff26efb1985bebcd6c004"
+            "version": 2,
+            "digest": "sha256:b248583df82f66bec4cfff234aba611db607320a1d555efb14ba7691c6e82563"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.aspect.experienced-agency-jgb19",
-            "version": 1,
-            "digest": "sha256:8264433351e05ccaae6cd8cab4394e3625bfb0fa1f6ff26efb1985bebcd6c004"
+            "version": 2,
+            "digest": "sha256:b248583df82f66bec4cfff234aba611db607320a1d555efb14ba7691c6e82563"
           },
           "pointer": "/variant_labels/0/language"
         },
         "context-5": {
           "record": {
             "id": "tos.aspect.experienced-agency-jgb19",
-            "version": 1,
-            "digest": "sha256:8264433351e05ccaae6cd8cab4394e3625bfb0fa1f6ff26efb1985bebcd6c004"
+            "version": 2,
+            "digest": "sha256:b248583df82f66bec4cfff234aba611db607320a1d555efb14ba7691c6e82563"
           },
           "pointer": "/variant_labels/0/script"
         },
         "context-6": {
           "record": {
             "id": "tos.aspect.experienced-agency-jgb19",
-            "version": 1,
-            "digest": "sha256:8264433351e05ccaae6cd8cab4394e3625bfb0fa1f6ff26efb1985bebcd6c004"
+            "version": 2,
+            "digest": "sha256:b248583df82f66bec4cfff234aba611db607320a1d555efb14ba7691c6e82563"
           },
           "pointer": "/variant_labels/0/source_ref"
         },
         "context-7": {
           "record": {
             "id": "tos.aspect.experienced-agency-jgb19",
-            "version": 1,
-            "digest": "sha256:8264433351e05ccaae6cd8cab4394e3625bfb0fa1f6ff26efb1985bebcd6c004"
+            "version": 2,
+            "digest": "sha256:b248583df82f66bec4cfff234aba611db607320a1d555efb14ba7691c6e82563"
           },
           "pointer": "/variant_labels/0/status"
         }
@@ -171,63 +173,67 @@
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.aspect.experienced-agency-jgb19.note-ru",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.aspect.experienced-agency-jgb19",
-        "version": 1,
-        "digest": "sha256:8264433351e05ccaae6cd8cab4394e3625bfb0fa1f6ff26efb1985bebcd6c004"
+        "version": 2,
+        "digest": "sha256:b248583df82f66bec4cfff234aba611db607320a1d555efb14ba7691c6e82563"
       },
       "role": "hover",
       "language": "ru",
       "script": "Cyrl",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.aspect.experienced-agency-jgb19.note-ru",
+        "version": 1,
+        "digest": "sha256:f0b5fd0fff84a352341fd9abf137551f21f2048f53c6e0ffe413f6a41a4cfbb0"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.aspect.experienced-agency-jgb19",
-            "version": 1,
-            "digest": "sha256:8264433351e05ccaae6cd8cab4394e3625bfb0fa1f6ff26efb1985bebcd6c004"
+            "version": 2,
+            "digest": "sha256:b248583df82f66bec4cfff234aba611db607320a1d555efb14ba7691c6e82563"
           },
           "pointer": "/notes"
         },
         "context-0": {
           "record": {
             "id": "tos.aspect.experienced-agency-jgb19",
-            "version": 1,
-            "digest": "sha256:8264433351e05ccaae6cd8cab4394e3625bfb0fa1f6ff26efb1985bebcd6c004"
+            "version": 2,
+            "digest": "sha256:b248583df82f66bec4cfff234aba611db607320a1d555efb14ba7691c6e82563"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.aspect.experienced-agency-jgb19",
-            "version": 1,
-            "digest": "sha256:8264433351e05ccaae6cd8cab4394e3625bfb0fa1f6ff26efb1985bebcd6c004"
+            "version": 2,
+            "digest": "sha256:b248583df82f66bec4cfff234aba611db607320a1d555efb14ba7691c6e82563"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.aspect.experienced-agency-jgb19",
-            "version": 1,
-            "digest": "sha256:8264433351e05ccaae6cd8cab4394e3625bfb0fa1f6ff26efb1985bebcd6c004"
+            "version": 2,
+            "digest": "sha256:b248583df82f66bec4cfff234aba611db607320a1d555efb14ba7691c6e82563"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.aspect.experienced-agency-jgb19",
-            "version": 1,
-            "digest": "sha256:8264433351e05ccaae6cd8cab4394e3625bfb0fa1f6ff26efb1985bebcd6c004"
+            "version": 2,
+            "digest": "sha256:b248583df82f66bec4cfff234aba611db607320a1d555efb14ba7691c6e82563"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.aspect.experienced-agency-jgb19",
-            "version": 1,
-            "digest": "sha256:8264433351e05ccaae6cd8cab4394e3625bfb0fa1f6ff26efb1985bebcd6c004"
+            "version": 2,
+            "digest": "sha256:b248583df82f66bec4cfff234aba611db607320a1d555efb14ba7691c6e82563"
           },
           "pointer": "/field_languages/notes"
         }
@@ -238,5 +244,243 @@
       }
     }
   ],
-  "prior_forms": []
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:8264433351e05ccaae6cd8cab4394e3625bfb0fa1f6ff26efb1985bebcd6c004",
+            "id": "tos.aspect.experienced-agency-jgb19",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:8264433351e05ccaae6cd8cab4394e3625bfb0fa1f6ff26efb1985bebcd6c004",
+            "id": "tos.aspect.experienced-agency-jgb19",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:8264433351e05ccaae6cd8cab4394e3625bfb0fa1f6ff26efb1985bebcd6c004",
+            "id": "tos.aspect.experienced-agency-jgb19",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:8264433351e05ccaae6cd8cab4394e3625bfb0fa1f6ff26efb1985bebcd6c004",
+            "id": "tos.aspect.experienced-agency-jgb19",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:8264433351e05ccaae6cd8cab4394e3625bfb0fa1f6ff26efb1985bebcd6c004",
+            "id": "tos.aspect.experienced-agency-jgb19",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:8264433351e05ccaae6cd8cab4394e3625bfb0fa1f6ff26efb1985bebcd6c004",
+            "id": "tos.aspect.experienced-agency-jgb19",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.aspect.experienced-agency-jgb19.name-ru",
+      "form_version": 1,
+      "language": "ru",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:8264433351e05ccaae6cd8cab4394e3625bfb0fa1f6ff26efb1985bebcd6c004",
+        "id": "tos.aspect.experienced-agency-jgb19",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:8264433351e05ccaae6cd8cab4394e3625bfb0fa1f6ff26efb1985bebcd6c004",
+            "id": "tos.aspect.experienced-agency-jgb19",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:8264433351e05ccaae6cd8cab4394e3625bfb0fa1f6ff26efb1985bebcd6c004",
+            "id": "tos.aspect.experienced-agency-jgb19",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:8264433351e05ccaae6cd8cab4394e3625bfb0fa1f6ff26efb1985bebcd6c004",
+            "id": "tos.aspect.experienced-agency-jgb19",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:8264433351e05ccaae6cd8cab4394e3625bfb0fa1f6ff26efb1985bebcd6c004",
+            "id": "tos.aspect.experienced-agency-jgb19",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/variant_labels/0/language",
+          "record": {
+            "digest": "sha256:8264433351e05ccaae6cd8cab4394e3625bfb0fa1f6ff26efb1985bebcd6c004",
+            "id": "tos.aspect.experienced-agency-jgb19",
+            "version": 1
+          }
+        },
+        "context-5": {
+          "pointer": "/variant_labels/0/script",
+          "record": {
+            "digest": "sha256:8264433351e05ccaae6cd8cab4394e3625bfb0fa1f6ff26efb1985bebcd6c004",
+            "id": "tos.aspect.experienced-agency-jgb19",
+            "version": 1
+          }
+        },
+        "context-6": {
+          "pointer": "/variant_labels/0/source_ref",
+          "record": {
+            "digest": "sha256:8264433351e05ccaae6cd8cab4394e3625bfb0fa1f6ff26efb1985bebcd6c004",
+            "id": "tos.aspect.experienced-agency-jgb19",
+            "version": 1
+          }
+        },
+        "context-7": {
+          "pointer": "/variant_labels/0/status",
+          "record": {
+            "digest": "sha256:8264433351e05ccaae6cd8cab4394e3625bfb0fa1f6ff26efb1985bebcd6c004",
+            "id": "tos.aspect.experienced-agency-jgb19",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/variant_labels/0/value",
+          "record": {
+            "digest": "sha256:8264433351e05ccaae6cd8cab4394e3625bfb0fa1f6ff26efb1985bebcd6c004",
+            "id": "tos.aspect.experienced-agency-jgb19",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.aspect.experienced-agency-jgb19.name-en",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:8264433351e05ccaae6cd8cab4394e3625bfb0fa1f6ff26efb1985bebcd6c004",
+        "id": "tos.aspect.experienced-agency-jgb19",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:8264433351e05ccaae6cd8cab4394e3625bfb0fa1f6ff26efb1985bebcd6c004",
+            "id": "tos.aspect.experienced-agency-jgb19",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:8264433351e05ccaae6cd8cab4394e3625bfb0fa1f6ff26efb1985bebcd6c004",
+            "id": "tos.aspect.experienced-agency-jgb19",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:8264433351e05ccaae6cd8cab4394e3625bfb0fa1f6ff26efb1985bebcd6c004",
+            "id": "tos.aspect.experienced-agency-jgb19",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:8264433351e05ccaae6cd8cab4394e3625bfb0fa1f6ff26efb1985bebcd6c004",
+            "id": "tos.aspect.experienced-agency-jgb19",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:8264433351e05ccaae6cd8cab4394e3625bfb0fa1f6ff26efb1985bebcd6c004",
+            "id": "tos.aspect.experienced-agency-jgb19",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:8264433351e05ccaae6cd8cab4394e3625bfb0fa1f6ff26efb1985bebcd6c004",
+            "id": "tos.aspect.experienced-agency-jgb19",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.aspect.experienced-agency-jgb19.note-ru",
+      "form_version": 1,
+      "language": "ru",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:8264433351e05ccaae6cd8cab4394e3625bfb0fa1f6ff26efb1985bebcd6c004",
+        "id": "tos.aspect.experienced-agency-jgb19",
+        "version": 1
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.aspect.experienced-agency-jgb19",
+    "version": 2,
+    "digest": "sha256:b248583df82f66bec4cfff234aba611db607320a1d555efb14ba7691c6e82563"
+  }
 }

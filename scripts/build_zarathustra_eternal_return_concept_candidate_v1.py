@@ -94,7 +94,7 @@ METHOD_CONTROLS = {
     "ring_without_recurrence_is_not_membership": "Ring imagery without a recurrence link does not establish eternal return.",
     "liturgical_eternity_is_not_membership": "A liturgical or rhetorical eternity formula does not become doctrine by lexical recurrence alone.",
     "speaker_flattening_forbidden": "Narrator, Zarathustra, dwarf, animals, and chorus must not be collapsed into one unmarked speaker.",
-    "alignment_proposal_is_not_semantic_equivalence": "A machine DE/RU paragraph alignment does not establish translation or semantic equivalence.",
+    "alignment_proposal_is_not_semantic_equivalence": "The machine DE/RU paragraph alignment supplies a comparison proposal for separate translation and semantic-equivalence assessment.",
 }
 
 ALIGNMENT_GAPS = [
@@ -732,7 +732,10 @@ def generate(include_ids: bool) -> tuple[dict[Path, bytes], bytes, list[tuple[st
             "canon_effect": False,
         },
         "comparison_limit": "the source challenger counts anchor occurrences and passages while the primary dossier counts selected alignment units; their denominators are intentionally not collapsed",
-        "authority_boundary": "independent model challenge and integration receipt, not human semantic review or acceptance",
+        "authority_boundary": (
+            "Receipt of independent model challenge and integration, preserving model "
+            "authorship and the recorded assessment status."
+        ),
     }
     outputs[OUTPUTS["audit"]] = jb(audit)
     private_bytes = jb(analysis["private"])

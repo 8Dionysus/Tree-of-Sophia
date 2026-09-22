@@ -1,0 +1,90 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.edition.friedrich-nietzsche.zur-genealogie-der-moral.leipzig-c-g-naumann-1892-second",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:e433c6b213df81faecd328b9",
+      "request_digest": "sha256:dd853788fe974aceb49b149cdd98e3eee62c22b2c4ce24ad31108d4246f16355",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:f27d9b0592098b835de6b7a34b3f328e5b5f136727ff69d3291603f5214a8637",
+      "recorded_at": "2026-09-22T05:09:14.784203+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.edition.friedrich-nietzsche.zur-genealogie-der-moral.leipzig-c-g-naumann-1892-second",
+        "version": 3,
+        "digest": "sha256:398732bed54eca1c6ff8f653d779f703fc87c9cf770c5b6f6027f65bd640e6c9"
+      },
+      "source": {
+        "id": "tos.edition.friedrich-nietzsche.zur-genealogie-der-moral.leipzig-c-g-naumann-1892-second",
+        "version": 4,
+        "digest": "sha256:3800e368cd3c30beae195ee112d9e899371953d9e68f004029401bdd4ab674e7"
+      },
+      "previous_revision": "sha256:5c8f9a603effa3edbcf36d8252efdec67a5f5fdc7598359cab5e42e1761fcbb0",
+      "archive_path": "ToS/source-witnesses/.record-revisions/e433c6b213df81faecd328b99197668747e74be0bc0c243aa5fe43721c0de70d-5c8f9a603effa3edbcf36d8252efdec67a5f5fdc7598359cab5e42e1761fcbb0",
+      "dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+      "changed_fields": [
+        "notes"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.metadata.37768697d5da28dea37f6187510b3d5e97cfd81970577251f4d148e0a596bf7f",
+          "version": 2,
+          "digest": "sha256:90042446b98311019b05b5584ff54eda55be141850f93d294b72e67dae9992ef"
+        },
+        {
+          "id": "tos.form.metadata.353d8b318f4ccfc09283aee17ee21413b1355451439b78d92f8d4faa38ecc696",
+          "version": 2,
+          "digest": "sha256:052c9aa30cdcfd000ba62e34c67ae39964e1c8181e3149a8accb5e2fe3f28aed"
+        },
+        {
+          "id": "tos.form.metadata.120e4a657dca8438ab8b56aaf61b43ed129fe0954b392d9345cdbbe0da46df75",
+          "version": 2,
+          "digest": "sha256:e0d8348ec8f8b244580f0f33f16eacc62fc048660a17f354c442f386ae455926"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:e433c6b213df81faecd328b9",
+        "expected_configuration": "sha256:f27d9b0592098b835de6b7a34b3f328e5b5f136727ff69d3291603f5214a8637",
+        "expected_dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+        "expected_publication": "sha256:1af66f17c97c91fd2f2eaea0fd2fbbaa585b59aeed515d41c598167c0af91ebc",
+        "expected_revision": "sha256:5c8f9a603effa3edbcf36d8252efdec67a5f5fdc7598359cab5e42e1761fcbb0",
+        "expected_source": {
+          "digest": "sha256:398732bed54eca1c6ff8f653d779f703fc87c9cf770c5b6f6027f65bd640e6c9",
+          "id": "tos.edition.friedrich-nietzsche.zur-genealogie-der-moral.leipzig-c-g-naumann-1892-second",
+          "version": 3
+        },
+        "fields": {
+          "notes": "PDF page 5 visibly states title, subtitle, Nietzsche, Zweite Auflage, Leipzig, Verlag von C. G. Naumann, and 1892; PDF page 204 separately states Leipzig, Druck von C. G. Naumann. Publication and printing responsibility are represented in separate claims. Exact completion and public release dates remain open."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.metadata.37768697d5da28dea37f6187510b3d5e97cfd81970577251f4d148e0a596bf7f"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.metadata.353d8b318f4ccfc09283aee17ee21413b1355451439b78d92f8d4faa38ecc696"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.metadata.120e4a657dca8438ab8b56aaf61b43ed129fe0954b392d9345cdbbe0da46df75"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:9d5d1d49cc76eef95854a5befa58ea6bf7235038a8a73b7621816cedf8ee45d4",
+        "selected_files": [
+          "edition.human-forms.json",
+          "edition.json",
+          "source-revision-history.json"
+        ]
+      }
+    }
+  ]
+}

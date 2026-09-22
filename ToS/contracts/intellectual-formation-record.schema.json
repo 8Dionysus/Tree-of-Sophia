@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://tree-of-sophia.local/ToS/contracts/intellectual-formation-record.schema.json",
   "title": "Source-described intellectual schools, traditions and movements",
-  "description": "Historical formation identities, not atlas routes, social memberships, doctrine versions or canon admission. Research scope and continuity remain explicit and contestable.",
+  "description": "Historical intellectual formation identities with explicit, contestable research scope and continuity criteria. Separate Claims describe association, transmission and articulation.",
   "allOf": [
     {
       "$ref": "https://tree-of-sophia.local/ToS/contracts/source-metadata-record.schema.json"
@@ -33,7 +33,7 @@
             "formation_account": {
               "type": "string",
               "pattern": "\\S",
-              "description": "What this historical formation consists in and what its description does not settle."
+              "description": "The historical formation’s defining practices, commitments and continuity, with the description’s scope and unresolved questions."
             }
           }
         }
@@ -102,7 +102,7 @@
               "transmission_account": {
                 "type": "string",
                 "pattern": "\\S",
-                "description": "How the tradition is transmitted and reworked, including discontinuities; shared wording alone does not prove continuity."
+                "description": "How the tradition is transmitted and reworked, including discontinuities and the evidence for continuity."
               }
             }
           }

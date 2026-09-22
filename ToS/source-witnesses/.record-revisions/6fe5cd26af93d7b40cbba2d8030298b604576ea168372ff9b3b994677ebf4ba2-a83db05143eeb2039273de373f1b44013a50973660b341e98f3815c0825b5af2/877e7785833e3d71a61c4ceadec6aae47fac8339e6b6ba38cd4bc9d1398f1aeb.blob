@@ -1,0 +1,47 @@
+{
+  "external_identifiers": [],
+  "field_languages": {
+    "notes": {
+      "language": "ru",
+      "script": "Cyrl"
+    },
+    "preferred_label": {
+      "language": "ru",
+      "script": "Cyrl"
+    }
+  },
+  "identity_status": "provisional",
+  "notes": "Конкретное английское представление в книге Бёрнета, а не исходный фрагмент или точная древнегреческая запись.",
+  "preferred_label": "Цитирующее место Бёрнета: фрагмент (8)",
+  "record_id": "tos.quotation-passage.burnet.early-greek-philosophy.parmenides-eight",
+  "record_type": "quotation-passage",
+  "record_version": 1,
+  "same_as_posture": "no_equivalence_claim",
+  "schema_version": "tos_textual_passage_record_v1",
+  "semantic_content": {
+    "language": "ru",
+    "location_account": "Глава IV, §85, пункт (8), в репрезентации второго издания 1908 года; это структурный библиографический локатор, не разрешённый текстовый якорь.",
+    "quotation_account": "Английское представление выделенного фрагмента; качество передачи и выбранных чтений не оценено.",
+    "script": "Cyrl"
+  },
+  "semantic_scope": {
+    "identity_criterion": "Идентичность определяется цитирующим местом в контексте книги, не совпадением слов с другой цитатой. Соотношение с иными редакциями не устанавливается автоматически.",
+    "language": "ru",
+    "scope_note": "Цитирующее место в главе IV, §85, под номером (8), по исследованной репрезентации второго издания.",
+    "script": "Cyrl"
+  },
+  "source_refs": [
+    "ToS/review-ledger/2026-09-07-burnet-fragment-quotation-source-reading.md",
+    "https://www.gutenberg.org/files/67097/67097-h/67097-h.htm"
+  ],
+  "variant_labels": [
+    {
+      "language": "en",
+      "script": "Latn",
+      "source_ref": "ToS/review-ledger/2026-09-07-burnet-fragment-quotation-source-reading.md",
+      "status": "unverified",
+      "value": "Burnet's quoting passage presenting fragment (8)"
+    }
+  ],
+  "visibility": "public_metadata_only"
+}

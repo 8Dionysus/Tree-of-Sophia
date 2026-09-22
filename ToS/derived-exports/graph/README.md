@@ -1,8 +1,9 @@
 # Source-Returnable Graph Projections
 
 `graph/` holds generated, deletable graph readers over stronger tracked Tree of
-Sophia records. It does not own claims, reviews, runtime databases, graph UI,
-MCP behavior, Neo4j namespaces, or RDF stores.
+Sophia records. Claims and reviews retain their authored sources. Runtime databases, graph UI,
+MCP behavior, Neo4j namespaces and RDF stores follow their consumer owner
+routes.
 
 ## Current projection
 
@@ -35,8 +36,8 @@ Edition→Item fact edge is emitted, and `embodied_by` remains bibliographic
 routing rather than textual equivalence.
 
 The same graph currently reifies one `authored_by` claim for each of the seven
-Works. These are seven separately source-returnable claims to the Nietzsche
-Agent, not a generic creator shortcut and not a path-derived assertion.
+Works. Each of these seven Claims identifies its Work, the Nietzsche Agent and the
+source evidence for that authorship assertion.
 
 It also reifies seven `first_publication_chronology` claims. Their structured
 intervals, staged events, availability, precision, and ordering warnings stay
@@ -75,16 +76,16 @@ database, cache, review, or accepted relation.
 ## Boundaries
 
 - Source claim packets remain authoritative.
-- The generated `source-witnesses/catalog/claims.jsonl` is the queryable input,
-  not a second claim authority.
+- The generated `source-witnesses/catalog/claims.jsonl` supplies queryable input
+with exact return paths to the authored Claims.
 - Only catalog-admitted `public` or `public_metadata_only` claims enter this
   tracked graph.
 - Local source payload bytes, transcriptions, quotations, and restricted
   material do not enter the projection.
 - `abyss-stack` owns any runtime materialization, service, API, MCP, UI,
   Neo4j, or Oxigraph behavior.
-- The separate root-level `philosophy_graph_projection.min.json` remains the
-  atlas/view projection and is not widened into a bibliographic claim owner.
+- The separate root-level `philosophy_graph_projection.min.json` projects the
+atlas and its views; bibliographic Claims retain their own source owner.
 
 ## Verify
 

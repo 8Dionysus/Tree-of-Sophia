@@ -1,71 +1,69 @@
 {
-  "schema_version": "tos_human_form_set_v1",
-  "subject": {
-    "id": "tos.historical-generation.spanish-1898.salinas-1934",
-    "version": 1,
-    "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a"
-  },
   "forms": [
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.generation98.salinas-1934.name-ru",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.historical-generation.spanish-1898.salinas-1934",
-        "version": 1,
-        "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a"
+        "version": 2,
+        "digest": "sha256:52706c332c776f7877ca6fabae8de478e7f1ceaa8b6b46ddff8f5bea1c25d455"
       },
       "role": "name",
       "language": "ru",
       "script": "Cyrl",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.generation98.salinas-1934.name-ru",
+        "version": 1,
+        "digest": "sha256:861b8d1bae11ceafdfcb2d2bf34453a8e8b58d00d940c9b07e1dd48fad5fe46f"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.historical-generation.spanish-1898.salinas-1934",
-            "version": 1,
-            "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a"
+            "version": 2,
+            "digest": "sha256:52706c332c776f7877ca6fabae8de478e7f1ceaa8b6b46ddff8f5bea1c25d455"
           },
           "pointer": "/preferred_label"
         },
         "context-0": {
           "record": {
             "id": "tos.historical-generation.spanish-1898.salinas-1934",
-            "version": 1,
-            "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a"
+            "version": 2,
+            "digest": "sha256:52706c332c776f7877ca6fabae8de478e7f1ceaa8b6b46ddff8f5bea1c25d455"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.historical-generation.spanish-1898.salinas-1934",
-            "version": 1,
-            "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a"
+            "version": 2,
+            "digest": "sha256:52706c332c776f7877ca6fabae8de478e7f1ceaa8b6b46ddff8f5bea1c25d455"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.historical-generation.spanish-1898.salinas-1934",
-            "version": 1,
-            "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a"
+            "version": 2,
+            "digest": "sha256:52706c332c776f7877ca6fabae8de478e7f1ceaa8b6b46ddff8f5bea1c25d455"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.historical-generation.spanish-1898.salinas-1934",
-            "version": 1,
-            "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a"
+            "version": 2,
+            "digest": "sha256:52706c332c776f7877ca6fabae8de478e7f1ceaa8b6b46ddff8f5bea1c25d455"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.historical-generation.spanish-1898.salinas-1934",
-            "version": 1,
-            "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a"
+            "version": 2,
+            "digest": "sha256:52706c332c776f7877ca6fabae8de478e7f1ceaa8b6b46ddff8f5bea1c25d455"
           },
           "pointer": "/field_languages/preferred_label"
         }
@@ -78,87 +76,91 @@
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.generation98.salinas-1934.name-en",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.historical-generation.spanish-1898.salinas-1934",
-        "version": 1,
-        "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a"
+        "version": 2,
+        "digest": "sha256:52706c332c776f7877ca6fabae8de478e7f1ceaa8b6b46ddff8f5bea1c25d455"
       },
       "role": "name",
       "language": "en",
       "script": "Latn",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.generation98.salinas-1934.name-en",
+        "version": 1,
+        "digest": "sha256:6b455a0c6d5e2f2d363a033e73e4906074ea6b9d17d90e02e9a0023f3e5943eb"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.historical-generation.spanish-1898.salinas-1934",
-            "version": 1,
-            "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a"
+            "version": 2,
+            "digest": "sha256:52706c332c776f7877ca6fabae8de478e7f1ceaa8b6b46ddff8f5bea1c25d455"
           },
           "pointer": "/variant_labels/0/value"
         },
         "context-0": {
           "record": {
             "id": "tos.historical-generation.spanish-1898.salinas-1934",
-            "version": 1,
-            "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a"
+            "version": 2,
+            "digest": "sha256:52706c332c776f7877ca6fabae8de478e7f1ceaa8b6b46ddff8f5bea1c25d455"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.historical-generation.spanish-1898.salinas-1934",
-            "version": 1,
-            "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a"
+            "version": 2,
+            "digest": "sha256:52706c332c776f7877ca6fabae8de478e7f1ceaa8b6b46ddff8f5bea1c25d455"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.historical-generation.spanish-1898.salinas-1934",
-            "version": 1,
-            "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a"
+            "version": 2,
+            "digest": "sha256:52706c332c776f7877ca6fabae8de478e7f1ceaa8b6b46ddff8f5bea1c25d455"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.historical-generation.spanish-1898.salinas-1934",
-            "version": 1,
-            "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a"
+            "version": 2,
+            "digest": "sha256:52706c332c776f7877ca6fabae8de478e7f1ceaa8b6b46ddff8f5bea1c25d455"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.historical-generation.spanish-1898.salinas-1934",
-            "version": 1,
-            "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a"
+            "version": 2,
+            "digest": "sha256:52706c332c776f7877ca6fabae8de478e7f1ceaa8b6b46ddff8f5bea1c25d455"
           },
           "pointer": "/variant_labels/0/language"
         },
         "context-5": {
           "record": {
             "id": "tos.historical-generation.spanish-1898.salinas-1934",
-            "version": 1,
-            "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a"
+            "version": 2,
+            "digest": "sha256:52706c332c776f7877ca6fabae8de478e7f1ceaa8b6b46ddff8f5bea1c25d455"
           },
           "pointer": "/variant_labels/0/script"
         },
         "context-6": {
           "record": {
             "id": "tos.historical-generation.spanish-1898.salinas-1934",
-            "version": 1,
-            "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a"
+            "version": 2,
+            "digest": "sha256:52706c332c776f7877ca6fabae8de478e7f1ceaa8b6b46ddff8f5bea1c25d455"
           },
           "pointer": "/variant_labels/0/source_ref"
         },
         "context-7": {
           "record": {
             "id": "tos.historical-generation.spanish-1898.salinas-1934",
-            "version": 1,
-            "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a"
+            "version": 2,
+            "digest": "sha256:52706c332c776f7877ca6fabae8de478e7f1ceaa8b6b46ddff8f5bea1c25d455"
           },
           "pointer": "/variant_labels/0/status"
         }
@@ -171,87 +173,91 @@
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.generation98.salinas-1934.name-es",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.historical-generation.spanish-1898.salinas-1934",
-        "version": 1,
-        "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a"
+        "version": 2,
+        "digest": "sha256:52706c332c776f7877ca6fabae8de478e7f1ceaa8b6b46ddff8f5bea1c25d455"
       },
       "role": "name",
       "language": "es",
       "script": "Latn",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.generation98.salinas-1934.name-es",
+        "version": 1,
+        "digest": "sha256:8c7440d65e40919aed2b68aa00b3f7a44d29b21e903115410552d24c0e60be71"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.historical-generation.spanish-1898.salinas-1934",
-            "version": 1,
-            "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a"
+            "version": 2,
+            "digest": "sha256:52706c332c776f7877ca6fabae8de478e7f1ceaa8b6b46ddff8f5bea1c25d455"
           },
           "pointer": "/variant_labels/1/value"
         },
         "context-0": {
           "record": {
             "id": "tos.historical-generation.spanish-1898.salinas-1934",
-            "version": 1,
-            "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a"
+            "version": 2,
+            "digest": "sha256:52706c332c776f7877ca6fabae8de478e7f1ceaa8b6b46ddff8f5bea1c25d455"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.historical-generation.spanish-1898.salinas-1934",
-            "version": 1,
-            "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a"
+            "version": 2,
+            "digest": "sha256:52706c332c776f7877ca6fabae8de478e7f1ceaa8b6b46ddff8f5bea1c25d455"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.historical-generation.spanish-1898.salinas-1934",
-            "version": 1,
-            "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a"
+            "version": 2,
+            "digest": "sha256:52706c332c776f7877ca6fabae8de478e7f1ceaa8b6b46ddff8f5bea1c25d455"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.historical-generation.spanish-1898.salinas-1934",
-            "version": 1,
-            "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a"
+            "version": 2,
+            "digest": "sha256:52706c332c776f7877ca6fabae8de478e7f1ceaa8b6b46ddff8f5bea1c25d455"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.historical-generation.spanish-1898.salinas-1934",
-            "version": 1,
-            "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a"
+            "version": 2,
+            "digest": "sha256:52706c332c776f7877ca6fabae8de478e7f1ceaa8b6b46ddff8f5bea1c25d455"
           },
           "pointer": "/variant_labels/1/language"
         },
         "context-5": {
           "record": {
             "id": "tos.historical-generation.spanish-1898.salinas-1934",
-            "version": 1,
-            "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a"
+            "version": 2,
+            "digest": "sha256:52706c332c776f7877ca6fabae8de478e7f1ceaa8b6b46ddff8f5bea1c25d455"
           },
           "pointer": "/variant_labels/1/script"
         },
         "context-6": {
           "record": {
             "id": "tos.historical-generation.spanish-1898.salinas-1934",
-            "version": 1,
-            "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a"
+            "version": 2,
+            "digest": "sha256:52706c332c776f7877ca6fabae8de478e7f1ceaa8b6b46ddff8f5bea1c25d455"
           },
           "pointer": "/variant_labels/1/source_ref"
         },
         "context-7": {
           "record": {
             "id": "tos.historical-generation.spanish-1898.salinas-1934",
-            "version": 1,
-            "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a"
+            "version": 2,
+            "digest": "sha256:52706c332c776f7877ca6fabae8de478e7f1ceaa8b6b46ddff8f5bea1c25d455"
           },
           "pointer": "/variant_labels/1/status"
         }
@@ -264,63 +270,67 @@
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.generation98.salinas-1934.note-ru",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.historical-generation.spanish-1898.salinas-1934",
-        "version": 1,
-        "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a"
+        "version": 2,
+        "digest": "sha256:52706c332c776f7877ca6fabae8de478e7f1ceaa8b6b46ddff8f5bea1c25d455"
       },
       "role": "hover",
       "language": "ru",
       "script": "Cyrl",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.generation98.salinas-1934.note-ru",
+        "version": 1,
+        "digest": "sha256:41dada6ee588ddd491a5a54eaeb80a79ef759d994f33cf8a0158c3bfe0eda74e"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.historical-generation.spanish-1898.salinas-1934",
-            "version": 1,
-            "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a"
+            "version": 2,
+            "digest": "sha256:52706c332c776f7877ca6fabae8de478e7f1ceaa8b6b46ddff8f5bea1c25d455"
           },
           "pointer": "/notes"
         },
         "context-0": {
           "record": {
             "id": "tos.historical-generation.spanish-1898.salinas-1934",
-            "version": 1,
-            "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a"
+            "version": 2,
+            "digest": "sha256:52706c332c776f7877ca6fabae8de478e7f1ceaa8b6b46ddff8f5bea1c25d455"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.historical-generation.spanish-1898.salinas-1934",
-            "version": 1,
-            "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a"
+            "version": 2,
+            "digest": "sha256:52706c332c776f7877ca6fabae8de478e7f1ceaa8b6b46ddff8f5bea1c25d455"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.historical-generation.spanish-1898.salinas-1934",
-            "version": 1,
-            "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a"
+            "version": 2,
+            "digest": "sha256:52706c332c776f7877ca6fabae8de478e7f1ceaa8b6b46ddff8f5bea1c25d455"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.historical-generation.spanish-1898.salinas-1934",
-            "version": 1,
-            "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a"
+            "version": 2,
+            "digest": "sha256:52706c332c776f7877ca6fabae8de478e7f1ceaa8b6b46ddff8f5bea1c25d455"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.historical-generation.spanish-1898.salinas-1934",
-            "version": 1,
-            "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a"
+            "version": 2,
+            "digest": "sha256:52706c332c776f7877ca6fabae8de478e7f1ceaa8b6b46ddff8f5bea1c25d455"
           },
           "pointer": "/field_languages/notes"
         }
@@ -331,5 +341,336 @@
       }
     }
   ],
-  "prior_forms": []
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a",
+            "id": "tos.historical-generation.spanish-1898.salinas-1934",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a",
+            "id": "tos.historical-generation.spanish-1898.salinas-1934",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a",
+            "id": "tos.historical-generation.spanish-1898.salinas-1934",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a",
+            "id": "tos.historical-generation.spanish-1898.salinas-1934",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a",
+            "id": "tos.historical-generation.spanish-1898.salinas-1934",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a",
+            "id": "tos.historical-generation.spanish-1898.salinas-1934",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.generation98.salinas-1934.name-ru",
+      "form_version": 1,
+      "language": "ru",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a",
+        "id": "tos.historical-generation.spanish-1898.salinas-1934",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a",
+            "id": "tos.historical-generation.spanish-1898.salinas-1934",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a",
+            "id": "tos.historical-generation.spanish-1898.salinas-1934",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a",
+            "id": "tos.historical-generation.spanish-1898.salinas-1934",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a",
+            "id": "tos.historical-generation.spanish-1898.salinas-1934",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/variant_labels/0/language",
+          "record": {
+            "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a",
+            "id": "tos.historical-generation.spanish-1898.salinas-1934",
+            "version": 1
+          }
+        },
+        "context-5": {
+          "pointer": "/variant_labels/0/script",
+          "record": {
+            "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a",
+            "id": "tos.historical-generation.spanish-1898.salinas-1934",
+            "version": 1
+          }
+        },
+        "context-6": {
+          "pointer": "/variant_labels/0/source_ref",
+          "record": {
+            "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a",
+            "id": "tos.historical-generation.spanish-1898.salinas-1934",
+            "version": 1
+          }
+        },
+        "context-7": {
+          "pointer": "/variant_labels/0/status",
+          "record": {
+            "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a",
+            "id": "tos.historical-generation.spanish-1898.salinas-1934",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/variant_labels/0/value",
+          "record": {
+            "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a",
+            "id": "tos.historical-generation.spanish-1898.salinas-1934",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.generation98.salinas-1934.name-en",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a",
+        "id": "tos.historical-generation.spanish-1898.salinas-1934",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a",
+            "id": "tos.historical-generation.spanish-1898.salinas-1934",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a",
+            "id": "tos.historical-generation.spanish-1898.salinas-1934",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a",
+            "id": "tos.historical-generation.spanish-1898.salinas-1934",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a",
+            "id": "tos.historical-generation.spanish-1898.salinas-1934",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/variant_labels/1/language",
+          "record": {
+            "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a",
+            "id": "tos.historical-generation.spanish-1898.salinas-1934",
+            "version": 1
+          }
+        },
+        "context-5": {
+          "pointer": "/variant_labels/1/script",
+          "record": {
+            "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a",
+            "id": "tos.historical-generation.spanish-1898.salinas-1934",
+            "version": 1
+          }
+        },
+        "context-6": {
+          "pointer": "/variant_labels/1/source_ref",
+          "record": {
+            "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a",
+            "id": "tos.historical-generation.spanish-1898.salinas-1934",
+            "version": 1
+          }
+        },
+        "context-7": {
+          "pointer": "/variant_labels/1/status",
+          "record": {
+            "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a",
+            "id": "tos.historical-generation.spanish-1898.salinas-1934",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/variant_labels/1/value",
+          "record": {
+            "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a",
+            "id": "tos.historical-generation.spanish-1898.salinas-1934",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.generation98.salinas-1934.name-es",
+      "form_version": 1,
+      "language": "es",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a",
+        "id": "tos.historical-generation.spanish-1898.salinas-1934",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a",
+            "id": "tos.historical-generation.spanish-1898.salinas-1934",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a",
+            "id": "tos.historical-generation.spanish-1898.salinas-1934",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a",
+            "id": "tos.historical-generation.spanish-1898.salinas-1934",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a",
+            "id": "tos.historical-generation.spanish-1898.salinas-1934",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a",
+            "id": "tos.historical-generation.spanish-1898.salinas-1934",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a",
+            "id": "tos.historical-generation.spanish-1898.salinas-1934",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.generation98.salinas-1934.note-ru",
+      "form_version": 1,
+      "language": "ru",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a",
+        "id": "tos.historical-generation.spanish-1898.salinas-1934",
+        "version": 1
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.historical-generation.spanish-1898.salinas-1934",
+    "version": 2,
+    "digest": "sha256:52706c332c776f7877ca6fabae8de478e7f1ceaa8b6b46ddff8f5bea1c25d455"
+  }
 }

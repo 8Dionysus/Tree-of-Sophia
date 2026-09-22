@@ -3,8 +3,8 @@
 The catalog locates a current record. Its canonical digest binds that record,
 and the existing revision receipts/manifests bind retained predecessors. Only
 the selected record blobs are opened: unknown companion bytes are neither read
-nor certified. This is a record-chain reader, not a whole-package audit, a
-native payload resolver, or a historical HumanForm materializer.
+nor certified. Whole-package audits, native payload resolution and historical HumanForm
+materialization use their respective owner routes.
 """
 from __future__ import annotations
 
@@ -151,7 +151,7 @@ class MetadataVersionReader:
 
     @property
     def accounting(self):
-        """Read-only bounded work counters, not availability or admission."""
+        """Read-only counters of work performed by this bounded reader."""
         return {'read_bytes': self._snapshot.bytes, 'max_read_bytes': MAX_TOTAL_BYTES,
                 'contracts': len(self._contracts), 'records': len(self._records),
                 'observed_files': sum(not directory for _path, directory in self._snapshot.observed),
@@ -622,10 +622,10 @@ class MetadataVersionReader:
     def resolve_source_bytes(self, original_source_path, raw_sha256, *, record_id=None):
         """Verify exact current/retained bytes at their original logical source.
 
-        This is a source-provenance join, not a blob search. Only the supported
+        The join follows the original source path and its committed provenance. Only the supported
         public typed metadata route and its committed record lineage may
         resolve the raw digest. Returned JSON contains the verified record and
-        its byte provenance, not arbitrary file contents or a latest fallback.
+        its exact byte provenance.
         """
         if (not isinstance(original_source_path, str) or not isinstance(raw_sha256, str)
                 or not re.fullmatch(r'[a-f0-9]{64}', raw_sha256)):

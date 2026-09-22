@@ -1,0 +1,81 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1907",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:e3239412f90a39fdcd9657c3",
+      "request_digest": "sha256:3382c87052bc190903a8e3004acd9cadb211b55b0a9fa979f0b2fe687775f0d4",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:013c4d021a298aea6049852cbf51e8c34f34d51c9a3288b0435542607956e574",
+      "recorded_at": "2026-09-22T05:08:52.011983+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1907",
+        "version": 5,
+        "digest": "sha256:36706240d0dffa11e803ce73f482536d59d3d95275548685a51768403bb45025"
+      },
+      "source": {
+        "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1907",
+        "version": 6,
+        "digest": "sha256:4dc57d5aa486b533dded0ebda99969820f0cf3a01ddff8384674faf81967b206"
+      },
+      "previous_revision": "sha256:929010367cddead121cd66c69a298c0f8f42a9259910dfb225cb79f24c2fdf7c",
+      "archive_path": "ToS/source-witnesses/.record-revisions/e3239412f90a39fdcd9657c3ab412f53e752e46aef07906e7aedd891b2dd3f35-929010367cddead121cd66c69a298c0f8f42a9259910dfb225cb79f24c2fdf7c",
+      "dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+      "changed_fields": [
+        "notes"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.metadata.a40e8205301bdc72299cc6d4389b0b2ddaaeb2e4d53ae452ce941ebc54d57bd2",
+          "version": 2,
+          "digest": "sha256:4525e7e1d29ae9ac960b23feb5f7cb95f880020541ea79b318e0ca8000ba9aab"
+        },
+        {
+          "id": "tos.form.metadata.f8f00ee0cda8a0b7e0178f1d72292fbc5906bb03768f43f6dff409e47b9c5bf2",
+          "version": 2,
+          "digest": "sha256:326d897f0f62d0a9fe01de6add9046ee10c4388634680d2c6d660d70303a49d0"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:e3239412f90a39fdcd9657c3",
+        "expected_configuration": "sha256:013c4d021a298aea6049852cbf51e8c34f34d51c9a3288b0435542607956e574",
+        "expected_dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+        "expected_publication": "sha256:585292ca409a56c1600b3ea907ad91883fbbd717039e7b61d2b9defd83951824",
+        "expected_revision": "sha256:929010367cddead121cd66c69a298c0f8f42a9259910dfb225cb79f24c2fdf7c",
+        "expected_source": {
+          "digest": "sha256:36706240d0dffa11e803ce73f482536d59d3d95275548685a51768403bb45025",
+          "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1907",
+          "version": 5
+        },
+        "fields": {
+          "notes": "Antonovsky's exact 1911 preface calls the 1907 state the third edition and reports a new reworking of its predecessor. The prior RuNEB record and established Blok scholarship identify one exact Saint Petersburg 1907 third Edition; RNL GAK divider 67133 card 82 independently confirms the Edition sequence and institutionally reports extent VIII, 363 с. The current RNL Primo record 07NLR_LMS004843723, system number 004843723, and RUSMARC 001 v19\\rc\\1717109 now independently expose three physical holdings in the Russian Book Fund under shelfmarks 17.145.5.1, 17.145.5.1а, and 17.145.5.1 Б. Official field and organization-code evidence additionally establishes V 106/216 as an RNL-reported RSL shelfmark, not as a current RSL public record, physically inspected copy, ToS Item, or text witness; predicted RSL route 01003693382 remains HTTP 404 and the БАН row without a call number remains unresolved. These remote coordinates strengthen bibliographic identity only. The literal typography string тип. Ф. Вайсберга и П. Гершунина is not converted into a publisher or provision claim. The GAK card's overwritten handwriting remains untranscribed and is not equated to V 106/216; the RNL digitization form is recommendation-only. The Expression and derivation claim remain provisional, uncollated, and unreviewed. Source-page acquisition remains open, and every institutional request remains an unsent draft."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.metadata.a40e8205301bdc72299cc6d4389b0b2ddaaeb2e4d53ae452ce941ebc54d57bd2"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.metadata.f8f00ee0cda8a0b7e0178f1d72292fbc5906bb03768f43f6dff409e47b9c5bf2"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:8a400cc0ffea6f2e569145ce4b3ff9c83a444fe18eee952dd85eb9a49828aebf",
+        "selected_files": [
+          "expression.human-forms.json",
+          "expression.json",
+          "source-revision-history.json"
+        ]
+      }
+    }
+  ]
+}

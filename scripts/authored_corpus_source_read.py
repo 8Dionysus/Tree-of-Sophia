@@ -153,7 +153,7 @@ def verify_authored_csv_sources(source_root, corpus_index):
 
 
 def _verify_prepared_csv_membership(db, corpus_index, *, limits, progress_owner):
-    """Bounded indexed coverage of both CSV owner graphs, not a whole graph load."""
+    """Resolve bounded indexed coverage across both CSV owner graphs."""
     from tos_access.prepared_source_dependencies import _operation
     expected = {}
     for edge in corpus_index['relation_edges']:

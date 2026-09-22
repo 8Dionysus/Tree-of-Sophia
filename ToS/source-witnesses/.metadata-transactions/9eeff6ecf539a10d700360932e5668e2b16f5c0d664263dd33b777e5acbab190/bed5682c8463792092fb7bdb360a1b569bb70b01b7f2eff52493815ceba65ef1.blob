@@ -1,0 +1,81 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-vaisberg-gershunin-typography-1907-third",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:944dd9d3948c3e74b587e16a",
+      "request_digest": "sha256:d6234fc4faa730c015842c291bad4dbe3b084642b7b536304652bd16177156d5",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:7bce389e5ffd96a6cfb3d255cb9b1741f014fa93a6125835b61a633bb235f8a3",
+      "recorded_at": "2026-09-22T05:08:51.470694+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-vaisberg-gershunin-typography-1907-third",
+        "version": 4,
+        "digest": "sha256:72d23b37f4153976dfb37173b071709ac70f82a65fa2e7f56845e4d401e7f964"
+      },
+      "source": {
+        "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-vaisberg-gershunin-typography-1907-third",
+        "version": 5,
+        "digest": "sha256:56487d3aeebb3ae4225e7ed4933fd482266febb7b2c2646c51ec8ea830e905c5"
+      },
+      "previous_revision": "sha256:2a6fe53d4f47e19170629ca95e44553e7aaaa1f2c33d00a8bf12a31985ad1939",
+      "archive_path": "ToS/source-witnesses/.record-revisions/944dd9d3948c3e74b587e16a33438c310df1ba01d1c4f43bd520b040dda306f7-2a6fe53d4f47e19170629ca95e44553e7aaaa1f2c33d00a8bf12a31985ad1939",
+      "dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+      "changed_fields": [
+        "notes"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.metadata.77cd7bdb72ee0964da71a9244f925b42117898ad0180e418acff30143805593b",
+          "version": 2,
+          "digest": "sha256:40f9376c12fb31e76bf8f8fa7d064b035bdc3814ed645b18b7602cd4c70e2c78"
+        },
+        {
+          "id": "tos.form.metadata.a55d93f78153cfe6bcc448be0256758387dd303c712a37888c3d4050eef35cd4",
+          "version": 2,
+          "digest": "sha256:305838dc40ddeb8ac63649b73dd59a3ceca86ef9f307be4b17ad70a59e8a8ee6"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:944dd9d3948c3e74b587e16a",
+        "expected_configuration": "sha256:7bce389e5ffd96a6cfb3d255cb9b1741f014fa93a6125835b61a633bb235f8a3",
+        "expected_dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+        "expected_publication": "sha256:e1ef0122eb17591ea2aa5929b6f741587a1070143c70dbf4ee1154c5ca94dcc5",
+        "expected_revision": "sha256:2a6fe53d4f47e19170629ca95e44553e7aaaa1f2c33d00a8bf12a31985ad1939",
+        "expected_source": {
+          "digest": "sha256:72d23b37f4153976dfb37173b071709ac70f82a65fa2e7f56845e4d401e7f964",
+          "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-vaisberg-gershunin-typography-1907-third",
+          "version": 4
+        },
+        "fields": {
+          "notes": "The prior removed or replaced RuNEB record identifies the exact Saint Petersburg 1907 Edition and records the literal typography string тип. Ф. Вайсберга и П. Гершунина, while Antonovsky's exact 1911 preface and established Blok scholarship identify it as the third edition. RNL GAK divider 67133 card 82 independently confirms the third Edition and institutionally reports extent VIII, 363 с. The current RNL Primo record 07NLR_LMS004843723, system number 004843723, and RUSMARC 001 v19\\rc\\1717109 independently confirm that description, report catalogue dimension 16 cm, and expose three physical holdings in the Russian Book Fund at пл. Островского under shelfmarks 17.145.5.1, 17.145.5.1а, and 17.145.5.1 Б. Their item rows report В хранении and catalogue code Web заказ, but official RNL guidance does not establish actual online eligibility for a 1907 edition. Official RUSMARC field semantics and official MARC organization-code evidence now establish that field 899 |a RuMoRGB |j V 106/216 is an RNL-reported RSL shelfmark. This verifies the bounded metadata statement, not a current RSL public record, physically inspected or serviceable RSL copy, or ToS Item. The predicted RSL route 01003693382 remains HTTP 404 and is not a verified identifier; the separate field 899 |a БАН row has no call number and is not counted as a resolved holding. The holdings provide remote bibliographic coordinates; acquisition and examination of source pages remain open. The overwritten GAK handwriting remains untranscribed. The typography string is preserved literally."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.metadata.77cd7bdb72ee0964da71a9244f925b42117898ad0180e418acff30143805593b"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.metadata.a55d93f78153cfe6bcc448be0256758387dd303c712a37888c3d4050eef35cd4"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:9eeff6ecf539a10d700360932e5668e2b16f5c0d664263dd33b777e5acbab190",
+        "selected_files": [
+          "edition.human-forms.json",
+          "edition.json",
+          "source-revision-history.json"
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,90 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.work.old-babylonian-scholarship.the-tablet-house",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:2a2d316f5263b67b8ab568fd",
+      "request_digest": "sha256:e97108cea196eb9cdbdaba9685ce13c5ac0d713dee9f0b0d9053652ee8889cff",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:d4103a79c08274676508e21799f41c6616f6172a5b1f9ee7757e62a21c94fccf",
+      "recorded_at": "2026-09-22T05:09:26.655935+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.work.old-babylonian-scholarship.the-tablet-house",
+        "version": 1,
+        "digest": "sha256:29450b4fe6206ce78d625ecf8f2ee037b5cbaf157db8d6e871dc40076337b31d"
+      },
+      "source": {
+        "id": "tos.work.old-babylonian-scholarship.the-tablet-house",
+        "version": 2,
+        "digest": "sha256:0286e958ac6364bcb1a2a35b13f1e20f11cbc5d438b28b0dca27bcdf8a970dc3"
+      },
+      "previous_revision": "sha256:78d287219f70c42df9e46a2a454dfefa41292ab06c74b9c110268f6cd3f1c994",
+      "archive_path": "ToS/source-witnesses/.record-revisions/2a2d316f5263b67b8ab568fdbb9560ff554a31ea23e946bb1c07485901f097bb-78d287219f70c42df9e46a2a454dfefa41292ab06c74b9c110268f6cd3f1c994",
+      "dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+      "changed_fields": [
+        "notes"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.metadata.8c3990ee780c71e0b485c66a0f17230bf93e19a637da6cdf6de305f0af7f99c1",
+          "version": 2,
+          "digest": "sha256:1a1fa2d89241f2d9b749643a0ff8ee3ef41c0b396aa515aa0119d6693f0b1592"
+        },
+        {
+          "id": "tos.form.metadata.2535b2492592bd259a45de54f3f589d11c8b7faf1385243cbcee8a46f233dafb",
+          "version": 2,
+          "digest": "sha256:e812f6afb7bd10222176ca8d22927a93350fccbaccf1c1ce80828baffd20a284"
+        },
+        {
+          "id": "tos.form.metadata.8ef856ab46e03b6f0781a1ce1409ae1c75b2805e9f63d9da7ab096e2b1cf16c7",
+          "version": 2,
+          "digest": "sha256:eb3d4e641a2d85e0fb826b92bccfdab6ee88acf00b4edd1aa07cc663a9e707a7"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:2a2d316f5263b67b8ab568fd",
+        "expected_configuration": "sha256:d4103a79c08274676508e21799f41c6616f6172a5b1f9ee7757e62a21c94fccf",
+        "expected_dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+        "expected_publication": "sha256:74ff6638c578481addde560cacba678f74a138425a4054442a6ff3180c64a50c",
+        "expected_revision": "sha256:78d287219f70c42df9e46a2a454dfefa41292ab06c74b9c110268f6cd3f1c994",
+        "expected_source": {
+          "digest": "sha256:29450b4fe6206ce78d625ecf8f2ee037b5cbaf157db8d6e871dc40076337b31d",
+          "id": "tos.work.old-babylonian-scholarship.the-tablet-house",
+          "version": 1
+        },
+        "fields": {
+          "notes": "Scholarly article published in Revue d’assyriologie 93 (2001), pages 39–66. It reconstructs House F at Nippur from local archaeological and tablet-typological evidence. The title’s phrase ‘A Scribal School’ identifies the article’s scholarly interpretation. ISAC 2023 and Robson’s 2026 return to House F provide later controls on locality, temporality, community, formation, and interpretation. Current coverage is bibliographic, with source-reported authorship awaiting review."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.metadata.8c3990ee780c71e0b485c66a0f17230bf93e19a637da6cdf6de305f0af7f99c1"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.metadata.2535b2492592bd259a45de54f3f589d11c8b7faf1385243cbcee8a46f233dafb"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.metadata.8ef856ab46e03b6f0781a1ce1409ae1c75b2805e9f63d9da7ab096e2b1cf16c7"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:3c2c9612012ed7beea01ddda41e7c4b0bf380e7f6abe7c2523f2091f0a06c651",
+        "selected_files": [
+          "source-revision-history.json",
+          "work.human-forms.json",
+          "work.json"
+        ]
+      }
+    }
+  ]
+}

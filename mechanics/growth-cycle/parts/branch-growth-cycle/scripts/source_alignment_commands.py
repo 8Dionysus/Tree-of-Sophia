@@ -1,7 +1,7 @@
 """Native records of the existing translation-alignment owner.
 
 One stable Alignment subject, versioned descriptions and separately versioned
-Claims. Supplied mappings are not an executed aligner or assessed translation.
+Claims. Supplied mappings enter as authored proposals for alignment assessment.
 Legacy packet-v1 remains unchanged; its source, mapping and rights mechanics
 are reused through a transient, non-published validation view.
 """
@@ -360,7 +360,7 @@ def _history_refs(resolver, body):
 
 
 def _identity_inventory(context, body, config, resolver, *, exclude=None):
-    """Use the existing bounded source walk, not a new alignment registry.
+    """Resolve alignment identity through the existing bounded source walk.
 
     A new version may reuse only IDs belonging to its exact ancestry. A
     sibling/future version or another same-ID path prevents stale forks.

@@ -1,0 +1,90 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.work.friedrich-nietzsche.der-fall-wagner",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:83881bcf43e2eea67bbdce2e",
+      "request_digest": "sha256:2e2025115850e453c3f7568fe029ce12f6270220c91ff789f57f3c48f707ccdb",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:6e90d09b93c48af1fc81f88c39c06dda632f6efaddf74f0b1c5485faddbcf8c9",
+      "recorded_at": "2026-09-22T05:09:05.542828+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.work.friedrich-nietzsche.der-fall-wagner",
+        "version": 6,
+        "digest": "sha256:b2556f59331640a66d55bdbfaf66e6b71a36ebbf4066749859ee88a2b7829fd6"
+      },
+      "source": {
+        "id": "tos.work.friedrich-nietzsche.der-fall-wagner",
+        "version": 7,
+        "digest": "sha256:52fc7b67826cb8ef4868530677d94b7211b95efeb6c877c8e18620a9fb763271"
+      },
+      "previous_revision": "sha256:3367746981419eac7cf5fdffc6fd6414670a73fa5b6b1d17c2884439647cd78f",
+      "archive_path": "ToS/source-witnesses/.record-revisions/83881bcf43e2eea67bbdce2e2410bb3214574a1f72e812815ae00eaf0d2f4987-3367746981419eac7cf5fdffc6fd6414670a73fa5b6b1d17c2884439647cd78f",
+      "dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+      "changed_fields": [
+        "notes"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.metadata.689ccacc8cd2768a9046335bbec971130c2b1f2fbdecd6724be6233f0f5920dc",
+          "version": 2,
+          "digest": "sha256:42db0907adb58b4c903b692a4cf7090bfc139ba86913b23c586f4671a10f727a"
+        },
+        {
+          "id": "tos.form.metadata.ffd9101b929936e9cbe94e5c5743341a2f96fb69dd5f78d9483af106718c66cc",
+          "version": 2,
+          "digest": "sha256:21dd49fd4241006faae85455431eca68f2e589018c206513cccb40804123c9c0"
+        },
+        {
+          "id": "tos.form.metadata.0fd0835132d86df3e4d462b0e54b4b95dce13cfb674d18745ed91a98c7bf614d",
+          "version": 2,
+          "digest": "sha256:3a0e19c808331654c6e7a1ba81fcb2737ea688c072f19144fbb1ab97a708d768"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:83881bcf43e2eea67bbdce2e",
+        "expected_configuration": "sha256:6e90d09b93c48af1fc81f88c39c06dda632f6efaddf74f0b1c5485faddbcf8c9",
+        "expected_dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+        "expected_publication": "sha256:2785be35c193ed0dd8bc4c69704c49ee7bc6ac266258f06e4b4433ea906250cb",
+        "expected_revision": "sha256:3367746981419eac7cf5fdffc6fd6414670a73fa5b6b1d17c2884439647cd78f",
+        "expected_source": {
+          "digest": "sha256:b2556f59331640a66d55bdbfaf66e6b71a36ebbf4066749859ee88a2b7829fd6",
+          "id": "tos.work.friedrich-nietzsche.der-fall-wagner",
+          "version": 6
+        },
+        "fields": {
+          "notes": "Work identity follows the current GND work authority. The provisional Russian translation in the local Mysl volume and the exact German 1888 Naumann witness are represented as distinct expressions; no textual equivalence or translation quality is inferred. The authorial route admits only exact source-backed W II 6 / W II 7 regions and inscription layers, never whole-notebook work membership. D 21 / GSA 71/28 is explicitly the Götzen-Dämmerung print manuscript and is not assigned to Der Fall Wagner. The complete 26 June print manuscript and 16 July fair copy are lost; the one-leaf, two-canvas Basel object NL 200 : II, 1 is the sole surviving correction/addition fragment, not a complete manuscript. Nietzsche's changes and the later Köselitz/Lauterbach provenance notes remain distinct responsibility layers. The existing unlabelled 1888 Item and the nominal Zweite Auflage half of the same 1000-copy run are not presumed textually identical or different."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.metadata.689ccacc8cd2768a9046335bbec971130c2b1f2fbdecd6724be6233f0f5920dc"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.metadata.ffd9101b929936e9cbe94e5c5743341a2f96fb69dd5f78d9483af106718c66cc"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.metadata.0fd0835132d86df3e4d462b0e54b4b95dce13cfb674d18745ed91a98c7bf614d"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:62581b0416677934999d4e2e61473cc525f2ba8e7c71e5e5930ad9784c4794d7",
+        "selected_files": [
+          "source-revision-history.json",
+          "work.human-forms.json",
+          "work.json"
+        ]
+      }
+    }
+  ]
+}

@@ -1,79 +1,77 @@
 {
-  "schema_version": "tos_human_form_set_v1",
-  "subject": {
-    "id": "tos.lexical-form.german-wille",
-    "version": 1,
-    "digest": "sha256:b4570b49727cef84c46d017730b6ed4319e1ba017dbf5aa5edc7fc38c6d13c17"
-  },
   "forms": [
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.lexical.wille-form.name-ru",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.lexical-form.german-wille",
-        "version": 1,
-        "digest": "sha256:b4570b49727cef84c46d017730b6ed4319e1ba017dbf5aa5edc7fc38c6d13c17"
+        "version": 2,
+        "digest": "sha256:bc4a58dc0b0e1a82a095cf87c0ede624dfd0c7fb788743ba39dbb58fc648aa08"
       },
       "role": "name",
       "language": "ru",
       "script": "Cyrl",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.lexical.wille-form.name-ru",
+        "version": 1,
+        "digest": "sha256:aabca14a1c2554de89e6cbdd37c4edf7222b7497059b071b3fd3e30e1ba5f4b8"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.lexical-form.german-wille",
-            "version": 1,
-            "digest": "sha256:b4570b49727cef84c46d017730b6ed4319e1ba017dbf5aa5edc7fc38c6d13c17"
+            "version": 2,
+            "digest": "sha256:bc4a58dc0b0e1a82a095cf87c0ede624dfd0c7fb788743ba39dbb58fc648aa08"
           },
           "pointer": "/preferred_label"
         },
         "context-0": {
           "record": {
             "id": "tos.lexical-form.german-wille",
-            "version": 1,
-            "digest": "sha256:b4570b49727cef84c46d017730b6ed4319e1ba017dbf5aa5edc7fc38c6d13c17"
+            "version": 2,
+            "digest": "sha256:bc4a58dc0b0e1a82a095cf87c0ede624dfd0c7fb788743ba39dbb58fc648aa08"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.lexical-form.german-wille",
-            "version": 1,
-            "digest": "sha256:b4570b49727cef84c46d017730b6ed4319e1ba017dbf5aa5edc7fc38c6d13c17"
+            "version": 2,
+            "digest": "sha256:bc4a58dc0b0e1a82a095cf87c0ede624dfd0c7fb788743ba39dbb58fc648aa08"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.lexical-form.german-wille",
-            "version": 1,
-            "digest": "sha256:b4570b49727cef84c46d017730b6ed4319e1ba017dbf5aa5edc7fc38c6d13c17"
+            "version": 2,
+            "digest": "sha256:bc4a58dc0b0e1a82a095cf87c0ede624dfd0c7fb788743ba39dbb58fc648aa08"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.lexical-form.german-wille",
-            "version": 1,
-            "digest": "sha256:b4570b49727cef84c46d017730b6ed4319e1ba017dbf5aa5edc7fc38c6d13c17"
+            "version": 2,
+            "digest": "sha256:bc4a58dc0b0e1a82a095cf87c0ede624dfd0c7fb788743ba39dbb58fc648aa08"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.lexical-form.german-wille",
-            "version": 1,
-            "digest": "sha256:b4570b49727cef84c46d017730b6ed4319e1ba017dbf5aa5edc7fc38c6d13c17"
+            "version": 2,
+            "digest": "sha256:bc4a58dc0b0e1a82a095cf87c0ede624dfd0c7fb788743ba39dbb58fc648aa08"
           },
           "pointer": "/form_identity"
         },
         "context-5": {
           "record": {
             "id": "tos.lexical-form.german-wille",
-            "version": 1,
-            "digest": "sha256:b4570b49727cef84c46d017730b6ed4319e1ba017dbf5aa5edc7fc38c6d13c17"
+            "version": 2,
+            "digest": "sha256:bc4a58dc0b0e1a82a095cf87c0ede624dfd0c7fb788743ba39dbb58fc648aa08"
           },
           "pointer": "/field_languages/preferred_label"
         }
@@ -86,95 +84,99 @@
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.lexical.wille-form.name-en",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.lexical-form.german-wille",
-        "version": 1,
-        "digest": "sha256:b4570b49727cef84c46d017730b6ed4319e1ba017dbf5aa5edc7fc38c6d13c17"
+        "version": 2,
+        "digest": "sha256:bc4a58dc0b0e1a82a095cf87c0ede624dfd0c7fb788743ba39dbb58fc648aa08"
       },
       "role": "name",
       "language": "en",
       "script": "Latn",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.lexical.wille-form.name-en",
+        "version": 1,
+        "digest": "sha256:456cb450fc28407575bbeddb7e5c3f87f435a0860949ce0e408c22cae61f08c3"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.lexical-form.german-wille",
-            "version": 1,
-            "digest": "sha256:b4570b49727cef84c46d017730b6ed4319e1ba017dbf5aa5edc7fc38c6d13c17"
+            "version": 2,
+            "digest": "sha256:bc4a58dc0b0e1a82a095cf87c0ede624dfd0c7fb788743ba39dbb58fc648aa08"
           },
           "pointer": "/variant_labels/0/value"
         },
         "context-0": {
           "record": {
             "id": "tos.lexical-form.german-wille",
-            "version": 1,
-            "digest": "sha256:b4570b49727cef84c46d017730b6ed4319e1ba017dbf5aa5edc7fc38c6d13c17"
+            "version": 2,
+            "digest": "sha256:bc4a58dc0b0e1a82a095cf87c0ede624dfd0c7fb788743ba39dbb58fc648aa08"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.lexical-form.german-wille",
-            "version": 1,
-            "digest": "sha256:b4570b49727cef84c46d017730b6ed4319e1ba017dbf5aa5edc7fc38c6d13c17"
+            "version": 2,
+            "digest": "sha256:bc4a58dc0b0e1a82a095cf87c0ede624dfd0c7fb788743ba39dbb58fc648aa08"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.lexical-form.german-wille",
-            "version": 1,
-            "digest": "sha256:b4570b49727cef84c46d017730b6ed4319e1ba017dbf5aa5edc7fc38c6d13c17"
+            "version": 2,
+            "digest": "sha256:bc4a58dc0b0e1a82a095cf87c0ede624dfd0c7fb788743ba39dbb58fc648aa08"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.lexical-form.german-wille",
-            "version": 1,
-            "digest": "sha256:b4570b49727cef84c46d017730b6ed4319e1ba017dbf5aa5edc7fc38c6d13c17"
+            "version": 2,
+            "digest": "sha256:bc4a58dc0b0e1a82a095cf87c0ede624dfd0c7fb788743ba39dbb58fc648aa08"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.lexical-form.german-wille",
-            "version": 1,
-            "digest": "sha256:b4570b49727cef84c46d017730b6ed4319e1ba017dbf5aa5edc7fc38c6d13c17"
+            "version": 2,
+            "digest": "sha256:bc4a58dc0b0e1a82a095cf87c0ede624dfd0c7fb788743ba39dbb58fc648aa08"
           },
           "pointer": "/form_identity"
         },
         "context-5": {
           "record": {
             "id": "tos.lexical-form.german-wille",
-            "version": 1,
-            "digest": "sha256:b4570b49727cef84c46d017730b6ed4319e1ba017dbf5aa5edc7fc38c6d13c17"
+            "version": 2,
+            "digest": "sha256:bc4a58dc0b0e1a82a095cf87c0ede624dfd0c7fb788743ba39dbb58fc648aa08"
           },
           "pointer": "/variant_labels/0/language"
         },
         "context-6": {
           "record": {
             "id": "tos.lexical-form.german-wille",
-            "version": 1,
-            "digest": "sha256:b4570b49727cef84c46d017730b6ed4319e1ba017dbf5aa5edc7fc38c6d13c17"
+            "version": 2,
+            "digest": "sha256:bc4a58dc0b0e1a82a095cf87c0ede624dfd0c7fb788743ba39dbb58fc648aa08"
           },
           "pointer": "/variant_labels/0/script"
         },
         "context-7": {
           "record": {
             "id": "tos.lexical-form.german-wille",
-            "version": 1,
-            "digest": "sha256:b4570b49727cef84c46d017730b6ed4319e1ba017dbf5aa5edc7fc38c6d13c17"
+            "version": 2,
+            "digest": "sha256:bc4a58dc0b0e1a82a095cf87c0ede624dfd0c7fb788743ba39dbb58fc648aa08"
           },
           "pointer": "/variant_labels/0/source_ref"
         },
         "context-8": {
           "record": {
             "id": "tos.lexical-form.german-wille",
-            "version": 1,
-            "digest": "sha256:b4570b49727cef84c46d017730b6ed4319e1ba017dbf5aa5edc7fc38c6d13c17"
+            "version": 2,
+            "digest": "sha256:bc4a58dc0b0e1a82a095cf87c0ede624dfd0c7fb788743ba39dbb58fc648aa08"
           },
           "pointer": "/variant_labels/0/status"
         }
@@ -187,71 +189,75 @@
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.lexical.wille-form.note-ru",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.lexical-form.german-wille",
-        "version": 1,
-        "digest": "sha256:b4570b49727cef84c46d017730b6ed4319e1ba017dbf5aa5edc7fc38c6d13c17"
+        "version": 2,
+        "digest": "sha256:bc4a58dc0b0e1a82a095cf87c0ede624dfd0c7fb788743ba39dbb58fc648aa08"
       },
       "role": "hover",
       "language": "ru",
       "script": "Cyrl",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.lexical.wille-form.note-ru",
+        "version": 1,
+        "digest": "sha256:afa1d7abd967c7b016440c4a2778c9a11a99067672eae350152bc9cfffb7c41b"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.lexical-form.german-wille",
-            "version": 1,
-            "digest": "sha256:b4570b49727cef84c46d017730b6ed4319e1ba017dbf5aa5edc7fc38c6d13c17"
+            "version": 2,
+            "digest": "sha256:bc4a58dc0b0e1a82a095cf87c0ede624dfd0c7fb788743ba39dbb58fc648aa08"
           },
           "pointer": "/notes"
         },
         "context-0": {
           "record": {
             "id": "tos.lexical-form.german-wille",
-            "version": 1,
-            "digest": "sha256:b4570b49727cef84c46d017730b6ed4319e1ba017dbf5aa5edc7fc38c6d13c17"
+            "version": 2,
+            "digest": "sha256:bc4a58dc0b0e1a82a095cf87c0ede624dfd0c7fb788743ba39dbb58fc648aa08"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.lexical-form.german-wille",
-            "version": 1,
-            "digest": "sha256:b4570b49727cef84c46d017730b6ed4319e1ba017dbf5aa5edc7fc38c6d13c17"
+            "version": 2,
+            "digest": "sha256:bc4a58dc0b0e1a82a095cf87c0ede624dfd0c7fb788743ba39dbb58fc648aa08"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.lexical-form.german-wille",
-            "version": 1,
-            "digest": "sha256:b4570b49727cef84c46d017730b6ed4319e1ba017dbf5aa5edc7fc38c6d13c17"
+            "version": 2,
+            "digest": "sha256:bc4a58dc0b0e1a82a095cf87c0ede624dfd0c7fb788743ba39dbb58fc648aa08"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.lexical-form.german-wille",
-            "version": 1,
-            "digest": "sha256:b4570b49727cef84c46d017730b6ed4319e1ba017dbf5aa5edc7fc38c6d13c17"
+            "version": 2,
+            "digest": "sha256:bc4a58dc0b0e1a82a095cf87c0ede624dfd0c7fb788743ba39dbb58fc648aa08"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.lexical-form.german-wille",
-            "version": 1,
-            "digest": "sha256:b4570b49727cef84c46d017730b6ed4319e1ba017dbf5aa5edc7fc38c6d13c17"
+            "version": 2,
+            "digest": "sha256:bc4a58dc0b0e1a82a095cf87c0ede624dfd0c7fb788743ba39dbb58fc648aa08"
           },
           "pointer": "/form_identity"
         },
         "context-5": {
           "record": {
             "id": "tos.lexical-form.german-wille",
-            "version": 1,
-            "digest": "sha256:b4570b49727cef84c46d017730b6ed4319e1ba017dbf5aa5edc7fc38c6d13c17"
+            "version": 2,
+            "digest": "sha256:bc4a58dc0b0e1a82a095cf87c0ede624dfd0c7fb788743ba39dbb58fc648aa08"
           },
           "pointer": "/field_languages/notes"
         }
@@ -262,5 +268,267 @@
       }
     }
   ],
-  "prior_forms": []
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:b4570b49727cef84c46d017730b6ed4319e1ba017dbf5aa5edc7fc38c6d13c17",
+            "id": "tos.lexical-form.german-wille",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:b4570b49727cef84c46d017730b6ed4319e1ba017dbf5aa5edc7fc38c6d13c17",
+            "id": "tos.lexical-form.german-wille",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:b4570b49727cef84c46d017730b6ed4319e1ba017dbf5aa5edc7fc38c6d13c17",
+            "id": "tos.lexical-form.german-wille",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:b4570b49727cef84c46d017730b6ed4319e1ba017dbf5aa5edc7fc38c6d13c17",
+            "id": "tos.lexical-form.german-wille",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/form_identity",
+          "record": {
+            "digest": "sha256:b4570b49727cef84c46d017730b6ed4319e1ba017dbf5aa5edc7fc38c6d13c17",
+            "id": "tos.lexical-form.german-wille",
+            "version": 1
+          }
+        },
+        "context-5": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:b4570b49727cef84c46d017730b6ed4319e1ba017dbf5aa5edc7fc38c6d13c17",
+            "id": "tos.lexical-form.german-wille",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:b4570b49727cef84c46d017730b6ed4319e1ba017dbf5aa5edc7fc38c6d13c17",
+            "id": "tos.lexical-form.german-wille",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.lexical.wille-form.name-ru",
+      "form_version": 1,
+      "language": "ru",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:b4570b49727cef84c46d017730b6ed4319e1ba017dbf5aa5edc7fc38c6d13c17",
+        "id": "tos.lexical-form.german-wille",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:b4570b49727cef84c46d017730b6ed4319e1ba017dbf5aa5edc7fc38c6d13c17",
+            "id": "tos.lexical-form.german-wille",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:b4570b49727cef84c46d017730b6ed4319e1ba017dbf5aa5edc7fc38c6d13c17",
+            "id": "tos.lexical-form.german-wille",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:b4570b49727cef84c46d017730b6ed4319e1ba017dbf5aa5edc7fc38c6d13c17",
+            "id": "tos.lexical-form.german-wille",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:b4570b49727cef84c46d017730b6ed4319e1ba017dbf5aa5edc7fc38c6d13c17",
+            "id": "tos.lexical-form.german-wille",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/form_identity",
+          "record": {
+            "digest": "sha256:b4570b49727cef84c46d017730b6ed4319e1ba017dbf5aa5edc7fc38c6d13c17",
+            "id": "tos.lexical-form.german-wille",
+            "version": 1
+          }
+        },
+        "context-5": {
+          "pointer": "/variant_labels/0/language",
+          "record": {
+            "digest": "sha256:b4570b49727cef84c46d017730b6ed4319e1ba017dbf5aa5edc7fc38c6d13c17",
+            "id": "tos.lexical-form.german-wille",
+            "version": 1
+          }
+        },
+        "context-6": {
+          "pointer": "/variant_labels/0/script",
+          "record": {
+            "digest": "sha256:b4570b49727cef84c46d017730b6ed4319e1ba017dbf5aa5edc7fc38c6d13c17",
+            "id": "tos.lexical-form.german-wille",
+            "version": 1
+          }
+        },
+        "context-7": {
+          "pointer": "/variant_labels/0/source_ref",
+          "record": {
+            "digest": "sha256:b4570b49727cef84c46d017730b6ed4319e1ba017dbf5aa5edc7fc38c6d13c17",
+            "id": "tos.lexical-form.german-wille",
+            "version": 1
+          }
+        },
+        "context-8": {
+          "pointer": "/variant_labels/0/status",
+          "record": {
+            "digest": "sha256:b4570b49727cef84c46d017730b6ed4319e1ba017dbf5aa5edc7fc38c6d13c17",
+            "id": "tos.lexical-form.german-wille",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/variant_labels/0/value",
+          "record": {
+            "digest": "sha256:b4570b49727cef84c46d017730b6ed4319e1ba017dbf5aa5edc7fc38c6d13c17",
+            "id": "tos.lexical-form.german-wille",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.lexical.wille-form.name-en",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:b4570b49727cef84c46d017730b6ed4319e1ba017dbf5aa5edc7fc38c6d13c17",
+        "id": "tos.lexical-form.german-wille",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:b4570b49727cef84c46d017730b6ed4319e1ba017dbf5aa5edc7fc38c6d13c17",
+            "id": "tos.lexical-form.german-wille",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:b4570b49727cef84c46d017730b6ed4319e1ba017dbf5aa5edc7fc38c6d13c17",
+            "id": "tos.lexical-form.german-wille",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:b4570b49727cef84c46d017730b6ed4319e1ba017dbf5aa5edc7fc38c6d13c17",
+            "id": "tos.lexical-form.german-wille",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:b4570b49727cef84c46d017730b6ed4319e1ba017dbf5aa5edc7fc38c6d13c17",
+            "id": "tos.lexical-form.german-wille",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/form_identity",
+          "record": {
+            "digest": "sha256:b4570b49727cef84c46d017730b6ed4319e1ba017dbf5aa5edc7fc38c6d13c17",
+            "id": "tos.lexical-form.german-wille",
+            "version": 1
+          }
+        },
+        "context-5": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:b4570b49727cef84c46d017730b6ed4319e1ba017dbf5aa5edc7fc38c6d13c17",
+            "id": "tos.lexical-form.german-wille",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:b4570b49727cef84c46d017730b6ed4319e1ba017dbf5aa5edc7fc38c6d13c17",
+            "id": "tos.lexical-form.german-wille",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.lexical.wille-form.note-ru",
+      "form_version": 1,
+      "language": "ru",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:b4570b49727cef84c46d017730b6ed4319e1ba017dbf5aa5edc7fc38c6d13c17",
+        "id": "tos.lexical-form.german-wille",
+        "version": 1
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.lexical-form.german-wille",
+    "version": 2,
+    "digest": "sha256:bc4a58dc0b0e1a82a095cf87c0ede624dfd0c7fb788743ba39dbb58fc648aa08"
+  }
 }

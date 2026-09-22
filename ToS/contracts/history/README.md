@@ -16,8 +16,10 @@ bytes match the exact recorded digest and their `$id` matches that active
 schema's ToS URI. The historical file is bounded to 1 MiB; symlinks, path
 escapes, wrong identities, missing bytes and malformed JSON are refused.
 No Git history, network lookup, digest restamping or schema migration occurs
-during validation. Ordinary source/evidence inputs still need current exact
-bytes, and output/current-record validation remains unchanged.
+during validation. Public metadata inputs may also resolve through their
+committed source-owner revision history. Recorded builder inputs have a separate
+[retention route](../../research-packets/retained-builder-inputs/README.md).
+Output/current-record validation continues to use active contracts.
 
 The initial snapshot
 `2f319b7bb1fe146d42422685e5d3c727aa2cde539919c18ff6d6ac4f9b1a6019.json`

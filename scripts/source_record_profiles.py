@@ -475,7 +475,7 @@ class SourceRecordProfiles:
         """Shared profile grammar only; no visibility, source read or admission.
 
         The explicit public and owner-local readers apply their own transport
-        and disclosure boundaries after this check. This is not an export API.
+        and disclosure boundaries after this check. Export uses a separately authorized reader route.
         """
         if kind not in self.profiles or not isinstance(source, dict):
             raise SourceProfileError('source record requires a declared profile and an object')

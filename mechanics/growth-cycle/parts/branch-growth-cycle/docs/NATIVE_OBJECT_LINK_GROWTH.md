@@ -29,10 +29,10 @@ Commands use `tos_local_object_link_command_v1`:
 New homes are exactly `ToS/source-witnesses/links/<home>/link.json` and
 `ToS/source-witnesses/relations/<home>/source-claims.jsonl`. Each has its own
 source-copy Forms. The Claim home retains immutable request, runtime,
-serialization provenance and compound receipt. Publication touches no subject
-file, revision, descendant, payload, catalog, rights or external provider.
-Shared [selected transaction mechanics](SELECTED_METADATA_TRANSACTIONS.md)
-own byte movement and reader barriers, not the truth of the association.
+serialization provenance and compound receipt. The publication write set
+consists of those new homes. Shared [selected transaction
+mechanics](SELECTED_METADATA_TRANSACTIONS.md) own byte movement and reader
+barriers; source-visible assessment evaluates the association.
 
 `tos_source_link_v1` stays unchanged. New association Claims use the additive
 [`tos_object_link_claim_v2`](../../../../../ToS/contracts/object-link-claim-v2.schema.json)
@@ -44,12 +44,11 @@ and `tos_object_link_claim_v1` remain intact.
 
 The Claim carries `forensic_observation` as its layer and a caller-authored
 qualified statement with language, script, link role and explicit
-`availability_is_rights_conclusion: false`. A reported observation is not a
-newly performed remote observation. Source URLs are addresses, never evidence
-that this command fetched their contents. A rights-statement link does not
-grant rights, and download availability does not imply redistribution permission.
-No source content, philosophical assessment, identity equivalence, publication
-authorization or canon admission follows from serialization.
+`availability_is_rights_conclusion: false`. It records the supplied
+observation and its evidence. Source URLs locate material; remote observation
+requires a separate execution record. Rights-statement links point to the
+rights basis, which the rights owner assesses. Source assessment, equivalence,
+publication and canon follow their respective owner routes.
 
 Independent native Link revision changes only its allowed descriptive fields;
 URI, observation, identity, association and original provenance remain fixed.
@@ -60,10 +59,10 @@ and source versions stay historical, not current assessments. A forged receipt,
 partial capture, missing creation baseline or uncommitted correction is not
 accepted as a native origin.
 
-After a successful creation, correction or rollback, rebuild source-owned
-derived catalogs before preparing a new catalog-dependent operation. Historical
-retry returns the exact original receipt without republishing it. This is a
-bounded metadata writer, not an indexed or incremental graph engine.
+After successful creation, correction or rollback, rebuild source-owned
+derived catalogs before preparing a new catalog-dependent operation.
+Historical retry returns the exact original receipt. Indexing and graph
+projection consume the resulting source metadata through their own builders.
 
 Focused validation:
 `mechanics/growth-cycle/tests/test_source_link_commands.py`, shared discovery,

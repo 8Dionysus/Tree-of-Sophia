@@ -2,8 +2,9 @@
 
 This directory holds derived export surfaces for bounded downstream consumption.
 
-Generated files here do not replace ToS-authored authority.
-Canonical authority remains in `../canon/`, while the public entry mirrors remain in `../public-compatibility/`.
+Generated exports return to their authored sources. Canonical authority
+remains in `../canon/`, while public entry mirrors live in
+`../public-compatibility/`.
 
 ## Current role
 
@@ -13,12 +14,9 @@ Use `ToS/derived-exports/` when you need:
 - a reviewable derived payload for KAG-oriented consumers
 - a checked whole-corpus index for runtime graph, UI, and MCP access planes
 
-Do not treat `ToS/derived-exports/` as:
-
-- the primary authored home of the route
-- a replacement for the canonical tree node
-- an excuse to skip the source-owned capsule and tiny-entry docs
-- a runtime projection store or graph UI authority
+Follow an export back to its authored route, canonical node, source-owned
+capsule and tiny-entry documentation. Runtime storage and presentation follow
+their own consumer contracts.
 
 ## Current bounded exports
 
@@ -97,8 +95,9 @@ with the empty root pointer and invent no row number. Original DOCX table/row
 indexes remain inside the unchanged source object, not those JSONL locators.
 Unknown nested fields, null, false, empty and absent values stay distinct.
 Applied endpoint aliases also retain their complete owner packet, claim limit
-and selected alias pointers. These envelopes are not native Corpus Record
-identity, source assessment, publication clearance or canon admission.
+and selected alias pointers. These envelopes preserve authored atlas provenance. Native Corpus Record
+identity, source assessment, publication and canon use their corresponding
+owner contracts.
 
 Every existing authored candidate node/relation remains globally inspectable,
 including candidates selected by no current lens and their existing endpoint

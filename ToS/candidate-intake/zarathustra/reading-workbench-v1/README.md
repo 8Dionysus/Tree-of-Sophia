@@ -1,13 +1,12 @@
 # Zarathustra reading workbench v1
 
 A whole-work, source-returning **candidate** reading layer. German remains the
-source authority; Antonovsky 1911 is a historical comparator. English is an
-on-demand source-bound analysis task, not an additional hidden witness.
+source authority; Antonovsky 1911 is a historical comparator. English is prepared on demand as a source-bound analysis task.
 
 The layer connects existing multilingual concept retrieval to current
 sentence/clause anchors, quotation scopes, contextual voices and repeating
-lexical sequences. It preserves the previous linguistic-analysis spine rather
-than rewriting its identities or claiming its heuristic morphology is repaired.
+lexical sequences. It preserves the previous linguistic-analysis identities and the recorded
+limits of heuristic morphology.
 
 ## Read and run
 
@@ -39,7 +38,8 @@ Browser/WebMCP and public Worker integration are outside this recovery port.
    XML/text-node offsets or browser UTF-16 indices.
 2. Inventory every chapter in both witnesses, then inspect opening/closing and
    reporting transitions. Bind chapter/range/span policies to exact source
-   hashes. A policy identifies a contextual candidate, not accepted authorship.
+   hashes. A policy identifies a contextual candidate for source-visible authorship
+assessment.
 3. Scan quotations per reading. Expected closers win over opener glyphs;
    continuation signs do not increase depth. Source-visible OCR/glyph anomalies
    get explicit candidate events; no correction changes the source bytes.
@@ -61,8 +61,8 @@ Browser/WebMCP and public Worker integration are outside this recovery port.
    source spans and deletion operations; they have no invented legacy occurrence
    ID and are counted separately from the predecessor results and their groups.
 7. Recheck source conservation, actual alignment anchors, negative examples and
-   ordinary query/access paths. An independent Codex challenger checks different
-   properties and source cases; agreement is review evidence, not semantic canon.
+   ordinary query/access paths. An independent Codex challenger checks different properties and source cases;
+the resulting review evidence feeds the semantic assessment route.
 
 An exact algorithmic result is exact only for its declared operation. The
 copied sentence/clause alignments retain their original candidate status and
@@ -74,7 +74,7 @@ bridge is deferred; the complete Russian source-surface layer is still present.
 Etymology requires external cited evidence. Contextual translation and wordplay
 belong to an occurrence; a dictionary history does not establish Nietzsche's
 intended meaning. The existing word-analysis task continues to enforce this
-boundary. Preparing a task is not the execution of an English translation.
+boundary. The prepared task records translation execution as a separate next step.
 
 ## Transfer to the rest of ToS
 

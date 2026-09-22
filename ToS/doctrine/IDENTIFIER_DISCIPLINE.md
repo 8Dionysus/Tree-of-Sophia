@@ -1,9 +1,7 @@
 # Identifier Discipline
 
-This document records the current sixth-phase ToS doctrine for stable public node identifiers.
-
-It does not introduce a full executable corpus platform.
-It defines the public grammar that later templates, examples, and derived handoffs should meet.
+This document defines stable public node identifiers for templates, authored
+nodes, examples and derived handoffs.
 
 ## Core rule
 
@@ -24,20 +22,15 @@ Keep them:
 - `<node_type>` names the current public family such as `source` or `concept`
 - each later segment is a slug or subslug that helps keep the identifier readable
 
-## What IDs should not encode
+## Identity and lifecycle
 
-Do not encode into `node_id`:
-
-- review status
-- maturity claims
-- branch ownership claims that are not yet stabilized
-- derived KAG projections
-
-The ID should identify the node, not narrate its whole lifecycle.
+The ID names the node throughout its lifecycle. Review status, maturity,
+branch ownership and projection state belong to versioned metadata with
+their own evidence. Updating that metadata preserves the node's ID.
 
 ## Current scaffold posture
 
-This phase gives public ID discipline to:
+The public ID grammar covers:
 
 - source-node scaffolds
 - concept-node scaffolds
@@ -50,4 +43,4 @@ This phase gives public ID discipline to:
 - analogy-node scaffolds
 - synthesis-node scaffolds
 
-It does not claim a full branch pilot, full corpus taxonomy, or public validator program yet.
+New families declare their node type and use the same stable grammar.

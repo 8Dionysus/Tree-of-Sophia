@@ -1,0 +1,90 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.item.friedrich-nietzsche.nietzsches-werke-band-8.naumann-1906.wikimedia-commons-stanford-scan-djvu",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:cc331251fb3fd9e63b927400",
+      "request_digest": "sha256:910f37b0d8a7f56c075c24859111c43843741564c29faee3f09cb214ac8fc736",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:bc523247cda36dd41dc4b6b407b48d7986258d6c9c30a10fb5fa2991ee4e4164",
+      "recorded_at": "2026-09-22T05:04:26.164982+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.item.friedrich-nietzsche.nietzsches-werke-band-8.naumann-1906.wikimedia-commons-stanford-scan-djvu",
+        "version": 1,
+        "digest": "sha256:130f8bdac7ff46b83732b2ec9d00c0809a6baf42e239810c5b0fdabc5a934bf5"
+      },
+      "source": {
+        "id": "tos.item.friedrich-nietzsche.nietzsches-werke-band-8.naumann-1906.wikimedia-commons-stanford-scan-djvu",
+        "version": 2,
+        "digest": "sha256:841d510cf090b3849a3e5a81f6de708d81fca0c6879c71243fb9dbf3347936ab"
+      },
+      "previous_revision": "sha256:08fc06ee7f1a4294bd0ae44c5b4bee5c35d12320f9646d0477946310a652ba75",
+      "archive_path": "ToS/source-witnesses/.record-revisions/cc331251fb3fd9e63b92740017af7d95404f906db0939af3055a45663342d128-08fc06ee7f1a4294bd0ae44c5b4bee5c35d12320f9646d0477946310a652ba75",
+      "dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+      "changed_fields": [
+        "notes"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.metadata.5aa3f985be01a6ebc5ff95cff0183b6b70333d7609ee1a34865ba761a34f5962",
+          "version": 2,
+          "digest": "sha256:f94c9fc4218cbfc9caa5fe826e5a1eaa68fb98a0a5e21d5c4b47dfb7b76e0de8"
+        },
+        {
+          "id": "tos.form.metadata.ff9b5708eba759cff5609fa9157cdadb5eea0e76dc59c38a7381a509284ac8d8",
+          "version": 2,
+          "digest": "sha256:c2b8de6ca725b570b3885f01f980692509bfe18c237a668d695d816049fc94d3"
+        },
+        {
+          "id": "tos.form.metadata.5dc3d8d23d4b8da57ccfa5c10a93556805ab007488e193d27a54941a2e458e6b",
+          "version": 2,
+          "digest": "sha256:89b48cb72c5713503f870a7a12c6475958176c254ec0276f8352bdf4ee7ccd36"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:cc331251fb3fd9e63b927400",
+        "expected_configuration": "sha256:bc523247cda36dd41dc4b6b407b48d7986258d6c9c30a10fb5fa2991ee4e4164",
+        "expected_dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+        "expected_publication": "sha256:28c34b86be3e9362b3e7f52999d19e97ec72cd27e5d7bec15458bc6b7b1d8b18",
+        "expected_revision": "sha256:08fc06ee7f1a4294bd0ae44c5b4bee5c35d12320f9646d0477946310a652ba75",
+        "expected_source": {
+          "digest": "sha256:130f8bdac7ff46b83732b2ec9d00c0809a6baf42e239810c5b0fdabc5a934bf5",
+          "id": "tos.item.friedrich-nietzsche.nietzsches-werke-band-8.naumann-1906.wikimedia-commons-stanford-scan-djvu",
+          "version": 1
+        },
+        "fields": {
+          "notes": "The exact Commons DjVu revision is fixed independently of the Internet Archive record. The source-visible scan identifies the Stanford copy and 1906 Naumann volume, while the linked Internet Archive metadata contains an unrelated Gustav Siewerth description. Provider OCR supports navigation and awaits textual assessment. The operator-held DjVu is scoped to local use."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.metadata.5aa3f985be01a6ebc5ff95cff0183b6b70333d7609ee1a34865ba761a34f5962"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.metadata.ff9b5708eba759cff5609fa9157cdadb5eea0e76dc59c38a7381a509284ac8d8"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.metadata.5dc3d8d23d4b8da57ccfa5c10a93556805ab007488e193d27a54941a2e458e6b"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:4ca3d1777f2ba9e3e7e66260bca84b25da31058ca90c97c641301ea02197c3ec",
+        "selected_files": [
+          "item.human-forms.json",
+          "item.json",
+          "source-revision-history.json"
+        ]
+      }
+    }
+  ]
+}

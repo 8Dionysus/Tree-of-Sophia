@@ -345,9 +345,7 @@
         "promotion_authorized": {"const": false}
       }
     },
-    "authority_boundary": {
-      "const": "metadata and critical locator only: this packet is not source text, passage alignment, rights clearance, accepted German, translation evidence, semantic evidence, or promotion authority"
-    }
+    "authority_boundary": {"type": "string", "minLength": 1, "description": "Brief account of the artifact purpose and scope. Typed status, effects, assessment and permission fields govern its use."}
   },
   "$defs": {
     "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},

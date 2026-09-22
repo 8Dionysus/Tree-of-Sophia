@@ -1,71 +1,69 @@
 {
-  "schema_version": "tos_human_form_set_v1",
-  "subject": {
-    "id": "tos.biographical-episode.friedrich-nietzsche.basel-discharge-petition",
-    "version": 1,
-    "digest": "sha256:55ab17593df030f9eafb206f3cbd209adc7ab02ddcd2fb219adf729d5d091766"
-  },
   "forms": [
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.basel-research.basel-discharge-petition.name-ru",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.biographical-episode.friedrich-nietzsche.basel-discharge-petition",
-        "version": 1,
-        "digest": "sha256:55ab17593df030f9eafb206f3cbd209adc7ab02ddcd2fb219adf729d5d091766"
+        "version": 2,
+        "digest": "sha256:c2be1c0d2a9ddd9cba4fea341ee0dba3c21c25aef3e0132d8e9f26da93579c8a"
       },
       "role": "name",
       "language": "ru",
       "script": "Cyrl",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.basel-research.basel-discharge-petition.name-ru",
+        "version": 1,
+        "digest": "sha256:91f3b315e392914ad3a670d80faf8f8f485d159781c0a041d5e775b8d9940174"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.biographical-episode.friedrich-nietzsche.basel-discharge-petition",
-            "version": 1,
-            "digest": "sha256:55ab17593df030f9eafb206f3cbd209adc7ab02ddcd2fb219adf729d5d091766"
+            "version": 2,
+            "digest": "sha256:c2be1c0d2a9ddd9cba4fea341ee0dba3c21c25aef3e0132d8e9f26da93579c8a"
           },
           "pointer": "/preferred_label"
         },
         "context-0": {
           "record": {
             "id": "tos.biographical-episode.friedrich-nietzsche.basel-discharge-petition",
-            "version": 1,
-            "digest": "sha256:55ab17593df030f9eafb206f3cbd209adc7ab02ddcd2fb219adf729d5d091766"
+            "version": 2,
+            "digest": "sha256:c2be1c0d2a9ddd9cba4fea341ee0dba3c21c25aef3e0132d8e9f26da93579c8a"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.biographical-episode.friedrich-nietzsche.basel-discharge-petition",
-            "version": 1,
-            "digest": "sha256:55ab17593df030f9eafb206f3cbd209adc7ab02ddcd2fb219adf729d5d091766"
+            "version": 2,
+            "digest": "sha256:c2be1c0d2a9ddd9cba4fea341ee0dba3c21c25aef3e0132d8e9f26da93579c8a"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.biographical-episode.friedrich-nietzsche.basel-discharge-petition",
-            "version": 1,
-            "digest": "sha256:55ab17593df030f9eafb206f3cbd209adc7ab02ddcd2fb219adf729d5d091766"
+            "version": 2,
+            "digest": "sha256:c2be1c0d2a9ddd9cba4fea341ee0dba3c21c25aef3e0132d8e9f26da93579c8a"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.biographical-episode.friedrich-nietzsche.basel-discharge-petition",
-            "version": 1,
-            "digest": "sha256:55ab17593df030f9eafb206f3cbd209adc7ab02ddcd2fb219adf729d5d091766"
+            "version": 2,
+            "digest": "sha256:c2be1c0d2a9ddd9cba4fea341ee0dba3c21c25aef3e0132d8e9f26da93579c8a"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.biographical-episode.friedrich-nietzsche.basel-discharge-petition",
-            "version": 1,
-            "digest": "sha256:55ab17593df030f9eafb206f3cbd209adc7ab02ddcd2fb219adf729d5d091766"
+            "version": 2,
+            "digest": "sha256:c2be1c0d2a9ddd9cba4fea341ee0dba3c21c25aef3e0132d8e9f26da93579c8a"
           },
           "pointer": "/field_languages/preferred_label"
         }
@@ -78,87 +76,91 @@
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.basel-research.basel-discharge-petition.name-en",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.biographical-episode.friedrich-nietzsche.basel-discharge-petition",
-        "version": 1,
-        "digest": "sha256:55ab17593df030f9eafb206f3cbd209adc7ab02ddcd2fb219adf729d5d091766"
+        "version": 2,
+        "digest": "sha256:c2be1c0d2a9ddd9cba4fea341ee0dba3c21c25aef3e0132d8e9f26da93579c8a"
       },
       "role": "name",
       "language": "en",
       "script": "Latn",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.basel-research.basel-discharge-petition.name-en",
+        "version": 1,
+        "digest": "sha256:a3a30041a9f89a988a97f1cc12d8aef2a56baa98a877f013084a05ee4a50b9b8"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.biographical-episode.friedrich-nietzsche.basel-discharge-petition",
-            "version": 1,
-            "digest": "sha256:55ab17593df030f9eafb206f3cbd209adc7ab02ddcd2fb219adf729d5d091766"
+            "version": 2,
+            "digest": "sha256:c2be1c0d2a9ddd9cba4fea341ee0dba3c21c25aef3e0132d8e9f26da93579c8a"
           },
           "pointer": "/variant_labels/0/value"
         },
         "context-0": {
           "record": {
             "id": "tos.biographical-episode.friedrich-nietzsche.basel-discharge-petition",
-            "version": 1,
-            "digest": "sha256:55ab17593df030f9eafb206f3cbd209adc7ab02ddcd2fb219adf729d5d091766"
+            "version": 2,
+            "digest": "sha256:c2be1c0d2a9ddd9cba4fea341ee0dba3c21c25aef3e0132d8e9f26da93579c8a"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.biographical-episode.friedrich-nietzsche.basel-discharge-petition",
-            "version": 1,
-            "digest": "sha256:55ab17593df030f9eafb206f3cbd209adc7ab02ddcd2fb219adf729d5d091766"
+            "version": 2,
+            "digest": "sha256:c2be1c0d2a9ddd9cba4fea341ee0dba3c21c25aef3e0132d8e9f26da93579c8a"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.biographical-episode.friedrich-nietzsche.basel-discharge-petition",
-            "version": 1,
-            "digest": "sha256:55ab17593df030f9eafb206f3cbd209adc7ab02ddcd2fb219adf729d5d091766"
+            "version": 2,
+            "digest": "sha256:c2be1c0d2a9ddd9cba4fea341ee0dba3c21c25aef3e0132d8e9f26da93579c8a"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.biographical-episode.friedrich-nietzsche.basel-discharge-petition",
-            "version": 1,
-            "digest": "sha256:55ab17593df030f9eafb206f3cbd209adc7ab02ddcd2fb219adf729d5d091766"
+            "version": 2,
+            "digest": "sha256:c2be1c0d2a9ddd9cba4fea341ee0dba3c21c25aef3e0132d8e9f26da93579c8a"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.biographical-episode.friedrich-nietzsche.basel-discharge-petition",
-            "version": 1,
-            "digest": "sha256:55ab17593df030f9eafb206f3cbd209adc7ab02ddcd2fb219adf729d5d091766"
+            "version": 2,
+            "digest": "sha256:c2be1c0d2a9ddd9cba4fea341ee0dba3c21c25aef3e0132d8e9f26da93579c8a"
           },
           "pointer": "/variant_labels/0/language"
         },
         "context-5": {
           "record": {
             "id": "tos.biographical-episode.friedrich-nietzsche.basel-discharge-petition",
-            "version": 1,
-            "digest": "sha256:55ab17593df030f9eafb206f3cbd209adc7ab02ddcd2fb219adf729d5d091766"
+            "version": 2,
+            "digest": "sha256:c2be1c0d2a9ddd9cba4fea341ee0dba3c21c25aef3e0132d8e9f26da93579c8a"
           },
           "pointer": "/variant_labels/0/script"
         },
         "context-6": {
           "record": {
             "id": "tos.biographical-episode.friedrich-nietzsche.basel-discharge-petition",
-            "version": 1,
-            "digest": "sha256:55ab17593df030f9eafb206f3cbd209adc7ab02ddcd2fb219adf729d5d091766"
+            "version": 2,
+            "digest": "sha256:c2be1c0d2a9ddd9cba4fea341ee0dba3c21c25aef3e0132d8e9f26da93579c8a"
           },
           "pointer": "/variant_labels/0/source_ref"
         },
         "context-7": {
           "record": {
             "id": "tos.biographical-episode.friedrich-nietzsche.basel-discharge-petition",
-            "version": 1,
-            "digest": "sha256:55ab17593df030f9eafb206f3cbd209adc7ab02ddcd2fb219adf729d5d091766"
+            "version": 2,
+            "digest": "sha256:c2be1c0d2a9ddd9cba4fea341ee0dba3c21c25aef3e0132d8e9f26da93579c8a"
           },
           "pointer": "/variant_labels/0/status"
         }
@@ -171,63 +173,67 @@
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.basel-research.basel-discharge-petition.note-ru",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.biographical-episode.friedrich-nietzsche.basel-discharge-petition",
-        "version": 1,
-        "digest": "sha256:55ab17593df030f9eafb206f3cbd209adc7ab02ddcd2fb219adf729d5d091766"
+        "version": 2,
+        "digest": "sha256:c2be1c0d2a9ddd9cba4fea341ee0dba3c21c25aef3e0132d8e9f26da93579c8a"
       },
       "role": "hover",
       "language": "ru",
       "script": "Cyrl",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.basel-research.basel-discharge-petition.note-ru",
+        "version": 1,
+        "digest": "sha256:6b6ef472858e47586f4396e54f3f47101979d0ee72af546f19951a7a5bab4579"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.biographical-episode.friedrich-nietzsche.basel-discharge-petition",
-            "version": 1,
-            "digest": "sha256:55ab17593df030f9eafb206f3cbd209adc7ab02ddcd2fb219adf729d5d091766"
+            "version": 2,
+            "digest": "sha256:c2be1c0d2a9ddd9cba4fea341ee0dba3c21c25aef3e0132d8e9f26da93579c8a"
           },
           "pointer": "/notes"
         },
         "context-0": {
           "record": {
             "id": "tos.biographical-episode.friedrich-nietzsche.basel-discharge-petition",
-            "version": 1,
-            "digest": "sha256:55ab17593df030f9eafb206f3cbd209adc7ab02ddcd2fb219adf729d5d091766"
+            "version": 2,
+            "digest": "sha256:c2be1c0d2a9ddd9cba4fea341ee0dba3c21c25aef3e0132d8e9f26da93579c8a"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.biographical-episode.friedrich-nietzsche.basel-discharge-petition",
-            "version": 1,
-            "digest": "sha256:55ab17593df030f9eafb206f3cbd209adc7ab02ddcd2fb219adf729d5d091766"
+            "version": 2,
+            "digest": "sha256:c2be1c0d2a9ddd9cba4fea341ee0dba3c21c25aef3e0132d8e9f26da93579c8a"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.biographical-episode.friedrich-nietzsche.basel-discharge-petition",
-            "version": 1,
-            "digest": "sha256:55ab17593df030f9eafb206f3cbd209adc7ab02ddcd2fb219adf729d5d091766"
+            "version": 2,
+            "digest": "sha256:c2be1c0d2a9ddd9cba4fea341ee0dba3c21c25aef3e0132d8e9f26da93579c8a"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.biographical-episode.friedrich-nietzsche.basel-discharge-petition",
-            "version": 1,
-            "digest": "sha256:55ab17593df030f9eafb206f3cbd209adc7ab02ddcd2fb219adf729d5d091766"
+            "version": 2,
+            "digest": "sha256:c2be1c0d2a9ddd9cba4fea341ee0dba3c21c25aef3e0132d8e9f26da93579c8a"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.biographical-episode.friedrich-nietzsche.basel-discharge-petition",
-            "version": 1,
-            "digest": "sha256:55ab17593df030f9eafb206f3cbd209adc7ab02ddcd2fb219adf729d5d091766"
+            "version": 2,
+            "digest": "sha256:c2be1c0d2a9ddd9cba4fea341ee0dba3c21c25aef3e0132d8e9f26da93579c8a"
           },
           "pointer": "/field_languages/notes"
         }
@@ -238,5 +244,243 @@
       }
     }
   ],
-  "prior_forms": []
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:55ab17593df030f9eafb206f3cbd209adc7ab02ddcd2fb219adf729d5d091766",
+            "id": "tos.biographical-episode.friedrich-nietzsche.basel-discharge-petition",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:55ab17593df030f9eafb206f3cbd209adc7ab02ddcd2fb219adf729d5d091766",
+            "id": "tos.biographical-episode.friedrich-nietzsche.basel-discharge-petition",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:55ab17593df030f9eafb206f3cbd209adc7ab02ddcd2fb219adf729d5d091766",
+            "id": "tos.biographical-episode.friedrich-nietzsche.basel-discharge-petition",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:55ab17593df030f9eafb206f3cbd209adc7ab02ddcd2fb219adf729d5d091766",
+            "id": "tos.biographical-episode.friedrich-nietzsche.basel-discharge-petition",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:55ab17593df030f9eafb206f3cbd209adc7ab02ddcd2fb219adf729d5d091766",
+            "id": "tos.biographical-episode.friedrich-nietzsche.basel-discharge-petition",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:55ab17593df030f9eafb206f3cbd209adc7ab02ddcd2fb219adf729d5d091766",
+            "id": "tos.biographical-episode.friedrich-nietzsche.basel-discharge-petition",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.basel-research.basel-discharge-petition.name-ru",
+      "form_version": 1,
+      "language": "ru",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:55ab17593df030f9eafb206f3cbd209adc7ab02ddcd2fb219adf729d5d091766",
+        "id": "tos.biographical-episode.friedrich-nietzsche.basel-discharge-petition",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:55ab17593df030f9eafb206f3cbd209adc7ab02ddcd2fb219adf729d5d091766",
+            "id": "tos.biographical-episode.friedrich-nietzsche.basel-discharge-petition",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:55ab17593df030f9eafb206f3cbd209adc7ab02ddcd2fb219adf729d5d091766",
+            "id": "tos.biographical-episode.friedrich-nietzsche.basel-discharge-petition",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:55ab17593df030f9eafb206f3cbd209adc7ab02ddcd2fb219adf729d5d091766",
+            "id": "tos.biographical-episode.friedrich-nietzsche.basel-discharge-petition",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:55ab17593df030f9eafb206f3cbd209adc7ab02ddcd2fb219adf729d5d091766",
+            "id": "tos.biographical-episode.friedrich-nietzsche.basel-discharge-petition",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/variant_labels/0/language",
+          "record": {
+            "digest": "sha256:55ab17593df030f9eafb206f3cbd209adc7ab02ddcd2fb219adf729d5d091766",
+            "id": "tos.biographical-episode.friedrich-nietzsche.basel-discharge-petition",
+            "version": 1
+          }
+        },
+        "context-5": {
+          "pointer": "/variant_labels/0/script",
+          "record": {
+            "digest": "sha256:55ab17593df030f9eafb206f3cbd209adc7ab02ddcd2fb219adf729d5d091766",
+            "id": "tos.biographical-episode.friedrich-nietzsche.basel-discharge-petition",
+            "version": 1
+          }
+        },
+        "context-6": {
+          "pointer": "/variant_labels/0/source_ref",
+          "record": {
+            "digest": "sha256:55ab17593df030f9eafb206f3cbd209adc7ab02ddcd2fb219adf729d5d091766",
+            "id": "tos.biographical-episode.friedrich-nietzsche.basel-discharge-petition",
+            "version": 1
+          }
+        },
+        "context-7": {
+          "pointer": "/variant_labels/0/status",
+          "record": {
+            "digest": "sha256:55ab17593df030f9eafb206f3cbd209adc7ab02ddcd2fb219adf729d5d091766",
+            "id": "tos.biographical-episode.friedrich-nietzsche.basel-discharge-petition",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/variant_labels/0/value",
+          "record": {
+            "digest": "sha256:55ab17593df030f9eafb206f3cbd209adc7ab02ddcd2fb219adf729d5d091766",
+            "id": "tos.biographical-episode.friedrich-nietzsche.basel-discharge-petition",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.basel-research.basel-discharge-petition.name-en",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:55ab17593df030f9eafb206f3cbd209adc7ab02ddcd2fb219adf729d5d091766",
+        "id": "tos.biographical-episode.friedrich-nietzsche.basel-discharge-petition",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:55ab17593df030f9eafb206f3cbd209adc7ab02ddcd2fb219adf729d5d091766",
+            "id": "tos.biographical-episode.friedrich-nietzsche.basel-discharge-petition",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:55ab17593df030f9eafb206f3cbd209adc7ab02ddcd2fb219adf729d5d091766",
+            "id": "tos.biographical-episode.friedrich-nietzsche.basel-discharge-petition",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:55ab17593df030f9eafb206f3cbd209adc7ab02ddcd2fb219adf729d5d091766",
+            "id": "tos.biographical-episode.friedrich-nietzsche.basel-discharge-petition",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:55ab17593df030f9eafb206f3cbd209adc7ab02ddcd2fb219adf729d5d091766",
+            "id": "tos.biographical-episode.friedrich-nietzsche.basel-discharge-petition",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:55ab17593df030f9eafb206f3cbd209adc7ab02ddcd2fb219adf729d5d091766",
+            "id": "tos.biographical-episode.friedrich-nietzsche.basel-discharge-petition",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:55ab17593df030f9eafb206f3cbd209adc7ab02ddcd2fb219adf729d5d091766",
+            "id": "tos.biographical-episode.friedrich-nietzsche.basel-discharge-petition",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.basel-research.basel-discharge-petition.note-ru",
+      "form_version": 1,
+      "language": "ru",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:55ab17593df030f9eafb206f3cbd209adc7ab02ddcd2fb219adf729d5d091766",
+        "id": "tos.biographical-episode.friedrich-nietzsche.basel-discharge-petition",
+        "version": 1
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.biographical-episode.friedrich-nietzsche.basel-discharge-petition",
+    "version": 2,
+    "digest": "sha256:c2be1c0d2a9ddd9cba4fea341ee0dba3c21c25aef3e0132d8e9f26da93579c8a"
+  }
 }

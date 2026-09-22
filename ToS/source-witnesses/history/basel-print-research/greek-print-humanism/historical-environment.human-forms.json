@@ -1,71 +1,69 @@
 {
-  "schema_version": "tos_human_form_set_v1",
-  "subject": {
-    "id": "tos.historical-environment.basel.greek-print-humanism",
-    "version": 1,
-    "digest": "sha256:73fe8f22c4a33e5f179cbc781ce207121026d079a9dc281e9243c6a3644b4b55"
-  },
   "forms": [
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.basel-print.print-environment.name-ru",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.historical-environment.basel.greek-print-humanism",
-        "version": 1,
-        "digest": "sha256:73fe8f22c4a33e5f179cbc781ce207121026d079a9dc281e9243c6a3644b4b55"
+        "version": 2,
+        "digest": "sha256:8f9f7c30fbf7690e95bddf082136b8d7c38b43e83fd7c6c0c42a7bbfe42ea42e"
       },
       "role": "name",
       "language": "ru",
       "script": "Cyrl",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.basel-print.print-environment.name-ru",
+        "version": 1,
+        "digest": "sha256:8e27bcd5a00f5e24acf55caf8a34545364cd37d49655aff4fee58d63bdd28929"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.historical-environment.basel.greek-print-humanism",
-            "version": 1,
-            "digest": "sha256:73fe8f22c4a33e5f179cbc781ce207121026d079a9dc281e9243c6a3644b4b55"
+            "version": 2,
+            "digest": "sha256:8f9f7c30fbf7690e95bddf082136b8d7c38b43e83fd7c6c0c42a7bbfe42ea42e"
           },
           "pointer": "/preferred_label"
         },
         "context-0": {
           "record": {
             "id": "tos.historical-environment.basel.greek-print-humanism",
-            "version": 1,
-            "digest": "sha256:73fe8f22c4a33e5f179cbc781ce207121026d079a9dc281e9243c6a3644b4b55"
+            "version": 2,
+            "digest": "sha256:8f9f7c30fbf7690e95bddf082136b8d7c38b43e83fd7c6c0c42a7bbfe42ea42e"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.historical-environment.basel.greek-print-humanism",
-            "version": 1,
-            "digest": "sha256:73fe8f22c4a33e5f179cbc781ce207121026d079a9dc281e9243c6a3644b4b55"
+            "version": 2,
+            "digest": "sha256:8f9f7c30fbf7690e95bddf082136b8d7c38b43e83fd7c6c0c42a7bbfe42ea42e"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.historical-environment.basel.greek-print-humanism",
-            "version": 1,
-            "digest": "sha256:73fe8f22c4a33e5f179cbc781ce207121026d079a9dc281e9243c6a3644b4b55"
+            "version": 2,
+            "digest": "sha256:8f9f7c30fbf7690e95bddf082136b8d7c38b43e83fd7c6c0c42a7bbfe42ea42e"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.historical-environment.basel.greek-print-humanism",
-            "version": 1,
-            "digest": "sha256:73fe8f22c4a33e5f179cbc781ce207121026d079a9dc281e9243c6a3644b4b55"
+            "version": 2,
+            "digest": "sha256:8f9f7c30fbf7690e95bddf082136b8d7c38b43e83fd7c6c0c42a7bbfe42ea42e"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.historical-environment.basel.greek-print-humanism",
-            "version": 1,
-            "digest": "sha256:73fe8f22c4a33e5f179cbc781ce207121026d079a9dc281e9243c6a3644b4b55"
+            "version": 2,
+            "digest": "sha256:8f9f7c30fbf7690e95bddf082136b8d7c38b43e83fd7c6c0c42a7bbfe42ea42e"
           },
           "pointer": "/field_languages/preferred_label"
         }
@@ -78,87 +76,91 @@
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.basel-print.print-environment.name-en",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.historical-environment.basel.greek-print-humanism",
-        "version": 1,
-        "digest": "sha256:73fe8f22c4a33e5f179cbc781ce207121026d079a9dc281e9243c6a3644b4b55"
+        "version": 2,
+        "digest": "sha256:8f9f7c30fbf7690e95bddf082136b8d7c38b43e83fd7c6c0c42a7bbfe42ea42e"
       },
       "role": "name",
       "language": "en",
       "script": "Latn",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.basel-print.print-environment.name-en",
+        "version": 1,
+        "digest": "sha256:c503a766648ca7b3643d1ba392c4497c9d08b32e1040096468097b4320cd3477"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.historical-environment.basel.greek-print-humanism",
-            "version": 1,
-            "digest": "sha256:73fe8f22c4a33e5f179cbc781ce207121026d079a9dc281e9243c6a3644b4b55"
+            "version": 2,
+            "digest": "sha256:8f9f7c30fbf7690e95bddf082136b8d7c38b43e83fd7c6c0c42a7bbfe42ea42e"
           },
           "pointer": "/variant_labels/0/value"
         },
         "context-0": {
           "record": {
             "id": "tos.historical-environment.basel.greek-print-humanism",
-            "version": 1,
-            "digest": "sha256:73fe8f22c4a33e5f179cbc781ce207121026d079a9dc281e9243c6a3644b4b55"
+            "version": 2,
+            "digest": "sha256:8f9f7c30fbf7690e95bddf082136b8d7c38b43e83fd7c6c0c42a7bbfe42ea42e"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.historical-environment.basel.greek-print-humanism",
-            "version": 1,
-            "digest": "sha256:73fe8f22c4a33e5f179cbc781ce207121026d079a9dc281e9243c6a3644b4b55"
+            "version": 2,
+            "digest": "sha256:8f9f7c30fbf7690e95bddf082136b8d7c38b43e83fd7c6c0c42a7bbfe42ea42e"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.historical-environment.basel.greek-print-humanism",
-            "version": 1,
-            "digest": "sha256:73fe8f22c4a33e5f179cbc781ce207121026d079a9dc281e9243c6a3644b4b55"
+            "version": 2,
+            "digest": "sha256:8f9f7c30fbf7690e95bddf082136b8d7c38b43e83fd7c6c0c42a7bbfe42ea42e"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.historical-environment.basel.greek-print-humanism",
-            "version": 1,
-            "digest": "sha256:73fe8f22c4a33e5f179cbc781ce207121026d079a9dc281e9243c6a3644b4b55"
+            "version": 2,
+            "digest": "sha256:8f9f7c30fbf7690e95bddf082136b8d7c38b43e83fd7c6c0c42a7bbfe42ea42e"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.historical-environment.basel.greek-print-humanism",
-            "version": 1,
-            "digest": "sha256:73fe8f22c4a33e5f179cbc781ce207121026d079a9dc281e9243c6a3644b4b55"
+            "version": 2,
+            "digest": "sha256:8f9f7c30fbf7690e95bddf082136b8d7c38b43e83fd7c6c0c42a7bbfe42ea42e"
           },
           "pointer": "/variant_labels/0/language"
         },
         "context-5": {
           "record": {
             "id": "tos.historical-environment.basel.greek-print-humanism",
-            "version": 1,
-            "digest": "sha256:73fe8f22c4a33e5f179cbc781ce207121026d079a9dc281e9243c6a3644b4b55"
+            "version": 2,
+            "digest": "sha256:8f9f7c30fbf7690e95bddf082136b8d7c38b43e83fd7c6c0c42a7bbfe42ea42e"
           },
           "pointer": "/variant_labels/0/script"
         },
         "context-6": {
           "record": {
             "id": "tos.historical-environment.basel.greek-print-humanism",
-            "version": 1,
-            "digest": "sha256:73fe8f22c4a33e5f179cbc781ce207121026d079a9dc281e9243c6a3644b4b55"
+            "version": 2,
+            "digest": "sha256:8f9f7c30fbf7690e95bddf082136b8d7c38b43e83fd7c6c0c42a7bbfe42ea42e"
           },
           "pointer": "/variant_labels/0/source_ref"
         },
         "context-7": {
           "record": {
             "id": "tos.historical-environment.basel.greek-print-humanism",
-            "version": 1,
-            "digest": "sha256:73fe8f22c4a33e5f179cbc781ce207121026d079a9dc281e9243c6a3644b4b55"
+            "version": 2,
+            "digest": "sha256:8f9f7c30fbf7690e95bddf082136b8d7c38b43e83fd7c6c0c42a7bbfe42ea42e"
           },
           "pointer": "/variant_labels/0/status"
         }
@@ -171,63 +173,67 @@
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.basel-print.print-environment.note-ru",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.historical-environment.basel.greek-print-humanism",
-        "version": 1,
-        "digest": "sha256:73fe8f22c4a33e5f179cbc781ce207121026d079a9dc281e9243c6a3644b4b55"
+        "version": 2,
+        "digest": "sha256:8f9f7c30fbf7690e95bddf082136b8d7c38b43e83fd7c6c0c42a7bbfe42ea42e"
       },
       "role": "hover",
       "language": "ru",
       "script": "Cyrl",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.basel-print.print-environment.note-ru",
+        "version": 1,
+        "digest": "sha256:bef06741df3082bed2b75eca2659f986b8156d92a9e1a09fb650112be44574eb"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.historical-environment.basel.greek-print-humanism",
-            "version": 1,
-            "digest": "sha256:73fe8f22c4a33e5f179cbc781ce207121026d079a9dc281e9243c6a3644b4b55"
+            "version": 2,
+            "digest": "sha256:8f9f7c30fbf7690e95bddf082136b8d7c38b43e83fd7c6c0c42a7bbfe42ea42e"
           },
           "pointer": "/notes"
         },
         "context-0": {
           "record": {
             "id": "tos.historical-environment.basel.greek-print-humanism",
-            "version": 1,
-            "digest": "sha256:73fe8f22c4a33e5f179cbc781ce207121026d079a9dc281e9243c6a3644b4b55"
+            "version": 2,
+            "digest": "sha256:8f9f7c30fbf7690e95bddf082136b8d7c38b43e83fd7c6c0c42a7bbfe42ea42e"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.historical-environment.basel.greek-print-humanism",
-            "version": 1,
-            "digest": "sha256:73fe8f22c4a33e5f179cbc781ce207121026d079a9dc281e9243c6a3644b4b55"
+            "version": 2,
+            "digest": "sha256:8f9f7c30fbf7690e95bddf082136b8d7c38b43e83fd7c6c0c42a7bbfe42ea42e"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.historical-environment.basel.greek-print-humanism",
-            "version": 1,
-            "digest": "sha256:73fe8f22c4a33e5f179cbc781ce207121026d079a9dc281e9243c6a3644b4b55"
+            "version": 2,
+            "digest": "sha256:8f9f7c30fbf7690e95bddf082136b8d7c38b43e83fd7c6c0c42a7bbfe42ea42e"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.historical-environment.basel.greek-print-humanism",
-            "version": 1,
-            "digest": "sha256:73fe8f22c4a33e5f179cbc781ce207121026d079a9dc281e9243c6a3644b4b55"
+            "version": 2,
+            "digest": "sha256:8f9f7c30fbf7690e95bddf082136b8d7c38b43e83fd7c6c0c42a7bbfe42ea42e"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.historical-environment.basel.greek-print-humanism",
-            "version": 1,
-            "digest": "sha256:73fe8f22c4a33e5f179cbc781ce207121026d079a9dc281e9243c6a3644b4b55"
+            "version": 2,
+            "digest": "sha256:8f9f7c30fbf7690e95bddf082136b8d7c38b43e83fd7c6c0c42a7bbfe42ea42e"
           },
           "pointer": "/field_languages/notes"
         }
@@ -238,5 +244,243 @@
       }
     }
   ],
-  "prior_forms": []
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:73fe8f22c4a33e5f179cbc781ce207121026d079a9dc281e9243c6a3644b4b55",
+            "id": "tos.historical-environment.basel.greek-print-humanism",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:73fe8f22c4a33e5f179cbc781ce207121026d079a9dc281e9243c6a3644b4b55",
+            "id": "tos.historical-environment.basel.greek-print-humanism",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:73fe8f22c4a33e5f179cbc781ce207121026d079a9dc281e9243c6a3644b4b55",
+            "id": "tos.historical-environment.basel.greek-print-humanism",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:73fe8f22c4a33e5f179cbc781ce207121026d079a9dc281e9243c6a3644b4b55",
+            "id": "tos.historical-environment.basel.greek-print-humanism",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:73fe8f22c4a33e5f179cbc781ce207121026d079a9dc281e9243c6a3644b4b55",
+            "id": "tos.historical-environment.basel.greek-print-humanism",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:73fe8f22c4a33e5f179cbc781ce207121026d079a9dc281e9243c6a3644b4b55",
+            "id": "tos.historical-environment.basel.greek-print-humanism",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.basel-print.print-environment.name-ru",
+      "form_version": 1,
+      "language": "ru",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:73fe8f22c4a33e5f179cbc781ce207121026d079a9dc281e9243c6a3644b4b55",
+        "id": "tos.historical-environment.basel.greek-print-humanism",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:73fe8f22c4a33e5f179cbc781ce207121026d079a9dc281e9243c6a3644b4b55",
+            "id": "tos.historical-environment.basel.greek-print-humanism",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:73fe8f22c4a33e5f179cbc781ce207121026d079a9dc281e9243c6a3644b4b55",
+            "id": "tos.historical-environment.basel.greek-print-humanism",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:73fe8f22c4a33e5f179cbc781ce207121026d079a9dc281e9243c6a3644b4b55",
+            "id": "tos.historical-environment.basel.greek-print-humanism",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:73fe8f22c4a33e5f179cbc781ce207121026d079a9dc281e9243c6a3644b4b55",
+            "id": "tos.historical-environment.basel.greek-print-humanism",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/variant_labels/0/language",
+          "record": {
+            "digest": "sha256:73fe8f22c4a33e5f179cbc781ce207121026d079a9dc281e9243c6a3644b4b55",
+            "id": "tos.historical-environment.basel.greek-print-humanism",
+            "version": 1
+          }
+        },
+        "context-5": {
+          "pointer": "/variant_labels/0/script",
+          "record": {
+            "digest": "sha256:73fe8f22c4a33e5f179cbc781ce207121026d079a9dc281e9243c6a3644b4b55",
+            "id": "tos.historical-environment.basel.greek-print-humanism",
+            "version": 1
+          }
+        },
+        "context-6": {
+          "pointer": "/variant_labels/0/source_ref",
+          "record": {
+            "digest": "sha256:73fe8f22c4a33e5f179cbc781ce207121026d079a9dc281e9243c6a3644b4b55",
+            "id": "tos.historical-environment.basel.greek-print-humanism",
+            "version": 1
+          }
+        },
+        "context-7": {
+          "pointer": "/variant_labels/0/status",
+          "record": {
+            "digest": "sha256:73fe8f22c4a33e5f179cbc781ce207121026d079a9dc281e9243c6a3644b4b55",
+            "id": "tos.historical-environment.basel.greek-print-humanism",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/variant_labels/0/value",
+          "record": {
+            "digest": "sha256:73fe8f22c4a33e5f179cbc781ce207121026d079a9dc281e9243c6a3644b4b55",
+            "id": "tos.historical-environment.basel.greek-print-humanism",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.basel-print.print-environment.name-en",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:73fe8f22c4a33e5f179cbc781ce207121026d079a9dc281e9243c6a3644b4b55",
+        "id": "tos.historical-environment.basel.greek-print-humanism",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:73fe8f22c4a33e5f179cbc781ce207121026d079a9dc281e9243c6a3644b4b55",
+            "id": "tos.historical-environment.basel.greek-print-humanism",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:73fe8f22c4a33e5f179cbc781ce207121026d079a9dc281e9243c6a3644b4b55",
+            "id": "tos.historical-environment.basel.greek-print-humanism",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:73fe8f22c4a33e5f179cbc781ce207121026d079a9dc281e9243c6a3644b4b55",
+            "id": "tos.historical-environment.basel.greek-print-humanism",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:73fe8f22c4a33e5f179cbc781ce207121026d079a9dc281e9243c6a3644b4b55",
+            "id": "tos.historical-environment.basel.greek-print-humanism",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:73fe8f22c4a33e5f179cbc781ce207121026d079a9dc281e9243c6a3644b4b55",
+            "id": "tos.historical-environment.basel.greek-print-humanism",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:73fe8f22c4a33e5f179cbc781ce207121026d079a9dc281e9243c6a3644b4b55",
+            "id": "tos.historical-environment.basel.greek-print-humanism",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.basel-print.print-environment.note-ru",
+      "form_version": 1,
+      "language": "ru",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:73fe8f22c4a33e5f179cbc781ce207121026d079a9dc281e9243c6a3644b4b55",
+        "id": "tos.historical-environment.basel.greek-print-humanism",
+        "version": 1
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.historical-environment.basel.greek-print-humanism",
+    "version": 2,
+    "digest": "sha256:8f9f7c30fbf7690e95bddf082136b8d7c38b43e83fd7c6c0c42a7bbfe42ea42e"
+  }
 }

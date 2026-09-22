@@ -35,10 +35,21 @@ SCHEMA_REF = (
     "https://tree-of-sophia.local/ToS/contracts/source-resource-inventory.schema.json"
 )
 AUTHORITY_BOUNDARY = (
-    "resource enumeration, geometry, ordering, counts, and one-way fingerprints "
-    "only; no source text, bibliographic acceptance, textual acceptance, rights "
-    "clearance, translation, semantics, or canon authority"
+    "This inventory records resource enumeration, geometry, ordering, counts and one-way fingerprints for the selected source."
 )
+GENERATOR_VERSION = "2"
+# Version 1 is retained solely for exact reconstruction of committed receipts.
+LEGACY_AUTHORITY_BOUNDARY_V1 = 'resource enumeration, geometry, ordering, counts, and one-way fingerprints only; no source text, bibliographic acceptance, textual acceptance, rights clearance, translation, semantics, or canon authority'
+
+
+def inventory_authority_boundary(version):
+    if version == "1":
+        return LEGACY_AUTHORITY_BOUNDARY_V1
+    if version == GENERATOR_VERSION:
+        return AUTHORITY_BOUNDARY
+    raise ValueError("unsupported resource inventory generator version")
+
+
 TEI_NS = "http://www.tei-c.org/ns/1.0"
 OSIS_NS = "http://www.bibletechnologies.net/2003/OSIS/namespace"
 MAX_PLAIN_UTF8_BYTES = 131072
@@ -1423,7 +1434,7 @@ def build_inventory(
         "files": file_inventories,
         "generator": {
             "name": "build_source_resource_inventories.py",
-            "version": "1",
+            "version": GENERATOR_VERSION,
         },
         "provenance_event_ref": event_ref,
         "inventory_version": inventory_version,
@@ -1517,8 +1528,7 @@ def main() -> int:
         + (f"; skipped {skipped} absent local payload set(s)" if skipped else "")
     )
     print(
-        "[boundary] inventories contain mechanical metadata and one-way "
-        "fingerprints, not source text or content acceptance"
+        "[scope] Text-free resource metadata, counts, geometry and one-way navigation fingerprints."
     )
     return 0
 

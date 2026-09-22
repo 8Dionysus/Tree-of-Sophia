@@ -63,7 +63,8 @@ Root human orientation remains in [README](README.md); current direction in
   source, translation, semantics, rights, or canon.
 - Keep bibliographic witnesses, physical artifacts, scholarly composites,
   transcriptions, translations, annotations, claims, review events, and graph
-  projections as distinct evidence layers. Stable identity is not truth.
+  projections as distinct evidence layers. Stable identity preserves the referent; source-visible assessment evaluates
+claims about it.
 - Keep extraction, OCR, correction, normalization, segmentation, alignment,
   semantic annotation, and review as separate versioned events. Never
   overwrite an earlier layer to make a later result appear clean.
@@ -130,5 +131,5 @@ the exact blocker rather than inferring success.
 
 Closeout names changed owner sources, generated companions, validation and
 manual review performed, skipped checks, residual risk, and the next owner.
-Local green is not CI, merge, release, runtime health, semantic acceptance, or
-human approval.
+Report local validation, CI, merge, release, runtime health, semantic
+acceptance and human approval from the evidence for each state.

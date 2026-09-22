@@ -1,0 +1,25 @@
+{
+  "schema_version": "tos_corpus_record_v1",
+  "record_type": "place",
+  "record_id": "tos.place.moscow",
+  "preferred_label": "Москва",
+  "variant_labels": [
+    {
+      "value": "МОСКВА",
+      "language": "ru",
+      "source_ref": "tos.anchor.also-sprach-zarathustra.ru-reader-1899.title-page-publication-distribution",
+      "status": "unverified"
+    }
+  ],
+  "identity_status": "provisional",
+  "source_refs": [
+    "tos.anchor.also-sprach-zarathustra.ru-reader-1899.title-page-publication-distribution",
+    "ToS/source-witnesses/discovery/runs/reader-1899-rnl-rusneb-fragment-source-witness.2026-08-01.v1.json",
+    "https://rusneb.ru/catalog/000200_000018_v19_rc_1709542/"
+  ],
+  "external_identifiers": [],
+  "same_as_posture": "no_equivalence_claim",
+  "notes": "The exact 1899 title page and current RuNEB record both display Moscow as the publication and distribution place. This model-resolved Place remains provisional and asserts no historical administrative boundary, jurisdiction, address continuity, or equivalence with every literal form.",
+  "record_version": 1,
+  "supersedes_ref": null
+}

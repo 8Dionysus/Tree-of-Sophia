@@ -1,0 +1,99 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.work.proto-cuneiform.die-lexikalischen-listen-der-archaischen-texte-aus-uruk",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:d8eedeedf198bb388506a77f",
+      "request_digest": "sha256:19f3173ffacc4714d0844b042b9bd971099e7ef22bfbeda962520a51c5608137",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:8de52519c463ba3a10b4939e33770359f2d7e03e8c485f87110e75135f054f8f",
+      "recorded_at": "2026-09-22T05:09:32.281565+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.work.proto-cuneiform.die-lexikalischen-listen-der-archaischen-texte-aus-uruk",
+        "version": 1,
+        "digest": "sha256:0038e3e543a384d218c16714f85dea0e5ef25822135d433c1a399c4ba7e2a5f0"
+      },
+      "source": {
+        "id": "tos.work.proto-cuneiform.die-lexikalischen-listen-der-archaischen-texte-aus-uruk",
+        "version": 2,
+        "digest": "sha256:d60584ce06b6154d245eb785f0a05ef32f2eb8da69c6412583785093054c3320"
+      },
+      "previous_revision": "sha256:8c8f375f3ab26b08ffee52ef1131b1ea2c58f9e0186bfd38967fd1850c471633",
+      "archive_path": "ToS/source-witnesses/.record-revisions/d8eedeedf198bb388506a77f90d0348d069387e97899584fc8170cf50b7fb1fb-8c8f375f3ab26b08ffee52ef1131b1ea2c58f9e0186bfd38967fd1850c471633",
+      "dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+      "changed_fields": [
+        "notes"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.metadata.4c5d02467b62f9ec987fa58ef17bf38ee6e403f22e2ed809e153921d42e9310d",
+          "version": 2,
+          "digest": "sha256:41012d4896e1293059a0b69e6137f9920ba2772e93d659314b5cef8cfe085a9c"
+        },
+        {
+          "id": "tos.form.metadata.552d08fba0718da0569be50a86286bd476279b5f701535d216f2f8f965d92d18",
+          "version": 2,
+          "digest": "sha256:3f1f2fc21d62f3f9c87a0193b69c189a6a28d54558ca1643410caa2cb96f5daa"
+        },
+        {
+          "id": "tos.form.metadata.379d81921534217ddedf150fe8cda092d553bdf499121ff8e72156eaf2f5e252",
+          "version": 2,
+          "digest": "sha256:90e0908d33b1a9eb1b1cce02eaea35cc75e52424b16a243ba477bba73062c6e7"
+        },
+        {
+          "id": "tos.form.metadata.770171ea320955b83d515ae9099a3b7691e44980660c2df6b594fe94615512ab",
+          "version": 2,
+          "digest": "sha256:fe884a9f0af77d23ab06ffaa8fb8e4eccf4525ab807745f35435aff069e2285d"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:d8eedeedf198bb388506a77f",
+        "expected_configuration": "sha256:8de52519c463ba3a10b4939e33770359f2d7e03e8c485f87110e75135f054f8f",
+        "expected_dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+        "expected_publication": "sha256:72b724d262125b10b14c91523defd80b04d8f94fc2f5b35cc420a4f064d33a0b",
+        "expected_revision": "sha256:8c8f375f3ab26b08ffee52ef1131b1ea2c58f9e0186bfd38967fd1850c471633",
+        "expected_source": {
+          "digest": "sha256:0038e3e543a384d218c16714f85dea0e5ef25822135d433c1a399c4ba7e2a5f0",
+          "id": "tos.work.proto-cuneiform.die-lexikalischen-listen-der-archaischen-texte-aus-uruk",
+          "version": 1
+        },
+        "fields": {
+          "notes": "Scholarly Work reported as ATU 3 / ADFU 13, Berlin: Gebr. Mann, 1993. Official and library records report Robert K. Englund and Hans J. Nissen as authors and Peter Damerow as collaborator; CDLI places all three in its author list. LLATU denotes the book’s sign-index coordinate system at pp. 177–327."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.metadata.4c5d02467b62f9ec987fa58ef17bf38ee6e403f22e2ed809e153921d42e9310d"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.metadata.552d08fba0718da0569be50a86286bd476279b5f701535d216f2f8f965d92d18"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.metadata.379d81921534217ddedf150fe8cda092d553bdf499121ff8e72156eaf2f5e252"
+          },
+          {
+            "field_id": "metadata.variant-name:1",
+            "form_id": "tos.form.metadata.770171ea320955b83d515ae9099a3b7691e44980660c2df6b594fe94615512ab"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:7e6a57cf94d816e9947212937e5a524eb4411c0d8a696d7f428b4f8c63fb2ea4",
+        "selected_files": [
+          "source-revision-history.json",
+          "work.human-forms.json",
+          "work.json"
+        ]
+      }
+    }
+  ]
+}

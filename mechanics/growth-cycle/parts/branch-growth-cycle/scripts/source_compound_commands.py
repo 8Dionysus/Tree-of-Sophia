@@ -312,7 +312,7 @@ def run_command(adapter, owner, config, configuration_digest, path, request):
 
 
 def _event(adapter, scope, request, before, outputs, environment, dependencies, recorded_at):
-    """A reconstructible buffer-serialization event, not a commit attestation."""
+    """A reconstructible event for the serialized buffers before commit."""
     base = Path(adapter._claim_source_ref(scope)).parent
     request_ref = (base / adapter.REQUEST_FILE).as_posix()
     request_raw = source._canonical(request) + b'\n'

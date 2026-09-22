@@ -64,9 +64,9 @@ editing:
 | public mirror | `public-compatibility/` |
 | graph, KAG, retrieval, or compact reader | `derived-exports/` |
 
-Do not bypass an intermediate owner because a downstream representation is
-easier to generate. A gold packet is not ready when only its accepted labels
-are reproducible; rejected and unresolved decisions must remain inspectable.
+Follow each intermediate source and review owner before generating a stronger
+representation. A gold packet must retain inspectable accepted, rejected and
+unresolved decisions together with their grounds.
 
 ## Corpus-Foundation Engineering Route
 

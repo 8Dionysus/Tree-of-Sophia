@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://tree-of-sophia.local/ToS/contracts/provenance-event-v2.schema.json",
   "title": "Tree of Sophia immutable provenance execution event v2",
-  "description": "Additive, digest-bound execution provenance for materialized transformations. It does not replace legacy tos_provenance_event_v1 records and does not make an unsigned or mechanically valid receipt true.",
+  "description": "Digest-bound execution provenance for materialized transformations. Legacy tos_provenance_event_v1 records retain their schema and history. Execution attestation and content quality require their own evidence beyond receipt structure and fixity.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -29,76 +29,130 @@
     "$schema": {
       "const": "https://tree-of-sophia.local/ToS/contracts/provenance-event-v2.schema.json"
     },
-    "schema_version": {"const": "tos_provenance_event_v2"},
-    "event_id": {"$ref": "#/$defs/eventId"},
-    "event_version": {"type": "integer", "minimum": 1},
+    "schema_version": {
+      "const": "tos_provenance_event_v2"
+    },
+    "event_id": {
+      "$ref": "#/$defs/eventId"
+    },
+    "event_version": {
+      "type": "integer",
+      "minimum": 1
+    },
     "supersedes_event_ref": {
       "anyOf": [
-        {"$ref": "#/$defs/eventId"},
-        {"type": "null"}
+        {
+          "$ref": "#/$defs/eventId"
+        },
+        {
+          "type": "null"
+        }
       ]
     },
     "record_binding": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["manifest_ref", "digest_algorithm", "digest_scope"],
+      "required": [
+        "manifest_ref",
+        "digest_algorithm",
+        "digest_scope"
+      ],
       "properties": {
-        "manifest_ref": {"$ref": "#/$defs/repoRelativePath"},
-        "digest_algorithm": {"const": "sha256"},
-        "digest_scope": {"const": "exact_event_record_bytes"}
+        "manifest_ref": {
+          "$ref": "#/$defs/repoRelativePath"
+        },
+        "digest_algorithm": {
+          "const": "sha256"
+        },
+        "digest_scope": {
+          "const": "exact_event_record_bytes"
+        }
       }
     },
-    "activity": {"$ref": "#/$defs/activity"},
+    "activity": {
+      "$ref": "#/$defs/activity"
+    },
     "entities": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["inputs", "outputs", "byproducts"],
+      "required": [
+        "inputs",
+        "outputs",
+        "byproducts"
+      ],
       "properties": {
         "inputs": {
           "type": "array",
           "minItems": 1,
           "uniqueItems": true,
-          "items": {"$ref": "#/$defs/entityBinding"}
+          "items": {
+            "$ref": "#/$defs/entityBinding"
+          }
         },
         "outputs": {
           "type": "array",
           "uniqueItems": true,
-          "items": {"$ref": "#/$defs/entityBinding"}
+          "items": {
+            "$ref": "#/$defs/entityBinding"
+          }
         },
         "byproducts": {
           "type": "array",
           "uniqueItems": true,
-          "items": {"$ref": "#/$defs/entityBinding"}
+          "items": {
+            "$ref": "#/$defs/entityBinding"
+          }
         }
       }
     },
     "derivations": {
       "type": "array",
       "uniqueItems": true,
-      "items": {"$ref": "#/$defs/derivation"}
+      "items": {
+        "$ref": "#/$defs/derivation"
+      }
     },
     "responsibility": {
       "type": "array",
       "minItems": 1,
       "uniqueItems": true,
-      "items": {"$ref": "#/$defs/responsibility"}
+      "items": {
+        "$ref": "#/$defs/responsibility"
+      }
     },
-    "method": {"$ref": "#/$defs/method"},
-    "manual_changes": {"$ref": "#/$defs/manualChanges"},
+    "method": {
+      "$ref": "#/$defs/method"
+    },
+    "manual_changes": {
+      "$ref": "#/$defs/manualChanges"
+    },
     "measurements": {
       "type": "array",
       "minItems": 1,
       "uniqueItems": true,
-      "items": {"$ref": "#/$defs/measurement"}
+      "items": {
+        "$ref": "#/$defs/measurement"
+      }
     },
-    "evidence_authentication": {"$ref": "#/$defs/evidenceAuthentication"},
-    "rights_and_visibility": {"$ref": "#/$defs/rightsVisibility"},
-    "review_and_authority": {"$ref": "#/$defs/reviewAuthority"},
-    "reproducibility": {"$ref": "#/$defs/reproducibility"},
+    "evidence_authentication": {
+      "$ref": "#/$defs/evidenceAuthentication"
+    },
+    "rights_and_visibility": {
+      "$ref": "#/$defs/rightsVisibility"
+    },
+    "review_and_authority": {
+      "$ref": "#/$defs/reviewAuthority"
+    },
+    "reproducibility": {
+      "$ref": "#/$defs/reproducibility"
+    },
     "authority_boundary": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["validator_role", "claims_not_established"],
+      "required": [
+        "validator_role",
+        "claims_not_established"
+      ],
       "properties": {
         "validator_role": {
           "const": "mechanics_and_closure_only_not_truth"
@@ -121,14 +175,46 @@
             ]
           },
           "allOf": [
-            {"contains": {"const": "execution_truth"}},
-            {"contains": {"const": "content_truth"}},
-            {"contains": {"const": "source_fidelity"}},
-            {"contains": {"const": "translation_quality"}},
-            {"contains": {"const": "semantic_correctness"}},
-            {"contains": {"const": "rights_clearance"}},
-            {"contains": {"const": "human_review"}},
-            {"contains": {"const": "publication_authority"}}
+            {
+              "contains": {
+                "const": "execution_truth"
+              }
+            },
+            {
+              "contains": {
+                "const": "content_truth"
+              }
+            },
+            {
+              "contains": {
+                "const": "source_fidelity"
+              }
+            },
+            {
+              "contains": {
+                "const": "translation_quality"
+              }
+            },
+            {
+              "contains": {
+                "const": "semantic_correctness"
+              }
+            },
+            {
+              "contains": {
+                "const": "rights_clearance"
+              }
+            },
+            {
+              "contains": {
+                "const": "human_review"
+              }
+            },
+            {
+              "contains": {
+                "const": "publication_authority"
+              }
+            }
           ]
         }
       }
@@ -136,30 +222,24 @@
   },
   "allOf": [
     {
-      "if": {"properties": {"event_version": {"const": 1}}},
-      "then": {"properties": {"supersedes_event_ref": {"type": "null"}}},
+      "if": {
+        "properties": {
+          "event_version": {
+            "const": 1
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "supersedes_event_ref": {
+            "type": "null"
+          }
+        }
+      },
       "else": {
         "properties": {
-          "supersedes_event_ref": {"$ref": "#/$defs/eventId"}
-        }
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "activity": {
-            "properties": {
-              "status": {"enum": ["completed", "completed_with_warnings"]}
-            }
-          }
-        }
-      },
-      "then": {
-        "properties": {
-          "entities": {
-            "properties": {
-              "outputs": {"minItems": 1}
-            }
+          "supersedes_event_ref": {
+            "$ref": "#/$defs/eventId"
           }
         }
       }
@@ -169,7 +249,12 @@
         "properties": {
           "activity": {
             "properties": {
-              "status": {"enum": ["failed", "stopped"]}
+              "status": {
+                "enum": [
+                  "completed",
+                  "completed_with_warnings"
+                ]
+              }
             }
           }
         }
@@ -178,12 +263,44 @@
         "properties": {
           "entities": {
             "properties": {
-              "outputs": {"maxItems": 0}
+              "outputs": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "activity": {
+            "properties": {
+              "status": {
+                "enum": [
+                  "failed",
+                  "stopped"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "entities": {
+            "properties": {
+              "outputs": {
+                "maxItems": 0
+              }
             }
           },
           "activity": {
             "properties": {
-              "terminal_reason": {"type": "string", "minLength": 1}
+              "terminal_reason": {
+                "type": "string",
+                "minLength": 1
+              }
             }
           }
         }
@@ -194,7 +311,12 @@
         "properties": {
           "activity": {
             "properties": {
-              "event_type": {"enum": ["model_inference", "agent_decision"]}
+              "event_type": {
+                "enum": [
+                  "model_inference",
+                  "agent_decision"
+                ]
+              }
             }
           }
         }
@@ -203,7 +325,9 @@
         "properties": {
           "method": {
             "properties": {
-              "model_invocations": {"minItems": 1}
+              "model_invocations": {
+                "minItems": 1
+              }
             }
           }
         }
@@ -213,21 +337,33 @@
       "if": {
         "properties": {
           "manual_changes": {
-            "properties": {"status": {"const": "recorded"}}
+            "properties": {
+              "status": {
+                "const": "recorded"
+              }
+            }
           }
         }
       },
       "then": {
         "properties": {
           "manual_changes": {
-            "properties": {"change_receipts": {"minItems": 1}}
+            "properties": {
+              "change_receipts": {
+                "minItems": 1
+              }
+            }
           }
         }
       },
       "else": {
         "properties": {
           "manual_changes": {
-            "properties": {"change_receipts": {"maxItems": 0}}
+            "properties": {
+              "change_receipts": {
+                "maxItems": 0
+              }
+            }
           }
         }
       }
@@ -236,7 +372,11 @@
       "if": {
         "properties": {
           "rights_and_visibility": {
-            "properties": {"publication_authorized": {"const": true}}
+            "properties": {
+              "publication_authorized": {
+                "const": true
+              }
+            }
           }
         }
       },
@@ -244,9 +384,18 @@
         "properties": {
           "rights_and_visibility": {
             "properties": {
-              "rights_record_bindings": {"minItems": 1},
-              "publication_authority_bindings": {"minItems": 1},
-              "content_visibility": {"enum": ["public_content", "public_synthetic"]}
+              "rights_record_bindings": {
+                "minItems": 1
+              },
+              "publication_authority_bindings": {
+                "minItems": 1
+              },
+              "content_visibility": {
+                "enum": [
+                  "public_content",
+                  "public_synthetic"
+                ]
+              }
             }
           }
         }
@@ -255,7 +404,9 @@
         "properties": {
           "rights_and_visibility": {
             "properties": {
-              "publication_authority_bindings": {"maxItems": 0}
+              "publication_authority_bindings": {
+                "maxItems": 0
+              }
             }
           }
         }
@@ -265,24 +416,42 @@
       "if": {
         "properties": {
           "review_and_authority": {
-            "properties": {"human_review_status": {"const": "performed"}}
+            "properties": {
+              "human_review_status": {
+                "const": "performed"
+              }
+            }
           }
         }
       },
       "then": {
         "properties": {
           "review_and_authority": {
-            "properties": {"review_bindings": {"minItems": 1}}
+            "properties": {
+              "review_bindings": {
+                "minItems": 1
+              }
+            }
           },
           "responsibility": {
             "contains": {
               "type": "object",
               "properties": {
-                "agent_kind": {"const": "human"},
-                "role": {"const": "reviewer"},
-                "human_evidence_status": {"const": "attested"}
+                "agent_kind": {
+                  "const": "human"
+                },
+                "role": {
+                  "const": "reviewer"
+                },
+                "human_evidence_status": {
+                  "const": "attested"
+                }
               },
-              "required": ["agent_kind", "role", "human_evidence_status"]
+              "required": [
+                "agent_kind",
+                "role",
+                "human_evidence_status"
+              ]
             }
           }
         }
@@ -291,9 +460,15 @@
         "properties": {
           "review_and_authority": {
             "properties": {
-              "accepted_uses": {"maxItems": 0},
-              "promotion_authorized": {"const": false},
-              "review_bindings": {"maxItems": 0}
+              "accepted_uses": {
+                "maxItems": 0
+              },
+              "promotion_authorized": {
+                "const": false
+              },
+              "review_bindings": {
+                "maxItems": 0
+              }
             }
           }
         }
@@ -303,7 +478,11 @@
       "if": {
         "properties": {
           "evidence_authentication": {
-            "properties": {"signature_status": {"const": "signed_verified"}}
+            "properties": {
+              "signature_status": {
+                "const": "signed_verified"
+              }
+            }
           }
         }
       },
@@ -311,8 +490,12 @@
         "properties": {
           "evidence_authentication": {
             "properties": {
-              "signature_bindings": {"minItems": 1},
-              "verification_status": {"const": "signature_verified"}
+              "signature_bindings": {
+                "minItems": 1
+              },
+              "verification_status": {
+                "const": "signature_verified"
+              }
             }
           }
         }
@@ -320,7 +503,10 @@
     }
   ],
   "$defs": {
-    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
     "eventId": {
       "type": "string",
       "pattern": "^tos\\.event\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
@@ -333,10 +519,17 @@
     "binding": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["ref", "sha256"],
+      "required": [
+        "ref",
+        "sha256"
+      ],
       "properties": {
-        "ref": {"$ref": "#/$defs/repoRelativePath"},
-        "sha256": {"$ref": "#/$defs/sha256"}
+        "ref": {
+          "$ref": "#/$defs/repoRelativePath"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
       }
     },
     "activity": {
@@ -378,8 +571,14 @@
             "synthetic_negative_control"
           ]
         },
-        "started_at": {"type": "string", "format": "date-time"},
-        "ended_at": {"type": "string", "format": "date-time"},
+        "started_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "ended_at": {
+          "type": "string",
+          "format": "date-time"
+        },
         "status": {
           "enum": [
             "completed",
@@ -391,20 +590,32 @@
         },
         "terminal_reason": {
           "anyOf": [
-            {"type": "string", "minLength": 1},
-            {"type": "null"}
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "exit_code": {
           "anyOf": [
-            {"type": "integer"},
-            {"type": "null"}
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "warnings": {
           "type": "array",
           "uniqueItems": true,
-          "items": {"type": "string", "minLength": 1}
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
         }
       }
     },
@@ -423,11 +634,25 @@
         "fixity_verified_at"
       ],
       "properties": {
-        "entity_ref": {"type": "string", "minLength": 1},
-        "role": {"type": "string", "minLength": 1},
-        "sha256": {"$ref": "#/$defs/sha256"},
-        "size_bytes": {"type": "integer", "minimum": 0},
-        "media_type": {"type": "string", "minLength": 1},
+        "entity_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "role": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "media_type": {
+          "type": "string",
+          "minLength": 1
+        },
         "availability": {
           "enum": [
             "tracked",
@@ -447,11 +672,18 @@
             "synthetic_public"
           ]
         },
-        "fixity_verified": {"type": "boolean"},
+        "fixity_verified": {
+          "type": "boolean"
+        },
         "fixity_verified_at": {
           "anyOf": [
-            {"type": "string", "format": "date-time"},
-            {"type": "null"}
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
           ]
         }
       }
@@ -472,8 +704,14 @@
           "type": "string",
           "pattern": "^tos\\.derivation\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
         },
-        "input_entity_ref": {"type": "string", "minLength": 1},
-        "output_entity_ref": {"type": "string", "minLength": 1},
+        "input_entity_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "output_entity_ref": {
+          "type": "string",
+          "minLength": 1
+        },
         "relation": {
           "enum": [
             "was_derived_from",
@@ -484,8 +722,13 @@
             "identity_copy_of"
           ]
         },
-        "influence_asserted": {"const": true},
-        "description": {"type": "string", "minLength": 1}
+        "influence_asserted": {
+          "const": true
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        }
       }
     },
     "responsibility": {
@@ -500,9 +743,19 @@
         "human_evidence_status"
       ],
       "properties": {
-        "agent_ref": {"type": "string", "minLength": 1},
+        "agent_ref": {
+          "type": "string",
+          "minLength": 1
+        },
         "agent_kind": {
-          "enum": ["human", "software", "model", "service", "organization", "mixed"]
+          "enum": [
+            "human",
+            "software",
+            "model",
+            "service",
+            "organization",
+            "mixed"
+          ]
         },
         "role": {
           "enum": [
@@ -516,28 +769,57 @@
           ]
         },
         "responsibility_posture": {
-          "enum": ["performed", "authorized", "reviewed", "observed", "instrumental"]
+          "enum": [
+            "performed",
+            "authorized",
+            "reviewed",
+            "observed",
+            "instrumental"
+          ]
         },
         "evidence_binding": {
           "anyOf": [
-            {"$ref": "#/$defs/binding"},
-            {"type": "null"}
+            {
+              "$ref": "#/$defs/binding"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "human_evidence_status": {
-          "enum": ["attested", "unattested", "not_applicable"]
+          "enum": [
+            "attested",
+            "unattested",
+            "not_applicable"
+          ]
         }
       },
       "allOf": [
         {
-          "if": {"properties": {"agent_kind": {"const": "human"}}},
+          "if": {
+            "properties": {
+              "agent_kind": {
+                "const": "human"
+              }
+            }
+          },
           "then": {
             "properties": {
-              "human_evidence_status": {"enum": ["attested", "unattested"]}
+              "human_evidence_status": {
+                "enum": [
+                  "attested",
+                  "unattested"
+                ]
+              }
             }
           },
           "else": {
-            "properties": {"human_evidence_status": {"const": "not_applicable"}}
+            "properties": {
+              "human_evidence_status": {
+                "const": "not_applicable"
+              }
+            }
           }
         }
       ]
@@ -557,56 +839,108 @@
         "procedure": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["name", "version", "purpose"],
+          "required": [
+            "name",
+            "version",
+            "purpose"
+          ],
           "properties": {
-            "name": {"type": "string", "minLength": 1},
-            "version": {"type": "string", "minLength": 1},
-            "purpose": {"type": "string", "minLength": 1}
+            "name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "version": {
+              "type": "string",
+              "minLength": 1
+            },
+            "purpose": {
+              "type": "string",
+              "minLength": 1
+            }
           }
         },
         "command_capture": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["disclosure", "argv", "argv_sha256", "withholding_reason"],
+          "required": [
+            "disclosure",
+            "argv",
+            "argv_sha256",
+            "withholding_reason"
+          ],
           "properties": {
-            "disclosure": {"enum": ["inline", "withheld_digest_only"]},
+            "disclosure": {
+              "enum": [
+                "inline",
+                "withheld_digest_only"
+              ]
+            },
             "argv": {
               "anyOf": [
                 {
                   "type": "array",
                   "minItems": 1,
-                  "items": {"type": "string"}
+                  "items": {
+                    "type": "string"
+                  }
                 },
-                {"type": "null"}
+                {
+                  "type": "null"
+                }
               ]
             },
-            "argv_sha256": {"$ref": "#/$defs/sha256"},
+            "argv_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
             "withholding_reason": {
               "anyOf": [
-                {"type": "string", "minLength": 1},
-                {"type": "null"}
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
               ]
             }
           },
           "allOf": [
             {
-              "if": {"properties": {"disclosure": {"const": "inline"}}},
+              "if": {
+                "properties": {
+                  "disclosure": {
+                    "const": "inline"
+                  }
+                }
+              },
               "then": {
                 "properties": {
-                  "argv": {"type": "array", "minItems": 1},
-                  "withholding_reason": {"type": "null"}
+                  "argv": {
+                    "type": "array",
+                    "minItems": 1
+                  },
+                  "withholding_reason": {
+                    "type": "null"
+                  }
                 }
               },
               "else": {
                 "properties": {
-                  "argv": {"type": "null"},
-                  "withholding_reason": {"type": "string", "minLength": 1}
+                  "argv": {
+                    "type": "null"
+                  },
+                  "withholding_reason": {
+                    "type": "string",
+                    "minLength": 1
+                  }
                 }
               }
             }
           ]
         },
-        "configuration_binding": {"$ref": "#/$defs/binding"},
+        "configuration_binding": {
+          "$ref": "#/$defs/binding"
+        },
         "software_components": {
           "type": "array",
           "minItems": 1,
@@ -623,19 +957,41 @@
               "verification_status"
             ],
             "properties": {
-              "name": {"type": "string", "minLength": 1},
-              "version": {"type": "string", "minLength": 1},
-              "role": {"type": "string", "minLength": 1},
-              "artifact_ref": {"type": "string", "minLength": 1},
-              "artifact_sha256": {"$ref": "#/$defs/sha256"},
-              "verification_status": {"enum": ["verified", "declared_only", "unavailable"]}
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "version": {
+                "type": "string",
+                "minLength": 1
+              },
+              "role": {
+                "type": "string",
+                "minLength": 1
+              },
+              "artifact_ref": {
+                "type": "string",
+                "minLength": 1
+              },
+              "artifact_sha256": {
+                "$ref": "#/$defs/sha256"
+              },
+              "verification_status": {
+                "enum": [
+                  "verified",
+                  "declared_only",
+                  "unavailable"
+                ]
+              }
             }
           }
         },
         "model_invocations": {
           "type": "array",
           "uniqueItems": true,
-          "items": {"$ref": "#/$defs/modelInvocation"}
+          "items": {
+            "$ref": "#/$defs/modelInvocation"
+          }
         },
         "environment": {
           "type": "object",
@@ -650,13 +1006,32 @@
             "environment_profile_binding"
           ],
           "properties": {
-            "runtime": {"type": "string", "minLength": 1},
-            "runtime_version": {"type": "string", "minLength": 1},
-            "runtime_artifact_sha256": {"$ref": "#/$defs/sha256"},
-            "backend": {"type": "string", "minLength": 1},
-            "hardware_target": {"type": "string", "minLength": 1},
-            "unicode_version": {"type": "string", "minLength": 1},
-            "environment_profile_binding": {"$ref": "#/$defs/binding"}
+            "runtime": {
+              "type": "string",
+              "minLength": 1
+            },
+            "runtime_version": {
+              "type": "string",
+              "minLength": 1
+            },
+            "runtime_artifact_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "backend": {
+              "type": "string",
+              "minLength": 1
+            },
+            "hardware_target": {
+              "type": "string",
+              "minLength": 1
+            },
+            "unicode_version": {
+              "type": "string",
+              "minLength": 1
+            },
+            "environment_profile_binding": {
+              "$ref": "#/$defs/binding"
+            }
           }
         }
       }
@@ -680,84 +1055,186 @@
         "response_status"
       ],
       "properties": {
-        "invocation_id": {"type": "string", "minLength": 1},
-        "provider": {"type": "string", "minLength": 1},
-        "model_id": {"type": "string", "minLength": 1},
-        "revision": {"type": "string", "minLength": 1},
+        "invocation_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "provider": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revision": {
+          "type": "string",
+          "minLength": 1
+        },
         "weights_sha256": {
           "anyOf": [
-            {"$ref": "#/$defs/sha256"},
-            {"type": "null"}
+            {
+              "$ref": "#/$defs/sha256"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
-        "quantization": {"type": "string", "minLength": 1},
-        "quantizer_or_converter": {"type": "string", "minLength": 1},
+        "quantization": {
+          "type": "string",
+          "minLength": 1
+        },
+        "quantizer_or_converter": {
+          "type": "string",
+          "minLength": 1
+        },
         "prompt_capture": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["disclosure", "text", "sha256", "withholding_reason"],
+          "required": [
+            "disclosure",
+            "text",
+            "sha256",
+            "withholding_reason"
+          ],
           "properties": {
-            "disclosure": {"enum": ["inline", "withheld_digest_only"]},
-            "text": {
-              "anyOf": [
-                {"type": "string"},
-                {"type": "null"}
+            "disclosure": {
+              "enum": [
+                "inline",
+                "withheld_digest_only"
               ]
             },
-            "sha256": {"$ref": "#/$defs/sha256"},
+            "text": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "sha256": {
+              "$ref": "#/$defs/sha256"
+            },
             "withholding_reason": {
               "anyOf": [
-                {"type": "string", "minLength": 1},
-                {"type": "null"}
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
               ]
             }
           }
         },
         "seed": {
           "anyOf": [
-            {"type": "integer"},
-            {"type": "null"}
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
-        "decoding_configuration_binding": {"$ref": "#/$defs/binding"},
-        "input_sha256": {"$ref": "#/$defs/sha256"},
+        "decoding_configuration_binding": {
+          "$ref": "#/$defs/binding"
+        },
+        "input_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
         "output_sha256": {
           "anyOf": [
-            {"$ref": "#/$defs/sha256"},
-            {"type": "null"}
+            {
+              "$ref": "#/$defs/sha256"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
-        "response_status": {"enum": ["completed", "failed", "stopped", "no_output"]}
+        "response_status": {
+          "enum": [
+            "completed",
+            "failed",
+            "stopped",
+            "no_output"
+          ]
+        }
       }
     },
     "manualChanges": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["status", "change_receipts", "statement"],
+      "required": [
+        "status",
+        "change_receipts",
+        "statement"
+      ],
       "properties": {
-        "status": {"enum": ["none_declared", "recorded", "unknown"]},
+        "status": {
+          "enum": [
+            "none_declared",
+            "recorded",
+            "unknown"
+          ]
+        },
         "change_receipts": {
           "type": "array",
           "uniqueItems": true,
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["change_id", "actor_ref", "binding", "review_status"],
+            "required": [
+              "change_id",
+              "actor_ref",
+              "binding",
+              "review_status"
+            ],
             "properties": {
-              "change_id": {"type": "string", "minLength": 1},
-              "actor_ref": {"type": "string", "minLength": 1},
-              "binding": {"$ref": "#/$defs/binding"},
-              "review_status": {"enum": ["unreviewed", "reviewed", "rejected", "superseded"]}
+              "change_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "actor_ref": {
+                "type": "string",
+                "minLength": 1
+              },
+              "binding": {
+                "$ref": "#/$defs/binding"
+              },
+              "review_status": {
+                "enum": [
+                  "unreviewed",
+                  "reviewed",
+                  "rejected",
+                  "superseded"
+                ]
+              }
             }
           }
         },
-        "statement": {"type": "string", "minLength": 1}
+        "statement": {
+          "type": "string",
+          "minLength": 1
+        }
       }
     },
     "measurement": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["metric", "status", "value", "unit", "method", "evidence_binding"],
+      "required": [
+        "metric",
+        "status",
+        "value",
+        "unit",
+        "method",
+        "evidence_binding"
+      ],
       "properties": {
         "metric": {
           "enum": [
@@ -772,40 +1249,78 @@
             "custom"
           ]
         },
-        "status": {"enum": ["measured", "not_measured", "unavailable", "not_applicable"]},
+        "status": {
+          "enum": [
+            "measured",
+            "not_measured",
+            "unavailable",
+            "not_applicable"
+          ]
+        },
         "value": {
           "anyOf": [
-            {"type": "number"},
-            {"type": "null"}
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "unit": {
           "anyOf": [
-            {"type": "string", "minLength": 1},
-            {"type": "null"}
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
           ]
         },
-        "method": {"type": "string", "minLength": 1},
+        "method": {
+          "type": "string",
+          "minLength": 1
+        },
         "evidence_binding": {
           "anyOf": [
-            {"$ref": "#/$defs/binding"},
-            {"type": "null"}
+            {
+              "$ref": "#/$defs/binding"
+            },
+            {
+              "type": "null"
+            }
           ]
         }
       },
       "allOf": [
         {
-          "if": {"properties": {"status": {"const": "measured"}}},
+          "if": {
+            "properties": {
+              "status": {
+                "const": "measured"
+              }
+            }
+          },
           "then": {
             "properties": {
-              "value": {"type": "number"},
-              "unit": {"type": "string", "minLength": 1}
+              "value": {
+                "type": "number"
+              },
+              "unit": {
+                "type": "string",
+                "minLength": 1
+              }
             }
           },
           "else": {
             "properties": {
-              "value": {"type": "null"},
-              "unit": {"type": "null"}
+              "value": {
+                "type": "null"
+              },
+              "unit": {
+                "type": "null"
+              }
             }
           }
         }
@@ -823,20 +1338,40 @@
       ],
       "properties": {
         "capture_posture": {
-          "enum": ["self_declared", "tool_captured", "owner_captured", "signed_attestation"]
+          "enum": [
+            "self_declared",
+            "tool_captured",
+            "owner_captured",
+            "signed_attestation"
+          ]
         },
         "signature_status": {
-          "enum": ["unsigned", "signed_unverified", "signed_verified", "verification_failed"]
+          "enum": [
+            "unsigned",
+            "signed_unverified",
+            "signed_verified",
+            "verification_failed"
+          ]
         },
         "signature_bindings": {
           "type": "array",
           "uniqueItems": true,
-          "items": {"$ref": "#/$defs/binding"}
+          "items": {
+            "$ref": "#/$defs/binding"
+          }
         },
         "verification_status": {
-          "enum": ["unverified", "mechanically_verified", "signature_verified", "verification_failed"]
+          "enum": [
+            "unverified",
+            "mechanically_verified",
+            "signature_verified",
+            "verification_failed"
+          ]
         },
-        "producer_control_boundary": {"type": "string", "minLength": 1}
+        "producer_control_boundary": {
+          "type": "string",
+          "minLength": 1
+        }
       }
     },
     "rightsVisibility": {
@@ -853,7 +1388,9 @@
         "rights_record_bindings": {
           "type": "array",
           "uniqueItems": true,
-          "items": {"$ref": "#/$defs/binding"}
+          "items": {
+            "$ref": "#/$defs/binding"
+          }
         },
         "intended_uses": {
           "type": "array",
@@ -874,13 +1411,23 @@
           }
         },
         "content_visibility": {
-          "enum": ["public_content", "public_synthetic", "tracked_public_metadata", "local_only", "withheld"]
+          "enum": [
+            "public_content",
+            "public_synthetic",
+            "tracked_public_metadata",
+            "local_only",
+            "withheld"
+          ]
         },
-        "publication_authorized": {"type": "boolean"},
+        "publication_authorized": {
+          "type": "boolean"
+        },
         "publication_authority_bindings": {
           "type": "array",
           "uniqueItems": true,
-          "items": {"$ref": "#/$defs/binding"}
+          "items": {
+            "$ref": "#/$defs/binding"
+          }
         }
       }
     },
@@ -896,40 +1443,77 @@
         "competence_evidence_bindings"
       ],
       "properties": {
-        "mechanical_validation": {"enum": ["passed", "failed", "not_run"]},
-        "human_review_status": {"enum": ["not_performed", "performed", "blocked"]},
+        "mechanical_validation": {
+          "enum": [
+            "passed",
+            "failed",
+            "not_run"
+          ]
+        },
+        "human_review_status": {
+          "enum": [
+            "not_performed",
+            "performed",
+            "blocked"
+          ]
+        },
         "review_bindings": {
           "type": "array",
           "uniqueItems": true,
-          "items": {"$ref": "#/$defs/binding"}
+          "items": {
+            "$ref": "#/$defs/binding"
+          }
         },
         "accepted_uses": {
           "type": "array",
           "uniqueItems": true,
-          "items": {"type": "string", "minLength": 1}
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
         },
-        "promotion_authorized": {"type": "boolean"},
+        "promotion_authorized": {
+          "type": "boolean"
+        },
         "competence_evidence_bindings": {
           "type": "array",
           "uniqueItems": true,
-          "items": {"$ref": "#/$defs/binding"}
+          "items": {
+            "$ref": "#/$defs/binding"
+          }
         }
       }
     },
     "reproducibility": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["classification", "known_gaps", "replay_scope"],
+      "required": [
+        "classification",
+        "known_gaps",
+        "replay_scope"
+      ],
       "properties": {
         "classification": {
-          "enum": ["replay_ready", "replay_ready_negative_control", "partially_specified", "blocked", "not_applicable"]
+          "enum": [
+            "replay_ready",
+            "replay_ready_negative_control",
+            "partially_specified",
+            "blocked",
+            "not_applicable"
+          ]
         },
         "known_gaps": {
           "type": "array",
           "uniqueItems": true,
-          "items": {"type": "string", "minLength": 1}
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
         },
-        "replay_scope": {"type": "string", "minLength": 1}
+        "replay_scope": {
+          "type": "string",
+          "minLength": 1
+        }
       }
     }
   }

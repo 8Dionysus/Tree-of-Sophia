@@ -13,8 +13,8 @@ touched.
 
 ## Local role
 
-`docs/` holds repository-level documentation that should not live inside the
-`ToS/` source home.
+`docs/` holds repository-level rationale, release guidance and documentation
+route law.
 
 These files govern:
 - durable decision rationale under `docs/decisions/`
@@ -26,8 +26,8 @@ ToS knowledge law, node contracts, route doctrine, templates, review ledgers,
 source witnesses, the golden Zarathustra route, domain philosophy topology,
 canon, contracts, public compatibility, and derived exports belong under
 `ToS/`.
-Non-authoritative research packets belong under `ToS/research-packets/`, not
-under source witnesses.
+Provisional research packets belong under `ToS/research-packets/`; their
+source anchors route to `ToS/source-witnesses/`.
 Mechanic-owned operation payload belongs under root `mechanics/`.
 
 ## Editing posture

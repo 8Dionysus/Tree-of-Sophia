@@ -135,9 +135,7 @@
       "maxItems": 30,
       "items": {"$ref": "#/$defs/unit"}
     },
-    "authority_boundary": {
-      "const": "model-proposed source-visible review routing only; no sentence boundary, diplomatic transcription, translation, or gold status exists until real human passes are recorded"
-    }
+    "authority_boundary": {"type": "string", "minLength": 1, "description": "Brief account of the artifact purpose and scope. Typed status, effects, assessment and permission fields govern its use."}
   },
   "$defs": {
     "tosId": {

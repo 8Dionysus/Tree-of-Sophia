@@ -2,22 +2,58 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://tree-of-sophia.local/ToS/contracts/research-corpus-record.schema.json",
   "title": "Persistent research corpus with explicit selection purpose",
-  "description": "An identifiable research selection, not a publication Collection, a scholarly reconstruction, every item in a directory, a search result or an admission decision. Exact membership and order are separate versioned Claims.",
+  "description": "An identifiable research selection defined by its purpose, scope and selection criterion. Exact membership and order are separate versioned Claims.",
   "allOf": [
-    {"$ref": "https://tree-of-sophia.local/ToS/contracts/source-metadata-record.schema.json"},
-    {"$ref": "https://tree-of-sophia.local/ToS/contracts/semantic-description-record.schema.json#/$defs/semanticDescriptionFields"},
-    {"$ref": "https://tree-of-sophia.local/ToS/contracts/semantic-description-record.schema.json#/$defs/semanticContentFields"},
-    {"properties": {
-      "schema_version": {"const": "tos_research_corpus_record_v1"},
-      "record_type": {"const": "research-corpus"},
-      "record_id": {"pattern": "^tos\\.research-corpus\\."},
-      "supersedes_ref": {"type": ["string", "null"], "pattern": "^tos\\.research-corpus\\."},
-      "semantic_content": {"required": ["research_purpose", "selection_criterion", "coverage_account"], "properties": {
-        "research_purpose": {"type": "string", "pattern": "\\S"},
-        "selection_criterion": {"type": "string", "pattern": "\\S"},
-        "coverage_account": {"type": "string", "pattern": "\\S"}
-      }}
-    }}
+    {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/source-metadata-record.schema.json"
+    },
+    {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/semantic-description-record.schema.json#/$defs/semanticDescriptionFields"
+    },
+    {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/semantic-description-record.schema.json#/$defs/semanticContentFields"
+    },
+    {
+      "properties": {
+        "schema_version": {
+          "const": "tos_research_corpus_record_v1"
+        },
+        "record_type": {
+          "const": "research-corpus"
+        },
+        "record_id": {
+          "pattern": "^tos\\.research-corpus\\."
+        },
+        "supersedes_ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^tos\\.research-corpus\\."
+        },
+        "semantic_content": {
+          "required": [
+            "research_purpose",
+            "selection_criterion",
+            "coverage_account"
+          ],
+          "properties": {
+            "research_purpose": {
+              "type": "string",
+              "pattern": "\\S"
+            },
+            "selection_criterion": {
+              "type": "string",
+              "pattern": "\\S"
+            },
+            "coverage_account": {
+              "type": "string",
+              "pattern": "\\S"
+            }
+          }
+        }
+      }
+    }
   ],
   "unevaluatedProperties": false
 }

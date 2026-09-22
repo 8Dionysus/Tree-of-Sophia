@@ -1,0 +1,128 @@
+{
+  "schema_version": "tos_claim_revision_history_v1",
+  "source_path": "ToS/source-witnesses/relations/social-research/source-claims.jsonl",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:fdc4f54217373f815babbaf0",
+      "request_digest": "sha256:4e445296e83be632fcf0c2ffcc78f0d4d7571ae82b6a0853d0cf4c9d27f3388c",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:5a5ff0a1bec34ef89cb4adb5c58a132980f00bfda2d5b4ab6a355dc944c2b612",
+      "recorded_at": "2026-09-22T06:40:53.001605+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+      "previous_source": {
+        "id": "tos.claim.social-research-nietzsche-ritschl-learning",
+        "version": 1,
+        "digest": "sha256:058056848bdf8fcdd8901ab7770a55b097e1ab672fd8004dd7a904d0a08eb5f4"
+      },
+      "source": {
+        "id": "tos.claim.social-research-nietzsche-ritschl-learning",
+        "version": 2,
+        "digest": "sha256:57d5417007f438882708893990d3e90539397607c09bc1bcbe67a2ec99121466"
+      },
+      "previous_revision": "sha256:d343512c47ffe1749d2ce1093582d88d4f3a3895b99689b1af545dff31e7255d",
+      "archive_path": "ToS/source-witnesses/.record-revisions/fdc4f54217373f815babbaf01b3fd115146959db66ddcaa7afc926092af0c58d-d343512c47ffe1749d2ce1093582d88d4f3a3895b99689b1af545dff31e7255d",
+      "dependencies": "sha256:3a3b6029f2c09579ac949bb773df35a69c7775c6351a256de383f1475712801c",
+      "source_bindings": {
+        "objects": {
+          "tos.agent.friedrich-nietzsche": {
+            "source_ref": "ToS/source-witnesses/agents/friedrich-nietzsche/agent.json",
+            "source_sha256": "sha256:03312e09746a20b3d0979d3f4a8df209d6d7c537d62c8f1bd588f36cec36416d",
+            "canonical_record_sha256": "sha256:8d6034511d8fb7618c7a97ad4cc07f84c2fecc2c5792786168d00a0796495a48",
+            "schema_version": "tos_corpus_record_v1",
+            "record_version": 3
+          },
+          "tos.agent.friedrich-ritschl": {
+            "source_ref": "ToS/source-witnesses/agents/friedrich-ritschl/agent.json",
+            "source_sha256": "sha256:e02b57f13cda88a05443db30fbc737b79291e31d48ea87a572542a4f8c9928fd",
+            "canonical_record_sha256": "sha256:8362f336b45bead637d86d2124192907e89ef6f022f22a6bafd776388f90c8c8",
+            "schema_version": "tos_corpus_record_v1",
+            "record_version": 2
+          }
+        },
+        "evidence": {
+          "ToS/review-ledger/2026-09-07-social-source-reading.md": {
+            "source_ref": "ToS/review-ledger/2026-09-07-social-source-reading.md",
+            "source_sha256": "sha256:2c7a6cd6fb1f7645dd3e1182c980a46a523ba3368de0aede7f644439f7d7b647",
+            "source_line": null,
+            "evidence_kind": "repo_path"
+          }
+        }
+      },
+      "changed_fields": [
+        "qualifiers"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.social-research-nietzsche-ritschl-learning.statement-ru",
+          "version": 2,
+          "digest": "sha256:5730f244d254e2b28c6100d58e1f8b478d41daee70c47d6f487d111357b09cf0"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:fdc4f54217373f815babbaf0",
+        "expected_configuration": "sha256:5a5ff0a1bec34ef89cb4adb5c58a132980f00bfda2d5b4ab6a355dc944c2b612",
+        "expected_dependencies": "sha256:3a3b6029f2c09579ac949bb773df35a69c7775c6351a256de383f1475712801c",
+        "expected_inputs": {
+          "evidence": {
+            "ToS/review-ledger/2026-09-07-social-source-reading.md": {
+              "evidence_kind": "repo_path",
+              "source_line": null,
+              "source_ref": "ToS/review-ledger/2026-09-07-social-source-reading.md",
+              "source_sha256": "sha256:2c7a6cd6fb1f7645dd3e1182c980a46a523ba3368de0aede7f644439f7d7b647"
+            }
+          },
+          "objects": {
+            "tos.agent.friedrich-nietzsche": {
+              "canonical_record_sha256": "sha256:8d6034511d8fb7618c7a97ad4cc07f84c2fecc2c5792786168d00a0796495a48",
+              "record_version": 3,
+              "schema_version": "tos_corpus_record_v1",
+              "source_ref": "ToS/source-witnesses/agents/friedrich-nietzsche/agent.json",
+              "source_sha256": "sha256:03312e09746a20b3d0979d3f4a8df209d6d7c537d62c8f1bd588f36cec36416d"
+            },
+            "tos.agent.friedrich-ritschl": {
+              "canonical_record_sha256": "sha256:8362f336b45bead637d86d2124192907e89ef6f022f22a6bafd776388f90c8c8",
+              "record_version": 2,
+              "schema_version": "tos_corpus_record_v1",
+              "source_ref": "ToS/source-witnesses/agents/friedrich-ritschl/agent.json",
+              "source_sha256": "sha256:e02b57f13cda88a05443db30fbc737b79291e31d48ea87a572542a4f8c9928fd"
+            }
+          }
+        },
+        "expected_revision": "sha256:d343512c47ffe1749d2ce1093582d88d4f3a3895b99689b1af545dff31e7255d",
+        "expected_source": {
+          "digest": "sha256:058056848bdf8fcdd8901ab7770a55b097e1ab672fd8004dd7a904d0a08eb5f4",
+          "id": "tos.claim.social-research-nietzsche-ritschl-learning",
+          "version": 1
+        },
+        "fields": {
+          "qualifiers": {
+            "assessment_limit": "Предварительное исследовательское утверждение, не результат независимой содержательной оценки.",
+            "relation_basis": "Явное называние учителя в источнике.",
+            "social_scope": "Филологическое обучение, не всё интеллектуальное становление.",
+            "source_locator": {
+              "locator": "Абзац об учёбе в Бонне и переходе в Лейпциг.",
+              "reading_date": "2026-09-07",
+              "source_language": "de",
+              "url": "https://unigeschichte.unibas.ch/fakultaeten-und-faecher/philhist-fakultaet/philosophie/friedrich-nietzsche"
+            },
+            "statement": "Базельский исторический очерк называет Ричля учителем Ницше в его филологическом обучении. Утверждение ограничено этой сообщённой связью; остальные источники философии Ницше требуют отдельного исследования.",
+            "statement_language": "ru",
+            "statement_script": "Cyrl",
+            "time_scope_note": "Студенческие годы в Бонне и Лейпциге; точные границы этих отношений здесь не установлены."
+          }
+        },
+        "forms": [
+          {
+            "field_id": "claim.statement",
+            "form_id": "tos.form.social-research-nietzsche-ritschl-learning.statement-ru"
+          }
+        ],
+        "operation": "claim.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    }
+  ]
+}

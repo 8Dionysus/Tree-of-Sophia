@@ -1,0 +1,90 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.organization.prometey-publishing-saint-petersburg",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:7ac7cf8cb3b09497d11ec1d3",
+      "request_digest": "sha256:cf5f8b8a5b8ab030b721cd41106425d10f0dcf6dec153774ab62c9825e6cd8d1",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:dced791b4f3c0ed24e11784a4ff147d97a3cb892679e872b8afebe858f0dd5bf",
+      "recorded_at": "2026-09-22T05:06:09.048293+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.organization.prometey-publishing-saint-petersburg",
+        "version": 1,
+        "digest": "sha256:f2ac88c705609a09a79ede24f646ae004ce7d9e311943a5ad5acfe7ca306d1bf"
+      },
+      "source": {
+        "id": "tos.organization.prometey-publishing-saint-petersburg",
+        "version": 2,
+        "digest": "sha256:aaada9bffcfe0c9d9f0afc5de129141d5dc834aa80cec0d68d06d65563a801cc"
+      },
+      "previous_revision": "sha256:9c3dee43ebf44b9d700ea449c297c3a10da3f2b248cf862e9ec0842fbf03cbaf",
+      "archive_path": "ToS/source-witnesses/.record-revisions/7ac7cf8cb3b09497d11ec1d304b075128d92119d5061e3aa794a97c383373830-9c3dee43ebf44b9d700ea449c297c3a10da3f2b248cf862e9ec0842fbf03cbaf",
+      "dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+      "changed_fields": [
+        "notes"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.metadata.83b053ce903df84c8e02fbe559f11662fd7ef5368e505fff781aae71b4f91ee2",
+          "version": 2,
+          "digest": "sha256:7322e9cc4a2b8deccab76a1645ca01b5264b7cb20cd86e0ff37698dd3c86e5cc"
+        },
+        {
+          "id": "tos.form.metadata.9a9ef14f323b302e9110b7c4d52b19618f791c4e882e08dbe001581cfb3b3143",
+          "version": 2,
+          "digest": "sha256:386347dbfa267f37b887d619ad6ff40dc76911466e08c96896164c280b883ab2"
+        },
+        {
+          "id": "tos.form.metadata.2ea689075fb710e09f7dc0b999d8e6957c8f0290f6fc939540ccd40a962a06fb",
+          "version": 2,
+          "digest": "sha256:a36e8346dfc1b73698c4c1508442f80ad7a002b79a55b7858879e4a6a16f0bb8"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:7ac7cf8cb3b09497d11ec1d3",
+        "expected_configuration": "sha256:dced791b4f3c0ed24e11784a4ff147d97a3cb892679e872b8afebe858f0dd5bf",
+        "expected_dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+        "expected_publication": "sha256:779d07f88f4ae596e678e0f791fb52b1ef9b5a543b4a55bb61a34c49d7eee1ad",
+        "expected_revision": "sha256:9c3dee43ebf44b9d700ea449c297c3a10da3f2b248cf862e9ec0842fbf03cbaf",
+        "expected_source": {
+          "digest": "sha256:f2ac88c705609a09a79ede24f646ae004ce7d9e311943a5ad5acfe7ca306d1bf",
+          "id": "tos.organization.prometey-publishing-saint-petersburg",
+          "version": 1
+        },
+        "fields": {
+          "notes": "The exact 1911 title page names КНИГОИЗДАТЕЛЬСТВО ПРОМЕТЕЙ, and RSL records independently catalog Прометей as a Saint Petersburg publishing imprint."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.metadata.83b053ce903df84c8e02fbe559f11662fd7ef5368e505fff781aae71b4f91ee2"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.metadata.9a9ef14f323b302e9110b7c4d52b19618f791c4e882e08dbe001581cfb3b3143"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.metadata.2ea689075fb710e09f7dc0b999d8e6957c8f0290f6fc939540ccd40a962a06fb"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:57ba5d509e39ffa219f33ce8588c4efaf00669aaccd614ad4f6d68bd5ffc8b88",
+        "selected_files": [
+          "organization.human-forms.json",
+          "organization.json",
+          "source-revision-history.json"
+        ]
+      }
+    }
+  ]
+}

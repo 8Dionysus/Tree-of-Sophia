@@ -22,15 +22,15 @@ ToS exists to support long-horizon cultivation of thought through:
 ToS grows through two coupled fronts:
 
 - a world-philosophy corpus soil that orders works, witnesses, editions,
-  languages, time, place, traditions, and transmission without pretending that
-  an index is already interpretation;
+  languages, time, place, traditions, and transmission as the basis for
+  source-linked interpretation;
 - *Thus Spoke Zarathustra* as the first golden growth kernel: a dense,
   source-returning full cycle from text through review into authored knowledge
   and downstream projections.
 
 The corpus soil gives the tree breadth. The golden kernel teaches the path of
-growth. What transfers from that kernel is source and review discipline, not a
-universal Nietzschean ontology.
+growth. The transferable method is source and review discipline. Each work
+and tradition supplies the concepts appropriate to its own material.
 
 ## What this repository owns
 
@@ -42,15 +42,12 @@ This repository owns ToS-level truth about:
 - how raw material, derived extraction, and reviewed synthesis stay distinct
 - how ToS relates to AoA, `aoa-kag`, and `abyss-stack`
 
-## What this repository does not own
+## Related owners
 
-This repository does not own:
-
-- the AoA ecosystem constitution
-- infrastructure deployment details
-- KAG-derived projections as primary truth
-- routing surfaces as such
-- generic summaries detached from source traceability
+The AoA constitution belongs to `Agents-of-Abyss`; deployment belongs to
+`abyss-stack`; derived knowledge infrastructure belongs to `aoa-kag`; typed
+routing belongs to `aoa-sdk`. ToS supplies source-traceable knowledge to those
+systems through its declared handoffs.
 
 ## Core principles
 
@@ -64,9 +61,9 @@ This repository does not own:
 - gold examples that preserve judgment, refusal, and uncertainty
 
 [Knowledge Assessment](ToS/doctrine/KNOWLEDGE_ASSESSMENT.md) owns the concrete
-human/agent competence, authority and admission rules. Reviewer kind alone is
-neither a guarantee of truth nor an automatic ceiling on research use. Rights,
-consent, publication and canon keep their separate owner decisions.
+human/agent competence, authority and admission rules. A judgment is assessed
+through its evidence, competence and use scope. Rights, consent, publication
+and canon keep their separate owner decisions.
 
 ## Role in the broader ecosystem
 
@@ -86,6 +83,5 @@ Treat related repositories as follows:
 
 If ToS matures successfully, it should remain source-first even as derivative and operational systems become more capable.
 
-The goal is not to dissolve authored meaning into infrastructure or retrieval machinery.
-
-The goal is to cultivate a living, traceable architecture of thought.
+ToS cultivates a living, traceable architecture of thought whose source-owned
+meaning remains available through each operational and derived system.

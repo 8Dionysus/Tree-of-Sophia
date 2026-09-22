@@ -1,6 +1,7 @@
 # Agon Parts
 
-Each Agon part owns a functioning operation route, not a source-file inventory.
+Each Agon part owns a functioning operation route and its concrete inputs,
+outputs and handoff.
 
 ## Part Map
 

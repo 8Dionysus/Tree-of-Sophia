@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://tree-of-sophia.local/ToS/contracts/native-translation-alignment-record-v1.schema.json",
   "title": "Native translation-alignment owner record v1",
-  "description": "Additive immutable native record belonging to the translation-alignment owner. V1 mapping, qualification, side and rights grammars remain authoritative through references. Alignment is an unversioned stable subject identity. Record versions version its exact description; claim versions version qualifications of one correspondence, while remapping creates a new Claim. This proposal-only route does not reinterpret legacy packet review or publication.",
+  "description": "Immutable native translation-alignment record using the referenced v1 mapping, qualification, side and rights grammars. Alignment has a stable unversioned subject ID. Record versions track its description; Claim versions track qualifications of one correspondence; remapping creates a new Claim. This proposal route preserves legacy review and publication states.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -270,11 +270,36 @@
   },
   "allOf": [
     {
-      "if": {"properties": {"granularity": {"enum": ["phrase", "token", "morpheme", "mixed"]}}},
-      "then": {"properties": {
-        "source_side": {"properties": {"tokenization": {"$ref": "translation-alignment-packet-v1.schema.json#/$defs/frozenAnalysisBinding"}}},
-        "target_side": {"properties": {"tokenization": {"$ref": "translation-alignment-packet-v1.schema.json#/$defs/frozenAnalysisBinding"}}}
-      }}
+      "if": {
+        "properties": {
+          "granularity": {
+            "enum": [
+              "phrase",
+              "token",
+              "morpheme",
+              "mixed"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "source_side": {
+            "properties": {
+              "tokenization": {
+                "$ref": "translation-alignment-packet-v1.schema.json#/$defs/frozenAnalysisBinding"
+              }
+            }
+          },
+          "target_side": {
+            "properties": {
+              "tokenization": {
+                "$ref": "translation-alignment-packet-v1.schema.json#/$defs/frozenAnalysisBinding"
+              }
+            }
+          }
+        }
+      }
     },
     {
       "if": {

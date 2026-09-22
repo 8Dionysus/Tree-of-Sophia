@@ -6,7 +6,8 @@ Part: `adoption-boundary`
 
 ## Purpose
 
-ToS is not a runtime adoption authority.
+Runtime adoption requires a decision by the consuming runtime owner, with
+local consent, evidence and a rollback route.
 
 ## Core law
 

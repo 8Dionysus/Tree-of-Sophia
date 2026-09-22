@@ -1,7 +1,7 @@
 """Pure, bounded application of ToS assessment policy to trusted owner inputs.
 
-This module neither authenticates a caller nor judges source prose. An owner
-adapter must supply authenticated bindings, admitted policy/grants/competence,
+Caller authentication and source-prose assessment belong to the owner adapter.
+It must supply authenticated bindings, admitted policy/grants/competence,
 and the current, access-filtered record snapshot. Incoming assessments cannot
 populate those trusted inputs. No network, model call, publication or write is
 performed here.

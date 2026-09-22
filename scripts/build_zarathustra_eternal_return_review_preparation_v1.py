@@ -508,7 +508,7 @@ def make_matrix(speakers: list[dict[str, Any]], ids: dict[tuple[str, str], str])
         "schema_version": "tos_zarathustra_eternal_return_interpretation_review_matrix_v1",
         "parent_annotation_ref": load_json(PARENT / "concept-candidate.v1.json")["annotation_id"],
         "axes": axes,
-        "comparison_law": "positive evidence and counterpressure coexist; counts do not rank truth",
+        "comparison_law": "Positive evidence and counterpressure coexist; counts describe their occurrence, while assessment weighs their meaning.",
         "accepted_axis_count": 0,
         "human_review_count": 0,
         "graph_effect": False,

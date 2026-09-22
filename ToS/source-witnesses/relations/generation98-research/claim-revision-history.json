@@ -1,0 +1,250 @@
+{
+  "schema_version": "tos_claim_revision_history_v1",
+  "source_path": "ToS/source-witnesses/relations/generation98-research/source-claims.jsonl",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:56a5acd6c107a7e66ee3e18f",
+      "request_digest": "sha256:a560eef7bff38ff58707967a8f4548f9d0a092ca36125b442e9438fb30270992",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:ebda1bca3d7276dd3a52c7a58d06367be85404a311e1ccab3ee511460cca33e6",
+      "recorded_at": "2026-09-22T06:26:57.366137+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+      "previous_source": {
+        "id": "tos.claim.generation98.azorin-1913-unamuno",
+        "version": 1,
+        "digest": "sha256:a9a6104f60a092c18b5052b7ff7d1a3cb8046f0a12e5a1c87b365f4cbe3cb1ad"
+      },
+      "source": {
+        "id": "tos.claim.generation98.azorin-1913-unamuno",
+        "version": 2,
+        "digest": "sha256:ac1cb23315e9d3419a3ffd27b2e7d92adb6c44786d801fed561a319d8a7d80db"
+      },
+      "previous_revision": "sha256:e45d1fdd3fa6d01e98de26ae1d1051c69afbb7ba15585b96e65320c413f2e054",
+      "archive_path": "ToS/source-witnesses/.record-revisions/56a5acd6c107a7e66ee3e18fabd83ae84915b25532bb37cda4bebaf5a45ce19f-e45d1fdd3fa6d01e98de26ae1d1051c69afbb7ba15585b96e65320c413f2e054",
+      "dependencies": "sha256:0df07e437dac86e67ed1214bb258f321b8df2125c3251ed68fbea7a7ba2a34a5",
+      "source_bindings": {
+        "objects": {
+          "tos.agent.miguel-de-unamuno": {
+            "source_ref": "ToS/source-witnesses/agents/miguel-de-unamuno/agent.json",
+            "source_sha256": "sha256:1ab6b7f64365d25ccee204ad886d59bb00afdbcb3379c612bc1e232e1fcb8d7c",
+            "canonical_record_sha256": "sha256:4c47e8552863ab2a7ff5a90d4d74768bf70618cdfe8dee9d43cf02522f61b67d",
+            "schema_version": "tos_corpus_record_v1",
+            "record_version": 2
+          },
+          "tos.historical-generation.spanish-1898.azorin-1913": {
+            "source_ref": "ToS/source-witnesses/history/generation98-research/azorin-1913/historical-generation.json",
+            "source_sha256": "sha256:d8ca7985ad99d65d44ea0796abfbdf4fe14d3e0ba8e36c332c3f24a071126f99",
+            "canonical_record_sha256": "sha256:adab50534f6759f90e55c788c86ffc3a32f487fa45f29bebe788f84a86659e55",
+            "schema_version": "tos_historical_context_record_v1",
+            "record_version": 2
+          }
+        },
+        "evidence": {
+          "ToS/review-ledger/2026-09-07-generation98-source-reading.md": {
+            "source_ref": "ToS/review-ledger/2026-09-07-generation98-source-reading.md",
+            "source_sha256": "sha256:53a95c0b084134100ffa22993561166efc051d6d372ab33af703065cbfd134ad",
+            "source_line": null,
+            "evidence_kind": "repo_path"
+          }
+        }
+      },
+      "changed_fields": [
+        "qualifiers"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.generation98.azorin-1913-unamuno.statement-ru",
+          "version": 2,
+          "digest": "sha256:b07951613c0b05c7797e17c1b826758a964b3b97928b18e4b5f493c2676d3696"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:56a5acd6c107a7e66ee3e18f",
+        "expected_configuration": "sha256:ebda1bca3d7276dd3a52c7a58d06367be85404a311e1ccab3ee511460cca33e6",
+        "expected_dependencies": "sha256:0df07e437dac86e67ed1214bb258f321b8df2125c3251ed68fbea7a7ba2a34a5",
+        "expected_inputs": {
+          "evidence": {
+            "ToS/review-ledger/2026-09-07-generation98-source-reading.md": {
+              "evidence_kind": "repo_path",
+              "source_line": null,
+              "source_ref": "ToS/review-ledger/2026-09-07-generation98-source-reading.md",
+              "source_sha256": "sha256:53a95c0b084134100ffa22993561166efc051d6d372ab33af703065cbfd134ad"
+            }
+          },
+          "objects": {
+            "tos.agent.miguel-de-unamuno": {
+              "canonical_record_sha256": "sha256:4c47e8552863ab2a7ff5a90d4d74768bf70618cdfe8dee9d43cf02522f61b67d",
+              "record_version": 2,
+              "schema_version": "tos_corpus_record_v1",
+              "source_ref": "ToS/source-witnesses/agents/miguel-de-unamuno/agent.json",
+              "source_sha256": "sha256:1ab6b7f64365d25ccee204ad886d59bb00afdbcb3379c612bc1e232e1fcb8d7c"
+            },
+            "tos.historical-generation.spanish-1898.azorin-1913": {
+              "canonical_record_sha256": "sha256:adab50534f6759f90e55c788c86ffc3a32f487fa45f29bebe788f84a86659e55",
+              "record_version": 2,
+              "schema_version": "tos_historical_context_record_v1",
+              "source_ref": "ToS/source-witnesses/history/generation98-research/azorin-1913/historical-generation.json",
+              "source_sha256": "sha256:d8ca7985ad99d65d44ea0796abfbdf4fe14d3e0ba8e36c332c3f24a071126f99"
+            }
+          }
+        },
+        "expected_revision": "sha256:e45d1fdd3fa6d01e98de26ae1d1051c69afbb7ba15585b96e65320c413f2e054",
+        "expected_source": {
+          "digest": "sha256:a9a6104f60a092c18b5052b7ff7d1a3cb8046f0a12e5a1c87b365f4cbe3cb1ad",
+          "id": "tos.claim.generation98.azorin-1913-unamuno",
+          "version": 1
+        },
+        "fields": {
+          "qualifiers": {
+            "assessment_limit": "Предварительное сообщение; требуется отдельная оценка точной версии и области использования.",
+            "context_scope": "Когорта azorin-1913. Сходные утверждения об иных когортах сохраняют общее происхождение и требуют проверки зависимости свидетельств.",
+            "relation_basis": "Именное перечисление в указанном изложении; первоисточник не проверен.",
+            "source_locator": {
+              "locator": "printed p. 1763; PDF page 3; named roster",
+              "reading_date": "2026-09-07",
+              "source_language": "es",
+              "url": "https://cvc.cervantes.es/literatura/aih/pdf/10/aih_10_2_089.pdf"
+            },
+            "statement": "Фокс сообщает об отнесении Унамуно к поколению по критерию Азорина; не утверждение членства в организации.",
+            "statement_language": "ru",
+            "statement_script": "Cyrl",
+            "time_scope_note": "Время формулирования критерия — 1913; период участия человека отдельно не установлен."
+          }
+        },
+        "forms": [
+          {
+            "field_id": "claim.statement",
+            "form_id": "tos.form.generation98.azorin-1913-unamuno.statement-ru"
+          }
+        ],
+        "operation": "claim.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    },
+    {
+      "command_id": "tos-language-cleanup-20260922:fffdcc000bbcc095948d27bf",
+      "request_digest": "sha256:76fb68e15f01d776bb87a913f525133c9a8a108252e4bbe707c7ee05d146fac9",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:86990ca98560a4e73d48e65ebe29a22fc36ede8b82ff9ad46dfe39e6060b7260",
+      "recorded_at": "2026-09-22T06:27:23.217576+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+      "previous_source": {
+        "id": "tos.claim.generation98.salinas-1934-unamuno",
+        "version": 1,
+        "digest": "sha256:be3d79154db94d4775aefd22b8c90b4271396bd21ade2a8da4713dcd28255766"
+      },
+      "source": {
+        "id": "tos.claim.generation98.salinas-1934-unamuno",
+        "version": 2,
+        "digest": "sha256:1adb9bd96e8641d2d03d5485b9d92bdf63e7a91483e22c3818bd9c4b90c1b1f4"
+      },
+      "previous_revision": "sha256:1ca1546c1c1b5d9d0ec2c0a719edacf507e08ce1e96a466bcaebc881a4fca781",
+      "archive_path": "ToS/source-witnesses/.record-revisions/fffdcc000bbcc095948d27bf5c578c8c8b349bca99da684115ad4122d1d73dbf-1ca1546c1c1b5d9d0ec2c0a719edacf507e08ce1e96a466bcaebc881a4fca781",
+      "dependencies": "sha256:806880142a49bf33aada7cae1a5eca172e67a0ca0638f3bab22f3ff79417f2c0",
+      "source_bindings": {
+        "objects": {
+          "tos.agent.miguel-de-unamuno": {
+            "source_ref": "ToS/source-witnesses/agents/miguel-de-unamuno/agent.json",
+            "source_sha256": "sha256:1ab6b7f64365d25ccee204ad886d59bb00afdbcb3379c612bc1e232e1fcb8d7c",
+            "canonical_record_sha256": "sha256:4c47e8552863ab2a7ff5a90d4d74768bf70618cdfe8dee9d43cf02522f61b67d",
+            "schema_version": "tos_corpus_record_v1",
+            "record_version": 2
+          },
+          "tos.historical-generation.spanish-1898.salinas-1934": {
+            "source_ref": "ToS/source-witnesses/history/generation98-research/salinas-1934/historical-generation.json",
+            "source_sha256": "sha256:4ad98898ce2d439629103f8dfc37d5b319eb1a6978c4908086f2f352d361dd76",
+            "canonical_record_sha256": "sha256:52706c332c776f7877ca6fabae8de478e7f1ceaa8b6b46ddff8f5bea1c25d455",
+            "schema_version": "tos_historical_context_record_v1",
+            "record_version": 2
+          }
+        },
+        "evidence": {
+          "ToS/review-ledger/2026-09-07-generation98-source-reading.md": {
+            "source_ref": "ToS/review-ledger/2026-09-07-generation98-source-reading.md",
+            "source_sha256": "sha256:53a95c0b084134100ffa22993561166efc051d6d372ab33af703065cbfd134ad",
+            "source_line": null,
+            "evidence_kind": "repo_path"
+          }
+        }
+      },
+      "changed_fields": [
+        "qualifiers"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.generation98.salinas-1934-unamuno.statement-ru",
+          "version": 2,
+          "digest": "sha256:24685223df6e5877b22e3153b59bb8032e240c31abcf9a3551f9b32971623b77"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:fffdcc000bbcc095948d27bf",
+        "expected_configuration": "sha256:86990ca98560a4e73d48e65ebe29a22fc36ede8b82ff9ad46dfe39e6060b7260",
+        "expected_dependencies": "sha256:806880142a49bf33aada7cae1a5eca172e67a0ca0638f3bab22f3ff79417f2c0",
+        "expected_inputs": {
+          "evidence": {
+            "ToS/review-ledger/2026-09-07-generation98-source-reading.md": {
+              "evidence_kind": "repo_path",
+              "source_line": null,
+              "source_ref": "ToS/review-ledger/2026-09-07-generation98-source-reading.md",
+              "source_sha256": "sha256:53a95c0b084134100ffa22993561166efc051d6d372ab33af703065cbfd134ad"
+            }
+          },
+          "objects": {
+            "tos.agent.miguel-de-unamuno": {
+              "canonical_record_sha256": "sha256:4c47e8552863ab2a7ff5a90d4d74768bf70618cdfe8dee9d43cf02522f61b67d",
+              "record_version": 2,
+              "schema_version": "tos_corpus_record_v1",
+              "source_ref": "ToS/source-witnesses/agents/miguel-de-unamuno/agent.json",
+              "source_sha256": "sha256:1ab6b7f64365d25ccee204ad886d59bb00afdbcb3379c612bc1e232e1fcb8d7c"
+            },
+            "tos.historical-generation.spanish-1898.salinas-1934": {
+              "canonical_record_sha256": "sha256:52706c332c776f7877ca6fabae8de478e7f1ceaa8b6b46ddff8f5bea1c25d455",
+              "record_version": 2,
+              "schema_version": "tos_historical_context_record_v1",
+              "source_ref": "ToS/source-witnesses/history/generation98-research/salinas-1934/historical-generation.json",
+              "source_sha256": "sha256:4ad98898ce2d439629103f8dfc37d5b319eb1a6978c4908086f2f352d361dd76"
+            }
+          }
+        },
+        "expected_revision": "sha256:1ca1546c1c1b5d9d0ec2c0a719edacf507e08ce1e96a466bcaebc881a4fca781",
+        "expected_source": {
+          "digest": "sha256:be3d79154db94d4775aefd22b8c90b4271396bd21ade2a8da4713dcd28255766",
+          "id": "tos.claim.generation98.salinas-1934-unamuno",
+          "version": 1
+        },
+        "fields": {
+          "qualifiers": {
+            "assessment_limit": "Предварительное сообщение; требуется отдельная оценка точной версии и области использования.",
+            "context_scope": "Когорта salinas-1934. Сходные утверждения об иных когортах сохраняют общее происхождение и требуют проверки зависимости свидетельств.",
+            "relation_basis": "Именное перечисление в указанном изложении; первоисточник не проверен.",
+            "source_locator": {
+              "locator": "printed p. 1765; PDF page 5; named roster",
+              "reading_date": "2026-09-07",
+              "source_language": "es",
+              "url": "https://cvc.cervantes.es/literatura/aih/pdf/10/aih_10_2_089.pdf"
+            },
+            "statement": "Фокс сообщает об отнесении Унамуно к поколению по критерию Салинаса; не утверждение членства в организации.",
+            "statement_language": "ru",
+            "statement_script": "Cyrl",
+            "time_scope_note": "Время формулирования критерия — 1934; период участия человека отдельно не установлен."
+          }
+        },
+        "forms": [
+          {
+            "field_id": "claim.statement",
+            "form_id": "tos.form.generation98.salinas-1934-unamuno.statement-ru"
+          }
+        ],
+        "operation": "claim.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    }
+  ]
+}

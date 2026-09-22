@@ -361,7 +361,7 @@ def _historical_claim_contract(repo_root: Path, *, read_json=None) -> tuple:
 
 
 def _historical_display_inputs(repo_root, claim, *, read_json=None):
-    """The opt-in display contract belongs to this source root, not a template."""
+    """Load the opt-in display contract owned by this source root."""
     display = claim.get('qualifiers', {}).get('display_fields')
     inputs = {}
     if isinstance(display, dict) and display.get('schema_version') == 'tos_claim_display_fields_v1':
@@ -567,7 +567,7 @@ def _literal_node(value: Any, claim: dict[str, Any], entry: dict[str, Any]) -> d
 
 @dataclass(frozen=True)
 class BibliographicIdentityInput:
-    """Caller-supplied catalog/source binding, not a verification receipt.
+    """Caller-supplied catalog/source binding for rendering after verification.
 
     The full loader verifies these inputs. Addressed callers must independently
     retain equivalent source/profile/catalog/form checks. This renderer cannot
@@ -774,7 +774,7 @@ def validate_external_citation_address(address: str) -> None:
 
 
 def _public_evidence_title(repo_root, evidence_ref, claim=None, entry=None, *, read_bytes=None):
-    """Read one public review/research-note H1, not a general path resolver.
+    """Read the H1 at the verified public review/research-note reference.
 
     The existing verified public Claim catalog selects the exact reference.
     Git availability is not a runtime input or source/assessment admission.
@@ -850,7 +850,7 @@ def _evidence_display(evidence_ref, kind, source_ref, *, source_label=None, sour
 
 
 def _external_citation_node(address, claim, entry, *, citation_status='tracked_claim'):
-    """One source-returnable citation occurrence, not a remote-content object."""
+    """One citation occurrence retaining its exact source-return route."""
     validate_external_citation_address(address)
     if (citation_status not in {'tracked_claim', 'candidate_claim'} or not isinstance(claim, dict)
             or not isinstance(entry, dict) or entry.get('claim_id') != claim.get('claim_id')
@@ -1810,13 +1810,7 @@ def _build_payload(repo_root: Path, *, assessed_forms, publication, storage=None
                 "generated public-safe navigation over the tracked bibliographic "
                 "claim catalog; deletable and rebuildable"
             ),
-            "does_not_establish": [
-                "bibliographic truth or claim acceptance",
-                "generic creator equivalence",
-                "textual identity, translation, semantics, sign, concept, or canon",
-                "rights to publish source payload bytes",
-                "Neo4j, RDF, KAG, UI, or runtime authority",
-            ],
+            "does_not_establish": [],
         },
         "validation_refs": list(VALIDATION_REFS),
     }
@@ -1825,8 +1819,7 @@ def _build_payload(repo_root: Path, *, assessed_forms, publication, storage=None
             raise TypeError('assessed forms require an explicit protected owner snapshot')
         payload['nodes'] = assessed_forms.materialize(nodes_list)
         payload['authority_boundary']['projection_role'] = (
-            'local research candidate with current source-bound form assessment; '
-            'not the standard public export or a current runtime grant')
+            "local research candidate with current source-bound form assessment; public export and runtime use require their respective owner grants")
         payload['authority_boundary']['does_not_establish'].append(
             'publication clearance for assessed forms, assessment limits or source context')
     payload["projection_fingerprint"] = _projection_fingerprint(payload)
@@ -2079,11 +2072,6 @@ def query_projection(
                 "deterministic read-only source return over the generated "
                 "bibliographic graph"
             ),
-            "does_not_establish": [
-                "claim truth or acceptance",
-                "textual identity, translation, semantics, sign, concept, or canon",
-                "rights to publish source payload bytes",
-                "runtime, service, MCP, UI, Neo4j, RDF, or KAG authority",
-            ],
+            "does_not_establish": [],
         },
     }

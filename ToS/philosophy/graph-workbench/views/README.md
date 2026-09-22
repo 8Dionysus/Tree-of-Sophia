@@ -2,9 +2,9 @@
 
 `views/` holds graph-view route cards and the source-owned switching contract.
 
-Each view names a future visualization lens. It does not hold graph data, and
-it does not replace source witnesses, branch review, proposed nodes, proposed
-relations, canon relation packs, or derived exports.
+Each view defines a visualization lens over the graph projection. Source
+witnesses, branch review, proposed nodes and relations, canon relation packs
+and derived exports retain their own authored homes and contracts.
 
 `view-contracts.json` maps those route cards to graph layers, current atlas
 projection filters, and future branch filters. It is source-owned input for the

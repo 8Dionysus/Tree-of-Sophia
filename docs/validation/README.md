@@ -50,8 +50,8 @@ here in `validation_lanes.json`.
   registry only becomes useful after ToS grows a distinct validator-module
   surface.
 - AGENTS route topology routes to `agents_route_inventory.json`, its generated
-  currentness companion, and `scripts/agents_route_harness.py`; the harness is
-  a deterministic route-shape check, not a behavioral or semantic eval.
+  currentness companion, and `scripts/agents_route_harness.py`; the harness checks deterministic route shape. Behavioral and semantic
+evaluation follow their respective eval routes.
 - Test topology routes to `docs/testing/TEST_TOPOLOGY.md`, `tests/AGENTS.md`,
   `tests/VALIDATION.md`, and `tests/test_inventory.json`.
 - Local eval pressure routes to `evals/`, while proof authority stays with
@@ -87,6 +87,6 @@ Use root `VALIDATION.md` to inspect or run a named lane. The
 `validation_authority` sequence owns manifest self-check; the `release_check`
 sequence owns standalone software checks and `scripts/release_check.py` remains
 its entrypoint. `software_browser` checks browser behavior on fixtures after `release_check.py` builds the assets.
-The former full aggregate is explicitly selected as `integration_snapshot_audit`;
-it is not a software merge prerequisite. Blocking lane posture applies inside
+The former full aggregate is available through an explicit
+`integration_snapshot_audit` selection, independently of software merge. Blocking lane posture applies inside
 the selected owner operation, under TOS-D-0062.

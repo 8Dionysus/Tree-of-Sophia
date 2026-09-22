@@ -3,9 +3,9 @@
 
 The builder reads two already materialized owner-local paragraph layers, freezes
 only exact selectors and digests in Git, and never copies either sentence into
-tracked output.  Its one-to-one mapping is a mechanical proposal, not accepted
-German, accepted Russian, translation fidelity, lexical equivalence, semantics,
-graph truth, canon authority, or publication permission.
+tracked output.  Its one-to-one mapping remains a mechanical proposal. German and Russian
+text acceptance, translation fidelity, lexical equivalence, semantics, graph
+assessment, canon and publication retain their separate decision routes.
 """
 
 from __future__ import annotations
@@ -374,8 +374,7 @@ def _unit_packet(
                     ),
                 },
                 "status_reason": (
-                    "The exact first U+002E boundary is mechanically selected for a bounded "
-                    "alignment proposal; it is not accepted sentence analysis or accepted text."
+                    "The mechanically selected first U+002E boundary supplies a bounded alignment proposal; sentence analysis and textual acceptance retain their recorded review status."
                 ),
                 "source_text_mutated": False,
                 "semantic_promotion": False,
@@ -590,8 +589,7 @@ def _alignment_packet(
                         "source_anchor_refs": [source_anchor],
                         "target_anchor_refs": [],
                         "description": (
-                            "The source expression has bounded edition-reading admission; "
-                            "this does not accept the sentence segmentation or alignment."
+                            "The source expression has bounded edition-reading admission. Sentence segmentation and alignment each require their own assessment."
                         ),
                     },
                     {
@@ -824,7 +822,7 @@ def _provenance_event(
             "warnings": [
                 "Both sentence segmentations and their one-to-one mapping are unreviewed proposals.",
                 "The target layer retains an unresolved embedded-text versus visual-spacing discrepancy.",
-                "No translation fidelity, lexical equivalence, semantics, graph truth, canon authority, or publication permission is established.",
+                "Translation fidelity, lexical equivalence, semantics, graph assessment, canon and publication retain their corresponding owner decision routes.",
                 "The unsigned self-recorded event proves mechanics and closure, not execution or content truth.",
             ],
         },

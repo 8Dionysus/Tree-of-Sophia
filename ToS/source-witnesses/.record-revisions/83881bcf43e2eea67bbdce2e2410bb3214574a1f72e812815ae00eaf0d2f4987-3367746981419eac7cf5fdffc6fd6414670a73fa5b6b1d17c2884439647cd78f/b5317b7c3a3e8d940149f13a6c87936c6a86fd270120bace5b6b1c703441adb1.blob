@@ -1,0 +1,45 @@
+{
+  "schema_version": "tos_corpus_record_v1",
+  "record_type": "work",
+  "record_id": "tos.work.friedrich-nietzsche.der-fall-wagner",
+  "preferred_label": "Der Fall Wagner",
+  "variant_labels": [
+    {
+      "value": "Казус Вагнер",
+      "language": "ru",
+      "source_ref": "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/structure/work-boundaries/work-boundary-map.json",
+      "status": "verified"
+    }
+  ],
+  "identity_status": "verified",
+  "source_refs": [
+    "ToS/source-witnesses/discovery/runs/nietzsche-mysl-volume-2-member-works.2026-07-28.v1.json",
+    "ToS/source-witnesses/discovery/runs/der-fall-wagner-naumann-1888-open-scan-witness.2026-07-30.v1.json",
+    "ToS/source-witnesses/discovery/runs/fall-wagner-authorial-witness-route.2026-07-30.v1.json",
+    "https://d-nb.info/gnd/4226521-6",
+    "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/structure/work-boundaries/work-boundary-map.json",
+    "ToS/source-witnesses/works/friedrich-nietzsche/der-fall-wagner/expressions/de-naumann-1888/editions/leipzig-c-g-naumann-1888/items/mdz-bamberg-scan-pdf/source-metadata-snapshot.json"
+  ],
+  "external_identifiers": [
+    {
+      "scheme": "GND",
+      "value": "4226521-6",
+      "source_ref": "https://d-nb.info/gnd/4226521-6",
+      "status": "verified"
+    }
+  ],
+  "same_as_posture": "no_equivalence_claim",
+  "responsibility_claim_refs": [
+    "tos.claim.work.der-fall-wagner.authored-by-friedrich-nietzsche"
+  ],
+  "chronology_claim_refs": [
+    "tos.claim.work.der-fall-wagner.first-publication-chronology"
+  ],
+  "expression_claim_refs": [
+    "tos.claim.topology.work-expression.friedrich-nietzsche.der-fall-wagner.has-expression.de-naumann-1888",
+    "tos.claim.topology.work-expression.friedrich-nietzsche.der-fall-wagner.has-expression.ru-polilov-mysl-1996"
+  ],
+  "notes": "Work identity follows the current GND work authority. The provisional Russian translation in the local Mysl volume and the exact German 1888 Naumann witness are represented as distinct expressions; no textual equivalence or translation quality is inferred. The authorial route admits only exact source-backed W II 6 / W II 7 regions and inscription layers, never whole-notebook work membership. D 21 / GSA 71/28 is explicitly the Götzen-Dämmerung print manuscript and is not assigned to Der Fall Wagner. The complete 26 June print manuscript and 16 July fair copy are lost; the one-leaf, two-canvas Basel object NL 200 : II, 1 is the sole surviving correction/addition fragment, not a complete manuscript. Nietzsche's changes and the later Köselitz/Lauterbach provenance notes remain distinct responsibility layers. The existing unlabelled 1888 Item and the nominal Zweite Auflage half of the same 1000-copy run are not presumed textually identical or different. Notebook region, lost manuscript state, surviving leaf, print copy, nominal issue label, and critical address have no equivalence claim. The metadata route creates no remote Item, source body, accepted German, translation relation, semantic authority, transfer unit, human task, rights clearance, or publication permission.",
+  "record_version": 6,
+  "supersedes_ref": null
+}

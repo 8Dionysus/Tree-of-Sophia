@@ -26,6 +26,9 @@ that belong to authored meaning.
 - Route repeatable operations, review checklists, growth-cycle process docs,
   export-seam process docs, and guard packets to `mechanics/`.
 - Keep primary witness text as the source authority for source routes.
+- Use `NODE_CONTRACT.md#authored-description` for substantive definitions,
+  templates and field guidance: state the subject, properties and relations,
+  preserving source-specific uncertainty and meaningful negation.
 - Keep generated readers and review notes subordinate to current doctrine.
 
 ## Validation

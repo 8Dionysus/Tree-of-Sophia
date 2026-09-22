@@ -50,7 +50,7 @@
     "rights_posture": {"$ref": "#/$defs/rightsPosture"},
     "human_authority": {"$ref": "#/$defs/humanAuthority"},
     "semantic_boundary": {"$ref": "#/$defs/semanticBoundary"},
-    "authority_boundary": {"type": "string", "minLength": 40}
+    "authority_boundary": {"type": "string", "minLength": 1, "description": "Brief account of the artifact purpose and scope. Typed status, effects, assessment and permission fields govern its use."}
   },
   "$defs": {
     "digest": {

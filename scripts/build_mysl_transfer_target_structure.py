@@ -55,22 +55,10 @@ CROSSWALK_SCHEMA_REF = (
 PDFTOTEXT_VERSION = "26.01.0"
 XHTML_NAMESPACE = "{http://www.w3.org/1999/xhtml}"
 MAP_AUTHORITY_BOUNDARY = (
-    "machine-derived target-visible series-qualified numbered-label start-page "
-    "candidates with bounded model-only review of explicit machine gaps, plus "
-    "proposed whole-page addresses for one exact local translation scan only; "
-    "repeated numeral labels remain distinct by series identity, and no target "
-    "prose, exact line or passage-end boundary, accepted Russian, "
-    "source-to-target alignment, translation relation, semantics, rights "
-    "clearance, eligible transfer unit, target gold, or canon authority follows"
+    "This map records machine-derived, series-qualified numbered-label start-page candidates, model review of explicit gaps and proposed whole-page addresses in one exact translation scan. Series identity distinguishes repeated numeral labels."
 )
 CROSSWALK_AUTHORITY_BOUNDARY = (
-    "text-free target-side narrowing of already-frozen whole-page transfer "
-    "candidates through one proposed hierarchical target numbered-unit map; "
-    "no German parallel unit map is materialized, so the result establishes "
-    "neither a source route nor source-to-target passage alignment, accepted "
-    "German or Russian, translation correspondence, equivalence or quality, "
-    "exact passage ends, eligible target units, target gold, semantic work, "
-    "human work, rights clearance, or canon authority"
+    "This crosswalk narrows frozen whole-page candidates through a proposed hierarchical target numbered-unit map. Its scope is target-side structural routing; the German parallel map remains unprepared."
 )
 MAP_DOES_NOT_ESTABLISH = [
     "target_text",
@@ -823,9 +811,7 @@ def _build_map_outputs(
                 "series identity; no German parallel unit map was created."
             ),
             (
-                "No source-to-target alignment, translation relation, semantic "
-                "claim, eligible target unit, target gold, or publication route "
-                "was created."
+                "This event records target structure. Alignment, translation, semantics, eligibility, target gold and publication retain their existing states."
             ),
         ],
         "receipt_refs": [
@@ -1079,9 +1065,7 @@ def _build_crosswalk_outputs(
                 "aligned, or accepted by the crosswalk event."
             ),
             (
-                "Proposed target starts do not establish exact passage ends, "
-                "translation correspondence, equivalence, quality, semantics, "
-                "rights clearance, eligibility, target gold, or canon authority."
+                "These proposals locate target starts. Passage ends, translation correspondence and quality, semantics, rights, eligibility, target gold and canon each require their own recorded assessment or authorization."
             ),
             "No human work was requested or scheduled by this event.",
         ],
@@ -1201,9 +1185,7 @@ def main() -> int:
     print("[ok] wrote 140 proposed series-qualified target unit starts")
     print("[ok] narrowed 12 frozen target pages to 20 target-only unit routes")
     print(
-        "[boundary] no prose, German parallel route, passage alignment, "
-        "translation authority, eligible target unit, target gold, semantics, "
-        "rights clearance, or human work was emitted"
+        "[scope] Text-free target structural candidates with explicit spill ambiguity and available source coverage."
     )
     return 0
 

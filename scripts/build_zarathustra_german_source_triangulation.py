@@ -116,10 +116,7 @@ EXPECTED_MEMBER_DIGESTS = {
     ),
 }
 AUTHORITY_BOUNDARY = (
-    "machine-only text-free triangulation evidence over one local "
-    "critical-edition candidate, one DTA TEI witness, and one automatic-OCR "
-    "EPUB witness; not accepted German, critical-edition admission, "
-    "translation evidence, semantics, rights clearance, or canon authority"
+    "This record compares text-free machine observations from the named local critical-edition candidate, DTA TEI witness and automatic-OCR EPUB witness."
 )
 
 

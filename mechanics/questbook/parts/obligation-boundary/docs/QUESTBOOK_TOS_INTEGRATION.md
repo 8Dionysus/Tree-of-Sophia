@@ -6,8 +6,9 @@ This note shows how `QUESTBOOK.md` can exist inside `Tree-of-Sophia` without fla
 
 ## Core boundary
 
-`QUESTBOOK.md` in ToS is for operational obligations in the source-first knowledge architecture.
-It is not the place where philosophical interpretation, authored knowledge, or source meaning becomes a task list.
+`QUESTBOOK.md` records operational obligations in the source-first knowledge
+architecture. Philosophical interpretation, authored knowledge and source
+meaning retain their ToS source homes.
 
 ## Good uses in ToS
 

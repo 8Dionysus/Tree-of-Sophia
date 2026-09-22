@@ -1,0 +1,81 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.agent.rainer-m-boehmer",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:310bbddc315be175074b153b",
+      "request_digest": "sha256:09baa597f8c1d215f89bcb682b1ccae11872820d694fb61132aa3b4fef4a6961",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:66658a5734fcefc0e69f77a23701d2f34ec6a9cde3de9675dcf7682c949aaefc",
+      "recorded_at": "2026-09-22T05:04:19.249037+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.agent.rainer-m-boehmer",
+        "version": 1,
+        "digest": "sha256:502d2d3b56594f5831ac039ef874683cc5b7a60b8bc22bf72d6223bb624d9f9e"
+      },
+      "source": {
+        "id": "tos.agent.rainer-m-boehmer",
+        "version": 2,
+        "digest": "sha256:ec26b2a2d09ea9b517886c4c7354122f2990fb8f4493f04db87c63df5fb1e997"
+      },
+      "previous_revision": "sha256:83202497b76803701371f45c68eac89117d41abd2baf11cde5b0187109069c86",
+      "archive_path": "ToS/source-witnesses/.record-revisions/310bbddc315be175074b153b3f99e8051554ed84da8354b41692578e998e7d2b-83202497b76803701371f45c68eac89117d41abd2baf11cde5b0187109069c86",
+      "dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+      "changed_fields": [
+        "notes"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.metadata.ad4df911ac6105763d62453a3569865c07f0fbd33170a35f94a662da342aef0e",
+          "version": 2,
+          "digest": "sha256:9331a7571b718a7de7e259bee14c9c3030db8480874b7879036260b29198d665"
+        },
+        {
+          "id": "tos.form.metadata.0d718f87d9d31dcc5456436f9ef34f90f051b895b43e5a48626fb5aeb98c4184",
+          "version": 2,
+          "digest": "sha256:39eed17b441f12336fc84a6b729e2bd68fd376448a02bf9333de58a6477e4191"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:310bbddc315be175074b153b",
+        "expected_configuration": "sha256:66658a5734fcefc0e69f77a23701d2f34ec6a9cde3de9675dcf7682c949aaefc",
+        "expected_dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+        "expected_publication": "sha256:9e1d757c19895a0826fbff2bed26baf814f90ae0fef907cc1295d0b0b212774f",
+        "expected_revision": "sha256:83202497b76803701371f45c68eac89117d41abd2baf11cde5b0187109069c86",
+        "expected_source": {
+          "digest": "sha256:502d2d3b56594f5831ac039ef874683cc5b7a60b8bc22bf72d6223bb624d9f9e",
+          "id": "tos.agent.rainer-m-boehmer",
+          "version": 1
+        },
+        "fields": {
+          "notes": "Name and contribution responsibility for ATU 5 are source-reported. The exact publisher wording is preserved on the responsibility claim."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.metadata.ad4df911ac6105763d62453a3569865c07f0fbd33170a35f94a662da342aef0e"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.metadata.0d718f87d9d31dcc5456436f9ef34f90f051b895b43e5a48626fb5aeb98c4184"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:8197e8ebc3c283685cec4fcbd70cb5cd057ecfe809451248e5c8357388d02537",
+        "selected_files": [
+          "agent.human-forms.json",
+          "agent.json",
+          "source-revision-history.json"
+        ]
+      }
+    }
+  ]
+}

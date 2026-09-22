@@ -1,0 +1,35 @@
+{
+  "schema_version": "tos_corpus_record_v1",
+  "record_type": "edition",
+  "record_id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.chemnitz-schmeitzner-1883-part-1",
+  "preferred_label": "Also sprach Zarathustra, part 1, Chemnitz, Schmeitzner, 1883",
+  "variant_labels": [
+    {
+      "value": "Also sprach Zarathustra, [Band 1], Chemnitz 1883",
+      "language": "de",
+      "source_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/source-metadata-snapshot.json",
+      "status": "verified"
+    }
+  ],
+  "identity_status": "verified",
+  "source_refs": [
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/source-metadata-snapshot.json",
+    "https://www.deutschestextarchiv.de/book/show/nietzsche_zarathustra01_1883"
+  ],
+  "external_identifiers": [],
+  "same_as_posture": "no_equivalence_claim",
+  "embodies_expression_refs": [
+    "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1"
+  ],
+  "edition_statement": null,
+  "publication_claim_refs": [],
+  "provision_activity_claim_refs": [
+    "tos.claim.edition.also-sprach-zarathustra.schmeitzner-1883-part-1.provision-publication"
+  ],
+  "exemplar_claim_refs": [
+    "tos.claim.topology.edition-item.friedrich-nietzsche.also-sprach-zarathustra.chemnitz-schmeitzner-1883-part-1.exemplified-by.dta-sbb-corrected-tei-p5"
+  ],
+  "notes": "DTA identifies this as the first edition of part 1, 114 pages, published by Schmeitzner in Chemnitz in 1883 and grounded in SBB-PK shelfmark 19 ZZ 10200-1/3. The digital TEI item remains distinct from the printed holding copy.",
+  "record_version": 3,
+  "supersedes_ref": null
+}

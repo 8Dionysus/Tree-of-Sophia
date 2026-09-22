@@ -64,7 +64,7 @@
               "biographical_relevance": {
                 "type": "string",
                 "pattern": "\\S",
-                "description": "Why the episode is documented as relevant to a life, with limits; significance is not causal proof."
+                "description": "Why the episode is documented as relevant to a life, with its particular evidence and limits."
               }
             }
           }
@@ -222,7 +222,7 @@
               "environment_account": {
                 "type": "string",
                 "pattern": "\\S",
-                "description": "The scoped configuration of conditions, including what this description does not cover."
+                "description": "The scoped configuration of conditions, with the description’s coverage and limits."
               },
               "political_account": {
                 "type": "string",
@@ -232,27 +232,27 @@
               "economic_account": {
                 "type": "string",
                 "pattern": "\\S",
-                "description": "Source-described economic arrangements or constraints, not inferred personal wealth."
+                "description": "Source-described economic arrangements or constraints within the stated environment."
               },
               "cultural_account": {
                 "type": "string",
                 "pattern": "\\S",
-                "description": "Source-described cultural practices and conditions, not uniform beliefs."
+                "description": "Source-described cultural practices and conditions, including variation where relevant."
               },
               "religious_account": {
                 "type": "string",
                 "pattern": "\\S",
-                "description": "Source-described religious institutions or practices, not automatic personal adherence."
+                "description": "Source-described religious institutions or practices within the stated environment."
               },
               "educational_account": {
                 "type": "string",
                 "pattern": "\\S",
-                "description": "Source-described education and teaching arrangements, not automatic individual participation."
+                "description": "Source-described education and teaching arrangements within the stated environment."
               },
               "scientific_technological_account": {
                 "type": "string",
                 "pattern": "\\S",
-                "description": "Source-described scientific practices, knowledge or technologies; availability does not prove use or influence."
+                "description": "Source-described scientific practices, knowledge or technologies, with evidence for their local availability or use."
               }
             },
             "anyOf": [
@@ -336,7 +336,7 @@
               "bodily_account": {
                 "type": "string",
                 "pattern": "\\S",
-                "description": "Documented bodily circumstances with attribution and uncertainty, not an unqualified diagnosis."
+                "description": "Documented bodily circumstances with their attribution, uncertainty and evidence limits."
               }
             }
           }

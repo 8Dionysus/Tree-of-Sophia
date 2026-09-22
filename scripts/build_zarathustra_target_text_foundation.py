@@ -397,11 +397,7 @@ def _layer_record(
         },
         "provenance_event_ref": EVENT_ID,
         "authority_boundary": (
-            "a source text layer is one immutable, source-returnable representation with "
-            "explicit derivation, uncertainty, review, competence, rights, and use scope; "
-            "mechanical validation, model output, normalization, or agreement with another "
-            "layer does not make it accepted source text, translation evidence, linguistic "
-            "truth, semantic evidence, graph truth, canon authority, or publication permission"
+            "A source text layer preserves one immutable, source-returnable representation and its derivation, uncertainty, assessment, competence, rights and use scope."
         ),
         "layer_version": 1,
         "supersedes_layer_ref": None,
@@ -497,9 +493,7 @@ def _unit_packet(plan: dict[str, Any], content: bytes) -> dict[str, Any]:
                     "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis"
                 ),
                 "status_reason": (
-                    "The unit records only one exact Poppler bbox line or its line-break "
-                    "code point in the unreviewed embedded-text layer; it is not accepted "
-                    "Russian, a linguistic unit, or a translation alignment."
+                    "The unit records one exact Poppler bbox line or its line-break code point in the unreviewed embedded-text layer and retains its proposed source-unit status."
                 ),
             }
         )

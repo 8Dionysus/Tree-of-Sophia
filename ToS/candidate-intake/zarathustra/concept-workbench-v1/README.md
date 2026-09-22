@@ -4,8 +4,8 @@ This route compiles the complete four-part German/Russian technical corpus into
 one reusable candidate workbench and prepares English translation candidates
 on demand. A request supplies mutable labels, lexical
 probes, explicitly weaker semantic-neighbor probes, distinctions, negative
-controls, and an allowed relation vocabulary. The builder returns a complete
-request-local dossier without accepting a concept.
+controls, and an allowed relation vocabulary. The builder returns a complete request-local candidate dossier for
+source-visible assessment.
 
 The workbench keeps five contexts separate:
 
@@ -15,11 +15,9 @@ The workbench keeps five contexts separate:
 4. the request owns its search scope and negative controls;
 5. the candidate graph is a derived navigation surface.
 
-The three languages do not have equal authority. German is the source witness;
-Antonovsky's Russian is a historical translation witness and a useful
-contrast; English is generated per selected German occurrence as an
-unreviewed request-local candidate. There is intentionally no pretranslated
-English witness hiding behind the workbench.
+German supplies the source witness; Antonovsky's Russian supplies a historical
+translation for comparison; English is generated on demand for the selected
+German occurrence and retains unreviewed candidate status.
 
 Every selected German occurrence now receives one text-free tracked English
 task. Its mode-`0600` companion contains the exact barrier-bounded German
@@ -43,11 +41,10 @@ candidate relations.
 and every verse line. German and Russian states are proposed independently;
 paragraph alignment only compares them later. The state machine records
 explicit speech cues where available and otherwise keeps
-`zarathustra_or_external_narrator` unresolved. A green build therefore proves
-coverage, not correct literary attribution.
+`zarathustra_or_external_narrator` unresolved. The build checks coverage; literary attribution requires source-visible
+assessment.
 
-The graph uses a concept hub. Occurrences are not joined into a complete
-pairwise clique. Passage-to-passage edges are limited to source order and
+The graph connects occurrences through a concept hub. Passage-to-passage edges are limited to source order and
 same-reading recurrence; stronger relations such as opposition, qualification,
 or metaphor require a later source-visible semantic pass.
 
@@ -57,8 +54,8 @@ The query adapter resolves a Russian, German, or English discovery label to a
 stable **navigation route**, then follows the current request-local concept
 candidate and its typed realization relations back to exact German witness
 occurrences. The route ID is stable across request versions because it is
-bound to the opaque request identity key; it is explicitly not an accepted
-`concept_id`. Mutable labels therefore aid discovery without defining semantic
+bound to the opaque request identity key; it identifies a navigation route, while an accepted `concept_id` requires
+semantic review. Mutable labels therefore aid discovery without defining semantic
 identity.
 
 For example, the Russian genitive form `судьбы` is recognized as a reversible
@@ -88,9 +85,8 @@ explicit `--include-semantic-neighbors` expansion on the same local adapter.
 
 Searching a semantic-neighbor alias also resolves only with `ambiguous`
 status. Negative controls such as lowercase German `los` do not resolve to the
-concept route. Russian remains a historical translation comparator and
-English a generated on-demand candidate; neither becomes German source
-authority through search.
+concept route. Search preserves the language roles: German source witness, Russian historical
+translation comparator and English generated candidate.
 
 ## On-demand word analysis
 
@@ -110,9 +106,10 @@ An agent can return an `english-translation-candidate.v1.schema.json` object
 and check both its schema and its binding to the prepared occurrence with the
 adapter's `--validate-candidate` option.
 
-The compiler writes nothing. Exact text remains local and excluded from the
-public standalone bundle; a valid candidate is still AI-generated,
-unreviewed, non-semantic, non-graph, and non-canonical.
+The compiler returns its task in memory. Exact text remains local and excluded
+from the public standalone bundle. Candidates retain AI authorship and
+unreviewed status; semantic admission, graph promotion and canon follow their
+review routes.
 
 The first request, `fate` v2, is a proof that low-frequency inflections and verse
 are no longer lost: morphology expansion runs over every observed form,

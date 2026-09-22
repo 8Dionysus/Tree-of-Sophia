@@ -7,7 +7,9 @@ It is separate from
 [COUNTERPART_POLICY](../../../../../ToS/doctrine/COUNTERPART_POLICY.md).
 `PRACTICE_BRANCH.md` explains why ToS may recognize a neighboring genealogy of practices.
 `COUNTERPART_POLICY.md` explains how derived bridges to AoA operational forms stay optional and non-identity.
-This note explains how witness-facing or other source-linked raw material may be digested into layered ToS knowledge without pretending the runtime platform already exists.
+This note explains the source and review method for turning witness-facing or
+other source-linked material into layered ToS knowledge. Runtime
+implementation follows its own owner route.
 
 ## Core rule
 
@@ -21,8 +23,8 @@ That compost cycle must stay:
 - reversible
 - non-platform-sovereign in this phase
 
-The current phase is doctrinal and doc-driven.
-It does not claim a full executable ToS schema system yet.
+This phase develops doctrine and reviewable document contracts; executable
+schema coverage is tracked through its implementation route.
 
 ## Canonical compost cycle
 
@@ -52,7 +54,8 @@ It should keep:
 
 ### `synthesis`
 
-Synthesis gathers and distills multiple notes without pretending they have become timeless truth.
+Synthesis gathers and distills multiple notes into a revisable, source-linked
+interpretation.
 
 It should remain linked to the notes and source refs it depends on.
 
@@ -68,7 +71,7 @@ It should still preserve route visibility and should not sever its source basis.
 Canon is a rare and explicit stabilization surface.
 
 It should arrive only through reviewable promotion.
-Canon should remain bundled with source route, not float free as a bare claim.
+Canon retains its source route and promotion evidence.
 
 ## Contract objects
 
@@ -96,8 +99,7 @@ An explicit reference back toward the material that justifies the compost artifa
 
 A named posture for how a compost artifact may stale, require refresh, or be demoted.
 
-The point is to keep growth honest.
-Compost should not imply irreversible accumulation.
+The policy makes staleness, refresh and demotion explicit parts of growth.
 
 ### `CanonBundle`
 
@@ -111,12 +113,13 @@ Canonization should remain explicit rather than ambient.
 
 One compact path for the current pilot phase:
 
-1. `WitnessTrace` enters ToS as `raw` context, not as canon and not as operational ownership.
+1. `WitnessTrace` enters ToS as `raw` context with its source, status and
+original ownership recorded.
 2. A bounded `note` digests the route into source-linked language while preserving review state and limits.
 3. A `principle` may later be proposed if the note holds up under review and still keeps explicit source refs.
 
-This path does not prove canon.
-It prepares a disciplined route toward later growth.
+This path prepares source-linked proposals for later review and canon
+decisions.
 
 ### Memory bridge fragment
 
@@ -132,11 +135,12 @@ That fragment should stay:
 - subordinate to authored ToS doctrine
 
 It may support memo-side or KAG-side bridge readiness references.
-It does not move memory, runtime, or derived-substrate authority into ToS.
+Memory, runtime and derived-substrate decisions remain with their named
+owners.
 
 ## Ownership boundary
 
-Context compost does not move operational ownership into ToS.
+Operational ownership follows the existing owner chain.
 
 Keep the chain explicit:
 - `aoa-playbooks` owns the scenario route
@@ -145,11 +149,11 @@ Keep the chain explicit:
 - `Tree-of-Sophia` owns the compost-cycle doctrine and canon-facing digestion
 - `abyss-stack` remains later runtime instrumentation, not part of this phase
 
-## What this does not replace
+## Connection to later growth
 
 Context compost may prepare the ground for later ToS growth work.
 
-It does not replace:
+The later growth candidates retain their own scope:
 - `TOS-GROWTH-03`
 - `TOS-GROWTH-05`
 - `TOS-GROWTH-08`

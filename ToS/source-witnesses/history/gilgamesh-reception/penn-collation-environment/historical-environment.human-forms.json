@@ -1,71 +1,69 @@
 {
-  "schema_version": "tos_human_form_set_v1",
-  "subject": {
-    "id": "tos.historical-environment.gilgamesh-reception.penn-collation",
-    "version": 1,
-    "digest": "sha256:282912d6cf4dfba65d845f0c2a6b89f5a5009a455248bad43a809e151d9552b0"
-  },
   "forms": [
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.gilgamesh-reception.penn-collation-environment.name-ru",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.historical-environment.gilgamesh-reception.penn-collation",
-        "version": 1,
-        "digest": "sha256:282912d6cf4dfba65d845f0c2a6b89f5a5009a455248bad43a809e151d9552b0"
+        "version": 2,
+        "digest": "sha256:97a341b1b2fa22eb70c1de1a541aa6c034519329771e8e903ad89fbc56d181e6"
       },
       "role": "name",
       "language": "ru",
       "script": "Cyrl",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.gilgamesh-reception.penn-collation-environment.name-ru",
+        "version": 1,
+        "digest": "sha256:9397c669f3fa1f771162543493526f6fb932aa05c9b9adabb890b1279decf219"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.historical-environment.gilgamesh-reception.penn-collation",
-            "version": 1,
-            "digest": "sha256:282912d6cf4dfba65d845f0c2a6b89f5a5009a455248bad43a809e151d9552b0"
+            "version": 2,
+            "digest": "sha256:97a341b1b2fa22eb70c1de1a541aa6c034519329771e8e903ad89fbc56d181e6"
           },
           "pointer": "/preferred_label"
         },
         "context-0": {
           "record": {
             "id": "tos.historical-environment.gilgamesh-reception.penn-collation",
-            "version": 1,
-            "digest": "sha256:282912d6cf4dfba65d845f0c2a6b89f5a5009a455248bad43a809e151d9552b0"
+            "version": 2,
+            "digest": "sha256:97a341b1b2fa22eb70c1de1a541aa6c034519329771e8e903ad89fbc56d181e6"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.historical-environment.gilgamesh-reception.penn-collation",
-            "version": 1,
-            "digest": "sha256:282912d6cf4dfba65d845f0c2a6b89f5a5009a455248bad43a809e151d9552b0"
+            "version": 2,
+            "digest": "sha256:97a341b1b2fa22eb70c1de1a541aa6c034519329771e8e903ad89fbc56d181e6"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.historical-environment.gilgamesh-reception.penn-collation",
-            "version": 1,
-            "digest": "sha256:282912d6cf4dfba65d845f0c2a6b89f5a5009a455248bad43a809e151d9552b0"
+            "version": 2,
+            "digest": "sha256:97a341b1b2fa22eb70c1de1a541aa6c034519329771e8e903ad89fbc56d181e6"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.historical-environment.gilgamesh-reception.penn-collation",
-            "version": 1,
-            "digest": "sha256:282912d6cf4dfba65d845f0c2a6b89f5a5009a455248bad43a809e151d9552b0"
+            "version": 2,
+            "digest": "sha256:97a341b1b2fa22eb70c1de1a541aa6c034519329771e8e903ad89fbc56d181e6"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.historical-environment.gilgamesh-reception.penn-collation",
-            "version": 1,
-            "digest": "sha256:282912d6cf4dfba65d845f0c2a6b89f5a5009a455248bad43a809e151d9552b0"
+            "version": 2,
+            "digest": "sha256:97a341b1b2fa22eb70c1de1a541aa6c034519329771e8e903ad89fbc56d181e6"
           },
           "pointer": "/field_languages/preferred_label"
         }
@@ -78,63 +76,67 @@
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.gilgamesh-reception.penn-collation-environment.note-ru",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.historical-environment.gilgamesh-reception.penn-collation",
-        "version": 1,
-        "digest": "sha256:282912d6cf4dfba65d845f0c2a6b89f5a5009a455248bad43a809e151d9552b0"
+        "version": 2,
+        "digest": "sha256:97a341b1b2fa22eb70c1de1a541aa6c034519329771e8e903ad89fbc56d181e6"
       },
       "role": "hover",
       "language": "ru",
       "script": "Cyrl",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.gilgamesh-reception.penn-collation-environment.note-ru",
+        "version": 1,
+        "digest": "sha256:a7d2dfccfe32a0ffff59b41bb63769ddd459b5968d2ffe8ab666dd19d1a87327"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.historical-environment.gilgamesh-reception.penn-collation",
-            "version": 1,
-            "digest": "sha256:282912d6cf4dfba65d845f0c2a6b89f5a5009a455248bad43a809e151d9552b0"
+            "version": 2,
+            "digest": "sha256:97a341b1b2fa22eb70c1de1a541aa6c034519329771e8e903ad89fbc56d181e6"
           },
           "pointer": "/notes"
         },
         "context-0": {
           "record": {
             "id": "tos.historical-environment.gilgamesh-reception.penn-collation",
-            "version": 1,
-            "digest": "sha256:282912d6cf4dfba65d845f0c2a6b89f5a5009a455248bad43a809e151d9552b0"
+            "version": 2,
+            "digest": "sha256:97a341b1b2fa22eb70c1de1a541aa6c034519329771e8e903ad89fbc56d181e6"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.historical-environment.gilgamesh-reception.penn-collation",
-            "version": 1,
-            "digest": "sha256:282912d6cf4dfba65d845f0c2a6b89f5a5009a455248bad43a809e151d9552b0"
+            "version": 2,
+            "digest": "sha256:97a341b1b2fa22eb70c1de1a541aa6c034519329771e8e903ad89fbc56d181e6"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.historical-environment.gilgamesh-reception.penn-collation",
-            "version": 1,
-            "digest": "sha256:282912d6cf4dfba65d845f0c2a6b89f5a5009a455248bad43a809e151d9552b0"
+            "version": 2,
+            "digest": "sha256:97a341b1b2fa22eb70c1de1a541aa6c034519329771e8e903ad89fbc56d181e6"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.historical-environment.gilgamesh-reception.penn-collation",
-            "version": 1,
-            "digest": "sha256:282912d6cf4dfba65d845f0c2a6b89f5a5009a455248bad43a809e151d9552b0"
+            "version": 2,
+            "digest": "sha256:97a341b1b2fa22eb70c1de1a541aa6c034519329771e8e903ad89fbc56d181e6"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.historical-environment.gilgamesh-reception.penn-collation",
-            "version": 1,
-            "digest": "sha256:282912d6cf4dfba65d845f0c2a6b89f5a5009a455248bad43a809e151d9552b0"
+            "version": 2,
+            "digest": "sha256:97a341b1b2fa22eb70c1de1a541aa6c034519329771e8e903ad89fbc56d181e6"
           },
           "pointer": "/field_languages/notes"
         }
@@ -145,5 +147,150 @@
       }
     }
   ],
-  "prior_forms": []
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:282912d6cf4dfba65d845f0c2a6b89f5a5009a455248bad43a809e151d9552b0",
+            "id": "tos.historical-environment.gilgamesh-reception.penn-collation",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:282912d6cf4dfba65d845f0c2a6b89f5a5009a455248bad43a809e151d9552b0",
+            "id": "tos.historical-environment.gilgamesh-reception.penn-collation",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:282912d6cf4dfba65d845f0c2a6b89f5a5009a455248bad43a809e151d9552b0",
+            "id": "tos.historical-environment.gilgamesh-reception.penn-collation",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:282912d6cf4dfba65d845f0c2a6b89f5a5009a455248bad43a809e151d9552b0",
+            "id": "tos.historical-environment.gilgamesh-reception.penn-collation",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:282912d6cf4dfba65d845f0c2a6b89f5a5009a455248bad43a809e151d9552b0",
+            "id": "tos.historical-environment.gilgamesh-reception.penn-collation",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:282912d6cf4dfba65d845f0c2a6b89f5a5009a455248bad43a809e151d9552b0",
+            "id": "tos.historical-environment.gilgamesh-reception.penn-collation",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.gilgamesh-reception.penn-collation-environment.name-ru",
+      "form_version": 1,
+      "language": "ru",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:282912d6cf4dfba65d845f0c2a6b89f5a5009a455248bad43a809e151d9552b0",
+        "id": "tos.historical-environment.gilgamesh-reception.penn-collation",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:282912d6cf4dfba65d845f0c2a6b89f5a5009a455248bad43a809e151d9552b0",
+            "id": "tos.historical-environment.gilgamesh-reception.penn-collation",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:282912d6cf4dfba65d845f0c2a6b89f5a5009a455248bad43a809e151d9552b0",
+            "id": "tos.historical-environment.gilgamesh-reception.penn-collation",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:282912d6cf4dfba65d845f0c2a6b89f5a5009a455248bad43a809e151d9552b0",
+            "id": "tos.historical-environment.gilgamesh-reception.penn-collation",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:282912d6cf4dfba65d845f0c2a6b89f5a5009a455248bad43a809e151d9552b0",
+            "id": "tos.historical-environment.gilgamesh-reception.penn-collation",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:282912d6cf4dfba65d845f0c2a6b89f5a5009a455248bad43a809e151d9552b0",
+            "id": "tos.historical-environment.gilgamesh-reception.penn-collation",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:282912d6cf4dfba65d845f0c2a6b89f5a5009a455248bad43a809e151d9552b0",
+            "id": "tos.historical-environment.gilgamesh-reception.penn-collation",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.gilgamesh-reception.penn-collation-environment.note-ru",
+      "form_version": 1,
+      "language": "ru",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:282912d6cf4dfba65d845f0c2a6b89f5a5009a455248bad43a809e151d9552b0",
+        "id": "tos.historical-environment.gilgamesh-reception.penn-collation",
+        "version": 1
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.historical-environment.gilgamesh-reception.penn-collation",
+    "version": 2,
+    "digest": "sha256:97a341b1b2fa22eb70c1de1a541aa6c034519329771e8e903ad89fbc56d181e6"
+  }
 }

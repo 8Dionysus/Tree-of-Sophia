@@ -1,0 +1,90 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.place.moscow",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:340b04f2bb6fc4fbca799cf1",
+      "request_digest": "sha256:ae678c5361fffad816355ac8c9f3ed555ccd573f055ab038f11d6854ad83e8b9",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:f4afd86a06a17e44d391cffc9dafd02fbc784cc8f7122bf738cb9ce0164e9ea6",
+      "recorded_at": "2026-09-22T05:06:13.712235+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.place.moscow",
+        "version": 1,
+        "digest": "sha256:c110538d2f3ab8a18913d049d222eb2714bdbe64ecd01fe7b86302ed08cc0a32"
+      },
+      "source": {
+        "id": "tos.place.moscow",
+        "version": 2,
+        "digest": "sha256:653eca0a56269e127089a2e0b7ca21525fdf5071ec12b9c380dbdb070bb88978"
+      },
+      "previous_revision": "sha256:68524ae2e92951f22b574c16b45e4d89b7c41997e4dfffbc0e0a9ed786274cd9",
+      "archive_path": "ToS/source-witnesses/.record-revisions/340b04f2bb6fc4fbca799cf17272097c1558004223e80f636f7f3364ac127420-68524ae2e92951f22b574c16b45e4d89b7c41997e4dfffbc0e0a9ed786274cd9",
+      "dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+      "changed_fields": [
+        "notes"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.metadata.9a7c8739a777a7358e81bdcae014c21e70239354bb0d2a5e0ebe08e6c6fdd5da",
+          "version": 2,
+          "digest": "sha256:dde72b96055dbe2a806fd13d91c9363ba92ae4456cbf0095ccc82c4eaa5257d5"
+        },
+        {
+          "id": "tos.form.metadata.fc817d0ba80cdab314e712d6adfac802d0a1fbb0f8ce3983e5f095d00590e915",
+          "version": 2,
+          "digest": "sha256:0730ab8541193afcae87aa9f8c8575f86cf5e10f4ab81ef224ee2b25538846a3"
+        },
+        {
+          "id": "tos.form.metadata.bef4170be94576bc16c0d51efbe3b909dffc721c9d54753f753c67faf28ff20d",
+          "version": 2,
+          "digest": "sha256:b43df0dea8d927af441b890d86eea71341fcf6846d87d3c9d35e8888a87d4c2a"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:340b04f2bb6fc4fbca799cf1",
+        "expected_configuration": "sha256:f4afd86a06a17e44d391cffc9dafd02fbc784cc8f7122bf738cb9ce0164e9ea6",
+        "expected_dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+        "expected_publication": "sha256:064f4eeacf50fe29dab8e44a3c7092a1510c0d40b8e59b71c7dd9add49e1fc0b",
+        "expected_revision": "sha256:68524ae2e92951f22b574c16b45e4d89b7c41997e4dfffbc0e0a9ed786274cd9",
+        "expected_source": {
+          "digest": "sha256:c110538d2f3ab8a18913d049d222eb2714bdbe64ecd01fe7b86302ed08cc0a32",
+          "id": "tos.place.moscow",
+          "version": 1
+        },
+        "fields": {
+          "notes": "The exact 1899 title page and the RuNEB record both display Moscow as the publication and distribution place. This local place identity is provisional."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.metadata.9a7c8739a777a7358e81bdcae014c21e70239354bb0d2a5e0ebe08e6c6fdd5da"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.metadata.fc817d0ba80cdab314e712d6adfac802d0a1fbb0f8ce3983e5f095d00590e915"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.metadata.bef4170be94576bc16c0d51efbe3b909dffc721c9d54753f753c67faf28ff20d"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:c84d60ad835fa71749fc5b1a7ddb3f0cb48ff3b5a6bfc25788a5610ce1f7011c",
+        "selected_files": [
+          "place.human-forms.json",
+          "place.json",
+          "source-revision-history.json"
+        ]
+      }
+    }
+  ]
+}

@@ -1,10 +1,9 @@
 # Knowledge assessment and scoped admission
 
 ToS knowledge may grow faster than a human can review individual records.
-Content assessment by an authorized, competent agent is a first-class review
-act. It is not merely a proposal awaiting a mandatory human signature.
-Operator direction remains the source of delegated authority; neither a model
-answer nor a green validator creates that authority.
+Content assessment by an authorized, competent agent is a complete review act
+within its delegated scope. Operator direction supplies that authority;
+competence and source-visible evidence support the judgment.
 
 ## Separate questions
 
@@ -16,9 +15,8 @@ answer nor a green validator creates that authority.
 | May this result be used for this purpose now? | versioned admission policy applied to current dependencies |
 | Is it public, licensed, author-confirmed or canonical? | the corresponding rights, consent, publication or canon owner |
 
-An assessment is substantive judgment. An admission result is a disposable
-application of policy to those judgments, not a second copy of source truth.
-Neither kind of reviewer is infallible. Reviewer kind, disagreement, confidence,
+An assessment is substantive judgment. An admission result applies the current policy to those judgments for a
+particular use. Human and agent judgments remain open to correction. Reviewer kind, disagreement, confidence,
 usage permission and visibility are independent dimensions.
 
 ## Exactness and authority
@@ -27,58 +25,55 @@ An assessment binds one exact assertion-record version and digest, one exact
 policy, a profile, an authority grant and competence evidence. Its evidence
 returns to exact available records and meaningful source locators. References
 use SHA-256 over canonical UTF-8 JSON: sorted keys, no insignificant whitespace,
-unescaped Unicode, finite JSON numbers. This record digest is not a claim about
-original file bytes; byte fixity keeps its separate source contract.
+unescaped Unicode, finite JSON numbers. Canonical record identity and original-file byte fixity each retain their own
+digest and source contract.
 
 When a source adapter declares a required grounding closure, that closure is
 part of the trusted target context. Every selected dependency must be current
 and explicitly cited in the assessment as support, challenge or context;
-merely loading it into the engine is not evidence of assessment. Correcting
+the assessment must explain its evidential role. Correcting
 an endpoint or source invalidates dependent use even when the Claim or its
-human form has not changed. An unrelated record outside that closure does
-not invalidate the judgment. The source adapter, not submitted prose, owns
-this selection; exact dependencies do not create independent corroboration.
+human form has not changed. Invalidation follows the dependencies selected by the source adapter.
+Corroboration is assessed separately from the exactness of those references.
 
 The authenticated principal and target's layer, risk, languages, maker and
-visibility come from the trusted command/owner adapter. They must never be
-reconstructed from a submitted assessment or from instructions in a source.
+visibility come from the trusted command/owner adapter. The adapter supplies these values independently of assessment submissions and
+source prose.
 The policy engine accepts trusted grants and competence records separately
-from incoming judgments. A submitter cannot appoint itself, add a grant to the
-request, claim another reviewer's identity or lower the target's risk.
+from incoming judgments. Authentication, grant issuance, reviewer identity and risk classification
+remain with their trusted owners.
 
 The trusted execution profile binds procedure, model and material configuration
-to competence. A changed model or configuration does not inherit an earlier
-calibration merely by repeating a method name. Assessment prose cites that
+to competence. A changed model or configuration requires competence evidence for that
+execution profile. Assessment prose cites that
 profile; its actual binding is supplied independently by the execution adapter.
 
-Grants may cover many records of a type/language/use. They are not per-record
-human approvals. The trusted issuer must verify their source and current
+A grant may cover many records sharing a type, language and use scope. The trusted issuer must verify their source and current
 competence evidence; the engine checks exact references, scope, time and
-revocation. A self-declared `verified` string in model output is not a trusted
-competence record. Local pure-function tests do not prove remote authentication
-or linguistic competence; those require the command adapter and actual
-source-visible evaluation.
+revocation. The issuer establishes competence from verified evidence. Remote
+authentication is verified through the command adapter, and linguistic
+competence through actual source-visible evaluation; pure-function tests cover
+engine behavior.
 
 ## Profiles and uncertainty
 
 The initial policy covers source observation, scholarly reporting, language,
 translation, interpretation, historical claims and human projection for
 research use. Identity judgments and high-consequence judgments require a
-stronger review profile. Research admission neither publishes protected text
-nor rewrites historical `accepted` fields or canon.
+stronger review profile. Research admission records current research use separately from publication,
+historical `accepted` fields and canon decisions.
 
 Policies state allowed layers, risks, languages, uses, reviewer kinds, evidence
-requirements and independence requirements. A requested profile cannot widen
-the target's trusted scope. Distinct names, calls or copies of one source do not
-multiply independent evidence. Reviewer independence groups and source origins
-belong to trusted provenance, not the submitted vote. Quorums are necessary
-policy conditions, never sufficient proof of philosophical truth.
+requirements and independence requirements. The target's trusted scope bounds every requested profile. Trusted provenance
+determines reviewer independence groups and source origins, counting copies of
+one source as one origin. Quorums specify review requirements; philosophical
+conclusions remain subject to substantive examination.
 
 Positive judgments require source support and an explicit counterevidence-search
-posture. A negative or deferred judgment need not invent supporting evidence.
-Unknown and conflicting findings remain inspectable. An admissible rejection
-and admission yield disagreement, not a majority-erased alternative. A dispute
-can be researched without pretending that its assertion has been settled.
+posture. Negative and deferred judgments record their actual grounds, including missing
+support.
+Unknown and conflicting findings remain inspectable. Competing admissible judgments remain visible as disagreement. Research may
+continue with that dispute explicitly open.
 
 ## History and withdrawal
 
@@ -86,107 +81,98 @@ can be researched without pretending that its assertion has been settled.
 
 `assessment-policy.v3.json` retains the earlier profiles and adds separate
 quality uses for citation, linguistic analysis, semantic analysis and search
-projection. Admission for one purpose does not imply the others. Low and
+projection. Each purpose has its own admission result. Low and
 moderate risk require one competent reviewer independent of the layer maker;
 high risk requires two independent reviewer groups. Original-source support
-and counterevidence search remain necessary. These profiles do not grant
-diplomatic fidelity, translation-source authority, publication or canon.
+and counterevidence search remain necessary. Diplomatic fidelity, translation-source authority, publication and canon each
+retain their own assessment or owner route.
 
 An exact TextLayer quality assessment addresses the unchanged raw layer record
 and a separate versioned comparison of the original source with the derived
 representation, including the selector, editorial policy and maker settings.
 The initial comparison adapter supports bounded structural extraction from one
-EPUB XHTML member only. Unsupported OCR, correction or normalization chains
-require their own comparison route; verified derived bytes cannot stand in for
-that missing evidence. Mechanical equality makes discrepancies inspectable;
-it never supplies a positive quality judgment by itself.
+EPUB XHTML member only. OCR, correction and normalization chains require comparison routes suited to
+their transformations. Mechanical comparison exposes equality and
+discrepancies for a competent reviewer to assess.
 
 Available exact comparison and positive-use eligibility are separate gates.
 A competent authorized reviewer may reject, dispute, defer or withdraw on
 available current evidence even when quality prevents positive admission.
 The same exact dependency evidence and supersession authority remain required;
-missing source access or a metadata-only comparison cannot qualify any such
-decision. Closing a quality gate must not prevent recording an explicit
-withdrawal of an affected dependent judgment.
+Each decision requires source access and an adequate comparison. Withdrawal of
+an affected dependent judgment remains available when a positive quality gate
+closes.
 
 A dependent Claim, unit or human form uses a freshly derived quality basis:
 the exact layer, comparison, purpose, content scope, policy, active assessment
-references and limits. The trusted source closure determines which layers are
-required; neither incoming prose nor a copied positive basis can omit them.
+references and limits. The trusted source closure determines the complete set of required layers.
 The reviewer must explicitly address this basis as evidence, and the current
 gate must still permit use. Human forms retain it in their context and inherit
 its limitations. Replaced quality evidence requires renewed dependent review,
-even when the text bytes have not changed. An unrelated journal append does
-not change the basis merely by moving a journal head.
+even when the text bytes have not changed. The basis follows its relevant evidence dependencies, independently of
+unrelated journal appends.
 
 The confidential v5 command adapter holds bounded, consistently ordered locks
 on the target and selected quality journals while resolving, committing and
 returning their current use. Source, rights and access are rechecked at the
-commit and return boundaries. It neither rewrites prior events nor claims a
-cross-subject write transaction. The existing public graph adapter refuses
+commit and return boundaries. Earlier events remain immutable, and each journal retains its own transaction
+boundary. The existing public graph adapter refuses
 this private owner configuration before opening its source context.
 
 ### Candidate-to-Sign issuance
 
-`assessment-policy.v2.json` is an additive policy successor. Version 1 and
-existing assessment/grant references remain historical and are not rewritten.
+`assessment-policy.v2.json` is an additive policy successor. Version 1 and its assessment/grant references are retained as immutable
+history.
 Its separate `sign-promotion` use judges whether one exact qualified motif
-Claim warrants an independently addressable research Sign. An ordinary
-`research` admission does not authorize issuing that identity. The source
-writer additionally needs an explicit `sign.promote` delegation; a model
-response cannot supply either grant.
+Claim warrants an independently addressable research Sign. Issuing the identity requires both `sign-promotion` admission and an explicit
+`sign.promote` delegation from the source owner.
 
 Moderate-risk issuance requires a competent reviewer independent of the
 candidate's maker, exact native grounds and counterevidence search. High-risk
-issuance requires two independent reviewer groups. This is not a judgment
-that two pre-existing subjects are identical: one witness can ground its own
-interpretive hypothesis, and copying that witness does not create new origins.
+issuance requires two independent reviewer groups. Issuance concerns an interpretive hypothesis grounded in its witnesses. One
+witness can support such a hypothesis; copies retain that same source origin.
 The stronger identity-equivalence profile is unchanged. The issuer sets risk;
-low-risk scope cannot enter this transition. Agents, humans and mixed reviews
-use the same policy criteria, without a fabricated human event.
+low-risk scope cannot enter this transition. Agents, humans and mixed reviews use the same policy criteria and retain their
+actual reviewer identities.
 
-The initial adapter accepts a public, source-bound qualified motif Claim,
-not arbitrary annotations or inline model output. Every declared Occurrence
+The initial adapter accepts a public, source-bound qualified motif Claim. Every declared Occurrence
 and its exact native text dependency must be assessed. A Sign's immutable
 `promotion_basis` binds the candidate, policy, qualified assessment refs,
 required source versions and journal snapshot at issuance, with all limits.
-This records a past act, not current `can_use`, truth, canon or publication.
+The promotion basis records the issuance act. Current use is recalculated from
+the active dependencies and policy.
 Later correction, withdrawal or revoked competence invalidates dependent use
-without deleting the Sign ID or editing its birth record. Descriptive fixes
-cannot replace the candidate; a second ID for the same candidate requires an
-explicit lineage route, not another initial issuance.
+without deleting the Sign ID or editing its birth record. Descriptive fixes retain the candidate binding. A second ID for the same
+candidate requires an explicit lineage route.
 
 Assessment events are immutable. Correction creates a new assessment and exact
 supersession links for the same subject. An actor may supersede its own prior
 judgment within its current authority; superseding another actor's decision
-requires an explicit stronger grant. Withdrawal does not erase the old event,
-accept another candidate, or silently revive a superseded decision.
+requires an explicit stronger grant. Withdrawal appends an event and preserves the prior decisions and their
+supersession relationships.
 
 Policy change, source correction, revoked competence or authority, and withdrawal
-invalidate dependent admission results. They do not rewrite the recorded past
-act. Serving uses the agreed snapshot; historical inspection names its snapshot.
-An invalid new assessment cannot suppress a valid earlier one.
+invalidate dependent admission results. The recorded past act remains intact. Serving uses the agreed snapshot; historical inspection names its snapshot.
+Only a valid supersession changes the selected assessment.
 
 The original trusted purpose and scope of an assessment stay bound to its
-immutable batch request. A later configuration cannot reinterpret that event
-as another use, layer, risk, maker or language scope, even when a current grant
-covers both. Inspection requalifies the event within its original scope;
-cross-scope supersession is not authorized by the ordinary same-subject grant.
-Existing batch v1 records already retain this context and are not rewritten.
+immutable batch request. Historical inspection retains the original use, layer, risk, maker and
+language scope, including when a later grant has broader coverage. Inspection requalifies the event within its original scope. Cross-scope
+supersession requires its own authority. Existing batch v1 records retain this
+context in their original form.
 
 ## Succession of existing contracts
 
 This law replaces a universal human-only requirement for new competence-scoped
 research assessment. Existing v1/v2 formats that explicitly record human review
-retain their historical meaning. Their records are not relabeled as agent
-review, nor is schema relaxation used to fabricate a past act. New assessments
+retain their historical meaning. Their recorded reviewer identities and historical acts remain intact. New assessments
 may address an existing assertion exactly through an adapter; scoped admission
 is exposed separately from its old embedded human-review field.
 
-Human authorship and personal consent cannot be fabricated. Rights permissions,
-publication and canon transitions still require their actual owner authority;
-research review does not acquire them. Human work is required by a concrete
-decision boundary, not by the mere fact that knowledge is philosophical.
+Human authorship and personal consent require evidence of the actual person’s
+act. Rights, publication and canon transitions require their respective owner
+authority. Each decision boundary determines the review and participation it
+needs.
 
 ## Executable surfaces
 
@@ -206,44 +192,44 @@ decision boundary, not by the mere fact that knowledge is philosophical.
 The source-owner journal preserves immutable qualified events and an atomic
 current-head selection. It supplies committed history separately from new
 submissions, so grant revocation or policy change cannot resurrect an earlier
-superseded decision. A historical commit receipt never substitutes for a fresh
-admission check. Its Unix storage adapter requires a trusted command owner;
-file hashes and mechanically valid receipt fields are not remote authentication.
+superseded decision. Current use requires a fresh admission check. The Unix storage adapter
+requires a trusted command owner; remote identity is established by the
+authentication adapter.
 
 Its local command entrypoint takes a protected, independently selected owner
 configuration and binds the actual Unix account to its delegated principal.
-Incoming requests cannot supply grants, scope, clocks or execution bindings.
+The protected owner configuration supplies grants, scope, clocks and execution
+bindings.
 The command's snapshot and expected-subject checks preserve exact dependencies;
 the issuer still owns source currentness, calibration and verified execution
-provenance. Local account authentication does not attest a particular model
-invocation and cannot isolate hostile processes sharing that account. The
+provenance. Local account authentication identifies the Unix account. Model invocation
+attestation and isolation between processes sharing that account require
+additional mechanisms. The
 bounded input/output and storage contract lives in the mechanic README.
 The source-bound configuration reads exact current corpus, claim and form
 records from their authored files instead of trusting copied target bodies.
 Its snapshot retains full record content and separate file-byte fixity;
-source-owned maker/layer and nonpublic-claim restrictions cannot be replaced
-by an inline record. Discovering command context does not grant admission,
-and an unreviewed real source remains unreviewed until qualified assessment.
+the owner retains maker, layer and nonpublic-claim restrictions. Command
+discovery exposes this context; qualified assessment establishes the source’s
+review result.
 
 The native TextUnit adapter adds an explicit exact source return for existing
 packet v1 records. It binds a selected native unit without replacing its ID,
 version or embedded historical review. The assessment digest belongs to a
 versioned derived view of the fixed packet and selected layer dependency,
-not to the raw native unit bytes. A separate layer evidence record retains the
-same source origin; it does not multiply corroboration. Metadata-only reads
-cannot append assessments through this adapter. Exact owner-local reads and
-qualified research admission do not authorize a public projection. See the
+with raw native unit bytes retaining their own fixity digest. The separate layer evidence record retains the same source origin for
+corroboration accounting. Appending assessments requires exact content access. Public projection
+additionally requires publication authority. See the
 [native command contract](../../mechanics/growth-cycle/parts/branch-growth-cycle/README.md#native-textunit-return-and-assessment)
 for scope discovery, byte rechecks and the unchanged issuer boundary.
 
-A description bound to a native textual use is not itself evidence of an
-exact text read. Its source-owner adapter requires a matching complete native
+Assessment of a description bound to a native textual use requires evidence of
+the exact text read. Its source-owner adapter requires a matching complete native
 binding and explicitly verified content for current assessment use, including
-when that description supports a Claim or human form. Metadata-only inspection
-remains possible but cannot recover usable admission from earlier exact-read
-history. The source-read condition is separate from access permission and
-reviewer authority; byte verification still does not prove transcription or
-linguistic quality. A failed current gate preserves earlier assessment events
+when that description supports a Claim or human form. Metadata-only inspection exposes description and history; current admission
+additionally requires the exact source-read gate. The source-read condition is separate from access permission and
+reviewer authority; transcription and linguistic quality require substantive assessment in
+addition to byte verification. A failed current gate preserves earlier assessment events
 and receipts rather than rewriting their historical status.
 
 The engine enforces the declared relationship and authority invariants. Actual

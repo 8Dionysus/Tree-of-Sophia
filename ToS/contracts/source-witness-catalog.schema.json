@@ -18,42 +18,111 @@
     "authority_boundary"
   ],
   "properties": {
-    "schema_version": {"const": "tos_source_witness_catalog_v3"},
-    "owner_repo": {"const": "Tree-of-Sophia"},
-    "source_root": {"const": "ToS/source-witnesses"},
-    "generated_by": {"const": "scripts/build_source_witness_catalog.py"},
-    "record_schema_ref": {"const": "ToS/contracts/corpus-record.schema.json"},
-    "claim_schema_ref": {"const": "ToS/contracts/claim-packet.schema.json"},
-    "extension_schema_refs": {"type": "array", "minItems": 1, "uniqueItems": true,
-      "items": {"type": "string", "pattern": "^ToS/contracts/[a-z][a-z0-9-]*\\.schema\\.json$"}},
-    "record_files": {
-      "type": "object",
-      "description": "Extra families must match the source-owned profile's catalog filename; schema validation alone does not prove that binding.",
-      "additionalProperties": {"type": "string", "pattern": "^ToS/source-witnesses/catalog/[a-z][a-z0-9-]*\\.jsonl$"},
-      "propertyNames": {"pattern": "^[a-z][a-z0-9-]*$"},
-      "required": ["agent", "place", "organization", "work", "expression", "edition", "collection", "item", "link"],
-      "properties": {
-        "agent": {"const": "ToS/source-witnesses/catalog/agents.jsonl"},
-        "place": {"const": "ToS/source-witnesses/catalog/places.jsonl"},
-        "organization": {"const": "ToS/source-witnesses/catalog/organizations.jsonl"},
-        "work": {"const": "ToS/source-witnesses/catalog/works.jsonl"},
-        "expression": {"const": "ToS/source-witnesses/catalog/expressions.jsonl"},
-        "edition": {"const": "ToS/source-witnesses/catalog/editions.jsonl"},
-        "collection": {"const": "ToS/source-witnesses/catalog/collections.jsonl"},
-        "item": {"const": "ToS/source-witnesses/catalog/items.jsonl"},
-        "link": {"const": "ToS/source-witnesses/catalog/links.jsonl"},
-        "historical-event": {"const": "ToS/source-witnesses/catalog/historical-events.jsonl"},
-        "historical-process": {"const": "ToS/source-witnesses/catalog/historical-processes.jsonl"},
-        "historical-state": {"const": "ToS/source-witnesses/catalog/historical-states.jsonl"},
-        "artifact": {"const": "ToS/source-witnesses/catalog/artifacts.jsonl"},
-        "composite": {"const": "ToS/source-witnesses/catalog/composites.jsonl"}
+    "schema_version": {
+      "const": "tos_source_witness_catalog_v3"
+    },
+    "owner_repo": {
+      "const": "Tree-of-Sophia"
+    },
+    "source_root": {
+      "const": "ToS/source-witnesses"
+    },
+    "generated_by": {
+      "const": "scripts/build_source_witness_catalog.py"
+    },
+    "record_schema_ref": {
+      "const": "ToS/contracts/corpus-record.schema.json"
+    },
+    "claim_schema_ref": {
+      "const": "ToS/contracts/claim-packet.schema.json"
+    },
+    "extension_schema_refs": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^ToS/contracts/[a-z][a-z0-9-]*\\.schema\\.json$"
       }
     },
-    "claim_file": {"const": "ToS/source-witnesses/catalog/claims.jsonl"},
+    "record_files": {
+      "type": "object",
+      "description": "Extra families must match the source-owned profile’s catalog filename. The catalog reader verifies that exact profile binding alongside schema validation.",
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^ToS/source-witnesses/catalog/[a-z][a-z0-9-]*\\.jsonl$"
+      },
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9-]*$"
+      },
+      "required": [
+        "agent",
+        "place",
+        "organization",
+        "work",
+        "expression",
+        "edition",
+        "collection",
+        "item",
+        "link"
+      ],
+      "properties": {
+        "agent": {
+          "const": "ToS/source-witnesses/catalog/agents.jsonl"
+        },
+        "place": {
+          "const": "ToS/source-witnesses/catalog/places.jsonl"
+        },
+        "organization": {
+          "const": "ToS/source-witnesses/catalog/organizations.jsonl"
+        },
+        "work": {
+          "const": "ToS/source-witnesses/catalog/works.jsonl"
+        },
+        "expression": {
+          "const": "ToS/source-witnesses/catalog/expressions.jsonl"
+        },
+        "edition": {
+          "const": "ToS/source-witnesses/catalog/editions.jsonl"
+        },
+        "collection": {
+          "const": "ToS/source-witnesses/catalog/collections.jsonl"
+        },
+        "item": {
+          "const": "ToS/source-witnesses/catalog/items.jsonl"
+        },
+        "link": {
+          "const": "ToS/source-witnesses/catalog/links.jsonl"
+        },
+        "historical-event": {
+          "const": "ToS/source-witnesses/catalog/historical-events.jsonl"
+        },
+        "historical-process": {
+          "const": "ToS/source-witnesses/catalog/historical-processes.jsonl"
+        },
+        "historical-state": {
+          "const": "ToS/source-witnesses/catalog/historical-states.jsonl"
+        },
+        "artifact": {
+          "const": "ToS/source-witnesses/catalog/artifacts.jsonl"
+        },
+        "composite": {
+          "const": "ToS/source-witnesses/catalog/composites.jsonl"
+        }
+      }
+    },
+    "claim_file": {
+      "const": "ToS/source-witnesses/catalog/claims.jsonl"
+    },
     "counts": {
       "type": "object",
-      "additionalProperties": {"type": "integer", "minimum": 0},
-      "propertyNames": {"pattern": "^[a-z][a-z0-9_-]*$"},
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9_-]*$"
+      },
       "required": [
         "agent",
         "place",
@@ -69,41 +138,111 @@
         "total"
       ],
       "properties": {
-        "agent": {"type": "integer", "minimum": 0},
-        "place": {"type": "integer", "minimum": 0},
-        "organization": {"type": "integer", "minimum": 0},
-        "work": {"type": "integer", "minimum": 0},
-        "expression": {"type": "integer", "minimum": 0},
-        "edition": {"type": "integer", "minimum": 0},
-        "collection": {"type": "integer", "minimum": 0},
-        "item": {"type": "integer", "minimum": 0},
-        "link": {"type": "integer", "minimum": 0},
-        "historical-event": {"type": "integer", "minimum": 0},
-        "historical-process": {"type": "integer", "minimum": 0},
-        "historical-state": {"type": "integer", "minimum": 0},
-        "artifact": {"type": "integer", "minimum": 0},
-        "object_total": {"type": "integer", "minimum": 1},
-        "claim": {"type": "integer", "minimum": 0},
-        "total": {"type": "integer", "minimum": 1}
+        "agent": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "place": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "organization": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "work": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "expression": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "edition": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "collection": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "item": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "link": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "historical-event": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "historical-process": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "historical-state": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "artifact": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "object_total": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "claim": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "total": {
+          "type": "integer",
+          "minimum": 1
+        }
       }
     },
-    "catalog_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "catalog_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
     "selected_metadata_publication": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["protocol", "token", "files"],
+      "required": [
+        "protocol",
+        "token",
+        "files"
+      ],
       "properties": {
-        "protocol": {"const": "tos_selected_source_metadata_v1"},
-        "token": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+        "protocol": {
+          "const": "tos_selected_source_metadata_v1"
+        },
+        "token": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
         "files": {
-          "type": "object", "minProperties": 1,
-          "propertyNames": {"pattern": "^ToS/source-witnesses/catalog/[a-z][a-z0-9-]*\\.jsonl$"},
-          "additionalProperties": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": {
+            "pattern": "^ToS/source-witnesses/catalog/[a-z][a-z0-9-]*\\.jsonl$"
+          },
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
         }
       },
       "description": "Generated exact-file commit binding for participating selected-metadata source transactions; not semantic authority or universal currentness for manual/legacy writes."
     },
-    "authority_boundary": {"const": "generated navigation over tracked object and claim records; not bibliographic, textual, rights, review, or semantic authority"}
+    "authority_boundary": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Brief account of the artifact purpose and scope. Typed status, effects, assessment and permission fields govern its use."
+    }
   },
   "$defs": {
     "entry": {
@@ -120,49 +259,158 @@
         "links"
       ],
       "properties": {
-        "schema_version": {"const": "tos_source_witness_catalog_entry_v1"},
-        "source_schema_ref": {"type": "string", "pattern": "^ToS/contracts/[a-z][a-z0-9-]*\\.schema\\.json$"},
-        "label_source_pointer": {"const": "/custody/inventory_numbers/0"},
-        "record_id": {"type": "string", "minLength": 1},
-        "record_type": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$"},
-        "preferred_label": {"type": "string", "minLength": 1},
-        "identity_status": {"enum": ["provisional", "verified", "disputed", "superseded", null]},
-        "source_record_ref": {"type": "string", "pattern": "^ToS/source-witnesses/.+\\.json$"},
-        "record_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "schema_version": {
+          "const": "tos_source_witness_catalog_entry_v1"
+        },
+        "source_schema_ref": {
+          "type": "string",
+          "pattern": "^ToS/contracts/[a-z][a-z0-9-]*\\.schema\\.json$"
+        },
+        "label_source_pointer": {
+          "const": "/custody/inventory_numbers/0"
+        },
+        "record_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "record_type": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$"
+        },
+        "preferred_label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "identity_status": {
+          "enum": [
+            "provisional",
+            "verified",
+            "disputed",
+            "superseded",
+            null
+          ]
+        },
+        "source_record_ref": {
+          "type": "string",
+          "pattern": "^ToS/source-witnesses/.+\\.json$"
+        },
+        "record_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
         "links": {
           "type": "object",
           "additionalProperties": {
             "oneOf": [
-              {"type": "string", "minLength": 1},
-              {"type": "array", "items": {"type": "string", "minLength": 1}}
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
             ]
           }
         }
       },
-      "allOf": [{
-        "if": {"properties": {"record_type": {"const": "artifact"}}},
-        "then": {
-          "required": ["source_schema_ref", "label_source_pointer"],
-          "properties": {
-            "identity_status": {"type": "null"},
-            "record_id": {"pattern": "^tos\\.artifact\\."},
-            "source_schema_ref": {"enum": ["ToS/contracts/artifact-source-witness.schema.json", "ToS/contracts/artifact-source-witness-v2.schema.json"]}
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "record_type": {
+                "const": "artifact"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "source_schema_ref",
+              "label_source_pointer"
+            ],
+            "properties": {
+              "identity_status": {
+                "type": "null"
+              },
+              "record_id": {
+                "pattern": "^tos\\.artifact\\."
+              },
+              "source_schema_ref": {
+                "enum": [
+                  "ToS/contracts/artifact-source-witness.schema.json",
+                  "ToS/contracts/artifact-source-witness-v2.schema.json"
+                ]
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "identity_status": {
+                "type": "string"
+              }
+            },
+            "not": {
+              "required": [
+                "label_source_pointer"
+              ]
+            }
           }
         },
-        "else": {
-          "properties": {"identity_status": {"type": "string"}},
-          "not": {"required": ["label_source_pointer"]}
+        {
+          "if": {
+            "properties": {
+              "record_type": {
+                "const": "composite"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "source_schema_ref"
+            ],
+            "properties": {
+              "record_id": {
+                "pattern": "^tos\\.composite\\."
+              },
+              "source_schema_ref": {
+                "enum": [
+                  "ToS/contracts/scholarly-composite-witness.schema.json",
+                  "ToS/contracts/scholarly-composite-record.schema.json"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "record_type": {
+                "not": {
+                  "enum": [
+                    "agent",
+                    "place",
+                    "organization",
+                    "work",
+                    "expression",
+                    "edition",
+                    "collection",
+                    "item",
+                    "link"
+                  ]
+                }
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "source_schema_ref"
+            ]
+          }
         }
-      }, {
-        "if": {"properties": {"record_type": {"const": "composite"}}},
-        "then": {"required": ["source_schema_ref"], "properties": {
-          "record_id": {"pattern": "^tos\\.composite\\."},
-          "source_schema_ref": {"enum": ["ToS/contracts/scholarly-composite-witness.schema.json", "ToS/contracts/scholarly-composite-record.schema.json"]}
-        }}
-      }, {
-        "if": {"properties": {"record_type": {"not": {"enum": ["agent", "place", "organization", "work", "expression", "edition", "collection", "item", "link"]}}}},
-        "then": {"required": ["source_schema_ref"]}
-      }]
+      ]
     },
     "claim_entry": {
       "type": "object",
@@ -191,8 +439,13 @@
         "schema_version": {
           "const": "tos_source_witness_claim_catalog_entry_v1"
         },
-        "source_schema_ref": {"type": "string", "pattern": "^ToS/contracts/[a-z][a-z0-9-]*\\.schema\\.json$"},
-        "claim_id": {"$ref": "#/$defs/tosId"},
+        "source_schema_ref": {
+          "type": "string",
+          "pattern": "^ToS/contracts/[a-z][a-z0-9-]*\\.schema\\.json$"
+        },
+        "claim_id": {
+          "$ref": "#/$defs/tosId"
+        },
         "claim_type": {
           "enum": [
             "bibliographic",
@@ -221,15 +474,33 @@
             "canon_judgment"
           ]
         },
-        "subject_ref": {"type": "string", "pattern": "^tos\\.[a-z][a-z0-9-]*\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
-        "predicate": {"type": "string", "pattern": "^[a-z][a-z0-9_.-]*$"},
+        "subject_ref": {
+          "type": "string",
+          "pattern": "^tos\\.[a-z][a-z0-9-]*\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+        },
+        "predicate": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_.-]*$"
+        },
         "object": {
           "oneOf": [
-            {"type": "string"},
-            {"type": "number"},
-            {"type": "boolean"},
-            {"type": "object", "minProperties": 1},
-            {"type": "array", "minItems": 1}
+            {
+              "type": "string"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "object",
+              "minProperties": 1
+            },
+            {
+              "type": "array",
+              "minItems": 1
+            }
           ]
         },
         "qualifiers": {
@@ -240,12 +511,18 @@
           "type": "array",
           "minItems": 1,
           "uniqueItems": true,
-          "items": {"type": "string", "minLength": 1}
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
         },
         "maker": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["maker_type", "agent_ref"],
+          "required": [
+            "maker_type",
+            "agent_ref"
+          ],
           "properties": {
             "maker_type": {
               "enum": [
@@ -256,10 +533,15 @@
                 "imported_source"
               ]
             },
-            "agent_ref": {"type": "string", "minLength": 1}
+            "agent_ref": {
+              "type": "string",
+              "minLength": 1
+            }
           }
         },
-        "provenance_event_ref": {"$ref": "#/$defs/tosId"},
+        "provenance_event_ref": {
+          "$ref": "#/$defs/tosId"
+        },
         "epistemic_status": {
           "enum": [
             "observed",
@@ -284,7 +566,9 @@
         "review_refs": {
           "type": "array",
           "uniqueItems": true,
-          "items": {"$ref": "#/$defs/tosId"}
+          "items": {
+            "$ref": "#/$defs/tosId"
+          }
         },
         "visibility": {
           "enum": [
@@ -295,27 +579,49 @@
             "public"
           ]
         },
-        "claim_version": {"type": "integer", "minimum": 1},
+        "claim_version": {
+          "type": "integer",
+          "minimum": 1
+        },
         "supersedes_claim_ref": {
           "anyOf": [
-            {"$ref": "#/$defs/tosId"},
-            {"type": "null"}
+            {
+              "$ref": "#/$defs/tosId"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "source_claim_file_ref": {
           "type": "string",
           "pattern": "^ToS/source-witnesses/.+/(membership|responsibility|publication|provision-activity|work-chronology|work-expression|expression-edition|edition-item|expression-derivation|object-link|historical|source)-claims\\.jsonl$"
         },
-        "source_claim_line": {"type": "integer", "minimum": 1},
+        "source_claim_line": {
+          "type": "integer",
+          "minimum": 1
+        },
         "claim_sha256": {
           "type": "string",
           "pattern": "^[a-f0-9]{64}$"
         }
       },
-      "allOf": [{
-        "if": {"properties": {"source_claim_file_ref": {"pattern": "/source-claims\\.jsonl$"}}},
-        "then": {"required": ["source_schema_ref"]}
-      }]
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "source_claim_file_ref": {
+                "pattern": "/source-claims\\.jsonl$"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "source_schema_ref"
+            ]
+          }
+        }
+      ]
     },
     "tosId": {
       "type": "string",

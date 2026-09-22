@@ -1,71 +1,69 @@
 {
-  "schema_version": "tos_human_form_set_v1",
-  "subject": {
-    "id": "tos.question.self-origination-required-jgb21",
-    "version": 1,
-    "digest": "sha256:6401b1c2c9d06622b70bdd0239a2b00b68411096d52bad78aa8368c9732c463a"
-  },
   "forms": [
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.question.self-origination-required-jgb21.name-ru",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.question.self-origination-required-jgb21",
-        "version": 1,
-        "digest": "sha256:6401b1c2c9d06622b70bdd0239a2b00b68411096d52bad78aa8368c9732c463a"
+        "version": 2,
+        "digest": "sha256:b7944913aca26b52a649f29fad7124491a5c90fd2e6b0c387cac7ee33e465b78"
       },
       "role": "name",
       "language": "ru",
       "script": "Cyrl",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.question.self-origination-required-jgb21.name-ru",
+        "version": 1,
+        "digest": "sha256:e5af87b561d865e882382fc086f8585d076d85a00308739b4eed9109e487c8e7"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.question.self-origination-required-jgb21",
-            "version": 1,
-            "digest": "sha256:6401b1c2c9d06622b70bdd0239a2b00b68411096d52bad78aa8368c9732c463a"
+            "version": 2,
+            "digest": "sha256:b7944913aca26b52a649f29fad7124491a5c90fd2e6b0c387cac7ee33e465b78"
           },
           "pointer": "/preferred_label"
         },
         "context-0": {
           "record": {
             "id": "tos.question.self-origination-required-jgb21",
-            "version": 1,
-            "digest": "sha256:6401b1c2c9d06622b70bdd0239a2b00b68411096d52bad78aa8368c9732c463a"
+            "version": 2,
+            "digest": "sha256:b7944913aca26b52a649f29fad7124491a5c90fd2e6b0c387cac7ee33e465b78"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.question.self-origination-required-jgb21",
-            "version": 1,
-            "digest": "sha256:6401b1c2c9d06622b70bdd0239a2b00b68411096d52bad78aa8368c9732c463a"
+            "version": 2,
+            "digest": "sha256:b7944913aca26b52a649f29fad7124491a5c90fd2e6b0c387cac7ee33e465b78"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.question.self-origination-required-jgb21",
-            "version": 1,
-            "digest": "sha256:6401b1c2c9d06622b70bdd0239a2b00b68411096d52bad78aa8368c9732c463a"
+            "version": 2,
+            "digest": "sha256:b7944913aca26b52a649f29fad7124491a5c90fd2e6b0c387cac7ee33e465b78"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.question.self-origination-required-jgb21",
-            "version": 1,
-            "digest": "sha256:6401b1c2c9d06622b70bdd0239a2b00b68411096d52bad78aa8368c9732c463a"
+            "version": 2,
+            "digest": "sha256:b7944913aca26b52a649f29fad7124491a5c90fd2e6b0c387cac7ee33e465b78"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.question.self-origination-required-jgb21",
-            "version": 1,
-            "digest": "sha256:6401b1c2c9d06622b70bdd0239a2b00b68411096d52bad78aa8368c9732c463a"
+            "version": 2,
+            "digest": "sha256:b7944913aca26b52a649f29fad7124491a5c90fd2e6b0c387cac7ee33e465b78"
           },
           "pointer": "/field_languages/preferred_label"
         }
@@ -78,87 +76,91 @@
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.question.self-origination-required-jgb21.name-en",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.question.self-origination-required-jgb21",
-        "version": 1,
-        "digest": "sha256:6401b1c2c9d06622b70bdd0239a2b00b68411096d52bad78aa8368c9732c463a"
+        "version": 2,
+        "digest": "sha256:b7944913aca26b52a649f29fad7124491a5c90fd2e6b0c387cac7ee33e465b78"
       },
       "role": "name",
       "language": "en",
       "script": "Latn",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.question.self-origination-required-jgb21.name-en",
+        "version": 1,
+        "digest": "sha256:7184e60ed8c9f44d1451e765436eb504c5aad7009da1e0b71f08961e907813ba"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.question.self-origination-required-jgb21",
-            "version": 1,
-            "digest": "sha256:6401b1c2c9d06622b70bdd0239a2b00b68411096d52bad78aa8368c9732c463a"
+            "version": 2,
+            "digest": "sha256:b7944913aca26b52a649f29fad7124491a5c90fd2e6b0c387cac7ee33e465b78"
           },
           "pointer": "/variant_labels/0/value"
         },
         "context-0": {
           "record": {
             "id": "tos.question.self-origination-required-jgb21",
-            "version": 1,
-            "digest": "sha256:6401b1c2c9d06622b70bdd0239a2b00b68411096d52bad78aa8368c9732c463a"
+            "version": 2,
+            "digest": "sha256:b7944913aca26b52a649f29fad7124491a5c90fd2e6b0c387cac7ee33e465b78"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.question.self-origination-required-jgb21",
-            "version": 1,
-            "digest": "sha256:6401b1c2c9d06622b70bdd0239a2b00b68411096d52bad78aa8368c9732c463a"
+            "version": 2,
+            "digest": "sha256:b7944913aca26b52a649f29fad7124491a5c90fd2e6b0c387cac7ee33e465b78"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.question.self-origination-required-jgb21",
-            "version": 1,
-            "digest": "sha256:6401b1c2c9d06622b70bdd0239a2b00b68411096d52bad78aa8368c9732c463a"
+            "version": 2,
+            "digest": "sha256:b7944913aca26b52a649f29fad7124491a5c90fd2e6b0c387cac7ee33e465b78"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.question.self-origination-required-jgb21",
-            "version": 1,
-            "digest": "sha256:6401b1c2c9d06622b70bdd0239a2b00b68411096d52bad78aa8368c9732c463a"
+            "version": 2,
+            "digest": "sha256:b7944913aca26b52a649f29fad7124491a5c90fd2e6b0c387cac7ee33e465b78"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.question.self-origination-required-jgb21",
-            "version": 1,
-            "digest": "sha256:6401b1c2c9d06622b70bdd0239a2b00b68411096d52bad78aa8368c9732c463a"
+            "version": 2,
+            "digest": "sha256:b7944913aca26b52a649f29fad7124491a5c90fd2e6b0c387cac7ee33e465b78"
           },
           "pointer": "/variant_labels/0/language"
         },
         "context-5": {
           "record": {
             "id": "tos.question.self-origination-required-jgb21",
-            "version": 1,
-            "digest": "sha256:6401b1c2c9d06622b70bdd0239a2b00b68411096d52bad78aa8368c9732c463a"
+            "version": 2,
+            "digest": "sha256:b7944913aca26b52a649f29fad7124491a5c90fd2e6b0c387cac7ee33e465b78"
           },
           "pointer": "/variant_labels/0/script"
         },
         "context-6": {
           "record": {
             "id": "tos.question.self-origination-required-jgb21",
-            "version": 1,
-            "digest": "sha256:6401b1c2c9d06622b70bdd0239a2b00b68411096d52bad78aa8368c9732c463a"
+            "version": 2,
+            "digest": "sha256:b7944913aca26b52a649f29fad7124491a5c90fd2e6b0c387cac7ee33e465b78"
           },
           "pointer": "/variant_labels/0/source_ref"
         },
         "context-7": {
           "record": {
             "id": "tos.question.self-origination-required-jgb21",
-            "version": 1,
-            "digest": "sha256:6401b1c2c9d06622b70bdd0239a2b00b68411096d52bad78aa8368c9732c463a"
+            "version": 2,
+            "digest": "sha256:b7944913aca26b52a649f29fad7124491a5c90fd2e6b0c387cac7ee33e465b78"
           },
           "pointer": "/variant_labels/0/status"
         }
@@ -171,63 +173,67 @@
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.question.self-origination-required-jgb21.note-ru",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.question.self-origination-required-jgb21",
-        "version": 1,
-        "digest": "sha256:6401b1c2c9d06622b70bdd0239a2b00b68411096d52bad78aa8368c9732c463a"
+        "version": 2,
+        "digest": "sha256:b7944913aca26b52a649f29fad7124491a5c90fd2e6b0c387cac7ee33e465b78"
       },
       "role": "hover",
       "language": "ru",
       "script": "Cyrl",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.question.self-origination-required-jgb21.note-ru",
+        "version": 1,
+        "digest": "sha256:ac7676244f78c8d33d67276fe59c07107eab00d075a80fca718b9d83230f3b42"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.question.self-origination-required-jgb21",
-            "version": 1,
-            "digest": "sha256:6401b1c2c9d06622b70bdd0239a2b00b68411096d52bad78aa8368c9732c463a"
+            "version": 2,
+            "digest": "sha256:b7944913aca26b52a649f29fad7124491a5c90fd2e6b0c387cac7ee33e465b78"
           },
           "pointer": "/notes"
         },
         "context-0": {
           "record": {
             "id": "tos.question.self-origination-required-jgb21",
-            "version": 1,
-            "digest": "sha256:6401b1c2c9d06622b70bdd0239a2b00b68411096d52bad78aa8368c9732c463a"
+            "version": 2,
+            "digest": "sha256:b7944913aca26b52a649f29fad7124491a5c90fd2e6b0c387cac7ee33e465b78"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.question.self-origination-required-jgb21",
-            "version": 1,
-            "digest": "sha256:6401b1c2c9d06622b70bdd0239a2b00b68411096d52bad78aa8368c9732c463a"
+            "version": 2,
+            "digest": "sha256:b7944913aca26b52a649f29fad7124491a5c90fd2e6b0c387cac7ee33e465b78"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.question.self-origination-required-jgb21",
-            "version": 1,
-            "digest": "sha256:6401b1c2c9d06622b70bdd0239a2b00b68411096d52bad78aa8368c9732c463a"
+            "version": 2,
+            "digest": "sha256:b7944913aca26b52a649f29fad7124491a5c90fd2e6b0c387cac7ee33e465b78"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.question.self-origination-required-jgb21",
-            "version": 1,
-            "digest": "sha256:6401b1c2c9d06622b70bdd0239a2b00b68411096d52bad78aa8368c9732c463a"
+            "version": 2,
+            "digest": "sha256:b7944913aca26b52a649f29fad7124491a5c90fd2e6b0c387cac7ee33e465b78"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.question.self-origination-required-jgb21",
-            "version": 1,
-            "digest": "sha256:6401b1c2c9d06622b70bdd0239a2b00b68411096d52bad78aa8368c9732c463a"
+            "version": 2,
+            "digest": "sha256:b7944913aca26b52a649f29fad7124491a5c90fd2e6b0c387cac7ee33e465b78"
           },
           "pointer": "/field_languages/notes"
         }
@@ -238,5 +244,243 @@
       }
     }
   ],
-  "prior_forms": []
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:6401b1c2c9d06622b70bdd0239a2b00b68411096d52bad78aa8368c9732c463a",
+            "id": "tos.question.self-origination-required-jgb21",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:6401b1c2c9d06622b70bdd0239a2b00b68411096d52bad78aa8368c9732c463a",
+            "id": "tos.question.self-origination-required-jgb21",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:6401b1c2c9d06622b70bdd0239a2b00b68411096d52bad78aa8368c9732c463a",
+            "id": "tos.question.self-origination-required-jgb21",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:6401b1c2c9d06622b70bdd0239a2b00b68411096d52bad78aa8368c9732c463a",
+            "id": "tos.question.self-origination-required-jgb21",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:6401b1c2c9d06622b70bdd0239a2b00b68411096d52bad78aa8368c9732c463a",
+            "id": "tos.question.self-origination-required-jgb21",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:6401b1c2c9d06622b70bdd0239a2b00b68411096d52bad78aa8368c9732c463a",
+            "id": "tos.question.self-origination-required-jgb21",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.question.self-origination-required-jgb21.name-ru",
+      "form_version": 1,
+      "language": "ru",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:6401b1c2c9d06622b70bdd0239a2b00b68411096d52bad78aa8368c9732c463a",
+        "id": "tos.question.self-origination-required-jgb21",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:6401b1c2c9d06622b70bdd0239a2b00b68411096d52bad78aa8368c9732c463a",
+            "id": "tos.question.self-origination-required-jgb21",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:6401b1c2c9d06622b70bdd0239a2b00b68411096d52bad78aa8368c9732c463a",
+            "id": "tos.question.self-origination-required-jgb21",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:6401b1c2c9d06622b70bdd0239a2b00b68411096d52bad78aa8368c9732c463a",
+            "id": "tos.question.self-origination-required-jgb21",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:6401b1c2c9d06622b70bdd0239a2b00b68411096d52bad78aa8368c9732c463a",
+            "id": "tos.question.self-origination-required-jgb21",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/variant_labels/0/language",
+          "record": {
+            "digest": "sha256:6401b1c2c9d06622b70bdd0239a2b00b68411096d52bad78aa8368c9732c463a",
+            "id": "tos.question.self-origination-required-jgb21",
+            "version": 1
+          }
+        },
+        "context-5": {
+          "pointer": "/variant_labels/0/script",
+          "record": {
+            "digest": "sha256:6401b1c2c9d06622b70bdd0239a2b00b68411096d52bad78aa8368c9732c463a",
+            "id": "tos.question.self-origination-required-jgb21",
+            "version": 1
+          }
+        },
+        "context-6": {
+          "pointer": "/variant_labels/0/source_ref",
+          "record": {
+            "digest": "sha256:6401b1c2c9d06622b70bdd0239a2b00b68411096d52bad78aa8368c9732c463a",
+            "id": "tos.question.self-origination-required-jgb21",
+            "version": 1
+          }
+        },
+        "context-7": {
+          "pointer": "/variant_labels/0/status",
+          "record": {
+            "digest": "sha256:6401b1c2c9d06622b70bdd0239a2b00b68411096d52bad78aa8368c9732c463a",
+            "id": "tos.question.self-origination-required-jgb21",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/variant_labels/0/value",
+          "record": {
+            "digest": "sha256:6401b1c2c9d06622b70bdd0239a2b00b68411096d52bad78aa8368c9732c463a",
+            "id": "tos.question.self-origination-required-jgb21",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.question.self-origination-required-jgb21.name-en",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:6401b1c2c9d06622b70bdd0239a2b00b68411096d52bad78aa8368c9732c463a",
+        "id": "tos.question.self-origination-required-jgb21",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:6401b1c2c9d06622b70bdd0239a2b00b68411096d52bad78aa8368c9732c463a",
+            "id": "tos.question.self-origination-required-jgb21",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:6401b1c2c9d06622b70bdd0239a2b00b68411096d52bad78aa8368c9732c463a",
+            "id": "tos.question.self-origination-required-jgb21",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:6401b1c2c9d06622b70bdd0239a2b00b68411096d52bad78aa8368c9732c463a",
+            "id": "tos.question.self-origination-required-jgb21",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:6401b1c2c9d06622b70bdd0239a2b00b68411096d52bad78aa8368c9732c463a",
+            "id": "tos.question.self-origination-required-jgb21",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:6401b1c2c9d06622b70bdd0239a2b00b68411096d52bad78aa8368c9732c463a",
+            "id": "tos.question.self-origination-required-jgb21",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:6401b1c2c9d06622b70bdd0239a2b00b68411096d52bad78aa8368c9732c463a",
+            "id": "tos.question.self-origination-required-jgb21",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.question.self-origination-required-jgb21.note-ru",
+      "form_version": 1,
+      "language": "ru",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:6401b1c2c9d06622b70bdd0239a2b00b68411096d52bad78aa8368c9732c463a",
+        "id": "tos.question.self-origination-required-jgb21",
+        "version": 1
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.question.self-origination-required-jgb21",
+    "version": 2,
+    "digest": "sha256:b7944913aca26b52a649f29fad7124491a5c90fd2e6b0c387cac7ee33e465b78"
+  }
 }

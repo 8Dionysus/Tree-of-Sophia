@@ -1,0 +1,81 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.agent.constantin-georg-naumann",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:709df7fb307a1331d25fa253",
+      "request_digest": "sha256:0af5bc0c5a64b53b87b16db7a5cdabf2648cf532e687c26c5af347c9de8fd15f",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:a9c46793f73d450200be63dbc95f2d199e7a3706b0a53216edfe2857b5df7fa1",
+      "recorded_at": "2026-09-22T05:03:58.648744+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.agent.constantin-georg-naumann",
+        "version": 1,
+        "digest": "sha256:c601f723c3f82419d87ef365abb2979726b178e339cd3a9c83630f0b203f207a"
+      },
+      "source": {
+        "id": "tos.agent.constantin-georg-naumann",
+        "version": 2,
+        "digest": "sha256:e9ff69fe8d415e82e7fbb3732e729f203ebf1a7a6f09ebb7456ab6dc335e94ac"
+      },
+      "previous_revision": "sha256:75afe571bb0254a738c20c0d5d09fac8b11ce0f299068b534ef652ef09575422",
+      "archive_path": "ToS/source-witnesses/.record-revisions/709df7fb307a1331d25fa253f7159a3ee27b3862898ddf8db74c6cbfc6965438-75afe571bb0254a738c20c0d5d09fac8b11ce0f299068b534ef652ef09575422",
+      "dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+      "changed_fields": [
+        "notes"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.constantin-georg-naumann.name",
+          "version": 2,
+          "digest": "sha256:1360c7f0d1433adf5a2cf9e581c5228087a5efc2fc34db865a0e53d5d138598b"
+        },
+        {
+          "id": "tos.form.constantin-georg-naumann.note-ru",
+          "version": 2,
+          "digest": "sha256:b655dd1ed1cddb49d1b7a4dbd32deca26c7fd94fa5479e8c834e9d966c575d8a"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:709df7fb307a1331d25fa253",
+        "expected_configuration": "sha256:a9c46793f73d450200be63dbc95f2d199e7a3706b0a53216edfe2857b5df7fa1",
+        "expected_dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+        "expected_publication": "sha256:04c8bf42519beea562bc5fa6e179155ad6faeba7d957a74d8c53835352d0ab9d",
+        "expected_revision": "sha256:75afe571bb0254a738c20c0d5d09fac8b11ce0f299068b534ef652ef09575422",
+        "expected_source": {
+          "digest": "sha256:c601f723c3f82419d87ef365abb2979726b178e339cd3a9c83630f0b203f207a",
+          "id": "tos.agent.constantin-georg-naumann",
+          "version": 1
+        },
+        "fields": {
+          "notes": "Предварительная идентификация человека, указанного адресатом письма Ницше № 705 в eKGWB. Основание — сохранённая исследовательская заметка о чтении источника. Независимая идентификационная оценка остаётся открытой; адресатство выражено отдельным утверждением."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.constantin-georg-naumann.name"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.constantin-georg-naumann.note-ru"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:828ba19ee956da7e48baaaa2a16e1a978b2444e851d96f2ca25452c3b5eddb10",
+        "selected_files": [
+          "agent.human-forms.json",
+          "agent.json",
+          "source-revision-history.json"
+        ]
+      }
+    }
+  ]
+}

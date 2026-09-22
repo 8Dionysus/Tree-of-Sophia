@@ -1,71 +1,69 @@
 {
-  "schema_version": "tos_human_form_set_v1",
-  "subject": {
-    "id": "tos.social-group.leipzig-philological-society-nietzsche",
-    "version": 1,
-    "digest": "sha256:25a14a42917c42d33285a182252950d2906da1c86433f99634c47a196ffa13fe"
-  },
   "forms": [
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.social-group.leipzig-philological-society-nietzsche.name-ru",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.social-group.leipzig-philological-society-nietzsche",
-        "version": 1,
-        "digest": "sha256:25a14a42917c42d33285a182252950d2906da1c86433f99634c47a196ffa13fe"
+        "version": 2,
+        "digest": "sha256:9fc6e579b5b35623826b482ed7cc211ba609aaecfd46650d45a4e9d752783205"
       },
       "role": "name",
       "language": "ru",
       "script": "Cyrl",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.social-group.leipzig-philological-society-nietzsche.name-ru",
+        "version": 1,
+        "digest": "sha256:64233bc919829abbc18788ce46163ac6ff08006b2c21973e5e767e31c643d5d6"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.social-group.leipzig-philological-society-nietzsche",
-            "version": 1,
-            "digest": "sha256:25a14a42917c42d33285a182252950d2906da1c86433f99634c47a196ffa13fe"
+            "version": 2,
+            "digest": "sha256:9fc6e579b5b35623826b482ed7cc211ba609aaecfd46650d45a4e9d752783205"
           },
           "pointer": "/preferred_label"
         },
         "context-0": {
           "record": {
             "id": "tos.social-group.leipzig-philological-society-nietzsche",
-            "version": 1,
-            "digest": "sha256:25a14a42917c42d33285a182252950d2906da1c86433f99634c47a196ffa13fe"
+            "version": 2,
+            "digest": "sha256:9fc6e579b5b35623826b482ed7cc211ba609aaecfd46650d45a4e9d752783205"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.social-group.leipzig-philological-society-nietzsche",
-            "version": 1,
-            "digest": "sha256:25a14a42917c42d33285a182252950d2906da1c86433f99634c47a196ffa13fe"
+            "version": 2,
+            "digest": "sha256:9fc6e579b5b35623826b482ed7cc211ba609aaecfd46650d45a4e9d752783205"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.social-group.leipzig-philological-society-nietzsche",
-            "version": 1,
-            "digest": "sha256:25a14a42917c42d33285a182252950d2906da1c86433f99634c47a196ffa13fe"
+            "version": 2,
+            "digest": "sha256:9fc6e579b5b35623826b482ed7cc211ba609aaecfd46650d45a4e9d752783205"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.social-group.leipzig-philological-society-nietzsche",
-            "version": 1,
-            "digest": "sha256:25a14a42917c42d33285a182252950d2906da1c86433f99634c47a196ffa13fe"
+            "version": 2,
+            "digest": "sha256:9fc6e579b5b35623826b482ed7cc211ba609aaecfd46650d45a4e9d752783205"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.social-group.leipzig-philological-society-nietzsche",
-            "version": 1,
-            "digest": "sha256:25a14a42917c42d33285a182252950d2906da1c86433f99634c47a196ffa13fe"
+            "version": 2,
+            "digest": "sha256:9fc6e579b5b35623826b482ed7cc211ba609aaecfd46650d45a4e9d752783205"
           },
           "pointer": "/field_languages/preferred_label"
         }
@@ -78,87 +76,91 @@
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.social-group.leipzig-philological-society-nietzsche.name-de",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.social-group.leipzig-philological-society-nietzsche",
-        "version": 1,
-        "digest": "sha256:25a14a42917c42d33285a182252950d2906da1c86433f99634c47a196ffa13fe"
+        "version": 2,
+        "digest": "sha256:9fc6e579b5b35623826b482ed7cc211ba609aaecfd46650d45a4e9d752783205"
       },
       "role": "name",
       "language": "de",
       "script": "Latn",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.social-group.leipzig-philological-society-nietzsche.name-de",
+        "version": 1,
+        "digest": "sha256:35eeaa2aac990653a57636562b367a7c7cc5e95b2fa6bdb0e749dff5f1a9e0e1"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.social-group.leipzig-philological-society-nietzsche",
-            "version": 1,
-            "digest": "sha256:25a14a42917c42d33285a182252950d2906da1c86433f99634c47a196ffa13fe"
+            "version": 2,
+            "digest": "sha256:9fc6e579b5b35623826b482ed7cc211ba609aaecfd46650d45a4e9d752783205"
           },
           "pointer": "/variant_labels/0/value"
         },
         "context-0": {
           "record": {
             "id": "tos.social-group.leipzig-philological-society-nietzsche",
-            "version": 1,
-            "digest": "sha256:25a14a42917c42d33285a182252950d2906da1c86433f99634c47a196ffa13fe"
+            "version": 2,
+            "digest": "sha256:9fc6e579b5b35623826b482ed7cc211ba609aaecfd46650d45a4e9d752783205"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.social-group.leipzig-philological-society-nietzsche",
-            "version": 1,
-            "digest": "sha256:25a14a42917c42d33285a182252950d2906da1c86433f99634c47a196ffa13fe"
+            "version": 2,
+            "digest": "sha256:9fc6e579b5b35623826b482ed7cc211ba609aaecfd46650d45a4e9d752783205"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.social-group.leipzig-philological-society-nietzsche",
-            "version": 1,
-            "digest": "sha256:25a14a42917c42d33285a182252950d2906da1c86433f99634c47a196ffa13fe"
+            "version": 2,
+            "digest": "sha256:9fc6e579b5b35623826b482ed7cc211ba609aaecfd46650d45a4e9d752783205"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.social-group.leipzig-philological-society-nietzsche",
-            "version": 1,
-            "digest": "sha256:25a14a42917c42d33285a182252950d2906da1c86433f99634c47a196ffa13fe"
+            "version": 2,
+            "digest": "sha256:9fc6e579b5b35623826b482ed7cc211ba609aaecfd46650d45a4e9d752783205"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.social-group.leipzig-philological-society-nietzsche",
-            "version": 1,
-            "digest": "sha256:25a14a42917c42d33285a182252950d2906da1c86433f99634c47a196ffa13fe"
+            "version": 2,
+            "digest": "sha256:9fc6e579b5b35623826b482ed7cc211ba609aaecfd46650d45a4e9d752783205"
           },
           "pointer": "/variant_labels/0/language"
         },
         "context-5": {
           "record": {
             "id": "tos.social-group.leipzig-philological-society-nietzsche",
-            "version": 1,
-            "digest": "sha256:25a14a42917c42d33285a182252950d2906da1c86433f99634c47a196ffa13fe"
+            "version": 2,
+            "digest": "sha256:9fc6e579b5b35623826b482ed7cc211ba609aaecfd46650d45a4e9d752783205"
           },
           "pointer": "/variant_labels/0/script"
         },
         "context-6": {
           "record": {
             "id": "tos.social-group.leipzig-philological-society-nietzsche",
-            "version": 1,
-            "digest": "sha256:25a14a42917c42d33285a182252950d2906da1c86433f99634c47a196ffa13fe"
+            "version": 2,
+            "digest": "sha256:9fc6e579b5b35623826b482ed7cc211ba609aaecfd46650d45a4e9d752783205"
           },
           "pointer": "/variant_labels/0/source_ref"
         },
         "context-7": {
           "record": {
             "id": "tos.social-group.leipzig-philological-society-nietzsche",
-            "version": 1,
-            "digest": "sha256:25a14a42917c42d33285a182252950d2906da1c86433f99634c47a196ffa13fe"
+            "version": 2,
+            "digest": "sha256:9fc6e579b5b35623826b482ed7cc211ba609aaecfd46650d45a4e9d752783205"
           },
           "pointer": "/variant_labels/0/status"
         }
@@ -171,63 +173,67 @@
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.social-group.leipzig-philological-society-nietzsche.note-ru",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.social-group.leipzig-philological-society-nietzsche",
-        "version": 1,
-        "digest": "sha256:25a14a42917c42d33285a182252950d2906da1c86433f99634c47a196ffa13fe"
+        "version": 2,
+        "digest": "sha256:9fc6e579b5b35623826b482ed7cc211ba609aaecfd46650d45a4e9d752783205"
       },
       "role": "hover",
       "language": "ru",
       "script": "Cyrl",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.social-group.leipzig-philological-society-nietzsche.note-ru",
+        "version": 1,
+        "digest": "sha256:120310961fbbb0c133cd836269e14b3c1077d5c55ba061e978bf787309dd6fa6"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.social-group.leipzig-philological-society-nietzsche",
-            "version": 1,
-            "digest": "sha256:25a14a42917c42d33285a182252950d2906da1c86433f99634c47a196ffa13fe"
+            "version": 2,
+            "digest": "sha256:9fc6e579b5b35623826b482ed7cc211ba609aaecfd46650d45a4e9d752783205"
           },
           "pointer": "/notes"
         },
         "context-0": {
           "record": {
             "id": "tos.social-group.leipzig-philological-society-nietzsche",
-            "version": 1,
-            "digest": "sha256:25a14a42917c42d33285a182252950d2906da1c86433f99634c47a196ffa13fe"
+            "version": 2,
+            "digest": "sha256:9fc6e579b5b35623826b482ed7cc211ba609aaecfd46650d45a4e9d752783205"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.social-group.leipzig-philological-society-nietzsche",
-            "version": 1,
-            "digest": "sha256:25a14a42917c42d33285a182252950d2906da1c86433f99634c47a196ffa13fe"
+            "version": 2,
+            "digest": "sha256:9fc6e579b5b35623826b482ed7cc211ba609aaecfd46650d45a4e9d752783205"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.social-group.leipzig-philological-society-nietzsche",
-            "version": 1,
-            "digest": "sha256:25a14a42917c42d33285a182252950d2906da1c86433f99634c47a196ffa13fe"
+            "version": 2,
+            "digest": "sha256:9fc6e579b5b35623826b482ed7cc211ba609aaecfd46650d45a4e9d752783205"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.social-group.leipzig-philological-society-nietzsche",
-            "version": 1,
-            "digest": "sha256:25a14a42917c42d33285a182252950d2906da1c86433f99634c47a196ffa13fe"
+            "version": 2,
+            "digest": "sha256:9fc6e579b5b35623826b482ed7cc211ba609aaecfd46650d45a4e9d752783205"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.social-group.leipzig-philological-society-nietzsche",
-            "version": 1,
-            "digest": "sha256:25a14a42917c42d33285a182252950d2906da1c86433f99634c47a196ffa13fe"
+            "version": 2,
+            "digest": "sha256:9fc6e579b5b35623826b482ed7cc211ba609aaecfd46650d45a4e9d752783205"
           },
           "pointer": "/field_languages/notes"
         }
@@ -238,5 +244,243 @@
       }
     }
   ],
-  "prior_forms": []
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:25a14a42917c42d33285a182252950d2906da1c86433f99634c47a196ffa13fe",
+            "id": "tos.social-group.leipzig-philological-society-nietzsche",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:25a14a42917c42d33285a182252950d2906da1c86433f99634c47a196ffa13fe",
+            "id": "tos.social-group.leipzig-philological-society-nietzsche",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:25a14a42917c42d33285a182252950d2906da1c86433f99634c47a196ffa13fe",
+            "id": "tos.social-group.leipzig-philological-society-nietzsche",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:25a14a42917c42d33285a182252950d2906da1c86433f99634c47a196ffa13fe",
+            "id": "tos.social-group.leipzig-philological-society-nietzsche",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:25a14a42917c42d33285a182252950d2906da1c86433f99634c47a196ffa13fe",
+            "id": "tos.social-group.leipzig-philological-society-nietzsche",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:25a14a42917c42d33285a182252950d2906da1c86433f99634c47a196ffa13fe",
+            "id": "tos.social-group.leipzig-philological-society-nietzsche",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.social-group.leipzig-philological-society-nietzsche.name-ru",
+      "form_version": 1,
+      "language": "ru",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:25a14a42917c42d33285a182252950d2906da1c86433f99634c47a196ffa13fe",
+        "id": "tos.social-group.leipzig-philological-society-nietzsche",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:25a14a42917c42d33285a182252950d2906da1c86433f99634c47a196ffa13fe",
+            "id": "tos.social-group.leipzig-philological-society-nietzsche",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:25a14a42917c42d33285a182252950d2906da1c86433f99634c47a196ffa13fe",
+            "id": "tos.social-group.leipzig-philological-society-nietzsche",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:25a14a42917c42d33285a182252950d2906da1c86433f99634c47a196ffa13fe",
+            "id": "tos.social-group.leipzig-philological-society-nietzsche",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:25a14a42917c42d33285a182252950d2906da1c86433f99634c47a196ffa13fe",
+            "id": "tos.social-group.leipzig-philological-society-nietzsche",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/variant_labels/0/language",
+          "record": {
+            "digest": "sha256:25a14a42917c42d33285a182252950d2906da1c86433f99634c47a196ffa13fe",
+            "id": "tos.social-group.leipzig-philological-society-nietzsche",
+            "version": 1
+          }
+        },
+        "context-5": {
+          "pointer": "/variant_labels/0/script",
+          "record": {
+            "digest": "sha256:25a14a42917c42d33285a182252950d2906da1c86433f99634c47a196ffa13fe",
+            "id": "tos.social-group.leipzig-philological-society-nietzsche",
+            "version": 1
+          }
+        },
+        "context-6": {
+          "pointer": "/variant_labels/0/source_ref",
+          "record": {
+            "digest": "sha256:25a14a42917c42d33285a182252950d2906da1c86433f99634c47a196ffa13fe",
+            "id": "tos.social-group.leipzig-philological-society-nietzsche",
+            "version": 1
+          }
+        },
+        "context-7": {
+          "pointer": "/variant_labels/0/status",
+          "record": {
+            "digest": "sha256:25a14a42917c42d33285a182252950d2906da1c86433f99634c47a196ffa13fe",
+            "id": "tos.social-group.leipzig-philological-society-nietzsche",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/variant_labels/0/value",
+          "record": {
+            "digest": "sha256:25a14a42917c42d33285a182252950d2906da1c86433f99634c47a196ffa13fe",
+            "id": "tos.social-group.leipzig-philological-society-nietzsche",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.social-group.leipzig-philological-society-nietzsche.name-de",
+      "form_version": 1,
+      "language": "de",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:25a14a42917c42d33285a182252950d2906da1c86433f99634c47a196ffa13fe",
+        "id": "tos.social-group.leipzig-philological-society-nietzsche",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:25a14a42917c42d33285a182252950d2906da1c86433f99634c47a196ffa13fe",
+            "id": "tos.social-group.leipzig-philological-society-nietzsche",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:25a14a42917c42d33285a182252950d2906da1c86433f99634c47a196ffa13fe",
+            "id": "tos.social-group.leipzig-philological-society-nietzsche",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:25a14a42917c42d33285a182252950d2906da1c86433f99634c47a196ffa13fe",
+            "id": "tos.social-group.leipzig-philological-society-nietzsche",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:25a14a42917c42d33285a182252950d2906da1c86433f99634c47a196ffa13fe",
+            "id": "tos.social-group.leipzig-philological-society-nietzsche",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:25a14a42917c42d33285a182252950d2906da1c86433f99634c47a196ffa13fe",
+            "id": "tos.social-group.leipzig-philological-society-nietzsche",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:25a14a42917c42d33285a182252950d2906da1c86433f99634c47a196ffa13fe",
+            "id": "tos.social-group.leipzig-philological-society-nietzsche",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.social-group.leipzig-philological-society-nietzsche.note-ru",
+      "form_version": 1,
+      "language": "ru",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:25a14a42917c42d33285a182252950d2906da1c86433f99634c47a196ffa13fe",
+        "id": "tos.social-group.leipzig-philological-society-nietzsche",
+        "version": 1
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.social-group.leipzig-philological-society-nietzsche",
+    "version": 2,
+    "digest": "sha256:9fc6e579b5b35623826b482ed7cc211ba609aaecfd46650d45a4e9d752783205"
+  }
 }

@@ -1,71 +1,69 @@
 {
-  "schema_version": "tos_human_form_set_v1",
-  "subject": {
-    "id": "tos.metaphor.past-as-tool-hammer-jgb211",
-    "version": 1,
-    "digest": "sha256:7495f955c14916326f810cf6cad12f3f8a5c37f08c0804e19564f6832a06dcda"
-  },
   "forms": [
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.metaphor.past-as-tool-hammer-jgb211.name-ru",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.metaphor.past-as-tool-hammer-jgb211",
-        "version": 1,
-        "digest": "sha256:7495f955c14916326f810cf6cad12f3f8a5c37f08c0804e19564f6832a06dcda"
+        "version": 2,
+        "digest": "sha256:35e317c4e0baaada92991239bd7e6a4ce9dac7bc8938af33230208aeb7d9cc89"
       },
       "role": "name",
       "language": "ru",
       "script": "Cyrl",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.metaphor.past-as-tool-hammer-jgb211.name-ru",
+        "version": 1,
+        "digest": "sha256:91d45f6632be1061118f1b3a20ca88b1a31c88da3c474ed0bed39869e1670bac"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.metaphor.past-as-tool-hammer-jgb211",
-            "version": 1,
-            "digest": "sha256:7495f955c14916326f810cf6cad12f3f8a5c37f08c0804e19564f6832a06dcda"
+            "version": 2,
+            "digest": "sha256:35e317c4e0baaada92991239bd7e6a4ce9dac7bc8938af33230208aeb7d9cc89"
           },
           "pointer": "/preferred_label"
         },
         "context-0": {
           "record": {
             "id": "tos.metaphor.past-as-tool-hammer-jgb211",
-            "version": 1,
-            "digest": "sha256:7495f955c14916326f810cf6cad12f3f8a5c37f08c0804e19564f6832a06dcda"
+            "version": 2,
+            "digest": "sha256:35e317c4e0baaada92991239bd7e6a4ce9dac7bc8938af33230208aeb7d9cc89"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.metaphor.past-as-tool-hammer-jgb211",
-            "version": 1,
-            "digest": "sha256:7495f955c14916326f810cf6cad12f3f8a5c37f08c0804e19564f6832a06dcda"
+            "version": 2,
+            "digest": "sha256:35e317c4e0baaada92991239bd7e6a4ce9dac7bc8938af33230208aeb7d9cc89"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.metaphor.past-as-tool-hammer-jgb211",
-            "version": 1,
-            "digest": "sha256:7495f955c14916326f810cf6cad12f3f8a5c37f08c0804e19564f6832a06dcda"
+            "version": 2,
+            "digest": "sha256:35e317c4e0baaada92991239bd7e6a4ce9dac7bc8938af33230208aeb7d9cc89"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.metaphor.past-as-tool-hammer-jgb211",
-            "version": 1,
-            "digest": "sha256:7495f955c14916326f810cf6cad12f3f8a5c37f08c0804e19564f6832a06dcda"
+            "version": 2,
+            "digest": "sha256:35e317c4e0baaada92991239bd7e6a4ce9dac7bc8938af33230208aeb7d9cc89"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.metaphor.past-as-tool-hammer-jgb211",
-            "version": 1,
-            "digest": "sha256:7495f955c14916326f810cf6cad12f3f8a5c37f08c0804e19564f6832a06dcda"
+            "version": 2,
+            "digest": "sha256:35e317c4e0baaada92991239bd7e6a4ce9dac7bc8938af33230208aeb7d9cc89"
           },
           "pointer": "/field_languages/preferred_label"
         }
@@ -78,87 +76,91 @@
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.metaphor.past-as-tool-hammer-jgb211.name-en",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.metaphor.past-as-tool-hammer-jgb211",
-        "version": 1,
-        "digest": "sha256:7495f955c14916326f810cf6cad12f3f8a5c37f08c0804e19564f6832a06dcda"
+        "version": 2,
+        "digest": "sha256:35e317c4e0baaada92991239bd7e6a4ce9dac7bc8938af33230208aeb7d9cc89"
       },
       "role": "name",
       "language": "en",
       "script": "Latn",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.metaphor.past-as-tool-hammer-jgb211.name-en",
+        "version": 1,
+        "digest": "sha256:9063536a1f5e10b47b8886a0f7c93a112034cb7fde1ccc140ec7027d5ac15889"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.metaphor.past-as-tool-hammer-jgb211",
-            "version": 1,
-            "digest": "sha256:7495f955c14916326f810cf6cad12f3f8a5c37f08c0804e19564f6832a06dcda"
+            "version": 2,
+            "digest": "sha256:35e317c4e0baaada92991239bd7e6a4ce9dac7bc8938af33230208aeb7d9cc89"
           },
           "pointer": "/variant_labels/0/value"
         },
         "context-0": {
           "record": {
             "id": "tos.metaphor.past-as-tool-hammer-jgb211",
-            "version": 1,
-            "digest": "sha256:7495f955c14916326f810cf6cad12f3f8a5c37f08c0804e19564f6832a06dcda"
+            "version": 2,
+            "digest": "sha256:35e317c4e0baaada92991239bd7e6a4ce9dac7bc8938af33230208aeb7d9cc89"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.metaphor.past-as-tool-hammer-jgb211",
-            "version": 1,
-            "digest": "sha256:7495f955c14916326f810cf6cad12f3f8a5c37f08c0804e19564f6832a06dcda"
+            "version": 2,
+            "digest": "sha256:35e317c4e0baaada92991239bd7e6a4ce9dac7bc8938af33230208aeb7d9cc89"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.metaphor.past-as-tool-hammer-jgb211",
-            "version": 1,
-            "digest": "sha256:7495f955c14916326f810cf6cad12f3f8a5c37f08c0804e19564f6832a06dcda"
+            "version": 2,
+            "digest": "sha256:35e317c4e0baaada92991239bd7e6a4ce9dac7bc8938af33230208aeb7d9cc89"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.metaphor.past-as-tool-hammer-jgb211",
-            "version": 1,
-            "digest": "sha256:7495f955c14916326f810cf6cad12f3f8a5c37f08c0804e19564f6832a06dcda"
+            "version": 2,
+            "digest": "sha256:35e317c4e0baaada92991239bd7e6a4ce9dac7bc8938af33230208aeb7d9cc89"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.metaphor.past-as-tool-hammer-jgb211",
-            "version": 1,
-            "digest": "sha256:7495f955c14916326f810cf6cad12f3f8a5c37f08c0804e19564f6832a06dcda"
+            "version": 2,
+            "digest": "sha256:35e317c4e0baaada92991239bd7e6a4ce9dac7bc8938af33230208aeb7d9cc89"
           },
           "pointer": "/variant_labels/0/language"
         },
         "context-5": {
           "record": {
             "id": "tos.metaphor.past-as-tool-hammer-jgb211",
-            "version": 1,
-            "digest": "sha256:7495f955c14916326f810cf6cad12f3f8a5c37f08c0804e19564f6832a06dcda"
+            "version": 2,
+            "digest": "sha256:35e317c4e0baaada92991239bd7e6a4ce9dac7bc8938af33230208aeb7d9cc89"
           },
           "pointer": "/variant_labels/0/script"
         },
         "context-6": {
           "record": {
             "id": "tos.metaphor.past-as-tool-hammer-jgb211",
-            "version": 1,
-            "digest": "sha256:7495f955c14916326f810cf6cad12f3f8a5c37f08c0804e19564f6832a06dcda"
+            "version": 2,
+            "digest": "sha256:35e317c4e0baaada92991239bd7e6a4ce9dac7bc8938af33230208aeb7d9cc89"
           },
           "pointer": "/variant_labels/0/source_ref"
         },
         "context-7": {
           "record": {
             "id": "tos.metaphor.past-as-tool-hammer-jgb211",
-            "version": 1,
-            "digest": "sha256:7495f955c14916326f810cf6cad12f3f8a5c37f08c0804e19564f6832a06dcda"
+            "version": 2,
+            "digest": "sha256:35e317c4e0baaada92991239bd7e6a4ce9dac7bc8938af33230208aeb7d9cc89"
           },
           "pointer": "/variant_labels/0/status"
         }
@@ -171,63 +173,67 @@
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.metaphor.past-as-tool-hammer-jgb211.note-ru",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.metaphor.past-as-tool-hammer-jgb211",
-        "version": 1,
-        "digest": "sha256:7495f955c14916326f810cf6cad12f3f8a5c37f08c0804e19564f6832a06dcda"
+        "version": 2,
+        "digest": "sha256:35e317c4e0baaada92991239bd7e6a4ce9dac7bc8938af33230208aeb7d9cc89"
       },
       "role": "hover",
       "language": "ru",
       "script": "Cyrl",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.metaphor.past-as-tool-hammer-jgb211.note-ru",
+        "version": 1,
+        "digest": "sha256:66137fc9a03962c84121ca2d4a648346039b908b758f1b715d1e05c8c0ab8cce"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.metaphor.past-as-tool-hammer-jgb211",
-            "version": 1,
-            "digest": "sha256:7495f955c14916326f810cf6cad12f3f8a5c37f08c0804e19564f6832a06dcda"
+            "version": 2,
+            "digest": "sha256:35e317c4e0baaada92991239bd7e6a4ce9dac7bc8938af33230208aeb7d9cc89"
           },
           "pointer": "/notes"
         },
         "context-0": {
           "record": {
             "id": "tos.metaphor.past-as-tool-hammer-jgb211",
-            "version": 1,
-            "digest": "sha256:7495f955c14916326f810cf6cad12f3f8a5c37f08c0804e19564f6832a06dcda"
+            "version": 2,
+            "digest": "sha256:35e317c4e0baaada92991239bd7e6a4ce9dac7bc8938af33230208aeb7d9cc89"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.metaphor.past-as-tool-hammer-jgb211",
-            "version": 1,
-            "digest": "sha256:7495f955c14916326f810cf6cad12f3f8a5c37f08c0804e19564f6832a06dcda"
+            "version": 2,
+            "digest": "sha256:35e317c4e0baaada92991239bd7e6a4ce9dac7bc8938af33230208aeb7d9cc89"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.metaphor.past-as-tool-hammer-jgb211",
-            "version": 1,
-            "digest": "sha256:7495f955c14916326f810cf6cad12f3f8a5c37f08c0804e19564f6832a06dcda"
+            "version": 2,
+            "digest": "sha256:35e317c4e0baaada92991239bd7e6a4ce9dac7bc8938af33230208aeb7d9cc89"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.metaphor.past-as-tool-hammer-jgb211",
-            "version": 1,
-            "digest": "sha256:7495f955c14916326f810cf6cad12f3f8a5c37f08c0804e19564f6832a06dcda"
+            "version": 2,
+            "digest": "sha256:35e317c4e0baaada92991239bd7e6a4ce9dac7bc8938af33230208aeb7d9cc89"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.metaphor.past-as-tool-hammer-jgb211",
-            "version": 1,
-            "digest": "sha256:7495f955c14916326f810cf6cad12f3f8a5c37f08c0804e19564f6832a06dcda"
+            "version": 2,
+            "digest": "sha256:35e317c4e0baaada92991239bd7e6a4ce9dac7bc8938af33230208aeb7d9cc89"
           },
           "pointer": "/field_languages/notes"
         }
@@ -238,5 +244,243 @@
       }
     }
   ],
-  "prior_forms": []
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:7495f955c14916326f810cf6cad12f3f8a5c37f08c0804e19564f6832a06dcda",
+            "id": "tos.metaphor.past-as-tool-hammer-jgb211",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:7495f955c14916326f810cf6cad12f3f8a5c37f08c0804e19564f6832a06dcda",
+            "id": "tos.metaphor.past-as-tool-hammer-jgb211",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:7495f955c14916326f810cf6cad12f3f8a5c37f08c0804e19564f6832a06dcda",
+            "id": "tos.metaphor.past-as-tool-hammer-jgb211",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:7495f955c14916326f810cf6cad12f3f8a5c37f08c0804e19564f6832a06dcda",
+            "id": "tos.metaphor.past-as-tool-hammer-jgb211",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:7495f955c14916326f810cf6cad12f3f8a5c37f08c0804e19564f6832a06dcda",
+            "id": "tos.metaphor.past-as-tool-hammer-jgb211",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:7495f955c14916326f810cf6cad12f3f8a5c37f08c0804e19564f6832a06dcda",
+            "id": "tos.metaphor.past-as-tool-hammer-jgb211",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.metaphor.past-as-tool-hammer-jgb211.name-ru",
+      "form_version": 1,
+      "language": "ru",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:7495f955c14916326f810cf6cad12f3f8a5c37f08c0804e19564f6832a06dcda",
+        "id": "tos.metaphor.past-as-tool-hammer-jgb211",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:7495f955c14916326f810cf6cad12f3f8a5c37f08c0804e19564f6832a06dcda",
+            "id": "tos.metaphor.past-as-tool-hammer-jgb211",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:7495f955c14916326f810cf6cad12f3f8a5c37f08c0804e19564f6832a06dcda",
+            "id": "tos.metaphor.past-as-tool-hammer-jgb211",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:7495f955c14916326f810cf6cad12f3f8a5c37f08c0804e19564f6832a06dcda",
+            "id": "tos.metaphor.past-as-tool-hammer-jgb211",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:7495f955c14916326f810cf6cad12f3f8a5c37f08c0804e19564f6832a06dcda",
+            "id": "tos.metaphor.past-as-tool-hammer-jgb211",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/variant_labels/0/language",
+          "record": {
+            "digest": "sha256:7495f955c14916326f810cf6cad12f3f8a5c37f08c0804e19564f6832a06dcda",
+            "id": "tos.metaphor.past-as-tool-hammer-jgb211",
+            "version": 1
+          }
+        },
+        "context-5": {
+          "pointer": "/variant_labels/0/script",
+          "record": {
+            "digest": "sha256:7495f955c14916326f810cf6cad12f3f8a5c37f08c0804e19564f6832a06dcda",
+            "id": "tos.metaphor.past-as-tool-hammer-jgb211",
+            "version": 1
+          }
+        },
+        "context-6": {
+          "pointer": "/variant_labels/0/source_ref",
+          "record": {
+            "digest": "sha256:7495f955c14916326f810cf6cad12f3f8a5c37f08c0804e19564f6832a06dcda",
+            "id": "tos.metaphor.past-as-tool-hammer-jgb211",
+            "version": 1
+          }
+        },
+        "context-7": {
+          "pointer": "/variant_labels/0/status",
+          "record": {
+            "digest": "sha256:7495f955c14916326f810cf6cad12f3f8a5c37f08c0804e19564f6832a06dcda",
+            "id": "tos.metaphor.past-as-tool-hammer-jgb211",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/variant_labels/0/value",
+          "record": {
+            "digest": "sha256:7495f955c14916326f810cf6cad12f3f8a5c37f08c0804e19564f6832a06dcda",
+            "id": "tos.metaphor.past-as-tool-hammer-jgb211",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.metaphor.past-as-tool-hammer-jgb211.name-en",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:7495f955c14916326f810cf6cad12f3f8a5c37f08c0804e19564f6832a06dcda",
+        "id": "tos.metaphor.past-as-tool-hammer-jgb211",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:7495f955c14916326f810cf6cad12f3f8a5c37f08c0804e19564f6832a06dcda",
+            "id": "tos.metaphor.past-as-tool-hammer-jgb211",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:7495f955c14916326f810cf6cad12f3f8a5c37f08c0804e19564f6832a06dcda",
+            "id": "tos.metaphor.past-as-tool-hammer-jgb211",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:7495f955c14916326f810cf6cad12f3f8a5c37f08c0804e19564f6832a06dcda",
+            "id": "tos.metaphor.past-as-tool-hammer-jgb211",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:7495f955c14916326f810cf6cad12f3f8a5c37f08c0804e19564f6832a06dcda",
+            "id": "tos.metaphor.past-as-tool-hammer-jgb211",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:7495f955c14916326f810cf6cad12f3f8a5c37f08c0804e19564f6832a06dcda",
+            "id": "tos.metaphor.past-as-tool-hammer-jgb211",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:7495f955c14916326f810cf6cad12f3f8a5c37f08c0804e19564f6832a06dcda",
+            "id": "tos.metaphor.past-as-tool-hammer-jgb211",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.metaphor.past-as-tool-hammer-jgb211.note-ru",
+      "form_version": 1,
+      "language": "ru",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:7495f955c14916326f810cf6cad12f3f8a5c37f08c0804e19564f6832a06dcda",
+        "id": "tos.metaphor.past-as-tool-hammer-jgb211",
+        "version": 1
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.metaphor.past-as-tool-hammer-jgb211",
+    "version": 2,
+    "digest": "sha256:35e317c4e0baaada92991239bd7e6a4ce9dac7bc8938af33230208aeb7d9cc89"
+  }
 }

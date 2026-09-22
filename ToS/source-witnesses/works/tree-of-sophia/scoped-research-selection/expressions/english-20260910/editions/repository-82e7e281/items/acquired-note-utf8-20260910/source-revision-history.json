@@ -1,0 +1,81 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.item.sid-9a5249d273634cf6b2eb96b5e7719fa8",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:5466b177c32b46f4676c6775",
+      "request_digest": "sha256:61901bfeade24ad2a9df3cf167faaa0bc28adb9dcc5f0173d6998c96041556d9",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:e1f972e3876b3cd2786a2313551b3b6398877b4f59cfa120c3920d614fee1bdb",
+      "recorded_at": "2026-09-22T05:09:39.701068+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.item.sid-9a5249d273634cf6b2eb96b5e7719fa8",
+        "version": 1,
+        "digest": "sha256:bd95b70102c90a429d0d15a5fe358794923308efa6532128b40c45f38b9a563c"
+      },
+      "source": {
+        "id": "tos.item.sid-9a5249d273634cf6b2eb96b5e7719fa8",
+        "version": 2,
+        "digest": "sha256:ffebfa220e366bfd623d549d48a999925d1f226160b303e28e1dce2dd79de3c3"
+      },
+      "previous_revision": "sha256:8248aca4a20887093af98e20159982fa9414a90000d2c5def29e7e2c0208572f",
+      "archive_path": "ToS/source-witnesses/.record-revisions/5466b177c32b46f4676c6775ce161b07f62cc270fd8a42ab343ba5f421701b4d-8248aca4a20887093af98e20159982fa9414a90000d2c5def29e7e2c0208572f",
+      "dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+      "changed_fields": [
+        "notes"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.sid-4460879eed4b44dc9de20babc0cc6f49",
+          "version": 2,
+          "digest": "sha256:95a9e6a8fa9020a73bbdf1db60153d7c9dc9542627026b5c6d193a3c10768650"
+        },
+        {
+          "id": "tos.form.sid-ee21d316a84c9ffd10f537f84c3ca759.note",
+          "version": 2,
+          "digest": "sha256:fd0a91d30b204b4b3586805d871b9407b80f5455cb736d4224ae1c3660e40f52"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:5466b177c32b46f4676c6775",
+        "expected_configuration": "sha256:e1f972e3876b3cd2786a2313551b3b6398877b4f59cfa120c3920d614fee1bdb",
+        "expected_dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+        "expected_publication": "sha256:e920302e745c28fe4d8f0ca666497a5fdeccc2b1016c04e5b50f7004826f5c00",
+        "expected_revision": "sha256:8248aca4a20887093af98e20159982fa9414a90000d2c5def29e7e2c0208572f",
+        "expected_source": {
+          "digest": "sha256:bd95b70102c90a429d0d15a5fe358794923308efa6532128b40c45f38b9a563c",
+          "id": "tos.item.sid-9a5249d273634cf6b2eb96b5e7719fa8",
+          "version": 1
+        },
+        "fields": {
+          "notes": "Byte-exact local retained copy of the frozen authored Markdown note, acquired through the Item deposit command. The original input bytes are preserved."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.sid-4460879eed4b44dc9de20babc0cc6f49"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.sid-ee21d316a84c9ffd10f537f84c3ca759.note"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:a6f79c768a06f5f9a275356a77a5b1719ac254f56d7b5dc66490093cecc198cf",
+        "selected_files": [
+          "item.human-forms.json",
+          "item.json",
+          "source-revision-history.json"
+        ]
+      }
+    }
+  ]
+}

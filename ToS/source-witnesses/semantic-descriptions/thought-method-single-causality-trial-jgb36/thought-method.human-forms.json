@@ -1,71 +1,69 @@
 {
-  "schema_version": "tos_human_form_set_v1",
-  "subject": {
-    "id": "tos.thought-method.single-causality-trial-jgb36",
-    "version": 1,
-    "digest": "sha256:d713b19d018f614ff55588df5edcfa97c65bfe7b7a14da18e9de921e1b5152fa"
-  },
   "forms": [
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.thought-method.single-causality-trial-jgb36.name-ru",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.thought-method.single-causality-trial-jgb36",
-        "version": 1,
-        "digest": "sha256:d713b19d018f614ff55588df5edcfa97c65bfe7b7a14da18e9de921e1b5152fa"
+        "version": 2,
+        "digest": "sha256:015bf171eef139bd1d82120dcc8b1f98e2577989697768ae7856e65be6b1c8a9"
       },
       "role": "name",
       "language": "ru",
       "script": "Cyrl",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.thought-method.single-causality-trial-jgb36.name-ru",
+        "version": 1,
+        "digest": "sha256:5497bfa0021d65e29a53c77d6aee2d5e54875ddb70a22abc72412c4675ce0fe5"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.thought-method.single-causality-trial-jgb36",
-            "version": 1,
-            "digest": "sha256:d713b19d018f614ff55588df5edcfa97c65bfe7b7a14da18e9de921e1b5152fa"
+            "version": 2,
+            "digest": "sha256:015bf171eef139bd1d82120dcc8b1f98e2577989697768ae7856e65be6b1c8a9"
           },
           "pointer": "/preferred_label"
         },
         "context-0": {
           "record": {
             "id": "tos.thought-method.single-causality-trial-jgb36",
-            "version": 1,
-            "digest": "sha256:d713b19d018f614ff55588df5edcfa97c65bfe7b7a14da18e9de921e1b5152fa"
+            "version": 2,
+            "digest": "sha256:015bf171eef139bd1d82120dcc8b1f98e2577989697768ae7856e65be6b1c8a9"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.thought-method.single-causality-trial-jgb36",
-            "version": 1,
-            "digest": "sha256:d713b19d018f614ff55588df5edcfa97c65bfe7b7a14da18e9de921e1b5152fa"
+            "version": 2,
+            "digest": "sha256:015bf171eef139bd1d82120dcc8b1f98e2577989697768ae7856e65be6b1c8a9"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.thought-method.single-causality-trial-jgb36",
-            "version": 1,
-            "digest": "sha256:d713b19d018f614ff55588df5edcfa97c65bfe7b7a14da18e9de921e1b5152fa"
+            "version": 2,
+            "digest": "sha256:015bf171eef139bd1d82120dcc8b1f98e2577989697768ae7856e65be6b1c8a9"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.thought-method.single-causality-trial-jgb36",
-            "version": 1,
-            "digest": "sha256:d713b19d018f614ff55588df5edcfa97c65bfe7b7a14da18e9de921e1b5152fa"
+            "version": 2,
+            "digest": "sha256:015bf171eef139bd1d82120dcc8b1f98e2577989697768ae7856e65be6b1c8a9"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.thought-method.single-causality-trial-jgb36",
-            "version": 1,
-            "digest": "sha256:d713b19d018f614ff55588df5edcfa97c65bfe7b7a14da18e9de921e1b5152fa"
+            "version": 2,
+            "digest": "sha256:015bf171eef139bd1d82120dcc8b1f98e2577989697768ae7856e65be6b1c8a9"
           },
           "pointer": "/field_languages/preferred_label"
         }
@@ -78,87 +76,91 @@
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.thought-method.single-causality-trial-jgb36.name-en",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.thought-method.single-causality-trial-jgb36",
-        "version": 1,
-        "digest": "sha256:d713b19d018f614ff55588df5edcfa97c65bfe7b7a14da18e9de921e1b5152fa"
+        "version": 2,
+        "digest": "sha256:015bf171eef139bd1d82120dcc8b1f98e2577989697768ae7856e65be6b1c8a9"
       },
       "role": "name",
       "language": "en",
       "script": "Latn",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.thought-method.single-causality-trial-jgb36.name-en",
+        "version": 1,
+        "digest": "sha256:3e78754f2d028333b87700b5e1d660e7f78ebc8dee0c666a305198696b5e600d"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.thought-method.single-causality-trial-jgb36",
-            "version": 1,
-            "digest": "sha256:d713b19d018f614ff55588df5edcfa97c65bfe7b7a14da18e9de921e1b5152fa"
+            "version": 2,
+            "digest": "sha256:015bf171eef139bd1d82120dcc8b1f98e2577989697768ae7856e65be6b1c8a9"
           },
           "pointer": "/variant_labels/0/value"
         },
         "context-0": {
           "record": {
             "id": "tos.thought-method.single-causality-trial-jgb36",
-            "version": 1,
-            "digest": "sha256:d713b19d018f614ff55588df5edcfa97c65bfe7b7a14da18e9de921e1b5152fa"
+            "version": 2,
+            "digest": "sha256:015bf171eef139bd1d82120dcc8b1f98e2577989697768ae7856e65be6b1c8a9"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.thought-method.single-causality-trial-jgb36",
-            "version": 1,
-            "digest": "sha256:d713b19d018f614ff55588df5edcfa97c65bfe7b7a14da18e9de921e1b5152fa"
+            "version": 2,
+            "digest": "sha256:015bf171eef139bd1d82120dcc8b1f98e2577989697768ae7856e65be6b1c8a9"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.thought-method.single-causality-trial-jgb36",
-            "version": 1,
-            "digest": "sha256:d713b19d018f614ff55588df5edcfa97c65bfe7b7a14da18e9de921e1b5152fa"
+            "version": 2,
+            "digest": "sha256:015bf171eef139bd1d82120dcc8b1f98e2577989697768ae7856e65be6b1c8a9"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.thought-method.single-causality-trial-jgb36",
-            "version": 1,
-            "digest": "sha256:d713b19d018f614ff55588df5edcfa97c65bfe7b7a14da18e9de921e1b5152fa"
+            "version": 2,
+            "digest": "sha256:015bf171eef139bd1d82120dcc8b1f98e2577989697768ae7856e65be6b1c8a9"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.thought-method.single-causality-trial-jgb36",
-            "version": 1,
-            "digest": "sha256:d713b19d018f614ff55588df5edcfa97c65bfe7b7a14da18e9de921e1b5152fa"
+            "version": 2,
+            "digest": "sha256:015bf171eef139bd1d82120dcc8b1f98e2577989697768ae7856e65be6b1c8a9"
           },
           "pointer": "/variant_labels/0/language"
         },
         "context-5": {
           "record": {
             "id": "tos.thought-method.single-causality-trial-jgb36",
-            "version": 1,
-            "digest": "sha256:d713b19d018f614ff55588df5edcfa97c65bfe7b7a14da18e9de921e1b5152fa"
+            "version": 2,
+            "digest": "sha256:015bf171eef139bd1d82120dcc8b1f98e2577989697768ae7856e65be6b1c8a9"
           },
           "pointer": "/variant_labels/0/script"
         },
         "context-6": {
           "record": {
             "id": "tos.thought-method.single-causality-trial-jgb36",
-            "version": 1,
-            "digest": "sha256:d713b19d018f614ff55588df5edcfa97c65bfe7b7a14da18e9de921e1b5152fa"
+            "version": 2,
+            "digest": "sha256:015bf171eef139bd1d82120dcc8b1f98e2577989697768ae7856e65be6b1c8a9"
           },
           "pointer": "/variant_labels/0/source_ref"
         },
         "context-7": {
           "record": {
             "id": "tos.thought-method.single-causality-trial-jgb36",
-            "version": 1,
-            "digest": "sha256:d713b19d018f614ff55588df5edcfa97c65bfe7b7a14da18e9de921e1b5152fa"
+            "version": 2,
+            "digest": "sha256:015bf171eef139bd1d82120dcc8b1f98e2577989697768ae7856e65be6b1c8a9"
           },
           "pointer": "/variant_labels/0/status"
         }
@@ -171,63 +173,67 @@
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.thought-method.single-causality-trial-jgb36.note-ru",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.thought-method.single-causality-trial-jgb36",
-        "version": 1,
-        "digest": "sha256:d713b19d018f614ff55588df5edcfa97c65bfe7b7a14da18e9de921e1b5152fa"
+        "version": 2,
+        "digest": "sha256:015bf171eef139bd1d82120dcc8b1f98e2577989697768ae7856e65be6b1c8a9"
       },
       "role": "hover",
       "language": "ru",
       "script": "Cyrl",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.thought-method.single-causality-trial-jgb36.note-ru",
+        "version": 1,
+        "digest": "sha256:e8fb41ccc31dec9a325210f7ca1d3f314656dbdb96343d6d06ec8855602d15e4"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.thought-method.single-causality-trial-jgb36",
-            "version": 1,
-            "digest": "sha256:d713b19d018f614ff55588df5edcfa97c65bfe7b7a14da18e9de921e1b5152fa"
+            "version": 2,
+            "digest": "sha256:015bf171eef139bd1d82120dcc8b1f98e2577989697768ae7856e65be6b1c8a9"
           },
           "pointer": "/notes"
         },
         "context-0": {
           "record": {
             "id": "tos.thought-method.single-causality-trial-jgb36",
-            "version": 1,
-            "digest": "sha256:d713b19d018f614ff55588df5edcfa97c65bfe7b7a14da18e9de921e1b5152fa"
+            "version": 2,
+            "digest": "sha256:015bf171eef139bd1d82120dcc8b1f98e2577989697768ae7856e65be6b1c8a9"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.thought-method.single-causality-trial-jgb36",
-            "version": 1,
-            "digest": "sha256:d713b19d018f614ff55588df5edcfa97c65bfe7b7a14da18e9de921e1b5152fa"
+            "version": 2,
+            "digest": "sha256:015bf171eef139bd1d82120dcc8b1f98e2577989697768ae7856e65be6b1c8a9"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.thought-method.single-causality-trial-jgb36",
-            "version": 1,
-            "digest": "sha256:d713b19d018f614ff55588df5edcfa97c65bfe7b7a14da18e9de921e1b5152fa"
+            "version": 2,
+            "digest": "sha256:015bf171eef139bd1d82120dcc8b1f98e2577989697768ae7856e65be6b1c8a9"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.thought-method.single-causality-trial-jgb36",
-            "version": 1,
-            "digest": "sha256:d713b19d018f614ff55588df5edcfa97c65bfe7b7a14da18e9de921e1b5152fa"
+            "version": 2,
+            "digest": "sha256:015bf171eef139bd1d82120dcc8b1f98e2577989697768ae7856e65be6b1c8a9"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.thought-method.single-causality-trial-jgb36",
-            "version": 1,
-            "digest": "sha256:d713b19d018f614ff55588df5edcfa97c65bfe7b7a14da18e9de921e1b5152fa"
+            "version": 2,
+            "digest": "sha256:015bf171eef139bd1d82120dcc8b1f98e2577989697768ae7856e65be6b1c8a9"
           },
           "pointer": "/field_languages/notes"
         }
@@ -238,5 +244,243 @@
       }
     }
   ],
-  "prior_forms": []
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:d713b19d018f614ff55588df5edcfa97c65bfe7b7a14da18e9de921e1b5152fa",
+            "id": "tos.thought-method.single-causality-trial-jgb36",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:d713b19d018f614ff55588df5edcfa97c65bfe7b7a14da18e9de921e1b5152fa",
+            "id": "tos.thought-method.single-causality-trial-jgb36",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:d713b19d018f614ff55588df5edcfa97c65bfe7b7a14da18e9de921e1b5152fa",
+            "id": "tos.thought-method.single-causality-trial-jgb36",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:d713b19d018f614ff55588df5edcfa97c65bfe7b7a14da18e9de921e1b5152fa",
+            "id": "tos.thought-method.single-causality-trial-jgb36",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:d713b19d018f614ff55588df5edcfa97c65bfe7b7a14da18e9de921e1b5152fa",
+            "id": "tos.thought-method.single-causality-trial-jgb36",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:d713b19d018f614ff55588df5edcfa97c65bfe7b7a14da18e9de921e1b5152fa",
+            "id": "tos.thought-method.single-causality-trial-jgb36",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.thought-method.single-causality-trial-jgb36.name-ru",
+      "form_version": 1,
+      "language": "ru",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:d713b19d018f614ff55588df5edcfa97c65bfe7b7a14da18e9de921e1b5152fa",
+        "id": "tos.thought-method.single-causality-trial-jgb36",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:d713b19d018f614ff55588df5edcfa97c65bfe7b7a14da18e9de921e1b5152fa",
+            "id": "tos.thought-method.single-causality-trial-jgb36",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:d713b19d018f614ff55588df5edcfa97c65bfe7b7a14da18e9de921e1b5152fa",
+            "id": "tos.thought-method.single-causality-trial-jgb36",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:d713b19d018f614ff55588df5edcfa97c65bfe7b7a14da18e9de921e1b5152fa",
+            "id": "tos.thought-method.single-causality-trial-jgb36",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:d713b19d018f614ff55588df5edcfa97c65bfe7b7a14da18e9de921e1b5152fa",
+            "id": "tos.thought-method.single-causality-trial-jgb36",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/variant_labels/0/language",
+          "record": {
+            "digest": "sha256:d713b19d018f614ff55588df5edcfa97c65bfe7b7a14da18e9de921e1b5152fa",
+            "id": "tos.thought-method.single-causality-trial-jgb36",
+            "version": 1
+          }
+        },
+        "context-5": {
+          "pointer": "/variant_labels/0/script",
+          "record": {
+            "digest": "sha256:d713b19d018f614ff55588df5edcfa97c65bfe7b7a14da18e9de921e1b5152fa",
+            "id": "tos.thought-method.single-causality-trial-jgb36",
+            "version": 1
+          }
+        },
+        "context-6": {
+          "pointer": "/variant_labels/0/source_ref",
+          "record": {
+            "digest": "sha256:d713b19d018f614ff55588df5edcfa97c65bfe7b7a14da18e9de921e1b5152fa",
+            "id": "tos.thought-method.single-causality-trial-jgb36",
+            "version": 1
+          }
+        },
+        "context-7": {
+          "pointer": "/variant_labels/0/status",
+          "record": {
+            "digest": "sha256:d713b19d018f614ff55588df5edcfa97c65bfe7b7a14da18e9de921e1b5152fa",
+            "id": "tos.thought-method.single-causality-trial-jgb36",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/variant_labels/0/value",
+          "record": {
+            "digest": "sha256:d713b19d018f614ff55588df5edcfa97c65bfe7b7a14da18e9de921e1b5152fa",
+            "id": "tos.thought-method.single-causality-trial-jgb36",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.thought-method.single-causality-trial-jgb36.name-en",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:d713b19d018f614ff55588df5edcfa97c65bfe7b7a14da18e9de921e1b5152fa",
+        "id": "tos.thought-method.single-causality-trial-jgb36",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:d713b19d018f614ff55588df5edcfa97c65bfe7b7a14da18e9de921e1b5152fa",
+            "id": "tos.thought-method.single-causality-trial-jgb36",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:d713b19d018f614ff55588df5edcfa97c65bfe7b7a14da18e9de921e1b5152fa",
+            "id": "tos.thought-method.single-causality-trial-jgb36",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:d713b19d018f614ff55588df5edcfa97c65bfe7b7a14da18e9de921e1b5152fa",
+            "id": "tos.thought-method.single-causality-trial-jgb36",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:d713b19d018f614ff55588df5edcfa97c65bfe7b7a14da18e9de921e1b5152fa",
+            "id": "tos.thought-method.single-causality-trial-jgb36",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:d713b19d018f614ff55588df5edcfa97c65bfe7b7a14da18e9de921e1b5152fa",
+            "id": "tos.thought-method.single-causality-trial-jgb36",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:d713b19d018f614ff55588df5edcfa97c65bfe7b7a14da18e9de921e1b5152fa",
+            "id": "tos.thought-method.single-causality-trial-jgb36",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.thought-method.single-causality-trial-jgb36.note-ru",
+      "form_version": 1,
+      "language": "ru",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:d713b19d018f614ff55588df5edcfa97c65bfe7b7a14da18e9de921e1b5152fa",
+        "id": "tos.thought-method.single-causality-trial-jgb36",
+        "version": 1
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.thought-method.single-causality-trial-jgb36",
+    "version": 2,
+    "digest": "sha256:015bf171eef139bd1d82120dcc8b1f98e2577989697768ae7856e65be6b1c8a9"
+  }
 }

@@ -286,11 +286,7 @@ def _layer_record(
         },
         "provenance_event_ref": EVENT_ID,
         "authority_boundary": (
-            "a source text layer is one immutable, source-returnable representation with "
-            "explicit derivation, uncertainty, review, competence, rights, and use scope; "
-            "mechanical validation, model output, normalization, or agreement with another "
-            "layer does not make it accepted source text, translation evidence, linguistic "
-            "truth, semantic evidence, graph truth, canon authority, or publication permission"
+            "A source text layer preserves one immutable, source-returnable representation and its derivation, uncertainty, assessment, competence, rights and use scope."
         ),
         "layer_version": 1,
         "supersedes_layer_ref": None,
@@ -387,8 +383,7 @@ def _unit_packet(
                     "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis"
                 ),
                 "status_reason": (
-                    "The unit records only one exact TEI lb-delimited print line or its "
-                    "line-break code point; it is not accepted German or linguistic analysis."
+                    "The unit records one exact TEI lb-delimited print line or its line-break code point and retains its proposed source-unit status."
                 ),
             }
         )
@@ -492,8 +487,7 @@ def _unit_packet(
                 "maker": method,
                 "status": "observed_source_structure",
                 "status_reason": (
-                    "Only the exact TEI lb-delimited layout of one provider-transcription "
-                    "paragraph is observed; no word or sentence boundary is asserted."
+                    "The observation covers the exact TEI lb-delimited layout of one provider-transcription paragraph; word and sentence segmentation follow their own proposals and review."
                 ),
                 "review_refs": [],
                 "source_text_authority": False,

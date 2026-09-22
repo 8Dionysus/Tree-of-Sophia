@@ -1,0 +1,130 @@
+{
+  "schema_version": "tos_claim_revision_history_v1",
+  "source_path": "ToS/source-witnesses/relations/penn-research-context/source-claims.jsonl",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:b2666b174711bcce36aee763",
+      "request_digest": "sha256:5e0e60c4eccb8f4e91703b82338fc82a12d77d3cd63adb3f0bec2177676f66b4",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:5c4266e49018fa44530268116d9824deed59249192475c9c44c97c1225da7e65",
+      "recorded_at": "2026-09-22T06:42:25.183623+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+      "previous_source": {
+        "id": "tos.claim.gilgamesh-reception.critical-response-clay",
+        "version": 1,
+        "digest": "sha256:1097f8722dad79c9c3f9826a913a23c65f37c9ff573a2f56b199d3aa52159c0b"
+      },
+      "source": {
+        "id": "tos.claim.gilgamesh-reception.critical-response-clay",
+        "version": 2,
+        "digest": "sha256:452c431316e310c75bcf5c074e118f32c8f1240d39fbb6cabb4367a5d7145317"
+      },
+      "previous_revision": "sha256:d53eca42d4e3d6570d1062fa15202e4eb8fe7777381e7473ffcfc68f3c96d998",
+      "archive_path": "ToS/source-witnesses/.record-revisions/b2666b174711bcce36aee7635abe75ad55aefc62471e1d05d8e70af361fb6171-d53eca42d4e3d6570d1062fa15202e4eb8fe7777381e7473ffcfc68f3c96d998",
+      "dependencies": "sha256:a4e1fda3df973fb85832e049d206c658c9f882f1085ebec5f15c7c81093914c2",
+      "source_bindings": {
+        "objects": {
+          "tos.agent.albert-tobias-clay": {
+            "source_ref": "ToS/source-witnesses/agents/albert-tobias-clay/agent.json",
+            "source_sha256": "sha256:7604804fe9f379f825d76be5ea13e38ff5129c354b7036b646f2805074a3983c",
+            "canonical_record_sha256": "sha256:bd1c3b29640d8aa47def8966866eea9a909e3ca9eae16345fd9c439e5dd69eaf",
+            "schema_version": "tos_corpus_record_v1",
+            "record_version": 2
+          },
+          "tos.reception-process.gilgamesh-reception.jastrow-critical-response-1920": {
+            "source_ref": "ToS/source-witnesses/history/gilgamesh-reception/jastrow-critical-response-1920/reception-process.json",
+            "source_sha256": "sha256:3c1afd99b209d7be63f8bcdb40c68ac5942281e311445c69e274a60c75659f06",
+            "canonical_record_sha256": "sha256:4b2377d44838c09607dd6bf54aa70ea18eb2a7f048a4039032c470acce7fdfbc",
+            "schema_version": "tos_reception_record_v1",
+            "record_version": 2
+          }
+        },
+        "evidence": {
+          "ToS/review-ledger/2026-09-14-penn-research-context-reading.md": {
+            "source_ref": "ToS/review-ledger/2026-09-14-penn-research-context-reading.md",
+            "source_sha256": "sha256:7389421961f8f09df3ec323e90959b4dbea5ddb74e7015972a305c58cfc2e81a",
+            "source_line": null,
+            "evidence_kind": "repo_path"
+          }
+        }
+      },
+      "changed_fields": [
+        "qualifiers"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.gilgamesh-reception.critical-response-clay.statement",
+          "version": 2,
+          "digest": "sha256:ce6f2b76d8356bdc8c75ea7bc2c2e25e1d389fd4b170d81048f8394ee70fe8fb"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:b2666b174711bcce36aee763",
+        "expected_configuration": "sha256:5c4266e49018fa44530268116d9824deed59249192475c9c44c97c1225da7e65",
+        "expected_dependencies": "sha256:a4e1fda3df973fb85832e049d206c658c9f882f1085ebec5f15c7c81093914c2",
+        "expected_inputs": {
+          "evidence": {
+            "ToS/review-ledger/2026-09-14-penn-research-context-reading.md": {
+              "evidence_kind": "repo_path",
+              "source_line": null,
+              "source_ref": "ToS/review-ledger/2026-09-14-penn-research-context-reading.md",
+              "source_sha256": "sha256:7389421961f8f09df3ec323e90959b4dbea5ddb74e7015972a305c58cfc2e81a"
+            }
+          },
+          "objects": {
+            "tos.agent.albert-tobias-clay": {
+              "canonical_record_sha256": "sha256:bd1c3b29640d8aa47def8966866eea9a909e3ca9eae16345fd9c439e5dd69eaf",
+              "record_version": 2,
+              "schema_version": "tos_corpus_record_v1",
+              "source_ref": "ToS/source-witnesses/agents/albert-tobias-clay/agent.json",
+              "source_sha256": "sha256:7604804fe9f379f825d76be5ea13e38ff5129c354b7036b646f2805074a3983c"
+            },
+            "tos.reception-process.gilgamesh-reception.jastrow-critical-response-1920": {
+              "canonical_record_sha256": "sha256:4b2377d44838c09607dd6bf54aa70ea18eb2a7f048a4039032c470acce7fdfbc",
+              "record_version": 2,
+              "schema_version": "tos_reception_record_v1",
+              "source_ref": "ToS/source-witnesses/history/gilgamesh-reception/jastrow-critical-response-1920/reception-process.json",
+              "source_sha256": "sha256:3c1afd99b209d7be63f8bcdb40c68ac5942281e311445c69e274a60c75659f06"
+            }
+          }
+        },
+        "expected_revision": "sha256:d53eca42d4e3d6570d1062fa15202e4eb8fe7777381e7473ffcfc68f3c96d998",
+        "expected_source": {
+          "digest": "sha256:1097f8722dad79c9c3f9826a913a23c65f37c9ff573a2f56b199d3aa52159c0b",
+          "id": "tos.claim.gilgamesh-reception.critical-response-clay",
+          "version": 1
+        },
+        "fields": {
+          "qualifiers": {
+            "assessment_limit": "Исследовательское сообщение без допуска; не оценка ассириологических чтений, не утверждение места находки и не причинный вывод.",
+            "context_scope": "Сообщённая в книге Джастроу и Клея критическая работа с пенсильванской табличкой, не независимое подтверждение исторического рассказа.",
+            "participation_role": "Соавтор транслитерации и перевода по предисловию, не автоматически автор критического введения.",
+            "relation_basis": "Предисловие, с. 7: совместная работа над транслитерацией и переводом; иные авторские роли распределены отдельно.",
+            "source_locator": {
+              "locator": "printed p. 7, prefatory note; pp. 15–16, acquisition and critical response; p. 18, uncertain provenance",
+              "reading_date": "2026-09-14",
+              "source_language": "en",
+              "url": "https://www.gutenberg.org/cache/epub/11000/pg11000-images.html"
+            },
+            "source_origin_limit": "Один источник; участники, носители и рёбра не умножают независимые свидетельства.",
+            "statement": "По предисловию Клей совместно с Джастроу выполнил транслитерацию и перевод обеих табличек. Его участие во введении, приложении и конкретной сверке оригинала требует отдельных атрибуций.",
+            "statement_language": "ru",
+            "statement_script": "Cyrl",
+            "time_scope_note": "1920 — год публикации исследовательского сообщения; точная дата сверки не установлена. Весна 1914 относится к отдельно описанной покупке, не ко всем действиям участников."
+          }
+        },
+        "forms": [
+          {
+            "field_id": "claim.statement",
+            "form_id": "tos.form.gilgamesh-reception.critical-response-clay.statement"
+          }
+        ],
+        "operation": "claim.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    }
+  ]
+}

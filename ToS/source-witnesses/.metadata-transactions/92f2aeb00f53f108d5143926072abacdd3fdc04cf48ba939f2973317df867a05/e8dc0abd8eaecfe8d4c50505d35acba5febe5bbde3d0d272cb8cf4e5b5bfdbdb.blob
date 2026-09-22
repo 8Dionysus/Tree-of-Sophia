@@ -1,0 +1,31 @@
+{
+  "schema_version": "tos_corpus_record_v1",
+  "record_type": "place",
+  "record_id": "tos.place.leipzig",
+  "preferred_label": "Leipzig",
+  "variant_labels": [
+    {
+      "value": "Leipsic",
+      "language": "en",
+      "source_ref": "https://d-nb.info/gnd/4035206-7",
+      "status": "unverified"
+    }
+  ],
+  "identity_status": "provisional",
+  "source_refs": [
+    "ToS/research-packets/foundation-laboratory-2026-07/BIBLIOGRAPHIC_TIME_PLACE_RESPONSIBILITY_RESEARCH.md",
+    "https://d-nb.info/gnd/4035206-7"
+  ],
+  "external_identifiers": [
+    {
+      "scheme": "GND",
+      "value": "4035206-7",
+      "source_ref": "https://d-nb.info/gnd/4035206-7",
+      "status": "unverified"
+    }
+  ],
+  "same_as_posture": "no_equivalence_claim",
+  "notes": "The official GND record names Leipzig and links its historical variants. This local Place identity is model-resolved and provisional; it does not normalize every historical spelling, imprint statement, jurisdiction, or place role.",
+  "record_version": 1,
+  "supersedes_ref": null
+}

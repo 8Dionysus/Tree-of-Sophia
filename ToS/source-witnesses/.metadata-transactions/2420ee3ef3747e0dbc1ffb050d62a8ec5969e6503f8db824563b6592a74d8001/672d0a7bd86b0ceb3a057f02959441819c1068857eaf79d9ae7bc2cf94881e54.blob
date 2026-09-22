@@ -1,0 +1,90 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.place.chemnitz",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:36beee55b9a8bbc1e57a5743",
+      "request_digest": "sha256:93032be179d665d06fbf98f0da12f69cbd15208be752ad77e4c2b43fae145421",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:8f01efd30762baa88e08efda09eb3366c17267e1ea25b397b61465ad62370f63",
+      "recorded_at": "2026-09-22T05:06:12.415359+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.place.chemnitz",
+        "version": 1,
+        "digest": "sha256:f8deb84babb7517dcc10ef0646064824a0bbe52590fb4652c0717ec571bdead0"
+      },
+      "source": {
+        "id": "tos.place.chemnitz",
+        "version": 2,
+        "digest": "sha256:56a351e62b76ce7f2faa5b4f58ad044f9d76bd57fe3747f0bc1438ca6ab5658c"
+      },
+      "previous_revision": "sha256:0ee2d31212ddc2845b00f96975443a2c4e0788fe0f3cff4e92d09de4536dbe10",
+      "archive_path": "ToS/source-witnesses/.record-revisions/36beee55b9a8bbc1e57a57437b4c302d261ba8645a522ecd26ee389d47590ff0-0ee2d31212ddc2845b00f96975443a2c4e0788fe0f3cff4e92d09de4536dbe10",
+      "dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+      "changed_fields": [
+        "notes"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.metadata.186906cf72d9ccdeca64cc4cab4a5fa5fa124347fbecd259ed24afe16293181a",
+          "version": 2,
+          "digest": "sha256:f71792a92b1143877dfcbb9dd14997fdc649fd1189aa170aae656408de583812"
+        },
+        {
+          "id": "tos.form.metadata.d564e0ef40aeb8b95cf5fd5717ea293f8135db41230c4151716b95315b051d06",
+          "version": 2,
+          "digest": "sha256:6ceee1adc167534e008447c507b22ae9f811fa5b045cc9ea91447a55d0fe740d"
+        },
+        {
+          "id": "tos.form.metadata.718b6740cf399c6a2cf247d4c02a49e5f620bdbb8240438c5489b33454f5deab",
+          "version": 2,
+          "digest": "sha256:28639013a338fa993fc31d5b76ccd94e689eb8c0070fee34c7d0b8f907734704"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:36beee55b9a8bbc1e57a5743",
+        "expected_configuration": "sha256:8f01efd30762baa88e08efda09eb3366c17267e1ea25b397b61465ad62370f63",
+        "expected_dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+        "expected_publication": "sha256:1729e4b382feab03e150724014d93521bcc811878c270db9c73f1a4fbadadd96",
+        "expected_revision": "sha256:0ee2d31212ddc2845b00f96975443a2c4e0788fe0f3cff4e92d09de4536dbe10",
+        "expected_source": {
+          "digest": "sha256:f8deb84babb7517dcc10ef0646064824a0bbe52590fb4652c0717ec571bdead0",
+          "id": "tos.place.chemnitz",
+          "version": 1
+        },
+        "fields": {
+          "notes": "The official GND record names Chemnitz and preserves historical name context. This local place identity is provisional; historical jurisdictions and provision roles have their own dated evidence."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.metadata.186906cf72d9ccdeca64cc4cab4a5fa5fa124347fbecd259ed24afe16293181a"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.metadata.d564e0ef40aeb8b95cf5fd5717ea293f8135db41230c4151716b95315b051d06"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.metadata.718b6740cf399c6a2cf247d4c02a49e5f620bdbb8240438c5489b33454f5deab"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:2420ee3ef3747e0dbc1ffb050d62a8ec5969e6503f8db824563b6592a74d8001",
+        "selected_files": [
+          "place.human-forms.json",
+          "place.json",
+          "source-revision-history.json"
+        ]
+      }
+    }
+  ]
+}

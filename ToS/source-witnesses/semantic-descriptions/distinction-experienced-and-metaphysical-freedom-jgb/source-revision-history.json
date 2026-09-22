@@ -1,0 +1,87 @@
+{
+  "schema_version": "tos_source_revision_history_v1",
+  "record_id": "tos.distinction.experienced-and-metaphysical-freedom-jgb",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:8f6b325a9a2de1a721adea72",
+      "request_digest": "sha256:242828bd25a83003e4c0a662aecc8a4add85247c36d28b71e70632f1e8e1d261",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:f6831e9d0bdbdd81176d71829b96d601742b26ad910a3bf7867113536692c4ec",
+      "recorded_at": "2026-09-22T05:06:48.289719+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.distinction.experienced-and-metaphysical-freedom-jgb",
+        "version": 1,
+        "digest": "sha256:825752ae64d5fcb63773457bc1ff666684c43f5ed971be899401d91a95782e6d"
+      },
+      "source": {
+        "id": "tos.distinction.experienced-and-metaphysical-freedom-jgb",
+        "version": 2,
+        "digest": "sha256:32269ea8fbabfca564b891e80b51c4791587b86025505fe76c82f314903234c5"
+      },
+      "previous_revision": "sha256:c334a1ab1170488e6770dbbd4303299ae044b88887d3f616d335d2d40e336646",
+      "archive_path": "ToS/source-witnesses/.record-revisions/8f6b325a9a2de1a721adea721b660361d51d86ec41211731b439eaad54602bd0-c334a1ab1170488e6770dbbd4303299ae044b88887d3f616d335d2d40e336646",
+      "dependencies": "sha256:ad99651426db4f995c841ba8ba27f697bf197a1f43d7ac3d97e8038dc39eb01d",
+      "changed_fields": [
+        "notes",
+        "semantic_scope"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.distinction.experienced-and-metaphysical-freedom-jgb.name-ru",
+          "version": 2,
+          "digest": "sha256:7d94c1583f293bb97762e98519e81565689600755e973bfdf663ff9231c22c84"
+        },
+        {
+          "id": "tos.form.distinction.experienced-and-metaphysical-freedom-jgb.name-en",
+          "version": 2,
+          "digest": "sha256:f541121246b38390fb37afd3c28a9903f7907198f23c3e30f9c1f022c86be7f8"
+        },
+        {
+          "id": "tos.form.distinction.experienced-and-metaphysical-freedom-jgb.note-ru",
+          "version": 2,
+          "digest": "sha256:a37f9ce37c90078867274edc6306ef65d8b34a2117fda51de4d43601f44ab8e7"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:8f6b325a9a2de1a721adea72",
+        "expected_configuration": "sha256:f6831e9d0bdbdd81176d71829b96d601742b26ad910a3bf7867113536692c4ec",
+        "expected_dependencies": "sha256:ad99651426db4f995c841ba8ba27f697bf197a1f43d7ac3d97e8038dc39eb01d",
+        "expected_revision": "sha256:c334a1ab1170488e6770dbbd4303299ae044b88887d3f616d335d2d40e336646",
+        "expected_source": {
+          "digest": "sha256:825752ae64d5fcb63773457bc1ff666684c43f5ed971be899401d91a95782e6d",
+          "id": "tos.distinction.experienced-and-metaphysical-freedom-jgb",
+          "version": 1
+        },
+        "fields": {
+          "notes": "Различение исследователя между описанием переживаемой свободы в §19 и метафизическим самооснованием, критикуемым в §21. Основание сопоставления — разные смысловые задачи этих двух мест.",
+          "semantic_scope": {
+            "identity_criterion": "Retain the distinction while the criterion separates experienced attribution of agency from ultimate metaphysical self-origination; a different comparison needs another distinction.",
+            "language": "en",
+            "scope_note": "A comparison of the specified JGB 19 and JGB 21 conceptions.",
+            "script": "Latn"
+          }
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.distinction.experienced-and-metaphysical-freedom-jgb.name-ru"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.distinction.experienced-and-metaphysical-freedom-jgb.name-en"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.distinction.experienced-and-metaphysical-freedom-jgb.note-ru"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    }
+  ]
+}

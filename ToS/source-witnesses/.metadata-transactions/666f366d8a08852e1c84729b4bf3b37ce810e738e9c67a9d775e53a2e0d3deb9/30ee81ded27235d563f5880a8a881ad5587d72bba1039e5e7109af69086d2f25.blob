@@ -1,0 +1,90 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.place.saint-petersburg",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:692b037d47377e242b8cd867",
+      "request_digest": "sha256:8233f8d7e42c1f41ed8a39bdea16d49fb7901f884f3e0f995a386787853b49fa",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:1ee042c17c5cf64c0b5f7634a18f7b10facb416b01b804216e915c923dcef95f",
+      "recorded_at": "2026-09-22T05:06:14.983555+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.place.saint-petersburg",
+        "version": 1,
+        "digest": "sha256:1c6107fb933aa1949be7310e09f045904f6fcfae1b35cf834893684dd8976b12"
+      },
+      "source": {
+        "id": "tos.place.saint-petersburg",
+        "version": 2,
+        "digest": "sha256:55fb7a8b5c641fb7f34a97b241a7239157c57a8ccc0f18ff043133909ed0a116"
+      },
+      "previous_revision": "sha256:dcc63f94cae7212e1c0cddb84c5d77bc01653bb34fd159af76afc12382d353b2",
+      "archive_path": "ToS/source-witnesses/.record-revisions/692b037d47377e242b8cd867928565553ce193d7d061f212fefe0714e1872839-dcc63f94cae7212e1c0cddb84c5d77bc01653bb34fd159af76afc12382d353b2",
+      "dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+      "changed_fields": [
+        "notes"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.metadata.d87a9312019092f1da613e36f1ddefc2198e971f0ee1977a32cad6970f5f9727",
+          "version": 2,
+          "digest": "sha256:fe27bea4269f6df158f0558fd8ad21d1a40e2b37879dba17300580b820799f55"
+        },
+        {
+          "id": "tos.form.metadata.fc04b80a5ace4a51d455af45bdc73f4c82bb3e818c831f447b8fcec36a349202",
+          "version": 2,
+          "digest": "sha256:48b03460d7c668b2e7f37296606761f5e2696ae7c80ead57bd246647112e790e"
+        },
+        {
+          "id": "tos.form.metadata.bbfcaa780b08ed6b11855003c2b2136b3189e583eaad1d28fc50d4d783bac986",
+          "version": 2,
+          "digest": "sha256:388ac376b0b4a643652e56640e5bae7be379eef245735e1c77454fc11ffe639a"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:692b037d47377e242b8cd867",
+        "expected_configuration": "sha256:1ee042c17c5cf64c0b5f7634a18f7b10facb416b01b804216e915c923dcef95f",
+        "expected_dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+        "expected_publication": "sha256:17e5283d29f396cc8c1be0ed38f8767d2cd9769e625e8f8ca040ee0dddae9f83",
+        "expected_revision": "sha256:dcc63f94cae7212e1c0cddb84c5d77bc01653bb34fd159af76afc12382d353b2",
+        "expected_source": {
+          "digest": "sha256:1c6107fb933aa1949be7310e09f045904f6fcfae1b35cf834893684dd8976b12",
+          "id": "tos.place.saint-petersburg",
+          "version": 1
+        },
+        "fields": {
+          "notes": "The exact 1913 title page displays the historical literal С. ПЕТЕРБУРГЪ. The GND record supports the normalized Saint Petersburg identity and the pre-Petrograd date boundary. This local place identity is provisional."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.metadata.d87a9312019092f1da613e36f1ddefc2198e971f0ee1977a32cad6970f5f9727"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.metadata.fc04b80a5ace4a51d455af45bdc73f4c82bb3e818c831f447b8fcec36a349202"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.metadata.bbfcaa780b08ed6b11855003c2b2136b3189e583eaad1d28fc50d4d783bac986"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:666f366d8a08852e1c84729b4bf3b37ce810e738e9c67a9d775e53a2e0d3deb9",
+        "selected_files": [
+          "place.human-forms.json",
+          "place.json",
+          "source-revision-history.json"
+        ]
+      }
+    }
+  ]
+}

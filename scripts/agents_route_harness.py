@@ -176,7 +176,7 @@ def evaluate_task(
         "owner_hops": max(len(stack) - 1, 0),
         "time_to_owner_ms": elapsed_ms,
         "route_resolution_measurement": (
-            "volatile harness wall-clock route lookup; not model or human behavior"
+            "Wall-clock duration of this harness lookup, measured for the current run."
             if include_timing
             else "deterministic route lookup; timing omitted from canonical result"
         ),
@@ -244,7 +244,7 @@ def build_result(repo_root: Path = REPO_ROOT, *, include_timing: bool = False) -
     successful = sum(1 for task in tasks if task["route_success"])
     return {
         "schema_version": "tos_agents_route_harness_result_v1",
-        "harness": "deterministic route-shape evaluator; no behavioral or semantic acceptance claim",
+        "harness": "Deterministic evaluation of declared agent routes and route-card structure.",
         "source_ref": current_ref(repo_root),
         "inventory_ref": inventory_path.relative_to(repo_root).as_posix(),
         "inventory_sha256": sha256_bytes(inventory_path.read_bytes()),

@@ -208,9 +208,7 @@
       }
     },
     "provenance_event_ref": {"$ref": "#/$defs/tosId"},
-    "authority_boundary": {
-      "const": "edition-local source-reading admission only: the exact DTA transcription and selector are source-returnable and independently corroborated by the edition-typed eKGWB sequence; not accepted German, linguistic correctness, Edition identity, author-final text, accepted morphology, lemma, lexeme, translation, sign, semantics, graph truth, canon authority, rights clearance, transfer approval, or publication permission"
-    },
+    "authority_boundary": {"type": "string", "minLength": 1, "description": "Brief account of the artifact purpose and scope. Typed status, effects, assessment and permission fields govern its use."},
     "packet_version": {"type": "integer", "minimum": 1},
     "supersedes_packet_ref": {
       "oneOf": [

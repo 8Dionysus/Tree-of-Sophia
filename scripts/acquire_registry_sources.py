@@ -629,7 +629,7 @@ def inspect_payloads(target: dict, bodies: list[tuple[dict, bytes]]) -> dict:
         report["component_witnesses"] = [{"expression_ref": target["ids"]["expression" if language == "egy" else "translation_expression"],
             "language": language, "file_id": "tos.file.sha256." + sha256(body), "file_sha256": sha256(body),
             "selectors": [{"json_pointer_pattern": pointer, "nonempty_string_count": count} for pointer, count in sorted(patterns.items())],
-            "selection_posture": "observed supplied fields; no extraction or text acceptance"} for language, patterns in components.items()]
+            "selection_posture": "Observation of supplied fields, retaining their current source and assessment status."} for language, patterns in components.items()]
     else:
         raise ValueError("unknown prepared coverage control")
     return report
@@ -640,7 +640,7 @@ def event(event_id: str, event_type: str, started: str, ended: str, inputs: list
         "started_at": started, "ended_at": ended, "agent_refs": ["model:codex", "software:acquire-registry-sources"],
         "inputs": inputs, "outputs": outputs, "method": {"maker_type": "mixed", "name": name, "version": "1",
         "artifact_digest": sha256(Path(__file__).read_bytes()), "runtime": sys.version.split()[0], "configuration": configuration},
-        "status": "completed_with_warnings", "warnings": ["Exact local custody and mechanical observations only; no textual acceptance, human review, semantics, canon or publication."],
+        "status": "completed_with_warnings", "warnings": ["Exact local custody and mechanical observations, retaining the source records and their current assessment, rights and publication status."],
         "receipt_refs": receipts, "rights_basis_ref": rights_ref, "event_version": 1, "supersedes_event_ref": None}
 
 
@@ -737,7 +737,7 @@ def install_target(
         + ("`component-witnesses.json` identifies the separate Egyptian and German components in the same immutable JSON file.\n\n" if observations.get("component_witnesses") else "\n\n")
         + "\n".join("- " + limit for limit in target["limits"]) + "\n\n"
         + target["responsibility"] + "\n\n"
-        + "Rights are positive, layer-specific provider/license assessments for local acquisition. Visibility remains local-only. No ancient authorship, philological accuracy, translation acceptance, semantic admission, canon or publication is established.\n", encoding="utf-8")
+        + "Rights are layer-specific provider/license assessments for local acquisition. Visibility remains local-only. Authorship, textual fidelity, translation, semantic assessment, canon and publication follow their recorded owner decisions.\n", encoding="utf-8")
     for ref, record in records.items():
         validate_json(record, "corpus-record", root)
         write_json(safe_path(root, ref), record)
@@ -854,7 +854,7 @@ def write_discovery(root: Path, manifest_path: Path, preparation: dict, target: 
                 "result_url": observation["url"], "originating_record_url": observation["url"], "identifiers": [], "available_formats": ["metadata/license evidence"],
                 "declared_rights": {"statement": "Separate exact-provider statements are retained in the source rights record.", "scope": "unknown", "evidence_url": observation["url"], "tos_conclusion": "evidence-only-not-a-rights-conclusion"},
                 "availability": "metadata-only", "machine_interface": "api" if "api.github.com" in observation["url"] else "html", "decision": "needs-reconciliation",
-                "rationale": "The originating project is the first applicable source for this born-digital version. This retained metadata establishes only its stated identity/license evidence; no ancient authorship or accepted text follows.",
+                "rationale": "The originating project is the first applicable source for this born-digital version. The retained metadata supplies the stated identity and license evidence; authorship and textual assessment follow their recorded source reviews.",
                 "acquisition": NO_ACQUISITION, "snapshot": {"state": "captured", "format": "static-snapshot", "sha256": observation["retained_sha256"], "reason": observation["retained_ref"]}}]})
     for index, transfer_row in enumerate(transfers, len(channels) + 1):
         result_id = f"tos-discovery-result.registry-{slug}-file-{index}"
@@ -871,7 +871,7 @@ def write_discovery(root: Path, manifest_path: Path, preparation: dict, target: 
     run = {"$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json", "schema_version": "tos_material_discovery_record_v1",
         "discovery_id": f"tos.discovery.registry-{slug}.{day}.v1", "protocol_ref": f"{SOURCE}/discovery/DISCOVERY_PROTOCOL.md",
         "target": {"target_kind": "expression", "known_tos_refs": list(target["ids"].values()), "description": target["version_description"], "required_properties": target["limits"] + ["exact pinned provider version and immutable local file identity"], "acceptable_substitutions": [], "languages": [target["language"]] + (["de"] if target["provider"] == "oraec" else []), "formats": sorted({entry["media_type"] for entry in target["files"]}), "purpose_ref": manifest_path.relative_to(root).as_posix()},
-        "channels": channels, "channel_comparison": [{"channel_id": channel["channel_id"], "completeness": "adequate", "metadata_precision": "strong", "rights_clarity": "adequate", "machine_interface_quality": "strong", "human_minutes": 0, "machine_seconds": channel["elapsed_seconds"], "notes": "Elapsed time uses the retained duration or explicit receipt timestamp interval; it is not a benchmark. No human time or human review is claimed. Completeness is limited to the frozen exact version; source/rights judgment remains separate."} for channel in channels],
+        "channels": channels, "channel_comparison": [{"channel_id": channel["channel_id"], "completeness": "adequate", "metadata_precision": "strong", "rights_clarity": "adequate", "machine_interface_quality": "strong", "human_minutes": 0, "machine_seconds": channel["elapsed_seconds"], "notes": "Elapsed time uses the retained duration or explicit receipt timestamp interval for the frozen exact version. Benchmarking, human effort, source review and rights assessment require their own evidence."} for channel in channels],
         "selected_result_ids": selected, "rejected_result_ids": [], "rights_inference_from_availability_prohibited": True, "general_web_search_is_last_resort": True, "technical_access_bypass_used": False,
         "maker": {"maker_type": "mixed", "agent_ref": "model:codex"}, "started_at": min(channel["queried_at"] for channel in channels), "ended_at": acquisition["ended_at"], "status": "reconciled", "provenance_event_refs": [event_id, acquisition["event_id"]], "record_version": 1, "supersedes_discovery_ref": None}
     validate_json(run, "material-discovery-record", root)

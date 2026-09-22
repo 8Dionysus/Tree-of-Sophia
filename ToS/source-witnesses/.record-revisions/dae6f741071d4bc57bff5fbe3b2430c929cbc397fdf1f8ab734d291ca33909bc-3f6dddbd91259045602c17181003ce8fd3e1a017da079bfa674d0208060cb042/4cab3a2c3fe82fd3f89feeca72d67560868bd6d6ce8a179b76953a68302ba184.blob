@@ -1,0 +1,242 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.transliteration-scheme.oracc-atf",
+    "version": 1,
+    "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf"
+  },
+  "forms": [
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.linguistic.oracc-atf.name-ru",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.transliteration-scheme.oracc-atf",
+        "version": 1,
+        "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf"
+      },
+      "role": "name",
+      "language": "ru",
+      "script": "Cyrl",
+      "creator_id": "agent:codex-tos-foundation",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.transliteration-scheme.oracc-atf",
+            "version": 1,
+            "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf"
+          },
+          "pointer": "/preferred_label"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.transliteration-scheme.oracc-atf",
+            "version": 1,
+            "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.transliteration-scheme.oracc-atf",
+            "version": 1,
+            "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf"
+          },
+          "pointer": "/same_as_posture"
+        },
+        "context-2": {
+          "record": {
+            "id": "tos.transliteration-scheme.oracc-atf",
+            "version": 1,
+            "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf"
+          },
+          "pointer": "/semantic_scope"
+        },
+        "context-3": {
+          "record": {
+            "id": "tos.transliteration-scheme.oracc-atf",
+            "version": 1,
+            "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf"
+          },
+          "pointer": "/semantic_content"
+        },
+        "context-4": {
+          "record": {
+            "id": "tos.transliteration-scheme.oracc-atf",
+            "version": 1,
+            "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf"
+          },
+          "pointer": "/field_languages/preferred_label"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    },
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.linguistic.oracc-atf.name-en",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.transliteration-scheme.oracc-atf",
+        "version": 1,
+        "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf"
+      },
+      "role": "name",
+      "language": "en",
+      "script": "Latn",
+      "creator_id": "agent:codex-tos-foundation",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.transliteration-scheme.oracc-atf",
+            "version": 1,
+            "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf"
+          },
+          "pointer": "/variant_labels/0/value"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.transliteration-scheme.oracc-atf",
+            "version": 1,
+            "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.transliteration-scheme.oracc-atf",
+            "version": 1,
+            "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf"
+          },
+          "pointer": "/same_as_posture"
+        },
+        "context-2": {
+          "record": {
+            "id": "tos.transliteration-scheme.oracc-atf",
+            "version": 1,
+            "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf"
+          },
+          "pointer": "/semantic_scope"
+        },
+        "context-3": {
+          "record": {
+            "id": "tos.transliteration-scheme.oracc-atf",
+            "version": 1,
+            "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf"
+          },
+          "pointer": "/semantic_content"
+        },
+        "context-4": {
+          "record": {
+            "id": "tos.transliteration-scheme.oracc-atf",
+            "version": 1,
+            "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf"
+          },
+          "pointer": "/variant_labels/0/language"
+        },
+        "context-5": {
+          "record": {
+            "id": "tos.transliteration-scheme.oracc-atf",
+            "version": 1,
+            "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf"
+          },
+          "pointer": "/variant_labels/0/script"
+        },
+        "context-6": {
+          "record": {
+            "id": "tos.transliteration-scheme.oracc-atf",
+            "version": 1,
+            "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf"
+          },
+          "pointer": "/variant_labels/0/source_ref"
+        },
+        "context-7": {
+          "record": {
+            "id": "tos.transliteration-scheme.oracc-atf",
+            "version": 1,
+            "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf"
+          },
+          "pointer": "/variant_labels/0/status"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    },
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.linguistic.oracc-atf.note-ru",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.transliteration-scheme.oracc-atf",
+        "version": 1,
+        "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf"
+      },
+      "role": "hover",
+      "language": "ru",
+      "script": "Cyrl",
+      "creator_id": "agent:codex-tos-foundation",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.transliteration-scheme.oracc-atf",
+            "version": 1,
+            "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf"
+          },
+          "pointer": "/notes"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.transliteration-scheme.oracc-atf",
+            "version": 1,
+            "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.transliteration-scheme.oracc-atf",
+            "version": 1,
+            "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf"
+          },
+          "pointer": "/same_as_posture"
+        },
+        "context-2": {
+          "record": {
+            "id": "tos.transliteration-scheme.oracc-atf",
+            "version": 1,
+            "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf"
+          },
+          "pointer": "/semantic_scope"
+        },
+        "context-3": {
+          "record": {
+            "id": "tos.transliteration-scheme.oracc-atf",
+            "version": 1,
+            "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf"
+          },
+          "pointer": "/semantic_content"
+        },
+        "context-4": {
+          "record": {
+            "id": "tos.transliteration-scheme.oracc-atf",
+            "version": 1,
+            "digest": "sha256:eef6d6e77f283bcda4dea825ebfef757f14465e43d535fa866d54343da6a5aaf"
+          },
+          "pointer": "/field_languages/notes"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    }
+  ],
+  "prior_forms": []
+}

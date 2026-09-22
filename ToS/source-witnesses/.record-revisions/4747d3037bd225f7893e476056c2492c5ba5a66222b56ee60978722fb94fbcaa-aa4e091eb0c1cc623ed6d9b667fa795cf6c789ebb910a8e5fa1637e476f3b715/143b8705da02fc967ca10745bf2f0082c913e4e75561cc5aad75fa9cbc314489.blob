@@ -1,0 +1,47 @@
+{
+  "external_identifiers": [],
+  "field_languages": {
+    "notes": {
+      "language": "ru",
+      "script": "Cyrl"
+    },
+    "preferred_label": {
+      "language": "ru",
+      "script": "Cyrl"
+    }
+  },
+  "identity_status": "provisional",
+  "notes": "Выделенная часть текста по обозначению исследуемого источника; не физический обломок и не отдельная цитата Бёрнета.",
+  "preferred_label": "Фрагмент поэмы Парменида: (8) у Бёрнета",
+  "record_id": "tos.textual-fragment.parmenides.poem-eight",
+  "record_type": "textual-fragment",
+  "record_version": 1,
+  "same_as_posture": "no_equivalence_claim",
+  "schema_version": "tos_textual_passage_record_v1",
+  "semantic_content": {
+    "boundary_basis": "Исследовательская граница следует обозначению источника, а не заявленной авторской разбивке.",
+    "fragment_account": "Часть поэмы, представленная под номером (8); её точный текст здесь не хранится.",
+    "language": "ru",
+    "script": "Cyrl"
+  },
+  "semantic_scope": {
+    "identity_criterion": "Предметом остаётся выделяемая часть поэмы; изменение описания не меняет ID. Другие границы или отождествление с иной нумерацией требуют отдельного основания.",
+    "language": "ru",
+    "scope_note": "Фрагмент, обозначенный (8) в исследуемом представлении; точные древние границы не установлены.",
+    "script": "Cyrl"
+  },
+  "source_refs": [
+    "ToS/review-ledger/2026-09-07-burnet-fragment-quotation-source-reading.md",
+    "https://www.gutenberg.org/files/67097/67097-h/67097-h.htm"
+  ],
+  "variant_labels": [
+    {
+      "language": "en",
+      "script": "Latn",
+      "source_ref": "ToS/review-ledger/2026-09-07-burnet-fragment-quotation-source-reading.md",
+      "status": "unverified",
+      "value": "Parmenides' poem fragment designated (8) by Burnet"
+    }
+  ],
+  "visibility": "public_metadata_only"
+}

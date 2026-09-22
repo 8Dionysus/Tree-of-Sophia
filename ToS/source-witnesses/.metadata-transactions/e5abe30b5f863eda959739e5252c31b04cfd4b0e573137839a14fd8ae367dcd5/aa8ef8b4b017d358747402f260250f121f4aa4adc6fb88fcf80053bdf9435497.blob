@@ -1,0 +1,81 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.work.old-babylonian-scholarship.the-textual-criticism-of-sumerian-literature",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:52e6aa3e45a7a1eb60f5bc32",
+      "request_digest": "sha256:29baf1a5ad078a3eb91d126f9455ddb7ac67aa98f6a2496f1168110c3446886f",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:ed169d9869f48d61da3f9c81b8da4d8fc6f4d8cc0b4eb096baa815fc20806d41",
+      "recorded_at": "2026-09-22T05:09:27.230293+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.work.old-babylonian-scholarship.the-textual-criticism-of-sumerian-literature",
+        "version": 1,
+        "digest": "sha256:73939ea42cf28e7ec0556167d2a25dfac27ca72a3bc683ef4ed40d3263da4753"
+      },
+      "source": {
+        "id": "tos.work.old-babylonian-scholarship.the-textual-criticism-of-sumerian-literature",
+        "version": 2,
+        "digest": "sha256:26c259921238139dbf3599de328aaf4e35548effe9e799597ab180867e17bbcf"
+      },
+      "previous_revision": "sha256:e8d443fb6eeef53f50274a1357edd553dc83bb04cb10a88917e822104b709082",
+      "archive_path": "ToS/source-witnesses/.record-revisions/52e6aa3e45a7a1eb60f5bc32235918305c9937828bf56253a53e330d35f9dd29-e8d443fb6eeef53f50274a1357edd553dc83bb04cb10a88917e822104b709082",
+      "dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+      "changed_fields": [
+        "notes"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.metadata.5120852d6f545e71ea3cafbcde3be4ecb8a913105c6bee06230c9c8bb2baad9b",
+          "version": 2,
+          "digest": "sha256:31b5b88524e6e9db7d83b976a808f3fd786b29c861a3b50b04624a2d2ca4d018"
+        },
+        {
+          "id": "tos.form.metadata.0930c0b4b306e1804ada3652b016553cb001ea114532dc9d70f2a64d6bd3d152",
+          "version": 2,
+          "digest": "sha256:5bab1684bc2a9d10c6332f9451dbab154e2bd716195855e4401db5891187720a"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:52e6aa3e45a7a1eb60f5bc32",
+        "expected_configuration": "sha256:ed169d9869f48d61da3f9c81b8da4d8fc6f4d8cc0b4eb096baa815fc20806d41",
+        "expected_dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+        "expected_publication": "sha256:dad6982a608a33cc94cade66c243d0ccfb7a298b6091aa37df9924abdbc76a14",
+        "expected_revision": "sha256:e8d443fb6eeef53f50274a1357edd553dc83bb04cb10a88917e822104b709082",
+        "expected_source": {
+          "digest": "sha256:73939ea42cf28e7ec0556167d2a25dfac27ca72a3bc683ef4ed40d3263da4753",
+          "id": "tos.work.old-babylonian-scholarship.the-textual-criticism-of-sumerian-literature",
+          "version": 1
+        },
+        "fields": {
+          "notes": "Scholarly monograph published in 2012 as Journal of Cuneiform Studies Supplemental Series 3 by the American Schools of Oriental Research. It develops a causal and distribution-sensitive method for evaluating variation in copies of Sumerian literary compositions. Delnero’s separate 2024 chapter Errors or Innovation? supplies a later control: textual stability, erasure, accepted variance, and creative change differ by corpus and transmission practice. Current coverage is bibliographic, with source-reported authorship awaiting review."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.metadata.5120852d6f545e71ea3cafbcde3be4ecb8a913105c6bee06230c9c8bb2baad9b"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.metadata.0930c0b4b306e1804ada3652b016553cb001ea114532dc9d70f2a64d6bd3d152"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:e5abe30b5f863eda959739e5252c31b04cfd4b0e573137839a14fd8ae367dcd5",
+        "selected_files": [
+          "source-revision-history.json",
+          "work.human-forms.json",
+          "work.json"
+        ]
+      }
+    }
+  ]
+}

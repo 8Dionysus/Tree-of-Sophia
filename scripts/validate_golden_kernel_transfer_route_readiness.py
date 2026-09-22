@@ -240,9 +240,19 @@ def _validate_inputs_and_provenance(
     if set(actual_inputs) != set(expected_inputs):
         raise ReadinessValidationFailure("readiness provenance input set drifted")
     for ref, (role, path) in expected_inputs.items():
+        if path in (SCHEMA_PATH, BUILDER_PATH):
+            from validate_source_witness_foundation import _recorded_provenance_input_path
+
+            resolved = _recorded_provenance_input_path(
+                repo_root, ref, actual_inputs[ref].get("sha256")
+            )
+            if resolved is None:
+                raise ReadinessValidationFailure(f"readiness input unavailable: {ref}")
+        else:
+            resolved = repo_root / path
         if actual_inputs[ref] != {
             "ref": ref,
-            "sha256": _sha256_path(repo_root / path),
+            "sha256": _sha256_path(resolved),
             "role": role,
         }:
             raise ReadinessValidationFailure(f"readiness input drifted: {ref}")

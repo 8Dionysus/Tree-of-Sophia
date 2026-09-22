@@ -2,66 +2,288 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://tree-of-sophia.local/ToS/contracts/native-text-layer-derivation-comparison.schema.json",
   "title": "Private source-visible native TextLayer derivation comparison",
-  "description": "Exact unchanged lineage records, representations and bounded original source view. A valid transform and source-text equality are not textual quality or inherited admission. The independent current assessment policy owns use decisions.",
+  "description": "Exact unchanged lineage records, representations and a bounded original-source view for comparison. Transformation validity and text equality provide evidence; independent current assessment determines quality and permitted use.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "comparison_id", "comparison_version", "layer", "source_scope", "source_view", "lineage", "input_fixity", "transformation_integrity", "source_text_equals_output", "positive_use_boundary", "provider_execution", "inherited_quality", "visibility", "publication_authorized", "performs_semantic_assessment"],
+  "required": [
+    "schema_version",
+    "comparison_id",
+    "comparison_version",
+    "layer",
+    "source_scope",
+    "source_view",
+    "lineage",
+    "input_fixity",
+    "transformation_integrity",
+    "source_text_equals_output",
+    "positive_use_boundary",
+    "provider_execution",
+    "inherited_quality",
+    "visibility",
+    "publication_authorized",
+    "performs_semantic_assessment"
+  ],
   "properties": {
-    "schema_version": {"const": "tos_native_text_layer_derivation_comparison_v1"},
-    "comparison_id": {"type": "string", "pattern": "^tos\\.text-comparison\\.sha256\\.[a-f0-9]{64}$"},
-    "comparison_version": {"const": 1},
-    "layer": {"$ref": "#/$defs/exactRef"},
-    "source_scope": {"type": "object", "additionalProperties": false,
-      "required": ["work_ref", "expression_ref", "edition_ref", "item_ref", "file_ref", "file_sha256"],
+    "schema_version": {
+      "const": "tos_native_text_layer_derivation_comparison_v1"
+    },
+    "comparison_id": {
+      "type": "string",
+      "pattern": "^tos\\.text-comparison\\.sha256\\.[a-f0-9]{64}$"
+    },
+    "comparison_version": {
+      "const": 1
+    },
+    "layer": {
+      "$ref": "#/$defs/exactRef"
+    },
+    "source_scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "work_ref",
+        "expression_ref",
+        "edition_ref",
+        "item_ref",
+        "file_ref",
+        "file_sha256"
+      ],
       "properties": {
-        "work_ref": {"type": "string", "minLength": 1},
-        "expression_ref": {"type": "string", "minLength": 1},
-        "edition_ref": {"type": "string", "minLength": 1},
-        "item_ref": {"type": "string", "minLength": 1},
-        "file_ref": {"type": "string", "minLength": 1},
-        "file_sha256": {"$ref": "#/$defs/sha256"}
-      }},
-    "source_view": {"type": "object", "additionalProperties": false,
-      "required": ["member", "selector", "source_member_utf8", "selected_text", "policy", "method"],
+        "work_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expression_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "edition_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "item_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "file_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "file_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "source_view": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "member",
+        "selector",
+        "source_member_utf8",
+        "selected_text",
+        "policy",
+        "method"
+      ],
       "properties": {
-        "member": {"type": "object", "additionalProperties": false, "required": ["member_path", "member_sha256"],
-          "properties": {"member_path": {"type": "string", "minLength": 1, "maxLength": 1024}, "member_sha256": {"$ref": "#/$defs/sha256"}}},
-        "selector": {"type": "object", "additionalProperties": false, "required": ["type", "scheme", "value"],
-          "properties": {"type": {"const": "structural"}, "scheme": {"enum": ["tos.xhtml.element-ordinal.v1", "tos.xhtml.element-id.v1"]},
-            "value": {"type": "string", "minLength": 1, "maxLength": 256}}},
-        "source_member_utf8": {"type": "string", "minLength": 1, "maxLength": 1048576},
-        "selected_text": {"type": "string", "minLength": 1, "maxLength": 1048576},
-        "policy": {"type": "object"},
-        "method": {"const": "bounded-XHTML-character-data-not-textual-quality"}
-      }},
-    "lineage": {"type": "array", "minItems": 1, "maxItems": 16, "items": {
-      "type": "object", "additionalProperties": false,
-      "required": ["record", "record_ref", "record_payload", "representation_text", "editorial_policy", "configuration_sha256", "operation", "reported_producer"],
-      "properties": {
-        "record": {"$ref": "#/$defs/exactRef"}, "record_ref": {"type": "string", "minLength": 1},
-        "record_payload": {"type": "object"}, "representation_text": {"type": "string", "minLength": 1, "maxLength": 1048576},
-        "editorial_policy": {"type": "object"}, "configuration_sha256": {"$ref": "#/$defs/sha256"},
-        "reported_producer": {"description": "An unverified supplied-result producer declaration, never invocation evidence.", "type": ["object", "null"]},
-        "operation": {"type": "string", "minLength": 1}
-      }}},
-    "input_fixity": {"type": "array", "minItems": 1, "maxItems": 128, "uniqueItems": true, "items": {
-      "type": "object", "additionalProperties": false, "required": ["ref", "category", "sha256"],
-      "properties": {"ref": {"type": "string", "minLength": 1},
-        "category": {"enum": ["metadata", "content", "original_payload", "source_member"]}, "sha256": {"$ref": "#/$defs/sha256"}}
-    }},
-    "transformation_integrity": {"const": true},
-    "source_text_equals_output": {"type": "boolean"},
-    "positive_use_boundary": {"const": "source-visible-assessment-required-not-byte-equality"},
-    "provider_execution": {"const": "not-attested-by-comparison"},
-    "inherited_quality": {"const": "not-transferred"},
-    "visibility": {"const": "local_only"},
-    "publication_authorized": {"const": false},
-    "performs_semantic_assessment": {"const": false}
+        "member": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "member_path",
+            "member_sha256"
+          ],
+          "properties": {
+            "member_path": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1024
+            },
+            "member_sha256": {
+              "$ref": "#/$defs/sha256"
+            }
+          }
+        },
+        "selector": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "scheme",
+            "value"
+          ],
+          "properties": {
+            "type": {
+              "const": "structural"
+            },
+            "scheme": {
+              "enum": [
+                "tos.xhtml.element-ordinal.v1",
+                "tos.xhtml.element-id.v1"
+              ]
+            },
+            "value": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          }
+        },
+        "source_member_utf8": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1048576
+        },
+        "selected_text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1048576
+        },
+        "policy": {
+          "type": "object"
+        },
+        "method": {
+          "const": "bounded-XHTML-character-data-not-textual-quality"
+        }
+      }
+    },
+    "lineage": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 16,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "record",
+          "record_ref",
+          "record_payload",
+          "representation_text",
+          "editorial_policy",
+          "configuration_sha256",
+          "operation",
+          "reported_producer"
+        ],
+        "properties": {
+          "record": {
+            "$ref": "#/$defs/exactRef"
+          },
+          "record_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "record_payload": {
+            "type": "object"
+          },
+          "representation_text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1048576
+          },
+          "editorial_policy": {
+            "type": "object"
+          },
+          "configuration_sha256": {
+            "$ref": "#/$defs/sha256"
+          },
+          "reported_producer": {
+            "description": "An unverified supplied-result producer declaration, never invocation evidence.",
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "operation": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "input_fixity": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 128,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ref",
+          "category",
+          "sha256"
+        ],
+        "properties": {
+          "ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "category": {
+            "enum": [
+              "metadata",
+              "content",
+              "original_payload",
+              "source_member"
+            ]
+          },
+          "sha256": {
+            "$ref": "#/$defs/sha256"
+          }
+        }
+      }
+    },
+    "transformation_integrity": {
+      "const": true
+    },
+    "source_text_equals_output": {
+      "type": "boolean"
+    },
+    "positive_use_boundary": {
+      "const": "source-visible-assessment-required-not-byte-equality"
+    },
+    "provider_execution": {
+      "const": "not-attested-by-comparison"
+    },
+    "inherited_quality": {
+      "const": "not-transferred"
+    },
+    "visibility": {
+      "const": "local_only"
+    },
+    "publication_authorized": {
+      "const": false
+    },
+    "performs_semantic_assessment": {
+      "const": false
+    }
   },
   "$defs": {
-    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
-    "exactRef": {"type": "object", "additionalProperties": false, "required": ["id", "version", "digest"],
-      "properties": {"id": {"type": "string", "minLength": 1}, "version": {"type": "integer", "minimum": 1},
-        "digest": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"}}}
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "exactRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "version",
+        "digest"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        }
+      }
+    }
   }
 }

@@ -1,0 +1,93 @@
+{
+  "schema_version": "tos_source_revision_history_v1",
+  "record_id": "tos.rediscovery-episode.gilgamesh-reception.penn-access-1914",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:ae94e5c7e2cb4b494d7021e9",
+      "request_digest": "sha256:08567c6b71b7800f410ee32d15edc9002c610efaf817c52710253475a389b634",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:1ada5324a17d4e7e79ec17e937e0ecbbccf5965e7c3370b13c6ae653fa2f146a",
+      "recorded_at": "2026-09-22T05:04:55.748171+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.rediscovery-episode.gilgamesh-reception.penn-access-1914",
+        "version": 1,
+        "digest": "sha256:6e95c3f2aadeb7a6d97d84526c66ef0713fd004e2d7ca6b09ca85f1617e64923"
+      },
+      "source": {
+        "id": "tos.rediscovery-episode.gilgamesh-reception.penn-access-1914",
+        "version": 2,
+        "digest": "sha256:53e72639182dc403f57f8435b0cce5bce8adbd0ea5fc9b6b5ef6fd187e5cb8b7"
+      },
+      "previous_revision": "sha256:886d83d6a6a6133add8d0e32ad5011e8c0534db5556bc7b3b1932660df70054e",
+      "archive_path": "ToS/source-witnesses/.record-revisions/ae94e5c7e2cb4b494d7021e92f1cf921d3ae3f6780e7bf261fd770f1c37b6d61-886d83d6a6a6133add8d0e32ad5011e8c0534db5556bc7b3b1932660df70054e",
+      "dependencies": "sha256:f483f38246835eb36919854dd8ca6911c9bc2f2807435719504a77cd5d94d764",
+      "changed_fields": [
+        "semantic_content",
+        "semantic_scope"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.gilgamesh-reception.penn-access-1914.name-ru",
+          "version": 2,
+          "digest": "sha256:ad3ab5f57a286bb52e5206970b136ae8fee91724e972daafb01b3d4985b80207"
+        },
+        {
+          "id": "tos.form.gilgamesh-reception.penn-access-1914.name-en",
+          "version": 2,
+          "digest": "sha256:d08ab25c447f0e923d368220dbbafcc893b715a4872e927ec38f149f29bf1ad5"
+        },
+        {
+          "id": "tos.form.gilgamesh-reception.penn-access-1914.note-ru",
+          "version": 2,
+          "digest": "sha256:8f9ec98c73772aa0f93e5b6baafa0f4e37ce479ac731893adb550fc76025947d"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:ae94e5c7e2cb4b494d7021e9",
+        "expected_configuration": "sha256:1ada5324a17d4e7e79ec17e937e0ecbbccf5965e7c3370b13c6ae653fa2f146a",
+        "expected_dependencies": "sha256:f483f38246835eb36919854dd8ca6911c9bc2f2807435719504a77cd5d94d764",
+        "expected_revision": "sha256:886d83d6a6a6133add8d0e32ad5011e8c0534db5556bc7b3b1932660df70054e",
+        "expected_source": {
+          "digest": "sha256:6e95c3f2aadeb7a6d97d84526c66ef0713fd004e2d7ca6b09ca85f1617e64923",
+          "id": "tos.rediscovery-episode.gilgamesh-reception.penn-access-1914",
+          "version": 1
+        },
+        "fields": {
+          "semantic_content": {
+            "language": "ru",
+            "prior_access_boundary": "Предшествующая история доступа не установлена; Джастроу отдельно признаёт отсутствие определённых данных о происхождении.",
+            "receiving_context": "Доступ названных музейных исследователей.",
+            "reception_account": "Джастроу сообщает о покупке таблички музеем Пенсильванского университета весной 1914 года и её распознавании Пёбелем как части эпоса.",
+            "script": "Cyrl"
+          },
+          "semantic_scope": {
+            "identity_criterion": "Эпизод поступления и распознавания пенсильванской таблички, описанный Джастроу.",
+            "language": "ru",
+            "scope_note": "Исследовательский доступ к одной пенсильванской табличке; история археологического извлечения отдельно не установлена.",
+            "script": "Cyrl"
+          }
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.gilgamesh-reception.penn-access-1914.name-ru"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.gilgamesh-reception.penn-access-1914.name-en"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.gilgamesh-reception.penn-access-1914.note-ru"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    }
+  ]
+}

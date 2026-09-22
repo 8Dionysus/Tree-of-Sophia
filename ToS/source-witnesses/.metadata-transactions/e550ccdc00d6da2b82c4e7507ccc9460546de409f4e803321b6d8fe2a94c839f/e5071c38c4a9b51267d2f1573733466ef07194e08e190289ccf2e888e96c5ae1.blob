@@ -1,0 +1,99 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.organization.m-m-stasyulevich-printing-saint-petersburg",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:b54341a5b6886c867d6cc312",
+      "request_digest": "sha256:7b1429bcf341d090dc32d99c98269896e838e504cd69e43127bc80afa13ecc4f",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:986ee9640477adf956382abc34298a4ae320ca221e50740dbc06a45f6baa5367",
+      "recorded_at": "2026-09-22T05:06:08.358874+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.organization.m-m-stasyulevich-printing-saint-petersburg",
+        "version": 1,
+        "digest": "sha256:eec3ee336acc6eb1e811266e5620aad59dafe6bb83d5fb976210d1eb67d2d751"
+      },
+      "source": {
+        "id": "tos.organization.m-m-stasyulevich-printing-saint-petersburg",
+        "version": 2,
+        "digest": "sha256:b1393612f521eea8c4f9b8764abde9a6b32169bf2926d9196d0f63d1ce6d54a8"
+      },
+      "previous_revision": "sha256:d103755b90a7f62ee3da35285831740be71f176cccfbf10b3cecba08562114d0",
+      "archive_path": "ToS/source-witnesses/.record-revisions/b54341a5b6886c867d6cc31242413dc82b141b445572e17ce5e070e0b0d00f25-d103755b90a7f62ee3da35285831740be71f176cccfbf10b3cecba08562114d0",
+      "dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+      "changed_fields": [
+        "notes"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.metadata.33defc6cd83528cb286b57d95a99c264a31e2cee9c09c67ff448427788a58fa6",
+          "version": 2,
+          "digest": "sha256:1cbc866e12a6491cf336f449fdc30fbf3ffbe6e66e38603c12839fafc7c846b9"
+        },
+        {
+          "id": "tos.form.metadata.a70a55b9e81cd22ce09b7ffc648304b0e99c669806ec3e8053ac121c731b2562",
+          "version": 2,
+          "digest": "sha256:1fcf56261e950f8e21cca2cd33a560d918f0abf900f793bc6fe02b1e00206e52"
+        },
+        {
+          "id": "tos.form.metadata.bb2761ac27df29070911976b56088c31115f55e4a2a847b86ba33c80323f59ee",
+          "version": 2,
+          "digest": "sha256:4cd582aca1b7c0219c69913be191422852b13554e4837d01682546474683e3f0"
+        },
+        {
+          "id": "tos.form.metadata.f4c6a1f9487c50bf9aa356fb045796242d2f895aa9e33b21189af979d94e1b1f",
+          "version": 2,
+          "digest": "sha256:95f31d22a900fae7965b94a709e8420a779d6aa053f6d3921d7e4596a0fdd0d1"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:b54341a5b6886c867d6cc312",
+        "expected_configuration": "sha256:986ee9640477adf956382abc34298a4ae320ca221e50740dbc06a45f6baa5367",
+        "expected_dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+        "expected_publication": "sha256:5e04c825dfcfceaa3542ff0688ac5b28a4cfd20127c5364dad9459413d1b86df",
+        "expected_revision": "sha256:d103755b90a7f62ee3da35285831740be71f176cccfbf10b3cecba08562114d0",
+        "expected_source": {
+          "digest": "sha256:eec3ee336acc6eb1e811266e5620aad59dafe6bb83d5fb976210d1eb67d2d751",
+          "id": "tos.organization.m-m-stasyulevich-printing-saint-petersburg",
+          "version": 1
+        },
+        "fields": {
+          "notes": "The exact parallel title pages and institutional records support the named Saint Petersburg printing-house role."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.metadata.33defc6cd83528cb286b57d95a99c264a31e2cee9c09c67ff448427788a58fa6"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.metadata.a70a55b9e81cd22ce09b7ffc648304b0e99c669806ec3e8053ac121c731b2562"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.metadata.bb2761ac27df29070911976b56088c31115f55e4a2a847b86ba33c80323f59ee"
+          },
+          {
+            "field_id": "metadata.variant-name:1",
+            "form_id": "tos.form.metadata.f4c6a1f9487c50bf9aa356fb045796242d2f895aa9e33b21189af979d94e1b1f"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:e550ccdc00d6da2b82c4e7507ccc9460546de409f4e803321b6d8fe2a94c839f",
+        "selected_files": [
+          "organization.human-forms.json",
+          "organization.json",
+          "source-revision-history.json"
+        ]
+      }
+    }
+  ]
+}

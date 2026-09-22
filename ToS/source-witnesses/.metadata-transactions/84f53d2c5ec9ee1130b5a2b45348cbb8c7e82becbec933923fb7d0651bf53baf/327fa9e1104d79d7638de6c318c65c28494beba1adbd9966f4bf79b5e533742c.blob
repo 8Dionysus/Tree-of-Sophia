@@ -1,0 +1,90 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.agent.friedrich-nietzsche",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:2c265ee9bebe37b37bfcc285",
+      "request_digest": "sha256:1169af282ec4d327c20fdc12dbfc7587a404d7570b8347a59749d62c0c063b12",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:6ba37aeda8bb03a458b483b0ab9158783ed078e18af6fb133cb66033f7862032",
+      "recorded_at": "2026-09-22T05:04:02.622527+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.agent.friedrich-nietzsche",
+        "version": 2,
+        "digest": "sha256:06afae0fb80e928f4817d84029ecdc69b63873bd5417233bf9f128c29ec07c33"
+      },
+      "source": {
+        "id": "tos.agent.friedrich-nietzsche",
+        "version": 3,
+        "digest": "sha256:8d6034511d8fb7618c7a97ad4cc07f84c2fecc2c5792786168d00a0796495a48"
+      },
+      "previous_revision": "sha256:8eaa33587ed147cf4c5d02c684c96a280b4ffef9477dd2e410c2a16064b61c10",
+      "archive_path": "ToS/source-witnesses/.record-revisions/2c265ee9bebe37b37bfcc285671db3d025128b306fc97cddf9a084b74e533a8c-8eaa33587ed147cf4c5d02c684c96a280b4ffef9477dd2e410c2a16064b61c10",
+      "dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+      "changed_fields": [
+        "notes"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.metadata.ee414f73c4461ed7de9865bd361798a4fc4ad33b4c9014cd42f69b8868cf0eb3",
+          "version": 2,
+          "digest": "sha256:ac57f43d59bb7f7af28e44ced00ffb5a7fa88abc298a6eedd8a55e76432164d6"
+        },
+        {
+          "id": "tos.form.metadata.ef612d54f6556810586d9fcbb0c77cfb0058a7f8f0dfde43a47f9d4df5102484",
+          "version": 2,
+          "digest": "sha256:64d11f5623f05b22aab72587be5747f3325a2739e6fd5391996742486e9c7c93"
+        },
+        {
+          "id": "tos.form.metadata.c2976c14db396fd6f5a82355a301899a7cf5e18fcf6455cbea0ca056146cce6d",
+          "version": 2,
+          "digest": "sha256:a8d60afc03bf176bbd7e596eb2f57732a30d821623ca745d5a9204958a18ce40"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:2c265ee9bebe37b37bfcc285",
+        "expected_configuration": "sha256:6ba37aeda8bb03a458b483b0ab9158783ed078e18af6fb133cb66033f7862032",
+        "expected_dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+        "expected_publication": "sha256:0721464333d2df77ed595a2efa7b4987372e3e94c71c57cbffdae50d3a55bf17",
+        "expected_revision": "sha256:8eaa33587ed147cf4c5d02c684c96a280b4ffef9477dd2e410c2a16064b61c10",
+        "expected_source": {
+          "digest": "sha256:06afae0fb80e928f4817d84029ecdc69b63873bd5417233bf9f128c29ec07c33",
+          "id": "tos.agent.friedrich-nietzsche",
+          "version": 2
+        },
+        "fields": {
+          "notes": "Author identity is established for the current route. The DNB/GND authority identifier is reconciled through the exact Ecce Homo work and 1908-edition discovery record."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.metadata.ee414f73c4461ed7de9865bd361798a4fc4ad33b4c9014cd42f69b8868cf0eb3"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.metadata.ef612d54f6556810586d9fcbb0c77cfb0058a7f8f0dfde43a47f9d4df5102484"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.metadata.c2976c14db396fd6f5a82355a301899a7cf5e18fcf6455cbea0ca056146cce6d"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:84f53d2c5ec9ee1130b5a2b45348cbb8c7e82becbec933923fb7d0651bf53baf",
+        "selected_files": [
+          "agent.human-forms.json",
+          "agent.json",
+          "source-revision-history.json"
+        ]
+      }
+    }
+  ]
+}

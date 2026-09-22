@@ -20,5 +20,6 @@ packets, but they do not become bounded proof by location alone.
 
 Active local pressure: the reviewed
 [source-observation RU/EN case design](suites/source-observation-ru-en-v1.suite.md).
-Its note is not a runnable suite, completed calibration or competence grant.
-No central proof bundle or verdict is accepted here.
+The note records a reviewed case design. Runnable evaluation, calibration,
+competence qualification and any central proof verdict follow their respective
+eval owner routes.

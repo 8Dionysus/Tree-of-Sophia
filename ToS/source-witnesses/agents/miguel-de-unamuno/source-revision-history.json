@@ -1,0 +1,99 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.agent.miguel-de-unamuno",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:d90f343d4c7cb31acf032d58",
+      "request_digest": "sha256:09df7c58a14bc287291bc192f31e35cb7dfe7dc518c3030eb79799002ab61500",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:d8b6c6a96f172c104f754f24c01ac98baccdfb608afe8771440f05cd8b4f2cb1",
+      "recorded_at": "2026-09-22T05:04:14.403903+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.agent.miguel-de-unamuno",
+        "version": 1,
+        "digest": "sha256:fae20f9d4e849356c21e2b17623b21cd77b4ab14b0359e30056bb7652d7d888d"
+      },
+      "source": {
+        "id": "tos.agent.miguel-de-unamuno",
+        "version": 2,
+        "digest": "sha256:4c47e8552863ab2a7ff5a90d4d74768bf70618cdfe8dee9d43cf02522f61b67d"
+      },
+      "previous_revision": "sha256:10e40526be5d0ad702494877a8ba611f81a4dca0c231e8188ad1d0f38779eff2",
+      "archive_path": "ToS/source-witnesses/.record-revisions/d90f343d4c7cb31acf032d58994d0c8bc5abad22805452b81f1ed81fefe46115-10e40526be5d0ad702494877a8ba611f81a4dca0c231e8188ad1d0f38779eff2",
+      "dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+      "changed_fields": [
+        "notes"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.generation98.unamuno.name-ru",
+          "version": 2,
+          "digest": "sha256:6eaaf6cc6e4475a787716cda600fba3e021ade04153e5efb82cc86d15ac08a11"
+        },
+        {
+          "id": "tos.form.generation98.unamuno.name-es",
+          "version": 2,
+          "digest": "sha256:52147bdb8da7bca74b18ab5b5b2527415fc7c32738c134fc51948c37166ddcde"
+        },
+        {
+          "id": "tos.form.generation98.unamuno.name-en",
+          "version": 2,
+          "digest": "sha256:a0a94e64daa4d477c7354c9daf3163cb99268cdec54d009b5d3990e3d1901bb6"
+        },
+        {
+          "id": "tos.form.generation98.unamuno.note-ru",
+          "version": 2,
+          "digest": "sha256:959c939487cc53782c2fa0fa3ce4efe8e9689f313b588e1023696fd1b12dcefe"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:d90f343d4c7cb31acf032d58",
+        "expected_configuration": "sha256:d8b6c6a96f172c104f754f24c01ac98baccdfb608afe8771440f05cd8b4f2cb1",
+        "expected_dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+        "expected_publication": "sha256:0afd45612871fd0c7ea9ae7014bae5ca5f253da2839eb7d700a734e2376c8338",
+        "expected_revision": "sha256:10e40526be5d0ad702494877a8ba611f81a4dca0c231e8188ad1d0f38779eff2",
+        "expected_source": {
+          "digest": "sha256:fae20f9d4e849356c21e2b17623b21cd77b4ab14b0359e30056bb7652d7d888d",
+          "id": "tos.agent.miguel-de-unamuno",
+          "version": 1
+        },
+        "fields": {
+          "notes": "Предварительная идентификация человека по каталожному имени."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.generation98.unamuno.name-ru"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.generation98.unamuno.name-es"
+          },
+          {
+            "field_id": "metadata.variant-name:1",
+            "form_id": "tos.form.generation98.unamuno.name-en"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.generation98.unamuno.note-ru"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:e13b4bd96fd951c126aa3f74b96030343aafd8841c22aeb77bb5493b2af3a253",
+        "selected_files": [
+          "agent.human-forms.json",
+          "agent.json",
+          "source-revision-history.json"
+        ]
+      }
+    }
+  ]
+}

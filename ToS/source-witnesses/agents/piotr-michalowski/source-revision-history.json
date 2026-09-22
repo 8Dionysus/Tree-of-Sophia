@@ -1,0 +1,81 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.agent.piotr-michalowski",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:d064eba69a6873fcd6954689",
+      "request_digest": "sha256:3da3a413a0ec991ff043c638391827c38d8831a3588a7b53c65c86e23095430d",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:a5a23726d2667c4ca420940f8eafe8dbbe589d77a179b0d62224b32a4aa42c23",
+      "recorded_at": "2026-09-22T05:04:18.739914+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.agent.piotr-michalowski",
+        "version": 1,
+        "digest": "sha256:ef784d1f06c383d5172c28c6f1af16ae3879da415f604cd29ec8f16b67cbb072"
+      },
+      "source": {
+        "id": "tos.agent.piotr-michalowski",
+        "version": 2,
+        "digest": "sha256:3b03d8c93f9a21b1bfd18cf4bc1eb085d73c0fc2e2a1e4ff16740a3e4a3766bf"
+      },
+      "previous_revision": "sha256:e41851770f0545cd49af4da5bfabe0521b51b12628ff9294709a9d18b838710d",
+      "archive_path": "ToS/source-witnesses/.record-revisions/d064eba69a6873fcd6954689aba76ff5f32fcae235fea427fe0f9d250ce598b5-e41851770f0545cd49af4da5bfabe0521b51b12628ff9294709a9d18b838710d",
+      "dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+      "changed_fields": [
+        "notes"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.metadata.e161e424045241977593ab39b610579b7063309ad71c1a122ca1611c877460d6",
+          "version": 2,
+          "digest": "sha256:eafe7d3e5fe05161e5b5011f0d562cc371329751dfb95c7125523eb89602169f"
+        },
+        {
+          "id": "tos.form.metadata.09e38a397d02e9e2000285ab060caf6f1c4ebed90c29355aaaf127a0b255b286",
+          "version": 2,
+          "digest": "sha256:d6224d9ec6e607bdbbdffaf30c572e4c99d360424f04e60ec9d606b490c10b0a"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:d064eba69a6873fcd6954689",
+        "expected_configuration": "sha256:a5a23726d2667c4ca420940f8eafe8dbbe589d77a179b0d62224b32a4aa42c23",
+        "expected_dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+        "expected_publication": "sha256:c8e8c6c187775e4545d06c3b533e0b0d821ca93fc8a5c5f2a4e3fdfa6c4eb49b",
+        "expected_revision": "sha256:e41851770f0545cd49af4da5bfabe0521b51b12628ff9294709a9d18b838710d",
+        "expected_source": {
+          "digest": "sha256:ef784d1f06c383d5172c28c6f1af16ae3879da415f604cd29ec8f16b67cbb072",
+          "id": "tos.agent.piotr-michalowski",
+          "version": 1
+        },
+        "fields": {
+          "notes": "The checked book, library, and review metadata identify Piotr Michalowski as volume editor of the 1997 second edition. These sources support a provisional bibliographic identity."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.metadata.e161e424045241977593ab39b610579b7063309ad71c1a122ca1611c877460d6"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.metadata.09e38a397d02e9e2000285ab060caf6f1c4ebed90c29355aaaf127a0b255b286"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:97b8b75fa4964aec56904d5eb41fa8ddafa037f6777f2296d9f3e21979e6bf8a",
+        "selected_files": [
+          "agent.human-forms.json",
+          "agent.json",
+          "source-revision-history.json"
+        ]
+      }
+    }
+  ]
+}

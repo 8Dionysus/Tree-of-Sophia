@@ -62,10 +62,7 @@ RIGHTS_REF = (
     "internet-archive-google-harvard-scan-pdf/rights.json"
 )
 AUTHORITY_BOUNDARY = (
-    "model-reviewed source-visible numbered-unit start-page candidates and "
-    "proposed whole-page addresses for one exact scan only; no source text, "
-    "exact line boundary, textual acceptance, critical equivalence, "
-    "translation correspondence, semantics, rights clearance, or canon authority"
+    "This map records model-reviewed numbered-unit start-page candidates and proposed whole-page addresses for one exact source scan."
 )
 DOES_NOT_ESTABLISH = [
     "source_text",
@@ -807,8 +804,7 @@ def main() -> int:
         path.write_text(rendered, encoding="utf-8")
     print("[ok] wrote 299 proposed Jenseits numbered-unit start-page anchors")
     print(
-        "[boundary] no OCR text, accepted German, exact line boundaries, "
-        "translation, or semantics were emitted"
+        "[scope] Text-free proposed source page starts and their exact whole-page anchors."
     )
     return 0
 

@@ -1,0 +1,129 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911.rsl-neb-scan-pdf",
+    "version": 1,
+    "digest": "sha256:55db2d55cdbd631f047993a5ca7849e80838a14c21c1deb4d106d44619246485"
+  },
+  "forms": [
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.36b7e7390b21e8e4c38e71506e7acbad56094e70debd33e3aba92f7fb3051832",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911.rsl-neb-scan-pdf",
+        "version": 1,
+        "digest": "sha256:55db2d55cdbd631f047993a5ca7849e80838a14c21c1deb4d106d44619246485"
+      },
+      "role": "name",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911.rsl-neb-scan-pdf",
+            "version": 1,
+            "digest": "sha256:55db2d55cdbd631f047993a5ca7849e80838a14c21c1deb4d106d44619246485"
+          },
+          "pointer": "/preferred_label"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911.rsl-neb-scan-pdf",
+            "version": 1,
+            "digest": "sha256:55db2d55cdbd631f047993a5ca7849e80838a14c21c1deb4d106d44619246485"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911.rsl-neb-scan-pdf",
+            "version": 1,
+            "digest": "sha256:55db2d55cdbd631f047993a5ca7849e80838a14c21c1deb4d106d44619246485"
+          },
+          "pointer": "/same_as_posture"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    },
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.27caa7bc8e684830be263290c7d4b77c6daaafff7dc73062c36415ab56b44ae1",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911.rsl-neb-scan-pdf",
+        "version": 1,
+        "digest": "sha256:55db2d55cdbd631f047993a5ca7849e80838a14c21c1deb4d106d44619246485"
+      },
+      "role": "hover",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911.rsl-neb-scan-pdf",
+            "version": 1,
+            "digest": "sha256:55db2d55cdbd631f047993a5ca7849e80838a14c21c1deb4d106d44619246485"
+          },
+          "pointer": "/notes"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911.rsl-neb-scan-pdf",
+            "version": 1,
+            "digest": "sha256:55db2d55cdbd631f047993a5ca7849e80838a14c21c1deb4d106d44619246485"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911.rsl-neb-scan-pdf",
+            "version": 1,
+            "digest": "sha256:55db2d55cdbd631f047993a5ca7849e80838a14c21c1deb4d106d44619246485"
+          },
+          "pointer": "/same_as_posture"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation-source-forms-v1:tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911.rsl-neb-scan-pdf",
+      "request_digest": "sha256:808044c51de992dd8f3cacac3f8c6c7c2e8ea1561b989596b4e852d943bc1db0",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-07",
+      "owner_configuration": "sha256:3f47a89f44d7abd17510614a7443b21f69d36575d5c0f5bca53b2a3ec8eb8d76",
+      "recorded_at": "2026-09-07T03:13:29.934882+00:00",
+      "source": {
+        "id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911.rsl-neb-scan-pdf",
+        "version": 1,
+        "digest": "sha256:55db2d55cdbd631f047993a5ca7849e80838a14c21c1deb4d106d44619246485"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.36b7e7390b21e8e4c38e71506e7acbad56094e70debd33e3aba92f7fb3051832",
+          "version": 1,
+          "digest": "sha256:1152e2b5f772827bfea257f733e6f104f48f65769da5d8a4887f4827c7c1e338"
+        },
+        {
+          "id": "tos.form.metadata.27caa7bc8e684830be263290c7d4b77c6daaafff7dc73062c36415ab56b44ae1",
+          "version": 1,
+          "digest": "sha256:a8e01281da4c3b35d87e3acc6b5c60e1cf2f7662ccf077e7b7d145ef8ceea816"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,99 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1891-part-4.dta-sub-goettingen-corrected-tei-p5",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:219e861b076b5b32e33510f6",
+      "request_digest": "sha256:f719066d104e0fb6a4388eeb5eccb876042e651f774ecd69f0094fa87e528752",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:aa0838bca2b3e979caf30eaa5856e8103691315891710748f4d800ffd7406376",
+      "recorded_at": "2026-09-22T05:08:41.326196+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1891-part-4.dta-sub-goettingen-corrected-tei-p5",
+        "version": 1,
+        "digest": "sha256:d7034c1409dfb61dd99441bba92b762e7d50a30e54515407f491a63f134c5b63"
+      },
+      "source": {
+        "id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1891-part-4.dta-sub-goettingen-corrected-tei-p5",
+        "version": 2,
+        "digest": "sha256:7d5fe4bbb7b6b5058ba44c3cb0693e74676dc18eeb6bd3eff4dcc750794d42f4"
+      },
+      "previous_revision": "sha256:8b709aa70b9148e4b3c8fdeca229aac7a44035ad2f0c99dedb9e1fd5aa3c5b81",
+      "archive_path": "ToS/source-witnesses/.record-revisions/219e861b076b5b32e33510f6e66ff3cf974bdf06c70591932cb8e049c0927f53-8b709aa70b9148e4b3c8fdeca229aac7a44035ad2f0c99dedb9e1fd5aa3c5b81",
+      "dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+      "changed_fields": [
+        "notes"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.metadata.9dfc3c6fe760b4ba6db6312bb1ab37ad865175916bac88c0acb741c709a918ba",
+          "version": 2,
+          "digest": "sha256:51cacce6b07ddb0400b48c7d3146a91424b391d816c87ad9ed4efcb187c06b7d"
+        },
+        {
+          "id": "tos.form.metadata.75a5fa0dc0391f5d30551eb76d7fab2ff15d30907befddbd15fbe1035a2d4da7",
+          "version": 2,
+          "digest": "sha256:07bb8758266b949e4576a45a21fc70d8c6eb2092b41d1beb1a51a1c5abebe803"
+        },
+        {
+          "id": "tos.form.metadata.28dd08d69b5b96d7586b5706cfdcfc053a298f7c9e9699e386575aee0045d687",
+          "version": 2,
+          "digest": "sha256:8dea2112a9f730e78a050282768dfe1bca09527b688db91755058793b8289dbf"
+        },
+        {
+          "id": "tos.form.metadata.2f91ab6c35a09c8f44d0fda6980305c00661162931d1db3b2992ba6a04e050b0",
+          "version": 2,
+          "digest": "sha256:7fa74360cc2b08a6fde2a0f97a6b8ffdef7c7d4711e2ce95f57d47d5b196789e"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:219e861b076b5b32e33510f6",
+        "expected_configuration": "sha256:aa0838bca2b3e979caf30eaa5856e8103691315891710748f4d800ffd7406376",
+        "expected_dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+        "expected_publication": "sha256:107a642914709be4fa115b9b2f77d1928889b159de525f1bbd5fabfaa45a2857",
+        "expected_revision": "sha256:8b709aa70b9148e4b3c8fdeca229aac7a44035ad2f0c99dedb9e1fd5aa3c5b81",
+        "expected_source": {
+          "digest": "sha256:d7034c1409dfb61dd99441bba92b762e7d50a30e54515407f491a63f134c5b63",
+          "id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1891-part-4.dta-sub-goettingen-corrected-tei-p5",
+          "version": 1
+        },
+        "fields": {
+          "notes": "DTA's annotated structured transcription of the SUB Göttingen witness, accompanied at the provider by 170 facsimile images. DTA reports native-speaker post-OCR checking. Independent textual assessment in ToS remains open."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.metadata.9dfc3c6fe760b4ba6db6312bb1ab37ad865175916bac88c0acb741c709a918ba"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.metadata.75a5fa0dc0391f5d30551eb76d7fab2ff15d30907befddbd15fbe1035a2d4da7"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.metadata.28dd08d69b5b96d7586b5706cfdcfc053a298f7c9e9699e386575aee0045d687"
+          },
+          {
+            "field_id": "metadata.variant-name:1",
+            "form_id": "tos.form.metadata.2f91ab6c35a09c8f44d0fda6980305c00661162931d1db3b2992ba6a04e050b0"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:45166ab6f25492a0ba15febfa16ae70c46793e1ab5faab3c57ae2ed61e982972",
+        "selected_files": [
+          "item.human-forms.json",
+          "item.json",
+          "source-revision-history.json"
+        ]
+      }
+    }
+  ]
+}

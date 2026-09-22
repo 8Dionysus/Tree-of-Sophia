@@ -239,9 +239,7 @@
         {"type": "null"}
       ]
     },
-    "authority_boundary": {
-      "const": "model-reviewed target-visible numbered-label start-page candidates and proposed whole-page addresses for one exact translation scan only; no target text, exact line boundary, translation alignment, translation equivalence or quality, textual identity, semantics, rights clearance, or canon authority"
-    },
+    "authority_boundary": {"type": "string", "minLength": 1, "description": "Brief account of the artifact purpose and scope. Typed status, effects, assessment and permission fields govern its use."},
     "does_not_establish": {
       "const": [
         "target_text",

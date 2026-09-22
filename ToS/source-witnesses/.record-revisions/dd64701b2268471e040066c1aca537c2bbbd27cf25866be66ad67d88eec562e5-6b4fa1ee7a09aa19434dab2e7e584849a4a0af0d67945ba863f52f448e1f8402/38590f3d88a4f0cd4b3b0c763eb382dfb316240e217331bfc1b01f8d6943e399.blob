@@ -1,0 +1,210 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.edition.sid-89a5d842830345d48c3c435dd4c6172e",
+  "receipts": [
+    {
+      "command_id": "tos.event.sid-1a14fd9107cd4aa8af566f2236e51fbf",
+      "request_digest": "sha256:8d75da108504becc253c0968e0ffe44e6fa21a0fce14f566308a5d12aa9178e7",
+      "principal_id": "agent:codex-tos-public-native-occurrence",
+      "authority_ref": "operator:tos-foundation-v1",
+      "owner_configuration": "sha256:f58de066b92303140c152ef2d5716ef0c8d6172dd0f2cd1cd1d01b43e287c177",
+      "recorded_at": "2026-09-10T01:53:38.806641+00:00",
+      "reason": "Retain exact actual project-source bytes with independent original-Item rights and fixity.",
+      "previous_source": {
+        "id": "tos.edition.sid-89a5d842830345d48c3c435dd4c6172e",
+        "version": 1,
+        "digest": "sha256:1ebea24aac39d22519bb98985066e1b98008d47b3eb4350c0a5f86fc1f7a1b7c"
+      },
+      "source": {
+        "id": "tos.edition.sid-89a5d842830345d48c3c435dd4c6172e",
+        "version": 2,
+        "digest": "sha256:2098ad912091e4eb09ff4e1ec23c681784a984e926efef6d426960c954bf6dfc"
+      },
+      "previous_revision": "sha256:9e3e8a9e866a03da246407ea302f28d30c7c9641b7b79f7dd2dd3c7c8f3f495f",
+      "archive_path": "ToS/source-witnesses/.record-revisions/dd64701b2268471e040066c1aca537c2bbbd27cf25866be66ad67d88eec562e5-9e3e8a9e866a03da246407ea302f28d30c7c9641b7b79f7dd2dd3c7c8f3f495f",
+      "dependencies": "sha256:9e07aad9bdaa8668378e7c2418987e742aa4fba71589c4dd581b73bb43674a1b",
+      "changed_fields": [
+        "exemplar_claim_refs"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.sid-3cdbc8360466437a82d02fd111ea60bd",
+          "version": 2,
+          "digest": "sha256:64ec0fb4d3f8782414126d4cda427f58cd2fbb23363b2170eeb25b0826bb829f"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "claim": {
+          "assertion_layer": "bibliographic_assertion",
+          "assessment_refs": [],
+          "claim_id": "tos.claim.sid-974b2e6aae474e25983ddc11dc612bce",
+          "claim_type": "relation",
+          "claim_version": 1,
+          "epistemic_status": "observed",
+          "evidence_refs": [
+            "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/edition.json",
+            "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/items/acquired-note-utf8-20260910/item.json"
+          ],
+          "maker": {
+            "agent_ref": "agent:codex-tos-public-native-occurrence",
+            "maker_type": "model"
+          },
+          "object": "tos.item.sid-9a5249d273634cf6b2eb96b5e7719fa8",
+          "polarity": "positive",
+          "predicate": "exemplified_by",
+          "provenance_event_ref": "tos.event.sid-1a14fd9107cd4aa8af566f2236e51fbf",
+          "qualifiers": {
+            "statement": "This exact acquired repository copy exemplifies the selected Markdown manifestation; acquisition does not clear redistribution.",
+            "statement_language": "en",
+            "statement_script": "Latn"
+          },
+          "review_status": "unreviewed",
+          "schema_version": "tos_source_relation_claim_v1",
+          "subject_ref": "tos.edition.sid-89a5d842830345d48c3c435dd4c6172e",
+          "visibility": "public_metadata_only"
+        },
+        "claim_forms": [
+          {
+            "field_id": "claim.statement",
+            "form_id": "tos.form.sid-4081465ff107442383531220a1032f68"
+          }
+        ],
+        "command_id": "tos.event.sid-1a14fd9107cd4aa8af566f2236e51fbf",
+        "expected_configuration": "sha256:f58de066b92303140c152ef2d5716ef0c8d6172dd0f2cd1cd1d01b43e287c177",
+        "expected_dependencies": "sha256:9e07aad9bdaa8668378e7c2418987e742aa4fba71589c4dd581b73bb43674a1b",
+        "expected_publication": "sha256:e63dfa101836e8517deabc08db2cf6158e7261959321910766e4666e3fd5f6a6",
+        "expected_revision": "sha256:9e3e8a9e866a03da246407ea302f28d30c7c9641b7b79f7dd2dd3c7c8f3f495f",
+        "expected_source": {
+          "digest": "sha256:1ebea24aac39d22519bb98985066e1b98008d47b3eb4350c0a5f86fc1f7a1b7c",
+          "id": "tos.edition.sid-89a5d842830345d48c3c435dd4c6172e",
+          "version": 1
+        },
+        "fields": {
+          "exemplar_claim_refs": [
+            "tos.claim.sid-974b2e6aae474e25983ddc11dc612bce"
+          ]
+        },
+        "fixity_verified_at": "2026-09-10T01:53:35.821341+00:00",
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.sid-3cdbc8360466437a82d02fd111ea60bd"
+          }
+        ],
+        "inventory": {
+          "file_id": "tos.file.sha256.94f66621e381f4a1f34782943f45d4ab65e3b4ba056b8a67df4b500ac897813c",
+          "file_sha256": "94f66621e381f4a1f34782943f45d4ab65e3b4ba056b8a67df4b500ac897813c",
+          "media_type": "text/markdown",
+          "profile": "plain_utf8_file_v1",
+          "resources": [
+            {
+              "byte_size": 3320,
+              "locator": {
+                "byte_end": 3320,
+                "byte_start": 0
+              },
+              "media_type": "text/markdown",
+              "resource_id": "plain-utf8-file",
+              "resource_kind": "plain_text_file",
+              "sha256": "94f66621e381f4a1f34782943f45d4ab65e3b4ba056b8a67df4b500ac897813c",
+              "structural_role": "contents"
+            }
+          ],
+          "summary": {
+            "resource_count": 1
+          },
+          "utf8_observation": {
+            "bom_byte_count": 0,
+            "code_point_count": 3311,
+            "code_point_count_includes_bom": true,
+            "crlf_count": 0,
+            "encoding": "UTF-8",
+            "lone_cr_count": 0,
+            "lone_lf_count": 46,
+            "markup_interpretation_performed": false,
+            "normalization_observation": "nfc",
+            "normalization_performed": false,
+            "terminal_newline": "lf",
+            "unicode_version": "16.0.0"
+          }
+        },
+        "inventory_limitation": null,
+        "item_forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.sid-4460879eed4b44dc9de20babc0cc6f49"
+          }
+        ],
+        "item_kind": "born_digital",
+        "operation": "item.adopt",
+        "reason": "Retain exact actual project-source bytes with independent original-Item rights and fixity.",
+        "record": {
+          "external_identifiers": [],
+          "field_languages": {
+            "notes": {
+              "language": "en",
+              "script": "Latn"
+            },
+            "preferred_label": {
+              "language": "en",
+              "script": "Latn"
+            }
+          },
+          "identity_status": "provisional",
+          "item_manifest_ref": "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/items/acquired-note-utf8-20260910/item.manifest.json",
+          "notes": "A byte-exact local retained copy of the frozen authored Markdown note, acquired through the normal Item deposit command. Original input is unchanged; this Item does not authorize public native output.",
+          "preferred_label": "Acquired exact repository copy of the scoped research note",
+          "record_id": "tos.item.sid-9a5249d273634cf6b2eb96b5e7719fa8",
+          "record_type": "item",
+          "record_version": 1,
+          "same_as_posture": "no_equivalence_claim",
+          "schema_version": "tos_corpus_record_v1",
+          "source_refs": [
+            "ToS/review-ledger/2026-09-10-scoped-research-corpus-selection.md"
+          ],
+          "supersedes_ref": null,
+          "variant_labels": []
+        },
+        "rights": {
+          "assessed_at": "2026-09-10T01:43:02Z",
+          "assessed_by": {
+            "agent_ref": "agent:codex-tos-public-native-occurrence",
+            "maker_type": "model"
+          },
+          "assessment_status": "not_assessed",
+          "derivative_posture": "local_research_only",
+          "jurisdictions_reviewed": [],
+          "permissions": [],
+          "rationale": "No original Item redistribution decision is made by local acquisition.",
+          "record_version": 1,
+          "redistribution_posture": "not_authorized",
+          "restrictions": [
+            "Original acquired Item is retained locally only; public derived output requires separate exact rights and operator scope."
+          ],
+          "review_status": "unreviewed",
+          "rights_id": "tos.rights.sid-e399d435e6824631a8af307d433dac99",
+          "schema_version": "tos_rights_record_v1",
+          "scope_refs": [
+            "tos.item.sid-9a5249d273634cf6b2eb96b5e7719fa8",
+            "tos.file.sha256.94f66621e381f4a1f34782943f45d4ab65e3b4ba056b8a67df4b500ac897813c"
+          ],
+          "source_refs": [
+            "ToS/review-ledger/2026-09-10-scoped-research-corpus-selection.md"
+          ],
+          "visibility": "local_only"
+        },
+        "schema_version": "tos_local_item_adoption_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:db9ada45dea3c04c8f92d8ccfaf509111c9bfbec71b553b82123fed02d31d409",
+        "selected_files": [
+          "edition.human-forms.json",
+          "edition.json",
+          "source-revision-history.json"
+        ]
+      }
+    }
+  ]
+}
