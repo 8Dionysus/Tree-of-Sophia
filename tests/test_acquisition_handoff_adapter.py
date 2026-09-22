@@ -261,6 +261,27 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
         adapter_receipt = json.loads(
             (self.candidate / "receipts/acquisition-handoff-adapter.json").read_text()
         )
+        handoff = json.loads(
+            (self.acquisition_root / result["handoff_ref"]).read_text()
+        )
+        evidence = adapter_receipt["evidence"]
+        for name, expected_source in {
+            "manifest.json": self.acquisition_root / "manifest.json",
+            "handoff.json": self.acquisition_root / result["handoff_ref"],
+            "provenance-delta.json": self.acquisition_root / handoff["provenance_delta"]["ref"],
+            "fixity.jsonl": self.acquisition_root / handoff["independent_fixity"]["ref"],
+            "fixity-summary.json": self.acquisition_root / handoff["independent_fixity"]["summary_ref"],
+        }.items():
+            candidate_evidence = self.candidate / evidence[name]["ref"]
+            self.assertEqual(expected_source.read_bytes(), candidate_evidence.read_bytes())
+            self.assertEqual(
+                evidence[name]["sha256"],
+                hashlib.sha256(candidate_evidence.read_bytes()).hexdigest(),
+            )
+            self.assertEqual(
+                expected_source.relative_to(self.acquisition_root).as_posix(),
+                evidence[name]["source_ref"],
+            )
         context_path = self.candidate / adapter_receipt["validation_context_ref"]
         self.assertEqual(
             adapter_receipt["validation_context_sha256"],

@@ -673,9 +673,11 @@ def adapt_handoff(
         source_root = staging / "source"
         payload_root = staging / "payload"
         receipts_root = staging / "receipts"
+        evidence_root = receipts_root / "acquisition-evidence"
         source_root.mkdir()
         payload_root.mkdir()
         receipts_root.mkdir()
+        evidence_root.mkdir()
         updates: list[dict[str, Any]] = []
         for row in sorted(selected_source_rows, key=lambda value: value["ref"]):
             source = _path_under(root, row["handoff_ref"], label="handoff source")
@@ -718,6 +720,45 @@ def adapt_handoff(
             except (acquisition.SourceIntegrityError, custody.CustodyError, OSError) as exc:
                 raise HandoffAdapterError(f"candidate payload fixity differs: {payload['file_ref']}") from exc
 
+        # Keep the exact producer evidence beside the converted candidate so
+        # every receipt reference remains resolvable after the handoff root is
+        # moved.  These are operational evidence copies, not source updates:
+        # the batch delta remains explicitly not-admitted.
+        evidence_sources = (
+            ("manifest.json", manifest_path, context.manifest_sha256),
+            ("handoff.json", handoff_path, _sha256_file(handoff_path)),
+            (
+                "provenance-delta.json",
+                _path_under(root, _provenance_delta_ref(context), label="handoff provenance delta"),
+                handoff["provenance_delta"]["sha256"],
+            ),
+            (
+                "fixity.jsonl",
+                _path_under(root, handoff["independent_fixity"]["ref"], label="fixity JSONL reference"),
+                handoff["independent_fixity"]["jsonl_sha256"],
+            ),
+            (
+                "fixity-summary.json",
+                _path_under(root, handoff["independent_fixity"]["summary_ref"], label="fixity summary reference"),
+                handoff["independent_fixity"]["summary_sha256"],
+            ),
+        )
+        evidence_refs: dict[str, dict[str, str]] = {}
+        for name, source, digest in evidence_sources:
+            destination = evidence_root / name
+            info = _regular(source, label=f"handoff evidence: {name}")
+            _copy_no_clobber(
+                source,
+                destination,
+                sha256=digest,
+                byte_size=info.st_size,
+            )
+            evidence_refs[name] = {
+                "ref": destination.relative_to(staging).as_posix(),
+                "source_ref": source.relative_to(root).as_posix(),
+                "sha256": digest,
+            }
+
         batch = {
             "schema_version": "tos_corpus_batch_v1",
             "base_revision": base_revision,
@@ -745,7 +786,8 @@ def adapt_handoff(
             "schema_version": "tos_acquisition_handoff_adapter_receipt_v1",
             "handoff_ref": handoff_relative,
             "handoff_sha256": _sha256_file(handoff_path),
-            "manifest_ref": "manifest.json",
+            "manifest_ref": evidence_refs["manifest.json"]["ref"],
+            "manifest_source_ref": "manifest.json",
             "manifest_sha256": context.manifest_sha256,
             "provenance_delta_ref": handoff["provenance_delta"]["ref"],
             "provenance_delta_sha256": handoff["provenance_delta"]["sha256"],
@@ -763,6 +805,7 @@ def adapt_handoff(
             "validator_transition": validator_transition,
             "validation_context_ref": "receipts/validation-context.json",
             "validation_context_sha256": validation_context_sha256,
+            "evidence": evidence_refs,
             "candidate_batch_ref": batch_ref,
             "candidate_batch_sha256": _sha256_file(batch_path),
             "input_root": "source",

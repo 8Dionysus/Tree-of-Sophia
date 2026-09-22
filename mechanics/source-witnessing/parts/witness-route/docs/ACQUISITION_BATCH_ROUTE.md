@@ -73,6 +73,10 @@ identity differs from the accepted snapshot. It never silently rewrites the
 batch identity or uses the accepted validator as a substitute. A downstream
 admission run must pass the receipt's exact context to `corpus_admit`; the
 adapter's read-batch check is transport evidence, not SourceValidator
-acceptance.
+acceptance. It also copies the exact selection manifest, handoff, provenance
+delta, and independent fixity files under
+`receipts/acquisition-evidence/`. The delta remains operational evidence and
+is not added to `tos_corpus_batch_v1.updates`; its source ref and SHA remain
+bound in the adapter receipt.
 The queued-corpus-intake owner can use this adapter's selector and receipt
 shape while its seven-batch converter remains a separate owner surface.
