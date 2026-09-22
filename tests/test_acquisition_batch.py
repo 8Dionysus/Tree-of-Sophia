@@ -5,7 +5,10 @@ import json
 from pathlib import Path
 import sys
 import tempfile
+import threading
+import time
 import unittest
+from unittest.mock import patch
 
 from jsonschema import Draft202012Validator
 
@@ -193,6 +196,28 @@ class AcquisitionBatchTests(unittest.TestCase):
         self.assertEqual("not-admitted", handoff["admission_status"])
         self.assertTrue(handoff["restartable"])
         self.assertEqual(0, handoff["topology_preimages"])
+        self.assertEqual(
+            hashlib.sha256(
+                (self.output / handoff["independent_fixity"]["ref"]).read_bytes()
+            ).hexdigest(),
+            handoff["independent_fixity"]["jsonl_sha256"],
+        )
+        self.assertEqual(
+            hashlib.sha256(
+                (self.output / handoff["independent_fixity"]["summary_ref"]).read_bytes()
+            ).hexdigest(),
+            handoff["independent_fixity"]["summary_sha256"],
+        )
+        self.assertEqual(
+            hashlib.sha256(
+                (self.output / handoff["provenance_delta"]["ref"]).read_bytes()
+            ).hexdigest(),
+            handoff["provenance_delta"]["sha256"],
+        )
+        self.assertEqual(
+            "source/ToS/source-witnesses/discovery/acquisition-batches/fixture-20260921/provenance-delta.json",
+            handoff["provenance_delta"]["ref"],
+        )
 
     def test_provider_wrong_bytes_do_not_overwrite_or_mislabel_acquisition(self) -> None:
         fetches, manifest_sha = self._write_manifest(count=1)
@@ -224,6 +249,120 @@ class AcquisitionBatchTests(unittest.TestCase):
         self.manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
         with self.assertRaisesRegex(acquisition.AcquisitionBatchError, "base revision"):
             acquisition.load_manifest(self.manifest_path)
+
+    def test_selected_rights_mutation_rejects_resume_and_handoff(self) -> None:
+        _fetches, manifest_sha = self._write_manifest(count=1)
+        acquisition.prepare_batch(
+            manifest_path=self.manifest_path,
+            metadata_root=self.metadata,
+            output_root=self.output,
+            expected_manifest_sha256=manifest_sha,
+        )
+        rights = self.output / (
+            "source/ToS/source-witnesses/works/fixture/expressions/en/"
+            "editions/pinned/items/fixture-0/rights.json"
+        )
+        rights.write_bytes(b'{"rights":"changed-after-prepare"}\n')
+        fetch_calls: list[str] = []
+
+        def should_not_fetch(payload: dict) -> bytes:
+            fetch_calls.append(payload["file_ref"])
+            return _fetches[payload["file_ref"]]
+
+        with self.assertRaisesRegex(acquisition.SourceIntegrityError, "selected record digest"):
+            acquisition.acquire_batch(
+                manifest_path=self.manifest_path,
+                metadata_root=self.metadata,
+                output_root=self.output,
+                expected_manifest_sha256=manifest_sha,
+                fetcher=should_not_fetch,
+            )
+        self.assertEqual([], fetch_calls)
+        with self.assertRaisesRegex(acquisition.SourceIntegrityError, "selected record digest"):
+            acquisition.verify_local(output_root=self.output)
+        self.assertEqual([], list((self.output / "receipts").glob("handoff-*.json")))
+
+    def test_selected_metadata_mutation_before_handoff_is_rejected(self) -> None:
+        fetches, manifest_sha = self._write_manifest(count=1)
+        original_fixity = acquisition._fixity_receipt
+        rights = self.output / (
+            "source/ToS/source-witnesses/works/fixture/expressions/en/"
+            "editions/pinned/items/fixture-0/rights.json"
+        )
+
+        def mutate_after_fixity(*args, **kwargs):
+            result = original_fixity(*args, **kwargs)
+            rights.write_bytes(b"changed-between-fixity-and-handoff\n")
+            return result
+
+        with patch.object(acquisition, "_fixity_receipt", side_effect=mutate_after_fixity):
+            with self.assertRaisesRegex(acquisition.SourceIntegrityError, "selected record digest"):
+                acquisition.acquire_batch(
+                    manifest_path=self.manifest_path,
+                    metadata_root=self.metadata,
+                    output_root=self.output,
+                    expected_manifest_sha256=manifest_sha,
+                    fetcher=lambda payload: fetches[payload["file_ref"]],
+                )
+        self.assertEqual([], list((self.output / "receipts").glob("handoff-*.json")))
+
+    def test_interrupted_prepare_is_rebuilt_before_acquisition(self) -> None:
+        fetches, manifest_sha = self._write_manifest(count=1)
+        self.output.mkdir()
+        (self.output / "source").mkdir()
+        (self.output / "payload").mkdir()
+        (self.output / "receipts").mkdir()
+        (self.output / "source/partial.tmp").write_bytes(b"interrupted")
+        result = acquisition.acquire_batch(
+            manifest_path=self.manifest_path,
+            metadata_root=self.metadata,
+            output_root=self.output,
+            expected_manifest_sha256=manifest_sha,
+            fetcher=lambda payload: fetches[payload["file_ref"]],
+        )
+        self.assertEqual("acquired-not-admitted", result["status"])
+        self.assertTrue((self.output / "receipts/preparation.json").is_file())
+        self.assertFalse((self.output / "source/partial.tmp").exists())
+
+    def test_concurrent_acquire_calls_are_serialized(self) -> None:
+        fetches, manifest_sha = self._write_manifest(count=1)
+        calls: list[str] = []
+        calls_lock = threading.Lock()
+
+        def fetch(payload: dict) -> bytes:
+            with calls_lock:
+                calls.append(payload["file_ref"])
+            time.sleep(0.05)
+            return fetches[payload["file_ref"]]
+
+        results: list[dict] = []
+        errors: list[BaseException] = []
+
+        def run() -> None:
+            try:
+                results.append(
+                    acquisition.acquire_batch(
+                        manifest_path=self.manifest_path,
+                        metadata_root=self.metadata,
+                        output_root=self.output,
+                        expected_manifest_sha256=manifest_sha,
+                        fetcher=fetch,
+                        max_attempts=1,
+                    )
+                )
+            except BaseException as exc:  # pragma: no cover - assertion below reports it
+                errors.append(exc)
+
+        first = threading.Thread(target=run)
+        second = threading.Thread(target=run)
+        first.start()
+        second.start()
+        first.join()
+        second.join()
+        self.assertEqual([], errors)
+        self.assertEqual(2, len(results))
+        self.assertEqual(1, len(calls))
+        self.assertEqual(2, len(list((self.output / "receipts").glob("handoff-*.json"))))
 
 
 if __name__ == "__main__":

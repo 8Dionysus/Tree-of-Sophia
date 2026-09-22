@@ -19,6 +19,7 @@ always says ``admission_status: not-admitted``.
 from __future__ import annotations
 
 import argparse
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timezone
 import fcntl
@@ -27,6 +28,7 @@ import json
 import os
 from pathlib import Path, PurePosixPath
 import re
+import shutil
 import stat
 import sys
 import tempfile
@@ -410,6 +412,15 @@ def _batch_slug(batch_id: str) -> str:
     return batch_id.removeprefix("tos.acquisition-batch.")
 
 
+def _provenance_delta_ref(context: BatchContext) -> str:
+    """Return the one deterministic delta path for this prepared batch."""
+
+    return (
+        "source/ToS/source-witnesses/discovery/acquisition-batches/"
+        f"{_batch_slug(context.manifest['batch_id'])}/provenance-delta.json"
+    )
+
+
 def _output_manifest_path(output_root: Path) -> Path:
     return output_root / "manifest.json"
 
@@ -483,6 +494,8 @@ def prepare_batch(
         raise AcquisitionBatchError("output root must be absolute")
     if output.exists() or output.is_symlink():
         raise AcquisitionBatchError(f"preparation output must be new: {output}")
+    if not output.parent.is_dir() or output.parent.is_symlink():
+        raise AcquisitionBatchError(f"preparation output parent must be a regular directory: {output.parent}")
     output.mkdir(parents=True)
     source_root = output / "source"
     payload_root = output / "payload"
@@ -513,10 +526,7 @@ def prepare_batch(
         )
     record_rows.sort(key=lambda row: row["ref"])
     delta = _provenance_delta(context)
-    delta_ref = (
-        f"source/ToS/source-witnesses/discovery/acquisition-batches/"
-        f"{_batch_slug(context.manifest['batch_id'])}/provenance-delta.json"
-    )
+    delta_ref = _provenance_delta_ref(context)
     delta_path = output / delta_ref
     delta_bytes = _canonical(delta)
     delta_schema = _load_json_bytes(
@@ -546,6 +556,14 @@ def prepare_batch(
 
 
 def _verify_prepared_output(context: BatchContext, output: Path) -> None:
+    """Recheck the complete sealed selection before resume or handoff.
+
+    Preparation is a local custody boundary, so a receipt flag alone cannot
+    establish that its selected rights/metadata and delta bytes still match
+    the frozen manifest.  This check deliberately re-reads every selected
+    record and the deterministic delta path on each resume.
+    """
+
     output = _checked_root(output)
     manifest_path = _output_manifest_path(output)
     _regular_file(manifest_path, label="prepared batch manifest")
@@ -554,10 +572,154 @@ def _verify_prepared_output(context: BatchContext, output: Path) -> None:
     preparation_path = output / "receipts/preparation.json"
     _regular_file(preparation_path, label="preparation receipt")
     receipt = _load_json_bytes(preparation_path.read_bytes(), label="preparation receipt")
-    if receipt.get("manifest_sha256") != context.manifest_sha256:
+    if receipt.get("schema_version") != "tos_acquisition_preparation_receipt_v1":
+        raise AcquisitionBatchError("preparation receipt has an unexpected schema")
+    if receipt.get("batch_id") != context.manifest["batch_id"]:
+        raise AcquisitionBatchError("preparation receipt batch differs from frozen selection")
+    if receipt.get("batch_revision") != context.manifest["batch_revision"]:
+        raise AcquisitionBatchError("preparation receipt revision differs from frozen selection")
+    if receipt.get("base_revision") != context.manifest["base_revision"]:
+        raise AcquisitionBatchError("preparation receipt base revision differs from frozen selection")
+    if receipt.get("manifest_ref") != "manifest.json" or receipt.get("manifest_sha256") != context.manifest_sha256:
         raise AcquisitionBatchError("preparation receipt does not bind frozen selection")
     if receipt.get("topology_preimages") != 0:
         raise AcquisitionBatchError("prepared output contains a topology preimage claim")
+
+    expected_delta_ref = _provenance_delta_ref(context)
+    if receipt.get("provenance_delta_ref") != expected_delta_ref:
+        raise AcquisitionBatchError("preparation receipt delta reference is not deterministic")
+    if not isinstance(receipt.get("provenance_delta_sha256"), str):
+        raise AcquisitionBatchError("preparation receipt does not bind provenance delta fixity")
+
+    receipt_records = receipt.get("records")
+    if not isinstance(receipt_records, list):
+        raise AcquisitionBatchError("preparation receipt records are missing")
+    receipt_by_ref: dict[str, dict[str, Any]] = {}
+    for row in receipt_records:
+        if not isinstance(row, dict) or not isinstance(row.get("ref"), str):
+            raise AcquisitionBatchError("preparation receipt has an invalid record row")
+        if row["ref"] in receipt_by_ref:
+            raise AcquisitionBatchError(f"preparation receipt repeats record: {row['ref']}")
+        receipt_by_ref[row["ref"]] = row
+    selected_refs = {record["ref"] for _selection, record in _records(context)}
+    if set(receipt_by_ref) != selected_refs:
+        raise AcquisitionBatchError("preparation receipt does not close over selected records")
+    if receipt.get("record_count") != len(selected_refs):
+        raise AcquisitionBatchError("preparation receipt record count differs from selection")
+
+    expected_source_refs = set(selected_refs)
+    expected_source_refs.add(expected_delta_ref.removeprefix("source/"))
+    source_root = output / "source"
+    _regular_file(output / "source" / expected_delta_ref.removeprefix("source/"), label="prepared provenance delta")
+    actual_source_refs: set[str] = set()
+    if source_root.exists() and not source_root.is_symlink():
+        for candidate in source_root.rglob("*"):
+            if candidate.is_symlink():
+                raise AcquisitionBatchError(f"prepared source contains a symlink: {candidate}")
+            if candidate.is_file():
+                actual_source_refs.add(candidate.relative_to(source_root).as_posix())
+    if actual_source_refs != expected_source_refs:
+        extra = sorted(actual_source_refs - expected_source_refs)
+        missing = sorted(expected_source_refs - actual_source_refs)
+        raise AcquisitionBatchError(
+            "prepared source closure differs from frozen selection"
+            + (f"; extra={extra[:3]}" if extra else "")
+            + (f"; missing={missing[:3]}" if missing else "")
+        )
+
+    expected_bytes = 0
+    for selection, record in _records(context):
+        source = _path_under(source_root, record["ref"], label="prepared selected metadata path")
+        info = _regular_file(source, label="prepared selected metadata record")
+        actual_sha = _sha256_file(source)
+        if actual_sha != record["sha256"]:
+            raise SourceIntegrityError(f"prepared selected record digest differs: {record['ref']}")
+        row = receipt_by_ref[record["ref"]]
+        expected_row = {
+            "ref": record["ref"],
+            "handoff_ref": f"source/{record['ref']}",
+            "kind": record["kind"],
+            "sha256": record["sha256"],
+            "byte_size": info.st_size,
+        }
+        for key, expected in expected_row.items():
+            if row.get(key) != expected:
+                raise AcquisitionBatchError(
+                    f"preparation receipt {key} differs for selected record: {record['ref']}"
+                )
+        expected_bytes += info.st_size
+        if selection["rights"]["ref"] == record["ref"] and selection["rights"]["sha256"] != actual_sha:
+            raise SourceIntegrityError(f"selected rights record digest differs: {record['ref']}")
+    if receipt.get("selected_record_bytes") != expected_bytes:
+        raise AcquisitionBatchError("preparation receipt byte total differs from selected records")
+
+    delta_path = _path_under(output, expected_delta_ref, label="provenance delta reference")
+    delta_bytes = delta_path.read_bytes()
+    if _sha256(delta_bytes) != receipt["provenance_delta_sha256"]:
+        raise SourceIntegrityError("prepared provenance delta digest differs from receipt")
+    expected_delta_bytes = _canonical(_provenance_delta(context))
+    if delta_bytes != expected_delta_bytes:
+        raise SourceIntegrityError("prepared provenance delta differs from frozen selection")
+    delta_schema_path = context.repo_root / PROVENANCE_DELTA_SCHEMA
+    delta_schema = _load_json_bytes(delta_schema_path.read_bytes(), label="acquisition provenance delta schema")
+    try:
+        delta_value = _load_json_bytes(delta_bytes, label="prepared provenance delta")
+        Draft202012Validator(delta_schema).validate(delta_value)
+    except Exception as exc:
+        if isinstance(exc, AcquisitionBatchError):
+            raise
+        raise AcquisitionBatchError(f"prepared provenance delta schema validation failed: {exc}") from exc
+
+
+def _incomplete_prepare_is_route_owned(output: Path) -> bool:
+    """Recognize only the narrow shape left by an interrupted preparation."""
+
+    if not output.is_dir() or output.is_symlink():
+        return False
+    allowed = {"manifest.json", "source", "payload", "receipts"}
+    for child in output.iterdir():
+        if child.name not in allowed or child.is_symlink():
+            return False
+        if child.is_file() and child.name != "manifest.json":
+            return False
+        if child.is_dir() and child.name not in {"source", "payload", "receipts"}:
+            return False
+    return True
+
+
+def _recover_incomplete_prepare(output: Path) -> None:
+    """Remove one clearly route-owned partial preparation for exact rebuild."""
+
+    if not _incomplete_prepare_is_route_owned(output):
+        raise AcquisitionBatchError(
+            "output exists without preparation receipt and is not a recoverable interrupted preparation"
+        )
+    try:
+        shutil.rmtree(output)
+    except OSError as exc:
+        raise AcquisitionBatchError(f"cannot recover interrupted preparation: {output}") from exc
+
+
+@contextmanager
+def _batch_execution_lock(output: Path):
+    """Serialize all prepare/acquire mutations for one output root."""
+
+    parent = output.parent
+    if not parent.is_dir() or parent.is_symlink():
+        raise AcquisitionBatchError(f"batch lock parent must be a regular directory: {parent}")
+    lock_path = parent / f".{output.name}.acquisition.lock"
+    if lock_path.is_symlink():
+        raise AcquisitionBatchError(f"batch lock may not be a symlink: {lock_path}")
+    try:
+        stream = lock_path.open("a+", encoding="utf-8")
+    except OSError as exc:
+        raise AcquisitionBatchError(f"cannot open batch lock: {lock_path}") from exc
+    try:
+        fcntl.flock(stream.fileno(), fcntl.LOCK_EX)
+        yield
+    finally:
+        fcntl.flock(stream.fileno(), fcntl.LOCK_UN)
+        stream.close()
 
 
 def _fetch_url(payload: dict[str, Any]) -> bytes:
@@ -744,11 +906,13 @@ def _handoff_receipt(
             "ref": fixity_ref,
             "summary_ref": fixity_summary_ref,
             "sha256": _sha256_file(output / fixity_ref),
+            "jsonl_sha256": _sha256_file(output / fixity_ref),
+            "summary_sha256": _sha256_file(output / fixity_summary_ref),
         },
         "provenance_delta": {
-            "ref": next(
-                path.relative_to(output).as_posix()
-                for path in (output / "source").rglob("provenance-delta.json")
+            "ref": _provenance_delta_ref(context),
+            "sha256": _sha256_file(
+                _path_under(output, _provenance_delta_ref(context), label="provenance delta reference")
             ),
             "event_ref": context.manifest["provenance_delta"]["event_ref"],
             "base_revision": context.manifest["base_revision"],
@@ -764,7 +928,7 @@ def _handoff_receipt(
     }
 
 
-def acquire_batch(
+def _acquire_batch_unlocked(
     *,
     manifest_path: Path | str,
     metadata_root: Path | str,
@@ -790,6 +954,11 @@ def acquire_batch(
     output = Path(output_root).expanduser()
     if not output.is_absolute():
         raise AcquisitionBatchError("output root must be absolute")
+    if output.exists() and output.is_symlink():
+        raise AcquisitionBatchError(f"output root may not be a symlink: {output}")
+    preparation_path = output / "receipts/preparation.json"
+    if output.exists() and not preparation_path.is_file():
+        _recover_incomplete_prepare(output)
     if not output.exists():
         prepare_batch(
             manifest_path=manifest_path,
@@ -879,7 +1048,11 @@ def acquire_batch(
         assert completed is not None
         payload_rows.append(completed)
 
+    # The source closure may be edited while a provider call is in flight.
+    # Recheck it immediately before creating any intake-facing receipt.
+    _verify_prepared_output(context, output)
     fixity_rows, fixity_ref, fixity_summary_ref = _fixity_receipt(context, output, run_id)
+    _verify_prepared_output(context, output)
     handoff = _handoff_receipt(
         context,
         output,
@@ -902,6 +1075,33 @@ def acquire_batch(
         "failed_payload_count": sum(row["status"] != "verified" for row in fixity_rows),
         "admission_status": "not-admitted",
     }
+
+
+def acquire_batch(
+    *,
+    manifest_path: Path | str,
+    metadata_root: Path | str,
+    output_root: Path | str,
+    repo_root: Path | str = REPO_ROOT,
+    expected_manifest_sha256: str | None = None,
+    fetcher: Fetcher | None = None,
+    max_attempts: int = 2,
+) -> dict[str, Any]:
+    """Serialize one batch's preparation, transfer, and handoff."""
+
+    output = Path(output_root).expanduser()
+    if not output.is_absolute():
+        raise AcquisitionBatchError("output root must be absolute")
+    with _batch_execution_lock(output):
+        return _acquire_batch_unlocked(
+            manifest_path=manifest_path,
+            metadata_root=metadata_root,
+            output_root=output,
+            repo_root=repo_root,
+            expected_manifest_sha256=expected_manifest_sha256,
+            fetcher=fetcher,
+            max_attempts=max_attempts,
+        )
 
 
 def verify_local(*, output_root: Path | str, repo_root: Path | str = REPO_ROOT) -> dict[str, Any]:
