@@ -136,10 +136,14 @@ def _iter_snapshot_files(snapshot: Path) -> Iterator[dict[str, Any]]:
                             break
                     end += 1
                 try:
-                    value, consumed = decoder.raw_decode(mapped[position:end].decode("utf-8"))
+                    # ``raw_decode`` counts Unicode characters, not mmap
+                    # bytes.  Compare with the decoded slice length so valid
+                    # non-ASCII repository paths remain admissible.
+                    decoded = mapped[position:end].decode("utf-8")
+                    value, consumed = decoder.raw_decode(decoded)
                 except (UnicodeDecodeError, json.JSONDecodeError) as exc:
                     raise PreflightError("accepted snapshot has malformed file metadata") from exc
-                if consumed != end - position or not isinstance(value, dict):
+                if consumed != len(decoded) or not isinstance(value, dict):
                     raise PreflightError("accepted snapshot file entry is malformed")
                 yield value
                 position = end

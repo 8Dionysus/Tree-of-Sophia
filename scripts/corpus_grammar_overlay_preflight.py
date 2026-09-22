@@ -112,10 +112,14 @@ def _snapshot_files(snapshot: Path) -> Iterator[dict[str, Any]]:
                             break
                     end += 1
                 try:
-                    value, consumed = decoder.raw_decode(mapped[position:end].decode("utf-8"))
+                    # ``raw_decode`` counts Unicode characters, not mmap
+                    # bytes.  Use the decoded slice length for non-ASCII
+                    # repository paths.
+                    decoded = mapped[position:end].decode("utf-8")
+                    value, consumed = decoder.raw_decode(decoded)
                 except (UnicodeDecodeError, json.JSONDecodeError) as exc:
                     raise PreflightError("accepted snapshot contains malformed file metadata") from exc
-                if consumed != end - position or not isinstance(value, dict):
+                if consumed != len(decoded) or not isinstance(value, dict):
                     raise PreflightError("accepted snapshot file entry is malformed")
                 yield value
                 position = end
@@ -204,9 +208,15 @@ def run_preflight(
     input_root: Path,
     grammar_root: Path,
     software_root: Path,
+    historical_captures: list[Path],
+    historical_roots: list[Path],
 ) -> dict[str, Any]:
     if not HEX64.fullmatch(base_revision):
         raise PreflightError("base revision must be a lowercase SHA-256 revision")
+    if not historical_captures or len(historical_captures) != len(historical_roots):
+        raise PreflightError(
+            "historical evidence selection is required and must contain paired capture/root paths"
+        )
     store_root = store_root.absolute()
     batch_path = batch_path.absolute()
     input_root = input_root.absolute()
@@ -294,7 +304,11 @@ def run_preflight(
         if actual["mode"] != expected["mode"]:
             mode_mismatches.append({"path": relative, "expected": expected["mode"], "actual": actual["mode"]})
 
-    validator = SourceValidator(grammar_root)
+    validator = SourceValidator(
+        grammar_root,
+        historical_capture=[path.absolute() for path in historical_captures],
+        historical_root=[path.absolute() for path in historical_roots],
+    )
     batch_validator = batch["validator_sha256"]
     identity_match = validator.sha256 == batch_validator
     grammar_identity = getattr(validator, "grammar_sha256", None)
@@ -352,6 +366,9 @@ def run_preflight(
             "validator_sha256_actual": validator.sha256,
             "grammar_identity_actual": grammar_identity,
             "validator_identity_matches_batch": identity_match,
+            "historical_captures": [str(path.absolute()) for path in historical_captures],
+            "historical_roots": [str(path.absolute()) for path in historical_roots],
+            "historical_evidence_member_count": len(getattr(validator, "evidence", [])),
         },
         "overlay": {
             "accepted_grammar_members": len(accepted_grammar),
@@ -386,6 +403,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--input-root", type=Path, required=True)
     parser.add_argument("--grammar-root", type=Path, required=True)
     parser.add_argument("--software-root", type=Path, required=True)
+    parser.add_argument("--historical-capture", type=Path, action="append", required=True)
+    parser.add_argument("--historical-root", type=Path, action="append", required=True)
     parser.add_argument("--output", type=Path)
     args = parser.parse_args(argv)
     try:
@@ -396,6 +415,8 @@ def main(argv: list[str] | None = None) -> int:
             input_root=args.input_root,
             grammar_root=args.grammar_root,
             software_root=args.software_root,
+            historical_captures=args.historical_capture,
+            historical_roots=args.historical_root,
         )
     except Exception as exc:  # receipt the exact bounded failure for review
         result = {
