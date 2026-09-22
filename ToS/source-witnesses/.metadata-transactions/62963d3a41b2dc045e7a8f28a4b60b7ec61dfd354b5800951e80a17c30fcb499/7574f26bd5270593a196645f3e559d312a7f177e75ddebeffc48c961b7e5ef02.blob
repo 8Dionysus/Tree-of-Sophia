@@ -1,0 +1,90 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.edition.friedrich-nietzsche.jenseits-von-gut-und-boese.leipzig-c-g-naumann-1886",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:55371b365e6018611dc9e761",
+      "request_digest": "sha256:fbc32a940af4791b4dbed695fb7e43852f8a9409f00704f3565ff63fa8b60696",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:9132101f6d34546676101c7af2b10f0b949480d4b39b293fe498ed2174ad0e0a",
+      "recorded_at": "2026-09-22T05:09:10.329612+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.edition.friedrich-nietzsche.jenseits-von-gut-und-boese.leipzig-c-g-naumann-1886",
+        "version": 3,
+        "digest": "sha256:04a0760935c4f0fce6b088d9bcbd239f7e239c880abb7131717469ae5acbd18c"
+      },
+      "source": {
+        "id": "tos.edition.friedrich-nietzsche.jenseits-von-gut-und-boese.leipzig-c-g-naumann-1886",
+        "version": 4,
+        "digest": "sha256:13d965f2309bfed81f8f6e169beecaef3f3f11337578b435a662b2a2ee0bb89c"
+      },
+      "previous_revision": "sha256:1b77f7903493f45f18b887c5e01808300f3d7da9fe119165b192cb05dd790a96",
+      "archive_path": "ToS/source-witnesses/.record-revisions/55371b365e6018611dc9e76176a0882429863d2809f8e2236bf590acc12b52bc-1b77f7903493f45f18b887c5e01808300f3d7da9fe119165b192cb05dd790a96",
+      "dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+      "changed_fields": [
+        "notes"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.metadata.ceac8551a96bbfb92be8d63fa105f5432c24cf9a030f49400f1b973f25789684",
+          "version": 2,
+          "digest": "sha256:3a0dfa79331110f6c59be99c4a54329dd6c483d14d3e7ebe0c2708dc80ba65cd"
+        },
+        {
+          "id": "tos.form.metadata.a030c8def4de3c4cfec83c2c60b00b6a67c5a9a7cc59dec3f6de3f64b7655c7c",
+          "version": 2,
+          "digest": "sha256:c994c1a5a749cc51c1948ed638ab3b83afae5b89888fb15fd8e0a8a659b45809"
+        },
+        {
+          "id": "tos.form.metadata.6fc1f710220821c701ad8e673a9d9093078931a2fb83bf3721fd3e9b60dd0c34",
+          "version": 2,
+          "digest": "sha256:ad8defec74dffeff27f562f022464f7d9ab0b8a6893f7b682e7a04a7d7eaaecd"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:55371b365e6018611dc9e761",
+        "expected_configuration": "sha256:9132101f6d34546676101c7af2b10f0b949480d4b39b293fe498ed2174ad0e0a",
+        "expected_dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+        "expected_publication": "sha256:92ab617cfef1f9f483da95aea8db51ba31c227e1019216e1e77ec8494b4aba79",
+        "expected_revision": "sha256:1b77f7903493f45f18b887c5e01808300f3d7da9fe119165b192cb05dd790a96",
+        "expected_source": {
+          "digest": "sha256:04a0760935c4f0fce6b088d9bcbd239f7e239c880abb7131717469ae5acbd18c",
+          "id": "tos.edition.friedrich-nietzsche.jenseits-von-gut-und-boese.leipzig-c-g-naumann-1886",
+          "version": 3
+        },
+        "fields": {
+          "notes": "The exact fixity-verified title page prints Leipzig, Druck und Verlag von C. G. Naumann, and 1886. Publication and manufacture are preserved as separate unreviewed claims over the same literal with role-specific provisional Organization identities. An edition statement and the exact printing and release chronology remain unresolved."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.metadata.ceac8551a96bbfb92be8d63fa105f5432c24cf9a030f49400f1b973f25789684"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.metadata.a030c8def4de3c4cfec83c2c60b00b6a67c5a9a7cc59dec3f6de3f64b7655c7c"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.metadata.6fc1f710220821c701ad8e673a9d9093078931a2fb83bf3721fd3e9b60dd0c34"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:62963d3a41b2dc045e7a8f28a4b60b7ec61dfd354b5800951e80a17c30fcb499",
+        "selected_files": [
+          "edition.human-forms.json",
+          "edition.json",
+          "source-revision-history.json"
+        ]
+      }
+    }
+  ]
+}

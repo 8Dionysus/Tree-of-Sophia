@@ -1,9 +1,10 @@
 # Explicit local source-command transport
 
-`../scripts/source_command_http.py` exposes the existing source-command front door
-on **127.0.0.1 only**. This is a separately started source-owner service, not an
-extension of read-only access, HTTP `/api`, WebMCP or native access MCP. It does
-not create delegations, source targets, identities, assessment or admission.
+`../scripts/source_command_http.py` exposes the source-command front door on
+**127.0.0.1 only**. This separately started source-owner service dispatches
+commands under existing delegations and their exact target, identity and
+assessment requirements. Read-only access HTTP `/api`, WebMCP and native
+access MCP keep their existing contracts.
 
 The local operator selects one existing protected owner configuration, one
 private credential file, one exact browser origin and one unused port:
@@ -110,17 +111,16 @@ Once dispatched, failure or missing/oversized delivery is `unconfirmed`, not
 proof of rollback. An owner commit may precede a disconnected browser. Retain
 the original request and reconcile through its existing idempotency/history or
 recovery operation; do not generate another command ID as an automatic retry.
-Successful transport is not updated reader publication, semantic acceptance,
-CI, deployment or whole-foundation completion.
+Reader publication, semantic acceptance, CI and deployment each require
+verification of their own resulting state.
 
 ## Verification
 
 `mechanics/growth-cycle/tests/test_source_command_http.py` exercises real HTTP
 describe/apply/replay/revocation against an isolated copy of owner metadata and
 forms. It also covers token rotation, permissions, cross-origin and rebinding
-protection, duplicate headers, framing/budgets and uncertain delivery. The copied
-record is a controlled mechanics fixture, not a new historical assertion or
-production delegation. Browser client tests live beside the client module and
+protection, duplicate headers, framing/budgets and uncertain delivery. The copied record supplies a controlled mechanics fixture under an isolated
+test delegation. Browser client tests live beside the client module and
 cover request/response proofs, impostor responses, nonce binding, deadlines and
 explicit close. UI close/unload protection must cover in-flight and uncertain
 commands, not just successful replies.

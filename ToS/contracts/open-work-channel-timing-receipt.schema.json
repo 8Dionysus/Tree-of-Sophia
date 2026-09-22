@@ -35,7 +35,7 @@
         }
       }
     },
-    "claim_limit": {"const": "monotonic transport timing through the first 16384 response bytes only; not research, interpretation, rights-review, or human elapsed time"},
+    "claim_limit": {"type": "string", "minLength": 1, "description": "Brief account of the artifact purpose and scope. Typed status, effects, assessment and permission fields govern its use."},
     "record_version": {"type": "integer", "minimum": 1}
   },
   "$defs": {

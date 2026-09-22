@@ -1,10 +1,10 @@
 # Native Artifact metadata growth
 
 `tos_local_artifact_create_owner_v1` delegates one new physical Artifact v2
-metadata record under `artifacts/<tradition>/<site>/<physical-identity>/`.
-The target directory must be absent; existing independent input records live
-outside it. The actual `artifact_id` is retained. A provider label or a Corpus
-`record_id` shadow does not become physical identity.
+metadata record under `artifacts/<tradition>/<site>/<physical-identity>/`. The
+target directory must be absent; existing independent input records live
+outside it. The actual `artifact_id` owns the physical identity; provider
+labels remain attributed descriptive metadata.
 
 The grant fixes the record ID/path, principal and maker kind, creation event,
 source-copy form IDs, allowed operation and expiry. `source_bindings` contains
@@ -51,5 +51,6 @@ Legacy discovery provenance keeps its separate unchanged validation branch.
 
 Run `mechanics/growth-cycle/tests/test_source_artifact_commands.py`, native
 descriptive revision and exact metadata reader tests, then relevant source
-foundation, discovery and topology checks. These synthetic serializer tests
-do not assess any real Artifact or decide rights, publication or canon.
+foundation, discovery and topology checks. These synthetic checks cover
+serialization and retained history. Real Artifact assessment, rights,
+publication and canon follow their owner routes.

@@ -1,0 +1,85 @@
+{
+  "schema_version": "tos_source_revision_history_v1",
+  "record_id": "tos.lexeme.sid-4a20e565751a45998c99ea7cace60a10",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:8df346120de9ce6725e8184e",
+      "request_digest": "sha256:1db84454a11c3d90e5463e3602107fae4f76773b1a2e0fafe5452507c6da405b",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:b2c060c23e2f626a2d4764f39ffa9ce8adc387190b04a4a1b3618f9984444f19",
+      "recorded_at": "2026-09-22T05:05:52.006767+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.lexeme.sid-4a20e565751a45998c99ea7cace60a10",
+        "version": 1,
+        "digest": "sha256:28cc760d9ca50b2de67987713bb8f5b6c1dcedb02cffb09e7d3430dc5b2cad4f"
+      },
+      "source": {
+        "id": "tos.lexeme.sid-4a20e565751a45998c99ea7cace60a10",
+        "version": 2,
+        "digest": "sha256:5b3209b378295983d3e07cd0891344eb1c8f096914f73f4c3af36671b040fdb8"
+      },
+      "previous_revision": "sha256:9a1380d184b4603456b1a11accd5ac81c4ae0070f18b317f84dddc13c8130c80",
+      "archive_path": "ToS/source-witnesses/.record-revisions/8df346120de9ce6725e8184eaa1d626d43e58571917b3357985237ef0463c86a-9a1380d184b4603456b1a11accd5ac81c4ae0070f18b317f84dddc13c8130c80",
+      "dependencies": "sha256:59d2413ee5fd50c849ed1211b66944dfdc2e0edfe05ee8cf6a3c6f1d57e9ebc9",
+      "changed_fields": [
+        "notes",
+        "semantic_content",
+        "semantic_scope"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.sid-bdd81ebbdf4c41b9ba40c2b9060286be",
+          "version": 2,
+          "digest": "sha256:c68b3e3f20d30ed8b0dee9fb6262d248ef174862c4607f134bdc909d047d03ac"
+        },
+        {
+          "id": "tos.form.sid-eed91e43afdd4b6790236a99b060ee84",
+          "version": 2,
+          "digest": "sha256:fe23a6daa5f95d5a32831dfff2cd808a5f04668e2b36dfa889a8782397c57d4a"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:8df346120de9ce6725e8184e",
+        "expected_configuration": "sha256:b2c060c23e2f626a2d4764f39ffa9ce8adc387190b04a4a1b3618f9984444f19",
+        "expected_dependencies": "sha256:59d2413ee5fd50c849ed1211b66944dfdc2e0edfe05ee8cf6a3c6f1d57e9ebc9",
+        "expected_revision": "sha256:9a1380d184b4603456b1a11accd5ac81c4ae0070f18b317f84dddc13c8130c80",
+        "expected_source": {
+          "digest": "sha256:28cc760d9ca50b2de67987713bb8f5b6c1dcedb02cffb09e7d3430dc5b2cad4f",
+          "id": "tos.lexeme.sid-4a20e565751a45998c99ea7cace60a10",
+          "version": 1
+        },
+        "fields": {
+          "notes": "Предварительное описание латинского этимологического референта из статьи Duden.",
+          "semantic_content": {
+            "grammatical_account": "Словарное обозначение латинской лексемы. Парадигма, падеж конкретного исторического токена и диалектная область остаются открытыми.",
+            "language": "ru",
+            "lexical_account": "Латинское звено сообщаемой Duden этимологической цепочки. Отдельное значение и полный диапазон латинских употреблений остаются неописанными.",
+            "script": "Cyrl"
+          },
+          "semantic_scope": {
+            "identity_criterion": "Латинский лексический референт, выделенный данным источником; сопоставление с другими языковыми формами требует отдельного основания.",
+            "language": "ru",
+            "scope_note": "Латинская лексема, названная в заметке Duden о происхождении немецкого Philosophie. Область чтения ограничена этой заметкой.",
+            "script": "Cyrl"
+          }
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.sid-bdd81ebbdf4c41b9ba40c2b9060286be"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.sid-eed91e43afdd4b6790236a99b060ee84"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    }
+  ]
+}

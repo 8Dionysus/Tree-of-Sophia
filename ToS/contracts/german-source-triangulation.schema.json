@@ -351,9 +351,7 @@
         "promotion_authorized": {"const": false}
       }
     },
-    "authority_boundary": {
-      "const": "machine-only text-free triangulation evidence over one local critical-edition candidate, one DTA TEI witness, and one automatic-OCR EPUB witness; not accepted German, critical-edition admission, translation evidence, semantics, rights clearance, or canon authority"
-    },
+    "authority_boundary": {"type": "string", "minLength": 1, "description": "Brief account of the artifact purpose and scope. Typed status, effects, assessment and permission fields govern its use."},
     "does_not_establish": {
       "type": "array",
       "minItems": 10,

@@ -736,7 +736,10 @@ def write_receipt(path: Path | str, *, operation: str, rows: list[dict[str, Any]
         "rows": rows,
         "duplicates": duplicates,
         "missing": list(missing),
-        "authority_boundary": "mechanical custody/fixity only; no rights, semantic, canon, publication, or human approval",
+        "authority_boundary": (
+            "This receipt records the selected payload custody operation and its "
+            "mechanical fixity checks."
+        ),
     }
     destination.parent.mkdir(parents=True, exist_ok=True)
     if destination.exists() or destination.is_symlink():

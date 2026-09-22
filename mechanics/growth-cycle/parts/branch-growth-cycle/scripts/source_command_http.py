@@ -1,6 +1,6 @@
 """Explicit loopback transport for the existing source-owner command grammar.
 
-This is not an access API or a grant issuer. The process owner selects one
+Access and grant issuance use their own APIs. The process owner selects one
 protected command configuration and a separate private transport credential.
 Every command still enters run_local_command and rechecks the current grant.
 """

@@ -1,10 +1,11 @@
-"""Source-bound repeated lexical sequences; not a semantic-equivalence detector.
+"""Find repeated lexical sequences in their exact source contexts.
 
 The caller supplies complete source-spine context and surface rows.  Exact
 strings in the returned objects are private material.  Only a caller that
 strips them may persist a public or tracked projection.
 
-Identity is a deterministic *derived candidate snapshot*, not a concept ID.
+Identity addresses the deterministic *derived candidate snapshot*.
+Concept identity belongs to the authored semantic source.
 The source-spine IDs and context-local offsets remain the authority for text.
 """
 
@@ -385,9 +386,9 @@ def build_formulas(
             "quality_statuses": dict(sorted(Counter(row["quality_status"] for row in families).items())),
         },
         "limitations": [
-            "Lexical identity after the existing lossy source-spine normalization is not semantic equivalence.",
+            "Lexical identity is measured after the existing lossy source-spine normalization; semantic equivalence requires separate contextual assessment.",
             "Punctuation and whitespace do not participate in matching; they remain exact in source spans.",
-            "No lemmatization, OCR repair, dehyphenation, letter-spacing repair, or synonym matching is performed.",
+            "Matching uses the declared source-spine normalization; lemma, OCR, hyphenation, letter-spacing and synonym variants retain their source forms.",
             "Runs of three or more whitespace-separated single letters are quality-deferred; token_count is not a count of reconstructed words.",
             "Sentence-crossing repetitions are explicitly flagged, not asserted to be syntactic phrases.",
             "Paragraph and nonconsecutive-context boundaries are barriers; only adjacent verse lines may be joined.",

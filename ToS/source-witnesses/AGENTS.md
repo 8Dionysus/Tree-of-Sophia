@@ -31,22 +31,21 @@ evidence.
 - Use the identity ladder `work -> expression -> edition -> item -> file`.
   Route multi-work publications through `collections/` and evidence-bearing
   membership claims.
-- Route a physical artifact that is not naturally bibliographic through
-  `artifacts/<tradition>/<site>/<physical-identity>/`. Do not force it into the
-  Work/Expression/Edition/Item ladder or key its durable path to a mutable
-  digital provider.
+- Route a physical artifact through
+`artifacts/<tradition>/<site>/<physical-identity>/`, using its physical
+referent for durable identity and its provider records for access and
+representation.
 - Route a modern documentary, critical, or synoptic composite through
   `scholarly-composites/<genre-or-method>/<tradition>/<composition-identity>/`.
   Keep its durable identity independent of the provider and retain member
   assertions and representation coverage as dated evidence.
 - Keep physical artifact, catalog record, inscription or transliteration,
   scholarly composite, photograph, line art, and interpretation as separate
-  layers. A stable sign or artifact ID does not establish a fixed reading,
-  translation, semantics, philosophy status, graph fact, or canon state.
+  layers. Readings, translations, semantic Claims and canon state require their own
+source grounds and review.
 - Keep a composite, its physical members, member transliterations, editorial
-  lines, translations, and provider pages separate. Page-visible source lists
-  do not become completeness claims, and absence from one representation does
-  not erase a stronger exact membership relation.
+  lines, translations, and provider pages separate. Retain each provider list’s observed coverage alongside the exact source-owned
+membership Claims.
 - Treat paths as navigation and stable ToS IDs as identity. Never merge two
   objects only because their paths, titles, translators, or sampled text look
   similar.
@@ -79,20 +78,18 @@ evidence.
   `has_expression`, `embodied_by`, or `exemplified_by` Claim with its verified
   compound publication evidence.
   Their union must agree with `work_ref`, `embodies_expression_refs`, and
-  item-manifest `embodiment_ref`. Read support does not grant standalone Claim
-  writes or retroactive changes to a legacy batch. Never infer textual
-  equivalence from this bibliographic topology.
+  item-manifest `embodiment_ref`. Topology writes require the declared compound-operation grant and preserve
+legacy batches. Textual equivalence requires separate comparison evidence.
 - Keep curated authored sources and contracts in Git. Bulk imported records,
   claims, manifests, fixity, provenance, rights and review evidence belong to
   explicit immutable corpus revisions after exact preservation and verified
   restore. Their source authority is unchanged by the storage location.
   Build catalogs and projections into the selected data artifact. Preserve
   permanent local payload custody and each actual private R2 permission;
-  neither a corpus admission nor an upload grants publication rights.
+  publication requires its own rights and owner decisions.
 - Preserve original bytes. OCR, correction, normalization, segmentation, and
   translation are new versioned layers and must cite the input digest.
-- Use structural + quote + digest + visual-region anchors; offsets alone are
-  not a durable source address.
+- Use structural + quote + digest + visual-region anchors; bind positions to their exact source representation and digest.
 - Keep witness material distinct from philosophy branches, intake tables, canon
   nodes, and public mirrors.
 - Keep canonical-source, working-translation, and bridge-translation posture
@@ -101,16 +98,17 @@ evidence.
 - Responsibility references close over unchanged legacy carriers and explicitly
   verified native attachments. Native `translated_by` uses a separate Claim home
   and exact Expression append, never the immutable `has_expression` stream.
-  Endpoint metadata bindings do not manufacture attribution evidence or review.
+  Each attribution retains its actual evidence and review state alongside
+endpoint metadata bindings.
 - Keep Collection membership refs in exact closure over retained legacy and
   verified native `contains_work` Claims. Native attachment appends to the
   Collection and publishes a separate Claim; the existing Work and legacy
-  membership streams remain unchanged. Empty initial refs are not a claim
-  of historical emptiness or completeness.
+  membership streams remain unchanged. Empty initial refs record that this source record currently supplies no
+membership Claims.
 - Keep Link and its qualified association Claim in separate exact homes.
   Native object-Link creation leaves its existing subject unchanged and uses
   additive v2 Claims for the explicit Artifact-inclusive domain. Legacy v1
-  remains intact; availability and rights-statement addresses grant no rights.
+  remains intact; rights decisions remain bound to the actual source and permitted use.
 - Route commentary to doctrine, review, candidate intake, philosophy, or canon
   according to owner.
 - Route extraction runtimes, model caches, benchmarks, and large working

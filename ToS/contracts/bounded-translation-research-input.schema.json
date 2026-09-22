@@ -399,9 +399,7 @@
         }
       }
     },
-    "authority_boundary": {
-      "const": "one exact local DTA-derived string is eligible only for blind local machine-method calibration; the packet grants no German, translation, semantic, rights, graph, or canon authority"
-    },
+    "authority_boundary": {"type": "string", "minLength": 1, "description": "Brief account of the artifact purpose and scope. Typed status, effects, assessment and permission fields govern its use."},
     "does_not_establish": {
       "type": "array",
       "prefixItems": [

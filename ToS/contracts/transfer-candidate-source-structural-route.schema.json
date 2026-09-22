@@ -3,7 +3,7 @@
   "$id": "https://tree-of-sophia.local/ToS/contracts/transfer-candidate-source-structural-route.schema.json",
   "title": "Tree of Sophia transfer candidate source structural route",
   "type": "object", "additionalProperties": false,
-  "required": ["$schema", "schema_version", "route_set_id", "status", "work_ref", "inputs", "method", "summary", "candidates", "source_text_included", "target_text_included", "effects", "provenance_event_ref", "does_not_establish", "authority_boundary"],
+  "required": ["$schema", "schema_version", "route_set_id", "status", "work_ref", "inputs", "method", "summary", "candidates", "source_text_included", "target_text_included", "effects", "provenance_event_ref", "authority_boundary"],
   "properties": {
     "$schema": {"const": "https://tree-of-sophia.local/ToS/contracts/transfer-candidate-source-structural-route.schema.json"},
     "schema_version": {"const": "tos_transfer_candidate_source_structural_route_v1"},
@@ -14,7 +14,7 @@
     "candidates": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/candidate"}},
     "source_text_included": {"const": false}, "target_text_included": {"const": false},
     "effects": {"type": "object", "additionalProperties": false, "required": ["candidate_frame_changed", "exact_passage_boundary_created", "source_text_accepted", "target_text_accepted", "source_to_target_passage_alignment_created", "translation_alignment_created", "target_unit_eligible", "target_gold_created", "semantic_work_opened", "human_work_scheduled"], "properties": {"candidate_frame_changed": {"const": false}, "exact_passage_boundary_created": {"const": false}, "source_text_accepted": {"const": false}, "target_text_accepted": {"const": false}, "source_to_target_passage_alignment_created": {"const": false}, "translation_alignment_created": {"const": false}, "target_unit_eligible": {"const": false}, "target_gold_created": {"const": false}, "semantic_work_opened": {"const": false}, "human_work_scheduled": {"const": false}}},
-    "provenance_event_ref": {"$ref": "#/$defs/tosId"}, "does_not_establish": {"type": "array", "minItems": 10, "uniqueItems": true, "items": {"type": "string"}}, "authority_boundary": {"type": "string", "minLength": 160}
+    "provenance_event_ref": {"$ref": "#/$defs/tosId"}, "does_not_establish": {"type": "array", "minItems": 0, "uniqueItems": true, "items": {"type": "string"}}, "authority_boundary": {"type": "string", "minLength": 1, "description": "Brief account of the artifact purpose and scope. Typed status, effects, assessment and permission fields govern its use."}
   },
   "$defs": {
     "digest": {"type": "string", "pattern": "^[a-f0-9]{64}$"}, "repoPath": {"type": "string", "pattern": "^ToS/[A-Za-z0-9._/-]+$"}, "tosId": {"type": "string", "pattern": "^tos\\.[A-Za-z0-9._-]+$"}, "qualifiedKey": {"type": "string", "pattern": "^[a-z0-9-]+:[1-9][0-9]*$"},

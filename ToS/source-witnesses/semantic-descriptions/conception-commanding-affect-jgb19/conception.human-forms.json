@@ -1,63 +1,61 @@
 {
-  "schema_version": "tos_human_form_set_v1",
-  "subject": {
-    "id": "tos.conception.commanding-affect-jgb19",
-    "version": 1,
-    "digest": "sha256:4f85efa16dad51fd02529f5d1cb68e78ec583ac84eda0dd93868ba21461c3f5b"
-  },
   "forms": [
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.conception.commanding-affect-jgb19.name-ru",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.conception.commanding-affect-jgb19",
-        "version": 1,
-        "digest": "sha256:4f85efa16dad51fd02529f5d1cb68e78ec583ac84eda0dd93868ba21461c3f5b"
+        "version": 2,
+        "digest": "sha256:1aba03503f1876a891cc77d52a12e9c298d5533ae5215bf597c5e74eb656cfaf"
       },
       "role": "name",
       "language": "ru",
       "script": "Cyrl",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.conception.commanding-affect-jgb19.name-ru",
+        "version": 1,
+        "digest": "sha256:b771510ec962185dfb41ab3e784730386e70c218beb9a4f78a2d4ad69a390a22"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.conception.commanding-affect-jgb19",
-            "version": 1,
-            "digest": "sha256:4f85efa16dad51fd02529f5d1cb68e78ec583ac84eda0dd93868ba21461c3f5b"
+            "version": 2,
+            "digest": "sha256:1aba03503f1876a891cc77d52a12e9c298d5533ae5215bf597c5e74eb656cfaf"
           },
           "pointer": "/preferred_label"
         },
         "context-0": {
           "record": {
             "id": "tos.conception.commanding-affect-jgb19",
-            "version": 1,
-            "digest": "sha256:4f85efa16dad51fd02529f5d1cb68e78ec583ac84eda0dd93868ba21461c3f5b"
+            "version": 2,
+            "digest": "sha256:1aba03503f1876a891cc77d52a12e9c298d5533ae5215bf597c5e74eb656cfaf"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.conception.commanding-affect-jgb19",
-            "version": 1,
-            "digest": "sha256:4f85efa16dad51fd02529f5d1cb68e78ec583ac84eda0dd93868ba21461c3f5b"
+            "version": 2,
+            "digest": "sha256:1aba03503f1876a891cc77d52a12e9c298d5533ae5215bf597c5e74eb656cfaf"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.conception.commanding-affect-jgb19",
-            "version": 1,
-            "digest": "sha256:4f85efa16dad51fd02529f5d1cb68e78ec583ac84eda0dd93868ba21461c3f5b"
+            "version": 2,
+            "digest": "sha256:1aba03503f1876a891cc77d52a12e9c298d5533ae5215bf597c5e74eb656cfaf"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.conception.commanding-affect-jgb19",
-            "version": 1,
-            "digest": "sha256:4f85efa16dad51fd02529f5d1cb68e78ec583ac84eda0dd93868ba21461c3f5b"
+            "version": 2,
+            "digest": "sha256:1aba03503f1876a891cc77d52a12e9c298d5533ae5215bf597c5e74eb656cfaf"
           },
           "pointer": "/field_languages/preferred_label"
         }
@@ -70,79 +68,83 @@
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.conception.commanding-affect-jgb19.name-en",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.conception.commanding-affect-jgb19",
-        "version": 1,
-        "digest": "sha256:4f85efa16dad51fd02529f5d1cb68e78ec583ac84eda0dd93868ba21461c3f5b"
+        "version": 2,
+        "digest": "sha256:1aba03503f1876a891cc77d52a12e9c298d5533ae5215bf597c5e74eb656cfaf"
       },
       "role": "name",
       "language": "en",
       "script": "Latn",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.conception.commanding-affect-jgb19.name-en",
+        "version": 1,
+        "digest": "sha256:2581770b7ec3e1e466cda3e65038f4c7cb5fc7a55fdbc67a4080df4c8a6c05ff"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.conception.commanding-affect-jgb19",
-            "version": 1,
-            "digest": "sha256:4f85efa16dad51fd02529f5d1cb68e78ec583ac84eda0dd93868ba21461c3f5b"
+            "version": 2,
+            "digest": "sha256:1aba03503f1876a891cc77d52a12e9c298d5533ae5215bf597c5e74eb656cfaf"
           },
           "pointer": "/variant_labels/0/value"
         },
         "context-0": {
           "record": {
             "id": "tos.conception.commanding-affect-jgb19",
-            "version": 1,
-            "digest": "sha256:4f85efa16dad51fd02529f5d1cb68e78ec583ac84eda0dd93868ba21461c3f5b"
+            "version": 2,
+            "digest": "sha256:1aba03503f1876a891cc77d52a12e9c298d5533ae5215bf597c5e74eb656cfaf"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.conception.commanding-affect-jgb19",
-            "version": 1,
-            "digest": "sha256:4f85efa16dad51fd02529f5d1cb68e78ec583ac84eda0dd93868ba21461c3f5b"
+            "version": 2,
+            "digest": "sha256:1aba03503f1876a891cc77d52a12e9c298d5533ae5215bf597c5e74eb656cfaf"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.conception.commanding-affect-jgb19",
-            "version": 1,
-            "digest": "sha256:4f85efa16dad51fd02529f5d1cb68e78ec583ac84eda0dd93868ba21461c3f5b"
+            "version": 2,
+            "digest": "sha256:1aba03503f1876a891cc77d52a12e9c298d5533ae5215bf597c5e74eb656cfaf"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.conception.commanding-affect-jgb19",
-            "version": 1,
-            "digest": "sha256:4f85efa16dad51fd02529f5d1cb68e78ec583ac84eda0dd93868ba21461c3f5b"
+            "version": 2,
+            "digest": "sha256:1aba03503f1876a891cc77d52a12e9c298d5533ae5215bf597c5e74eb656cfaf"
           },
           "pointer": "/variant_labels/0/language"
         },
         "context-4": {
           "record": {
             "id": "tos.conception.commanding-affect-jgb19",
-            "version": 1,
-            "digest": "sha256:4f85efa16dad51fd02529f5d1cb68e78ec583ac84eda0dd93868ba21461c3f5b"
+            "version": 2,
+            "digest": "sha256:1aba03503f1876a891cc77d52a12e9c298d5533ae5215bf597c5e74eb656cfaf"
           },
           "pointer": "/variant_labels/0/script"
         },
         "context-5": {
           "record": {
             "id": "tos.conception.commanding-affect-jgb19",
-            "version": 1,
-            "digest": "sha256:4f85efa16dad51fd02529f5d1cb68e78ec583ac84eda0dd93868ba21461c3f5b"
+            "version": 2,
+            "digest": "sha256:1aba03503f1876a891cc77d52a12e9c298d5533ae5215bf597c5e74eb656cfaf"
           },
           "pointer": "/variant_labels/0/source_ref"
         },
         "context-6": {
           "record": {
             "id": "tos.conception.commanding-affect-jgb19",
-            "version": 1,
-            "digest": "sha256:4f85efa16dad51fd02529f5d1cb68e78ec583ac84eda0dd93868ba21461c3f5b"
+            "version": 2,
+            "digest": "sha256:1aba03503f1876a891cc77d52a12e9c298d5533ae5215bf597c5e74eb656cfaf"
           },
           "pointer": "/variant_labels/0/status"
         }
@@ -155,55 +157,59 @@
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.conception.commanding-affect-jgb19.note-ru",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.conception.commanding-affect-jgb19",
-        "version": 1,
-        "digest": "sha256:4f85efa16dad51fd02529f5d1cb68e78ec583ac84eda0dd93868ba21461c3f5b"
+        "version": 2,
+        "digest": "sha256:1aba03503f1876a891cc77d52a12e9c298d5533ae5215bf597c5e74eb656cfaf"
       },
       "role": "hover",
       "language": "ru",
       "script": "Cyrl",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.conception.commanding-affect-jgb19.note-ru",
+        "version": 1,
+        "digest": "sha256:df1d3c14a91c5379d66e9daafacea74fd7044ebf65637634fd6da6b2a82bb15a"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.conception.commanding-affect-jgb19",
-            "version": 1,
-            "digest": "sha256:4f85efa16dad51fd02529f5d1cb68e78ec583ac84eda0dd93868ba21461c3f5b"
+            "version": 2,
+            "digest": "sha256:1aba03503f1876a891cc77d52a12e9c298d5533ae5215bf597c5e74eb656cfaf"
           },
           "pointer": "/notes"
         },
         "context-0": {
           "record": {
             "id": "tos.conception.commanding-affect-jgb19",
-            "version": 1,
-            "digest": "sha256:4f85efa16dad51fd02529f5d1cb68e78ec583ac84eda0dd93868ba21461c3f5b"
+            "version": 2,
+            "digest": "sha256:1aba03503f1876a891cc77d52a12e9c298d5533ae5215bf597c5e74eb656cfaf"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.conception.commanding-affect-jgb19",
-            "version": 1,
-            "digest": "sha256:4f85efa16dad51fd02529f5d1cb68e78ec583ac84eda0dd93868ba21461c3f5b"
+            "version": 2,
+            "digest": "sha256:1aba03503f1876a891cc77d52a12e9c298d5533ae5215bf597c5e74eb656cfaf"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.conception.commanding-affect-jgb19",
-            "version": 1,
-            "digest": "sha256:4f85efa16dad51fd02529f5d1cb68e78ec583ac84eda0dd93868ba21461c3f5b"
+            "version": 2,
+            "digest": "sha256:1aba03503f1876a891cc77d52a12e9c298d5533ae5215bf597c5e74eb656cfaf"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.conception.commanding-affect-jgb19",
-            "version": 1,
-            "digest": "sha256:4f85efa16dad51fd02529f5d1cb68e78ec583ac84eda0dd93868ba21461c3f5b"
+            "version": 2,
+            "digest": "sha256:1aba03503f1876a891cc77d52a12e9c298d5533ae5215bf597c5e74eb656cfaf"
           },
           "pointer": "/field_languages/notes"
         }
@@ -214,5 +220,219 @@
       }
     }
   ],
-  "prior_forms": []
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:4f85efa16dad51fd02529f5d1cb68e78ec583ac84eda0dd93868ba21461c3f5b",
+            "id": "tos.conception.commanding-affect-jgb19",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:4f85efa16dad51fd02529f5d1cb68e78ec583ac84eda0dd93868ba21461c3f5b",
+            "id": "tos.conception.commanding-affect-jgb19",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:4f85efa16dad51fd02529f5d1cb68e78ec583ac84eda0dd93868ba21461c3f5b",
+            "id": "tos.conception.commanding-affect-jgb19",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:4f85efa16dad51fd02529f5d1cb68e78ec583ac84eda0dd93868ba21461c3f5b",
+            "id": "tos.conception.commanding-affect-jgb19",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:4f85efa16dad51fd02529f5d1cb68e78ec583ac84eda0dd93868ba21461c3f5b",
+            "id": "tos.conception.commanding-affect-jgb19",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.conception.commanding-affect-jgb19.name-ru",
+      "form_version": 1,
+      "language": "ru",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:4f85efa16dad51fd02529f5d1cb68e78ec583ac84eda0dd93868ba21461c3f5b",
+        "id": "tos.conception.commanding-affect-jgb19",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:4f85efa16dad51fd02529f5d1cb68e78ec583ac84eda0dd93868ba21461c3f5b",
+            "id": "tos.conception.commanding-affect-jgb19",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:4f85efa16dad51fd02529f5d1cb68e78ec583ac84eda0dd93868ba21461c3f5b",
+            "id": "tos.conception.commanding-affect-jgb19",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:4f85efa16dad51fd02529f5d1cb68e78ec583ac84eda0dd93868ba21461c3f5b",
+            "id": "tos.conception.commanding-affect-jgb19",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/variant_labels/0/language",
+          "record": {
+            "digest": "sha256:4f85efa16dad51fd02529f5d1cb68e78ec583ac84eda0dd93868ba21461c3f5b",
+            "id": "tos.conception.commanding-affect-jgb19",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/variant_labels/0/script",
+          "record": {
+            "digest": "sha256:4f85efa16dad51fd02529f5d1cb68e78ec583ac84eda0dd93868ba21461c3f5b",
+            "id": "tos.conception.commanding-affect-jgb19",
+            "version": 1
+          }
+        },
+        "context-5": {
+          "pointer": "/variant_labels/0/source_ref",
+          "record": {
+            "digest": "sha256:4f85efa16dad51fd02529f5d1cb68e78ec583ac84eda0dd93868ba21461c3f5b",
+            "id": "tos.conception.commanding-affect-jgb19",
+            "version": 1
+          }
+        },
+        "context-6": {
+          "pointer": "/variant_labels/0/status",
+          "record": {
+            "digest": "sha256:4f85efa16dad51fd02529f5d1cb68e78ec583ac84eda0dd93868ba21461c3f5b",
+            "id": "tos.conception.commanding-affect-jgb19",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/variant_labels/0/value",
+          "record": {
+            "digest": "sha256:4f85efa16dad51fd02529f5d1cb68e78ec583ac84eda0dd93868ba21461c3f5b",
+            "id": "tos.conception.commanding-affect-jgb19",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.conception.commanding-affect-jgb19.name-en",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:4f85efa16dad51fd02529f5d1cb68e78ec583ac84eda0dd93868ba21461c3f5b",
+        "id": "tos.conception.commanding-affect-jgb19",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:4f85efa16dad51fd02529f5d1cb68e78ec583ac84eda0dd93868ba21461c3f5b",
+            "id": "tos.conception.commanding-affect-jgb19",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:4f85efa16dad51fd02529f5d1cb68e78ec583ac84eda0dd93868ba21461c3f5b",
+            "id": "tos.conception.commanding-affect-jgb19",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:4f85efa16dad51fd02529f5d1cb68e78ec583ac84eda0dd93868ba21461c3f5b",
+            "id": "tos.conception.commanding-affect-jgb19",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:4f85efa16dad51fd02529f5d1cb68e78ec583ac84eda0dd93868ba21461c3f5b",
+            "id": "tos.conception.commanding-affect-jgb19",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:4f85efa16dad51fd02529f5d1cb68e78ec583ac84eda0dd93868ba21461c3f5b",
+            "id": "tos.conception.commanding-affect-jgb19",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.conception.commanding-affect-jgb19.note-ru",
+      "form_version": 1,
+      "language": "ru",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:4f85efa16dad51fd02529f5d1cb68e78ec583ac84eda0dd93868ba21461c3f5b",
+        "id": "tos.conception.commanding-affect-jgb19",
+        "version": 1
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.conception.commanding-affect-jgb19",
+    "version": 2,
+    "digest": "sha256:1aba03503f1876a891cc77d52a12e9c298d5533ae5215bf597c5e74eb656cfaf"
+  }
 }

@@ -1,14 +1,14 @@
 # Source-Witness Catalog
 
-This directory is the tracked, generated navigation index over authoritative
-objects and source Claims under `ToS/source-witnesses/`. The native
-bibliographic trees and the explicitly declared source profiles use the same
-catalog without becoming the same kind of knowledge. The live file inventory,
+This directory holds the generated navigation index over authoritative objects
+and source Claims under `ToS/source-witnesses/`. Catalog outputs are local
+derived artifacts under the software/corpus release separation. The shared catalog preserves the native bibliographic types and each
+explicitly declared source profile. The live file inventory,
 schema bindings and counts belong to
 [`catalog.manifest.json`](catalog.manifest.json); declared profile meaning
 belongs to [semantic interchange](../../doctrine/semantic-interchange/README.md).
-The table and source-history notes below describe the earlier bibliographic
-baseline, not the full current corpus or a limit on its growth.
+The table and source-history notes below describe an earlier bibliographic
+baseline; the manifest describes current coverage.
 
 | File | Record class |
 | --- | --- |
@@ -28,9 +28,8 @@ Object records own identity; source claim packets own bibliographic
 assertions. These JSONL files are rebuildable indexes. Object entries include
 their source record path and canonical digest. Claim entries additionally
 retain the exact source JSONL line, canonical claim digest, subject, predicate,
-object, evidence, maker, provenance event, and review posture. The projection
-does not accept or promote any claim. Only claims already marked `public` or
-`public_metadata_only` may enter this tracked projection; local, restricted,
+object, evidence, maker, provenance event, and review posture. The projection preserves each Claim's existing assessment and promotion
+status. Only Claims marked `public` or `public_metadata_only` may enter it; local, restricted,
 or permission-pending material requires a separately reviewed public-safe
 derivative rather than silent copying.
 
@@ -40,10 +39,9 @@ object associations return to `object-link-claims.jsonl`; `open_download` and
 legally open.
 
 The earlier topology baseline had 64 separately addressable packets: 24
-`has_expression`, 24 `embodied_by`, and 16 `exemplified_by`. Their presence in
-this generated catalog proves exact projection only. It does not make the
-declared identity ladder true, accept any text, or turn embodiment into
-textual equivalence.
+`has_expression`, 24 `embodied_by`, and 16 `exemplified_by`. Catalog validation checks their exact projection. Bibliographic assessment,
+text acceptance and textual equivalence retain their separate evidence
+requirements.
 
 That earlier bounded projection contained 176 object records and 198 claim records
 (374 entries total), including five first-class Links and five object-to-Link

@@ -1,0 +1,90 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.organization.druckerei-c-g-naumann-leipzig",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:d33a98d19d72144a9fbea615",
+      "request_digest": "sha256:5ff703d32dd878241e4dccaca751eed357f516e7a205f21e53a77b7c8c50d7a3",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:1c3d4cb30596f1648cdc7fad74e7f89e4fde2c7ce76d4bc069aa6e928cf13f14",
+      "recorded_at": "2026-09-22T05:06:05.415230+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.organization.druckerei-c-g-naumann-leipzig",
+        "version": 1,
+        "digest": "sha256:fa24d50ace58a01044a602a849139a4a5e03d6bf04454717c9fb7ca3bf7d78a3"
+      },
+      "source": {
+        "id": "tos.organization.druckerei-c-g-naumann-leipzig",
+        "version": 2,
+        "digest": "sha256:d6349805b2e153aeb55d005b6175493bab874aaa9937ef1115c74c4d54d3bd94"
+      },
+      "previous_revision": "sha256:7a1e2f912c13278a8a666e4c48cc19bc124267adae5b12f526d64c8e05f59014",
+      "archive_path": "ToS/source-witnesses/.record-revisions/d33a98d19d72144a9fbea6150960b712510135be2635910dfce840474898d4ee-7a1e2f912c13278a8a666e4c48cc19bc124267adae5b12f526d64c8e05f59014",
+      "dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+      "changed_fields": [
+        "notes"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.metadata.abea3714c8d1f6ec56a0165d7570d149932ab3ec5e931f7b6dc9175f172f3f25",
+          "version": 2,
+          "digest": "sha256:939269f4a288443f6804f001b737d8f54a86d96fbb680588112b49a243532de0"
+        },
+        {
+          "id": "tos.form.metadata.0485290cd82eb465823c4da8e22edce763e5c4335d2db99aeeeda65f7384766d",
+          "version": 2,
+          "digest": "sha256:82c3eea953e7381b327e3f67bc1a70573b07cef073ac7263218e94be268f695d"
+        },
+        {
+          "id": "tos.form.metadata.10355562489b569ef5a31f7d1b84321ac99becb53954447a8d1ca1aeea0365dd",
+          "version": 2,
+          "digest": "sha256:f9a3f8627b64d27d08cce00c46e170866c5797bd29f97b13219fe5a21c8f82da"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:d33a98d19d72144a9fbea615",
+        "expected_configuration": "sha256:1c3d4cb30596f1648cdc7fad74e7f89e4fde2c7ce76d4bc069aa6e928cf13f14",
+        "expected_dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+        "expected_publication": "sha256:ade817f7fea71d65bf8b6db5d57c19be98349e74619e94f070ff3749a390b7c4",
+        "expected_revision": "sha256:7a1e2f912c13278a8a666e4c48cc19bc124267adae5b12f526d64c8e05f59014",
+        "expected_source": {
+          "digest": "sha256:fa24d50ace58a01044a602a849139a4a5e03d6bf04454717c9fb7ca3bf7d78a3",
+          "id": "tos.organization.druckerei-c-g-naumann-leipzig",
+          "version": 1
+        },
+        "fields": {
+          "notes": "The official GND record identifies Druckerei C. G. Naumann as a Leipzig company; GND 1072998033 identifies C. G. Naumann Verlag separately. The exact 1893 title page assigns Druck and Verlag to the literal C. G. Naumann. The legal relationship between these two authority records remains unresolved."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.metadata.abea3714c8d1f6ec56a0165d7570d149932ab3ec5e931f7b6dc9175f172f3f25"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.metadata.0485290cd82eb465823c4da8e22edce763e5c4335d2db99aeeeda65f7384766d"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.metadata.10355562489b569ef5a31f7d1b84321ac99becb53954447a8d1ca1aeea0365dd"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:1c0d54be8acc6f2dd6deb8572f80d73e2ef1c04024c9639a1d74ac63df4858c3",
+        "selected_files": [
+          "organization.human-forms.json",
+          "organization.json",
+          "source-revision-history.json"
+        ]
+      }
+    }
+  ]
+}

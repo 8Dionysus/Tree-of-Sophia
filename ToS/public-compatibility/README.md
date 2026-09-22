@@ -2,8 +2,9 @@
 
 This directory holds public compatibility mirrors and reviewable example payloads for Tree of Sophia.
 
-These files are not the canonical authored tree.
-Canonical authority remains in `../canon/` and the source-owned docs that explain the current route.
+These files expose compatibility views of the authored tree. Canonical
+authority remains in `../canon/` and the source-owned docs that explain the
+current route.
 
 ## Current role
 

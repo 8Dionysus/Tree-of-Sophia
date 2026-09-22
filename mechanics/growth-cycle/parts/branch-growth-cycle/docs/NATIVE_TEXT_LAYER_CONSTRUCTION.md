@@ -3,20 +3,20 @@
 The initial source-owner route implements two separately delegated steps:
 `text-layer.create` extracts a bounded representation from an already acquired
 exact EPUB member; `text-unit.create` with its v2 owner configuration constructs
-the first explicit interval partition of one real TextLayer. Neither step needs
-an older TextUnit. Neither invents a bootstrap packet, text assessment, accepted
-reading, semantic Description, Occurrence, Lexeme or publication permission.
+the first explicit interval partition of one real TextLayer. Both operations start from their exact source bindings. Text assessment,
+accepted reading, semantic Description, Occurrence and Lexeme construction,
+and publication each have a separate owner route.
 
 Existing source-text-layer v1, source-anchor v2, source-text-unit packet v1 and
 provenance-event v2 contracts own the output grammar. The new
 [`native-text-layer-binding` contract](../../../../../ToS/contracts/native-text-layer-binding.schema.json)
-is a selection handle, not a replacement source record or assessment subject.
+selects the existing source record for construction and assessment.
 Existing v1 unit-construction and public Occurrence gates keep their contracts.
 
 The separate additive derivation grant below now implements correction,
 Unicode normalization and recording of supplied source-bound OCR/transcription
-results. Schema enum support alone is not an execution route: the original
-extraction grant cannot authorize any of these operations.
+results. Each operation requires its own supported handler and explicit derivation
+grant.
 
 ## Separately selected extraction grant
 
@@ -89,8 +89,8 @@ literal character data. Unknown markup inside the selected element fails.
 
 This first profile deliberately rejects raw CR, **all ampersands** (including
 predefined/numeric references), DTDs and processing instructions other than an
-XML 1.0 declaration with optional UTF-8 encoding. It does not repair unsupported
-input. It is neither a general EPUB renderer nor OCR/correction/normalization.
+XML 1.0 declaration with optional UTF-8 encoding. Unsupported input is rejected; rendering, OCR, correction and normalization
+use their dedicated routes.
 
 Resource ceilings are explicit: original File 512 MiB; ordinary non-ZIP64,
 single-disk ZIP with at most 2,048 members, 1 MiB central directory, 1,024-byte
@@ -123,12 +123,12 @@ The new mode-0700 package contains mode-0600 files:
 - `source-create-request.json`, `source-create-environment.json`,
   `source-create-provenance.jsonl`, `source-create-receipt.json`.
 
-The layer is unreviewed `machine_transcription` from `structural_extraction`,
-with no predecessor layer or invented human review. Its anchor returns through
+The layer starts as unreviewed `machine_transcription` from
+`structural_extraction`. Its anchor returns through
 the exact original File to the selected member and structural selector. The
-event is `native_extraction`, distinct from later `segmentation`. Whole-text
-SHA-256, exact UTF-8 scope, policy/configuration, maker, input/output provenance
-and recorded rights remain private. No extraction quality judgment is implied.
+event is `native_extraction`, distinct from later `segmentation`. Whole-text SHA-256, exact UTF-8 scope, policy/configuration, maker,
+input/output provenance and recorded rights remain private. Source-visible
+assessment owns extraction quality judgment.
 
 Public command responses expose only operation/status information, opaque
 configuration/dependency/receipt digests and `grants_admission: false` with
@@ -150,8 +150,7 @@ segmentation identity is supplied as a predecessor.
 policy/configuration, source anchors, corpus/manifest and recorded rights.
 Exact private reading is independently explicit; rights precede representation
 I/O. It never opens the original payload and never claims public availability
-or applied assessment. The delegated interval must lie inside the real layer's
-declared scope, not a fabricated unit. New packet fields are derived directly
+or applied assessment. The delegated interval must lie inside the source layer's declared scope. New packet fields are derived directly
 from that verified layer and binding, with ordinary explicit span/gap partition.
 
 V2 responses withhold slots, scope, paths, private receipt and prepared file
@@ -159,8 +158,9 @@ hashes. The ordinary private packet has an additional `source-create-inputs.json
 binding consumed raw metadata, representation, context, implementation and
 runtime bytes. V1 replay remains historical-request/current-validation; V2 and
 layer creation require their exact pinned construction inputs still to match.
-An unrelated new identity elsewhere is not historical source-byte drift, but
-collision discovery still runs and source/right/context changes are refused.
+Replay checks the selected historical source bytes, current collisions, and
+source, rights and context bindings. Unrelated identity growth remains
+compatible.
 
 ## Additive correction, normalization and supplied-result recording
 
@@ -183,7 +183,7 @@ layer identity, version `previous.layer_version + 1`, and `supersedes_layer_ref`
 equal to the predecessor identity. The raw predecessor record/content and
 original acquired File remain unchanged. Supplied OCR/transcription instead
 starts a new version-1 layer from an already acquired File and existing exact
-source anchor; it does not fabricate a predecessor transcription.
+source anchor.
 
 ### Derivation grant and fixed policy
 
@@ -203,8 +203,7 @@ refs/digests, manifest digest, language, maker and limits. The differences are:
   unicode_form=...)`. Normalization requires an explicit supported form; other
   operations use `none`. For `record-transcription`, the optional
   `transcription_method` selects `manual_transcription` (default) or
-  `model_transcription`. This helper returns inert versioned rules, not code
-  selected by the caller. Normalization maker must be software, with method
+  `model_transcription`. This helper returns the supported versioned policy values. Normalization maker must be software, with method
   `tos.unicode.normalize.v1` and version equal to the policy's actual Unicode
   database version.
 - `member` and `selector` do not occur in this grant. `input` and `material`
@@ -226,15 +225,15 @@ the input bytes/digest must match the predecessor. Insert/delete/replace are
 derived from the supplied spans and strings, never from an implicit diff.
 Every emitted edit retains input/output coordinates, exact text and hashes,
 the configured responsible maker and original anchor refs, with `proposed`
-status. A correction does not create human review merely because its supplier
-is human. Source-near correction of an already normalized layer is unsupported;
+status. Review status records the separate source-visible assessment, while maker
+records the correction supplier. Source-near correction of an already normalized layer is unsupported;
 it cannot silently erase that predecessor's normalization posture.
 
 Normalization `material` is `{}`. The executor records one explicit whole-text
 Unicode operation, including when the result bytes happen to be unchanged.
-That means a declared normalization was applied, not that a textual error was
-found. The new layer is `normalized_text`; it receives no source-fidelity or
-diplomatic authority. No trimming, whitespace collapse or unrelated editorial
+The receipt records the applied normalization. The new layer is
+`normalized_text`; source fidelity and diplomatic fidelity require separate
+assessment. No trimming, whitespace collapse or unrelated editorial
 rewrite is performed.
 
 For supplied OCR/transcription, `input` is `{kind: "acquired_file", anchor:
@@ -271,19 +270,17 @@ immediate-predecessor delta verification. The 60-second cooperative deadline,
 
 The package contains the new layer, `content.txt`, `derivation-policy.json`,
 and the existing retained configuration/inputs/request/environment/provenance/
-receipt files. It references existing source anchors instead of manufacturing
-new ones. Request grammar, expected configuration/dependencies, absent initial
+receipt files. It references the existing source anchors. Request grammar, expected configuration/dependencies, absent initial
 target, protected locks, exact idempotent retry and interruption recovery are
 the same construction route described below. An expired or changed grant,
 predecessor, supplied result, rights, implementation or third-state file blocks
 retry; evidence is retained for explicit owner action, not erased or reissued.
 
-Provenance distinguishes actual correction/normalization from supplied-result
-capture. The latter uses `annotation`, has no model invocation, and explicitly
-says that upstream OCR/transcription was not executed or authenticated. Its
-layer method describes the reported representation origin, not an execution
-receipt. All outputs remain unreviewed, with no accepted use, competence,
-promotion or publication authority; predecessor uncertainty stays unresolved.
+Provenance records correction and normalization as executed operations.
+Supplied-result capture uses `annotation`, with `provider_execution:
+"not_observed"`; its layer method records the reported origin. Outputs retain
+unreviewed status and predecessor uncertainty. Assessment, accepted use and
+publication follow their separate owner routes.
 
 `NativeTextBindingResolver` verifies exact predecessor record/content/version,
 source scope and retained policy/configuration. Exact reads independently replay
@@ -298,8 +295,7 @@ Images/PDFs and unsupported selectors still need their own source renderer.
 A prior extraction assessment is not a quality basis for its successor.
 The source-visible reviewer must assess the exact new layer against its
 predecessors and original source, then use the existing assessment journal for
-a separate current purpose-scoped quality basis. Construction and comparison
-do not themselves establish real-source acceptance or Foundation-wide quality.
+a separate current purpose-scoped quality basis. Source-visible assessment owns acceptance and the scope of any quality claim.
 
 ## Authenticated OCR of a retained PDF page
 
@@ -330,8 +326,8 @@ publication. A deterministic private `.native-construction-<digest>.pending`
 control per exact target/command retains a mode-0600 bounded `plan.json` before
 staged output writes. It records the complete exact byte set, request digest and
 target. Package limits are 12 files/12 MiB; the base64 recovery plan is at most
-18 MiB. The confidential plan remains outside the final source package, even
-after completion; it is not a second accepted source or public registry.
+18 MiB. The confidential recovery plan remains outside the final source package,
+including after completion.
 
 Retry verifies the plan, original request/receipt, every retained input/output,
 current rights/grants and directory identities. It fills only absent staged
@@ -352,6 +348,7 @@ path/digest rechecks are not isolation or a cross-filesystem transaction.
 Focused synthetic tests cover bounded parser/resource refusal, exact text,
 separate authority before payload I/O, layer-only bootstrap, stable input
 binding, redacted results, no-replace replay, interruption/torn recovery and
-the existing private Occurrence consumer/public-denial boundary. These tests
-do not adopt any real witness, rights decision, source text or assessment, and
-do not prove CI, landing, publication, runtime installation or semantic quality.
+the existing private Occurrence consumer/public-denial boundary. Real witness
+assessment, rights decisions and source acceptance follow their owner routes;
+release reporting records actual CI, landing and runtime verification
+separately.

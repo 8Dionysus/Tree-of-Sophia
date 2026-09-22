@@ -25,19 +25,17 @@ replace eval/proof authority.
 
 ## Boundaries
 
-- Keep test meaning tied to the behavior or contract it protects. Existing
-  `test_inventory.json` entries help navigation; an inventory row is not an
-  admission requirement for a test or software change under TOS-D-0062.
+- Keep test meaning tied to the behavior or contract it protects. Existing `test_inventory.json` entries help navigation; executable tests and
+the selected software checks govern admission under TOS-D-0062.
 - Keep home scopes aligned with `docs/testing/TEST_TOPOLOGY.md`.
 - Keep eval verdicts, scoring doctrine, and proof authority with `aoa-evals`.
 - Keep generated drift checks routed through builders and validators before
   broad test runs.
 - Keep mechanics-local schema tests in mechanics-local validation lanes rather
   than routing them through canon by convenience.
-- Treat migration-era names as inventory facts to improve later, not as future
-  topology.
-- Keep release command order in `docs/validation/validation_lanes.json`, not in
-  the test inventory.
+- Treat migration-era names as inventory facts and choose future topology
+through the current owner routes.
+- Keep release command order in `docs/validation/validation_lanes.json`.
 
 ## Validation
 

@@ -1,15 +1,10 @@
 # Event Node Template
 
-This document records the current route-local scaffold for canonical event
-nodes in ToS.
-
-Event nodes do not replace principles or source nodes.
-They stabilize bounded movement inside a reviewed route so the tree can carry
-dynamic legibility without collapsing into raw edge tables.
+An event node holds reviewed movement or change within a source-linked route.
 
 ## Core fields
 
-An event-node scaffold should expose at least:
+The scaffold uses the shared [node contract](NODE_CONTRACT.md):
 
 - `node_id`
 - `node_type = event`
@@ -19,39 +14,20 @@ An event-node scaffold should expose at least:
 - `relations`
 - `interpretation_layers`
 
-The shape stays compact because it reuses the current minimal node contract.
+## Use the scaffold when
 
-## Template posture
+- A movement in the source needs an authored handle.
+- The movement has a clear basis in the source and has passed review.
+- Its participants, conditions and relation to the surrounding route are legible.
 
-Use the event-node scaffold when:
+## Related node roles
 
-- a bounded movement in the source route needs its own authored handle
-- the movement is clearer as a canonical node than as an unreviewed intake row
-- the node can stay source-linked rather than turning into abstract doctrine
-
-Event nodes should stay:
-
-- source-first
-- route-local
-- review-gated
-- dynamic rather than atlas-like
-
-## Boundary against principle and intake
-
-An event node is not:
-
-- the source node itself
-- a raw row lifted unchanged from `ToS/candidate-intake/event_state_nodes.csv`
-- a principle node that states a distilled claim
-
-The event node holds movement.
-The principle node holds a reviewed claim distilled from the route.
-The intake row remains the fuller candidate field beneath both.
+An event node describes movement. A state node describes a sustained
+condition. A principle node holds a distilled claim. The source node anchors
+the passage, and `ToS/candidate-intake/event_state_nodes.csv` preserves the
+fuller candidate material and its review path.
 
 ## Worked scaffold
 
-The first worked example is route-local and narrow:
-
-- one bounded event family under `ToS/canon/event/`
-- one worked example mirrored into `ToS/public-compatibility/event_node.example.json`
-- no claim yet that ToS now owns a general event atlas
+The current family is under `ToS/canon/event/`; its public example is
+`ToS/public-compatibility/event_node.example.json`.

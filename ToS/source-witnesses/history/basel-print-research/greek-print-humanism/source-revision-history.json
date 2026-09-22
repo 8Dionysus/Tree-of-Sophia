@@ -1,0 +1,94 @@
+{
+  "schema_version": "tos_source_revision_history_v1",
+  "record_id": "tos.historical-environment.basel.greek-print-humanism",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:9acf6329443696a2c57bd34f",
+      "request_digest": "sha256:8e5edbb3ac18e67aff74ae580c06c9ce0f9a2f6a8e99d4ef6318c641419b494a",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:7d8073f3dae0a3d661d15ea2484ee712ca2817c53721d696f7256d48c7036b25",
+      "recorded_at": "2026-09-22T05:04:33.619125+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.historical-environment.basel.greek-print-humanism",
+        "version": 1,
+        "digest": "sha256:73fe8f22c4a33e5f179cbc781ce207121026d079a9dc281e9243c6a3644b4b55"
+      },
+      "source": {
+        "id": "tos.historical-environment.basel.greek-print-humanism",
+        "version": 2,
+        "digest": "sha256:8f9f7c30fbf7690e95bddf082136b8d7c38b43e83fd7c6c0c42a7bbfe42ea42e"
+      },
+      "previous_revision": "sha256:31634cc3b4fb250551366b584204ddad889cf6115fc0f1c773170c665428344e",
+      "archive_path": "ToS/source-witnesses/.record-revisions/9acf6329443696a2c57bd34f4d12349300f83b8c2c971223be2b983f2b7f1e1e-31634cc3b4fb250551366b584204ddad889cf6115fc0f1c773170c665428344e",
+      "dependencies": "sha256:ee36ec01c29f45d3ea68455c79cd36c2419deeb2105f60dece091265fbfb7d58",
+      "changed_fields": [
+        "semantic_content",
+        "semantic_scope"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.basel-print.print-environment.name-ru",
+          "version": 2,
+          "digest": "sha256:b6351d15dbe548553f4b6577c7cc42ef04afd2a05df4478cffe57781475e9b48"
+        },
+        {
+          "id": "tos.form.basel-print.print-environment.name-en",
+          "version": 2,
+          "digest": "sha256:4a37202975a8cdd17642dfcf19a4dec81e3a01de4bf7e10903a784b5b4840709"
+        },
+        {
+          "id": "tos.form.basel-print.print-environment.note-ru",
+          "version": 2,
+          "digest": "sha256:05fafbbec2b604b7993628592639786d5e0c40bc75ddc382de4888a5c7c1e701"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:9acf6329443696a2c57bd34f",
+        "expected_configuration": "sha256:7d8073f3dae0a3d661d15ea2484ee712ca2817c53721d696f7256d48c7036b25",
+        "expected_dependencies": "sha256:ee36ec01c29f45d3ea68455c79cd36c2419deeb2105f60dece091265fbfb7d58",
+        "expected_revision": "sha256:31634cc3b4fb250551366b584204ddad889cf6115fc0f1c773170c665428344e",
+        "expected_source": {
+          "digest": "sha256:73fe8f22c4a33e5f179cbc781ce207121026d079a9dc281e9243c6a3644b4b55",
+          "id": "tos.historical-environment.basel.greek-print-humanism",
+          "version": 1
+        },
+        "fields": {
+          "semantic_content": {
+            "cultural_account": "По очерку, восстановление древней литературы сочеталось с подготовкой переводов и пособий для чтения.",
+            "environment_account": "Условия подготовки и распространения греческих текстов в базельском книгопечатании.",
+            "language": "ru",
+            "religious_account": "Издания христианских источников связываются с потребностями церковного обновления.",
+            "scientific_technological_account": "Описаны требования к греческим литерам и диакритике, новый набор переизданий и распространение медицинских текстов.",
+            "script": "Cyrl"
+          },
+          "semantic_scope": {
+            "identity_criterion": "Исследуемая среда греческой учёной печати.",
+            "language": "ru",
+            "scope_note": "Базельское греческое книгопечатание XVI века в очерке Иеронимуса; меняющиеся цели и состав участников.",
+            "script": "Cyrl"
+          }
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.basel-print.print-environment.name-ru"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.basel-print.print-environment.name-en"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.basel-print.print-environment.note-ru"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    }
+  ]
+}

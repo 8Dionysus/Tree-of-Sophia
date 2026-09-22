@@ -4,7 +4,7 @@
   "title": "Tree of Sophia hierarchical numbered-unit label correspondence",
   "type": "object",
   "additionalProperties": false,
-  "required": ["$schema", "schema_version", "map_id", "work_ref", "source_witness", "target_witness", "rights_basis", "map_authority", "method", "pairings", "summary", "source_text_included", "target_text_included", "provenance_ref", "provenance_event_ref", "map_version", "authority_boundary", "does_not_establish"],
+  "required": ["$schema", "schema_version", "map_id", "work_ref", "source_witness", "target_witness", "rights_basis", "map_authority", "method", "pairings", "summary", "source_text_included", "target_text_included", "provenance_ref", "provenance_event_ref", "map_version", "authority_boundary"],
   "properties": {
     "$schema": {"const": "https://tree-of-sophia.local/ToS/contracts/hierarchical-numbered-unit-label-correspondence.schema.json"},
     "schema_version": {"const": "tos_hierarchical_numbered_unit_label_correspondence_v1"},
@@ -42,8 +42,8 @@
     "source_text_included": {"const": false}, "target_text_included": {"const": false},
     "provenance_ref": {"$ref": "#/$defs/repoPath"}, "provenance_event_ref": {"$ref": "#/$defs/tosId"},
     "map_version": {"type": "integer", "minimum": 1}, "supersedes_map_ref": {"type": ["string", "null"]},
-    "authority_boundary": {"type": "string", "minLength": 160},
-    "does_not_establish": {"type": "array", "minItems": 10, "uniqueItems": true, "items": {"type": "string"}}
+    "authority_boundary": {"type": "string", "minLength": 1, "description": "Brief account of the artifact purpose and scope. Typed status, effects, assessment and permission fields govern its use."},
+    "does_not_establish": {"type": "array", "minItems": 0, "uniqueItems": true, "items": {"type": "string"}}
   },
   "$defs": {
     "digest": {"type": "string", "pattern": "^[a-f0-9]{64}$"},

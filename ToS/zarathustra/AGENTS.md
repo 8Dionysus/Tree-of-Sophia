@@ -25,8 +25,8 @@ observation, review, canon, bounded concept hop, and derived read models.
 
 - Keep Zarathustra route surfaces stronger than generic orientation, but lower
   than the actual source witness and canonical authored node.
-- Transfer the source-and-review method to wider philosophy, not Nietzsche's
-  ontology, predicates, or settled interpretations.
+- Transfer the source-and-review method to wider philosophy; derive each
+branch's ontology, predicates and interpretations from its own sources.
 - Keep lived witness explicit and authored, but distinct from primary source,
   textual evidence, scholarship, interpretation, and canon.
 - Route source text and translation witness material to `ToS/source-witnesses/`.
@@ -35,8 +35,8 @@ observation, review, canon, bounded concept hop, and derived read models.
   owning branches.
 - Keep the first public route narrow: one bounded source route, one capsule,
   one source authority surface, and one bounded concept hop.
-- Treat the public-entry as a bounded public route: it may orient and return to
-  source/review, but it does not widen source or canon authority.
+- Treat the public-entry as an orientation route back to the owning source and
+review surfaces, preserving their scope.
 
 ## Engineering Sequence
 
@@ -50,8 +50,7 @@ For a new kernel slice:
    through the review route;
 5. promote only human-reviewed objects and relations to `ToS/canon/`;
 6. rebuild public or derived companions only after the authored source moves;
-7. test transfer on unseen material and treat vocabulary rejection as a valid
-   result rather than forcing a match.
+7. test transfer on unseen material and record vocabulary rejection when the material requires a different account.
 
 Every proposed gold slice must expose source anchors, layer posture, human or
 agent authorship, review status, uncertainty, and version lineage. If the
@@ -62,7 +61,7 @@ review posture and route the pressure to doctrine/contracts.
 
 Use `scripts/validate_tos_source_home.py`, `scripts/validate_lived_witness_route.py`,
 `scripts/validate_tiny_entry_route.py`,
-`mechanics/boundary-bridge/parts/derived-kag-seam/scripts/validate_kag_export.py`,
+`scripts/validate_local_kag_provider.py` for an explicitly selected export,
 and `scripts/validate_nested_agents.py` when this branch changes. Use the ToS
 review checklist for source/interpretation, lived-witness, method-transfer, and
 human-review boundaries that structural checks cannot decide. Select the

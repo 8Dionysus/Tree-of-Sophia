@@ -40,9 +40,9 @@ layer admission and every derived quality basis.
 
 The separate synthetic PNG profile accepts only an authenticated
 `text-layer.record-owner-ocr` result over one complete acquired PNG and its
-whole-image pixel anchor. It is for operator-created material, not a fallback
-for an undisclosed historical source. Its original File and image digest are
-the same; it has no original PDF or historical rendering claim.
+whole-image pixel anchor. Its scope is operator-created material: original
+File identity and image digest refer to that PNG. Historical-source and
+PDF-rendering claims use their corresponding routes.
 
 ## Local access is not model disclosure
 
@@ -75,13 +75,13 @@ the image or OCR to an assistant or other server. `deterministic_text_match`
 is null and `source_visible_judgment` is `not_performed`: OCR-to-pixel quality
 cannot be inferred from matching hashes or the existence of this packet.
 
-The existing engine still requires exact source-visible evidence, actual
-current assessment authority, calibrated competence and execution binding.
-Read-only configurations can have no authority, competence or execution
-profile; comparison reading does not create an assessment or accepted use.
-Any actual review applies only to this exact image/raw layer and selected use.
-No image comparison establishes full-document accuracy, diplomatic fidelity,
-translation quality, historical-source clearance, publication or canon.
+The engine requires exact source-visible evidence, current assessment
+authority, calibrated competence and execution binding. A read-only
+configuration may omit authority, competence and execution profiles and
+supplies comparison data only. Any actual review applies to the exact
+image/raw layer and selected use; broader accuracy, diplomatic fidelity,
+translation quality, historical-source clearance, publication and canon
+require their own scoped evidence and authority.
 
 Original rights, metadata, original File identity, retained image identity,
 grants and disclosure scope are rechecked through the snapshot and at the

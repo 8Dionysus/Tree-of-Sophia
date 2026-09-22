@@ -36,7 +36,7 @@
             "reception_account": {
               "type": "string",
               "pattern": "\\S",
-              "description": "A source-attributed account of reception or its historical change, not an evaluation by ToS."
+              "description": "A source-attributed account of reception or its historical change within a specified receiving context."
             },
             "receiving_context": {
               "type": "string",
@@ -75,7 +75,7 @@
               "engagement_basis": {
                 "type": "string",
                 "pattern": "\\S",
-                "description": "The documented practices of reading, response or transmission distinguishing the process; similarity alone does not establish influence."
+                "description": "The documented practices of reading, response or transmission that identify this process, with their particular source grounds."
               }
             }
           }
@@ -112,7 +112,7 @@
               "engagement_basis": {
                 "type": "string",
                 "pattern": "\\S",
-                "description": "The documented practices of reading, response or transmission distinguishing the process; similarity alone does not establish influence."
+                "description": "The documented practices of reading, response or transmission that identify this process, with their particular source grounds."
               },
               "selection_basis": {
                 "type": "string",
@@ -157,7 +157,7 @@
               "evidence_boundary": {
                 "type": "string",
                 "pattern": "\\S",
-                "description": "What supports a decline or interruption in this receiving context, including surviving counterexamples and limits; database absence alone is not evidence."
+                "description": "Evidence for decline or interruption in this receiving context, including surviving counterexamples, coverage and limits. A claim of forgetting requires historical transmission evidence."
               }
             }
           }
@@ -192,7 +192,7 @@
               "prior_access_boundary": {
                 "type": "string",
                 "pattern": "\\S",
-                "description": "For whom access or attention was renewed and what remained known or transmitted elsewhere; not the first discovery by anyone."
+                "description": "Whose access or attention was renewed, with the knowledge and transmission that persisted elsewhere."
               }
             }
           }
@@ -227,7 +227,7 @@
               "transmission_basis": {
                 "type": "string",
                 "pattern": "\\S",
-                "description": "The source-described continuity, transformations and gaps supporting this legacy; resemblance does not establish a direct causal chain."
+                "description": "The documented continuity, transformations and gaps supporting this account of intellectual legacy."
               }
             }
           }

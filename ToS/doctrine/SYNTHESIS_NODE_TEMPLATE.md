@@ -1,15 +1,10 @@
 # Synthesis Node Template
 
-This document records the current route-local scaffold for canonical synthesis
-nodes in ToS.
-
-Synthesis nodes do not replace source, principle, or lineage surfaces.
-They stabilize a reviewed interpretive reading when the route has moved beyond
-distilled principle but should not open a separate commentary family.
+A synthesis node holds a reviewed interpretation that brings source-linked claims and relations into a coherent reading.
 
 ## Core fields
 
-A synthesis-node scaffold should expose at least:
+The scaffold uses the shared [node contract](NODE_CONTRACT.md):
 
 - `node_id`
 - `node_type = synthesis`
@@ -19,39 +14,19 @@ A synthesis-node scaffold should expose at least:
 - `relations`
 - `interpretation_layers`
 
-The shape stays compact because it reuses the current minimal node contract.
+## Use the scaffold when
 
-## Template posture
+- The interpretation deserves an authored canonical handle.
+- Its relation to the source and distilled principles is explicit.
+- The reading has a defined scope and an inspectable review basis.
 
-Use the synthesis-node scaffold when:
+## Related node roles
 
-- a source-linked interpretive reading deserves a canonical home
-- the reading is more than a distilled principle
-- the route can keep the synthesis bounded and reviewable
-
-Synthesis nodes should stay:
-
-- source-first
-- route-local
-- review-gated
-- explicitly interpretive rather than hidden doctrine
-
-## Boundary against principle and source
-
-A synthesis node is not:
-
-- the source node itself
-- a replacement for the principle spine
-- a free-floating essay detached from route anchors
-
-The synthesis node holds reviewed interpretation.
-The principle node holds distilled reversible claim.
-The source node remains authoritative for the route.
+The synthesis node carries interpretation. A principle node carries a
+distilled, revisable claim. The source node anchors the passage. Their
+relations let a reader follow the synthesis back through its grounds.
 
 ## Worked scaffold
 
-The first worked example is route-local and narrow:
-
-- one bounded synthesis family under `ToS/canon/synthesis/`
-- one worked example mirrored into `ToS/public-compatibility/synthesis_node.example.json`
-- no separate commentary family and no wider synthesis atlas yet
+The current family is under `ToS/canon/synthesis/`; its public example is
+`ToS/public-compatibility/synthesis_node.example.json`.

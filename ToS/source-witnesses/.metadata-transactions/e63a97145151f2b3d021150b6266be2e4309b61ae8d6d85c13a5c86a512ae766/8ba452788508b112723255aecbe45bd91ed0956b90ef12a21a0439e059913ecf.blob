@@ -1,0 +1,90 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.organization.zhizn-dlya-vsekh-saint-petersburg",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:5831cba97d46faa0d9bf2e38",
+      "request_digest": "sha256:9dcc7f52076dc9f1ba84fdb47b26cebf0a6492bde42f1a20d3687965c6ca0687",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:72aa758bb54d18cde46ffd7248f115014251c7db27e87997e8926605d6bf87e9",
+      "recorded_at": "2026-09-22T05:06:11.098593+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.organization.zhizn-dlya-vsekh-saint-petersburg",
+        "version": 1,
+        "digest": "sha256:69ede14caade97baba81a4ce3281458e773c0fb60143f141fbe46bf1fa895556"
+      },
+      "source": {
+        "id": "tos.organization.zhizn-dlya-vsekh-saint-petersburg",
+        "version": 2,
+        "digest": "sha256:09a1e2af6b1fe66bc1f70e185e1819e73caa3df48c3efde482e3190aafe27b34"
+      },
+      "previous_revision": "sha256:cb5dcd1d63208000e9a7a84fb156a605694f7854eaaf0d1c2efb60cbf3870dd1",
+      "archive_path": "ToS/source-witnesses/.record-revisions/5831cba97d46faa0d9bf2e38d371a0743315bed31ad3e64637059dface878d10-cb5dcd1d63208000e9a7a84fb156a605694f7854eaaf0d1c2efb60cbf3870dd1",
+      "dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+      "changed_fields": [
+        "notes"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.metadata.4687b8122295b5b38a2f13f8a5721f5ec4da01927f603068d3dcb0e5959bcde6",
+          "version": 2,
+          "digest": "sha256:c7ac90324180b8eff861aee94977990031bdf04de53976aeacb93a9e74a02149"
+        },
+        {
+          "id": "tos.form.metadata.5187c1c2329473049f165695c7da22d83a3e2bf32cc044fff626ac8a6135c2b0",
+          "version": 2,
+          "digest": "sha256:adb4eac2dbe56ee4dd4305353744b48505665ec19b1de33e52c4d61df1e5d51f"
+        },
+        {
+          "id": "tos.form.metadata.3c2dcc86c6861dc88b18fefb2e9dd1cf7a93075110078b2e8e941682b7c1ad3b",
+          "version": 2,
+          "digest": "sha256:dfe0d6d563198e9ee05d9af9c250bf6185c6d594922514325e90f89afbfb965c"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:5831cba97d46faa0d9bf2e38",
+        "expected_configuration": "sha256:72aa758bb54d18cde46ffd7248f115014251c7db27e87997e8926605d6bf87e9",
+        "expected_dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+        "expected_publication": "sha256:c40c327a8f0138c6bfd85987a58947d348f0d5d656d83b8687e762eeedd21646",
+        "expected_revision": "sha256:cb5dcd1d63208000e9a7a84fb156a605694f7854eaaf0d1c2efb60cbf3870dd1",
+        "expected_source": {
+          "digest": "sha256:69ede14caade97baba81a4ce3281458e773c0fb60143f141fbe46bf1fa895556",
+          "id": "tos.organization.zhizn-dlya-vsekh-saint-petersburg",
+          "version": 1
+        },
+        "fields": {
+          "notes": "The exact cover names ИЗДАНІЕ «ЖИЗНЬ ДЛЯ ВСѢХЪ», and contemporary RSL records independently catalog Жизнь для всех as a Saint Petersburg publisher or imprint. These sources support a provisional organization identity."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.metadata.4687b8122295b5b38a2f13f8a5721f5ec4da01927f603068d3dcb0e5959bcde6"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.metadata.5187c1c2329473049f165695c7da22d83a3e2bf32cc044fff626ac8a6135c2b0"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.metadata.3c2dcc86c6861dc88b18fefb2e9dd1cf7a93075110078b2e8e941682b7c1ad3b"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:e63a97145151f2b3d021150b6266be2e4309b61ae8d6d85c13a5c86a512ae766",
+        "selected_files": [
+          "organization.human-forms.json",
+          "organization.json",
+          "source-revision-history.json"
+        ]
+      }
+    }
+  ]
+}

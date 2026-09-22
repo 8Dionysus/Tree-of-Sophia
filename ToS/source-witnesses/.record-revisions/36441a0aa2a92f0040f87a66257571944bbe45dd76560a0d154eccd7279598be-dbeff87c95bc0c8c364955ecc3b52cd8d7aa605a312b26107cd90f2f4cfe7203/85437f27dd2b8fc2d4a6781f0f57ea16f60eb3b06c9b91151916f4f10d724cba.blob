@@ -1,0 +1,974 @@
+{
+  "schema_version": "tos_claim_revision_history_v1",
+  "source_path": "ToS/source-witnesses/relations/jgb-practice-research/source-claims.jsonl",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:c988c7f91095c5835e5f1f40",
+      "request_digest": "sha256:2d05b2b38c8fd2423b8b605bf24cdefd4b8bea7f16ee9b7c5d050d7f9c920785",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:b1cebbfd588e9447fbe53baee865609c5d2325372ab5d10d8840f06484395b7a",
+      "recorded_at": "2026-09-22T06:36:56.139383+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+      "previous_source": {
+        "id": "tos.claim.jgb-practice-method-operation",
+        "version": 1,
+        "digest": "sha256:89fb28f33256f86f7ce4d633204bf7426f28d745a845ffd510bdb8ad83b95f74"
+      },
+      "source": {
+        "id": "tos.claim.jgb-practice-method-operation",
+        "version": 2,
+        "digest": "sha256:83a52037349faf9f93bc58fce145361265cb756356af64ae98d7c39b4dbe91f5"
+      },
+      "previous_revision": "sha256:9b089c8faddffa6f27b1b7b462a0b6c4a152d112c35042cac56431bbdf2cd71a",
+      "archive_path": "ToS/source-witnesses/.record-revisions/c988c7f91095c5835e5f1f40bc8f7368ce9812c91e78a3722d5d39d050a0a756-9b089c8faddffa6f27b1b7b462a0b6c4a152d112c35042cac56431bbdf2cd71a",
+      "dependencies": "sha256:f07aee8dab6286d4463249fb8bb8c13efc0e5eb30e2433f8a911339be683e8d0",
+      "source_bindings": {
+        "objects": {
+          "tos.thought-method.single-causality-trial-jgb36": {
+            "source_ref": "ToS/source-witnesses/semantic-descriptions/thought-method-single-causality-trial-jgb36/thought-method.json",
+            "source_sha256": "sha256:fe518ce10ff2efa3d7922a25680d1cf8f3db0ee8cba71183dd37802b84e52967",
+            "canonical_record_sha256": "sha256:015bf171eef139bd1d82120dcc8b1f98e2577989697768ae7856e65be6b1c8a9",
+            "schema_version": "tos_thought_practice_record_v1",
+            "record_version": 2
+          },
+          "tos.thought-operation.provisionally-posit-will-causality-jgb36": {
+            "source_ref": "ToS/source-witnesses/semantic-descriptions/thought-operation-provisionally-posit-will-causality-jgb36/thought-operation.json",
+            "source_sha256": "sha256:60e37503d6263bab97bede6d0d01676fc6a61d5f2b4368c353c3603d579d2490",
+            "canonical_record_sha256": "sha256:5378f495a75758129cdb19661ff48a60a855f69931e8e85a876302031310354a",
+            "schema_version": "tos_thought_practice_record_v1",
+            "record_version": 2
+          }
+        },
+        "evidence": {
+          "ToS/review-ledger/2026-09-07-jgb-practice-source-reading.md": {
+            "source_ref": "ToS/review-ledger/2026-09-07-jgb-practice-source-reading.md",
+            "source_sha256": "sha256:88f7db993a135652369a4f590a47a0a685209a94b65832d07ba88aa6b7f4eb58",
+            "source_line": null,
+            "evidence_kind": "repo_path"
+          }
+        }
+      },
+      "changed_fields": [
+        "qualifiers"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.jgb-practice-method-operation.statement-ru",
+          "version": 2,
+          "digest": "sha256:b73a170ec0fadc41594fbcd04506fdce62aef58809eb39e83177aa80bb590fe4"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:c988c7f91095c5835e5f1f40",
+        "expected_configuration": "sha256:b1cebbfd588e9447fbe53baee865609c5d2325372ab5d10d8840f06484395b7a",
+        "expected_dependencies": "sha256:f07aee8dab6286d4463249fb8bb8c13efc0e5eb30e2433f8a911339be683e8d0",
+        "expected_inputs": {
+          "evidence": {
+            "ToS/review-ledger/2026-09-07-jgb-practice-source-reading.md": {
+              "evidence_kind": "repo_path",
+              "source_line": null,
+              "source_ref": "ToS/review-ledger/2026-09-07-jgb-practice-source-reading.md",
+              "source_sha256": "sha256:88f7db993a135652369a4f590a47a0a685209a94b65832d07ba88aa6b7f4eb58"
+            }
+          },
+          "objects": {
+            "tos.thought-method.single-causality-trial-jgb36": {
+              "canonical_record_sha256": "sha256:015bf171eef139bd1d82120dcc8b1f98e2577989697768ae7856e65be6b1c8a9",
+              "record_version": 2,
+              "schema_version": "tos_thought_practice_record_v1",
+              "source_ref": "ToS/source-witnesses/semantic-descriptions/thought-method-single-causality-trial-jgb36/thought-method.json",
+              "source_sha256": "sha256:fe518ce10ff2efa3d7922a25680d1cf8f3db0ee8cba71183dd37802b84e52967"
+            },
+            "tos.thought-operation.provisionally-posit-will-causality-jgb36": {
+              "canonical_record_sha256": "sha256:5378f495a75758129cdb19661ff48a60a855f69931e8e85a876302031310354a",
+              "record_version": 2,
+              "schema_version": "tos_thought_practice_record_v1",
+              "source_ref": "ToS/source-witnesses/semantic-descriptions/thought-operation-provisionally-posit-will-causality-jgb36/thought-operation.json",
+              "source_sha256": "sha256:60e37503d6263bab97bede6d0d01676fc6a61d5f2b4368c353c3603d579d2490"
+            }
+          }
+        },
+        "expected_revision": "sha256:9b089c8faddffa6f27b1b7b462a0b6c4a152d112c35042cac56431bbdf2cd71a",
+        "expected_source": {
+          "digest": "sha256:89fb28f33256f86f7ce4d633204bf7426f28d745a845ffd510bdb8ad83b95f74",
+          "id": "tos.claim.jgb-practice-method-operation",
+          "version": 1
+        },
+        "fields": {
+          "qualifiers": {
+            "relation_basis": "The passage's one-kind trial is concretized by hypothetically positing will-causality if will is acknowledged as effective.",
+            "relation_basis_language": "en",
+            "relation_basis_script": "Latn",
+            "scope": "Provisional passage-bound research; no calibrated assessment, admission, unconditional ontology, actual ideal bearer, successful reduction or canon assertion.",
+            "source_locator": [
+              "http://www.nietzschesource.org/eKGWB/JGB-36"
+            ],
+            "source_representation_sha256": "143d6330c94bf00b135f887eeed5f20f6caee6a98174746227af255583ae8b20",
+            "source_section": "JGB 36",
+            "statement": "Метод испытания одной причинности использует условное полагание волевой причинности единственной. Достаточность этой причинности остаётся предметом испытания.",
+            "statement_language": "ru",
+            "statement_script": "Cyrl"
+          }
+        },
+        "forms": [
+          {
+            "field_id": "claim.statement",
+            "form_id": "tos.form.jgb-practice-method-operation.statement-ru"
+          }
+        ],
+        "operation": "claim.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    },
+    {
+      "command_id": "tos-language-cleanup-20260922:88ad7ec36a88d38446b7da7e",
+      "request_digest": "sha256:2e98f5061591a52b9a896f03ccf03a9afbf30f77a23ce7660040428f82f069ce",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:d5e36d21b55a59d8426f661d03c48a13448b61559954d1add6e43851fc6994ef",
+      "recorded_at": "2026-09-22T06:37:21.228322+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+      "previous_source": {
+        "id": "tos.claim.jgb-practice-experiment-method",
+        "version": 1,
+        "digest": "sha256:09cb7a7032f1ff2f610a4ea8230c45e7d6bef0ce5e78f3f454ea1036ae6e8439"
+      },
+      "source": {
+        "id": "tos.claim.jgb-practice-experiment-method",
+        "version": 2,
+        "digest": "sha256:77b85fd044f6f824c888c25e1ce9f61848099c539e965600c504590bec82098d"
+      },
+      "previous_revision": "sha256:c5c2229f57eb766ce19855c4daa9230ce58ef13e4040ac11234cd503bd6e5adb",
+      "archive_path": "ToS/source-witnesses/.record-revisions/88ad7ec36a88d38446b7da7e7082176e145cae243ffcf974113e4af25c7980be-c5c2229f57eb766ce19855c4daa9230ce58ef13e4040ac11234cd503bd6e5adb",
+      "dependencies": "sha256:82180d064b9e84ce71a475b6fe57a7554eb7ccf6572ead7d2d9db2b6c0ff912a",
+      "source_bindings": {
+        "objects": {
+          "tos.thought-experiment.conditional-will-causality-jgb36": {
+            "source_ref": "ToS/source-witnesses/semantic-descriptions/thought-experiment-conditional-will-causality-jgb36/thought-experiment.json",
+            "source_sha256": "sha256:c8023ec5c00f8980a87e960271de2a4cddb9369371d8259db97e98a2b9e6f45b",
+            "canonical_record_sha256": "sha256:be4ae847d221fb7444c786978bbba6d231338dfc5a69ea7b1cbcaa6ad485b0f1",
+            "schema_version": "tos_thought_practice_record_v1",
+            "record_version": 2
+          },
+          "tos.thought-method.single-causality-trial-jgb36": {
+            "source_ref": "ToS/source-witnesses/semantic-descriptions/thought-method-single-causality-trial-jgb36/thought-method.json",
+            "source_sha256": "sha256:fe518ce10ff2efa3d7922a25680d1cf8f3db0ee8cba71183dd37802b84e52967",
+            "canonical_record_sha256": "sha256:015bf171eef139bd1d82120dcc8b1f98e2577989697768ae7856e65be6b1c8a9",
+            "schema_version": "tos_thought_practice_record_v1",
+            "record_version": 2
+          }
+        },
+        "evidence": {
+          "ToS/review-ledger/2026-09-07-jgb-practice-source-reading.md": {
+            "source_ref": "ToS/review-ledger/2026-09-07-jgb-practice-source-reading.md",
+            "source_sha256": "sha256:88f7db993a135652369a4f590a47a0a685209a94b65832d07ba88aa6b7f4eb58",
+            "source_line": null,
+            "evidence_kind": "repo_path"
+          }
+        }
+      },
+      "changed_fields": [
+        "qualifiers"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.jgb-practice-experiment-method.statement-ru",
+          "version": 2,
+          "digest": "sha256:48b42ee05124de7ffb873df0c6830cbb25fe093f480e34cf5bb06c6a0c189885"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:88ad7ec36a88d38446b7da7e",
+        "expected_configuration": "sha256:d5e36d21b55a59d8426f661d03c48a13448b61559954d1add6e43851fc6994ef",
+        "expected_dependencies": "sha256:82180d064b9e84ce71a475b6fe57a7554eb7ccf6572ead7d2d9db2b6c0ff912a",
+        "expected_inputs": {
+          "evidence": {
+            "ToS/review-ledger/2026-09-07-jgb-practice-source-reading.md": {
+              "evidence_kind": "repo_path",
+              "source_line": null,
+              "source_ref": "ToS/review-ledger/2026-09-07-jgb-practice-source-reading.md",
+              "source_sha256": "sha256:88f7db993a135652369a4f590a47a0a685209a94b65832d07ba88aa6b7f4eb58"
+            }
+          },
+          "objects": {
+            "tos.thought-experiment.conditional-will-causality-jgb36": {
+              "canonical_record_sha256": "sha256:be4ae847d221fb7444c786978bbba6d231338dfc5a69ea7b1cbcaa6ad485b0f1",
+              "record_version": 2,
+              "schema_version": "tos_thought_practice_record_v1",
+              "source_ref": "ToS/source-witnesses/semantic-descriptions/thought-experiment-conditional-will-causality-jgb36/thought-experiment.json",
+              "source_sha256": "sha256:c8023ec5c00f8980a87e960271de2a4cddb9369371d8259db97e98a2b9e6f45b"
+            },
+            "tos.thought-method.single-causality-trial-jgb36": {
+              "canonical_record_sha256": "sha256:015bf171eef139bd1d82120dcc8b1f98e2577989697768ae7856e65be6b1c8a9",
+              "record_version": 2,
+              "schema_version": "tos_thought_practice_record_v1",
+              "source_ref": "ToS/source-witnesses/semantic-descriptions/thought-method-single-causality-trial-jgb36/thought-method.json",
+              "source_sha256": "sha256:fe518ce10ff2efa3d7922a25680d1cf8f3db0ee8cba71183dd37802b84e52967"
+            }
+          }
+        },
+        "expected_revision": "sha256:c5c2229f57eb766ce19855c4daa9230ce58ef13e4040ac11234cd503bd6e5adb",
+        "expected_source": {
+          "digest": "sha256:09cb7a7032f1ff2f610a4ea8230c45e7d6bef0ce5e78f3f454ea1036ae6e8439",
+          "id": "tos.claim.jgb-practice-experiment-method",
+          "version": 1
+        },
+        "fields": {
+          "qualifiers": {
+            "relation_basis": "The methodological paragraph motivates the proposed inquiry. The relation records that connection; methodological adequacy remains open to assessment.",
+            "relation_basis_language": "en",
+            "relation_basis_script": "Latn",
+            "scope": "Provisional passage-bound research; no calibrated assessment, admission, unconditional ontology, actual ideal bearer, successful reduction or canon assertion.",
+            "source_locator": [
+              "http://www.nietzschesource.org/eKGWB/JGB-36"
+            ],
+            "source_representation_sha256": "143d6330c94bf00b135f887eeed5f20f6caee6a98174746227af255583ae8b20",
+            "source_section": "JGB 36",
+            "statement": "Условное испытание §36 применяет метод проверки одного вида причинности до добавления иных; успех проверки не установлен.",
+            "statement_language": "ru",
+            "statement_script": "Cyrl"
+          }
+        },
+        "forms": [
+          {
+            "field_id": "claim.statement",
+            "form_id": "tos.form.jgb-practice-experiment-method.statement-ru"
+          }
+        ],
+        "operation": "claim.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    },
+    {
+      "command_id": "tos-language-cleanup-20260922:9cbba7a54163d892f5ed0e6e",
+      "request_digest": "sha256:e822287ea086e5590941dd9b3e1dd884469c74602e966ea2413743532bed9d82",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:616265dd1885c1792e96f181dd5c75a49694362584de6bfb6a16ac67fc63308a",
+      "recorded_at": "2026-09-22T06:37:47.525300+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+      "previous_source": {
+        "id": "tos.claim.jgb-practice-experiment-commitment",
+        "version": 1,
+        "digest": "sha256:7b5623f8e99e0ffc56f1d3016407bca9d9d4ae0c35308b2ed4da33d47e07ed71"
+      },
+      "source": {
+        "id": "tos.claim.jgb-practice-experiment-commitment",
+        "version": 2,
+        "digest": "sha256:bc16570a55cae27975f850df9f0f113d671f015300e6948e5109873a1d79d5c7"
+      },
+      "previous_revision": "sha256:7aaa0d0437c0af1d02d385e333094c4406fa2608352b6ec704e23a73652b7dc2",
+      "archive_path": "ToS/source-witnesses/.record-revisions/9cbba7a54163d892f5ed0e6e5f5edd4a5441fde0a457d984a21b4bb13e253df8-7aaa0d0437c0af1d02d385e333094c4406fa2608352b6ec704e23a73652b7dc2",
+      "dependencies": "sha256:0208a896545f930c29aa33d7e7464bb7100fdef189b36e88536c6a70869e1cfd",
+      "source_bindings": {
+        "objects": {
+          "tos.ontological-commitment.conditional-force-will-to-power-jgb36": {
+            "source_ref": "ToS/source-witnesses/semantic-descriptions/ontological-commitment-conditional-force-will-to-power-jgb36/ontological-commitment.json",
+            "source_sha256": "sha256:794137a761996cf39cd9d8c018deecd028e62add2f7f83351b0e4dc56b2f445c",
+            "canonical_record_sha256": "sha256:462f06404a7c48ada6412083f8625455d1a3ee4f6b4db10491093143624de47a",
+            "schema_version": "tos_thought_practice_record_v1",
+            "record_version": 2
+          },
+          "tos.thought-experiment.conditional-will-causality-jgb36": {
+            "source_ref": "ToS/source-witnesses/semantic-descriptions/thought-experiment-conditional-will-causality-jgb36/thought-experiment.json",
+            "source_sha256": "sha256:c8023ec5c00f8980a87e960271de2a4cddb9369371d8259db97e98a2b9e6f45b",
+            "canonical_record_sha256": "sha256:be4ae847d221fb7444c786978bbba6d231338dfc5a69ea7b1cbcaa6ad485b0f1",
+            "schema_version": "tos_thought_practice_record_v1",
+            "record_version": 2
+          }
+        },
+        "evidence": {
+          "ToS/review-ledger/2026-09-07-jgb-practice-source-reading.md": {
+            "source_ref": "ToS/review-ledger/2026-09-07-jgb-practice-source-reading.md",
+            "source_sha256": "sha256:88f7db993a135652369a4f590a47a0a685209a94b65832d07ba88aa6b7f4eb58",
+            "source_line": null,
+            "evidence_kind": "repo_path"
+          }
+        }
+      },
+      "changed_fields": [
+        "qualifiers"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.jgb-practice-experiment-commitment.statement-ru",
+          "version": 2,
+          "digest": "sha256:e727d3299b9483158efa8eb318c614fbad5408a281ee1b061dd8e2b2215a9002"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:9cbba7a54163d892f5ed0e6e",
+        "expected_configuration": "sha256:616265dd1885c1792e96f181dd5c75a49694362584de6bfb6a16ac67fc63308a",
+        "expected_dependencies": "sha256:0208a896545f930c29aa33d7e7464bb7100fdef189b36e88536c6a70869e1cfd",
+        "expected_inputs": {
+          "evidence": {
+            "ToS/review-ledger/2026-09-07-jgb-practice-source-reading.md": {
+              "evidence_kind": "repo_path",
+              "source_line": null,
+              "source_ref": "ToS/review-ledger/2026-09-07-jgb-practice-source-reading.md",
+              "source_sha256": "sha256:88f7db993a135652369a4f590a47a0a685209a94b65832d07ba88aa6b7f4eb58"
+            }
+          },
+          "objects": {
+            "tos.ontological-commitment.conditional-force-will-to-power-jgb36": {
+              "canonical_record_sha256": "sha256:462f06404a7c48ada6412083f8625455d1a3ee4f6b4db10491093143624de47a",
+              "record_version": 2,
+              "schema_version": "tos_thought_practice_record_v1",
+              "source_ref": "ToS/source-witnesses/semantic-descriptions/ontological-commitment-conditional-force-will-to-power-jgb36/ontological-commitment.json",
+              "source_sha256": "sha256:794137a761996cf39cd9d8c018deecd028e62add2f7f83351b0e4dc56b2f445c"
+            },
+            "tos.thought-experiment.conditional-will-causality-jgb36": {
+              "canonical_record_sha256": "sha256:be4ae847d221fb7444c786978bbba6d231338dfc5a69ea7b1cbcaa6ad485b0f1",
+              "record_version": 2,
+              "schema_version": "tos_thought_practice_record_v1",
+              "source_ref": "ToS/source-witnesses/semantic-descriptions/thought-experiment-conditional-will-causality-jgb36/thought-experiment.json",
+              "source_sha256": "sha256:c8023ec5c00f8980a87e960271de2a4cddb9369371d8259db97e98a2b9e6f45b"
+            }
+          }
+        },
+        "expected_revision": "sha256:7aaa0d0437c0af1d02d385e333094c4406fa2608352b6ec704e23a73652b7dc2",
+        "expected_source": {
+          "digest": "sha256:7b5623f8e99e0ffc56f1d3016407bca9d9d4ae0c35308b2ed4da33d47e07ed71",
+          "id": "tos.claim.jgb-practice-experiment-commitment",
+          "version": 1
+        },
+        "fields": {
+          "qualifiers": {
+            "relation_basis": "The proposed ontological determination belongs to this conditional inquiry and retains its hypothetical scope.",
+            "relation_basis_language": "en",
+            "relation_basis_script": "Latn",
+            "scope": "Provisional passage-bound research; no calibrated assessment, admission, unconditional ontology, actual ideal bearer, successful reduction or canon assertion.",
+            "source_locator": [
+              "http://www.nietzschesource.org/eKGWB/JGB-36"
+            ],
+            "source_representation_sha256": "143d6330c94bf00b135f887eeed5f20f6caee6a98174746227af255583ae8b20",
+            "source_section": "JGB 36",
+            "statement": "Онтологическая характеристика силы как воли к власти входит в испытание §36 условно — при успехе указанных редукций, без принятия её ядром ToS.",
+            "statement_language": "ru",
+            "statement_script": "Cyrl"
+          }
+        },
+        "forms": [
+          {
+            "field_id": "claim.statement",
+            "form_id": "tos.form.jgb-practice-experiment-commitment.statement-ru"
+          }
+        ],
+        "operation": "claim.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    },
+    {
+      "command_id": "tos-language-cleanup-20260922:dc30e8d5e1f33edbbda29b1c",
+      "request_digest": "sha256:f5eab4cd71b9fb2884a2d3b619853131ba16021126402fb8e877c772fefc9d57",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:c8136aab0f9005babdb4623a8930d88469740a60858f646a56231d0776b9dff5",
+      "recorded_at": "2026-09-22T06:38:13.040949+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+      "previous_source": {
+        "id": "tos.claim.jgb-practice-conception-thesis",
+        "version": 1,
+        "digest": "sha256:21602b544809ca1dc46c0b639f2007b76b589097015453023be832b86b39575f"
+      },
+      "source": {
+        "id": "tos.claim.jgb-practice-conception-thesis",
+        "version": 2,
+        "digest": "sha256:f928e11709921d9bb7d69f16ffe7213a804c03287b56ee72804caf4e78143b89"
+      },
+      "previous_revision": "sha256:69c5082c7f8ac41066b6c44594060c094cfdb27438b6c6e2c16cfcdacfb70f43",
+      "archive_path": "ToS/source-witnesses/.record-revisions/dc30e8d5e1f33edbbda29b1ce915b30cc11e08b0480c217ea76550bdeab93f07-69c5082c7f8ac41066b6c44594060c094cfdb27438b6c6e2c16cfcdacfb70f43",
+      "dependencies": "sha256:240caa88efe82440649d54bb3e67d2004ac737da30bbf55299412abe7ee0c7ab",
+      "source_bindings": {
+        "objects": {
+          "tos.conception.hypothetical-will-causality-jgb36": {
+            "source_ref": "ToS/source-witnesses/semantic-descriptions/conception-hypothetical-will-causality-jgb36/conception.json",
+            "source_sha256": "sha256:7babc6f7f0cbb14c0740b0797b3938e6c70346643009a19e4d6ce7d72407c0d1",
+            "canonical_record_sha256": "sha256:ef8a98313b38df63dde1addfca867db950a7898c6c0714f26e0e7fdecc8be07c",
+            "schema_version": "tos_semantic_description_record_v1",
+            "record_version": 2
+          },
+          "tos.thesis.conditional-world-will-to-power-jgb36": {
+            "source_ref": "ToS/source-witnesses/semantic-descriptions/thesis-conditional-world-will-to-power-jgb36/thesis.json",
+            "source_sha256": "sha256:2271e8ca75eddb34a9f8932347218f0be56921a32f75fc1add14c797d2553ade",
+            "canonical_record_sha256": "sha256:879d28d5c6aba890250f46244d0d6a9ec921593ff00fa5ce1c915aad9610e5a9",
+            "schema_version": "tos_thought_description_record_v1",
+            "record_version": 2
+          }
+        },
+        "evidence": {
+          "ToS/review-ledger/2026-09-07-jgb-practice-source-reading.md": {
+            "source_ref": "ToS/review-ledger/2026-09-07-jgb-practice-source-reading.md",
+            "source_sha256": "sha256:88f7db993a135652369a4f590a47a0a685209a94b65832d07ba88aa6b7f4eb58",
+            "source_line": null,
+            "evidence_kind": "repo_path"
+          }
+        }
+      },
+      "changed_fields": [
+        "qualifiers"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.jgb-practice-conception-thesis.statement-ru",
+          "version": 2,
+          "digest": "sha256:e711791d66c51f3c90e1f67a2271bf371fb7f63911ceb6a525df130bee6a3523"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:dc30e8d5e1f33edbbda29b1c",
+        "expected_configuration": "sha256:c8136aab0f9005babdb4623a8930d88469740a60858f646a56231d0776b9dff5",
+        "expected_dependencies": "sha256:240caa88efe82440649d54bb3e67d2004ac737da30bbf55299412abe7ee0c7ab",
+        "expected_inputs": {
+          "evidence": {
+            "ToS/review-ledger/2026-09-07-jgb-practice-source-reading.md": {
+              "evidence_kind": "repo_path",
+              "source_line": null,
+              "source_ref": "ToS/review-ledger/2026-09-07-jgb-practice-source-reading.md",
+              "source_sha256": "sha256:88f7db993a135652369a4f590a47a0a685209a94b65832d07ba88aa6b7f4eb58"
+            }
+          },
+          "objects": {
+            "tos.conception.hypothetical-will-causality-jgb36": {
+              "canonical_record_sha256": "sha256:ef8a98313b38df63dde1addfca867db950a7898c6c0714f26e0e7fdecc8be07c",
+              "record_version": 2,
+              "schema_version": "tos_semantic_description_record_v1",
+              "source_ref": "ToS/source-witnesses/semantic-descriptions/conception-hypothetical-will-causality-jgb36/conception.json",
+              "source_sha256": "sha256:7babc6f7f0cbb14c0740b0797b3938e6c70346643009a19e4d6ce7d72407c0d1"
+            },
+            "tos.thesis.conditional-world-will-to-power-jgb36": {
+              "canonical_record_sha256": "sha256:879d28d5c6aba890250f46244d0d6a9ec921593ff00fa5ce1c915aad9610e5a9",
+              "record_version": 2,
+              "schema_version": "tos_thought_description_record_v1",
+              "source_ref": "ToS/source-witnesses/semantic-descriptions/thesis-conditional-world-will-to-power-jgb36/thesis.json",
+              "source_sha256": "sha256:2271e8ca75eddb34a9f8932347218f0be56921a32f75fc1add14c797d2553ade"
+            }
+          }
+        },
+        "expected_revision": "sha256:69c5082c7f8ac41066b6c44594060c094cfdb27438b6c6e2c16cfcdacfb70f43",
+        "expected_source": {
+          "digest": "sha256:21602b544809ca1dc46c0b639f2007b76b589097015453023be832b86b39575f",
+          "id": "tos.claim.jgb-practice-conception-thesis",
+          "version": 1
+        },
+        "fields": {
+          "qualifiers": {
+            "relation_basis": "The final conditional belongs to the described account and retains the status of a reconstructed consequence requiring assessment.",
+            "relation_basis_language": "en",
+            "relation_basis_script": "Latn",
+            "scope": "Provisional passage-bound research; no calibrated assessment, admission, unconditional ontology, actual ideal bearer, successful reduction or canon assertion.",
+            "source_locator": [
+              "http://www.nietzschesource.org/eKGWB/JGB-36"
+            ],
+            "source_representation_sha256": "143d6330c94bf00b135f887eeed5f20f6caee6a98174746227af255583ae8b20",
+            "source_section": "JGB 36",
+            "statement": "В трактовку §36 входит условный тезис о мире изнутри как воле к власти; членство не означает истинность или выполненность условий.",
+            "statement_language": "ru",
+            "statement_script": "Cyrl"
+          }
+        },
+        "forms": [
+          {
+            "field_id": "claim.statement",
+            "form_id": "tos.form.jgb-practice-conception-thesis.statement-ru"
+          }
+        ],
+        "operation": "claim.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    },
+    {
+      "command_id": "tos-language-cleanup-20260922:f671852819e0b39ecffe60af",
+      "request_digest": "sha256:3f3e0dcb54a8cf5c17d2dfcd51edd122c4446cf3b1c10576cb0811c3a1824b38",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:c4a681a303113adb85f3f4e11660d6e2564ddd4f38b27df94b1684b3e42c6ed8",
+      "recorded_at": "2026-09-22T06:38:59.930860+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+      "previous_source": {
+        "id": "tos.claim.jgb-practice-argument-image",
+        "version": 1,
+        "digest": "sha256:647d5d239409ec5d41b9d21f7667ee8cfda06b145202dc742921b0e449f7dcf7"
+      },
+      "source": {
+        "id": "tos.claim.jgb-practice-argument-image",
+        "version": 2,
+        "digest": "sha256:cc3d3ce51c59cba2a18efd07ab0d480eedd75b15ff28c2efa4589778c7981013"
+      },
+      "previous_revision": "sha256:dc8b89e484f93040c915a9d5c6081e05a6e71abfbf3269dae1ec2086f82d96c5",
+      "archive_path": "ToS/source-witnesses/.record-revisions/f671852819e0b39ecffe60af0714b60c09480befbe56af8d9e53a0ac47d46a8e-dc8b89e484f93040c915a9d5c6081e05a6e71abfbf3269dae1ec2086f82d96c5",
+      "dependencies": "sha256:612f461540f13f06daef0f9068a68ac7d602c0749703c33e262da7996b2c1cc3",
+      "source_bindings": {
+        "objects": {
+          "tos.argument.anti-self-origination-jgb21": {
+            "source_ref": "ToS/source-witnesses/semantic-descriptions/argument-anti-self-origination-jgb21/argument.json",
+            "source_sha256": "sha256:91f4007dc34deff4c0436f5e6bc5b7cb9601c45507d83942c7b97443b3ab04ff",
+            "canonical_record_sha256": "sha256:7d8a5684a6c6876f37f55707f66940bf923771bf69014e88a948620db717f80a",
+            "schema_version": "tos_thought_description_record_v1",
+            "record_version": 2
+          },
+          "tos.thought-image.self-hair-pull-jgb21": {
+            "source_ref": "ToS/source-witnesses/semantic-descriptions/thought-image-self-hair-pull-jgb21/thought-image.json",
+            "source_sha256": "sha256:9f6932113def361ad63e15e22786e1290e5407e943ef4a9180dd044ebc9dd6e6",
+            "canonical_record_sha256": "sha256:c611694700636bb9626c14008e1789af37d3d03b2cdc09cee87404c318442217",
+            "schema_version": "tos_thought_practice_record_v1",
+            "record_version": 2
+          }
+        },
+        "evidence": {
+          "ToS/review-ledger/2026-09-07-jgb-practice-source-reading.md": {
+            "source_ref": "ToS/review-ledger/2026-09-07-jgb-practice-source-reading.md",
+            "source_sha256": "sha256:88f7db993a135652369a4f590a47a0a685209a94b65832d07ba88aa6b7f4eb58",
+            "source_line": null,
+            "evidence_kind": "repo_path"
+          }
+        }
+      },
+      "changed_fields": [
+        "qualifiers"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.jgb-practice-argument-image.statement-ru",
+          "version": 2,
+          "digest": "sha256:c44332817d1c066a5ca7744c2df212084337b9a7862340427d376a93c77b9869"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:f671852819e0b39ecffe60af",
+        "expected_configuration": "sha256:c4a681a303113adb85f3f4e11660d6e2564ddd4f38b27df94b1684b3e42c6ed8",
+        "expected_dependencies": "sha256:612f461540f13f06daef0f9068a68ac7d602c0749703c33e262da7996b2c1cc3",
+        "expected_inputs": {
+          "evidence": {
+            "ToS/review-ledger/2026-09-07-jgb-practice-source-reading.md": {
+              "evidence_kind": "repo_path",
+              "source_line": null,
+              "source_ref": "ToS/review-ledger/2026-09-07-jgb-practice-source-reading.md",
+              "source_sha256": "sha256:88f7db993a135652369a4f590a47a0a685209a94b65832d07ba88aa6b7f4eb58"
+            }
+          },
+          "objects": {
+            "tos.argument.anti-self-origination-jgb21": {
+              "canonical_record_sha256": "sha256:7d8a5684a6c6876f37f55707f66940bf923771bf69014e88a948620db717f80a",
+              "record_version": 2,
+              "schema_version": "tos_thought_description_record_v1",
+              "source_ref": "ToS/source-witnesses/semantic-descriptions/argument-anti-self-origination-jgb21/argument.json",
+              "source_sha256": "sha256:91f4007dc34deff4c0436f5e6bc5b7cb9601c45507d83942c7b97443b3ab04ff"
+            },
+            "tos.thought-image.self-hair-pull-jgb21": {
+              "canonical_record_sha256": "sha256:c611694700636bb9626c14008e1789af37d3d03b2cdc09cee87404c318442217",
+              "record_version": 2,
+              "schema_version": "tos_thought_practice_record_v1",
+              "source_ref": "ToS/source-witnesses/semantic-descriptions/thought-image-self-hair-pull-jgb21/thought-image.json",
+              "source_sha256": "sha256:9f6932113def361ad63e15e22786e1290e5407e943ef4a9180dd044ebc9dd6e6"
+            }
+          }
+        },
+        "expected_revision": "sha256:dc8b89e484f93040c915a9d5c6081e05a6e71abfbf3269dae1ec2086f82d96c5",
+        "expected_source": {
+          "digest": "sha256:647d5d239409ec5d41b9d21f7667ee8cfda06b145202dc742921b0e449f7dcf7",
+          "id": "tos.claim.jgb-practice-argument-image",
+          "version": 1
+        },
+        "fields": {
+          "qualifiers": {
+            "relation_basis": "The image appears in the anti-self-origination passage reconstructed as an argument. This relation records its expressive role; argument soundness requires separate assessment.",
+            "relation_basis_language": "en",
+            "relation_basis_script": "Latn",
+            "scope": "Provisional passage-bound research; no calibrated assessment, admission, unconditional ontology, actual ideal bearer, successful reduction or canon assertion.",
+            "source_locator": [
+              "http://www.nietzschesource.org/eKGWB/JGB-21"
+            ],
+            "source_representation_sha256": "143d6330c94bf00b135f887eeed5f20f6caee6a98174746227af255583ae8b20",
+            "source_section": "JGB 21",
+            "statement": "Реконструируемый довод §21 использует критический образ самовытягивания из ничто; образ не становится отдельной доказанной посылкой.",
+            "statement_language": "ru",
+            "statement_script": "Cyrl"
+          }
+        },
+        "forms": [
+          {
+            "field_id": "claim.statement",
+            "form_id": "tos.form.jgb-practice-argument-image.statement-ru"
+          }
+        ],
+        "operation": "claim.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    },
+    {
+      "command_id": "tos-language-cleanup-20260922:4dbd4fc060304e15330ddf54",
+      "request_digest": "sha256:0366d0d35ad05a6a3bc0b6c7c8132ead8b0e32855c9689f77f9782389e487b34",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:2ff5846e20475c056700135da8a2bcdf60545657f482ee4b81fe889d6f5562b4",
+      "recorded_at": "2026-09-22T06:39:26.352809+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+      "previous_source": {
+        "id": "tos.claim.jgb-practice-ideal-enumeration",
+        "version": 1,
+        "digest": "sha256:9a2249a683a14ea224dbd1e1c1f3a8178fc6d91a017a5b95bf03620cfb01a1f0"
+      },
+      "source": {
+        "id": "tos.claim.jgb-practice-ideal-enumeration",
+        "version": 2,
+        "digest": "sha256:ee7daed0dfc55f37d605be711d0790c1c23c8e24138a733102709d4fc1c11a55"
+      },
+      "previous_revision": "sha256:7dffcee195e5274beafc6ddf1b0eff35040d1381f4b88af4f0eaf2cffb64f992",
+      "archive_path": "ToS/source-witnesses/.record-revisions/4dbd4fc060304e15330ddf54f112fc8d6f4a48e84ee62c41b84ea9185c0e64bf-7dffcee195e5274beafc6ddf1b0eff35040d1381f4b88af4f0eaf2cffb64f992",
+      "dependencies": "sha256:2a9c9643053cbbeba07118fce1166f87b2d4a9085d60a0945a4e61ca9ce48907",
+      "source_bindings": {
+        "objects": {
+          "tos.ideal.value-creating-philosopher-jgb211": {
+            "source_ref": "ToS/source-witnesses/semantic-descriptions/ideal-value-creating-philosopher-jgb211/ideal.json",
+            "source_sha256": "sha256:0acc96755832faac210955a7e30e6d3b03838b2572a51fa69911c6445461716a",
+            "canonical_record_sha256": "sha256:08538beff90694f951ab67521a7c5a330caa1545075e113ee30f720dfa0a7e04",
+            "schema_version": "tos_thought_practice_record_v1",
+            "record_version": 2
+          },
+          "tos.rhetorical-figure.preparatory-role-enumeration-jgb211": {
+            "source_ref": "ToS/source-witnesses/semantic-descriptions/rhetorical-figure-preparatory-role-enumeration-jgb211/rhetorical-figure.json",
+            "source_sha256": "sha256:fb69fb9b3d4a02c0cd6b7ed7066645008094ee012e3a57a37d94ede16f3ec6ff",
+            "canonical_record_sha256": "sha256:5bb6c605821729a8accd2448d55e542798dd02a8e6b344226f29e086018c10ff",
+            "schema_version": "tos_thought_practice_record_v1",
+            "record_version": 2
+          }
+        },
+        "evidence": {
+          "ToS/review-ledger/2026-09-07-jgb-practice-source-reading.md": {
+            "source_ref": "ToS/review-ledger/2026-09-07-jgb-practice-source-reading.md",
+            "source_sha256": "sha256:88f7db993a135652369a4f590a47a0a685209a94b65832d07ba88aa6b7f4eb58",
+            "source_line": null,
+            "evidence_kind": "repo_path"
+          }
+        }
+      },
+      "changed_fields": [
+        "qualifiers"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.jgb-practice-ideal-enumeration.statement-ru",
+          "version": 2,
+          "digest": "sha256:9aa30762796e1fc2776bad05ce6172a70677cdeb626ab8fb2c82aee9c6d2ed00"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:4dbd4fc060304e15330ddf54",
+        "expected_configuration": "sha256:2ff5846e20475c056700135da8a2bcdf60545657f482ee4b81fe889d6f5562b4",
+        "expected_dependencies": "sha256:2a9c9643053cbbeba07118fce1166f87b2d4a9085d60a0945a4e61ca9ce48907",
+        "expected_inputs": {
+          "evidence": {
+            "ToS/review-ledger/2026-09-07-jgb-practice-source-reading.md": {
+              "evidence_kind": "repo_path",
+              "source_line": null,
+              "source_ref": "ToS/review-ledger/2026-09-07-jgb-practice-source-reading.md",
+              "source_sha256": "sha256:88f7db993a135652369a4f590a47a0a685209a94b65832d07ba88aa6b7f4eb58"
+            }
+          },
+          "objects": {
+            "tos.ideal.value-creating-philosopher-jgb211": {
+              "canonical_record_sha256": "sha256:08538beff90694f951ab67521a7c5a330caa1545075e113ee30f720dfa0a7e04",
+              "record_version": 2,
+              "schema_version": "tos_thought_practice_record_v1",
+              "source_ref": "ToS/source-witnesses/semantic-descriptions/ideal-value-creating-philosopher-jgb211/ideal.json",
+              "source_sha256": "sha256:0acc96755832faac210955a7e30e6d3b03838b2572a51fa69911c6445461716a"
+            },
+            "tos.rhetorical-figure.preparatory-role-enumeration-jgb211": {
+              "canonical_record_sha256": "sha256:5bb6c605821729a8accd2448d55e542798dd02a8e6b344226f29e086018c10ff",
+              "record_version": 2,
+              "schema_version": "tos_thought_practice_record_v1",
+              "source_ref": "ToS/source-witnesses/semantic-descriptions/rhetorical-figure-preparatory-role-enumeration-jgb211/rhetorical-figure.json",
+              "source_sha256": "sha256:fb69fb9b3d4a02c0cd6b7ed7066645008094ee012e3a57a37d94ede16f3ec6ff"
+            }
+          }
+        },
+        "expected_revision": "sha256:7dffcee195e5274beafc6ddf1b0eff35040d1381f4b88af4f0eaf2cffb64f992",
+        "expected_source": {
+          "digest": "sha256:9a2249a683a14ea224dbd1e1c1f3a8178fc6d91a017a5b95bf03620cfb01a1f0",
+          "id": "tos.claim.jgb-practice-ideal-enumeration",
+          "version": 1
+        },
+        "fields": {
+          "qualifiers": {
+            "relation_basis": "The enumeration prepares the distinction between many possible preparatory perspectives and the value-creating task.",
+            "relation_basis_language": "en",
+            "relation_basis_script": "Latn",
+            "scope": "Provisional passage-bound research; no calibrated assessment, admission, unconditional ontology, actual ideal bearer, successful reduction or canon assertion.",
+            "source_locator": [
+              "http://www.nietzschesource.org/eKGWB/JGB-211"
+            ],
+            "source_representation_sha256": "143d6330c94bf00b135f887eeed5f20f6caee6a98174746227af255583ae8b20",
+            "source_section": "JGB 211",
+            "statement": "Идеал философа в §211 представлен через перечисление возможных подготовительных ролей. Перечень имеет нормативный и подготовительный смысл; биографические этапы требуют отдельных свидетельств.",
+            "statement_language": "ru",
+            "statement_script": "Cyrl"
+          }
+        },
+        "forms": [
+          {
+            "field_id": "claim.statement",
+            "form_id": "tos.form.jgb-practice-ideal-enumeration.statement-ru"
+          }
+        ],
+        "operation": "claim.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    },
+    {
+      "command_id": "tos-language-cleanup-20260922:4b0ee46a9a7044362e808ff8",
+      "request_digest": "sha256:7ed5427913fa7c44849f4a2104e9df361ef09da23ecd21bbe66511f4f9704a23",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:983647ac8fa46d5c4afddd39340ff6ad24cca9a2019d249d8a399f47adc4ad1f",
+      "recorded_at": "2026-09-22T06:39:48.216826+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+      "previous_source": {
+        "id": "tos.claim.jgb-practice-thought-method-attribution",
+        "version": 1,
+        "digest": "sha256:898ba6ea51680db5b91cab34f56d391553641cbd38f42077fff190a2972c6b8c"
+      },
+      "source": {
+        "id": "tos.claim.jgb-practice-thought-method-attribution",
+        "version": 2,
+        "digest": "sha256:593d71b04831932155644a5ddd07c224252d16aa7f9b8a4e82496a81215183a1"
+      },
+      "previous_revision": "sha256:fac84f98def8229e3fac2638670d8730b6f10a5e9e2e94c1cbef7eed360a2163",
+      "archive_path": "ToS/source-witnesses/.record-revisions/4b0ee46a9a7044362e808ff83d191ca16f66ec01a2e643fd51486a548b47e6a4-fac84f98def8229e3fac2638670d8730b6f10a5e9e2e94c1cbef7eed360a2163",
+      "dependencies": "sha256:de9ba4a78a6e6493113b88bc1a45379d28223a4feac49903aed7d51edd5376bc",
+      "source_bindings": {
+        "objects": {
+          "tos.agent.friedrich-nietzsche": {
+            "source_ref": "ToS/source-witnesses/agents/friedrich-nietzsche/agent.json",
+            "source_sha256": "sha256:03312e09746a20b3d0979d3f4a8df209d6d7c537d62c8f1bd588f36cec36416d",
+            "canonical_record_sha256": "sha256:8d6034511d8fb7618c7a97ad4cc07f84c2fecc2c5792786168d00a0796495a48",
+            "schema_version": "tos_corpus_record_v1",
+            "record_version": 3
+          },
+          "tos.thought-method.single-causality-trial-jgb36": {
+            "source_ref": "ToS/source-witnesses/semantic-descriptions/thought-method-single-causality-trial-jgb36/thought-method.json",
+            "source_sha256": "sha256:fe518ce10ff2efa3d7922a25680d1cf8f3db0ee8cba71183dd37802b84e52967",
+            "canonical_record_sha256": "sha256:015bf171eef139bd1d82120dcc8b1f98e2577989697768ae7856e65be6b1c8a9",
+            "schema_version": "tos_thought_practice_record_v1",
+            "record_version": 2
+          }
+        },
+        "evidence": {
+          "ToS/review-ledger/2026-09-07-jgb-practice-source-reading.md": {
+            "source_ref": "ToS/review-ledger/2026-09-07-jgb-practice-source-reading.md",
+            "source_sha256": "sha256:88f7db993a135652369a4f590a47a0a685209a94b65832d07ba88aa6b7f4eb58",
+            "source_line": null,
+            "evidence_kind": "repo_path"
+          }
+        }
+      },
+      "changed_fields": [
+        "qualifiers"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.jgb-practice-thought-method-attribution.statement-ru",
+          "version": 2,
+          "digest": "sha256:790723d5d65329296e39513bbbed42730286aebe0a115b00b5005bb439b8c185"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:4b0ee46a9a7044362e808ff8",
+        "expected_configuration": "sha256:983647ac8fa46d5c4afddd39340ff6ad24cca9a2019d249d8a399f47adc4ad1f",
+        "expected_dependencies": "sha256:de9ba4a78a6e6493113b88bc1a45379d28223a4feac49903aed7d51edd5376bc",
+        "expected_inputs": {
+          "evidence": {
+            "ToS/review-ledger/2026-09-07-jgb-practice-source-reading.md": {
+              "evidence_kind": "repo_path",
+              "source_line": null,
+              "source_ref": "ToS/review-ledger/2026-09-07-jgb-practice-source-reading.md",
+              "source_sha256": "sha256:88f7db993a135652369a4f590a47a0a685209a94b65832d07ba88aa6b7f4eb58"
+            }
+          },
+          "objects": {
+            "tos.agent.friedrich-nietzsche": {
+              "canonical_record_sha256": "sha256:8d6034511d8fb7618c7a97ad4cc07f84c2fecc2c5792786168d00a0796495a48",
+              "record_version": 3,
+              "schema_version": "tos_corpus_record_v1",
+              "source_ref": "ToS/source-witnesses/agents/friedrich-nietzsche/agent.json",
+              "source_sha256": "sha256:03312e09746a20b3d0979d3f4a8df209d6d7c537d62c8f1bd588f36cec36416d"
+            },
+            "tos.thought-method.single-causality-trial-jgb36": {
+              "canonical_record_sha256": "sha256:015bf171eef139bd1d82120dcc8b1f98e2577989697768ae7856e65be6b1c8a9",
+              "record_version": 2,
+              "schema_version": "tos_thought_practice_record_v1",
+              "source_ref": "ToS/source-witnesses/semantic-descriptions/thought-method-single-causality-trial-jgb36/thought-method.json",
+              "source_sha256": "sha256:fe518ce10ff2efa3d7922a25680d1cf8f3db0ee8cba71183dd37802b84e52967"
+            }
+          }
+        },
+        "expected_revision": "sha256:fac84f98def8229e3fac2638670d8730b6f10a5e9e2e94c1cbef7eed360a2163",
+        "expected_source": {
+          "digest": "sha256:898ba6ea51680db5b91cab34f56d391553641cbd38f42077fff190a2972c6b8c",
+          "id": "tos.claim.jgb-practice-thought-method-attribution",
+          "version": 1
+        },
+        "fields": {
+          "qualifiers": {
+            "relation_basis": "The attribution concerns discourse in this authored work and exact section. Classification belongs to the researcher; broader endorsement, exclusive authorship and actual exemplification remain open questions.",
+            "relation_basis_language": "en",
+            "relation_basis_script": "Latn",
+            "scope": "Provisional passage-bound research; no calibrated assessment, admission, unconditional ontology, actual ideal bearer, successful reduction or canon assertion.",
+            "source_locator": [
+              "http://www.nietzschesource.org/eKGWB/JGB-36"
+            ],
+            "source_representation_sha256": "143d6330c94bf00b135f887eeed5f20f6caee6a98174746227af255583ae8b20",
+            "source_section": "JGB 36",
+            "statement": "Описанное в записи «Испытать одну причинность до её предела — метод JGB 36» приписывается изложению Ницше в §36 JGB, не его неизменной позиции во всех текстах и не мнению автора исследовательской записи.",
+            "statement_language": "ru",
+            "statement_script": "Cyrl"
+          }
+        },
+        "forms": [
+          {
+            "field_id": "claim.statement",
+            "form_id": "tos.form.jgb-practice-thought-method-attribution.statement-ru"
+          }
+        ],
+        "operation": "claim.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    },
+    {
+      "command_id": "tos-language-cleanup-20260922:747c958f4e445bf471e9b752",
+      "request_digest": "sha256:ded55f4b2b71da04ef3bee7ca43fed20e31ba9759a5af43200f6975374c3f9ae",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:9211553c6440bb06e17558f893138e7f6d42c7dcaff6fa28310c666d5a780f4a",
+      "recorded_at": "2026-09-22T06:40:11.259157+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+      "previous_source": {
+        "id": "tos.claim.jgb-practice-ideal-attribution",
+        "version": 1,
+        "digest": "sha256:cd5909dfd7fd6b32c15de0494507b8c73c799dc27fd8599f03be429218315401"
+      },
+      "source": {
+        "id": "tos.claim.jgb-practice-ideal-attribution",
+        "version": 2,
+        "digest": "sha256:306ccd8aafd790f38c6331e6b856a56f89a6d1543ef5cbe7d832b0ab726138a7"
+      },
+      "previous_revision": "sha256:8324bfe153ca73fc4bc7b4f8de159095473a91fdc16675312333eb6df3c8ff1b",
+      "archive_path": "ToS/source-witnesses/.record-revisions/747c958f4e445bf471e9b752f51fdab94bd4bbe76070bf45a69ae08e488b9507-8324bfe153ca73fc4bc7b4f8de159095473a91fdc16675312333eb6df3c8ff1b",
+      "dependencies": "sha256:424dd2bceb235302a9154a98cf0e587993b6e24b2fc207ee588b921de9cfd41a",
+      "source_bindings": {
+        "objects": {
+          "tos.agent.friedrich-nietzsche": {
+            "source_ref": "ToS/source-witnesses/agents/friedrich-nietzsche/agent.json",
+            "source_sha256": "sha256:03312e09746a20b3d0979d3f4a8df209d6d7c537d62c8f1bd588f36cec36416d",
+            "canonical_record_sha256": "sha256:8d6034511d8fb7618c7a97ad4cc07f84c2fecc2c5792786168d00a0796495a48",
+            "schema_version": "tos_corpus_record_v1",
+            "record_version": 3
+          },
+          "tos.ideal.value-creating-philosopher-jgb211": {
+            "source_ref": "ToS/source-witnesses/semantic-descriptions/ideal-value-creating-philosopher-jgb211/ideal.json",
+            "source_sha256": "sha256:0acc96755832faac210955a7e30e6d3b03838b2572a51fa69911c6445461716a",
+            "canonical_record_sha256": "sha256:08538beff90694f951ab67521a7c5a330caa1545075e113ee30f720dfa0a7e04",
+            "schema_version": "tos_thought_practice_record_v1",
+            "record_version": 2
+          }
+        },
+        "evidence": {
+          "ToS/review-ledger/2026-09-07-jgb-practice-source-reading.md": {
+            "source_ref": "ToS/review-ledger/2026-09-07-jgb-practice-source-reading.md",
+            "source_sha256": "sha256:88f7db993a135652369a4f590a47a0a685209a94b65832d07ba88aa6b7f4eb58",
+            "source_line": null,
+            "evidence_kind": "repo_path"
+          }
+        }
+      },
+      "changed_fields": [
+        "qualifiers"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.jgb-practice-ideal-attribution.statement-ru",
+          "version": 2,
+          "digest": "sha256:b27a310d8ca8a9bfbfcea206979a58659def8fdca25bf846aca4f41391ef9776"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:747c958f4e445bf471e9b752",
+        "expected_configuration": "sha256:9211553c6440bb06e17558f893138e7f6d42c7dcaff6fa28310c666d5a780f4a",
+        "expected_dependencies": "sha256:424dd2bceb235302a9154a98cf0e587993b6e24b2fc207ee588b921de9cfd41a",
+        "expected_inputs": {
+          "evidence": {
+            "ToS/review-ledger/2026-09-07-jgb-practice-source-reading.md": {
+              "evidence_kind": "repo_path",
+              "source_line": null,
+              "source_ref": "ToS/review-ledger/2026-09-07-jgb-practice-source-reading.md",
+              "source_sha256": "sha256:88f7db993a135652369a4f590a47a0a685209a94b65832d07ba88aa6b7f4eb58"
+            }
+          },
+          "objects": {
+            "tos.agent.friedrich-nietzsche": {
+              "canonical_record_sha256": "sha256:8d6034511d8fb7618c7a97ad4cc07f84c2fecc2c5792786168d00a0796495a48",
+              "record_version": 3,
+              "schema_version": "tos_corpus_record_v1",
+              "source_ref": "ToS/source-witnesses/agents/friedrich-nietzsche/agent.json",
+              "source_sha256": "sha256:03312e09746a20b3d0979d3f4a8df209d6d7c537d62c8f1bd588f36cec36416d"
+            },
+            "tos.ideal.value-creating-philosopher-jgb211": {
+              "canonical_record_sha256": "sha256:08538beff90694f951ab67521a7c5a330caa1545075e113ee30f720dfa0a7e04",
+              "record_version": 2,
+              "schema_version": "tos_thought_practice_record_v1",
+              "source_ref": "ToS/source-witnesses/semantic-descriptions/ideal-value-creating-philosopher-jgb211/ideal.json",
+              "source_sha256": "sha256:0acc96755832faac210955a7e30e6d3b03838b2572a51fa69911c6445461716a"
+            }
+          }
+        },
+        "expected_revision": "sha256:8324bfe153ca73fc4bc7b4f8de159095473a91fdc16675312333eb6df3c8ff1b",
+        "expected_source": {
+          "digest": "sha256:cd5909dfd7fd6b32c15de0494507b8c73c799dc27fd8599f03be429218315401",
+          "id": "tos.claim.jgb-practice-ideal-attribution",
+          "version": 1
+        },
+        "fields": {
+          "qualifiers": {
+            "relation_basis": "The attribution concerns discourse in this authored work and exact section. Classification belongs to the researcher; broader endorsement, exclusive authorship and actual exemplification remain open questions.",
+            "relation_basis_language": "en",
+            "relation_basis_script": "Latn",
+            "scope": "Provisional passage-bound research; no calibrated assessment, admission, unconditional ontology, actual ideal bearer, successful reduction or canon assertion.",
+            "source_locator": [
+              "http://www.nietzschesource.org/eKGWB/JGB-211"
+            ],
+            "source_representation_sha256": "143d6330c94bf00b135f887eeed5f20f6caee6a98174746227af255583ae8b20",
+            "source_section": "JGB 211",
+            "statement": "Описанное в записи «Философ — создатель ценностей: идеал JGB 211» приписывается изложению Ницше в §211 JGB, не его неизменной позиции во всех текстах и не мнению автора исследовательской записи.",
+            "statement_language": "ru",
+            "statement_script": "Cyrl"
+          }
+        },
+        "forms": [
+          {
+            "field_id": "claim.statement",
+            "form_id": "tos.form.jgb-practice-ideal-attribution.statement-ru"
+          }
+        ],
+        "operation": "claim.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    }
+  ]
+}

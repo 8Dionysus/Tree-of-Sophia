@@ -511,8 +511,8 @@ def _issue_identities(
         "unit_identities": unit_rows,
         "issued_identity_count": issued,
         "authority_boundary": (
-            "opaque identity issuance for technical source units only; no textual, "
-            "linguistic, translation, semantic, graph, canon, or publication authority"
+            "This journal records opaque identity issuance for technical source units and "
+            "the source bindings used to retain them."
         ),
     }
 
@@ -790,9 +790,7 @@ def _build_packet(
                     ),
                 },
                 "status_reason": (
-                    "The unit records only a boundary explicitly present in the exact "
-                    "selected DTA TEI representation; this is not accepted German, "
-                    "editorial hierarchy, linguistic analysis, translation, or semantics."
+                    "The unit records a boundary explicitly present in the exact selected DTA TEI representation. German text acceptance, editorial hierarchy, linguistic analysis, translation and semantics retain their corresponding assessment routes."
                 ),
                 "source_text_mutated": False,
                 "semantic_promotion": False,
@@ -1165,7 +1163,7 @@ def _provenance(
             "TEI source markup is observed but not accepted as a final editorial hierarchy.",
             "The sequential German layers remain ignored local-only mode-0600 files.",
             "The Part-IV auxiliary sequence is excluded only from this work-level projection and remains intact in its source container.",
-            "No Russian structure, translation alignment, linguistic analysis, semantics, graph, canon, rights clearance, or publication route is created.",
+            "This event records German technical markup. Russian structure, translation, linguistic and semantic assessment, graph, canon, rights and publication follow their corresponding owner routes.",
         ],
         "receipt_refs": sorted(tracked_outputs),
         "rights_basis_ref": parts[0].config["rights_ref"],

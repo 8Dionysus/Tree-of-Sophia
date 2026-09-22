@@ -1,7 +1,8 @@
 # Tree of Sophia validation
 
-This is the on-demand human route for repository validation. It is not an
-inherited agent card and does not author philosophical meaning.
+This on-demand human route selects repository validation. Agent inheritance
+follows `AGENTS.md`; philosophical meaning belongs to the authored ToS
+sources.
 
 ## Authority
 

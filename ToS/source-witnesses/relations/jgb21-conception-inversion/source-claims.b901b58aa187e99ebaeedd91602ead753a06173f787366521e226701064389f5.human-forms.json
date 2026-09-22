@@ -1,11 +1,82 @@
 {
-  "schema_version": "tos_human_form_set_v1",
-  "subject": {
-    "id": "tos.claim.jgb21-conception-inversion",
-    "version": 1,
-    "digest": "sha256:3a1bef428f11f9b61a2ef5e46bd03f47407313d85e0653df7e99844815a5ee94"
-  },
   "forms": [
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.jgb21-conception-inversion.statement-en",
+      "form_version": 2,
+      "subject": {
+        "id": "tos.claim.jgb21-conception-inversion",
+        "version": 2,
+        "digest": "sha256:de76e53a8b59b4a22cbf5d233edc02290e4cd4498da8c88d92e6e57034a3a6dc"
+      },
+      "role": "statement",
+      "language": "en",
+      "script": "Latn",
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.jgb21-conception-inversion.statement-en",
+        "version": 1,
+        "digest": "sha256:c05de961753c6ab231a09caa2f8628719efd83370e277fd3c43c98b28606d158"
+      },
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.claim.jgb21-conception-inversion",
+            "version": 2,
+            "digest": "sha256:de76e53a8b59b4a22cbf5d233edc02290e4cd4498da8c88d92e6e57034a3a6dc"
+          },
+          "pointer": "/qualifiers/statement"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.claim.jgb21-conception-inversion",
+            "version": 2,
+            "digest": "sha256:de76e53a8b59b4a22cbf5d233edc02290e4cd4498da8c88d92e6e57034a3a6dc"
+          },
+          "pointer": ""
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    }
+  ],
+  "growth_history": [
+    {
+      "authority_ref": "operator:foundation-v1-20260905:source-growth:R04-qualified-comparison",
+      "command_id": "form-create:jgb21-conception-inversion:statement-en:20260909",
+      "owner_configuration": "sha256:d55e8fd2405f58deed0554ef82c344fca0f5c2a0c7c88cc952d14d152d4953e4",
+      "previous_revision": null,
+      "principal_id": "model:codex",
+      "recorded_at": "2026-09-09T21:42:59.135043+00:00",
+      "request_digest": "sha256:cd3ad3fe2fa62c1b98f08c7bb6703da66e982b15b81d8ba352d086f13e7f5ccb",
+      "results": [
+        {
+          "digest": "sha256:c05de961753c6ab231a09caa2f8628719efd83370e277fd3c43c98b28606d158",
+          "id": "tos.form.jgb21-conception-inversion.statement-en",
+          "version": 1
+        }
+      ],
+      "source": {
+        "digest": "sha256:3a1bef428f11f9b61a2ef5e46bd03f47407313d85e0653df7e99844815a5ee94",
+        "id": "tos.claim.jgb21-conception-inversion",
+        "version": 1
+      },
+      "source_contracts": {
+        "ToS/contracts/claim-packet.schema.json": "sha256:cc982ceeaa3a62dc8cb1367cd4b10cc76073b252a1ac5c9977f6b0ee6d47588c",
+        "ToS/contracts/corpus-record.schema.json": "sha256:baccf59bc5c6ffd1560848610ac812751d1e5182c89658814eeb2eedde4b6db1",
+        "ToS/contracts/knowledge-assessment.schema.json": "sha256:83163d105944db9a54bd57a8e730c3d459a00239de0df65cb63ac18c305e60be",
+        "ToS/contracts/semantic-entity-type-registry.schema.json": "sha256:faa705830d40d65441e66b618f8934ba69245d7600835547876239a692551d19",
+        "ToS/contracts/semantic-relation-claim.schema.json": "sha256:49a82dbcacbc1c186a0fb51768fa84227bdd4b8c9a35bd93f7b2f86c4527563e",
+        "ToS/contracts/semantic-relation-type-registry.schema.json": "sha256:5725a7e67d7a6e8fcafa83853337109a9ba981f46771b6d348e61fc28c1d7ce8",
+        "ToS/contracts/source-claim-record.schema.json": "sha256:0c6a03c978999586c9a13c153bde5dabe7ccb4c31c732afb8cca6a536eb65bd0",
+        "ToS/doctrine/semantic-interchange/entity-types.v1.json": "sha256:f3732fc3759c68b6ef1a1c2e95b26be8e05a1b06c58aaf9577ccf0c89fd6a13d",
+        "ToS/doctrine/semantic-interchange/relation-types.v1.json": "sha256:fcca3a45ec06278ee3c740e044ec8b8a2ec0e8f5703d17d57e88af591ff63202"
+      }
+    }
+  ],
+  "prior_forms": [
     {
       "bindings": {
         "context-0": {
@@ -44,39 +115,10 @@
       }
     }
   ],
-  "prior_forms": [],
-  "growth_history": [
-    {
-      "command_id": "form-create:jgb21-conception-inversion:statement-en:20260909",
-      "request_digest": "sha256:cd3ad3fe2fa62c1b98f08c7bb6703da66e982b15b81d8ba352d086f13e7f5ccb",
-      "principal_id": "model:codex",
-      "authority_ref": "operator:foundation-v1-20260905:source-growth:R04-qualified-comparison",
-      "owner_configuration": "sha256:d55e8fd2405f58deed0554ef82c344fca0f5c2a0c7c88cc952d14d152d4953e4",
-      "recorded_at": "2026-09-09T21:42:59.135043+00:00",
-      "source_contracts": {
-        "ToS/doctrine/semantic-interchange/relation-types.v1.json": "sha256:fcca3a45ec06278ee3c740e044ec8b8a2ec0e8f5703d17d57e88af591ff63202",
-        "ToS/contracts/semantic-relation-type-registry.schema.json": "sha256:5725a7e67d7a6e8fcafa83853337109a9ba981f46771b6d348e61fc28c1d7ce8",
-        "ToS/doctrine/semantic-interchange/entity-types.v1.json": "sha256:f3732fc3759c68b6ef1a1c2e95b26be8e05a1b06c58aaf9577ccf0c89fd6a13d",
-        "ToS/contracts/semantic-entity-type-registry.schema.json": "sha256:faa705830d40d65441e66b618f8934ba69245d7600835547876239a692551d19",
-        "ToS/contracts/claim-packet.schema.json": "sha256:cc982ceeaa3a62dc8cb1367cd4b10cc76073b252a1ac5c9977f6b0ee6d47588c",
-        "ToS/contracts/knowledge-assessment.schema.json": "sha256:83163d105944db9a54bd57a8e730c3d459a00239de0df65cb63ac18c305e60be",
-        "ToS/contracts/source-claim-record.schema.json": "sha256:0c6a03c978999586c9a13c153bde5dabe7ccb4c31c732afb8cca6a536eb65bd0",
-        "ToS/contracts/corpus-record.schema.json": "sha256:baccf59bc5c6ffd1560848610ac812751d1e5182c89658814eeb2eedde4b6db1",
-        "ToS/contracts/semantic-relation-claim.schema.json": "sha256:49a82dbcacbc1c186a0fb51768fa84227bdd4b8c9a35bd93f7b2f86c4527563e"
-      },
-      "source": {
-        "id": "tos.claim.jgb21-conception-inversion",
-        "version": 1,
-        "digest": "sha256:3a1bef428f11f9b61a2ef5e46bd03f47407313d85e0653df7e99844815a5ee94"
-      },
-      "previous_revision": null,
-      "results": [
-        {
-          "id": "tos.form.jgb21-conception-inversion.statement-en",
-          "version": 1,
-          "digest": "sha256:c05de961753c6ab231a09caa2f8628719efd83370e277fd3c43c98b28606d158"
-        }
-      ]
-    }
-  ]
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.claim.jgb21-conception-inversion",
+    "version": 2,
+    "digest": "sha256:de76e53a8b59b4a22cbf5d233edc02290e4cd4498da8c88d92e6e57034a3a6dc"
+  }
 }

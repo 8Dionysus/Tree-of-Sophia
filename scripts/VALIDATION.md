@@ -1,8 +1,8 @@
 # Script validation
 
-Choose the changed behavior and the operation that owns it. Named command
-sequences live in `docs/validation/validation_lanes.json`; a sequence is not an
-obligation for unrelated changes.
+Choose the changed behavior and the operation that owns it. Select the relevant command sequences from
+`docs/validation/validation_lanes.json` according to that changed behavior and
+operation.
 
 ## Software
 

@@ -78,9 +78,7 @@
         {"type": "null"}
       ]
     },
-    "authority_boundary": {
-      "const": "stable proposed addresses for named structural-start candidates only; no source text, exact passage boundary, textual identity, edition equivalence, accepted German, translation, semantics, rights clearance, or canon authority"
-    },
+    "authority_boundary": {"type": "string", "minLength": 1, "description": "Brief account of the artifact purpose and scope. Typed status, effects, assessment and permission fields govern its use."},
     "does_not_establish": {
       "const": [
         "source_text",

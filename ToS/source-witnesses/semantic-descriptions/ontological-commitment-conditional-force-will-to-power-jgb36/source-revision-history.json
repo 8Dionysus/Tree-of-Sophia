@@ -1,0 +1,94 @@
+{
+  "schema_version": "tos_source_revision_history_v1",
+  "record_id": "tos.ontological-commitment.conditional-force-will-to-power-jgb36",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:216ef4e29f8fb2ef19802dd2",
+      "request_digest": "sha256:7da62870902d3201231a6ae3ef6c7f2ba4672ccb55f6b1f8bc6bf3ca6005fc4a",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:32c616a16e1590460e718037d40485b4e81d4b19a75bf3167e8e0bc813923656",
+      "recorded_at": "2026-09-22T05:07:06.086516+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.ontological-commitment.conditional-force-will-to-power-jgb36",
+        "version": 1,
+        "digest": "sha256:7125c16e365629bedb3132da9f98e65fb5ae5ef5443170dee02c23fe55b5e5bb"
+      },
+      "source": {
+        "id": "tos.ontological-commitment.conditional-force-will-to-power-jgb36",
+        "version": 2,
+        "digest": "sha256:462f06404a7c48ada6412083f8625455d1a3ee4f6b4db10491093143624de47a"
+      },
+      "previous_revision": "sha256:5d9df91c5ad5c30d506945dd395e256e36bb3196b11cbe43b0a440d1f08b352c",
+      "archive_path": "ToS/source-witnesses/.record-revisions/216ef4e29f8fb2ef19802dd244363e0bdd3fab241fa4f9ed21dbab56d7002fc0-5d9df91c5ad5c30d506945dd395e256e36bb3196b11cbe43b0a440d1f08b352c",
+      "dependencies": "sha256:e5921a25152f776dce88be3f5d47601fcb16d877ca21d77d52431686ab100212",
+      "changed_fields": [
+        "notes",
+        "semantic_content",
+        "semantic_scope"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.ontological-commitment.conditional-force-will-to-power-jgb36.name-ru",
+          "version": 2,
+          "digest": "sha256:1fd5da820005a1b71bad97423bb47805564a787917d955df3fd8407623eb6496"
+        },
+        {
+          "id": "tos.form.ontological-commitment.conditional-force-will-to-power-jgb36.name-en",
+          "version": 2,
+          "digest": "sha256:01abc7d79bf5fae2c2d4c4778bec7dbbbce0bcefa049e1840c31bdbb61669492"
+        },
+        {
+          "id": "tos.form.ontological-commitment.conditional-force-will-to-power-jgb36.note-ru",
+          "version": 2,
+          "digest": "sha256:54ad596e2f4473c694740113da480551566b40c576fbb7d37cd3c3817dd446fd"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:216ef4e29f8fb2ef19802dd2",
+        "expected_configuration": "sha256:32c616a16e1590460e718037d40485b4e81d4b19a75bf3167e8e0bc813923656",
+        "expected_dependencies": "sha256:e5921a25152f776dce88be3f5d47601fcb16d877ca21d77d52431686ab100212",
+        "expected_revision": "sha256:5d9df91c5ad5c30d506945dd395e256e36bb3196b11cbe43b0a440d1f08b352c",
+        "expected_source": {
+          "digest": "sha256:7125c16e365629bedb3132da9f98e65fb5ae5ef5443170dee02c23fe55b5e5bb",
+          "id": "tos.ontological-commitment.conditional-force-will-to-power-jgb36",
+          "version": 1
+        },
+        "fields": {
+          "notes": "Финал §36 допускает определение действующей силы как воли к власти при условии, что жизнь влечений и органические функции удастся объяснить из этой основной формы воли. Реконструкция сохраняет эту условность; успех объяснения остаётся открытым.",
+          "semantic_content": {
+            "commitment_account": "Characterize all effective force, and the world considered from within, as will to power if the proposed reductions of drives and organic functions succeed.",
+            "commitment_force": "Conditional on the successful explanatory reductions stated in JGB 36; their success remains an open condition.",
+            "language": "en",
+            "script": "Latn"
+          },
+          "semantic_scope": {
+            "identity_criterion": "Retain this commitment while its characterization and antecedent conditions remain those of the passage; unconditional adoption would require a separately scoped account and evidence.",
+            "language": "en",
+            "scope_note": "The ontological characterization proposed at the conditional end of JGB 36.",
+            "script": "Latn"
+          }
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.ontological-commitment.conditional-force-will-to-power-jgb36.name-ru"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.ontological-commitment.conditional-force-will-to-power-jgb36.name-en"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.ontological-commitment.conditional-force-will-to-power-jgb36.note-ru"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    }
+  ]
+}

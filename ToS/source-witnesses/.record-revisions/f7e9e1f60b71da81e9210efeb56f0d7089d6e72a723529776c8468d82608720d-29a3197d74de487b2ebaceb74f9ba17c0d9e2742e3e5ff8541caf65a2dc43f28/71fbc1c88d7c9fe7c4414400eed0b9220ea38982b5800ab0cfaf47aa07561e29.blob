@@ -1,0 +1,82 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.claim.formation-research-school-tradition",
+    "version": 1,
+    "digest": "sha256:c384b73690bb459c05bceae396d2d7ae5179505b94d160b2443b52c0927795ba"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "",
+          "record": {
+            "digest": "sha256:c384b73690bb459c05bceae396d2d7ae5179505b94d160b2443b52c0927795ba",
+            "id": "tos.claim.formation-research-school-tradition",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/qualifiers/statement",
+          "record": {
+            "digest": "sha256:c384b73690bb459c05bceae396d2d7ae5179505b94d160b2443b52c0927795ba",
+            "id": "tos.claim.formation-research-school-tradition",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.formation-research-school-tradition.statement-ru",
+      "form_version": 1,
+      "language": "ru",
+      "revises": null,
+      "role": "statement",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:c384b73690bb459c05bceae396d2d7ae5179505b94d160b2443b52c0927795ba",
+        "id": "tos.claim.formation-research-school-tradition",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "formation-research:20260907:statement:formation-research-school-tradition",
+      "request_digest": "sha256:b38e612b9b14d2df0b6b01c688320756f0ec9175bb17a535c72da929c9dcce2f",
+      "principal_id": "agent:codex-tos-foundation",
+      "authority_ref": "operator:tos-foundation-v1-20260905",
+      "owner_configuration": "sha256:7b95fa75bbe6b335b68c7cedfdaafd03695d278da376c6ba8a6497a73765bac2",
+      "recorded_at": "2026-09-07T16:23:55.444491+00:00",
+      "source_contracts": {
+        "ToS/doctrine/semantic-interchange/relation-types.v1.json": "sha256:3b19d5c3b6362da36c6b73713ba8b3d6f8ece4b5df05d56fad8d9bd5d17a4dbb",
+        "ToS/contracts/semantic-relation-type-registry.schema.json": "sha256:2fc1c9b36d58d64dc628a5592eedfc5e90ab960fff55ba84f3d64e8b2a92a09e",
+        "ToS/doctrine/semantic-interchange/entity-types.v1.json": "sha256:1495cc60656256ec9c76af3d236ba16288b43d978ca5bcd8d874d2bb522bc245",
+        "ToS/contracts/semantic-entity-type-registry.schema.json": "sha256:a6effb9f6339c237a994334df7389e04892a5ba7ddd54b4552b2e3dc78fae088",
+        "ToS/contracts/claim-packet.schema.json": "sha256:cc982ceeaa3a62dc8cb1367cd4b10cc76073b252a1ac5c9977f6b0ee6d47588c",
+        "ToS/contracts/knowledge-assessment.schema.json": "sha256:83163d105944db9a54bd57a8e730c3d459a00239de0df65cb63ac18c305e60be",
+        "ToS/contracts/source-claim-record.schema.json": "sha256:2c744903214248c4de29a17e1e21e67745cf838da46508cc05ec4dac6aa75430",
+        "ToS/contracts/corpus-record.schema.json": "sha256:baccf59bc5c6ffd1560848610ac812751d1e5182c89658814eeb2eedde4b6db1",
+        "ToS/contracts/formation-relation-claim.schema.json": "sha256:85a67de9cae49ba5771efde9d8569b675c0aa0cbfa2f5c101316135571282ba1"
+      },
+      "source": {
+        "id": "tos.claim.formation-research-school-tradition",
+        "version": 1,
+        "digest": "sha256:c384b73690bb459c05bceae396d2d7ae5179505b94d160b2443b52c0927795ba"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.formation-research-school-tradition.statement-ru",
+          "version": 1,
+          "digest": "sha256:af2638e56e5ad20387d119ac36262d092903c807a35cb269d153b21700171c9f"
+        }
+      ]
+    }
+  ]
+}

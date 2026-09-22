@@ -1,0 +1,90 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.organization.yale-babylonian-collection",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:61f998c6a131dbe56e0092f1",
+      "request_digest": "sha256:226125d763bec3e5c2102167e11ba5de9a48a0ff5ff3efd043a4d6cdb283840c",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:6f14dd5508423d60a9dd005d18f71cd850b66cabbf7ce7aa3256a390d4b9ac26",
+      "recorded_at": "2026-09-22T05:06:10.411651+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.organization.yale-babylonian-collection",
+        "version": 1,
+        "digest": "sha256:583b4b732eafdb3b5022ae880042a63a19cd121768160f94a61b612b988d89f4"
+      },
+      "source": {
+        "id": "tos.organization.yale-babylonian-collection",
+        "version": 2,
+        "digest": "sha256:e7dea0772d52b01341b4004e5ab52378817252ec80c43ab370295b9a3e498955"
+      },
+      "previous_revision": "sha256:19e85500945f4cff36898de1ca0b91a80b48a0c96102a76e5b3c175a3ce517e0",
+      "archive_path": "ToS/source-witnesses/.record-revisions/61f998c6a131dbe56e0092f10df5329bff14186955ed6d98c256f5f0749e41dd-19e85500945f4cff36898de1ca0b91a80b48a0c96102a76e5b3c175a3ce517e0",
+      "dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+      "changed_fields": [
+        "notes"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.metadata.8e4d20f54f68c61e7f58f66572df9940396d5a49ef4eb49e07b57feb9c08d86a",
+          "version": 2,
+          "digest": "sha256:5564dc66294b936c5333c2e43751a5c0d1c035b3b069e93b998a1d761af12e4c"
+        },
+        {
+          "id": "tos.form.metadata.eec64e05cf6a3451903edd91cb4b576e52aca258afcb7ade389a5a36570346b4",
+          "version": 2,
+          "digest": "sha256:2661e482ca9f107ebc6a7f267383224c90702329ac6b7307787d2a069ba1dee0"
+        },
+        {
+          "id": "tos.form.metadata.382c637228ca8a4bf5641a5d29fca728041c2be1203eee97c0d23a9aea5d13ef",
+          "version": 2,
+          "digest": "sha256:1a31730a44b38c9f41d05bf087dc8956df13e98adcf90bc02cbe1815cafa6101"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:61f998c6a131dbe56e0092f1",
+        "expected_configuration": "sha256:6f14dd5508423d60a9dd005d18f71cd850b66cabbf7ce7aa3256a390d4b9ac26",
+        "expected_dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+        "expected_publication": "sha256:61e7b38fa70f64e32b34324ff64570896a29d73ac165674660b29decfbfb9f76",
+        "expected_revision": "sha256:19e85500945f4cff36898de1ca0b91a80b48a0c96102a76e5b3c175a3ce517e0",
+        "expected_source": {
+          "digest": "sha256:583b4b732eafdb3b5022ae880042a63a19cd121768160f94a61b612b988d89f4",
+          "id": "tos.organization.yale-babylonian-collection",
+          "version": 1
+        },
+        "fields": {
+          "notes": "Verified institutional collection identity formally affiliated with the Yale Peabody Museum in 2017. The institution includes multiple catalog-prefix and acquisition-history groups, including YBC, NBC, MLC, GCBC, NCBT, NCBS, and RBC. Holdings counts vary by date and scope; exact membership requires a dated inventory."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.metadata.8e4d20f54f68c61e7f58f66572df9940396d5a49ef4eb49e07b57feb9c08d86a"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.metadata.eec64e05cf6a3451903edd91cb4b576e52aca258afcb7ade389a5a36570346b4"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.metadata.382c637228ca8a4bf5641a5d29fca728041c2be1203eee97c0d23a9aea5d13ef"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:1f7909b9c11b06917af2515e5c4df1cfb452834588b34fe4f17d2e0769ab57bc",
+        "selected_files": [
+          "organization.human-forms.json",
+          "organization.json",
+          "source-revision-history.json"
+        ]
+      }
+    }
+  ]
+}

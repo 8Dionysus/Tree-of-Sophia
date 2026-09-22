@@ -29,14 +29,12 @@ Master-table patches should update the atlas directly and then route branch
 work through the owning era, region, or tradition.
 
 `eras/medieval-worlds/` is the bounded Table II navigation window across
-plural medieval and post-classical histories. Its region and tradition routes
-are useful topology; the container is not a claim of one synchronized global
-chronology or shared civilizational essence.
+plural medieval and post-classical histories. Its region and tradition routes preserve their own chronologies and
+historically grounded distinctions.
 
 `eras/modernity-and-contemporary-worlds/` is the bounded Table III navigation
-window across early-modern, modern, and contemporary fields. Its regional and
-transregional homes do not assert one global modernization sequence, a shared
-period boundary, or one synchronized intellectual present.
+window across early-modern, modern, and contemporary fields. Its regional and transregional homes preserve distinct modernization
+histories, period boundaries and intellectual timelines.
 
 `trunk/` holds branch-wide law: evidence status, chronology posture, and naming
 rules. Its current vocabulary homes are:
@@ -74,18 +72,17 @@ eras/<era>/
 ```
 
 Corpora, archives, inscriptions, institutions, media, scripts, transmissions,
-and controversies are first-class philosophical infrastructure. They are not
-secondary notes beneath authors and works.
+and controversies are first-class philosophical infrastructure. They have their own branch homes, sources and relations alongside authors and
+works.
 
 `frontiers/` is a narrow non-era guardrail for prepared cases that would be
 misrepresented by a single chronological or regional tradition path. It keeps
-chronology, geography, readability, and evidence conflicts explicit. Frontier
-branches remain research/pre-canon surfaces and do not establish a tradition,
-source witness, philosophical corpus, or canon object.
+chronology, geography, readability, and evidence conflicts explicit. Frontier branches retain research/pre-canon status. Tradition, source-witness,
+philosophical-corpus and canon assessments follow the evidence and review
+route for each case.
 
 `threads/` holds cross-branch navigation for figures, works, concepts, source
-corpora, and transmissions. Threads are navigational organs, not the home of
-the object.
+corpora, and transmissions. Threads connect objects across their authored branch homes.
 
 `graph-workbench/` holds proposed nodes, proposed relations, branch fragments,
 view route cards, and promotion ledgers before any object is raised into

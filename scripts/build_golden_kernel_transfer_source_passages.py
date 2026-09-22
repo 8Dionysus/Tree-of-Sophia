@@ -884,7 +884,7 @@ def _unresolved_record(
             "one or both numbered-unit markers do not resolve inside one admitted automatic source layer",
             "the source-visible start-page map is insufficient to invent an exact within-page boundary",
             "no private source string is materialized for this unresolved route",
-            "the unresolved route creates no German acceptance, alignment, eligibility, gold, semantics, or human task",
+            "The unresolved route retains its recorded source status and remains pending passage materialization; alignment, eligibility, gold, semantics and human work retain their existing states.",
         ],
     }
 
@@ -1225,9 +1225,8 @@ def build_outputs(
             ],
             "automatic_candidate_text": automatic_text,
             "authority_boundary": (
-                "private automatic source-layer slice only; not diplomatic or "
-                "accepted German, source-to-target alignment, translation "
-                "evidence, gold, or publication object"
+                "A private exact slice of the named automatic source layer, retaining its "
+                "source, rights and proposed-candidate status."
             ),
         }
         private_bytes = _render_json(private_payload).encode("utf-8")
@@ -1265,8 +1264,8 @@ def build_outputs(
             "eligible_for_variant_execution": False,
             "limitations": [
                 "the boundary is exact only inside the named automatic or model-visible-marker-supported source layer",
-                "the private slice is not diplomatic or accepted German text",
-                "same numbering and paired structural starts do not establish passage or translation alignment",
+                "The private slice reproduces the named automatic German layer and retains its unreviewed candidate status.",
+                "Matching numbers and paired structural starts supply a route for passage and translation alignment review.",
                 "the candidate remains ineligible and has no target gold or human review",
                 "private source text is local-only and not authorized for publication",
             ],
@@ -1376,12 +1375,9 @@ def build_outputs(
         "provenance_event_ref": EVENT_ID,
         "status": "prepared-complete-ineligible",
         "authority_boundary": (
-            "all thirty-five private source-passage candidates are exact only "
-            "inside their named automatic or model-visible-marker-supported "
-            "layers; tracked data is source-text-free, and no "
-            "accepted German, source-to-target alignment, translation, "
-            "eligibility, gold, human, semantic, publication, or canon "
-            "authority follows"
+            "This record covers thirty-five private source-passage candidates bound to "
+            "their named automatic or model-visible-marker-supported layers. Tracked data "
+            "retains text-free provenance and each candidate's proposed status."
         ),
         "does_not_establish": [
             "diplomatic_transcription",
@@ -1467,12 +1463,12 @@ def build_outputs(
         },
         "status": "completed_with_warnings",
         "warnings": [
-            "automatic-layer exactness is not diplomatic or accepted German",
+            "Exactness is measured against the named automatic German source layer; diplomatic transcription and source acceptance retain their recorded review status.",
             "three Antichrist number markers use exact JP2 source-visible return plus the first following DjVuXML line and have no human repeat",
             "two PDF number markers use exact embedded image-mask return plus the first following Poppler bbox line and have no human repeat",
             "the Antichrist navigation Item is not asserted textually identical to the address Item",
-            "shared numbering does not establish passage or translation alignment",
-            "no eligibility, gold, human work, semantics, publication, or canon effect was created",
+            "Shared numbering supplies a structural route; passage and translation alignment retain their recorded status.",
+            "This event records source-passage candidates. Eligibility, gold, human work, semantics, publication and canon retain their existing states.",
         ],
         "receipt_refs": [OUTPUT_PATH.as_posix()],
         # Three separately assessed source Items contribute here. Their exact
@@ -1565,8 +1561,7 @@ def main(argv: list[str] | None = None) -> int:
         f"{summary['unresolved_source_boundary_count']} boundaries remain unresolved"
     )
     print(
-        "[boundary] 0 accepted German passages, source-target alignments, eligible "
-        "units, target gold, human tasks, semantic effects, or canon effects"
+        "[scope] Private source-layer passage candidates with exact selectors and explicit unresolved boundaries."
     )
     return 0
 

@@ -1,0 +1,87 @@
+{
+  "schema_version": "tos_source_revision_history_v1",
+  "record_id": "tos.thought-operation.provisionally-posit-will-causality-jgb36",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:ced6ef183083aafa508dca50",
+      "request_digest": "sha256:a4796d8c3c6f2fc5e4e72d6d696d6b85df426de305d7c77d1dc65a5efdef6aa0",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:36239ed5b940f923d3de80078193e75b2578e9bac4442b15b70f9de16d21bc91",
+      "recorded_at": "2026-09-22T05:08:13.650521+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.thought-operation.provisionally-posit-will-causality-jgb36",
+        "version": 1,
+        "digest": "sha256:c02d24638a151117e0ffcbd3c4152f5b2511d63d1620f5c35ad54dcccd7fd197"
+      },
+      "source": {
+        "id": "tos.thought-operation.provisionally-posit-will-causality-jgb36",
+        "version": 2,
+        "digest": "sha256:5378f495a75758129cdb19661ff48a60a855f69931e8e85a876302031310354a"
+      },
+      "previous_revision": "sha256:bd681151f5cb47aa0c4bb1331bf153e5b4a604a13d5fefb35ff7e453b84e6aa4",
+      "archive_path": "ToS/source-witnesses/.record-revisions/ced6ef183083aafa508dca5048356bb05a0e569368ffed53be64ff498e3e2b13-bd681151f5cb47aa0c4bb1331bf153e5b4a604a13d5fefb35ff7e453b84e6aa4",
+      "dependencies": "sha256:e5921a25152f776dce88be3f5d47601fcb16d877ca21d77d52431686ab100212",
+      "changed_fields": [
+        "notes",
+        "semantic_scope"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.thought-operation.provisionally-posit-will-causality-jgb36.name-ru",
+          "version": 2,
+          "digest": "sha256:3339ce05bbb4e1afe788ed1485d14c72a42c394ff8dd8196f8166191f33c789d"
+        },
+        {
+          "id": "tos.form.thought-operation.provisionally-posit-will-causality-jgb36.name-en",
+          "version": 2,
+          "digest": "sha256:2368cfeb749dfd5c4bab5e275711a1121bc9c576913b16211b52a1f0882cec3c"
+        },
+        {
+          "id": "tos.form.thought-operation.provisionally-posit-will-causality-jgb36.note-ru",
+          "version": 2,
+          "digest": "sha256:fba049a99715c4df7602867dbfdfc97a3544eace3e92f335c2a635a3f6fc0e01"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:ced6ef183083aafa508dca50",
+        "expected_configuration": "sha256:36239ed5b940f923d3de80078193e75b2578e9bac4442b15b70f9de16d21bc91",
+        "expected_dependencies": "sha256:e5921a25152f776dce88be3f5d47601fcb16d877ca21d77d52431686ab100212",
+        "expected_revision": "sha256:bd681151f5cb47aa0c4bb1331bf153e5b4a604a13d5fefb35ff7e453b84e6aa4",
+        "expected_source": {
+          "digest": "sha256:c02d24638a151117e0ffcbd3c4152f5b2511d63d1620f5c35ad54dcccd7fd197",
+          "id": "tos.thought-operation.provisionally-posit-will-causality-jgb36",
+          "version": 1
+        },
+        "fields": {
+          "notes": "Описанная операция — принять для испытания гипотезу единственной волевой причинности, если воля признаётся действующей. Это условное допущение в ходе мысли.",
+          "semantic_scope": {
+            "identity_criterion": "Retain the operation while its task is provisionally granting sole will-causality under the stated condition; asserting its truth would be a distinct judgment.",
+            "language": "en",
+            "scope_note": "The hypothetical positing operation within JGB 36.",
+            "script": "Latn"
+          }
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.thought-operation.provisionally-posit-will-causality-jgb36.name-ru"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.thought-operation.provisionally-posit-will-causality-jgb36.name-en"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.thought-operation.provisionally-posit-will-causality-jgb36.note-ru"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    }
+  ]
+}

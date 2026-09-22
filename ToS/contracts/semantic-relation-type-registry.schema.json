@@ -14,127 +14,469 @@
     "relations"
   ],
   "properties": {
-    "schema_version": {"const": "tos_semantic_relation_type_registry_v1"},
-    "registry_id": {"const": "tos.semantic.relation-types"},
-    "registry_version": {"type": "integer", "minimum": 1},
-    "entity_registry_ref": {"$ref": "#/$defs/nonEmptyString"},
+    "schema_version": {
+      "const": "tos_semantic_relation_type_registry_v1"
+    },
+    "registry_id": {
+      "const": "tos.semantic.relation-types"
+    },
+    "registry_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "entity_registry_ref": {
+      "$ref": "#/$defs/nonEmptyString"
+    },
     "source_refs": {
       "type": "array",
       "minItems": 1,
       "uniqueItems": true,
-      "items": {"$ref": "#/$defs/nonEmptyString"}
+      "items": {
+        "$ref": "#/$defs/nonEmptyString"
+      }
     },
-    "fallback_relation_type_id": {"$ref": "#/$defs/relationTypeId"},
-    "claim_navigation_template": {"$ref": "#/$defs/claimNavigationTemplate"},
+    "fallback_relation_type_id": {
+      "$ref": "#/$defs/relationTypeId"
+    },
+    "claim_navigation_template": {
+      "$ref": "#/$defs/claimNavigationTemplate"
+    },
     "relations": {
       "type": "array",
       "minItems": 1,
-      "items": {"$ref": "#/$defs/relationEntry"}
+      "items": {
+        "$ref": "#/$defs/relationEntry"
+      }
     }
   },
   "$defs": {
     "navigationLanguageMap": {
-      "type": "object", "minProperties": 1, "maxProperties": 16,
-      "propertyNames": {"maxLength": 64},
+      "type": "object",
+      "minProperties": 1,
+      "maxProperties": 16,
+      "propertyNames": {
+        "maxLength": 64
+      },
       "additionalProperties": false,
       "patternProperties": {
-        "^(?:[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*|[iIxX](?:-[A-Za-z0-9]{1,8})+)$(?![\\s\\S])": {"type": "string", "minLength": 1, "maxLength": 256}
+        "^(?:[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*|[iIxX](?:-[A-Za-z0-9]{1,8})+)$(?![\\s\\S])": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
       }
     },
     "claimNavigationTemplate": {
-      "type": "object", "additionalProperties": false,
-      "description": "Owner-reviewed finite navigation syntax, not a HumanForm, standalone assertion, source title, assessment or use grant. Every rendering names all six fixed slots exactly once; no JSONPath, expressions, code or source-text instructions execute.",
-      "required": ["template_id", "template_version", "reader", "purpose", "owner_ref", "default_language", "max_output_bytes", "marker", "status_labels", "renderings"],
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Owner-reviewed finite navigation syntax for a complete Claim context. Every rendering names all six fixed slots exactly once. The renderer treats source text as inert data and executes no JSONPath, expressions or code. HumanForms and use grants retain their own contracts.",
+      "required": [
+        "template_id",
+        "template_version",
+        "reader",
+        "purpose",
+        "owner_ref",
+        "default_language",
+        "max_output_bytes",
+        "marker",
+        "status_labels",
+        "renderings"
+      ],
       "properties": {
-        "template_id": {"type": "string", "pattern": "^tos\\.navigation-template\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$(?![\\s\\S])"},
-        "template_version": {"type": "integer", "minimum": 1},
-        "reader": {"const": "claim-navigation-v1"},
-        "purpose": {"const": "claim-navigation-only"},
-        "owner_ref": {"const": "ToS/doctrine/HUMAN_FORMS.md"},
-        "default_language": {"type": "string", "minLength": 2, "maxLength": 64},
-        "max_output_bytes": {"type": "integer", "minimum": 128, "maximum": 16384},
-        "object_label_adapters": {"type": "array", "minItems": 1, "maxItems": 2, "uniqueItems": true, "items": {"enum": ["historical-time-source-wording-v1", "document-catalogue-time-source-wording-v1"]}},
-        "marker": {"$ref": "#/$defs/navigationLanguageMap"},
+        "template_id": {
+          "type": "string",
+          "pattern": "^tos\\.navigation-template\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$(?![\\s\\S])"
+        },
+        "template_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "reader": {
+          "const": "claim-navigation-v1"
+        },
+        "purpose": {
+          "const": "claim-navigation-only"
+        },
+        "owner_ref": {
+          "const": "ToS/doctrine/HUMAN_FORMS.md"
+        },
+        "default_language": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 64
+        },
+        "max_output_bytes": {
+          "type": "integer",
+          "minimum": 128,
+          "maximum": 16384
+        },
+        "object_label_adapters": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "historical-time-source-wording-v1",
+              "document-catalogue-time-source-wording-v1"
+            ]
+          }
+        },
+        "marker": {
+          "$ref": "#/$defs/navigationLanguageMap"
+        },
         "status_labels": {
-          "type": "object", "additionalProperties": false, "required": ["epistemic_status", "review_status"],
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "epistemic_status",
+            "review_status"
+          ],
           "properties": {
             "epistemic_status": {
-              "type": "object", "additionalProperties": false,
-              "required": ["observed", "inferred", "reported", "interpreted", "uncertain", "disputed"],
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "observed",
+                "inferred",
+                "reported",
+                "interpreted",
+                "uncertain",
+                "disputed"
+              ],
               "properties": {
-                "observed": {"$ref": "#/$defs/navigationLanguageMap"}, "inferred": {"$ref": "#/$defs/navigationLanguageMap"},
-                "reported": {"$ref": "#/$defs/navigationLanguageMap"}, "interpreted": {"$ref": "#/$defs/navigationLanguageMap"},
-                "uncertain": {"$ref": "#/$defs/navigationLanguageMap"}, "disputed": {"$ref": "#/$defs/navigationLanguageMap"}
+                "observed": {
+                  "$ref": "#/$defs/navigationLanguageMap"
+                },
+                "inferred": {
+                  "$ref": "#/$defs/navigationLanguageMap"
+                },
+                "reported": {
+                  "$ref": "#/$defs/navigationLanguageMap"
+                },
+                "interpreted": {
+                  "$ref": "#/$defs/navigationLanguageMap"
+                },
+                "uncertain": {
+                  "$ref": "#/$defs/navigationLanguageMap"
+                },
+                "disputed": {
+                  "$ref": "#/$defs/navigationLanguageMap"
+                }
               }
             },
             "review_status": {
-              "type": "object", "additionalProperties": false,
-              "required": ["unreviewed", "accepted", "accepted_with_limits", "rejected", "ambiguous", "deferred", "superseded"],
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "unreviewed",
+                "accepted",
+                "accepted_with_limits",
+                "rejected",
+                "ambiguous",
+                "deferred",
+                "superseded"
+              ],
               "properties": {
-                "unreviewed": {"$ref": "#/$defs/navigationLanguageMap"}, "accepted": {"$ref": "#/$defs/navigationLanguageMap"},
-                "accepted_with_limits": {"$ref": "#/$defs/navigationLanguageMap"}, "rejected": {"$ref": "#/$defs/navigationLanguageMap"},
-                "ambiguous": {"$ref": "#/$defs/navigationLanguageMap"}, "deferred": {"$ref": "#/$defs/navigationLanguageMap"},
-                "superseded": {"$ref": "#/$defs/navigationLanguageMap"}
+                "unreviewed": {
+                  "$ref": "#/$defs/navigationLanguageMap"
+                },
+                "accepted": {
+                  "$ref": "#/$defs/navigationLanguageMap"
+                },
+                "accepted_with_limits": {
+                  "$ref": "#/$defs/navigationLanguageMap"
+                },
+                "rejected": {
+                  "$ref": "#/$defs/navigationLanguageMap"
+                },
+                "ambiguous": {
+                  "$ref": "#/$defs/navigationLanguageMap"
+                },
+                "deferred": {
+                  "$ref": "#/$defs/navigationLanguageMap"
+                },
+                "superseded": {
+                  "$ref": "#/$defs/navigationLanguageMap"
+                }
               }
             }
           }
         },
         "renderings": {
-          "type": "object", "minProperties": 1, "maxProperties": 16, "additionalProperties": false,
-          "propertyNames": {"maxLength": 64},
+          "type": "object",
+          "minProperties": 1,
+          "maxProperties": 16,
+          "additionalProperties": false,
+          "propertyNames": {
+            "maxLength": 64
+          },
           "patternProperties": {
             "^(?:[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*|[iIxX](?:-[A-Za-z0-9]{1,8})+)$(?![\\s\\S])": {
-              "type": "array", "minItems": 6, "maxItems": 32,
-              "items": {"oneOf": [
-                {"type": "object", "additionalProperties": false, "required": ["literal"], "properties": {"literal": {"type": "string", "minLength": 1, "maxLength": 256}}},
-                {"type": "object", "additionalProperties": false, "required": ["slot"], "properties": {"slot": {"enum": ["claim-marker", "subject-label", "predicate-label", "object-label", "declared-epistemic-status", "declared-review-status"]}}}
-              ]}
+              "type": "array",
+              "minItems": 6,
+              "maxItems": 32,
+              "items": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "literal"
+                    ],
+                    "properties": {
+                      "literal": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 256
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "slot"
+                    ],
+                    "properties": {
+                      "slot": {
+                        "enum": [
+                          "claim-marker",
+                          "subject-label",
+                          "predicate-label",
+                          "object-label",
+                          "declared-epistemic-status",
+                          "declared-review-status"
+                        ]
+                      }
+                    }
+                  }
+                ]
+              }
             }
           }
         }
       },
-      "allOf": [{"if": {"required": ["object_label_adapters"]}, "then": {"properties": {"template_version": {"minimum": 2}}}},
-        {"if": {"required": ["object_label_adapters"], "properties": {"object_label_adapters": {"contains": {"const": "document-catalogue-time-source-wording-v1"}}}}, "then": {"properties": {"template_version": {"minimum": 3}}}}]
-    },
-    "sourceClaimProfile": {
-      "type": "object", "additionalProperties": false,
-      "description": "Read contract for source-claims.jsonl. Predicate and concrete endpoint meaning come from this relation entry; no write or assessment authority is granted.",
-      "required": ["profile_version", "reader", "assertion_layers", "schemas"],
-      "properties": {
-        "profile_version": {"type": "integer", "minimum": 1},
-        "reader": {"enum": ["identity-relation-v1", "semantic-relation-v1", "historical-temporal-v1", "document-catalogue-temporal-v1", "structured-value-v1", "structured-reference-value-v1", "identity-transition-v1", "identity-transition-v2"]},
-        "object_reference_set": {
-          "type": "object", "additionalProperties": false,
-          "description": "Explicit interpretation of the single fixed /object/members slot. No other field is scanned for references. Every member is a mandatory Claim dependency, not an independently accepted membership assertion.",
-          "required": ["member_type_ids", "min_items", "max_items", "subject_is_member"],
-          "properties": {
-            "member_type_ids": {"type": "array", "minItems": 1, "maxItems": 16, "uniqueItems": true, "items": {"$ref": "#/$defs/typeId"}},
-            "min_items": {"type": "integer", "minimum": 1, "maximum": 128},
-            "max_items": {"type": "integer", "minimum": 1, "maximum": 128},
-            "structure_adapter": {"const": "scoped-members-v1", "description": "Execute the shared bounded composition/order contract, including no self membership, exact member closure, local acyclicity and total-order completeness. No other JSON fields select code."},
-            "basis_adapter": {"const": "collection-membership-versions-v1", "description": "Require exact Collection metadata and contains_work Claim versions; order cannot independently create membership."},
-            "subject_is_member": {"type": "boolean"}
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "object_label_adapters"
+            ]
+          },
+          "then": {
+            "properties": {
+              "template_version": {
+                "minimum": 2
+              }
+            }
           }
         },
-        "value_kind": {"type": "string", "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$", "description": "Exact source-claims mapping of one concrete literal subtype; neither an identity nor executable reference extraction."},
-        "assertion_layers": {"type": "array", "minItems": 1, "uniqueItems": true,
-          "items": {"enum": ["bibliographic_assertion", "scholarly_report", "textual_observation", "forensic_observation", "semantic_interpretation", "linguistic_analysis", "translation_alignment", "translation_judgment", "identity_assertion"]}},
-        "schemas": {"type": "array", "minItems": 1, "maxItems": 16, "uniqueItems": true,
-          "items": {"type": "object", "additionalProperties": false,
-            "required": ["schema_version", "schema_ref", "schema_dependencies"],
+        {
+          "if": {
+            "required": [
+              "object_label_adapters"
+            ],
             "properties": {
-              "schema_version": {"type": "string", "minLength": 1},
-              "schema_ref": {"type": "string", "pattern": "^ToS/contracts/[a-z][a-z0-9-]*\\.schema\\.json$"},
-              "schema_dependencies": {"type": "array", "maxItems": 16, "uniqueItems": true,
-                "items": {"type": "string", "pattern": "^ToS/contracts/[a-z][a-z0-9-]*\\.schema\\.json$"}}
-            }}}
-      },
-      "allOf": [{"if": {"properties": {"reader": {"enum": ["structured-value-v1", "structured-reference-value-v1", "identity-transition-v1", "identity-transition-v2"]}}},
-        "then": {"required": ["value_kind"]}, "else": {"not": {"required": ["value_kind"]}}},
-        {"if": {"properties": {"reader": {"const": "structured-reference-value-v1"}}},
-        "then": {"required": ["object_reference_set"]}, "else": {"not": {"required": ["object_reference_set"]}}}]
+              "object_label_adapters": {
+                "contains": {
+                  "const": "document-catalogue-time-source-wording-v1"
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "template_version": {
+                "minimum": 3
+              }
+            }
+          }
+        }
+      ]
     },
-    "nonEmptyString": {"type": "string", "minLength": 1},
+    "sourceClaimProfile": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Read contract for source-claims.jsonl. Predicate and concrete endpoint meaning come from this relation entry; no write or assessment authority is granted.",
+      "required": [
+        "profile_version",
+        "reader",
+        "assertion_layers",
+        "schemas"
+      ],
+      "properties": {
+        "profile_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "reader": {
+          "enum": [
+            "identity-relation-v1",
+            "semantic-relation-v1",
+            "historical-temporal-v1",
+            "document-catalogue-temporal-v1",
+            "structured-value-v1",
+            "structured-reference-value-v1",
+            "identity-transition-v1",
+            "identity-transition-v2"
+          ]
+        },
+        "object_reference_set": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Explicit interpretation of the single fixed /object/members slot. Every member is a mandatory dependency of the complete qualified Claim. Other fields remain uninterpreted for identity references.",
+          "required": [
+            "member_type_ids",
+            "min_items",
+            "max_items",
+            "subject_is_member"
+          ],
+          "properties": {
+            "member_type_ids": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 16,
+              "uniqueItems": true,
+              "items": {
+                "$ref": "#/$defs/typeId"
+              }
+            },
+            "min_items": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 128
+            },
+            "max_items": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 128
+            },
+            "structure_adapter": {
+              "const": "scoped-members-v1",
+              "description": "Execute the shared bounded composition/order contract, including no self membership, exact member closure, local acyclicity and total-order completeness. No other JSON fields select code."
+            },
+            "basis_adapter": {
+              "const": "collection-membership-versions-v1",
+              "description": "Require exact Collection metadata and contains_work Claim versions; order cannot independently create membership."
+            },
+            "subject_is_member": {
+              "type": "boolean"
+            }
+          }
+        },
+        "value_kind": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$",
+          "description": "Exact source-claims mapping of one concrete Claim-scoped literal subtype."
+        },
+        "assertion_layers": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "bibliographic_assertion",
+              "scholarly_report",
+              "textual_observation",
+              "forensic_observation",
+              "semantic_interpretation",
+              "linguistic_analysis",
+              "translation_alignment",
+              "translation_judgment",
+              "identity_assertion"
+            ]
+          }
+        },
+        "schemas": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "schema_version",
+              "schema_ref",
+              "schema_dependencies"
+            ],
+            "properties": {
+              "schema_version": {
+                "type": "string",
+                "minLength": 1
+              },
+              "schema_ref": {
+                "type": "string",
+                "pattern": "^ToS/contracts/[a-z][a-z0-9-]*\\.schema\\.json$"
+              },
+              "schema_dependencies": {
+                "type": "array",
+                "maxItems": 16,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "pattern": "^ToS/contracts/[a-z][a-z0-9-]*\\.schema\\.json$"
+                }
+              }
+            }
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "reader": {
+                "enum": [
+                  "structured-value-v1",
+                  "structured-reference-value-v1",
+                  "identity-transition-v1",
+                  "identity-transition-v2"
+                ]
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "value_kind"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "value_kind"
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "reader": {
+                "const": "structured-reference-value-v1"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "object_reference_set"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "object_reference_set"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "nonEmptyString": {
+      "type": "string",
+      "minLength": 1
+    },
     "typeId": {
       "type": "string",
       "pattern": "^tos\\.entity\\.[a-z0-9]+(?:-[a-z0-9]+)*(?:\\.[a-z0-9]+(?:-[a-z0-9]+)*)*$"
@@ -147,36 +489,106 @@
       "type": "object",
       "additionalProperties": false,
       "patternProperties": {
-        "^(?:[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*|[iIxX](?:-[A-Za-z0-9]{1,8})+)$(?![\\s\\S])": {"type": ["string", "null"], "minLength": 1}
+        "^(?:[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*|[iIxX](?:-[A-Za-z0-9]{1,8})+)$(?![\\s\\S])": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        }
       },
-      "required": ["default", "ru", "en"],
+      "required": [
+        "default",
+        "ru",
+        "en"
+      ],
       "properties": {
-        "default": {"$ref": "#/$defs/nonEmptyString"},
-        "ru": {"type": ["string", "null"], "minLength": 1},
-        "en": {"type": ["string", "null"], "minLength": 1}
+        "default": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "ru": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        },
+        "en": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        }
       }
     },
     "sourceMapping": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["source_graph", "source_predicate_id", "scope"],
+      "required": [
+        "source_graph",
+        "source_predicate_id",
+        "scope"
+      ],
       "properties": {
-        "source_graph": {"$ref": "#/$defs/nonEmptyString"},
-        "source_predicate_id": {"$ref": "#/$defs/nonEmptyString"},
-        "labels": {"$ref": "#/$defs/localizedLabel"},
-        "definition": {"$ref": "#/$defs/nonEmptyString"},
-        "scope": {"enum": ["edge", "claim-predicate"]}
+        "source_graph": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "source_predicate_id": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "labels": {
+          "$ref": "#/$defs/localizedLabel"
+        },
+        "definition": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "scope": {
+          "enum": [
+            "edge",
+            "claim-predicate"
+          ]
+        }
       }
     },
     "cardinality": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["per_subject_min", "per_subject_max", "per_object_min", "per_object_max"],
+      "required": [
+        "per_subject_min",
+        "per_subject_max",
+        "per_object_min",
+        "per_object_max"
+      ],
       "properties": {
-        "per_subject_min": {"type": ["integer", "null"], "minimum": 0},
-        "per_subject_max": {"type": ["integer", "null"], "minimum": 0},
-        "per_object_min": {"type": ["integer", "null"], "minimum": 0},
-        "per_object_max": {"type": ["integer", "null"], "minimum": 0}
+        "per_subject_min": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "per_subject_max": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "per_object_min": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "per_object_max": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        }
       }
     },
     "relationEntry": {
@@ -204,50 +616,120 @@
         "supersedes_relation_type_id"
       ],
       "properties": {
-        "relation_type_id": {"$ref": "#/$defs/relationTypeId"},
-        "source_claim_profile": {"$ref": "#/$defs/sourceClaimProfile"},
+        "relation_type_id": {
+          "$ref": "#/$defs/relationTypeId"
+        },
+        "source_claim_profile": {
+          "$ref": "#/$defs/sourceClaimProfile"
+        },
         "parent_relation_type_ids": {
           "type": "array",
           "uniqueItems": true,
-          "items": {"$ref": "#/$defs/relationTypeId"}
+          "items": {
+            "$ref": "#/$defs/relationTypeId"
+          }
         },
-        "abstract": {"type": "boolean"},
-        "labels": {"$ref": "#/$defs/localizedLabel"},
+        "abstract": {
+          "type": "boolean"
+        },
+        "labels": {
+          "$ref": "#/$defs/localizedLabel"
+        },
         "inverse_labels": {
-          "anyOf": [{"$ref": "#/$defs/localizedLabel"}, {"type": "null"}]
+          "anyOf": [
+            {
+              "$ref": "#/$defs/localizedLabel"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
-        "definition": {"$ref": "#/$defs/nonEmptyString"},
-        "lifecycle": {"enum": ["stable", "candidate", "deprecated"]},
-        "owner_ref": {"$ref": "#/$defs/nonEmptyString"},
+        "definition": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "lifecycle": {
+          "enum": [
+            "stable",
+            "candidate",
+            "deprecated"
+          ]
+        },
+        "owner_ref": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
         "domain_type_ids": {
           "type": "array",
           "minItems": 1,
           "uniqueItems": true,
-          "items": {"$ref": "#/$defs/typeId"}
+          "items": {
+            "$ref": "#/$defs/typeId"
+          }
         },
         "range_type_ids": {
           "type": "array",
           "minItems": 1,
           "uniqueItems": true,
-          "items": {"$ref": "#/$defs/typeId"}
+          "items": {
+            "$ref": "#/$defs/typeId"
+          }
         },
-        "directionality": {"enum": ["directed", "symmetric"]},
-        "transitive": {"type": "boolean"},
+        "directionality": {
+          "enum": [
+            "directed",
+            "symmetric"
+          ]
+        },
+        "transitive": {
+          "type": "boolean"
+        },
         "inverse_relation_type_id": {
-          "anyOf": [{"$ref": "#/$defs/relationTypeId"}, {"type": "null"}]
+          "anyOf": [
+            {
+              "$ref": "#/$defs/relationTypeId"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
-        "cardinality": {"$ref": "#/$defs/cardinality"},
+        "cardinality": {
+          "$ref": "#/$defs/cardinality"
+        },
         "assertion_mode": {
-          "enum": ["structural", "direct", "reified-claim", "derived-projection", "unmapped"]
+          "enum": [
+            "structural",
+            "direct",
+            "reified-claim",
+            "derived-projection",
+            "unmapped"
+          ]
         },
-        "evidence_required": {"type": "boolean"},
-        "review_requirement": {"enum": ["none", "recorded", "accepted"]},
+        "evidence_required": {
+          "type": "boolean"
+        },
+        "review_requirement": {
+          "enum": [
+            "none",
+            "recorded",
+            "accepted"
+          ]
+        },
         "source_mappings": {
           "type": "array",
-          "items": {"$ref": "#/$defs/sourceMapping"}
+          "items": {
+            "$ref": "#/$defs/sourceMapping"
+          }
         },
         "supersedes_relation_type_id": {
-          "anyOf": [{"$ref": "#/$defs/relationTypeId"}, {"type": "null"}]
+          "anyOf": [
+            {
+              "$ref": "#/$defs/relationTypeId"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       }
     }

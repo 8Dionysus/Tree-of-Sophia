@@ -6,15 +6,14 @@ movement through *Thus Spoke Zarathustra*.
 It now also serves as the first public worked capsule for the ToS tiny-entry
 seam.
 
-It is one source-addressed slice inside the golden growth kernel, not yet a
-complete gold annotation packet. A complete packet must add explicit
+It is one source-addressed slice inside the golden growth kernel, with the
+complete gold annotation packet still to be developed. A complete packet must add explicit
 observation/proposal layers, rejected or unresolved alternatives, reviewer
 rationale, uncertainty, and version lineage without weakening this witness
 route.
 
-The point is not to open three language trees at once.
-The point is to begin one source-first route that stays bounded, reviewable, and
-honest about language roles.
+The route develops one source-first tree with explicit language roles and a
+bounded, reviewable witness scope.
 
 ## Tiny-entry role
 
@@ -30,9 +29,8 @@ for:
 - `ToS/public-compatibility/concept_node.example.json` as one bounded public compatibility hop
 - `ToS/doctrine/KNOWLEDGE_MODEL.md` as the in-repo fallback orientation surface
 
-This document explains the route.
-It does not replace the canonical tree node or the compatibility authority
-surface that mirrors it.
+This document explains the route back to the canonical tree node and its
+compatibility mirror.
 
 ## Core move
 
@@ -50,7 +48,7 @@ The landed bundle therefore now keeps:
 - 3 language witnesses
 - 2 concept companions: `tos.concept.becoming` and `tos.concept.overcoming`
 
-This remains a gate-opening route, not wider world-thought expansion.
+This opening route stays within the specified prologue movement.
 
 ## Canonical and compatibility posture
 
@@ -72,21 +70,20 @@ The current route keeps asymmetric roles on purpose:
 - English is the `bridge_translation`
 
 German remains the authoritative source witness.
-Russian and English remain reviewable witness layers around that source rather
-than replacement canons.
+Russian and English provide reviewable translation witnesses around the German
+source.
 
-Here “authoritative” is route-local authored authority: the node consistently
-orients its reading around the German witness. It is not a claim that the
-German block is a critical or philologically accepted text. The Russian and
-English roles likewise preserve Dionysus's authored witnesses but do not stand
-in for a modern accepted translation packet or competence-scoped Human Gold.
-The text-free authored-canon evidence bridge binds this route back to the exact
-DTA section while leaving all of those stronger gates closed.
+Here “authoritative” describes the node's route-local orientation around the
+German witness. Critical-text identity and philological acceptance require
+their own evidence. The Russian and English roles preserve Dionysus's authored
+translation witnesses; accepted translation packets and competence-scoped
+Human Gold retain separate review requirements. The text-free authored-canon
+evidence bridge returns this route to the exact DTA section and records those
+open assessment gates.
 
 In the current donor posture, Russian and English are explicitly carried as
 Dionysus witnesses inside the paragraph-aligned trilingual surface.
-That attribution should stay visible rather than collapse back into anonymous
-maintainer text.
+Keep Dionysus's attribution visible with each authored witness.
 
 ## Donor and provenance posture
 
@@ -112,17 +109,15 @@ That means each witness block may expose:
 - an optional `normalization_note`
 - shared paragraph `locator` values
 
-The point is not bibliographic maximalism.
-The point is to prevent the German source witness and the two Dionysus witness
-layers from blurring into anonymous text blocks.
+These fields preserve the German source provenance and Dionysus's authorship
+of the two translation witnesses.
 
 ## Paragraph spine and lineation posture
 
 The current route now treats `[1]...[12]` as the shared local locator spine
 across `de / ru / en`.
 
-These numbers are not disposable convenience labels.
-They are the first public small-scale alignment handle for this route.
+These numbers are stable public alignment handles for the route.
 
 The route also treats lineation as meaningful witness data.
 That means:
@@ -151,11 +146,8 @@ The current route therefore grows:
 - bounded `translation_tensions` only where drift is philosophically
   load-bearing
 
-It does not grow:
-
-- three language-specific node copies
-- multilingual relation tables
-- language-specific concept nodes
+Language witnesses share the source node, concept identities and relation
+structure.
 
 ## First bounded route
 
@@ -195,13 +187,12 @@ Inside the current prologue route:
 - eternal return is not yet introduced as an explicit concept node or doctrinal
   claim
 
-What appears here is a hidden rhythm of recurrence, not yet a separately
-stabilized ToS concept surface.
+The recurring movement remains a route-local reading; a separately stabilized
+concept surface is still to be developed.
 
 ## Mode B deepening posture
 
-The next valid move for this route is now implemented as deepening rather than
-widening.
+The implemented next move deepens the existing route.
 
 For the current deepening pass, that means:
 
@@ -219,9 +210,8 @@ legible.
 
 The first post-intake canonical deepening step may now also stabilize a narrow
 route-local `principle` family under `ToS/canon/principle/`.
-Those principle nodes remain subordinate to the same bounded source route.
-They do not replace the source node and do not widen the current tiny-entry
-seam.
+Those principle nodes develop the same bounded source route and return to its
+source node through the existing tiny-entry seam.
 
 The current second principle pass may now also close the distilled principle
 spine for this route.
@@ -264,19 +254,17 @@ reviewed synthesis rather than a deferred commentary-like intake row.
 
 That dedicated relation-focused review pass now also stabilizes one route-local
 canonical relation pack under `ToS/canon/relations/`.
-It promotes only those `edges.csv` rows whose endpoints are already canonical,
-rewrites them to `tos.*` ids, and now leaves only permanent literal helper
-blockers visibly deferred in the intake ledger rather than pretending those
-helper surfaces belong in the authored tree.
+It promotes the `edges.csv` rows whose endpoints are canonical, rewrites them
+to `tos.*` ids, and records the remaining literal helper rows as deferred in
+the intake ledger.
 
 ## Restartable checkpoint boundary
 
 A restartable checkpoint pack may accompany this route for operational
 continuity across bounded inquiry passes.
 
-That pack is an operational sidecar.
-It is not ToS canon, not a new node family, and not a substitute for the source
-node or review note.
+The pack carries operational continuity and points back to the source node and
+review note. Canon and node-family growth follow their authored review routes.
 
 If a later pass stabilizes a genuine authored insight, that insight should move
 into an explicit ToS surface under human review rather than remaining implicit
@@ -284,7 +272,7 @@ inside the checkpoint pack.
 
 ## What remains later
 
-This route does not yet open:
+Later work includes:
 
 - wider world-thought expansion
 - cross-tradition multilingual growth

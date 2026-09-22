@@ -13,7 +13,8 @@ This directory owns statistical questions over Tree of Sophia objects whose
 meaning remains with the authored tree. Shared measurement grammar and
 cross-owner composition remain owned by `aoa-stats`.
 
-This port measures declared populations; it does not own philosophical meaning.
+This port measures declared populations. Authored ToS sources own
+philosophical meaning.
 
 ## Conditional route
 
@@ -35,8 +36,9 @@ measurement requires them.
   input is unknown, not zero.
 - The reference packet is weaker than the atlas rows, route map, branch homes,
   dossier contents, source witnesses, review packets, and canon.
-- Route coverage does not measure dossier quality, source adequacy,
-  philosophical value, branch maturity, graph readiness, or canon status.
+- Route coverage measures the presence of declared routes. Dossier quality,
+source adequacy, philosophical value, branch maturity, graph readiness and
+canon status require their own assessments.
 
 ## Validation
 

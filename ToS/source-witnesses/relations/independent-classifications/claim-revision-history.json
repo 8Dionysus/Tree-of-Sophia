@@ -1,0 +1,652 @@
+{
+  "schema_version": "tos_claim_revision_history_v1",
+  "source_path": "ToS/source-witnesses/relations/independent-classifications/source-claims.jsonl",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:e39679f1bdfe114659584395",
+      "request_digest": "sha256:88d552fe2bcb8c2d8bb95935269fec4ccc8762b442f3a2ff3b390aaa961e8700",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:7c5a679f49e0ecb388c47c7ab28d66362193036714aa8e0c66da054ddfe3accb",
+      "recorded_at": "2026-09-22T06:32:48.461133+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+      "previous_source": {
+        "id": "tos.claim.independent-classifications.old-babylonian-epic",
+        "version": 1,
+        "digest": "sha256:19a8dbff33cd5287b90e6b469b5fb831409d20bd4cd06b696c550de9c5f042d6"
+      },
+      "source": {
+        "id": "tos.claim.independent-classifications.old-babylonian-epic",
+        "version": 2,
+        "digest": "sha256:14f02376f9ea1264c1df749bdcabb4ff977d7f9f5a541f143ca23356c51f4b09"
+      },
+      "previous_revision": "sha256:e334d9b66592ea98ba807c19218968ed77789b0fadad0f74ac060031b2a2e8f9",
+      "archive_path": "ToS/source-witnesses/.record-revisions/e39679f1bdfe114659584395040b97210b3d0250d5501e6ce24d54ba51c141c8-e334d9b66592ea98ba807c19218968ed77789b0fadad0f74ac060031b2a2e8f9",
+      "dependencies": "sha256:8df275a254c7de5515dcc0bf8cd2f46ab6f8596ba53ef1ea15bfd4ce12d33cfd",
+      "source_bindings": {
+        "objects": {
+          "tos.work.akkadian-literature.old-babylonian-gilgamesh-tradition": {
+            "source_ref": "ToS/source-witnesses/works/akkadian-literature/old-babylonian-gilgamesh-tradition/work.json",
+            "source_sha256": "sha256:01481777cf114e104ab209b3ce33e298cc7e595e48c4f02c06db3e1e51dce908",
+            "canonical_record_sha256": "sha256:44fc815a02c603c9cffec7f01d73f8fcfe0c8ea8bf2a250518e1894d08bbf457",
+            "schema_version": "tos_corpus_record_v1",
+            "record_version": 2
+          }
+        },
+        "evidence": {
+          "ToS/review-ledger/2026-09-07-classification-source-reading.md": {
+            "source_ref": "ToS/review-ledger/2026-09-07-classification-source-reading.md",
+            "source_sha256": "sha256:f10919ba40fff6b5ce1859efc35c9d7f9916df20be71f69daf14721517e0ff14",
+            "source_line": null,
+            "evidence_kind": "repo_path"
+          }
+        },
+        "values": {
+          "tos.claim.independent-classifications.old-babylonian-epic": {
+            "value": {
+              "classification_basis": "Genre term used in Jastrow and Clay's 1920 title and Introduction, pp. 15–17. The classification is attributed to their account of the transmitted material.",
+              "extensions": {},
+              "kind": "genre-classification",
+              "scope_note": "The existing provisional Old Babylonian transmission cluster, whose boundaries and completeness remain open; the physical tablets, Standard Babylonian poem and 1920 study retain separate identities.",
+              "source_wording": {
+                "language": "en",
+                "script": "Latn",
+                "text": "Gilgamesh Epic"
+              },
+              "term": "epic",
+              "term_language": "en",
+              "term_script": "Latn"
+            },
+            "sha256": "sha256:bb0471a9bb5b591451609f3c160d8dd72721e4f8eb17bbfb46a9b608184c9419",
+            "type_ids": [
+              "tos.entity.genre-classification"
+            ]
+          }
+        }
+      },
+      "changed_fields": [
+        "object"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.independent-classifications.old-babylonian-epic.statement-ru",
+          "version": 2,
+          "digest": "sha256:da08fdc8255c0d355f068e13f594d49e51713557c51b441781cc0319a17cba25"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:e39679f1bdfe114659584395",
+        "expected_configuration": "sha256:7c5a679f49e0ecb388c47c7ab28d66362193036714aa8e0c66da054ddfe3accb",
+        "expected_dependencies": "sha256:8df275a254c7de5515dcc0bf8cd2f46ab6f8596ba53ef1ea15bfd4ce12d33cfd",
+        "expected_inputs": {
+          "evidence": {
+            "ToS/review-ledger/2026-09-07-classification-source-reading.md": {
+              "evidence_kind": "repo_path",
+              "source_line": null,
+              "source_ref": "ToS/review-ledger/2026-09-07-classification-source-reading.md",
+              "source_sha256": "sha256:f10919ba40fff6b5ce1859efc35c9d7f9916df20be71f69daf14721517e0ff14"
+            }
+          },
+          "objects": {
+            "tos.work.akkadian-literature.old-babylonian-gilgamesh-tradition": {
+              "canonical_record_sha256": "sha256:44fc815a02c603c9cffec7f01d73f8fcfe0c8ea8bf2a250518e1894d08bbf457",
+              "record_version": 2,
+              "schema_version": "tos_corpus_record_v1",
+              "source_ref": "ToS/source-witnesses/works/akkadian-literature/old-babylonian-gilgamesh-tradition/work.json",
+              "source_sha256": "sha256:01481777cf114e104ab209b3ce33e298cc7e595e48c4f02c06db3e1e51dce908"
+            }
+          },
+          "values": {
+            "tos.claim.independent-classifications.old-babylonian-epic": {
+              "sha256": "sha256:bb0471a9bb5b591451609f3c160d8dd72721e4f8eb17bbfb46a9b608184c9419",
+              "type_ids": [
+                "tos.entity.genre-classification"
+              ],
+              "value": {
+                "classification_basis": "Genre term used in Jastrow and Clay's 1920 title and Introduction, pp. 15–17. The classification is attributed to their account of the transmitted material.",
+                "extensions": {},
+                "kind": "genre-classification",
+                "scope_note": "The existing provisional Old Babylonian transmission cluster, whose boundaries and completeness remain open; the physical tablets, Standard Babylonian poem and 1920 study retain separate identities.",
+                "source_wording": {
+                  "language": "en",
+                  "script": "Latn",
+                  "text": "Gilgamesh Epic"
+                },
+                "term": "epic",
+                "term_language": "en",
+                "term_script": "Latn"
+              }
+            }
+          }
+        },
+        "expected_revision": "sha256:e334d9b66592ea98ba807c19218968ed77789b0fadad0f74ac060031b2a2e8f9",
+        "expected_source": {
+          "digest": "sha256:19a8dbff33cd5287b90e6b469b5fb831409d20bd4cd06b696c550de9c5f042d6",
+          "id": "tos.claim.independent-classifications.old-babylonian-epic",
+          "version": 1
+        },
+        "fields": {
+          "object": {
+            "classification_basis": "Genre term used in Jastrow and Clay's 1920 title and Introduction, pp. 15–17. The classification is attributed to their account of the transmitted material.",
+            "extensions": {},
+            "kind": "genre-classification",
+            "scope_note": "The existing provisional Old Babylonian transmission cluster, whose boundaries and completeness remain open; the physical tablets, Standard Babylonian poem and 1920 study retain separate identities.",
+            "source_wording": {
+              "language": "en",
+              "script": "Latn",
+              "text": "Gilgamesh Epic"
+            },
+            "term": "epic",
+            "term_language": "en",
+            "term_script": "Latn"
+          }
+        },
+        "forms": [
+          {
+            "field_id": "claim.statement",
+            "form_id": "tos.form.independent-classifications.old-babylonian-epic.statement-ru"
+          }
+        ],
+        "operation": "claim.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    },
+    {
+      "command_id": "tos-language-cleanup-20260922:bb3d6dabc4609cec0f0a348c",
+      "request_digest": "sha256:3aded2cc2d2f126b140bd8c0af1e4ed28841492ecf6b38565cdcd7e4ff09be89",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:cfbe0dcc02fe751eada4f845ad8c90c699ee85238d96b0fa2e5ef3356ef1b099",
+      "recorded_at": "2026-09-22T06:33:16.797100+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+      "previous_source": {
+        "id": "tos.claim.independent-classifications.penn-carrier",
+        "version": 1,
+        "digest": "sha256:f4ffb46af975ab83c4c184b908d5ecb58c3baa46aa7e7664e4ed8b1c9afd3baa"
+      },
+      "source": {
+        "id": "tos.claim.independent-classifications.penn-carrier",
+        "version": 2,
+        "digest": "sha256:1db4f236c9390853778dc2d32453a935b347fb0004c6da0e1cb5fe08d4c74e77"
+      },
+      "previous_revision": "sha256:716bc87064a94b1b7c13cf093d8aec8e1b12565b95d8daef7a49163bda0c2874",
+      "archive_path": "ToS/source-witnesses/.record-revisions/bb3d6dabc4609cec0f0a348ca16885e79a146a4e1aceb663ae759c15dc0fe115-716bc87064a94b1b7c13cf093d8aec8e1b12565b95d8daef7a49163bda0c2874",
+      "dependencies": "sha256:cd79fdcc57bd0d5515a83a4d12feaad51c820dfe4e1efed29430f2f006d4457e",
+      "source_bindings": {
+        "objects": {
+          "tos.artifact.old-babylonian.uncertain.penn-cbs-07771": {
+            "source_ref": "ToS/source-witnesses/artifacts/old-babylonian/uncertain/penn-cbs-07771/artifact-witness.json",
+            "source_sha256": "sha256:60c5c31c846c1e38eeb6e571dc15c85aa4f3cbb26a31edeaa8fd70bc47a2b6ef",
+            "canonical_record_sha256": "sha256:1a702f567cd7ef4f41cfd830b91d557f5ac3f3c7db0fde96a64dbf3ff12005dd",
+            "schema_version": "tos_artifact_source_witness_v1",
+            "record_version": 1
+          }
+        },
+        "evidence": {
+          "ToS/review-ledger/2026-09-07-classification-source-reading.md": {
+            "source_ref": "ToS/review-ledger/2026-09-07-classification-source-reading.md",
+            "source_sha256": "sha256:f10919ba40fff6b5ce1859efc35c9d7f9916df20be71f69daf14721517e0ff14",
+            "source_line": null,
+            "evidence_kind": "repo_path"
+          }
+        },
+        "values": {
+          "tos.claim.independent-classifications.penn-carrier": {
+            "value": {
+              "classification_basis": "CDLI P262784 lists Artifact Type Tablet and Material(s) Clay. The combined carrier term is attributed to those two catalog fields; physical examination remains unperformed.",
+              "extensions": {
+                "material_wording": {
+                  "language": "en",
+                  "script": "Latn",
+                  "text": "Clay"
+                }
+              },
+              "kind": "carrier-medium-classification",
+              "scope_note": "The physical Penn CBS 07771 artifact only; no work-level genre, chemical analysis, resolved findspot or payload permission follows.",
+              "source_wording": {
+                "language": "en",
+                "script": "Latn",
+                "text": "Tablet"
+              },
+              "term": "clay tablet",
+              "term_language": "en",
+              "term_script": "Latn"
+            },
+            "sha256": "sha256:23b8fc691b825e19c8cef63764d08a5a5d2a0073a7d904a03ebe5ac758480533",
+            "type_ids": [
+              "tos.entity.carrier-medium-classification"
+            ]
+          }
+        }
+      },
+      "changed_fields": [
+        "object"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.independent-classifications.penn-carrier.statement-ru",
+          "version": 2,
+          "digest": "sha256:67d83a115de1010676cd5cf554b671a7353bcaf932aa720781d77b5d62f35241"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:bb3d6dabc4609cec0f0a348c",
+        "expected_configuration": "sha256:cfbe0dcc02fe751eada4f845ad8c90c699ee85238d96b0fa2e5ef3356ef1b099",
+        "expected_dependencies": "sha256:cd79fdcc57bd0d5515a83a4d12feaad51c820dfe4e1efed29430f2f006d4457e",
+        "expected_inputs": {
+          "evidence": {
+            "ToS/review-ledger/2026-09-07-classification-source-reading.md": {
+              "evidence_kind": "repo_path",
+              "source_line": null,
+              "source_ref": "ToS/review-ledger/2026-09-07-classification-source-reading.md",
+              "source_sha256": "sha256:f10919ba40fff6b5ce1859efc35c9d7f9916df20be71f69daf14721517e0ff14"
+            }
+          },
+          "objects": {
+            "tos.artifact.old-babylonian.uncertain.penn-cbs-07771": {
+              "canonical_record_sha256": "sha256:1a702f567cd7ef4f41cfd830b91d557f5ac3f3c7db0fde96a64dbf3ff12005dd",
+              "record_version": 1,
+              "schema_version": "tos_artifact_source_witness_v1",
+              "source_ref": "ToS/source-witnesses/artifacts/old-babylonian/uncertain/penn-cbs-07771/artifact-witness.json",
+              "source_sha256": "sha256:60c5c31c846c1e38eeb6e571dc15c85aa4f3cbb26a31edeaa8fd70bc47a2b6ef"
+            }
+          },
+          "values": {
+            "tos.claim.independent-classifications.penn-carrier": {
+              "sha256": "sha256:23b8fc691b825e19c8cef63764d08a5a5d2a0073a7d904a03ebe5ac758480533",
+              "type_ids": [
+                "tos.entity.carrier-medium-classification"
+              ],
+              "value": {
+                "classification_basis": "CDLI P262784 lists Artifact Type Tablet and Material(s) Clay. The combined carrier term is attributed to those two catalog fields; physical examination remains unperformed.",
+                "extensions": {
+                  "material_wording": {
+                    "language": "en",
+                    "script": "Latn",
+                    "text": "Clay"
+                  }
+                },
+                "kind": "carrier-medium-classification",
+                "scope_note": "The physical Penn CBS 07771 artifact only; no work-level genre, chemical analysis, resolved findspot or payload permission follows.",
+                "source_wording": {
+                  "language": "en",
+                  "script": "Latn",
+                  "text": "Tablet"
+                },
+                "term": "clay tablet",
+                "term_language": "en",
+                "term_script": "Latn"
+              }
+            }
+          }
+        },
+        "expected_revision": "sha256:716bc87064a94b1b7c13cf093d8aec8e1b12565b95d8daef7a49163bda0c2874",
+        "expected_source": {
+          "digest": "sha256:f4ffb46af975ab83c4c184b908d5ecb58c3baa46aa7e7664e4ed8b1c9afd3baa",
+          "id": "tos.claim.independent-classifications.penn-carrier",
+          "version": 1
+        },
+        "fields": {
+          "object": {
+            "classification_basis": "CDLI P262784 lists Artifact Type Tablet and Material(s) Clay. The combined carrier term is attributed to those two catalog fields; physical examination remains unperformed.",
+            "extensions": {
+              "material_wording": {
+                "language": "en",
+                "script": "Latn",
+                "text": "Clay"
+              }
+            },
+            "kind": "carrier-medium-classification",
+            "scope_note": "The physical Penn CBS 07771 artifact only; no work-level genre, chemical analysis, resolved findspot or payload permission follows.",
+            "source_wording": {
+              "language": "en",
+              "script": "Latn",
+              "text": "Tablet"
+            },
+            "term": "clay tablet",
+            "term_language": "en",
+            "term_script": "Latn"
+          }
+        },
+        "forms": [
+          {
+            "field_id": "claim.statement",
+            "form_id": "tos.form.independent-classifications.penn-carrier.statement-ru"
+          }
+        ],
+        "operation": "claim.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    },
+    {
+      "command_id": "tos-language-cleanup-20260922:d87ef67a2143f937c243d816",
+      "request_digest": "sha256:c945335753269bec0339df53199839b86026235c9eb88b05d7be785183575a0e",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:8cefb8940329ee8d435a54a72eec45f64cf17b80c12ba5cabdc62f9f9943705e",
+      "recorded_at": "2026-09-22T06:33:42.512997+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+      "previous_source": {
+        "id": "tos.claim.independent-classifications.letter-705-form",
+        "version": 1,
+        "digest": "sha256:2b3fd1af887f4bff0f38c7015255dc6153c7b3284ee4f1a498ec79d96192dd21"
+      },
+      "source": {
+        "id": "tos.claim.independent-classifications.letter-705-form",
+        "version": 2,
+        "digest": "sha256:4bd0abc348095ce6c630cbc6cb8225420531ad4ef1a51ab62680eebac87a7ee3"
+      },
+      "previous_revision": "sha256:b5ff958d2add52d336a5947a3bb8d6fcbebeb8df8720d5c62847acc051cc3c76",
+      "archive_path": "ToS/source-witnesses/.record-revisions/d87ef67a2143f937c243d8169e31d32c5f6310d71abcba0876bad638caee6993-b5ff958d2add52d336a5947a3bb8d6fcbebeb8df8720d5c62847acc051cc3c76",
+      "dependencies": "sha256:0c92f1c9862f19549da6c2b63dbbb9a81a4cea008d5a2a743c9bcbf9d4c244ef",
+      "source_bindings": {
+        "objects": {
+          "tos.letter.nietzsche-naumann-1886-705": {
+            "source_ref": "ToS/source-witnesses/documents/friedrich-nietzsche/naumann-letter-705/letter.json",
+            "source_sha256": "sha256:d3cca21948fe6d634486d09207e8c6964f00dd1427ce74dcb8915a9442224ab5",
+            "canonical_record_sha256": "sha256:4a4a3abc91f070506000f770cb236398f323a584aee819a4d42c89de33770d11",
+            "schema_version": "tos_document_record_v1",
+            "record_version": 2
+          }
+        },
+        "evidence": {
+          "ToS/review-ledger/2026-09-07-classification-source-reading.md": {
+            "source_ref": "ToS/review-ledger/2026-09-07-classification-source-reading.md",
+            "source_sha256": "sha256:f10919ba40fff6b5ce1859efc35c9d7f9916df20be71f69daf14721517e0ff14",
+            "source_line": null,
+            "evidence_kind": "repo_path"
+          },
+          "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_LETTER_705_SOURCE_READING_V1.md": {
+            "source_ref": "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_LETTER_705_SOURCE_READING_V1.md",
+            "source_sha256": "sha256:1b04b5277aa74df1b4697bcc4ad69eb13914bb576702c9be8367f46413f1d7ed",
+            "source_line": null,
+            "evidence_kind": "repo_path"
+          }
+        },
+        "values": {
+          "tos.claim.independent-classifications.letter-705-form": {
+            "value": {
+              "classification_basis": "The critical-text/archival source-reading note and existing Letter record identify an addressed documentary communication as letter 705. This classification describes that referent's documentary form.",
+              "extensions": {},
+              "kind": "content-form-classification",
+              "scope_note": "The documentary form of the existing Nietzsche–Naumann Letter 705. Material, edition, delivery and reception remain separately evidenced facets.",
+              "source_wording": {
+                "language": "en",
+                "script": "Latn",
+                "text": "letter 705"
+              },
+              "term": "letter",
+              "term_language": "en",
+              "term_script": "Latn"
+            },
+            "sha256": "sha256:af0a2a2460e2c48028d09676577d2ffbce64025ad1d404c7f79e4eb95c3e248a",
+            "type_ids": [
+              "tos.entity.content-form-classification"
+            ]
+          }
+        }
+      },
+      "changed_fields": [
+        "object"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.independent-classifications.letter-705-form.statement-ru",
+          "version": 2,
+          "digest": "sha256:5ef702b2783693a0f9e36980a09a7d4173d848b0d14afd8a205a1ff5b7522678"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:d87ef67a2143f937c243d816",
+        "expected_configuration": "sha256:8cefb8940329ee8d435a54a72eec45f64cf17b80c12ba5cabdc62f9f9943705e",
+        "expected_dependencies": "sha256:0c92f1c9862f19549da6c2b63dbbb9a81a4cea008d5a2a743c9bcbf9d4c244ef",
+        "expected_inputs": {
+          "evidence": {
+            "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_LETTER_705_SOURCE_READING_V1.md": {
+              "evidence_kind": "repo_path",
+              "source_line": null,
+              "source_ref": "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_LETTER_705_SOURCE_READING_V1.md",
+              "source_sha256": "sha256:1b04b5277aa74df1b4697bcc4ad69eb13914bb576702c9be8367f46413f1d7ed"
+            },
+            "ToS/review-ledger/2026-09-07-classification-source-reading.md": {
+              "evidence_kind": "repo_path",
+              "source_line": null,
+              "source_ref": "ToS/review-ledger/2026-09-07-classification-source-reading.md",
+              "source_sha256": "sha256:f10919ba40fff6b5ce1859efc35c9d7f9916df20be71f69daf14721517e0ff14"
+            }
+          },
+          "objects": {
+            "tos.letter.nietzsche-naumann-1886-705": {
+              "canonical_record_sha256": "sha256:4a4a3abc91f070506000f770cb236398f323a584aee819a4d42c89de33770d11",
+              "record_version": 2,
+              "schema_version": "tos_document_record_v1",
+              "source_ref": "ToS/source-witnesses/documents/friedrich-nietzsche/naumann-letter-705/letter.json",
+              "source_sha256": "sha256:d3cca21948fe6d634486d09207e8c6964f00dd1427ce74dcb8915a9442224ab5"
+            }
+          },
+          "values": {
+            "tos.claim.independent-classifications.letter-705-form": {
+              "sha256": "sha256:af0a2a2460e2c48028d09676577d2ffbce64025ad1d404c7f79e4eb95c3e248a",
+              "type_ids": [
+                "tos.entity.content-form-classification"
+              ],
+              "value": {
+                "classification_basis": "The critical-text/archival source-reading note and existing Letter record identify an addressed documentary communication as letter 705. This classification describes that referent's documentary form.",
+                "extensions": {},
+                "kind": "content-form-classification",
+                "scope_note": "The documentary form of the existing Nietzsche–Naumann Letter 705. Material, edition, delivery and reception remain separately evidenced facets.",
+                "source_wording": {
+                  "language": "en",
+                  "script": "Latn",
+                  "text": "letter 705"
+                },
+                "term": "letter",
+                "term_language": "en",
+                "term_script": "Latn"
+              }
+            }
+          }
+        },
+        "expected_revision": "sha256:b5ff958d2add52d336a5947a3bb8d6fcbebeb8df8720d5c62847acc051cc3c76",
+        "expected_source": {
+          "digest": "sha256:2b3fd1af887f4bff0f38c7015255dc6153c7b3284ee4f1a498ec79d96192dd21",
+          "id": "tos.claim.independent-classifications.letter-705-form",
+          "version": 1
+        },
+        "fields": {
+          "object": {
+            "classification_basis": "The critical-text/archival source-reading note and existing Letter record identify an addressed documentary communication as letter 705. This classification describes that referent's documentary form.",
+            "extensions": {},
+            "kind": "content-form-classification",
+            "scope_note": "The documentary form of the existing Nietzsche–Naumann Letter 705. Material, edition, delivery and reception remain separately evidenced facets.",
+            "source_wording": {
+              "language": "en",
+              "script": "Latn",
+              "text": "letter 705"
+            },
+            "term": "letter",
+            "term_language": "en",
+            "term_script": "Latn"
+          }
+        },
+        "forms": [
+          {
+            "field_id": "claim.statement",
+            "form_id": "tos.form.independent-classifications.letter-705-form.statement-ru"
+          }
+        ],
+        "operation": "claim.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    },
+    {
+      "command_id": "tos-language-cleanup-20260922:ab68fd5b3123e09953187837",
+      "request_digest": "sha256:2cc03a2fa2565d0d63e476ad2fad22f5d581a669b53bbddb5c6d06b48b77c3ea",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:5e9aad4c5e562b19ad9592e05359e5d976dedffd75c67a29efb39bfac1688f44",
+      "recorded_at": "2026-09-22T06:36:08.983090+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+      "previous_source": {
+        "id": "tos.claim.independent-classifications.letter-705-medium",
+        "version": 1,
+        "digest": "sha256:59db0cddb75a86e0383b72f2baf057790b0b37aceb5d4c234342956ae3947429"
+      },
+      "source": {
+        "id": "tos.claim.independent-classifications.letter-705-medium",
+        "version": 2,
+        "digest": "sha256:5627c80cbe1a15e1d4d6ef367d24de62c027958bb4bb4d037cc77e052191aa90"
+      },
+      "previous_revision": "sha256:19476d0624cb1816c480538f4545dba629fce8eebd4d45d3fa937bcc632c3639",
+      "archive_path": "ToS/source-witnesses/.record-revisions/ab68fd5b3123e099531878371c027056817a7e94d9e943fa4c879f784d04b70a-19476d0624cb1816c480538f4545dba629fce8eebd4d45d3fa937bcc632c3639",
+      "dependencies": "sha256:c2f5bdee1baad633805d87064f2a1fd9c561bcb0de5fb9b224cc972847983043",
+      "source_bindings": {
+        "objects": {
+          "tos.letter.nietzsche-naumann-1886-705": {
+            "source_ref": "ToS/source-witnesses/documents/friedrich-nietzsche/naumann-letter-705/letter.json",
+            "source_sha256": "sha256:d3cca21948fe6d634486d09207e8c6964f00dd1427ce74dcb8915a9442224ab5",
+            "canonical_record_sha256": "sha256:4a4a3abc91f070506000f770cb236398f323a584aee819a4d42c89de33770d11",
+            "schema_version": "tos_document_record_v1",
+            "record_version": 2
+          }
+        },
+        "evidence": {
+          "ToS/review-ledger/2026-09-07-classification-source-reading.md": {
+            "source_ref": "ToS/review-ledger/2026-09-07-classification-source-reading.md",
+            "source_sha256": "sha256:f10919ba40fff6b5ce1859efc35c9d7f9916df20be71f69daf14721517e0ff14",
+            "source_line": null,
+            "evidence_kind": "repo_path"
+          },
+          "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_LETTER_705_SOURCE_READING_V1.md": {
+            "source_ref": "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_LETTER_705_SOURCE_READING_V1.md",
+            "source_sha256": "sha256:1b04b5277aa74df1b4697bcc4ad69eb13914bb576702c9be8367f46413f1d7ed",
+            "source_line": null,
+            "evidence_kind": "repo_path"
+          }
+        },
+        "values": {
+          "tos.claim.independent-classifications.letter-705-medium": {
+            "value": {
+              "classification_basis": "The recorded earlier reading identifies a letter, its critical text and a one-leaf archival carrier with two rendered sides. Written correspondence is a limited inference from that documentary evidence; this basis retains the earlier inspection scope.",
+              "extensions": {},
+              "kind": "communication-medium-classification",
+              "scope_note": "The written communication represented by Letter 705 only; no claim about original penmanship, paper, dispatch, receipt, print technology, oral delivery or digital encoding.",
+              "source_wording": {
+                "language": "en",
+                "script": "Latn",
+                "text": "Letter 705: critical text and identified archival carrier"
+              },
+              "term": "written correspondence",
+              "term_language": "en",
+              "term_script": "Latn"
+            },
+            "sha256": "sha256:8b4390836dd3045f7af5192922f2636dac41fe1c5f936b69de388f91621a9506",
+            "type_ids": [
+              "tos.entity.communication-medium-classification"
+            ]
+          }
+        }
+      },
+      "changed_fields": [
+        "object"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.independent-classifications.letter-705-medium.statement-ru",
+          "version": 2,
+          "digest": "sha256:efad3dd0a0c3aee603f5d5a178f003dd99279ac04d7045fefe80a79375b281df"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:ab68fd5b3123e09953187837",
+        "expected_configuration": "sha256:5e9aad4c5e562b19ad9592e05359e5d976dedffd75c67a29efb39bfac1688f44",
+        "expected_dependencies": "sha256:c2f5bdee1baad633805d87064f2a1fd9c561bcb0de5fb9b224cc972847983043",
+        "expected_inputs": {
+          "evidence": {
+            "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_LETTER_705_SOURCE_READING_V1.md": {
+              "evidence_kind": "repo_path",
+              "source_line": null,
+              "source_ref": "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_LETTER_705_SOURCE_READING_V1.md",
+              "source_sha256": "sha256:1b04b5277aa74df1b4697bcc4ad69eb13914bb576702c9be8367f46413f1d7ed"
+            },
+            "ToS/review-ledger/2026-09-07-classification-source-reading.md": {
+              "evidence_kind": "repo_path",
+              "source_line": null,
+              "source_ref": "ToS/review-ledger/2026-09-07-classification-source-reading.md",
+              "source_sha256": "sha256:f10919ba40fff6b5ce1859efc35c9d7f9916df20be71f69daf14721517e0ff14"
+            }
+          },
+          "objects": {
+            "tos.letter.nietzsche-naumann-1886-705": {
+              "canonical_record_sha256": "sha256:4a4a3abc91f070506000f770cb236398f323a584aee819a4d42c89de33770d11",
+              "record_version": 2,
+              "schema_version": "tos_document_record_v1",
+              "source_ref": "ToS/source-witnesses/documents/friedrich-nietzsche/naumann-letter-705/letter.json",
+              "source_sha256": "sha256:d3cca21948fe6d634486d09207e8c6964f00dd1427ce74dcb8915a9442224ab5"
+            }
+          },
+          "values": {
+            "tos.claim.independent-classifications.letter-705-medium": {
+              "sha256": "sha256:8b4390836dd3045f7af5192922f2636dac41fe1c5f936b69de388f91621a9506",
+              "type_ids": [
+                "tos.entity.communication-medium-classification"
+              ],
+              "value": {
+                "classification_basis": "The recorded earlier reading identifies a letter, its critical text and a one-leaf archival carrier with two rendered sides. Written correspondence is a limited inference from that documentary evidence; this basis retains the earlier inspection scope.",
+                "extensions": {},
+                "kind": "communication-medium-classification",
+                "scope_note": "The written communication represented by Letter 705 only; no claim about original penmanship, paper, dispatch, receipt, print technology, oral delivery or digital encoding.",
+                "source_wording": {
+                  "language": "en",
+                  "script": "Latn",
+                  "text": "Letter 705: critical text and identified archival carrier"
+                },
+                "term": "written correspondence",
+                "term_language": "en",
+                "term_script": "Latn"
+              }
+            }
+          }
+        },
+        "expected_revision": "sha256:19476d0624cb1816c480538f4545dba629fce8eebd4d45d3fa937bcc632c3639",
+        "expected_source": {
+          "digest": "sha256:59db0cddb75a86e0383b72f2baf057790b0b37aceb5d4c234342956ae3947429",
+          "id": "tos.claim.independent-classifications.letter-705-medium",
+          "version": 1
+        },
+        "fields": {
+          "object": {
+            "classification_basis": "The recorded earlier reading identifies a letter, its critical text and a one-leaf archival carrier with two rendered sides. Written correspondence is a limited inference from that documentary evidence; this basis retains the earlier inspection scope.",
+            "extensions": {},
+            "kind": "communication-medium-classification",
+            "scope_note": "The written communication represented by Letter 705 only; no claim about original penmanship, paper, dispatch, receipt, print technology, oral delivery or digital encoding.",
+            "source_wording": {
+              "language": "en",
+              "script": "Latn",
+              "text": "Letter 705: critical text and identified archival carrier"
+            },
+            "term": "written correspondence",
+            "term_language": "en",
+            "term_script": "Latn"
+          }
+        },
+        "forms": [
+          {
+            "field_id": "claim.statement",
+            "form_id": "tos.form.independent-classifications.letter-705-medium.statement-ru"
+          }
+        ],
+        "operation": "claim.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    }
+  ]
+}

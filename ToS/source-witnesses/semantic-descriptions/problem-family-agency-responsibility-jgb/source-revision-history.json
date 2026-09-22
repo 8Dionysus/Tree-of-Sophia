@@ -1,0 +1,93 @@
+{
+  "schema_version": "tos_source_revision_history_v1",
+  "record_id": "tos.problem-family.agency-responsibility-jgb",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:9a5dd42dfba0ca490080f17e",
+      "request_digest": "sha256:87f2ae31fe8f1a945afeefe241b76a2c18ab3856093047d900a4d05fa76a1da4",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:d31e93c1ae0e91031055799da2a7d38682f44560bf972e135bdf7b28f8d31569",
+      "recorded_at": "2026-09-22T05:07:21.584608+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.problem-family.agency-responsibility-jgb",
+        "version": 1,
+        "digest": "sha256:14b8f171971d290501b4940677468788e51b6fa017a7f664b28b61cce94606ee"
+      },
+      "source": {
+        "id": "tos.problem-family.agency-responsibility-jgb",
+        "version": 2,
+        "digest": "sha256:63c50aa98569d948578f010ffcc7bef7e0305a92d9658e929341cb8882bcdf3c"
+      },
+      "previous_revision": "sha256:c42ee3f96dd4d2fa671bab0ba531829dbce03a9c3f36ea018bee8b547a048391",
+      "archive_path": "ToS/source-witnesses/.record-revisions/9a5dd42dfba0ca490080f17e7a5adcbbdcb4fdaee85c4e1520c803763eab721b-c42ee3f96dd4d2fa671bab0ba531829dbce03a9c3f36ea018bee8b547a048391",
+      "dependencies": "sha256:ad99651426db4f995c841ba8ba27f697bf197a1f43d7ac3d97e8038dc39eb01d",
+      "changed_fields": [
+        "notes",
+        "semantic_content",
+        "semantic_scope"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.problem-family.agency-responsibility-jgb.name-ru",
+          "version": 2,
+          "digest": "sha256:24f8448d3186b4db0798a004366370a1e4db5fe819e0dddcdd670d15fba3cd8f"
+        },
+        {
+          "id": "tos.form.problem-family.agency-responsibility-jgb.name-en",
+          "version": 2,
+          "digest": "sha256:db436603657d6b89a7450f56e696b042dea9ac347445f49b27b38ed572df3ca4"
+        },
+        {
+          "id": "tos.form.problem-family.agency-responsibility-jgb.note-ru",
+          "version": 2,
+          "digest": "sha256:c70b25f44c49640fa79d357f5461433c50591e43aad162cb71fd3d5a53eb2b30"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:9a5dd42dfba0ca490080f17e",
+        "expected_configuration": "sha256:d31e93c1ae0e91031055799da2a7d38682f44560bf972e135bdf7b28f8d31569",
+        "expected_dependencies": "sha256:ad99651426db4f995c841ba8ba27f697bf197a1f43d7ac3d97e8038dc39eb01d",
+        "expected_revision": "sha256:c42ee3f96dd4d2fa671bab0ba531829dbce03a9c3f36ea018bee8b547a048391",
+        "expected_source": {
+          "digest": "sha256:14b8f171971d290501b4940677468788e51b6fa017a7f664b28b61cce94606ee",
+          "id": "tos.problem-family.agency-responsibility-jgb",
+          "version": 1
+        },
+        "fields": {
+          "notes": "Открытое исследовательское семейство, связывающее две различные проблемы: состав переживания воли в §19 и метафизическое требование ответственности в §21. Объединение обосновано их отношением к действию и свободе.",
+          "semantic_content": {
+            "grouping_basis": "The member problems examine different conditions under which willing and action are attributed to a subject: experienced command/obedience and ultimate responsibility. Their grouping is proposed by the researcher.",
+            "language": "en",
+            "script": "Latn"
+          },
+          "semantic_scope": {
+            "identity_criterion": "Retain this grouping while its criterion connects inquiry into agency and responsibility without erasing member differences; changing that criterion creates a new grouping.",
+            "language": "en",
+            "scope_note": "A research grouping of the two specified problems in JGB 19 and 21.",
+            "script": "Latn"
+          }
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.problem-family.agency-responsibility-jgb.name-ru"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.problem-family.agency-responsibility-jgb.name-en"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.problem-family.agency-responsibility-jgb.note-ru"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    }
+  ]
+}

@@ -29,11 +29,7 @@ DOES_NOT_ESTABLISH = [
     "rights_clearance", "canon_promotion",
 ]
 AUTHORITY = (
-    "mechanical pairing and routing of identical series-qualified structural "
-    "number-label keys already materialized independently in exact source and "
-    "target witness maps; it reads no witness text and establishes neither "
-    "exact passage boundaries nor passage or translation alignment, accepted "
-    "German or Russian, eligibility, gold, semantics, rights, or canon authority"
+    "This map pairs and routes identical series-qualified structural number-label keys from independently prepared exact source and target maps. The operation uses the maps as structural metadata."
 )
 
 
@@ -173,7 +169,7 @@ def build_one(config: dict[str, Any], event_at: str) -> dict[Path, str]:
     pair_rendered = _render(pair)
     pair_digest = hashlib.sha256(pair_rendered.encode()).hexdigest()
     pair_inputs = [{"ref": source_path.as_posix(), "role": "tracked-source-hierarchical-numbered-unit-map", "sha256": _digest(REPO_ROOT / source_path)}, {"ref": target_path.as_posix(), "role": "tracked-target-hierarchical-numbered-unit-map", "sha256": _digest(REPO_ROOT / target_path)}] + [{"ref": item["ref"], "role": f"{item['role']}-rights-basis", "sha256": item["sha256"]} for item in rights]
-    pair_event = _event(pair_event_id, event_at, pair_inputs, pair_path, pair_digest, "tracked-text-free-series-qualified-label-pairing-candidates", "exact-shared-series-qualified-structural-label-key-intersection", {"pairing_key": "series_key:unit_key", "expected_pairing_count": len(pairings), "local_payloads_read": False, "source_to_target_text_compared": False, "translation_alignment_inferred": False, "human_review_count": 0}, [f"The {len(pairings)} pairs assert only a shared structural series-qualified number-label key.", "No source or target witness text was read, compared, transcribed, or accepted.", "Shared numbering does not establish passage or translation alignment, equivalence, quality, or semantics."])
+    pair_event = _event(pair_event_id, event_at, pair_inputs, pair_path, pair_digest, "tracked-text-free-series-qualified-label-pairing-candidates", "exact-shared-series-qualified-structural-label-key-intersection", {"pairing_key": "series_key:unit_key", "expected_pairing_count": len(pairings), "local_payloads_read": False, "source_to_target_text_compared": False, "translation_alignment_inferred": False, "human_review_count": 0}, [f"The {len(pairings)} pairs assert only a shared structural series-qualified number-label key.", "No source or target witness text was read, compared, transcribed, or accepted.", "Shared numbering supports structural navigation. Passage and translation alignment, equivalence, quality and semantics require their own source-visible assessment."])
 
     by_pair = {p["qualified_unit_key"]: p for p in pairings}
     candidates = []
@@ -201,7 +197,7 @@ def build_one(config: dict[str, Any], event_at: str) -> dict[Path, str]:
     route_rendered = _render(route)
     route_digest = hashlib.sha256(route_rendered.encode()).hexdigest()
     route_inputs = [{"ref": crosswalk_path.as_posix(), "role": "tracked-target-only-candidate-crosswalk", "sha256": _digest(REPO_ROOT / crosswalk_path)}, {"ref": pair_path.as_posix(), "role": "tracked-series-qualified-label-correspondence", "sha256": pair_digest}, {"ref": source_path.as_posix(), "role": "tracked-source-hierarchical-numbered-unit-map", "sha256": _digest(REPO_ROOT / source_path)}, {"ref": target_path.as_posix(), "role": "tracked-target-hierarchical-numbered-unit-map", "sha256": _digest(REPO_ROOT / target_path)}]
-    route_event = _event(route_event_id, event_at, route_inputs, route_path, route_digest, "tracked-text-free-transfer-candidate-source-structural-routes", "target-candidate-qualified-label-to-source-structural-route", {"candidate_page_count": len(candidates), "source_structural_route_count": route_count, "local_payloads_read": False, "source_to_target_text_compared": False, "translation_alignment_inferred": False, "eligible_target_unit_count": 0, "target_gold_count": 0, "human_review_count": 0}, [f"All {len(candidates)} frozen target pages have one or more possible source structural routes ({route_count} total).", "Routes are address candidates only; exact passage ends and passage or translation alignment remain unestablished.", "No text was read or accepted, and no human, semantic, eligibility, or gold work was opened."])
+    route_event = _event(route_event_id, event_at, route_inputs, route_path, route_digest, "tracked-text-free-transfer-candidate-source-structural-routes", "target-candidate-qualified-label-to-source-structural-route", {"candidate_page_count": len(candidates), "source_structural_route_count": route_count, "local_payloads_read": False, "source_to_target_text_compared": False, "translation_alignment_inferred": False, "eligible_target_unit_count": 0, "target_gold_count": 0, "human_review_count": 0}, [f"All {len(candidates)} frozen target pages have one or more possible source structural routes ({route_count} total).", "Routes are address candidates only; exact passage ends and passage or translation alignment remain unestablished.", "This event records metadata-only source routes. Text review, human work, semantic assessment, eligibility and gold retain their existing states."])
     return {pair_path: pair_rendered, pair_prov_path: _render_event(pair_event), route_path: route_rendered, route_prov_path: _render_event(route_event)}
 
 

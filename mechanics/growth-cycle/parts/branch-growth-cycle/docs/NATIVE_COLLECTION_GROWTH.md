@@ -1,7 +1,7 @@
 # Native Collection growth
 
-The Collection is the corpus owner of a multi-work publication identity.
-It is not a Work, Edition, artifact, payload or complete text witness.
+A Collection identifies a multi-work publication and carries its membership
+assertions in the corpus.
 
 ## Independent boundaries
 
@@ -27,14 +27,15 @@ provenance streams must be selected explicitly when the parent already contains
 legacy membership assertions. Native current closure is verified against its
 committed compound capture; old batch bytes are never rewritten.
 
-## Qualified assertion, not source acceptance
+## Qualified membership assertion
 
-The source caller supplies the membership statement, statement language/script,
-`membership_scope`, evidence and uncertainty. Competing Claims may name the
-same Work but keep different identities. Metadata endpoint binding and a URL
-address do not prove remote source reading, completeness or membership truth.
-Creation remains unreviewed; it cannot infer assessment, canon, identity
-equivalence, translation or rights.
+The source caller supplies the membership statement, statement
+language/script, `membership_scope`, evidence and uncertainty. Competing
+Claims may name the same Work while keeping distinct identities. The operation
+binds metadata endpoints and declared evidence references; the new Claim
+remains unreviewed. Source-visible assessment evaluates the evidence,
+completeness and membership assertion. Canon, equivalence, translation and
+rights retain their owner routes.
 
 Only the compound handler may introduce the parent membership relation.
 Separately delegated Claim corrections preserve its exact compound origin and

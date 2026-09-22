@@ -506,7 +506,9 @@ class BibliographicLegacyInputTests(unittest.TestCase):
         return digest, {'status': 'available', 'source_path': ref, 'requested_sha256': digest,
             'exact_ref': {'id': WORK_ID, 'version': 4, 'digest': 'sha256:' + 'a' * 64},
             'record': {'record_id': WORK_ID, 'record_version': 4},
-            'provenance': {'source': {'source_ref': ref, 'record_sha256': 'sha256:' + digest,
+            'provenance': {'descriptor': {'identity_field': 'record_id', 'record_kind': 'subject',
+                                          'source_scope': 'public_metadata_only'},
+                           'source': {'source_ref': ref, 'record_sha256': 'sha256:' + digest,
                                       'archive_blob_ref': 'committed-retained-blob'}}}
 
     def test_exact_current_bytes_do_not_need_retained_resolution(self):
@@ -525,7 +527,8 @@ class BibliographicLegacyInputTests(unittest.TestCase):
         reader.resolve_source_bytes.assert_called_once_with(WORK_PATH, digest)
 
     def test_unavailable_or_misbound_retained_evidence_does_not_substitute_current(self):
-        for mutation in ('missing', 'corrupt', 'wrong-path', 'wrong-hash', 'wrong-id', 'two-inputs'):
+        for mutation in ('missing', 'corrupt', 'wrong-path', 'wrong-hash', 'wrong-id',
+                         'missing-descriptor', 'wrong-identity-field', 'wrong-scope', 'two-inputs'):
             with self.subTest(mutation=mutation):
                 digest, result = self.result()
                 inputs = [{'ref': WORK_PATH, 'sha256': digest}]
@@ -537,16 +540,32 @@ class BibliographicLegacyInputTests(unittest.TestCase):
                     result['provenance']['source']['record_sha256'] = 'sha256:' + 'b' * 64
                 elif mutation == 'wrong-id':
                     result['exact_ref']['id'] = 'tos.work.other'
+                elif mutation == 'missing-descriptor':
+                    result['provenance'].pop('descriptor')
+                elif mutation == 'wrong-identity-field':
+                    result['provenance']['descriptor']['identity_field'] = 'artifact_id'
+                elif mutation == 'wrong-scope':
+                    result['provenance']['descriptor']['source_scope'] = 'private'
                 else:
                     inputs.append(inputs[0])
                 reader = Mock(resolve_source_bytes=Mock(return_value=result))
                 with patch('validate_source_witness_foundation._recorded_provenance_input_path', return_value=None):
                     self.assertFalse(_topology_evidence_matches(ROOT, WORK_PATH, inputs, reader))
 
-    def test_unsupported_legacy_inputs_do_not_search_a_retained_blob(self):
+    def test_public_metadata_families_use_their_owner_reader(self):
+        for kind in ('agent', 'place', 'organization', 'edition', 'item', 'collection', 'concept'):
+            ref = f'ToS/source-witnesses/example/{kind}.json'
+            digest, result = self.result(ref)
+            reader = Mock(resolve_source_bytes=Mock(return_value=result))
+            with self.subTest(kind=kind), patch('validate_source_witness_foundation._recorded_provenance_input_path', return_value=None):
+                self.assertTrue(_topology_evidence_matches(ROOT, ref, [{'ref': ref, 'sha256': digest}], reader))
+                reader.resolve_source_bytes.assert_called_once_with(ref, digest)
+
+    def test_inputs_outside_metadata_route_do_not_search_a_retained_blob(self):
         reader = Mock()
-        for ref in ('ToS/source-witnesses/works/example/edition.json',
-                    'ToS/source-witnesses/works/example/item-manifest.json'):
+        for ref in ('ToS/research-packets/example.json',
+                    'ToS/source-witnesses/works/example/provenance.jsonl',
+                    'ToS/source-witnesses/../example.json'):
             with self.subTest(ref=ref), patch('validate_source_witness_foundation._recorded_provenance_input_path', return_value=None):
                 self.assertFalse(_topology_evidence_matches(ROOT, ref, [{'ref': ref, 'sha256': 'a' * 64}], reader))
         reader.resolve_source_bytes.assert_not_called()
@@ -566,3 +585,15 @@ class BibliographicLegacyInputTests(unittest.TestCase):
         with patch('validate_source_witness_foundation._recorded_provenance_input_path', return_value=None):
             self.assertFalse(_topology_evidence_matches(
                 ROOT, WORK_PATH, duplicate_inputs, reader, input_index=duplicate_index))
+
+    def test_native_witness_history_uses_the_owner_identity_field(self):
+        for kind in ('artifact', 'composite'):
+            ref = f'ToS/source-witnesses/example/{kind}-witness.json'
+            digest, result = self.result(ref)
+            identity = f'tos.{kind}.example'
+            result['exact_ref']['id'] = identity
+            result['record'] = {kind + '_id': identity, 'record_version': 4}
+            result['provenance']['descriptor']['identity_field'] = kind + '_id'
+            reader = Mock(resolve_source_bytes=Mock(return_value=result))
+            with self.subTest(kind=kind), patch('validate_source_witness_foundation._recorded_provenance_input_path', return_value=None):
+                self.assertTrue(_topology_evidence_matches(ROOT, ref, [{'ref': ref, 'sha256': digest}], reader))

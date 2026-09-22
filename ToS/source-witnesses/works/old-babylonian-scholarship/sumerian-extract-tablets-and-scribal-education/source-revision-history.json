@@ -1,0 +1,81 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.work.old-babylonian-scholarship.sumerian-extract-tablets-and-scribal-education",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:b7a336e9705143f8c91f9d9c",
+      "request_digest": "sha256:5164048b566b6771d5e221282af8316f8198151a000a9ecea17cab9be73de0df",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:43651f92074fbe0314eca1162b736311233035435393bbfcb5a6db113697fc22",
+      "recorded_at": "2026-09-22T05:09:24.354961+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.work.old-babylonian-scholarship.sumerian-extract-tablets-and-scribal-education",
+        "version": 1,
+        "digest": "sha256:947467b3296b58d55de53afade7a602496723c23f4b17f434b61c4c256129918"
+      },
+      "source": {
+        "id": "tos.work.old-babylonian-scholarship.sumerian-extract-tablets-and-scribal-education",
+        "version": 2,
+        "digest": "sha256:14b2a47ce07c6b662a2fb32c3635d4260bac398383ad356f1f311a3ccabe9767"
+      },
+      "previous_revision": "sha256:9ed47c1027a758ff9d8e69c24019cbbba4fb710cd36df6fb68c74ae32b2acefb",
+      "archive_path": "ToS/source-witnesses/.record-revisions/b7a336e9705143f8c91f9d9cd29e8b274f432416dda81dada66e66168af4057c-9ed47c1027a758ff9d8e69c24019cbbba4fb710cd36df6fb68c74ae32b2acefb",
+      "dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+      "changed_fields": [
+        "notes"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.metadata.baa8157f402d175354d31bb60a5cf02965e0df5f65613923ae155beb5fd0a989",
+          "version": 2,
+          "digest": "sha256:4d1490c8ad0e969f271215d748bd8d2a796598f52476e28ff8a64f1cf09627e2"
+        },
+        {
+          "id": "tos.form.metadata.ca0bd7e742a510a4d723861f65b0e05912244281ee4793861fc9e892d8562d65",
+          "version": 2,
+          "digest": "sha256:b899e187242ba838bcea4933d029fca4fba8d549ff3349e36ecb13069e48935e"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:b7a336e9705143f8c91f9d9c",
+        "expected_configuration": "sha256:43651f92074fbe0314eca1162b736311233035435393bbfcb5a6db113697fc22",
+        "expected_dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+        "expected_publication": "sha256:d5509480967e5825f9398907427bec7ac786c15b725f13408a7218a67936182e",
+        "expected_revision": "sha256:9ed47c1027a758ff9d8e69c24019cbbba4fb710cd36df6fb68c74ae32b2acefb",
+        "expected_source": {
+          "digest": "sha256:947467b3296b58d55de53afade7a602496723c23f4b17f434b61c4c256129918",
+          "id": "tos.work.old-babylonian-scholarship.sumerian-extract-tablets-and-scribal-education",
+          "version": 1
+        },
+        "fields": {
+          "notes": "Scholarly article published in Journal of Cuneiform Studies 62(1) in 2010, pages 53–69. It supplies a control for interpreting Sumerian literary extract tablets in relation to progressive learning, memorization, tablet form, composition segments, and diagnostic errors. The 2023 ISAC return and Delnero’s 2024 chapter provide later object-visible and corpus-relative comparisons. Current coverage is bibliographic, with source-reported authorship awaiting review."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.metadata.baa8157f402d175354d31bb60a5cf02965e0df5f65613923ae155beb5fd0a989"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.metadata.ca0bd7e742a510a4d723861f65b0e05912244281ee4793861fc9e892d8562d65"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:0681636af0c58a7ea5b1427cc7ec233aeb614b534124f82a32eecee6d6e4ad34",
+        "selected_files": [
+          "source-revision-history.json",
+          "work.human-forms.json",
+          "work.json"
+        ]
+      }
+    }
+  ]
+}

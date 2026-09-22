@@ -3,8 +3,8 @@
 The issuer selects all access grants independently of source material. Historical
 creation configuration is immutable DATA, never current reading authority. This
 bounded adapter supports the declared EPUB structural-extraction profile and
-separately versioned derived-layer comparisons. Byte equality and an available
-comparison are not a textual-quality judgment.
+separately versioned derived-layer comparisons. Textual-quality assessment uses the exact comparison evidence through its
+source-visible review route.
 """
 from __future__ import annotations
 

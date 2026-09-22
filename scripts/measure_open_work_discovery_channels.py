@@ -148,8 +148,7 @@ def build_receipt(discovery_path: Path, *, timeout_seconds: float) -> dict[str, 
         "measured_at": _utc_now(),
         "measurements": measurements,
         "claim_limit": (
-            "monotonic transport timing through the first 16384 response bytes only; "
-            "not research, interpretation, rights-review, or human elapsed time"
+            "This receipt measures monotonic transport time through the first 16384 response bytes."
         ),
         "record_version": 1,
     }

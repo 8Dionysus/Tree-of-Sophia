@@ -1,0 +1,99 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.work.akkadian-law.laws-of-hammurapi",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:854680c895167c7ce15eab12",
+      "request_digest": "sha256:4d7cab1c4dc136f8e052d3f230d1eddb05929e4d60a4181b737e51fc58d73c7e",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:0c26553ce8faa04b718866d089164bce54d39629f86595f5ad7cbbbc154c95c3",
+      "recorded_at": "2026-09-22T05:08:36.389573+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.work.akkadian-law.laws-of-hammurapi",
+        "version": 1,
+        "digest": "sha256:ac92de9f336b7346aecdcaeda1c9fbaf01e93d36cdf7a408e446fd6cc338f94f"
+      },
+      "source": {
+        "id": "tos.work.akkadian-law.laws-of-hammurapi",
+        "version": 2,
+        "digest": "sha256:5ac9308c6cfa5c8e2a00bdda23eb26f2a3f34ae7037362dd95ccc9012c8cafd6"
+      },
+      "previous_revision": "sha256:3aeb9031c9b99884855df83251d811ce6655d6477f1113fc95dd8fe8e3de7f27",
+      "archive_path": "ToS/source-witnesses/.record-revisions/854680c895167c7ce15eab1255dc4a32cb3b9bc0528f036f468d3b0beb3080e9-3aeb9031c9b99884855df83251d811ce6655d6477f1113fc95dd8fe8e3de7f27",
+      "dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+      "changed_fields": [
+        "notes"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.metadata.758d7a584ec0e088ccfe793509d6d0ec622e816874602eec82f813e5bea1d0cf",
+          "version": 2,
+          "digest": "sha256:a760372530a56186702eda563e7ed2c5522ce665cfb2ae251523248af0cc5d75"
+        },
+        {
+          "id": "tos.form.metadata.9bf0fbf4d127ac667533fa8ff7b653930d59c6f7a2112f522eaf4a5fa3a36165",
+          "version": 2,
+          "digest": "sha256:b82283060c9461ec78ee63d44deb7e3218904e114be086c92bf8435ac7183c56"
+        },
+        {
+          "id": "tos.form.metadata.db6c1eabf0cfea9d12f29c0adc951dab57948fec9ba3ed385b4e4cf0838cb0f3",
+          "version": 2,
+          "digest": "sha256:8740bfd615f726800468ddf3b3ff56a9dfe3b6b97c7a218b5a514a7341ff8907"
+        },
+        {
+          "id": "tos.form.metadata.cf8eee044ef518372ccb900e51116f520553de048cbd0bc6f5a61d6d8fc37ce7",
+          "version": 2,
+          "digest": "sha256:4c8dce1beb2cf16659c0abc4fb9cdaf7746f621eed2a89a2c3773af4ee248ec9"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:854680c895167c7ce15eab12",
+        "expected_configuration": "sha256:0c26553ce8faa04b718866d089164bce54d39629f86595f5ad7cbbbc154c95c3",
+        "expected_dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+        "expected_publication": "sha256:218ada86f9d9c1a3db97d32f5c367c88f924fec4e9e3e4f75584165a85532c1c",
+        "expected_revision": "sha256:3aeb9031c9b99884855df83251d811ce6655d6477f1113fc95dd8fe8e3de7f27",
+        "expected_source": {
+          "digest": "sha256:ac92de9f336b7346aecdcaeda1c9fbaf01e93d36cdf7a408e446fd6cc338f94f",
+          "id": "tos.work.akkadian-law.laws-of-hammurapi",
+          "version": 1
+        },
+        "fields": {
+          "notes": "Ancient composition identified by the conventional modern English label Laws of Hammurapi. Hammurapi belongs to its received label and royal framing; authorship and historical legal use require their own evidence. Physical witnesses such as Louvre SB 8, CDLI Q006387/P464358 records, modern critical editions, the conventional 282-section sequence, and translations provide separately identified routes into the composition."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.metadata.758d7a584ec0e088ccfe793509d6d0ec622e816874602eec82f813e5bea1d0cf"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.metadata.9bf0fbf4d127ac667533fa8ff7b653930d59c6f7a2112f522eaf4a5fa3a36165"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.metadata.db6c1eabf0cfea9d12f29c0adc951dab57948fec9ba3ed385b4e4cf0838cb0f3"
+          },
+          {
+            "field_id": "metadata.variant-name:1",
+            "form_id": "tos.form.metadata.cf8eee044ef518372ccb900e51116f520553de048cbd0bc6f5a61d6d8fc37ce7"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:de3e55ebd369fef1bf6d19b01980d3392653ec0baea8f89f415f888904176c4a",
+        "selected_files": [
+          "source-revision-history.json",
+          "work.human-forms.json",
+          "work.json"
+        ]
+      }
+    }
+  ]
+}

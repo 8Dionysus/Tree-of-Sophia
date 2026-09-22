@@ -181,7 +181,7 @@
         "provenance_event_ref": {
           "const": "tos.event.export.ocr-candidate-review-manual-error-ledger.2026-08-10"
         },
-        "authority_boundary": {"type": "string", "minLength": 160}
+        "authority_boundary": {"type": "string", "minLength": 1, "description": "Brief account of the artifact purpose and scope. Typed status, effects, assessment and permission fields govern its use."}
       }
     }
   }

@@ -1,0 +1,90 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.work.old-babylonian-scholarship.an-old-babylonian-version-of-the-gilgamesh-epic",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:58743e47f0d970f2a500165e",
+      "request_digest": "sha256:01c32f6cad31128797ae0299fae5f2df4dc2164a2942c6a7e9f792db612aa81d",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:1e96b23c6b64d8a0086ec5a59a60037f7b4e0b131ca07ddfa4b08b4e6f690948",
+      "recorded_at": "2026-09-22T05:09:20.773583+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.work.old-babylonian-scholarship.an-old-babylonian-version-of-the-gilgamesh-epic",
+        "version": 1,
+        "digest": "sha256:4006b916f522abb9d2ecdd6880e1965314af77b0c731c798bfdcde320900eefe"
+      },
+      "source": {
+        "id": "tos.work.old-babylonian-scholarship.an-old-babylonian-version-of-the-gilgamesh-epic",
+        "version": 2,
+        "digest": "sha256:61d6102d2cf6e3b0201d90949c01d573c74a456b382626261fa01213453bdf9b"
+      },
+      "previous_revision": "sha256:5bbbb621a5f682fc7db632965fa24ecd3fd31fdca0db8bd2c5042afffb31001c",
+      "archive_path": "ToS/source-witnesses/.record-revisions/58743e47f0d970f2a500165ec36862fe3b018ce6d5f44490e27cacc0bdbd8601-5bbbb621a5f682fc7db632965fa24ecd3fd31fdca0db8bd2c5042afffb31001c",
+      "dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+      "changed_fields": [
+        "notes"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.metadata.cbc30dc917c55cc623364a1fb93f44945175278e89ab2337a8894c1e798cbc12",
+          "version": 2,
+          "digest": "sha256:a33ccbd78b757d5c909f1888d06bbb30f12ce918bfc5fcf5fc23ee4f2d365508"
+        },
+        {
+          "id": "tos.form.metadata.b90fa7a146aaecacf93ce2ed3b003b5b53b8764ee476e69c207799995658355a",
+          "version": 2,
+          "digest": "sha256:1e9bbcfdfd60d815f28033d95cfa5df509f359ce69e4720d77ee051c3c524f8e"
+        },
+        {
+          "id": "tos.form.metadata.45d2906ca4cfa656c5b6fe59aec8e95e456f803dc2885687b131fdbe9acbae55",
+          "version": 2,
+          "digest": "sha256:d67d1ddf2b7ab1eccfff9a42a6d09269caa64a44250cb9648202b1aba5973e93"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:58743e47f0d970f2a500165e",
+        "expected_configuration": "sha256:1e96b23c6b64d8a0086ec5a59a60037f7b4e0b131ca07ddfa4b08b4e6f690948",
+        "expected_dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+        "expected_publication": "sha256:ebd7e49c97d2a4692d4d20447c5b1db98127969edc97f2d5377fdcc9e1f724d7",
+        "expected_revision": "sha256:5bbbb621a5f682fc7db632965fa24ecd3fd31fdca0db8bd2c5042afffb31001c",
+        "expected_source": {
+          "digest": "sha256:4006b916f522abb9d2ecdd6880e1965314af77b0c731c798bfdcde320900eefe",
+          "id": "tos.work.old-babylonian-scholarship.an-old-babylonian-version-of-the-gilgamesh-epic",
+          "version": 1
+        },
+        "fields": {
+          "notes": "Modern scholarly Work published in 1920 and jointly associated with Morris Jastrow, Jr. and Albert T. Clay. It presents two Old Babylonian tablet fragments, transliteration, translation, commentary, and plates."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.metadata.cbc30dc917c55cc623364a1fb93f44945175278e89ab2337a8894c1e798cbc12"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.metadata.b90fa7a146aaecacf93ce2ed3b003b5b53b8764ee476e69c207799995658355a"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.metadata.45d2906ca4cfa656c5b6fe59aec8e95e456f803dc2885687b131fdbe9acbae55"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:d29be0589a7c317a3216b05b57b7ecba86d9d2f7d0426c17bf03985b54977c88",
+        "selected_files": [
+          "source-revision-history.json",
+          "work.human-forms.json",
+          "work.json"
+        ]
+      }
+    }
+  ]
+}

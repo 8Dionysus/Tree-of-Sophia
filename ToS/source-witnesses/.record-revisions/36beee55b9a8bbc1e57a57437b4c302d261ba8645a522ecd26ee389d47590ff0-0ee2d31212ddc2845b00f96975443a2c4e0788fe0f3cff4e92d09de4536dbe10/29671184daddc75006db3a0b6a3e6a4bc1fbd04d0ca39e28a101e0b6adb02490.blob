@@ -1,0 +1,203 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.place.chemnitz",
+    "version": 1,
+    "digest": "sha256:f8deb84babb7517dcc10ef0646064824a0bbe52590fb4652c0717ec571bdead0"
+  },
+  "forms": [
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.186906cf72d9ccdeca64cc4cab4a5fa5fa124347fbecd259ed24afe16293181a",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.place.chemnitz",
+        "version": 1,
+        "digest": "sha256:f8deb84babb7517dcc10ef0646064824a0bbe52590fb4652c0717ec571bdead0"
+      },
+      "role": "name",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.place.chemnitz",
+            "version": 1,
+            "digest": "sha256:f8deb84babb7517dcc10ef0646064824a0bbe52590fb4652c0717ec571bdead0"
+          },
+          "pointer": "/preferred_label"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.place.chemnitz",
+            "version": 1,
+            "digest": "sha256:f8deb84babb7517dcc10ef0646064824a0bbe52590fb4652c0717ec571bdead0"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.place.chemnitz",
+            "version": 1,
+            "digest": "sha256:f8deb84babb7517dcc10ef0646064824a0bbe52590fb4652c0717ec571bdead0"
+          },
+          "pointer": "/same_as_posture"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    },
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.d564e0ef40aeb8b95cf5fd5717ea293f8135db41230c4151716b95315b051d06",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.place.chemnitz",
+        "version": 1,
+        "digest": "sha256:f8deb84babb7517dcc10ef0646064824a0bbe52590fb4652c0717ec571bdead0"
+      },
+      "role": "hover",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.place.chemnitz",
+            "version": 1,
+            "digest": "sha256:f8deb84babb7517dcc10ef0646064824a0bbe52590fb4652c0717ec571bdead0"
+          },
+          "pointer": "/notes"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.place.chemnitz",
+            "version": 1,
+            "digest": "sha256:f8deb84babb7517dcc10ef0646064824a0bbe52590fb4652c0717ec571bdead0"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.place.chemnitz",
+            "version": 1,
+            "digest": "sha256:f8deb84babb7517dcc10ef0646064824a0bbe52590fb4652c0717ec571bdead0"
+          },
+          "pointer": "/same_as_posture"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    },
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.718b6740cf399c6a2cf247d4c02a49e5f620bdbb8240438c5489b33454f5deab",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.place.chemnitz",
+        "version": 1,
+        "digest": "sha256:f8deb84babb7517dcc10ef0646064824a0bbe52590fb4652c0717ec571bdead0"
+      },
+      "role": "name",
+      "language": "de",
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.place.chemnitz",
+            "version": 1,
+            "digest": "sha256:f8deb84babb7517dcc10ef0646064824a0bbe52590fb4652c0717ec571bdead0"
+          },
+          "pointer": "/variant_labels/0/value"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.place.chemnitz",
+            "version": 1,
+            "digest": "sha256:f8deb84babb7517dcc10ef0646064824a0bbe52590fb4652c0717ec571bdead0"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.place.chemnitz",
+            "version": 1,
+            "digest": "sha256:f8deb84babb7517dcc10ef0646064824a0bbe52590fb4652c0717ec571bdead0"
+          },
+          "pointer": "/same_as_posture"
+        },
+        "context-2": {
+          "record": {
+            "id": "tos.place.chemnitz",
+            "version": 1,
+            "digest": "sha256:f8deb84babb7517dcc10ef0646064824a0bbe52590fb4652c0717ec571bdead0"
+          },
+          "pointer": "/variant_labels/0/language"
+        },
+        "context-3": {
+          "record": {
+            "id": "tos.place.chemnitz",
+            "version": 1,
+            "digest": "sha256:f8deb84babb7517dcc10ef0646064824a0bbe52590fb4652c0717ec571bdead0"
+          },
+          "pointer": "/variant_labels/0/source_ref"
+        },
+        "context-4": {
+          "record": {
+            "id": "tos.place.chemnitz",
+            "version": 1,
+            "digest": "sha256:f8deb84babb7517dcc10ef0646064824a0bbe52590fb4652c0717ec571bdead0"
+          },
+          "pointer": "/variant_labels/0/status"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation-source-forms-v1:tos.place.chemnitz",
+      "request_digest": "sha256:9cb6b6416f02ae593a40c44acfc101506a4bb7681759ce3a845a2c330cefa1c6",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-07",
+      "owner_configuration": "sha256:ba0f6a69ffb3a361a1f0bcfc95fc999e7f59e182ade029fc8af2391f424d3cfa",
+      "recorded_at": "2026-09-07T03:13:22.974615+00:00",
+      "source": {
+        "id": "tos.place.chemnitz",
+        "version": 1,
+        "digest": "sha256:f8deb84babb7517dcc10ef0646064824a0bbe52590fb4652c0717ec571bdead0"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.186906cf72d9ccdeca64cc4cab4a5fa5fa124347fbecd259ed24afe16293181a",
+          "version": 1,
+          "digest": "sha256:25382aec2a740894764938ab79f36f6294fad551a59b44e492a8ca347e44147c"
+        },
+        {
+          "id": "tos.form.metadata.d564e0ef40aeb8b95cf5fd5717ea293f8135db41230c4151716b95315b051d06",
+          "version": 1,
+          "digest": "sha256:449ca797797bc30675c0ac91c2f17bd56bb9b065eecec0e81b2bf8e20d8dd839"
+        },
+        {
+          "id": "tos.form.metadata.718b6740cf399c6a2cf247d4c02a49e5f620bdbb8240438c5489b33454f5deab",
+          "version": 1,
+          "digest": "sha256:f139bf2121c338074e7c6143682be9424d56f766fb12692b3eb72c03053e5f5b"
+        }
+      ]
+    }
+  ]
+}

@@ -217,9 +217,7 @@
         "canon_promoted": {"const": false}
       }
     },
-    "claim_limit": {
-      "const": "aggregate derivative reports bounded laboratory evidence only; it does not establish source text, translation, semantics, rights, canon, or a method winner"
-    }
+    "claim_limit": {"type": "string", "minLength": 1, "description": "Brief account of the artifact purpose and scope. Typed status, effects, assessment and permission fields govern its use."}
   },
   "$defs": {
     "repoPath": {

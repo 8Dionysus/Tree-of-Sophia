@@ -149,3 +149,7 @@
 ## 2026-09-14
 
 - [TOS-D-0062 - TOS-D-0062 Independent Software, Corpus and Integration Releases](../TOS-D-0062-independent-software-corpus-and-integration-releases.md) (`docs/decisions/TOS-D-0062-independent-software-corpus-and-integration-releases.md`)
+
+## 2026-09-22
+
+- [TOS-D-0068 - Subject-first foundation wording with exact historical continuity](../TOS-D-0068-subject-first-foundation-wording-and-retained-history.md) (`docs/decisions/TOS-D-0068-subject-first-foundation-wording-and-retained-history.md`)

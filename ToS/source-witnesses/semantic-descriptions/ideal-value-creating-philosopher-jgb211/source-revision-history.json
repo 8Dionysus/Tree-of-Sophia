@@ -1,0 +1,87 @@
+{
+  "schema_version": "tos_source_revision_history_v1",
+  "record_id": "tos.ideal.value-creating-philosopher-jgb211",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:e0e93c141ce7c2084b82e7f4",
+      "request_digest": "sha256:e718f7978d55ef42938ac5e1cd3c03f312d6e6a5560d4ec38d253bb5dafc7a4b",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:58fabbedc56125d3eee71ce4113f1b82fae749992ad1cfb67213f7e31f228454",
+      "recorded_at": "2026-09-22T05:06:51.305410+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.ideal.value-creating-philosopher-jgb211",
+        "version": 1,
+        "digest": "sha256:6b7f6c0a3b47c4224b469216aec9bccafc43a802a1ab0f67038754749ad58f96"
+      },
+      "source": {
+        "id": "tos.ideal.value-creating-philosopher-jgb211",
+        "version": 2,
+        "digest": "sha256:08538beff90694f951ab67521a7c5a330caa1545075e113ee30f720dfa0a7e04"
+      },
+      "previous_revision": "sha256:7bb68b9096d127a13ccfc12b91cc47a106be546e6bfaff09f1c188f9b561ff8c",
+      "archive_path": "ToS/source-witnesses/.record-revisions/e0e93c141ce7c2084b82e7f4ac5eb1aa775c9ba5d6d627366181dac85462a986-7bb68b9096d127a13ccfc12b91cc47a106be546e6bfaff09f1c188f9b561ff8c",
+      "dependencies": "sha256:e5921a25152f776dce88be3f5d47601fcb16d877ca21d77d52431686ab100212",
+      "changed_fields": [
+        "notes",
+        "semantic_scope"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.ideal.value-creating-philosopher-jgb211.name-ru",
+          "version": 2,
+          "digest": "sha256:55d9498ef6d7fcf18e2d37c55c3b9da783824347c492cc08a12bc174cf1da878"
+        },
+        {
+          "id": "tos.form.ideal.value-creating-philosopher-jgb211.name-en",
+          "version": 2,
+          "digest": "sha256:7fc05049effe1b774336c5a44aac248f6544b60ecc6be3747182e20181ec35fb"
+        },
+        {
+          "id": "tos.form.ideal.value-creating-philosopher-jgb211.note-ru",
+          "version": 2,
+          "digest": "sha256:a92dcef038ebeed8b7f1701ee338fb1c5e23f36f03263098d06eabb06ed5fed5"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:e0e93c141ce7c2084b82e7f4",
+        "expected_configuration": "sha256:58fabbedc56125d3eee71ce4113f1b82fae749992ad1cfb67213f7e31f228454",
+        "expected_dependencies": "sha256:e5921a25152f776dce88be3f5d47601fcb16d877ca21d77d52431686ab100212",
+        "expected_revision": "sha256:7bb68b9096d127a13ccfc12b91cc47a106be546e6bfaff09f1c188f9b561ff8c",
+        "expected_source": {
+          "digest": "sha256:6b7f6c0a3b47c4224b469216aec9bccafc43a802a1ab0f67038754749ad58f96",
+          "id": "tos.ideal.value-creating-philosopher-jgb211",
+          "version": 1
+        },
+        "fields": {
+          "notes": "§211 противопоставляет систематизации прежних оценок задачу создания ценностей и определения целей. Здесь описан нормативный образ философа; существование таких философов оставлено в заключительных вопросах фрагмента открытым.",
+          "semantic_scope": {
+            "identity_criterion": "Retain this ideal while its value-creating task and relation to preparatory work concern this passage; identifying a real bearer requires separate evidence-bearing claims.",
+            "language": "en",
+            "scope_note": "The value-creating philosopher as a normative figure in JGB 211.",
+            "script": "Latn"
+          }
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.ideal.value-creating-philosopher-jgb211.name-ru"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.ideal.value-creating-philosopher-jgb211.name-en"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.ideal.value-creating-philosopher-jgb211.note-ru"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    }
+  ]
+}

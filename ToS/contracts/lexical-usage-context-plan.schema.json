@@ -226,7 +226,7 @@
     "semantic_boundary": {"$ref": "#/$defs/semanticBoundary"},
     "provenance_event_ref": {"$ref": "#/$defs/eventId"},
     "plan_version": {"const": 1},
-    "authority_boundary": {"type": "string", "minLength": 80}
+    "authority_boundary": {"type": "string", "minLength": 1, "description": "Brief account of the artifact purpose and scope. Typed status, effects, assessment and permission fields govern its use."}
   },
   "$defs": {
     "expectedTuple": {

@@ -1,0 +1,81 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.work.proto-cuneiform.a-quantitative-analysis-of-proto-cuneiform-sign-use-in-archaic-tribute",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:2c148404b56d1bb9d700d175",
+      "request_digest": "sha256:d0222613ca48dce6c539f99e753651321ad98e4cb122d8d37f952d578849a932",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:9e563b45c2c61c4a0eb5cf78330c6e9a874293825be874ad55197a2ebd82b1a5",
+      "recorded_at": "2026-09-22T05:09:28.484253+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.work.proto-cuneiform.a-quantitative-analysis-of-proto-cuneiform-sign-use-in-archaic-tribute",
+        "version": 1,
+        "digest": "sha256:acee2b59fa0785f2f7d7c99f4bfddaa025debd0591447e7c406a034073666729"
+      },
+      "source": {
+        "id": "tos.work.proto-cuneiform.a-quantitative-analysis-of-proto-cuneiform-sign-use-in-archaic-tribute",
+        "version": 2,
+        "digest": "sha256:92cf4c4de5bc48756646ae367008c8eaa67411160b2a346035c9b453fcb62dd7"
+      },
+      "previous_revision": "sha256:64c9addfea908a56da0b234b232255ccbcd30834a3d60725b8727776e54574ec",
+      "archive_path": "ToS/source-witnesses/.record-revisions/2c148404b56d1bb9d700d175e78d2e1cedb9ea0e3f9af56a18faba5448f04aba-64c9addfea908a56da0b234b232255ccbcd30834a3d60725b8727776e54574ec",
+      "dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+      "changed_fields": [
+        "notes"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.metadata.8ef7a97cbdef84d767f6f2aef8f51cf602fa3ea56eda1ae889937df6538dfc5f",
+          "version": 2,
+          "digest": "sha256:a970bd66276d49aed3b3fc0212307191980f0a59dc46281cedd767e2924fa3c4"
+        },
+        {
+          "id": "tos.form.metadata.806d4d50e86754e125ffae37852dcaab1a71a8eb03299af29a28c25e3879233a",
+          "version": 2,
+          "digest": "sha256:beb9ab9d43eb32f0dadfff4557563df443c90e9bc4db87730fff08a636e8bd39"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:2c148404b56d1bb9d700d175",
+        "expected_configuration": "sha256:9e563b45c2c61c4a0eb5cf78330c6e9a874293825be874ad55197a2ebd82b1a5",
+        "expected_dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+        "expected_publication": "sha256:30e5cfb0f5656f5852e75223fc91ca1def43e670589e3dcd89fd8aa0b3ae8a2e",
+        "expected_revision": "sha256:64c9addfea908a56da0b234b232255ccbcd30834a3d60725b8727776e54574ec",
+        "expected_source": {
+          "digest": "sha256:acee2b59fa0785f2f7d7c99f4bfddaa025debd0591447e7c406a034073666729",
+          "id": "tos.work.proto-cuneiform.a-quantitative-analysis-of-proto-cuneiform-sign-use-in-archaic-tribute",
+          "version": 1
+        },
+        "fields": {
+          "notes": "Peer-reviewed CDLB research Work published 2021-12-10. It reports a parameterized 2020 CDLI corpus snapshot, a sign-count method, and a Tribute case study; frequency observations are scoped to that snapshot and method. The linked Zenodo code deposit has its own software identity. The earlier ToS label ‘An Updated Sign List for Proto-cuneiform’ was erroneous and is retained only in correction history."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.metadata.8ef7a97cbdef84d767f6f2aef8f51cf602fa3ea56eda1ae889937df6538dfc5f"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.metadata.806d4d50e86754e125ffae37852dcaab1a71a8eb03299af29a28c25e3879233a"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:c7386e2f9d391581fff6bb7d32600f40658b405389945c10daa3b76bd14e5d1f",
+        "selected_files": [
+          "source-revision-history.json",
+          "work.human-forms.json",
+          "work.json"
+        ]
+      }
+    }
+  ]
+}

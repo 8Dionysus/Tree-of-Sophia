@@ -1,6 +1,7 @@
 """Protected Claim growth using existing source, form and revision grammars.
 
-The source context chooses transport, not an ontology, grant or assessment.
+The source context selects transport. Ontology, grants and assessment retain
+their existing owners.
 Candidate grounding and stored-source reading share one reader. Atomic flat
 packages, locks and exact archives remain the existing source command route.
 """

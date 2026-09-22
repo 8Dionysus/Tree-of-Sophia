@@ -24,7 +24,7 @@
     },
     "next_candidate_id": {"oneOf": [{"type": "string", "pattern": "^open-work-candidate\\."}, {"type": "null"}]},
     "candidates": {"type": "array", "items": {"$ref": "#/$defs/candidateEntry"}},
-    "authority_boundary": {"const": "generated queue navigation over reviewed candidate records and terminal receipts; not identity, rights, semantic, or canon authority"},
+    "authority_boundary": {"type": "string", "minLength": 1, "description": "Brief account of the artifact purpose and scope. Typed status, effects, assessment and permission fields govern its use."},
     "selection_mode": {"const": "readiness"},
     "chronological_queue_sha256": {"$ref": "#/$defs/sha256"},
     "readiness_plan_ref": {"type": ["object", "null"]},

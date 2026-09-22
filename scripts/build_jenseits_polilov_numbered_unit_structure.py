@@ -82,11 +82,7 @@ PDFTOTEXT_VERSION = "26.01.0"
 WORK_START_PAGE = 238
 WORK_END_PAGE = 406
 AUTHORITY_BOUNDARY = (
-    "model-reviewed target-visible numbered-label start-page candidates and "
-    "proposed whole-page addresses for one exact translation scan only; no "
-    "target text, exact line boundary, translation alignment, translation "
-    "equivalence or quality, textual identity, semantics, rights clearance, "
-    "or canon authority"
+    "This map records model-reviewed numbered-label start-page candidates and proposed whole-page addresses for one exact translation scan."
 )
 DOES_NOT_ESTABLISH = [
     "target_text",
@@ -738,8 +734,7 @@ def build_outputs(
                 "source-only 237a remains an explicit nonmaterialized asymmetry."
             ),
             (
-                "No source-to-target unit alignment, translation equivalence, "
-                "translation quality, or semantic claim was made."
+                "This event records target-unit structure. Source-to-target alignment, translation assessment and semantic claims retain their existing states."
             ),
         ],
         "receipt_refs": [
@@ -807,8 +802,7 @@ def main() -> int:
         path.write_text(rendered, encoding="utf-8")
     print("[ok] wrote 298 proposed target numbered-unit start-page anchors")
     print(
-        "[boundary] no target text, exact line boundaries, translation "
-        "alignment, equivalence, quality, or semantics were emitted"
+        "[scope] Text-free proposed target label starts, preserving the recorded source-map asymmetries."
     )
     return 0
 

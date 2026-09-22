@@ -2,8 +2,7 @@
 """Build one local-only, non-promoting Antonovsky 2007/1911 collation proposal.
 
 The 2007 input is an already-preserved, unattested human Workbench observation.
-It is useful evidence, but not a pass receipt, gold, accepted source text, or a
-review.  The builder copies the exact observation into ignored owner-local
+Its recorded status remains an unattested observation for source review.  The builder copies the exact observation into ignored owner-local
 custody, proposes one sentence boundary, compares it with the existing 1911
 sentence proposal, and emits text-free tracked records only.
 """
@@ -704,12 +703,7 @@ def _source_layer(
         },
         "provenance_event_ref": EVENT_ID,
         "authority_boundary": (
-            "a source text layer is one immutable, source-returnable representation "
-            "with explicit derivation, uncertainty, review, competence, rights, and "
-            "use scope; mechanical validation, model output, normalization, or "
-            "agreement with another layer does not make it accepted source text, "
-            "translation evidence, linguistic truth, semantic evidence, graph truth, "
-            "canon authority, or publication permission"
+            "A source text layer preserves one immutable, source-returnable representation and its derivation, uncertainty, assessment, competence, rights and use scope."
         ),
         "layer_version": 1,
         "supersedes_layer_ref": None,
@@ -1466,7 +1460,7 @@ def _provenance_event(
             "warnings": [
                 "The 2007 Workbench observation has no completion attestation and creates no gold or human review.",
                 "Both sentence boundaries and the cross-edition correspondence remain proposed.",
-                "Surface similarity establishes no source fidelity, preferred reading, textual equivalence, Expression derivation, translation judgment, or semantics.",
+                "Surface similarity describes the compared forms. Source fidelity, preferred reading, textual equivalence, Expression derivation, translation and semantics require their respective source-visible assessments.",
                 "The exact 2007 PDF and all source-bearing or reconstructive derivatives remain local-only and publication-unauthorized.",
                 "The unsigned self-recorded event proves mechanics and closure, not execution or content truth.",
             ],
@@ -1556,7 +1550,7 @@ def _provenance_event(
         "manual_changes": {
             "status": "none_declared",
             "change_receipts": [],
-            "statement": "The builder copies the preserved human observation exactly and applies no manual correction; that prior unattested observation is an input, not a manual edit to this run.",
+            "statement": "The builder copies the preserved, unattested human observation exactly as an input. The run records zero manual corrections.",
         },
         "measurements": [
             {
@@ -1824,9 +1818,9 @@ def _expected(
         ],
         "comparison_views": private_views,
         "authority_boundary": (
-            "local reconstructive detail for an unattested observation and proposed "
-            "collation; not gold, review, source acceptance, textual equivalence, "
-            "Expression derivation, translation judgment, semantics, or publication"
+            "This private record preserves reconstructive detail for an unattested "
+            "observation and a proposed collation. Source and translation assessment "
+            "follow their recorded review routes."
         ),
     }
     private_detail_bytes = _json_bytes(private_detail)

@@ -9,8 +9,9 @@ explicit ignored local-content root. Tracked outputs contain only structure,
 geometry, counts, digests, provenance, and fail-closed authority effects.
 
 The result is exact only inside the named automatic embedded-PDF text/geometry
-layer. It is not a diplomatic transcription, accepted Russian, source-to-target
-passage alignment, translation evidence, target gold, or transfer eligibility.
+layer. Diplomatic transcription, Russian text acceptance, passage alignment,
+translation assessment, target gold and transfer eligibility require their
+respective source-visible review evidence.
 """
 
 from __future__ import annotations
@@ -570,9 +571,8 @@ def _private_payload(
         ],
         "automatic_candidate_text": automatic_text,
         "authority_boundary": (
-            "private automatic bbox-layer slice only; not a diplomatic "
-            "transcription, accepted Russian, target gold, alignment, or "
-            "publication object"
+            "Private passage slice from the named automatic bbox layer, retained under "
+            "its recorded rights and proposal status."
         ),
     }
 
@@ -734,8 +734,8 @@ def build_outputs(
             "target_gold_status": "not_started",
             "limitations": [
                 "the boundary is exact only inside the automatic embedded-PDF bbox layer",
-                "the private slice is not a diplomatic transcription or accepted Russian text",
-                "shared numbering and a source structural route do not establish passage or translation alignment",
+                "The private slice reproduces the automatic Russian text layer and retains its unreviewed candidate status.",
+                "Shared numbering supplies a source structural route for passage and translation alignment review.",
                 "the candidate remains ineligible and has no target gold or human review",
                 "private target text is local-only and not authorized for publication",
             ],
@@ -846,12 +846,9 @@ def build_outputs(
         "provenance_event_ref": EVENT_ID,
         "status": "prepared-ineligible",
         "authority_boundary": (
-            "private target passage materialization exact only within one "
-            "fixity-bound automatic embedded-PDF bbox layer; tracked data is "
-            "text-free, boundaries remain proposed or rejected, and no "
-            "accepted Russian, source passage, passage or translation "
-            "alignment, eligibility, gold, human, semantic, publication, or "
-            "canon authority follows"
+            "Private target passage materialization within one fixity-bound automatic "
+            "embedded-PDF bbox layer. Tracked metadata is text-free and preserves "
+            "proposed or rejected boundary status."
         ),
         "does_not_establish": [
             "diplomatic_transcription",
@@ -934,11 +931,11 @@ def build_outputs(
         },
         "status": "completed_with_warnings",
         "warnings": [
-            "bbox-layer exactness is not diplomatic or accepted target text",
+            "Exactness is measured against the named bbox layer; diplomatic transcription and target-text acceptance retain their recorded review status.",
             "a conservative page route may be rejected when the bounded unit has no line on that frozen page",
-            "shared numbering and source start routes do not establish passage or translation alignment",
+            "Shared numbering and source starts supply a structural route for passage and translation alignment review.",
             "private text remains ignored, local-only, and unauthorized for publication",
-            "no target gold, eligibility, human work, semantics, transfer execution, or canon effect was created",
+            "This event records target-passage candidates. Target gold, eligibility, human work, semantics, transfer execution and canon retain their existing states.",
         ],
         "receipt_refs": [OUTPUT_PATH.as_posix()],
         "rights_basis_ref": RIGHTS_PATH.as_posix(),
@@ -1028,8 +1025,7 @@ def main(argv: list[str] | None = None) -> int:
         f"intersect frozen pages and {summary['nonintersecting_route_count']} do not"
     )
     print(
-        "[boundary] 0 accepted target passages, source alignments, eligible "
-        "units, target gold, human tasks, semantic effects, or canon effects"
+        "[scope] Private target-layer passage candidates with exact selectors and proposed or rejected intersections."
     )
     return 0
 

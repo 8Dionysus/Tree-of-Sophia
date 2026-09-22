@@ -193,6 +193,7 @@
 - [TOS-D-0063 - Document catalogue dates and locations are separate attributed Claims](../TOS-D-0063-document-catalogue-attributions.md) (`docs/decisions/TOS-D-0063-document-catalogue-attributions.md`)
 - [TOS-D-0064 - Explicit Claim display fields retain source and permission boundaries](../TOS-D-0064-scoped-claim-display-fields.md) (`docs/decisions/TOS-D-0064-scoped-claim-display-fields.md`)
 - [TOS-D-0067 - Typed historical-time source wording in Claim navigation](../TOS-D-0067-typed-time-claim-navigation.md) (`docs/decisions/TOS-D-0067-typed-time-claim-navigation.md`)
+- [TOS-D-0068 - Subject-first foundation wording with exact historical continuity](../TOS-D-0068-subject-first-foundation-wording-and-retained-history.md) (`docs/decisions/TOS-D-0068-subject-first-foundation-wording-and-retained-history.md`)
 
 ## incremental projection
 
@@ -209,6 +210,7 @@
 - [TOS-D-0054 - Compatible scholarly composite record shapes](../TOS-D-0054-compatible-scholarly-composite-record-shapes.md) (`docs/decisions/TOS-D-0054-compatible-scholarly-composite-record-shapes.md`)
 - [TOS-D-0055 - Explicit confidential source contexts](../TOS-D-0055-explicit-confidential-source-contexts.md) (`docs/decisions/TOS-D-0055-explicit-confidential-source-contexts.md`)
 - [TOS-D-0056 - Claim-scoped reference values](../TOS-D-0056-claim-scoped-reference-values.md) (`docs/decisions/TOS-D-0056-claim-scoped-reference-values.md`)
+- [TOS-D-0068 - Subject-first foundation wording with exact historical continuity](../TOS-D-0068-subject-first-foundation-wording-and-retained-history.md) (`docs/decisions/TOS-D-0068-subject-first-foundation-wording-and-retained-history.md`)
 
 ## lineage
 
@@ -280,6 +282,7 @@
 ## provenance
 
 - [TOS-D-0052 - Preserve historical schema inputs without replacing current contracts](../TOS-D-0052-historical-contract-input-bytes.md) (`docs/decisions/TOS-D-0052-historical-contract-input-bytes.md`)
+- [TOS-D-0068 - Subject-first foundation wording with exact historical continuity](../TOS-D-0068-subject-first-foundation-wording-and-retained-history.md) (`docs/decisions/TOS-D-0068-subject-first-foundation-wording-and-retained-history.md`)
 
 ## provider edge
 
@@ -368,6 +371,7 @@
 - [TOS-D-0061 - Stable semantic interchange registry](../TOS-D-0061-stable-semantic-interchange-registry.md) (`docs/decisions/TOS-D-0061-stable-semantic-interchange-registry.md`)
 - [TOS-D-0063 - Document catalogue dates and locations are separate attributed Claims](../TOS-D-0063-document-catalogue-attributions.md) (`docs/decisions/TOS-D-0063-document-catalogue-attributions.md`)
 - [TOS-D-0067 - Typed historical-time source wording in Claim navigation](../TOS-D-0067-typed-time-claim-navigation.md) (`docs/decisions/TOS-D-0067-typed-time-claim-navigation.md`)
+- [TOS-D-0068 - Subject-first foundation wording with exact historical continuity](../TOS-D-0068-subject-first-foundation-wording-and-retained-history.md) (`docs/decisions/TOS-D-0068-subject-first-foundation-wording-and-retained-history.md`)
 
 ## skill helper boundary
 

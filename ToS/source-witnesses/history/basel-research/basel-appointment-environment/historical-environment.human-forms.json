@@ -1,71 +1,69 @@
 {
-  "schema_version": "tos_human_form_set_v1",
-  "subject": {
-    "id": "tos.historical-environment.basel.nietzsche-appointment-conditions",
-    "version": 1,
-    "digest": "sha256:b6197983950d5817f43f7e604a73412460f16b90ff97b977f45efaf96b49cdec"
-  },
   "forms": [
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.basel-research.basel-appointment-environment.name-ru",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.historical-environment.basel.nietzsche-appointment-conditions",
-        "version": 1,
-        "digest": "sha256:b6197983950d5817f43f7e604a73412460f16b90ff97b977f45efaf96b49cdec"
+        "version": 2,
+        "digest": "sha256:c115176b8d50a9af2b9bb8f908ea1a69c751a1aac942259ec1c0fad3f0560a26"
       },
       "role": "name",
       "language": "ru",
       "script": "Cyrl",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.basel-research.basel-appointment-environment.name-ru",
+        "version": 1,
+        "digest": "sha256:f0e104c8ae3052021eed7143093fa4a9d81b71ab677aecb4b244eabff349ed18"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.historical-environment.basel.nietzsche-appointment-conditions",
-            "version": 1,
-            "digest": "sha256:b6197983950d5817f43f7e604a73412460f16b90ff97b977f45efaf96b49cdec"
+            "version": 2,
+            "digest": "sha256:c115176b8d50a9af2b9bb8f908ea1a69c751a1aac942259ec1c0fad3f0560a26"
           },
           "pointer": "/preferred_label"
         },
         "context-0": {
           "record": {
             "id": "tos.historical-environment.basel.nietzsche-appointment-conditions",
-            "version": 1,
-            "digest": "sha256:b6197983950d5817f43f7e604a73412460f16b90ff97b977f45efaf96b49cdec"
+            "version": 2,
+            "digest": "sha256:c115176b8d50a9af2b9bb8f908ea1a69c751a1aac942259ec1c0fad3f0560a26"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.historical-environment.basel.nietzsche-appointment-conditions",
-            "version": 1,
-            "digest": "sha256:b6197983950d5817f43f7e604a73412460f16b90ff97b977f45efaf96b49cdec"
+            "version": 2,
+            "digest": "sha256:c115176b8d50a9af2b9bb8f908ea1a69c751a1aac942259ec1c0fad3f0560a26"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.historical-environment.basel.nietzsche-appointment-conditions",
-            "version": 1,
-            "digest": "sha256:b6197983950d5817f43f7e604a73412460f16b90ff97b977f45efaf96b49cdec"
+            "version": 2,
+            "digest": "sha256:c115176b8d50a9af2b9bb8f908ea1a69c751a1aac942259ec1c0fad3f0560a26"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.historical-environment.basel.nietzsche-appointment-conditions",
-            "version": 1,
-            "digest": "sha256:b6197983950d5817f43f7e604a73412460f16b90ff97b977f45efaf96b49cdec"
+            "version": 2,
+            "digest": "sha256:c115176b8d50a9af2b9bb8f908ea1a69c751a1aac942259ec1c0fad3f0560a26"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.historical-environment.basel.nietzsche-appointment-conditions",
-            "version": 1,
-            "digest": "sha256:b6197983950d5817f43f7e604a73412460f16b90ff97b977f45efaf96b49cdec"
+            "version": 2,
+            "digest": "sha256:c115176b8d50a9af2b9bb8f908ea1a69c751a1aac942259ec1c0fad3f0560a26"
           },
           "pointer": "/field_languages/preferred_label"
         }
@@ -78,87 +76,91 @@
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.basel-research.basel-appointment-environment.name-en",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.historical-environment.basel.nietzsche-appointment-conditions",
-        "version": 1,
-        "digest": "sha256:b6197983950d5817f43f7e604a73412460f16b90ff97b977f45efaf96b49cdec"
+        "version": 2,
+        "digest": "sha256:c115176b8d50a9af2b9bb8f908ea1a69c751a1aac942259ec1c0fad3f0560a26"
       },
       "role": "name",
       "language": "en",
       "script": "Latn",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.basel-research.basel-appointment-environment.name-en",
+        "version": 1,
+        "digest": "sha256:db2f270ad0ad7dfd02d71b6bb35de1944afdbbc38216677e8d4251e2a14fb0dd"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.historical-environment.basel.nietzsche-appointment-conditions",
-            "version": 1,
-            "digest": "sha256:b6197983950d5817f43f7e604a73412460f16b90ff97b977f45efaf96b49cdec"
+            "version": 2,
+            "digest": "sha256:c115176b8d50a9af2b9bb8f908ea1a69c751a1aac942259ec1c0fad3f0560a26"
           },
           "pointer": "/variant_labels/0/value"
         },
         "context-0": {
           "record": {
             "id": "tos.historical-environment.basel.nietzsche-appointment-conditions",
-            "version": 1,
-            "digest": "sha256:b6197983950d5817f43f7e604a73412460f16b90ff97b977f45efaf96b49cdec"
+            "version": 2,
+            "digest": "sha256:c115176b8d50a9af2b9bb8f908ea1a69c751a1aac942259ec1c0fad3f0560a26"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.historical-environment.basel.nietzsche-appointment-conditions",
-            "version": 1,
-            "digest": "sha256:b6197983950d5817f43f7e604a73412460f16b90ff97b977f45efaf96b49cdec"
+            "version": 2,
+            "digest": "sha256:c115176b8d50a9af2b9bb8f908ea1a69c751a1aac942259ec1c0fad3f0560a26"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.historical-environment.basel.nietzsche-appointment-conditions",
-            "version": 1,
-            "digest": "sha256:b6197983950d5817f43f7e604a73412460f16b90ff97b977f45efaf96b49cdec"
+            "version": 2,
+            "digest": "sha256:c115176b8d50a9af2b9bb8f908ea1a69c751a1aac942259ec1c0fad3f0560a26"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.historical-environment.basel.nietzsche-appointment-conditions",
-            "version": 1,
-            "digest": "sha256:b6197983950d5817f43f7e604a73412460f16b90ff97b977f45efaf96b49cdec"
+            "version": 2,
+            "digest": "sha256:c115176b8d50a9af2b9bb8f908ea1a69c751a1aac942259ec1c0fad3f0560a26"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.historical-environment.basel.nietzsche-appointment-conditions",
-            "version": 1,
-            "digest": "sha256:b6197983950d5817f43f7e604a73412460f16b90ff97b977f45efaf96b49cdec"
+            "version": 2,
+            "digest": "sha256:c115176b8d50a9af2b9bb8f908ea1a69c751a1aac942259ec1c0fad3f0560a26"
           },
           "pointer": "/variant_labels/0/language"
         },
         "context-5": {
           "record": {
             "id": "tos.historical-environment.basel.nietzsche-appointment-conditions",
-            "version": 1,
-            "digest": "sha256:b6197983950d5817f43f7e604a73412460f16b90ff97b977f45efaf96b49cdec"
+            "version": 2,
+            "digest": "sha256:c115176b8d50a9af2b9bb8f908ea1a69c751a1aac942259ec1c0fad3f0560a26"
           },
           "pointer": "/variant_labels/0/script"
         },
         "context-6": {
           "record": {
             "id": "tos.historical-environment.basel.nietzsche-appointment-conditions",
-            "version": 1,
-            "digest": "sha256:b6197983950d5817f43f7e604a73412460f16b90ff97b977f45efaf96b49cdec"
+            "version": 2,
+            "digest": "sha256:c115176b8d50a9af2b9bb8f908ea1a69c751a1aac942259ec1c0fad3f0560a26"
           },
           "pointer": "/variant_labels/0/source_ref"
         },
         "context-7": {
           "record": {
             "id": "tos.historical-environment.basel.nietzsche-appointment-conditions",
-            "version": 1,
-            "digest": "sha256:b6197983950d5817f43f7e604a73412460f16b90ff97b977f45efaf96b49cdec"
+            "version": 2,
+            "digest": "sha256:c115176b8d50a9af2b9bb8f908ea1a69c751a1aac942259ec1c0fad3f0560a26"
           },
           "pointer": "/variant_labels/0/status"
         }
@@ -171,63 +173,67 @@
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.basel-research.basel-appointment-environment.note-ru",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.historical-environment.basel.nietzsche-appointment-conditions",
-        "version": 1,
-        "digest": "sha256:b6197983950d5817f43f7e604a73412460f16b90ff97b977f45efaf96b49cdec"
+        "version": 2,
+        "digest": "sha256:c115176b8d50a9af2b9bb8f908ea1a69c751a1aac942259ec1c0fad3f0560a26"
       },
       "role": "hover",
       "language": "ru",
       "script": "Cyrl",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.basel-research.basel-appointment-environment.note-ru",
+        "version": 1,
+        "digest": "sha256:a2bc187a92c6716d6d8b1234ab2d512d9ac7c3a3bf2509f66f23e7199fde18d8"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.historical-environment.basel.nietzsche-appointment-conditions",
-            "version": 1,
-            "digest": "sha256:b6197983950d5817f43f7e604a73412460f16b90ff97b977f45efaf96b49cdec"
+            "version": 2,
+            "digest": "sha256:c115176b8d50a9af2b9bb8f908ea1a69c751a1aac942259ec1c0fad3f0560a26"
           },
           "pointer": "/notes"
         },
         "context-0": {
           "record": {
             "id": "tos.historical-environment.basel.nietzsche-appointment-conditions",
-            "version": 1,
-            "digest": "sha256:b6197983950d5817f43f7e604a73412460f16b90ff97b977f45efaf96b49cdec"
+            "version": 2,
+            "digest": "sha256:c115176b8d50a9af2b9bb8f908ea1a69c751a1aac942259ec1c0fad3f0560a26"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.historical-environment.basel.nietzsche-appointment-conditions",
-            "version": 1,
-            "digest": "sha256:b6197983950d5817f43f7e604a73412460f16b90ff97b977f45efaf96b49cdec"
+            "version": 2,
+            "digest": "sha256:c115176b8d50a9af2b9bb8f908ea1a69c751a1aac942259ec1c0fad3f0560a26"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.historical-environment.basel.nietzsche-appointment-conditions",
-            "version": 1,
-            "digest": "sha256:b6197983950d5817f43f7e604a73412460f16b90ff97b977f45efaf96b49cdec"
+            "version": 2,
+            "digest": "sha256:c115176b8d50a9af2b9bb8f908ea1a69c751a1aac942259ec1c0fad3f0560a26"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.historical-environment.basel.nietzsche-appointment-conditions",
-            "version": 1,
-            "digest": "sha256:b6197983950d5817f43f7e604a73412460f16b90ff97b977f45efaf96b49cdec"
+            "version": 2,
+            "digest": "sha256:c115176b8d50a9af2b9bb8f908ea1a69c751a1aac942259ec1c0fad3f0560a26"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.historical-environment.basel.nietzsche-appointment-conditions",
-            "version": 1,
-            "digest": "sha256:b6197983950d5817f43f7e604a73412460f16b90ff97b977f45efaf96b49cdec"
+            "version": 2,
+            "digest": "sha256:c115176b8d50a9af2b9bb8f908ea1a69c751a1aac942259ec1c0fad3f0560a26"
           },
           "pointer": "/field_languages/notes"
         }
@@ -238,5 +244,243 @@
       }
     }
   ],
-  "prior_forms": []
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:b6197983950d5817f43f7e604a73412460f16b90ff97b977f45efaf96b49cdec",
+            "id": "tos.historical-environment.basel.nietzsche-appointment-conditions",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:b6197983950d5817f43f7e604a73412460f16b90ff97b977f45efaf96b49cdec",
+            "id": "tos.historical-environment.basel.nietzsche-appointment-conditions",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:b6197983950d5817f43f7e604a73412460f16b90ff97b977f45efaf96b49cdec",
+            "id": "tos.historical-environment.basel.nietzsche-appointment-conditions",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:b6197983950d5817f43f7e604a73412460f16b90ff97b977f45efaf96b49cdec",
+            "id": "tos.historical-environment.basel.nietzsche-appointment-conditions",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:b6197983950d5817f43f7e604a73412460f16b90ff97b977f45efaf96b49cdec",
+            "id": "tos.historical-environment.basel.nietzsche-appointment-conditions",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:b6197983950d5817f43f7e604a73412460f16b90ff97b977f45efaf96b49cdec",
+            "id": "tos.historical-environment.basel.nietzsche-appointment-conditions",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.basel-research.basel-appointment-environment.name-ru",
+      "form_version": 1,
+      "language": "ru",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:b6197983950d5817f43f7e604a73412460f16b90ff97b977f45efaf96b49cdec",
+        "id": "tos.historical-environment.basel.nietzsche-appointment-conditions",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:b6197983950d5817f43f7e604a73412460f16b90ff97b977f45efaf96b49cdec",
+            "id": "tos.historical-environment.basel.nietzsche-appointment-conditions",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:b6197983950d5817f43f7e604a73412460f16b90ff97b977f45efaf96b49cdec",
+            "id": "tos.historical-environment.basel.nietzsche-appointment-conditions",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:b6197983950d5817f43f7e604a73412460f16b90ff97b977f45efaf96b49cdec",
+            "id": "tos.historical-environment.basel.nietzsche-appointment-conditions",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:b6197983950d5817f43f7e604a73412460f16b90ff97b977f45efaf96b49cdec",
+            "id": "tos.historical-environment.basel.nietzsche-appointment-conditions",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/variant_labels/0/language",
+          "record": {
+            "digest": "sha256:b6197983950d5817f43f7e604a73412460f16b90ff97b977f45efaf96b49cdec",
+            "id": "tos.historical-environment.basel.nietzsche-appointment-conditions",
+            "version": 1
+          }
+        },
+        "context-5": {
+          "pointer": "/variant_labels/0/script",
+          "record": {
+            "digest": "sha256:b6197983950d5817f43f7e604a73412460f16b90ff97b977f45efaf96b49cdec",
+            "id": "tos.historical-environment.basel.nietzsche-appointment-conditions",
+            "version": 1
+          }
+        },
+        "context-6": {
+          "pointer": "/variant_labels/0/source_ref",
+          "record": {
+            "digest": "sha256:b6197983950d5817f43f7e604a73412460f16b90ff97b977f45efaf96b49cdec",
+            "id": "tos.historical-environment.basel.nietzsche-appointment-conditions",
+            "version": 1
+          }
+        },
+        "context-7": {
+          "pointer": "/variant_labels/0/status",
+          "record": {
+            "digest": "sha256:b6197983950d5817f43f7e604a73412460f16b90ff97b977f45efaf96b49cdec",
+            "id": "tos.historical-environment.basel.nietzsche-appointment-conditions",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/variant_labels/0/value",
+          "record": {
+            "digest": "sha256:b6197983950d5817f43f7e604a73412460f16b90ff97b977f45efaf96b49cdec",
+            "id": "tos.historical-environment.basel.nietzsche-appointment-conditions",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.basel-research.basel-appointment-environment.name-en",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:b6197983950d5817f43f7e604a73412460f16b90ff97b977f45efaf96b49cdec",
+        "id": "tos.historical-environment.basel.nietzsche-appointment-conditions",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:b6197983950d5817f43f7e604a73412460f16b90ff97b977f45efaf96b49cdec",
+            "id": "tos.historical-environment.basel.nietzsche-appointment-conditions",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:b6197983950d5817f43f7e604a73412460f16b90ff97b977f45efaf96b49cdec",
+            "id": "tos.historical-environment.basel.nietzsche-appointment-conditions",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:b6197983950d5817f43f7e604a73412460f16b90ff97b977f45efaf96b49cdec",
+            "id": "tos.historical-environment.basel.nietzsche-appointment-conditions",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:b6197983950d5817f43f7e604a73412460f16b90ff97b977f45efaf96b49cdec",
+            "id": "tos.historical-environment.basel.nietzsche-appointment-conditions",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:b6197983950d5817f43f7e604a73412460f16b90ff97b977f45efaf96b49cdec",
+            "id": "tos.historical-environment.basel.nietzsche-appointment-conditions",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:b6197983950d5817f43f7e604a73412460f16b90ff97b977f45efaf96b49cdec",
+            "id": "tos.historical-environment.basel.nietzsche-appointment-conditions",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.basel-research.basel-appointment-environment.note-ru",
+      "form_version": 1,
+      "language": "ru",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:b6197983950d5817f43f7e604a73412460f16b90ff97b977f45efaf96b49cdec",
+        "id": "tos.historical-environment.basel.nietzsche-appointment-conditions",
+        "version": 1
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.historical-environment.basel.nietzsche-appointment-conditions",
+    "version": 2,
+    "digest": "sha256:c115176b8d50a9af2b9bb8f908ea1a69c751a1aac942259ec1c0fad3f0560a26"
+  }
 }

@@ -1,71 +1,69 @@
 {
-  "schema_version": "tos_human_form_set_v1",
-  "subject": {
-    "id": "tos.lexeme.sid-4d6a52aef228463c80f278c866ee74ce",
-    "version": 1,
-    "digest": "sha256:30d4edf2c62506a51fcf1eb36069d82c177091c4b96a25123b7956de2691ec39"
-  },
   "forms": [
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.sid-7d80b2b123bd473a91a58627b49e252d",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.lexeme.sid-4d6a52aef228463c80f278c866ee74ce",
-        "version": 1,
-        "digest": "sha256:30d4edf2c62506a51fcf1eb36069d82c177091c4b96a25123b7956de2691ec39"
+        "version": 2,
+        "digest": "sha256:8ab42cb018976ae3397a5fb6da9c39296d1120ab33431e300fb86ade1a7a26b6"
       },
       "role": "name",
       "language": "de",
       "script": "Latn",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.sid-7d80b2b123bd473a91a58627b49e252d",
+        "version": 1,
+        "digest": "sha256:e59793649ea647f09165c0c9a384197cefdc22bddbeb83c433748fa23c992470"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.lexeme.sid-4d6a52aef228463c80f278c866ee74ce",
-            "version": 1,
-            "digest": "sha256:30d4edf2c62506a51fcf1eb36069d82c177091c4b96a25123b7956de2691ec39"
+            "version": 2,
+            "digest": "sha256:8ab42cb018976ae3397a5fb6da9c39296d1120ab33431e300fb86ade1a7a26b6"
           },
           "pointer": "/preferred_label"
         },
         "context-0": {
           "record": {
             "id": "tos.lexeme.sid-4d6a52aef228463c80f278c866ee74ce",
-            "version": 1,
-            "digest": "sha256:30d4edf2c62506a51fcf1eb36069d82c177091c4b96a25123b7956de2691ec39"
+            "version": 2,
+            "digest": "sha256:8ab42cb018976ae3397a5fb6da9c39296d1120ab33431e300fb86ade1a7a26b6"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.lexeme.sid-4d6a52aef228463c80f278c866ee74ce",
-            "version": 1,
-            "digest": "sha256:30d4edf2c62506a51fcf1eb36069d82c177091c4b96a25123b7956de2691ec39"
+            "version": 2,
+            "digest": "sha256:8ab42cb018976ae3397a5fb6da9c39296d1120ab33431e300fb86ade1a7a26b6"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.lexeme.sid-4d6a52aef228463c80f278c866ee74ce",
-            "version": 1,
-            "digest": "sha256:30d4edf2c62506a51fcf1eb36069d82c177091c4b96a25123b7956de2691ec39"
+            "version": 2,
+            "digest": "sha256:8ab42cb018976ae3397a5fb6da9c39296d1120ab33431e300fb86ade1a7a26b6"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.lexeme.sid-4d6a52aef228463c80f278c866ee74ce",
-            "version": 1,
-            "digest": "sha256:30d4edf2c62506a51fcf1eb36069d82c177091c4b96a25123b7956de2691ec39"
+            "version": 2,
+            "digest": "sha256:8ab42cb018976ae3397a5fb6da9c39296d1120ab33431e300fb86ade1a7a26b6"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.lexeme.sid-4d6a52aef228463c80f278c866ee74ce",
-            "version": 1,
-            "digest": "sha256:30d4edf2c62506a51fcf1eb36069d82c177091c4b96a25123b7956de2691ec39"
+            "version": 2,
+            "digest": "sha256:8ab42cb018976ae3397a5fb6da9c39296d1120ab33431e300fb86ade1a7a26b6"
           },
           "pointer": "/field_languages/preferred_label"
         }
@@ -78,63 +76,67 @@
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.sid-63fda4820e284d87bef739af744c504b",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.lexeme.sid-4d6a52aef228463c80f278c866ee74ce",
-        "version": 1,
-        "digest": "sha256:30d4edf2c62506a51fcf1eb36069d82c177091c4b96a25123b7956de2691ec39"
+        "version": 2,
+        "digest": "sha256:8ab42cb018976ae3397a5fb6da9c39296d1120ab33431e300fb86ade1a7a26b6"
       },
       "role": "hover",
       "language": "ru",
       "script": "Cyrl",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.sid-63fda4820e284d87bef739af744c504b",
+        "version": 1,
+        "digest": "sha256:97ac60f5c5534b2d620e7795649aa925d7ed986ec68d3208cb72b6784da7f53e"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.lexeme.sid-4d6a52aef228463c80f278c866ee74ce",
-            "version": 1,
-            "digest": "sha256:30d4edf2c62506a51fcf1eb36069d82c177091c4b96a25123b7956de2691ec39"
+            "version": 2,
+            "digest": "sha256:8ab42cb018976ae3397a5fb6da9c39296d1120ab33431e300fb86ade1a7a26b6"
           },
           "pointer": "/notes"
         },
         "context-0": {
           "record": {
             "id": "tos.lexeme.sid-4d6a52aef228463c80f278c866ee74ce",
-            "version": 1,
-            "digest": "sha256:30d4edf2c62506a51fcf1eb36069d82c177091c4b96a25123b7956de2691ec39"
+            "version": 2,
+            "digest": "sha256:8ab42cb018976ae3397a5fb6da9c39296d1120ab33431e300fb86ade1a7a26b6"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.lexeme.sid-4d6a52aef228463c80f278c866ee74ce",
-            "version": 1,
-            "digest": "sha256:30d4edf2c62506a51fcf1eb36069d82c177091c4b96a25123b7956de2691ec39"
+            "version": 2,
+            "digest": "sha256:8ab42cb018976ae3397a5fb6da9c39296d1120ab33431e300fb86ade1a7a26b6"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.lexeme.sid-4d6a52aef228463c80f278c866ee74ce",
-            "version": 1,
-            "digest": "sha256:30d4edf2c62506a51fcf1eb36069d82c177091c4b96a25123b7956de2691ec39"
+            "version": 2,
+            "digest": "sha256:8ab42cb018976ae3397a5fb6da9c39296d1120ab33431e300fb86ade1a7a26b6"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.lexeme.sid-4d6a52aef228463c80f278c866ee74ce",
-            "version": 1,
-            "digest": "sha256:30d4edf2c62506a51fcf1eb36069d82c177091c4b96a25123b7956de2691ec39"
+            "version": 2,
+            "digest": "sha256:8ab42cb018976ae3397a5fb6da9c39296d1120ab33431e300fb86ade1a7a26b6"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.lexeme.sid-4d6a52aef228463c80f278c866ee74ce",
-            "version": 1,
-            "digest": "sha256:30d4edf2c62506a51fcf1eb36069d82c177091c4b96a25123b7956de2691ec39"
+            "version": 2,
+            "digest": "sha256:8ab42cb018976ae3397a5fb6da9c39296d1120ab33431e300fb86ade1a7a26b6"
           },
           "pointer": "/field_languages/notes"
         }
@@ -145,5 +147,150 @@
       }
     }
   ],
-  "prior_forms": []
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:30d4edf2c62506a51fcf1eb36069d82c177091c4b96a25123b7956de2691ec39",
+            "id": "tos.lexeme.sid-4d6a52aef228463c80f278c866ee74ce",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:30d4edf2c62506a51fcf1eb36069d82c177091c4b96a25123b7956de2691ec39",
+            "id": "tos.lexeme.sid-4d6a52aef228463c80f278c866ee74ce",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:30d4edf2c62506a51fcf1eb36069d82c177091c4b96a25123b7956de2691ec39",
+            "id": "tos.lexeme.sid-4d6a52aef228463c80f278c866ee74ce",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:30d4edf2c62506a51fcf1eb36069d82c177091c4b96a25123b7956de2691ec39",
+            "id": "tos.lexeme.sid-4d6a52aef228463c80f278c866ee74ce",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:30d4edf2c62506a51fcf1eb36069d82c177091c4b96a25123b7956de2691ec39",
+            "id": "tos.lexeme.sid-4d6a52aef228463c80f278c866ee74ce",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:30d4edf2c62506a51fcf1eb36069d82c177091c4b96a25123b7956de2691ec39",
+            "id": "tos.lexeme.sid-4d6a52aef228463c80f278c866ee74ce",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.sid-7d80b2b123bd473a91a58627b49e252d",
+      "form_version": 1,
+      "language": "de",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:30d4edf2c62506a51fcf1eb36069d82c177091c4b96a25123b7956de2691ec39",
+        "id": "tos.lexeme.sid-4d6a52aef228463c80f278c866ee74ce",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:30d4edf2c62506a51fcf1eb36069d82c177091c4b96a25123b7956de2691ec39",
+            "id": "tos.lexeme.sid-4d6a52aef228463c80f278c866ee74ce",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:30d4edf2c62506a51fcf1eb36069d82c177091c4b96a25123b7956de2691ec39",
+            "id": "tos.lexeme.sid-4d6a52aef228463c80f278c866ee74ce",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:30d4edf2c62506a51fcf1eb36069d82c177091c4b96a25123b7956de2691ec39",
+            "id": "tos.lexeme.sid-4d6a52aef228463c80f278c866ee74ce",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:30d4edf2c62506a51fcf1eb36069d82c177091c4b96a25123b7956de2691ec39",
+            "id": "tos.lexeme.sid-4d6a52aef228463c80f278c866ee74ce",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:30d4edf2c62506a51fcf1eb36069d82c177091c4b96a25123b7956de2691ec39",
+            "id": "tos.lexeme.sid-4d6a52aef228463c80f278c866ee74ce",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:30d4edf2c62506a51fcf1eb36069d82c177091c4b96a25123b7956de2691ec39",
+            "id": "tos.lexeme.sid-4d6a52aef228463c80f278c866ee74ce",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.sid-63fda4820e284d87bef739af744c504b",
+      "form_version": 1,
+      "language": "ru",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:30d4edf2c62506a51fcf1eb36069d82c177091c4b96a25123b7956de2691ec39",
+        "id": "tos.lexeme.sid-4d6a52aef228463c80f278c866ee74ce",
+        "version": 1
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.lexeme.sid-4d6a52aef228463c80f278c866ee74ce",
+    "version": 2,
+    "digest": "sha256:8ab42cb018976ae3397a5fb6da9c39296d1120ab33431e300fb86ade1a7a26b6"
+  }
 }

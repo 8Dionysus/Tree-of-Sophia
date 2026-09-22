@@ -58,8 +58,13 @@
         "object_catalog_refs": {
           "type": "object",
           "description": "Additional families require an exact source_record_profile binding in the entity registry; the reader verifies this beyond schema validation.",
-          "additionalProperties": {"type": "string", "pattern": "^ToS/source-witnesses/catalog/[a-z][a-z0-9-]*\\.jsonl$"},
-          "propertyNames": {"pattern": "^[a-z][a-z0-9-]*$"},
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^ToS/source-witnesses/catalog/[a-z][a-z0-9-]*\\.jsonl$"
+          },
+          "propertyNames": {
+            "pattern": "^[a-z][a-z0-9-]*$"
+          },
           "required": [
             "agent",
             "place",
@@ -95,10 +100,18 @@
             "item": {
               "const": "ToS/source-witnesses/catalog/items.jsonl"
             },
-            "historical-event": {"const": "ToS/source-witnesses/catalog/historical-events.jsonl"},
-            "historical-process": {"const": "ToS/source-witnesses/catalog/historical-processes.jsonl"},
-            "historical-state": {"const": "ToS/source-witnesses/catalog/historical-states.jsonl"},
-            "artifact": {"const": "ToS/source-witnesses/catalog/artifacts.jsonl"}
+            "historical-event": {
+              "const": "ToS/source-witnesses/catalog/historical-events.jsonl"
+            },
+            "historical-process": {
+              "const": "ToS/source-witnesses/catalog/historical-processes.jsonl"
+            },
+            "historical-state": {
+              "const": "ToS/source-witnesses/catalog/historical-states.jsonl"
+            },
+            "artifact": {
+              "const": "ToS/source-witnesses/catalog/artifacts.jsonl"
+            }
           }
         }
       }
@@ -114,9 +127,23 @@
       }
     },
     "graph_layers": {
-      "type": "array", "minItems": 1, "maxItems": 5, "uniqueItems": true,
-      "prefixItems": [{"const": "bibliographic"}],
-      "items": {"enum": ["historical", "source-profile", "physical-artifact", "scholarly-composite"]}
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 5,
+      "uniqueItems": true,
+      "prefixItems": [
+        {
+          "const": "bibliographic"
+        }
+      ],
+      "items": {
+        "enum": [
+          "historical",
+          "source-profile",
+          "physical-artifact",
+          "scholarly-composite"
+        ]
+      }
     },
     "relation_model": {
       "type": "object",
@@ -215,8 +242,7 @@
       "additionalProperties": false,
       "required": [
         "authoritative_claims",
-        "projection_role",
-        "does_not_establish"
+        "projection_role"
       ],
       "properties": {
         "authoritative_claims": {
@@ -229,7 +255,7 @@
         },
         "does_not_establish": {
           "type": "array",
-          "minItems": 1,
+          "minItems": 0,
           "uniqueItems": true,
           "items": {
             "type": "string",
@@ -309,26 +335,86 @@
         },
         "properties": {
           "type": "object",
-          "description": "For provenance_event nodes, source_event preserves the complete source event. Growing inputs and outputs are exposed there once, not duplicated as flattened aliases; source_ref, source_line and source_sha256 bind the original evidence."
+          "description": "For provenance_event nodes, source_event preserves the complete source event, including all inputs and outputs. source_ref, source_line and source_sha256 bind the original evidence; the complete event is stored once."
         },
         "display": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["title", "summary", "summary_state", "provenance"],
+          "required": [
+            "title",
+            "summary",
+            "summary_state",
+            "provenance"
+          ],
           "properties": {
-            "title": {"type": "object", "additionalProperties": false, "required": ["default"], "properties": {"default": {"type": "string", "minLength": 1, "maxLength": 240}}},
-            "summary": {"type": "object", "additionalProperties": false, "required": ["default"], "properties": {"default": {"type": "string", "minLength": 1, "maxLength": 1024}}},
-            "summary_state": {"const": "metadata-synthesis"},
-            "provenance": {
-              "type": "object", "additionalProperties": false,
-              "required": ["title", "summary", "source_title_available", "source_summary_available", "human_form_authority", "source_ref"],
+            "title": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "default"
+              ],
               "properties": {
-                "title": {"enum": ["source-metadata-label", "catalogued-review-note-h1", "catalogued-research-lead-h1", "repository-filename-fallback", "citation-address-fallback", "source-slot-fallback"]},
-                "summary": {"const": "evidence-reference-navigation"},
-                "source_title_available": {"type": "boolean"},
-                "source_summary_available": {"const": false},
-                "human_form_authority": {"const": "none"},
-                "source_ref": {"$ref": "#/$defs/repoRelativePath"}
+                "default": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 240
+                }
+              }
+            },
+            "summary": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "default"
+              ],
+              "properties": {
+                "default": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1024
+                }
+              }
+            },
+            "summary_state": {
+              "const": "metadata-synthesis"
+            },
+            "provenance": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "title",
+                "summary",
+                "source_title_available",
+                "source_summary_available",
+                "human_form_authority",
+                "source_ref"
+              ],
+              "properties": {
+                "title": {
+                  "enum": [
+                    "source-metadata-label",
+                    "catalogued-review-note-h1",
+                    "catalogued-research-lead-h1",
+                    "repository-filename-fallback",
+                    "citation-address-fallback",
+                    "source-slot-fallback"
+                  ]
+                },
+                "summary": {
+                  "const": "evidence-reference-navigation"
+                },
+                "source_title_available": {
+                  "type": "boolean"
+                },
+                "source_summary_available": {
+                  "const": false
+                },
+                "human_form_authority": {
+                  "const": "none"
+                },
+                "source_ref": {
+                  "$ref": "#/$defs/repoRelativePath"
+                }
               }
             }
           }
@@ -513,8 +599,12 @@
         },
         "qualifiers": {
           "oneOf": [
-            {"type": "object"},
-            {"type": "null"}
+            {
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "maker_node_id": {
@@ -559,9 +649,15 @@
           }
         },
         "value_member_node_ids": {
-          "description": "Complete member set of an explicitly declared structured-reference value. These are structural Claim returns, not independently accepted memberships.",
-          "type": "array", "minItems": 1, "maxItems": 8, "uniqueItems": true,
-          "items": {"type": "string", "minLength": 1}
+          "description": "The complete member set of an explicitly declared structured-reference value. Each structural edge returns to the governing qualified Claim and its assessment context.",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
         },
         "review_status": {
           "enum": [

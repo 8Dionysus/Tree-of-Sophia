@@ -1,8 +1,8 @@
 # Eternal return concept candidate v1
 
 This pass turns “eternal return” into one stable, trackable annotation
-candidate over the complete four-part German/Russian technical corpus. It is a
-semantic dossier, not an accepted concept.
+candidate over the complete four-part German/Russian technical corpus. The semantic dossier retains candidate status for source-visible concept
+assessment.
 
 The evidence spine distinguishes four roles:
 

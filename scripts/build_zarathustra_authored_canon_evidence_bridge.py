@@ -45,18 +45,10 @@ BRIDGE_SCHEMA_REF = "ToS/contracts/authored-route-evidence-bridge-v1.schema.json
 PROVENANCE_SCHEMA_REF = "ToS/contracts/provenance-event-v2.schema.json"
 EVENT_ID = "tos.event.reconciliation.zarathustra-authored-canon-evidence-bridge.2026-08-12"
 LAYER_AUTHORITY_BOUNDARY = (
-    "a source text layer is one immutable, source-returnable representation with "
-    "explicit derivation, uncertainty, review, competence, rights, and use scope; "
-    "mechanical validation, model output, normalization, or agreement with another "
-    "layer does not make it accepted source text, translation evidence, linguistic "
-    "truth, semantic evidence, graph truth, canon authority, or publication permission"
+    "A source text layer preserves one immutable, source-returnable representation and its derivation, uncertainty, assessment, competence, rights and use scope."
 )
 BRIDGE_AUTHORITY_BOUNDARY = (
-    "the bridge proves exact representation and inventory closure only; it preserves "
-    "the authored route without converting its witness roles, review notes, nodes, or "
-    "relations into accepted German, accepted translation, semantic truth, modern human "
-    "attestation, claim-evidence closure, graph admission, canon revision, publication "
-    "permission, or server-transfer authority"
+    "The bridge records exact representation and inventory closure for the authored route, with source, review and permission records carrying their respective decisions."
 )
 
 
@@ -521,8 +513,7 @@ def _unit_packet(
             kind="paragraph",
             boundary_posture="source_attested",
             status_reason=(
-                "The boundary derives from one exact direct TEI p element after a separate "
-                "declared comparison normalization; it is not accepted German or semantics."
+                "The boundary derives from one exact direct TEI p element after the declared comparison normalization. German text acceptance and semantic assessment retain their separate review routes."
             ),
         )
         for unit_id, anchor_ref in zip(
@@ -536,9 +527,7 @@ def _unit_packet(
             kind="other",
             boundary_posture="method_proposed",
             status_reason=(
-                "The boundary is imported from the pre-existing authored twelve-segment route "
-                "and mechanically crosswalked only; older authored/review posture is not a "
-                "modern source, linguistic, translation, semantic, or human-review decision."
+                "The boundary is imported from the pre-existing authored twelve-segment route and mechanically crosswalked. Its older authored and review status is preserved; current source, linguistic, translation and semantic assessment follows the corresponding review routes."
             ),
         )
         for unit_id, anchor_ref in zip(
@@ -938,7 +927,10 @@ def _private_comparison(
         "authored_segment_count": len(rows),
         "authored_segments": rows,
         "complete_sequence_match": all(row["exact_match"] for row in rows),
-        "authority_boundary": "private mechanical comparison details only; no language, translation, semantic, review, or canon authority",
+        "authority_boundary": (
+            "Private details of the declared mechanical comparison, bound to the selected "
+            "source layers."
+        ),
     }
 
 
@@ -1086,7 +1078,7 @@ def _provenance_event(
             "warnings": [
                 "All twelve normalized German segment matches are mechanical representation evidence only.",
                 "Legacy review notes contain no modern machine-readable human attestation.",
-                "The bridge changes no source, translation, semantic, graph, canon, publication, or transfer authority.",
+                "Source, translation, semantics, graph assessment, canon, publication and transfer retain their existing authority and assessment status.",
             ],
         },
         "entities": {

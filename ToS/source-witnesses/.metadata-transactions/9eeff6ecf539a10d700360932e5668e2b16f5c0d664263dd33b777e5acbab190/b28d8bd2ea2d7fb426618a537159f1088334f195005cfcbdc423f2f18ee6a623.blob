@@ -1,0 +1,129 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-vaisberg-gershunin-typography-1907-third",
+    "version": 4,
+    "digest": "sha256:72d23b37f4153976dfb37173b071709ac70f82a65fa2e7f56845e4d401e7f964"
+  },
+  "forms": [
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.77cd7bdb72ee0964da71a9244f925b42117898ad0180e418acff30143805593b",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-vaisberg-gershunin-typography-1907-third",
+        "version": 4,
+        "digest": "sha256:72d23b37f4153976dfb37173b071709ac70f82a65fa2e7f56845e4d401e7f964"
+      },
+      "role": "name",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-vaisberg-gershunin-typography-1907-third",
+            "version": 4,
+            "digest": "sha256:72d23b37f4153976dfb37173b071709ac70f82a65fa2e7f56845e4d401e7f964"
+          },
+          "pointer": "/preferred_label"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-vaisberg-gershunin-typography-1907-third",
+            "version": 4,
+            "digest": "sha256:72d23b37f4153976dfb37173b071709ac70f82a65fa2e7f56845e4d401e7f964"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-vaisberg-gershunin-typography-1907-third",
+            "version": 4,
+            "digest": "sha256:72d23b37f4153976dfb37173b071709ac70f82a65fa2e7f56845e4d401e7f964"
+          },
+          "pointer": "/same_as_posture"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    },
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.a55d93f78153cfe6bcc448be0256758387dd303c712a37888c3d4050eef35cd4",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-vaisberg-gershunin-typography-1907-third",
+        "version": 4,
+        "digest": "sha256:72d23b37f4153976dfb37173b071709ac70f82a65fa2e7f56845e4d401e7f964"
+      },
+      "role": "hover",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-vaisberg-gershunin-typography-1907-third",
+            "version": 4,
+            "digest": "sha256:72d23b37f4153976dfb37173b071709ac70f82a65fa2e7f56845e4d401e7f964"
+          },
+          "pointer": "/notes"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-vaisberg-gershunin-typography-1907-third",
+            "version": 4,
+            "digest": "sha256:72d23b37f4153976dfb37173b071709ac70f82a65fa2e7f56845e4d401e7f964"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-vaisberg-gershunin-typography-1907-third",
+            "version": 4,
+            "digest": "sha256:72d23b37f4153976dfb37173b071709ac70f82a65fa2e7f56845e4d401e7f964"
+          },
+          "pointer": "/same_as_posture"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation-source-forms-v1:tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-vaisberg-gershunin-typography-1907-third",
+      "request_digest": "sha256:bbbb9e09327c99bb7bb16cc010e3fd095abdc450acd6daf8bef780b672871f3d",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-07",
+      "owner_configuration": "sha256:9fa07ef54b6bb64385a108951907dbe327d2ed86a7376585d09e73432b5ccb9b",
+      "recorded_at": "2026-09-07T03:13:28.659454+00:00",
+      "source": {
+        "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-vaisberg-gershunin-typography-1907-third",
+        "version": 4,
+        "digest": "sha256:72d23b37f4153976dfb37173b071709ac70f82a65fa2e7f56845e4d401e7f964"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.77cd7bdb72ee0964da71a9244f925b42117898ad0180e418acff30143805593b",
+          "version": 1,
+          "digest": "sha256:5019ea17ac16720346f02215864b1b5658325296eb9e62c3dc87cff0a5ab42cf"
+        },
+        {
+          "id": "tos.form.metadata.a55d93f78153cfe6bcc448be0256758387dd303c712a37888c3d4050eef35cd4",
+          "version": 1,
+          "digest": "sha256:990b7c2eb745641090b13c9a5fdf989d6f2da2da81742707e8e107c5b998b822"
+        }
+      ]
+    }
+  ]
+}

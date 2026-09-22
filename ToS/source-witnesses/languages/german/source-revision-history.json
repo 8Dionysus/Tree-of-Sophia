@@ -1,0 +1,93 @@
+{
+  "schema_version": "tos_source_revision_history_v1",
+  "record_id": "tos.language.german",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:334f08dd3eefaa7ad655de5d",
+      "request_digest": "sha256:a6f1a5d9eac914034789d25ded8635a7fc7cc64eacd57ddac78eec89ab1321e6",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:d6e5fb840351ce9f568949c21350dd1adf1631e084cb46a897f35a2d9ebaaf80",
+      "recorded_at": "2026-09-22T05:05:16.137181+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.language.german",
+        "version": 1,
+        "digest": "sha256:df8653741b9e1b011a268a45fad67e882ec96ddd157237dc18e69ede34200edc"
+      },
+      "source": {
+        "id": "tos.language.german",
+        "version": 2,
+        "digest": "sha256:8d8b13d50ae580a2fa5e25547bfbc39401855decc154d22c07a3e309f2817995"
+      },
+      "previous_revision": "sha256:2995f717b89b2e2c6223bc539e1726f543aaebc7601586dc17becb19185c9c1a",
+      "archive_path": "ToS/source-witnesses/.record-revisions/334f08dd3eefaa7ad655de5d65615efb0cd961a0b290bd734b71d5ccb7b3ac0c-2995f717b89b2e2c6223bc539e1726f543aaebc7601586dc17becb19185c9c1a",
+      "dependencies": "sha256:e2c3b0e5c30dfc00ab6bdaf89fb15006dd74253e1c0551d2e2c8c83ddb82d84b",
+      "changed_fields": [
+        "notes",
+        "semantic_content",
+        "semantic_scope"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.lexical.german.name-ru",
+          "version": 2,
+          "digest": "sha256:c9ad0a2fc3c626751e5a2af762756aa9c3361ce50cc2f4fe5d9941d818f9a905"
+        },
+        {
+          "id": "tos.form.lexical.german.name-en",
+          "version": 2,
+          "digest": "sha256:455222689a1b6a18a608db2fd3d7bb0aa47b40e11922fa6f62b12f8a8e3027e5"
+        },
+        {
+          "id": "tos.form.lexical.german.note-ru",
+          "version": 2,
+          "digest": "sha256:71bf9f837e34b0b60c5abfdd2ebbae34fcd7f9746f18d1484450c5e097292145"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:334f08dd3eefaa7ad655de5d",
+        "expected_configuration": "sha256:d6e5fb840351ce9f568949c21350dd1adf1631e084cb46a897f35a2d9ebaaf80",
+        "expected_dependencies": "sha256:e2c3b0e5c30dfc00ab6bdaf89fb15006dd74253e1c0551d2e2c8c83ddb82d84b",
+        "expected_revision": "sha256:2995f717b89b2e2c6223bc539e1726f543aaebc7601586dc17becb19185c9c1a",
+        "expected_source": {
+          "digest": "sha256:df8653741b9e1b011a268a45fad67e882ec96ddd157237dc18e69ede34200edc",
+          "id": "tos.language.german",
+          "version": 1
+        },
+        "fields": {
+          "notes": "Немецкий язык как языковая система, в контексте исследования немецкого текста JGB 19.",
+          "semantic_content": {
+            "language": "ru",
+            "script": "Cyrl",
+            "system_account": "Немецкий язык как предмет исследования, рассматриваемый здесь в связи с лексическим разбором JGB 19."
+          },
+          "semantic_scope": {
+            "identity_criterion": "Идентичность определяется исследуемым языком и сохраняется при уточнении описаний. Сопоставление с другими языковыми предметами требует самостоятельного основания.",
+            "language": "ru",
+            "scope_note": "Немецкий язык; исторические разновидности и отдельные употребления рассматриваются отдельно.",
+            "script": "Cyrl"
+          }
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.lexical.german.name-ru"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.lexical.german.name-en"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.lexical.german.note-ru"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    }
+  ]
+}

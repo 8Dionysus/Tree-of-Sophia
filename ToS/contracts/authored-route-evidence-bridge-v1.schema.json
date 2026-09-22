@@ -100,9 +100,7 @@
       }
     },
     "effects": {"$ref": "#/$defs/effects"},
-    "authority_boundary": {
-      "const": "the bridge proves exact representation and inventory closure only; it preserves the authored route without converting its witness roles, review notes, nodes, or relations into accepted German, accepted translation, semantic truth, modern human attestation, claim-evidence closure, graph admission, canon revision, publication permission, or server-transfer authority"
-    }
+    "authority_boundary": {"type": "string", "minLength": 1, "description": "Brief account of the artifact purpose and scope. Typed status, effects, assessment and permission fields govern its use."}
   },
   "$defs": {
     "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},

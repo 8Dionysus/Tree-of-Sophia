@@ -174,7 +174,7 @@ def _validate_record(config, record):
                 or record['record_id'] != config['record_id']):
             raise PermissionError('native correction must match the exact delegated Corpus descriptor')
         return {profile['schema_ref']: source._digest(schema_raw)}
-    if config['schema_version'] == source.PROFILE_REVISION_CONFIG:
+    if config['schema_version'] in source.PROFILE_REVISION_CONFIGS:
         profiles, profile = source._configured_profile(config)
         profiles.validate(profile['record_type'], record)
         return source._profile_input_snapshot(profiles)
@@ -403,7 +403,7 @@ def run_revision(owner, config, configuration, path, request):
             'allowed_fields': config['allowed_fields'], 'allowed_form_ids': config['allowed_form_ids'],
             **({'profile_type_id': config['profile_type_id'],
                 'source_record_profile': source._configured_profile(config)[1]}
-               if config['schema_version'] == source.PROFILE_REVISION_CONFIG else {}),
+               if config['schema_version'] in source.PROFILE_REVISION_CONFIGS else {}),
             **({'record_type': config['record_type'], 'source_profile': source._configured_corpus_profile(config)}
                if config['schema_version'] == source.CORPUS_REVISION_CONFIG else {}),
             'receipt': receipt, 'replayed': replayed, 'grants_admission': False,
@@ -495,5 +495,9 @@ def command_handlers():
              ('ToS/contracts/historical-record.schema.json',), 'HistoricalEvent, HistoricalProcess or HistoricalState under its exact source schema.'),
             ('public-profile-revision', source.PROFILE_REVISION_CONFIG, 'Correct one declared public metadata profile.',
              contract.RECORD_HANDLES, 'Explicit profile_type_id selects the existing source_record_profile and schema, not write authority.'),
+            ('public-profile-scope-revision', source.PROFILE_SCOPE_REVISION_CONFIG,
+             'Revise an explicitly selected research scope description while retaining its subject and history.',
+             contract.RECORD_HANDLES,
+             'Explicit profile_type_id and semantic_scope field delegation select a source-reviewed wording correction.'),
             ('native-corpus-flat-revision', source.CORPUS_REVISION_CONFIG, 'Correct standalone native public metadata in a flat source home.',
              ('ToS/contracts/corpus-record.schema.json',), 'Agent, Place, Organization or Work; nested selected-file correction is a separate v2 grant.')))

@@ -44,7 +44,7 @@ def main() -> int:
         print(rendered, end="")
         return 0
     if args.check and args.selection_mode == "readiness":
-        print("[ok] readiness plan references, digests and selection; no acquisition or semantic acceptance")
+        print("[ok] readiness plan references, digests and selection verified")
         return 0
     if args.check:
         issues = check_output(REPO_ROOT, rendered)

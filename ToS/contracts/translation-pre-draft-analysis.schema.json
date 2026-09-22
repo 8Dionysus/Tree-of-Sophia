@@ -207,9 +207,7 @@
       "uniqueItems": true,
       "items": {"$ref": "#/$defs/tosId"}
     },
-    "authority_boundary": {
-      "const": "blind pre-draft linguistic and philological evidence only; this packet contains no translation draft, recognized comparator content, accepted etymology without citation, semantic sign decision, or graph claim"
-    },
+    "authority_boundary": {"type": "string", "minLength": 1, "description": "Brief account of the artifact purpose and scope. Typed status, effects, assessment and permission fields govern its use."},
     "packet_version": {"type": "integer", "minimum": 1},
     "supersedes_packet_ref": {
       "anyOf": [

@@ -1,0 +1,94 @@
+{
+  "schema_version": "tos_source_revision_history_v1",
+  "record_id": "tos.thesis.drives-only-given-jgb36",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:49df701ef846301e4722659f",
+      "request_digest": "sha256:ca44ff0cdbb8f1f137a07d4865ec951f262c98c6dd3895d9dafa4840937eb958",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:65627c8d236c8c8b58a6dbb0bc5bdbff49639b2e2c591c91a78c7a6bf4078ae7",
+      "recorded_at": "2026-09-22T05:07:40.712454+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.thesis.drives-only-given-jgb36",
+        "version": 1,
+        "digest": "sha256:146f13b1eed77d786438545dc56b2cbf18f6ad26ed8e3acef4bf09f845ad91e0"
+      },
+      "source": {
+        "id": "tos.thesis.drives-only-given-jgb36",
+        "version": 2,
+        "digest": "sha256:658b9ae7752d4cfe7166b97cc5f6e53c3da5b67296f552fdc3d96b20720a9aee"
+      },
+      "previous_revision": "sha256:c5fd41c7c8bdcc47c5f91d86c280262892600462edbccd17a332fb1c03b528cd",
+      "archive_path": "ToS/source-witnesses/.record-revisions/49df701ef846301e4722659f1921cee4ed2311f491a2f5599f60fef5f152191d-c5fd41c7c8bdcc47c5f91d86c280262892600462edbccd17a332fb1c03b528cd",
+      "dependencies": "sha256:2a608575334accc28ce2cf344c2152b471be4c83b8eb34ddee8c4077f3a5500f",
+      "changed_fields": [
+        "notes",
+        "semantic_content",
+        "semantic_scope"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.thesis.drives-only-given-jgb36.name-ru",
+          "version": 2,
+          "digest": "sha256:084d000cf4e6818219a04209eb7e6f7cdec2efd538707cc7919a2825c89bfaae"
+        },
+        {
+          "id": "tos.form.thesis.drives-only-given-jgb36.name-en",
+          "version": 2,
+          "digest": "sha256:bdeed4f1bf25fa9e48b416c8ba239051e43d8ea752f901838d792fabe8c422a9"
+        },
+        {
+          "id": "tos.form.thesis.drives-only-given-jgb36.note-ru",
+          "version": 2,
+          "digest": "sha256:a829d2634e875e116fe165d95c520337bf4515849d9ce08a6bc48ea4d32e84ec"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:49df701ef846301e4722659f",
+        "expected_configuration": "sha256:65627c8d236c8c8b58a6dbb0bc5bdbff49639b2e2c591c91a78c7a6bf4078ae7",
+        "expected_dependencies": "sha256:2a608575334accc28ce2cf344c2152b471be4c83b8eb34ddee8c4077f3a5500f",
+        "expected_revision": "sha256:c5fd41c7c8bdcc47c5f91d86c280262892600462edbccd17a332fb1c03b528cd",
+        "expected_source": {
+          "digest": "sha256:146f13b1eed77d786438545dc56b2cbf18f6ad26ed8e3acef4bf09f845ad91e0",
+          "id": "tos.thesis.drives-only-given-jgb36",
+          "version": 1
+        },
+        "fields": {
+          "notes": "Начальное допущение §36 ограничивает данную нам реальность миром влечений и страстей. В реконструкции оно занимает роль условия, предоставленного для испытания.",
+          "semantic_content": {
+            "assertion_force": "Hypothetically granted opening condition.",
+            "language": "en",
+            "proposition": "Suppose that no reality other than our world of drives and passions is given to us for this inquiry.",
+            "script": "Latn"
+          },
+          "semantic_scope": {
+            "identity_criterion": "Retain the proposition while its modal force and given-to-us scope concern this opening supposition; changing it into an unconditional ontological claim changes the subject under examination.",
+            "language": "en",
+            "scope_note": "The opening supposition of JGB 36 concerns the reality given to us for this inquiry.",
+            "script": "Latn"
+          }
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.thesis.drives-only-given-jgb36.name-ru"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.thesis.drives-only-given-jgb36.name-en"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.thesis.drives-only-given-jgb36.note-ru"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    }
+  ]
+}

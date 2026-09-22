@@ -1,7 +1,7 @@
 # Experience Provenance Bridge
 
 This is the active bridge from current Experience routes to former-path
-accounting. It is not the archive itself.
+accounting. The package-local legacy archive preserves the former source material.
 
 ## Current Route First
 

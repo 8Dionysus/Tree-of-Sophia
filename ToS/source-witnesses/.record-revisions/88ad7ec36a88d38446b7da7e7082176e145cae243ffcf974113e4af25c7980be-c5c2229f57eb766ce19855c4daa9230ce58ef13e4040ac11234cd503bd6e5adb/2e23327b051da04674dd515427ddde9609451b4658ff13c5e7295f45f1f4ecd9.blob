@@ -1,0 +1,127 @@
+{
+  "schema_version": "tos_claim_revision_history_v1",
+  "source_path": "ToS/source-witnesses/relations/jgb-practice-research/source-claims.jsonl",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:c988c7f91095c5835e5f1f40",
+      "request_digest": "sha256:2d05b2b38c8fd2423b8b605bf24cdefd4b8bea7f16ee9b7c5d050d7f9c920785",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:b1cebbfd588e9447fbe53baee865609c5d2325372ab5d10d8840f06484395b7a",
+      "recorded_at": "2026-09-22T06:36:56.139383+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+      "previous_source": {
+        "id": "tos.claim.jgb-practice-method-operation",
+        "version": 1,
+        "digest": "sha256:89fb28f33256f86f7ce4d633204bf7426f28d745a845ffd510bdb8ad83b95f74"
+      },
+      "source": {
+        "id": "tos.claim.jgb-practice-method-operation",
+        "version": 2,
+        "digest": "sha256:83a52037349faf9f93bc58fce145361265cb756356af64ae98d7c39b4dbe91f5"
+      },
+      "previous_revision": "sha256:9b089c8faddffa6f27b1b7b462a0b6c4a152d112c35042cac56431bbdf2cd71a",
+      "archive_path": "ToS/source-witnesses/.record-revisions/c988c7f91095c5835e5f1f40bc8f7368ce9812c91e78a3722d5d39d050a0a756-9b089c8faddffa6f27b1b7b462a0b6c4a152d112c35042cac56431bbdf2cd71a",
+      "dependencies": "sha256:f07aee8dab6286d4463249fb8bb8c13efc0e5eb30e2433f8a911339be683e8d0",
+      "source_bindings": {
+        "objects": {
+          "tos.thought-method.single-causality-trial-jgb36": {
+            "source_ref": "ToS/source-witnesses/semantic-descriptions/thought-method-single-causality-trial-jgb36/thought-method.json",
+            "source_sha256": "sha256:fe518ce10ff2efa3d7922a25680d1cf8f3db0ee8cba71183dd37802b84e52967",
+            "canonical_record_sha256": "sha256:015bf171eef139bd1d82120dcc8b1f98e2577989697768ae7856e65be6b1c8a9",
+            "schema_version": "tos_thought_practice_record_v1",
+            "record_version": 2
+          },
+          "tos.thought-operation.provisionally-posit-will-causality-jgb36": {
+            "source_ref": "ToS/source-witnesses/semantic-descriptions/thought-operation-provisionally-posit-will-causality-jgb36/thought-operation.json",
+            "source_sha256": "sha256:60e37503d6263bab97bede6d0d01676fc6a61d5f2b4368c353c3603d579d2490",
+            "canonical_record_sha256": "sha256:5378f495a75758129cdb19661ff48a60a855f69931e8e85a876302031310354a",
+            "schema_version": "tos_thought_practice_record_v1",
+            "record_version": 2
+          }
+        },
+        "evidence": {
+          "ToS/review-ledger/2026-09-07-jgb-practice-source-reading.md": {
+            "source_ref": "ToS/review-ledger/2026-09-07-jgb-practice-source-reading.md",
+            "source_sha256": "sha256:88f7db993a135652369a4f590a47a0a685209a94b65832d07ba88aa6b7f4eb58",
+            "source_line": null,
+            "evidence_kind": "repo_path"
+          }
+        }
+      },
+      "changed_fields": [
+        "qualifiers"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.jgb-practice-method-operation.statement-ru",
+          "version": 2,
+          "digest": "sha256:b73a170ec0fadc41594fbcd04506fdce62aef58809eb39e83177aa80bb590fe4"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:c988c7f91095c5835e5f1f40",
+        "expected_configuration": "sha256:b1cebbfd588e9447fbe53baee865609c5d2325372ab5d10d8840f06484395b7a",
+        "expected_dependencies": "sha256:f07aee8dab6286d4463249fb8bb8c13efc0e5eb30e2433f8a911339be683e8d0",
+        "expected_inputs": {
+          "evidence": {
+            "ToS/review-ledger/2026-09-07-jgb-practice-source-reading.md": {
+              "evidence_kind": "repo_path",
+              "source_line": null,
+              "source_ref": "ToS/review-ledger/2026-09-07-jgb-practice-source-reading.md",
+              "source_sha256": "sha256:88f7db993a135652369a4f590a47a0a685209a94b65832d07ba88aa6b7f4eb58"
+            }
+          },
+          "objects": {
+            "tos.thought-method.single-causality-trial-jgb36": {
+              "canonical_record_sha256": "sha256:015bf171eef139bd1d82120dcc8b1f98e2577989697768ae7856e65be6b1c8a9",
+              "record_version": 2,
+              "schema_version": "tos_thought_practice_record_v1",
+              "source_ref": "ToS/source-witnesses/semantic-descriptions/thought-method-single-causality-trial-jgb36/thought-method.json",
+              "source_sha256": "sha256:fe518ce10ff2efa3d7922a25680d1cf8f3db0ee8cba71183dd37802b84e52967"
+            },
+            "tos.thought-operation.provisionally-posit-will-causality-jgb36": {
+              "canonical_record_sha256": "sha256:5378f495a75758129cdb19661ff48a60a855f69931e8e85a876302031310354a",
+              "record_version": 2,
+              "schema_version": "tos_thought_practice_record_v1",
+              "source_ref": "ToS/source-witnesses/semantic-descriptions/thought-operation-provisionally-posit-will-causality-jgb36/thought-operation.json",
+              "source_sha256": "sha256:60e37503d6263bab97bede6d0d01676fc6a61d5f2b4368c353c3603d579d2490"
+            }
+          }
+        },
+        "expected_revision": "sha256:9b089c8faddffa6f27b1b7b462a0b6c4a152d112c35042cac56431bbdf2cd71a",
+        "expected_source": {
+          "digest": "sha256:89fb28f33256f86f7ce4d633204bf7426f28d745a845ffd510bdb8ad83b95f74",
+          "id": "tos.claim.jgb-practice-method-operation",
+          "version": 1
+        },
+        "fields": {
+          "qualifiers": {
+            "relation_basis": "The passage's one-kind trial is concretized by hypothetically positing will-causality if will is acknowledged as effective.",
+            "relation_basis_language": "en",
+            "relation_basis_script": "Latn",
+            "scope": "Provisional passage-bound research; no calibrated assessment, admission, unconditional ontology, actual ideal bearer, successful reduction or canon assertion.",
+            "source_locator": [
+              "http://www.nietzschesource.org/eKGWB/JGB-36"
+            ],
+            "source_representation_sha256": "143d6330c94bf00b135f887eeed5f20f6caee6a98174746227af255583ae8b20",
+            "source_section": "JGB 36",
+            "statement": "Метод испытания одной причинности использует условное полагание волевой причинности единственной. Достаточность этой причинности остаётся предметом испытания.",
+            "statement_language": "ru",
+            "statement_script": "Cyrl"
+          }
+        },
+        "forms": [
+          {
+            "field_id": "claim.statement",
+            "form_id": "tos.form.jgb-practice-method-operation.statement-ru"
+          }
+        ],
+        "operation": "claim.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    }
+  ]
+}

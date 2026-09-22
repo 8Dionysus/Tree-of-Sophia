@@ -36,11 +36,7 @@ PROVENANCE_SCHEMA = Path("ToS/contracts/provenance-event.schema.json")
 GENERATOR_REF = "scripts/build_zarathustra_usage_context_bundle.py"
 QUESTION_ID = "zarathustra-work-identity-control-context-v1"
 AUTHORITY_BOUNDARY = (
-    "private complete exact-form usage-context materialization for one "
-    "preselected method control plus a tracked source-withholding receipt; "
-    "no accepted German, sentence boundary, morphology, lemma, lexeme, "
-    "translation correspondence, sign candidate, sign, concept, claim, "
-    "relation, graph, canon, public route, or human backlog"
+    "This bundle materializes complete private exact-form usage context for one preselected method control and records the associated source-withholding receipt."
 )
 ROW_FIELDS = [
     "schema_version",
@@ -657,9 +653,9 @@ def build_provenance(
         "status": "completed_with_warnings",
         "warnings": [
             "the local bundle contains exact sequential source context and remains ignored mode-0600 local-only material",
-            "a fixed page-bounded token window is a transparent concordance baseline and not an accepted sentence or sense boundary",
-            "the preselected identity control is not a recurrence winner, sign candidate, or claim of one stable linguistic identity",
-            "the tracked receipt contains no exact strings, sequence, context, occurrence positions, morphology, translation, semantic label, graph edge, or human judgment",
+            "A fixed page-bounded token window supplies the concordance baseline; sentence and sense boundaries require their own source-visible assessment.",
+            "The preselected identity control anchors the comparison; recurrence ranking, sign candidacy and linguistic identity require their own assessment.",
+            "The tracked receipt carries text-free identities, fixity and provenance; exact source context remains in the private local bundle.",
             "future public use requires independently reacquired publication material and a fresh rights and operator approval gate",
         ],
         "receipt_refs": [

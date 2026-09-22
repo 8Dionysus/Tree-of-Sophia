@@ -1,0 +1,93 @@
+{
+  "schema_version": "tos_source_revision_history_v1",
+  "record_id": "tos.rhetorical-figure.preparatory-role-enumeration-jgb211",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:94ba9a741733f1708f702988",
+      "request_digest": "sha256:0a0677fa94c30d221146770031b21ae767b8b05e79c9f31aee6c32a8e4004889",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:2c60151741d50b6ce5d962ae9aa6e0ae7e69ee3debf4adecdeb2dbef3cab18e6",
+      "recorded_at": "2026-09-22T05:07:35.004827+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.rhetorical-figure.preparatory-role-enumeration-jgb211",
+        "version": 1,
+        "digest": "sha256:1f91e7d563bfa635248ccccbb7bec4143aae23e77e36d4c93dd3188cbe38c920"
+      },
+      "source": {
+        "id": "tos.rhetorical-figure.preparatory-role-enumeration-jgb211",
+        "version": 2,
+        "digest": "sha256:5bb6c605821729a8accd2448d55e542798dd02a8e6b344226f29e086018c10ff"
+      },
+      "previous_revision": "sha256:ce532f5801be34b0bbc03dc8e1b33e589beb792e1ac0b774ade518b1f4149c49",
+      "archive_path": "ToS/source-witnesses/.record-revisions/94ba9a741733f1708f7029885aa3693732de8dc1daf4413a305a99699151ef96-ce532f5801be34b0bbc03dc8e1b33e589beb792e1ac0b774ade518b1f4149c49",
+      "dependencies": "sha256:e5921a25152f776dce88be3f5d47601fcb16d877ca21d77d52431686ab100212",
+      "changed_fields": [
+        "notes",
+        "semantic_content",
+        "semantic_scope"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.rhetorical-figure.preparatory-role-enumeration-jgb211.name-ru",
+          "version": 2,
+          "digest": "sha256:d2f6889af1afb58a579a47fe16aa8bc86e9db87316656abb05a6f039e3f55d4c"
+        },
+        {
+          "id": "tos.form.rhetorical-figure.preparatory-role-enumeration-jgb211.name-en",
+          "version": 2,
+          "digest": "sha256:c4c40cb9b039c91fd3d1e86832a0bfb1062c70c4a55319eae1cb367e038df6bd"
+        },
+        {
+          "id": "tos.form.rhetorical-figure.preparatory-role-enumeration-jgb211.note-ru",
+          "version": 2,
+          "digest": "sha256:2f531dea94fadb580f95980b55acce6ca0f2d1771519fdfa8a3860914df503f1"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:94ba9a741733f1708f702988",
+        "expected_configuration": "sha256:2c60151741d50b6ce5d962ae9aa6e0ae7e69ee3debf4adecdeb2dbef3cab18e6",
+        "expected_dependencies": "sha256:e5921a25152f776dce88be3f5d47601fcb16d877ca21d77d52431686ab100212",
+        "expected_revision": "sha256:ce532f5801be34b0bbc03dc8e1b33e589beb792e1ac0b774ade518b1f4149c49",
+        "expected_source": {
+          "digest": "sha256:1f91e7d563bfa635248ccccbb7bec4143aae23e77e36d4c93dd3188cbe38c920",
+          "id": "tos.rhetorical-figure.preparatory-role-enumeration-jgb211",
+          "version": 1
+        },
+        "fields": {
+          "notes": "В §211 ряд возможных подготовительных ролей — критика, скептика, историка и других — расширяет перспективы, которые могут предшествовать задаче создания ценностей. Перечисление рассматривается как риторическая организация этого места.",
+          "semantic_content": {
+            "figure_account": "An accumulating enumeration of possible preparatory roles presents many perspectives before distinguishing the philosopher’s value-creating task. The passage qualifies the necessity of these preparations.",
+            "language": "en",
+            "script": "Latn"
+          },
+          "semantic_scope": {
+            "identity_criterion": "Retain this figure while describing that enumeration's preparation-versus-task organization; a different passage or rhetorical arrangement needs its own referent.",
+            "language": "en",
+            "scope_note": "The rhetorical enumeration of possible preparatory perspectives in JGB 211.",
+            "script": "Latn"
+          }
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.rhetorical-figure.preparatory-role-enumeration-jgb211.name-ru"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.rhetorical-figure.preparatory-role-enumeration-jgb211.name-en"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.rhetorical-figure.preparatory-role-enumeration-jgb211.note-ru"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    }
+  ]
+}

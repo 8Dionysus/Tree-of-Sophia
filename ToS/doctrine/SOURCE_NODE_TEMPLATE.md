@@ -1,9 +1,7 @@
 # Source Node Template
 
-This document records the current sixth-phase ToS scaffold for source nodes.
-
-The point is not to force every source into one rigid mold.
-The point is to give the first public source-node surface a reviewable minimum shape.
+A source node gives a work, passage, fragment or excerpt a stable authored
+handle. Its anchor lets readers return from interpretation to the source.
 
 ## Core fields
 
@@ -17,7 +15,7 @@ A source-node scaffold should expose at least:
 - `relations`
 - `interpretation_layers`
 
-These fields should remain visibly tied to the first-phase node contract.
+These fields follow the shared [node contract](NODE_CONTRACT.md).
 
 In a bounded multilingual source entry, a source node may also expose:
 
@@ -34,7 +32,8 @@ Use the source-node scaffold when:
 - the reader needs a stable authored handle for a work, passage, fragment, or excerpt
 - later interpretation should remain visibly downstream of the source
 
-When multilingual source entry is needed, keep one source node with multiple witness layers rather than cloning the node by language.
+For multilingual source entry, keep one source node with separately identified
+witness layers for each language.
 
 ## Multilingual witness posture
 
@@ -48,11 +47,11 @@ Keep the witness posture:
 - segment-aligned across languages
 - explicit enough to distinguish source witness, published translation, and maintainer-curated witness where that difference matters
 
-The role vocabulary is local to the authored node. A `canonical_source` role
-does not replace exact Edition/Item/File, immutable text-layer, selector, and
-philological-review evidence. A `working_translation` or `bridge_translation`
-role does not mean the translation has passed the modern translation packet,
-language-competence, or Human Gold gates.
+The role vocabulary describes each witness's function in the authored node.
+Edition/Item/File identity, immutable text layers, selectors and philological
+assessment retain their exact source records. Translation quality and
+competence are established through the translation packet and its scoped
+assessment.
 
 A bounded multilingual source entry may also expose optional witness provenance fields such as:
 
@@ -64,16 +63,13 @@ A bounded multilingual source entry may also expose optional witness provenance 
 
 Each witness segment may also expose an optional `locator`.
 
-Use these only when they make the witness posture easier to inspect without inflating the scaffold into a full bibliographic program.
+Use these fields to identify the witness and the contributors responsible for
+it. Detailed bibliographic records belong to the source-witness owner.
 
 Use `translation_tensions` only where witness drift is philosophically load-bearing.
 
 ## Worked scaffold
 
-The current worked example now also serves as the first bounded trilingual Zarathustra source-entry route.
-
-It should be read as:
-
-- one coherent example set
-- one bounded source-facing opening rather than wider plurality
-- not a monopoly of future corpus direction
+The worked example serves the trilingual Zarathustra source-entry route.
+It shows one source node with aligned witnesses and their provenance. Further
+sources use the shared contract and their own source and review evidence.

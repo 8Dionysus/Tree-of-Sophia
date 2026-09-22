@@ -1,0 +1,86 @@
+{
+  "schema_version": "tos_source_revision_history_v1",
+  "record_id": "tos.objection.against-reversal-jgb21",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:f07d712d9ea9d35a447781f6",
+      "request_digest": "sha256:11b37005e3678ac0e1780c37f7354221233cba9e047f59f14664eb62db4caf15",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:5418278dd789ea614874dccb0ed633f21b1226aabca952ae5cde250e6bca4c49",
+      "recorded_at": "2026-09-22T05:07:03.157781+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.objection.against-reversal-jgb21",
+        "version": 1,
+        "digest": "sha256:d5641c7a9b404b1018ddbd990043eb3d081b64306555c457ace103991691ce48"
+      },
+      "source": {
+        "id": "tos.objection.against-reversal-jgb21",
+        "version": 2,
+        "digest": "sha256:8d496de9fbd9a90f8188b22e2e44bb5fc7627e04967e67c925dca6221018e892"
+      },
+      "previous_revision": "sha256:5bd879f1cad5ab5596d3a22826f0c1fcfd328fdfecf97f96dde9fd86c7097e2d",
+      "archive_path": "ToS/source-witnesses/.record-revisions/f07d712d9ea9d35a447781f625762e432f775c9f96e71b9b0a6c733249f9f9c2-5bd879f1cad5ab5596d3a22826f0c1fcfd328fdfecf97f96dde9fd86c7097e2d",
+      "dependencies": "sha256:2a608575334accc28ce2cf344c2152b471be4c83b8eb34ddee8c4077f3a5500f",
+      "changed_fields": [
+        "notes",
+        "semantic_content"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.objection.against-reversal-jgb21.name-ru",
+          "version": 2,
+          "digest": "sha256:fbfa650fa9cc58c3b72287f33a0f37bef4dadae0b4925bc0bb970e3ffe124d64"
+        },
+        {
+          "id": "tos.form.objection.against-reversal-jgb21.name-en",
+          "version": 2,
+          "digest": "sha256:662fd34de31b2370b27d2e43264abeb8bfaefa66e02684d7de2a1900c72dd8c1"
+        },
+        {
+          "id": "tos.form.objection.against-reversal-jgb21.note-ru",
+          "version": 2,
+          "digest": "sha256:11336eb82026689650c85ba7eb7cda9f47d1d983cce7b98d89dc16f81998ac60"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:f07d712d9ea9d35a447781f6",
+        "expected_configuration": "sha256:5418278dd789ea614874dccb0ed633f21b1226aabca952ae5cde250e6bca4c49",
+        "expected_dependencies": "sha256:2a608575334accc28ce2cf344c2152b471be4c83b8eb34ddee8c4077f3a5500f",
+        "expected_revision": "sha256:5bd879f1cad5ab5596d3a22826f0c1fcfd328fdfecf97f96dde9fd86c7097e2d",
+        "expected_source": {
+          "digest": "sha256:d5641c7a9b404b1018ddbd990043eb3d081b64306555c457ace103991691ce48",
+          "id": "tos.objection.against-reversal-jgb21",
+          "version": 1
+        },
+        "fields": {
+          "notes": "§21 требует не ограничиваться отказом от метафизически свободной воли и оспаривает механистически несвободную волю, связывая её с овеществлением причин и действий. Возражение адресовано переходу от критики одной трактовки к принятию другой.",
+          "semantic_content": {
+            "challenge_account": "The rejection of metaphysical free will does not warrant accepting its mechanistic opposite. JGB 21 also criticizes the unfree will and the reification of cause and effect. The objection addresses this specific reversal.",
+            "language": "en",
+            "script": "Latn"
+          }
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.objection.against-reversal-jgb21.name-ru"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.objection.against-reversal-jgb21.name-en"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.objection.against-reversal-jgb21.note-ru"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    }
+  ]
+}

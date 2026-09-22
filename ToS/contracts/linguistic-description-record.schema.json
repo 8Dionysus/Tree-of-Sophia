@@ -56,7 +56,7 @@
               "system_account": {
                 "type": "string",
                 "pattern": "\\S",
-                "description": "A source-grounded description of the language as a research referent, not a code or one written realization."
+                "description": "A source-grounded account of the language as a research referent, including its scope and distinguishing features."
               }
             }
           }
@@ -97,7 +97,7 @@
               "distinguishing_basis": {
                 "type": "string",
                 "pattern": "\\S",
-                "description": "The linguistic, social or historical criterion and its limits, not a universal test separating languages and dialects."
+                "description": "The linguistic, social or historical criterion used to identify this variety, with its scope and limits."
               }
             }
           }
@@ -133,7 +133,7 @@
               "script_account": {
                 "type": "string",
                 "pattern": "\\S",
-                "description": "A source-grounded description of a writing system or explicitly scoped writing tradition, not a spoken language."
+                "description": "A source-grounded account of the writing system or explicitly scoped writing tradition."
               },
               "sign_inventory_scope": {
                 "type": "string",
@@ -174,12 +174,12 @@
               "mapping_convention": {
                 "type": "string",
                 "pattern": "\\S",
-                "description": "A source-described notation and mapping convention, not a translation or an executed text transformation."
+                "description": "The described notation and mapping convention, with its stated input and representation rules. Executed transformations retain their own provenance."
               },
               "coverage_and_loss": {
                 "type": "string",
                 "pattern": "\\S",
-                "description": "What the convention represents, leaves ambiguous or omits; reversibility requires evidence, not the scheme name."
+                "description": "What the convention represents, leaves ambiguous or omits, with evidence for any claimed reversibility."
               }
             }
           }

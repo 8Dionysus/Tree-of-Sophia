@@ -9,8 +9,8 @@ anchor backlogs, term and transmission indexes, branch fragments, review
 packets, and generated derived exports.
 
 `abyss-stack` reads the resulting derived projection for UI, Neo4j, MCP, cache,
-and launch ergonomics. It does not choose node kinds, predicates, canon status,
-epochs, source authority, or promotion results.
+and launch ergonomics. ToS owns node kinds, predicates, canon status, epochs, source authority and
+promotion results.
 
 ## Source Spine
 
@@ -36,9 +36,9 @@ Prepared research files are extraction input. Historical authority still routes
 to witnesses, editions, translations, corpora, branch review, and canon
 surfaces.
 
-Planting is bounded, not a full dossier transfer. Context rows that lack an
-owned structured destination remain counted as deferred, and prose is not
-silently converted into structured risk claims.
+Planting transfers the declared structured fields. Context rows that lack an
+owned structured destination remain counted as deferred; structured risk
+claims require an explicit source and review route.
 
 ## Planting Packet
 
@@ -61,7 +61,7 @@ A plantable packet carries these records as one route:
 
 The packet is complete enough for graph review when every proposed node and
 relation can point back to a ToS source ref and every unresolved endpoint is
-visible as unresolved, not silently upgraded.
+explicitly marked unresolved.
 
 Projection reuses tracked identity before creating a placeholder. An exact
 admitted dossier id resolves to its `atlas-dossier:*` node with

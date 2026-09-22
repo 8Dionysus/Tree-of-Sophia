@@ -1,0 +1,81 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.expression.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:c134073d62cdaa148760e060",
+      "request_digest": "sha256:1cf42b8252ebf56b6b8316240269370ebfaa158bedd91f58c9cf72b0f62df772",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:6676116f243ceb9b818bac94e754be866d7d37920b93834b04728e92db3ebd15",
+      "recorded_at": "2026-09-22T05:09:15.866524+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.expression.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second",
+        "version": 2,
+        "digest": "sha256:6d752a47b7fd8192f9de0aa225c277b35712b35495481dee6c671769a15cd7f0"
+      },
+      "source": {
+        "id": "tos.expression.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second",
+        "version": 3,
+        "digest": "sha256:c6915507fba4ba293b06131619f7d853ea1b664827e61c472dff8a087bb22081"
+      },
+      "previous_revision": "sha256:d68202a77a724be1f45408fcb73c9b06e505ad9336c37004f95023f42544d197",
+      "archive_path": "ToS/source-witnesses/.record-revisions/c134073d62cdaa148760e060712fb904f56756772fe2d19b41adb50b152947b9-d68202a77a724be1f45408fcb73c9b06e505ad9336c37004f95023f42544d197",
+      "dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+      "changed_fields": [
+        "notes"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.metadata.6d90ec1078562ad9e9c65e0778da60808cfba21fa129277c992138b4c45ebc09",
+          "version": 2,
+          "digest": "sha256:32305bf6f34913b8e67c6625e53335bb956ca3a2ed96ea9fdc55eca3a9495275"
+        },
+        {
+          "id": "tos.form.metadata.d32dd0aa96c20969c5e90b2215aaf1e5f33b1860c59bbd9bb4c1f4721ec1437a",
+          "version": 2,
+          "digest": "sha256:e6f1c8a25355bf8996dc6b00eeb2c80906a29e0e3773bdb395075dd73770ccce"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:c134073d62cdaa148760e060",
+        "expected_configuration": "sha256:6676116f243ceb9b818bac94e754be866d7d37920b93834b04728e92db3ebd15",
+        "expected_dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+        "expected_publication": "sha256:bb73cb0eeca400d53a5ed2dc7c9ea1a2cf82a49947c0dd7532c254f8a9cba2e3",
+        "expected_revision": "sha256:d68202a77a724be1f45408fcb73c9b06e505ad9336c37004f95023f42544d197",
+        "expected_source": {
+          "digest": "sha256:6d752a47b7fd8192f9de0aa225c277b35712b35495481dee6c671769a15cd7f0",
+          "id": "tos.expression.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second",
+          "version": 2
+        },
+        "fields": {
+          "notes": "Source-language expression for the 1892 second Naumann edition. Collation with the 1887 first edition, critical texts, and other transcriptions remains open."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.metadata.6d90ec1078562ad9e9c65e0778da60808cfba21fa129277c992138b4c45ebc09"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.metadata.d32dd0aa96c20969c5e90b2215aaf1e5f33b1860c59bbd9bb4c1f4721ec1437a"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:6a1986669287f195e8920a231cce0c5ee0db9950e8ca37f467beaf4ec22e9792",
+        "selected_files": [
+          "expression.human-forms.json",
+          "expression.json",
+          "source-revision-history.json"
+        ]
+      }
+    }
+  ]
+}

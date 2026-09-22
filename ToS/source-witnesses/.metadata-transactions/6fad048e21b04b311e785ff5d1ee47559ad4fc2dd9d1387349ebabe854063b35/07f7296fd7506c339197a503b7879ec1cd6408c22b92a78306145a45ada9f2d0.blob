@@ -1,0 +1,81 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.agent.henry-van-de-velde",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:3379f1e92902785a3fa96871",
+      "request_digest": "sha256:216d9e241adfde46e2d995bebf464849178e3511f017b263c2a88065198671d4",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:7fb6f8a58527f7d140b109713419d7bb4494ca7a755d772f830e30f27523e4b4",
+      "recorded_at": "2026-09-22T05:04:06.843990+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.agent.henry-van-de-velde",
+        "version": 1,
+        "digest": "sha256:e4bc2c5881041dfbe37755e6811fa2d614a902bc7af10b24a120af7e488a05de"
+      },
+      "source": {
+        "id": "tos.agent.henry-van-de-velde",
+        "version": 2,
+        "digest": "sha256:2433c8236a303eb71f4250dd7c4f2b649b9331c09ac99720e02b77901d22496f"
+      },
+      "previous_revision": "sha256:e1675569262746d933f9191ceabdc880be1bc5c0a9e37767d7173c726e63bee4",
+      "archive_path": "ToS/source-witnesses/.record-revisions/3379f1e92902785a3fa96871433641df4722d19e1c823c2b9c1bf0cd4bbe6cd1-e1675569262746d933f9191ceabdc880be1bc5c0a9e37767d7173c726e63bee4",
+      "dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+      "changed_fields": [
+        "notes"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.metadata.803ced4e664e7342ff7026dfa02a192c137b2a2e0423f165b6fa0ce3f0b9b31d",
+          "version": 2,
+          "digest": "sha256:775974f8a034f049709a760139fc9b7ae39082d1b97709ba7b2b1181e2d28333"
+        },
+        {
+          "id": "tos.form.metadata.4155643943a12911c9bd6138e44e5cebdd8366cbaa2f7b0378577d1dfe20a025",
+          "version": 2,
+          "digest": "sha256:44f16cdb5c128844f1711a5b55871477758a5bfe1f22eb181e87bf4a1a56fbf7"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:3379f1e92902785a3fa96871",
+        "expected_configuration": "sha256:7fb6f8a58527f7d140b109713419d7bb4494ca7a755d772f830e30f27523e4b4",
+        "expected_dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+        "expected_publication": "sha256:dd8230eb61f7f82e493a4fa9655a1a86d0c40fdf681d9335e68795ff87ae1d76",
+        "expected_revision": "sha256:e1675569262746d933f9191ceabdc880be1bc5c0a9e37767d7173c726e63bee4",
+        "expected_source": {
+          "digest": "sha256:e4bc2c5881041dfbe37755e6811fa2d614a902bc7af10b24a120af7e488a05de",
+          "id": "tos.agent.henry-van-de-velde",
+          "version": 1
+        },
+        "fields": {
+          "notes": "The exact DNB 1908 Ecce Homo record identifies Henry van de Velde and links GND 118626442 for the edition's design responsibility."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.metadata.803ced4e664e7342ff7026dfa02a192c137b2a2e0423f165b6fa0ce3f0b9b31d"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.metadata.4155643943a12911c9bd6138e44e5cebdd8366cbaa2f7b0378577d1dfe20a025"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:6fad048e21b04b311e785ff5d1ee47559ad4fc2dd9d1387349ebabe854063b35",
+        "selected_files": [
+          "agent.human-forms.json",
+          "agent.json",
+          "source-revision-history.json"
+        ]
+      }
+    }
+  ]
+}

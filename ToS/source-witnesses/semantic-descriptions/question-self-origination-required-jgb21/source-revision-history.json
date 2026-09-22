@@ -1,0 +1,87 @@
+{
+  "schema_version": "tos_source_revision_history_v1",
+  "record_id": "tos.question.self-origination-required-jgb21",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:f31bccdf43b316720744d880",
+      "request_digest": "sha256:605f31fc34d649d7e180406e1c2a4443a1d72eb915f9faaa63fd4d707acbe1bb",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:3865e5ccfb7055d4157e399fca8744dbe2681165e7af92fb706a24d06054e4d8",
+      "recorded_at": "2026-09-22T05:07:31.761038+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.question.self-origination-required-jgb21",
+        "version": 1,
+        "digest": "sha256:6401b1c2c9d06622b70bdd0239a2b00b68411096d52bad78aa8368c9732c463a"
+      },
+      "source": {
+        "id": "tos.question.self-origination-required-jgb21",
+        "version": 2,
+        "digest": "sha256:b7944913aca26b52a649f29fad7124491a5c90fd2e6b0c387cac7ee33e465b78"
+      },
+      "previous_revision": "sha256:5112f03098089916719ccbf86dfb6cc24405ccb37c1f9a5cb80447670641c39d",
+      "archive_path": "ToS/source-witnesses/.record-revisions/f31bccdf43b316720744d8809159260ab4a18898a42ef0e04ceb2065f4bd47d3-5112f03098089916719ccbf86dfb6cc24405ccb37c1f9a5cb80447670641c39d",
+      "dependencies": "sha256:ad99651426db4f995c841ba8ba27f697bf197a1f43d7ac3d97e8038dc39eb01d",
+      "changed_fields": [
+        "notes",
+        "semantic_content"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.question.self-origination-required-jgb21.name-ru",
+          "version": 2,
+          "digest": "sha256:354c6510885940142b32959acce375b68658ee3b8f56d29ef8dcc90a595bd97b"
+        },
+        {
+          "id": "tos.form.question.self-origination-required-jgb21.name-en",
+          "version": 2,
+          "digest": "sha256:79e0c14ee1113f69f0e10b51139e597f9b4e36db6cab8b945629dd6bdde92001"
+        },
+        {
+          "id": "tos.form.question.self-origination-required-jgb21.note-ru",
+          "version": 2,
+          "digest": "sha256:a8c92923806fae24f455daaa52dc47b9c48474bc457de90e4d65d980e2514f07"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:f31bccdf43b316720744d880",
+        "expected_configuration": "sha256:3865e5ccfb7055d4157e399fca8744dbe2681165e7af92fb706a24d06054e4d8",
+        "expected_dependencies": "sha256:ad99651426db4f995c841ba8ba27f697bf197a1f43d7ac3d97e8038dc39eb01d",
+        "expected_revision": "sha256:5112f03098089916719ccbf86dfb6cc24405ccb37c1f9a5cb80447670641c39d",
+        "expected_source": {
+          "digest": "sha256:6401b1c2c9d06622b70bdd0239a2b00b68411096d52bad78aa8368c9732c463a",
+          "id": "tos.question.self-origination-required-jgb21",
+          "version": 1
+        },
+        "fields": {
+          "notes": "Вопрос исследователя о реконструируемой зависимости в §21. Он относится к максимально сильному, метафизическому смыслу ответственности. Связанный тезис представляет предложенное чтение ответа в этой области.",
+          "semantic_content": {
+            "language": "en",
+            "presupposition_account": "The question examines the strong metaphysical demand described in the passage; its coherence remains open and its scope is limited to that demand.",
+            "question_text": "In the metaphysical sense criticized in JGB 21, does the demand for ultimate personal responsibility require being the cause of oneself?",
+            "script": "Latn"
+          }
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.question.self-origination-required-jgb21.name-ru"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.question.self-origination-required-jgb21.name-en"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.question.self-origination-required-jgb21.note-ru"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    }
+  ]
+}

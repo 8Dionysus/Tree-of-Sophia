@@ -1,0 +1,91 @@
+{
+  "schema_version": "tos_source_revision_history_v1",
+  "record_id": "tos.language.sumerian",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:1be4cee2d6b3c68135632593",
+      "request_digest": "sha256:cc9bab72d18e38e5d7f818548c9ee998234c563b01d7cb506a58820bbaeda629",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:7c009fbfa47e1dc9880c38283933c6f1bbea41e70ca70c09a3d4ff417e0e05cf",
+      "recorded_at": "2026-09-22T05:05:26.080970+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.language.sumerian",
+        "version": 1,
+        "digest": "sha256:a95c2be00ff97e4a0c4dfc06437fd5391f31b5f63b561c2c6e4050ef7a67bd96"
+      },
+      "source": {
+        "id": "tos.language.sumerian",
+        "version": 2,
+        "digest": "sha256:08f4e284b0dd39afd4782a5c2190753d6ed9d21afe7a77307f46a915f9134e9b"
+      },
+      "previous_revision": "sha256:29ef8ed1d013af788d8ce30fd59f9536d55271f033011b76e969cf46767b599b",
+      "archive_path": "ToS/source-witnesses/.record-revisions/1be4cee2d6b3c681356325938c2e2dfd1c7615f587f31bced0a1ce3997c01a16-29ef8ed1d013af788d8ce30fd59f9536d55271f033011b76e969cf46767b599b",
+      "dependencies": "sha256:e2c3b0e5c30dfc00ab6bdaf89fb15006dd74253e1c0551d2e2c8c83ddb82d84b",
+      "changed_fields": [
+        "semantic_content",
+        "semantic_scope"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.linguistic.sumerian.name-ru",
+          "version": 2,
+          "digest": "sha256:a378fd0205bc2859565a83ea233438603782eea0e82ecc55f53e01f1a6493c29"
+        },
+        {
+          "id": "tos.form.linguistic.sumerian.name-en",
+          "version": 2,
+          "digest": "sha256:97d0686fcc2ec94506d826565fa34c8ca89e40e81cb15f2e7dee6ba94564c9e9"
+        },
+        {
+          "id": "tos.form.linguistic.sumerian.note-ru",
+          "version": 2,
+          "digest": "sha256:a259c1a74b9c08f8a8b75f32138f5e4f7576c258cfcc16f6dc4a9b36f3709f7c"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:1be4cee2d6b3c68135632593",
+        "expected_configuration": "sha256:7c009fbfa47e1dc9880c38283933c6f1bbea41e70ca70c09a3d4ff417e0e05cf",
+        "expected_dependencies": "sha256:e2c3b0e5c30dfc00ab6bdaf89fb15006dd74253e1c0551d2e2c8c83ddb82d84b",
+        "expected_revision": "sha256:29ef8ed1d013af788d8ce30fd59f9536d55271f033011b76e969cf46767b599b",
+        "expected_source": {
+          "digest": "sha256:a95c2be00ff97e4a0c4dfc06437fd5391f31b5f63b561c2c6e4050ef7a67bd96",
+          "id": "tos.language.sumerian",
+          "version": 1
+        },
+        "fields": {
+          "semantic_content": {
+            "language": "en",
+            "script": "Latn",
+            "system_account": "ETCSL calls Sumerian an isolate because related languages have yet to be convincingly identified; historical relationships remain open to research."
+          },
+          "semantic_scope": {
+            "identity_criterion": "Идентичность определяется исследуемой языковой традицией и сохраняется при изменении её описаний и реконструкций грамматики.",
+            "language": "ru",
+            "scope_note": "Шумерская языковая традиция; звучание, формы и письменные свидетельства имеют собственные уровни описания.",
+            "script": "Cyrl"
+          }
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.linguistic.sumerian.name-ru"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.linguistic.sumerian.name-en"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.linguistic.sumerian.note-ru"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    }
+  ]
+}

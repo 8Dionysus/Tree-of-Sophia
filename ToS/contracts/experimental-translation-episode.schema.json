@@ -221,9 +221,7 @@
       }
     },
     "provenance_event_ref": {"$ref": "#/$defs/tosId"},
-    "authority_boundary": {
-      "const": "a private experimental translation episode may preserve method, failure, Russian-surface triage, speed, resource, and fixity evidence; it cannot establish German correctness, translation fidelity, etymology, semantics, publication permission, graph truth, or canon authority"
-    }
+    "authority_boundary": {"type": "string", "minLength": 1, "description": "Brief account of the artifact purpose and scope. Typed status, effects, assessment and permission fields govern its use."}
   },
   "allOf": [
     {

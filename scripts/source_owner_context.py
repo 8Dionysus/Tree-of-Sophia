@@ -1,4 +1,4 @@
-"""Explicit confidential source transport, not a second knowledge grammar.
+"""Explicit confidential source transport using the shared knowledge grammar.
 
 Logical references retain one owner. Reserved owner-local refs never fall
 back to a checkout, and private files never override public schemas/records.

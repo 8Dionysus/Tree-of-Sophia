@@ -1,0 +1,94 @@
+{
+  "schema_version": "tos_source_revision_history_v1",
+  "record_id": "tos.argument.anti-self-origination-jgb21",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:85cba4b1edfc52c1ea79d970",
+      "request_digest": "sha256:1eef8fc89aacf4931319aecfcb5c5de7f3701e281a0bbf95ed556714dedde8d2",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:e035251d99e6816175c7a3ac31bfcfae6ab05bb4a0ce9cd6f7c8e2bd30e20b4d",
+      "recorded_at": "2026-09-22T05:06:23.614546+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.argument.anti-self-origination-jgb21",
+        "version": 1,
+        "digest": "sha256:2e7426296c8d80f45383232553f3d626b06807f61b0d3e214bcd7ff2c7297728"
+      },
+      "source": {
+        "id": "tos.argument.anti-self-origination-jgb21",
+        "version": 2,
+        "digest": "sha256:7d8a5684a6c6876f37f55707f66940bf923771bf69014e88a948620db717f80a"
+      },
+      "previous_revision": "sha256:b5e4926463de9e3c5bfa732f76d6e861eb75e8b90c01c02fb68860d3eef39e4d",
+      "archive_path": "ToS/source-witnesses/.record-revisions/85cba4b1edfc52c1ea79d9707e64233de4414d19c745d014dbf47159b0a19e37-b5e4926463de9e3c5bfa732f76d6e861eb75e8b90c01c02fb68860d3eef39e4d",
+      "dependencies": "sha256:2a608575334accc28ce2cf344c2152b471be4c83b8eb34ddee8c4077f3a5500f",
+      "changed_fields": [
+        "notes",
+        "semantic_content",
+        "semantic_scope"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.argument.anti-self-origination-jgb21.name-ru",
+          "version": 2,
+          "digest": "sha256:efd50e097f859e0bc76e8562ed8a4bb2fef8aa2776bfedeb10e1adb95f3633e9"
+        },
+        {
+          "id": "tos.form.argument.anti-self-origination-jgb21.name-en",
+          "version": 2,
+          "digest": "sha256:e0c9e134feb158e1d8707b2126a8dd460470cbc67e977f41e6c678e472685ea9"
+        },
+        {
+          "id": "tos.form.argument.anti-self-origination-jgb21.note-ru",
+          "version": 2,
+          "digest": "sha256:8ee93dbd03d78b63a7f497d9c9b9bcead49b10e4868e82c3f55547358d7b0e5d"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:85cba4b1edfc52c1ea79d970",
+        "expected_configuration": "sha256:e035251d99e6816175c7a3ac31bfcfae6ab05bb4a0ce9cd6f7c8e2bd30e20b4d",
+        "expected_dependencies": "sha256:2a608575334accc28ce2cf344c2152b471be4c83b8eb34ddee8c4077f3a5500f",
+        "expected_revision": "sha256:b5e4926463de9e3c5bfa732f76d6e861eb75e8b90c01c02fb68860d3eef39e4d",
+        "expected_source": {
+          "digest": "sha256:2e7426296c8d80f45383232553f3d626b06807f61b0d3e214bcd7ff2c7297728",
+          "id": "tos.argument.anti-self-origination-jgb21",
+          "version": 1
+        },
+        "fields": {
+          "notes": "Частичная реконструкция довода §21: метафизически предельная ответственность требует самопричинения; самопричинение объявляется противоречивым; отсюда критикуемый смысл свободы отвергается. Формальная расстановка посылок и вывода принадлежит исследователю.",
+          "semantic_content": {
+            "coverage": "partial",
+            "language": "en",
+            "reconstruction_note": "A partial reconstruction makes explicit the dependence of the criticized metaphysical freedom on self-origination and the passage’s rejection of self-origination. It describes the proposed relation of premises to conclusion.",
+            "script": "Latn"
+          },
+          "semantic_scope": {
+            "identity_criterion": "Identity follows the same passage-bound reasoning through descriptive improvements. A different argument or broader reconstruction has a separate referent.",
+            "language": "en",
+            "scope_note": "The opening anti-self-origination reasoning in JGB 21.",
+            "script": "Latn"
+          }
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.argument.anti-self-origination-jgb21.name-ru"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.argument.anti-self-origination-jgb21.name-en"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.argument.anti-self-origination-jgb21.note-ru"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    }
+  ]
+}

@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://tree-of-sophia.local/ToS/contracts/historical-context-claim.schema.json",
   "title": "Scoped biographical and historical context association",
-  "description": "A source-attributed relationship, not inference from dates, names, proximity or environment. Time notes may explicitly state unknown bounds and do not manufacture normalized temporal values.",
+  "description": "A source-attributed historical relationship with explicit grounds, context and time scope. Unknown time bounds stay explicit; normalized dates use the temporal assertion contract.",
   "allOf": [
     {
       "$ref": "https://tree-of-sophia.local/ToS/contracts/source-claim-record.schema.json"
@@ -57,12 +57,12 @@
             "time_scope_note": {
               "type": "string",
               "pattern": "\\S",
-              "description": "The historical span or explicit absence of known bounds. Data capture time is not relationship time; prose does not create sortable date keys."
+              "description": "The relationship’s historical span or explicit unknown bounds. Record-capture time has its own provenance; structured temporal assertions supply sortable date keys."
             },
             "context_scope": {
               "type": "string",
               "pattern": "\\S",
-              "description": "The precise contextual or biographical dimension asserted, not causal influence or a complete life."
+              "description": "The precise contextual or biographical dimension asserted, with its stated extent and evidence limits."
             }
           }
         }
@@ -86,7 +86,7 @@
               "participation_role": {
                 "type": "string",
                 "pattern": "\\S",
-                "description": "The contextual role actually attested; presence is not responsibility or causation."
+                "description": "The contextual participation role attested by the source, with responsibility and causation separately grounded where applicable."
               }
             }
           }

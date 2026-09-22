@@ -15,7 +15,7 @@ It should be understood through two simultaneous structural views:
 
 2. **Graph-typed secondary relations**
    - used for parallels, convergences, mutations, and commentary links
-   - allows thought to cross branches without pretending there is no trunk
+   - connects thought across branches while preserving rooted orientation
 
 The practical rule is simple:
 
@@ -27,8 +27,7 @@ ToS grows through two coupled fronts.
 
 The world-philosophy corpus soil provides ordered source identity across works,
 witnesses, editions, languages, time, place, traditions, and transmission. It
-is the broad foundation from which branches can grow, but its order and
-metadata are not yet interpretation.
+provides the source identities and context from which interpreted branches grow.
 
 *Thus Spoke Zarathustra* is the first golden growth kernel. Its purpose is to
 make one complete path unusually legible:
@@ -38,23 +37,21 @@ make one complete path unusually legible:
 Assessment, research use and canon are distinct transitions. The current
 [knowledge assessment law](KNOWLEDGE_ASSESSMENT.md) permits source-visible agent
 judgment within trusted authority and competence. Historical human-reviewed
-routes below retain their actual provenance; they are not a universal manual
-gate for new research knowledge.
+routes below retain their actual provenance. Current research assessment
+follows the competence and authority rules of that law.
 
 What transfers from the kernel is the method of source return, layer
-distinction, proposal, refusal, uncertainty, review, and promotion. Nietzsche's
-ontology and the current calibration vocabulary do not become a universal
-schema for other works or traditions.
+distinction, proposal, refusal, uncertainty, review, and promotion. Each work or
+tradition supplies the concepts appropriate to its own material.
 
 The stable layer is an evidence spine: witness identity and provenance,
 addressable text, source-near observations, evidence status, and versioned
 review history. Concept boundaries, semantic entities, relations, and
 interpretations remain revisable and contestable without losing that spine.
 
-A gold example therefore includes more than an accepted label. It should keep
+A gold example keeps
 accepted, rejected, ambiguous, and counter-reading outcomes with their source
-anchors and reviewer rationale. Agents learn the path of judgment rather than
-only its final surface.
+anchors and reviewer rationale. These materials make the path of judgment inspectable.
 
 The route also admits lived witness as an authored first-person provenance
 layer. Lived witness may explain sustained attention and salience, but it
@@ -62,8 +59,8 @@ remains distinct from primary text, bibliographic evidence, scholarship,
 interpretation, and canon.
 
 The current private-by-default capture and authorship route is
-`ToS/zarathustra/lived-witness/`. It creates no record until the human author
-explicitly invokes it and confirms the exact body.
+`ToS/zarathustra/lived-witness/`. Capture requires the human author
+to invoke the route and confirm the exact body.
 
 See [GOLDEN_GROWTH_KERNEL](../zarathustra/GOLDEN_GROWTH_KERNEL.md) for the
 current architecture and preparation boundary.
@@ -71,8 +68,8 @@ current architecture and preparation boundary.
 The detailed identity, fixity, address, sign, assertion, translation, rights,
 and projection boundary is defined by
 [CORPUS_FOUNDATION](CORPUS_FOUNDATION.md). Its central distinction is that
-stable IDs preserve continuity of evidence-bearing records; they do not make
-semantic interpretations immutable.
+stable IDs preserve continuity of evidence-bearing records while versioned
+interpretations remain open to reassessment.
 
 ## Node families
 
@@ -84,12 +81,12 @@ ToS may grow multiple node families. At the public baseline, the most important 
 - **lineage nodes**: schools, streams, genealogies, developmental arcs
 - **event nodes**: review-gated route-local movements that keep dynamic transitions legible
 - **state nodes**: review-gated route-local conditions that keep held pressures and stances legible
-- **support nodes**: review-gated route-local `n.*` surfaces that keep key carriers, symbols, places, and hinges legible without opening many semantic families yet
-- **analogy nodes**: review-gated route-local image-bearing surfaces that keep bounded symbolic comparison explicit without dissolving into generic event/state handling
+- **support nodes**: review-gated route-local `n.*` subjects for key carriers, symbols, places, and hinges
+- **analogy nodes**: review-gated route-local image-bearing comparisons with an explicit source and interpretive scope
 - **context nodes**: temporal, geographic, linguistic, civilizational, and institutional context
 - **synthesis nodes**: competence-scoped, reviewed interpretation that remains explicitly linked to sources
 
-Additional node families may appear later, but they should be introduced explicitly rather than implicitly.
+Additional node families enter through an explicit source proposal, contract and review.
 
 ## Identifier discipline and first templates
 
@@ -108,7 +105,8 @@ The first template family stays narrow:
 - analogy nodes
 - synthesis nodes
 
-These templates and examples are scaffold surfaces, not a full branch pilot and not a complete corpus ontology.
+These templates and examples define the shared node shape. Each branch establishes
+its own contents through source proposals and review.
 
 See [IDENTIFIER_DISCIPLINE](IDENTIFIER_DISCIPLINE.md), [SOURCE_NODE_TEMPLATE](SOURCE_NODE_TEMPLATE.md), [CONCEPT_NODE_TEMPLATE](CONCEPT_NODE_TEMPLATE.md), [PRINCIPLE_NODE_TEMPLATE](PRINCIPLE_NODE_TEMPLATE.md), [EVENT_NODE_TEMPLATE](EVENT_NODE_TEMPLATE.md), [STATE_NODE_TEMPLATE](STATE_NODE_TEMPLATE.md), [SUPPORT_NODE_TEMPLATE](SUPPORT_NODE_TEMPLATE.md), [ANALOGY_NODE_TEMPLATE](ANALOGY_NODE_TEMPLATE.md), and [SYNTHESIS_NODE_TEMPLATE](SYNTHESIS_NODE_TEMPLATE.md) for the compact public scaffold.
 
@@ -126,14 +124,14 @@ This pilot should stay:
 The current live pilot adds a lineage-node template and one route-local
 canonical lineage surface under `ToS/canon/lineage/` for the bounded Zarathustra
 `prologue-1` route.
-The earlier broader calibration-family pilot remains review-only and does not
-currently function as live canon.
+The earlier broader calibration-family pilot remains a review-stage proposal.
 
 See [LINEAGE_NODE_TEMPLATE](LINEAGE_NODE_TEMPLATE.md) and [CALIBRATION_LINEAGE_PILOT](CALIBRATION_LINEAGE_PILOT.md) for the compact pilot surfaces.
 
 ## Pre-expansion soil before wider movement
 
-At the previous eighth-phase note, ToS may also prepare soil for later expansion without treating that preparation as active tree movement.
+The earlier eighth-phase preparation established source-entry and review routes
+for later expansion.
 
 This preparation may include:
 
@@ -146,9 +144,9 @@ This phase should stay:
 - source-first
 - reviewable
 - structurally useful
-- visibly non-expansionary
+- scoped to preparation
 
-It does not yet open a second family, new branch nodes, or wider world-thought expansion.
+New families and branch nodes enter through their own growth and review decisions.
 
 See [CONTEXT_NODE_TEMPLATE](CONTEXT_NODE_TEMPLATE.md),
 [MANUAL_CORPUS_ENTRY_GATE](../../mechanics/source-witnessing/parts/witness-route/docs/MANUAL_CORPUS_ENTRY_GATE.md),
@@ -164,7 +162,7 @@ This route should stay:
 - source-first
 - bounded
 - reviewable
-- single-tree rather than language-split
+- one shared tree with language-specific witness layers
 
 The first public route uses:
 
@@ -178,16 +176,16 @@ The current authored-route role contract is asymmetric on purpose:
 - Russian as Dionysus's authored `working_translation` witness
 - English as Dionysus's authored `bridge_translation` witness
 
-Those labels preserve the living route and its authorship; they do not by
-themselves establish a modern accepted German layer, competence-scoped human
-review, accepted translation, semantic claim, or graph admission. The exact
-evidence bridge records that distinction without rewriting the route.
+Those labels record witness functions and authorship. The exact evidence
+bridge links them to the source representations and their assessment status.
+Text, translation, semantic and graph uses follow their respective admission
+records.
 
-This route grows one `node_id` with `language_witnesses`, not three node copies.
+This route grows one `node_id` with separately identified `language_witnesses`.
 It may also record `translation_tensions` when drift is philosophically load-bearing.
 Concept nodes remain language-neutral even when their source route is multilingual.
 
-This is still not wider world-thought expansion.
+The route has the stated Zarathustra scope.
 
 See [TRILINGUAL_ENTRY](../zarathustra/prologue-1/TRILINGUAL_ENTRY.md)
 for the compact route note.
@@ -202,12 +200,11 @@ This promotion should stay:
 - source-first
 - review-gated
 - route-local
-- bounded rather than atlas-like
+- scoped to the reviewed route
 
 The first launch lives under `ToS/canon/principle/` and stabilizes only a small
 reviewed principle spine from `prologue-1`.
-It does not widen the current tiny-entry seam and does not yet imply a global
-principle program.
+The tiny-entry seam retains its existing scope.
 
 After the second local transfer pass, this route now effectively holds its full
 distilled principle spine in canon.
@@ -238,7 +235,7 @@ It ties together:
 - the now effectively complete route-local distilled principle spine
 
 This is a real canonical branch handle inside `ToS/canon/lineage/`.
-It does not yet reactivate the broader calibration-family pilot as live canon.
+The broader calibration-family pilot retains its review-stage status.
 
 ## First route-local event and state canonization
 
@@ -250,7 +247,7 @@ This canonization should stay:
 - source-first
 - bounded
 - review-gated
-- route-local rather than atlas-like
+- scoped to the reviewed route
 
 The first live dynamic families use:
 
@@ -261,7 +258,7 @@ They carry:
 
 - 18 canonical event nodes promoted from the bounded intake pack
 - 9 canonical state nodes promoted from the bounded intake pack
-- no attempt to absorb the route's analogy image into event/state canon
+- the analogy image assigned to the analogy family
 
 This pass transfers the dynamic layer into ToS without changing the tiny-entry
 export seam.
@@ -285,7 +282,7 @@ The first live support family uses:
 It carries:
 
 - the full non-literal `n.*` layer from the bounded intake pack
-- no early split into agent/place/symbol/quality families
+- a shared support family for these route-local subjects
 - literal helper rows still left in `ToS/candidate-intake/` as explicit special residue
 
 ## First route-local relation-pack canonization
@@ -308,8 +305,7 @@ It carries:
 
 - one canonical `edges.csv` pack for all reviewed rows whose endpoints are
   already canonical
-- registry-first predicate vocabulary rather than a compressed node-level alias
-  set
+- the predicate vocabulary owned by the registry
 - only literal helper blockers left visible in `ToS/candidate-intake/edges.csv` with
   explicit deferred statuses
 
@@ -323,7 +319,7 @@ This canonization should stay:
 - source-first
 - bounded
 - review-gated
-- image-bearing rather than atlas-like
+- an explicit image-bearing comparison
 
 The current live analogy family uses:
 
@@ -333,7 +329,7 @@ It carries:
 
 - one canonical analogy node for `bee-honey-analogy`
 - one active compatibility mirror under `ToS/public-compatibility/`
-- no wider analogy program beyond the bounded route
+- the scope of the reviewed Zarathustra route
 
 ## Route-local synthesis canonization
 
@@ -345,7 +341,7 @@ This canonization should stay:
 - source-first
 - bounded
 - review-gated
-- explicitly interpretive rather than disguised principle canon
+- explicitly interpretive
 
 The current live synthesis family uses:
 
@@ -355,7 +351,7 @@ It carries:
 
 - one canonical synthesis node for `departure-from-reflective-origin`
 - one active compatibility mirror under `ToS/public-compatibility/`
-- no separate commentary family for this route
+- interpretation housed in this synthesis family
 
 ## Tree-first tiny-entry seam
 
@@ -382,11 +378,10 @@ This seam stays:
 - bounded
 - non-authoritative in itself
 
-Its job is orientation, not ownership transfer.
+Its job is orientation; authored meaning remains with the named ToS sources.
 `aoa-kag` and the `aoa-sdk` routing control plane may consume this route
 downstream. The routing control plane may retain `aoa-routing` as its stable
-compatibility namespace, but neither downstream system becomes a ToS authority
-surface.
+compatibility namespace. ToS retains ownership of its authored sources.
 
 See [TINY_ENTRY_ROUTE](../zarathustra/public-entry/TINY_ENTRY_ROUTE.md)
 for the compact route surface.
@@ -401,12 +396,11 @@ ToS now also keeps distinct repository-facing layers for how material enters and
 - `ToS/public-compatibility/` for current public compatibility and tiny-entry surfaces
 - `ToS/derived-exports/` for downstream-safe derived exports
 
-These layers may point to one another.
-They should not be silently collapsed into one interchangeable surface.
+References connect these layers while preserving each layer's source and review role.
 
 The current route-local workbook carrier at
 `ToS/candidate-intake/thus-spoke-zarathustra/prologue-1/carriers/tos_kag_project_scheme.current.xlsx`
-may candidate these layers, but it is not itself a canonical ToS surface.
+carries candidate material for review and promotion into the owning source layers.
 
 The current bounded Zarathustra route also keeps a deliberate split:
 
@@ -425,8 +419,7 @@ The current bounded Zarathustra route also keeps a deliberate split:
   pack for edges whose endpoints are already canonical, leaving only literal
   helper residue in intake
 
-Those surfaces may mirror one another in bounded ways.
-They do not replace one another.
+Each mirror names its owning source and the exact scope of the mirrored material.
 
 ## Layering inside a node
 
@@ -444,7 +437,7 @@ A node may carry several layers at once, including:
 - provenance metadata
 - translation-tension notes when witness drift matters
 
-The presence of multiple layers does not erase their distinction.
+Each layer remains identifiable through its role and provenance.
 
 At the first-phase baseline, every serious node should preserve at least:
 
@@ -467,7 +460,7 @@ At the baseline, ToS should privilege a compact relation vocabulary:
 - **commentary-on**
 - **contextualized-by**
 
-New relation types should be added only when they clarify meaning rather than decorate it.
+Add a relation type when it expresses a source-grounded distinction that the existing vocabulary cannot carry.
 
 When context or commentary nodes are present, `contextualized-by` and `commentary-on` may be the more honest relation names than forcing every link into a genealogical label.
 
@@ -484,7 +477,7 @@ Every stronger layer should be able to point back toward its sources.
 
 ## Interpretation ladder
 
-ToS should keep interpretation visibly layered rather than collapsing source, commentary, and synthesis into one voice.
+Label source, commentary and synthesis so readers can inspect each step of interpretation.
 
 The working ladder is:
 
@@ -494,7 +487,7 @@ The working ladder is:
 4. cross-text comparison
 5. speculative synthesis
 
-This keeps interpretation alive without letting it float free from source anchors.
+The ladder lets an interpretation remain open to development while retaining its source anchors.
 
 ## Idea lineage and practice lineage
 
@@ -524,7 +517,7 @@ That bridge stays:
 - suggestive
 - non-identity
 
-It should help orientation, not erase difference.
+It supports orientation between separately owned conceptual and operational meanings.
 Conceptual meaning remains authored in ToS.
 Operational meaning remains authored in the source AoA repository.
 Machine-readable counterpart projections belong downstream in `aoa-kag`.
@@ -544,7 +537,7 @@ This route stays:
 - layered
 - reversible
 
-The current phase treats that route as doctrine, not as a full executable platform.
+The route defines the source and review progression.
 Operational ownership of the witness-producing route remains in AoA repositories.
 
 The named doctrinal objects for this route are:
@@ -556,14 +549,13 @@ The named doctrinal objects for this route are:
 One compact worked path for the current pilot phase is:
 - `WitnessTrace -> Note -> Principle`
 
-That path gives ToS a disciplined digestion route without claiming that canonization or later growth growth candidates are already solved.
+The path gives ToS a source-linked distillation route; canonization and subsequent
+growth remain explicit later decisions.
 
 See [CONTEXT_COMPOST](../../mechanics/distillation/parts/source-compost/docs/CONTEXT_COMPOST.md)
 for the compact distillation route.
 
 ## Calibration axis
-
-ToS is not a neutral dust cloud of equally weighted fragments.
 
 Its current guiding axis is a living calibration of meaning:
 
@@ -574,45 +566,43 @@ Its current guiding axis is a living calibration of meaning:
 
 In the current public architecture, *Thus Spoke Zarathustra* serves as a recurring calibration root for that axis.
 
-That axis should guide curation and reading posture without becoming a hidden monopoly of meaning.
-It is an orienting calibration, not a license to force every text into one thesis.
+The axis guides curation in its stated interpretive scope. Each text retains
+its own concepts, questions and competing readings.
 
-The calibration axis and the golden growth kernel are not identical. The
-kernel is golden because it exposes a deeply reviewed source-to-canon method;
-the axis remains one interpretive gravity inside that route. Only the method
-is intended for cross-corpus transfer.
+The golden kernel exposes a deeply reviewed source-to-canon method for
+cross-corpus transfer. The calibration axis supplies a situated interpretive
+orientation within that route.
 
 See [CALIBRATION_AXIS](CALIBRATION_AXIS.md) for the compact rule and guardrails.
 
 ## Competence-scoped human and agent growth
 
-ToS growth must not be capped by the rate of manual per-record processing.
+Competence-scoped agent assessment supports sustained ToS growth.
 Under [KNOWLEDGE_ASSESSMENT](KNOWLEDGE_ASSESSMENT.md), an authorized, competent
 agent may perform source reading, assess extraction, language and translation,
 evaluate a node or interpretation, challenge a relation and admit research use.
-These acts need evidence, scope and accountability, not a fabricated human
-signature. Their result is not subordinate solely because the reviewer is an
-agent. Both human and agent judgments remain fallible and contestable.
+Each act records the actual reviewer, evidence, scope and accountability.
+Human and agent judgments are evaluated on those grounds and remain open to
+challenge and correction.
 
 Operator direction, personal consent, authorship, rights and canon/publication
-decisions retain their concrete owners. A general research grant does not
-authorize them. Human intervention is required by a real decision boundary,
-not by the mere complexity or philosophical character of an assertion.
+decisions retain their concrete owners and require their specific authority.
+Human intervention follows the relevant decision or permission requirement.
 
 For golden-kernel work, agent output should preserve proposal provenance and
 should be evaluated on source return, layer discipline, justified refusal,
-uncertainty, and response to unseen material. Agreement with the current
-vocabulary is not sufficient evidence of successful transfer.
+uncertainty, and response to unseen material. Transfer evaluation includes material that challenges the current vocabulary
+and can justify a revision of the contract.
 
-This keeps the source, maker, assessment, authority and current admission
-visible without making every new record wait for manual approval.
+Each record retains visible source, maker, assessment, authority and current
+admission under that shared process.
 
 See [HUMAN_CURATED_EXPANSION](../../mechanics/growth-cycle/parts/branch-growth-cycle/docs/HUMAN_CURATED_EXPANSION.md)
 for the compact curation note.
 
 ## Growth by explicit structure
 
-ToS should grow through explicit structure rather than silent accumulation.
+Choose the structural form that the source material and its relations justify.
 
 The practical growth choices are:
 
@@ -620,7 +610,7 @@ The practical growth choices are:
 - create a node when a distinct source, concept, or context needs its own authored home
 - form a branch when multiple nodes now justify a durable lineage or thematic path
 
-This protects ToS from node explosion, archive sediment, and quantity theater.
+Each growth decision names the source-grounded value of the added structure.
 
 See [GROWTH_STRUCTURE](../../mechanics/growth-cycle/parts/branch-growth-cycle/docs/GROWTH_STRUCTURE.md)
 for the compact growth route.
@@ -634,16 +624,16 @@ When that happens, the handoff should preserve:
 - stable source identifiers where possible
 - provenance paths back to ToS-authored material
 - distinction between authored truth and derived projection
-- bounded schemas rather than vague graph sprawl
+- schemas with explicit types, relation meanings and use scope
 - explicit non-identity notes when counterpart mappings are present
 
-The same rule applies to tiny-entry routes: downstream routing or KAG layers may consume them later, but they do not replace ToS-authored capsule or authority surfaces.
+Tiny-entry consumers retain source-return links to the ToS-authored capsule
+and authority surfaces.
 
-## What this model avoids
+## Explanatory quality
 
-ToS should avoid becoming:
-
-- a flat archive with no lineage
-- a graph theater that hides sources behind edges
-- a summary pile detached from provenance
-- a private intuition engine masquerading as architecture
+Describe each subject through its content, relationships and evidence. Preserve
+source-specific uncertainty and interpretive disagreement. Shared identity,
+review and permission conditions belong to their typed records and owning
+contracts. [NODE_CONTRACT](NODE_CONTRACT.md#authored-description) gives the
+writing and review rule for authored descriptions.

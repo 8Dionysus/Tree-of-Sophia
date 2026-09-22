@@ -73,7 +73,7 @@ class ClaimAssemblyLimits:
 
 @dataclass(frozen=True)
 class AssembledBibliographicClaim:
-    """Owned detached input; pure projection is not a verification receipt."""
+    """Owned detached input for projection after caller-side verification."""
     inputs: graph.BibliographicClaimInput
     dependencies: tuple[dict, ...]
     bindings: dict

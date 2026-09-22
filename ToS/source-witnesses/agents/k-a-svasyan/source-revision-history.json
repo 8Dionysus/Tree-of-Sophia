@@ -1,0 +1,90 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.agent.k-a-svasyan",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:eb3466ee07491ae46503410d",
+      "request_digest": "sha256:ea728b24d0db0f5ccd6b626220a66b1f8180645c8674c8b511f6b4f2ac4cdcb9",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:455196cc0d97ecd021a3b047683721fb7a962922bf747a63bbd257b0a5990b74",
+      "recorded_at": "2026-09-22T05:04:10.295453+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.agent.k-a-svasyan",
+        "version": 2,
+        "digest": "sha256:edb4287df7e1d4b2eb2551d83ba6141f8004ea0e848626d7bbf78a993e6b05ab"
+      },
+      "source": {
+        "id": "tos.agent.k-a-svasyan",
+        "version": 3,
+        "digest": "sha256:7ceab9e84cc87fe0376ce23f9339704f5496743e01bda0d8e885532c158fc4e3"
+      },
+      "previous_revision": "sha256:5676d19a123a7c603011690a22626718d72380c74beecc037ff4c8bd77fd5cd3",
+      "archive_path": "ToS/source-witnesses/.record-revisions/eb3466ee07491ae46503410d17965f79b499dcd4f21f6c9797e06ff3790f8323-5676d19a123a7c603011690a22626718d72380c74beecc037ff4c8bd77fd5cd3",
+      "dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+      "changed_fields": [
+        "notes"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.metadata.337a8dd688c146069ffcb1ad69a1d817322c7de53974f61f8d518b0b39cb0a10",
+          "version": 2,
+          "digest": "sha256:1b57c459c268c297e9237e51cd2df6a447d955cdf0d9afccf090fe6cd15c6016"
+        },
+        {
+          "id": "tos.form.metadata.b9813db5063444da9a09b0cb1498d12f05b6de5110c9eb6d399368ed1dbec219",
+          "version": 2,
+          "digest": "sha256:b946c033de657897714bc177e8d84be1301f265134261949847498142c72073c"
+        },
+        {
+          "id": "tos.form.metadata.f0b1b97e42e7d1e41badc12a05d182834f5d872ed98dad9a146fac8f9b054cd8",
+          "version": 2,
+          "digest": "sha256:452fa444acad15728be932aa4cff9f2290759cb4696537cbc8269f39b43a9cf9"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:eb3466ee07491ae46503410d",
+        "expected_configuration": "sha256:455196cc0d97ecd021a3b047683721fb7a962922bf747a63bbd257b0a5990b74",
+        "expected_dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+        "expected_publication": "sha256:eb5c1c14a3ac2332592954530efe6b5d4033896ecfd000d5198c771ca48a6425",
+        "expected_revision": "sha256:5676d19a123a7c603011690a22626718d72380c74beecc037ff4c8bd77fd5cd3",
+        "expected_source": {
+          "digest": "sha256:edb4287df7e1d4b2eb2551d83ba6141f8004ea0e848626d7bbf78a993e6b05ab",
+          "id": "tos.agent.k-a-svasyan",
+          "version": 2
+        },
+        "fields": {
+          "notes": "The exact local volume credits К. А. Свасьян as translator of «К генеалогии морали» and separately as compiler, editor, and author of notes. DNB GND 120452367 includes the Cyrillic initials, translator occupation, and Nietzsche editor/translator context; the RSL Nietzsche record expands them to Карен Араевич Свасьян."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.metadata.337a8dd688c146069ffcb1ad69a1d817322c7de53974f61f8d518b0b39cb0a10"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.metadata.b9813db5063444da9a09b0cb1498d12f05b6de5110c9eb6d399368ed1dbec219"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.metadata.f0b1b97e42e7d1e41badc12a05d182834f5d872ed98dad9a146fac8f9b054cd8"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:e4c479c352b74092c4d195a6a14d26f35f2e02cf52faa35ca839564d92e248cf",
+        "selected_files": [
+          "agent.human-forms.json",
+          "agent.json",
+          "source-revision-history.json"
+        ]
+      }
+    }
+  ]
+}

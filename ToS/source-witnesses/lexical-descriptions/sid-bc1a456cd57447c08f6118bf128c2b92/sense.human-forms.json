@@ -1,71 +1,69 @@
 {
-  "schema_version": "tos_human_form_set_v1",
-  "subject": {
-    "id": "tos.sense.sid-bc1a456cd57447c08f6118bf128c2b92",
-    "version": 1,
-    "digest": "sha256:8ff3a976d274c072e5420f944b0f4217125ef02bb511ced0a77dd4f58814cb82"
-  },
   "forms": [
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.sid-668b2cdd4c2e404da1795823036c68af",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.sense.sid-bc1a456cd57447c08f6118bf128c2b92",
-        "version": 1,
-        "digest": "sha256:8ff3a976d274c072e5420f944b0f4217125ef02bb511ced0a77dd4f58814cb82"
+        "version": 2,
+        "digest": "sha256:8e7f9abf065caa64a479665c344eae6a7bb46e7cec9895425b380cca020d7b13"
       },
       "role": "name",
       "language": "ru",
       "script": "Cyrl",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.sid-668b2cdd4c2e404da1795823036c68af",
+        "version": 1,
+        "digest": "sha256:b037c30fc584a2a9f6a25dc2d94cdb2620a250c355964184f6c38e52c2785694"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.sense.sid-bc1a456cd57447c08f6118bf128c2b92",
-            "version": 1,
-            "digest": "sha256:8ff3a976d274c072e5420f944b0f4217125ef02bb511ced0a77dd4f58814cb82"
+            "version": 2,
+            "digest": "sha256:8e7f9abf065caa64a479665c344eae6a7bb46e7cec9895425b380cca020d7b13"
           },
           "pointer": "/preferred_label"
         },
         "context-0": {
           "record": {
             "id": "tos.sense.sid-bc1a456cd57447c08f6118bf128c2b92",
-            "version": 1,
-            "digest": "sha256:8ff3a976d274c072e5420f944b0f4217125ef02bb511ced0a77dd4f58814cb82"
+            "version": 2,
+            "digest": "sha256:8e7f9abf065caa64a479665c344eae6a7bb46e7cec9895425b380cca020d7b13"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.sense.sid-bc1a456cd57447c08f6118bf128c2b92",
-            "version": 1,
-            "digest": "sha256:8ff3a976d274c072e5420f944b0f4217125ef02bb511ced0a77dd4f58814cb82"
+            "version": 2,
+            "digest": "sha256:8e7f9abf065caa64a479665c344eae6a7bb46e7cec9895425b380cca020d7b13"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.sense.sid-bc1a456cd57447c08f6118bf128c2b92",
-            "version": 1,
-            "digest": "sha256:8ff3a976d274c072e5420f944b0f4217125ef02bb511ced0a77dd4f58814cb82"
+            "version": 2,
+            "digest": "sha256:8e7f9abf065caa64a479665c344eae6a7bb46e7cec9895425b380cca020d7b13"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.sense.sid-bc1a456cd57447c08f6118bf128c2b92",
-            "version": 1,
-            "digest": "sha256:8ff3a976d274c072e5420f944b0f4217125ef02bb511ced0a77dd4f58814cb82"
+            "version": 2,
+            "digest": "sha256:8e7f9abf065caa64a479665c344eae6a7bb46e7cec9895425b380cca020d7b13"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.sense.sid-bc1a456cd57447c08f6118bf128c2b92",
-            "version": 1,
-            "digest": "sha256:8ff3a976d274c072e5420f944b0f4217125ef02bb511ced0a77dd4f58814cb82"
+            "version": 2,
+            "digest": "sha256:8e7f9abf065caa64a479665c344eae6a7bb46e7cec9895425b380cca020d7b13"
           },
           "pointer": "/field_languages/preferred_label"
         }
@@ -78,63 +76,67 @@
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.sid-af9d83a564374a9aaa76a277fc8fd4af",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.sense.sid-bc1a456cd57447c08f6118bf128c2b92",
-        "version": 1,
-        "digest": "sha256:8ff3a976d274c072e5420f944b0f4217125ef02bb511ced0a77dd4f58814cb82"
+        "version": 2,
+        "digest": "sha256:8e7f9abf065caa64a479665c344eae6a7bb46e7cec9895425b380cca020d7b13"
       },
       "role": "hover",
       "language": "ru",
       "script": "Cyrl",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.sid-af9d83a564374a9aaa76a277fc8fd4af",
+        "version": 1,
+        "digest": "sha256:fffd0b38131fcf5890bb700d26699a4b7126f46625789df8113557fdbee8eeec"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.sense.sid-bc1a456cd57447c08f6118bf128c2b92",
-            "version": 1,
-            "digest": "sha256:8ff3a976d274c072e5420f944b0f4217125ef02bb511ced0a77dd4f58814cb82"
+            "version": 2,
+            "digest": "sha256:8e7f9abf065caa64a479665c344eae6a7bb46e7cec9895425b380cca020d7b13"
           },
           "pointer": "/notes"
         },
         "context-0": {
           "record": {
             "id": "tos.sense.sid-bc1a456cd57447c08f6118bf128c2b92",
-            "version": 1,
-            "digest": "sha256:8ff3a976d274c072e5420f944b0f4217125ef02bb511ced0a77dd4f58814cb82"
+            "version": 2,
+            "digest": "sha256:8e7f9abf065caa64a479665c344eae6a7bb46e7cec9895425b380cca020d7b13"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.sense.sid-bc1a456cd57447c08f6118bf128c2b92",
-            "version": 1,
-            "digest": "sha256:8ff3a976d274c072e5420f944b0f4217125ef02bb511ced0a77dd4f58814cb82"
+            "version": 2,
+            "digest": "sha256:8e7f9abf065caa64a479665c344eae6a7bb46e7cec9895425b380cca020d7b13"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.sense.sid-bc1a456cd57447c08f6118bf128c2b92",
-            "version": 1,
-            "digest": "sha256:8ff3a976d274c072e5420f944b0f4217125ef02bb511ced0a77dd4f58814cb82"
+            "version": 2,
+            "digest": "sha256:8e7f9abf065caa64a479665c344eae6a7bb46e7cec9895425b380cca020d7b13"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.sense.sid-bc1a456cd57447c08f6118bf128c2b92",
-            "version": 1,
-            "digest": "sha256:8ff3a976d274c072e5420f944b0f4217125ef02bb511ced0a77dd4f58814cb82"
+            "version": 2,
+            "digest": "sha256:8e7f9abf065caa64a479665c344eae6a7bb46e7cec9895425b380cca020d7b13"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.sense.sid-bc1a456cd57447c08f6118bf128c2b92",
-            "version": 1,
-            "digest": "sha256:8ff3a976d274c072e5420f944b0f4217125ef02bb511ced0a77dd4f58814cb82"
+            "version": 2,
+            "digest": "sha256:8e7f9abf065caa64a479665c344eae6a7bb46e7cec9895425b380cca020d7b13"
           },
           "pointer": "/field_languages/notes"
         }
@@ -145,5 +147,150 @@
       }
     }
   ],
-  "prior_forms": []
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:8ff3a976d274c072e5420f944b0f4217125ef02bb511ced0a77dd4f58814cb82",
+            "id": "tos.sense.sid-bc1a456cd57447c08f6118bf128c2b92",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:8ff3a976d274c072e5420f944b0f4217125ef02bb511ced0a77dd4f58814cb82",
+            "id": "tos.sense.sid-bc1a456cd57447c08f6118bf128c2b92",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:8ff3a976d274c072e5420f944b0f4217125ef02bb511ced0a77dd4f58814cb82",
+            "id": "tos.sense.sid-bc1a456cd57447c08f6118bf128c2b92",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:8ff3a976d274c072e5420f944b0f4217125ef02bb511ced0a77dd4f58814cb82",
+            "id": "tos.sense.sid-bc1a456cd57447c08f6118bf128c2b92",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:8ff3a976d274c072e5420f944b0f4217125ef02bb511ced0a77dd4f58814cb82",
+            "id": "tos.sense.sid-bc1a456cd57447c08f6118bf128c2b92",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:8ff3a976d274c072e5420f944b0f4217125ef02bb511ced0a77dd4f58814cb82",
+            "id": "tos.sense.sid-bc1a456cd57447c08f6118bf128c2b92",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.sid-668b2cdd4c2e404da1795823036c68af",
+      "form_version": 1,
+      "language": "ru",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:8ff3a976d274c072e5420f944b0f4217125ef02bb511ced0a77dd4f58814cb82",
+        "id": "tos.sense.sid-bc1a456cd57447c08f6118bf128c2b92",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:8ff3a976d274c072e5420f944b0f4217125ef02bb511ced0a77dd4f58814cb82",
+            "id": "tos.sense.sid-bc1a456cd57447c08f6118bf128c2b92",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:8ff3a976d274c072e5420f944b0f4217125ef02bb511ced0a77dd4f58814cb82",
+            "id": "tos.sense.sid-bc1a456cd57447c08f6118bf128c2b92",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:8ff3a976d274c072e5420f944b0f4217125ef02bb511ced0a77dd4f58814cb82",
+            "id": "tos.sense.sid-bc1a456cd57447c08f6118bf128c2b92",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:8ff3a976d274c072e5420f944b0f4217125ef02bb511ced0a77dd4f58814cb82",
+            "id": "tos.sense.sid-bc1a456cd57447c08f6118bf128c2b92",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:8ff3a976d274c072e5420f944b0f4217125ef02bb511ced0a77dd4f58814cb82",
+            "id": "tos.sense.sid-bc1a456cd57447c08f6118bf128c2b92",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:8ff3a976d274c072e5420f944b0f4217125ef02bb511ced0a77dd4f58814cb82",
+            "id": "tos.sense.sid-bc1a456cd57447c08f6118bf128c2b92",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.sid-af9d83a564374a9aaa76a277fc8fd4af",
+      "form_version": 1,
+      "language": "ru",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:8ff3a976d274c072e5420f944b0f4217125ef02bb511ced0a77dd4f58814cb82",
+        "id": "tos.sense.sid-bc1a456cd57447c08f6118bf128c2b92",
+        "version": 1
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.sense.sid-bc1a456cd57447c08f6118bf128c2b92",
+    "version": 2,
+    "digest": "sha256:8e7f9abf065caa64a479665c344eae6a7bb46e7cec9895425b380cca020d7b13"
+  }
 }

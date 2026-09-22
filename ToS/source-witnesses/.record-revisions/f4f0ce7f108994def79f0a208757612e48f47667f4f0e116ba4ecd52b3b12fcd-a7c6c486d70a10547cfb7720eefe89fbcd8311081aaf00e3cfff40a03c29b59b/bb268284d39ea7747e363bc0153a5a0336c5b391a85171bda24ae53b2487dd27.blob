@@ -1,0 +1,120 @@
+{
+  "schema_version": "tos_claim_revision_history_v1",
+  "source_path": "ToS/source-witnesses/relations/lexical/source-claims.jsonl",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:50b785665ae31ebcb58c9a7e",
+      "request_digest": "sha256:b0e6db41b248b8560aae9d85927a2471812bb36c419cb9c41ce41fa582d7bd0d",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:cb68860f68ab96643c4040d27371d1f572fc0cad123038bb95d105cd078c7a44",
+      "recorded_at": "2026-09-22T06:27:49.325398+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+      "previous_source": {
+        "id": "tos.claim.lexical.wille-form",
+        "version": 1,
+        "digest": "sha256:02214e6116af6f4561aba6e465b88d8babbf797bc699a1d66708c82e308b88f8"
+      },
+      "source": {
+        "id": "tos.claim.lexical.wille-form",
+        "version": 2,
+        "digest": "sha256:4cea3b1b3ac172587732326c379e2cfa43709a607821ee9db8926551063fdcfa"
+      },
+      "previous_revision": "sha256:5c60a0fa98df3a43cd3dd308514eba2d3d4e55439392de6437fd0d71c6a95b4a",
+      "archive_path": "ToS/source-witnesses/.record-revisions/50b785665ae31ebcb58c9a7e27111c2aa8ba0eecf553f1a0703f3b7587eaff7f-5c60a0fa98df3a43cd3dd308514eba2d3d4e55439392de6437fd0d71c6a95b4a",
+      "dependencies": "sha256:b5a8f252472d257f564df578c67ef006ae3dfc227d7b9266ec83a05efe8fc99e",
+      "source_bindings": {
+        "objects": {
+          "tos.lexeme.german-wille": {
+            "source_ref": "ToS/source-witnesses/lexical-descriptions/german-wille/lexeme.json",
+            "source_sha256": "sha256:d000e1cd3379c5a57aa9861c8a71b30c8348eccc27e6e091fc4edc5c695d233e",
+            "canonical_record_sha256": "sha256:7d6def776b49271c905cebdaebb77e186f518e9f690debb39e35ea5181217296",
+            "schema_version": "tos_lexical_description_record_v1",
+            "record_version": 2
+          },
+          "tos.lexical-form.german-wille": {
+            "source_ref": "ToS/source-witnesses/lexical-descriptions/german-wille-form/lexical-form.json",
+            "source_sha256": "sha256:828fc05cb5c0e02680d1be33d92494be9f0207b8186da4d441bf9b7f808bcdd5",
+            "canonical_record_sha256": "sha256:bc4a58dc0b0e1a82a095cf87c0ede624dfd0c7fb788743ba39dbb58fc648aa08",
+            "schema_version": "tos_lexical_description_record_v1",
+            "record_version": 2
+          }
+        },
+        "evidence": {
+          "ToS/review-ledger/2026-09-08-jgb-lexical-source-reading.md": {
+            "source_ref": "ToS/review-ledger/2026-09-08-jgb-lexical-source-reading.md",
+            "source_sha256": "sha256:1e34a46d652ac85aab8f605d5246cd69ddc81bb4c6ec2aac19f24abb1ddec2b4",
+            "source_line": null,
+            "evidence_kind": "repo_path"
+          }
+        }
+      },
+      "changed_fields": [
+        "qualifiers"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.lexical.wille-form.statement-ru",
+          "version": 2,
+          "digest": "sha256:3e4f9c854076ee8e39b663a9b82a9fa7ebd7448213203bb02e7a51e947177338"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:50b785665ae31ebcb58c9a7e",
+        "expected_configuration": "sha256:cb68860f68ab96643c4040d27371d1f572fc0cad123038bb95d105cd078c7a44",
+        "expected_dependencies": "sha256:b5a8f252472d257f564df578c67ef006ae3dfc227d7b9266ec83a05efe8fc99e",
+        "expected_inputs": {
+          "evidence": {
+            "ToS/review-ledger/2026-09-08-jgb-lexical-source-reading.md": {
+              "evidence_kind": "repo_path",
+              "source_line": null,
+              "source_ref": "ToS/review-ledger/2026-09-08-jgb-lexical-source-reading.md",
+              "source_sha256": "sha256:1e34a46d652ac85aab8f605d5246cd69ddc81bb4c6ec2aac19f24abb1ddec2b4"
+            }
+          },
+          "objects": {
+            "tos.lexeme.german-wille": {
+              "canonical_record_sha256": "sha256:7d6def776b49271c905cebdaebb77e186f518e9f690debb39e35ea5181217296",
+              "record_version": 2,
+              "schema_version": "tos_lexical_description_record_v1",
+              "source_ref": "ToS/source-witnesses/lexical-descriptions/german-wille/lexeme.json",
+              "source_sha256": "sha256:d000e1cd3379c5a57aa9861c8a71b30c8348eccc27e6e091fc4edc5c695d233e"
+            },
+            "tos.lexical-form.german-wille": {
+              "canonical_record_sha256": "sha256:bc4a58dc0b0e1a82a095cf87c0ede624dfd0c7fb788743ba39dbb58fc648aa08",
+              "record_version": 2,
+              "schema_version": "tos_lexical_description_record_v1",
+              "source_ref": "ToS/source-witnesses/lexical-descriptions/german-wille-form/lexical-form.json",
+              "source_sha256": "sha256:828fc05cb5c0e02680d1be33d92494be9f0207b8186da4d441bf9b7f808bcdd5"
+            }
+          }
+        },
+        "expected_revision": "sha256:5c60a0fa98df3a43cd3dd308514eba2d3d4e55439392de6437fd0d71c6a95b4a",
+        "expected_source": {
+          "digest": "sha256:02214e6116af6f4561aba6e465b88d8babbf797bc699a1d66708c82e308b88f8",
+          "id": "tos.claim.lexical.wille-form",
+          "version": 1
+        },
+        "fields": {
+          "qualifiers": {
+            "attestation_scope": "Только исследуемый языковой разбор JGB 19; без точной адресации отдельных токенов и без полной морфологической или семантической парадигмы.",
+            "relation_basis": "Source-visible reading of complete JGB 19 and a bounded proposed nominal/lexical analysis; no dictionary authority, string-equivalence rule or calibrated admission is claimed.",
+            "statement": "Форма Wille предлагается как написание исследуемой немецкой лексемы в контексте JGB 19. Выделение точного употребления требует собственной привязки к тексту.",
+            "statement_language": "ru",
+            "statement_script": "Cyrl"
+          }
+        },
+        "forms": [
+          {
+            "field_id": "claim.statement",
+            "form_id": "tos.form.lexical.wille-form.statement-ru"
+          }
+        ],
+        "operation": "claim.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    }
+  ]
+}

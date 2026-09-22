@@ -1,156 +1,100 @@
 # ToS Review Checklist
 
-Use this checklist when `Tree-of-Sophia` changes and the current public validator does not cover the touched surface.
+Use this checklist for source, interpretation, structural and boundary judgments
+that require review alongside mechanical validation. The review records what
+changed, its evidence and the scope of the conclusion.
 
-The current bounded Zarathustra route already has public validators at `python scripts/validate_tiny_entry_route.py` and `python mechanics/boundary-bridge/parts/derived-kag-seam/scripts/validate_kag_export.py`.
-The tiny-entry validator keeps the source-owned `tos-root` handoff, public compatibility authority vocabulary, and source-first re-entry explicit.
-The KAG export validator covers the generated export payload and structure.
-Intake, canon, public-example sync, and route-card structure route through their
-own validators in the release lane.
-Questbook boundary-runtime surfaces route through `python mechanics/questbook/scripts/validate_questbook_surface.py`.
-
-The goal is not to imitate a machine check.
-The goal is to make source-first review repeatable and explicit.
+Choose the mechanical checks from the nearest `VALIDATION.md` and the release
+lane. The tiny-entry validator covers the `tos-root` handoff and source-first
+return; the KAG export validator covers export structure. Intake, canon,
+public-example synchronization, route cards and questbook surfaces each retain
+their owner validation routes.
 
 ## When to use it
 
-Use this checklist for changes to:
+Apply the checklist to changes in:
 
-- `README.md`
-- `BOUNDARIES.md`
-- `ROADMAP.md`
-- `ToS/source-witnesses/**/*`
-- `ToS/candidate-intake/**/*`
-- `ToS/canon/**/*.json`
-- `ToS/doctrine/KNOWLEDGE_MODEL.md`
-- `ToS/doctrine/KNOWLEDGE_ASSESSMENT.md`
-- `ToS/doctrine/NODE_CONTRACT.md`
-- `ToS/doctrine/PRACTICE_BRANCH.md`
-- `ToS/doctrine/COUNTERPART_POLICY.md`
-- `mechanics/distillation/parts/source-compost/docs/CONTEXT_COMPOST.md`
-- `ToS/doctrine/CALIBRATION_AXIS.md`
-- `mechanics/growth-cycle/parts/branch-growth-cycle/docs/HUMAN_CURATED_EXPANSION.md`
-- `mechanics/growth-cycle/parts/branch-growth-cycle/docs/GROWTH_STRUCTURE.md`
-- `ToS/doctrine/IDENTIFIER_DISCIPLINE.md`
-- `ToS/doctrine/SOURCE_NODE_TEMPLATE.md`
-- `ToS/doctrine/CONCEPT_NODE_TEMPLATE.md`
-- `ToS/doctrine/LINEAGE_NODE_TEMPLATE.md`
-- `ToS/doctrine/CALIBRATION_LINEAGE_PILOT.md`
-- `ToS/doctrine/CONTEXT_NODE_TEMPLATE.md`
-- `mechanics/source-witnessing/parts/witness-route/docs/MANUAL_CORPUS_ENTRY_GATE.md`
-- `mechanics/growth-cycle/parts/branch-growth-cycle/docs/PRE_EXPANSION_SOIL.md`
-- `ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md`
-- `ToS/zarathustra/prologue-1/TRILINGUAL_ENTRY.md`
-- `ToS/zarathustra/GOLDEN_GROWTH_KERNEL.md`
-- `ToS/public-compatibility/*.json`
-- `ToS/contracts/*.json`
-- new authored architecture notes
+- root orientation, design, boundaries and roadmap;
+- source witnesses, candidate intake, canon and public compatibility;
+- doctrine, node contracts, templates and calibration;
+- source entry, growth, compost and counterpart routes;
+- golden-kernel, multilingual and lived-witness material;
+- schemas, exports and new authored architecture notes.
 
 ## Review route
 
-Walk the change in this order:
-
-1. Compare the change against `README.md` and the owning architecture note it touches.
-2. Check that authored meaning remains distinguishable from derived structure.
-3. Check that source, extraction, interpretation, and synthesis layers remain legible.
-4. Check that raw source, raw candidate intake, canonical tree, public compatibility surface, and derived export do not silently collapse into one layer.
-5. Check that lineage and context did not disappear where they matter.
-6. Check that downstream AoA operational detail did not quietly move into ToS.
-7. Check that counterpart mapping, when present, stays optional and non-identity.
-8. Check that compost routes, when present, preserve source refs, review state, and decay or demotion posture.
-9. Check that calibration, when present, sharpens orientation without replacing source reading or plurality.
-10. Check that AI-assisted growth, when present, stays visible, reviewable, and non-sovereign.
-11. Check that growth decisions stay structural rather than quantity-driven.
-12. Check that node IDs, when present, stay stable, readable, and consistent across docs, schema, examples, and canonical tree files.
-13. Check that multilingual witnesses, when present, keep one shared node ID, explicit source authority, and no parallel language trees.
-14. Check that scaffold templates or scaffold examples stay bounded and legible rather than quietly becoming an uncontrolled corpus program.
-15. Check that a lineage pilot, when present, stays bounded rather than turning into hidden wider expansion.
-16. Check that manual corpus-entry gates, when present, keep bounded source entry distinct from wider expansion.
-17. Check that tiny-entry routes, when present, stay tree-first, keep capsule and authority distinct, keep fallback inside ToS, and stay bounded to one real authored node plus one bounded hop.
-18. Check that uncertainty, ambiguity, or contestability did not get flattened into false certainty.
-19. Check that golden-kernel work transfers source and review method rather than
-    Zarathustra-specific ontology or vocabulary.
-20. Check that lived witness remains visible as first-person provenance without
-    becoming primary text, scholarship, or canon authority.
-21. Check that a gold example preserves rejected or unresolved alternatives and
-    review rationale instead of exposing accepted labels alone.
+1. Read the changed owner source and the contract that defines its purpose.
+2. Compare the proposed meaning, source scope and uncertainty with the previous
+   version and exact evidence.
+3. Follow affected relationships into forms, builders and consumers; check that
+   their source bindings and roles remain explicit.
+4. Examine the actual authority and competence for each judgment and transition.
+5. Run the relevant mechanical checks, then record the substantive review and
+   any remaining question with its owner and continuation condition.
 
 ## Checklist
 
-Answer each item with `yes`, `no`, or `not-applicable`.
+Answer each applicable item with `yes`, `no` or `not-applicable`, and retain
+specific evidence for material judgments.
 
-- Does the changed surface keep a visible path back to source or authoritative meaning?
-- Are node layers still distinguishable rather than collapsed into one summary voice?
-- If `ToS/source-witnesses/`, `ToS/candidate-intake/`, `ToS/canon/`, or `ToS/public-compatibility/` changed, do those layers remain visibly distinct?
-- Are lineage relations still explicit where the subject needs them?
-- Are temporal, spatial, civilizational, or interpretive contexts still attached where they matter?
-- Is ToS still clearly authored truth rather than a restatement of a derived KAG or operational AoA surface?
-- If practice lineage is mentioned, does it stay conceptual rather than absorbing operational ownership?
-- If counterpart mapping is mentioned, does it stay derived, optional, and explicitly non-identity?
-- If context compost is mentioned, do source refs, review state, and decay or demotion posture remain visible?
-- If calibration is mentioned, does it guide curation without becoming a monopoly of meaning?
-- If agent assessment is present, are source visibility, trusted authority,
-  relevant competence, exact versions, disagreements and scoped admission
-  explicit under `ToS/doctrine/KNOWLEDGE_ASSESSMENT.md`, without an automatic
-  per-record human gate or a self-appointed model verdict?
-- If growth is mentioned, are node deepening, node creation, and branch formation still distinguishable?
-- If node IDs are mentioned, do they follow a stable, readable public grammar?
-- If multilingual witnesses are present, do they keep one shared node_id rather than language-split copies?
-- If multilingual witnesses are present, does the canonical source remain visibly authoritative over the other witness layers?
-- If Russian or English witnesses are present, do they remain witness layers rather than a new authored canon?
-- If templates or examples are mentioned, do source-node and concept-node scaffolds stay distinct?
-- If `ToS/canon/` and `ToS/public-compatibility/` are both present for the same route, do the examples remain compatibility mirrors rather than a second canon?
-- If multilingual source entry is present, do concept nodes remain language-neutral rather than becoming synonym piles?
-- If scaffold examples are present, do they remain bounded scaffolds rather than pretending to be a real branch pilot?
-- If a lineage pilot is present, does it make lineage more legible rather than more graph-like and vague?
-- If a lineage pilot is present, does it stay visibly smaller than a wider world-thought expansion phase?
-- If lineage-pilot examples are present, do they stay visibly bounded rather than quietly posing as a wider expansion phase?
-- If manual corpus-entry gating is present, does it keep bounded active source entry distinct from wider expansion?
-- If a tiny-entry route is present, does `README.md` remain the current public `tos-root` rather than being replaced by a derived surface?
-- If a tiny-entry route is present, do capsule and authority remain distinct rather than collapsing into one interchangeable surface?
-- If a tiny-entry route is present, does fallback stay inside ToS rather than
-  pointing to `aoa-kag`, the `aoa-sdk` routing control plane, its
-  `aoa-routing` compatibility namespace, or another downstream repository?
-- If a tiny-entry route is present, does it stay bounded to one real authored node plus one bounded hop?
-- Does the change preserve plurality rather than forcing every branch through one interpretive flattening?
-- If golden-kernel transfer is mentioned, can a new source reject the current
-  vocabulary or force contract revision without being treated as an error?
-- If lived witness is present, is it distinct from source witness, textual
-  observation, scholarship, interpretation, and canon?
-- If gold material is present, are rejection, ambiguity, counter-reading,
-  reviewer rationale, and version lineage inspectable where applicable?
-- Are any new abstractions reversible and narrower than the material they summarize?
-- Does the change name uncertainty honestly where the source or interpretation remains contested?
+- Does the description explain its subject, purpose, properties and useful
+  relationships in its own terms?
+- Do qualifications add information specific to this source or use? Are shared
+  operating rules stated in their owning contract and referenced where needed?
+- Are substantive negation, conditional reasoning, attribution, uncertainty,
+  disagreement and source quotations preserved accurately?
+- Can the reader return to the exact source and the prior version?
+- Are source, extraction, interpretation, synthesis, candidate, canon, review,
+  compatibility and derived export individually identifiable?
+- Are lineage and temporal, spatial, civilizational and interpretive contexts
+  retained where they affect the reading?
+- Does ToS retain authorship of its meaning, with AoA operations and downstream
+  KAG or statistics assigned to their owners?
+- Do practice lineages retain their conceptual scope, and counterpart bridges
+  their optional, derived, non-identity relation with operational subjects?
+- Do compost routes retain source references, review state and decay or demotion
+  conditions?
+- Does calibration guide curation while preserving source plurality and the
+  ability of a source to challenge the guiding vocabulary?
+- Do agent assessments retain source visibility, trusted delegation, relevant
+  competence, exact versions, disagreement and purpose-specific admission under
+  [Knowledge Assessment](../../../../../ToS/doctrine/KNOWLEDGE_ASSESSMENT.md)?
+- Are human authorship, personal consent, rights, canon and publication supported
+  by their respective actual owner decisions?
+- Is growth justified by deeper understanding, useful node creation or coherent
+  branch formation, with the current expansion scope made explicit?
+- Are IDs stable across sources, schemas, examples and companions, with explicit
+  lineage for identity transitions?
+- Do multilingual witnesses share the intended node identity while retaining
+  language, linguistic provenance and source authority?
+- Do Concept nodes describe their subject across languages, with names and
+  lexical evidence carried in their appropriate fields?
+- Are source-node and concept-node templates distinct and useful for authoring?
+  Are scaffold examples and lineage pilots identified with their actual scope?
+- Do public compatibility examples return to the canonical source and maintain
+  exact companion parity?
+- Does a tiny-entry route retain `README.md` as public `tos-root`, separate capsule
+  and authority roles, fallback within ToS, and one authored node plus one hop?
+- Does golden-kernel transfer preserve source and review method while allowing
+  another tradition to supply its own concepts and relation vocabulary?
+- Does lived witness retain its first-person provenance alongside separately
+  identified textual, scholarly, interpretive and canon evidence?
+- Do gold examples expose rejected and unresolved alternatives, counter-readings,
+  reviewer rationale and version lineage?
+- Are abstractions scoped to their supporting material and open to correction?
 
 ## Stop conditions
 
-Pause and revise before merge if any answer is `no` for:
-
-- source traceability
-- authored versus derived distinction
-- node layering
-- lineage preservation
-- ToS versus AoA ownership boundary
-- calibration flattening
-- assessment authority or competence bypass, fabricated human review, or loss
-  of a concrete rights/consent/canon/publication owner boundary
-- identifier drift
-- language-split node copies
-- source-authority replacement by translation
-- template collapse between node families
-- pilot-boundary collapse
-- manual-entry boundary collapse
-- tiny-entry capsule/authority collapse
-- downstream authority bleed into ToS entry
-- golden-kernel method collapsing into universal ontology
-- lived witness being promoted into source or canon authority
-- accepted-only gold material hiding refusal, ambiguity, or review rationale
+Revise the change before merge when an applicable criterion fails, especially
+source traceability, semantic fidelity, identity continuity, source-layer
+separation, competence, authority, rights or required historical preservation.
+Record the concrete defect and the owner action needed to resolve it. A green
+mechanical check covers only the invariants named by that check.
 
 ## Review note
 
-A short review note should record:
-
-- what changed
-- which checklist items were most at risk
-- what remained interpretive or unresolved
-- whether follow-up belongs in `aoa-kag`, `Agents-of-Abyss`, or another neighboring repository
+Record the changed sources, exact reviewed version, evidence and checks, the
+judgments most at risk, unresolved questions, and the next responsible owner.
+Language cleanup should identify the descriptive meaning preserved and the
+boilerplate removed. Shared wording guidance lives in
+[the authored description contract](../../../../../ToS/doctrine/NODE_CONTRACT.md#authored-description).

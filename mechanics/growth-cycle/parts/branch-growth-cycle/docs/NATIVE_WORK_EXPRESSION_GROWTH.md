@@ -18,12 +18,12 @@ Only its record, human forms and revision history are selected; nested sources,
 unrelated companions and payloads are neither enumerated nor changed.
 
 The caller supplies an initial version-1 provisional Expression, explicit Work
-backlink, language and expression role, unverified identity variants, and no
-responsibility, embodiment, derivation, equivalence or assessment admission.
-The Claim is initial, positive, observed, unreviewed public metadata. Here
-`observed` means the declared record link, not accepted bibliographic truth.
-Its qualified statement and exact two metadata evidence paths remain authored
-input. The command does not derive a statement from a display label.
+backlink, language and expression role, unverified identity variants, and
+empty responsibility, embodiment and derivation bindings. The Claim starts as
+positive, observed, unreviewed public metadata. Its observation scope is the
+declared record link. The caller supplies the qualified statement and exact
+two metadata evidence paths. Bibliographic assessment, equivalence and
+downstream use follow their owner routes.
 
 Every current parent source-copy form is explicitly rebound with its own
 successor; old forms remain retained. New Expression name and Claim statement
@@ -79,12 +79,13 @@ retained before/after plan from its original request, not an arbitrary caller
 plan. Changed third-state files are never overwritten by recovery. See
 [the selected transaction contract](SELECTED_METADATA_TRANSACTIONS.md).
 
-The parent before-package is retained in the exact record-revision archive.
-An orphan archive or prepared transaction is not admitted history. The child
+The parent before-package is retained in the exact record-revision archive,
+with committed publication required for admission to history. The child
 retains its request, runtime description, version-2 serialization provenance
-and compound receipt. The provenance describes prepared buffer serialization;
-the committed transaction is independently checked. It is unsigned capture,
-not proof of execution truth, historical correctness or source acceptance.
+and compound receipt. The unsigned provenance captures prepared buffer
+serialization; a separate check verifies the committed transaction. Execution
+authentication, historical correctness and source acceptance require their own
+evidence.
 
 An exact retry of a completed request observes its committed operation without
 reapplying its former catalog dependency guard: later catalog regeneration or a
@@ -94,14 +95,13 @@ requires committed publication, exact immutable Claim/capture bytes, the parent
 transition in current verified history and the original Expression bytes in
 its current record or verified retained successor archive.
 
-Foundation closure joins the three unchanged legacy topology streams with
-verified native `has_expression` carriers and the separately delegated
-[`embodied_by` carriers](NATIVE_EXPRESSION_EDITION_GROWTH.md). Each legacy event keeps
-its own original stream digests and batch counts. A changed legacy Work or
-Expression input is resolved only by its original logical path and exact raw
-digest through committed retained history; arbitrary blobs or current-value
-substitution are not evidence. Current global closure checks both carrier
-families together, including duplicate pairs and one-Work-per-Expression.
+Foundation closure joins the three legacy topology streams with verified
+native `has_expression` carriers and separately delegated [`embodied_by`
+carriers](NATIVE_EXPRESSION_EDITION_GROWTH.md). Each legacy event retains its
+original stream digests and batch counts. Revised public metadata inputs
+resolve by original logical path and exact raw digest through committed
+source-owner history. Current global closure checks both carrier families,
+including duplicate pairs and one-Work-per-Expression.
 
 ## Verification and limits
 
@@ -111,7 +111,7 @@ closure boundary in `tests/test_source_bibliographic_topology.py`. They exercise
 the actual command, transaction transport, protected reader, restart and
 recovery on bounded temporary metadata, never historical source mutation.
 
-Green mechanics do not review translation, identify a printing, create an
-Edition or Item, clear rights, authorize publication, assess semantics or admit
-canon. Catalog regeneration and downstream owner validation remain separate
-post-publication steps before wider use of newly authored source records.
+Translation assessment, printing identification, Edition/Item creation,
+rights, publication, semantics and canon use their respective owner routes.
+Catalog regeneration and downstream validation follow source publication
+before wider use of the new records.

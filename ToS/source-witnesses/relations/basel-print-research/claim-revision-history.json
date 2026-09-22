@@ -1,0 +1,128 @@
+{
+  "schema_version": "tos_claim_revision_history_v1",
+  "source_path": "ToS/source-witnesses/relations/basel-print-research/source-claims.jsonl",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:a6a3294513af49bb1e2aaa5d",
+      "request_digest": "sha256:2223e3c5e4591b8e30c59df0da3e80a2a6e4872402e5f31c71c0c04cf9844346",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:10a86b7b24c1d2176762806589448d74db85576406b715b1a5728128bce311af",
+      "recorded_at": "2026-09-22T06:43:03.410265+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+      "previous_source": {
+        "id": "tos.claim.basel-print.environment-place",
+        "version": 1,
+        "digest": "sha256:88bad1d95cf4a2397e5ad37c1d6f6e1fa1afb9e9782f650e2fd964d1e37ba28a"
+      },
+      "source": {
+        "id": "tos.claim.basel-print.environment-place",
+        "version": 2,
+        "digest": "sha256:f578de9502d24b9bc8994b859ac90b0bd3d510503374cb440bcd5af5f83dded4"
+      },
+      "previous_revision": "sha256:17e289ad7ed9a92a2a7b3559ea724ea4e0af0a9c0387f4dfb7034f41933a0e7d",
+      "archive_path": "ToS/source-witnesses/.record-revisions/a6a3294513af49bb1e2aaa5d1af0feafd13aa5c50d6952646eeaaf065943abc3-17e289ad7ed9a92a2a7b3559ea724ea4e0af0a9c0387f4dfb7034f41933a0e7d",
+      "dependencies": "sha256:a34174bb96b4f5d19ea39a7151cf93ed130e113882d46e560a735f530dc9ca35",
+      "source_bindings": {
+        "objects": {
+          "tos.historical-environment.basel.greek-print-humanism": {
+            "source_ref": "ToS/source-witnesses/history/basel-print-research/greek-print-humanism/historical-environment.json",
+            "source_sha256": "sha256:3b294ba9f577f46987b9c17437f049e66f742f56e7a4e4a1433f1cddd14756cb",
+            "canonical_record_sha256": "sha256:8f9f7c30fbf7690e95bddf082136b8d7c38b43e83fd7c6c0c42a7bbfe42ea42e",
+            "schema_version": "tos_historical_context_record_v1",
+            "record_version": 2
+          },
+          "tos.place.basel": {
+            "source_ref": "ToS/source-witnesses/places/basel/place.json",
+            "source_sha256": "sha256:1075c2cd9d638139f0108db8a7773f827c86604df148923069290dae8c2d5898",
+            "canonical_record_sha256": "sha256:bd48ebf6fd7fc4a8353c6f7581c7a3f057aada97bc1e3da62394edf71ed32967",
+            "schema_version": "tos_corpus_record_v1",
+            "record_version": 2
+          }
+        },
+        "evidence": {
+          "ToS/review-ledger/2026-09-07-basel-print-environment-source-reading.md": {
+            "source_ref": "ToS/review-ledger/2026-09-07-basel-print-environment-source-reading.md",
+            "source_sha256": "sha256:3287917662d947e4890c116714a71e6fd621eaa039f532918cb39699d856a759",
+            "source_line": null,
+            "evidence_kind": "repo_path"
+          }
+        }
+      },
+      "changed_fields": [
+        "qualifiers"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.basel-print.environment-place.statement-ru",
+          "version": 2,
+          "digest": "sha256:0009e279d3aa8a123f85c1fb039bfd178668f2e2c6138974d912f7408a62709f"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:a6a3294513af49bb1e2aaa5d",
+        "expected_configuration": "sha256:10a86b7b24c1d2176762806589448d74db85576406b715b1a5728128bce311af",
+        "expected_dependencies": "sha256:a34174bb96b4f5d19ea39a7151cf93ed130e113882d46e560a735f530dc9ca35",
+        "expected_inputs": {
+          "evidence": {
+            "ToS/review-ledger/2026-09-07-basel-print-environment-source-reading.md": {
+              "evidence_kind": "repo_path",
+              "source_line": null,
+              "source_ref": "ToS/review-ledger/2026-09-07-basel-print-environment-source-reading.md",
+              "source_sha256": "sha256:3287917662d947e4890c116714a71e6fd621eaa039f532918cb39699d856a759"
+            }
+          },
+          "objects": {
+            "tos.historical-environment.basel.greek-print-humanism": {
+              "canonical_record_sha256": "sha256:8f9f7c30fbf7690e95bddf082136b8d7c38b43e83fd7c6c0c42a7bbfe42ea42e",
+              "record_version": 2,
+              "schema_version": "tos_historical_context_record_v1",
+              "source_ref": "ToS/source-witnesses/history/basel-print-research/greek-print-humanism/historical-environment.json",
+              "source_sha256": "sha256:3b294ba9f577f46987b9c17437f049e66f742f56e7a4e4a1433f1cddd14756cb"
+            },
+            "tos.place.basel": {
+              "canonical_record_sha256": "sha256:bd48ebf6fd7fc4a8353c6f7581c7a3f057aada97bc1e3da62394edf71ed32967",
+              "record_version": 2,
+              "schema_version": "tos_corpus_record_v1",
+              "source_ref": "ToS/source-witnesses/places/basel/place.json",
+              "source_sha256": "sha256:1075c2cd9d638139f0108db8a7773f827c86604df148923069290dae8c2d5898"
+            }
+          }
+        },
+        "expected_revision": "sha256:17e289ad7ed9a92a2a7b3559ea724ea4e0af0a9c0387f4dfb7034f41933a0e7d",
+        "expected_source": {
+          "digest": "sha256:88bad1d95cf4a2397e5ad37c1d6f6e1fa1afb9e9782f650e2fd964d1e37ba28a",
+          "id": "tos.claim.basel-print.environment-place",
+          "version": 1
+        },
+        "fields": {
+          "qualifiers": {
+            "assessment_limit": "Независимая содержательная оценка ещё не выполнена.",
+            "context_scope": "Книгопечатание и работа с греческими источниками.",
+            "relation_basis": "Атрибутированное чтение каталога, не вывод из соседства.",
+            "source_locator": {
+              "locator": "Introduction, thematic account of Basel Greek printing",
+              "reading_date": "2026-09-07",
+              "source_language": "de",
+              "url": "https://ub-easyweb.ub.unibas.ch/de/historische-bestaende/alte-drucke/griechischer-geist/"
+            },
+            "statement": "Описанная среда греческого книгопечатания локализована в Базеле; связь ограничена этой исследуемой средой.",
+            "statement_language": "ru",
+            "statement_script": "Cyrl",
+            "time_scope_note": "XVI век по тематическому охвату очерка; точные границы среды не установлены."
+          }
+        },
+        "forms": [
+          {
+            "field_id": "claim.statement",
+            "form_id": "tos.form.basel-print.environment-place.statement-ru"
+          }
+        ],
+        "operation": "claim.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording preserves the asserted relation, attributed source, evidential limits and uncertainty. Claim identity, endpoints, polarity, epistemic and review status remain unchanged.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "schema_version": "tos_corpus_record_v1",
+  "record_type": "organization",
+  "record_id": "tos.organization.ernst-schmeitzner-verlagsbuchhandlung-chemnitz",
+  "preferred_label": "Ernst Schmeitzner, Verlagsbuchhandlung",
+  "variant_labels": [
+    {
+      "value": "Schmeitzner, Verlagsbuchhandlung",
+      "language": "de",
+      "source_ref": "https://d-nb.info/gnd/1063670306",
+      "status": "unverified"
+    },
+    {
+      "value": "Ernst Schmeitzner (Chemnitz)",
+      "language": "de",
+      "source_ref": "https://d-nb.info/gnd/1063670306",
+      "status": "unverified"
+    }
+  ],
+  "identity_status": "provisional",
+  "source_refs": [
+    "ToS/research-packets/foundation-laboratory-2026-07/ZARATHUSTRA_PART1_PROVISION_IDENTITY_RESEARCH.md",
+    "ToS/source-witnesses/discovery/runs/zarathustra-part-1-provision-identity.2026-08-01.v1.json",
+    "https://d-nb.info/gnd/1063670306"
+  ],
+  "external_identifiers": [
+    {
+      "scheme": "GND",
+      "value": "1063670306",
+      "source_ref": "https://d-nb.info/gnd/1063670306",
+      "status": "unverified"
+    }
+  ],
+  "same_as_posture": "no_equivalence_claim",
+  "notes": "The official GND record identifies the historical Corporate Body, established in 1874 with Chemnitz as place of business. It remains distinct from the affiliated Person Ernst Schmeitzner, GND 118823698, and from any successor or rights holder. The local identity is model-resolved and unreviewed.",
+  "record_version": 1,
+  "supersedes_ref": null
+}

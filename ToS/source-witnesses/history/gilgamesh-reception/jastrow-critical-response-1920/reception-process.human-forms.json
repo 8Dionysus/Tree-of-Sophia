@@ -1,71 +1,69 @@
 {
-  "schema_version": "tos_human_form_set_v1",
-  "subject": {
-    "id": "tos.reception-process.gilgamesh-reception.jastrow-critical-response-1920",
-    "version": 1,
-    "digest": "sha256:05d918a4c03e9f404202c0265b0eccb0f48f44cbc9ad35c2bf4bd38ccea49abd"
-  },
   "forms": [
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.gilgamesh-reception.jastrow-critical-response-1920.name-ru",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.reception-process.gilgamesh-reception.jastrow-critical-response-1920",
-        "version": 1,
-        "digest": "sha256:05d918a4c03e9f404202c0265b0eccb0f48f44cbc9ad35c2bf4bd38ccea49abd"
+        "version": 2,
+        "digest": "sha256:4b2377d44838c09607dd6bf54aa70ea18eb2a7f048a4039032c470acce7fdfbc"
       },
       "role": "name",
       "language": "ru",
       "script": "Cyrl",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.gilgamesh-reception.jastrow-critical-response-1920.name-ru",
+        "version": 1,
+        "digest": "sha256:eccdfe9a7ab0d97f25aa5cb96d7fc5b6439308e070aeb1a9b633ee7d3fbf01f6"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.reception-process.gilgamesh-reception.jastrow-critical-response-1920",
-            "version": 1,
-            "digest": "sha256:05d918a4c03e9f404202c0265b0eccb0f48f44cbc9ad35c2bf4bd38ccea49abd"
+            "version": 2,
+            "digest": "sha256:4b2377d44838c09607dd6bf54aa70ea18eb2a7f048a4039032c470acce7fdfbc"
           },
           "pointer": "/preferred_label"
         },
         "context-0": {
           "record": {
             "id": "tos.reception-process.gilgamesh-reception.jastrow-critical-response-1920",
-            "version": 1,
-            "digest": "sha256:05d918a4c03e9f404202c0265b0eccb0f48f44cbc9ad35c2bf4bd38ccea49abd"
+            "version": 2,
+            "digest": "sha256:4b2377d44838c09607dd6bf54aa70ea18eb2a7f048a4039032c470acce7fdfbc"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.reception-process.gilgamesh-reception.jastrow-critical-response-1920",
-            "version": 1,
-            "digest": "sha256:05d918a4c03e9f404202c0265b0eccb0f48f44cbc9ad35c2bf4bd38ccea49abd"
+            "version": 2,
+            "digest": "sha256:4b2377d44838c09607dd6bf54aa70ea18eb2a7f048a4039032c470acce7fdfbc"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.reception-process.gilgamesh-reception.jastrow-critical-response-1920",
-            "version": 1,
-            "digest": "sha256:05d918a4c03e9f404202c0265b0eccb0f48f44cbc9ad35c2bf4bd38ccea49abd"
+            "version": 2,
+            "digest": "sha256:4b2377d44838c09607dd6bf54aa70ea18eb2a7f048a4039032c470acce7fdfbc"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.reception-process.gilgamesh-reception.jastrow-critical-response-1920",
-            "version": 1,
-            "digest": "sha256:05d918a4c03e9f404202c0265b0eccb0f48f44cbc9ad35c2bf4bd38ccea49abd"
+            "version": 2,
+            "digest": "sha256:4b2377d44838c09607dd6bf54aa70ea18eb2a7f048a4039032c470acce7fdfbc"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.reception-process.gilgamesh-reception.jastrow-critical-response-1920",
-            "version": 1,
-            "digest": "sha256:05d918a4c03e9f404202c0265b0eccb0f48f44cbc9ad35c2bf4bd38ccea49abd"
+            "version": 2,
+            "digest": "sha256:4b2377d44838c09607dd6bf54aa70ea18eb2a7f048a4039032c470acce7fdfbc"
           },
           "pointer": "/field_languages/preferred_label"
         }
@@ -78,87 +76,91 @@
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.gilgamesh-reception.jastrow-critical-response-1920.name-en",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.reception-process.gilgamesh-reception.jastrow-critical-response-1920",
-        "version": 1,
-        "digest": "sha256:05d918a4c03e9f404202c0265b0eccb0f48f44cbc9ad35c2bf4bd38ccea49abd"
+        "version": 2,
+        "digest": "sha256:4b2377d44838c09607dd6bf54aa70ea18eb2a7f048a4039032c470acce7fdfbc"
       },
       "role": "name",
       "language": "en",
       "script": "Latn",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.gilgamesh-reception.jastrow-critical-response-1920.name-en",
+        "version": 1,
+        "digest": "sha256:02a584b9dc7e7ef92824b37c70e24fbfd95e53d6552776ea69e0f51a0bab3904"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.reception-process.gilgamesh-reception.jastrow-critical-response-1920",
-            "version": 1,
-            "digest": "sha256:05d918a4c03e9f404202c0265b0eccb0f48f44cbc9ad35c2bf4bd38ccea49abd"
+            "version": 2,
+            "digest": "sha256:4b2377d44838c09607dd6bf54aa70ea18eb2a7f048a4039032c470acce7fdfbc"
           },
           "pointer": "/variant_labels/0/value"
         },
         "context-0": {
           "record": {
             "id": "tos.reception-process.gilgamesh-reception.jastrow-critical-response-1920",
-            "version": 1,
-            "digest": "sha256:05d918a4c03e9f404202c0265b0eccb0f48f44cbc9ad35c2bf4bd38ccea49abd"
+            "version": 2,
+            "digest": "sha256:4b2377d44838c09607dd6bf54aa70ea18eb2a7f048a4039032c470acce7fdfbc"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.reception-process.gilgamesh-reception.jastrow-critical-response-1920",
-            "version": 1,
-            "digest": "sha256:05d918a4c03e9f404202c0265b0eccb0f48f44cbc9ad35c2bf4bd38ccea49abd"
+            "version": 2,
+            "digest": "sha256:4b2377d44838c09607dd6bf54aa70ea18eb2a7f048a4039032c470acce7fdfbc"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.reception-process.gilgamesh-reception.jastrow-critical-response-1920",
-            "version": 1,
-            "digest": "sha256:05d918a4c03e9f404202c0265b0eccb0f48f44cbc9ad35c2bf4bd38ccea49abd"
+            "version": 2,
+            "digest": "sha256:4b2377d44838c09607dd6bf54aa70ea18eb2a7f048a4039032c470acce7fdfbc"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.reception-process.gilgamesh-reception.jastrow-critical-response-1920",
-            "version": 1,
-            "digest": "sha256:05d918a4c03e9f404202c0265b0eccb0f48f44cbc9ad35c2bf4bd38ccea49abd"
+            "version": 2,
+            "digest": "sha256:4b2377d44838c09607dd6bf54aa70ea18eb2a7f048a4039032c470acce7fdfbc"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.reception-process.gilgamesh-reception.jastrow-critical-response-1920",
-            "version": 1,
-            "digest": "sha256:05d918a4c03e9f404202c0265b0eccb0f48f44cbc9ad35c2bf4bd38ccea49abd"
+            "version": 2,
+            "digest": "sha256:4b2377d44838c09607dd6bf54aa70ea18eb2a7f048a4039032c470acce7fdfbc"
           },
           "pointer": "/variant_labels/0/language"
         },
         "context-5": {
           "record": {
             "id": "tos.reception-process.gilgamesh-reception.jastrow-critical-response-1920",
-            "version": 1,
-            "digest": "sha256:05d918a4c03e9f404202c0265b0eccb0f48f44cbc9ad35c2bf4bd38ccea49abd"
+            "version": 2,
+            "digest": "sha256:4b2377d44838c09607dd6bf54aa70ea18eb2a7f048a4039032c470acce7fdfbc"
           },
           "pointer": "/variant_labels/0/script"
         },
         "context-6": {
           "record": {
             "id": "tos.reception-process.gilgamesh-reception.jastrow-critical-response-1920",
-            "version": 1,
-            "digest": "sha256:05d918a4c03e9f404202c0265b0eccb0f48f44cbc9ad35c2bf4bd38ccea49abd"
+            "version": 2,
+            "digest": "sha256:4b2377d44838c09607dd6bf54aa70ea18eb2a7f048a4039032c470acce7fdfbc"
           },
           "pointer": "/variant_labels/0/source_ref"
         },
         "context-7": {
           "record": {
             "id": "tos.reception-process.gilgamesh-reception.jastrow-critical-response-1920",
-            "version": 1,
-            "digest": "sha256:05d918a4c03e9f404202c0265b0eccb0f48f44cbc9ad35c2bf4bd38ccea49abd"
+            "version": 2,
+            "digest": "sha256:4b2377d44838c09607dd6bf54aa70ea18eb2a7f048a4039032c470acce7fdfbc"
           },
           "pointer": "/variant_labels/0/status"
         }
@@ -171,63 +173,67 @@
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.gilgamesh-reception.jastrow-critical-response-1920.note-ru",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.reception-process.gilgamesh-reception.jastrow-critical-response-1920",
-        "version": 1,
-        "digest": "sha256:05d918a4c03e9f404202c0265b0eccb0f48f44cbc9ad35c2bf4bd38ccea49abd"
+        "version": 2,
+        "digest": "sha256:4b2377d44838c09607dd6bf54aa70ea18eb2a7f048a4039032c470acce7fdfbc"
       },
       "role": "hover",
       "language": "ru",
       "script": "Cyrl",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.gilgamesh-reception.jastrow-critical-response-1920.note-ru",
+        "version": 1,
+        "digest": "sha256:0d25c42f64978dfc713968c50d90e147282b200c40d3613127a403a37f62fc8f"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.reception-process.gilgamesh-reception.jastrow-critical-response-1920",
-            "version": 1,
-            "digest": "sha256:05d918a4c03e9f404202c0265b0eccb0f48f44cbc9ad35c2bf4bd38ccea49abd"
+            "version": 2,
+            "digest": "sha256:4b2377d44838c09607dd6bf54aa70ea18eb2a7f048a4039032c470acce7fdfbc"
           },
           "pointer": "/notes"
         },
         "context-0": {
           "record": {
             "id": "tos.reception-process.gilgamesh-reception.jastrow-critical-response-1920",
-            "version": 1,
-            "digest": "sha256:05d918a4c03e9f404202c0265b0eccb0f48f44cbc9ad35c2bf4bd38ccea49abd"
+            "version": 2,
+            "digest": "sha256:4b2377d44838c09607dd6bf54aa70ea18eb2a7f048a4039032c470acce7fdfbc"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.reception-process.gilgamesh-reception.jastrow-critical-response-1920",
-            "version": 1,
-            "digest": "sha256:05d918a4c03e9f404202c0265b0eccb0f48f44cbc9ad35c2bf4bd38ccea49abd"
+            "version": 2,
+            "digest": "sha256:4b2377d44838c09607dd6bf54aa70ea18eb2a7f048a4039032c470acce7fdfbc"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.reception-process.gilgamesh-reception.jastrow-critical-response-1920",
-            "version": 1,
-            "digest": "sha256:05d918a4c03e9f404202c0265b0eccb0f48f44cbc9ad35c2bf4bd38ccea49abd"
+            "version": 2,
+            "digest": "sha256:4b2377d44838c09607dd6bf54aa70ea18eb2a7f048a4039032c470acce7fdfbc"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.reception-process.gilgamesh-reception.jastrow-critical-response-1920",
-            "version": 1,
-            "digest": "sha256:05d918a4c03e9f404202c0265b0eccb0f48f44cbc9ad35c2bf4bd38ccea49abd"
+            "version": 2,
+            "digest": "sha256:4b2377d44838c09607dd6bf54aa70ea18eb2a7f048a4039032c470acce7fdfbc"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.reception-process.gilgamesh-reception.jastrow-critical-response-1920",
-            "version": 1,
-            "digest": "sha256:05d918a4c03e9f404202c0265b0eccb0f48f44cbc9ad35c2bf4bd38ccea49abd"
+            "version": 2,
+            "digest": "sha256:4b2377d44838c09607dd6bf54aa70ea18eb2a7f048a4039032c470acce7fdfbc"
           },
           "pointer": "/field_languages/notes"
         }
@@ -238,5 +244,243 @@
       }
     }
   ],
-  "prior_forms": []
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:05d918a4c03e9f404202c0265b0eccb0f48f44cbc9ad35c2bf4bd38ccea49abd",
+            "id": "tos.reception-process.gilgamesh-reception.jastrow-critical-response-1920",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:05d918a4c03e9f404202c0265b0eccb0f48f44cbc9ad35c2bf4bd38ccea49abd",
+            "id": "tos.reception-process.gilgamesh-reception.jastrow-critical-response-1920",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:05d918a4c03e9f404202c0265b0eccb0f48f44cbc9ad35c2bf4bd38ccea49abd",
+            "id": "tos.reception-process.gilgamesh-reception.jastrow-critical-response-1920",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:05d918a4c03e9f404202c0265b0eccb0f48f44cbc9ad35c2bf4bd38ccea49abd",
+            "id": "tos.reception-process.gilgamesh-reception.jastrow-critical-response-1920",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:05d918a4c03e9f404202c0265b0eccb0f48f44cbc9ad35c2bf4bd38ccea49abd",
+            "id": "tos.reception-process.gilgamesh-reception.jastrow-critical-response-1920",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:05d918a4c03e9f404202c0265b0eccb0f48f44cbc9ad35c2bf4bd38ccea49abd",
+            "id": "tos.reception-process.gilgamesh-reception.jastrow-critical-response-1920",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.gilgamesh-reception.jastrow-critical-response-1920.name-ru",
+      "form_version": 1,
+      "language": "ru",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:05d918a4c03e9f404202c0265b0eccb0f48f44cbc9ad35c2bf4bd38ccea49abd",
+        "id": "tos.reception-process.gilgamesh-reception.jastrow-critical-response-1920",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:05d918a4c03e9f404202c0265b0eccb0f48f44cbc9ad35c2bf4bd38ccea49abd",
+            "id": "tos.reception-process.gilgamesh-reception.jastrow-critical-response-1920",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:05d918a4c03e9f404202c0265b0eccb0f48f44cbc9ad35c2bf4bd38ccea49abd",
+            "id": "tos.reception-process.gilgamesh-reception.jastrow-critical-response-1920",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:05d918a4c03e9f404202c0265b0eccb0f48f44cbc9ad35c2bf4bd38ccea49abd",
+            "id": "tos.reception-process.gilgamesh-reception.jastrow-critical-response-1920",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:05d918a4c03e9f404202c0265b0eccb0f48f44cbc9ad35c2bf4bd38ccea49abd",
+            "id": "tos.reception-process.gilgamesh-reception.jastrow-critical-response-1920",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/variant_labels/0/language",
+          "record": {
+            "digest": "sha256:05d918a4c03e9f404202c0265b0eccb0f48f44cbc9ad35c2bf4bd38ccea49abd",
+            "id": "tos.reception-process.gilgamesh-reception.jastrow-critical-response-1920",
+            "version": 1
+          }
+        },
+        "context-5": {
+          "pointer": "/variant_labels/0/script",
+          "record": {
+            "digest": "sha256:05d918a4c03e9f404202c0265b0eccb0f48f44cbc9ad35c2bf4bd38ccea49abd",
+            "id": "tos.reception-process.gilgamesh-reception.jastrow-critical-response-1920",
+            "version": 1
+          }
+        },
+        "context-6": {
+          "pointer": "/variant_labels/0/source_ref",
+          "record": {
+            "digest": "sha256:05d918a4c03e9f404202c0265b0eccb0f48f44cbc9ad35c2bf4bd38ccea49abd",
+            "id": "tos.reception-process.gilgamesh-reception.jastrow-critical-response-1920",
+            "version": 1
+          }
+        },
+        "context-7": {
+          "pointer": "/variant_labels/0/status",
+          "record": {
+            "digest": "sha256:05d918a4c03e9f404202c0265b0eccb0f48f44cbc9ad35c2bf4bd38ccea49abd",
+            "id": "tos.reception-process.gilgamesh-reception.jastrow-critical-response-1920",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/variant_labels/0/value",
+          "record": {
+            "digest": "sha256:05d918a4c03e9f404202c0265b0eccb0f48f44cbc9ad35c2bf4bd38ccea49abd",
+            "id": "tos.reception-process.gilgamesh-reception.jastrow-critical-response-1920",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.gilgamesh-reception.jastrow-critical-response-1920.name-en",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:05d918a4c03e9f404202c0265b0eccb0f48f44cbc9ad35c2bf4bd38ccea49abd",
+        "id": "tos.reception-process.gilgamesh-reception.jastrow-critical-response-1920",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:05d918a4c03e9f404202c0265b0eccb0f48f44cbc9ad35c2bf4bd38ccea49abd",
+            "id": "tos.reception-process.gilgamesh-reception.jastrow-critical-response-1920",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:05d918a4c03e9f404202c0265b0eccb0f48f44cbc9ad35c2bf4bd38ccea49abd",
+            "id": "tos.reception-process.gilgamesh-reception.jastrow-critical-response-1920",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:05d918a4c03e9f404202c0265b0eccb0f48f44cbc9ad35c2bf4bd38ccea49abd",
+            "id": "tos.reception-process.gilgamesh-reception.jastrow-critical-response-1920",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:05d918a4c03e9f404202c0265b0eccb0f48f44cbc9ad35c2bf4bd38ccea49abd",
+            "id": "tos.reception-process.gilgamesh-reception.jastrow-critical-response-1920",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:05d918a4c03e9f404202c0265b0eccb0f48f44cbc9ad35c2bf4bd38ccea49abd",
+            "id": "tos.reception-process.gilgamesh-reception.jastrow-critical-response-1920",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:05d918a4c03e9f404202c0265b0eccb0f48f44cbc9ad35c2bf4bd38ccea49abd",
+            "id": "tos.reception-process.gilgamesh-reception.jastrow-critical-response-1920",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.gilgamesh-reception.jastrow-critical-response-1920.note-ru",
+      "form_version": 1,
+      "language": "ru",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:05d918a4c03e9f404202c0265b0eccb0f48f44cbc9ad35c2bf4bd38ccea49abd",
+        "id": "tos.reception-process.gilgamesh-reception.jastrow-critical-response-1920",
+        "version": 1
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.reception-process.gilgamesh-reception.jastrow-critical-response-1920",
+    "version": 2,
+    "digest": "sha256:4b2377d44838c09607dd6bf54aa70ea18eb2a7f048a4039032c470acce7fdfbc"
+  }
 }

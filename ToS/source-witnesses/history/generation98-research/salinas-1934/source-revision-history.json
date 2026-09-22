@@ -1,0 +1,101 @@
+{
+  "schema_version": "tos_source_revision_history_v1",
+  "record_id": "tos.historical-generation.spanish-1898.salinas-1934",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:17c80019a34b5b21ab7efb17",
+      "request_digest": "sha256:25c3e676b96f022291cccd5deea46d8da15af5d9a5178179fc52b7a2b4ca076b",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:201d1ceaeea0c265fd3408f11118ae9f5c2d867bae9c994f3fa9681397dfa6a6",
+      "recorded_at": "2026-09-22T05:04:50.734299+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.historical-generation.spanish-1898.salinas-1934",
+        "version": 1,
+        "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a"
+      },
+      "source": {
+        "id": "tos.historical-generation.spanish-1898.salinas-1934",
+        "version": 2,
+        "digest": "sha256:52706c332c776f7877ca6fabae8de478e7f1ceaa8b6b46ddff8f5bea1c25d455"
+      },
+      "previous_revision": "sha256:3448839499dd1ab7f99329ffabd8b46e801f3d911b83351ca21d65f1dc6467d2",
+      "archive_path": "ToS/source-witnesses/.record-revisions/17c80019a34b5b21ab7efb175daa30f2d842e5aef7c07a204bea27cd13ca394d-3448839499dd1ab7f99329ffabd8b46e801f3d911b83351ca21d65f1dc6467d2",
+      "dependencies": "sha256:ee36ec01c29f45d3ea68455c79cd36c2419deeb2105f60dece091265fbfb7d58",
+      "changed_fields": [
+        "semantic_content",
+        "semantic_scope"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.generation98.salinas-1934.name-ru",
+          "version": 2,
+          "digest": "sha256:8fe0cf326f4893b9bc934cbe1e1a17936099be79a51eda7a9e846abb3281debe"
+        },
+        {
+          "id": "tos.form.generation98.salinas-1934.name-en",
+          "version": 2,
+          "digest": "sha256:2f9caed8a66de419f5d522831bf37e58d2f3dd6a5857ec0d10fa61911e57ffa6"
+        },
+        {
+          "id": "tos.form.generation98.salinas-1934.name-es",
+          "version": 2,
+          "digest": "sha256:193f3088715833f27ff1533348462571068e381a4f3705c4b2fef3bc981857c9"
+        },
+        {
+          "id": "tos.form.generation98.salinas-1934.note-ru",
+          "version": 2,
+          "digest": "sha256:49e9fa5fdfb319052342d83649ed22d77cb3ee82e2984eade60ad520621d1aff"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:17c80019a34b5b21ab7efb17",
+        "expected_configuration": "sha256:201d1ceaeea0c265fd3408f11118ae9f5c2d867bae9c994f3fa9681397dfa6a6",
+        "expected_dependencies": "sha256:ee36ec01c29f45d3ea68455c79cd36c2419deeb2105f60dece091265fbfb7d58",
+        "expected_revision": "sha256:3448839499dd1ab7f99329ffabd8b46e801f3d911b83351ca21d65f1dc6467d2",
+        "expected_source": {
+          "digest": "sha256:9cddf02cc6ff3cf40488a96e7a3174be7101262528795442a3fe576938b82a7a",
+          "id": "tos.historical-generation.spanish-1898.salinas-1934",
+          "version": 1
+        },
+        "fields": {
+          "semantic_content": {
+            "cohort_basis": "Применение критериев Петерсена: близость возраста, связи и общая историческая проблема.",
+            "generation_account": "Когорта курса Салинаса 1934 года; сообщение Фокса, с. 1765–1766.",
+            "language": "ru",
+            "script": "Cyrl"
+          },
+          "semantic_scope": {
+            "identity_criterion": "Когорта по критерию Салинаса 1934 года; сопоставление с иной группировкой требует отдельного обоснования.",
+            "language": "ru",
+            "scope_note": "Сопоставление явно определённых историографических когорт; отнесение человека хранится отдельно.",
+            "script": "Cyrl"
+          }
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.generation98.salinas-1934.name-ru"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.generation98.salinas-1934.name-en"
+          },
+          {
+            "field_id": "metadata.variant-name:1",
+            "form_id": "tos.form.generation98.salinas-1934.name-es"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.generation98.salinas-1934.note-ru"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    }
+  ]
+}

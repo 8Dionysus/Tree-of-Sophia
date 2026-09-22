@@ -1,0 +1,87 @@
+{
+  "schema_version": "tos_source_revision_history_v1",
+  "record_id": "tos.philosophical-category.causality-as-conceptual-convention-jgb21",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:b820e1445de2769091d8c74e",
+      "request_digest": "sha256:5fcc8ae87e2be00de37322296f02dff0aa02555919df85b7d4443ee2738505ae",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:9ca974e92a0cd548e03fb5b0c30a8c430dd5ea9f980fb786fa98b58e626d38cf",
+      "recorded_at": "2026-09-22T05:07:12.120981+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.philosophical-category.causality-as-conceptual-convention-jgb21",
+        "version": 1,
+        "digest": "sha256:5ac285600d8dc5a4dc7bf6981227684a5f091e1226cfa41bd7b250dda6419efa"
+      },
+      "source": {
+        "id": "tos.philosophical-category.causality-as-conceptual-convention-jgb21",
+        "version": 2,
+        "digest": "sha256:bd8bf1f206d425850ee79a68978ed138dc723fc4edaa9b02e839f9dc9d3c9c14"
+      },
+      "previous_revision": "sha256:4dbbd50a167c558681cdc455c5ba71f5a4172f7497c67ede1888d830abe13a8b",
+      "archive_path": "ToS/source-witnesses/.record-revisions/b820e1445de2769091d8c74edd8fb714d42607a4778a48a393549b2694d7978b-4dbbd50a167c558681cdc455c5ba71f5a4172f7497c67ede1888d830abe13a8b",
+      "dependencies": "sha256:ad99651426db4f995c841ba8ba27f697bf197a1f43d7ac3d97e8038dc39eb01d",
+      "changed_fields": [
+        "notes",
+        "semantic_scope"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.philosophical-category.causality-as-conceptual-convention-jgb21.name-ru",
+          "version": 2,
+          "digest": "sha256:3510caa9bf5fcb8f6670b61d4176d64e5f25137a40e8631391de76c0b8f29375"
+        },
+        {
+          "id": "tos.form.philosophical-category.causality-as-conceptual-convention-jgb21.name-en",
+          "version": 2,
+          "digest": "sha256:9415fed112976e2155e3f53eee59cb2199c27c36427cad8f91cecdb687e8fe77"
+        },
+        {
+          "id": "tos.form.philosophical-category.causality-as-conceptual-convention-jgb21.note-ru",
+          "version": 2,
+          "digest": "sha256:9ce3eb4de62105e64f40f8d879a939a2ded93d2eaae80926765ebaa667f0242a"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:b820e1445de2769091d8c74e",
+        "expected_configuration": "sha256:9ca974e92a0cd548e03fb5b0c30a8c430dd5ea9f980fb786fa98b58e626d38cf",
+        "expected_dependencies": "sha256:ad99651426db4f995c841ba8ba27f697bf197a1f43d7ac3d97e8038dc39eb01d",
+        "expected_revision": "sha256:4dbbd50a167c558681cdc455c5ba71f5a4172f7497c67ede1888d830abe13a8b",
+        "expected_source": {
+          "digest": "sha256:5ac285600d8dc5a4dc7bf6981227684a5f091e1226cfa41bd7b250dda6419efa",
+          "id": "tos.philosophical-category.causality-as-conceptual-convention-jgb21",
+          "version": 1
+        },
+        "fields": {
+          "notes": "Описание категории причинности в чтении §21: причина и действие рассматриваются там как понятия для обозначения и взаимопонимания, с предупреждением против их овеществления.",
+          "semantic_scope": {
+            "identity_criterion": "Identity follows this passage’s use and limits of causal concepts. Different causal theories have their own referents.",
+            "language": "en",
+            "scope_note": "The category of cause and effect as discussed against reification in JGB 21.",
+            "script": "Latn"
+          }
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.philosophical-category.causality-as-conceptual-convention-jgb21.name-ru"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.philosophical-category.causality-as-conceptual-convention-jgb21.name-en"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.philosophical-category.causality-as-conceptual-convention-jgb21.note-ru"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    }
+  ]
+}

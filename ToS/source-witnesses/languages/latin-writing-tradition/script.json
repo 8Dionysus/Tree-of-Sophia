@@ -11,21 +11,21 @@
     }
   },
   "identity_status": "provisional",
-  "notes": "Unicode 17, §7.1, описывает латинскую письменность как используемую многими языками и расширяемую дополнительными буквами и диакритиками. Здесь это традиция письма, а не латинский язык, ASCII, один национальный алфавит или один диапазон кодовых позиций.",
+  "notes": "Unicode 17, §7.1, описывает латинскую письменность как используемую многими языками и расширяемую дополнительными буквами и диакритиками.",
   "preferred_label": "Латинская письменность",
   "record_id": "tos.script.latin-writing-tradition",
   "record_type": "script",
-  "record_version": 1,
+  "record_version": 2,
   "same_as_posture": "no_equivalence_claim",
   "schema_version": "tos_linguistic_description_record_v1",
   "semantic_content": {
     "language": "en",
     "script": "Latn",
-    "script_account": "A writing tradition used for many languages and notation systems, not the Latin language.",
-    "sign_inventory_scope": "The broad Latin-script tradition with extensions. A code chart describes encoding coverage, not the complete historical identity or meaning of every written form."
+    "script_account": "A writing tradition used for many languages and notation systems.",
+    "sign_inventory_scope": "The Latin-script tradition and its historical extensions. Code charts describe encoding coverage; histories and meanings of written forms require source accounts."
   },
   "semantic_scope": {
-    "identity_criterion": "Смена набора кодовых позиций или шрифта не создаёт новую традицию; самостоятельные алфавиты и конвенции могут получать собственные предметы.",
+    "identity_criterion": "Традиция сохраняется при смене кодировок и шрифтов; самостоятельные алфавиты и конвенции могут получать собственные предметы.",
     "language": "ru",
     "scope_note": "Широкая латинская традиция письма как возможная основа транслитерационной записи; дополнительные метасимволы схемы остаются отдельными.",
     "script": "Cyrl"

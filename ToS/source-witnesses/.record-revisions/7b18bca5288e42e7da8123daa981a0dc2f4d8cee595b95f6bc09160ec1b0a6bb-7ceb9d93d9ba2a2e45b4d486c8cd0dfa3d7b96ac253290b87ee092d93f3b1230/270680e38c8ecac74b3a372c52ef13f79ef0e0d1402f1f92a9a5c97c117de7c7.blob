@@ -1,0 +1,149 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.lexeme.sid-30290680bc434a34b4ffe7609d7dd064",
+    "version": 1,
+    "digest": "sha256:a82df6db09ea2a338a7f48c5ec5d2bb1d87d8d0c43074be5fd3c7316e5ce8d1d"
+  },
+  "forms": [
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.sid-abe6b5c9d58c4bd59aedbf8dc9bc19a3",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.lexeme.sid-30290680bc434a34b4ffe7609d7dd064",
+        "version": 1,
+        "digest": "sha256:a82df6db09ea2a338a7f48c5ec5d2bb1d87d8d0c43074be5fd3c7316e5ce8d1d"
+      },
+      "role": "name",
+      "language": "und",
+      "script": "Latn",
+      "creator_id": "agent:codex-tos-foundation",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.lexeme.sid-30290680bc434a34b4ffe7609d7dd064",
+            "version": 1,
+            "digest": "sha256:a82df6db09ea2a338a7f48c5ec5d2bb1d87d8d0c43074be5fd3c7316e5ce8d1d"
+          },
+          "pointer": "/preferred_label"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.lexeme.sid-30290680bc434a34b4ffe7609d7dd064",
+            "version": 1,
+            "digest": "sha256:a82df6db09ea2a338a7f48c5ec5d2bb1d87d8d0c43074be5fd3c7316e5ce8d1d"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.lexeme.sid-30290680bc434a34b4ffe7609d7dd064",
+            "version": 1,
+            "digest": "sha256:a82df6db09ea2a338a7f48c5ec5d2bb1d87d8d0c43074be5fd3c7316e5ce8d1d"
+          },
+          "pointer": "/same_as_posture"
+        },
+        "context-2": {
+          "record": {
+            "id": "tos.lexeme.sid-30290680bc434a34b4ffe7609d7dd064",
+            "version": 1,
+            "digest": "sha256:a82df6db09ea2a338a7f48c5ec5d2bb1d87d8d0c43074be5fd3c7316e5ce8d1d"
+          },
+          "pointer": "/semantic_scope"
+        },
+        "context-3": {
+          "record": {
+            "id": "tos.lexeme.sid-30290680bc434a34b4ffe7609d7dd064",
+            "version": 1,
+            "digest": "sha256:a82df6db09ea2a338a7f48c5ec5d2bb1d87d8d0c43074be5fd3c7316e5ce8d1d"
+          },
+          "pointer": "/semantic_content"
+        },
+        "context-4": {
+          "record": {
+            "id": "tos.lexeme.sid-30290680bc434a34b4ffe7609d7dd064",
+            "version": 1,
+            "digest": "sha256:a82df6db09ea2a338a7f48c5ec5d2bb1d87d8d0c43074be5fd3c7316e5ce8d1d"
+          },
+          "pointer": "/field_languages/preferred_label"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    },
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.sid-f2de7f1bb16f4717a09374014532dd55",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.lexeme.sid-30290680bc434a34b4ffe7609d7dd064",
+        "version": 1,
+        "digest": "sha256:a82df6db09ea2a338a7f48c5ec5d2bb1d87d8d0c43074be5fd3c7316e5ce8d1d"
+      },
+      "role": "hover",
+      "language": "ru",
+      "script": "Cyrl",
+      "creator_id": "agent:codex-tos-foundation",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.lexeme.sid-30290680bc434a34b4ffe7609d7dd064",
+            "version": 1,
+            "digest": "sha256:a82df6db09ea2a338a7f48c5ec5d2bb1d87d8d0c43074be5fd3c7316e5ce8d1d"
+          },
+          "pointer": "/notes"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.lexeme.sid-30290680bc434a34b4ffe7609d7dd064",
+            "version": 1,
+            "digest": "sha256:a82df6db09ea2a338a7f48c5ec5d2bb1d87d8d0c43074be5fd3c7316e5ce8d1d"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.lexeme.sid-30290680bc434a34b4ffe7609d7dd064",
+            "version": 1,
+            "digest": "sha256:a82df6db09ea2a338a7f48c5ec5d2bb1d87d8d0c43074be5fd3c7316e5ce8d1d"
+          },
+          "pointer": "/same_as_posture"
+        },
+        "context-2": {
+          "record": {
+            "id": "tos.lexeme.sid-30290680bc434a34b4ffe7609d7dd064",
+            "version": 1,
+            "digest": "sha256:a82df6db09ea2a338a7f48c5ec5d2bb1d87d8d0c43074be5fd3c7316e5ce8d1d"
+          },
+          "pointer": "/semantic_scope"
+        },
+        "context-3": {
+          "record": {
+            "id": "tos.lexeme.sid-30290680bc434a34b4ffe7609d7dd064",
+            "version": 1,
+            "digest": "sha256:a82df6db09ea2a338a7f48c5ec5d2bb1d87d8d0c43074be5fd3c7316e5ce8d1d"
+          },
+          "pointer": "/semantic_content"
+        },
+        "context-4": {
+          "record": {
+            "id": "tos.lexeme.sid-30290680bc434a34b4ffe7609d7dd064",
+            "version": 1,
+            "digest": "sha256:a82df6db09ea2a338a7f48c5ec5d2bb1d87d8d0c43074be5fd3c7316e5ce8d1d"
+          },
+          "pointer": "/field_languages/notes"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    }
+  ],
+  "prior_forms": []
+}

@@ -1,71 +1,69 @@
 {
-  "schema_version": "tos_human_form_set_v1",
-  "subject": {
-    "id": "tos.intellectual-movement.logical-empiricism",
-    "version": 1,
-    "digest": "sha256:b687e9743bbfd8a56c78a9bd37874973e7a95c438198e676ad2f309bb09b5111"
-  },
   "forms": [
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.intellectual-movement.logical-empiricism.name-ru",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.intellectual-movement.logical-empiricism",
-        "version": 1,
-        "digest": "sha256:b687e9743bbfd8a56c78a9bd37874973e7a95c438198e676ad2f309bb09b5111"
+        "version": 2,
+        "digest": "sha256:9c0344ae6a18b70312daafd4d9a5807af42505d1d00b8c002c478bf665d3e4bd"
       },
       "role": "name",
       "language": "ru",
       "script": "Cyrl",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.intellectual-movement.logical-empiricism.name-ru",
+        "version": 1,
+        "digest": "sha256:1b62869ec19750fb961aac33ba8fec9b5ba2b5a2ae3498cd82d994dc883f5694"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.intellectual-movement.logical-empiricism",
-            "version": 1,
-            "digest": "sha256:b687e9743bbfd8a56c78a9bd37874973e7a95c438198e676ad2f309bb09b5111"
+            "version": 2,
+            "digest": "sha256:9c0344ae6a18b70312daafd4d9a5807af42505d1d00b8c002c478bf665d3e4bd"
           },
           "pointer": "/preferred_label"
         },
         "context-0": {
           "record": {
             "id": "tos.intellectual-movement.logical-empiricism",
-            "version": 1,
-            "digest": "sha256:b687e9743bbfd8a56c78a9bd37874973e7a95c438198e676ad2f309bb09b5111"
+            "version": 2,
+            "digest": "sha256:9c0344ae6a18b70312daafd4d9a5807af42505d1d00b8c002c478bf665d3e4bd"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.intellectual-movement.logical-empiricism",
-            "version": 1,
-            "digest": "sha256:b687e9743bbfd8a56c78a9bd37874973e7a95c438198e676ad2f309bb09b5111"
+            "version": 2,
+            "digest": "sha256:9c0344ae6a18b70312daafd4d9a5807af42505d1d00b8c002c478bf665d3e4bd"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.intellectual-movement.logical-empiricism",
-            "version": 1,
-            "digest": "sha256:b687e9743bbfd8a56c78a9bd37874973e7a95c438198e676ad2f309bb09b5111"
+            "version": 2,
+            "digest": "sha256:9c0344ae6a18b70312daafd4d9a5807af42505d1d00b8c002c478bf665d3e4bd"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.intellectual-movement.logical-empiricism",
-            "version": 1,
-            "digest": "sha256:b687e9743bbfd8a56c78a9bd37874973e7a95c438198e676ad2f309bb09b5111"
+            "version": 2,
+            "digest": "sha256:9c0344ae6a18b70312daafd4d9a5807af42505d1d00b8c002c478bf665d3e4bd"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.intellectual-movement.logical-empiricism",
-            "version": 1,
-            "digest": "sha256:b687e9743bbfd8a56c78a9bd37874973e7a95c438198e676ad2f309bb09b5111"
+            "version": 2,
+            "digest": "sha256:9c0344ae6a18b70312daafd4d9a5807af42505d1d00b8c002c478bf665d3e4bd"
           },
           "pointer": "/field_languages/preferred_label"
         }
@@ -78,87 +76,91 @@
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.intellectual-movement.logical-empiricism.name-alt",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.intellectual-movement.logical-empiricism",
-        "version": 1,
-        "digest": "sha256:b687e9743bbfd8a56c78a9bd37874973e7a95c438198e676ad2f309bb09b5111"
+        "version": 2,
+        "digest": "sha256:9c0344ae6a18b70312daafd4d9a5807af42505d1d00b8c002c478bf665d3e4bd"
       },
       "role": "name",
       "language": "de",
       "script": "Latn",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.intellectual-movement.logical-empiricism.name-alt",
+        "version": 1,
+        "digest": "sha256:ea6f3cbdf49995d1d793a4bf4249b159de8f84764df817eb9aadd4a412ec80a0"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.intellectual-movement.logical-empiricism",
-            "version": 1,
-            "digest": "sha256:b687e9743bbfd8a56c78a9bd37874973e7a95c438198e676ad2f309bb09b5111"
+            "version": 2,
+            "digest": "sha256:9c0344ae6a18b70312daafd4d9a5807af42505d1d00b8c002c478bf665d3e4bd"
           },
           "pointer": "/variant_labels/0/value"
         },
         "context-0": {
           "record": {
             "id": "tos.intellectual-movement.logical-empiricism",
-            "version": 1,
-            "digest": "sha256:b687e9743bbfd8a56c78a9bd37874973e7a95c438198e676ad2f309bb09b5111"
+            "version": 2,
+            "digest": "sha256:9c0344ae6a18b70312daafd4d9a5807af42505d1d00b8c002c478bf665d3e4bd"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.intellectual-movement.logical-empiricism",
-            "version": 1,
-            "digest": "sha256:b687e9743bbfd8a56c78a9bd37874973e7a95c438198e676ad2f309bb09b5111"
+            "version": 2,
+            "digest": "sha256:9c0344ae6a18b70312daafd4d9a5807af42505d1d00b8c002c478bf665d3e4bd"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.intellectual-movement.logical-empiricism",
-            "version": 1,
-            "digest": "sha256:b687e9743bbfd8a56c78a9bd37874973e7a95c438198e676ad2f309bb09b5111"
+            "version": 2,
+            "digest": "sha256:9c0344ae6a18b70312daafd4d9a5807af42505d1d00b8c002c478bf665d3e4bd"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.intellectual-movement.logical-empiricism",
-            "version": 1,
-            "digest": "sha256:b687e9743bbfd8a56c78a9bd37874973e7a95c438198e676ad2f309bb09b5111"
+            "version": 2,
+            "digest": "sha256:9c0344ae6a18b70312daafd4d9a5807af42505d1d00b8c002c478bf665d3e4bd"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.intellectual-movement.logical-empiricism",
-            "version": 1,
-            "digest": "sha256:b687e9743bbfd8a56c78a9bd37874973e7a95c438198e676ad2f309bb09b5111"
+            "version": 2,
+            "digest": "sha256:9c0344ae6a18b70312daafd4d9a5807af42505d1d00b8c002c478bf665d3e4bd"
           },
           "pointer": "/variant_labels/0/language"
         },
         "context-5": {
           "record": {
             "id": "tos.intellectual-movement.logical-empiricism",
-            "version": 1,
-            "digest": "sha256:b687e9743bbfd8a56c78a9bd37874973e7a95c438198e676ad2f309bb09b5111"
+            "version": 2,
+            "digest": "sha256:9c0344ae6a18b70312daafd4d9a5807af42505d1d00b8c002c478bf665d3e4bd"
           },
           "pointer": "/variant_labels/0/script"
         },
         "context-6": {
           "record": {
             "id": "tos.intellectual-movement.logical-empiricism",
-            "version": 1,
-            "digest": "sha256:b687e9743bbfd8a56c78a9bd37874973e7a95c438198e676ad2f309bb09b5111"
+            "version": 2,
+            "digest": "sha256:9c0344ae6a18b70312daafd4d9a5807af42505d1d00b8c002c478bf665d3e4bd"
           },
           "pointer": "/variant_labels/0/source_ref"
         },
         "context-7": {
           "record": {
             "id": "tos.intellectual-movement.logical-empiricism",
-            "version": 1,
-            "digest": "sha256:b687e9743bbfd8a56c78a9bd37874973e7a95c438198e676ad2f309bb09b5111"
+            "version": 2,
+            "digest": "sha256:9c0344ae6a18b70312daafd4d9a5807af42505d1d00b8c002c478bf665d3e4bd"
           },
           "pointer": "/variant_labels/0/status"
         }
@@ -171,63 +173,67 @@
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.intellectual-movement.logical-empiricism.note-ru",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.intellectual-movement.logical-empiricism",
-        "version": 1,
-        "digest": "sha256:b687e9743bbfd8a56c78a9bd37874973e7a95c438198e676ad2f309bb09b5111"
+        "version": 2,
+        "digest": "sha256:9c0344ae6a18b70312daafd4d9a5807af42505d1d00b8c002c478bf665d3e4bd"
       },
       "role": "hover",
       "language": "ru",
       "script": "Cyrl",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.intellectual-movement.logical-empiricism.note-ru",
+        "version": 1,
+        "digest": "sha256:d94632953aa390dc81bce5cddaefd56b29975c57fef6ea52fd75408fece34609"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.intellectual-movement.logical-empiricism",
-            "version": 1,
-            "digest": "sha256:b687e9743bbfd8a56c78a9bd37874973e7a95c438198e676ad2f309bb09b5111"
+            "version": 2,
+            "digest": "sha256:9c0344ae6a18b70312daafd4d9a5807af42505d1d00b8c002c478bf665d3e4bd"
           },
           "pointer": "/notes"
         },
         "context-0": {
           "record": {
             "id": "tos.intellectual-movement.logical-empiricism",
-            "version": 1,
-            "digest": "sha256:b687e9743bbfd8a56c78a9bd37874973e7a95c438198e676ad2f309bb09b5111"
+            "version": 2,
+            "digest": "sha256:9c0344ae6a18b70312daafd4d9a5807af42505d1d00b8c002c478bf665d3e4bd"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.intellectual-movement.logical-empiricism",
-            "version": 1,
-            "digest": "sha256:b687e9743bbfd8a56c78a9bd37874973e7a95c438198e676ad2f309bb09b5111"
+            "version": 2,
+            "digest": "sha256:9c0344ae6a18b70312daafd4d9a5807af42505d1d00b8c002c478bf665d3e4bd"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.intellectual-movement.logical-empiricism",
-            "version": 1,
-            "digest": "sha256:b687e9743bbfd8a56c78a9bd37874973e7a95c438198e676ad2f309bb09b5111"
+            "version": 2,
+            "digest": "sha256:9c0344ae6a18b70312daafd4d9a5807af42505d1d00b8c002c478bf665d3e4bd"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.intellectual-movement.logical-empiricism",
-            "version": 1,
-            "digest": "sha256:b687e9743bbfd8a56c78a9bd37874973e7a95c438198e676ad2f309bb09b5111"
+            "version": 2,
+            "digest": "sha256:9c0344ae6a18b70312daafd4d9a5807af42505d1d00b8c002c478bf665d3e4bd"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.intellectual-movement.logical-empiricism",
-            "version": 1,
-            "digest": "sha256:b687e9743bbfd8a56c78a9bd37874973e7a95c438198e676ad2f309bb09b5111"
+            "version": 2,
+            "digest": "sha256:9c0344ae6a18b70312daafd4d9a5807af42505d1d00b8c002c478bf665d3e4bd"
           },
           "pointer": "/field_languages/notes"
         }
@@ -238,5 +244,243 @@
       }
     }
   ],
-  "prior_forms": []
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:b687e9743bbfd8a56c78a9bd37874973e7a95c438198e676ad2f309bb09b5111",
+            "id": "tos.intellectual-movement.logical-empiricism",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:b687e9743bbfd8a56c78a9bd37874973e7a95c438198e676ad2f309bb09b5111",
+            "id": "tos.intellectual-movement.logical-empiricism",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:b687e9743bbfd8a56c78a9bd37874973e7a95c438198e676ad2f309bb09b5111",
+            "id": "tos.intellectual-movement.logical-empiricism",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:b687e9743bbfd8a56c78a9bd37874973e7a95c438198e676ad2f309bb09b5111",
+            "id": "tos.intellectual-movement.logical-empiricism",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:b687e9743bbfd8a56c78a9bd37874973e7a95c438198e676ad2f309bb09b5111",
+            "id": "tos.intellectual-movement.logical-empiricism",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:b687e9743bbfd8a56c78a9bd37874973e7a95c438198e676ad2f309bb09b5111",
+            "id": "tos.intellectual-movement.logical-empiricism",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.intellectual-movement.logical-empiricism.name-ru",
+      "form_version": 1,
+      "language": "ru",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:b687e9743bbfd8a56c78a9bd37874973e7a95c438198e676ad2f309bb09b5111",
+        "id": "tos.intellectual-movement.logical-empiricism",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:b687e9743bbfd8a56c78a9bd37874973e7a95c438198e676ad2f309bb09b5111",
+            "id": "tos.intellectual-movement.logical-empiricism",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:b687e9743bbfd8a56c78a9bd37874973e7a95c438198e676ad2f309bb09b5111",
+            "id": "tos.intellectual-movement.logical-empiricism",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:b687e9743bbfd8a56c78a9bd37874973e7a95c438198e676ad2f309bb09b5111",
+            "id": "tos.intellectual-movement.logical-empiricism",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:b687e9743bbfd8a56c78a9bd37874973e7a95c438198e676ad2f309bb09b5111",
+            "id": "tos.intellectual-movement.logical-empiricism",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/variant_labels/0/language",
+          "record": {
+            "digest": "sha256:b687e9743bbfd8a56c78a9bd37874973e7a95c438198e676ad2f309bb09b5111",
+            "id": "tos.intellectual-movement.logical-empiricism",
+            "version": 1
+          }
+        },
+        "context-5": {
+          "pointer": "/variant_labels/0/script",
+          "record": {
+            "digest": "sha256:b687e9743bbfd8a56c78a9bd37874973e7a95c438198e676ad2f309bb09b5111",
+            "id": "tos.intellectual-movement.logical-empiricism",
+            "version": 1
+          }
+        },
+        "context-6": {
+          "pointer": "/variant_labels/0/source_ref",
+          "record": {
+            "digest": "sha256:b687e9743bbfd8a56c78a9bd37874973e7a95c438198e676ad2f309bb09b5111",
+            "id": "tos.intellectual-movement.logical-empiricism",
+            "version": 1
+          }
+        },
+        "context-7": {
+          "pointer": "/variant_labels/0/status",
+          "record": {
+            "digest": "sha256:b687e9743bbfd8a56c78a9bd37874973e7a95c438198e676ad2f309bb09b5111",
+            "id": "tos.intellectual-movement.logical-empiricism",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/variant_labels/0/value",
+          "record": {
+            "digest": "sha256:b687e9743bbfd8a56c78a9bd37874973e7a95c438198e676ad2f309bb09b5111",
+            "id": "tos.intellectual-movement.logical-empiricism",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.intellectual-movement.logical-empiricism.name-alt",
+      "form_version": 1,
+      "language": "de",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:b687e9743bbfd8a56c78a9bd37874973e7a95c438198e676ad2f309bb09b5111",
+        "id": "tos.intellectual-movement.logical-empiricism",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:b687e9743bbfd8a56c78a9bd37874973e7a95c438198e676ad2f309bb09b5111",
+            "id": "tos.intellectual-movement.logical-empiricism",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:b687e9743bbfd8a56c78a9bd37874973e7a95c438198e676ad2f309bb09b5111",
+            "id": "tos.intellectual-movement.logical-empiricism",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:b687e9743bbfd8a56c78a9bd37874973e7a95c438198e676ad2f309bb09b5111",
+            "id": "tos.intellectual-movement.logical-empiricism",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:b687e9743bbfd8a56c78a9bd37874973e7a95c438198e676ad2f309bb09b5111",
+            "id": "tos.intellectual-movement.logical-empiricism",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:b687e9743bbfd8a56c78a9bd37874973e7a95c438198e676ad2f309bb09b5111",
+            "id": "tos.intellectual-movement.logical-empiricism",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:b687e9743bbfd8a56c78a9bd37874973e7a95c438198e676ad2f309bb09b5111",
+            "id": "tos.intellectual-movement.logical-empiricism",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.intellectual-movement.logical-empiricism.note-ru",
+      "form_version": 1,
+      "language": "ru",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:b687e9743bbfd8a56c78a9bd37874973e7a95c438198e676ad2f309bb09b5111",
+        "id": "tos.intellectual-movement.logical-empiricism",
+        "version": 1
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.intellectual-movement.logical-empiricism",
+    "version": 2,
+    "digest": "sha256:9c0344ae6a18b70312daafd4d9a5807af42505d1d00b8c002c478bf665d3e4bd"
+  }
 }

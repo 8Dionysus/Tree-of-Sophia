@@ -1,11 +1,12 @@
 """Source-owner assessment journal; immutable batches and an atomic head pointer.
 
-This is a local Unix storage/command adapter, not an HTTP authentication boundary.
+This local Unix storage/command adapter receives authenticated owner inputs.
+HTTP authentication belongs to the transport owner.
 The owner service, or independently selected protected local configuration,
 supplies trusted engine, subject context and Submission bindings. Source records
 remain authoritative;
-this journal records assessments and their commit-time qualification, not a
-second corpus or an independently authoritative cached admission database.
+this journal records assessments and their commit-time qualification against
+those sources.
 """
 from __future__ import annotations
 
@@ -1051,7 +1052,7 @@ def _validate_native_selections(config):
 
 
 def _native_text_records(config, *, owner_context=None):
-    """Explicit owner-local selection, not a corpus crawl or public reader."""
+    """Read the explicitly selected owner-local subjects."""
     scripts = str(Path(__file__).resolve().parents[5] / 'scripts')
     if scripts not in sys.path:
         sys.path.insert(0, scripts)

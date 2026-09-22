@@ -1,12 +1,13 @@
 # Native translation-alignment records
 
-This is the confidential native command route of the existing
-[`translation-alignment` owner](../../../../../ToS/contracts/translation-alignment-packet-v1.schema.json),
-not a second alignment ontology or a witness-collation backend. Its additive
-[`native record contract`](../../../../../ToS/contracts/native-translation-alignment-record-v1.schema.json)
-reuses the v1 mapping, side, maker, evidence, granularity, rights and authority
-definitions. The old packet and its human-review/public semantics are not
-changed or silently adapted into this proposal-only record.
+This confidential native command route belongs to the existing
+[`translation-alignment`
+owner](../../../../../ToS/contracts/translation-alignment-packet-v1.schema.json).
+Its additive [`native record
+contract`](../../../../../ToS/contracts/native-translation-alignment-record-v1.schema.json)
+reuses the v1 mapping, side, maker, evidence, granularity, rights and
+authority definitions. The earlier packet retains its human-review and
+public-use semantics; the native record carries an unassessed proposal.
 
 ## Identity and exact history
 
@@ -37,11 +38,12 @@ Remap also preserves the two exact source scopes. A source-scope change is not
 an ordinary descriptive revision: select a distinct source-bound proposal and
 obtain the appropriate owner judgment rather than silently repointing history.
 
-Competing links are one-way exact source refs in the newly authored record.
-They do not require rewriting the old immutable alternative. A reverse edge
-can be derived from explicitly supplied records; the native inspector does not
-claim a complete global reverse index. Neither competition nor supersession
-selects a preferred translation. Multiple alternatives may remain unresolved.
+Competing links are one-way exact source refs in the newly authored record;
+the old immutable alternatives retain their bytes. A reverse edge can be
+derived from explicitly supplied records. Global reverse indexing has its own
+projection route. Competition and supersession record relationships among
+versions; preference requires source-visible judgment, and multiple
+alternatives may remain unresolved.
 
 The existing bounded source identity walk checks both selected public and
 private metadata homes. A new version may reuse only IDs in its exact
@@ -61,12 +63,11 @@ resolved through those existing native contracts. Source and target are
 distinct Expressions, not merely two layer versions of one Expression.
 
 The owner explicitly declares granularity and whether each selected frozen
-segmentation is also the tokenization input. Phrase/token/morpheme/mixed
-granularity requires both tokenization bindings. A native unit kind alone is
-not a declaration of alignment granularity, accepted tokenization or
-linguistic quality. Unit selection is bounded context, not a claim that every
-selected unit has been translated: a record describes one mapping, while
-omission/addition records explicitly describe unaligned members.
+segmentation also supplies tokenization. Phrase/token/morpheme/mixed
+granularity requires both tokenization bindings. Alignment granularity,
+accepted tokenization and linguistic quality retain separate declarations or
+assessments. Unit selection supplies bounded context for one mapping;
+omission/addition records identify its unaligned members.
 
 Both side metadata and current recorded local-derivation rights are checked
 before either representation is read. Current independent read/proposal grants
@@ -85,15 +86,14 @@ retains the explicit proposed ordering; it is not an independently assessed
 cross-record translation-order verdict. Rights are the strictest side or local
 packet posture; all outputs remain private and publication unauthorized.
 
-Supplied techniques, uncertainty, rationale and maker attribution remain
-proposals. The wrapper is always `proposed` and `unassessed_translation_proposal`.
-Its execution posture explicitly distinguishes captured supplied mapping and
-verified source bytes from an executed aligner. The retained provenance event
-is an annotation/capture event, not a claimed upstream alignment execution.
-A genuine bilingual source-visible comparison by an authorized competent
-reviewer, with the required independent baseline and scoped assessment route,
-remains separate. This command neither grants nor inherits any quality,
-translation, semantic, publication or canon admission.
+Supplied techniques, uncertainty, rationale and maker attribution retain
+proposal status. The wrapper is `proposed` and
+`unassessed_translation_proposal`. Provenance uses an annotation/capture event
+and records supplied mapping alongside verified source bytes. Upstream aligner
+execution requires its own evidence. An authorized competent reviewer assesses
+translation through bilingual source-visible comparison, the required
+independent baseline and a scoped assessment route. Quality, semantic use,
+publication and canon each require the corresponding owner decision.
 
 ## Independent configuration and requests
 
@@ -155,13 +155,13 @@ cannot supply a maker, rights, source selection, identity, executable or review.
 
 ## Inspection, replay and recovery
 
-`describe` reads contracts and the protected configuration but no source text.
-`inspect` checks the exact delegated target, retained receipt and current
-metadata/source closure. `inspect-version` takes `source` in the exact native
-record-ref shape and accepts only a version in that selected history. Both are
-metadata-only and return redacted verification/version summaries, not source
-strings, locators, selectors, private IDs or short-span hashes. Their source
-metadata validation is not a source-visible textual comparison.
+`describe` reads contracts and protected configuration. `inspect` checks the
+exact delegated target, retained receipt and current metadata/source closure.
+`inspect-version` takes `source` in the exact native record-ref shape and
+accepts only a version in that selected history. Both return metadata-only,
+redacted verification/version summaries; source strings, locators, selectors,
+private IDs and short-span hashes remain withheld. Source-visible comparison
+uses the separate assessment route.
 
 An identical apply request replays the exact immutable package. Request,
 configuration, source inputs, implementation/runtime pins, source receipt and

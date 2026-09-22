@@ -1,0 +1,523 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/visual-retrieval-result-receipt.schema.json",
+  "title": "Tree of Sophia text-free direct visual retrieval result receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "generated_or_authored",
+    "receipt_id",
+    "recorded_at_utc",
+    "status",
+    "experiment_id",
+    "variant",
+    "plan",
+    "generator",
+    "private_run",
+    "prior_audit_incomplete_run",
+    "method",
+    "inputs",
+    "runtime",
+    "private_artifacts",
+    "mechanical_reconstruction",
+    "advisory_results",
+    "performance",
+    "triggered_review",
+    "quality_and_promotion",
+    "rights_and_visibility",
+    "authority_boundary"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://tree-of-sophia.local/ToS/contracts/visual-retrieval-result-receipt.schema.json"
+    },
+    "schema_version": {
+      "const": "tos_visual_retrieval_result_receipt_v1"
+    },
+    "generated_or_authored": {
+      "const": "generated_from_private_direct_visual_retrieval_run"
+    },
+    "receipt_id": {
+      "const": "visual-retrieval-result:zarathustra-foundation-pilot-v1.c.qwen3-vl-embedding-2b.v1"
+    },
+    "recorded_at_utc": {"type": "string", "format": "date-time"},
+    "status": {
+      "const": "c-executed-triggered-review-open-unscheduled"
+    },
+    "experiment_id": {"const": "tos-visual-retrieval-foundation-v1"},
+    "variant": {"const": "C"},
+    "plan": {"$ref": "#/$defs/plan"},
+    "generator": {"$ref": "#/$defs/generator"},
+    "private_run": {"$ref": "#/$defs/privateRun"},
+    "prior_audit_incomplete_run": {"$ref": "#/$defs/priorRun"},
+    "method": {"$ref": "#/$defs/method"},
+    "inputs": {"$ref": "#/$defs/inputs"},
+    "runtime": {"$ref": "#/$defs/runtime"},
+    "private_artifacts": {"$ref": "#/$defs/privateArtifacts"},
+    "mechanical_reconstruction": {
+      "$ref": "#/$defs/mechanicalReconstruction"
+    },
+    "advisory_results": {"$ref": "#/$defs/advisoryResults"},
+    "performance": {"$ref": "#/$defs/performance"},
+    "triggered_review": {"$ref": "#/$defs/triggeredReview"},
+    "quality_and_promotion": {"$ref": "#/$defs/qualityAndPromotion"},
+    "rights_and_visibility": {"$ref": "#/$defs/rightsVisibility"},
+    "authority_boundary": {"type": "string", "minLength": 120}
+  },
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "nonNegativeInteger": {"type": "integer", "minimum": 0},
+    "positiveInteger": {"type": "integer", "minimum": 1},
+    "fileRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sha256", "bytes", "mode", "source_bearing"],
+      "properties": {
+        "sha256": {"$ref": "#/$defs/digest"},
+        "bytes": {"$ref": "#/$defs/nonNegativeInteger"},
+        "mode": {"enum": ["0600", "0644"]},
+        "source_bearing": {"type": "boolean"}
+      }
+    },
+    "fileSetRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["file_count", "total_bytes", "set_sha256", "source_bearing"],
+      "properties": {
+        "file_count": {"$ref": "#/$defs/positiveInteger"},
+        "total_bytes": {"$ref": "#/$defs/positiveInteger"},
+        "set_sha256": {"$ref": "#/$defs/digest"},
+        "source_bearing": {"type": "boolean"}
+      }
+    },
+    "plan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "plan_id",
+        "ref",
+        "sha256",
+        "frozen_before_challenger_outputs"
+      ],
+      "properties": {
+        "plan_id": {
+          "const": "tos.visual-retrieval-plan.zarathustra-foundation-pilot-v1"
+        },
+        "ref": {
+          "const": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/visual-retrieval-plan.v1.json"
+        },
+        "sha256": {"$ref": "#/$defs/digest"},
+        "frozen_before_challenger_outputs": {"const": true}
+      }
+    },
+    "generator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ref", "sha256"],
+      "properties": {
+        "ref": {
+          "const": "scripts/record_zarathustra_visual_retrieval_result.py"
+        },
+        "sha256": {"$ref": "#/$defs/digest"}
+      }
+    },
+    "privateRun": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifact_owner",
+        "relative_ref",
+        "run_id",
+        "status",
+        "started_at_utc",
+        "finished_at_utc",
+        "retention_decision",
+        "visibility",
+        "manual_review_count",
+        "model_inspection_count"
+      ],
+      "properties": {
+        "artifact_owner": {
+          "const": "abyss-machine:storage/artifacts/tree-of-sophia-foundation-lab"
+        },
+        "relative_ref": {
+          "type": "string",
+          "pattern": "^tos-visual-retrieval-foundation-v1/zarathustra-qwen-vl-visual-c-[a-z0-9-]+/variant-C$"
+        },
+        "run_id": {
+          "type": "string",
+          "pattern": "^zarathustra-qwen-vl-visual-c-[a-z0-9-]+$"
+        },
+        "status": {"const": "awaiting-triggered-review"},
+        "started_at_utc": {"type": "string", "format": "date-time"},
+        "finished_at_utc": {"type": "string", "format": "date-time"},
+        "retention_decision": {"const": "retain"},
+        "visibility": {"const": "owner-local-only"},
+        "manual_review_count": {"const": 0},
+        "model_inspection_count": {"const": 1}
+      }
+    },
+    "priorRun": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "relative_ref",
+        "run_id",
+        "classification",
+        "run_receipt_sha256",
+        "missing_evidence",
+        "rankings_and_scores_identical_query_count",
+        "query_count",
+        "retained",
+        "promotion_authorized"
+      ],
+      "properties": {
+        "relative_ref": {"type": "string", "minLength": 40},
+        "run_id": {"type": "string", "minLength": 20},
+        "classification": {"const": "executed-audit-incomplete"},
+        "run_receipt_sha256": {"$ref": "#/$defs/digest"},
+        "missing_evidence": {"const": "persisted-normalization-audit"},
+        "rankings_and_scores_identical_query_count": {"const": 20},
+        "query_count": {"const": 20},
+        "retained": {"const": true},
+        "promotion_authorized": {"const": false}
+      }
+    },
+    "method": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "model_id",
+        "repository_revision",
+        "vector_dimension",
+        "distance",
+        "normalization",
+        "runtime_route",
+        "network_used",
+        "unreviewed_remote_code_executed"
+      ],
+      "properties": {
+        "model_id": {"const": "Qwen/Qwen3-VL-Embedding-2B"},
+        "repository_revision": {
+          "const": "9f2f7e710d6d81056aa5c0a4f04764fec6bb7bda"
+        },
+        "vector_dimension": {"const": 2048},
+        "distance": {"const": "cosine-via-normalized-dot-product"},
+        "normalization": {"const": "L2"},
+        "runtime_route": {"const": "isolated-offline-python-3.12-cpu"},
+        "network_used": {"const": false},
+        "unreviewed_remote_code_executed": {"const": false}
+      }
+    },
+    "inputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "work_ref",
+        "query_count",
+        "page_image_count",
+        "tree_plan_sha256",
+        "source_sample_plan_sha256",
+        "visual_sample_plan_sha256",
+        "query_plan_sha256",
+        "query_content_sha256",
+        "render_manifest_sha256",
+        "png_set_sha256",
+        "png_total_bytes",
+        "source_or_query_content_copied"
+      ],
+      "properties": {
+        "work_ref": {
+          "const": "tos.work.friedrich-nietzsche.also-sprach-zarathustra"
+        },
+        "query_count": {"const": 20},
+        "page_image_count": {"const": 36},
+        "tree_plan_sha256": {"$ref": "#/$defs/digest"},
+        "source_sample_plan_sha256": {"$ref": "#/$defs/digest"},
+        "visual_sample_plan_sha256": {"$ref": "#/$defs/digest"},
+        "query_plan_sha256": {"$ref": "#/$defs/digest"},
+        "query_content_sha256": {"$ref": "#/$defs/digest"},
+        "render_manifest_sha256": {"$ref": "#/$defs/digest"},
+        "png_set_sha256": {"$ref": "#/$defs/digest"},
+        "png_total_bytes": {"$ref": "#/$defs/positiveInteger"},
+        "source_or_query_content_copied": {"const": false}
+      }
+    },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "runtime_id",
+        "manifest_sha256",
+        "artifact_set_sha256",
+        "model_artifact_count",
+        "model_artifact_bytes",
+        "model_artifact_set_sha256",
+        "runner_sha256",
+        "bridge_sha256",
+        "reviewed_helper_sha256",
+        "normalization_audit_schema",
+        "normalization_record_count",
+        "offline_attempted_event_count",
+        "permitted_loopback_bind_count"
+      ],
+      "properties": {
+        "runtime_id": {"type": "string", "minLength": 20},
+        "manifest_sha256": {"$ref": "#/$defs/digest"},
+        "artifact_set_sha256": {"$ref": "#/$defs/digest"},
+        "model_artifact_count": {"const": 18},
+        "model_artifact_bytes": {"$ref": "#/$defs/positiveInteger"},
+        "model_artifact_set_sha256": {"$ref": "#/$defs/digest"},
+        "runner_sha256": {"$ref": "#/$defs/digest"},
+        "bridge_sha256": {"$ref": "#/$defs/digest"},
+        "reviewed_helper_sha256": {"$ref": "#/$defs/digest"},
+        "normalization_audit_schema": {
+          "const": "tos_qwen_vl_runtime_and_model_v2"
+        },
+        "normalization_record_count": {"const": 76},
+        "offline_attempted_event_count": {"const": 0},
+        "permitted_loopback_bind_count": {"const": 1}
+      }
+    },
+    "privateArtifacts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "run_receipt",
+        "experiment_spec",
+        "preflight",
+        "input_manifest",
+        "fixed_controls",
+        "vector_index",
+        "abc_comparison",
+        "index_lifecycle",
+        "invocation",
+        "runtime_and_model",
+        "metrics",
+        "host_resource_launch",
+        "query_results"
+      ],
+      "properties": {
+        "run_receipt": {"$ref": "#/$defs/fileRecord"},
+        "experiment_spec": {"$ref": "#/$defs/fileRecord"},
+        "preflight": {"$ref": "#/$defs/fileRecord"},
+        "input_manifest": {"$ref": "#/$defs/fileRecord"},
+        "fixed_controls": {"$ref": "#/$defs/fileRecord"},
+        "vector_index": {"$ref": "#/$defs/fileRecord"},
+        "abc_comparison": {"$ref": "#/$defs/fileRecord"},
+        "index_lifecycle": {"$ref": "#/$defs/fileRecord"},
+        "invocation": {"$ref": "#/$defs/fileRecord"},
+        "runtime_and_model": {"$ref": "#/$defs/fileRecord"},
+        "metrics": {"$ref": "#/$defs/fileRecord"},
+        "host_resource_launch": {"$ref": "#/$defs/fileRecord"},
+        "query_results": {"$ref": "#/$defs/fileSetRecord"}
+      }
+    },
+    "mechanicalReconstruction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "performed_by",
+        "frozen_digest_checks",
+        "png_fixity_checks",
+        "control_fixity_checks",
+        "model_artifact_fixity_checks",
+        "page_vector_count",
+        "vector_dimension",
+        "normalization_record_count",
+        "resolved_ranked_result_count",
+        "private_text_leak_count",
+        "copied_source_or_image_file_count",
+        "r8_r9_identical_rankings_and_scores",
+        "maximum_pre_normalization_error",
+        "maximum_post_normalization_error",
+        "query_vector_recomputation"
+      ],
+      "properties": {
+        "status": {"const": "completed-without-unresolved-mechanical-issue"},
+        "performed_by": {"const": "model:codex-independent-reconstruction"},
+        "frozen_digest_checks": {"const": 7},
+        "png_fixity_checks": {"const": 36},
+        "control_fixity_checks": {"const": 42},
+        "model_artifact_fixity_checks": {"const": 18},
+        "page_vector_count": {"const": 36},
+        "vector_dimension": {"const": 2048},
+        "normalization_record_count": {"const": 76},
+        "resolved_ranked_result_count": {"const": 200},
+        "private_text_leak_count": {"const": 0},
+        "copied_source_or_image_file_count": {"const": 0},
+        "r8_r9_identical_rankings_and_scores": {"const": 20},
+        "maximum_pre_normalization_error": {"type": "number", "minimum": 0},
+        "maximum_post_normalization_error": {"type": "number", "minimum": 0},
+        "query_vector_recomputation": {
+          "const": "not-possible-query-vectors-not-persisted"
+        }
+      }
+    },
+    "advisoryResults": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stable_rankings",
+        "query_count",
+        "model_proposed_target_at_10",
+        "evaluable_query_count",
+        "coverage_recovery",
+        "hard_negative_presence",
+        "hard_negative_slots",
+        "hard_negative_outranks_expected",
+        "cross_language_expected_hits",
+        "cross_language_query_count",
+        "resolved_ranked_results",
+        "advisory_only"
+      ],
+      "properties": {
+        "stable_rankings": {"const": 20},
+        "query_count": {"const": 20},
+        "model_proposed_target_at_10": {"const": 19},
+        "evaluable_query_count": {"const": 19},
+        "coverage_recovery": {"const": 1},
+        "hard_negative_presence": {"const": 9},
+        "hard_negative_slots": {"const": 10},
+        "hard_negative_outranks_expected": {"const": 4},
+        "cross_language_expected_hits": {"const": 2},
+        "cross_language_query_count": {"const": 2},
+        "resolved_ranked_results": {"const": 200},
+        "advisory_only": {"const": true}
+      }
+    },
+    "performance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "model_load_seconds",
+        "image_encoding_seconds_total",
+        "first_query_latency_ms_median",
+        "warm_query_latency_ms_median",
+        "total_runner_seconds",
+        "host_elapsed_seconds",
+        "index_bytes",
+        "packet_bytes_before_host_receipt",
+        "bridge_peak_rss_bytes",
+        "host_runner_peak_rss_bytes",
+        "host_cgroup_memory_peak_bytes",
+        "host_cgroup_swap_peak_bytes",
+        "host_cgroup_footprint_peak_mib"
+      ],
+      "properties": {
+        "model_load_seconds": {"type": "number", "minimum": 0},
+        "image_encoding_seconds_total": {"type": "number", "minimum": 0},
+        "first_query_latency_ms_median": {"type": "number", "minimum": 0},
+        "warm_query_latency_ms_median": {"type": "number", "minimum": 0},
+        "total_runner_seconds": {"type": "number", "minimum": 0},
+        "host_elapsed_seconds": {"type": "number", "minimum": 0},
+        "index_bytes": {"$ref": "#/$defs/positiveInteger"},
+        "packet_bytes_before_host_receipt": {
+          "$ref": "#/$defs/positiveInteger"
+        },
+        "bridge_peak_rss_bytes": {"$ref": "#/$defs/positiveInteger"},
+        "host_runner_peak_rss_bytes": {"$ref": "#/$defs/positiveInteger"},
+        "host_cgroup_memory_peak_bytes": {
+          "$ref": "#/$defs/positiveInteger"
+        },
+        "host_cgroup_swap_peak_bytes": {
+          "$ref": "#/$defs/nonNegativeInteger"
+        },
+        "host_cgroup_footprint_peak_mib": {"type": "number", "minimum": 0}
+      }
+    },
+    "triggeredReview": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "routine_review_scheduled",
+        "review_opened",
+        "human_judgment_status",
+        "human_debt_count",
+        "trigger_conditions_met",
+        "query_ids",
+        "query_count",
+        "review_scope",
+        "review_interface_materialized"
+      ],
+      "properties": {
+        "status": {"const": "open-unscheduled"},
+        "routine_review_scheduled": {"const": false},
+        "review_opened": {"const": true},
+        "human_judgment_status": {"const": "not_started"},
+        "human_debt_count": {"const": 0},
+        "trigger_conditions_met": {
+          "type": "array",
+          "prefixItems": [
+            {"const": "challenger-materially-changes-a-source-return-route"},
+            {"const": "hard-negative-or-cross-language-behavior-remains-ambiguous"}
+          ],
+          "items": false
+        },
+        "query_ids": {
+          "type": "array",
+          "prefixItems": [
+            {"const": "tos-query-003"},
+            {"const": "tos-query-009"},
+            {"const": "tos-query-010"},
+            {"const": "tos-query-011"},
+            {"const": "tos-query-020"}
+          ],
+          "items": false
+        },
+        "query_count": {"const": 5},
+        "review_scope": {
+          "const": "criteria-only-source-visible-ranking-review-no-retyping"
+        },
+        "review_interface_materialized": {"const": false}
+      }
+    },
+    "qualityAndPromotion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "human_ndcg_at_10",
+        "human_hard_negative_error_rate",
+        "human_review_minutes",
+        "winner",
+        "method_adoption_under_consideration",
+        "promotion_authorized"
+      ],
+      "properties": {
+        "human_ndcg_at_10": {"type": "null"},
+        "human_hard_negative_error_rate": {"type": "null"},
+        "human_review_minutes": {"type": "null"},
+        "winner": {"type": "null"},
+        "method_adoption_under_consideration": {"const": false},
+        "promotion_authorized": {"const": false}
+      }
+    },
+    "rightsVisibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "private_source_and_query_content",
+        "tracked_receipt_contains_source_strings",
+        "tracked_receipt_contains_query_strings",
+        "tracked_receipt_contains_vectors",
+        "public_page_images_authorized",
+        "publication_authorized"
+      ],
+      "properties": {
+        "private_source_and_query_content": {"const": "owner-local-only"},
+        "tracked_receipt_contains_source_strings": {"const": false},
+        "tracked_receipt_contains_query_strings": {"const": false},
+        "tracked_receipt_contains_vectors": {"const": false},
+        "public_page_images_authorized": {"const": false},
+        "publication_authorized": {"const": false}
+      }
+    }
+  }
+}

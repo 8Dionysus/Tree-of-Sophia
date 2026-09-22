@@ -1,0 +1,90 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:6e96323642b8fb6bccceb743",
+      "request_digest": "sha256:67d76a7e2922ebca68123528ec21f74107245697c5c78b6020f1eb8b2ff931be",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:7f23ca3a57264092d648ffdca6ca515f17054ad60b88c9914a80d045bcc3a8a9",
+      "recorded_at": "2026-09-22T05:09:00.392218+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments",
+        "version": 1,
+        "digest": "sha256:927efd0f49546d2f52429be78a6cfe2e3733f73514e8bc975bee5bc53910ecf2"
+      },
+      "source": {
+        "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments",
+        "version": 2,
+        "digest": "sha256:67bd130d0efed16e17abcf23a3ffa57094d675fb77c8c0c9a67bddc36809fdca"
+      },
+      "previous_revision": "sha256:1602f60039d37628aca8aed12db8b34d45c1827958f66b6d37683bfce25adc13",
+      "archive_path": "ToS/source-witnesses/.record-revisions/6e96323642b8fb6bccceb743612dae66ee9ed3ea581b334570ff074dfd9c2b8c-1602f60039d37628aca8aed12db8b34d45c1827958f66b6d37683bfce25adc13",
+      "dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+      "changed_fields": [
+        "notes"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.metadata.4791a949a70e3c142bfb4ef81fc677c5dc90aa61d28399ac75a79bcf2c3f377d",
+          "version": 2,
+          "digest": "sha256:0cfab6cbcccb0aa973d82c2935aebcbb70d363a381fafa469f1afd07a15f8b0c"
+        },
+        {
+          "id": "tos.form.metadata.df9492d223fdb638d0172b075bc7137919744edbcc378a72cb071d170f50090d",
+          "version": 2,
+          "digest": "sha256:7e0815e6a25b3581d67f47904428f0eb290df0cd7fb63be2eebf2d62ba490aba"
+        },
+        {
+          "id": "tos.form.metadata.d81e3b843903b9d57b033d39dea23f643948b035417bace12ff4cd1c94463945",
+          "version": 2,
+          "digest": "sha256:d868ae740d7e39205e1dae97ecd8661711dd924ad54c60f8e6473bf3373ea01e"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:6e96323642b8fb6bccceb743",
+        "expected_configuration": "sha256:7f23ca3a57264092d648ffdca6ca515f17054ad60b88c9914a80d045bcc3a8a9",
+        "expected_dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+        "expected_publication": "sha256:766f6bed5b62e716f95eef8ec27b5d8210cdd79b2ef738dd62a07aa4fa563cd1",
+        "expected_revision": "sha256:1602f60039d37628aca8aed12db8b34d45c1827958f66b6d37683bfce25adc13",
+        "expected_source": {
+          "digest": "sha256:927efd0f49546d2f52429be78a6cfe2e3733f73514e8bc975bee5bc53910ecf2",
+          "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments",
+          "version": 1
+        },
+        "fields": {
+          "notes": "The parallel title pages establish a Russian translation consisting of nine selected fragments and credit С. П. Нани / S. P. Nani. Identification of the source-visible parallel German text, the source edition, and textual assessment remain open."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.metadata.4791a949a70e3c142bfb4ef81fc677c5dc90aa61d28399ac75a79bcf2c3f377d"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.metadata.df9492d223fdb638d0172b075bc7137919744edbcc378a72cb071d170f50090d"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.metadata.d81e3b843903b9d57b033d39dea23f643948b035417bace12ff4cd1c94463945"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:017518c0f6c3d2c54f94d822c88658a43d8108cce7e35cf8979eebbb05d91ced",
+        "selected_files": [
+          "expression.human-forms.json",
+          "expression.json",
+          "source-revision-history.json"
+        ]
+      }
+    }
+  ]
+}

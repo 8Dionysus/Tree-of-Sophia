@@ -237,9 +237,7 @@
       "type": "string",
       "pattern": "^tos\\.event\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
     },
-    "authority_boundary": {
-      "const": "citation-witness admission decision only: not publisher authentication, accepted German, German linguistic review, translation acceptance, publication permission, semantic evidence, graph truth, or canon authority"
-    },
+    "authority_boundary": {"type": "string", "minLength": 1, "description": "Brief account of the artifact purpose and scope. Typed status, effects, assessment and permission fields govern its use."},
     "supersedes_decision_ref": {
       "anyOf": [
         {"type": "null"},

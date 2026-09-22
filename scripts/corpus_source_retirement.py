@@ -3,8 +3,8 @@
 This is an application of the existing provenance-event contract. The record
 describes active-to-historical source membership; it grants neither a right to
 erase the historical bytes nor semantic, rights, publication or canon approval.
-The referenced owner review remains a source-visible judgment, not a verdict
-inferred from a string or from this mechanical check.
+The referenced owner review supplies the source-visible judgment; this check
+verifies its recorded provenance bindings.
 """
 from __future__ import annotations
 

@@ -6,7 +6,8 @@ This document defines the current tabular base contract for the bounded
 It treats the current route-local workbook carrier at
 `ToS/candidate-intake/thus-spoke-zarathustra/prologue-1/carriers/tos_kag_project_scheme.current.xlsx`
 as a staging artifact.
-It does not treat that workbook itself as ToS canon.
+Review moves selected candidates into the authored canon through the route
+below.
 
 Only one live workbook carrier should remain per bounded route directory at a
 time.
@@ -33,8 +34,8 @@ The current route therefore keeps two different canonical surfaces:
 - `ToS/canon/source/.../node.json` as the authored source-node canon
 - `ToS/candidate-intake/.../mode-b/*.csv` as the candidate tabular base pack
 
-These surfaces may agree and reinforce one another.
-They do not replace one another.
+The intake pack supplies candidates and their review ledger; canonical nodes
+retain the admitted authored form.
 
 ## Current package
 
@@ -50,8 +51,8 @@ The current bounded tabular base pack consists of nine CSV files:
 - `witness_glosses.csv`
 - `principles.csv`
 
-This pack stays candidate-only.
-It may candidate later authored tree work, but it is not promoted by presence alone.
+This candidate pack supplies reviewable material for later authored tree work.
+Promotion records an explicit review decision.
 
 ## Segment spine
 
@@ -158,8 +159,8 @@ The current tabular graph layer also keeps vocabulary governance surfaces under
 - `predicates.csv`
 - `classes.csv`
 
-These registries are repo-owned governance surfaces.
-They are not candidate rows in `ToS/candidate-intake/`.
+These repository-owned registries govern the vocabulary used by candidate and
+canonical relation rows.
 Their counts should always be regenerated from the current `edges.csv`.
 
 ## Validation

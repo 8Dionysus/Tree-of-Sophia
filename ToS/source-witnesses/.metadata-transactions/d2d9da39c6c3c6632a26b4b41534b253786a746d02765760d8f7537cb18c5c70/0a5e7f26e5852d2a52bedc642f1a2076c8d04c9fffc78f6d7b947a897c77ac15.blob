@@ -1,0 +1,129 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.item.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996.operator-pdf",
+    "version": 1,
+    "digest": "sha256:309216d11f817b8ac9d20719cd16318406aad25451d575bdd7cce17c60294954"
+  },
+  "forms": [
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.c90481ee810623a9c4b77616db4edc12222269aac7aa38f898467028abc0f3aa",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.item.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996.operator-pdf",
+        "version": 1,
+        "digest": "sha256:309216d11f817b8ac9d20719cd16318406aad25451d575bdd7cce17c60294954"
+      },
+      "role": "name",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.item.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996.operator-pdf",
+            "version": 1,
+            "digest": "sha256:309216d11f817b8ac9d20719cd16318406aad25451d575bdd7cce17c60294954"
+          },
+          "pointer": "/preferred_label"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.item.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996.operator-pdf",
+            "version": 1,
+            "digest": "sha256:309216d11f817b8ac9d20719cd16318406aad25451d575bdd7cce17c60294954"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.item.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996.operator-pdf",
+            "version": 1,
+            "digest": "sha256:309216d11f817b8ac9d20719cd16318406aad25451d575bdd7cce17c60294954"
+          },
+          "pointer": "/same_as_posture"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    },
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.1186d751c3923f53e81bf2f010e98714ef83f77891d6847969b16edf21013d8f",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.item.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996.operator-pdf",
+        "version": 1,
+        "digest": "sha256:309216d11f817b8ac9d20719cd16318406aad25451d575bdd7cce17c60294954"
+      },
+      "role": "hover",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.item.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996.operator-pdf",
+            "version": 1,
+            "digest": "sha256:309216d11f817b8ac9d20719cd16318406aad25451d575bdd7cce17c60294954"
+          },
+          "pointer": "/notes"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.item.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996.operator-pdf",
+            "version": 1,
+            "digest": "sha256:309216d11f817b8ac9d20719cd16318406aad25451d575bdd7cce17c60294954"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.item.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996.operator-pdf",
+            "version": 1,
+            "digest": "sha256:309216d11f817b8ac9d20719cd16318406aad25451d575bdd7cce17c60294954"
+          },
+          "pointer": "/same_as_posture"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation-source-forms-v1:tos.item.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996.operator-pdf",
+      "request_digest": "sha256:90e98682a4e717d4d6e9253602ac58ed71826954223666a80e5410ab2f5542f5",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-07",
+      "owner_configuration": "sha256:f646d777c144b803a26317c4371f0d6755b8724f01a31b937415ff4377be5ba3",
+      "recorded_at": "2026-09-07T03:13:30.504604+00:00",
+      "source": {
+        "id": "tos.item.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996.operator-pdf",
+        "version": 1,
+        "digest": "sha256:309216d11f817b8ac9d20719cd16318406aad25451d575bdd7cce17c60294954"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.c90481ee810623a9c4b77616db4edc12222269aac7aa38f898467028abc0f3aa",
+          "version": 1,
+          "digest": "sha256:5d11c208ca7e3097c31cf357028cc79dd9f101a20baa2593b53c695645eb74e4"
+        },
+        {
+          "id": "tos.form.metadata.1186d751c3923f53e81bf2f010e98714ef83f77891d6847969b16edf21013d8f",
+          "version": 1,
+          "digest": "sha256:e1f6f3b38adf644cb8aa388a24c9f05776198979bb0a6186bc41a2c36c600726"
+        }
+      ]
+    }
+  ]
+}

@@ -28,9 +28,9 @@ validators.
 - Keep multilingual witness support inside one shared authored identity unless
   the node contract itself changes.
 - For lived witness, enforce human authorship, exact-body/capture provenance,
-  separate permissions, and non-promotion shape without pretending that a
-  schema can verify memory, consent, personal context, or meaning. Direct
-  author review remains in `ToS/zarathustra/lived-witness/`.
+  separate permissions and explicit review state. Direct author review of
+memory, consent, personal context and meaning remains in
+`ToS/zarathustra/lived-witness/`.
 - Route runtime, graph UI, MCP, Neo4j, KAG envelope, and service behavior to
   owning runtime or downstream surfaces.
 - For translation alignment, bind both exact text layers and anchor sets;
@@ -38,9 +38,9 @@ validators.
 - For a source-text-unit contract, bind exact frozen text and keep physical
   layout, orthographic units, linguistic analysis, and tokenizer/model pieces
   as distinct layers with explicit coverage and gaps.
-- A tokenizer or aligner may propose a reproducible projection; it cannot
-  accept a linguistic unit, translation correspondence, semantic claim, or
-  review outcome.
+- A tokenizer or aligner produces a reproducible proposal. Source-visible
+assessment owns acceptance of linguistic units, translation correspondences
+and semantic Claims.
 
 ## Validation
 

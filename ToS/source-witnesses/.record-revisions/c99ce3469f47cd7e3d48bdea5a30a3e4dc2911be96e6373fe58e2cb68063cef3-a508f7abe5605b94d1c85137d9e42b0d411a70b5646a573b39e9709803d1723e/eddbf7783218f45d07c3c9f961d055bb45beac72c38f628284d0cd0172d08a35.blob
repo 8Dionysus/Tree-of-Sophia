@@ -1,0 +1,129 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-prometey-1911-fourth",
+    "version": 1,
+    "digest": "sha256:f2d71fd2dbaa7bc3dd0c7988b5dd52b4d76f4e318578fc24f771e309084564cb"
+  },
+  "forms": [
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.90b91cd393075ff32f7478275bdd00ed76e3deb5d55bc95efffa204ac9b4448d",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-prometey-1911-fourth",
+        "version": 1,
+        "digest": "sha256:f2d71fd2dbaa7bc3dd0c7988b5dd52b4d76f4e318578fc24f771e309084564cb"
+      },
+      "role": "name",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-prometey-1911-fourth",
+            "version": 1,
+            "digest": "sha256:f2d71fd2dbaa7bc3dd0c7988b5dd52b4d76f4e318578fc24f771e309084564cb"
+          },
+          "pointer": "/preferred_label"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-prometey-1911-fourth",
+            "version": 1,
+            "digest": "sha256:f2d71fd2dbaa7bc3dd0c7988b5dd52b4d76f4e318578fc24f771e309084564cb"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-prometey-1911-fourth",
+            "version": 1,
+            "digest": "sha256:f2d71fd2dbaa7bc3dd0c7988b5dd52b4d76f4e318578fc24f771e309084564cb"
+          },
+          "pointer": "/same_as_posture"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    },
+    {
+      "schema_version": "tos_human_form_v1",
+      "form_id": "tos.form.metadata.77c38921f93b3a5965feb2da6a3f75085853c77d9a37cb83837df0a694fff34e",
+      "form_version": 1,
+      "subject": {
+        "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-prometey-1911-fourth",
+        "version": 1,
+        "digest": "sha256:f2d71fd2dbaa7bc3dd0c7988b5dd52b4d76f4e318578fc24f771e309084564cb"
+      },
+      "role": "hover",
+      "language": null,
+      "script": null,
+      "creator_id": "model:codex",
+      "revises": null,
+      "bindings": {
+        "wording": {
+          "record": {
+            "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-prometey-1911-fourth",
+            "version": 1,
+            "digest": "sha256:f2d71fd2dbaa7bc3dd0c7988b5dd52b4d76f4e318578fc24f771e309084564cb"
+          },
+          "pointer": "/notes"
+        },
+        "context-0": {
+          "record": {
+            "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-prometey-1911-fourth",
+            "version": 1,
+            "digest": "sha256:f2d71fd2dbaa7bc3dd0c7988b5dd52b4d76f4e318578fc24f771e309084564cb"
+          },
+          "pointer": "/identity_status"
+        },
+        "context-1": {
+          "record": {
+            "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-prometey-1911-fourth",
+            "version": 1,
+            "digest": "sha256:f2d71fd2dbaa7bc3dd0c7988b5dd52b4d76f4e318578fc24f771e309084564cb"
+          },
+          "pointer": "/same_as_posture"
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation-source-forms-v1:tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-prometey-1911-fourth",
+      "request_digest": "sha256:c0aba98837938f53a0e2eaa556abcaaf28c1d8e947c5bdbe0f585b3a654adba7",
+      "principal_id": "model:codex",
+      "authority_ref": "operator:tos-foundation-v1:source-copy-migration:2026-09-07",
+      "owner_configuration": "sha256:4dd0db44b85c213e64ba96fabbf4c2661ca10d159df76a7e4d0c656886c9ae00",
+      "recorded_at": "2026-09-07T03:13:28.397176+00:00",
+      "source": {
+        "id": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.saint-petersburg-prometey-1911-fourth",
+        "version": 1,
+        "digest": "sha256:f2d71fd2dbaa7bc3dd0c7988b5dd52b4d76f4e318578fc24f771e309084564cb"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.metadata.90b91cd393075ff32f7478275bdd00ed76e3deb5d55bc95efffa204ac9b4448d",
+          "version": 1,
+          "digest": "sha256:4ea32ea3d62608538366a5d649a3b485632dea39bb827c192b9197e6051eb304"
+        },
+        {
+          "id": "tos.form.metadata.77c38921f93b3a5965feb2da6a3f75085853c77d9a37cb83837df0a694fff34e",
+          "version": 1,
+          "digest": "sha256:917fb7efb8afcc3a4a3d95caa5f8c4a0be66379da3bf7b6b17c7f28b04c5a90e"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,48 @@
+{
+  "external_identifiers": [],
+  "field_languages": {
+    "notes": {
+      "language": "ru",
+      "script": "Cyrl"
+    },
+    "preferred_label": {
+      "language": "ru",
+      "script": "Cyrl"
+    }
+  },
+  "identity_status": "provisional",
+  "notes": "Документация ORACC ATF задаёт запись графем клинописной транслитерации, варианты Unicode/ASCII и знаки повреждения или сомнения. Это описание конвенции, не её запуск и не перевод древнего текста. Использованные разделы доступны через индексированный текст; непосредственная загрузка страниц не удалась.",
+  "preferred_label": "ORACC ATF — запись транслитерации",
+  "record_id": "tos.transliteration-scheme.oracc-atf",
+  "record_type": "transliteration-scheme",
+  "record_version": 1,
+  "same_as_posture": "no_equivalence_claim",
+  "schema_version": "tos_linguistic_description_record_v1",
+  "semantic_content": {
+    "coverage_and_loss": "A transliteration-space-delimited word need not be an accepted linguistic word. Unidentified or uncertain signs and variant readings remain explicit; no lossless reconstruction is claimed.",
+    "language": "en",
+    "mapping_convention": "Source-described Latin-based grapheme notation with additional numbers and editorial metacharacters; input language tags are separate from translation language.",
+    "script": "Latn"
+  },
+  "semantic_scope": {
+    "identity_criterion": "Исправление описания конвенции сохраняет её ID; несовместимый вариант или новая конвенция нуждаются в явно отделённом предмете и отношении.",
+    "language": "ru",
+    "scope_note": "Описанная в ORACC конвенция ATF, по индексированным разделам Characters и Words; не все варианты CDLI/ORACC считаются одинаковыми.",
+    "script": "Cyrl"
+  },
+  "source_refs": [
+    "ToS/review-ledger/2026-09-08-linguistic-source-reading.md",
+    "https://oracc2.museum.upenn.edu/doc/help/editinginatf/primer/inlinetutorial/index.html",
+    "https://build-oracc.museum.upenn.edu/doc/help/editinginatf/primer/inlinetutorial/index.html"
+  ],
+  "variant_labels": [
+    {
+      "language": "en",
+      "script": "Latn",
+      "source_ref": "ToS/review-ledger/2026-09-08-linguistic-source-reading.md",
+      "status": "unverified",
+      "value": "ORACC ATF transliteration notation"
+    }
+  ],
+  "visibility": "public_metadata_only"
+}

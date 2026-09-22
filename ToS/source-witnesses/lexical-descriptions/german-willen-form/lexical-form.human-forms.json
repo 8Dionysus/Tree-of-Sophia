@@ -1,79 +1,77 @@
 {
-  "schema_version": "tos_human_form_set_v1",
-  "subject": {
-    "id": "tos.lexical-form.german-willen",
-    "version": 1,
-    "digest": "sha256:cf2e527c24123842257e6c3b0e4e71123d99ca371d4dcc74828610d0d850fc92"
-  },
   "forms": [
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.lexical.willen-form.name-ru",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.lexical-form.german-willen",
-        "version": 1,
-        "digest": "sha256:cf2e527c24123842257e6c3b0e4e71123d99ca371d4dcc74828610d0d850fc92"
+        "version": 2,
+        "digest": "sha256:1165aa41aebc89f3b96e7f3908ff6848dbc72986528d7c15d82b08af8812194d"
       },
       "role": "name",
       "language": "ru",
       "script": "Cyrl",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.lexical.willen-form.name-ru",
+        "version": 1,
+        "digest": "sha256:5b9829d5812c43a8034c0f165ed7ae26bfd4685f473fd232002cf3f41181cce0"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.lexical-form.german-willen",
-            "version": 1,
-            "digest": "sha256:cf2e527c24123842257e6c3b0e4e71123d99ca371d4dcc74828610d0d850fc92"
+            "version": 2,
+            "digest": "sha256:1165aa41aebc89f3b96e7f3908ff6848dbc72986528d7c15d82b08af8812194d"
           },
           "pointer": "/preferred_label"
         },
         "context-0": {
           "record": {
             "id": "tos.lexical-form.german-willen",
-            "version": 1,
-            "digest": "sha256:cf2e527c24123842257e6c3b0e4e71123d99ca371d4dcc74828610d0d850fc92"
+            "version": 2,
+            "digest": "sha256:1165aa41aebc89f3b96e7f3908ff6848dbc72986528d7c15d82b08af8812194d"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.lexical-form.german-willen",
-            "version": 1,
-            "digest": "sha256:cf2e527c24123842257e6c3b0e4e71123d99ca371d4dcc74828610d0d850fc92"
+            "version": 2,
+            "digest": "sha256:1165aa41aebc89f3b96e7f3908ff6848dbc72986528d7c15d82b08af8812194d"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.lexical-form.german-willen",
-            "version": 1,
-            "digest": "sha256:cf2e527c24123842257e6c3b0e4e71123d99ca371d4dcc74828610d0d850fc92"
+            "version": 2,
+            "digest": "sha256:1165aa41aebc89f3b96e7f3908ff6848dbc72986528d7c15d82b08af8812194d"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.lexical-form.german-willen",
-            "version": 1,
-            "digest": "sha256:cf2e527c24123842257e6c3b0e4e71123d99ca371d4dcc74828610d0d850fc92"
+            "version": 2,
+            "digest": "sha256:1165aa41aebc89f3b96e7f3908ff6848dbc72986528d7c15d82b08af8812194d"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.lexical-form.german-willen",
-            "version": 1,
-            "digest": "sha256:cf2e527c24123842257e6c3b0e4e71123d99ca371d4dcc74828610d0d850fc92"
+            "version": 2,
+            "digest": "sha256:1165aa41aebc89f3b96e7f3908ff6848dbc72986528d7c15d82b08af8812194d"
           },
           "pointer": "/form_identity"
         },
         "context-5": {
           "record": {
             "id": "tos.lexical-form.german-willen",
-            "version": 1,
-            "digest": "sha256:cf2e527c24123842257e6c3b0e4e71123d99ca371d4dcc74828610d0d850fc92"
+            "version": 2,
+            "digest": "sha256:1165aa41aebc89f3b96e7f3908ff6848dbc72986528d7c15d82b08af8812194d"
           },
           "pointer": "/field_languages/preferred_label"
         }
@@ -86,95 +84,99 @@
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.lexical.willen-form.name-en",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.lexical-form.german-willen",
-        "version": 1,
-        "digest": "sha256:cf2e527c24123842257e6c3b0e4e71123d99ca371d4dcc74828610d0d850fc92"
+        "version": 2,
+        "digest": "sha256:1165aa41aebc89f3b96e7f3908ff6848dbc72986528d7c15d82b08af8812194d"
       },
       "role": "name",
       "language": "en",
       "script": "Latn",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.lexical.willen-form.name-en",
+        "version": 1,
+        "digest": "sha256:4fcb56ec3147975618b9f5edf11afa3cbd3346163e34cb1627e81b6a6c1625ab"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.lexical-form.german-willen",
-            "version": 1,
-            "digest": "sha256:cf2e527c24123842257e6c3b0e4e71123d99ca371d4dcc74828610d0d850fc92"
+            "version": 2,
+            "digest": "sha256:1165aa41aebc89f3b96e7f3908ff6848dbc72986528d7c15d82b08af8812194d"
           },
           "pointer": "/variant_labels/0/value"
         },
         "context-0": {
           "record": {
             "id": "tos.lexical-form.german-willen",
-            "version": 1,
-            "digest": "sha256:cf2e527c24123842257e6c3b0e4e71123d99ca371d4dcc74828610d0d850fc92"
+            "version": 2,
+            "digest": "sha256:1165aa41aebc89f3b96e7f3908ff6848dbc72986528d7c15d82b08af8812194d"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.lexical-form.german-willen",
-            "version": 1,
-            "digest": "sha256:cf2e527c24123842257e6c3b0e4e71123d99ca371d4dcc74828610d0d850fc92"
+            "version": 2,
+            "digest": "sha256:1165aa41aebc89f3b96e7f3908ff6848dbc72986528d7c15d82b08af8812194d"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.lexical-form.german-willen",
-            "version": 1,
-            "digest": "sha256:cf2e527c24123842257e6c3b0e4e71123d99ca371d4dcc74828610d0d850fc92"
+            "version": 2,
+            "digest": "sha256:1165aa41aebc89f3b96e7f3908ff6848dbc72986528d7c15d82b08af8812194d"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.lexical-form.german-willen",
-            "version": 1,
-            "digest": "sha256:cf2e527c24123842257e6c3b0e4e71123d99ca371d4dcc74828610d0d850fc92"
+            "version": 2,
+            "digest": "sha256:1165aa41aebc89f3b96e7f3908ff6848dbc72986528d7c15d82b08af8812194d"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.lexical-form.german-willen",
-            "version": 1,
-            "digest": "sha256:cf2e527c24123842257e6c3b0e4e71123d99ca371d4dcc74828610d0d850fc92"
+            "version": 2,
+            "digest": "sha256:1165aa41aebc89f3b96e7f3908ff6848dbc72986528d7c15d82b08af8812194d"
           },
           "pointer": "/form_identity"
         },
         "context-5": {
           "record": {
             "id": "tos.lexical-form.german-willen",
-            "version": 1,
-            "digest": "sha256:cf2e527c24123842257e6c3b0e4e71123d99ca371d4dcc74828610d0d850fc92"
+            "version": 2,
+            "digest": "sha256:1165aa41aebc89f3b96e7f3908ff6848dbc72986528d7c15d82b08af8812194d"
           },
           "pointer": "/variant_labels/0/language"
         },
         "context-6": {
           "record": {
             "id": "tos.lexical-form.german-willen",
-            "version": 1,
-            "digest": "sha256:cf2e527c24123842257e6c3b0e4e71123d99ca371d4dcc74828610d0d850fc92"
+            "version": 2,
+            "digest": "sha256:1165aa41aebc89f3b96e7f3908ff6848dbc72986528d7c15d82b08af8812194d"
           },
           "pointer": "/variant_labels/0/script"
         },
         "context-7": {
           "record": {
             "id": "tos.lexical-form.german-willen",
-            "version": 1,
-            "digest": "sha256:cf2e527c24123842257e6c3b0e4e71123d99ca371d4dcc74828610d0d850fc92"
+            "version": 2,
+            "digest": "sha256:1165aa41aebc89f3b96e7f3908ff6848dbc72986528d7c15d82b08af8812194d"
           },
           "pointer": "/variant_labels/0/source_ref"
         },
         "context-8": {
           "record": {
             "id": "tos.lexical-form.german-willen",
-            "version": 1,
-            "digest": "sha256:cf2e527c24123842257e6c3b0e4e71123d99ca371d4dcc74828610d0d850fc92"
+            "version": 2,
+            "digest": "sha256:1165aa41aebc89f3b96e7f3908ff6848dbc72986528d7c15d82b08af8812194d"
           },
           "pointer": "/variant_labels/0/status"
         }
@@ -187,71 +189,75 @@
     {
       "schema_version": "tos_human_form_v1",
       "form_id": "tos.form.lexical.willen-form.note-ru",
-      "form_version": 1,
+      "form_version": 2,
       "subject": {
         "id": "tos.lexical-form.german-willen",
-        "version": 1,
-        "digest": "sha256:cf2e527c24123842257e6c3b0e4e71123d99ca371d4dcc74828610d0d850fc92"
+        "version": 2,
+        "digest": "sha256:1165aa41aebc89f3b96e7f3908ff6848dbc72986528d7c15d82b08af8812194d"
       },
       "role": "hover",
       "language": "ru",
       "script": "Cyrl",
-      "creator_id": "agent:codex-tos-foundation",
-      "revises": null,
+      "creator_id": "agent:codex-tos-foundation-language-cleanup",
+      "revises": {
+        "id": "tos.form.lexical.willen-form.note-ru",
+        "version": 1,
+        "digest": "sha256:444d97299b811dfb7a7849802b35618020bb3b6cfe4fee209ac0a9b5f1a05bcd"
+      },
       "bindings": {
         "wording": {
           "record": {
             "id": "tos.lexical-form.german-willen",
-            "version": 1,
-            "digest": "sha256:cf2e527c24123842257e6c3b0e4e71123d99ca371d4dcc74828610d0d850fc92"
+            "version": 2,
+            "digest": "sha256:1165aa41aebc89f3b96e7f3908ff6848dbc72986528d7c15d82b08af8812194d"
           },
           "pointer": "/notes"
         },
         "context-0": {
           "record": {
             "id": "tos.lexical-form.german-willen",
-            "version": 1,
-            "digest": "sha256:cf2e527c24123842257e6c3b0e4e71123d99ca371d4dcc74828610d0d850fc92"
+            "version": 2,
+            "digest": "sha256:1165aa41aebc89f3b96e7f3908ff6848dbc72986528d7c15d82b08af8812194d"
           },
           "pointer": "/identity_status"
         },
         "context-1": {
           "record": {
             "id": "tos.lexical-form.german-willen",
-            "version": 1,
-            "digest": "sha256:cf2e527c24123842257e6c3b0e4e71123d99ca371d4dcc74828610d0d850fc92"
+            "version": 2,
+            "digest": "sha256:1165aa41aebc89f3b96e7f3908ff6848dbc72986528d7c15d82b08af8812194d"
           },
           "pointer": "/same_as_posture"
         },
         "context-2": {
           "record": {
             "id": "tos.lexical-form.german-willen",
-            "version": 1,
-            "digest": "sha256:cf2e527c24123842257e6c3b0e4e71123d99ca371d4dcc74828610d0d850fc92"
+            "version": 2,
+            "digest": "sha256:1165aa41aebc89f3b96e7f3908ff6848dbc72986528d7c15d82b08af8812194d"
           },
           "pointer": "/semantic_scope"
         },
         "context-3": {
           "record": {
             "id": "tos.lexical-form.german-willen",
-            "version": 1,
-            "digest": "sha256:cf2e527c24123842257e6c3b0e4e71123d99ca371d4dcc74828610d0d850fc92"
+            "version": 2,
+            "digest": "sha256:1165aa41aebc89f3b96e7f3908ff6848dbc72986528d7c15d82b08af8812194d"
           },
           "pointer": "/semantic_content"
         },
         "context-4": {
           "record": {
             "id": "tos.lexical-form.german-willen",
-            "version": 1,
-            "digest": "sha256:cf2e527c24123842257e6c3b0e4e71123d99ca371d4dcc74828610d0d850fc92"
+            "version": 2,
+            "digest": "sha256:1165aa41aebc89f3b96e7f3908ff6848dbc72986528d7c15d82b08af8812194d"
           },
           "pointer": "/form_identity"
         },
         "context-5": {
           "record": {
             "id": "tos.lexical-form.german-willen",
-            "version": 1,
-            "digest": "sha256:cf2e527c24123842257e6c3b0e4e71123d99ca371d4dcc74828610d0d850fc92"
+            "version": 2,
+            "digest": "sha256:1165aa41aebc89f3b96e7f3908ff6848dbc72986528d7c15d82b08af8812194d"
           },
           "pointer": "/field_languages/notes"
         }
@@ -262,5 +268,267 @@
       }
     }
   ],
-  "prior_forms": []
+  "prior_forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:cf2e527c24123842257e6c3b0e4e71123d99ca371d4dcc74828610d0d850fc92",
+            "id": "tos.lexical-form.german-willen",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:cf2e527c24123842257e6c3b0e4e71123d99ca371d4dcc74828610d0d850fc92",
+            "id": "tos.lexical-form.german-willen",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:cf2e527c24123842257e6c3b0e4e71123d99ca371d4dcc74828610d0d850fc92",
+            "id": "tos.lexical-form.german-willen",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:cf2e527c24123842257e6c3b0e4e71123d99ca371d4dcc74828610d0d850fc92",
+            "id": "tos.lexical-form.german-willen",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/form_identity",
+          "record": {
+            "digest": "sha256:cf2e527c24123842257e6c3b0e4e71123d99ca371d4dcc74828610d0d850fc92",
+            "id": "tos.lexical-form.german-willen",
+            "version": 1
+          }
+        },
+        "context-5": {
+          "pointer": "/field_languages/preferred_label",
+          "record": {
+            "digest": "sha256:cf2e527c24123842257e6c3b0e4e71123d99ca371d4dcc74828610d0d850fc92",
+            "id": "tos.lexical-form.german-willen",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/preferred_label",
+          "record": {
+            "digest": "sha256:cf2e527c24123842257e6c3b0e4e71123d99ca371d4dcc74828610d0d850fc92",
+            "id": "tos.lexical-form.german-willen",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.lexical.willen-form.name-ru",
+      "form_version": 1,
+      "language": "ru",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:cf2e527c24123842257e6c3b0e4e71123d99ca371d4dcc74828610d0d850fc92",
+        "id": "tos.lexical-form.german-willen",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:cf2e527c24123842257e6c3b0e4e71123d99ca371d4dcc74828610d0d850fc92",
+            "id": "tos.lexical-form.german-willen",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:cf2e527c24123842257e6c3b0e4e71123d99ca371d4dcc74828610d0d850fc92",
+            "id": "tos.lexical-form.german-willen",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:cf2e527c24123842257e6c3b0e4e71123d99ca371d4dcc74828610d0d850fc92",
+            "id": "tos.lexical-form.german-willen",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:cf2e527c24123842257e6c3b0e4e71123d99ca371d4dcc74828610d0d850fc92",
+            "id": "tos.lexical-form.german-willen",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/form_identity",
+          "record": {
+            "digest": "sha256:cf2e527c24123842257e6c3b0e4e71123d99ca371d4dcc74828610d0d850fc92",
+            "id": "tos.lexical-form.german-willen",
+            "version": 1
+          }
+        },
+        "context-5": {
+          "pointer": "/variant_labels/0/language",
+          "record": {
+            "digest": "sha256:cf2e527c24123842257e6c3b0e4e71123d99ca371d4dcc74828610d0d850fc92",
+            "id": "tos.lexical-form.german-willen",
+            "version": 1
+          }
+        },
+        "context-6": {
+          "pointer": "/variant_labels/0/script",
+          "record": {
+            "digest": "sha256:cf2e527c24123842257e6c3b0e4e71123d99ca371d4dcc74828610d0d850fc92",
+            "id": "tos.lexical-form.german-willen",
+            "version": 1
+          }
+        },
+        "context-7": {
+          "pointer": "/variant_labels/0/source_ref",
+          "record": {
+            "digest": "sha256:cf2e527c24123842257e6c3b0e4e71123d99ca371d4dcc74828610d0d850fc92",
+            "id": "tos.lexical-form.german-willen",
+            "version": 1
+          }
+        },
+        "context-8": {
+          "pointer": "/variant_labels/0/status",
+          "record": {
+            "digest": "sha256:cf2e527c24123842257e6c3b0e4e71123d99ca371d4dcc74828610d0d850fc92",
+            "id": "tos.lexical-form.german-willen",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/variant_labels/0/value",
+          "record": {
+            "digest": "sha256:cf2e527c24123842257e6c3b0e4e71123d99ca371d4dcc74828610d0d850fc92",
+            "id": "tos.lexical-form.german-willen",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.lexical.willen-form.name-en",
+      "form_version": 1,
+      "language": "en",
+      "revises": null,
+      "role": "name",
+      "schema_version": "tos_human_form_v1",
+      "script": "Latn",
+      "subject": {
+        "digest": "sha256:cf2e527c24123842257e6c3b0e4e71123d99ca371d4dcc74828610d0d850fc92",
+        "id": "tos.lexical-form.german-willen",
+        "version": 1
+      }
+    },
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "/identity_status",
+          "record": {
+            "digest": "sha256:cf2e527c24123842257e6c3b0e4e71123d99ca371d4dcc74828610d0d850fc92",
+            "id": "tos.lexical-form.german-willen",
+            "version": 1
+          }
+        },
+        "context-1": {
+          "pointer": "/same_as_posture",
+          "record": {
+            "digest": "sha256:cf2e527c24123842257e6c3b0e4e71123d99ca371d4dcc74828610d0d850fc92",
+            "id": "tos.lexical-form.german-willen",
+            "version": 1
+          }
+        },
+        "context-2": {
+          "pointer": "/semantic_scope",
+          "record": {
+            "digest": "sha256:cf2e527c24123842257e6c3b0e4e71123d99ca371d4dcc74828610d0d850fc92",
+            "id": "tos.lexical-form.german-willen",
+            "version": 1
+          }
+        },
+        "context-3": {
+          "pointer": "/semantic_content",
+          "record": {
+            "digest": "sha256:cf2e527c24123842257e6c3b0e4e71123d99ca371d4dcc74828610d0d850fc92",
+            "id": "tos.lexical-form.german-willen",
+            "version": 1
+          }
+        },
+        "context-4": {
+          "pointer": "/form_identity",
+          "record": {
+            "digest": "sha256:cf2e527c24123842257e6c3b0e4e71123d99ca371d4dcc74828610d0d850fc92",
+            "id": "tos.lexical-form.german-willen",
+            "version": 1
+          }
+        },
+        "context-5": {
+          "pointer": "/field_languages/notes",
+          "record": {
+            "digest": "sha256:cf2e527c24123842257e6c3b0e4e71123d99ca371d4dcc74828610d0d850fc92",
+            "id": "tos.lexical-form.german-willen",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/notes",
+          "record": {
+            "digest": "sha256:cf2e527c24123842257e6c3b0e4e71123d99ca371d4dcc74828610d0d850fc92",
+            "id": "tos.lexical-form.german-willen",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.lexical.willen-form.note-ru",
+      "form_version": 1,
+      "language": "ru",
+      "revises": null,
+      "role": "hover",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:cf2e527c24123842257e6c3b0e4e71123d99ca371d4dcc74828610d0d850fc92",
+        "id": "tos.lexical-form.german-willen",
+        "version": 1
+      }
+    }
+  ],
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.lexical-form.german-willen",
+    "version": 2,
+    "digest": "sha256:1165aa41aebc89f3b96e7f3908ff6848dbc72986528d7c15d82b08af8812194d"
+  }
 }

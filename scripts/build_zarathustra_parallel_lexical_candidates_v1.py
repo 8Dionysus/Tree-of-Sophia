@@ -334,7 +334,7 @@ def build_ru_db(path: Path, occurrences: list[dict[str, Any]]) -> bytes:
             for unit, rows in sorted(grouped.items())
         ])
         db.executemany("INSERT INTO metadata VALUES(?,?)", [
-            ("authority_boundary", "private mechanical occurrence search; no text acceptance, lemma, lexeme, translation, sign, concept, or canon"),
+            ("authority_boundary", "Private mechanical occurrence search over the selected source layers, preserving the recorded textual and semantic assessment status."),
             ("plan_sha256", digest_file(REPO / PLAN_REF)),
             ("occurrence_count", str(len(occurrences))),
         ])

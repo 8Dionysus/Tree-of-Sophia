@@ -1,6 +1,7 @@
 """Separately delegated creation of declared source Claim packages.
 
-This is a source-command adapter, not assessment or read-only access. It uses
+This adapter executes delegated source-creation commands. Assessment and
+read-only access follow their own owner routes. It uses
 the existing local account, shared source lock, no-replace publication and
 serialization capture. All scopes come from the protected owner configuration.
 """

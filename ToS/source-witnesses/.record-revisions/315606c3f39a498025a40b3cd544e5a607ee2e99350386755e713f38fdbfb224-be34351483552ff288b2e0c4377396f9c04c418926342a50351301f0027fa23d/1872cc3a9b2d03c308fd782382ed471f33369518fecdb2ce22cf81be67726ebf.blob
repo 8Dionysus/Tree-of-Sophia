@@ -1,0 +1,84 @@
+{
+  "schema_version": "tos_human_form_set_v1",
+  "subject": {
+    "id": "tos.claim.sid-8a7520c2794e4e5493f9370a9122e07f",
+    "version": 1,
+    "digest": "sha256:7b8e813bdc7cf2efc57505b28a07e0f8f958b9e72afa7d59caedc9c2063b88d9"
+  },
+  "forms": [
+    {
+      "bindings": {
+        "context-0": {
+          "pointer": "",
+          "record": {
+            "digest": "sha256:7b8e813bdc7cf2efc57505b28a07e0f8f958b9e72afa7d59caedc9c2063b88d9",
+            "id": "tos.claim.sid-8a7520c2794e4e5493f9370a9122e07f",
+            "version": 1
+          }
+        },
+        "wording": {
+          "pointer": "/qualifiers/statement",
+          "record": {
+            "digest": "sha256:7b8e813bdc7cf2efc57505b28a07e0f8f958b9e72afa7d59caedc9c2063b88d9",
+            "id": "tos.claim.sid-8a7520c2794e4e5493f9370a9122e07f",
+            "version": 1
+          }
+        }
+      },
+      "content": {
+        "kind": "source-copy",
+        "slot": "wording"
+      },
+      "creator_id": "agent:codex-tos-foundation",
+      "form_id": "tos.form.sid-3c2091b2d7b34de3b0e5fe1eedc6abff",
+      "form_version": 1,
+      "language": "ru",
+      "revises": null,
+      "role": "statement",
+      "schema_version": "tos_human_form_v1",
+      "script": "Cyrl",
+      "subject": {
+        "digest": "sha256:7b8e813bdc7cf2efc57505b28a07e0f8f958b9e72afa7d59caedc9c2063b88d9",
+        "id": "tos.claim.sid-8a7520c2794e4e5493f9370a9122e07f",
+        "version": 1
+      }
+    }
+  ],
+  "prior_forms": [],
+  "growth_history": [
+    {
+      "command_id": "foundation-duden-lexical:claim-form-2",
+      "request_digest": "sha256:37a70caa4caf1abacb840b48e7035cf07bac8c641a53a34c920fce1e2651ff40",
+      "principal_id": "agent:codex-tos-foundation",
+      "authority_ref": "operator-goal:01a06cc7-0452-77f2-b89a-fb77fb86c3bf:sha256:58a14c36933d864d22d6a3485c8240b37459894448dd9580d53d6c7ac834e798",
+      "owner_configuration": "sha256:992a02808455d78aca7bc0de741ec2c0b5c923c66a916cd532518fb7d287f792",
+      "recorded_at": "2026-09-08T12:26:52.784652+00:00",
+      "source_contracts": {
+        "ToS/doctrine/semantic-interchange/relation-types.v1.json": "sha256:f7ef71e82a683de9664a9fbfafd250e4205780bd95068ac586f8bdcd176b07f4",
+        "ToS/contracts/semantic-relation-type-registry.schema.json": "sha256:5b3eea795cf81ce2cd8872f21f20fa37ebb52d874fe195c653bf116601cee4da",
+        "ToS/doctrine/semantic-interchange/entity-types.v1.json": "sha256:9aebccc34f0f0d637f8d0e2c4474bcd7219ff92f9fd396f1d5f98ebd2d8fdac1",
+        "ToS/contracts/semantic-entity-type-registry.schema.json": "sha256:1aa305cc7cb1fe31338180d95563141ed4596fb6d33ed3d320a7e667475cdf3d",
+        "ToS/contracts/claim-packet.schema.json": "sha256:cc982ceeaa3a62dc8cb1367cd4b10cc76073b252a1ac5c9977f6b0ee6d47588c",
+        "ToS/contracts/knowledge-assessment.schema.json": "sha256:83163d105944db9a54bd57a8e730c3d459a00239de0df65cb63ac18c305e60be",
+        "ToS/contracts/source-claim-record.schema.json": "sha256:0c6a03c978999586c9a13c153bde5dabe7ccb4c31c732afb8cca6a536eb65bd0",
+        "ToS/contracts/corpus-record.schema.json": "sha256:baccf59bc5c6ffd1560848610ac812751d1e5182c89658814eeb2eedde4b6db1",
+        "ToS/contracts/semantic-relation-claim.schema.json": "sha256:49a82dbcacbc1c186a0fb51768fa84227bdd4b8c9a35bd93f7b2f86c4527563e",
+        "ToS/contracts/linguistic-relation-claim.schema.json": "sha256:1add9fc5130493473e3d97347b224281337ede74d5baba5a303940e74c1ce5ba",
+        "ToS/contracts/lexical-comparison-claim.schema.json": "sha256:b4779c06951cd4e8c9866af4a0957bb5acb7c09276722e04e53d7f034b83c5ae"
+      },
+      "source": {
+        "id": "tos.claim.sid-8a7520c2794e4e5493f9370a9122e07f",
+        "version": 1,
+        "digest": "sha256:7b8e813bdc7cf2efc57505b28a07e0f8f958b9e72afa7d59caedc9c2063b88d9"
+      },
+      "previous_revision": null,
+      "results": [
+        {
+          "id": "tos.form.sid-3c2091b2d7b34de3b0e5fe1eedc6abff",
+          "version": 1,
+          "digest": "sha256:de84ae492989eb5647541d54d893da7076895fda3adec7b02584cb70f566fb3c"
+        }
+      ]
+    }
+  ]
+}

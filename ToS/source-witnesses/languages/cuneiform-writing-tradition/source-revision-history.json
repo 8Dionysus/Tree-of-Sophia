@@ -1,0 +1,94 @@
+{
+  "schema_version": "tos_source_revision_history_v1",
+  "record_id": "tos.script.cuneiform-writing-tradition",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:b69fd1bbb78357438b17a7e7",
+      "request_digest": "sha256:2b0830530a77e3f1e20d9007114a0b805c3437281c7389371423a43887c89c6e",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:4ee3e9cdee7a97d7bbc0675bb83dbf199bc1809b518abb8f734e74ded267ff94",
+      "recorded_at": "2026-09-22T05:05:13.859571+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.script.cuneiform-writing-tradition",
+        "version": 1,
+        "digest": "sha256:81dcdab0ab56d75a026e90b07cdf39dbc03fd34c92c45eac0d6aeea0fae9720a"
+      },
+      "source": {
+        "id": "tos.script.cuneiform-writing-tradition",
+        "version": 2,
+        "digest": "sha256:7d64bd6c329926c04951c863058bb207ce0b77c310a7fb81760a00406b165163"
+      },
+      "previous_revision": "sha256:53cf74b4a0f1ab3f624818387c447a14f447a0f5ecc8bed173fecdc63ac62bb2",
+      "archive_path": "ToS/source-witnesses/.record-revisions/b69fd1bbb78357438b17a7e7166313ecf40d63ea01cad95ad02b3570be8c564f-53cf74b4a0f1ab3f624818387c447a14f447a0f5ecc8bed173fecdc63ac62bb2",
+      "dependencies": "sha256:e2c3b0e5c30dfc00ab6bdaf89fb15006dd74253e1c0551d2e2c8c83ddb82d84b",
+      "changed_fields": [
+        "notes",
+        "semantic_content",
+        "semantic_scope"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.linguistic.cuneiform-writing-tradition.name-ru",
+          "version": 2,
+          "digest": "sha256:d6360599c7007dbc5f8ff072e8a784b000b44ace648c1f543ccb2bde3d88bfb2"
+        },
+        {
+          "id": "tos.form.linguistic.cuneiform-writing-tradition.name-en",
+          "version": 2,
+          "digest": "sha256:61d1d32c05d674d3bd5126833389a16ad672cd803c994dc9203b439f0e585447"
+        },
+        {
+          "id": "tos.form.linguistic.cuneiform-writing-tradition.note-ru",
+          "version": 2,
+          "digest": "sha256:40253b2b0495a254c9ebaabcfc68ee2569cd831d96a49c45a2c23dbc35f097ba"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:b69fd1bbb78357438b17a7e7",
+        "expected_configuration": "sha256:4ee3e9cdee7a97d7bbc0675bb83dbf199bc1809b518abb8f734e74ded267ff94",
+        "expected_dependencies": "sha256:e2c3b0e5c30dfc00ab6bdaf89fb15006dd74253e1c0551d2e2c8c83ddb82d84b",
+        "expected_revision": "sha256:53cf74b4a0f1ab3f624818387c447a14f447a0f5ecc8bed173fecdc63ac62bb2",
+        "expected_source": {
+          "digest": "sha256:81dcdab0ab56d75a026e90b07cdf39dbc03fd34c92c45eac0d6aeea0fae9720a",
+          "id": "tos.script.cuneiform-writing-tradition",
+          "version": 1
+        },
+        "fields": {
+          "notes": "В описании Metropolitan Museum клинопись характеризуется клиновидными знаками; её развитие рассматривается исторически. Запись охватывает традицию письма прежде всего в сумеро-аккадских свидетельствах.",
+          "semantic_content": {
+            "language": "en",
+            "script": "Latn",
+            "script_account": "A historically variable writing tradition characterized by wedge-shaped signs; the present research scope is centered on Sumerian and Akkadian witnesses.",
+            "sign_inventory_scope": "A historically changing writing tradition. Specific period, region, allograph, and sign-value inventories have their own source accounts."
+          },
+          "semantic_scope": {
+            "identity_criterion": "Исторические варианты рассматриваются внутри заявленной широкой традиции; отдельная система письма или иной критерий охвата требует собственного предмета.",
+            "language": "ru",
+            "scope_note": "Широкая традиция клинописи; конкретные репертуары и варианты требуют самостоятельного сопоставления.",
+            "script": "Cyrl"
+          }
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.linguistic.cuneiform-writing-tradition.name-ru"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.linguistic.cuneiform-writing-tradition.name-en"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.linguistic.cuneiform-writing-tradition.note-ru"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    }
+  ]
+}

@@ -1,0 +1,90 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.agent.richard-wagner",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:b1d72a7a9789a22b434c8e26",
+      "request_digest": "sha256:3c63169dde33681f1b62d7343960ce2fb5cc42abc55931a3f5ffba6efb74e98c",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:c48e5c826256351b8ecf5fda421896842fe87fe97a5b86735fba6c7999e1518a",
+      "recorded_at": "2026-09-22T05:04:20.288004+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.agent.richard-wagner",
+        "version": 1,
+        "digest": "sha256:f71cbd876a58efabb90813c180e0a98bfd137aae78da84d061b607e2abc8c7f6"
+      },
+      "source": {
+        "id": "tos.agent.richard-wagner",
+        "version": 2,
+        "digest": "sha256:f27256e72005d51787ebca1dc230eb167812c1c1bbde1664b2d9578cd7b23f2c"
+      },
+      "previous_revision": "sha256:ca6d4cc47136a3a795bfc8115a40eec9ca103dc83508e922e294ff4eccb9d33e",
+      "archive_path": "ToS/source-witnesses/.record-revisions/b1d72a7a9789a22b434c8e26d6c518da209d6ed0a3fa1fd056f06ae2515c6d2a-ca6d4cc47136a3a795bfc8115a40eec9ca103dc83508e922e294ff4eccb9d33e",
+      "dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+      "changed_fields": [
+        "notes"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.agent.richard-wagner.name-ru",
+          "version": 2,
+          "digest": "sha256:d34cdc8b60030477d748a55609a8d47ea68b205bd25dae8430f7ebb7995868e2"
+        },
+        {
+          "id": "tos.form.agent.richard-wagner.name-de",
+          "version": 2,
+          "digest": "sha256:2f67c877e56e67a6b5edbae5d49467734df01b639976c3c4021e19f1f41fd1b9"
+        },
+        {
+          "id": "tos.form.agent.richard-wagner.note-ru",
+          "version": 2,
+          "digest": "sha256:d8e68ba1a42820dd5f92b0bec9fc9ba34247eaa6442b305a8d6874c7a492bc79"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:b1d72a7a9789a22b434c8e26",
+        "expected_configuration": "sha256:c48e5c826256351b8ecf5fda421896842fe87fe97a5b86735fba6c7999e1518a",
+        "expected_dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+        "expected_publication": "sha256:a3d15699ad59c32f27872a75e309cfe5f6d332b6c424ce37e240486699491a49",
+        "expected_revision": "sha256:ca6d4cc47136a3a795bfc8115a40eec9ca103dc83508e922e294ff4eccb9d33e",
+        "expected_source": {
+          "digest": "sha256:f71cbd876a58efabb90813c180e0a98bfd137aae78da84d061b607e2abc8c7f6",
+          "id": "tos.agent.richard-wagner",
+          "version": 1
+        },
+        "fields": {
+          "notes": "Историческое лицо, с которым базельский очерк связывает отношения Ницше."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.agent.richard-wagner.name-ru"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.agent.richard-wagner.name-de"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.agent.richard-wagner.note-ru"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:13305d8b462eafb545213c82d0030ddc8d3eed9b6a6efe14a95dad2070937700",
+        "selected_files": [
+          "agent.human-forms.json",
+          "agent.json",
+          "source-revision-history.json"
+        ]
+      }
+    }
+  ]
+}

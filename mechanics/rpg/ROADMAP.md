@@ -8,7 +8,7 @@ source routes, and review.
 
 - Keep reading-progression as reflection only.
 - Keep RPG language below source, branch, canon, quest, and review surfaces.
-- Keep progression language optional and interpretive, not an ontology.
+- Keep progression language optional and interpretive.
 - Keep graph and atlas progress readable only when the game form clarifies a
   route a human can actually use.
 
@@ -27,7 +27,8 @@ without creating rank, score, or hidden ledger pressure.
 Move: add payload to `reading-progression` or retire the mechanic if RPG
 language stops clarifying movement.
 
-Guardrail: the game form is a reading aid, not an ontology.
+Guardrail: the game form supports reading; ontology follows the authored
+philosophical sources.
 
 ## Out Of Scope
 

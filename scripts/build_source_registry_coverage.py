@@ -135,7 +135,7 @@ def build(root: Path, *, verify_local: bool = False) -> dict:
     statuses = Counter(r['status'] for r in records)
     work_count = len({r['record_id'] for r in reconciliation['owner_sources'] if r['record_type'] == 'work'})
     return {'schema_version': 'tos_registry_planting_coverage_v1', 'snapshot_id': reconciliation['snapshot_id'],
-            'semantic_ceiling': 'derived navigation; no new identity, rights, textual acceptance or canon',
+            'semantic_ceiling': "Derived navigation over registry records, acquisition evidence and current owner sources.",
             'custody_scope': 'live file hashes in this checkout' if verify_local else 'recorded acquisition evidence; current local existence not asserted',
             'summary': {'registry_records': sum(r['kind'] == 'registry' for r in records), 'gap_records': sum(r['kind'] == 'gaps' for r in records),
                         'catalogued_works': work_count, 'all_branch_plantings': planting_count,

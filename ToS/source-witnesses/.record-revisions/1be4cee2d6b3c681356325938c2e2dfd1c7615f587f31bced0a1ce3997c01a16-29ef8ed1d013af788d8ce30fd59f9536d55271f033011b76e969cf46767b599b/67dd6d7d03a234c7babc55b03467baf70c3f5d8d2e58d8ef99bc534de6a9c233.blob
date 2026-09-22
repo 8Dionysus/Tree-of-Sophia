@@ -1,0 +1,46 @@
+{
+  "external_identifiers": [],
+  "field_languages": {
+    "notes": {
+      "language": "ru",
+      "script": "Cyrl"
+    },
+    "preferred_label": {
+      "language": "ru",
+      "script": "Cyrl"
+    }
+  },
+  "identity_status": "provisional",
+  "notes": "ETCSL описывает шумерский как исторический язык, особенно засвидетельствованный на юге Месопотамии, для которого убедительно установленные родственные языки пока неизвестны. Источник подчёркивает изменчивость языка и неопределённость времени прекращения разговорного употребления.",
+  "preferred_label": "Шумерский язык",
+  "record_id": "tos.language.sumerian",
+  "record_type": "language",
+  "record_version": 1,
+  "same_as_posture": "no_equivalence_claim",
+  "schema_version": "tos_linguistic_description_record_v1",
+  "semantic_content": {
+    "language": "en",
+    "script": "Latn",
+    "system_account": "ETCSL calls Sumerian an isolate in the sense that related languages have not been convincingly identified; this is not proof that historical relatives never existed."
+  },
+  "semantic_scope": {
+    "identity_criterion": "Сохраняется исследуемая языковая традиция, а не неизменное определение или текущая реконструкция её грамматики.",
+    "language": "ru",
+    "scope_note": "Шумерская языковая традиция; реконструкции звучания, отдельные формы и письменные свидетельства не отождествляются с целым языком.",
+    "script": "Cyrl"
+  },
+  "source_refs": [
+    "ToS/review-ledger/2026-09-08-linguistic-source-reading.md",
+    "https://etcsl.orinst.ox.ac.uk/edition2/language.php"
+  ],
+  "variant_labels": [
+    {
+      "language": "en",
+      "script": "Latn",
+      "source_ref": "ToS/review-ledger/2026-09-08-linguistic-source-reading.md",
+      "status": "unverified",
+      "value": "Sumerian language"
+    }
+  ],
+  "visibility": "public_metadata_only"
+}

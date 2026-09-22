@@ -217,7 +217,7 @@
         {"type": "null"}
       ]
     },
-    "authority_boundary": {"type": "string", "minLength": 220},
+    "authority_boundary": {"type": "string", "minLength": 1, "description": "Brief account of the artifact purpose and scope. Typed status, effects, assessment and permission fields govern its use."},
     "does_not_establish": {
       "const": [
         "source_text",

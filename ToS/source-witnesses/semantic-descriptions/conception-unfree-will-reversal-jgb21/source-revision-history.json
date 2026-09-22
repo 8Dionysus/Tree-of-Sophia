@@ -1,0 +1,87 @@
+{
+  "schema_version": "tos_source_revision_history_v1",
+  "record_id": "tos.conception.unfree-will-reversal-jgb21",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:6612217c9f320680547868bd",
+      "request_digest": "sha256:ab9e8b46c815eb1c5407007ada2426161a9ddc3399ed33450631c3f1b269fb70",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:f4a1d7e532eae106ef2f6f87c8c7fe5923be03e6ab23570deb535880e7db1c8d",
+      "recorded_at": "2026-09-22T05:06:42.015125+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.conception.unfree-will-reversal-jgb21",
+        "version": 1,
+        "digest": "sha256:c6f8279f5366d3fc916e64a25bffa63a82f3f00a3daaa27c262cd664e6100c8b"
+      },
+      "source": {
+        "id": "tos.conception.unfree-will-reversal-jgb21",
+        "version": 2,
+        "digest": "sha256:8ae47f02db0922b30a456c4ef4f689b3e8ca76dd950ae4d2f26f229061aa61a9"
+      },
+      "previous_revision": "sha256:70807aefaf670cd58731a4a255c7b016c6d400a854b7e8cef56ee8ba52963a3d",
+      "archive_path": "ToS/source-witnesses/.record-revisions/6612217c9f320680547868bdff190d7f145114174ebf66ef235dcaf72e5c79ac-70807aefaf670cd58731a4a255c7b016c6d400a854b7e8cef56ee8ba52963a3d",
+      "dependencies": "sha256:6eb59a15b4243f7b45a4d93da8ee8a5cdd29b223ebbb884668cde7e0d2ef2cf5",
+      "changed_fields": [
+        "notes",
+        "semantic_scope"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.conception.unfree-will-reversal-jgb21.name-ru",
+          "version": 2,
+          "digest": "sha256:9f49b8aba8c34f051cce2d151fd2d73a49044b2635931dedf123a11ab9630bc9"
+        },
+        {
+          "id": "tos.form.conception.unfree-will-reversal-jgb21.name-en",
+          "version": 2,
+          "digest": "sha256:8963b7941556522c84d7cf58135c1d304a18d841b7bcf0c30559913319d3d49b"
+        },
+        {
+          "id": "tos.form.conception.unfree-will-reversal-jgb21.note-ru",
+          "version": 2,
+          "digest": "sha256:fa09638c67d2c0d60c4b2fd6feea8ab7a2ff218c445cdc900db8c336b27bfe1f"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:6612217c9f320680547868bd",
+        "expected_configuration": "sha256:f4a1d7e532eae106ef2f6f87c8c7fe5923be03e6ab23570deb535880e7db1c8d",
+        "expected_dependencies": "sha256:6eb59a15b4243f7b45a4d93da8ee8a5cdd29b223ebbb884668cde7e0d2ef2cf5",
+        "expected_revision": "sha256:70807aefaf670cd58731a4a255c7b016c6d400a854b7e8cef56ee8ba52963a3d",
+        "expected_source": {
+          "digest": "sha256:c6f8279f5366d3fc916e64a25bffa63a82f3f00a3daaa27c262cd664e6100c8b",
+          "id": "tos.conception.unfree-will-reversal-jgb21",
+          "version": 1
+        },
+        "fields": {
+          "notes": "§21 предостерегает от замены метафизически свободной воли механистически несвободной. Предмет записи — критикуемая инверсия и овеществление причинности.",
+          "semantic_scope": {
+            "identity_criterion": "Retain the referent only for this reconstructed critical target. A particular determinist's doctrine or an empirical causal model needs separate identity and attribution.",
+            "language": "en",
+            "scope_note": "The specific mechanistic opposite criticized in JGB 21.",
+            "script": "Latn"
+          }
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.conception.unfree-will-reversal-jgb21.name-ru"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.conception.unfree-will-reversal-jgb21.name-en"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.conception.unfree-will-reversal-jgb21.note-ru"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    }
+  ]
+}

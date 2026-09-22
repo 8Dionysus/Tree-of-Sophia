@@ -1,0 +1,99 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.agent.erasmus-of-rotterdam",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:607d20053005a671ee30ec83",
+      "request_digest": "sha256:d5a6c89adf765e2135c78c02cbb255b07b7c61cb3bf08b28d1f1f97e02f1c0ab",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:c8864e77824c73bb4dbd15ed3a317a971a27c0fecbc84c8268722d95e62af71a",
+      "recorded_at": "2026-09-22T05:04:00.847809+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.agent.erasmus-of-rotterdam",
+        "version": 1,
+        "digest": "sha256:59cf5fe30d19dd772eeae9c92b323a8cb7acbb0630547e9885786295429cd0a3"
+      },
+      "source": {
+        "id": "tos.agent.erasmus-of-rotterdam",
+        "version": 2,
+        "digest": "sha256:e28235805bd8b92cecf66d3b5fc51c4a66ce5734e454d68c938dfc8fc41fbd49"
+      },
+      "previous_revision": "sha256:6545a0d74e6d9575c5c3b6979c73bbadf73d1a6da194cbda57fb41b86d846a0c",
+      "archive_path": "ToS/source-witnesses/.record-revisions/607d20053005a671ee30ec83fe500494c061710bad976422a26f9fb2b9bed528-6545a0d74e6d9575c5c3b6979c73bbadf73d1a6da194cbda57fb41b86d846a0c",
+      "dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+      "changed_fields": [
+        "notes"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.basel-print.erasmus.name-ru",
+          "version": 2,
+          "digest": "sha256:ffcd6b4ffe0e2216cc6d1ac6ebb7da184adfc279cbcfbed8ddab2d969d8690ab"
+        },
+        {
+          "id": "tos.form.basel-print.erasmus.name-en",
+          "version": 2,
+          "digest": "sha256:7c383feee4eb9d8e95aedea83accdff1063ecff4b5df06870a831e10795c4596"
+        },
+        {
+          "id": "tos.form.basel-print.erasmus.name-de",
+          "version": 2,
+          "digest": "sha256:88abcd2c83993b17106c9cc0e58eb11429c052431f45ce81e7bcf1c36c073549"
+        },
+        {
+          "id": "tos.form.basel-print.erasmus.note-ru",
+          "version": 2,
+          "digest": "sha256:e93ce45a983b2ebf92f70d5a2c0970dc16b06e723de724f6be5626d72abd246b"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:607d20053005a671ee30ec83",
+        "expected_configuration": "sha256:c8864e77824c73bb4dbd15ed3a317a971a27c0fecbc84c8268722d95e62af71a",
+        "expected_dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+        "expected_publication": "sha256:89bbc9a41e5c0f1d2890a4c344d45045e5b4e3feced17714c762df8af24c8790",
+        "expected_revision": "sha256:6545a0d74e6d9575c5c3b6979c73bbadf73d1a6da194cbda57fb41b86d846a0c",
+        "expected_source": {
+          "digest": "sha256:59cf5fe30d19dd772eeae9c92b323a8cb7acbb0630547e9885786295429cd0a3",
+          "id": "tos.agent.erasmus-of-rotterdam",
+          "version": 1
+        },
+        "fields": {
+          "notes": "Идентификация по имени редактора в каталоге GG 17."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.basel-print.erasmus.name-ru"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.basel-print.erasmus.name-en"
+          },
+          {
+            "field_id": "metadata.variant-name:1",
+            "form_id": "tos.form.basel-print.erasmus.name-de"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.basel-print.erasmus.note-ru"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:2cdadaba164068fe84bc8f49d4d845121b72a8e5869f8baa935a8bc529a268cd",
+        "selected_files": [
+          "agent.human-forms.json",
+          "agent.json",
+          "source-revision-history.json"
+        ]
+      }
+    }
+  ]
+}

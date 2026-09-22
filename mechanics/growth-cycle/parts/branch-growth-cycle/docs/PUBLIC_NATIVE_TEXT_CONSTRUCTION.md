@@ -1,11 +1,11 @@
 # Public project-text native construction
 
-This independent adapter implements one bounded public source construction
-through `source_commands.py`, not a public flag added to confidential grants.
-The source-owned input contracts are
+This independent adapter implements bounded public source construction through
+`source_commands.py`. Its closed, source-owned input contracts are
 `ToS/contracts/public-native-text-create-owner.schema.json` and
-`ToS/contracts/public-native-text-authority.schema.json`. Both are closed;
-request discovery uses the existing grant-free common handler grammar.
+`ToS/contracts/public-native-text-authority.schema.json`. Request discovery
+uses the common grant-free handler grammar; the adapter requires its dedicated
+public-construction grant.
 
 ## Scope and authority
 
@@ -38,11 +38,11 @@ transcription with structural-extraction provenance. A separately supplied
 finite partition covers the new representation with units and explicit gaps;
 it does not infer language units or semantic significance.
 
-The unchanged native resolver verifies the new public binding and exact
-content. A normal separate `source.create` can then create an Occurrence with
-its own identity and native binding. Construction creates neither Occurrence,
-HumanForm, assessment, admission, canon status nor external publication.
-Existing private historical inputs never become public through this route.
+The native resolver verifies the new public binding and exact content. A
+separate `source.create` can then create an Occurrence with its own identity
+and native binding. HumanForm creation, assessment, admission, canon and
+external publication follow their own operations. Existing private historical
+inputs remain private.
 
 ## Persistence and limits
 

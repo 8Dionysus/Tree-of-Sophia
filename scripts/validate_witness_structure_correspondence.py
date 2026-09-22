@@ -3,9 +3,9 @@
 
 This validator checks schema shape, inventory/resource closure, digest-bound
 provenance, page-enumeration arithmetic, summaries, numbered spans, and
-monotonicity. Passing does not establish textual identity, edition
-equivalence, accepted original-language text, translation, semantics, or
-canon authority.
+monotonicity. Textual identity, edition equivalence, original-language text
+acceptance, translation, semantics and canon follow their source-visible
+review routes.
 """
 
 from __future__ import annotations
@@ -2348,8 +2348,7 @@ def main() -> int:
         return 1
     print("[ok] validated text-free witness-structure correspondences")
     print(
-        "[boundary] locator candidates only; no textual identity, accepted "
-        "original-language text, translation, semantics, or canon promotion"
+        "[scope] Exact resource bindings and structural locator-candidate mechanics."
     )
     return 0
 

@@ -2,8 +2,7 @@
 
 `scripts/query_zarathustra_reading_workbench_v1.py` is the source-owned query
 provider. `ToSAccessCore.zarathustra_reading_search` exposes the same result to
-local CLI, HTTP and native MCP. They do not
-implement separate search engines.
+local CLI, HTTP and native MCP. All three adapters delegate search to this provider.
 
 The provider invokes the concept query from the same software installation.
 It validates the supported v1 data manifest, schema binding and input/private
@@ -41,8 +40,8 @@ roots. Browser/WebMCP and public Worker integration are not part of this port.
   `execution_status=not_executed` is intentional: this query does not execute a
   translator or invent etymological evidence. An agent uses the exact source,
   cites external lexical evidence when needed, and returns candidate analysis.
-- Matching coverage is coverage of the registered concept request. It is not
-  proof that every implicit semantic mention in the book has been discovered.
+- Matching coverage describes the registered concept request. Discovery of
+implicit semantic mentions requires a broader source-visible inquiry.
 - `additional_source_candidates` independently scans the German source for
   an explicit `¬` followed by a line break inside a word. Removal of that
   marked boundary must match an already selected German form. Ordinary hyphens
@@ -63,5 +62,5 @@ unavailable and does not load the provider.
 
 Focused tests protect occurrence/segment attachment, source-anchor fixity,
 pre-limit counts, context-versus-occurrence formula distinction, and the
-transport-neutral capability. These checks do not accept speaker judgment,
-historical semantics, translation or canon.
+transport-neutral capability. Speaker judgment, historical semantics, translation and canon retain their
+source-visible review routes.

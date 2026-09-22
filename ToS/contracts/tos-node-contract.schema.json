@@ -5,11 +5,24 @@
   "type": "object",
   "additionalProperties": false,
   "dependentRequired": {
-    "schema_version": ["record_version"],
-    "record_version": ["schema_version"],
-    "preferred_label": ["schema_version", "record_version"],
-    "variant_labels": ["schema_version", "record_version"],
-    "field_languages": ["schema_version", "record_version"]
+    "schema_version": [
+      "record_version"
+    ],
+    "record_version": [
+      "schema_version"
+    ],
+    "preferred_label": [
+      "schema_version",
+      "record_version"
+    ],
+    "variant_labels": [
+      "schema_version",
+      "record_version"
+    ],
+    "field_languages": [
+      "schema_version",
+      "record_version"
+    ]
   },
   "required": [
     "node_id",
@@ -62,31 +75,67 @@
     }
   ],
   "properties": {
-    "schema_version": {"const": "tos_canonical_node_v1"},
-    "record_version": {
-      "type": "integer", "minimum": 1, "maximum": 9007199254740991,
-      "description": "Explicit version of this native node record. Absence in a legacy source is not version 1."
+    "schema_version": {
+      "const": "tos_canonical_node_v1"
     },
-    "preferred_label": {"type": "string", "minLength": 1},
+    "record_version": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991,
+      "description": "Explicit version of this native node record. An absent legacy field leaves the version unspecified."
+    },
+    "preferred_label": {
+      "type": "string",
+      "minLength": 1
+    },
     "variant_labels": {
       "type": "array",
       "items": {
-        "type": "object", "additionalProperties": false,
-        "required": ["value", "language", "source_ref", "status"],
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "value",
+          "language",
+          "source_ref",
+          "status"
+        ],
         "properties": {
-          "value": {"type": "string", "minLength": 1},
-          "language": {"$ref": "#/$defs/wordingLanguage"},
-          "script": {"$ref": "#/$defs/wordingScript"},
-          "source_ref": {"type": "string", "minLength": 1},
-          "status": {"enum": ["unverified", "verified", "disputed", "rejected", "superseded"]}
+          "value": {
+            "type": "string",
+            "minLength": 1
+          },
+          "language": {
+            "$ref": "#/$defs/wordingLanguage"
+          },
+          "script": {
+            "$ref": "#/$defs/wordingScript"
+          },
+          "source_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "enum": [
+              "unverified",
+              "verified",
+              "disputed",
+              "rejected",
+              "superseded"
+            ]
+          }
         }
       }
     },
     "field_languages": {
-      "type": "object", "additionalProperties": false,
+      "type": "object",
+      "additionalProperties": false,
       "properties": {
-        "preferred_label": {"$ref": "#/$defs/wordingLanguageDeclaration"},
-        "distilled_thesis": {"$ref": "#/$defs/wordingLanguageDeclaration"}
+        "preferred_label": {
+          "$ref": "#/$defs/wordingLanguageDeclaration"
+        },
+        "distilled_thesis": {
+          "$ref": "#/$defs/wordingLanguageDeclaration"
+        }
       }
     },
     "node_id": {
@@ -177,12 +226,33 @@
       "type": "string",
       "pattern": "^(?:[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*|[iIxX](?:-[A-Za-z0-9]{1,8})+)$(?![\\s\\S])"
     },
-    "wordingScript": {"type": ["string", "null"], "pattern": "^[A-Za-z]{4}$(?![\\s\\S])"},
+    "wordingScript": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[A-Za-z]{4}$(?![\\s\\S])"
+    },
     "wordingLanguageDeclaration": {
-      "type": "object", "required": ["language", "script"],
+      "type": "object",
+      "required": [
+        "language",
+        "script"
+      ],
       "properties": {
-        "language": {"anyOf": [{"$ref": "#/$defs/wordingLanguage"}, {"type": "null"}]},
-        "script": {"$ref": "#/$defs/wordingScript"}
+        "language": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/wordingLanguage"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "script": {
+          "$ref": "#/$defs/wordingScript"
+        }
       },
       "description": "Language/script of this complete wording field only. Additional qualifications stay mandatory context; no source language, originality, translation quality or admission is inferred."
     },
@@ -271,97 +341,97 @@
         }
       },
       "allOf": [
-      {
-        "contains": {
-          "type": "object",
-          "required": [
-            "role"
-          ],
-          "properties": {
-            "role": {
-              "const": "canonical_source"
+        {
+          "contains": {
+            "type": "object",
+            "required": [
+              "role"
+            ],
+            "properties": {
+              "role": {
+                "const": "canonical_source"
+              }
             }
-          }
+          },
+          "minContains": 0,
+          "maxContains": 1
         },
-        "minContains": 0,
-        "maxContains": 1
-      },
-      {
-        "contains": {
-          "type": "object",
-          "required": [
-            "role"
-          ],
-          "properties": {
-            "role": {
-              "const": "working_translation"
+        {
+          "contains": {
+            "type": "object",
+            "required": [
+              "role"
+            ],
+            "properties": {
+              "role": {
+                "const": "working_translation"
+              }
             }
-          }
+          },
+          "minContains": 0,
+          "maxContains": 1
         },
-        "minContains": 0,
-        "maxContains": 1
-      },
-      {
-        "contains": {
-          "type": "object",
-          "required": [
-            "role"
-          ],
-          "properties": {
-            "role": {
-              "const": "bridge_translation"
+        {
+          "contains": {
+            "type": "object",
+            "required": [
+              "role"
+            ],
+            "properties": {
+              "role": {
+                "const": "bridge_translation"
+              }
             }
-          }
+          },
+          "minContains": 0,
+          "maxContains": 1
         },
-        "minContains": 0,
-        "maxContains": 1
-      },
-      {
-        "contains": {
-          "type": "object",
-          "required": [
-            "language"
-          ],
-          "properties": {
-            "language": {
-              "const": "de"
+        {
+          "contains": {
+            "type": "object",
+            "required": [
+              "language"
+            ],
+            "properties": {
+              "language": {
+                "const": "de"
+              }
             }
-          }
+          },
+          "minContains": 0,
+          "maxContains": 1
         },
-        "minContains": 0,
-        "maxContains": 1
-      },
-      {
-        "contains": {
-          "type": "object",
-          "required": [
-            "language"
-          ],
-          "properties": {
-            "language": {
-              "const": "ru"
+        {
+          "contains": {
+            "type": "object",
+            "required": [
+              "language"
+            ],
+            "properties": {
+              "language": {
+                "const": "ru"
+              }
             }
-          }
+          },
+          "minContains": 0,
+          "maxContains": 1
         },
-        "minContains": 0,
-        "maxContains": 1
-      },
-      {
-        "contains": {
-          "type": "object",
-          "required": [
-            "language"
-          ],
-          "properties": {
-            "language": {
-              "const": "en"
+        {
+          "contains": {
+            "type": "object",
+            "required": [
+              "language"
+            ],
+            "properties": {
+              "language": {
+                "const": "en"
+              }
             }
-          }
-        },
-        "minContains": 0,
-        "maxContains": 1
-      }
-    ]
+          },
+          "minContains": 0,
+          "maxContains": 1
+        }
+      ]
     },
     "witnessSegmentsArray": {
       "type": "array",

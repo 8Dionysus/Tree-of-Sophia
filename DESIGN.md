@@ -32,24 +32,24 @@ source-rooted growth.
 | `access/` | installable read-only core and CLI/HTTP/MCP/web adapters over allowlisted derived exports |
 | generated/exported companions | compact readers, public seams, graph/KAG handoffs, downstream views |
 
-The layers can touch. They should not collapse.
+Each layer connects through the source references and contracts of its owner.
 
 ## Coupled Growth
 
 ToS advances through a broad foundation and a dense first cycle.
 
 The world-philosophy corpus soil orders source identity, witness and edition,
-language, time, place, tradition, transmission, and stable text addresses. It
-does not pretend that bibliographic order is already semantic understanding.
+language, time, place, tradition, transmission, and stable text addresses. Source-visible interpretation and review develop the semantic account from
+that evidence.
 
 The Zarathustra golden kernel makes one full path unusually legible: source
 witness -> address -> observation -> semantic proposal -> relation and context
 -> source-visible review -> scoped admission, canon or explicit deferral
 -> derived graph or retrieval view.
 
-The kernel teaches agents how to move through that path, including how to
-reject, defer, and preserve ambiguity. It does not teach them to impose
-Nietzsche's ontology on the rest of the tree.
+The kernel teaches agents the source-to-review method, including rejection,
+deferral and preservation of ambiguity. Other branches develop their own
+source vocabulary and ontology.
 
 ### Engineering ownership
 
@@ -82,14 +82,13 @@ work -> expression -> edition -> item -> immutable file
 The acquired bytes, digest, identity record, and review history form a durable
 spine. Claims about authorship, edition, structure, lemma, etymology,
 translation, sense, concept, and relation remain evidence-bearing and
-revisable. Stable identity protects their lineage; it does not make their
-content infallible. [Knowledge Assessment](ToS/doctrine/KNOWLEDGE_ASSESSMENT.md)
-owns competence-scoped review and research admission. Operator direction,
-personal consent, rights, publication and canon are not delegated merely by
-admitting research use. Legacy human-only records keep their historical
-meaning; an explicit adapter, not relabeling, connects new agent assessments.
+revisable. Stable identity protects the lineage of revisable content. [Knowledge Assessment](ToS/doctrine/KNOWLEDGE_ASSESSMENT.md)
+owns competence-scoped review and research admission. Operator direction, personal consent, rights, publication and canon each
+retain their actual owner authority. Legacy human-only records keep their
+historical meaning; new agent assessments connect through an explicit adapter.
 
-The bibliographic ladder is not universal. Physical artifacts use a parallel
+The source model also supports physical and editorial objects through their
+own identity routes. Physical artifacts use a parallel
 `tos.artifact.*` spine; modern critical, documentary, or synoptic composites
 use `tos.composite.*`. A composite can collect and align many members while
 remaining distinct from every physical object, member transcription, provider
@@ -104,13 +103,13 @@ named source contribution while keeping other chapters, editions, Items, and
 rights states independently addressable.
 
 A standalone monograph binds directly to its bibliographic `Work`; the route
-does not invent a one-member `Collection`. A direct Work planting is only the
-identity floor. It does not imply a complete Expression/Edition/Item ladder,
-source access, textual equivalence, accepted responsibility, or semantics.
+does not invent a one-member `Collection`. A direct Work planting supplies the Work identity and source-return route.
+Expression, Edition and Item records follow as their own evidence becomes
+available.
 
 A thematic or publication-history subset named by a backlog remains a bounded
 scope over its actual parent Work unless independent bibliographic evidence
-establishes another Work. Its label is not enough to reify a new object.
+establishes another Work. Creating another Work requires independent bibliographic evidence.
 Subset membership and count require exact source-visible claims; current
 database results remain dated provider observations. The numerical-only
 tablets omitted from ATU 1 and published in ATU 5 therefore ground an ATU 5
@@ -123,8 +122,8 @@ positions are Unicode-code-point half-open spans; byte positions are another
 type; alternative selectors and ordered refinements are explicit; mechanical
 resolution never becomes substantive verification. A tracked nonpublic record may
 retain a locator or withheld-selector receipt, but not copied source text.
-`tos_source_anchor_v2` is additive laboratory soil, not a migration of current
-v1 anchors.
+`tos_source_anchor_v2` adds a laboratory contract while current v1 anchors
+retain their own schema and history.
 
 The text layer above an anchor is append-only as well. Raw OCR, machine or
 diplomatic transcription, reviewed source text, and normalized text receive
@@ -142,29 +141,22 @@ The first real use keeps that separation literal. A question-scoped
 `structural_extraction` resolves the exact first paragraph of
 `Za-I-Vorrede-1` in the DTA Part-I TEI and records only its seven source-layout
 lines and six line breaks. Exact text stays ignored and mode `0600`; tracked
-records remain text-free and unreviewed. This is a source-returnable machine
-layer, not an accepted German reading, linguistic segmentation, translation
-source, semantic object, graph fact, canon entry, or publication authority.
+records remain text-free and unreviewed. This machine layer provides exact source return and retains its unreviewed
+state.
 
-The matching historical Russian scope is represented independently, not as a
-premature bilingual edge. Page 6 of the exact Antonovsky/Prometey 1911 PDF
+The matching historical Russian scope has its own source representation and
+quality state. Page 6 of the exact Antonovsky/Prometey 1911 PDF
 produces one private `raw_ocr` layer from its embedded Poppler text and one
 private bbox byproduct. Six source-observed lines and five line breaks are
 addressable through text-free tracked records. Visual inspection confirms the
 region but reveals that one visibly joined historical word is emitted as four
-tokens, so uncertainty is explicit and no silent repair occurs. Having one
-German machine layer and one Russian machine layer at the same work location
-does not establish accepted text on either side, passage identity,
-translation, alignment, lexical or semantic equivalence, graph truth, or
-canon authority.
+tokens, so uncertainty is explicit and no silent repair occurs. Source-to-target correspondence requires a separately grounded alignment
+proposal and assessment of both exact layers.
 
-The first relation-bearing successor is deliberately weaker than an accepted
-pair. A deterministic first-`U+002E` rule freezes one exact proposed sentence
+The first relation-bearing successor records a proposed alignment. A deterministic first-`U+002E` rule freezes one exact proposed sentence
 span on each private layer and binds both spans to one opaque, software-made
-one-to-one alignment claim. The two segmentations and the alignment remain
-`proposed`; the target spacing conflict remains visible in evidence; no token
-layer, translation technique, fidelity judgment, review, projection, semantic
-edge, graph/canon authority, or publication route is inferred. This establishes
+one-to-one alignment claim. The two segmentations and the alignment retain `proposed` status, with the
+target spacing conflict visible in their evidence. This establishes
 the source-return and identity floor on which a later competent adjudication
 could act without making that adjudication routine or retroactive.
 
@@ -175,9 +167,8 @@ software/runtime or model identity, responsibility, manual interventions,
 measurements, and replay limits without compressing them into a generic method
 string. Failed or stopped work may retain diagnostics as byproducts but cannot
 expose them as authoritative output. External manifest fixity closes the exact
-receipt bytes while avoiding a self-referential self-hash. That closure proves
-neither that the reported execution happened nor that its output is true,
-reviewed, rights-cleared, publishable, semantic, or canonical. Provenance v2 is
+receipt bytes while avoiding a self-referential self-hash. That closure verifies receipt fixity. Execution attestation, content
+assessment and permitted use require their actual owner evidence. Provenance v2 is
 additive; legacy v1 events are migrated only for a concrete return-to-source or
 reproducibility question.
 
@@ -192,13 +183,13 @@ promotion checkpoint with declared competence and an unassisted baseline;
 that historical format is not silently reinterpreted as an agent act. New
 research assessment follows Knowledge Assessment through an explicit adapter.
 A stronger graph projection requires its scoped relation and claim admission;
-an inspectable proposal is not thereby an accepted fact.
+proposals retain their actual assessment state in every reader.
 The public synthetic semantic-annotation v2 laboratory proves these closure
 and rejection mechanics without creating any accepted semantic object.
 
 Text-unit identity sits between a frozen source-text layer and every
-alignment, lexical, semantic, retrieval, or graph consumer. The additive
-source-text-unit v1 packet does not choose one canonical tokenizer. It binds
+alignment, lexical, semantic, retrieval, or graph consumer. The additive source-text-unit v1 packet supports explicit segmentation schemes
+and competing boundaries. It binds
 opaque scheme, segmentation, and unit IDs to exact ordered anchors, declared
 boundary methods, explicit coverage and gaps, reciprocal alternatives, review
 scope, and visibility inheritance. Layout lines, source-observed structure,
@@ -208,18 +199,18 @@ encode text, labels, ordinals, offsets, or the current analysis; projections
 remain disposable and status-preserving. The public-synthetic A/B/C proves
 only closure and rejection mechanics and migrates no historical method label.
 
-Existing authored routes enter that law through an explicit evidence bridge,
-not an in-place rewrite. The first bridge keeps the DTA's twelve paragraph
+Existing authored routes connect through an explicit evidence bridge that
+preserves their original records. The first bridge keeps the DTA's twelve paragraph
 units and the Zarathustra route's twelve authored units as reciprocal competing
 segmentations over one exact private comparison layer. It binds the route's
 source/translation witnesses, nodes, relations, and historical reviews by
 digest, inventories the missing modern claim/review closure, and changes none
 of their authority. Thus authored continuity is preserved while source return
-becomes exact; `canonical_source` remains a route-local role rather than a
-shortcut to critical-text, translation, semantic, graph, or Human Gold status.
+becomes exact; `canonical_source` retains its route-local authored meaning and recorded
+review posture.
 
-Translation correspondence is another stand-off assertion layer, not a field
-inside either text. The additive translation-alignment v1 packet binds two
+Translation correspondence has its own stand-off assertion layer, linked to
+both exact texts. The additive translation-alignment v1 packet binds two
 exact expression/edition/item/file and frozen text-layer states, their
 segmentation and tokenization identities, and ordered source/target anchors.
 Stable alignment and claim IDs survive changes to explanations and mapping
@@ -266,16 +257,15 @@ provision-activities/
 ```
 
 Collections prevent multi-work volumes from being duplicated under every
-contained work. Stable ToS IDs, not paths, own identity, so the tree can be
-improved through explicit migrations.
+contained work. Stable ToS IDs own identity; explicit path migrations can improve navigation
+while preserving those IDs and their references.
 
 The artifact and scholarly-composite spines prevent non-book sources from
 being forced into that bibliographic topology. Their first tracked records may
 remain content-free while preserving exact external identities, dated
 representations, membership observations, rights, provenance, and branch
-plantings. Composite coordinates are useful source addresses only after the
-exact editorial representation is frozen; they do not inherit physical layout
-or philological acceptance.
+plantings. Composite coordinates address an exact frozen editorial representation.
+Physical layout and philological assessment retain their own source records.
 
 Only the immutable item bytes inside `payload/` are gitignored. The item
 manifest, digest, provenance, rights, forensic report, and catalog entry stay
@@ -294,14 +284,14 @@ One physical statement may also carry several provision roles. The 1893
 Naumann title page's combined `Druck und Verlag` wording is preserved once as
 literal evidence and materialized as separate publication and manufacture
 claims. Distinct GND publisher and printer authorities remain provisional
-normalizations; neither their separation nor the shared literal establishes a
-legal-entity relation, release date, textual state, or current rights.
+normalizations; legal-entity relations, release date, textual state and current rights each
+require their own evidence.
 
 The 1886 *Jenseits von Gut und Böse* title page exercises the same invariant
 on a second Work and exact Item. Its shared `Druck und Verlag` literal yields
 two Edition-owned claim packets, never a flattened publisher/printer field.
-The following-page `Alle Rechte vorbehalten.` line is a historically addressed
-source statement, not a present-day rights decision; local custody, public
+The following-page `Alle Rechte vorbehalten.` line retains its historical
+source context; local custody, public
 redistribution, derivative use, and future-server admission remain separate
 questions.
 
@@ -309,8 +299,7 @@ The 1892 second *Zur Genealogie der Moral* Edition exercises the distributed-
 statement variant. Its title page identifies `Verlag`, Leipzig, and 1892,
 while a terminal page independently identifies `Druck` and Leipzig without a
 date. A claim may bind both source surfaces without pretending that the
-Edition year is a printer-line date. Source return therefore belongs to the
-individual activity claim, not to a flattened imprint field.
+Edition year is a printer-line date. Each activity Claim retains its own exact source return.
 
 See `ToS/doctrine/CORPUS_FOUNDATION.md` for identity, anchor, sign, claim,
 translation, rights, and projection law, and
@@ -329,30 +318,29 @@ subject and object, preserves literal objects as literals, and carries exact
 routes to evidence, maker, provenance time and method, review posture, source
 line, and claim digest on every edge. It is deliberately separate from the
 atlas/view graph projection: one reads the source-witness claim spine, while
-the other reads the philosophy branch and its review lenses. Neither is a
-second owner.
+the other reads the philosophy branch and its review lenses. Both return to their authored source owners.
 
 The source spine now materializes the full declared identity ladder through
 three claim families: Work `has_expression` Expression, Expression
 `embodied_by` Edition, and Edition `exemplified_by` Item. Owner records keep
 the speaking structural links and cite the exact outgoing claim IDs; validation
 requires exact two-way closure against the claim packets and item manifests.
-This deliberate overlap is traceability, not competing truth. In particular,
+The bidirectional references make every structural link traceable to its
+source Claim. In particular,
 an embodiment link is bibliographic topology and cannot establish textual or
 critical-edition equivalence.
 
 The bounded Nietzsche corpus additionally gives every current Work exactly one
-Work-owned `authored_by` packet to the Friedrich Nietzsche Agent. That
-corpus-wide closure is documentary and provenance-bound, not a convention
-derived from paths, and it does not select an author-final text or flatten
-editorial, paratext, translation, or transmission responsibility.
+Work-owned `authored_by` packet to the Friedrich Nietzsche Agent. That corpus-wide closure binds documentary evidence and provenance. Editorial,
+paratext, translation and transmission responsibilities retain their own
+source Claims.
 
 Responsibility evidence may resolve through an Expression-local source anchor,
 not only a collection boundary map. The 1913 Antonovsky case binds a
 `translated_by` claim to one proposed whole-page title-page anchor and exact
-file digest while keeping the Agent identity provisional. A page credit is
-bibliographic evidence; it is not accepted text, translation quality,
-editorial equivalence across reprints, or a biography of the translator.
+file digest while keeping the Agent identity provisional. The page credit supplies bibliographic attribution evidence; textual
+assessment, edition comparison and translator identity each follow their
+source routes.
 
 Agent identity reconciliation is a separate evidence layer. For the Mysl 1996
 translator set, GND plus national-library and established Nietzsche-editorial
@@ -367,7 +355,7 @@ Antonovsky Agent retains the already referenced `tos.agent.yuri-antonovsky`
 identity so three source-owned claims and their digests do not silently change,
 but its physical route migrates to `agents/yuliy-antonovsky/` after GND and RSL
 resolve `Ю. М.` to `Юлий Михайлович`. The retained `yuri` token is explicitly a
-legacy locator, not a forename assertion. This is the intended use of the
+legacy locator whose historical spelling remains stable. This is the intended use of the
 identity/path boundary: preserve lineage while making human navigation truer.
 
 Edition-level provision is likewise claim-owned rather than flattened into
@@ -388,9 +376,8 @@ C. G. Naumann Verlag Organization while rejecting the related printer and
 founder Person as substitutions. Its reported 1891 statement year is not the
 1885 private print, November-1890 printing completion, planned spring-1891
 delivery, or March-1892 actual delivery. These statement years are not
-printing, receipt, delivery, or public-release dates. This is an
-identity-and-provenance boundary, not accepted bibliography or Edition, Item,
-or textual equivalence.
+printing, receipt, delivery, or public-release dates. Each provision Claim retains its exact Edition identity, historical facet and
+provenance.
 
 The repository-local query route verifies the entire tracked graph against a
 fresh source-backed rebuild before returning any selected claim. It exposes
@@ -414,8 +401,7 @@ Healthy ToS movement:
 5. canon or public/export surfaces appear only after the authority route is
    inspectable.
 
-The result may become graph-readable, KAG-readable, or runtime-visible. It does
-not stop being source-owned.
+The result may become graph-readable, KAG-readable, or runtime-visible. Its authored source remains the owner.
 
 ## Naming
 
@@ -430,8 +416,7 @@ topology unless they name a real owner boundary.
 
 ToS-authored source surfaces own ToS meaning. Generated files, compact indexes,
 public examples, validators, owner-local statistics, runtime readers, KAG
-exports, and graph views are companions. They help humans and machines navigate
-the tree; they do not author the tree. `stats/` owns local questions and
+exports, and graph views are companions. They help humans and machines navigate and inspect the authored tree. `stats/` owns local questions and
 evidence handoffs; `aoa-stats` owns their shared measurement grammar.
 
 When another AoA organ owns the stronger truth, ToS routes to it.
@@ -443,8 +428,8 @@ When another AoA organ owns the stronger truth, ToS routes to it.
 - make uncertainty visible without turning it into a warehouse;
 - keep mechanics as organs of movement;
 - let public and generated seams return to authored authority;
-- treat Zarathustra as the first golden growth kernel, not a generic sample or
-  universal ontology;
+- develop Zarathustra as the first golden growth kernel, preserving its
+source-specific ontology;
 - keep stable evidence distinct from versioned semantic interpretation;
 - name small routes as if the future tree will grow through them.
 

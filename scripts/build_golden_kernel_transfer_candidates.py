@@ -301,7 +301,7 @@ def _candidate_limitations(stratum: str) -> list[str]:
         )
         if stratum == "random"
         else (
-            "mechanical score does not establish philosophical or semantic difficulty"
+            "Mechanical score over the declared layout and source signals; philosophical and semantic difficulty require a separate assessment."
         )
     )
     return limitations
@@ -702,8 +702,7 @@ def _build_event(
                 "and human-unreviewed"
             ),
             (
-                "mechanical difficulty signals are not semantic or "
-                "philosophical classifications"
+                "Mechanical difficulty signals describe the declared layout and source measurements; philosophical and semantic classifications follow their own assessment."
             ),
             (
                 "private source content remains gitignored and is not "

@@ -28,8 +28,8 @@ eras/<era>/
       graph-workbench/
 ```
 
-This is a mature shape, not a demand that every branch force every child.
-Frontier, unreadable, fragmentary, or institution-heavy branches may grow the
+This mature shape offers branch slots to select according to the material.
+Frontier, unreadable, fragmentary and institution-heavy branches grow the
 slots that fit their evidence posture.
 
 ## First-Class Infrastructure

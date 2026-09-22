@@ -32,16 +32,15 @@ witnesses, canon, Zarathustra, and the philosophy domain tree route through
   existing shared parent.
 - Shared mechanics become ToS-local only when ToS has its own operation, owner
   split, boundary, and validation route.
-- `parts/` holds active functioning operation contracts, not source-file
-  inventories.
+- `parts/` holds active functioning operation contracts with their input,
+result, owner and validation route.
 - Package `ROADMAP.md` holds future pressure and growth conditions; backlogs,
   validation inventories, script/test refactor plans, and landing ledgers route
   to their owning surfaces.
 - Package `PROVENANCE.md` bridges active routes to former placement or source
   lineage.
 - Historical moved-path, raw-receipt, and old-name accounting returns through
-  `PROVENANCE.md` to an immutable Git commit and original path, not a recreated
-  archive directory. Current receipts remain with the active owning part.
+  `PROVENANCE.md` to an immutable Git commit and original path. Current receipts remain with the active owning part.
 - Source witnesses, philosophy branches, canon nodes, review ledgers, and the
   Zarathustra core route to `ToS/`.
 - Runtime activation, proof verdicts, memory truth, SDK authority, AoA

@@ -5,10 +5,9 @@ This document defines the first public tiny-entry seam for Tree of Sophia.
 The seam is meant to help humans and smaller models enter a bounded authored route without mistaking orientation for authority.
 
 This tiny-entry seam is the public entrance to the Zarathustra golden growth
-kernel; it is not the whole kernel and not a gold annotation packet. The full
-kernel must also preserve observation/proposal layers, rejected and unresolved
-readings, review rationale, version lineage, and the method-transfer boundary
-defined in `ToS/zarathustra/GOLDEN_GROWTH_KERNEL.md`.
+kernel. The kernel preserves observation and proposal layers, rejected and
+unresolved readings, review rationale, version lineage and the method-transfer
+scope defined in `ToS/zarathustra/GOLDEN_GROWTH_KERNEL.md`.
 
 ## Current public root
 
@@ -35,11 +34,12 @@ For the first public route, that means:
 - `ToS/public-compatibility/concept_node.example.json` as one bounded public compatibility hop
 - `ToS/doctrine/KNOWLEDGE_MODEL.md` as the in-repo fallback orientation surface
 
-This is a tree-first route, not a graph-first entry contract.
+The entry follows this authored tree path.
 
 ## Orientation and authority
 
-ToS needs both orientation surfaces and authority surfaces, but they should not collapse into one layer.
+Orientation surfaces guide readers to the authored surfaces that own the
+material.
 
 - orientation surfaces help a reader or smaller model enter the right authored path quickly
 - authority surfaces hold the authored node contract or the closest published source-backed compatibility surface
@@ -52,8 +52,8 @@ In this phase:
 - `ToS/canon/` holds the canonical authored node surfaces
 - `ToS/public-compatibility/source_node.example.json` remains the public compatibility authority surface for the first published tiny-entry example
 
-The capsule is allowed to summarize the route.
-It is not allowed to replace the canonical tree node or the source-facing compatibility authority surface.
+The capsule summarizes the route and returns the reader to the canonical tree
+node or source-facing compatibility authority surface.
 
 ## First worked route
 
@@ -95,9 +95,8 @@ That current downstream use stays bounded:
   tiny-entry route and the ToS-specific derived `kag_view`, while preserving
   `aoa-routing` only as the stable compatibility namespace
 
-They do not become ToS authority surfaces.
-They do not replace authored node law.
-They do not become the public root of this route.
+ToS retains authored node law and its public root; these consumers preserve
+the source-return route.
 
 ## Source-first re-entry
 
@@ -107,21 +106,19 @@ If a downstream consumer loses ToS boundary and needs to restore the current bou
 
 `CHARTER.md` remains the root authority note for ToS posture, but the worked route should re-enter through the source-owned tiny-entry example before any derived `kag_view` or adjunct.
 The `aoa-sdk` routing control plane may restore this re-entry hop as bounded
-navigation under the stable `aoa-routing` compatibility namespace, but it must
-not replace Tree-of-Sophia authority or jump directly to downstream derived
+navigation under the stable `aoa-routing` compatibility namespace. Re-entry
+passes through Tree-of-Sophia's authored authority before downstream derived
 surfaces.
 
-## Anti-collapse rule
+## Entry contract
 
-A tiny-entry route is an orientation aid inside Tree of Sophia.
+A tiny-entry route guides the reader through a declared scope inside Tree of Sophia.
 
-It must never:
-
-- replace ToS-authored source authority
-- flatten capsule and authority into one interchangeable surface
-- turn a bounded route into an unbounded graph walk
-- cite downstream repositories as ToS authority
-- pretend that one worked route already solves wider corpus entry
+- Keep the authored source as the authority for its material.
+- Let the capsule summarize and link to the owning node.
+- Declare the permitted hops.
+- Return downstream readers to ToS sources.
+- State the coverage of each worked route; wider corpus entry grows through additional reviewed routes.
 
 ## Current public type
 
@@ -137,6 +134,6 @@ See
 `python scripts/build_root_entry_map.py --check`,
 `python scripts/validate_root_entry_map.py`,
 `python scripts/validate_tiny_entry_route.py`,
-`python mechanics/boundary-bridge/parts/derived-kag-seam/scripts/validate_kag_export.py`, and
+[the selected KAG export validation route](../../../kag/VALIDATION.md), and
 [mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md](../../../mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md)
 for the current validator and manual-review route for this bounded seam.

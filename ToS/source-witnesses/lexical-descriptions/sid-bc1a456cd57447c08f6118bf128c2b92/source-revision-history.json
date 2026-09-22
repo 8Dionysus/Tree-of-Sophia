@@ -1,0 +1,86 @@
+{
+  "schema_version": "tos_source_revision_history_v1",
+  "record_id": "tos.sense.sid-bc1a456cd57447c08f6118bf128c2b92",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:288bbaaaee36f972cf8920f9",
+      "request_digest": "sha256:b3bee2a01d35e4ab2543ae0b77433f1b8443d4f98900599b1de3e19f1c98c91d",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:4e023f8450d75c6181caf5905648d243d8a4139532d97377fbe5112942cd5064",
+      "recorded_at": "2026-09-22T05:05:57.961361+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.sense.sid-bc1a456cd57447c08f6118bf128c2b92",
+        "version": 1,
+        "digest": "sha256:8ff3a976d274c072e5420f944b0f4217125ef02bb511ced0a77dd4f58814cb82"
+      },
+      "source": {
+        "id": "tos.sense.sid-bc1a456cd57447c08f6118bf128c2b92",
+        "version": 2,
+        "digest": "sha256:8e7f9abf065caa64a479665c344eae6a7bb46e7cec9895425b380cca020d7b13"
+      },
+      "previous_revision": "sha256:50dbc3ec537dfd8c1fd9bb0e037f90f9312a3fc083ced833ea6a6a6177fc410c",
+      "archive_path": "ToS/source-witnesses/.record-revisions/288bbaaaee36f972cf8920f97cba21ad112c51f8b965e4a6a02dbe32c46d2317-50dbc3ec537dfd8c1fd9bb0e037f90f9312a3fc083ced833ea6a6a6177fc410c",
+      "dependencies": "sha256:59d2413ee5fd50c849ed1211b66944dfdc2e0edfe05ee8cf6a3c6f1d57e9ebc9",
+      "changed_fields": [
+        "notes",
+        "semantic_content",
+        "semantic_scope"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.sid-668b2cdd4c2e404da1795823036c68af",
+          "version": 2,
+          "digest": "sha256:e5b07b953dc2bfa45886674ace5a61e00482ba5b9c4e3db24370a5f4bf5eca4e"
+        },
+        {
+          "id": "tos.form.sid-af9d83a564374a9aaa76a277fc8fd4af",
+          "version": 2,
+          "digest": "sha256:37c9cfc98f3d1a0604fc1c40a17c8d08700445362cede8ea2a428d4428ab8bd7"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:288bbaaaee36f972cf8920f9",
+        "expected_configuration": "sha256:4e023f8450d75c6181caf5905648d243d8a4139532d97377fbe5112942cd5064",
+        "expected_dependencies": "sha256:59d2413ee5fd50c849ed1211b66944dfdc2e0edfe05ee8cf6a3c6f1d57e9ebc9",
+        "expected_revision": "sha256:50dbc3ec537dfd8c1fd9bb0e037f90f9312a3fc083ced833ea6a6a6177fc410c",
+        "expected_source": {
+          "digest": "sha256:8ff3a976d274c072e5420f944b0f4217125ef02bb511ced0a77dd4f58814cb82",
+          "id": "tos.sense.sid-bc1a456cd57447c08f6118bf128c2b92",
+          "version": 1
+        },
+        "fields": {
+          "notes": "Предварительное описание другого словарного чтения. Порядок перечисления следует исследуемой статье; историческое отношение между чтениями остаётся открытым.",
+          "semantic_content": {
+            "interpretation_context": "Отдельная словарная рубрика в немецкой статье Duden Philosophie, прочитанной 2026-09-08.",
+            "language": "ru",
+            "script": "Cyrl",
+            "semantic_range": "Общая возможность словоупотребления в области рассматриваемой словарной рубрики.",
+            "sense_account": "Чтение слова как личного способа смотреть на жизнь и окружающее."
+          },
+          "semantic_scope": {
+            "identity_criterion": "Ситуированное чтение личного взгляда в данной словарной статье, отдельно от её познавательно-дисциплинарной рубрики.",
+            "language": "ru",
+            "scope_note": "Второе чтение немецкого Philosophie в сохранённой статье Duden.",
+            "script": "Cyrl"
+          }
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.sid-668b2cdd4c2e404da1795823036c68af"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.sid-af9d83a564374a9aaa76a277fc8fd4af"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    }
+  ]
+}

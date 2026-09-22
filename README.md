@@ -54,10 +54,8 @@ Physical artifacts that do not naturally enter that ladder use the parallel
 [`artifacts/` spine](ToS/source-witnesses/artifacts/README.md), and modern
 documentary, critical, or synoptic reconstructions use the parallel
 [`scholarly-composites/` spine](ToS/source-witnesses/scholarly-composites/README.md).
-Those routes keep the object, its members, representations, readings, and
-interpretations distinct; neither a composite coordinate nor an artifact ID
-turns a reconstruction into an original, fixed reading, semantic fact, or
-canon.
+Those routes identify the object, its members, representations, readings and
+interpretations separately, with exact source references and review states.
 
 Every stage is identified and versioned. Witnesses ground material; doctrine
 defines node, relation, naming, and evidence law; intake holds observations
@@ -65,8 +63,8 @@ and proposals; the review ledger records acceptance, rejection, ambiguity,
 counter-readings, and rationale; canon holds reviewed authored knowledge;
 exports derive graph, retrieval, KAG, and runtime views. Authorized, competent
 humans and agents assess source-visible knowledge under
-[Knowledge Assessment](ToS/doctrine/KNOWLEDGE_ASSESSMENT.md). Validators check
-mechanics; research admission grants no rights, publication or canon authority.
+[Knowledge Assessment](ToS/doctrine/KNOWLEDGE_ASSESSMENT.md). Validators check mechanics. Rights, publication and canon retain their own
+owner decisions.
 Authored sources govern derived views.
 
 ## How ToS grows

@@ -1,0 +1,92 @@
+{
+  "schema_version": "tos_source_revision_history_v1",
+  "record_id": "tos.biographical-episode.friedrich-nietzsche.basel-discharge-petition",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:ea14648d85e60038ddb4e407",
+      "request_digest": "sha256:53c0c8d6440b8336284a6976873b710691a0d348b3473cc6724fe159d60e5845",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:69d88800affbda8cbade34e110a38653eb40958fa9c58332c1af23bf1f412bf4",
+      "recorded_at": "2026-09-22T05:04:40.781760+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.biographical-episode.friedrich-nietzsche.basel-discharge-petition",
+        "version": 1,
+        "digest": "sha256:55ab17593df030f9eafb206f3cbd209adc7ab02ddcd2fb219adf729d5d091766"
+      },
+      "source": {
+        "id": "tos.biographical-episode.friedrich-nietzsche.basel-discharge-petition",
+        "version": 2,
+        "digest": "sha256:c2be1c0d2a9ddd9cba4fea341ee0dba3c21c25aef3e0132d8e9f26da93579c8a"
+      },
+      "previous_revision": "sha256:a4cf984619fc37a5b595df799c578d823f65d15574497513b4f3334e1bce2b5d",
+      "archive_path": "ToS/source-witnesses/.record-revisions/ea14648d85e60038ddb4e407c45d7435645df819e207ff28bd5cfaf4c60eeb3d-a4cf984619fc37a5b595df799c578d823f65d15574497513b4f3334e1bce2b5d",
+      "dependencies": "sha256:ee36ec01c29f45d3ea68455c79cd36c2419deeb2105f60dece091265fbfb7d58",
+      "changed_fields": [
+        "semantic_content",
+        "semantic_scope"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.basel-research.basel-discharge-petition.name-ru",
+          "version": 2,
+          "digest": "sha256:a32e21bd9814aa75c9c9d197f1d311b3d16a08f3cec5a9576f80f98a263a85a8"
+        },
+        {
+          "id": "tos.form.basel-research.basel-discharge-petition.name-en",
+          "version": 2,
+          "digest": "sha256:eae515f7040a1f09a2d0e9c2d14dbe657762833898db75ec28db1fe5091728ce"
+        },
+        {
+          "id": "tos.form.basel-research.basel-discharge-petition.note-ru",
+          "version": 2,
+          "digest": "sha256:7784e180e9d04ade44a9846fed556e386bc8828af41d6f32d04b9f05a11ae38e"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:ea14648d85e60038ddb4e407",
+        "expected_configuration": "sha256:69d88800affbda8cbade34e110a38653eb40958fa9c58332c1af23bf1f412bf4",
+        "expected_dependencies": "sha256:ee36ec01c29f45d3ea68455c79cd36c2419deeb2105f60dece091265fbfb7d58",
+        "expected_revision": "sha256:a4cf984619fc37a5b595df799c578d823f65d15574497513b4f3334e1bce2b5d",
+        "expected_source": {
+          "digest": "sha256:55ab17593df030f9eafb206f3cbd209adc7ab02ddcd2fb219adf729d5d091766",
+          "id": "tos.biographical-episode.friedrich-nietzsche.basel-discharge-petition",
+          "version": 1
+        },
+        "fields": {
+          "semantic_content": {
+            "biographical_relevance": "Относится к завершению преподавательской фазы. Медицинские причины и последствия для конкретных произведений требуют отдельных оснований.",
+            "episode_account": "Сообщение о датированном обращении об отставке.",
+            "language": "ru",
+            "script": "Cyrl"
+          },
+          "semantic_scope": {
+            "identity_criterion": "Описанное обращение Ницше; решение университета и документы получают собственные связанные записи.",
+            "language": "ru",
+            "scope_note": "Эпизод обращения об освобождении от преподавательских обязанностей.",
+            "script": "Cyrl"
+          }
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.basel-research.basel-discharge-petition.name-ru"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.basel-research.basel-discharge-petition.name-en"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.basel-research.basel-discharge-petition.note-ru"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      }
+    }
+  ]
+}

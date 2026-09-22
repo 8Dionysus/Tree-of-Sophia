@@ -1,0 +1,90 @@
+{
+  "schema_version": "tos_source_revision_history_v2",
+  "record_id": "tos.item.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.internet-archive-google-harvard-scan-pdf",
+  "receipts": [
+    {
+      "command_id": "tos-language-cleanup-20260922:8311f22ffdb4cfa0e63bf7ba",
+      "request_digest": "sha256:665242e28457ea39467288f86799b02f67f8a782e6235d1e0f9db78ca56e8870",
+      "principal_id": "agent:codex-tos-foundation-language-cleanup",
+      "authority_ref": "operator:01a0c738-636d-7a11-8607-e124e6761283:2026-09-22:foundation-language-cleanup",
+      "owner_configuration": "sha256:57420f242ec3a71f8f2e82992aec4f80fda62a40887c8dc16d7f0e99c8238cef",
+      "recorded_at": "2026-09-22T05:09:10.971859+00:00",
+      "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+      "previous_source": {
+        "id": "tos.item.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.internet-archive-google-harvard-scan-pdf",
+        "version": 2,
+        "digest": "sha256:24d2aa4405ac726851e6c81a67a085ab035aab131efcd76c551ea9ac860c02ec"
+      },
+      "source": {
+        "id": "tos.item.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.internet-archive-google-harvard-scan-pdf",
+        "version": 3,
+        "digest": "sha256:f451caa4a7eef1bf4f8d92229b2694db16e2bf0a7b2083a64ee674ca3fde820b"
+      },
+      "previous_revision": "sha256:c07b5eee4c0c7eb30c0ac05b0f59b7bbe1724c58384fb8c28c6fd2d3db9d5ab2",
+      "archive_path": "ToS/source-witnesses/.record-revisions/8311f22ffdb4cfa0e63bf7ba783e10a67ba0251258d8a6e6438e32223e028802-c07b5eee4c0c7eb30c0ac05b0f59b7bbe1724c58384fb8c28c6fd2d3db9d5ab2",
+      "dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+      "changed_fields": [
+        "notes"
+      ],
+      "forms": [
+        {
+          "id": "tos.form.metadata.e051a64d3ebcd75545bb9509bbb51526242b7c03487c5bb91de6e54937b32f16",
+          "version": 2,
+          "digest": "sha256:5780adea6957c0c8d606c19a44ebdc466acd93cceecc9b8d9d1096b9872ec27e"
+        },
+        {
+          "id": "tos.form.metadata.38def41c8cc4136dd3968078294cfbefc176137df3ba9c9f897242976df7df45",
+          "version": 2,
+          "digest": "sha256:cb6dc0e5d416c1f7838593debf6eeec6f5e09ca0afdcfd2035615c96e9ad2da4"
+        },
+        {
+          "id": "tos.form.metadata.27ef18b8e1ae7804f1c3d2cddead4d04dfd98d56636d55c767345fad4ed33519",
+          "version": 2,
+          "digest": "sha256:79978d8a5fc5a08ee2261d74f2b6521be073ec37bc490d9ccff9621d9aafc10b"
+        }
+      ],
+      "grants_admission": false,
+      "request": {
+        "command_id": "tos-language-cleanup-20260922:8311f22ffdb4cfa0e63bf7ba",
+        "expected_configuration": "sha256:57420f242ec3a71f8f2e82992aec4f80fda62a40887c8dc16d7f0e99c8238cef",
+        "expected_dependencies": "sha256:ff0e4bbd65f4b9a889b68d75571577adb0d77cf4c97be344817b121d8e60017d",
+        "expected_publication": "sha256:7f09446ef3922d51ea16252b1b850aeb221c539584cb7f348d13d9bf1c040dee",
+        "expected_revision": "sha256:c07b5eee4c0c7eb30c0ac05b0f59b7bbe1724c58384fb8c28c6fd2d3db9d5ab2",
+        "expected_source": {
+          "digest": "sha256:24d2aa4405ac726851e6c81a67a085ab035aab131efcd76c551ea9ac860c02ec",
+          "id": "tos.item.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.internet-archive-google-harvard-scan-pdf",
+          "version": 2
+        },
+        "fields": {
+          "notes": "The Internet Archive PDF and checksum-reconciled DjVu XML and ABBYY XML gzip companions belong to one acquired scan package. The provider OCR derivatives support machine navigation and reproducible A/B/C structure experiments; German textual assessment remains open. The acquired files are scoped to local research."
+        },
+        "forms": [
+          {
+            "field_id": "metadata.preferred-name",
+            "form_id": "tos.form.metadata.e051a64d3ebcd75545bb9509bbb51526242b7c03487c5bb91de6e54937b32f16"
+          },
+          {
+            "field_id": "metadata.source-note",
+            "form_id": "tos.form.metadata.38def41c8cc4136dd3968078294cfbefc176137df3ba9c9f897242976df7df45"
+          },
+          {
+            "field_id": "metadata.variant-name:0",
+            "form_id": "tos.form.metadata.27ef18b8e1ae7804f1c3d2cddead4d04dfd98d56636d55c767345fad4ed33519"
+          }
+        ],
+        "operation": "record.revise",
+        "reason": "Operator-requested foundational language cleanup. Reviewed wording describes the same source referent, evidence scope and uncertainty; status, identity, source references, rights and claims retain their existing values.",
+        "schema_version": "tos_local_source_command_v1"
+      },
+      "publication": {
+        "protocol": "tos_selected_source_metadata_v1",
+        "transaction_id": "sha256:57f1e3964fed7a2e0e269d726625894f9e69b3b6bf0a50b4bad606e9ac4848a0",
+        "selected_files": [
+          "item.human-forms.json",
+          "item.json",
+          "source-revision-history.json"
+        ]
+      }
+    }
+  ]
+}
