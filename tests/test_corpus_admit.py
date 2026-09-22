@@ -6,6 +6,8 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+from contextlib import redirect_stderr, redirect_stdout
+from io import StringIO
 from unittest.mock import patch
 
 
@@ -437,6 +439,61 @@ class CorpusAdmissionTests(unittest.TestCase):
                 )
         self.assertEqual(store.current(), current_before)
         self.assertEqual(store.load(current_before, verify_objects=True), store.load(current_before))
+
+    def test_cli_reports_foundation_rejection_without_unhandled_hook_or_pointer_change(self) -> None:
+        initial = self._source(
+            "ToS/source-witnesses/works/initial.md",
+            b"accepted source\n",
+        )
+        first, store, _ = self._admit(
+            "initial-foundation.json",
+            self._batch([initial]),
+            {"fixture:initial": initial["path"]},
+        )
+        update = self._source(
+            "ToS/source-witnesses/works/update.md",
+            b"rejected source\n",
+        )
+        batch_path = self._write_batch(
+            "foundation-rejection.json",
+            self._batch([update], base_revision=first["revision"]),
+        )
+        pointer = store.root / "current.json"
+        pointer_before = pointer.read_bytes()
+        expected = (
+            "source admission rejected (2 issues): "
+            "ToS/source-witnesses/works/fixture.md: missing foundation binding; "
+            "ToS/source-witnesses/works/other.md: stale foundation reference"
+        )
+
+        class FoundationRejector:
+            sha256 = self.VALIDATOR_SHA
+
+            def __call__(self, candidate, base, affected):
+                raise CorpusStoreError(expected)
+
+        hook_calls = []
+
+        def sentinel_excepthook(*args):
+            hook_calls.append(args)
+
+        stdout = StringIO()
+        stderr = StringIO()
+        with patch.object(admission, "SourceValidator", return_value=FoundationRejector()):
+            with patch.object(sys, "excepthook", sentinel_excepthook):
+                with redirect_stdout(stdout), redirect_stderr(stderr):
+                    result = admission.main([
+                        "--store", str(store.root),
+                        "--batch", str(batch_path),
+                        "--input-root", str(self.input_root),
+                        "--grammar-root", str(self.grammar_root),
+                    ])
+
+        self.assertEqual(result, 1)
+        self.assertEqual(stdout.getvalue(), "")
+        self.assertEqual(stderr.getvalue(), expected + "\n")
+        self.assertEqual(hook_calls, [])
+        self.assertEqual(pointer.read_bytes(), pointer_before)
 
     def test_noop_batch_preserves_current_revision_identity(self) -> None:
         row = self._source("ToS/source-witnesses/works/fixture.md")
