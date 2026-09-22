@@ -5,6 +5,9 @@ The adapter is the narrow consumer seam for ``receipts/handoff-*.json``.  It
 rechecks the handoff's manifest, selected record closure, provenance delta,
 payload fixity, and status before it creates a private ``tos_corpus_batch_v1``
 input root.  It does not admit a corpus revision or mutate an accepted store.
+The caller also supplies the full validation context used for the selected
+validator identity; that context is verified and carried into the receipt for
+the existing corpus-admission command.
 """
 
 from __future__ import annotations
@@ -24,12 +27,14 @@ from typing import Any
 try:
     import acquisition_batch as acquisition
     import corpus_admit
+    import corpus_store
     import source_payload_custody as custody
 except ModuleNotFoundError as exc:  # pragma: no cover - direct package import
-    if exc.name not in {"acquisition_batch", "corpus_admit", "source_payload_custody"}:
+    if exc.name not in {"acquisition_batch", "corpus_admit", "corpus_store", "source_payload_custody"}:
         raise
     from scripts import acquisition_batch as acquisition
     from scripts import corpus_admit
+    from scripts import corpus_store
     from scripts import source_payload_custody as custody
 
 
@@ -158,17 +163,167 @@ def _verify_accepted_pointer(store_root: Path, expected_revision: str) -> None:
     pointer_path = _path_under(store_root, "current.json", label="accepted corpus pointer")
     _regular(pointer_path, label="accepted corpus pointer")
     try:
-        pointer = acquisition._load_json_bytes(
-            pointer_path.read_bytes(), label="accepted corpus pointer"
-        )
-    except acquisition.AcquisitionBatchError as exc:
+        pointer = corpus_store.read_json(pointer_path)
+        if not isinstance(pointer, dict):
+            raise HandoffAdapterError("accepted corpus pointer is not an object")
+        if pointer.get("previous") is not None:
+            corpus_store.hex_digest(pointer["previous"])
+    except (HandoffAdapterError, corpus_store.CorpusStoreError, OSError) as exc:
         raise HandoffAdapterError(str(exc)) from exc
     if (
-        pointer.get("schema_version") != "tos_corpus_pointer_v1"
+        set(pointer) != {"schema_version", "current", "previous"}
+        or pointer.get("schema_version") != "tos_corpus_pointer_v1"
         or pointer.get("current") != expected_revision
         or not isinstance(pointer.get("previous"), (str, type(None)))
     ):
         raise HandoffAdapterError("accepted corpus pointer is not the selected base revision")
+
+
+def _load_accepted_manifest(store_root: Path, expected_revision: str) -> dict[str, Any]:
+    """Load the selected accepted snapshot and bind it to its revision.
+
+    The accepted source view is only meaningful with the exact immutable
+    snapshot that the pointer names.  Reading this manifest validates its
+    canonical body, revision digest, member ordering and indexes without
+    rehashing the unrelated object store.
+    """
+
+    try:
+        # ``CorpusStore`` normally creates its backing directories.  The
+        # adapter is a read-only consumer of the selected base, so load the
+        # existing store without invoking that mutating constructor path.
+        store = object.__new__(corpus_store.CorpusStore)
+        store.root = store_root
+        manifest = store.load(expected_revision)
+    except (corpus_store.CorpusStoreError, OSError) as exc:
+        raise HandoffAdapterError(
+            f"accepted corpus manifest is not the selected base revision: {exc}"
+        ) from exc
+    if manifest.get("revision") != expected_revision:
+        raise HandoffAdapterError("accepted corpus manifest revision differs from pointer")
+    return manifest
+
+
+def _validation_context_binding(
+    value: dict[str, Any] | None,
+    *,
+    validator_sha256: str,
+) -> dict[str, Any]:
+    """Verify and freeze the caller-selected admission context.
+
+    A validator digest is not enough to reconstruct an admission invocation:
+    historical captures and their restored roots are part of
+    ``SourceValidator.sha256``.  Keep those exact inputs with the adapter
+    receipt so intake can invoke the existing ``corpus_admit`` flags without
+    rediscovering or silently replacing the validation context.
+    """
+
+    if not isinstance(value, dict):
+        raise HandoffAdapterError("explicit validation context is required")
+    expected_keys = {"schema_version", "validator_sha256", "grammar_root_ref", "historical_evidence"}
+    if set(value) != expected_keys or value.get("schema_version") != "tos_corpus_validation_context_v1":
+        raise HandoffAdapterError("validation context has an unexpected schema")
+    if value.get("validator_sha256") != validator_sha256:
+        raise HandoffAdapterError("validation context validator identity differs from selected batch")
+    grammar_ref = value.get("grammar_root_ref")
+    if not isinstance(grammar_ref, str):
+        raise HandoffAdapterError("validation context grammar root is missing")
+    grammar_root = Path(grammar_ref).expanduser()
+    try:
+        grammar_root = acquisition._checked_root(grammar_root)
+    except acquisition.AcquisitionBatchError as exc:
+        raise HandoffAdapterError(f"validation context grammar root is invalid: {exc}") from exc
+
+    evidence = value.get("historical_evidence")
+    if not isinstance(evidence, list):
+        raise HandoffAdapterError("validation context historical evidence must be a list")
+    binding_rows: list[dict[str, Any]] = []
+    seen_captures: set[str] = set()
+    seen_roots: set[str] = set()
+    try:
+        from corpus_archive import verify_capture
+    except ModuleNotFoundError as exc:  # pragma: no cover - package import fallback
+        if exc.name != "corpus_archive":
+            raise
+        from scripts.corpus_archive import verify_capture
+    for row in evidence:
+        if not isinstance(row, dict) or set(row) != {"capture_ref", "restored_root_ref"}:
+            raise HandoffAdapterError("historical validation evidence needs capture and restored root")
+        capture_ref = row["capture_ref"]
+        restored_ref = row["restored_root_ref"]
+        if not isinstance(capture_ref, str) or not isinstance(restored_ref, str):
+            raise HandoffAdapterError("historical validation evidence references are invalid")
+        capture = Path(capture_ref).expanduser()
+        restored = Path(restored_ref).expanduser()
+        try:
+            capture = acquisition._checked_root(capture)
+            restored = acquisition._checked_root(restored)
+        except acquisition.AcquisitionBatchError as exc:
+            raise HandoffAdapterError(f"historical validation evidence root is invalid: {exc}") from exc
+        capture_key = str(capture)
+        restored_key = str(restored)
+        if capture_key in seen_captures or restored_key in seen_roots:
+            raise HandoffAdapterError("historical validation evidence overlaps another pack")
+        seen_captures.add(capture_key)
+        seen_roots.add(restored_key)
+        try:
+            capture_manifest = verify_capture(capture)
+        except Exception as exc:
+            raise HandoffAdapterError(f"historical capture verification failed: {capture}") from exc
+        capture_manifest_path = capture / "capture.json"
+        members_path = capture / "members.jsonl"
+        archive_path = capture / "source.tar.gz"
+        restore_receipt_path = restored / "restore-receipt.json"
+        _regular(capture_manifest_path, label="historical capture manifest")
+        _regular(members_path, label="historical capture members")
+        _regular(archive_path, label="historical capture archive")
+        _regular(restore_receipt_path, label="historical restore receipt")
+        try:
+            restore_receipt = corpus_store.read_json(restore_receipt_path)
+        except (corpus_store.CorpusStoreError, OSError) as exc:
+            raise HandoffAdapterError("historical restore receipt is not canonical") from exc
+        if (
+            not isinstance(restore_receipt, dict)
+            or set(restore_receipt)
+            != {
+                "schema_version",
+                "source_git_commit",
+                "member_count",
+                "source_bytes",
+                "manifest_sha256",
+            }
+            or restore_receipt.get("schema_version") != "tos_corpus_restore_receipt_v1"
+            or restore_receipt.get("source_git_commit") != capture_manifest.get("source_git_commit")
+            or restore_receipt.get("member_count") != capture_manifest.get("member_count")
+            or restore_receipt.get("source_bytes") != capture_manifest.get("source_bytes")
+            or restore_receipt.get("manifest_sha256") != _sha256_file(capture_manifest_path)
+        ):
+            raise HandoffAdapterError("historical restore receipt does not bind its capture")
+        binding_rows.append(
+            {
+                "capture_ref": capture_key,
+                "capture_manifest_sha256": _sha256_file(capture_manifest_path),
+                "members_sha256": _sha256_file(members_path),
+                "archive_sha256": capture_manifest["archive_sha256"],
+                "restored_root_ref": restored_key,
+                "restore_receipt_ref": str(restore_receipt_path),
+                "restore_receipt_sha256": _sha256_file(restore_receipt_path),
+            }
+        )
+    admission_flags: dict[str, Any] = {"grammar_root": str(grammar_root)}
+    if binding_rows:
+        admission_flags.update(
+            historical_capture=[row["capture_ref"] for row in binding_rows],
+            historical_root=[row["restored_root_ref"] for row in binding_rows],
+        )
+    binding = {
+        "schema_version": "tos_corpus_validation_context_v1",
+        "validator_sha256": validator_sha256,
+        "grammar_root_ref": str(grammar_root),
+        "historical_evidence": binding_rows,
+        "admission_flags": admission_flags,
+    }
+    return binding
 
 
 def _expected_records(context: acquisition.BatchContext) -> dict[str, tuple[dict[str, Any], dict[str, Any]]]:
@@ -179,6 +334,105 @@ def _expected_payloads(context: acquisition.BatchContext) -> dict[str, acquisiti
     return {item.file_ref: item for item in acquisition._payloads(context)}
 
 
+def _verify_item_payload_bindings(context: acquisition.BatchContext, acquisition_root: Path) -> None:
+    """Close each acquired File to its selected Item manifest and provenance."""
+
+    for selection in context.manifest["selection"]:
+        records = {record["ref"]: record for record in selection["records"]}
+        manifest_records = [record for record in records.values() if record["kind"] == "manifest"]
+        if len(manifest_records) != 1:
+            raise HandoffAdapterError(
+                f"selection has no unique Item manifest record: {selection['item_ref']}"
+            )
+        item_manifest_record = manifest_records[0]
+        manifest_path = _path_under(
+            acquisition_root,
+            f"source/{item_manifest_record['ref']}",
+            label="selected Item manifest",
+        )
+        _regular(manifest_path, label="selected Item manifest")
+        if _sha256_file(manifest_path) != item_manifest_record["sha256"]:
+            raise HandoffAdapterError("selected Item manifest bytes differ")
+        try:
+            item_manifest = acquisition._load_json_bytes(
+                manifest_path.read_bytes(), label="selected Item manifest"
+            )
+        except acquisition.AcquisitionBatchError as exc:
+            raise HandoffAdapterError(str(exc)) from exc
+        if (
+            item_manifest.get("schema_version") != "tos_source_item_manifest_v1"
+            or item_manifest.get("item_id") != selection["item_ref"]
+            or item_manifest.get("rights_ref") != selection["rights"]["ref"]
+            or item_manifest.get("provenance_ref")
+            != next(
+                (record["ref"] for record in records.values() if record["kind"] == "provenance"),
+                None,
+            )
+            or not isinstance(item_manifest.get("payload_files"), list)
+        ):
+            raise HandoffAdapterError(
+                f"Item manifest identity or rights/provenance binding differs: {selection['item_ref']}"
+            )
+        manifest_payloads = item_manifest["payload_files"]
+        manifest_by_file = {}
+        for payload in manifest_payloads:
+            if not isinstance(payload, dict) or payload.get("file_id") in manifest_by_file:
+                raise HandoffAdapterError("Item manifest payload file IDs are not unique")
+            manifest_by_file[payload.get("file_id")] = payload
+        selected_payloads = {
+            payload["file_ref"]: payload for payload in selection["payload_files"]
+        }
+        if set(manifest_by_file) != set(selected_payloads):
+            raise HandoffAdapterError(
+                f"Item manifest payload closure differs: {selection['item_ref']}"
+            )
+        provenance_ref = item_manifest["provenance_ref"]
+        provenance_path = _path_under(
+            acquisition_root,
+            f"source/{provenance_ref}",
+            label="selected Item provenance",
+        )
+        _regular(provenance_path, label="selected Item provenance")
+        try:
+            provenance_rows = [
+                json.loads(line)
+                for line in provenance_path.read_text(encoding="utf-8").splitlines()
+                if line.strip()
+            ]
+        except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+            raise HandoffAdapterError("selected Item provenance is not valid JSONL") from exc
+        if not provenance_rows:
+            raise HandoffAdapterError("selected Item provenance is empty")
+        for file_ref, payload in selected_payloads.items():
+            manifest_payload = manifest_by_file[file_ref]
+            for key, expected in {
+                "file_id": file_ref,
+                "relative_path": payload["relative_path"],
+                "byte_size": payload["byte_size"],
+                "sha256": payload["sha256"],
+                "media_type": payload["media_type"],
+            }.items():
+                if manifest_payload.get(key) != expected:
+                    raise HandoffAdapterError(
+                        f"Item manifest payload binding differs: {file_ref}"
+                    )
+            destination_ref = f"{selection['item_root_ref']}/{payload['relative_path']}"
+            if not any(
+                isinstance(event, dict)
+                and event.get("rights_basis_ref") == selection["rights"]["ref"]
+                and any(
+                    isinstance(output, dict)
+                    and output.get("ref") == destination_ref
+                    and output.get("sha256") == payload["sha256"]
+                    for output in event.get("outputs", [])
+                )
+                for event in provenance_rows
+            ):
+                raise HandoffAdapterError(
+                    f"Item provenance does not bind acquired payload: {file_ref}"
+                )
+
+
 def _verify_handoff(
     *,
     acquisition_root: Path,
@@ -187,6 +441,7 @@ def _verify_handoff(
     context: acquisition.BatchContext,
     expected_base_revision: str,
     accepted_source_root: Path,
+    accepted_manifest: dict[str, Any],
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     if handoff.get("batch_id") != context.manifest["batch_id"]:
         raise HandoffAdapterError("handoff batch differs from its manifest")
@@ -202,13 +457,15 @@ def _verify_handoff(
         raise HandoffAdapterError("handoff crosses the acquisition authority boundary")
     if handoff.get("topology_preimages") != 0:
         raise HandoffAdapterError("handoff contains a topology preimage claim")
-
     input_selection = handoff.get("input_selection")
     if not isinstance(input_selection, dict) or input_selection.get("ref") != "manifest.json":
         raise HandoffAdapterError("handoff does not select manifest.json")
     if input_selection.get("sha256") != context.manifest_sha256:
         raise HandoffAdapterError("handoff manifest digest differs")
 
+    accepted_files = {
+        entry["path"]: entry for entry in accepted_manifest.get("files", [])
+    }
     expected_records = _expected_records(context)
     source_rows = handoff.get("source_records")
     if (
@@ -237,11 +494,23 @@ def _verify_handoff(
             raise HandoffAdapterError(f"handoff source size differs: {ref}")
         if _sha256_file(source) != record["sha256"]:
             raise HandoffAdapterError(f"handoff source bytes differ: {ref}")
+        accepted_entry = accepted_files.get(ref)
         accepted = _path_under(accepted_source_root, ref, label="accepted source reference")
-        if accepted.exists() or accepted.is_symlink():
-            _regular(accepted, label="accepted base source")
-            if _sha256_file(accepted) != record["sha256"]:
+        if accepted_entry is None:
+            if accepted.exists() or accepted.is_symlink():
+                raise HandoffAdapterError(
+                    f"accepted source view contains a path absent from selected base manifest: {ref}"
+                )
+        else:
+            if accepted_entry["sha256"] != record["sha256"]:
                 raise HandoffAdapterError(f"handoff would replace accepted source bytes: {ref}")
+            if not accepted.exists() or accepted.is_symlink():
+                raise HandoffAdapterError(
+                    f"accepted source view is missing selected base member: {ref}"
+                )
+            info = _regular(accepted, label="accepted base source")
+            if info.st_size != accepted_entry["size_bytes"] or _sha256_file(accepted) != accepted_entry["sha256"]:
+                raise HandoffAdapterError(f"accepted source view differs from base manifest: {ref}")
         selected_source_rows.append(row)
 
     provenance = handoff.get("provenance_delta")
@@ -341,12 +610,23 @@ def adapt_handoff(
     accepted_source_root: Path | str,
     base_revision: str,
     validator_sha256: str,
+    validation_context: dict[str, Any] | None,
     repo_root: Path | str = acquisition.REPO_ROOT,
 ) -> dict[str, Any]:
-    """Create one private ``tos_corpus_batch_v1`` input from one handoff."""
+    """Create one private ``tos_corpus_batch_v1`` input from one handoff.
+
+    ``validation_context`` is required even though this adapter does not run
+    admission.  The intake owner needs the exact grammar root and paired
+    historical evidence used to derive ``validator_sha256`` when it invokes
+    the existing corpus admission command.
+    """
 
     if not HEX64.fullmatch(base_revision) or not HEX64.fullmatch(validator_sha256):
         raise HandoffAdapterError("base_revision and validator_sha256 must be lowercase SHA-256 values")
+    validation_binding = _validation_context_binding(
+        validation_context,
+        validator_sha256=validator_sha256,
+    )
     root = acquisition._checked_root(acquisition_root)
     accepted_store = acquisition._checked_root(accepted_store_root)
     accepted = acquisition._checked_root(accepted_source_root)
@@ -356,6 +636,13 @@ def adapt_handoff(
     if not output.parent.is_dir() or output.parent.is_symlink():
         raise HandoffAdapterError(f"adapter output parent must be a regular directory: {output.parent}")
     _verify_accepted_pointer(accepted_store, base_revision)
+    accepted_manifest = _load_accepted_manifest(accepted_store, base_revision)
+    accepted_validator_sha256 = accepted_manifest["validator_sha256"]
+    validator_transition = (
+        "aligned"
+        if accepted_validator_sha256 == validator_sha256
+        else "explicit-grammar-update-required"
+    )
     handoff_path, handoff = _load_handoff(root, handoff_ref)
     input_selection = handoff.get("input_selection")
     if not isinstance(input_selection, dict) or input_selection.get("ref") != "manifest.json":
@@ -370,6 +657,7 @@ def adapt_handoff(
         acquisition._verify_prepared_output(context, root)
     except (acquisition.AcquisitionBatchError, acquisition.SourceIntegrityError) as exc:
         raise HandoffAdapterError(str(exc)) from exc
+    _verify_item_payload_bindings(context, root)
     selected_source_rows, payloads = _verify_handoff(
         acquisition_root=root,
         handoff_path=handoff_path,
@@ -377,6 +665,7 @@ def adapt_handoff(
         context=context,
         expected_base_revision=base_revision,
         accepted_source_root=accepted,
+        accepted_manifest=accepted_manifest,
     )
 
     staging = Path(tempfile.mkdtemp(prefix=f".{output.name}.adapter-", dir=output.parent))
@@ -450,6 +739,8 @@ def adapt_handoff(
             raise HandoffAdapterError(f"candidate tos_corpus_batch_v1 rejected by corpus consumer: {exc}") from exc
 
         handoff_relative = handoff_path.relative_to(root).as_posix()
+        validation_context_bytes = _canonical(validation_binding)
+        validation_context_sha256 = _sha256(validation_context_bytes)
         adapter_receipt = {
             "schema_version": "tos_acquisition_handoff_adapter_receipt_v1",
             "handoff_ref": handoff_relative,
@@ -463,16 +754,27 @@ def adapt_handoff(
             "fixity_summary_ref": handoff["independent_fixity"]["summary_ref"],
             "fixity_summary_sha256": handoff["independent_fixity"]["summary_sha256"],
             "base_revision": base_revision,
+            "accepted_manifest_ref": f"revisions/{base_revision}/snapshot.json",
+            "accepted_manifest_sha256": _sha256_file(
+                accepted_store / "revisions" / base_revision / "snapshot.json"
+            ),
+            "accepted_validator_sha256": accepted_validator_sha256,
             "validator_sha256": validator_sha256,
+            "validator_transition": validator_transition,
+            "validation_context_ref": "receipts/validation-context.json",
+            "validation_context_sha256": validation_context_sha256,
             "candidate_batch_ref": batch_ref,
             "candidate_batch_sha256": _sha256_file(batch_path),
             "input_root": "source",
             "payload_source_root": "payload",
             "admission_status": "not-admitted",
+            "admission_preflight": validator_transition,
             "publication_status": "not-published",
             "topology_preimages": 0,
             "authority_boundary": "validated private batch input only; corpus admission remains with corpus_admit and its selected store",
         }
+        (receipts_root / "validation-context.json").write_bytes(validation_context_bytes)
+        os.chmod(receipts_root / "validation-context.json", 0o644)
         (receipts_root / "acquisition-handoff-adapter.json").write_bytes(_canonical(adapter_receipt))
         os.chmod(receipts_root / "acquisition-handoff-adapter.json", 0o644)
         os.replace(staging, output)
@@ -485,6 +787,7 @@ def adapt_handoff(
         "candidate_batch_ref": batch_ref,
         "candidate_batch_sha256": adapter_receipt["candidate_batch_sha256"],
         "admission_status": "not-admitted",
+        "admission_preflight": validator_transition,
     }
 
 
@@ -497,9 +800,15 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--accepted-source-root", type=Path, required=True)
     parser.add_argument("--base-revision", required=True)
     parser.add_argument("--validator-sha256", required=True)
+    parser.add_argument("--validation-context", type=Path, required=True)
     parser.add_argument("--repo-root", type=Path, default=acquisition.REPO_ROOT)
     args = parser.parse_args(argv)
     try:
+        validation_context_path = args.validation_context.expanduser()
+        _regular(validation_context_path, label="validation context")
+        validation_context = acquisition._load_json_bytes(
+            validation_context_path.read_bytes(), label="validation context"
+        )
         result = adapt_handoff(
             acquisition_root=args.acquisition_root,
             handoff_ref=args.handoff,
@@ -508,6 +817,7 @@ def main(argv: list[str] | None = None) -> int:
             accepted_source_root=args.accepted_source_root,
             base_revision=args.base_revision,
             validator_sha256=args.validator_sha256,
+            validation_context=validation_context,
             repo_root=args.repo_root,
         )
     except (HandoffAdapterError, acquisition.AcquisitionBatchError) as exc:
