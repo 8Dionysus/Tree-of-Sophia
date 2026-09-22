@@ -942,17 +942,23 @@ def _index_acquisition_topology_claims(
 def _index_handoff_topology_claims(
     source_roots: Iterable[tuple[str, Path]],
 ) -> dict[str, tuple[str, dict[str, Any], Path]]:
-    """Index claim rows from explicit handoff source roots only."""
+    """Index claim rows from explicit handoff source roots only.
+
+    Acquired handoffs may keep each producer's claim stream under a
+    batch-local directory.  The accepted corpus has one canonical relation
+    path per topology route, so index the source bytes recursively while
+    returning that canonical path for closure bookkeeping.
+    """
 
     indexed: dict[str, tuple[str, dict[str, Any], Path]] = {}
     for batch_id, source_root in source_roots:
         relation_root = source_root / "ToS/source-witnesses/relations"
         if not relation_root.is_dir() or relation_root.is_symlink():
             continue
-        for path in sorted(relation_root.glob("*/*.jsonl")):
+        for path in sorted(relation_root.rglob("*.jsonl")):
             if path.name not in TOPOLOGY_RELATION_ROUTES:
                 continue
-            relative = path.relative_to(source_root).as_posix()
+            relative = _canonical_claim_path(path.relative_to(source_root).as_posix())
             for row in _read_jsonl(path, label="handoff topology claims"):
                 claim_id = row.get("claim_id")
                 if not isinstance(claim_id, str):
@@ -1466,6 +1472,21 @@ def _claim_key(path: str) -> str:
         raise ConversionError(f"unknown relation claim path: {path}") from exc
 
 
+def _canonical_claim_path(path: str) -> str:
+    """Map a handoff-local claim stream to its accepted relation route.
+
+    The handoff's directory is producer-owned evidence.  The claim filename
+    selects the one corpus topology route to which the additive rows may be
+    appended; no other path or accepted file is inferred from the producer
+    directory name.
+    """
+
+    suffix = path.rsplit("/", 1)[-1]
+    if suffix not in CLAIM_SUFFIXES:
+        raise ConversionError(f"unknown relation claim path: {path}")
+    return f"ToS/source-witnesses/relations/{CLAIM_SUFFIXES[suffix]}/{suffix}"
+
+
 def _write_canonical(path: Path, value: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     if path.exists() or path.is_symlink():
@@ -1627,6 +1648,7 @@ def convert(
                 relative = row["ref"]
                 source = handoff.source_root / relative
                 if relative.endswith(tuple(CLAIM_SUFFIXES)):
+                    claim_path = _canonical_claim_path(relative)
                     for claim in _read_jsonl(source, label="handoff relation claims"):
                         claim_id = claim.get("claim_id")
                         if not isinstance(claim_id, str):
@@ -1638,8 +1660,8 @@ def convert(
                                     f"handoff relation claim would overwrite accepted bytes: {claim_id}"
                                 )
                             continue
-                        key = _claim_key(relative)
-                        prior_rows = claim_rows[relative]
+                        key = _claim_key(claim_path)
+                        prior_rows = claim_rows[claim_path]
                         prior = next(
                             (candidate for candidate in prior_rows if candidate.get("claim_id") == claim_id),
                             None,
@@ -1653,7 +1675,7 @@ def convert(
                         if claim_id in claim_ids[key]:
                             raise ConversionError(f"duplicate acquired claim identity: {claim_id}")
                         claim_ids[key].add(claim_id)
-                        claim_rows[relative].append(claim)
+                        claim_rows[claim_path].append(claim)
                     continue
                 if relative in accepted_paths:
                     accepted_entry = accepted_entries.get(relative)

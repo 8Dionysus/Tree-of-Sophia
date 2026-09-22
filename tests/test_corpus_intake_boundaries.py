@@ -280,6 +280,30 @@ class DirectHandoffBoundaryTests(unittest.TestCase):
                     [("a", root), ("b", other)]
                 )
 
+    def test_handoff_claim_index_normalizes_batch_local_streams(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="tos-handoff-local-claims-") as raw:
+            root = Path(raw)
+            relation = root / "ToS/source-witnesses/relations/russian-batch/claims"
+            relation.mkdir(parents=True)
+            path = relation / "work-expression-claims.jsonl"
+            path.write_bytes(
+                _canonical(
+                    {
+                        "claim_id": "claim.batch-local",
+                        "evidence_refs": [
+                            "ToS/source-witnesses/works/a/work.json"
+                        ],
+                    }
+                )
+            )
+
+            indexed = converter._index_handoff_topology_claims([("batch", root)])
+
+            self.assertEqual(
+                "ToS/source-witnesses/relations/work-expression/work-expression-claims.jsonl",
+                indexed["claim.batch-local"][0],
+            )
+
     def test_direct_candidates_exclude_source_prefixed_operational_delta(self) -> None:
         with tempfile.TemporaryDirectory(prefix="tos-handoff-delta-") as raw:
             root = Path(raw)
