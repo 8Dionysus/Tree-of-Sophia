@@ -353,10 +353,15 @@ def _iter_snapshot_file_entries(snapshot: Path) -> Iterator[dict[str, Any]]:
                             break
                     end += 1
                 try:
-                    value, consumed = decoder.raw_decode(mapped[position:end].decode("utf-8"))
+                    # ``raw_decode`` reports Unicode character offsets while
+                    # the mmap scanner tracks byte offsets.  Compare against
+                    # the decoded slice length so a valid non-ASCII path is
+                    # not rejected as malformed metadata.
+                    decoded = mapped[position:end].decode("utf-8")
+                    value, consumed = decoder.raw_decode(decoded)
                 except (UnicodeDecodeError, json.JSONDecodeError) as exc:
                     raise ConversionError("accepted snapshot contains malformed file metadata") from exc
-                if consumed != end - position or not isinstance(value, dict):
+                if consumed != len(decoded) or not isinstance(value, dict):
                     raise ConversionError("accepted snapshot file entry is malformed")
                 yield value
                 position = end
@@ -1151,11 +1156,23 @@ def convert(
     base_revision: str,
     grammar_root: Path,
     batch_selection: Path | None = None,
+    historical_capture: list[Path] | None = None,
+    historical_root: list[Path] | None = None,
 ) -> dict[str, Any]:
     acquisition_root = acquisition_root.absolute()
     output_root = output_root.absolute()
     store_root = store_root.absolute()
     grammar_root = grammar_root.absolute()
+    if (historical_capture is None) != (historical_root is None):
+        raise ConversionError(
+            "historical evidence requires one capture and restored root for every pack"
+        )
+    if not historical_capture or not historical_root or len(historical_capture) != len(historical_root):
+        raise ConversionError(
+            "historical evidence selection is required and must contain paired capture/root paths"
+        )
+    historical_capture = [path.absolute() for path in historical_capture]
+    historical_root = [path.absolute() for path in historical_root]
     if output_root.exists() or output_root.is_symlink():
         raise ConversionError(f"intake output must be a new path: {output_root}")
     if _HEX64.fullmatch(base_revision) is None:
@@ -1477,7 +1494,12 @@ def convert(
     # human-readable conversion evidence lives in the sibling receipt below.
     from corpus_source_validation import SourceValidator
 
-    validator = SourceValidator(grammar_root, payload_source_root=payload_root)
+    validator = SourceValidator(
+        grammar_root,
+        payload_source_root=payload_root,
+        historical_capture=historical_capture,
+        historical_root=historical_root,
+    )
     batch = {
         "schema_version": BATCH_SCHEMA,
         "base_revision": base_revision,
@@ -1537,6 +1559,9 @@ def convert(
             "publication": "not performed",
         },
         "historical_evidence": {
+            "captures": [str(path) for path in historical_capture],
+            "restored_roots": [str(path) for path in historical_root],
+            "validator_sha256": validator.sha256,
             "topology_before_copied": False,
             "work_before_copied_only_when_bound_by_existing_work": True,
             "accepted_base_preserved": True,
@@ -1558,6 +1583,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--base-revision", required=True)
     parser.add_argument("--grammar-root", type=Path, required=True)
     parser.add_argument("--batch-selection", type=Path)
+    parser.add_argument("--historical-capture", type=Path, action="append", required=True)
+    parser.add_argument("--historical-root", type=Path, action="append", required=True)
     args = parser.parse_args(argv)
     try:
         receipt = convert(
@@ -1567,6 +1594,8 @@ def main(argv: list[str] | None = None) -> int:
             base_revision=args.base_revision,
             grammar_root=args.grammar_root,
             batch_selection=args.batch_selection,
+            historical_capture=args.historical_capture,
+            historical_root=args.historical_root,
         )
     except (ConversionError, OSError, ValueError) as exc:
         print(f"conversion rejected: {exc}", file=sys.stderr)
