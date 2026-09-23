@@ -152,8 +152,16 @@ impl ReadModel for SyntheticReadModel {
         max_bytes: usize,
         max_carrier_bytes: usize,
         max_vm_steps: u64,
+        max_work_probes: u64,
+        max_work_rows: u64,
     ) -> Result<ExactNode, QueryError> {
         assert!(max_vm_steps > 0);
+        if max_work_probes == 0 || (self.nodes.contains_key(id) && max_work_rows == 0) {
+            return Err(QueryError {
+                code: QueryErrorCode::BudgetExceeded,
+                message: "synthetic exact work allowance exhausted",
+            });
+        }
         if self
             .nodes
             .get(id)
@@ -168,7 +176,11 @@ impl ReadModel for SyntheticReadModel {
             binding: self.binding.clone(),
             record: self.nodes.get(id).cloned(),
             complete_unique_lookup: true,
-            charged: Charged::default(),
+            charged: Charged {
+                probes: 1,
+                rows: u64::from(self.nodes.contains_key(id)),
+                ..Charged::default()
+            },
         })
     }
     fn visible_outgoing(
@@ -179,8 +191,16 @@ impl ReadModel for SyntheticReadModel {
         max_bytes: usize,
         max_carrier_bytes: usize,
         max_vm_steps: u64,
+        max_work_probes: u64,
+        max_work_rows: u64,
     ) -> Result<AdjacencyPage, QueryError> {
         assert!(max_vm_steps > 0);
+        if max_work_probes == 0 {
+            return Err(QueryError {
+                code: QueryErrorCode::BudgetExceeded,
+                message: "synthetic adjacency probe allowance exhausted",
+            });
+        }
         let all = self.edges.get(from_id).map(Vec::as_slice).unwrap_or(&[]);
         let start = all
             .iter()
@@ -189,6 +209,12 @@ impl ReadModel for SyntheticReadModel {
             })
             .unwrap_or(all.len());
         let end = (start + max_rows).min(all.len());
+        if (end - start) as u64 > max_work_rows {
+            return Err(QueryError {
+                code: QueryErrorCode::BudgetExceeded,
+                message: "synthetic adjacency row allowance exhausted",
+            });
+        }
         if all[start..end]
             .iter()
             .any(|record| record.raw.len() > max_carrier_bytes)
@@ -219,7 +245,11 @@ impl ReadModel for SyntheticReadModel {
             exhausted: end == all.len(),
             expected_count: count,
             expected_digest: digest,
-            charged: Charged::default(),
+            charged: Charged {
+                probes: 1,
+                rows: (end - start) as u64,
+                ..Charged::default()
+            },
         })
     }
     fn authorize_current(&mut self, record: &RawRecord) -> Result<Charged, QueryError> {

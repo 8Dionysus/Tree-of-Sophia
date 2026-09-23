@@ -318,42 +318,51 @@ fn selected_cmp_model_matches_frozen_python_packet_and_refuses_current_denial() 
         at_least_commit_seq: Some(7),
     };
     let exact = model
-        .exact_visible_node("id.alpha", 1_000_000, 1_000_000, 100_000)
+        .exact_visible_node("id.alpha", 1_000_000, 1_000_000, 100_000, 100, 100)
         .unwrap();
     let exact_bytes = exact.charged.bytes as usize + exact.record.unwrap().raw.len();
     model
-        .exact_visible_node("id.alpha", exact_bytes, 1_000_000, 100_000)
+        .exact_visible_node("id.alpha", exact_bytes, 1_000_000, 100_000, 100, 100)
         .unwrap();
     assert_eq!(
         model
-            .exact_visible_node("id.alpha", exact_bytes - 1, 1_000_000, 100_000)
+            .exact_visible_node("id.alpha", exact_bytes - 1, 1_000_000, 100_000, 100, 100)
             .unwrap_err()
             .code,
         QueryErrorCode::BudgetExceeded
     );
+    for (probes, rows) in [(1, 2), (2, 1)] {
+        assert_eq!(
+            model
+                .exact_visible_node("id.alpha", exact_bytes, 1_000_000, 100_000, probes, rows)
+                .unwrap_err()
+                .code,
+            QueryErrorCode::BudgetExceeded
+        );
+    }
     // Two SQLite i64 columns and one 64-byte digest are the exact decoded
     // header width even when a selected row is hidden by the visibility rule.
     let hidden = model
-        .exact_visible_node("id.packet", 2 * 8 + 64, 1, 100_000)
+        .exact_visible_node("id.packet", 2 * 8 + 64, 1, 100_000, 1, 1)
         .unwrap();
     assert!(hidden.record.is_none());
     assert_eq!(hidden.charged.bytes, 80);
     let missing = model
-        .exact_visible_node("id.absent", 80, 1, 100_000)
+        .exact_visible_node("id.absent", 80, 1, 100_000, 1, 1)
         .unwrap();
     assert!(missing.record.is_none());
     assert_eq!(missing.charged.bytes, 0);
     for id in ["id.packet", "id.absent"] {
         assert_eq!(
             model
-                .exact_visible_node(id, 79, 1, 100_000)
+                .exact_visible_node(id, 79, 1, 100_000, 1, 1)
                 .unwrap_err()
                 .code,
             QueryErrorCode::BudgetExceeded
         );
     }
     let adjacency = model
-        .visible_outgoing("id.alpha", None, 1, 1_000_000, 1_000_000, 100_000)
+        .visible_outgoing("id.alpha", None, 1, 1_000_000, 1_000_000, 100_000, 100, 100)
         .unwrap();
     let adjacency_bytes = adjacency.charged.bytes as usize
         + adjacency
@@ -362,27 +371,84 @@ fn selected_cmp_model_matches_frozen_python_packet_and_refuses_current_denial() 
             .map(|edge| edge.raw.len())
             .sum::<usize>();
     model
-        .visible_outgoing("id.alpha", None, 1, adjacency_bytes, 1_000_000, 100_000)
+        .visible_outgoing(
+            "id.alpha",
+            None,
+            1,
+            adjacency_bytes,
+            1_000_000,
+            100_000,
+            100,
+            100,
+        )
         .unwrap();
     assert_eq!(
         model
-            .visible_outgoing("id.alpha", None, 1, adjacency_bytes - 1, 1_000_000, 100_000)
+            .visible_outgoing(
+                "id.alpha",
+                None,
+                1,
+                adjacency_bytes - 1,
+                1_000_000,
+                100_000,
+                100,
+                100
+            )
             .unwrap_err()
             .code,
         QueryErrorCode::BudgetExceeded
     );
+    model
+        .visible_outgoing(
+            "id.alpha",
+            None,
+            1,
+            adjacency_bytes,
+            1_000_000,
+            100_000,
+            4,
+            4,
+        )
+        .unwrap();
+    for (probes, rows) in [(3, 4), (4, 3)] {
+        assert_eq!(
+            model
+                .visible_outgoing(
+                    "id.alpha",
+                    None,
+                    1,
+                    adjacency_bytes,
+                    1_000_000,
+                    100_000,
+                    probes,
+                    rows
+                )
+                .unwrap_err()
+                .code,
+            QueryErrorCode::BudgetExceeded
+        );
+    }
     let empty_page = model
-        .visible_outgoing("id.beta", None, 1, 104, 1, 100_000)
+        .visible_outgoing("id.beta", None, 1, 104, 1, 100_000, 3, 2)
         .unwrap();
     assert!(empty_page.edges.is_empty());
     assert_eq!(empty_page.charged.bytes, 104);
     assert_eq!(
         model
-            .visible_outgoing("id.beta", None, 1, 103, 1, 100_000)
+            .visible_outgoing("id.beta", None, 1, 103, 1, 100_000, 3, 2)
             .unwrap_err()
             .code,
         QueryErrorCode::BudgetExceeded
     );
+    for (probes, rows) in [(2, 2), (3, 1)] {
+        assert_eq!(
+            model
+                .visible_outgoing("id.beta", None, 1, 104, 1, 100_000, probes, rows)
+                .unwrap_err()
+                .code,
+            QueryErrorCode::BudgetExceeded
+        );
+    }
     let packet = source_descend(&mut model, &request, budget()).unwrap();
     let actual = parse_json(&packet, JsonMode::PublishedStrict, JsonLimits::default()).unwrap();
     assert!(semantic_eq(actual.root(), field(oracle.root(), "expected")));

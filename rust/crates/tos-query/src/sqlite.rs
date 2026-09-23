@@ -609,8 +609,11 @@ impl<P: PinnedLocalModel, G: CurrentPolicy> ReadModel for SqliteReadModel<P, G> 
         max_bytes: usize,
         max_carrier_bytes: usize,
         max_vm_steps: u64,
+        max_work_probes: u64,
+        max_work_rows: u64,
     ) -> Result<ExactNode, QueryError> {
-        if (max_bytes as u64) < NODE_HEADER_RESULT_BYTES {
+        if (max_bytes as u64) < NODE_HEADER_RESULT_BYTES || max_work_probes < 1 || max_work_rows < 1
+        {
             return Err(error(
                 QueryErrorCode::BudgetExceeded,
                 "selected node metadata over byte cap",
@@ -657,6 +660,12 @@ impl<P: PinnedLocalModel, G: CurrentPolicy> ReadModel for SqliteReadModel<P, G> 
                     "selected node over byte cap",
                 ));
             }
+            if max_work_probes < 2 || max_work_rows < 2 {
+                return Err(error(
+                    QueryErrorCode::BudgetExceeded,
+                    "selected node carrier row admission exceeded",
+                ));
+            }
             let raw: Option<Vec<u8>> = connection
                 .query_row(
                     "SELECT CASE WHEN length(carrier)<=?2 AND carrier_size<=?2 THEN carrier END
@@ -698,6 +707,8 @@ impl<P: PinnedLocalModel, G: CurrentPolicy> ReadModel for SqliteReadModel<P, G> 
         max_bytes: usize,
         max_carrier_bytes: usize,
         max_vm_steps: u64,
+        max_work_probes: u64,
+        max_work_rows: u64,
     ) -> Result<AdjacencyPage, QueryError> {
         if max_rows == 0 || max_rows > 1024 {
             return Err(error(
@@ -707,7 +718,7 @@ impl<P: PinnedLocalModel, G: CurrentPolicy> ReadModel for SqliteReadModel<P, G> 
         }
         const PREFLIGHT_RESULT_BYTES: u64 = 4 * SQLITE_I64_RESULT_BYTES;
         let minimum = ADJACENCY_CERT_RESULT_BYTES + PREFLIGHT_RESULT_BYTES;
-        if (max_bytes as u64) < minimum {
+        if (max_bytes as u64) < minimum || max_work_probes < 2 || max_work_rows < 2 {
             return Err(error(
                 QueryErrorCode::BudgetExceeded,
                 "selected adjacency metadata preflight over byte cap",
@@ -786,6 +797,14 @@ impl<P: PinnedLocalModel, G: CurrentPolicy> ReadModel for SqliteReadModel<P, G> 
                     return Err(error(
                         QueryErrorCode::BudgetExceeded,
                         "selected adjacency metadata over byte cap",
+                    ));
+                }
+                let scanned = preflight_count as u64;
+                let emitted = scanned.min(max_rows as u64);
+                if 3 + emitted > max_work_probes || 2 + scanned + emitted > max_work_rows {
+                    return Err(error(
+                        QueryErrorCode::BudgetExceeded,
+                        "selected adjacency row or probe admission exceeded",
                     ));
                 }
                 let mut stmt = connection.prepare(

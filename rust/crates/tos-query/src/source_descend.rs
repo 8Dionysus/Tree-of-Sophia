@@ -108,6 +108,8 @@ pub trait ReadModel {
         max_bytes: usize,
         max_carrier_bytes: usize,
         max_vm_steps: u64,
+        max_work_probes: u64,
+        max_work_rows: u64,
     ) -> Result<ExactNode, QueryError>;
     fn visible_outgoing(
         &mut self,
@@ -117,6 +119,8 @@ pub trait ReadModel {
         max_bytes: usize,
         max_carrier_bytes: usize,
         max_vm_steps: u64,
+        max_work_probes: u64,
+        max_work_rows: u64,
     ) -> Result<AdjacencyPage, QueryError>;
     /// Source owner current decision. Must be rechecked before disclosure.
     fn authorize_current(&mut self, record: &RawRecord) -> Result<Charged, QueryError>;
@@ -319,12 +323,19 @@ fn exact_node<M: ReadModel>(
             "source descent VM budget exhausted",
         ));
     }
-    let got = model.exact_visible_node(id, max_bytes, budget.json.max_bytes, max_vm_steps)?;
+    let got = model.exact_visible_node(
+        id,
+        max_bytes,
+        budget.json.max_bytes,
+        max_vm_steps,
+        budget.max_probes.saturating_sub(work.probes),
+        budget.max_rows.saturating_sub(work.rows),
+    )?;
     work.charge(got.charged, budget)?;
     work.charge(
         Charged {
-            probes: 1,
-            rows: u64::from(got.record.is_some()),
+            probes: 0,
+            rows: 0,
             bytes: got
                 .record
                 .as_ref()
@@ -500,12 +511,14 @@ fn prepare_source_descend<M: ReadModel>(
                 max_bytes,
                 budget.json.max_bytes,
                 max_vm_steps,
+                budget.max_probes.saturating_sub(work.probes),
+                budget.max_rows.saturating_sub(work.rows),
             )?;
             work.charge(page.charged, budget)?;
             work.charge(
                 Charged {
-                    probes: 1,
-                    rows: page.edges.len() as u64,
+                    probes: 0,
+                    rows: 0,
                     bytes: page
                         .edges
                         .iter()
@@ -631,10 +644,13 @@ fn prepare_source_descend<M: ReadModel>(
     }
     let remaining = budget.max_bytes.saturating_sub(work.bytes);
     let max_bytes = remaining.min(budget.json.max_bytes as u64) as usize;
-    if max_bytes == 0 {
+    if max_bytes == 0
+        || budget.max_probes.saturating_sub(work.probes) == 0
+        || budget.max_rows.saturating_sub(work.rows) == 0
+    {
         return Err(QueryError::new(
             QueryErrorCode::BudgetExceeded,
-            "source descent read budget exhausted",
+            "source descent authority read budget exhausted",
         ));
     }
     let authority = model.authority_boundary(max_bytes)?;
