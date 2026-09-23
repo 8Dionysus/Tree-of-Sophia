@@ -62,8 +62,11 @@ pub(crate) struct AuditLimits {
     pub max_total_bytes: u64,
     pub max_wall: Duration,
     pub max_issues: usize,
+    pub max_issue_bytes: usize,
     pub max_reads: usize,
+    pub max_read_bytes: usize,
     pub max_facts: usize,
+    pub max_fact_bytes: usize,
     pub global: GlobalBudget,
 }
 
@@ -114,8 +117,11 @@ pub(crate) enum AuditResult {
 pub(crate) struct AuditSink {
     limits: AuditLimits,
     issues: Vec<AuditIssue>,
+    issue_bytes: usize,
     reads: Vec<PredicateRead>,
+    read_bytes: usize,
     facts: Vec<ValidationFact>,
+    fact_bytes: usize,
     global: Option<GlobalFactStore>,
 }
 
@@ -128,8 +134,11 @@ impl AuditSink {
         Ok(Self {
             limits,
             issues: Vec::new(),
+            issue_bytes: 0,
             reads: Vec::new(),
+            read_bytes: 0,
             facts: Vec::new(),
+            fact_bytes: 0,
             global: Some(
                 GlobalFactStore::new(limits.global, scratch_dir, attempt_id)
                     .map_err(AuditRefusal::GlobalFacts)?,
@@ -138,25 +147,46 @@ impl AuditSink {
     }
 
     pub fn issue(&mut self, issue: AuditIssue) -> Result<(), AuditRefusal> {
-        if self.issues.len() >= self.limits.max_issues {
+        let size = string_bytes(&[issue.rule_id, &issue.path, &issue.code])?;
+        if self.issues.len() >= self.limits.max_issues
+            || self
+                .issue_bytes
+                .checked_add(size)
+                .is_none_or(|next| next > self.limits.max_issue_bytes)
+        {
             return Err(AuditRefusal::BudgetExceeded);
         }
+        self.issue_bytes += size;
         self.issues.push(issue);
         Ok(())
     }
 
     pub fn read(&mut self, read: PredicateRead) -> Result<(), AuditRefusal> {
-        if self.reads.len() >= self.limits.max_reads {
+        let size = read_bytes(&read)?;
+        if self.reads.len() >= self.limits.max_reads
+            || self
+                .read_bytes
+                .checked_add(size)
+                .is_none_or(|next| next > self.limits.max_read_bytes)
+        {
             return Err(AuditRefusal::BudgetExceeded);
         }
+        self.read_bytes += size;
         self.reads.push(read);
         Ok(())
     }
 
     pub fn fact(&mut self, fact: ValidationFact) -> Result<(), AuditRefusal> {
-        if self.facts.len() >= self.limits.max_facts {
+        let size = string_bytes(&[&fact.namespace, &fact.key, &fact.value_digest])?;
+        if self.facts.len() >= self.limits.max_facts
+            || self
+                .fact_bytes
+                .checked_add(size)
+                .is_none_or(|next| next > self.limits.max_fact_bytes)
+        {
             return Err(AuditRefusal::BudgetExceeded);
         }
+        self.fact_bytes += size;
         self.facts.push(fact);
         Ok(())
     }
@@ -167,6 +197,60 @@ impl AuditSink {
             .expect("global store remains until all rules finish")
             .push(fact)
             .map_err(AuditRefusal::GlobalFacts)
+    }
+}
+
+fn string_bytes(values: &[&str]) -> Result<usize, AuditRefusal> {
+    values
+        .iter()
+        .try_fold(0usize, |total, value| total.checked_add(value.len()))
+        .ok_or(AuditRefusal::BudgetExceeded)
+}
+
+fn read_bytes(read: &PredicateRead) -> Result<usize, AuditRefusal> {
+    match read {
+        PredicateRead::ExactRecord {
+            id,
+            version,
+            digest,
+        } => string_bytes(&[id, version, digest]),
+        PredicateRead::ExactPath { path, digest } => string_bytes(&[path, digest]),
+        PredicateRead::ExactBytes { locator, digest } => string_bytes(&[locator, digest]),
+        PredicateRead::IdentityKey { namespace, key, .. }
+        | PredicateRead::AbsentKey { namespace, key } => string_bytes(&[namespace, key]),
+        PredicateRead::RefEndpoint {
+            endpoint_type, id, ..
+        } => string_bytes(&[endpoint_type, id]),
+        PredicateRead::UniqueKey {
+            namespace,
+            key,
+            owner,
+        } => string_bytes(&[namespace, key, owner]),
+        PredicateRead::Range {
+            namespace,
+            lower,
+            upper,
+            generation,
+        } => string_bytes(&[namespace, lower, upper, generation]),
+        PredicateRead::Prefix {
+            namespace,
+            prefix,
+            generation,
+        } => string_bytes(&[namespace, prefix, generation]),
+        PredicateRead::ReverseRefs {
+            target,
+            relation,
+            generation,
+        } => string_bytes(&[target, relation, generation]),
+        PredicateRead::Interval {
+            scope, generation, ..
+        } => string_bytes(&[scope, generation]),
+        PredicateRead::SchemaResource { uri, digest } => string_bytes(&[uri, digest]),
+        PredicateRead::Registry {
+            uri,
+            version,
+            digest,
+        } => string_bytes(&[uri, version, digest]),
     }
 }
 
@@ -407,8 +491,11 @@ mod tests {
             max_total_bytes: 64,
             max_wall: Duration::from_secs(2),
             max_issues: 4,
+            max_issue_bytes: 256,
             max_reads: 4,
+            max_read_bytes: 256,
             max_facts: 4,
+            max_fact_bytes: 256,
             global: GlobalBudget {
                 max_facts: 8,
                 max_memory_bytes: 1024,
@@ -515,5 +602,34 @@ mod tests {
         assert!(
             matches!(result, AuditResult::Invalid { issues, .. } if issues.iter().any(|issue| issue.code == "global.duplicate-owner:source-id"))
         );
+    }
+
+    #[test]
+    fn issue_read_and_fact_byte_budgets_refuse_large_observations() {
+        let mut sink = AuditSink::new(limits(), None, "bytes").unwrap();
+        assert_eq!(
+            sink.issue(AuditIssue {
+                rule_id: REQUIRED_GENERAL_ROWS[0],
+                path: "a".repeat(300),
+                code: "bad".into()
+            }),
+            Err(AuditRefusal::BudgetExceeded)
+        );
+        assert_eq!(
+            sink.read(PredicateRead::ExactPath {
+                path: "a".repeat(300),
+                digest: "sha256:x".into()
+            }),
+            Err(AuditRefusal::BudgetExceeded)
+        );
+        assert_eq!(
+            sink.fact(ValidationFact {
+                namespace: "n".into(),
+                key: "k".repeat(300),
+                value_digest: "v".into()
+            }),
+            Err(AuditRefusal::BudgetExceeded)
+        );
+        assert!(sink.issues.is_empty() && sink.reads.is_empty() && sink.facts.is_empty());
     }
 }
