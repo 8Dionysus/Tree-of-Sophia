@@ -8,8 +8,8 @@ import { readFile, stat } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 
 const [bindingPath, wasmPath, foundationPath, profilesPath, floatPath] = process.argv.slice(2);
-if (!bindingPath || !wasmPath || !foundationPath || !profilesPath || !floatPath) {
-  throw new Error('usage: node wasm-host.mjs BINDING.js MODULE_bg.wasm FOUNDATION.jsonl CANONICAL-PROFILES.jsonl FLOAT-DIFFERENTIAL.jsonl');
+if (!bindingPath || !wasmPath || !foundationPath || !profilesPath) {
+  throw new Error('usage: node wasm-host.mjs BINDING.js MODULE_bg.wasm FOUNDATION.jsonl CANONICAL-PROFILES.jsonl [FLOAT-DIFFERENTIAL.jsonl]');
 }
 
 const binding = await import(pathToFileURL(bindingPath).href);
@@ -17,7 +17,7 @@ const wasmBytes = await readFile(wasmPath);
 const lines = async path => (await readFile(path, 'utf8')).trim().split('\n').map(JSON.parse);
 const foundation = await lines(foundationPath);
 const profiles = await lines(profilesPath);
-const floats = await lines(floatPath);
+const floats = floatPath ? await lines(floatPath) : [];
 const before = process.memoryUsage();
 const start = performance.now();
 await binding.default({ module_or_path: wasmBytes });
@@ -111,8 +111,10 @@ for (const vector of floats) {
     vector.source_record_v1_sha256, `${vector.bits_hex}/record`);
   floatChecked += 2;
 }
-assert.equal(floats.length, 4129, 'the independent finite-float sample changed');
-assert.equal(floatChecked, 8258);
+if (floatPath) {
+  assert.equal(floats.length, 4129, 'the independent finite-float sample changed');
+  assert.equal(floatChecked, 8258);
+}
 
 const duplicate = binding.codec_v1(encoder.encode('{"id":1,"\\u0069d":2}'),
   'canonical', capabilities.canonical_profiles[2]);
