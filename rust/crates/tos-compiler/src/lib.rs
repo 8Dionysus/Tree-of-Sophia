@@ -5,6 +5,7 @@ pub mod catalog;
 pub mod d1;
 mod knowledge_indexed;
 pub mod knowledge_normalization;
+pub mod knowledge_philosophy_display;
 mod knowledge_registry;
 mod knowledge_scope;
 mod knowledge_search;
