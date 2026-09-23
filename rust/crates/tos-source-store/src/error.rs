@@ -30,11 +30,19 @@ pub struct StoreError {
 
 impl StoreError {
     pub const fn new(code: StoreErrorCode, detail: &'static str) -> Self {
-        Self { code, detail, source: None }
+        Self {
+            code,
+            detail,
+            source: None,
+        }
     }
 
     pub fn io(detail: &'static str, source: io::Error) -> Self {
-        Self { code: StoreErrorCode::Io, detail, source: Some(source) }
+        Self {
+            code: StoreErrorCode::Io,
+            detail,
+            source: Some(source),
+        }
     }
 }
 
@@ -46,7 +54,9 @@ impl fmt::Display for StoreError {
 
 impl std::error::Error for StoreError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        self.source.as_ref().map(|source| source as &(dyn std::error::Error + 'static))
+        self.source
+            .as_ref()
+            .map(|source| source as &(dyn std::error::Error + 'static))
     }
 }
 

@@ -10,4 +10,6 @@ mod object;
 
 pub use error::{Result, StoreError, StoreErrorCode};
 pub use limits::ReadLimits;
-pub use manifest::{CorpusDescriptor, CorpusReader, MemberMetadata, RetirementMetadata, Selector, Snapshot};
+pub use manifest::{
+    CorpusDescriptor, CorpusReader, MemberMetadata, RetirementMetadata, Selector, Snapshot,
+};

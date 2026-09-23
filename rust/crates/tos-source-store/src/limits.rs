@@ -20,13 +20,17 @@ impl ReadLimits {
             || self.max_manifest_entries == 0
             || self.max_selected_object_bytes == 0
             || self.max_manifest_bytes == usize::MAX
+            || self.max_manifest_entries == usize::MAX
             || self.max_selected_object_bytes == u64::MAX
             || self.json.max_bytes == 0
             || self.json.max_depth == 0
             || self.json.max_visits == 0
             || self.json.max_integer_digits == 0
         {
-            return Err(StoreError::new(StoreErrorCode::BudgetExceeded, "invalid or unbounded source read limits"));
+            return Err(StoreError::new(
+                StoreErrorCode::BudgetExceeded,
+                "invalid or unbounded source read limits",
+            ));
         }
         Ok(self)
     }
