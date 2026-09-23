@@ -2,12 +2,12 @@
 //! specialized source adapters still own their semantics and global joins.
 
 use crate::{
-    knowledge_stage::{KnowledgeStage, WritePhase},
     Error, Result,
+    knowledge_stage::{KnowledgeStage, WritePhase},
 };
 use rusqlite::params;
 use serde_json::Value;
-use tos_foundation::{parse_json, Digest256, JsonLimits, JsonMode};
+use tos_foundation::{Digest256, JsonLimits, JsonMode, parse_json};
 
 #[derive(Clone, Copy, Debug)]
 pub struct OrderedCandidateLimits {
@@ -344,10 +344,10 @@ const RELATION_FINAL: &str = "INSERT INTO knowledge_relations
 mod tests {
     use super::*;
     use crate::{
+        Limits, SourceBinding,
         knowledge_stage::{
             ExactInputReceipt, InputCollectionReceipt, StageIsolation, StageLimits, StageOwner,
         },
-        Limits, SourceBinding,
     };
     use std::{
         fs,
