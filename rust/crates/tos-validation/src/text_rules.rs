@@ -648,7 +648,14 @@ pub fn inspect_source_text_layer_v1(
     }
     let mut in_end = 0usize;
     let mut out_end = 0usize;
+    let mut output_cursor = 0usize;
     let mut replay = String::new();
+    let input_points: Option<Vec<usize>> = input_text.as_deref().map(|text| {
+        text.char_indices()
+            .map(|(i, _)| i)
+            .chain(std::iter::once(text.len()))
+            .collect()
+    });
     for operation in operations {
         let edit_id = string(operation, "edit_id").unwrap_or("");
         layer_maker_configuration(
@@ -703,12 +710,7 @@ pub fn inspect_source_text_layer_v1(
         if rows(operation, "evidence_anchor_refs").is_empty() {
             out.issue("layer_edit_anchor_missing", edit_id);
         }
-        if let Some(text) = input_text.as_deref() {
-            let points: Vec<usize> = text
-                .char_indices()
-                .map(|(i, _)| i)
-                .chain(std::iter::once(text.len()))
-                .collect();
+        if let (Some(text), Some(points)) = (input_text.as_deref(), input_points.as_deref()) {
             if in_end < points.len()
                 && ins < points.len()
                 && ine < points.len()
@@ -717,15 +719,17 @@ pub fn inspect_source_text_layer_v1(
             {
                 let unchanged = &text[points[in_end]..points[ins]];
                 replay.push_str(unchanged);
+                output_cursor += ins - in_end;
                 if &text[points[ins]..points[ine]] != input_exact {
                     out.issue("layer_edit_input_text_drift", edit_id);
                 }
-                if outs != replay.chars().count()
+                if outs != output_cursor
                     || outs.checked_add(output_exact.chars().count()) != Some(oute)
                 {
                     out.issue("layer_edit_output_alignment_drift", edit_id);
                 }
                 replay.push_str(output_exact);
+                output_cursor += output_exact.chars().count();
             } else {
                 out.issue("layer_edit_input_outside_predecessor", edit_id);
             }
@@ -735,13 +739,10 @@ pub fn inspect_source_text_layer_v1(
     }
     if let (Some(input), Some(output)) = (input_text.as_deref(), selected) {
         if !operations.is_empty() {
-            let points: Vec<usize> = input
-                .char_indices()
-                .map(|(i, _)| i)
-                .chain(std::iter::once(input.len()))
-                .collect();
-            if in_end < points.len() {
-                replay.push_str(&input[points[in_end]..]);
+            if let Some(points) = input_points.as_deref() {
+                if in_end < points.len() {
+                    replay.push_str(&input[points[in_end]..]);
+                }
             }
             if replay != output {
                 out.issue("layer_edit_replay_output_drift", id);
