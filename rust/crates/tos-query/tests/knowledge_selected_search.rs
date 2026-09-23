@@ -168,6 +168,9 @@ fn canonical(value: &JsonValue) -> Vec<u8> {
 #[test]
 fn producer_selected_indexed_pages_match_python_rank_and_original_carriers() {
     let fixture = build_fixture();
+    if let Some(path) = std::env::var_os("TOS_CMP_GRAPH_INPUT_EXPORT") {
+        std::fs::write(path, &fixture.graph_input_bytes).unwrap();
+    }
     let input = parse_json(
         &fixture.graph_input_bytes,
         JsonMode::PublishedStrict,
