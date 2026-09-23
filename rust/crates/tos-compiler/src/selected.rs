@@ -18,7 +18,7 @@ use std::{
         atomic::{AtomicU64, Ordering},
     },
 };
-use tos_foundation::{Digest256, JsonMode};
+use tos_foundation::{Digest256, Digest256Hasher, JsonMode};
 
 /// This expectation comes from the source/selection owner, independently of
 /// the local pointer bytes. It carries no grant to disclose current content.
@@ -164,6 +164,157 @@ fn open_sqlite(pinned: &File, max_vm_steps: u64) -> Result<(Connection, Arc<Atom
     Ok((db, used))
 }
 
+fn checked_root_item(hash: &mut Digest256Hasher, id: &str, sha256: &str) -> Result<()> {
+    let digest =
+        Digest256::from_hex(sha256).map_err(|_| Error::Invalid("selected row digest malformed"))?;
+    hash.update(&(id.len() as u64).to_be_bytes());
+    hash.update(id.as_bytes());
+    hash.update(digest.as_bytes());
+    Ok(())
+}
+
+fn verify_root(
+    db: &Connection,
+    table: &str,
+    id_col: &str,
+    root_key: &str,
+    count_key: &str,
+) -> Result<()> {
+    let sql = match (table, id_col) {
+        ("nodes", "node_id") => "SELECT node_id,carrier_sha256 FROM nodes ORDER BY node_id",
+        ("edges", "edge_id") => "SELECT edge_id,carrier_sha256 FROM edges ORDER BY edge_id",
+        ("rights", "rights_id") => "SELECT rights_id,carrier_sha256 FROM rights ORDER BY rights_id",
+        _ => return Err(Error::Invalid("selected root table")),
+    };
+    let mut statement = db.prepare(sql)?;
+    let mut rows = statement.query([])?;
+    let mut hash = Digest256Hasher::new();
+    let mut count = 0u64;
+    while let Some(row) = rows.next()? {
+        let id: String = row.get(0)?;
+        let digest: String = row.get(1)?;
+        checked_root_item(&mut hash, &id, &digest)?;
+        count = count
+            .checked_add(1)
+            .ok_or(Error::Budget("selected row count"))?;
+    }
+    if metadata(db, root_key, 64)? != hash.finalize().to_hex()
+        || metadata(db, count_key, 32)? != count.to_string()
+    {
+        return Err(Error::Invalid("selected row root/count mismatch"));
+    }
+    Ok(())
+}
+
+/// One cold admission pass. Reused warm readers inherit this owner-selected
+/// immutable inode and never repeat whole-file work per request.
+fn verify_cold_closure(db: &Connection) -> Result<()> {
+    if db.query_row("PRAGMA integrity_check", [], |row| row.get::<_, String>(0))? != "ok" {
+        return Err(Error::Invalid("selected SQLite integrity"));
+    }
+    for (table, id, root, count) in [
+        ("nodes", "node_id", "node_root_sha256", "node_count"),
+        ("edges", "edge_id", "edge_root_sha256", "edge_count"),
+        ("rights", "rights_id", "rights_root_sha256", "rights_count"),
+    ] {
+        verify_root(db, table, id, root, count)?;
+    }
+    let visible_nodes: u64 =
+        db.query_row("SELECT count(*) FROM nodes WHERE visible=1", [], |row| {
+            row.get(0)
+        })?;
+    let visible_edges: u64 =
+        db.query_row("SELECT count(*) FROM edges WHERE visible=1", [], |row| {
+            row.get(0)
+        })?;
+    if metadata(db, "visible_node_count", 32)? != visible_nodes.to_string()
+        || metadata(db, "visible_edge_count", 32)? != visible_edges.to_string()
+    {
+        return Err(Error::Invalid("selected visible counts mismatch"));
+    }
+    let broken_node: Option<String> = db
+        .query_row(
+            "SELECT node_id FROM nodes n WHERE visible=1
+         AND NOT EXISTS (SELECT 1 FROM adjacency a WHERE a.from_id=n.node_id) LIMIT 1",
+            [],
+            |row| row.get(0),
+        )
+        .optional()?;
+    let broken_edge: Option<String> = db
+        .query_row(
+            "SELECT edge_id FROM edges e WHERE visible=1 AND
+         (NOT EXISTS (SELECT 1 FROM nodes n WHERE n.node_id=e.from_id AND n.visible=1)
+          OR NOT EXISTS (SELECT 1 FROM nodes n WHERE n.node_id=e.to_id AND n.visible=1))
+         LIMIT 1",
+            [],
+            |row| row.get(0),
+        )
+        .optional()?;
+    let broken_rights: Option<String> = db
+        .query_row(
+            "SELECT rights_id FROM rights_scopes s WHERE
+         NOT EXISTS (SELECT 1 FROM rights r WHERE r.rights_id=s.rights_id) LIMIT 1",
+            [],
+            |row| row.get(0),
+        )
+        .optional()?;
+    if broken_node.is_some() || broken_edge.is_some() || broken_rights.is_some() {
+        return Err(Error::Invalid("selected model relational closure"));
+    }
+    let mut adj_stmt =
+        db.prepare("SELECT from_id,edge_count,edges_sha256 FROM adjacency ORDER BY from_id")?;
+    let mut adj = adj_stmt.query([])?;
+    let mut edge_stmt = db.prepare(
+        "SELECT from_id,edge_id,carrier_sha256 FROM edges WHERE visible=1 ORDER BY from_id,edge_id",
+    )?;
+    let mut edges = edge_stmt.query([])?;
+    let edge_tuple = |row: &rusqlite::Row<'_>| -> rusqlite::Result<(String, String, String)> {
+        Ok((row.get(0)?, row.get(1)?, row.get(2)?))
+    };
+    let mut next_edge = edges.next()?.map(edge_tuple).transpose()?;
+    let mut certified_edges = 0u64;
+    while let Some(row) = adj.next()? {
+        let from: String = row.get(0)?;
+        let expected_count: i64 = row.get(1)?;
+        let expected_root: String = row.get(2)?;
+        if expected_count < 0 {
+            return Err(Error::Invalid("selected adjacency negative count"));
+        }
+        let visible: Option<i64> = db
+            .query_row(
+                "SELECT visible FROM nodes WHERE node_id=?1",
+                params![&from],
+                |r| r.get(0),
+            )
+            .optional()?;
+        if visible != Some(1) {
+            return Err(Error::Invalid("selected adjacency source not visible"));
+        }
+        let mut hash = Digest256Hasher::new();
+        let mut count = 0u64;
+        while let Some((edge_from, id, digest)) = next_edge.as_ref() {
+            if edge_from != &from {
+                break;
+            }
+            checked_root_item(&mut hash, id, digest)?;
+            count = count
+                .checked_add(1)
+                .ok_or(Error::Budget("selected adjacency count"))?;
+            next_edge = edges.next()?.map(edge_tuple).transpose()?;
+        }
+        if count != expected_count as u64 || hash.finalize().to_hex() != expected_root {
+            return Err(Error::Invalid("selected adjacency root/count mismatch"));
+        }
+        certified_edges = certified_edges
+            .checked_add(count)
+            .ok_or(Error::Budget("selected certified edges"))?;
+    }
+    if next_edge.is_some() || certified_edges != visible_edges {
+        return Err(Error::Invalid("selected adjacency coverage mismatch"));
+    }
+    Ok(())
+}
+
 pub fn open_selected_model(
     publication_dir: &Path,
     expected: &SelectedExpectation<'_>,
@@ -250,6 +401,7 @@ pub fn open_selected_model(
     if metadata(&db, "derived_authority", 128)? != "candidate_only_no_admission" {
         return Err(Error::Invalid("selected model derived authority marker"));
     }
+    verify_cold_closure(&db)?;
     Ok(VerifiedSelectedModel {
         connection: db,
         pinned,
@@ -272,4 +424,57 @@ pub fn open_selected_model(
             complete: true,
         },
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn cold_admission_refuses_missing_zero_adjacency_certificate() {
+        let db = Connection::open_in_memory().unwrap();
+        db.execute_batch(
+            "CREATE TABLE metadata(key TEXT PRIMARY KEY,value TEXT NOT NULL);
+             CREATE TABLE nodes(node_id TEXT PRIMARY KEY,visible INTEGER,carrier_sha256 TEXT);
+             CREATE TABLE edges(edge_id TEXT PRIMARY KEY,from_id TEXT,to_id TEXT,visible INTEGER,carrier_sha256 TEXT);
+             CREATE TABLE rights(rights_id TEXT PRIMARY KEY,carrier_sha256 TEXT);
+             CREATE TABLE rights_scopes(rights_id TEXT,scope_id TEXT);
+             CREATE TABLE adjacency(from_id TEXT PRIMARY KEY,edge_count INTEGER,edges_sha256 TEXT);",
+        ).unwrap();
+        let empty = Digest256::of_bytes(b"").to_hex();
+        for key in ["node_root_sha256", "edge_root_sha256", "rights_root_sha256"] {
+            db.execute("INSERT INTO metadata VALUES (?1,?2)", params![key, &empty])
+                .unwrap();
+        }
+        for key in [
+            "node_count",
+            "edge_count",
+            "rights_count",
+            "visible_node_count",
+            "visible_edge_count",
+        ] {
+            db.execute("INSERT INTO metadata VALUES (?1,'0')", params![key])
+                .unwrap();
+        }
+        verify_cold_closure(&db).unwrap();
+        let row_sha = "1".repeat(64);
+        db.execute("INSERT INTO nodes VALUES ('n',1,?1)", params![&row_sha])
+            .unwrap();
+        let mut root = Digest256Hasher::new();
+        checked_root_item(&mut root, "n", &row_sha).unwrap();
+        db.execute(
+            "UPDATE metadata SET value=?1 WHERE key='node_root_sha256'",
+            params![root.finalize().to_hex()],
+        )
+        .unwrap();
+        db.execute(
+            "UPDATE metadata SET value='1' WHERE key IN ('node_count','visible_node_count')",
+            [],
+        )
+        .unwrap();
+        assert!(verify_cold_closure(&db).is_err());
+        db.execute("INSERT INTO adjacency VALUES ('n',0,?1)", params![&empty])
+            .unwrap();
+        verify_cold_closure(&db).unwrap();
+    }
 }
