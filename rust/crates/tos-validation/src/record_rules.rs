@@ -260,11 +260,11 @@ impl RecordFamily {
         );
         let mut total_resource_bytes = contract_raw.len();
         for resource in schemas {
-            total_resource_bytes = total_resource_bytes
-                .checked_add(resource.raw.len())
-                .ok_or(RecordRuleError::Budget {
+            total_resource_bytes = total_resource_bytes.checked_add(resource.raw.len()).ok_or(
+                RecordRuleError::Budget {
                     code: "schema_total_bytes",
-                })?;
+                },
+            )?;
             if resources.len() >= MAX_SOURCE_RESOURCES
                 || total_resource_bytes > MAX_SOURCE_RESOURCE_BYTES
             {
@@ -433,12 +433,12 @@ impl RecordFamily {
         let carrier = native_carrier(path, &record)?;
         if carrier.semantic_packet {
             self.native_packet_count += 1;
-            self.native_packet_bytes = self
-                .native_packet_bytes
-                .checked_add(raw.len())
-                .ok_or(RecordRuleError::Budget {
-                    code: "native_identity_byte_budget",
-                })?;
+            self.native_packet_bytes =
+                self.native_packet_bytes
+                    .checked_add(raw.len())
+                    .ok_or(RecordRuleError::Budget {
+                        code: "native_identity_byte_budget",
+                    })?;
             if self.native_packet_count > 1024 || self.native_packet_bytes > 8_388_608 {
                 return Err(RecordRuleError::Budget {
                     code: "native_identity_inventory_budget",
@@ -497,15 +497,25 @@ impl RecordFamily {
             }
             return Ok(());
         }
-        if matches!(carrier.kind, "agent" | "place" | "organization" | "work" | "expression" | "edition" | "collection" | "item" | "link")
-            && record.get("record_type").and_then(Value::as_str) != Some(carrier.kind)
+        if matches!(
+            carrier.kind,
+            "agent"
+                | "place"
+                | "organization"
+                | "work"
+                | "expression"
+                | "edition"
+                | "collection"
+                | "item"
+                | "link"
+        ) && record.get("record_type").and_then(Value::as_str) != Some(carrier.kind)
         {
             self.issue(sink, path, "native_record_type")?;
         }
         let Some(id) = record.get(carrier.id_field).and_then(Value::as_str) else {
             return self.issue(sink, path, "native_record_id");
         };
-        if !valid_record_id(id, &format!("tos.{}." ,carrier.kind)) {
+        if !valid_record_id(id, &format!("tos.{}.", carrier.kind)) {
             self.issue(sink, path, "native_record_id")?;
         }
         let Some(version) = positive_integer(&record, "record_version") else {
@@ -621,7 +631,13 @@ impl RecordFamily {
                 }
                 (
                     check_verdict(&evidence.route, raw, probe, schema_uri, self.format_profile)?,
-                    check_verdict(&evidence.common, raw, probe, COMMON_URI, self.format_profile)?,
+                    check_verdict(
+                        &evidence.common,
+                        raw,
+                        probe,
+                        COMMON_URI,
+                        self.format_profile,
+                    )?,
                 )
             }
             None => (
@@ -946,7 +962,10 @@ fn native_carrier(path: &str, record: &Value) -> Result<NativeCarrier, RecordRul
             part.is_empty()
                 || *part == "."
                 || *part == ".."
-                || matches!(*part, "catalog" | "payload" | "local-content" | "owner-local")
+                || matches!(
+                    *part,
+                    "catalog" | "payload" | "local-content" | "owner-local"
+                )
         })
     {
         return Err(unsupported("native_owner_path", path));
@@ -965,21 +984,73 @@ fn native_carrier(path: &str, record: &Value) -> Result<NativeCarrier, RecordRul
         return Err(unsupported("native_owner_path", path));
     }
     let carrier = match (parts[2], basename) {
-        ("agents", "agent.json") => ("agent", CORPUS_CONTRACT, "tos_corpus_record_v1", "record_id"),
-        ("places", "place.json") => ("place", CORPUS_CONTRACT, "tos_corpus_record_v1", "record_id"),
-        ("organizations", "organization.json") => ("organization", CORPUS_CONTRACT, "tos_corpus_record_v1", "record_id"),
+        ("agents", "agent.json") => (
+            "agent",
+            CORPUS_CONTRACT,
+            "tos_corpus_record_v1",
+            "record_id",
+        ),
+        ("places", "place.json") => (
+            "place",
+            CORPUS_CONTRACT,
+            "tos_corpus_record_v1",
+            "record_id",
+        ),
+        ("organizations", "organization.json") => (
+            "organization",
+            CORPUS_CONTRACT,
+            "tos_corpus_record_v1",
+            "record_id",
+        ),
         ("works", "work.json") => ("work", CORPUS_CONTRACT, "tos_corpus_record_v1", "record_id"),
-        ("expressions", "expression.json") => ("expression", CORPUS_CONTRACT, "tos_corpus_record_v1", "record_id"),
-        ("editions", "edition.json") => ("edition", CORPUS_CONTRACT, "tos_corpus_record_v1", "record_id"),
-        ("collections", "collection.json") => ("collection", CORPUS_CONTRACT, "tos_corpus_record_v1", "record_id"),
+        ("expressions", "expression.json") => (
+            "expression",
+            CORPUS_CONTRACT,
+            "tos_corpus_record_v1",
+            "record_id",
+        ),
+        ("editions", "edition.json") => (
+            "edition",
+            CORPUS_CONTRACT,
+            "tos_corpus_record_v1",
+            "record_id",
+        ),
+        ("collections", "collection.json") => (
+            "collection",
+            CORPUS_CONTRACT,
+            "tos_corpus_record_v1",
+            "record_id",
+        ),
         ("items", "item.json") => ("item", CORPUS_CONTRACT, "tos_corpus_record_v1", "record_id"),
-        ("links", "link.json") => ("link", "ToS/contracts/source-link.schema.json", "tos_source_link_v1", "record_id"),
-        ("artifacts", "artifact-witness.json") => match record.get("schema_version").and_then(Value::as_str) {
-            Some("tos_artifact_source_witness_v1") => ("artifact", "ToS/contracts/artifact-source-witness.schema.json", "tos_artifact_source_witness_v1", "artifact_id"),
-            Some("tos_artifact_source_witness_v2") => ("artifact", "ToS/contracts/artifact-source-witness-v2.schema.json", "tos_artifact_source_witness_v2", "artifact_id"),
-            _ => return Err(unsupported("native_artifact_schema_version", path)),
-        },
-        ("scholarly-composites", "composite-witness.json") => ("composite", "ToS/contracts/scholarly-composite-witness.schema.json", "tos_scholarly_composite_witness_v1", "composite_id"),
+        ("links", "link.json") => (
+            "link",
+            "ToS/contracts/source-link.schema.json",
+            "tos_source_link_v1",
+            "record_id",
+        ),
+        ("artifacts", "artifact-witness.json") => {
+            match record.get("schema_version").and_then(Value::as_str) {
+                Some("tos_artifact_source_witness_v1") => (
+                    "artifact",
+                    "ToS/contracts/artifact-source-witness.schema.json",
+                    "tos_artifact_source_witness_v1",
+                    "artifact_id",
+                ),
+                Some("tos_artifact_source_witness_v2") => (
+                    "artifact",
+                    "ToS/contracts/artifact-source-witness-v2.schema.json",
+                    "tos_artifact_source_witness_v2",
+                    "artifact_id",
+                ),
+                _ => return Err(unsupported("native_artifact_schema_version", path)),
+            }
+        }
+        ("scholarly-composites", "composite-witness.json") => (
+            "composite",
+            "ToS/contracts/scholarly-composite-witness.schema.json",
+            "tos_scholarly_composite_witness_v1",
+            "composite_id",
+        ),
         _ => return Err(unsupported("unrecognized_native_carrier", path)),
     };
     Ok(NativeCarrier {
@@ -1477,11 +1548,21 @@ mod tests {
         let mut events = Events::default();
         rule.inspect_member_with_bounded_schema(RECORD, &raw, &evidence, &mut events)
             .unwrap();
-        assert!(events.0.iter().any(|event| matches!(event, RecordObservation::IdOwner { .. })));
+        assert!(
+            events
+                .0
+                .iter()
+                .any(|event| matches!(event, RecordObservation::IdOwner { .. }))
+        );
         let mut wrong = evidence;
         wrong.common.instance_sha256 = "b".repeat(64);
-        assert!(matches!(rule.inspect_member_with_bounded_schema(RECORD, &raw, &wrong, &mut events),
-            Err(RecordRuleError::Unsupported { code: "bounded_schema_evidence_mismatch", .. })));
+        assert!(matches!(
+            rule.inspect_member_with_bounded_schema(RECORD, &raw, &wrong, &mut events),
+            Err(RecordRuleError::Unsupported {
+                code: "bounded_schema_evidence_mismatch",
+                ..
+            })
+        ));
     }
 
     #[test]
@@ -1490,8 +1571,13 @@ mod tests {
         let mut rule = family();
         let raw = source(ARTIFACT);
         let plan = rule.native_schema_plan(ARTIFACT, &raw).unwrap();
-        assert!(plan.root_uri.ends_with("artifact-source-witness-v2.schema.json")
-            || plan.root_uri.ends_with("artifact-source-witness.schema.json"));
+        assert!(
+            plan.root_uri
+                .ends_with("artifact-source-witness-v2.schema.json")
+                || plan
+                    .root_uri
+                    .ends_with("artifact-source-witness.schema.json")
+        );
         let evidence = synthetic_verdict(
             &plan.instance_sha256,
             &plan.schema_set_digest,
