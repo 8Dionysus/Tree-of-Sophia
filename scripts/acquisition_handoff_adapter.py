@@ -598,10 +598,12 @@ def _verify_handoff(
         }.items():
             if row.get(key) != value:
                 raise HandoffAdapterError(f"fixity row binding differs: {payload.file_ref}")
-        destination = custody.payload_path(
-            acquisition_root / "payload", expected["item_root_ref"], expected["relative_path"]
-        )
         try:
+            destination = custody.payload_path(
+                acquisition_root / "payload",
+                expected["item_root_ref"],
+                expected["relative_path"],
+            )
             digest = acquisition._verify_destination(destination, expected)
         except (acquisition.SourceIntegrityError, custody.CustodyError, OSError) as exc:
             raise HandoffAdapterError(f"payload custody differs: {payload.file_ref}") from exc
@@ -803,21 +805,25 @@ def adapt_handoff(
                 }
             )
         for payload in payloads:
-            source = custody.payload_path(
-                root / "payload", payload["item_root_ref"], payload["relative_path"]
-            )
-            destination = custody.payload_path(
-                payload_root, payload["item_root_ref"], payload["relative_path"]
-            )
-            source_digest = custody.digest_file(source)
-            expected = custody.FileDigest(
-                payload["byte_size"],
-                payload["sha256"],
-                payload.get("git_blob_sha1") or source_digest.git_blob_sha1,
-            )
             try:
+                source = custody.payload_path(
+                    root / "payload",
+                    payload["item_root_ref"],
+                    payload["relative_path"],
+                )
+                destination = custody.payload_path(
+                    payload_root,
+                    payload["item_root_ref"],
+                    payload["relative_path"],
+                )
+                source_digest = custody.digest_file(source)
+                expected = custody.FileDigest(
+                    payload["byte_size"],
+                    payload["sha256"],
+                    payload.get("git_blob_sha1") or source_digest.git_blob_sha1,
+                )
                 status = custody._publish_no_clobber(source, destination, expected)
-            except custody.CustodyError as exc:
+            except (custody.CustodyError, OSError) as exc:
                 raise HandoffAdapterError(f"cannot materialize payload custody: {payload['file_ref']}") from exc
             if status not in {"copied", "already_present"}:
                 raise HandoffAdapterError(f"payload custody conflict: {payload['file_ref']}")

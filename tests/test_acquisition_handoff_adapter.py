@@ -762,6 +762,88 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
         self.assertEqual(len(records), len(verified.selected_source_rows))
         self.assertEqual(1, len(verified.payloads))
 
+    def test_handoff_routes_translate_payload_symlink_errors(self) -> None:
+        fetches, _old_sha, _item_root, records = self._write_manifest(
+            base_revision="0" * 64
+        )
+        base_revision = self._write_accepted_base(records)
+        fetches, manifest_sha, item_root, _records = self._write_manifest(
+            base_revision=base_revision
+        )
+        result = acquisition.acquire_batch(
+            manifest_path=self.manifest_path,
+            metadata_root=self.metadata,
+            output_root=self.acquisition_root,
+            expected_manifest_sha256=manifest_sha,
+            fetcher=lambda payload: fetches[payload["file_ref"]],
+        )
+        payload_ref, payload_bytes = next(iter(fetches.items()))
+        payload_path = (
+            self.acquisition_root
+            / "payload"
+            / Path(*item_root.split("/")[2:])
+            / "payload/adapter.txt"
+        )
+        replacement = self.root / "replacement-payload.txt"
+        replacement.write_bytes(payload_bytes)
+
+        original_item_binding_check = adapter._verify_item_payload_bindings
+
+        def replace_after_item_binding(context: object, root: Path) -> None:
+            original_item_binding_check(context, root)
+            payload_path.unlink()
+            payload_path.symlink_to(replacement)
+
+        with patch.object(
+            adapter,
+            "_verify_item_payload_bindings",
+            side_effect=replace_after_item_binding,
+        ):
+            with self.assertRaisesRegex(
+                adapter.HandoffAdapterError, "payload custody differs"
+            ):
+                adapter.verify_handoff_for_intake(
+                    acquisition_root=self.acquisition_root,
+                    handoff_ref=result["handoff_ref"],
+                    expected_manifest_sha256=manifest_sha,
+                    expected_base_revision=base_revision,
+                    repo_root=ROOT,
+                )
+
+        payload_path.unlink()
+        payload_path.write_bytes(payload_bytes)
+        payload_path.chmod(0o444)
+        original_handoff_verifier = adapter._verify_handoff
+
+        def replace_after_handoff_verification(**kwargs: object) -> object:
+            verified = original_handoff_verifier(**kwargs)
+            payload_path.unlink()
+            payload_path.symlink_to(replacement)
+            return verified
+
+        with patch.object(
+            adapter,
+            "_verify_handoff",
+            side_effect=replace_after_handoff_verification,
+        ):
+            with self.assertRaisesRegex(
+                adapter.HandoffAdapterError,
+                f"cannot materialize payload custody: {payload_ref}",
+            ):
+                adapter.adapt_handoff(
+                    acquisition_root=self.acquisition_root,
+                    handoff_ref=result["handoff_ref"],
+                    expected_manifest_sha256=manifest_sha,
+                    output_root=self.candidate,
+                    accepted_store_root=self.accepted_store,
+                    accepted_source_root=self.accepted_source,
+                    base_revision=base_revision,
+                    validator_sha256=self.validator_sha256,
+                    validation_context=self._validation_context(),
+                    repo_root=ROOT,
+                )
+        self.assertFalse(self.candidate.exists())
+
     def test_shared_verifier_rejects_wrong_file_id_digest_and_rights(self) -> None:
         controls = (
             {
