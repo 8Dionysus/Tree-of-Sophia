@@ -8,7 +8,8 @@ use postgres::fallible_iterator::FallibleIterator;
 use postgres::{Client, IsolationLevel, NoTls, Transaction};
 use tos_foundation::{Digest256, Digest256Hasher};
 use tos_segment_store::{
-    AttemptRecovery, ByteDurabilityReceipt, SegmentError, SegmentStore, VerificationBudget,
+    AttemptRecovery, ByteDurabilityReceipt, PlacementGenerationRowV1, SegmentError, SegmentStore,
+    VerificationBudget,
 };
 
 const PROFILE_ID: &[u8] = b"cmd2.lab.embedded-revision";
@@ -20,6 +21,8 @@ const HISTORY_KEY_TAG: &[u8] = b"cmd2-history-key-v1";
 const CURRENT_KEY_TAG: &[u8] = b"cmd2-current-key-v1";
 const MAX_MEMBERS: usize = 64;
 const MAX_CUT: u64 = 100_000;
+const MAX_MEMBERSHIP_KEY_BYTES: usize = 4096;
+const MAX_TOTAL_MEMBERSHIP_KEY_BYTES: usize = 16 * 1024 * 1024;
 const MAX_COLD_AUDIT_ELAPSED: Duration = Duration::from_secs(300);
 
 fn check_cold_deadline(started: Instant) -> DurableResult<()> {
@@ -42,6 +45,11 @@ fn membership_key(
     if domain.is_empty() || subject.is_empty() || revision == Some(0) {
         return Err(DurableError::Invalid("membership key identity is empty"));
     }
+    if tag.len() + 8 + domain.len() + subject.len() + usize::from(revision.is_some()) * 8
+        > MAX_MEMBERSHIP_KEY_BYTES
+    {
+        return Err(DurableError::Refused("membership key exceeds byte budget"));
+    }
     let domain_len = u32::try_from(domain.len())
         .map_err(|_| DurableError::Refused("membership domain key too long"))?;
     let subject_len = u32::try_from(subject.len())
@@ -58,6 +66,27 @@ fn membership_key(
         key.extend_from_slice(&revision.to_be_bytes());
     }
     Ok(key)
+}
+
+fn sort_complete_membership(rows: &mut [PlacementGenerationRowV1]) -> DurableResult<()> {
+    rows.sort_unstable_by(|a, b| a.key.cmp(&b.key));
+    if rows.windows(2).any(|pair| pair[0].key == pair[1].key) {
+        return Err(DurableError::Corrupt("duplicate membership key"));
+    }
+    Ok(())
+}
+
+fn logical_membership_root(tag: &[u8], rows: &[PlacementGenerationRowV1]) -> Digest256 {
+    let mut hasher = Digest256Hasher::new();
+    part(&mut hasher, b"cmd2-logical-membership-root-v1");
+    part(&mut hasher, tag);
+    part(&mut hasher, &(rows.len() as u64).to_be_bytes());
+    for row in rows {
+        part(&mut hasher, &row.key);
+        part(&mut hasher, row.logical_digest.as_bytes());
+        part(&mut hasher, &row.logical_length.to_be_bytes());
+    }
+    hasher.finalize()
 }
 
 #[cfg(test)]
@@ -219,6 +248,11 @@ pub struct ColdCut {
     database_oid: u64,
     audit_generation: u64,
     historical_members: u64,
+    current_members: u64,
+    history_membership_root: Digest256,
+    current_membership_root: Digest256,
+    history_rows: Vec<PlacementGenerationRowV1>,
+    current_rows: Vec<PlacementGenerationRowV1>,
 }
 
 impl ColdCut {
@@ -236,6 +270,15 @@ impl ColdCut {
     }
     pub fn historical_members(&self) -> u64 {
         self.historical_members
+    }
+    pub fn current_members(&self) -> u64 {
+        self.current_members
+    }
+    pub fn history_membership_root(&self) -> Digest256 {
+        self.history_membership_root
+    }
+    pub fn current_membership_root(&self) -> Digest256 {
+        self.current_membership_root
     }
 }
 
@@ -1390,8 +1433,11 @@ impl DurablePgCoordinator {
         let mut recovered_pins = 0usize;
         let mut segment_bytes = 0u64;
         let mut historical_members = 0u64;
-        let mut latest: HashMap<String, (u64, Digest256)> = HashMap::new();
+        let mut latest: HashMap<String, (u64, Digest256, tos_segment_store::PlacementV1)> =
+            HashMap::new();
         let mut latest_subject_bytes = 0usize;
+        let mut membership_key_bytes = 0usize;
+        let mut history_rows = Vec::new();
         let mut log_hasher = Digest256Hasher::new();
         part(&mut log_hasher, b"cmd2-cold-cut-v1");
         let mut state_hasher = Digest256Hasher::new();
@@ -1569,9 +1615,25 @@ impl DurablePgCoordinator {
                     let subject: String = historical.get("subject");
                     let revision = as_u64(historical.get("revision"))?;
                     let commitment = metadata_locator_digest(historical);
+                    let coordinate = selected.coordinate();
+                    let key = membership_key(HISTORY_KEY_TAG, domain, &subject, Some(revision))?;
+                    membership_key_bytes = membership_key_bytes
+                        .checked_add(key.len())
+                        .ok_or(DurableError::Refused("membership key byte count overflow"))?;
+                    if membership_key_bytes > MAX_TOTAL_MEMBERSHIP_KEY_BYTES
+                        || history_rows.len() >= MAX_CUT as usize
+                    {
+                        return Err(DurableError::Refused("history membership budget exceeded"));
+                    }
+                    history_rows.push(PlacementGenerationRowV1 {
+                        key,
+                        logical_digest: coordinate.sha256,
+                        logical_length: coordinate.size_bytes,
+                        placement: selected.placement(),
+                    });
                     if latest
                         .get(&subject)
-                        .is_some_and(|(previous, _)| *previous >= revision)
+                        .is_some_and(|(previous, _, _)| *previous >= revision)
                     {
                         return Err(DurableError::Corrupt(
                             "historical revision is not monotonic",
@@ -1587,7 +1649,7 @@ impl DurablePgCoordinator {
                             return Err(DurableError::Refused("current identity budget exceeded"));
                         }
                     }
-                    latest.insert(subject, (revision, commitment));
+                    latest.insert(subject, (revision, commitment, selected.placement()));
                     historical_members += 1;
                 }
                 if member_hasher.finalize() != receipt.member_root {
@@ -1611,6 +1673,7 @@ impl DurablePgCoordinator {
         }
         let mut current = tx.query_raw("SELECT * FROM cmd2_current WHERE domain=$1", &[&domain])?;
         let mut current_members = 0usize;
+        let mut current_rows = Vec::new();
         while let Some(row) = current.next()? {
             check_cold_deadline(started)?;
             current_members = current_members
@@ -1621,11 +1684,27 @@ impl DurablePgCoordinator {
             }
             let subject: String = row.get("subject");
             let revision = as_u64(row.get("revision"))?;
-            if latest.get(&subject) != Some(&(revision, metadata_locator_digest(&row))) {
+            let Some((latest_revision, latest_digest, placement)) = latest.get(&subject) else {
+                return Err(DurableError::Corrupt("current member has no history"));
+            };
+            if *latest_revision != revision || *latest_digest != metadata_locator_digest(&row) {
                 return Err(DurableError::Corrupt(
                     "current locator differs from latest history",
                 ));
             }
+            let key = membership_key(CURRENT_KEY_TAG, domain, &subject, None)?;
+            membership_key_bytes = membership_key_bytes
+                .checked_add(key.len())
+                .ok_or(DurableError::Refused("membership key byte count overflow"))?;
+            if membership_key_bytes > MAX_TOTAL_MEMBERSHIP_KEY_BYTES {
+                return Err(DurableError::Refused("current membership budget exceeded"));
+            }
+            current_rows.push(PlacementGenerationRowV1 {
+                key,
+                logical_digest: placement.coordinate().sha256,
+                logical_length: placement.coordinate().size_bytes,
+                placement: *placement,
+            });
         }
         drop(current);
         if current_members != latest.len() {
@@ -1633,6 +1712,16 @@ impl DurablePgCoordinator {
                 "current membership differs from history",
             ));
         }
+        if history_rows.len() as u64 != historical_members || current_rows.len() != current_members
+        {
+            return Err(DurableError::Corrupt(
+                "membership stream cardinality differs",
+            ));
+        }
+        sort_complete_membership(&mut history_rows)?;
+        sort_complete_membership(&mut current_rows)?;
+        let history_membership_root = logical_membership_root(HISTORY_KEY_TAG, &history_rows);
+        let current_membership_root = logical_membership_root(CURRENT_KEY_TAG, &current_rows);
         let receipt_count: i64 = tx
             .query_one(
                 "SELECT count(*) FROM cmd2_receipt WHERE domain=$1",
@@ -1716,6 +1805,11 @@ impl DurablePgCoordinator {
             database_oid,
             audit_generation,
             historical_members,
+            current_members: current_members as u64,
+            history_membership_root,
+            current_membership_root,
+            history_rows,
+            current_rows,
         };
         tx.commit()?;
         Ok(cut)
