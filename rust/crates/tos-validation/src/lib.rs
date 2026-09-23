@@ -16,6 +16,7 @@ use tos_foundation::{
 
 mod audit;
 pub mod executor;
+mod global_facts;
 pub mod source_copy;
 pub mod source_forms;
 

@@ -3,9 +3,11 @@
 //! must linearize current authority before any mechanical result is sealed.
 
 use std::collections::BTreeSet;
+use std::path::Path;
 
 use tos_foundation::{Digest256, Digest256Hasher};
 
+use crate::global_facts::{GlobalBudget, GlobalFact, GlobalFactStore, GlobalIssue, GlobalRefusal};
 use crate::{PredicateRead, ValidationFact};
 
 /// The source-derived, general-audit rows. A source operation may exclude a
@@ -57,6 +59,7 @@ pub(crate) struct AuditLimits {
     pub max_issues: usize,
     pub max_reads: usize,
     pub max_facts: usize,
+    pub global: GlobalBudget,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -84,6 +87,7 @@ pub(crate) enum AuditRefusal {
         rule_id: &'static str,
         profile: String,
     },
+    GlobalFacts(GlobalRefusal),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -106,16 +110,25 @@ pub(crate) struct AuditSink {
     issues: Vec<AuditIssue>,
     reads: Vec<PredicateRead>,
     facts: Vec<ValidationFact>,
+    global: Option<GlobalFactStore>,
 }
 
 impl AuditSink {
-    fn new(limits: AuditLimits) -> Self {
-        Self {
+    fn new(
+        limits: AuditLimits,
+        scratch_dir: Option<&Path>,
+        attempt_id: &str,
+    ) -> Result<Self, AuditRefusal> {
+        Ok(Self {
             limits,
             issues: Vec::new(),
             reads: Vec::new(),
             facts: Vec::new(),
-        }
+            global: Some(
+                GlobalFactStore::new(limits.global, scratch_dir, attempt_id)
+                    .map_err(AuditRefusal::GlobalFacts)?,
+            ),
+        })
     }
 
     pub fn issue(&mut self, issue: AuditIssue) -> Result<(), AuditRefusal> {
@@ -140,6 +153,14 @@ impl AuditSink {
         }
         self.facts.push(fact);
         Ok(())
+    }
+
+    pub fn global_fact(&mut self, fact: GlobalFact) -> Result<(), AuditRefusal> {
+        self.global
+            .as_mut()
+            .expect("global store remains until all rules finish")
+            .push(fact)
+            .map_err(AuditRefusal::GlobalFacts)
     }
 }
 
@@ -171,6 +192,8 @@ pub(crate) fn run_full_probe(
     expected: MembershipExpectation,
     rules: &mut [&mut dyn AuditRule],
     limits: AuditLimits,
+    scratch_dir: Option<&Path>,
+    attempt_id: &str,
 ) -> AuditResult {
     let mut seen = BTreeSet::new();
     for rule in rules.iter() {
@@ -190,7 +213,10 @@ pub(crate) fn run_full_probe(
         return AuditResult::Refused(AuditRefusal::MissingRules(missing));
     }
 
-    let mut sink = AuditSink::new(limits);
+    let mut sink = match AuditSink::new(limits, scratch_dir, attempt_id) {
+        Ok(sink) => sink,
+        Err(reason) => return AuditResult::Refused(reason),
+    };
     let mut hasher = Digest256Hasher::new();
     hasher.update(b"tos-val-full-membership-v1\0");
     let mut count = 0u64;
@@ -248,6 +274,38 @@ pub(crate) fn run_full_probe(
             return AuditResult::Refused(reason);
         }
     }
+    let global_issues = match sink.global.take().expect("global store available").finish() {
+        Ok(issues) => issues,
+        Err(reason) => return AuditResult::Refused(AuditRefusal::GlobalFacts(reason)),
+    };
+    for issue in global_issues {
+        let (path, code) = match issue {
+            GlobalIssue::DuplicateOwner { namespace, key } => {
+                (key, format!("global.duplicate-owner:{namespace}"))
+            }
+            GlobalIssue::MissingTarget { namespace, key } => {
+                (key, format!("global.missing-target:{namespace}"))
+            }
+            GlobalIssue::InvalidInterval { namespace, source } => {
+                (source, format!("global.invalid-interval:{namespace}"))
+            }
+            GlobalIssue::OverlappingInterval {
+                namespace,
+                left,
+                right,
+            } => (right, format!("global.overlap:{namespace}:{left}")),
+        };
+        if sink
+            .issue(AuditIssue {
+                rule_id: "tos.val.global-facts.v1",
+                path,
+                code,
+            })
+            .is_err()
+        {
+            return AuditResult::Refused(AuditRefusal::BudgetExceeded);
+        }
+    }
     if sink.issues.is_empty() {
         AuditResult::MechanicallyCleanProbe {
             membership: actual,
@@ -278,7 +336,7 @@ mod tests {
         }
     }
 
-    struct Rule(&'static str);
+    struct Rule(&'static str, bool);
 
     impl AuditRule for Rule {
         fn row_id(&self) -> &'static str {
@@ -287,8 +345,17 @@ mod tests {
         fn inspect(
             &mut self,
             _member: &AuditMember,
-            _sink: &mut AuditSink,
+            sink: &mut AuditSink,
         ) -> Result<(), AuditRefusal> {
+            if self.1 {
+                for path in ["a.json", "b.json"] {
+                    sink.global_fact(GlobalFact::Owner {
+                        namespace: "source-id".into(),
+                        key: "same-id".into(),
+                        source: path.into(),
+                    })?;
+                }
+            }
             Ok(())
         }
         fn finish(&mut self, _sink: &mut AuditSink) -> Result<(), AuditRefusal> {
@@ -304,6 +371,13 @@ mod tests {
             max_issues: 4,
             max_reads: 4,
             max_facts: 4,
+            global: GlobalBudget {
+                max_facts: 8,
+                max_memory_bytes: 1024,
+                max_spill_bytes: 0,
+                max_runs: 0,
+                max_issues: 4,
+            },
         }
     }
 
@@ -332,6 +406,8 @@ mod tests {
             },
             &mut [],
             limits(),
+            None,
+            "missing",
         );
         assert!(
             matches!(result, AuditResult::Refused(AuditRefusal::MissingRules(ids)) if ids.len() == 14)
@@ -346,20 +422,60 @@ mod tests {
             raw: b"{}".to_vec(),
         };
         let expected = expected(&member);
-        let mut modules: Vec<Rule> = REQUIRED_GENERAL_ROWS.into_iter().map(Rule).collect();
+        let mut modules: Vec<Rule> = REQUIRED_GENERAL_ROWS
+            .into_iter()
+            .map(|id| Rule(id, false))
+            .collect();
         let mut refs: Vec<&mut dyn AuditRule> = modules
             .iter_mut()
             .map(|rule| rule as &mut dyn AuditRule)
             .collect();
         let mut truncated = VecStream(vec![Ok(member), Err("cut read failed".into())]);
         assert_eq!(
-            run_full_probe(&mut truncated, expected, &mut refs, limits()),
+            run_full_probe(
+                &mut truncated,
+                expected,
+                &mut refs,
+                limits(),
+                None,
+                "truncated"
+            ),
             AuditResult::Refused(AuditRefusal::IncompleteMemberStream)
         );
         let mut empty = VecStream(vec![]);
         assert_eq!(
-            run_full_probe(&mut empty, expected, &mut refs, limits()),
+            run_full_probe(&mut empty, expected, &mut refs, limits(), None, "empty"),
             AuditResult::Refused(AuditRefusal::MembershipMismatch)
+        );
+    }
+
+    #[test]
+    fn full_cut_reports_global_duplicate_after_complete_member_scan() {
+        let member = AuditMember {
+            path: "a.json".into(),
+            raw: b"{}".to_vec(),
+        };
+        let expected = expected(&member);
+        let mut modules: Vec<Rule> = REQUIRED_GENERAL_ROWS
+            .into_iter()
+            .enumerate()
+            .map(|(index, id)| Rule(id, index == 0))
+            .collect();
+        let mut refs: Vec<&mut dyn AuditRule> = modules
+            .iter_mut()
+            .map(|rule| rule as &mut dyn AuditRule)
+            .collect();
+        let mut stream = VecStream(vec![Ok(member)]);
+        let result = run_full_probe(
+            &mut stream,
+            expected,
+            &mut refs,
+            limits(),
+            None,
+            "duplicate",
+        );
+        assert!(
+            matches!(result, AuditResult::Invalid { issues, .. } if issues.iter().any(|issue| issue.code == "global.duplicate-owner:source-id"))
         );
     }
 }
