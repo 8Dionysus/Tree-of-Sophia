@@ -1081,6 +1081,20 @@ impl SegmentStore {
         fence_epoch: u64,
     ) -> Result<u64> {
         let _pin_lock = self.lock_pin_dir(FlockOperation::NonBlockingLockExclusive)?;
+        // An intent-capable store must resolve the prepare through its v1
+        // intent. In particular, a TOSINT2 pin must not be cancelled through
+        // this entry point without checking its CMD attempt fence.
+        if self.inner.attempts.is_some() {
+            let expected_pin = self
+                .read_attempt_intent(prepare_id)?
+                .ok_or_else(|| SegmentError::new(Code::InvalidReceipt, "attempt intent absent"))?;
+            if expected_pin != pin_id {
+                return Err(SegmentError::new(
+                    Code::InvalidReceipt,
+                    "attempt intent pin differs",
+                ));
+            }
+        }
         self.abort_pin_locked(pin_id, prepare_id, fence_epoch)
     }
 
@@ -1692,6 +1706,13 @@ mod tests {
         );
         assert_eq!(
             store.recover_attempt(b"fenced-prepare").unwrap_err().code,
+            Code::InvalidReceipt
+        );
+        assert_eq!(
+            store
+                .abort_uncommitted(receipts[0].pin_id(), b"fenced-prepare", 1)
+                .unwrap_err()
+                .code,
             Code::InvalidReceipt
         );
         assert_eq!(
