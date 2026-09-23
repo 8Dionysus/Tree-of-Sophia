@@ -75,6 +75,22 @@ impl<S: SourcePin> CmpPinnedModel<S> {
         selected.check_pin()?;
         Ok(selected)
     }
+
+    /// Open another warm reader on CMP's already-admitted inode. The caller
+    /// supplies a fresh source-owner pin for this reader; no pathname is
+    /// resolved and no source right is inherited from the prior reader.
+    pub fn fork_reader<T: SourcePin>(
+        &self,
+        source_pin: T,
+    ) -> Result<CmpPinnedModel<T>, QueryError> {
+        let model = self.model.fork_reader().map_err(|_| {
+            error(
+                QueryErrorCode::StaleSelection,
+                "selected model warm reader unavailable",
+            )
+        })?;
+        CmpPinnedModel::new(model, source_pin)
+    }
 }
 
 impl<S: SourcePin> PinnedLocalModel for CmpPinnedModel<S> {
@@ -330,6 +346,18 @@ impl<P: PinnedLocalModel, G: CurrentPolicy> SqliteReadModel<P, G> {
             policy,
             authority,
         })
+    }
+}
+
+impl<S: SourcePin, G: CurrentPolicy> SqliteReadModel<CmpPinnedModel<S>, G> {
+    /// Each concurrent reader gets its own SQLite connection, source pin and
+    /// current policy. CMP reuses the cold-verified inode without full rehash.
+    pub fn fork_reader<T: SourcePin, H: CurrentPolicy>(
+        &self,
+        source_pin: T,
+        policy: H,
+    ) -> Result<SqliteReadModel<CmpPinnedModel<T>, H>, QueryError> {
+        SqliteReadModel::new(self.pinned.fork_reader(source_pin)?, policy)
     }
 }
 

@@ -251,6 +251,21 @@ fn selected_cmp_model_matches_frozen_python_packet_and_refuses_current_denial() 
     let packet = source_descend(&mut model, &request, budget()).unwrap();
     let actual = parse_json(&packet, JsonMode::PublishedStrict, JsonLimits::default()).unwrap();
     assert!(semantic_eq(actual.root(), field(oracle.root(), "expected")));
+    let mut warm_reader = model
+        .fork_reader(FixturePin, FixturePolicy { denied: None })
+        .unwrap();
+    let warm_packet = source_descend(&mut warm_reader, &request, budget()).unwrap();
+    let warm_actual = parse_json(
+        &warm_packet,
+        JsonMode::PublishedStrict,
+        JsonLimits::default(),
+    )
+    .unwrap();
+    assert!(semantic_eq(
+        warm_actual.root(),
+        field(oracle.root(), "expected")
+    ));
+    drop(warm_reader);
     assert_eq!(
         field(actual.root(), "authority_note").as_str(),
         Some("fixture")
