@@ -10,11 +10,12 @@ use crate::placement::PlacementV1;
 const LEAF_TAG: &[u8] = b"tos-placement-leaf-v1";
 const CATALOG_TAG: &[u8] = b"tos-placement-catalog-v1";
 const MIN_ROW_BYTES: u64 = 4 + 1 + 32 + 8 + PlacementV1::ENCODED_BYTES as u64;
-const LEAF_OVERHEAD_BYTES: u64 = LEAF_TAG.len() as u64 + 16;
+const LEAF_OVERHEAD_BYTES: u64 = LEAF_TAG.len() as u64 + 32 + 16;
 
-fn empty_leaf_digest() -> Digest256 {
+fn empty_leaf_digest(domain_digest: Digest256) -> Digest256 {
     let mut hasher = Digest256Hasher::new();
     hasher.update(LEAF_TAG);
+    hasher.update(domain_digest.as_bytes());
     hasher.update(&0u64.to_le_bytes());
     hasher.update(&LEAF_OVERHEAD_BYTES.to_le_bytes());
     hasher.finalize()
@@ -108,6 +109,7 @@ pub struct GenerationStreamComparison {
 /// candidate indexed stream. Equality does not prove the caller supplied an
 /// exhaustive history stream, source authorization or predicate coverage.
 pub fn compare_generation_streams<E, A>(
+    domain_digest: Digest256,
     mut expected: E,
     mut indexed: A,
     max_rows: u64,
@@ -132,6 +134,7 @@ where
     }
     let mut hasher = Digest256Hasher::new();
     hasher.update(b"tos-generation-comparison-v1");
+    hasher.update(domain_digest.as_bytes());
     let mut rows = 0u64;
     let mut total_key_bytes = 0u64;
     let mut previous: Option<Vec<u8>> = None;
@@ -141,8 +144,8 @@ where
         match (left, right) {
             (None, None) => break,
             (Some(left), Some(right)) => {
-                validate_row(&left, max_key_bytes, previous.as_deref())?;
-                validate_row(&right, max_key_bytes, previous.as_deref())?;
+                validate_row(&left, domain_digest, max_key_bytes, previous.as_deref())?;
+                validate_row(&right, domain_digest, max_key_bytes, previous.as_deref())?;
                 if left != right {
                     return Err(SegmentError::new(
                         Code::InvalidReceipt,
@@ -186,6 +189,7 @@ where
 
 fn validate_row(
     row: &PlacementGenerationRowV1,
+    domain_digest: Digest256,
     max_key_bytes: usize,
     previous: Option<&[u8]>,
 ) -> Result<()> {
@@ -194,6 +198,7 @@ fn validate_row(
         || previous.is_some_and(|key| row.key.as_slice() <= key)
         || row.logical_length != row.placement.coordinate().size_bytes
         || row.logical_digest != row.placement.coordinate().sha256
+        || row.placement.domain_digest() != domain_digest
     {
         return Err(SegmentError::new(
             Code::InvalidFormat,
@@ -235,6 +240,7 @@ impl GenerationShapeLimits {
 /// evidence for these supplied rows, not proof that CMD supplied all history.
 /// Persistent leaf installation and full independent comparison remain separate.
 pub fn describe_placement_partition<I>(
+    domain_digest: Digest256,
     bounds: PartitionBoundsV1,
     rows: I,
     limits: GenerationShapeLimits,
@@ -246,13 +252,19 @@ where
     bounds.validate(limits.max_key_bytes)?;
     let mut hasher = Digest256Hasher::new();
     hasher.update(LEAF_TAG);
+    hasher.update(domain_digest.as_bytes());
     let mut count = 0u64;
     let mut bytes = LEAF_OVERHEAD_BYTES;
     let mut first_key = None;
     let mut last_key: Option<Vec<u8>> = None;
     for row in rows {
         let row = row?;
-        validate_row(&row, limits.max_key_bytes, last_key.as_deref())?;
+        validate_row(
+            &row,
+            domain_digest,
+            limits.max_key_bytes,
+            last_key.as_deref(),
+        )?;
         if !bounds.contains(&row.key) {
             return Err(SegmentError::new(
                 Code::InvalidFormat,
@@ -324,6 +336,7 @@ pub fn placement_catalog_shape_root(
     }
     let mut hasher = Digest256Hasher::new();
     hasher.update(CATALOG_TAG);
+    let domain_digest = Digest256::of_bytes(domain);
     for part in [domain, namespace, scope] {
         hasher.update(&(part.len() as u16).to_le_bytes());
         hasher.update(part);
@@ -347,7 +360,7 @@ pub fn placement_catalog_shape_root(
                 && (partition.first_key.is_some()
                     || partition.last_key.is_some()
                     || partition.leaf_bytes != LEAF_OVERHEAD_BYTES
-                    || partition.leaf_digest != empty_leaf_digest()))
+                    || partition.leaf_digest != empty_leaf_digest(domain_digest)))
             || (partition.rows > 0
                 && (partition.first_key.is_none()
                     || partition.last_key.is_none()
@@ -411,6 +424,10 @@ mod tests {
         }
     }
 
+    fn domain_digest() -> Digest256 {
+        Digest256::of_bytes(b"domain")
+    }
+
     fn row(key: &[u8], frame: u32) -> PlacementGenerationRowV1 {
         let digest = Digest256::of_bytes(key);
         PlacementGenerationRowV1 {
@@ -456,6 +473,7 @@ mod tests {
     #[test]
     fn explicit_empty_tail_covers_negative_route_without_claiming_absence() {
         let first = describe_placement_partition(
+            domain_digest(),
             PartitionBoundsV1 {
                 lower_inclusive: None,
                 upper_exclusive: Some(b"m".to_vec()),
@@ -465,6 +483,7 @@ mod tests {
         )
         .unwrap();
         let empty = describe_placement_partition(
+            domain_digest(),
             PartitionBoundsV1 {
                 lower_inclusive: Some(b"m".to_vec()),
                 upper_exclusive: None,
@@ -490,6 +509,7 @@ mod tests {
     #[test]
     fn gap_overlap_endpoint_and_row_mutation_refuse_or_change_root() {
         let left = describe_placement_partition(
+            domain_digest(),
             PartitionBoundsV1 {
                 lower_inclusive: None,
                 upper_exclusive: Some(b"m".to_vec()),
@@ -499,6 +519,7 @@ mod tests {
         )
         .unwrap();
         let right = describe_placement_partition(
+            domain_digest(),
             PartitionBoundsV1 {
                 lower_inclusive: Some(b"m".to_vec()),
                 upper_exclusive: None,
@@ -508,9 +529,13 @@ mod tests {
         )
         .unwrap();
         let exact = root(&[left.clone(), right.clone()]).unwrap();
-        let substituted =
-            describe_placement_partition(left.bounds.clone(), input(vec![row(b"a", 9)]), limits())
-                .unwrap();
+        let substituted = describe_placement_partition(
+            domain_digest(),
+            left.bounds.clone(),
+            input(vec![row(b"a", 9)]),
+            limits(),
+        )
+        .unwrap();
         assert_eq!(substituted.rows, left.rows);
         assert_ne!(root(&[substituted, right.clone()]).unwrap(), exact);
         for wrong_boundary in [b"l".to_vec(), b"n".to_vec()] {
@@ -525,16 +550,38 @@ mod tests {
         changed.leaf_digest = Digest256::of_bytes(b"different leaf");
         assert_ne!(root(&[left.clone(), changed]).unwrap(), exact);
         assert_eq!(
-            describe_placement_partition(left.bounds.clone(), input(vec![row(b"m", 0)]), limits())
-                .unwrap_err()
-                .code,
+            describe_placement_partition(
+                domain_digest(),
+                left.bounds.clone(),
+                input(vec![row(b"m", 0)]),
+                limits()
+            )
+            .unwrap_err()
+            .code,
             Code::InvalidFormat
         );
         assert_eq!(
             describe_placement_partition(
+                domain_digest(),
                 left.bounds,
                 input(vec![row(b"a", 0), row(b"a", 1)]),
                 limits()
+            )
+            .unwrap_err()
+            .code,
+            Code::InvalidFormat
+        );
+        let mut foreign = row(b"a", 0);
+        foreign.placement.domain_digest = Digest256::of_bytes(b"other-domain");
+        assert_eq!(
+            describe_placement_partition(
+                domain_digest(),
+                PartitionBoundsV1 {
+                    lower_inclusive: None,
+                    upper_exclusive: None,
+                },
+                input(vec![foreign]),
+                limits(),
             )
             .unwrap_err()
             .code,
@@ -546,6 +593,7 @@ mod tests {
     fn exact_generation_comparison_detects_omission_and_same_count_substitution() {
         let committed = vec![row(b"a", 0), row(b"b", 1), row(b"c", 2)];
         let exact = compare_generation_streams(
+            domain_digest(),
             input(committed.clone()),
             input(committed.clone()),
             4,
@@ -556,6 +604,7 @@ mod tests {
         assert_eq!(exact.rows, 3);
         assert_eq!(
             compare_generation_streams(
+                domain_digest(),
                 input(committed.clone()),
                 input(vec![row(b"a", 0), row(b"c", 2)]),
                 4,
@@ -568,6 +617,7 @@ mod tests {
         );
         assert_eq!(
             compare_generation_streams(
+                domain_digest(),
                 input(committed),
                 input(vec![row(b"a", 0), row(b"b", 9), row(b"c", 2)]),
                 4,
