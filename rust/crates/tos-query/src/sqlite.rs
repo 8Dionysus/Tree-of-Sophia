@@ -5,7 +5,7 @@ use std::{
     collections::BTreeMap,
     sync::{
         Arc,
-        atomic::{AtomicU64, Ordering},
+        atomic::{AtomicU8, AtomicU64, Ordering},
     },
 };
 
@@ -46,6 +46,19 @@ pub struct AdapterAdmissionCharge {
     pub metadata_vm_steps: u64,
     pub metadata_decoded_bytes: u64,
     pub metadata_rows: u64,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum AbortReason {
+    Cancelled,
+    DeadlineExceeded,
+}
+
+/// A cheap owner/transport cancellation probe. Deadline clocks and client
+/// disconnect signals stay with the caller; QRY checks at domain boundaries
+/// and inside every SQLite VM progress callback during a seek.
+pub trait AbortProbe: Send + Sync {
+    fn reason(&self) -> Option<AbortReason>;
 }
 
 /// Implement only for an owner-verified selected model whose SQLite connection
@@ -260,6 +273,7 @@ pub struct SqliteReadModel<P: PinnedLocalModel, G: CurrentPolicy> {
     disclosure_scope: DisclosureScope,
     authority: RawRecord,
     admission_charge: AdapterAdmissionCharge,
+    abort_probe: Option<Arc<dyn AbortProbe>>,
 }
 
 fn error(code: QueryErrorCode, message: &'static str) -> QueryError {
@@ -281,8 +295,12 @@ fn sql_error(error_value: rusqlite::Error) -> QueryError {
 fn budgeted<T>(
     connection: &Connection,
     max_vm_steps: u64,
+    abort_probe: Option<&Arc<dyn AbortProbe>>,
     run: impl FnOnce() -> Result<T, QueryError>,
 ) -> Result<(T, u64), QueryError> {
+    if let Some(reason) = abort_probe.and_then(|probe| probe.reason()) {
+        return Err(abort_error(reason));
+    }
     if max_vm_steps == 0 {
         return Err(error(
             QueryErrorCode::BudgetExceeded,
@@ -291,13 +309,33 @@ fn budgeted<T>(
     }
     let steps = Arc::new(AtomicU64::new(0));
     let observed = Arc::clone(&steps);
+    let interrupted = Arc::new(AtomicU8::new(0));
+    let interruption = Arc::clone(&interrupted);
+    let probe = abort_probe.cloned();
     connection.progress_handler(
         1,
-        Some(move || observed.fetch_add(1, Ordering::Relaxed) >= max_vm_steps),
+        Some(move || {
+            if let Some(reason) = probe.as_ref().and_then(|probe| probe.reason()) {
+                interruption.store(
+                    match reason {
+                        AbortReason::Cancelled => 1,
+                        AbortReason::DeadlineExceeded => 2,
+                    },
+                    Ordering::Relaxed,
+                );
+                return true;
+            }
+            observed.fetch_add(1, Ordering::Relaxed) >= max_vm_steps
+        }),
     );
     let result = run();
     connection.progress_handler(0, None::<fn() -> bool>);
     let charged = steps.load(Ordering::Relaxed);
+    match interrupted.load(Ordering::Relaxed) {
+        1 => return Err(abort_error(AbortReason::Cancelled)),
+        2 => return Err(abort_error(AbortReason::DeadlineExceeded)),
+        _ => {}
+    }
     if charged > max_vm_steps {
         return Err(error(
             QueryErrorCode::BudgetExceeded,
@@ -305,6 +343,19 @@ fn budgeted<T>(
         ));
     }
     result.map(|value| (value, charged))
+}
+
+fn abort_error(reason: AbortReason) -> QueryError {
+    match reason {
+        AbortReason::Cancelled => error(
+            QueryErrorCode::Cancelled,
+            "query cancelled before disclosure",
+        ),
+        AbortReason::DeadlineExceeded => error(
+            QueryErrorCode::DeadlineExceeded,
+            "query deadline exceeded before disclosure",
+        ),
+    }
 }
 
 fn read_metadata(
@@ -327,6 +378,7 @@ fn read_metadata(
     let ((values, decoded_bytes, row_count), steps) = budgeted(
         connection,
         admission.max_metadata_vm_steps,
+        None,
         || {
             let row_limit = admission.max_metadata_rows.min(METADATA_ROWS_CAP);
             let count: i64 = connection
@@ -565,6 +617,7 @@ impl<P: PinnedLocalModel, G: CurrentPolicy> SqliteReadModel<P, G> {
             disclosure_scope,
             authority,
             admission_charge,
+            abort_probe: None,
         })
     }
 
@@ -574,6 +627,10 @@ impl<P: PinnedLocalModel, G: CurrentPolicy> SqliteReadModel<P, G> {
 
     pub fn disclosure_scope(&self) -> &DisclosureScope {
         &self.disclosure_scope
+    }
+
+    pub fn set_abort_probe(&mut self, probe: Option<Arc<dyn AbortProbe>>) {
+        self.abort_probe = probe;
     }
 }
 
@@ -598,6 +655,12 @@ impl<S: SourcePin, G: CurrentPolicy> SqliteReadModel<CmpPinnedModel<S>, G> {
 }
 
 impl<P: PinnedLocalModel, G: CurrentPolicy> ReadModel for SqliteReadModel<P, G> {
+    fn check_interrupt(&mut self) -> Result<(), QueryError> {
+        if let Some(reason) = self.abort_probe.as_ref().and_then(|probe| probe.reason()) {
+            return Err(abort_error(reason));
+        }
+        Ok(())
+    }
     fn selected_binding(&mut self) -> Result<Binding, QueryError> {
         self.pinned.check_pin()?;
         Ok(self.pinned.binding().clone())
@@ -623,65 +686,66 @@ impl<P: PinnedLocalModel, G: CurrentPolicy> ReadModel for SqliteReadModel<P, G> 
             ((max_bytes as u64) - NODE_HEADER_RESULT_BYTES).min(max_carrier_bytes as u64);
         let binding = self.pinned.binding().clone();
         let connection = self.pinned.connection();
-        let ((record, header_rows, probes), steps) = budgeted(connection, max_vm_steps, || {
-            let header: Option<(i64, i64, Option<String>)> = connection
-                .query_row(
-                    "SELECT visible,carrier_size,
+        let ((record, header_rows, probes), steps) =
+            budgeted(connection, max_vm_steps, self.abort_probe.as_ref(), || {
+                let header: Option<(i64, i64, Option<String>)> = connection
+                    .query_row(
+                        "SELECT visible,carrier_size,
                                 CASE WHEN length(CAST(carrier_sha256 AS BLOB))=?2
                                      THEN carrier_sha256 END
                          FROM nodes WHERE node_id=?1",
-                    params![id, SHA256_HEX_RESULT_BYTES],
-                    |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
-                )
-                .optional()
-                .map_err(sql_error)?;
-            let Some((visible, size, sha)) = header else {
-                return Ok((None, 0, 1));
-            };
-            let sha = sha.ok_or_else(|| {
-                error(
-                    QueryErrorCode::CorruptSelectedCarrier,
-                    "selected node SHA size invalid",
-                )
-            })?;
-            digest(&sha)?;
-            if size < 0 || (visible != 0 && visible != 1) {
-                return Err(error(
-                    QueryErrorCode::CorruptSelectedCarrier,
-                    "visible node metadata invalid",
-                ));
-            }
-            if visible == 0 {
-                return Ok((None, 1, 1));
-            }
-            if size as u64 > body_cap {
-                return Err(error(
-                    QueryErrorCode::BudgetExceeded,
-                    "selected node over byte cap",
-                ));
-            }
-            if max_work_probes < 2 || max_work_rows < 2 {
-                return Err(error(
-                    QueryErrorCode::BudgetExceeded,
-                    "selected node carrier row admission exceeded",
-                ));
-            }
-            let raw: Option<Vec<u8>> = connection
-                .query_row(
-                    "SELECT CASE WHEN length(carrier)<=?2 AND carrier_size<=?2 THEN carrier END
+                        params![id, SHA256_HEX_RESULT_BYTES],
+                        |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+                    )
+                    .optional()
+                    .map_err(sql_error)?;
+                let Some((visible, size, sha)) = header else {
+                    return Ok((None, 0, 1));
+                };
+                let sha = sha.ok_or_else(|| {
+                    error(
+                        QueryErrorCode::CorruptSelectedCarrier,
+                        "selected node SHA size invalid",
+                    )
+                })?;
+                digest(&sha)?;
+                if size < 0 || (visible != 0 && visible != 1) {
+                    return Err(error(
+                        QueryErrorCode::CorruptSelectedCarrier,
+                        "visible node metadata invalid",
+                    ));
+                }
+                if visible == 0 {
+                    return Ok((None, 1, 1));
+                }
+                if size as u64 > body_cap {
+                    return Err(error(
+                        QueryErrorCode::BudgetExceeded,
+                        "selected node over byte cap",
+                    ));
+                }
+                if max_work_probes < 2 || max_work_rows < 2 {
+                    return Err(error(
+                        QueryErrorCode::BudgetExceeded,
+                        "selected node carrier row admission exceeded",
+                    ));
+                }
+                let raw: Option<Vec<u8>> = connection
+                    .query_row(
+                        "SELECT CASE WHEN length(carrier)<=?2 AND carrier_size<=?2 THEN carrier END
                  FROM nodes WHERE node_id=?1 AND visible=1",
-                    params![id, i64::try_from(body_cap).unwrap_or(i64::MAX)],
-                    |row| row.get(0),
-                )
-                .map_err(sql_error)?;
-            let raw = raw.ok_or_else(|| {
-                error(
-                    QueryErrorCode::BudgetExceeded,
-                    "selected node actual carrier over byte cap",
-                )
+                        params![id, i64::try_from(body_cap).unwrap_or(i64::MAX)],
+                        |row| row.get(0),
+                    )
+                    .map_err(sql_error)?;
+                let raw = raw.ok_or_else(|| {
+                    error(
+                        QueryErrorCode::BudgetExceeded,
+                        "selected node actual carrier over byte cap",
+                    )
+                })?;
+                Ok((Some(selected_carrier(&binding, raw, size, &sha)?), 2, 2))
             })?;
-            Ok((Some(selected_carrier(&binding, raw, size, &sha)?), 2, 2))
-        })?;
         Ok(ExactNode {
             binding,
             complete_unique_lookup: true,
@@ -727,7 +791,7 @@ impl<P: PinnedLocalModel, G: CurrentPolicy> ReadModel for SqliteReadModel<P, G> 
         let binding = self.pinned.binding().clone();
         let connection = self.pinned.connection();
         let ((expected_count, expected_digest, edges, exhausted, scanned, meta_bytes), steps) =
-            budgeted(connection, max_vm_steps, || {
+            budgeted(connection, max_vm_steps, self.abort_probe.as_ref(), || {
                 let certificate: Option<(i64, Option<String>)> = connection
                     .query_row(
                         "SELECT edge_count,

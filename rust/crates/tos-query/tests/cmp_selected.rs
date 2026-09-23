@@ -3,6 +3,10 @@
 use std::{
     fs,
     path::PathBuf,
+    sync::{
+        Arc,
+        atomic::{AtomicU64, Ordering},
+    },
     time::{SystemTime, UNIX_EPOCH},
 };
 
@@ -13,15 +17,26 @@ use tos_compiler::{
 };
 use tos_foundation::{JsonLimits, JsonMode, JsonValue, parse_json};
 use tos_query::{
-    AdapterAdmissionBudget, Budget, Charged, CmpPinnedModel, CurrentPolicy, DisclosureLease,
-    DisclosureScope, PinnedLocalModel, QueryError, QueryErrorCode, RawRecord, ReadModel,
-    SourceDescendRequest, SourcePin, SqliteReadModel, source_descend,
+    AbortProbe, AbortReason, AdapterAdmissionBudget, Budget, Charged, CmpPinnedModel,
+    CurrentPolicy, DisclosureLease, DisclosureScope, PinnedLocalModel, QueryError, QueryErrorCode,
+    RawRecord, ReadModel, SourceDescendRequest, SourcePin, SqliteReadModel, source_descend,
 };
 
 struct FixtureLease;
 impl DisclosureLease for FixtureLease {
     fn recheck(&mut self) -> Result<(), QueryError> {
         Ok(())
+    }
+}
+
+struct CountedAbort {
+    calls: AtomicU64,
+    after: u64,
+    reason: AbortReason,
+}
+impl AbortProbe for CountedAbort {
+    fn reason(&self) -> Option<AbortReason> {
+        (self.calls.fetch_add(1, Ordering::Relaxed) >= self.after).then_some(self.reason)
     }
 }
 
@@ -317,6 +332,30 @@ fn selected_cmp_model_matches_frozen_python_packet_and_refuses_current_denial() 
         limit: 300,
         at_least_commit_seq: Some(7),
     };
+    model.set_abort_probe(Some(Arc::new(CountedAbort {
+        calls: AtomicU64::new(0),
+        after: 2,
+        reason: AbortReason::Cancelled,
+    })));
+    assert_eq!(
+        model
+            .exact_visible_node("id.alpha", 1_000_000, 1_000_000, 100_000, 100, 100)
+            .unwrap_err()
+            .code,
+        QueryErrorCode::Cancelled
+    );
+    model.set_abort_probe(Some(Arc::new(CountedAbort {
+        calls: AtomicU64::new(0),
+        after: 0,
+        reason: AbortReason::DeadlineExceeded,
+    })));
+    assert_eq!(
+        source_descend(&mut model, &request, budget())
+            .unwrap_err()
+            .code,
+        QueryErrorCode::DeadlineExceeded
+    );
+    model.set_abort_probe(None);
     let exact = model
         .exact_visible_node("id.alpha", 1_000_000, 1_000_000, 100_000, 100, 100)
         .unwrap();

@@ -25,6 +25,8 @@ pub enum QueryErrorCode {
     StaleSelection,
     PublicationPending,
     BudgetExceeded,
+    Cancelled,
+    DeadlineExceeded,
     PolicyDenied,
     IndexIncomplete,
     CorruptSelectedCarrier,
@@ -99,6 +101,11 @@ pub struct AdjacencyPage {
 /// Trusted local adapter contract. A remote untrusted host must first prove
 /// the same sealed range/count/digest and pin semantics at its boundary.
 pub trait ReadModel {
+    /// Optional owner/transport cancellation or deadline check. It must not
+    /// turn a partially staged packet into success.
+    fn check_interrupt(&mut self) -> Result<(), QueryError> {
+        Ok(())
+    }
     fn selected_binding(&mut self) -> Result<Binding, QueryError>;
     /// `max_bytes` bounds all decoded columns in this call; `max_carrier_bytes`
     /// separately bounds any individual raw carrier before BLOB transfer.
@@ -431,6 +438,7 @@ fn prepare_source_descend<M: ReadModel>(
     budget: Budget,
 ) -> Result<PreparedSourceDescend, QueryError> {
     request.validate()?;
+    model.check_interrupt()?;
     if !budget.valid() {
         return Err(QueryError::new(
             QueryErrorCode::InvalidRequest,
@@ -479,6 +487,7 @@ fn prepare_source_descend<M: ReadModel>(
     let mut truncated = false;
 
     while let Some((current, depth)) = frontier.pop_front() {
+        model.check_interrupt()?;
         work.step(budget)?;
         if depth >= request.max_depth {
             continue;
@@ -488,6 +497,7 @@ fn prepare_source_descend<M: ReadModel>(
         let mut count = 0u64;
         let mut hasher = Digest256Hasher::new();
         loop {
+            model.check_interrupt()?;
             model.check_pin(&binding)?;
             let remaining = budget.max_bytes.saturating_sub(work.bytes);
             let max_bytes = remaining.min(usize::MAX as u64) as usize;
@@ -553,6 +563,7 @@ fn prepare_source_descend<M: ReadModel>(
                 ));
             }
             for edge in page.edges {
+                model.check_interrupt()?;
                 work.step(budget)?;
                 let value = parse_record(&edge, &binding, budget)?;
                 work.charge(model.authorize_current(&edge)?, budget)?;
@@ -637,9 +648,11 @@ fn prepare_source_descend<M: ReadModel>(
     // Check current policy only after the complete traversal and all sealed
     // adjacency scopes are verified, then recheck the pin before publication.
     for (_, record) in nodes.values() {
+        model.check_interrupt()?;
         work.charge(model.authorize_current(record)?, budget)?;
     }
     for record in &edges {
+        model.check_interrupt()?;
         work.charge(model.authorize_current(record)?, budget)?;
     }
     let remaining = budget.max_bytes.saturating_sub(work.bytes);
@@ -672,6 +685,7 @@ fn prepare_source_descend<M: ReadModel>(
     }
     work.charge(model.authorize_current(&authority)?, budget)?;
     model.check_pin(&binding)?;
+    model.check_interrupt()?;
 
     let mut ordered_nodes: Vec<_> = nodes.into_iter().collect();
     ordered_nodes.sort_by(|left, right| (left.1.0, &left.0).cmp(&(right.1.0, &right.0)));
@@ -717,6 +731,7 @@ pub fn source_descend<M: ReadModel>(
     budget: Budget,
 ) -> Result<DisclosableSourceDescend, QueryError> {
     let prepared = prepare_source_descend(model, request, budget)?;
+    model.check_interrupt()?;
     model.check_pin(&prepared.binding)?;
     let mut lease = model.acquire_disclosure(&prepared.binding, &prepared.selected)?;
     lease.recheck()?;
