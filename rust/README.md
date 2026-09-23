@@ -17,4 +17,3 @@ when the pinned toolchain, rustfmt and WASM target are available. Set
 `CARGO_TARGET_DIR` to an owner-approved build-cache path outside the
 checkout. Passing this lane proves only the scaffold's native/WASM build and
 native probe installation.
-

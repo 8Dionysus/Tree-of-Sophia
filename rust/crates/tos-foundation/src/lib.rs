@@ -4,4 +4,3 @@
 
 /// Distinguishes the install probe from a released Tree of Sophia runtime.
 pub const SCAFFOLD_ID: &str = "tos-rust-workspace-scaffold-v1";
-

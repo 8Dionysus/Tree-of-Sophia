@@ -3,4 +3,3 @@
 fn main() {
     println!("{}", tos_foundation::SCAFFOLD_ID);
 }
-
