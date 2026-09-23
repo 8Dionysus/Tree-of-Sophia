@@ -15,7 +15,10 @@ use tos_foundation::{Digest256, Digest256Hasher};
 
 use crate::error::{Result, SegmentError, SegmentErrorCode as Code};
 use crate::format::{self, FrameCoordinate, SegmentLimits};
-use crate::generation::GenerationShapeLimits;
+use crate::generation::{
+    GenerationShapeLimits, KeyComparatorV1, PackedPartitionRefV1, describe_placement_partition,
+    placement_catalog_shape_root,
+};
 use crate::journal::{JournalFrame, PinJournal, PinState};
 use crate::packed_leaf::PackedPlacementLeafV1;
 use crate::placement::PlacementV1;
@@ -427,6 +430,72 @@ impl SegmentStore {
             ));
         }
         Ok(leaf)
+    }
+
+    /// Offline catalog-shape check. Reopen every exact physical leaf, compare
+    /// its canonical semantic rows and cover all declared key intervals.
+    /// The caller must independently prove exhaustive CMD history, selected
+    /// cut and predicate coverage; this does not admit warm negative reads.
+    pub fn verify_packed_catalog_shape(
+        &self,
+        domain: &[u8],
+        namespace: &[u8],
+        scope: &[u8],
+        key_codec_digest: Digest256,
+        comparator: KeyComparatorV1,
+        partitions: &[PackedPartitionRefV1],
+        limits: GenerationShapeLimits,
+    ) -> Result<Digest256> {
+        let limits = limits.validate()?;
+        if Digest256::of_bytes(domain) != self.inner.domain_digest
+            || partitions.is_empty()
+            || partitions.len() > limits.max_partitions
+        {
+            return Err(SegmentError::new(
+                Code::InvalidReceipt,
+                "packed catalog domain or partition count differs",
+            ));
+        }
+        let mut semantic = Vec::with_capacity(partitions.len());
+        for reference in partitions {
+            let leaf = self.open_packed_leaf(reference.content_digest, limits)?;
+            if leaf.bounds != reference.semantic.bounds {
+                return Err(SegmentError::new(
+                    Code::InvalidReceipt,
+                    "packed leaf interval differs",
+                ));
+            }
+            let described = describe_placement_partition(
+                self.inner.domain_digest,
+                leaf.bounds,
+                leaf.rows.into_iter().map(Ok),
+                limits,
+            )?;
+            if described != reference.semantic {
+                return Err(SegmentError::new(
+                    Code::InvalidReceipt,
+                    "packed leaf semantic rows differ",
+                ));
+            }
+            semantic.push(described);
+        }
+        let semantic_root = placement_catalog_shape_root(
+            domain,
+            namespace,
+            scope,
+            key_codec_digest,
+            comparator,
+            &semantic,
+            limits,
+        )?;
+        let mut hasher = Digest256Hasher::new();
+        hasher.update(b"tos-packed-placement-catalog-v1");
+        hasher.update(semantic_root.as_bytes());
+        hasher.update(&(partitions.len() as u32).to_le_bytes());
+        for reference in partitions {
+            hasher.update(reference.content_digest.as_bytes());
+        }
+        Ok(hasher.finalize())
     }
 
     /// Seal multiple bounded frames under one durable pin. All frames belong
@@ -1769,10 +1838,63 @@ mod tests {
         };
         let digest = store.install_packed_leaf(&leaf, shape).unwrap();
         assert_eq!(store.install_packed_leaf(&leaf, shape).unwrap(), digest);
+        let semantic = describe_placement_partition(
+            store.domain_digest(),
+            leaf.bounds.clone(),
+            leaf.rows.clone().into_iter().map(Ok),
+            shape,
+        )
+        .unwrap();
+        let reference = PackedPartitionRefV1 {
+            semantic,
+            content_digest: digest,
+        };
+        let catalog = store
+            .verify_packed_catalog_shape(
+                b"private-domain",
+                b"history",
+                b"all",
+                Digest256::of_bytes(b"cmd-history-key"),
+                KeyComparatorV1::RawUnsignedBytes,
+                &[reference.clone()],
+                shape,
+            )
+            .unwrap();
+        assert_ne!(catalog, digest);
+        let mut false_semantic = reference.clone();
+        false_semantic.semantic.leaf_digest = Digest256::of_bytes(b"same-count substitution");
+        assert_eq!(
+            store
+                .verify_packed_catalog_shape(
+                    b"private-domain",
+                    b"history",
+                    b"all",
+                    Digest256::of_bytes(b"cmd-history-key"),
+                    KeyComparatorV1::RawUnsignedBytes,
+                    &[false_semantic],
+                    shape,
+                )
+                .unwrap_err()
+                .code,
+            Code::InvalidReceipt
+        );
         drop(store);
         let cold = SegmentStore::open_existing(&root.0, limits()).unwrap();
         let restored = cold.open_packed_leaf(digest, shape).unwrap();
         assert_eq!(restored, leaf);
+        assert_eq!(
+            cold.verify_packed_catalog_shape(
+                b"private-domain",
+                b"history",
+                b"all",
+                Digest256::of_bytes(b"cmd-history-key"),
+                KeyComparatorV1::RawUnsignedBytes,
+                &[reference],
+                shape,
+            )
+            .unwrap(),
+            catalog
+        );
         let placements: Vec<_> = restored.rows.iter().map(|row| row.placement).collect();
         let admitted = cold
             .recover_placements(

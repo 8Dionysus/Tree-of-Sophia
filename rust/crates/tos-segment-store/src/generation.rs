@@ -91,6 +91,14 @@ pub struct PlacementPartitionV1 {
     pub leaf_digest: Digest256,
 }
 
+/// Exact installed physical leaf plus its independently described semantic
+/// row commitment. Neither field grants complete source membership.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PackedPartitionRefV1 {
+    pub semantic: PlacementPartitionV1,
+    pub content_digest: Digest256,
+}
+
 #[derive(Clone, Copy, Debug)]
 pub struct GenerationShapeLimits {
     pub max_partitions: usize,

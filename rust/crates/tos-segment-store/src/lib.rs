@@ -23,8 +23,8 @@ pub use audit::{
 pub use error::{Result, SegmentError, SegmentErrorCode};
 pub use format::{FrameCoordinate, SegmentLimits};
 pub use generation::{
-    GenerationShapeLimits, GenerationStreamComparison, KeyComparatorV1, PartitionBoundsV1,
-    PlacementGenerationRowV1, PlacementPartitionV1, compare_generation_streams,
+    GenerationShapeLimits, GenerationStreamComparison, KeyComparatorV1, PackedPartitionRefV1,
+    PartitionBoundsV1, PlacementGenerationRowV1, PlacementPartitionV1, compare_generation_streams,
     describe_placement_partition, placement_catalog_shape_root,
 };
 pub use packed_leaf::PackedPlacementLeafV1;
