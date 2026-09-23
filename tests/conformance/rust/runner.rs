@@ -490,7 +490,9 @@ fn old_alpha_bytes(reader: &CorpusReader, old: &str) -> Vec<u8> {
         .resolve(&snapshot, Selector::SourceId("tos.work.synthetic.alpha"))
         .unwrap();
     let mut bytes = Vec::new();
-    reader.read_selected(&snapshot, &descriptor, 1024, &mut bytes).unwrap();
+    reader
+        .read_selected(&snapshot, &descriptor, 1024, &mut bytes)
+        .unwrap();
     bytes
 }
 
@@ -499,8 +501,14 @@ fn old_alpha_bytes(reader: &CorpusReader, old: &str) -> Vec<u8> {
 fn corpus_reader_keeps_opened_root_and_object_directory() {
     let fixture = fixture_manifest();
     let old = required(&fixture, "revision_old");
-    let old_sha = required(&fixture["selected_cases"][0]["expected_descriptor"], "sha256");
-    let expected = decode_hex(required(&fixture["selected_cases"][0], "expected_bytes_hex"));
+    let old_sha = required(
+        &fixture["selected_cases"][0]["expected_descriptor"],
+        "sha256",
+    );
+    let expected = decode_hex(required(
+        &fixture["selected_cases"][0],
+        "expected_bytes_hex",
+    ));
 
     // Rename the opened root and put a valid but corrupt decoy at its former
     // pathname. A reader rooted in path strings would follow the decoy.
@@ -511,7 +519,11 @@ fn corpus_reader_keeps_opened_root_and_object_directory() {
     let reader = CorpusReader::open_existing(&root, read_limits()).unwrap();
     fs::rename(&root, root.parent().unwrap().join("original-store")).unwrap();
     fs::rename(&decoy, &root).unwrap();
-    assert_eq!(old_alpha_bytes(&reader, old), expected, "root path replacement");
+    assert_eq!(
+        old_alpha_bytes(&reader, old),
+        expected,
+        "root path replacement"
+    );
 
     // Replacing the objects directory inside an otherwise stable root must
     // likewise not redirect an already-open reader to new object bytes.
@@ -520,7 +532,11 @@ fn corpus_reader_keeps_opened_root_and_object_directory() {
     fs::rename(root.join("objects"), root.join("objects-original")).unwrap();
     fs::create_dir(root.join("objects")).unwrap();
     fs::write(selected_object(&root, old_sha), b"other").unwrap();
-    assert_eq!(old_alpha_bytes(&reader, old), expected, "objects directory replacement");
+    assert_eq!(
+        old_alpha_bytes(&reader, old),
+        expected,
+        "objects directory replacement"
+    );
 
     // A replaced revisions directory must not change which historical
     // manifest this already-open reader validates.
@@ -528,8 +544,16 @@ fn corpus_reader_keeps_opened_root_and_object_directory() {
     let reader = CorpusReader::open_existing(&root, read_limits()).unwrap();
     fs::rename(root.join("revisions"), root.join("revisions-original")).unwrap();
     copy_tree(&root.join("revisions-original"), &root.join("revisions")).unwrap();
-    fs::write(root.join("revisions").join(old).join("snapshot.json"), b"{}").unwrap();
-    assert_eq!(old_alpha_bytes(&reader, old), expected, "revisions directory replacement");
+    fs::write(
+        root.join("revisions").join(old).join("snapshot.json"),
+        b"{}",
+    )
+    .unwrap();
+    assert_eq!(
+        old_alpha_bytes(&reader, old),
+        expected,
+        "revisions directory replacement"
+    );
 }
 
 #[cfg(target_os = "linux")]
@@ -546,8 +570,11 @@ fn corpus_reader_refuses_symlinked_revision() {
     let real_dir = root.join("revisions").join("saved-revision");
     fs::rename(&revision_dir, &real_dir).unwrap();
     symlink(&real_dir, &revision_dir).unwrap();
-    assert_eq!(reader.load_exact(revision(old)).unwrap_err().code,
-               StoreErrorCode::UnsafePath, "symlinked intermediate revision");
+    assert_eq!(
+        reader.load_exact(revision(old)).unwrap_err().code,
+        StoreErrorCode::UnsafePath,
+        "symlinked intermediate revision"
+    );
 }
 
 #[cfg(target_os = "linux")]
@@ -562,24 +589,42 @@ fn corpus_reader_refuses_fifo_object() {
         fs::write(Path::new(&root).join(".fifo-probe-ran"), b"started").unwrap();
         let reader = CorpusReader::open_existing(Path::new(&root), read_limits()).unwrap();
         let snapshot = reader.load_exact(revision(old)).unwrap();
-        assert_eq!(reader.resolve(&snapshot, Selector::SourceId("tos.work.synthetic.alpha"))
-                   .unwrap_err().code, StoreErrorCode::UnsafePath,
-                   "opened FIFO must be refused as a non-regular object");
+        assert_eq!(
+            reader
+                .resolve(&snapshot, Selector::SourceId("tos.work.synthetic.alpha"))
+                .unwrap_err()
+                .code,
+            StoreErrorCode::UnsafePath,
+            "opened FIFO must be refused as a non-regular object"
+        );
         return;
     }
 
     let (_temporary, root) = working_store();
-    let old_sha = required(&fixture["selected_cases"][0]["expected_descriptor"], "sha256");
+    let old_sha = required(
+        &fixture["selected_cases"][0]["expected_descriptor"],
+        "sha256",
+    );
     let object = selected_object(&root, old_sha);
     fs::remove_file(&object).unwrap();
-    assert!(Command::new("mkfifo").arg(&object).status().unwrap().success());
+    assert!(
+        Command::new("mkfifo")
+            .arg(&object)
+            .status()
+            .unwrap()
+            .success()
+    );
     let mut child = Command::new(std::env::current_exe().unwrap())
-        .arg("--exact").arg("corpus_reader_refuses_fifo_object")
+        .arg("--exact")
+        .arg("corpus_reader_refuses_fifo_object")
         .env("TOS_ASS_FIFO_PROBE_ROOT", &root)
-        .spawn().unwrap();
+        .spawn()
+        .unwrap();
     let deadline = Instant::now() + Duration::from_secs(10);
     let status = loop {
-        if let Some(status) = child.try_wait().unwrap() { break status; }
+        if let Some(status) = child.try_wait().unwrap() {
+            break status;
+        }
         if Instant::now() >= deadline {
             child.kill().unwrap();
             child.wait().unwrap();
@@ -588,6 +633,9 @@ fn corpus_reader_refuses_fifo_object() {
         std::thread::sleep(Duration::from_millis(10));
     };
     assert!(status.success(), "FIFO object probe failed");
-    assert_eq!(fs::read(root.join(".fifo-probe-ran")).unwrap(), b"started",
-               "child test filter did not execute the FIFO probe");
+    assert_eq!(
+        fs::read(root.join(".fifo-probe-ran")).unwrap(),
+        b"started",
+        "child test filter did not execute the FIFO probe"
+    );
 }

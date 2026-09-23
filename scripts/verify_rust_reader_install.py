@@ -23,6 +23,21 @@ def main() -> None:
             check=True,
         )
         executable = install / "bin/tos-reader"
+        capabilities = json.loads(subprocess.run(
+            [str(executable), "--capabilities"], cwd=install,
+            capture_output=True, check=True, text=True,
+        ).stdout)
+        required_platform = {
+            "schema_version": "tos_reader_capabilities_v1",
+            "store_format": "tos_corpus_snapshot_v1",
+            "platform": "linux",
+            "minimum_kernel": "5.6",
+            "required_open_api": "openat2",
+            "path_traversal": "beneath_no_symlinks",
+            "unsafe_fallback": False,
+        }
+        if any(capabilities.get(key) != value for key, value in required_platform.items()):
+            raise ValueError("installed reader platform capabilities differ")
         for case in corpus["selected_cases"]:
             if "expected_bytes_hex" not in case or "source_id" not in case:
                 continue

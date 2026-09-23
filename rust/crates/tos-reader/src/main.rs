@@ -14,6 +14,7 @@ const USAGE: &str = "tos-reader --store ABSOLUTE_ROOT --revision SHA256 --source
 --stage-dir ABSOLUTE_DIR --max-manifest-bytes N --max-manifest-entries N \
 --max-selected-object-bytes N --json-max-depth N --json-max-visits N \
 --json-max-integer-digits N";
+const CAPABILITIES: &str = "{\"schema_version\":\"tos_reader_capabilities_v1\",\"store_format\":\"tos_corpus_snapshot_v1\",\"selection\":\"exact_revision_and_source_id\",\"platform\":\"linux\",\"minimum_kernel\":\"5.6\",\"required_open_api\":\"openat2\",\"path_traversal\":\"beneath_no_symlinks\",\"unsafe_fallback\":false}";
 
 fn required(values: &mut BTreeMap<String, OsString>, name: &str) -> Result<OsString, String> {
     values
@@ -61,7 +62,13 @@ fn arguments() -> Result<BTreeMap<String, OsString>, String> {
             .into_string()
             .map_err(|_| format!("option names must be UTF-8; usage: {USAGE}"))?;
         if name == "--help" {
-            println!("{USAGE}");
+            println!(
+                "{USAGE}\nRequires Linux 5.6+ with openat2; no weaker path-open fallback. Run --capabilities for the versioned platform contract."
+            );
+            std::process::exit(0);
+        }
+        if name == "--capabilities" {
+            println!("{CAPABILITIES}");
             std::process::exit(0);
         }
         if !name.starts_with("--") {
