@@ -2,6 +2,7 @@ use tos_foundation::{
     CanonicalProfile, CodePointSpan, ContractDescriptor, ContractKey, DescriptorRegistry,
     Digest256, Digest256Hasher, FoundationErrorCode, JsonEmissionProfile, JsonLimits, JsonMode, JsonNumber,
     JsonNumberKind, JsonString, JsonValue, LogicalRecordRefV1, OperationDescriptor, OperationEffect, RelativePath,
+    UnicodeProfile, python_lower_unicode16_v1, python_strip_unicode16_v1,
     StableId, canonical_bytes_v1, emit_json_profile, emit_preserved_json, parse_json,
 };
 
@@ -363,4 +364,23 @@ fn logical_record_reference_has_exact_bounded_binary_identity() {
                FoundationErrorCode::InvalidFrame);
     assert_eq!(LogicalRecordRefV1::new(&[b'x'; 256], b"p", b"1", b"s", b"r", content, 5).unwrap_err().code,
                FoundationErrorCode::InvalidFrame);
+}
+
+#[test]
+fn unicode16_lower_and_strip_are_versioned_and_bounded() {
+    assert_eq!(UnicodeProfile::PythonNativeUnicodeV1.as_str(), "tos-python-native-unicode-v1");
+    assert_eq!(UnicodeProfile::PythonNativeUnicodeV1.ucd_version(), "16.0.0");
+    assert_eq!(UnicodeProfile::from_profile("unknown").unwrap_err().code,
+               FoundationErrorCode::UnsupportedFormat);
+    let lower = |input| python_lower_unicode16_v1(input, 256, 256, 1024).unwrap();
+    assert_eq!(lower("ΣΟΣ"), "σος");
+    assert_eq!(lower("İ"), "i\u{307}");
+    assert_eq!(lower("ẞ Straße K 𐐀"), "ß straße k 𐐨");
+    assert_eq!(python_strip_unicode16_v1("\u{85}\u{2003}  ΣΟΣ\u{3000}", 256).unwrap(), "ΣΟΣ");
+    assert_eq!(python_lower_unicode16_v1("İ", 1, 1, 8).unwrap_err().code,
+               FoundationErrorCode::BudgetExceeded);
+    assert_eq!(python_lower_unicode16_v1("İ", 1, 2, 2).unwrap_err().code,
+               FoundationErrorCode::BudgetExceeded);
+    assert_eq!(python_strip_unicode16_v1("ΣΟΣ", 2).unwrap_err().code,
+               FoundationErrorCode::BudgetExceeded);
 }

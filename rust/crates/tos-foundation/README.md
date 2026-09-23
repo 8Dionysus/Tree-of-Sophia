@@ -14,4 +14,6 @@ Legacy `public-source-forms apply` receipts are embedded in a whole form-set his
 
 `LogicalRecordRefV1` (`tos_logical_record_ref_v1`) frames an owner's opaque domain, profile, subject and revision bytes alongside exact content SHA-256 and length. Its `TOSL` v1 little-endian frame has fixed field ceilings and rejects unknown versions, truncation and trailing bytes. The frame digest is logical identity only; storage placement, durability, committed binding and source authority belong to their respective owners.
 
+`UnicodeProfile::PythonNativeUnicodeV1` pins the existing Worker/Python lowercase and strip rules to UCD 16.0.0. A generated Rust companion copies the frozen owner table only after checking its SHA-256; `generate_unicode.py --check` detects drift. The functions count caller-bounded input/output code points and output bytes; lowercase applies contextual final sigma to original text. They accept valid UTF-8 scalar text, so a caller must refuse any `JsonString` with an unpaired WTF-16 surrogate before invoking them. They do not select query vocabulary, normalize source IDs, or define a cursor profile.
+
 The target `wasm32-unknown-unknown` builds the same core rules. Optional `wasm` exports a small parity probe; Worker and browser I/O stay in their respective adapters. Independent vectors are owned by `tests/conformance/rust/`.
