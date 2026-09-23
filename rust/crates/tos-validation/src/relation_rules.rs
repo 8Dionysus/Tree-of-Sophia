@@ -18,6 +18,15 @@ const MAX_REGISTRY_BYTES: usize = 1_048_576;
 const MAX_CLAIM_FILE_BYTES: usize = 16_777_216;
 const MAX_CLAIM_BYTES: usize = 1_048_576;
 const MAX_RECORD_BYTES: usize = 1_048_576;
+const MAX_CLAIM_STREAMS: usize = 4_096;
+const MAX_TOTAL_CLAIM_BYTES: usize = 268_435_456;
+const MAX_CLAIMS: usize = 65_536;
+const MAX_ENDPOINTS: usize = 65_536;
+const MAX_TOPOLOGY_OBJECTS: usize = 65_536;
+const MAX_PROVENANCE_REFERENCES: usize = 65_536;
+const MAX_READS: usize = 262_144;
+const MAX_FACTS: usize = 65_536;
+const MAX_ISSUES: usize = 64;
 const ENTITY_CONTRACT: &str =
     "https://treeofsophia.local/ToS/contracts/semantic-entity-type-registry.schema.json";
 const RELATION_CONTRACT: &str =
@@ -40,22 +49,47 @@ pub struct RelationShadow {
     pub reads: Vec<PredicateRead>,
     pub facts: Vec<ValidationFact>,
     pub issues: Vec<RelationIssue>,
+    pub declared_profiles: BTreeSet<String>,
     pub checked_profiles: BTreeSet<String>,
     pub skipped_profiles: BTreeSet<String>,
     pub unsupported: bool,
+    pub issue_sink_truncated: bool,
+    pub observed_claims: usize,
+    pub observed_endpoints: usize,
 }
 
 impl RelationShadow {
     fn issue(&mut self, code: &'static str, location: impl Into<String>) {
-        self.issues.push(RelationIssue {
-            code,
-            location: location.into(),
-        });
+        if self.issues.len() < MAX_ISSUES {
+            self.issues.push(RelationIssue {
+                code,
+                location: location.into(),
+            });
+        } else {
+            self.issue_sink_truncated = true;
+            self.unsupported = true;
+        }
     }
 
     fn skip(&mut self, profile: impl Into<String>) {
         self.unsupported = true;
         self.skipped_profiles.insert(profile.into());
+    }
+
+    fn read(&mut self, read: PredicateRead) {
+        if self.reads.len() < MAX_READS {
+            self.reads.push(read);
+        } else {
+            self.skip("predicate-read-sink-capacity");
+        }
+    }
+
+    fn fact(&mut self, fact: ValidationFact) {
+        if self.facts.len() < MAX_FACTS {
+            self.facts.push(fact);
+        } else {
+            self.skip("validation-fact-sink-capacity");
+        }
     }
 }
 
@@ -86,6 +120,23 @@ pub struct ClaimFamilyInput<'a> {
     pub endpoints: &'a [EndpointRecord<'a>],
     pub complete_union: bool,
     pub union_generation: &'a str,
+}
+
+struct ClaimRoute {
+    reader: String,
+    domain: Vec<String>,
+    range: Vec<String>,
+    versions: BTreeMap<String, String>,
+    profile: Value,
+}
+
+impl ClaimRoute {
+    fn generic_endpoint(&self, schema_ref: &str) -> bool {
+        (self.reader == "identity-relation-v1"
+            && schema_ref == "ToS/contracts/source-relation-claim.schema.json")
+            || (self.reader == "semantic-relation-v1"
+                && schema_ref == "ToS/contracts/semantic-relation-claim.schema.json")
+    }
 }
 
 fn field_str<'a>(row: &'a Value, field: &str) -> Option<&'a str> {
@@ -141,13 +192,205 @@ fn ancestry_contains(types: &BTreeMap<String, Value>, actual: &str, allowed: &[S
     false
 }
 
+fn inspect_value_endpoints(
+    claim: &Value,
+    route: &ClaimRoute,
+    types: &BTreeMap<String, Value>,
+    endpoints: &BTreeMap<String, String>,
+    generation: &str,
+    location: &str,
+    shadow: &mut RelationShadow,
+) {
+    let Some(object) = claim.get("object").and_then(Value::as_object) else {
+        shadow.issue("structured-object", location);
+        return;
+    };
+    if let Some(expected_kind) = field_str(&route.profile, "value_kind") {
+        if object.get("kind").and_then(Value::as_str) != Some(expected_kind) {
+            shadow.issue("structured-value-kind", location);
+        }
+    }
+    if route.reader == "historical-temporal-v1" || route.reader == "document-catalogue-temporal-v1"
+    {
+        if object.get("kind").and_then(Value::as_str) == Some("relative-order") {
+            let anchor = object
+                .get("relative")
+                .and_then(|r| r.get("anchor_ref"))
+                .and_then(Value::as_str);
+            match anchor.and_then(|id| endpoints.get(id).map(|kind| (id, kind))) {
+                Some((id, kind))
+                    if ancestry_contains(
+                        types,
+                        kind,
+                        &["tos.entity.historical-situation".into()],
+                    ) =>
+                {
+                    shadow.read(PredicateRead::RefEndpoint {
+                        endpoint_type: kind.clone(),
+                        id: id.into(),
+                        observed: KeyState::Present,
+                    });
+                    shadow.read(PredicateRead::ReverseRefs {
+                        target: id.into(),
+                        relation: "relative-temporal-anchor".into(),
+                        generation: generation.into(),
+                    });
+                }
+                _ => {
+                    if let Some(id) = anchor {
+                        shadow.read(PredicateRead::RefEndpoint {
+                            endpoint_type: "historical-situation".into(),
+                            id: id.into(),
+                            observed: if endpoints.contains_key(id) {
+                                KeyState::Present
+                            } else {
+                                KeyState::Absent
+                            },
+                        });
+                    }
+                    shadow.issue("relative-anchor-type-or-missing", location);
+                }
+            }
+        }
+        return;
+    }
+    if route.reader != "structured-reference-value-v1" {
+        return;
+    }
+    let Some(constraint) = route.profile.get("object_reference_set") else {
+        shadow.issue("reference-set-profile", location);
+        return;
+    };
+    let (Some(members), Some(allowed)) = (
+        object.get("members").and_then(Value::as_array),
+        string_array(constraint, "member_type_ids"),
+    ) else {
+        shadow.issue("reference-set-shape", location);
+        return;
+    };
+    let min = constraint
+        .get("min_items")
+        .and_then(Value::as_u64)
+        .unwrap_or(u64::MAX);
+    let max = constraint
+        .get("max_items")
+        .and_then(Value::as_u64)
+        .unwrap_or(0);
+    if (members.len() as u64) < min || (members.len() as u64) > max {
+        shadow.issue("reference-set-cardinality", location);
+    }
+    let mut seen = BTreeSet::new();
+    for member in members {
+        let Some(id) = member.as_str() else {
+            shadow.issue("reference-member-shape", location);
+            continue;
+        };
+        if !seen.insert(id) || claim.get("claim_id").and_then(Value::as_str) == Some(id) {
+            shadow.issue("reference-member-duplicate-or-self", location);
+        }
+        match endpoints.get(id) {
+            Some(actual) if ancestry_contains(types, actual, &allowed) => {
+                shadow.read(PredicateRead::RefEndpoint {
+                    endpoint_type: actual.clone(),
+                    id: id.into(),
+                    observed: KeyState::Present,
+                });
+                shadow.read(PredicateRead::ReverseRefs {
+                    target: id.into(),
+                    relation: "structured-value-member".into(),
+                    generation: generation.into(),
+                });
+            }
+            _ => {
+                shadow.read(PredicateRead::RefEndpoint {
+                    endpoint_type: "declared-member-range".into(),
+                    id: id.into(),
+                    observed: if endpoints.contains_key(id) {
+                        KeyState::Present
+                    } else {
+                        KeyState::Absent
+                    },
+                });
+                shadow.issue("reference-member-type-or-missing", location);
+            }
+        }
+    }
+    if constraint.get("subject_is_member") == Some(&Value::Bool(true))
+        && !seen.contains(
+            claim
+                .get("subject_ref")
+                .and_then(Value::as_str)
+                .unwrap_or(""),
+        )
+    {
+        shadow.issue("reference-subject-not-member", location);
+    }
+    if let Some(order) = object.get("ordering") {
+        let mode = field_str(order, "mode");
+        let precedes = order.get("precedes").and_then(Value::as_array);
+        if let (Some(mode), Some(edges)) = (mode, precedes) {
+            if mode == "unordered" && !edges.is_empty() {
+                shadow.issue("unordered-has-precedence", location);
+            }
+            let mut outgoing: BTreeMap<&str, BTreeSet<&str>> = seen
+                .iter()
+                .copied()
+                .map(|id| (id, BTreeSet::new()))
+                .collect();
+            let mut indegree: BTreeMap<&str, usize> =
+                seen.iter().copied().map(|id| (id, 0)).collect();
+            for edge in edges {
+                let pair = edge.as_array();
+                let points = pair
+                    .filter(|p| p.len() == 2)
+                    .and_then(|p| Some((p[0].as_str()?, p[1].as_str()?)));
+                let Some((before, after)) = points else {
+                    shadow.issue("precedence-edge-shape", location);
+                    continue;
+                };
+                if !seen.contains(before) || !seen.contains(after) {
+                    shadow.issue("precedence-endpoint", location);
+                    continue;
+                }
+                if outgoing
+                    .get_mut(before)
+                    .is_some_and(|targets| targets.insert(after))
+                {
+                    *indegree.get_mut(after).expect("member counted") += 1;
+                }
+            }
+            let mut ready: Vec<&str> = indegree
+                .iter()
+                .filter_map(|(id, count)| (*count == 0).then_some(*id))
+                .collect();
+            let mut visited = 0usize;
+            while let Some(id) = ready.pop() {
+                if mode == "total" && !ready.is_empty() {
+                    shadow.issue("total-order-incomplete", location);
+                }
+                visited += 1;
+                for after in outgoing.get(id).into_iter().flat_map(|edges| edges.iter()) {
+                    let count = indegree.get_mut(after).expect("member counted");
+                    *count -= 1;
+                    if *count == 0 {
+                        ready.push(after);
+                    }
+                }
+            }
+            if visited != seen.len() {
+                shadow.issue("precedence-cycle", location);
+            }
+        }
+    }
+    if constraint.get("basis_adapter").is_some() {
+        shadow.skip("collection-membership-exact-version-basis");
+    }
+}
+
 fn relation_profile_routes(
     relation_registry: &Value,
     shadow: &mut RelationShadow,
-) -> Result<
-    BTreeMap<String, (String, Vec<String>, Vec<String>, BTreeMap<String, String>)>,
-    RelationError,
-> {
+) -> Result<BTreeMap<String, ClaimRoute>, RelationError> {
     let relations = relation_registry
         .get("relations")
         .and_then(Value::as_array)
@@ -212,7 +455,13 @@ fn relation_profile_routes(
         if routes
             .insert(
                 predicate.clone(),
-                (reader.to_owned(), domain, range, versions),
+                ClaimRoute {
+                    reader: reader.to_owned(),
+                    domain,
+                    range,
+                    versions,
+                    profile: profile.clone(),
+                },
             )
             .is_some()
         {
@@ -234,6 +483,17 @@ pub fn inspect_profiled_claims(
         shadow.skip("complete-current-claim-union");
         return Ok(shadow);
     }
+    if input.claim_streams.len() > MAX_CLAIM_STREAMS || input.endpoints.len() > MAX_ENDPOINTS {
+        return Err(RelationError::BudgetExceeded);
+    }
+    let total_bytes = input
+        .claim_streams
+        .iter()
+        .try_fold(0usize, |sum, stream| sum.checked_add(stream.raw.len()))
+        .ok_or(RelationError::BudgetExceeded)?;
+    if total_bytes > MAX_TOTAL_CLAIM_BYTES {
+        return Err(RelationError::BudgetExceeded);
+    }
     let entities = raw_value(input.entity_registry_raw, MAX_REGISTRY_BYTES)?;
     let relations = raw_value(input.relation_registry_raw, MAX_REGISTRY_BYTES)?;
     if !schema_valid(probe, ENTITY_CONTRACT, input.entity_registry_raw)?
@@ -246,7 +506,7 @@ pub fn inspect_profiled_claims(
         (ENTITY_CONTRACT, input.entity_registry_raw, &entities),
         (RELATION_CONTRACT, input.relation_registry_raw, &relations),
     ] {
-        shadow.reads.push(PredicateRead::Registry {
+        shadow.read(PredicateRead::Registry {
             uri: uri.to_owned(),
             version: registry
                 .get("registry_version")
@@ -255,7 +515,7 @@ pub fn inspect_profiled_claims(
             digest: Digest256::of_bytes(raw).to_prefixed(),
         });
         if let Some(read) = resource_read(probe, uri) {
-            shadow.reads.push(read);
+            shadow.read(read);
         }
     }
     let mut types = BTreeMap::new();
@@ -285,14 +545,39 @@ pub fn inspect_profiled_claims(
         }
     }
     let routes = relation_profile_routes(&relations, &mut shadow)?;
+    for (predicate, route) in &routes {
+        for (version, schema_ref) in &route.versions {
+            let profile_id = format!("{predicate}@{version}");
+            shadow.declared_profiles.insert(profile_id.clone());
+            if !route.generic_endpoint(schema_ref) {
+                shadow.skip(format!("{}:{profile_id}", route.reader));
+            }
+        }
+    }
     let mut endpoint_types = BTreeMap::new();
     for endpoint in input.endpoints {
+        shadow.observed_endpoints += 1;
         let value = raw_value(endpoint.raw, MAX_RECORD_BYTES)?;
-        let (Some(id), Some(kind)) = (
+        let identity = match (
             field_str(&value, "record_id"),
             field_str(&value, "record_type"),
-        ) else {
-            shadow.issue("endpoint-record-shape", endpoint.source_ref);
+        ) {
+            (Some(id), Some(kind)) => Some((id, kind)),
+            _ if endpoint.source_ref.ends_with("/artifact-witness.json") => {
+                shadow.skip("native-artifact-endpoint-adapter");
+                field_str(&value, "artifact_id").map(|id| (id, "artifact"))
+            }
+            _ if endpoint.source_ref.ends_with("/composite-witness.json") => {
+                shadow.skip("native-composite-endpoint-adapter");
+                field_str(&value, "composite_id").map(|id| (id, "composite"))
+            }
+            _ => None,
+        };
+        let Some((id, kind)) = identity else {
+            shadow.skip(format!(
+                "unregistered-endpoint-adapter:{}",
+                endpoint.source_ref
+            ));
             continue;
         };
         let Some(type_id) = kind_types.get(kind) else {
@@ -305,7 +590,7 @@ pub fn inspect_profiled_claims(
         {
             shadow.issue("duplicate-endpoint-id", id);
         }
-        shadow.reads.push(PredicateRead::ExactPath {
+        shadow.read(PredicateRead::ExactPath {
             path: endpoint.source_ref.to_owned(),
             digest: Digest256::of_bytes(endpoint.raw).to_prefixed(),
         });
@@ -327,13 +612,17 @@ pub fn inspect_profiled_claims(
             shadow.issue("claim-path", stream.source_ref);
             continue;
         }
-        shadow.reads.push(PredicateRead::ExactPath {
+        shadow.read(PredicateRead::ExactPath {
             path: stream.source_ref.to_owned(),
             digest: Digest256::of_bytes(stream.raw).to_prefixed(),
         });
         for (index, line) in stream.raw.split(|byte| *byte == b'\n').enumerate() {
             if line.iter().all(u8::is_ascii_whitespace) {
                 continue;
+            }
+            shadow.observed_claims += 1;
+            if shadow.observed_claims > MAX_CLAIMS {
+                return Err(RelationError::BudgetExceeded);
             }
             let location = format!("{}:{}", stream.source_ref, index + 1);
             let claim = raw_value(line, MAX_CLAIM_BYTES)?;
@@ -349,39 +638,36 @@ pub fn inspect_profiled_claims(
             if !seen_claim_ids.insert(claim_id.to_owned()) {
                 shadow.issue("duplicate-claim-id", &location);
             }
-            shadow.reads.push(PredicateRead::UniqueKey {
+            shadow.read(PredicateRead::UniqueKey {
                 namespace: "source-claim-id".into(),
                 key: claim_id.to_owned(),
                 owner: location.clone(),
             });
-            let Some((reader, domain, range, versions)) = routes.get(predicate) else {
+            let Some(route) = routes.get(predicate) else {
                 shadow.issue("unrecognized-predicate", location);
                 continue;
             };
-            let Some(schema_ref) = versions.get(version) else {
+            let Some(schema_ref) = route.versions.get(version) else {
                 shadow.issue("unrecognized-schema-version", location);
                 continue;
             };
             let uri = format!("https://tree-of-sophia.local/{schema_ref}");
             let route_id = format!("{predicate}@{version}");
-            let supported = (reader == "identity-relation-v1"
-                && schema_ref == "ToS/contracts/source-relation-claim.schema.json")
-                || (reader == "semantic-relation-v1"
-                    && schema_ref == "ToS/contracts/semantic-relation-claim.schema.json");
+            let supported = route.generic_endpoint(schema_ref);
             if supported {
                 shadow.checked_profiles.insert(route_id.clone());
             } else {
-                shadow.skip(format!("{reader}:{route_id}"));
+                shadow.skip(format!("{}:{route_id}", route.reader));
             }
             if !schema_valid(probe, &uri, line)? || !schema_valid(probe, CLAIM_BASE, line)? {
                 shadow.issue("claim-schema", &location);
                 continue;
             }
             if let Some(read) = resource_read(probe, &uri) {
-                shadow.reads.push(read);
+                shadow.read(read);
             }
             if let Some(read) = resource_read(probe, CLAIM_BASE) {
-                shadow.reads.push(read);
+                shadow.read(read);
             }
             if claim.get("claim_type").and_then(Value::as_str) != Some("relation")
                 || !matches!(
@@ -392,16 +678,33 @@ pub fn inspect_profiled_claims(
                 shadow.issue("claim-public-shape", &location);
                 continue;
             }
+            if claim_id == subject {
+                shadow.issue("self-subject-claim-id", &location);
+            }
+            let allowed_layers =
+                string_array(&route.profile, "assertion_layers").unwrap_or_default();
+            if !claim
+                .get("assertion_layer")
+                .and_then(Value::as_str)
+                .is_some_and(|layer| allowed_layers.iter().any(|allowed| allowed == layer))
+            {
+                shadow.issue("claim-assertion-layer", &location);
+            }
             let Some(actual_subject) = endpoint_types.get(subject) else {
+                shadow.read(PredicateRead::RefEndpoint {
+                    endpoint_type: "declared-domain".into(),
+                    id: subject.into(),
+                    observed: KeyState::Absent,
+                });
                 shadow.issue("missing-subject", &location);
                 continue;
             };
-            shadow.reads.push(PredicateRead::RefEndpoint {
+            shadow.read(PredicateRead::RefEndpoint {
                 endpoint_type: actual_subject.clone(),
                 id: subject.to_owned(),
                 observed: KeyState::Present,
             });
-            if !ancestry_contains(&types, actual_subject, domain) {
+            if !ancestry_contains(&types, actual_subject, &route.domain) {
                 shadow.issue("subject-domain", &location);
             }
             if let Some(object) = claim.get("object").and_then(Value::as_str) {
@@ -409,34 +712,49 @@ pub fn inspect_profiled_claims(
                     shadow.issue("self-object-claim-id", &location);
                 }
                 let Some(actual_object) = endpoint_types.get(object) else {
+                    shadow.read(PredicateRead::RefEndpoint {
+                        endpoint_type: "declared-range".into(),
+                        id: object.into(),
+                        observed: KeyState::Absent,
+                    });
                     shadow.issue("missing-object", &location);
                     continue;
                 };
-                shadow.reads.push(PredicateRead::RefEndpoint {
+                shadow.read(PredicateRead::RefEndpoint {
                     endpoint_type: actual_object.clone(),
                     id: object.to_owned(),
                     observed: KeyState::Present,
                 });
-                if !ancestry_contains(&types, actual_object, range) {
+                if !ancestry_contains(&types, actual_object, &route.range) {
                     shadow.issue("object-range", &location);
                 }
-                shadow.reads.push(PredicateRead::ReverseRefs {
+                shadow.read(PredicateRead::ReverseRefs {
                     target: object.to_owned(),
                     relation: predicate.to_owned(),
                     generation: input.union_generation.to_owned(),
                 });
-            } else if supported {
+            } else if claim.get("object").and_then(Value::as_object).is_some() {
+                inspect_value_endpoints(
+                    &claim,
+                    route,
+                    &types,
+                    &endpoint_types,
+                    input.union_generation,
+                    &location,
+                    &mut shadow,
+                );
+            } else {
                 shadow.issue("object-type", &location);
             }
             // Negative and unknown polarity are Claim values, not an absence assertion.
-            shadow.facts.push(ValidationFact {
+            shadow.fact(ValidationFact {
                 namespace: "source-claim-assertion".into(),
                 key: claim_id.to_owned(),
                 value_digest: Digest256::of_bytes(line).to_prefixed(),
             });
         }
     }
-    shadow.reads.push(PredicateRead::Range {
+    shadow.read(PredicateRead::Range {
         namespace: "source-claim-id-union".into(),
         lower: String::new(),
         upper: String::new(),
@@ -460,6 +778,13 @@ pub fn inspect_current_topology(
     let mut shadow = RelationShadow::default();
     if !verified_complete_union || union_generation.is_empty() {
         shadow.skip("verified-current-topology-union");
+        return shadow;
+    }
+    if records.len() > MAX_TOPOLOGY_OBJECTS
+        || claims.len() > MAX_TOPOLOGY_OBJECTS
+        || item_edition.len() > MAX_TOPOLOGY_OBJECTS
+    {
+        shadow.skip("current-topology-input-capacity");
         return shadow;
     }
     const ROUTES: [(&str, &str, &str, &str); 3] = [
@@ -564,12 +889,12 @@ pub fn inspect_current_topology(
             shadow.issue("topology-endpoint", id);
             continue;
         }
-        shadow.reads.push(PredicateRead::RefEndpoint {
+        shadow.read(PredicateRead::RefEndpoint {
             endpoint_type: (*subject_type).into(),
             id: subject.into(),
             observed: KeyState::Present,
         });
-        shadow.reads.push(PredicateRead::RefEndpoint {
+        shadow.read(PredicateRead::RefEndpoint {
             endpoint_type: (*object_type).into(),
             id: object.into(),
             observed: KeyState::Present,
@@ -591,7 +916,7 @@ pub fn inspect_current_topology(
             .entry((predicate.into(), subject.into()))
             .or_default()
             .insert(id.into(), object.into());
-        shadow.facts.push(ValidationFact {
+        shadow.fact(ValidationFact {
             namespace: "bibliographic-topology-claim".into(),
             key: id.into(),
             value_digest: Digest256::of_bytes(
@@ -630,7 +955,7 @@ pub fn inspect_current_topology(
             {
                 shadow.issue("topology-forward-closure", subject);
             }
-            shadow.reads.push(PredicateRead::Range {
+            shadow.read(PredicateRead::Range {
                 namespace: format!("topology:{predicate}:subject"),
                 lower: subject.into(),
                 upper: subject.into(),
@@ -647,7 +972,7 @@ pub fn inspect_current_topology(
                 shadow.issue("topology-missing-target", target);
             }
         }
-        shadow.reads.push(PredicateRead::ReverseRefs {
+        shadow.read(PredicateRead::ReverseRefs {
             target: subject.clone(),
             relation: predicate.clone(),
             generation: union_generation.into(),
@@ -670,23 +995,32 @@ pub fn inspect_provenance_event(
     probe: &SchemaBackendProbe,
 ) -> Result<RelationShadow, RelationError> {
     let mut shadow = RelationShadow::default();
+    if local_bytes.len() > MAX_PROVENANCE_REFERENCES
+        || local_bytes
+            .values()
+            .try_fold(0usize, |sum, raw| sum.checked_add(raw.len()))
+            .ok_or(RelationError::BudgetExceeded)?
+            > MAX_TOTAL_CLAIM_BYTES
+    {
+        return Err(RelationError::BudgetExceeded);
+    }
     let event = raw_value(event_raw, MAX_RECORD_BYTES)?;
     if !schema_valid(probe, PROVENANCE_CONTRACT, event_raw)? {
         shadow.issue("provenance-schema", event_ref);
         return Ok(shadow);
     }
-    shadow.reads.push(PredicateRead::ExactPath {
+    shadow.read(PredicateRead::ExactPath {
         path: event_ref.into(),
         digest: Digest256::of_bytes(event_raw).to_prefixed(),
     });
     if let Some(read) = resource_read(probe, PROVENANCE_CONTRACT) {
-        shadow.reads.push(read);
+        shadow.read(read);
     }
     let Some(id) = field_str(&event, "event_id") else {
         shadow.issue("provenance-event-id", event_ref);
         return Ok(shadow);
     };
-    shadow.reads.push(PredicateRead::UniqueKey {
+    shadow.read(PredicateRead::UniqueKey {
         namespace: "source-event-id".into(),
         key: id.into(),
         owner: event_ref.into(),
@@ -716,13 +1050,13 @@ pub fn inspect_provenance_event(
             if actual != digest && actual.strip_prefix("sha256:") != Some(digest) {
                 shadow.issue("provenance-digest", reference);
             }
-            shadow.reads.push(PredicateRead::ExactPath {
+            shadow.read(PredicateRead::ExactPath {
                 path: reference.into(),
                 digest: actual,
             });
         }
     }
-    shadow.facts.push(ValidationFact {
+    shadow.fact(ValidationFact {
         namespace: "source-provenance-event".into(),
         key: id.into(),
         value_digest: Digest256::of_bytes(event_raw).to_prefixed(),
@@ -871,6 +1205,77 @@ mod tests {
                 .issues
                 .iter()
                 .any(|issue| issue.code == "object-range")
+        );
+    }
+
+    #[test]
+    fn real_structured_member_claim_retains_native_endpoint_gap() {
+        const CLAIM_PATH: &str =
+            "ToS/source-witnesses/relations/oim-a00645-physical-composition/source-claims.jsonl";
+        const WHOLE: &str = "ToS/source-witnesses/artifacts/sumerian/adab/oim-a00645-plus-a00649a-i/artifact-witness.json";
+        const MEMBER: &str =
+            "ToS/source-witnesses/artifacts/sumerian/adab/oim-a00645/artifact-witness.json";
+        let entity = bytes("ToS/doctrine/semantic-interchange/entity-types.v1.json");
+        let relation = bytes("ToS/doctrine/semantic-interchange/relation-types.v1.json");
+        let claim = bytes(CLAIM_PATH);
+        let whole = bytes(WHOLE);
+        let member = bytes(MEMBER);
+        let endpoints = [
+            EndpointRecord {
+                source_ref: WHOLE,
+                raw: &whole,
+            },
+            EndpointRecord {
+                source_ref: MEMBER,
+                raw: &member,
+            },
+        ];
+        let backend = probe();
+        let check = |raw: &[u8]| {
+            inspect_profiled_claims(
+                ClaimFamilyInput {
+                    entity_registry_raw: &entity,
+                    relation_registry_raw: &relation,
+                    claim_streams: &[ClaimStream {
+                        source_ref: CLAIM_PATH,
+                        raw,
+                    }],
+                    endpoints: &endpoints,
+                    complete_union: true,
+                    union_generation: "test-union",
+                },
+                &backend,
+            )
+            .unwrap()
+        };
+        let positive = check(&claim);
+        assert!(positive.issues.is_empty(), "{:?}", positive.issues);
+        assert!(positive.unsupported);
+        assert!(
+            positive
+                .skipped_profiles
+                .contains("native-artifact-endpoint-adapter")
+        );
+        let mut duplicate: Value = serde_json::from_slice(&claim).unwrap();
+        let member_id = duplicate["object"]["members"][0].clone();
+        duplicate["object"]["members"]
+            .as_array_mut()
+            .unwrap()
+            .push(member_id);
+        assert!(
+            check(&serde_json::to_vec(&duplicate).unwrap())
+                .issues
+                .iter()
+                .any(|issue| issue.code == "claim-schema"
+                    || issue.code == "reference-member-duplicate-or-self")
+        );
+        let mut absent: Value = serde_json::from_slice(&claim).unwrap();
+        absent["object"]["members"] = json!(["tos.artifact.absent"]);
+        assert!(
+            check(&serde_json::to_vec(&absent).unwrap())
+                .issues
+                .iter()
+                .any(|issue| issue.code == "reference-member-type-or-missing")
         );
     }
 
