@@ -6,7 +6,7 @@
 
 use crate::knowledge_stage::{ExactInputReceipt, KnowledgeStage, SeekRow, WritePhase};
 use crate::{Error, QueryVocabulary, Result, knowledge_normalization::SourceRow};
-use rusqlite::params;
+use rusqlite::{OptionalExtension, params};
 use serde_json::Value;
 use tos_foundation::{Digest256, Digest256Hasher};
 
@@ -539,6 +539,179 @@ pub fn prepare_source_navigation(
     result
 }
 
+/// Future all-source assembler result. Fields are private and this module
+/// deliberately offers no constructor until raw-node/edge coverage and the
+/// global missing-endpoint root have an independently checked producer.
+/// A caller cannot turn a self-asserted `complete` flag into cleanup authority.
+pub struct NavigationJoinClosure {
+    source_graph: String,
+    source_cut: String,
+    prepared_dependency_root_sha256: String,
+    raw_node_count: u64,
+    raw_node_input_root_sha256: String,
+    raw_edge_count: u64,
+    raw_edge_input_root_sha256: String,
+    placeholder_count: u64,
+    placeholder_absence_root_sha256: String,
+    core_node_count: u64,
+    core_node_root_sha256: String,
+    core_relation_count: u64,
+    core_relation_root_sha256: String,
+}
+
+fn clear_inner(
+    stage: &mut KnowledgeStage<'_>,
+    vocabulary: &QueryVocabulary,
+    header: &NavigationHeaderClaim,
+    prepared: &NavigationPrepareReceipt,
+    closure: &NavigationJoinClosure,
+    limits: NavigationPrepareLimits,
+) -> Result<()> {
+    limits.validate()?;
+    let selected = select(vocabulary, stage.exact_receipt(), limits)?;
+    let rights = exact_header(header, &selected, limits)?;
+    if prepared.source_graph != selected.source
+        || prepared.input_role != selected.role
+        || prepared.source_cut != selected.cut
+        || prepared.nodes != selected.expected[0].0
+        || prepared.edges != selected.expected[1].0
+        || prepared.node_input_root_sha256 != selected.expected[0].1
+        || prepared.edge_input_root_sha256 != selected.expected[1].1
+        || prepared.header_claim_sha256 != header.expected_sha256
+        || prepared.header_claim_rights_count != rights
+        || prepared.external_dependencies != EXTERNAL_DEPENDENCIES
+        || prepared.final_graph_rows_written
+        || closure.source_graph != prepared.source_graph
+        || closure.source_cut != prepared.source_cut
+        || closure.prepared_dependency_root_sha256 != prepared.dependency_root_sha256
+        || closure.raw_node_count != prepared.nodes
+        || closure.raw_edge_count != prepared.edges
+        || closure.raw_node_input_root_sha256 != prepared.node_input_root_sha256
+        || closure.raw_edge_input_root_sha256 != prepared.edge_input_root_sha256
+        || Digest256::from_hex(&closure.placeholder_absence_root_sha256).is_err()
+        || Digest256::from_hex(&closure.core_node_root_sha256).is_err()
+        || Digest256::from_hex(&closure.core_relation_root_sha256).is_err()
+    {
+        return Err(Error::Invalid("navigation cleanup closure binding"));
+    }
+    let actual_root = dependency_root(stage, &selected, &header.expected_sha256)?;
+    if actual_root != prepared.dependency_root_sha256 {
+        return Err(Error::Invalid("navigation cleanup prepared root drift"));
+    }
+    let core = stage.core_roots()?;
+    if core.nodes != closure.core_node_count
+        || core.node_sha256 != closure.core_node_root_sha256
+        || core.relations != closure.core_relation_count
+        || core.relation_sha256 != closure.core_relation_root_sha256
+    {
+        return Err(Error::Invalid("navigation cleanup core root drift"));
+    }
+    stage.with_connection(WritePhase::Finalize, |db| {
+        let tx = db.transaction()?;
+        let count = |sql: &str| -> Result<u64> {
+            let value: i64 = tx.query_row(sql, [], |row| row.get(0))?;
+            u64::try_from(value).map_err(|_| Error::Budget("navigation cleanup count"))
+        };
+        let nodes = count("SELECT count(*) FROM knowledge_navigation_nodes")?;
+        let edges = count("SELECT count(*) FROM knowledge_navigation_edges")?;
+        let endpoints = count("SELECT count(*) FROM knowledge_navigation_endpoints")?;
+        let unresolved =
+            count("SELECT count(*) FROM knowledge_navigation_endpoints WHERE locally_resolved=0")?;
+        if nodes != prepared.nodes
+            || edges != prepared.edges
+            || endpoints != prepared.endpoint_refs
+            || unresolved != prepared.unresolved_endpoint_refs
+            || endpoints
+                != edges
+                    .checked_mul(2)
+                    .ok_or(Error::Budget("navigation cleanup endpoint count"))?
+        {
+            return Err(Error::Invalid("navigation cleanup prepared count drift"));
+        }
+        let source = &prepared.source_graph;
+        let covered_nodes: Option<i64> = tx
+            .query_row(
+                "SELECT 1 FROM knowledge_navigation_nodes p WHERE NOT EXISTS (
+             SELECT 1 FROM knowledge_nodes n WHERE n.id=?1||':'||p.node_id
+             AND n.source_graph=?1 AND n.native_id=p.node_id) LIMIT 1",
+                params![source],
+                |row| row.get(0),
+            )
+            .optional()?;
+        let covered_edges: Option<i64> = tx
+            .query_row(
+                "SELECT 1 FROM knowledge_navigation_edges p WHERE NOT EXISTS (
+             SELECT 1 FROM knowledge_relations r WHERE r.id=?1||':'||p.edge_id
+             AND r.source_graph=?1 AND r.native_id=p.edge_id) LIMIT 1",
+                params![source],
+                |row| row.get(0),
+            )
+            .optional()?;
+        if covered_nodes.is_some() || covered_edges.is_some() {
+            return Err(Error::Invalid("navigation cleanup raw coverage"));
+        }
+        let nav_nodes: i64 = tx.query_row(
+            "SELECT count(*) FROM knowledge_nodes WHERE source_graph=?1",
+            params![source],
+            |row| row.get(0),
+        )?;
+        let nav_relations: i64 = tx.query_row(
+            "SELECT count(*) FROM knowledge_relations WHERE source_graph=?1",
+            params![source],
+            |row| row.get(0),
+        )?;
+        let expected_nodes = prepared
+            .nodes
+            .checked_add(closure.placeholder_count)
+            .ok_or(Error::Budget("navigation cleanup node coverage"))?;
+        if u64::try_from(nav_nodes).ok() != Some(expected_nodes)
+            || u64::try_from(nav_relations).ok() != Some(prepared.edges)
+        {
+            return Err(Error::Invalid("navigation cleanup final family coverage"));
+        }
+        let extras: Option<i64> = tx
+            .query_row(
+                "SELECT 1 FROM knowledge_nodes n WHERE n.source_graph=?1 AND NOT EXISTS (
+             SELECT 1 FROM knowledge_navigation_nodes p WHERE p.node_id=n.native_id)
+             AND (n.kind_id!='relation-endpoint' OR n.native_id IS NULL) LIMIT 1",
+                params![source],
+                |row| row.get(0),
+            )
+            .optional()?;
+        if extras.is_some() {
+            return Err(Error::Invalid("navigation cleanup placeholder shape"));
+        }
+        // The assembler's separate all-source absence root is the authority
+        // for extras; local endpoint flags cannot establish global absence.
+        tx.execute_batch(
+            "DROP TABLE knowledge_navigation_endpoints;
+            DROP TABLE knowledge_navigation_edges;
+            DROP TABLE knowledge_navigation_nodes;",
+        )?;
+        tx.commit()?;
+        Ok(())
+    })
+}
+
+/// Cleanup only after an independently verified all-source join can supply
+/// `NavigationJoinClosure`. Until that producer exists this API is not
+/// callable from a public client; selected-table closure therefore remains
+/// an explicit blocker, rather than silently discarding private indexes.
+pub fn clear_source_navigation_prepare(
+    stage: &mut KnowledgeStage<'_>,
+    vocabulary: &QueryVocabulary,
+    header: &NavigationHeaderClaim,
+    prepared: &NavigationPrepareReceipt,
+    closure: &NavigationJoinClosure,
+    limits: NavigationPrepareLimits,
+) -> Result<()> {
+    let result = clear_inner(stage, vocabulary, header, prepared, closure, limits);
+    if result.is_err() {
+        stage.poison();
+    }
+    result
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -763,5 +936,71 @@ mod tests {
         let mut tiny = limits();
         tiny.max_endpoint_refs = 3;
         assert!(run(&rows, &rows, header(&rows), tiny).is_err());
+    }
+
+    #[test]
+    fn cleanup_refuses_unjoined_private_indexes_and_poisons_stage() {
+        let rows = fixture();
+        let owner = Owner;
+        let quota = TestQuota;
+        let candidate = path();
+        let mut stage = KnowledgeStage::create(
+            &candidate,
+            StageLimits {
+                sqlite: Limits::default(),
+                max_temp_bytes: 64 * 1024 * 1024,
+                max_seek_rows: 2,
+                max_seek_bytes: 4096,
+            },
+            receipt(&rows),
+            &owner,
+            &quota,
+        )
+        .unwrap();
+        for (collection, id, payload) in &rows {
+            stage
+                .ingest_input(InputRow {
+                    source_graph: "navigation-fixture",
+                    collection,
+                    id,
+                    payload: payload.as_bytes(),
+                })
+                .unwrap();
+        }
+        let claimed_header = header(&rows);
+        let prepared =
+            prepare_source_navigation(&mut stage, &vocabulary(), &claimed_header, limits())
+                .unwrap();
+        let core = stage.core_roots().unwrap();
+        // Deliberately forged only inside this module's unit test. The real
+        // assembler has no constructor yet, so production cannot do this.
+        let fake = NavigationJoinClosure {
+            source_graph: prepared.source_graph.clone(),
+            source_cut: prepared.source_cut.clone(),
+            prepared_dependency_root_sha256: prepared.dependency_root_sha256.clone(),
+            raw_node_count: prepared.nodes,
+            raw_node_input_root_sha256: prepared.node_input_root_sha256.clone(),
+            raw_edge_count: prepared.edges,
+            raw_edge_input_root_sha256: prepared.edge_input_root_sha256.clone(),
+            placeholder_count: 0,
+            placeholder_absence_root_sha256: "0".repeat(64),
+            core_node_count: core.nodes,
+            core_node_root_sha256: core.node_sha256,
+            core_relation_count: core.relations,
+            core_relation_root_sha256: core.relation_sha256,
+        };
+        assert!(
+            clear_source_navigation_prepare(
+                &mut stage,
+                &vocabulary(),
+                &claimed_header,
+                &prepared,
+                &fake,
+                limits()
+            )
+            .is_err()
+        );
+        assert!(stage.finish().is_err());
+        fs::remove_dir(candidate.parent().unwrap()).unwrap();
     }
 }
