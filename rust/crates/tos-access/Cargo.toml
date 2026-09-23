@@ -1,0 +1,22 @@
+[package]
+name = "tos-access"
+version = "0.0.0"
+publish = false
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+tos-foundation = { path = "../tos-foundation" }
+tos-query = { path = "../tos-query" }
+
+[lib]
+name = "tos_access"
+path = "src/lib.rs"
+
+[dev-dependencies]
+tos-compiler = { path = "../tos-compiler" }
+
+[[bin]]
+name = "tos-access"
+path = "src/main.rs"

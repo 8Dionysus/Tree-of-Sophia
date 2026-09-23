@@ -1,0 +1,33 @@
+{
+  "schema_version": "tos_native_access_operations_v1",
+  "owner": "Tree-of-Sophia/access",
+  "source_contract": "access/contracts/query-operations.v1.json",
+  "request_json_profile": "tos_request_last_wins_json_v1",
+  "response_json_profile": "tos_access_response_v1",
+  "operations": [
+    {
+      "operation_id": "tos.source.descend",
+      "execution_version": "tos_source_navigation_read_model_v1",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_model_and_current_policy_fence",
+      "http": {"method": "GET", "path_template": "/api/source/navigation/{node_id}"},
+      "mcp": {
+        "tool": "tos_source_descend",
+        "description": "Read a bounded source-navigation descent from an exact node ID",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "node_id": {"type": "string", "minLength": 1},
+            "max_depth": {"type": "integer", "minimum": 1, "maximum": 8, "default": 8},
+            "limit": {"type": "integer", "minimum": 1, "maximum": 300, "default": 300}
+          },
+          "required": ["node_id"],
+          "additionalProperties": false
+        }
+      },
+      "cli": {"command": "source descend"},
+      "request": {"node_id": "opaque exact UTF-8 ID", "max_depth": "1..8; default 8", "limit": "1..300; default 300"},
+      "result": "source_descend packet with exact authority_note"
+    }
+  ]
+}
