@@ -573,6 +573,46 @@ class AcquisitionBatchTests(unittest.TestCase):
                 self.assertEqual([], fetch_calls)
                 self.assertFalse(output.exists())
 
+    def test_selected_provenance_rejects_duplicate_keys_before_provider_fetch(self) -> None:
+        fetches, _manifest_sha = self._write_manifest(count=1)
+        manifest = json.loads(self.manifest_path.read_text(encoding="utf-8"))
+        provenance_record = next(
+            row
+            for row in manifest["selection"][0]["records"]
+            if row["kind"] == "provenance"
+        )
+        provenance_path = self.metadata / provenance_record["ref"]
+        provenance_body = provenance_path.read_text(encoding="utf-8")
+        self.assertIn('"status": "completed"', provenance_body)
+        provenance_body = provenance_body.replace(
+            '"status": "completed"',
+            '"status": "failed", "status": "completed"',
+            1,
+        )
+        provenance_path.write_text(provenance_body, encoding="utf-8")
+        provenance_record["sha256"] = hashlib.sha256(
+            provenance_path.read_bytes()
+        ).hexdigest()
+        self.manifest_path.write_text(
+            json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        manifest_sha = hashlib.sha256(self.manifest_path.read_bytes()).hexdigest()
+        fetch_calls: list[str] = []
+        with self.assertRaisesRegex(
+            acquisition.AcquisitionBatchError,
+            "prepared Item provenance is not valid JSONL",
+        ):
+            acquisition.acquire_batch(
+                manifest_path=self.manifest_path,
+                metadata_root=self.metadata,
+                output_root=self.root / "duplicate-provenance",
+                expected_manifest_sha256=manifest_sha,
+                fetcher=lambda payload: fetch_calls.append(payload["file_ref"])
+                or fetches[payload["file_ref"]],
+            )
+        self.assertEqual([], fetch_calls)
+
     def test_resume_rejects_unsupported_prepared_metadata_mode_before_provider_fetch(self) -> None:
         fetches, manifest_sha = self._write_manifest(count=1)
         manifest = json.loads(self.manifest_path.read_text(encoding="utf-8"))

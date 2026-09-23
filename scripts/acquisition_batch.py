@@ -818,11 +818,11 @@ def _verify_prepared_item_bindings(context: BatchContext, output: Path) -> None:
         _regular_file(provenance_path, label="prepared Item provenance")
         try:
             provenance_rows = [
-                json.loads(line)
+                json.loads(line, object_pairs_hook=_strict_pairs)
                 for line in provenance_path.read_text(encoding="utf-8").splitlines()
                 if line.strip()
             ]
-        except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        except (AcquisitionBatchError, OSError, UnicodeError, json.JSONDecodeError) as exc:
             raise AcquisitionBatchError("prepared Item provenance is not valid JSONL") from exc
         if not provenance_rows:
             raise AcquisitionBatchError("prepared Item provenance is empty")
