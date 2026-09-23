@@ -20,8 +20,25 @@ const MAX_RECORD_BYTES: usize = 1_048_576;
 const MAX_SOURCE_RESOURCES: usize = 512;
 const MAX_SOURCE_RESOURCE_BYTES: usize = 32 * 1_048_576;
 const MAX_COMPILED_ROUTES: usize = 256;
-const MAX_GLOBAL_FACTS: u64 = 1_000_000;
-const MAX_GLOBAL_FACT_BYTES: usize = 128 * 1_048_576;
+
+/// Caller-selected execution quota, not a source-universe cardinality rule.
+/// Large external-sort audits can raise this without changing rule semantics.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct RecordFactBudget {
+    pub max_facts: u64,
+    pub max_encoded_bytes: u64,
+}
+
+impl RecordFactBudget {
+    /// A bounded laboratory default for shadow tests only. Audit callers must
+    /// pass a quota chosen for their complete immutable membership cut.
+    pub const fn laboratory_default() -> Self {
+        Self {
+            max_facts: 1_000_000,
+            max_encoded_bytes: 128 * 1_048_576,
+        }
+    }
+}
 
 /// One exact verdict returned by a separately bounded schema worker. The
 /// auditor owns worker execution, timeout, process identity and complete
@@ -219,9 +236,10 @@ pub(crate) struct RecordGlobalJoin;
 impl RecordGlobalJoin {
     pub fn check_id_collisions(
         facts: impl IntoIterator<Item = GlobalIdFact>,
+        limit: RecordFactBudget,
         sink: &mut impl RecordSink,
     ) -> Result<u64, RecordRuleError> {
-        let mut budget = GlobalFactBudget::default();
+        let mut budget = GlobalFactBudget::new(limit);
         let mut previous_id = String::new();
         let mut first_owner: Option<String> = None;
         let mut native_seen = false;
@@ -276,9 +294,10 @@ impl RecordGlobalJoin {
 
     pub fn check_link_uri_collisions(
         facts: impl IntoIterator<Item = LinkUriFact>,
+        limit: RecordFactBudget,
         sink: &mut impl RecordSink,
     ) -> Result<u64, RecordRuleError> {
-        let mut budget = GlobalFactBudget::default();
+        let mut budget = GlobalFactBudget::new(limit);
         let mut previous_uri: Option<String> = None;
         let mut issues = 0;
         for fact in facts {
@@ -310,9 +329,10 @@ impl RecordGlobalJoin {
     pub fn check_typed_references(
         owners: impl IntoIterator<Item = GlobalIdFact>,
         references: impl IntoIterator<Item = TypedIdRefFact>,
+        limit: RecordFactBudget,
         sink: &mut impl RecordSink,
     ) -> Result<u64, RecordRuleError> {
-        let mut budget = GlobalFactBudget::default();
+        let mut budget = GlobalFactBudget::new(limit);
         let mut owners = owners.into_iter();
         let mut last_owner_id = String::new();
         let mut current = next_owner(&mut owners, &mut last_owner_id, &mut budget)?;
@@ -366,20 +386,30 @@ impl RecordGlobalJoin {
     }
 }
 
-#[derive(Default)]
 struct GlobalFactBudget {
+    limit: RecordFactBudget,
     count: u64,
-    bytes: usize,
+    bytes: u64,
 }
 
 impl GlobalFactBudget {
+    fn new(limit: RecordFactBudget) -> Self {
+        Self {
+            limit,
+            count: 0,
+            bytes: 0,
+        }
+    }
+
     fn check(&mut self, fields: &[&str]) -> Result<(), RecordRuleError> {
         self.count = self.count.checked_add(1).ok_or(RecordRuleError::Budget {
             code: "global_fact_count",
         })?;
         let size = fields
             .iter()
-            .try_fold(0usize, |sum, field| sum.checked_add(field.len()))
+            .try_fold(0u64, |sum, field| {
+                sum.checked_add(u64::try_from(field.len()).ok()?)
+            })
             .ok_or(RecordRuleError::Budget {
                 code: "global_fact_bytes",
             })?;
@@ -389,7 +419,7 @@ impl GlobalFactBudget {
             .ok_or(RecordRuleError::Budget {
                 code: "global_fact_bytes",
             })?;
-        if self.count > MAX_GLOBAL_FACTS || self.bytes > MAX_GLOBAL_FACT_BYTES {
+        if self.count > self.limit.max_facts || self.bytes > self.limit.max_encoded_bytes {
             return Err(RecordRuleError::Budget {
                 code: "global_fact_budget",
             });
@@ -422,15 +452,17 @@ pub trait RecordSink {
 
 struct AccountingSink<'a, S: RecordSink> {
     inner: &'a mut S,
+    limit: RecordFactBudget,
     count: u64,
-    bytes: usize,
+    bytes: u64,
     budget_failed: bool,
 }
 
 impl<'a, S: RecordSink> AccountingSink<'a, S> {
-    fn new(inner: &'a mut S, count: u64, bytes: usize) -> Self {
+    fn new(inner: &'a mut S, limit: RecordFactBudget, count: u64, bytes: u64) -> Self {
         Self {
             inner,
+            limit,
             count,
             bytes,
             budget_failed: false,
@@ -449,7 +481,7 @@ impl<S: RecordSink> RecordSink for AccountingSink<'_, S> {
             self.budget_failed = true;
             return Err("record fact byte overflow".to_owned());
         };
-        if next_count > MAX_GLOBAL_FACTS || next_bytes > MAX_GLOBAL_FACT_BYTES {
+        if next_count > self.limit.max_facts || next_bytes > self.limit.max_encoded_bytes {
             self.budget_failed = true;
             return Err("record fact budget exceeded".to_owned());
         }
@@ -460,7 +492,7 @@ impl<S: RecordSink> RecordSink for AccountingSink<'_, S> {
     }
 }
 
-fn observation_size(observation: &RecordObservation) -> usize {
+fn observation_size(observation: &RecordObservation) -> u64 {
     let fields: Vec<&str> = match observation {
         RecordObservation::ExactPath { path, raw_sha256 } => vec![path, raw_sha256],
         RecordObservation::Registry {
@@ -507,8 +539,8 @@ fn observation_size(observation: &RecordObservation) -> usize {
     };
     // Six bytes per input byte conservatively covers JSON escape expansion;
     // the parent spill sink still owns its exact encoded-byte quota.
-    fields.into_iter().fold(32usize, |total, field| {
-        total.saturating_add(field.len().saturating_mul(6))
+    fields.into_iter().fold(32u64, |total, field| {
+        total.saturating_add((field.len() as u64).saturating_mul(6))
     })
 }
 
@@ -519,7 +551,7 @@ pub struct RecordFamilyReport {
     pub inspected_members: u64,
     pub issue_count: u64,
     pub emitted_member_fact_count: u64,
-    pub emitted_member_fact_bytes: usize,
+    pub emitted_member_fact_bytes: u64,
     pub enumerated_profile_ids: Vec<String>,
     pub skipped_profile_ids: Vec<String>,
     /// Always true: whole-source admission also needs other owner modules.
@@ -558,13 +590,14 @@ pub struct RecordFamily {
     profiles: BTreeMap<String, Profile>,
     compiled_routes: BTreeMap<(String, String), SchemaBackendProbe>,
     format_profile: FormatProfile,
+    fact_budget: RecordFactBudget,
     inspected_members: u64,
     issue_count: u64,
     seen_profiles: BTreeSet<String>,
     native_packet_count: usize,
     native_packet_bytes: usize,
     fact_count: u64,
-    fact_bytes: usize,
+    fact_bytes: u64,
 }
 
 #[derive(Clone, Copy)]
@@ -593,7 +626,14 @@ impl RecordFamily {
         schemas: impl IntoIterator<Item = RecordSchema<'a>>,
         format_profile: FormatProfile,
     ) -> Result<Self, RecordRuleError> {
-        Self::new_inner(registry_raw, contract_raw, schemas, format_profile, None)
+        Self::new_inner(
+            registry_raw,
+            contract_raw,
+            schemas,
+            format_profile,
+            RecordFactBudget::laboratory_default(),
+            None,
+        )
     }
 
     /// Audit-consumable constructor only when the caller has checked that the
@@ -603,6 +643,7 @@ impl RecordFamily {
         contract_raw: &[u8],
         schemas: impl IntoIterator<Item = RecordSchema<'a>>,
         format_profile: FormatProfile,
+        fact_budget: RecordFactBudget,
         registry_evidence: &BoundedSchemaVerdict,
     ) -> Result<Self, RecordRuleError> {
         Self::new_inner(
@@ -610,6 +651,7 @@ impl RecordFamily {
             contract_raw,
             schemas,
             format_profile,
+            fact_budget,
             Some(registry_evidence),
         )
     }
@@ -619,8 +661,14 @@ impl RecordFamily {
         contract_raw: &[u8],
         schemas: impl IntoIterator<Item = RecordSchema<'a>>,
         format_profile: FormatProfile,
+        fact_budget: RecordFactBudget,
         registry_evidence: Option<&BoundedSchemaVerdict>,
     ) -> Result<Self, RecordRuleError> {
+        if fact_budget.max_facts == 0 || fact_budget.max_encoded_bytes == 0 {
+            return Err(RecordRuleError::Budget {
+                code: "record_fact_budget_zero",
+            });
+        }
         let registry = parse_object(registry_raw, MAX_RECORD_BYTES, "registry_json")?;
         let contract = parse_object(contract_raw, MAX_RECORD_BYTES, "registry_contract_json")?;
         let contract_uri = schema_uri(ENTITY_CONTRACT, &contract)?;
@@ -692,6 +740,7 @@ impl RecordFamily {
             profiles,
             compiled_routes: BTreeMap::new(),
             format_profile,
+            fact_budget,
             inspected_members: 0,
             issue_count: 0,
             seen_profiles: BTreeSet::new(),
@@ -815,7 +864,8 @@ impl RecordFamily {
         evidence: &BoundedSchemaVerdict,
         sink: &mut impl RecordSink,
     ) -> Result<(), RecordRuleError> {
-        let mut counted = AccountingSink::new(sink, self.fact_count, self.fact_bytes);
+        let mut counted =
+            AccountingSink::new(sink, self.fact_budget, self.fact_count, self.fact_bytes);
         let result = self.inspect_native_inner(path, raw, evidence, &mut counted);
         self.fact_count = counted.count;
         self.fact_bytes = counted.bytes;
@@ -1027,7 +1077,8 @@ impl RecordFamily {
         sink: &mut impl RecordSink,
         evidence: Option<&BoundedMemberSchemaEvidence>,
     ) -> Result<(), RecordRuleError> {
-        let mut counted = AccountingSink::new(sink, self.fact_count, self.fact_bytes);
+        let mut counted =
+            AccountingSink::new(sink, self.fact_budget, self.fact_count, self.fact_bytes);
         let result = self.inspect_member_inner(path, raw, &mut counted, evidence);
         self.fact_count = counted.count;
         self.fact_bytes = counted.bytes;
@@ -2176,6 +2227,7 @@ mod tests {
                     carrier: IdCarrier::Standalone,
                 },
             ],
+            RecordFactBudget::laboratory_default(),
             &mut events,
         )
         .unwrap();
@@ -2187,6 +2239,33 @@ mod tests {
                 ..
             }
         )));
+        let limited = RecordGlobalJoin::check_id_collisions(
+            vec![
+                GlobalIdFact {
+                    id: "tos.work.a".into(),
+                    kind: "work".into(),
+                    path: "a".into(),
+                    carrier: IdCarrier::Standalone,
+                },
+                GlobalIdFact {
+                    id: "tos.work.b".into(),
+                    kind: "work".into(),
+                    path: "b".into(),
+                    carrier: IdCarrier::Standalone,
+                },
+            ],
+            RecordFactBudget {
+                max_facts: 1,
+                max_encoded_bytes: 1_000,
+            },
+            &mut Events::default(),
+        );
+        assert!(matches!(
+            limited,
+            Err(RecordRuleError::Budget {
+                code: "global_fact_budget"
+            })
+        ));
         let unsorted = RecordGlobalJoin::check_id_collisions(
             vec![
                 GlobalIdFact {
@@ -2202,6 +2281,7 @@ mod tests {
                     carrier: IdCarrier::Standalone,
                 },
             ],
+            RecordFactBudget::laboratory_default(),
             &mut Events::default(),
         );
         assert!(matches!(
@@ -2234,6 +2314,7 @@ mod tests {
                     carrier: IdCarrier::Standalone,
                 },
             ],
+            RecordFactBudget::laboratory_default(),
             &mut events,
         )
         .unwrap();
@@ -2259,6 +2340,7 @@ mod tests {
                 expected_kind: "work".into(),
                 from_path: "expression".into(),
             }],
+            RecordFactBudget::laboratory_default(),
             &mut events,
         )
         .unwrap();
@@ -2290,6 +2372,7 @@ mod tests {
                     path: "link-b".into(),
                 },
             ],
+            RecordFactBudget::laboratory_default(),
             &mut events,
         )
         .unwrap();
