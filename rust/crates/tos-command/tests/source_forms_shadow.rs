@@ -98,10 +98,7 @@ fn pinned_claim_v1_statement_describe_prepare_apply_replay() {
         CLAIM_V1_APPLY,
     ))
     .unwrap();
-    assert_eq!(
-        applied.proposed_form_set.as_deref(),
-        Some(CLAIM_V1_PUBLISHED)
-    );
+    assert_published_bytes(applied.proposed_form_set.as_deref(), CLAIM_V1_PUBLISHED);
     assert_response(
         &applied.response,
         include_bytes!("fixtures/source_forms_shadow/claim_v1/apply.json"),
@@ -191,10 +188,7 @@ fn pinned_claim_v2_display_batch_describe_prepare_apply_replay_and_revocation() 
         CLAIM_V2_APPLY,
     ))
     .unwrap();
-    assert_eq!(
-        applied.proposed_form_set.as_deref(),
-        Some(CLAIM_V2_PUBLISHED)
-    );
+    assert_published_bytes(applied.proposed_form_set.as_deref(), CLAIM_V2_PUBLISHED);
     assert_response(
         &applied.response,
         include_bytes!("fixtures/source_forms_shadow/claim_v2/apply.json"),
