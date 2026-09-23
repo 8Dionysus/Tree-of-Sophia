@@ -25,6 +25,8 @@ exact historical `{id, version, digest}` reference. It deliberately belongs to
 the later source-owner/public adapter gate, not the v1 corpus locator API.
 Unavailable envelopes retain the requested ref and withhold source bytes;
 available results retain unknown record fields without granting current use.
+The exact record digest uses compact sorted UTF-8 JSON **without** the corpus
+snapshot's final newline; these two canonical profiles must not be conflated.
 
 No Rust implementation is imported by these fixture files. OPS owns the Cargo
 runner/CI wiring; FND and STO own their public APIs. The scenario-to-risk map
