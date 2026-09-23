@@ -7,10 +7,26 @@ implementation can be compared against them, but it is not the sole oracle.
 
 `foundation.jsonl` supplies UTF-8 text (or raw hex for invalid UTF-8), the
 operation, and exact observable results. `reject` means no value is admitted;
-the FND error-code column will be frozen when its public error enum is stable.
-The only canonical-byte cases here use the supported corpus v1 subset. Floats
-in that canonical profile remain a declared E1 gap until Python parity is
-established; a float rejection is not evidence of full v1 compatibility.
+the runner compares it with the public FND error code. The original E1 codec
+failed closed on canonical floats; the expanded oracle below is the independent
+gate before a later FND profile can claim Python parity.
+
+`canonical-profiles-v1.jsonl` holds 17 separate Python-oracle edge vectors for
+future FND expansion: finite binary64 rendering at exponent and rounding
+boundaries, negative zero, subnormal and maximum finite values, integers above
+2^53 and u64, Unicode key order/escaping, nested values, and an integer at
+CPython's default 4,300-digit limit. A companion source-parse vector checks
+4,301 digits fail with the declared budget code. Each oracle row records
+exact bytes and SHA-256 for two distinct existing owner algorithms:
+`scripts/corpus_store.py::canonical` appends one LF, while
+`scripts/source_record_profiles.py::catalog_entry` hashes the compact sorted
+UTF-8 JSON body without that LF. The expected values came from Python
+`json.loads`/`json.dumps`, not Rust. The runner compares both snapshot and
+source-record outputs and their digests when the new FND API is integrated.
+The foundation cases retain overflow, non-JSON `NaN`, and lone-surrogate
+negatives. `SourceCommandInputV1` is checked only as a separate strict-input
+byte profile; command identity/receipts require CMD owner acceptance and
+whole-history vectors before any authority claim.
 
 `corpus-v1/` is a tiny independent immutable store, with two exact revisions
 and three synthetic objects. Its `fixture.json` names revisions, selected

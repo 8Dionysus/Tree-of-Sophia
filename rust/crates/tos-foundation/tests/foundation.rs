@@ -118,9 +118,8 @@ fn canonical_profile_sorts_and_distinguishes_surrogate_boundary() {
             CanonicalProfile::CorpusSnapshotV1,
             JsonLimits::default()
         )
-        .unwrap_err()
-        .code,
-        FoundationErrorCode::UnsupportedCanonicalNumber
+        .unwrap(),
+        b"1.25\n"
     );
 }
 
@@ -216,4 +215,82 @@ fn writer_enforces_byte_limit_before_expanding_escapes() {
         JsonLimits::new(100, usize::MAX, 100, 100).unwrap_err().code,
         FoundationErrorCode::BudgetExceeded
     );
+}
+
+#[test]
+fn named_profiles_keep_their_distinct_exact_bytes() {
+    let limits = JsonLimits::default();
+    let parsed = tos_foundation::parse_json_profile(
+        br#"{"b":-0,"a":900719925474099312345678901234567890}"#,
+        "tos_published_json_v1",
+        limits,
+    )
+    .unwrap();
+    assert_eq!(parsed.root().object_get("a").unwrap().as_u64(), None);
+    let no_lf = b"{\"a\":900719925474099312345678901234567890,\"b\":0}";
+    for profile in [
+        CanonicalProfile::SourceRecordDigestV1,
+        CanonicalProfile::SourceCommandInputV1,
+    ] {
+        assert_eq!(
+            canonical_bytes_v1(parsed.root(), profile, limits).unwrap(),
+            no_lf
+        );
+    }
+    let mut snapshot = no_lf.to_vec();
+    snapshot.push(b'\n');
+    assert_eq!(
+        canonical_bytes_v1(parsed.root(), CanonicalProfile::CorpusSnapshotV1, limits).unwrap(),
+        snapshot
+    );
+    assert_eq!(
+        CanonicalProfile::from_profile("unknown").unwrap_err().code,
+        FoundationErrorCode::UnsupportedFormat
+    );
+    assert_eq!(
+        tos_foundation::JsonMode::from_profile("unknown")
+            .unwrap_err()
+            .code,
+        FoundationErrorCode::UnsupportedFormat
+    );
+    assert_eq!(
+        tos_foundation::canonical_raw_bytes_v1(
+            br#"{"command_id":"same","command_id":"changed"}"#,
+            CanonicalProfile::SourceCommandInputV1,
+            limits,
+        )
+        .unwrap_err()
+        .code,
+        FoundationErrorCode::DuplicateMember
+    );
+}
+
+#[test]
+fn python_float_layout_boundaries() {
+    let limits = JsonLimits::default();
+    for (raw, expected) in [
+        ("-0.0", "-0.0"),
+        ("1.0", "1.0"),
+        ("1e-4", "0.0001"),
+        ("1e-5", "1e-05"),
+        ("1e15", "1000000000000000.0"),
+        ("1e16", "1e+16"),
+        ("1e20", "1e+20"),
+        ("1.234e-7", "1.234e-07"),
+        ("5e-324", "5e-324"),
+        ("1.7976931348623157e308", "1.7976931348623157e+308"),
+        ("1e-400", "0.0"),
+    ] {
+        let parsed = parse_json(raw.as_bytes(), JsonMode::PublishedStrict, limits).unwrap();
+        assert_eq!(
+            canonical_bytes_v1(
+                parsed.root(),
+                CanonicalProfile::SourceRecordDigestV1,
+                limits
+            )
+            .unwrap(),
+            expected.as_bytes(),
+            "{raw}"
+        );
+    }
 }

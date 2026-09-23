@@ -21,7 +21,8 @@ pub use error::{FoundationError, FoundationErrorCode, Result};
 pub use identity::{ExactRecordRef, RecordVersion, SourceRevision, StableId};
 pub use json::{
     CanonicalProfile, JsonDocument, JsonLimits, JsonMode, JsonNumber, JsonNumberKind, JsonString,
-    JsonValue, canonical_bytes_v1, canonical_digest_v1, emit_preserved_json, parse_json,
+    JsonValue, canonical_bytes_v1, canonical_digest_v1, canonical_raw_bytes_profile,
+    canonical_raw_bytes_v1, emit_preserved_json, parse_json, parse_json_profile,
 };
 pub use path::RelativePath;
 
