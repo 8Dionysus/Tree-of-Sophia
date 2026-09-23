@@ -477,6 +477,7 @@ pub fn inspect_source_text_layer_v1(
                 Some(&text[points[start]..points[end]])
             }
         }
+        (None, _) if content_resource.is_none() => None,
         _ => {
             out.issue("layer_scope_reversed_or_missing", id);
             None
@@ -708,13 +709,20 @@ pub fn inspect_source_text_layer_v1(
                 .map(|(i, _)| i)
                 .chain(std::iter::once(text.len()))
                 .collect();
-            if ine < points.len() && ins >= in_end {
+            if in_end < points.len()
+                && ins < points.len()
+                && ine < points.len()
+                && in_end <= ins
+                && ins <= ine
+            {
                 let unchanged = &text[points[in_end]..points[ins]];
                 replay.push_str(unchanged);
                 if &text[points[ins]..points[ine]] != input_exact {
                     out.issue("layer_edit_input_text_drift", edit_id);
                 }
-                if outs != replay.chars().count() || oute != outs + output_exact.chars().count() {
+                if outs != replay.chars().count()
+                    || outs.checked_add(output_exact.chars().count()) != Some(oute)
+                {
                     out.issue("layer_edit_output_alignment_drift", edit_id);
                 }
                 replay.push_str(output_exact);
@@ -1770,6 +1778,18 @@ mod tests {
         let report = layer_case(&raw, &resources);
         assert_eq!(report.state, TextRuleState::Unsupported);
         assert!(!report.unsupported_profiles.is_empty());
+
+        let (raw_b, resources_b) = layer_fixture("variant-b.layer.json");
+        let mut b: Value = serde_json::from_slice(&raw_b).unwrap();
+        b["derivation"]["change_payload"]["operations"][0]["input_span"]["start"] = Value::from(5);
+        let report = layer_case(&serde_json::to_vec(&b).unwrap(), &resources_b);
+        assert!(has_issue(&report, "layer_edit_span_order_drift"));
+
+        let (raw_a, mut resources_a) = layer_fixture("variant-a.layer.json");
+        resources_a.retain(|(reference, _)| !reference.ends_with("variant-a-raw-ocr.txt"));
+        let report = layer_case(&raw_a, &resources_a);
+        assert_eq!(report.state, TextRuleState::Unsupported);
+        assert!(!has_issue(&report, "layer_scope_reversed_or_missing"));
 
         let complete = layer_fixture("variant-a.layer.json");
         let borrowed: Vec<_> = complete
