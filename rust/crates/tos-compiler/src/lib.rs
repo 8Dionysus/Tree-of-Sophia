@@ -3,6 +3,7 @@
 
 pub mod catalog;
 pub mod d1;
+pub mod d1_prepared_pair;
 mod knowledge_catalog_index;
 mod knowledge_full;
 mod knowledge_indexed;
