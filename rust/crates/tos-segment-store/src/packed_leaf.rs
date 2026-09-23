@@ -66,6 +66,29 @@ impl PackedPlacementLeafV1 {
                 limits.max_key_bytes,
             )?;
             let segment = segment_key(&row.placement);
+            let prior_index = indices.get(&segment).copied();
+            let prefix = common_prefix(&previous, &row.key);
+            let suffix_len = row.key.len() - prefix;
+            let dictionary_len = dictionary
+                .len()
+                .checked_add(usize::from(prior_index.is_none()))
+                .ok_or_else(invalid_budget)?;
+            let next_body_len = body
+                .len()
+                .checked_add(ROW_FIXED_BYTES)
+                .and_then(|size| size.checked_add(suffix_len))
+                .ok_or_else(invalid_budget)?;
+            let dictionary_bytes = (dictionary_len as u64)
+                .checked_mul(DICT_BYTES as u64)
+                .ok_or_else(invalid_budget)?;
+            let projected = (out.len() as u64)
+                .checked_add(dictionary_bytes)
+                .and_then(|size| size.checked_add(next_body_len as u64))
+                .and_then(|size| size.checked_add(32))
+                .ok_or_else(invalid_budget)?;
+            if projected > limits.max_leaf_bytes {
+                return Err(invalid_budget());
+            }
             let index = match indices.get(&segment) {
                 Some(index) => *index,
                 None => {
@@ -75,9 +98,8 @@ impl PackedPlacementLeafV1 {
                     index
                 }
             };
-            let prefix = common_prefix(&previous, &row.key);
             body.extend_from_slice(&(prefix as u32).to_le_bytes());
-            body.extend_from_slice(&((row.key.len() - prefix) as u32).to_le_bytes());
+            body.extend_from_slice(&(suffix_len as u32).to_le_bytes());
             body.extend_from_slice(&row.key[prefix..]);
             body.extend_from_slice(&index.to_le_bytes());
             body.extend_from_slice(row.placement.receipt_id.as_bytes());
@@ -86,13 +108,6 @@ impl PackedPlacementLeafV1 {
             body.extend_from_slice(&row.placement.coordinate.size_bytes.to_le_bytes());
             body.extend_from_slice(row.placement.coordinate.sha256.as_bytes());
             previous.clone_from(&row.key);
-            let projected = out.len() as u64
-                + dictionary.len() as u64 * DICT_BYTES as u64
-                + body.len() as u64
-                + 32;
-            if projected > limits.max_leaf_bytes {
-                return Err(invalid_budget());
-            }
         }
         out[dictionary_at..dictionary_at + 4]
             .copy_from_slice(&(dictionary.len() as u32).to_le_bytes());
@@ -416,11 +431,40 @@ mod tests {
                 .code,
             Code::InvalidFormat
         );
+        let mut two_segments = leaf();
+        two_segments.rows[1].placement.segment_digest = Digest256::of_bytes(b"other-segment");
+        let mut wrong_first_use = two_segments.encode(limits()).unwrap();
+        let fixed_header = MAGIC.len() + 2 + 2 + 32 + 4 * 4;
+        let first_index = fixed_header + 2 * DICT_BYTES + 8 + two_segments.rows[0].key.len();
+        wrong_first_use[first_index..first_index + 4].copy_from_slice(&1u32.to_le_bytes());
+        let trailer = wrong_first_use.len() - 32;
+        let digest = Digest256::of_bytes(&wrong_first_use[..trailer]);
+        wrong_first_use[trailer..].copy_from_slice(digest.as_bytes());
+        assert_eq!(
+            PackedPlacementLeafV1::decode(&wrong_first_use, limits())
+                .unwrap_err()
+                .code,
+            Code::InvalidFormat
+        );
         let mut out_of_range = leaf();
         out_of_range.bounds.lower_inclusive = Some(b"z".to_vec());
         assert_eq!(
             out_of_range.encode(limits()).unwrap_err().code,
             Code::InvalidFormat
+        );
+        let mut oversized = leaf();
+        oversized.rows.truncate(1);
+        oversized.rows[0].key = vec![b'k'; 8192];
+        oversized.rows[0].logical_digest = Digest256::of_bytes(&oversized.rows[0].key);
+        oversized.rows[0].logical_length = 8192;
+        oversized.rows[0].placement.coordinate.sha256 = oversized.rows[0].logical_digest;
+        oversized.rows[0].placement.coordinate.size_bytes = 8192;
+        oversized.rows[0].placement.segment_size = 16_384;
+        let mut large_key_limits = limits();
+        large_key_limits.max_key_bytes = 1 << 20;
+        assert_eq!(
+            oversized.encode(large_key_limits).unwrap_err().code,
+            Code::BudgetExceeded
         );
     }
 }
