@@ -20,6 +20,15 @@ const HISTORY_KEY_TAG: &[u8] = b"cmd2-history-key-v1";
 const CURRENT_KEY_TAG: &[u8] = b"cmd2-current-key-v1";
 const MAX_MEMBERS: usize = 64;
 const MAX_CUT: u64 = 100_000;
+const MAX_COLD_AUDIT_ELAPSED: Duration = Duration::from_secs(300);
+
+fn check_cold_deadline(started: Instant) -> DurableResult<()> {
+    if started.elapsed() > MAX_COLD_AUDIT_ELAPSED {
+        Err(DurableError::Refused("cold audit deadline exceeded"))
+    } else {
+        Ok(())
+    }
+}
 
 /// The framed keys are sorted as raw unsigned bytes by STO. The exact
 /// PostgreSQL traversal therefore orders by UTF-8 byte length, UTF-8 bytes,
@@ -1199,6 +1208,9 @@ impl DurablePgCoordinator {
         subject: &str,
         revision: u64,
     ) -> DurableResult<ColdRecoveredMember> {
+        if store.custody_domain() != domain.as_bytes() {
+            return Err(DurableError::Conflict("STO custody domain differs"));
+        }
         let row = self
             .client
             .query_opt(
@@ -1257,6 +1269,9 @@ impl DurablePgCoordinator {
         recovered: &ColdRecoveredMember,
         max_bytes: u64,
     ) -> DurableResult<Vec<u8>> {
+        if store.custody_domain() != recovered.domain.as_bytes() {
+            return Err(DurableError::Conflict("STO custody domain differs"));
+        }
         let mut tx = self
             .client
             .build_transaction()
@@ -1303,12 +1318,17 @@ impl DurablePgCoordinator {
         store: &SegmentStore,
         domain: &str,
     ) -> DurableResult<ColdCut> {
+        if store.custody_domain() != domain.as_bytes() {
+            return Err(DurableError::Conflict("STO custody domain differs"));
+        }
+        let started = Instant::now();
         let mut tx = self
             .client
             .build_transaction()
             .isolation_level(IsolationLevel::RepeatableRead)
             .read_only(true)
             .start()?;
+        tx.batch_execute("SET LOCAL statement_timeout = '60s'; SET LOCAL work_mem = '4MB'")?;
         let domain_row = tx.query_one(
             "SELECT d.head_seq,d.schema_profile_digest,f.generation,f.maintenance_state
                  FROM cmd2_domain d JOIN cmd2_audit_fence f USING(domain)
@@ -1328,18 +1348,50 @@ impl DurablePgCoordinator {
         if head > MAX_CUT {
             return Err(DurableError::Refused("cold cut exceeds laboratory budget"));
         }
-        let log_rows = tx.query(
-            "SELECT commit_seq,event_kind,command_id,delta_digest,members_root
-             FROM cmd2_log WHERE domain=$1 AND commit_seq <= $2 ORDER BY commit_seq",
-            &[&domain, &as_i64(head)?],
-        )?;
-        if log_rows.len() as u64 != head {
-            return Err(DurableError::Corrupt("cold cut log has a gap"));
+        let audited_tables = [
+            ("cmd2_job", "job_id"),
+            ("cmd2_predicate", "kind,owner,scope,token"),
+            ("cmd2_attempt", "prepare_id"),
+            ("cmd2_member", "prepare_id,member_slot"),
+            ("cmd2_current", "subject"),
+            ("cmd2_history", "subject,revision"),
+            ("cmd2_receipt", "command_id"),
+            ("cmd2_log", "commit_seq"),
+            ("cmd2_outbox", "commit_seq"),
+        ];
+        // Pre-admit every selected row before any client-side materialization.
+        // The PostgreSQL snapshot is stable across this bound and the later
+        // integrity traversal; an oversized row never crosses into a Row.
+        let mut admitted_rows = 0u64;
+        let mut admitted_bytes = 0u64;
+        for (table, _) in audited_tables {
+            check_cold_deadline(started)?;
+            let query = format!(
+                "SELECT count(*),coalesce(max(octet_length(row_to_json(t)::text)),0),
+                        coalesce(sum(octet_length(row_to_json(t)::text)),0)
+                 FROM {table} t WHERE domain=$1"
+            );
+            let row = tx.query_one(&query, &[&domain])?;
+            admitted_rows = admitted_rows
+                .checked_add(as_u64(row.get::<_, i64>(0))?)
+                .ok_or(DurableError::Refused("cold metadata row count overflow"))?;
+            admitted_bytes = admitted_bytes
+                .checked_add(as_u64(row.get::<_, i64>(2))?)
+                .ok_or(DurableError::Refused("cold metadata byte count overflow"))?;
+            if admitted_rows > 100_000
+                || row.get::<_, i32>(1) > 1_048_576
+                || admitted_bytes > 64 * 1024 * 1024
+            {
+                return Err(DurableError::Refused(
+                    "cold metadata preadmission budget exceeded",
+                ));
+            }
         }
         let mut recovered_pins = 0usize;
         let mut segment_bytes = 0u64;
         let mut historical_members = 0u64;
         let mut latest: HashMap<String, (u64, Digest256)> = HashMap::new();
+        let mut latest_subject_bytes = 0usize;
         let mut log_hasher = Digest256Hasher::new();
         part(&mut log_hasher, b"cmd2-cold-cut-v1");
         let mut state_hasher = Digest256Hasher::new();
@@ -1349,162 +1401,202 @@ impl DurablePgCoordinator {
         part(&mut state_hasher, &database_oid.to_be_bytes());
         part(&mut state_hasher, profile_digest.to_hex().as_bytes());
         let mut command_events = 0u64;
-        for (index, log) in log_rows.iter().enumerate() {
-            let seq: i64 = log.get(0);
-            if seq != index as i64 + 1 {
-                return Err(DurableError::Corrupt("cold cut sequence gap"));
-            }
-            let kind: String = log.get(1);
-            let command_id: String = log.get(2);
-            let delta_digest: String = log.get(3);
-            let members_root: String = log.get(4);
-            for bytes in [
-                &seq.to_be_bytes()[..],
-                kind.as_bytes(),
-                command_id.as_bytes(),
-                delta_digest.as_bytes(),
-                members_root.as_bytes(),
-            ] {
-                part(&mut log_hasher, bytes);
-            }
-            let history = tx.query(
-                "SELECT * FROM cmd2_history WHERE domain=$1 AND commit_seq=$2 ORDER BY member_slot",
-                &[&domain, &seq],
+        let mut next_log_seq = 1u64;
+        loop {
+            check_cold_deadline(started)?;
+            // Keyset pagination keeps the ordered log bounded in process
+            // memory while the same REPEATABLE READ snapshot holds throughout
+            // all linked history/receipt/outbox checks.
+            let log_rows = tx.query(
+                "SELECT commit_seq,event_kind,command_id,delta_digest,members_root
+                 FROM cmd2_log WHERE domain=$1 AND commit_seq >= $2 AND commit_seq <= $3
+                 ORDER BY commit_seq LIMIT 128",
+                &[&domain, &as_i64(next_log_seq)?, &as_i64(head)?],
             )?;
-            let outbox = tx.query_opt(
-                "SELECT event_id FROM cmd2_outbox WHERE domain=$1 AND commit_seq=$2",
-                &[&domain, &seq],
-            )?;
-            let expected_event_id = if kind == "command" {
-                format!("{domain}:{seq}")
-            } else {
-                command_id.clone()
-            };
-            if outbox.map(|row| row.get::<_, String>(0)) != Some(expected_event_id) {
-                return Err(DurableError::Corrupt("cold cut outbox event differs"));
+            if log_rows.is_empty() {
+                break;
             }
-            if kind != "command" {
-                if !history.is_empty() {
-                    return Err(DurableError::Corrupt("authority event has source history"));
+            for log in &log_rows {
+                check_cold_deadline(started)?;
+                let seq: i64 = log.get(0);
+                if seq != as_i64(next_log_seq)? {
+                    return Err(DurableError::Corrupt("cold cut sequence gap"));
                 }
-                continue;
-            }
-            command_events += 1;
-            let attempt = tx
-                .query_opt(
-                    "SELECT * FROM cmd2_attempt WHERE domain=$1 AND command_id=$2",
-                    &[&domain, &command_id],
-                )?
-                .ok_or(DurableError::Corrupt("command event has no attempt"))?;
-            if attempt.get::<_, String>("state") != "committed"
-                || attempt.get::<_, Option<i64>>("commit_seq") != Some(seq)
-            {
-                return Err(DurableError::Corrupt("command event attempt not committed"));
-            }
-            let receipt = receipt_from_committed_attempt(&mut tx, &attempt)?;
-            if receipt.delta_digest.to_hex() != delta_digest
-                || receipt.member_root.to_hex() != members_root
-            {
-                return Err(DurableError::Corrupt("command event receipt differs"));
-            }
-            let members = tx.query(
-                "SELECT * FROM cmd2_member WHERE domain=$1 AND prepare_id=$2 ORDER BY member_slot",
-                &[&domain, &receipt.prepare_id],
-            )?;
-            if history.len() != members.len() || members.is_empty() || members.len() > MAX_MEMBERS {
-                return Err(DurableError::Corrupt("cold cut member count differs"));
-            }
-            if recovered_pins >= 10_000 {
-                return Err(DurableError::Refused("cold pin budget exceeded"));
-            }
-            let attempt_fence = as_u64(attempt.get::<_, i64>("attempt_fence"))?;
-            let sealed =
-                match store.recover_attempt_fenced(&receipt.prepare_id, attempt_fence, 0)? {
-                    Some(AttemptRecovery::Sealed { receipts }) => receipts,
-                    _ => return Err(DurableError::Corrupt("cold fenced intent not sealed")),
+                next_log_seq = next_log_seq
+                    .checked_add(1)
+                    .ok_or(DurableError::Corrupt("cold sequence overflow"))?;
+                let kind: String = log.get(1);
+                let command_id: String = log.get(2);
+                let delta_digest: String = log.get(3);
+                let members_root: String = log.get(4);
+                for bytes in [
+                    &seq.to_be_bytes()[..],
+                    kind.as_bytes(),
+                    command_id.as_bytes(),
+                    delta_digest.as_bytes(),
+                    members_root.as_bytes(),
+                ] {
+                    part(&mut log_hasher, bytes);
+                }
+                let history = tx.query(
+                    "SELECT * FROM cmd2_history WHERE domain=$1 AND commit_seq=$2
+                 ORDER BY member_slot LIMIT 65",
+                    &[&domain, &seq],
+                )?;
+                let outbox = tx.query_opt(
+                    "SELECT event_id FROM cmd2_outbox WHERE domain=$1 AND commit_seq=$2",
+                    &[&domain, &seq],
+                )?;
+                let expected_event_id = if kind == "command" {
+                    format!("{domain}:{seq}")
+                } else {
+                    command_id.clone()
                 };
-            let first = sealed
-                .first()
-                .ok_or(DurableError::Corrupt("sealed attempt has no frames"))?;
-            if sealed
-                .iter()
-                .any(|candidate| candidate.pin_id() != first.pin_id())
-            {
-                return Err(DurableError::Corrupt("compound fenced pin differs"));
-            }
-            recovered_pins += 1;
-            segment_bytes = segment_bytes
-                .checked_add(first.segment_size())
-                .ok_or(DurableError::Refused("cold byte budget overflow"))?;
-            if segment_bytes > 256 * 1024 * 1024 {
-                return Err(DurableError::Refused("cold byte budget exceeded"));
-            }
-            let mut member_hasher = Digest256Hasher::new();
-            part(&mut member_hasher, b"cmd2-member-root-v1");
-            part(&mut member_hasher, &(members.len() as u64).to_be_bytes());
-            for (member, historical) in members.iter().zip(history.iter()) {
-                let slot: i32 = member.get("member_slot");
-                if historical.get::<_, i32>("member_slot") != slot
-                    || historical.get::<_, Vec<u8>>("prepare_id") != receipt.prepare_id
-                    || historical.get::<_, String>("subject") != member.get::<_, String>("subject")
-                    || historical.get::<_, i64>("revision")
-                        != member.get::<_, i64>("proposed_revision")
+                if outbox.map(|row| row.get::<_, String>(0)) != Some(expected_event_id) {
+                    return Err(DurableError::Corrupt("cold cut outbox event differs"));
+                }
+                if kind != "command" {
+                    if !history.is_empty() {
+                        return Err(DurableError::Corrupt("authority event has source history"));
+                    }
+                    continue;
+                }
+                command_events += 1;
+                let attempt = tx
+                    .query_opt(
+                        "SELECT * FROM cmd2_attempt WHERE domain=$1 AND command_id=$2",
+                        &[&domain, &command_id],
+                    )?
+                    .ok_or(DurableError::Corrupt("command event has no attempt"))?;
+                if attempt.get::<_, String>("state") != "committed"
+                    || attempt.get::<_, Option<i64>>("commit_seq") != Some(seq)
                 {
-                    return Err(DurableError::Corrupt(
-                        "cold history/member identity differs",
-                    ));
+                    return Err(DurableError::Corrupt("command event attempt not committed"));
                 }
-                update_member_root(&mut member_hasher, member);
-                let pin: Vec<u8> = historical.get("pin_id");
-                if pin.len() != 16 {
-                    return Err(DurableError::Corrupt("cold history pin malformed"));
+                let receipt = receipt_from_committed_attempt(&mut tx, &attempt)?;
+                if receipt.delta_digest.to_hex() != delta_digest
+                    || receipt.member_root.to_hex() != members_root
+                {
+                    return Err(DurableError::Corrupt("command event receipt differs"));
                 }
-                let mut pin_id = [0u8; 16];
-                pin_id.copy_from_slice(&pin);
-                if pin_id != first.pin_id() {
-                    return Err(DurableError::Corrupt("cold history fenced pin differs"));
+                let members = tx.query(
+                    "SELECT * FROM cmd2_member WHERE domain=$1 AND prepare_id=$2
+                 ORDER BY member_slot LIMIT 65",
+                    &[&domain, &receipt.prepare_id],
+                )?;
+                if history.len() != members.len()
+                    || members.is_empty()
+                    || members.len() > MAX_MEMBERS
+                {
+                    return Err(DurableError::Corrupt("cold cut member count differs"));
                 }
-                let selected = sealed
+                if recovered_pins >= 10_000 {
+                    return Err(DurableError::Refused("cold pin budget exceeded"));
+                }
+                let attempt_fence = as_u64(attempt.get::<_, i64>("attempt_fence"))?;
+                let sealed =
+                    match store.recover_attempt_fenced(&receipt.prepare_id, attempt_fence, 0)? {
+                        Some(AttemptRecovery::Sealed { receipts }) => receipts,
+                        _ => return Err(DurableError::Corrupt("cold fenced intent not sealed")),
+                    };
+                let first = sealed
+                    .first()
+                    .ok_or(DurableError::Corrupt("sealed attempt has no frames"))?;
+                if sealed
                     .iter()
-                    .find(|candidate| {
-                        candidate.receipt_id().to_hex()
-                            == historical.get::<_, String>("sto_receipt_id")
-                    })
-                    .ok_or(DurableError::Corrupt("cold committed frame absent"))?;
-                check_history_locator(
-                    historical,
-                    selected,
-                    domain,
-                    &historical.get::<_, String>("subject"),
-                    as_u64(historical.get("revision"))?,
-                )?;
-                check_member_row(
-                    member,
-                    selected,
-                    &member.get::<_, String>("subject"),
-                    as_u64(member.get("proposed_revision"))?,
-                )?;
-                // The private STO handle was recovered from the actual sealed
-                // pin and full segment. Bind its physical placement as well
-                // as the corresponding coordinator row into this cut.
-                part(&mut state_hasher, &selected.placement().encode());
-                let subject: String = historical.get("subject");
-                let revision = as_u64(historical.get("revision"))?;
-                let commitment = metadata_locator_digest(historical);
-                if latest
-                    .get(&subject)
-                    .is_some_and(|(previous, _)| *previous >= revision)
+                    .any(|candidate| candidate.pin_id() != first.pin_id())
                 {
-                    return Err(DurableError::Corrupt(
-                        "historical revision is not monotonic",
-                    ));
+                    return Err(DurableError::Corrupt("compound fenced pin differs"));
                 }
-                latest.insert(subject, (revision, commitment));
-                historical_members += 1;
+                recovered_pins += 1;
+                segment_bytes = segment_bytes
+                    .checked_add(first.segment_size())
+                    .ok_or(DurableError::Refused("cold byte budget overflow"))?;
+                if segment_bytes > 256 * 1024 * 1024 {
+                    return Err(DurableError::Refused("cold byte budget exceeded"));
+                }
+                let mut member_hasher = Digest256Hasher::new();
+                part(&mut member_hasher, b"cmd2-member-root-v1");
+                part(&mut member_hasher, &(members.len() as u64).to_be_bytes());
+                for (member, historical) in members.iter().zip(history.iter()) {
+                    check_cold_deadline(started)?;
+                    let slot: i32 = member.get("member_slot");
+                    if historical.get::<_, i32>("member_slot") != slot
+                        || historical.get::<_, Vec<u8>>("prepare_id") != receipt.prepare_id
+                        || historical.get::<_, String>("subject")
+                            != member.get::<_, String>("subject")
+                        || historical.get::<_, i64>("revision")
+                            != member.get::<_, i64>("proposed_revision")
+                    {
+                        return Err(DurableError::Corrupt(
+                            "cold history/member identity differs",
+                        ));
+                    }
+                    update_member_root(&mut member_hasher, member);
+                    let pin: Vec<u8> = historical.get("pin_id");
+                    if pin.len() != 16 {
+                        return Err(DurableError::Corrupt("cold history pin malformed"));
+                    }
+                    let mut pin_id = [0u8; 16];
+                    pin_id.copy_from_slice(&pin);
+                    if pin_id != first.pin_id() {
+                        return Err(DurableError::Corrupt("cold history fenced pin differs"));
+                    }
+                    let selected = sealed
+                        .iter()
+                        .find(|candidate| {
+                            candidate.receipt_id().to_hex()
+                                == historical.get::<_, String>("sto_receipt_id")
+                        })
+                        .ok_or(DurableError::Corrupt("cold committed frame absent"))?;
+                    check_history_locator(
+                        historical,
+                        selected,
+                        domain,
+                        &historical.get::<_, String>("subject"),
+                        as_u64(historical.get("revision"))?,
+                    )?;
+                    check_member_row(
+                        member,
+                        selected,
+                        &member.get::<_, String>("subject"),
+                        as_u64(member.get("proposed_revision"))?,
+                    )?;
+                    // The private STO handle was recovered from the actual sealed
+                    // pin and full segment. Bind its physical placement as well
+                    // as the corresponding coordinator row into this cut.
+                    part(&mut state_hasher, &selected.placement().encode());
+                    let subject: String = historical.get("subject");
+                    let revision = as_u64(historical.get("revision"))?;
+                    let commitment = metadata_locator_digest(historical);
+                    if latest
+                        .get(&subject)
+                        .is_some_and(|(previous, _)| *previous >= revision)
+                    {
+                        return Err(DurableError::Corrupt(
+                            "historical revision is not monotonic",
+                        ));
+                    }
+                    if !latest.contains_key(&subject) {
+                        latest_subject_bytes = latest_subject_bytes
+                            .checked_add(subject.len())
+                            .ok_or(DurableError::Refused("subject byte count overflow"))?;
+                        if latest_subject_bytes > 16 * 1024 * 1024
+                            || latest.len() >= MAX_CUT as usize
+                        {
+                            return Err(DurableError::Refused("current identity budget exceeded"));
+                        }
+                    }
+                    latest.insert(subject, (revision, commitment));
+                    historical_members += 1;
+                }
+                if member_hasher.finalize() != receipt.member_root {
+                    return Err(DurableError::Corrupt("cold command member root differs"));
+                }
             }
-            if member_hasher.finalize() != receipt.member_root {
-                return Err(DurableError::Corrupt("cold command member root differs"));
-            }
+        }
+        if next_log_seq != head + 1 {
+            return Err(DurableError::Corrupt("cold cut log has a gap"));
         }
         let future_history: i64 = tx
             .query_one(
@@ -1517,20 +1609,29 @@ impl DurablePgCoordinator {
                 "history extends beyond committed head",
             ));
         }
-        let current = tx.query("SELECT * FROM cmd2_current WHERE domain=$1", &[&domain])?;
-        if current.len() != latest.len() {
-            return Err(DurableError::Corrupt(
-                "current membership differs from history",
-            ));
-        }
-        for row in &current {
+        let mut current = tx.query_raw("SELECT * FROM cmd2_current WHERE domain=$1", &[&domain])?;
+        let mut current_members = 0usize;
+        while let Some(row) = current.next()? {
+            check_cold_deadline(started)?;
+            current_members = current_members
+                .checked_add(1)
+                .ok_or(DurableError::Refused("current member count overflow"))?;
+            if current_members > MAX_CUT as usize {
+                return Err(DurableError::Refused("current member budget exceeded"));
+            }
             let subject: String = row.get("subject");
             let revision = as_u64(row.get("revision"))?;
-            if latest.get(&subject) != Some(&(revision, metadata_locator_digest(row))) {
+            if latest.get(&subject) != Some(&(revision, metadata_locator_digest(&row))) {
                 return Err(DurableError::Corrupt(
                     "current locator differs from latest history",
                 ));
             }
+        }
+        drop(current);
+        if current_members != latest.len() {
+            return Err(DurableError::Corrupt(
+                "current membership differs from history",
+            ));
         }
         let receipt_count: i64 = tx
             .query_one(
@@ -1561,20 +1662,10 @@ impl DurablePgCoordinator {
         // no full scan or segment hashing occurs under the sequencer lock.
         // The row encoding is a PostgreSQL-16 laboratory profile, bound by
         // schema_profile_digest and database_oid, not a portable source codec.
-        let audited_tables = [
-            ("cmd2_job", "job_id"),
-            ("cmd2_predicate", "kind,owner,scope,token"),
-            ("cmd2_attempt", "prepare_id"),
-            ("cmd2_member", "prepare_id,member_slot"),
-            ("cmd2_current", "subject"),
-            ("cmd2_history", "subject,revision"),
-            ("cmd2_receipt", "command_id"),
-            ("cmd2_log", "commit_seq"),
-            ("cmd2_outbox", "commit_seq"),
-        ];
         let mut audited_rows = 0usize;
         let mut audited_metadata_bytes = 0usize;
         for (table, order) in audited_tables {
+            check_cold_deadline(started)?;
             part(&mut state_hasher, table.as_bytes());
             let query = format!(
                 "SELECT row_to_json(t)::text FROM {table} t WHERE domain=$1 ORDER BY {order}"
@@ -1582,6 +1673,7 @@ impl DurablePgCoordinator {
             let mut rows = tx.query_raw(&query, &[&domain])?;
             let mut table_rows = 0u64;
             while let Some(row) = rows.next()? {
+                check_cold_deadline(started)?;
                 audited_rows = audited_rows
                     .checked_add(1)
                     .ok_or(DurableError::Refused("cold metadata row count overflow"))?;

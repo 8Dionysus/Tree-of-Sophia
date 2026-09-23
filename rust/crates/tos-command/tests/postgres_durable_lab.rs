@@ -1405,6 +1405,34 @@ fn cold_cut_seal_is_monotone_and_rejects_forged_digest() {
 }
 
 #[test]
+fn cold_audit_pages_log_and_preadmits_metadata_bytes() {
+    let Some(url) = database_url() else { return };
+    let mut lab = Lab::new(&url);
+    for expected in 1..=129 {
+        assert_eq!(lab.db.revoke_local(&lab.domain).unwrap(), expected);
+    }
+    let cut = lab.db.cold_verify_cut(&lab.store, &lab.domain).unwrap();
+    assert_eq!(cut.through_commit_seq(), 129);
+    assert_eq!(cut.historical_members(), 0);
+
+    // The PK stays short; the unindexed definition makes one JSON metadata
+    // row too large to enter the client even though the total row count is
+    // small. The preadmission scan must refuse before materializing it.
+    let mut client = Client::connect(&url, NoTls).unwrap();
+    client
+        .execute(
+            "INSERT INTO cmd2_predicate(domain,kind,owner,scope,token,definition_version)
+             VALUES($1,'unique','lab','audit','oversized',$2)",
+            &[&lab.domain, &"x".repeat(1_048_577)],
+        )
+        .unwrap();
+    assert!(matches!(
+        lab.db.cold_verify_cut(&lab.store, &lab.domain),
+        Err(DurableError::Refused(_))
+    ));
+}
+
+#[test]
 fn cold_cut_fence_rejects_same_count_mutation_and_aba() {
     let Some(url) = database_url() else { return };
     let mut lab = Lab::new(&url);
