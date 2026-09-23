@@ -27,6 +27,8 @@ const COMMAND_ID: &str = "cmd2:oracle:jgb-forms:1";
 const RECORDED_AT: &str = "2026-01-01T12:34:56+00:00";
 const EXISTING_ID: &str = "tos.form.jenseits-von-gut-und-boese.name-original";
 const NEW_ID: &str = "tos.form.oracle.jgb-name-ru-copy";
+const CLAIM_SOURCE_RAW_SHA: &str =
+    "sha256:97c8af473ecd35841f7541b6f68ef76a7a8f09c6a90bdbf9da3b3955380e5cd2";
 
 #[derive(Clone, Copy, Debug)]
 pub struct WorkFormsInput<'a> {
@@ -1050,6 +1052,576 @@ pub fn run_work_command(input: WorkFormsInput<'_>) -> Result<WorkCommandShadow> 
         &successor,
         &config,
         &fields,
+        &subject,
+        &encoded.sha256.to_prefixed(),
+        receipt,
+        false,
+    )?;
+    Ok(WorkCommandShadow {
+        response,
+        proposed_form_set: Some(encoded.bytes),
+    })
+}
+
+// This closure was produced by the frozen legacy SourceClaimProfiles reader.
+// It is an oracle identity only. The shadow cannot independently validate
+// registry/schema authority and therefore cannot authorize publication.
+const CLAIM_CONTRACTS: &[u8] =
+    include_bytes!("../tests/fixtures/source_forms_shadow/claim_v2/source_contracts.json");
+
+fn claim_fields(source: &JsonValue) -> Result<Vec<WorkField>> {
+    if text(source, "schema_version")? != "tos_source_relation_claim_v1"
+        || text(source, "claim_id")? != "tos.claim.nietzsche-letter-705.addressee"
+        || text(source, "visibility")? != "public_metadata_only"
+        || text(source, "predicate")? != "correspondence_addressee"
+    {
+        return Err(ShadowError::Unsupported(
+            "other Claim profile or visibility",
+        ));
+    }
+    let qualifiers = field(source, "qualifiers")?;
+    let statement = text(qualifiers, "statement")?;
+    if statement.trim().is_empty() {
+        return Err(ShadowError::Invalid("empty Claim statement"));
+    }
+    let language = field(qualifiers, "statement_language")?.clone();
+    let script = field(qualifiers, "statement_script")?.clone();
+    if language
+        .as_str()
+        .filter(|value| !value.is_empty())
+        .is_none()
+        || !(script.is_null() || script.as_str().is_some())
+    {
+        return Err(ShadowError::Unsupported("other Claim statement language"));
+    }
+    let mut fields = vec![WorkField {
+        id: "claim.statement".to_owned(),
+        pointer: "/qualifiers/statement".to_owned(),
+        role: "statement",
+        language,
+        script,
+        context: vec![String::new()],
+    }];
+    let display = field(qualifiers, "display_fields")?;
+    if text(display, "schema_version")? != "tos_claim_display_fields_v1" {
+        return Err(ShadowError::Unsupported(
+            "other Claim display field profile",
+        ));
+    }
+    for role in ["name", "caption", "hover"] {
+        if let Some(wording) = display.object_get(role) {
+            if text(wording, "text")?.trim().is_empty() {
+                return Err(ShadowError::Invalid("empty Claim display wording"));
+            }
+            fields.push(WorkField {
+                id: format!("claim.{role}"),
+                pointer: format!("/qualifiers/display_fields/{role}/text"),
+                role,
+                language: field(wording, "language")?.clone(),
+                script: field(wording, "script")?.clone(),
+                context: vec![String::new()],
+            });
+        }
+    }
+    Ok(fields)
+}
+
+fn claim_allowed(config: &JsonValue) -> Result<Vec<String>> {
+    let version = text(config, "schema_version")?;
+    if version == "tos_local_claim_form_owner_v1" {
+        return Ok(vec!["claim.statement".to_owned()]);
+    }
+    if version != "tos_local_claim_form_owner_v2" {
+        return Err(ShadowError::Unsupported("other Claim owner schema"));
+    }
+    let values = array(config, "allowed_field_ids")?;
+    if values.is_empty() || values.len() > 4 {
+        return Err(ShadowError::Invalid("Claim field scope size"));
+    }
+    let mut seen = HashSet::new();
+    let mut result = Vec::new();
+    for value in values {
+        let id = value
+            .as_str()
+            .ok_or(ShadowError::Invalid("Claim field ID"))?;
+        if ![
+            "claim.statement",
+            "claim.name",
+            "claim.caption",
+            "claim.hover",
+        ]
+        .contains(&id)
+            || !seen.insert(id)
+        {
+            return Err(ShadowError::Invalid("Claim field scope"));
+        }
+        result.push(id.to_owned());
+    }
+    Ok(result)
+}
+
+fn check_claim_owner(input: WorkFormsInput<'_>, config: &JsonValue) -> Result<Vec<String>> {
+    let version = text(config, "schema_version")?;
+    let base = [
+        "schema_version",
+        "uid",
+        "principal_id",
+        "source_root",
+        "source_path",
+        "claim_id",
+        "authority_ref",
+        "allowed_form_ids",
+        "allowed_operations",
+        "expires_at",
+    ];
+    if version == "tos_local_claim_form_owner_v1" {
+        exact_keys(config, &base)?;
+    } else if version == "tos_local_claim_form_owner_v2" {
+        let mut extended = base.to_vec();
+        extended.push("allowed_field_ids");
+        exact_keys(config, &extended)?;
+    } else {
+        return Err(ShadowError::Unsupported("other Claim owner schema"));
+    }
+    let allowed = claim_allowed(config)?;
+    if integer(config, "uid")? != input.effective_uid
+        || text(config, "claim_id")? != "tos.claim.nietzsche-letter-705.addressee"
+        || text(config, "source_path")?
+            != "ToS/source-witnesses/relations/nietzsche-letter-705-addressee/source-claims.jsonl"
+        || !text(config, "source_root")?.starts_with('/')
+        || text(config, "source_root")?
+            .split('/')
+            .any(|part| part == "..")
+        || text(config, "principal_id")?.trim().is_empty()
+        || text(config, "authority_ref")?.trim().is_empty()
+    {
+        return Err(ShadowError::Denied("Claim owner identity or route"));
+    }
+    let expiry = text(config, "expires_at")?;
+    if expiry.len() != 20
+        || !expiry.ends_with('Z')
+        || input.recorded_at.len() < 19
+        || &expiry[..19] <= &input.recorded_at[..19]
+    {
+        return Err(ShadowError::Denied("Claim delegation expired"));
+    }
+    let ids = array(config, "allowed_form_ids")?;
+    let ops = array(config, "allowed_operations")?;
+    let mut seen = HashSet::new();
+    if ids.len() > 32 || ops.len() > 2 {
+        return Err(ShadowError::Invalid("Claim owner scope size"));
+    }
+    for id in ids {
+        let id = id.as_str().ok_or(ShadowError::Invalid("Claim form ID"))?;
+        if !id.starts_with("tos.form.") || !seen.insert(id) {
+            return Err(ShadowError::Invalid("Claim form ID scope"));
+        }
+    }
+    seen.clear();
+    for op in ops {
+        let op = op.as_str().ok_or(ShadowError::Invalid("Claim operation"))?;
+        if !matches!(op, "form.create" | "form.revise") || !seen.insert(op) {
+            return Err(ShadowError::Invalid("Claim operation scope"));
+        }
+    }
+    Ok(allowed)
+}
+
+fn claim_config_digest(config: &JsonValue, contracts: &JsonValue) -> Result<String> {
+    Ok(digest(&obj(vec![
+        ("configuration", config.clone()),
+        ("source_contracts", contracts.clone()),
+    ]))?
+    .to_prefixed())
+}
+
+fn claim_result(
+    source: &JsonValue,
+    set: &JsonValue,
+    config: &JsonValue,
+    contracts: &JsonValue,
+    fields: &[WorkField],
+    allowed: &[String],
+    subject: &JsonValue,
+    revision: &str,
+    receipt: JsonValue,
+    replayed: bool,
+) -> Result<JsonValue> {
+    let path = text(config, "source_path")?;
+    let target = format!(
+        "{}.2c4c3a4f5cb2cbf1713ebdaa0b27dfcb0729cf980f33591a6e1e2ea6296b8d25.human-forms.json",
+        path.strip_suffix(".jsonl")
+            .ok_or(ShadowError::Invalid("Claim source filename"))?
+    );
+    let forms = array(set, "forms")?;
+    Ok(obj(vec![
+        (
+            "schema_version",
+            string("tos_local_source_command_result_v1"),
+        ),
+        ("authentication", string("local-unix-account")),
+        (
+            "owner_configuration",
+            string(&claim_config_digest(config, contracts)?),
+        ),
+        ("source", subject.clone()),
+        ("source_path", string(path)),
+        ("target_path", string(&target)),
+        ("revision", string(revision)),
+        (
+            "supported_operations",
+            JsonValue::Array(vec![string("form.create"), string("form.revise")]),
+        ),
+        (
+            "allowed_operations",
+            field(config, "allowed_operations")?.clone(),
+        ),
+        (
+            "command_operations",
+            JsonValue::Array(vec![string("describe"), string("prepare"), string("apply")]),
+        ),
+        (
+            "source_fields",
+            JsonValue::Array(fields.iter().map(WorkField::public).collect()),
+        ),
+        (
+            "allowed_form_ids",
+            field(config, "allowed_form_ids")?.clone(),
+        ),
+        (
+            "allowed_field_ids",
+            JsonValue::Array(allowed.iter().map(|id| string(id)).collect()),
+        ),
+        ("source_contracts", contracts.clone()),
+        (
+            "forms",
+            JsonValue::Array(forms.iter().map(form_ref).collect::<Result<Vec<_>>>()?),
+        ),
+        (
+            "materializations",
+            JsonValue::Array(
+                forms
+                    .iter()
+                    .map(|form| materialization(source, subject, form, fields))
+                    .collect::<Result<Vec<_>>>()?,
+            ),
+        ),
+        ("receipt", receipt),
+        ("replayed", JsonValue::Bool(replayed)),
+        ("grants_admission", JsonValue::Bool(false)),
+    ]))
+}
+
+fn check_claim_change_scope(
+    changes: &[JsonValue],
+    set: &JsonValue,
+    allowed: &[String],
+    replay: bool,
+) -> Result<()> {
+    let forms = array(set, "forms")?;
+    let prior = array(set, "prior_forms")?;
+    for change in changes {
+        let form = field(change, "form")?;
+        let id = text(form, "form_id")?;
+        let predecessor = field(change, "expected_form")?;
+        if !same_json(predecessor, field(form, "revises")?)? {
+            return Err(ShadowError::Conflict("Claim predecessor binding"));
+        }
+        let selected = field(field(form, "bindings")?, "wording")?;
+        let role = text(form, "role")?;
+        let pointer = text(selected, "pointer")?;
+        let field_id = allowed.iter().find(|candidate| {
+            let selected = candidate.strip_prefix("claim.").unwrap_or("");
+            let expected = if selected == "statement" {
+                "/qualifiers/statement".to_owned()
+            } else {
+                format!("/qualifiers/display_fields/{selected}/text")
+            };
+            selected == role && expected == pointer
+        });
+        if field_id.is_none() {
+            return Err(ShadowError::Denied("Claim field outside owner scope"));
+        }
+        let mut selected_history = Vec::new();
+        selected_history.extend(
+            forms
+                .iter()
+                .filter(|item| item.object_get("form_id").and_then(JsonValue::as_str) == Some(id)),
+        );
+        if !predecessor.is_null() {
+            selected_history.extend(
+                prior
+                    .iter()
+                    .filter(|item| form_ref(item).ok().as_ref() == Some(predecessor)),
+            );
+        }
+        for historical in selected_history {
+            let binding = field(field(historical, "bindings")?, "wording")?;
+            let historical_role = text(historical, "role")?;
+            let historical_pointer = text(binding, "pointer")?;
+            if !allowed.iter().any(|candidate| {
+                let name = candidate.strip_prefix("claim.").unwrap_or("");
+                let expected = if name == "statement" {
+                    "/qualifiers/statement".to_owned()
+                } else {
+                    format!("/qualifiers/display_fields/{name}/text")
+                };
+                name == historical_role && expected == historical_pointer
+            }) {
+                return Err(ShadowError::Denied(
+                    "retained Claim field outside owner scope",
+                ));
+            }
+        }
+        if !replay && predecessor.is_null() && text(change, "operation")? != "form.create" {
+            return Err(ShadowError::Conflict("Claim create operation mismatch"));
+        }
+    }
+    Ok(())
+}
+
+/// Exact mechanical Claim form shadow for one frozen, source-profile-validated
+/// public stream. Registry/schema validation is not reproduced. The pinned
+/// source and contract closure are oracle inputs, never an admission grant.
+pub fn run_claim_command(input: WorkFormsInput<'_>) -> Result<WorkCommandShadow> {
+    if input.recorded_at.len() != 25 || !input.recorded_at.ends_with("+00:00") {
+        return Err(ShadowError::Unsupported(
+            "Claim shadow needs explicit UTC instant",
+        ));
+    }
+    if Digest256::of_bytes(input.source_raw).to_prefixed() != CLAIM_SOURCE_RAW_SHA {
+        return Err(ShadowError::Unsupported(
+            "other Claim source profile snapshot",
+        ));
+    }
+    let source = parse(input.source_raw, 16_777_216)?;
+    let claim = source;
+    let fields = claim_fields(&claim)?;
+    let config = parse(input.owner_config_raw, 1_048_576)?;
+    let allowed = check_claim_owner(input, &config)?;
+    let contracts = parse(CLAIM_CONTRACTS, 1_048_576)?;
+    let subject = record_ref(
+        text(&claim, "claim_id")?,
+        integer(&claim, "claim_version")?,
+        &claim,
+    )?;
+    let set = parse(input.form_set_raw, 2_097_152)?;
+    validate_history(&set, &subject)?;
+    let revision = Digest256::of_bytes(input.form_set_raw).to_prefixed();
+    let request = sorted_copy(&parse(input.request_raw, 1_048_576)?)?;
+    if text(&request, "schema_version")? != "tos_local_source_command_v1" {
+        return Err(ShadowError::Invalid("Claim command schema"));
+    }
+    let operation = text(&request, "operation")?;
+    if operation == "describe" {
+        exact_keys(&request, &["schema_version", "operation"])?;
+        return Ok(WorkCommandShadow {
+            response: claim_result(
+                &claim,
+                &set,
+                &config,
+                &contracts,
+                &fields,
+                &allowed,
+                &subject,
+                &revision,
+                JsonValue::Null,
+                false,
+            )?,
+            proposed_form_set: None,
+        });
+    }
+    if operation == "prepare" {
+        exact_keys(
+            &request,
+            &["schema_version", "operation", "form_id", "field_id"],
+        )?;
+        let id = text(&request, "form_id")?;
+        if !array(&config, "allowed_form_ids")?
+            .iter()
+            .any(|value| value.as_str() == Some(id))
+        {
+            return Err(ShadowError::Denied("Claim form outside identity scope"));
+        }
+        let chosen_id = text(&request, "field_id")?;
+        if !allowed.iter().any(|field| field == chosen_id) {
+            return Err(ShadowError::Denied("Claim field outside owner scope"));
+        }
+        let chosen = fields
+            .iter()
+            .find(|field| field.id == chosen_id)
+            .ok_or(ShadowError::Invalid("Claim source field absent"))?;
+        let change = prepared_change(&set, &subject, text(&config, "principal_id")?, id, chosen)?;
+        check_claim_change_scope(std::slice::from_ref(&change), &set, &allowed, false)?;
+        if !array(&config, "allowed_operations")?
+            .iter()
+            .any(|item| item.as_str() == change.object_get("operation").and_then(JsonValue::as_str))
+        {
+            return Err(ShadowError::Denied("Claim operation outside scope"));
+        }
+        let preview = materialization(&claim, &subject, field(&change, "form")?, &fields)?;
+        let mut response = claim_result(
+            &claim,
+            &set,
+            &config,
+            &contracts,
+            &fields,
+            &allowed,
+            &subject,
+            &revision,
+            JsonValue::Null,
+            false,
+        )?;
+        response_insert(&mut response, "prepared_change", change)?;
+        response_insert(&mut response, "prepared_materialization", preview)?;
+        return Ok(WorkCommandShadow {
+            response,
+            proposed_form_set: None,
+        });
+    }
+    if operation != "apply" {
+        return Err(ShadowError::Invalid("unknown Claim operation"));
+    }
+    exact_keys(
+        &request,
+        &[
+            "schema_version",
+            "operation",
+            "command_id",
+            "expected_source",
+            "expected_revision",
+            "expected_configuration",
+            "changes",
+        ],
+    )?;
+    let command_id = text(&request, "command_id")?;
+    if command_id.is_empty() || command_id.len() > 256 {
+        return Err(ShadowError::Invalid("Claim command ID size"));
+    }
+    let changes = array(&request, "changes")?;
+    if changes.is_empty() || changes.len() > 32 {
+        return Err(ShadowError::Invalid("Claim batch size"));
+    }
+    check_scope(&config, changes)?;
+    check_claim_change_scope(changes, &set, &allowed, true)?;
+    let request_digest = Digest256::of_bytes(&canonical(&request)?).to_prefixed();
+    if let Some(receipt) = array(&set, "growth_history")?
+        .iter()
+        .find(|row| row.object_get("command_id").and_then(JsonValue::as_str) == Some(command_id))
+    {
+        if text(receipt, "request_digest")? != request_digest {
+            return Err(ShadowError::Conflict("Claim command ID reused"));
+        }
+        let result_refs = changes
+            .iter()
+            .map(|change| form_ref(field(change, "form")?))
+            .collect::<Result<Vec<_>>>()?;
+        if !same_json(field(receipt, "results")?, &JsonValue::Array(result_refs))? {
+            return Err(ShadowError::Conflict("Claim replay result differs"));
+        }
+        return Ok(WorkCommandShadow {
+            response: claim_result(
+                &claim,
+                &set,
+                &config,
+                &contracts,
+                &fields,
+                &allowed,
+                &subject,
+                &revision,
+                receipt.clone(),
+                true,
+            )?,
+            proposed_form_set: None,
+        });
+    }
+    if !same_json(field(&request, "expected_source")?, &subject)?
+        || text(&request, "expected_revision")? != revision
+        || text(&request, "expected_configuration")? != claim_config_digest(&config, &contracts)?
+    {
+        return Err(ShadowError::Conflict(
+            "stale Claim source, config or revision",
+        ));
+    }
+    for change in changes {
+        let form = field(change, "form")?;
+        let selected = field(field(form, "bindings")?, "wording")?;
+        let chosen = fields
+            .iter()
+            .find(|field| {
+                field.pointer == text(selected, "pointer").unwrap_or("")
+                    && field.role == text(form, "role").unwrap_or("")
+            })
+            .ok_or(ShadowError::Unsupported("other Claim form field"))?;
+        let expected = prepared_change(
+            &set,
+            &subject,
+            text(&config, "principal_id")?,
+            text(form, "form_id")?,
+            chosen,
+        )?;
+        if !same_json(change, &expected)? {
+            return Err(ShadowError::Unsupported("other Claim form production mode"));
+        }
+        materialization(&claim, &subject, form, &fields)?;
+    }
+    let mut successor = sorted_copy(&set)?;
+    for change in changes {
+        let form = field(change, "form")?.clone();
+        let id = text(&form, "form_id")?;
+        if text(change, "operation")? == "form.revise" {
+            let forms = array_mut(&mut successor, "forms")?;
+            let index = forms
+                .iter()
+                .position(|old| old.object_get("form_id").and_then(JsonValue::as_str) == Some(id))
+                .ok_or(ShadowError::Conflict("Claim predecessor absent"))?;
+            let old = std::mem::replace(&mut forms[index], form);
+            array_mut(&mut successor, "prior_forms")?.push(old);
+        } else {
+            array_mut(&mut successor, "forms")?.push(form);
+        }
+    }
+    let results = changes
+        .iter()
+        .map(|change| form_ref(field(change, "form")?))
+        .collect::<Result<Vec<_>>>()?;
+    let receipt = obj(vec![
+        ("command_id", string(command_id)),
+        ("request_digest", string(&request_digest)),
+        ("principal_id", field(&config, "principal_id")?.clone()),
+        ("authority_ref", field(&config, "authority_ref")?.clone()),
+        (
+            "owner_configuration",
+            string(&claim_config_digest(&config, &contracts)?),
+        ),
+        ("recorded_at", string(input.recorded_at)),
+        ("source_contracts", contracts.clone()),
+        ("source", subject.clone()),
+        ("previous_revision", string(&revision)),
+        ("results", JsonValue::Array(results)),
+    ]);
+    array_mut(&mut successor, "growth_history")?.push(receipt.clone());
+    if let JsonValue::Object(entries) = &mut successor {
+        let (_, retained) = entries
+            .iter_mut()
+            .find(|(key, _)| key.as_str() == Some("subject"))
+            .ok_or(ShadowError::Invalid("Claim set subject absent"))?;
+        *retained = subject.clone();
+    }
+    validate_history(&successor, &subject)?;
+    let encoded = emit_json_profile(
+        &successor,
+        JsonEmissionProfile::SourceFormSetPublishedV1,
+        limits(2_097_152),
+    )
+    .map_err(|_| ShadowError::Invalid("Claim output codec"))?;
+    let response = claim_result(
+        &claim,
+        &successor,
+        &config,
+        &contracts,
+        &fields,
+        &allowed,
         &subject,
         &encoded.sha256.to_prefixed(),
         receipt,

@@ -1,0 +1,210 @@
+{
+  "changes": [
+    {
+      "expected_form": {
+        "digest": "sha256:abd5d3c532773706011220ccd6b9c54309d3913ae98525937cc15b7dea2c5c48",
+        "id": "tos.form.nietzsche-letter-705.addressee.statement-ru",
+        "version": 2
+      },
+      "form": {
+        "bindings": {
+          "context-0": {
+            "pointer": "",
+            "record": {
+              "digest": "sha256:4ac6303728aaa74d8dec2c0b70c57b79c3b515cb8a3abfaebef5049b63ba931d",
+              "id": "tos.claim.nietzsche-letter-705.addressee",
+              "version": 2
+            }
+          },
+          "wording": {
+            "pointer": "/qualifiers/statement",
+            "record": {
+              "digest": "sha256:4ac6303728aaa74d8dec2c0b70c57b79c3b515cb8a3abfaebef5049b63ba931d",
+              "id": "tos.claim.nietzsche-letter-705.addressee",
+              "version": 2
+            }
+          }
+        },
+        "content": {
+          "kind": "source-copy",
+          "slot": "wording"
+        },
+        "creator_id": "agent:cmd2-claim-oracle",
+        "form_id": "tos.form.nietzsche-letter-705.addressee.statement-ru",
+        "form_version": 3,
+        "language": "ru",
+        "revises": {
+          "digest": "sha256:abd5d3c532773706011220ccd6b9c54309d3913ae98525937cc15b7dea2c5c48",
+          "id": "tos.form.nietzsche-letter-705.addressee.statement-ru",
+          "version": 2
+        },
+        "role": "statement",
+        "schema_version": "tos_human_form_v1",
+        "script": null,
+        "subject": {
+          "digest": "sha256:4ac6303728aaa74d8dec2c0b70c57b79c3b515cb8a3abfaebef5049b63ba931d",
+          "id": "tos.claim.nietzsche-letter-705.addressee",
+          "version": 2
+        }
+      },
+      "operation": "form.revise"
+    },
+    {
+      "expected_form": {
+        "digest": "sha256:ebf1bbf7d08896a2de6fb7ede8c1a9361f90d84a4fc97e90f017ad6b2269bc11",
+        "id": "tos.form.nietzsche-letter-705.addressee-name",
+        "version": 1
+      },
+      "form": {
+        "bindings": {
+          "context-0": {
+            "pointer": "",
+            "record": {
+              "digest": "sha256:4ac6303728aaa74d8dec2c0b70c57b79c3b515cb8a3abfaebef5049b63ba931d",
+              "id": "tos.claim.nietzsche-letter-705.addressee",
+              "version": 2
+            }
+          },
+          "wording": {
+            "pointer": "/qualifiers/display_fields/name/text",
+            "record": {
+              "digest": "sha256:4ac6303728aaa74d8dec2c0b70c57b79c3b515cb8a3abfaebef5049b63ba931d",
+              "id": "tos.claim.nietzsche-letter-705.addressee",
+              "version": 2
+            }
+          }
+        },
+        "content": {
+          "kind": "source-copy",
+          "slot": "wording"
+        },
+        "creator_id": "agent:cmd2-claim-oracle",
+        "form_id": "tos.form.nietzsche-letter-705.addressee-name",
+        "form_version": 2,
+        "language": "ru",
+        "revises": {
+          "digest": "sha256:ebf1bbf7d08896a2de6fb7ede8c1a9361f90d84a4fc97e90f017ad6b2269bc11",
+          "id": "tos.form.nietzsche-letter-705.addressee-name",
+          "version": 1
+        },
+        "role": "name",
+        "schema_version": "tos_human_form_v1",
+        "script": "Cyrl",
+        "subject": {
+          "digest": "sha256:4ac6303728aaa74d8dec2c0b70c57b79c3b515cb8a3abfaebef5049b63ba931d",
+          "id": "tos.claim.nietzsche-letter-705.addressee",
+          "version": 2
+        }
+      },
+      "operation": "form.revise"
+    },
+    {
+      "expected_form": {
+        "digest": "sha256:5788d306ed7a0c4a693a92099ceabb3ea98577557eb4acf4ba793ee4991f9c89",
+        "id": "tos.form.nietzsche-letter-705.addressee-caption",
+        "version": 1
+      },
+      "form": {
+        "bindings": {
+          "context-0": {
+            "pointer": "",
+            "record": {
+              "digest": "sha256:4ac6303728aaa74d8dec2c0b70c57b79c3b515cb8a3abfaebef5049b63ba931d",
+              "id": "tos.claim.nietzsche-letter-705.addressee",
+              "version": 2
+            }
+          },
+          "wording": {
+            "pointer": "/qualifiers/display_fields/caption/text",
+            "record": {
+              "digest": "sha256:4ac6303728aaa74d8dec2c0b70c57b79c3b515cb8a3abfaebef5049b63ba931d",
+              "id": "tos.claim.nietzsche-letter-705.addressee",
+              "version": 2
+            }
+          }
+        },
+        "content": {
+          "kind": "source-copy",
+          "slot": "wording"
+        },
+        "creator_id": "agent:cmd2-claim-oracle",
+        "form_id": "tos.form.nietzsche-letter-705.addressee-caption",
+        "form_version": 2,
+        "language": "ru",
+        "revises": {
+          "digest": "sha256:5788d306ed7a0c4a693a92099ceabb3ea98577557eb4acf4ba793ee4991f9c89",
+          "id": "tos.form.nietzsche-letter-705.addressee-caption",
+          "version": 1
+        },
+        "role": "caption",
+        "schema_version": "tos_human_form_v1",
+        "script": "Cyrl",
+        "subject": {
+          "digest": "sha256:4ac6303728aaa74d8dec2c0b70c57b79c3b515cb8a3abfaebef5049b63ba931d",
+          "id": "tos.claim.nietzsche-letter-705.addressee",
+          "version": 2
+        }
+      },
+      "operation": "form.revise"
+    },
+    {
+      "expected_form": {
+        "digest": "sha256:1d9decdc4b67ed0b7178f09cc7357d1732bc509520da3d1a1400e06f969c48de",
+        "id": "tos.form.nietzsche-letter-705.addressee-hover",
+        "version": 1
+      },
+      "form": {
+        "bindings": {
+          "context-0": {
+            "pointer": "",
+            "record": {
+              "digest": "sha256:4ac6303728aaa74d8dec2c0b70c57b79c3b515cb8a3abfaebef5049b63ba931d",
+              "id": "tos.claim.nietzsche-letter-705.addressee",
+              "version": 2
+            }
+          },
+          "wording": {
+            "pointer": "/qualifiers/display_fields/hover/text",
+            "record": {
+              "digest": "sha256:4ac6303728aaa74d8dec2c0b70c57b79c3b515cb8a3abfaebef5049b63ba931d",
+              "id": "tos.claim.nietzsche-letter-705.addressee",
+              "version": 2
+            }
+          }
+        },
+        "content": {
+          "kind": "source-copy",
+          "slot": "wording"
+        },
+        "creator_id": "agent:cmd2-claim-oracle",
+        "form_id": "tos.form.nietzsche-letter-705.addressee-hover",
+        "form_version": 2,
+        "language": "ru",
+        "revises": {
+          "digest": "sha256:1d9decdc4b67ed0b7178f09cc7357d1732bc509520da3d1a1400e06f969c48de",
+          "id": "tos.form.nietzsche-letter-705.addressee-hover",
+          "version": 1
+        },
+        "role": "hover",
+        "schema_version": "tos_human_form_v1",
+        "script": "Cyrl",
+        "subject": {
+          "digest": "sha256:4ac6303728aaa74d8dec2c0b70c57b79c3b515cb8a3abfaebef5049b63ba931d",
+          "id": "tos.claim.nietzsche-letter-705.addressee",
+          "version": 2
+        }
+      },
+      "operation": "form.revise"
+    }
+  ],
+  "command_id": "cmd2:oracle:claim-v2:1",
+  "expected_configuration": "sha256:5497cc6a933bb9f98f5c673f4e25ede17ab5b05d420bceed089a53c672ba6685",
+  "expected_revision": "sha256:3f5a0dac1b7781e3c5ecc1ec6b742402ab9e422cb4500bc75a9f999258054b84",
+  "expected_source": {
+    "digest": "sha256:4ac6303728aaa74d8dec2c0b70c57b79c3b515cb8a3abfaebef5049b63ba931d",
+    "id": "tos.claim.nietzsche-letter-705.addressee",
+    "version": 2
+  },
+  "operation": "apply",
+  "schema_version": "tos_local_source_command_v1"
+}

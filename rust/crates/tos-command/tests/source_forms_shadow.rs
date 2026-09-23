@@ -3,7 +3,9 @@
 #[path = "../src/source_forms_shadow.rs"]
 mod source_forms_shadow;
 
-use source_forms_shadow::{ShadowError, WorkFormsInput, apply_or_replay, run_work_command};
+use source_forms_shadow::{
+    ShadowError, WorkFormsInput, apply_or_replay, run_claim_command, run_work_command,
+};
 use tos_foundation::{CanonicalProfile, JsonLimits, JsonMode, canonical_digest_v1, parse_json};
 
 const SOURCE: &[u8] = include_bytes!("fixtures/source_forms_shadow/source.initial.json");
@@ -46,6 +48,185 @@ const LIPSIUS_APPLY_RESPONSE: &[u8] =
 const LIPSIUS_REPLAY_RESPONSE: &[u8] =
     include_bytes!("fixtures/source_forms_shadow/de_constantia/replay.json");
 const INSTANT: &str = "2026-01-01T12:34:56+00:00";
+
+const CLAIM_SOURCE: &[u8] = include_bytes!("fixtures/source_forms_shadow/claim_v1/source.json");
+const CLAIM_INITIAL: &[u8] = include_bytes!("fixtures/source_forms_shadow/claim_v1/initial.json");
+const CLAIM_V1_OWNER: &[u8] = include_bytes!("fixtures/source_forms_shadow/claim_v1/owner.json");
+const CLAIM_V2_OWNER: &[u8] = include_bytes!("fixtures/source_forms_shadow/claim_v2/owner.json");
+const CLAIM_V1_APPLY: &[u8] =
+    include_bytes!("fixtures/source_forms_shadow/claim_v1/apply_request.json");
+const CLAIM_V2_APPLY: &[u8] =
+    include_bytes!("fixtures/source_forms_shadow/claim_v2/apply_request.json");
+const CLAIM_V1_PUBLISHED: &[u8] =
+    include_bytes!("fixtures/source_forms_shadow/claim_v1/published.json");
+const CLAIM_V2_PUBLISHED: &[u8] =
+    include_bytes!("fixtures/source_forms_shadow/claim_v2/published.json");
+
+#[test]
+fn pinned_claim_v1_statement_describe_prepare_apply_replay() {
+    let describe = run_claim_command(input(
+        CLAIM_SOURCE,
+        CLAIM_INITIAL,
+        CLAIM_V1_OWNER,
+        include_bytes!("fixtures/source_forms_shadow/claim_v1/describe_request.json"),
+    ))
+    .unwrap();
+    assert!(describe.proposed_form_set.is_none());
+    assert_response(
+        &describe.response,
+        include_bytes!("fixtures/source_forms_shadow/claim_v1/describe.json"),
+    );
+    let prepared = run_claim_command(input(
+        CLAIM_SOURCE,
+        CLAIM_INITIAL,
+        CLAIM_V1_OWNER,
+        include_bytes!(
+            "fixtures/source_forms_shadow/claim_v1/prepare-claim-statement.request.json"
+        ),
+    ))
+    .unwrap();
+    assert_response(
+        &prepared.response,
+        include_bytes!(
+            "fixtures/source_forms_shadow/claim_v1/prepare-claim-statement.response.json"
+        ),
+    );
+    let applied = run_claim_command(input(
+        CLAIM_SOURCE,
+        CLAIM_INITIAL,
+        CLAIM_V1_OWNER,
+        CLAIM_V1_APPLY,
+    ))
+    .unwrap();
+    assert_eq!(
+        applied.proposed_form_set.as_deref(),
+        Some(CLAIM_V1_PUBLISHED)
+    );
+    assert_response(
+        &applied.response,
+        include_bytes!("fixtures/source_forms_shadow/claim_v1/apply.json"),
+    );
+    let replay = run_claim_command(input(
+        CLAIM_SOURCE,
+        CLAIM_V1_PUBLISHED,
+        CLAIM_V1_OWNER,
+        CLAIM_V1_APPLY,
+    ))
+    .unwrap();
+    assert!(replay.proposed_form_set.is_none());
+    assert_response(
+        &replay.response,
+        include_bytes!("fixtures/source_forms_shadow/claim_v1/replay.json"),
+    );
+    let denied = run_claim_command(input(
+        CLAIM_SOURCE,
+        CLAIM_INITIAL,
+        CLAIM_V1_OWNER,
+        include_bytes!("fixtures/source_forms_shadow/claim_v2/prepare-claim-name.request.json"),
+    ));
+    assert!(matches!(denied, Err(ShadowError::Denied(_))));
+}
+
+#[test]
+fn pinned_claim_v2_display_batch_describe_prepare_apply_replay_and_revocation() {
+    let describe = run_claim_command(input(
+        CLAIM_SOURCE,
+        CLAIM_INITIAL,
+        CLAIM_V2_OWNER,
+        include_bytes!("fixtures/source_forms_shadow/claim_v2/describe_request.json"),
+    ))
+    .unwrap();
+    assert_response(
+        &describe.response,
+        include_bytes!("fixtures/source_forms_shadow/claim_v2/describe.json"),
+    );
+    for (request, expected) in [
+        (
+            include_bytes!(
+                "fixtures/source_forms_shadow/claim_v2/prepare-claim-statement.request.json"
+            )
+            .as_slice(),
+            include_bytes!(
+                "fixtures/source_forms_shadow/claim_v2/prepare-claim-statement.response.json"
+            )
+            .as_slice(),
+        ),
+        (
+            include_bytes!("fixtures/source_forms_shadow/claim_v2/prepare-claim-name.request.json")
+                .as_slice(),
+            include_bytes!(
+                "fixtures/source_forms_shadow/claim_v2/prepare-claim-name.response.json"
+            )
+            .as_slice(),
+        ),
+        (
+            include_bytes!(
+                "fixtures/source_forms_shadow/claim_v2/prepare-claim-caption.request.json"
+            )
+            .as_slice(),
+            include_bytes!(
+                "fixtures/source_forms_shadow/claim_v2/prepare-claim-caption.response.json"
+            )
+            .as_slice(),
+        ),
+        (
+            include_bytes!(
+                "fixtures/source_forms_shadow/claim_v2/prepare-claim-hover.request.json"
+            )
+            .as_slice(),
+            include_bytes!(
+                "fixtures/source_forms_shadow/claim_v2/prepare-claim-hover.response.json"
+            )
+            .as_slice(),
+        ),
+    ] {
+        let prepared =
+            run_claim_command(input(CLAIM_SOURCE, CLAIM_INITIAL, CLAIM_V2_OWNER, request)).unwrap();
+        assert_response(&prepared.response, expected);
+    }
+    let applied = run_claim_command(input(
+        CLAIM_SOURCE,
+        CLAIM_INITIAL,
+        CLAIM_V2_OWNER,
+        CLAIM_V2_APPLY,
+    ))
+    .unwrap();
+    assert_eq!(
+        applied.proposed_form_set.as_deref(),
+        Some(CLAIM_V2_PUBLISHED)
+    );
+    assert_response(
+        &applied.response,
+        include_bytes!("fixtures/source_forms_shadow/claim_v2/apply.json"),
+    );
+    let replay = run_claim_command(input(
+        CLAIM_SOURCE,
+        CLAIM_V2_PUBLISHED,
+        CLAIM_V2_OWNER,
+        CLAIM_V2_APPLY,
+    ))
+    .unwrap();
+    assert_response(
+        &replay.response,
+        include_bytes!("fixtures/source_forms_shadow/claim_v2/replay.json"),
+    );
+    let revoked = edit(CLAIM_V2_OWNER,
+        "\"allowed_field_ids\": [\n    \"claim.statement\",\n    \"claim.name\",\n    \"claim.caption\",\n    \"claim.hover\"\n  ]",
+        "\"allowed_field_ids\": [\"claim.statement\"]");
+    assert!(matches!(
+        run_claim_command(input(CLAIM_SOURCE, CLAIM_INITIAL, &revoked, CLAIM_V2_APPLY)),
+        Err(ShadowError::Denied(_))
+    ));
+    assert!(matches!(
+        run_claim_command(input(
+            CLAIM_SOURCE,
+            CLAIM_V2_PUBLISHED,
+            &revoked,
+            CLAIM_V2_APPLY
+        )),
+        Err(ShadowError::Denied(_))
+    ));
+}
 
 fn input<'a>(
     source: &'a [u8],
