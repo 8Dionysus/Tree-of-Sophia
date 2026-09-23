@@ -37,6 +37,8 @@ const MEMBERSHIP_ROOT: &str = "e92c74487c3cdcc852cc761711fcd2c826a527321f806da82
 fn fixture() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("../tos-compiler/tests/fixtures/tos_corpus_index.min.json")
+        .canonicalize()
+        .expect("trusted test fixture has a normalized absolute path")
 }
 
 fn binding() -> SourceBinding {

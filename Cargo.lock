@@ -393,6 +393,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "tos-access"
+version = "0.0.0"
+dependencies = [
+ "tos-compiler",
+ "tos-foundation",
+ "tos-query",
+]
+
+[[package]]
 name = "tos-compiler"
 version = "0.1.0"
 dependencies = [
