@@ -1405,6 +1405,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "tos-ops-mechanics-plan"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "tos-query"
 version = "0.0.0"
 dependencies = [
@@ -1452,6 +1460,14 @@ dependencies = [
 
 [[package]]
 name = "tos-web-codec"
+version = "0.0.0"
+dependencies = [
+ "tos-foundation",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "tos-web-rules"
 version = "0.0.0"
 dependencies = [
  "tos-foundation",

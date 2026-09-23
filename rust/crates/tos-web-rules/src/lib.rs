@@ -27,19 +27,28 @@ mod wasm {
 
     #[wasm_bindgen]
     impl SearchModeResult {
-        pub fn mode(&self) -> Option<String> { self.mode.clone() }
-        pub fn error_code(&self) -> Option<String> { self.error_code.clone() }
-        pub fn minimum(&self) -> f64 { self.minimum.map_or(-1.0, |value| value as f64) }
+        pub fn mode(&self) -> Option<String> {
+            self.mode.clone()
+        }
+        pub fn error_code(&self) -> Option<String> {
+            self.error_code.clone()
+        }
+        pub fn minimum(&self) -> f64 {
+            self.minimum.map_or(-1.0, |value| value as f64)
+        }
     }
 
     #[wasm_bindgen]
     pub fn select_knowledge_search_mode_wasm_v1(request_json: &[u8]) -> SearchModeResult {
         match select_knowledge_search_mode_v1(request_json) {
             Ok(mode) => SearchModeResult {
-                mode: Some(mode.as_str().to_owned()), error_code: None, minimum: None,
+                mode: Some(mode.as_str().to_owned()),
+                error_code: None,
+                minimum: None,
             },
             Err(error) => SearchModeResult {
-                mode: None, error_code: Some(error.code.as_str().to_owned()),
+                mode: None,
+                error_code: Some(error.code.as_str().to_owned()),
                 minimum: error.minimum,
             },
         }
