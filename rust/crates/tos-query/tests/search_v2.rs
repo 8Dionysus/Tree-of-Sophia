@@ -73,7 +73,8 @@ fn selection(vocabulary: &FixtureVocabulary) -> SearchSelectionBinding {
         relation_registry_version: "fixture-relation-v1".into(),
         relation_registry_sha256: Digest256::of_bytes(b"fixture relation registry"),
         graph_root_sha256: Digest256::of_bytes(b"fixture graph root"),
-        catalog_root_sha256: Digest256::of_bytes(b"fixture catalog root"),
+        catalog_packet_sha256: Digest256::of_bytes(b"fixture catalog packet"),
+        catalog_index_root_sha256: Digest256::of_bytes(b"fixture catalog index"),
         source_scope_root_sha256: Digest256::of_bytes(b"fixture source scope root"),
         search_index_root_sha256: Digest256::of_bytes(b"fixture search index root"),
         index_root_sha256: Digest256::of_bytes(b"fixture sqlite file root"),
@@ -405,6 +406,24 @@ fn continuation_binds_query_selection_and_independent_kind_positions() {
             .code,
         SearchV2ErrorCode::StaleSelection
     );
+    for changed in [
+        SearchSelectionBinding {
+            catalog_packet_sha256: Digest256::of_bytes(b"new catalog packet"),
+            ..selected.clone()
+        },
+        SearchSelectionBinding {
+            catalog_index_root_sha256: Digest256::of_bytes(b"new catalog index"),
+            ..selected.clone()
+        },
+    ] {
+        assert_eq!(
+            state
+                .validate_resume(&normalized, &changed, &policy, &vocabulary)
+                .unwrap_err()
+                .code,
+            SearchV2ErrorCode::StaleSelection
+        );
+    }
     let mut other_membership = selected.clone();
     other_membership.source_membership_root = Digest256::of_bytes(b"new source membership");
     assert_eq!(

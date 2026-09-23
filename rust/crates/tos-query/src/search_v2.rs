@@ -63,7 +63,9 @@ pub struct SearchSelectionBinding {
     pub relation_registry_version: String,
     pub relation_registry_sha256: Digest256,
     pub graph_root_sha256: Digest256,
-    pub catalog_root_sha256: Digest256,
+    /// Exact selected catalog carrier, distinct from its indexed facet/routes.
+    pub catalog_packet_sha256: Digest256,
+    pub catalog_index_root_sha256: Digest256,
     pub source_scope_root_sha256: Digest256,
     pub search_index_root_sha256: Digest256,
     pub index_root_sha256: Digest256,
