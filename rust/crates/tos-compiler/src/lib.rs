@@ -1,6 +1,7 @@
 //! Bounded compilation of a derived source-navigation read model.
 //! This crate writes private candidates; admission, rights and selection remain owner routes.
 
+pub mod d1;
 mod knowledge_registry;
 mod legacy;
 mod publication;
