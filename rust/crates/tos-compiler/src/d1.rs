@@ -630,7 +630,9 @@ fn publication(
     let current = "(SELECT json_extract(group_concat(json_chunk,''),'$.sha256') FROM (SELECT json_chunk FROM edge_meta WHERE key='data_revision' ORDER BY part))";
     sink.line("CREATE TABLE IF NOT EXISTS tos_delta_publications (revision TEXT PRIMARY KEY, base_revision TEXT NOT NULL);")?;
     let trigger = format!("tos_rust_d1_{}_publish", &revision[..12]);
+    let retry_trigger = format!("tos_rust_d1_{}_retry", &revision[..12]);
     sink.line(&format!("DROP TRIGGER IF EXISTS {trigger};"))?;
+    sink.line(&format!("DROP TRIGGER IF EXISTS {retry_trigger};"))?;
     let mut body = Vec::new();
     body.push(format!(
         "SELECT CASE WHEN {current} IS NOT {} THEN RAISE(ABORT,'stale D1 predecessor') END;",
@@ -663,21 +665,28 @@ fn publication(
         body.push(format!("INSERT INTO {serving} SELECT * FROM {new_stage};"));
     }
     body.push(format!("SELECT CASE WHEN {current} IS NOT {} THEN RAISE(ABORT,'D1 successor revision differs') END;", quote(target)));
-    // SQLite's default recursive_triggers=OFF prevents the edge_meta triggers
-    // from firing for writes made inside this publication trigger. Advance the
-    // serving clock in the same atomic body, as the maintained D1 builder does.
-    body.push("UPDATE knowledge_exploration_clock SET epoch=epoch+1 WHERE singleton=1;".into());
+    // Keep each serving transition inside one trigger invocation. Plain INSERT
+    // and UPDATE preserve nested edge_meta writes and their clock triggers;
+    // OR REPLACE can silently stop this body before its revision seal.
     // SQLite limits one statement to 100 KiB. A bounded trigger body may still
     // exceed that at many table families; refuse instead of weakening guards.
     sink.line(&format!("CREATE TRIGGER {trigger} AFTER INSERT ON tos_delta_publications WHEN NEW.revision={} BEGIN {} END;",
         quote(target), body.join(" ")))?;
+    sink.line(&format!("CREATE TRIGGER {retry_trigger} AFTER UPDATE OF base_revision ON tos_delta_publications WHEN NEW.revision={} BEGIN {} END;",
+        quote(target), body.join(" ")))?;
     sink.line(&format!(
-        "INSERT OR REPLACE INTO tos_delta_publications SELECT {},{} WHERE {current} IS NOT {};",
+        "UPDATE tos_delta_publications SET base_revision={} WHERE revision={} AND {current} IS NOT {};",
+        quote(base), quote(target), quote(target)
+    ))?;
+    sink.line(&format!(
+        "INSERT INTO tos_delta_publications SELECT {},{} WHERE {current} IS NOT {} AND NOT EXISTS (SELECT 1 FROM tos_delta_publications WHERE revision={});",
         quote(target),
         quote(base),
+        quote(target),
         quote(target)
     ))?;
     sink.line(&format!("DROP TRIGGER {trigger};"))?;
+    sink.line(&format!("DROP TRIGGER {retry_trigger};"))?;
     for table in D1Table::ALL {
         for suffix in ["keys", "before", "after"] {
             sink.line(&format!(
@@ -1113,6 +1122,15 @@ mod tests {
         assert!(first_epoch > base_epoch);
         assert_eq!(
             db.query_row(
+                "SELECT json_extract(json_chunk,'$.sha256') FROM edge_meta WHERE key='data_revision'",
+                [],
+                |row| row.get::<_, String>(0),
+            )
+            .unwrap(),
+            receipt.target_d1_revision
+        );
+        assert_eq!(
+            db.query_row(
                 "SELECT title_text FROM knowledge_nodes WHERE id='a'",
                 [],
                 |row| row.get::<_, String>(0)
@@ -1133,6 +1151,15 @@ mod tests {
         assert!(reverse_epoch > first_epoch);
         assert_eq!(
             db.query_row(
+                "SELECT json_extract(json_chunk,'$.sha256') FROM edge_meta WHERE key='data_revision'",
+                [],
+                |row| row.get::<_, String>(0),
+            )
+            .unwrap(),
+            selected.base_d1_revision
+        );
+        assert_eq!(
+            db.query_row(
                 "SELECT title_text FROM knowledge_nodes WHERE id='a'",
                 [],
                 |row| row.get::<_, String>(0)
@@ -1140,6 +1167,9 @@ mod tests {
             .unwrap(),
             "old"
         );
+        db.execute_batch(&forward).unwrap(); // Historical target marker uses UPDATE.
+        db.execute_batch(&fs::read_to_string(&paths[1]).unwrap())
+            .unwrap(); // Historical base marker also uses UPDATE.
         db.execute(
             "UPDATE knowledge_nodes SET title_text='tampered' WHERE id='a'",
             [],
