@@ -17,6 +17,40 @@ const CORPUS_CONTRACT: &str = "ToS/contracts/corpus-record.schema.json";
 const SOURCE_HOME: &str = "ToS/source-witnesses/";
 const COMMON_URI: &str = "https://tree-of-sophia.local/__val/record-common-v1";
 const MAX_RECORD_BYTES: usize = 1_048_576;
+const MAX_SOURCE_RESOURCES: usize = 512;
+const MAX_SOURCE_RESOURCE_BYTES: usize = 32 * 1_048_576;
+const MAX_COMPILED_ROUTES: usize = 256;
+
+/// One exact verdict returned by a separately bounded schema worker. The
+/// auditor owns worker execution, timeout, process identity and complete
+/// response accounting; a value alone is never proof of those properties.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct BoundedSchemaVerdict {
+    pub instance_sha256: String,
+    pub schema_set_digest: String,
+    pub format_profile_id: String,
+    pub root_uri: String,
+    pub worker_protocol_id: String,
+    pub worker_binary_digest: String,
+    pub valid: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct BoundedMemberSchemaEvidence {
+    pub route: BoundedSchemaVerdict,
+    pub common: BoundedSchemaVerdict,
+}
+
+/// The exact resources and roots the worker must evaluate for one member.
+/// This is a request, not a verdict or proof of worker execution.
+pub(crate) struct BoundedMemberSchemaPlan {
+    pub resources: Vec<SchemaResource>,
+    pub route_uri: String,
+    pub common_uri: String,
+    pub schema_set_digest: String,
+    pub format_profile_id: String,
+    pub instance_sha256: String,
+}
 
 /// Exact source-owned resource bytes. The URI is read from `$id`, not chosen by
 /// an instance record. Neither this list nor registry data can supply code.
@@ -63,6 +97,13 @@ pub enum RecordObservation {
         id: String,
         path: String,
         version: u64,
+        raw_sha256: String,
+    },
+    /// A native packet can reserve the same semantic ID in successive packet
+    /// versions; cross-carrier collision checks use this distinct fact.
+    NativeReservation {
+        id: String,
+        packet_path: String,
         raw_sha256: String,
     },
     Issue {
@@ -124,16 +165,63 @@ pub struct RecordFamily {
     inspected_members: u64,
     issue_count: u64,
     seen_profiles: BTreeSet<String>,
+    native_packet_count: usize,
+    native_packet_bytes: usize,
+}
+
+#[derive(Clone, Copy)]
+struct NativeCarrier {
+    kind: &'static str,
+    schema_path: &'static str,
+    schema_version: &'static str,
+    id_field: &'static str,
+    semantic_packet: bool,
+}
+
+pub(crate) struct NativeSchemaPlan {
+    pub resources: Vec<SchemaResource>,
+    pub root_uri: String,
+    pub schema_set_digest: String,
+    pub format_profile_id: String,
+    pub instance_sha256: String,
 }
 
 impl RecordFamily {
-    /// Build from exact, locally supplied source resources. This checks only
-    /// the declared entity-profile reader; relation profiles are another rule.
+    /// Shadow-only constructor. Its inline schema probe has no CPU deadline
+    /// and must not be used to complete an audit rule.
     pub fn new(
         registry_raw: &[u8],
         contract_raw: &[u8],
         schemas: impl IntoIterator<Item = RecordSchema<'_>>,
         format_profile: FormatProfile,
+    ) -> Result<Self, RecordRuleError> {
+        Self::new_inner(registry_raw, contract_raw, schemas, format_profile, None)
+    }
+
+    /// Audit-consumable constructor only when the caller has checked that the
+    /// exact registry schema verdict came from a deadline-bounded worker.
+    pub(crate) fn new_with_bounded_registry(
+        registry_raw: &[u8],
+        contract_raw: &[u8],
+        schemas: impl IntoIterator<Item = RecordSchema<'_>>,
+        format_profile: FormatProfile,
+        registry_evidence: &BoundedSchemaVerdict,
+    ) -> Result<Self, RecordRuleError> {
+        Self::new_inner(
+            registry_raw,
+            contract_raw,
+            schemas,
+            format_profile,
+            Some(registry_evidence),
+        )
+    }
+
+    fn new_inner(
+        registry_raw: &[u8],
+        contract_raw: &[u8],
+        schemas: impl IntoIterator<Item = RecordSchema<'_>>,
+        format_profile: FormatProfile,
+        registry_evidence: Option<&BoundedSchemaVerdict>,
     ) -> Result<Self, RecordRuleError> {
         let registry = parse_object(registry_raw, MAX_RECORD_BYTES, "registry_json")?;
         let contract = parse_object(contract_raw, MAX_RECORD_BYTES, "registry_contract_json")?;
@@ -146,10 +234,19 @@ impl RecordFamily {
             format_profile,
         )
         .map_err(|error| schema_error(error, ENTITY_CONTRACT))?;
-        if !contract_probe
-            .is_valid_raw(&contract_uri, registry_raw)
-            .map_err(|error| schema_error(error, ENTITY_REGISTRY))?
-        {
+        let registry_valid = match registry_evidence {
+            Some(evidence) => check_verdict(
+                evidence,
+                registry_raw,
+                &contract_probe,
+                &contract_uri,
+                format_profile,
+            )?,
+            None => contract_probe
+                .is_valid_raw(&contract_uri, registry_raw)
+                .map_err(|error| schema_error(error, ENTITY_REGISTRY))?,
+        };
+        if !registry_valid {
             return Err(unsupported("registry_contract", ENTITY_REGISTRY));
         }
         let registry_version = positive_integer(&registry, "registry_version")
@@ -161,7 +258,20 @@ impl RecordFamily {
             ENTITY_CONTRACT.to_owned(),
             (contract_uri, contract_raw.to_vec()),
         );
+        let mut total_resource_bytes = contract_raw.len();
         for resource in schemas {
+            total_resource_bytes = total_resource_bytes
+                .checked_add(resource.raw.len())
+                .ok_or(RecordRuleError::Budget {
+                    code: "schema_total_bytes",
+                })?;
+            if resources.len() >= MAX_SOURCE_RESOURCES
+                || total_resource_bytes > MAX_SOURCE_RESOURCE_BYTES
+            {
+                return Err(RecordRuleError::Budget {
+                    code: "schema_resource_budget",
+                });
+            }
             if !is_contract_path(resource.path) || resources.contains_key(resource.path) {
                 return Err(unsupported("schema_path_or_duplicate", resource.path));
             }
@@ -187,6 +297,8 @@ impl RecordFamily {
             inspected_members: 0,
             issue_count: 0,
             seen_profiles: BTreeSet::new(),
+            native_packet_count: 0,
+            native_packet_bytes: 0,
         })
     }
 
@@ -209,13 +321,236 @@ impl RecordFamily {
         )
     }
 
-    /// Emits every exact path before attempting to parse it. The auditor owns
-    /// the complete member set and must feed every candidate record path.
+    /// The registry worker request is independent of profile compilation.
+    pub(crate) fn registry_schema_plan(
+        contract_raw: &[u8],
+        registry_raw: &[u8],
+        format_profile: FormatProfile,
+    ) -> Result<(Vec<SchemaResource>, String, String, String), RecordRuleError> {
+        let contract = parse_object(contract_raw, MAX_RECORD_BYTES, "registry_contract_json")?;
+        let uri = schema_uri(ENTITY_CONTRACT, &contract)?;
+        let resources = vec![SchemaResource {
+            uri: uri.clone(),
+            raw: contract_raw.to_vec(),
+        }];
+        let probe = SchemaBackendProbe::new(resources.clone(), format_profile)
+            .map_err(|error| schema_error(error, ENTITY_CONTRACT))?;
+        Ok((
+            resources,
+            uri,
+            probe.schema_set_digest().to_hex(),
+            Digest256::of_bytes(registry_raw).to_hex(),
+        ))
+    }
+
+    /// Prepares the exact route and common-schema resources for a worker. A
+    /// malformed candidate has no plan and is still fed to `inspect_member`.
+    pub(crate) fn member_schema_plan(
+        &self,
+        path: &str,
+        raw: &[u8],
+    ) -> Result<BoundedMemberSchemaPlan, RecordRuleError> {
+        let basename = path.rsplit('/').next().unwrap_or("");
+        let profile = self
+            .profiles
+            .values()
+            .find(|profile| profile.basename == basename)
+            .ok_or_else(|| unsupported("unrecognized_record_basename", path))?;
+        if !valid_record_path(path, profile) {
+            return Err(unsupported("record_path", path));
+        }
+        let record = parse_object(raw, MAX_RECORD_BYTES, "record_json")?;
+        let schema_version = field_str(&record, "schema_version", "record_schema_version")?;
+        let route = profile
+            .routes
+            .get(schema_version)
+            .ok_or_else(|| unsupported("unsupported_record_schema_version", path))?;
+        let resources = self.route_resources(route)?;
+        let probe = SchemaBackendProbe::new(resources.clone(), self.format_profile)
+            .map_err(|error| schema_error(error, &route.schema_ref))?;
+        Ok(BoundedMemberSchemaPlan {
+            route_uri: self.resources[&route.schema_ref].0.clone(),
+            common_uri: COMMON_URI.to_owned(),
+            schema_set_digest: probe.schema_set_digest().to_hex(),
+            format_profile_id: self.format_profile.id().to_owned(),
+            instance_sha256: Digest256::of_bytes(raw).to_hex(),
+            resources,
+        })
+    }
+
+    /// Select one source-owned native adapter by exact metadata path and
+    /// schema version. The caller uses these bytes in the bounded worker.
+    pub(crate) fn native_schema_plan(
+        &self,
+        path: &str,
+        raw: &[u8],
+    ) -> Result<NativeSchemaPlan, RecordRuleError> {
+        let record = parse_object(raw, MAX_RECORD_BYTES, "native_record_json")?;
+        let carrier = native_carrier(path, &record)?;
+        let (uri, schema_raw) = self
+            .resources
+            .get(carrier.schema_path)
+            .ok_or_else(|| unsupported("missing_native_schema", carrier.schema_path))?;
+        let resources = vec![SchemaResource {
+            uri: uri.clone(),
+            raw: schema_raw.clone(),
+        }];
+        let probe = SchemaBackendProbe::new(resources.clone(), self.format_profile)
+            .map_err(|error| schema_error(error, carrier.schema_path))?;
+        Ok(NativeSchemaPlan {
+            resources,
+            root_uri: uri.clone(),
+            schema_set_digest: probe.schema_set_digest().to_hex(),
+            format_profile_id: self.format_profile.id().to_owned(),
+            instance_sha256: Digest256::of_bytes(raw).to_hex(),
+        })
+    }
+
+    /// Native ID carriers remain distinct from registry-declared standalone
+    /// records. Packet bodies stay inside the auditor's protected sink.
+    pub(crate) fn inspect_native_with_bounded_schema(
+        &mut self,
+        path: &str,
+        raw: &[u8],
+        evidence: &BoundedSchemaVerdict,
+        sink: &mut impl RecordSink,
+    ) -> Result<(), RecordRuleError> {
+        emit(
+            sink,
+            RecordObservation::ExactPath {
+                path: path.to_owned(),
+                raw_sha256: Digest256::of_bytes(raw).to_hex(),
+            },
+        )?;
+        self.inspected_members += 1;
+        if raw.len() > MAX_RECORD_BYTES {
+            return self.issue(sink, path, "native_record_byte_budget");
+        }
+        let record = match parse_object(raw, MAX_RECORD_BYTES, "native_record_json") {
+            Ok(record) => record,
+            Err(_) => return self.issue(sink, path, "native_record_json"),
+        };
+        let carrier = native_carrier(path, &record)?;
+        if carrier.semantic_packet {
+            self.native_packet_count += 1;
+            self.native_packet_bytes = self
+                .native_packet_bytes
+                .checked_add(raw.len())
+                .ok_or(RecordRuleError::Budget {
+                    code: "native_identity_byte_budget",
+                })?;
+            if self.native_packet_count > 1024 || self.native_packet_bytes > 8_388_608 {
+                return Err(RecordRuleError::Budget {
+                    code: "native_identity_inventory_budget",
+                });
+            }
+        }
+        let (uri, schema_raw) = self
+            .resources
+            .get(carrier.schema_path)
+            .ok_or_else(|| unsupported("missing_native_schema", carrier.schema_path))?;
+        let probe = SchemaBackendProbe::new(
+            [SchemaResource {
+                uri: uri.clone(),
+                raw: schema_raw.clone(),
+            }],
+            self.format_profile,
+        )
+        .map_err(|error| schema_error(error, carrier.schema_path))?;
+        emit(
+            sink,
+            RecordObservation::Schema {
+                path: carrier.schema_path.to_owned(),
+                uri: uri.clone(),
+                raw_sha256: Digest256::of_bytes(schema_raw).to_hex(),
+            },
+        )?;
+        if !check_verdict(evidence, raw, &probe, uri, self.format_profile)? {
+            self.issue(sink, path, "native_record_schema")?;
+        }
+        if record.get("schema_version").and_then(Value::as_str) != Some(carrier.schema_version) {
+            return self.issue(sink, path, "native_schema_version");
+        }
+        if carrier.semantic_packet {
+            let Some(entities) = record.get("entities").and_then(Value::as_array) else {
+                return self.issue(sink, path, "native_entities");
+            };
+            for entity in entities {
+                let Some(id) = entity.get("entity_id").and_then(Value::as_str) else {
+                    self.issue(sink, path, "native_entity_id")?;
+                    continue;
+                };
+                if !["occurrence", "lexeme", "sense", "sign", "concept"]
+                    .iter()
+                    .any(|kind| valid_record_id(id, &format!("tos.{kind}.")))
+                {
+                    self.issue(sink, path, "native_entity_id")?;
+                }
+                emit(
+                    sink,
+                    RecordObservation::NativeReservation {
+                        id: id.to_owned(),
+                        packet_path: path.to_owned(),
+                        raw_sha256: Digest256::of_bytes(raw).to_hex(),
+                    },
+                )?;
+            }
+            return Ok(());
+        }
+        if matches!(carrier.kind, "agent" | "place" | "organization" | "work" | "expression" | "edition" | "collection" | "item" | "link")
+            && record.get("record_type").and_then(Value::as_str) != Some(carrier.kind)
+        {
+            self.issue(sink, path, "native_record_type")?;
+        }
+        let Some(id) = record.get(carrier.id_field).and_then(Value::as_str) else {
+            return self.issue(sink, path, "native_record_id");
+        };
+        if !valid_record_id(id, &format!("tos.{}." ,carrier.kind)) {
+            self.issue(sink, path, "native_record_id")?;
+        }
+        let Some(version) = positive_integer(&record, "record_version") else {
+            return self.issue(sink, path, "native_record_version");
+        };
+        emit(
+            sink,
+            RecordObservation::IdOwner {
+                id: id.to_owned(),
+                path: path.to_owned(),
+                version,
+                raw_sha256: Digest256::of_bytes(raw).to_hex(),
+            },
+        )
+    }
+
+    /// Shadow-only inline schema probe. It has no CPU deadline and cannot
+    /// complete an audit rule. It still emits exact per-member observations.
     pub fn inspect_member(
         &mut self,
         path: &str,
         raw: &[u8],
         sink: &mut impl RecordSink,
+    ) -> Result<(), RecordRuleError> {
+        self.inspect_member_inner(path, raw, sink, None)
+    }
+
+    /// Consumes two exact verdicts from the auditor's deadline-bounded worker.
+    /// The caller must account for both responses and verify worker provenance.
+    pub(crate) fn inspect_member_with_bounded_schema(
+        &mut self,
+        path: &str,
+        raw: &[u8],
+        evidence: &BoundedMemberSchemaEvidence,
+        sink: &mut impl RecordSink,
+    ) -> Result<(), RecordRuleError> {
+        self.inspect_member_inner(path, raw, sink, Some(evidence))
+    }
+
+    fn inspect_member_inner(
+        &mut self,
+        path: &str,
+        raw: &[u8],
+        sink: &mut impl RecordSink,
+        evidence: Option<&BoundedMemberSchemaEvidence>,
     ) -> Result<(), RecordRuleError> {
         emit(
             sink,
@@ -266,18 +601,38 @@ impl RecordFamily {
         )?;
         let route_key = (kind.clone(), schema_version.to_owned());
         if !self.compiled_routes.contains_key(&route_key) {
+            if self.compiled_routes.len() >= MAX_COMPILED_ROUTES {
+                return Err(RecordRuleError::Budget {
+                    code: "compiled_route_budget",
+                });
+            }
             let probe = self.compile_route(&profile, schema_version, sink)?;
             self.compiled_routes.insert(route_key.clone(), probe);
         }
         let probe = &self.compiled_routes[&route_key];
         let route = &profile.routes[schema_version];
         let schema_uri = &self.resources[&route.schema_ref].0;
-        let schema_ok = probe
-            .is_valid_raw(schema_uri, raw)
-            .map_err(|error| schema_error(error, path))?;
-        let common_ok = probe
-            .is_valid_raw(COMMON_URI, raw)
-            .map_err(|error| schema_error(error, path))?;
+        let (schema_ok, common_ok) = match evidence {
+            Some(evidence) => {
+                if evidence.route.worker_protocol_id != evidence.common.worker_protocol_id
+                    || evidence.route.worker_binary_digest != evidence.common.worker_binary_digest
+                {
+                    return Err(unsupported("schema_worker_mismatch", path));
+                }
+                (
+                    check_verdict(&evidence.route, raw, probe, schema_uri, self.format_profile)?,
+                    check_verdict(&evidence.common, raw, probe, COMMON_URI, self.format_profile)?,
+                )
+            }
+            None => (
+                probe
+                    .is_valid_raw(schema_uri, raw)
+                    .map_err(|error| schema_error(error, path))?,
+                probe
+                    .is_valid_raw(COMMON_URI, raw)
+                    .map_err(|error| schema_error(error, path))?,
+            ),
+        };
         if !schema_ok || !common_ok {
             self.issue(sink, path, "record_schema")?;
         }
@@ -360,20 +715,12 @@ impl RecordFamily {
         sink: &mut impl RecordSink,
     ) -> Result<SchemaBackendProbe, RecordRuleError> {
         let route = &profile.routes[schema_version];
-        let mut refs = BTreeSet::from([CORPUS_CONTRACT.to_owned(), route.schema_ref.clone()]);
-        refs.extend(route.schema_dependencies.iter().cloned());
-        let corpus_uri = &self
-            .resources
-            .get(CORPUS_CONTRACT)
-            .ok_or_else(|| unsupported("missing_corpus_schema", CORPUS_CONTRACT))?
-            .0;
-        let common = common_schema(corpus_uri);
-        let mut resources = Vec::new();
-        for path in refs {
-            let (uri, raw) = self
-                .resources
-                .get(&path)
-                .ok_or_else(|| unsupported("undeclared_schema_resource", &path))?;
+        let resources = self.route_resources(route)?;
+        for (path, (uri, raw)) in self.resources.iter().filter(|(path, _)| {
+            path.as_str() == CORPUS_CONTRACT
+                || path.as_str() == route.schema_ref
+                || route.schema_dependencies.contains(path)
+        }) {
             emit(
                 sink,
                 RecordObservation::Schema {
@@ -382,6 +729,25 @@ impl RecordFamily {
                     raw_sha256: Digest256::of_bytes(raw).to_hex(),
                 },
             )?;
+        }
+        SchemaBackendProbe::new(resources, self.format_profile)
+            .map_err(|error| schema_error(error, &route.schema_ref))
+    }
+
+    fn route_resources(&self, route: &Route) -> Result<Vec<SchemaResource>, RecordRuleError> {
+        let mut refs = BTreeSet::from([CORPUS_CONTRACT.to_owned(), route.schema_ref.clone()]);
+        refs.extend(route.schema_dependencies.iter().cloned());
+        let corpus_uri = &self
+            .resources
+            .get(CORPUS_CONTRACT)
+            .ok_or_else(|| unsupported("missing_corpus_schema", CORPUS_CONTRACT))?
+            .0;
+        let mut resources = Vec::new();
+        for path in refs {
+            let (uri, raw) = self
+                .resources
+                .get(&path)
+                .ok_or_else(|| unsupported("undeclared_schema_resource", &path))?;
             resources.push(SchemaResource {
                 uri: uri.clone(),
                 raw: raw.clone(),
@@ -389,10 +755,9 @@ impl RecordFamily {
         }
         resources.push(SchemaResource {
             uri: COMMON_URI.to_owned(),
-            raw: common,
+            raw: common_schema(corpus_uri),
         });
-        SchemaBackendProbe::new(resources, self.format_profile)
-            .map_err(|error| schema_error(error, &route.schema_ref))
+        Ok(resources)
     }
 
     fn issue(
@@ -439,6 +804,29 @@ impl RecordFamily {
 fn emit(sink: &mut impl RecordSink, event: RecordObservation) -> Result<(), RecordRuleError> {
     sink.push(event)
         .map_err(|detail| RecordRuleError::Sink { detail })
+}
+
+fn check_verdict(
+    verdict: &BoundedSchemaVerdict,
+    raw: &[u8],
+    probe: &SchemaBackendProbe,
+    root_uri: &str,
+    format_profile: FormatProfile,
+) -> Result<bool, RecordRuleError> {
+    if verdict.instance_sha256 != Digest256::of_bytes(raw).to_hex()
+        || verdict.schema_set_digest != probe.schema_set_digest().to_hex()
+        || verdict.format_profile_id != format_profile.id()
+        || verdict.root_uri != root_uri
+        || verdict.worker_protocol_id.is_empty()
+        || verdict.worker_binary_digest.len() != 64
+        || !verdict
+            .worker_binary_digest
+            .bytes()
+            .all(|byte| byte.is_ascii_hexdigit())
+    {
+        return Err(unsupported("bounded_schema_evidence_mismatch", root_uri));
+    }
+    Ok(verdict.valid)
 }
 
 fn parse_object(raw: &[u8], max: usize, code: &'static str) -> Result<Value, RecordRuleError> {
@@ -548,6 +936,59 @@ fn valid_record_path(path: &str, profile: &Profile) -> bool {
         return parts.len() >= 7 && path.starts_with("ToS/source-witnesses/scholarly-composites/");
     }
     true
+}
+
+fn native_carrier(path: &str, record: &Value) -> Result<NativeCarrier, RecordRuleError> {
+    let parts: Vec<&str> = path.split('/').collect();
+    if parts.len() < 3
+        || parts[0..2] != ["ToS", "source-witnesses"]
+        || parts.iter().any(|part| {
+            part.is_empty()
+                || *part == "."
+                || *part == ".."
+                || matches!(*part, "catalog" | "payload" | "local-content" | "owner-local")
+        })
+    {
+        return Err(unsupported("native_owner_path", path));
+    }
+    let basename = parts.last().copied().unwrap_or("");
+    if basename.starts_with("semantic-annotation") && basename.ends_with(".json") {
+        return Ok(NativeCarrier {
+            kind: "semantic-packet",
+            schema_path: "ToS/contracts/semantic-annotation-packet-v2.schema.json",
+            schema_version: "tos_semantic_annotation_packet_v2",
+            id_field: "",
+            semantic_packet: true,
+        });
+    }
+    if parts.len() < 4 {
+        return Err(unsupported("native_owner_path", path));
+    }
+    let carrier = match (parts[2], basename) {
+        ("agents", "agent.json") => ("agent", CORPUS_CONTRACT, "tos_corpus_record_v1", "record_id"),
+        ("places", "place.json") => ("place", CORPUS_CONTRACT, "tos_corpus_record_v1", "record_id"),
+        ("organizations", "organization.json") => ("organization", CORPUS_CONTRACT, "tos_corpus_record_v1", "record_id"),
+        ("works", "work.json") => ("work", CORPUS_CONTRACT, "tos_corpus_record_v1", "record_id"),
+        ("expressions", "expression.json") => ("expression", CORPUS_CONTRACT, "tos_corpus_record_v1", "record_id"),
+        ("editions", "edition.json") => ("edition", CORPUS_CONTRACT, "tos_corpus_record_v1", "record_id"),
+        ("collections", "collection.json") => ("collection", CORPUS_CONTRACT, "tos_corpus_record_v1", "record_id"),
+        ("items", "item.json") => ("item", CORPUS_CONTRACT, "tos_corpus_record_v1", "record_id"),
+        ("links", "link.json") => ("link", "ToS/contracts/source-link.schema.json", "tos_source_link_v1", "record_id"),
+        ("artifacts", "artifact-witness.json") => match record.get("schema_version").and_then(Value::as_str) {
+            Some("tos_artifact_source_witness_v1") => ("artifact", "ToS/contracts/artifact-source-witness.schema.json", "tos_artifact_source_witness_v1", "artifact_id"),
+            Some("tos_artifact_source_witness_v2") => ("artifact", "ToS/contracts/artifact-source-witness-v2.schema.json", "tos_artifact_source_witness_v2", "artifact_id"),
+            _ => return Err(unsupported("native_artifact_schema_version", path)),
+        },
+        ("scholarly-composites", "composite-witness.json") => ("composite", "ToS/contracts/scholarly-composite-witness.schema.json", "tos_scholarly_composite_witness_v1", "composite_id"),
+        _ => return Err(unsupported("unrecognized_native_carrier", path)),
+    };
+    Ok(NativeCarrier {
+        kind: carrier.0,
+        schema_path: carrier.1,
+        schema_version: carrier.2,
+        id_field: carrier.3,
+        semantic_packet: false,
+    })
 }
 
 fn common_schema(corpus_uri: &str) -> Vec<u8> {
@@ -995,5 +1436,72 @@ mod tests {
             .count();
         assert_eq!(owners, 2);
         assert!(rule.finish().incomplete);
+    }
+
+    fn synthetic_verdict(
+        raw_digest: &str,
+        schema_set_digest: &str,
+        profile: &str,
+        root: &str,
+    ) -> BoundedSchemaVerdict {
+        BoundedSchemaVerdict {
+            instance_sha256: raw_digest.to_owned(),
+            schema_set_digest: schema_set_digest.to_owned(),
+            format_profile_id: profile.to_owned(),
+            root_uri: root.to_owned(),
+            worker_protocol_id: "test-only-worker-protocol".to_owned(),
+            worker_binary_digest: "a".repeat(64),
+            valid: true,
+        }
+    }
+
+    #[test]
+    fn bounded_member_evidence_is_bound_to_exact_bytes_and_both_roots() {
+        let mut rule = family();
+        let raw = source(RECORD);
+        let plan = rule.member_schema_plan(RECORD, &raw).unwrap();
+        let evidence = BoundedMemberSchemaEvidence {
+            route: synthetic_verdict(
+                &plan.instance_sha256,
+                &plan.schema_set_digest,
+                &plan.format_profile_id,
+                &plan.route_uri,
+            ),
+            common: synthetic_verdict(
+                &plan.instance_sha256,
+                &plan.schema_set_digest,
+                &plan.format_profile_id,
+                &plan.common_uri,
+            ),
+        };
+        let mut events = Events::default();
+        rule.inspect_member_with_bounded_schema(RECORD, &raw, &evidence, &mut events)
+            .unwrap();
+        assert!(events.0.iter().any(|event| matches!(event, RecordObservation::IdOwner { .. })));
+        let mut wrong = evidence;
+        wrong.common.instance_sha256 = "b".repeat(64);
+        assert!(matches!(rule.inspect_member_with_bounded_schema(RECORD, &raw, &wrong, &mut events),
+            Err(RecordRuleError::Unsupported { code: "bounded_schema_evidence_mismatch", .. })));
+    }
+
+    #[test]
+    fn native_artifact_uses_physical_id_and_exact_source_schema() {
+        const ARTIFACT: &str = "ToS/source-witnesses/artifacts/old-babylonian/susa/hammurabi-stele-sb-8/artifact-witness.json";
+        let mut rule = family();
+        let raw = source(ARTIFACT);
+        let plan = rule.native_schema_plan(ARTIFACT, &raw).unwrap();
+        assert!(plan.root_uri.ends_with("artifact-source-witness-v2.schema.json")
+            || plan.root_uri.ends_with("artifact-source-witness.schema.json"));
+        let evidence = synthetic_verdict(
+            &plan.instance_sha256,
+            &plan.schema_set_digest,
+            &plan.format_profile_id,
+            &plan.root_uri,
+        );
+        let mut events = Events::default();
+        rule.inspect_native_with_bounded_schema(ARTIFACT, &raw, &evidence, &mut events)
+            .unwrap();
+        assert!(events.0.iter().any(|event| matches!(event,
+            RecordObservation::IdOwner { id, .. } if id.starts_with("tos.artifact."))));
     }
 }
