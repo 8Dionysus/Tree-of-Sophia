@@ -425,6 +425,45 @@ class AcquisitionBatchTests(unittest.TestCase):
                 require_single_link=True,
             )
 
+    def test_destination_verification_rejects_path_replaced_while_hashing(self) -> None:
+        payload_path = self.root / "payload-race.bin"
+        original_body = b"sealed bytes\n"
+        payload_path.write_bytes(original_body)
+        payload_path.chmod(0o444)
+        moved_original = self.root / "payload-original.bin"
+        replacement_body = b"replacement bytes\n"
+        original_stat = os.stat
+        replaced = False
+
+        def replace_before_path_stat(path: str | Path, *args, **kwargs):
+            nonlocal replaced
+            if (
+                Path(path) == payload_path
+                and kwargs.get("follow_symlinks") is False
+                and not replaced
+            ):
+                os.replace(payload_path, moved_original)
+                payload_path.write_bytes(replacement_body)
+                payload_path.chmod(0o444)
+                replaced = True
+            return original_stat(path, *args, **kwargs)
+
+        expected = {
+            "byte_size": len(original_body),
+            "sha256": hashlib.sha256(original_body).hexdigest(),
+            "file_ref": f"tos.file.sha256.{hashlib.sha256(original_body).hexdigest()}",
+        }
+        with patch.object(custody.os, "stat", side_effect=replace_before_path_stat):
+            with self.assertRaisesRegex(
+                acquisition.SourceIntegrityError, "pathname changed while hashing"
+            ):
+                acquisition._verify_destination(
+                    payload_path, expected, expected_owner_uid=os.geteuid()
+                )
+        self.assertTrue(replaced)
+        self.assertEqual(original_body, moved_original.read_bytes())
+        self.assertEqual(replacement_body, payload_path.read_bytes())
+
     def test_shared_file_id_keeps_separate_item_custody_and_fixity_rows(self) -> None:
         fetches, manifest_sha = self._write_manifest(count=2, shared_payload=True)
         calls: list[str] = []

@@ -442,7 +442,20 @@ def digest_file(
                 size += len(chunk)
                 sha.update(chunk)
                 blob.update(chunk)
-            check_posture(os.fstat(stream.fileno()), after_read=True)
+            final_info = os.fstat(stream.fileno())
+            check_posture(final_info, after_read=True)
+            try:
+                path_info = os.stat(path, follow_symlinks=False)
+            except OSError as exc:
+                raise CustodyError(
+                    f"payload pathname is unavailable after hashing: {path}"
+                ) from exc
+            if (
+                not stat.S_ISREG(path_info.st_mode)
+                or path_info.st_dev != final_info.st_dev
+                or path_info.st_ino != final_info.st_ino
+            ):
+                raise CustodyError(f"payload pathname changed while hashing: {path}")
         return FileDigest(size, sha.hexdigest(), blob.hexdigest())
     finally:
         if fd != -1:
