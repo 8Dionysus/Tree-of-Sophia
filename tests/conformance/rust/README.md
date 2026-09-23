@@ -29,7 +29,7 @@ The exact record digest uses compact sorted UTF-8 JSON **without** the corpus
 snapshot's final newline; these two canonical profiles must not be conflated.
 
 The `runner.rs` integration test reads these independent expectations and
-calls only the public FND/STO APIs. Its 21 foundation cases and tiny store
+calls only the public FND/STO APIs. Its 23 foundation cases and tiny store
 checks avoid the production corpus. OPS owns this directory's Cargo manifest,
 workspace registration, lockfile and CI wiring; FND and STO own their APIs.
 The scenario-to-risk map and current validation limits live in the migration
@@ -43,3 +43,13 @@ These are deterministic hostile fixtures; they do not claim to
 exercise every possible concurrent rename interleaving. The Linux FIFO probe
 uses `mkfifo` and a subprocess watchdog so a regression that blocks in `open`
 fails within ten seconds instead of hanging the suite.
+
+`segment-v1/` is a separate candidate vector for STO.2's proposed
+`tos_segment_v1` binary layout. Its 144-byte file contains two raw frames,
+fixed header offsets, content digests and a segment digest independently
+calculated from the written format contract. The v1 corpus runner does not
+consume it. It becomes a durable parser/seal conformance fixture only after
+STO/root freeze that format and OPS register the narrow new test. The
+co-located mutation matrix distinguishes selected-frame verification from
+whole-segment scrub and names process-crash/receipt gates that static bytes
+cannot prove.

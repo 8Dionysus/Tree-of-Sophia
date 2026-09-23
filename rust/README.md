@@ -7,6 +7,10 @@ Rust migration. `tos-foundation` owns shared codec and identity types;
 fixtures. The `tos-reader` binary is a trusted-local, read-only adapter for an
 exact retained revision and source ID. It stages and verifies selected bytes
 before writing them to stdout. It grants no public access or current-use right.
+`tos-segment-store` is a separate Linux local byte-custody candidate with
+bounded immutable segments, crash-recoverable pin journals and receipt-bound
+selected reads. Its independent conformance target checks exact synthetic
+segment bytes. A custody receipt grants neither source admission nor rights.
 
 OPS owns the root workspace, lockfile, toolchain, CI selection and package
 route. FND owns `tos-foundation`; STO owns `tos-source-store`; ASS owns
