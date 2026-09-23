@@ -37,7 +37,7 @@ pub struct PartitionBoundsV1 {
 }
 
 impl PartitionBoundsV1 {
-    fn validate(&self, max_key_bytes: usize) -> Result<()> {
+    pub(crate) fn validate(&self, max_key_bytes: usize) -> Result<()> {
         for endpoint in [&self.lower_inclusive, &self.upper_exclusive] {
             if endpoint
                 .as_ref()
@@ -60,7 +60,7 @@ impl PartitionBoundsV1 {
         Ok(())
     }
 
-    fn contains(&self, key: &[u8]) -> bool {
+    pub(crate) fn contains(&self, key: &[u8]) -> bool {
         self.lower_inclusive
             .as_ref()
             .is_none_or(|lower| key >= lower.as_slice())
@@ -217,7 +217,7 @@ fn hash_row(hasher: &mut Digest256Hasher, row: &PlacementGenerationRowV1) {
 }
 
 impl GenerationShapeLimits {
-    fn validate(self) -> Result<Self> {
+    pub(crate) fn validate(self) -> Result<Self> {
         if self.max_partitions == 0
             || self.max_partitions > u32::MAX as usize
             || self.max_rows_per_partition == 0

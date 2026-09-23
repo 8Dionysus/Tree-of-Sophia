@@ -13,6 +13,7 @@ mod error;
 mod format;
 mod generation;
 mod journal;
+mod packed_leaf;
 mod placement;
 mod store;
 
@@ -26,6 +27,7 @@ pub use generation::{
     PlacementGenerationRowV1, PlacementPartitionV1, compare_generation_streams,
     describe_placement_partition, placement_catalog_shape_root,
 };
+pub use packed_leaf::PackedPlacementLeafV1;
 pub use placement::PlacementV1;
 pub use store::{
     AttemptRecovery, ByteDurabilityReceipt, DurabilityClass, FrameInput, OwnerBinding,
