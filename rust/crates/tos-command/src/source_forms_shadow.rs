@@ -1026,6 +1026,18 @@ pub fn run_work_command(input: WorkFormsInput<'_>) -> Result<WorkCommandShadow> 
             _ => return Err(ShadowError::Invalid("form set is not an object")),
         }
     }
+    // The source Work route sorts retained content, then restores the authored
+    // subject reference with its id/version/digest member order before writing.
+    match &mut successor {
+        JsonValue::Object(entries) => {
+            let (_, retained) = entries
+                .iter_mut()
+                .find(|(key, _)| key.as_str() == Some("subject"))
+                .ok_or(ShadowError::Invalid("missing subject"))?;
+            *retained = subject.clone();
+        }
+        _ => return Err(ShadowError::Invalid("form set is not an object")),
+    }
     validate_history(&successor, &subject)?;
     let encoded = emit_json_profile(
         &successor,

@@ -91,6 +91,27 @@ fn assert_response(actual: &tos_foundation::JsonValue, expected_raw: &[u8]) {
     assert_eq!(actual, expected, "exact typed Work command response");
 }
 
+fn assert_published_bytes(actual: Option<&[u8]>, expected: &[u8]) {
+    let actual = actual.expect("apply must propose a form set");
+    if actual != expected {
+        let at = actual
+            .iter()
+            .zip(expected)
+            .position(|(left, right)| left != right)
+            .unwrap_or(actual.len().min(expected.len()));
+        let start = at.saturating_sub(48);
+        let actual_end = (at + 96).min(actual.len());
+        let expected_end = (at + 96).min(expected.len());
+        panic!(
+            "published bytes differ at {at}; lengths actual={} expected={}; actual={:?}; expected={:?}",
+            actual.len(),
+            expected.len(),
+            String::from_utf8_lossy(&actual[start..actual_end]),
+            String::from_utf8_lossy(&expected[start..expected_end]),
+        );
+    }
+}
+
 #[test]
 fn portable_work_profile_matches_jgb_describe_prepare_apply_replay() {
     let describe = run_work_command(input(
@@ -111,7 +132,7 @@ fn portable_work_profile_matches_jgb_describe_prepare_apply_replay() {
     assert!(created.proposed_form_set.is_none());
     assert_response(&created.response, PREPARE_RUSSIAN_RESPONSE);
     let applied = run_work_command(input(SOURCE, INITIAL, CONFIG, REQUEST)).unwrap();
-    assert_eq!(applied.proposed_form_set.as_deref(), Some(PUBLISHED));
+    assert_published_bytes(applied.proposed_form_set.as_deref(), PUBLISHED);
     assert_response(&applied.response, RESPONSE);
     let replay = run_work_command(input(SOURCE, PUBLISHED, CONFIG, REQUEST)).unwrap();
     assert!(replay.proposed_form_set.is_none());
@@ -142,10 +163,7 @@ fn portable_work_profile_matches_independent_ru_cyrl_work() {
         LIPSIUS_APPLY_REQUEST,
     ))
     .unwrap();
-    assert_eq!(
-        applied.proposed_form_set.as_deref(),
-        Some(LIPSIUS_PUBLISHED)
-    );
+    assert_published_bytes(applied.proposed_form_set.as_deref(), LIPSIUS_PUBLISHED);
     assert_response(&applied.response, LIPSIUS_APPLY_RESPONSE);
     let replay = run_work_command(input(
         LIPSIUS_SOURCE,

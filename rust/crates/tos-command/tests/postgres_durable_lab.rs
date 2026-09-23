@@ -1041,7 +1041,7 @@ fn cold_cut_fence_rejects_same_count_mutation_and_aba() {
     for (index, (mutation, restoration)) in mutations.iter().zip(restorations).enumerate() {
         let cut = lab.db.cold_verify_cut(&cold_store, &lab.domain).unwrap();
         assert_eq!(
-            admin.execute(mutation, &[&lab.domain]).unwrap(),
+            admin.execute(*mutation, &[&lab.domain]).unwrap(),
             1,
             "mutation {index}"
         );
