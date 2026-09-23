@@ -20,6 +20,7 @@ mod knowledge_seal;
 mod knowledge_search;
 mod knowledge_selected;
 mod knowledge_source_claims_prepare;
+mod knowledge_source_navigation_node;
 mod knowledge_source_navigation_prepare;
 pub mod knowledge_stage;
 mod legacy;
@@ -57,6 +58,9 @@ pub use knowledge_selected::{
 };
 pub use knowledge_source_claims_prepare::{
     ClaimExternalDependency, ClaimPrepareLimits, ClaimPrepareReceipt, prepare_source_claims,
+};
+pub use knowledge_source_navigation_node::{
+    NavigationBaseNode, NavigationNodeLimits, NavigationNodeNormalizer,
 };
 pub use knowledge_source_navigation_prepare::{
     NavigationExternalDependency, NavigationHeaderClaim, NavigationPrepareLimits,
