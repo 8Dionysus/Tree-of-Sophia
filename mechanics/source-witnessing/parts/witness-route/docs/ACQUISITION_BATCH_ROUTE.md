@@ -53,7 +53,10 @@ receipt is never removed. A sibling lock serializes standalone `prepare` and
 `acquire` calls for the same output root, including first preparation and
 handoff run identity.
 
-After each run, a separate fixity pass rereads every destination and writes
+Payload custody files are published read-only with mode `0444`. On resume and
+during the separate fixity pass, the verifier checks that mode on the same
+no-follow descriptor used to hash each file; byte-identical writable files
+remain conflicts and cannot be sealed as acquired. The fixity pass writes
 `receipts/fixity-*.jsonl` plus its summary. The immutable
 `receipts/handoff-*.json` carries selected record refs/digests, provider and
 payload custody rows, the fixity refs and JSONL/summary SHA-256 values, the

@@ -19,6 +19,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
 import acquisition_batch as acquisition  # noqa: E402
+import source_payload_custody as custody  # noqa: E402
 
 
 class AcquisitionBatchTests(unittest.TestCase):
@@ -304,6 +305,47 @@ class AcquisitionBatchTests(unittest.TestCase):
             "source/ToS/source-witnesses/discovery/acquisition-batches/fixture-20260921/provenance-delta.json",
             handoff["provenance_delta"]["ref"],
         )
+
+    def test_resume_rejects_writable_preexisting_payload(self) -> None:
+        fetches, manifest_sha = self._write_manifest(count=1)
+        payload = json.loads(self.manifest_path.read_text())["selection"][0]["payload_files"][0]
+        for mode in (0o644, 0o666):
+            with self.subTest(mode=oct(mode)):
+                output = self.root / f"output-mode-{mode:o}"
+                acquired = acquisition.acquire_batch(
+                    manifest_path=self.manifest_path,
+                    metadata_root=self.metadata,
+                    output_root=output,
+                    expected_manifest_sha256=manifest_sha,
+                    fetcher=lambda item: fetches[item["file_ref"]],
+                )
+                self.assertEqual("acquired-not-admitted", acquired["status"])
+                destination = custody.payload_path(
+                    output / "payload",
+                    payload["item_root_ref"],
+                    payload["relative_path"],
+                )
+                destination.chmod(mode)
+
+                retry_calls: list[str] = []
+
+                def unexpected_fetch(item: dict) -> bytes:
+                    retry_calls.append(item["file_ref"])
+                    return fetches[item["file_ref"]]
+
+                resumed = acquisition.acquire_batch(
+                    manifest_path=self.manifest_path,
+                    metadata_root=self.metadata,
+                    output_root=output,
+                    expected_manifest_sha256=manifest_sha,
+                    fetcher=unexpected_fetch,
+                )
+                self.assertEqual([], retry_calls)
+                self.assertEqual("prepared-not-acquired", resumed["status"])
+                self.assertEqual(
+                    "incomplete", acquisition.verify_local(output_root=output)["status"]
+                )
+                self.assertEqual(mode, stat.S_IMODE(destination.stat().st_mode))
 
     def test_provider_wrong_bytes_do_not_overwrite_or_mislabel_acquisition(self) -> None:
         fetches, manifest_sha = self._write_manifest(count=1)

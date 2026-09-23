@@ -1083,7 +1083,7 @@ def _expected_file_digest(payload: dict[str, Any], body: bytes) -> custody.FileD
 
 def _verify_destination(path: Path, payload: dict[str, Any]) -> custody.FileDigest:
     try:
-        digest = custody.digest_file(path)
+        digest = custody.digest_file(path, expected_mode=0o444)
     except custody.CustodyError as exc:
         raise SourceIntegrityError(str(exc)) from exc
     if digest.byte_size != payload["byte_size"] or digest.sha256 != payload["sha256"]:
