@@ -326,6 +326,8 @@ pub enum SearchV2ErrorCode {
     UnsupportedModel,
     StaleSelection,
     StaleContinuation,
+    /// Only an adapter whose versioned wire token has an expiry may emit it.
+    CursorExpired,
     PolicyBindingUnavailable,
     StalePolicy,
     BudgetExceeded,
