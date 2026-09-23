@@ -342,7 +342,7 @@
       "layer": "software-foundation",
       "mode": "blocking",
       "owner_surface": "rust/README.md",
-      "purpose": "Check the pinned native and WASM build, formatting, fixture tests and isolated native install for Rust source changes.",
+      "purpose": "Check pinned native and WASM builds, formatting, independent fixture tests, isolated native install, and generated WEB.1 bindings in a real Node host for Rust source changes.",
       "command_sequence": "rust_workspace",
       "failure_route": "rust/README.md",
       "does_not_own": [
@@ -390,6 +390,10 @@
       {
         "label": "install native exact reader outside checkout",
         "command": ["python", "scripts/verify_rust_reader_install.py"]
+      },
+      {
+        "label": "verify generated WEB.1 binding in Node WebAssembly host",
+        "command": ["python", "scripts/verify_rust_web_host.py"]
       }
     ],
     "validation_authority": [

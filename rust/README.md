@@ -7,6 +7,10 @@ Rust migration. `tos-foundation` owns shared codec and identity types;
 fixtures. The `tos-reader` binary is a trusted-local, read-only adapter for an
 exact retained revision and source ID. It stages and verifies selected bytes
 before writing them to stdout. It grants no public access or current-use right.
+`tos-segment-store` is a separate Linux local byte-custody candidate with
+bounded immutable segments, crash-recoverable pin journals and receipt-bound
+selected reads. Its independent conformance target checks exact synthetic
+segment bytes. A custody receipt grants neither source admission nor rights.
 
 OPS owns the root workspace, lockfile, toolchain, CI selection and package
 route. FND owns `tos-foundation`; STO owns `tos-source-store`; ASS owns
@@ -20,5 +24,7 @@ Run the named `rust_workspace` lane from
 when the pinned toolchain, rustfmt and WASM target are available. Set
 `CARGO_TARGET_DIR` to an owner-approved build-cache path outside the
 checkout. Passing this lane proves only the checked Rust contracts, WASM
-compilation and native reader installation against a tiny synthetic store. It
-does not prove a released public adapter or production-scale runtime.
+compilation, native reader installation and generated WEB.1 codec execution in
+Node WebAssembly against tiny synthetic vectors. The WEB.1 route requires the
+matching `wasm-bindgen` CLI 0.2.128 and Node. It does not prove a released
+public adapter, browser/Worker bundle integration or production-scale runtime.

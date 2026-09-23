@@ -186,7 +186,7 @@ jobs:
   rust:
     needs: plan
     if: ${{ needs.plan.outputs.rust == 'true' }}
-    name: Rust Workspace and Installed Reader
+    name: Rust Workspace, Reader and WebAssembly Host
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Rust sources and validation route
@@ -201,11 +201,25 @@ jobs:
             /tests/conformance/rust/
             /scripts/validation_lanes.py
             /scripts/verify_rust_reader_install.py
+            /scripts/verify_rust_web_host.py
             /docs/validation/validation_lanes.json
       - name: Install pinned Rust toolchain and WASM target
         run: |
           rustup toolchain install 1.98.1 --profile minimal --component rustfmt --target wasm32-unknown-unknown
           rustup default 1.98.1
+      - name: Setup Node for generated WebAssembly host
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: "24"
+      - name: Install verified wasm-bindgen CLI
+        run: |
+          archive="$RUNNER_TEMP/wasm-bindgen-0.2.128-x86_64-unknown-linux-musl.tar.gz"
+          curl --fail --location --silent --show-error \
+            'https://github.com/wasm-bindgen/wasm-bindgen/releases/download/0.2.128/wasm-bindgen-0.2.128-x86_64-unknown-linux-musl.tar.gz' \
+            --output "$archive"
+          printf '%s  %s\n' 'b51f0208fdff83515a787bd8ab9ac5865ed84dabb66d0c709957bb59793c645f' "$archive" | sha256sum --check --status
+          tar -xzf "$archive" -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/wasm-bindgen-0.2.128-x86_64-unknown-linux-musl" >> "$GITHUB_PATH"
       - name: Verify Rust workspace and isolated install
         env:
           CARGO_HOME: ${{ runner.temp }}/cargo-home

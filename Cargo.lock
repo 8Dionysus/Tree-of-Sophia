@@ -252,6 +252,7 @@ dependencies = [
  "serde_json",
  "tempfile",
  "tos-foundation",
+ "tos-segment-store",
  "tos-source-store",
 ]
 
@@ -273,11 +274,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "tos-segment-store"
+version = "0.1.0"
+dependencies = [
+ "getrandom",
+ "rustix",
+ "tos-foundation",
+]
+
+[[package]]
 name = "tos-source-store"
 version = "0.1.0"
 dependencies = [
  "rustix",
  "tos-foundation",
+]
+
+[[package]]
+name = "tos-web-codec"
+version = "0.0.0"
+dependencies = [
+ "tos-foundation",
+ "wasm-bindgen",
 ]
 
 [[package]]

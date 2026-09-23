@@ -1,0 +1,20 @@
+[package]
+name = "tos-web-codec"
+version = "0.0.0"
+publish = false
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[features]
+default = []
+wasm = ["dep:wasm-bindgen", "tos-foundation/wasm"]
+
+[dependencies]
+tos-foundation = { path = "../tos-foundation" }
+wasm-bindgen = { version = "0.2.128", optional = true }
+
+[lib]
+name = "tos_web_codec"
+path = "src/lib.rs"
+crate-type = ["rlib", "cdylib"]
