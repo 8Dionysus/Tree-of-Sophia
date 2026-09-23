@@ -9,7 +9,7 @@ use crate::knowledge_philosophy_display::ordinary_philosophy_relation_display;
 use crate::knowledge_source_navigation_prepare::NavigationPrepareReceipt;
 use crate::knowledge_stage::{KnowledgeStage, SeekRow, WritePhase};
 use crate::{Error, KnowledgeRegistry, QueryVocabulary, Result};
-use rusqlite::{OptionalExtension, params};
+use rusqlite::{Connection, OptionalExtension, params};
 use serde_json::{Map, Value, json};
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::Write;
@@ -120,6 +120,16 @@ pub struct NavigationRelationDependencyReceipt {
     pub edge_input_root_sha256: String,
     pub dependency_root_sha256: String,
     pub final_relation_rows_written: bool,
+}
+/// Intentionally opaque until the all-source title/Claim assembler can prove
+/// every relation was consumed against its exact dependency roots. There is
+/// no production constructor in this prepared-phase module.
+pub struct NavigationRelationCompletionProof {
+    source_cut: String,
+    relation_dependency_root_sha256: String,
+    endpoint_title_root_sha256: String,
+    claim_group_root_sha256: String,
+    consumed_edges: u64,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -621,6 +631,55 @@ fn root_item(hash: &mut Digest256Hasher, id: &str, sha: &[u8; 32]) {
     root_text(hash, id);
     hash.update(sha);
 }
+fn indexed_dependency_root(
+    db: &Connection,
+    source_cut: &str,
+    prepared_root: &str,
+) -> Result<(u64, u64, u64, String)> {
+    let mut hash = Digest256Hasher::new();
+    hash.update(b"tos-navigation-relation-dependencies-v1\0");
+    root_text(&mut hash, source_cut);
+    root_text(&mut hash, prepared_root);
+    let mut statement=db.prepare("SELECT edge_id,raw_sha256,from_id,to_id,claim_ref,direct_context_json FROM knowledge_navigation_relation_dependencies ORDER BY edge_id")?;
+    let mut rows = statement.query([])?;
+    let mut seen = 0u64;
+    let mut claims = 0u64;
+    let mut contexts = 0u64;
+    while let Some(row) = rows.next()? {
+        let id: String = row.get(0)?;
+        let sha: Vec<u8> = row.get(1)?;
+        if sha.len() != 32 {
+            return Err(Error::Invalid("navigation relation dependency digest"));
+        }
+        let mut digest = [0u8; 32];
+        digest.copy_from_slice(&sha);
+        root_item(&mut hash, &id, &digest);
+        for index in 2..4 {
+            let v: String = row.get(index)?;
+            root_text(&mut hash, &v);
+        }
+        let claim: Option<String> = row.get(4)?;
+        hash.update(&[u8::from(claim.is_some())]);
+        if let Some(v) = claim {
+            root_text(&mut hash, &v);
+            claims = claims
+                .checked_add(1)
+                .ok_or(Error::Budget("navigation relation indexed claims"))?;
+        }
+        let context: Option<Vec<u8>> = row.get(5)?;
+        hash.update(&[u8::from(context.is_some())]);
+        if let Some(v) = context {
+            hash.update(Digest256::of_bytes(&v).as_bytes());
+            contexts = contexts
+                .checked_add(1)
+                .ok_or(Error::Budget("navigation relation indexed contexts"))?;
+        }
+        seen = seen
+            .checked_add(1)
+            .ok_or(Error::Budget("navigation relation indexed rows"))?;
+    }
+    Ok((seen, contexts, claims, hash.finalize().to_hex()))
+}
 
 /// Python `_assertion_context` over one exact carrier. The three layers are
 /// visited in Python priority order: outer, properties, embedded source_claim.
@@ -880,25 +939,13 @@ fn prepare_inner(
     if count != prepared.edges || root.finalize().to_hex() != prepared.edge_input_root_sha256 {
         return Err(Error::Invalid("navigation relation complete input root"));
     }
-    let dependency_root_sha256=stage.with_connection(WritePhase::Sort, |db| {
-        let mut hash=Digest256Hasher::new();hash.update(b"tos-navigation-relation-dependencies-v1\0");
-        root_text(&mut hash,&prepared.source_cut);root_text(&mut hash,&prepared.dependency_root_sha256);
-        let mut statement=db.prepare("SELECT edge_id,raw_sha256,from_id,to_id,claim_ref,direct_context_json FROM knowledge_navigation_relation_dependencies ORDER BY edge_id")?;
-        let mut rows=statement.query([])?;let mut seen=0u64;
-        while let Some(row)=rows.next()? {
-            let id:String=row.get(0)?;let sha:Vec<u8>=row.get(1)?;
-            if sha.len()!=32 {return Err(Error::Invalid("navigation relation dependency digest"));}
-            let mut digest=[0u8;32];digest.copy_from_slice(&sha);root_item(&mut hash,&id,&digest);
-            for index in 2..4 {let v:String=row.get(index)?;root_text(&mut hash,&v);}
-            let claim:Option<String>=row.get(4)?;
-            hash.update(&[u8::from(claim.is_some())]);if let Some(v)=claim {root_text(&mut hash,&v);}
-            let context:Option<Vec<u8>>=row.get(5)?;
-            hash.update(&[u8::from(context.is_some())]);if let Some(v)=context {hash.update(Digest256::of_bytes(&v).as_bytes());}
-            seen+=1;
-        }
-        if seen!=count {return Err(Error::Invalid("navigation relation dependency count"));}
-        Ok(hash.finalize().to_hex())
-    })?;
+    let (indexed_edges, indexed_contexts, indexed_claims, dependency_root_sha256) = stage
+        .with_connection(WritePhase::Sort, |db| {
+            indexed_dependency_root(db, &prepared.source_cut, &prepared.dependency_root_sha256)
+        })?;
+    if (indexed_edges, indexed_contexts, indexed_claims) != (count, direct, claims) {
+        return Err(Error::Invalid("navigation relation dependency counts"));
+    }
     Ok(NavigationRelationDependencyReceipt {
         source_graph: prepared.source_graph.clone(),
         source_cut: prepared.source_cut.clone(),
@@ -924,6 +971,49 @@ pub fn prepare_navigation_relation_dependencies(
         stage.poison();
     }
     result
+}
+
+/// Retire the private dependency index only after all relation consumers have
+/// completed. The exact root and all row counts must still match its receipt;
+/// a mismatch poisons the stage and prevents selected publication.
+pub fn clear_navigation_relation_dependencies(
+    stage: &mut KnowledgeStage<'_>,
+    prepared: &NavigationPrepareReceipt,
+    receipt: &NavigationRelationDependencyReceipt,
+    completion: &NavigationRelationCompletionProof,
+) -> Result<()> {
+    if stage.exact_receipt().binding.source_cut != receipt.source_cut
+        || prepared.source_cut != receipt.source_cut
+        || prepared.source_graph != receipt.source_graph
+        || prepared.dependency_root_sha256.is_empty()
+        || prepared.edge_input_root_sha256 != receipt.edge_input_root_sha256
+        || prepared.edges != receipt.edges
+        || receipt.final_relation_rows_written
+        || completion.source_cut != receipt.source_cut
+        || completion.relation_dependency_root_sha256 != receipt.dependency_root_sha256
+        || completion.consumed_edges != receipt.edges
+        || Digest256::from_hex(&completion.endpoint_title_root_sha256).is_err()
+        || Digest256::from_hex(&completion.claim_group_root_sha256).is_err()
+    {
+        stage.poison();
+        return Err(Error::Invalid("navigation relation cleanup receipt"));
+    }
+    stage.with_connection(WritePhase::Finalize, |db| {
+        let (edges, contexts, claims, root) =
+            indexed_dependency_root(db, &receipt.source_cut, &prepared.dependency_root_sha256)?;
+        if (edges, contexts, claims)
+            != (
+                receipt.edges,
+                receipt.direct_contexts,
+                receipt.referenced_claim_keys,
+            )
+            || root != receipt.dependency_root_sha256
+        {
+            return Err(Error::Invalid("navigation relation cleanup count/root"));
+        }
+        db.execute_batch("DROP TABLE knowledge_navigation_relation_dependencies")?;
+        Ok(())
+    })
 }
 
 #[cfg(test)]
@@ -1115,6 +1205,25 @@ mod tests {
             assert_eq!(stable_digest(&context)?, CONTEXT_DIGEST);
             let roots = stage.core_roots()?;
             assert_eq!((roots.nodes, roots.relations), (0, 0));
+            // A test-only synthetic completion token exercises mechanical
+            // cleanup. Production cannot construct this token yet.
+            let completion = NavigationRelationCompletionProof {
+                source_cut: dependency.source_cut.clone(),
+                relation_dependency_root_sha256: dependency.dependency_root_sha256.clone(),
+                endpoint_title_root_sha256: "3".repeat(64),
+                claim_group_root_sha256: "4".repeat(64),
+                consumed_edges: dependency.edges,
+            };
+            clear_navigation_relation_dependencies(
+                &mut stage,
+                &prepared,
+                &dependency,
+                &completion,
+            )?;
+            let remaining:i64=stage.with_connection(WritePhase::Sort,|db| {
+                Ok(db.query_row("SELECT count(*) FROM sqlite_master WHERE type='table' AND name='knowledge_navigation_relation_dependencies'",[],|r|r.get(0))?)
+            })?;
+            assert_eq!(remaining, 0);
             Ok(dependency)
         })();
         drop(stage);
