@@ -906,6 +906,52 @@ class AcquisitionBatchTests(unittest.TestCase):
         self.assertEqual([], list(output_root.glob("receipts/handoff-*.json")))
         self.assertEqual([], list((output_root / "payload").rglob("*")))
 
+    def test_selected_discovery_run_is_schema_validated_before_fetch(self) -> None:
+        fetches, _manifest_sha = self._write_manifest(count=1)
+        manifest = json.loads(self.manifest_path.read_text(encoding="utf-8"))
+        selection = manifest["selection"][0]
+        discovery_ref = (
+            "ToS/source-witnesses/discovery/runs/acquisition-invalid-fixture.json"
+        )
+        discovery_path = self.metadata / discovery_ref
+        discovery_path.parent.mkdir(parents=True, exist_ok=True)
+        discovery_path.write_bytes(b"not a discovery record\n")
+        selection["records"].append(
+            {
+                "ref": discovery_ref,
+                "kind": "discovery",
+                "sha256": hashlib.sha256(discovery_path.read_bytes()).hexdigest(),
+            }
+        )
+        manifest["provenance_delta"]["record_refs"] = sorted(
+            record["ref"]
+            for selected in manifest["selection"]
+            for record in selected["records"]
+        )
+        self.manifest_path.write_text(
+            json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        manifest_sha = hashlib.sha256(self.manifest_path.read_bytes()).hexdigest()
+
+        fetch_calls: list[str] = []
+        output_root = self.root / "invalid-selected-discovery-run"
+        with self.assertRaisesRegex(
+            acquisition.AcquisitionBatchError,
+            "prepared selected discovery record",
+        ):
+            acquisition.acquire_batch(
+                manifest_path=self.manifest_path,
+                metadata_root=self.metadata,
+                output_root=output_root,
+                expected_manifest_sha256=manifest_sha,
+                fetcher=lambda payload: fetch_calls.append(payload["file_ref"])
+                or fetches[payload["file_ref"]],
+            )
+        self.assertEqual([], fetch_calls)
+        self.assertEqual([], list(output_root.glob("receipts/handoff-*.json")))
+        self.assertEqual([], list((output_root / "payload").rglob("*")))
+
     def test_public_payload_posture_rejects_values_outside_rights_contract(self) -> None:
         cases = (
             ("public", "authorized"),

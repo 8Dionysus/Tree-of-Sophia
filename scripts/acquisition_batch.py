@@ -61,6 +61,10 @@ CORPUS_RECORD_SCHEMA = Path("ToS/contracts/corpus-record.schema.json")
 ITEM_MANIFEST_SCHEMA = Path("ToS/contracts/source-item-manifest.schema.json")
 RIGHTS_RECORD_SCHEMA = Path("ToS/contracts/rights-record.schema.json")
 PROVENANCE_EVENT_SCHEMA = Path("ToS/contracts/provenance-event.schema.json")
+MATERIAL_DISCOVERY_RECORD_SCHEMA = Path(
+    "ToS/contracts/material-discovery-record.schema.json"
+)
+MATERIAL_DISCOVERY_RUN_ROOT = "ToS/source-witnesses/discovery/runs"
 MAX_PAYLOAD_BYTES = 300 * 1024 * 1024
 SHA256 = re.compile(r"^[a-f0-9]{64}$")
 SHA1 = re.compile(r"^[a-f0-9]{40}$")
@@ -797,6 +801,40 @@ def _verify_prepared_item_bindings(context: BatchContext, output: Path) -> None:
         records = {record["ref"]: record for record in selection["records"]}
         for record in selection["records"]:
             kind = record["kind"]
+            record_ref = record["ref"]
+            if record_ref.startswith(f"{MATERIAL_DISCOVERY_RUN_ROOT}/"):
+                discovery_path = PurePosixPath(record_ref)
+                if (
+                    discovery_path.parent.as_posix() != MATERIAL_DISCOVERY_RUN_ROOT
+                    or discovery_path.suffix != ".json"
+                    or kind != "discovery"
+                ):
+                    raise AcquisitionBatchError(
+                        f"selected discovery run has an unsupported path or kind: {record_ref}"
+                    )
+                record_path = _path_under(
+                    source_root,
+                    record_ref,
+                    label="prepared selected discovery record",
+                )
+                _regular_file(
+                    record_path, label="prepared selected discovery record"
+                )
+                if _sha256_file(record_path) != record["sha256"]:
+                    raise SourceIntegrityError(
+                        f"prepared selected discovery record bytes differ: {record_ref}"
+                    )
+                record_value = _load_json_bytes(
+                    record_path.read_bytes(),
+                    label="prepared selected discovery record",
+                )
+                validate_contract(
+                    record_value,
+                    MATERIAL_DISCOVERY_RECORD_SCHEMA,
+                    label="selected discovery record",
+                    item_ref=item_ref,
+                )
+                continue
             if kind not in {"work", "expression", "edition"}:
                 continue
             record_path = _path_under(
