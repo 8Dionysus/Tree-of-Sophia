@@ -858,7 +858,7 @@ fn preflight_selected_vacuum(
     Ok(())
 }
 
-fn selected_table_closure(db: &Connection) -> Result<()> {
+pub(crate) fn selected_table_closure(db: &Connection) -> Result<()> {
     const TABLES: &[&str] = &[
         "metadata",
         "graph_header",
@@ -875,18 +875,92 @@ fn selected_table_closure(db: &Connection) -> Result<()> {
         "catalog_source_counts",
     ];
     let mut statement = db.prepare(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name",
+        "SELECT CASE WHEN typeof(name)='text' AND length(CAST(name AS BLOB))<=128 THEN name ELSE NULL END
+         FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name",
     )?;
     let mut rows = statement.query([])?;
     let mut seen = std::collections::BTreeSet::new();
     while let Some(row) = rows.next()? {
-        let name: String = row.get(0)?;
-        if name.len() > 128 || !TABLES.contains(&name.as_str()) || !seen.insert(name) {
+        let name: Option<String> = row.get(0)?;
+        let Some(name) = name else {
+            return Err(Error::Budget("selected knowledge table name bytes"));
+        };
+        if !TABLES.contains(&name.as_str()) || !seen.insert(name) {
             return Err(Error::Invalid("unexpected selected knowledge table"));
         }
     }
     if seen.len() != TABLES.len() {
         return Err(Error::Invalid("missing selected knowledge table"));
+    }
+    const EXPLICIT_INDEXES: &[(&str, &str)] = &[
+        (
+            "knowledge_nodes_source_order",
+            "CREATE INDEX knowledge_nodes_source_order ON knowledge_nodes(source_graph,source_order,id)",
+        ),
+        (
+            "knowledge_nodes_kind",
+            "CREATE INDEX knowledge_nodes_kind ON knowledge_nodes(kind_id,source_order)",
+        ),
+        (
+            "knowledge_nodes_entity",
+            "CREATE INDEX knowledge_nodes_entity ON knowledge_nodes(entity_id,source_order)",
+        ),
+        (
+            "knowledge_relations_source_order",
+            "CREATE INDEX knowledge_relations_source_order ON knowledge_relations(source_graph,source_order,id)",
+        ),
+        (
+            "knowledge_relations_from",
+            "CREATE INDEX knowledge_relations_from ON knowledge_relations(from_id,source_order,id)",
+        ),
+        (
+            "knowledge_relations_to",
+            "CREATE INDEX knowledge_relations_to ON knowledge_relations(to_id,source_order,id)",
+        ),
+        (
+            "knowledge_relations_predicate",
+            "CREATE INDEX knowledge_relations_predicate ON knowledge_relations(predicate_id,source_order)",
+        ),
+        (
+            "search_document_filter",
+            "CREATE INDEX search_document_filter ON search_documents(kind,source_graph,kind_id,predicate_id,position)",
+        ),
+    ];
+    let mut statement = db.prepare(
+        "SELECT CASE WHEN typeof(name)='text' AND length(CAST(name AS BLOB))<=128 THEN name ELSE NULL END,
+                CASE WHEN typeof(sql)='text' AND length(CAST(sql AS BLOB))<=1024 THEN sql ELSE NULL END
+         FROM sqlite_master WHERE type='index' AND sql IS NOT NULL ORDER BY name",
+    )?;
+    let mut rows = statement.query([])?;
+    let mut indexes = BTreeSet::new();
+    while let Some(row) = rows.next()? {
+        let name: Option<String> = row.get(0)?;
+        let sql: Option<String> = row.get(1)?;
+        let (Some(name), Some(sql)) = (name, sql) else {
+            return Err(Error::Budget("selected knowledge schema text bytes"));
+        };
+        if !EXPLICIT_INDEXES
+            .iter()
+            .any(|(expected_name, expected_sql)| name == *expected_name && sql == *expected_sql)
+            || !indexes.insert(name)
+        {
+            return Err(Error::Invalid("unexpected selected knowledge index"));
+        }
+    }
+    if indexes.len() != EXPLICIT_INDEXES.len() {
+        return Err(Error::Invalid("missing selected knowledge index"));
+    }
+    let extra: Option<i64> = db
+        .query_row(
+            "SELECT 1 FROM sqlite_master WHERE type NOT IN ('table','index') LIMIT 1",
+            [],
+            |row| row.get(0),
+        )
+        .optional()?;
+    if extra.is_some() {
+        return Err(Error::Invalid(
+            "unexpected selected knowledge schema object",
+        ));
     }
     Ok(())
 }

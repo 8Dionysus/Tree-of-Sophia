@@ -2,7 +2,7 @@
 //! Source admission, immutable inode custody and current disclosure rights are
 //! independent owner obligations. No model path is reopened after admission.
 
-use crate::{Error, Result, safe_open, stream_digest};
+use crate::{Error, Result, knowledge_stage, safe_open, stream_digest};
 use rusqlite::{Connection, OpenFlags, OptionalExtension, params};
 use std::{
     fs::File,
@@ -1040,6 +1040,7 @@ fn verify_selected_table_allowlist(db: &Connection) -> Result<()> {
 
 fn verify_schema(db: &Connection) -> Result<()> {
     verify_selected_table_allowlist(db)?;
+    knowledge_stage::selected_table_closure(db)?;
     for (table, columns) in [
         ("metadata", &["key:TEXT:1", "value:BLOB:0"][..]),
         (
