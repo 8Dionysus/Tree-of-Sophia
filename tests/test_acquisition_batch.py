@@ -60,6 +60,9 @@ class AcquisitionBatchTests(unittest.TestCase):
             item_manifest_ref = f"{item_root}/item.manifest.json"
             rights_ref = f"{item_root}/rights.json"
             provenance_ref = f"{item_root}/provenance.jsonl"
+            forensic_report_ref = f"{item_root}/forensic-report.md"
+            resource_inventory_ref = f"{item_root}/resource-inventory.json"
+            fixity_ref = f"{item_root}/fixity.sha256"
             payload = f"payload/{slug}.txt"
             payload_body = (
                 b"shared content-addressed payload\n"
@@ -71,9 +74,8 @@ class AcquisitionBatchTests(unittest.TestCase):
             rights_value = {
                 "rights": "local_only",
                 "scope_refs": [item_ref, payload_ref],
+                "visibility": rights_visibility or "local_only",
             }
-            if rights_visibility is not None:
-                rights_value["visibility"] = rights_visibility
             if rights_redistribution is not None:
                 rights_value["redistribution_posture"] = rights_redistribution
             rights_body = json.dumps(rights_value, sort_keys=True).encode()
@@ -98,8 +100,8 @@ class AcquisitionBatchTests(unittest.TestCase):
                     "acquisition_event_ref": event_ref,
                     "rights_ref": rights_ref,
                     "provenance_ref": provenance_ref,
-                    "forensic_report_ref": f"{item_root}/forensic-report.md",
-                    "resource_inventory_ref": f"{item_root}/resource-inventory.json",
+                    "forensic_report_ref": forensic_report_ref,
+                    "resource_inventory_ref": resource_inventory_ref,
                     "visibility": "local_only",
                     "manifest_version": 1,
                 },
@@ -125,6 +127,50 @@ class AcquisitionBatchTests(unittest.TestCase):
                 )
                 + "\n"
             ).encode()
+            payload_sha256 = hashlib.sha256(payload_body).hexdigest()
+            inventory_body = json.dumps(
+                {
+                    "$schema": "https://tree-of-sophia.local/ToS/contracts/source-resource-inventory.schema.json",
+                    "schema_version": "tos_source_resource_inventory_v1",
+                    "item_id": item_ref,
+                    "generated_from_manifest_ref": item_manifest_ref,
+                    "inventory_authority": "mechanical_metadata_only",
+                    "source_text_included": False,
+                    "files": [
+                        {
+                            "file_id": payload_ref,
+                            "file_sha256": payload_sha256,
+                            "media_type": "text/plain",
+                            "profile": "plain_text_v1",
+                            "summary": {"resource_count": 1},
+                            "resources": [
+                                {
+                                    "resource_id": "fixture-resource",
+                                    "resource_kind": "plain_text_file",
+                                    "locator": {"container_order": 1},
+                                    "structural_role": "member",
+                                    "content_fingerprint": {
+                                        "algorithm": "sha256",
+                                        "normalization": "unicode-codepoints-preserved",
+                                        "sha256": payload_sha256,
+                                        "character_count": len(payload_body.decode("utf-8")),
+                                    },
+                                }
+                            ],
+                        }
+                    ],
+                    "generator": {
+                        "name": "build_source_resource_inventories.py",
+                        "version": "1",
+                    },
+                    "provenance_event_ref": event_ref,
+                    "inventory_version": 1,
+                    "authority_boundary": "Fixture metadata only; no source text is included.",
+                },
+                sort_keys=True,
+            ).encode() + b"\n"
+            forensic_report_body = b"Fixture forensic report; no interpretation was accepted.\n"
+            fixity_body = f"{payload_sha256}  {payload}\n".encode()
             records = []
             for ref, kind, body in (
                 (
@@ -141,6 +187,9 @@ class AcquisitionBatchTests(unittest.TestCase):
                 (item_manifest_ref, "manifest", item_manifest_body),
                 (rights_ref, "rights", rights_body),
                 (provenance_ref, "provenance", provenance_body),
+                (forensic_report_ref, "discovery", forensic_report_body),
+                (resource_inventory_ref, "discovery", inventory_body),
+                (fixity_ref, "discovery", fixity_body),
             ):
                 path = self.metadata / ref
                 path.parent.mkdir(parents=True, exist_ok=True)
@@ -219,11 +268,11 @@ class AcquisitionBatchTests(unittest.TestCase):
         measurement = acquisition.measure_storage(self.output)
         self.assertEqual(0, measurement["topology_preimage_count"])
         self.assertEqual(0, measurement["topology_preimage_bytes"])
-        self.assertEqual(8 * 4 + 1, measurement["metadata_file_count"])
+        self.assertEqual(8 * 7 + 1, measurement["metadata_file_count"])
         legacy = self.root / "legacy" / "topology-before"
         legacy.mkdir(parents=True)
         for index in range(8):
-            (legacy / f"{index}.json").write_bytes((bytes([index]) * 4096))
+            (legacy / f"{index}.json").write_bytes((bytes([index]) * 8192))
         legacy_bytes = sum(path.stat().st_size for path in legacy.iterdir())
         self.assertLess(measurement["metadata_bytes"], legacy_bytes)
         self.assertTrue((self.output / "receipts/preparation.json").is_file())
@@ -704,6 +753,29 @@ class AcquisitionBatchTests(unittest.TestCase):
         self.assertEqual([], fetch_calls)
         self.assertEqual([], list(self.output.glob("receipts/handoff-*.json")))
 
+    def test_rights_visibility_must_match_item_manifest_before_fetch(self) -> None:
+        fetches, manifest_sha = self._write_manifest(
+            count=1,
+            rights_posture="public_payload",
+            rights_visibility="public_payload",
+            rights_redistribution="authorized",
+        )
+        fetch_calls: list[str] = []
+        with self.assertRaisesRegex(
+            acquisition.AcquisitionBatchError,
+            "rights visibility differs from Item manifest visibility",
+        ):
+            acquisition.acquire_batch(
+                manifest_path=self.manifest_path,
+                metadata_root=self.metadata,
+                output_root=self.output,
+                expected_manifest_sha256=manifest_sha,
+                fetcher=lambda payload: fetch_calls.append(payload["file_ref"])
+                or fetches[payload["file_ref"]],
+            )
+        self.assertEqual([], fetch_calls)
+        self.assertEqual([], list(self.output.glob("receipts/handoff-*.json")))
+
     def test_public_payload_posture_rejects_values_outside_rights_contract(self) -> None:
         cases = (
             ("public", "authorized"),
@@ -949,6 +1021,136 @@ class AcquisitionBatchTests(unittest.TestCase):
                 fetcher=lambda payload: fetch_calls.append(payload["file_ref"]) or b"",
             )
         self.assertEqual([], fetch_calls)
+
+    def test_item_manifest_companions_are_selected_and_fixed_before_fetch(self) -> None:
+        for missing_companion in (
+            "forensic_report_ref",
+            "resource_inventory_ref",
+            "fixity.sha256",
+        ):
+            with self.subTest(missing_companion=missing_companion):
+                fetches, _manifest_sha = self._write_manifest(count=1)
+                manifest = json.loads(self.manifest_path.read_text(encoding="utf-8"))
+                selection = manifest["selection"][0]
+                item_root = selection["item_root_ref"]
+                item_manifest = json.loads(
+                    (self.metadata / item_root / "item.manifest.json").read_text(
+                        encoding="utf-8"
+                    )
+                )
+                missing_ref = (
+                    f"{item_root}/{missing_companion}"
+                    if missing_companion == "fixity.sha256"
+                    else item_manifest[missing_companion]
+                )
+                selection["records"] = [
+                    record
+                    for record in selection["records"]
+                    if record["ref"] != missing_ref
+                ]
+                manifest["provenance_delta"]["record_refs"] = sorted(
+                    record["ref"] for record in selection["records"]
+                )
+                self.manifest_path.write_text(
+                    json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+                    encoding="utf-8",
+                )
+                manifest_sha = hashlib.sha256(self.manifest_path.read_bytes()).hexdigest()
+                output = self.root / f"missing-companion-{missing_companion.replace('.', '-')}"
+                fetch_calls: list[str] = []
+                expected_error = (
+                    "Item fixity companion is not selected"
+                    if missing_companion == "fixity.sha256"
+                    else "Item manifest companion is not selected"
+                )
+                with self.assertRaisesRegex(
+                    acquisition.AcquisitionBatchError,
+                    expected_error,
+                ):
+                    acquisition.acquire_batch(
+                        manifest_path=self.manifest_path,
+                        metadata_root=self.metadata,
+                        output_root=output,
+                        expected_manifest_sha256=manifest_sha,
+                        fetcher=lambda payload: fetch_calls.append(payload["file_ref"])
+                        or fetches[payload["file_ref"]],
+                    )
+                self.assertEqual([], fetch_calls)
+                self.assertEqual([], list(output.glob("receipts/handoff-*.json")))
+
+        fetches, manifest_sha = self._write_manifest(count=1)
+        fixity_path = self.metadata / (
+            "ToS/source-witnesses/works/fixture/expressions/en/editions/pinned/"
+            "items/fixture-0/fixity.sha256"
+        )
+        fixity_path.write_text("0" * 64 + "  payload/fixture-0.txt\n", encoding="utf-8")
+        manifest = json.loads(self.manifest_path.read_text(encoding="utf-8"))
+        selection = manifest["selection"][0]
+        fixity_record = next(
+            record for record in selection["records"] if record["ref"].endswith("/fixity.sha256")
+        )
+        fixity_record["sha256"] = hashlib.sha256(fixity_path.read_bytes()).hexdigest()
+        self.manifest_path.write_text(
+            json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        manifest_sha = hashlib.sha256(self.manifest_path.read_bytes()).hexdigest()
+        fetch_calls: list[str] = []
+        with self.assertRaisesRegex(
+            acquisition.AcquisitionBatchError,
+            "Item fixity companion differs from manifest payloads",
+        ):
+            acquisition.acquire_batch(
+                manifest_path=self.manifest_path,
+                metadata_root=self.metadata,
+                output_root=self.output,
+                expected_manifest_sha256=manifest_sha,
+                fetcher=lambda payload: fetch_calls.append(payload["file_ref"])
+                or fetches[payload["file_ref"]],
+            )
+        self.assertEqual([], fetch_calls)
+        self.assertEqual([], list(self.output.glob("receipts/handoff-*.json")))
+
+        fetches, _manifest_sha = self._write_manifest(count=1)
+        manifest = json.loads(self.manifest_path.read_text(encoding="utf-8"))
+        selection = manifest["selection"][0]
+        inventory_ref = next(
+            record["ref"]
+            for record in selection["records"]
+            if record["ref"].endswith("/resource-inventory.json")
+        )
+        inventory_path = self.metadata / inventory_ref
+        inventory = json.loads(inventory_path.read_text(encoding="utf-8"))
+        inventory["files"][0]["file_sha256"] = "0" * 64
+        inventory_path.write_text(
+            json.dumps(inventory, ensure_ascii=False, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        inventory_record = next(
+            record for record in selection["records"] if record["ref"] == inventory_ref
+        )
+        inventory_record["sha256"] = hashlib.sha256(inventory_path.read_bytes()).hexdigest()
+        self.manifest_path.write_text(
+            json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        manifest_sha = hashlib.sha256(self.manifest_path.read_bytes()).hexdigest()
+        inventory_output = self.root / "inventory-mismatch"
+        fetch_calls = []
+        with self.assertRaisesRegex(
+            acquisition.AcquisitionBatchError,
+            "Item resource inventory does not close over manifest payloads",
+        ):
+            acquisition.acquire_batch(
+                manifest_path=self.manifest_path,
+                metadata_root=self.metadata,
+                output_root=inventory_output,
+                expected_manifest_sha256=manifest_sha,
+                fetcher=lambda payload: fetch_calls.append(payload["file_ref"])
+                or fetches[payload["file_ref"]],
+            )
+        self.assertEqual([], fetch_calls)
+        self.assertEqual([], list(inventory_output.glob("receipts/handoff-*.json")))
 
     def test_item_record_must_bind_selected_manifest_before_fetch(self) -> None:
         _fetches, _manifest_sha = self._write_manifest(count=1)

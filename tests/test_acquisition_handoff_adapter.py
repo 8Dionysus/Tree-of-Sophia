@@ -77,6 +77,9 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
             ("item.manifest.json", "manifest"),
             ("rights.json", "rights"),
             ("provenance.jsonl", "provenance"),
+            ("forensic-report.md", "discovery"),
+            ("resource-inventory.json", "discovery"),
+            ("fixity.sha256", "discovery"),
         ):
             ref = f"{item_root}/{filename}"
             if filename == "item.manifest.json":
@@ -147,6 +150,49 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
                         (json.dumps(row, sort_keys=True) + "\n").encode()
                         for row in event_rows
                     )
+            elif filename == "resource-inventory.json":
+                body = canonical(
+                    {
+                        "$schema": "https://tree-of-sophia.local/ToS/contracts/source-resource-inventory.schema.json",
+                        "schema_version": "tos_source_resource_inventory_v1",
+                        "item_id": item_ref,
+                        "generated_from_manifest_ref": f"{item_root}/item.manifest.json",
+                        "inventory_authority": "mechanical_metadata_only",
+                        "source_text_included": False,
+                        "files": [
+                            {
+                                "file_id": payload_ref,
+                                "file_sha256": payload_sha,
+                                "media_type": "text/plain",
+                                "profile": "plain_text_v1",
+                                "summary": {"resource_count": 1},
+                                "resources": [
+                                    {
+                                        "resource_id": "adapter-fixture-resource",
+                                        "resource_kind": "plain_text_file",
+                                        "locator": {"container_order": 1},
+                                        "structural_role": "member",
+                                        "content_fingerprint": {
+                                            "algorithm": "sha256",
+                                            "normalization": "unicode-codepoints-preserved",
+                                            "sha256": payload_sha,
+                                            "character_count": len(payload_body.decode("utf-8")),
+                                        },
+                                    }
+                                ],
+                            }
+                        ],
+                        "generator": {
+                            "name": "build_source_resource_inventories.py",
+                            "version": "1",
+                        },
+                        "provenance_event_ref": old_manifest["acquisition_event_ref"],
+                        "inventory_version": 1,
+                        "authority_boundary": "Fixture metadata only; no source text is included.",
+                    }
+                )
+            elif filename == "fixity.sha256":
+                body = f"{payload_sha}  payload/adapter.txt\n".encode()
             else:
                 body = (owner_item_root / filename).read_bytes()
             path = self.metadata / ref
@@ -376,7 +422,7 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
             batch_path, self.candidate / "source"
         )
         self.assertEqual("tos_corpus_batch_v1", batch["schema_version"])
-        self.assertEqual(4, len(updates))
+        self.assertEqual(7, len(updates))
         self.assertEqual({}, retirements)
         self.assertEqual(base_revision, batch["base_revision"])
         self.assertEqual("not-admitted", json.loads(
@@ -528,7 +574,7 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
             validator_sha256=self.validator_sha256,
         )
         self.assertEqual("acquired-not-admitted", verified.handoff["acquisition_status"])
-        self.assertEqual(4, len(verified.selected_source_rows))
+        self.assertEqual(7, len(verified.selected_source_rows))
         self.assertEqual(1, len(verified.payloads))
         self.assertEqual(self.validator_sha256, context["validator_sha256"])
         actual_uid = os.geteuid()
@@ -566,7 +612,7 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
             {"tos.item.sid-9a5249d273634cf6b2eb96b5e7719fa8", "tos.item.shared-file-second"},
             {payload["item_ref"] for payload in verified.payloads},
         )
-        self.assertEqual(8, len(verified.selected_source_rows))
+        self.assertEqual(14, len(verified.selected_source_rows))
         self.assertEqual(
             {"tos.item.sid-9a5249d273634cf6b2eb96b5e7719fa8", "tos.item.shared-file-second"},
             {

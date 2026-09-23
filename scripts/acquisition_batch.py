@@ -809,6 +809,36 @@ def _verify_prepared_item_bindings(context: BatchContext, output: Path) -> None:
                 f"Item manifest identity or rights/provenance binding differs: {item_ref}"
             )
 
+        for field in ("forensic_report_ref", "resource_inventory_ref"):
+            companion_ref = item_manifest.get(field)
+            companion_record = (
+                records.get(companion_ref) if isinstance(companion_ref, str) else None
+            )
+            if not isinstance(companion_record, dict):
+                raise AcquisitionBatchError(
+                    f"Item manifest companion is not selected: {item_ref}: {field}"
+                )
+            companion_path = _path_under(
+                source_root, companion_ref, label=f"prepared Item {field}"
+            )
+            _regular_file(companion_path, label=f"prepared Item {field}")
+            if _sha256_file(companion_path) != companion_record["sha256"]:
+                raise SourceIntegrityError(
+                    f"prepared Item {field} bytes differ: {item_ref}"
+                )
+        fixity_ref = f"{item_root}/fixity.sha256"
+        fixity_record = records.get(fixity_ref)
+        if not isinstance(fixity_record, dict):
+            raise AcquisitionBatchError(
+                f"Item fixity companion is not selected: {item_ref}"
+            )
+        fixity_path = _path_under(
+            source_root, fixity_ref, label="prepared Item fixity companion"
+        )
+        _regular_file(fixity_path, label="prepared Item fixity companion")
+        if _sha256_file(fixity_path) != fixity_record["sha256"]:
+            raise SourceIntegrityError(f"prepared Item fixity bytes differ: {item_ref}")
+
         manifest_by_file: dict[str, dict[str, Any]] = {}
         for payload in item_manifest["payload_files"]:
             if not isinstance(payload, dict) or payload.get("file_id") in manifest_by_file:
@@ -825,6 +855,59 @@ def _verify_prepared_item_bindings(context: BatchContext, output: Path) -> None:
                 f"Item manifest payload closure differs: {item_ref}"
             )
 
+        inventory_ref = item_manifest["resource_inventory_ref"]
+        inventory_path = _path_under(
+            source_root, inventory_ref, label="prepared Item resource inventory"
+        )
+        inventory_value = _load_json_bytes(
+            inventory_path.read_bytes(), label="prepared Item resource inventory"
+        )
+        expected_inventory_files = [
+            {
+                "file_id": payload["file_id"],
+                "file_sha256": payload["sha256"],
+                "media_type": payload["media_type"],
+            }
+            for payload in item_manifest["payload_files"]
+        ]
+        inventory_rows = (
+            inventory_value.get("files") if isinstance(inventory_value, dict) else None
+        )
+        actual_inventory_files = [
+            {
+                "file_id": payload.get("file_id"),
+                "file_sha256": payload.get("file_sha256"),
+                "media_type": payload.get("media_type"),
+            }
+            for payload in inventory_rows
+            if isinstance(payload, dict)
+        ] if isinstance(inventory_rows, list) else []
+        if (
+            not isinstance(inventory_value, dict)
+            or inventory_value.get("item_id") != item_ref
+            or inventory_value.get("generated_from_manifest_ref") != item_manifest_ref
+            or actual_inventory_files != expected_inventory_files
+        ):
+            raise AcquisitionBatchError(
+                f"Item resource inventory does not close over manifest payloads: {item_ref}"
+            )
+
+        expected_fixity_lines = [
+            f"{payload['sha256']}  {payload['relative_path']}"
+            for payload in item_manifest["payload_files"]
+        ]
+        expected_fixity = "\n".join(expected_fixity_lines) + "\n"
+        try:
+            actual_fixity = fixity_path.read_text(encoding="utf-8")
+        except (OSError, UnicodeError) as exc:
+            raise AcquisitionBatchError(
+                f"Item fixity companion is not readable: {item_ref}"
+            ) from exc
+        if actual_fixity != expected_fixity:
+            raise AcquisitionBatchError(
+                f"Item fixity companion differs from manifest payloads: {item_ref}"
+            )
+
         rights_ref = selection["rights"]["ref"]
         rights_record = records.get(rights_ref)
         if not isinstance(rights_record, dict) or rights_record.get("kind") != "rights":
@@ -839,13 +922,17 @@ def _verify_prepared_item_bindings(context: BatchContext, output: Path) -> None:
         rights_value = _load_json_bytes(
             rights_path.read_bytes(), label="prepared Item rights"
         )
+        _verify_declared_rights_posture(selection, rights_value, item_ref=item_ref)
+        if rights_value.get("visibility") != item_manifest.get("visibility"):
+            raise AcquisitionBatchError(
+                f"rights visibility differs from Item manifest visibility: {item_ref}"
+            )
         scope_refs = rights_value.get("scope_refs")
         required_scopes = {item_ref, *selected_payloads}
         if not isinstance(scope_refs, list) or not required_scopes <= set(scope_refs):
             raise AcquisitionBatchError(
                 f"Item rights scope does not cover selected Item and payloads: {item_ref}"
             )
-        _verify_declared_rights_posture(selection, rights_value, item_ref=item_ref)
 
         provenance_path = _path_under(
             source_root, provenance_ref, label="prepared Item provenance"
