@@ -128,6 +128,11 @@ class SoftwareSelectionTests(unittest.TestCase):
         reader=[s for s in steps if s.get('run')=='python scripts/validation_lanes.py --run software_reader']
         self.assertEqual(len(reader),1)
         self.assertIn("== 'reader'",reader[0]['if'])
+        command_lab = [s for s in jobs['rust']['steps']
+                       if s.get('run') == 'cargo test -p tos-command --test postgres_lab --locked -- --nocapture']
+        self.assertEqual(len(command_lab), 1)
+        self.assertTrue(command_lab[0]['env']['TOS_CMD_POSTGRES_URL'])
+        self.assertIn('postgres', jobs['rust']['services'])
         gate_steps=jobs['required_gate']['steps']
         self.assertEqual(gate_steps[-1]['run'],'python scripts/software_ci.py gate')
         self.assertEqual(gate_steps[-1]['env']['CI_NEEDS'],'${{ toJSON(needs) }}')

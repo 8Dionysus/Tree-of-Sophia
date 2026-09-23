@@ -1,0 +1,15 @@
+[package]
+name = "tos-command"
+version = "0.0.0"
+publish = false
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+tos-foundation = { path = "../tos-foundation" }
+postgres = "0.19"
+
+[lib]
+name = "tos_command"
+path = "src/lib.rs"
