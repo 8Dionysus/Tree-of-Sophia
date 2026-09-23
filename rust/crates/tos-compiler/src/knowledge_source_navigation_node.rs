@@ -9,15 +9,13 @@ use crate::knowledge_normalization::{SourceRow, stamp_content_revision};
 use crate::knowledge_philosophy_display::ordinary_philosophy_node_display;
 use crate::knowledge_source_navigation_prepare::NavigationPrepareReceipt;
 use crate::knowledge_stage::SeekRow;
-use crate::{Error, KnowledgeRegistry, Result};
+use crate::{Error, KnowledgeRegistry, QueryVocabulary, Result};
 use serde_json::{Map, Value, json};
 use std::collections::{BTreeMap, BTreeSet};
 use tos_foundation::Digest256;
 
-const ENTITY_REGISTRY_REF: &str = "ToS/doctrine/semantic-interchange/entity-types.v1.json";
-// Frozen Python `_normalize_node` applies record-version and dossier behavior
-// to this named source. A descriptor remap needs an explicit profile revision.
-const SOURCE_GRAPH: &str = "source-navigation";
+const ADAPTER_PROFILE: &str = "source-navigation-node-edge-v1";
+const SHARED_ID_GRAMMAR: &str = "^tos\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$";
 const RECORD_SCHEMA: &str = "tos_record_version_view_v1";
 const MAX_REGISTRY_BYTES: usize = 4 * 1024 * 1024;
 const MAX_ADDRESS: u64 = 9_007_199_254_740_991;
@@ -53,6 +51,9 @@ struct TypeEntry {
 /// construct `KnowledgeRegistry`; a matching digest alone is not admission.
 pub struct NavigationNodeNormalizer<'a> {
     registry: &'a KnowledgeRegistry,
+    source_graph_id: String,
+    dossier_kinds: BTreeSet<String>,
+    entity_registry_ref: String,
     types: BTreeMap<String, TypeEntry>,
     ancestors: BTreeMap<String, Vec<String>>,
     ancestor_cache_bytes: usize,
@@ -80,12 +81,8 @@ fn string_list(value: Option<&Value>) -> Vec<Value> {
         .map(|s| Value::String(s.to_owned()))
         .collect()
 }
-fn source_dossier_id<'a>(kind: &str, native: &'a str) -> Option<&'a str> {
-    if matches!(
-        kind,
-        "work" | "expression" | "edition" | "item" | "file" | "link"
-    ) && valid_tos_id(native)
-    {
+fn source_dossier_id<'a>(kinds: &BTreeSet<String>, kind: &str, native: &'a str) -> Option<&'a str> {
+    if kinds.contains(kind) && valid_tos_id(native) {
         Some(native)
     } else {
         None
@@ -382,9 +379,42 @@ impl<'a> NavigationNodeNormalizer<'a> {
     pub fn new(
         registry: &'a KnowledgeRegistry,
         entity_bytes: &[u8],
+        vocabulary: &QueryVocabulary,
+        descriptor_bytes: &[u8],
         limits: NavigationNodeLimits,
     ) -> Result<Self> {
         limits.validate()?;
+        vocabulary.verify_authored_bytes(descriptor_bytes)?;
+        if vocabulary.shared_entity_id_grammars.len() != 1
+            || vocabulary.shared_entity_id_grammars[0] != SHARED_ID_GRAMMAR
+        {
+            return Err(Error::Invalid("navigation shared identity grammar profile"));
+        }
+        let descriptor = SourceRow::parse(descriptor_bytes, 1024 * 1024)?;
+        let identity = descriptor
+            .value()
+            .get("identity")
+            .ok_or(Error::Invalid("navigation descriptor identity"))?;
+        let source_graph_id = required(identity, "source_dossier_graph_id")?.to_owned();
+        let dossier_kinds = identity
+            .get("source_dossier_kinds")
+            .and_then(Value::as_array)
+            .ok_or(Error::Invalid("navigation descriptor dossier kinds"))?
+            .iter()
+            .map(|kind| kind.as_str().map(str::to_owned).ok_or(Error::Invalid("navigation dossier kind")))
+            .collect::<Result<BTreeSet<_>>>()?;
+        if dossier_kinds.is_empty()
+            || !vocabulary.sources.iter().any(|source|
+                source.source_graph_id == source_graph_id && source.adapter_profile == ADAPTER_PROFILE)
+        {
+            return Err(Error::Invalid("navigation selected dossier owner"));
+        }
+        let entity_registry_ref = required(
+            descriptor.value().get("semantic_registry_refs")
+                .and_then(|refs| refs.get("entity"))
+                .ok_or(Error::Invalid("navigation entity registry descriptor"))?,
+            "source_ref",
+        )?.to_owned();
         if entity_bytes.is_empty()
             || entity_bytes.len() > MAX_REGISTRY_BYTES
             || Digest256::of_bytes(entity_bytes).to_hex() != registry.entity_sha256
@@ -447,6 +477,9 @@ impl<'a> NavigationNodeNormalizer<'a> {
         }
         Ok(Self {
             registry,
+            source_graph_id,
+            dossier_kinds,
+            entity_registry_ref,
             types,
             ancestors: BTreeMap::new(),
             ancestor_cache_bytes: 0,
@@ -492,7 +525,7 @@ impl<'a> NavigationNodeNormalizer<'a> {
         raw: &SeekRow,
         prepared: &NavigationPrepareReceipt,
     ) -> Result<NavigationBaseNode> {
-        if prepared.source_graph != SOURCE_GRAPH
+        if prepared.source_graph != self.source_graph_id
             || prepared.source_cut.is_empty()
             || prepared.final_graph_rows_written
             || Digest256::from_hex(&prepared.dependency_root_sha256).is_err()
@@ -550,7 +583,7 @@ impl<'a> NavigationNodeNormalizer<'a> {
             item.get("node_id"),
         ]
         .into_iter()
-        .find_map(|v| text(v).filter(|s| s.starts_with("tos.")))
+        .find_map(|v| text(v).filter(|s| valid_tos_id(s)))
         .unwrap_or(&normalized_id)
         .to_owned();
         let graph_layers = if item.get("graph_layers").and_then(Value::as_array).is_some() {
@@ -569,13 +602,13 @@ impl<'a> NavigationNodeNormalizer<'a> {
             "id":normalized_id,"entity_id":entity_id,"native_id":native,
             "source_graph":prepared.source_graph,"kind_id":kind,"type_id":type_id,
             "type_mapping":{"status":if mapped {"mapped"} else {"unmapped"},
-                "source_kind_id":kind,"registry_ref":ENTITY_REGISTRY_REF},
+                "source_kind_id":kind,"registry_ref":self.entity_registry_ref},
             "display":display,"epistemic":epistemic(item),
             "graph_layers":graph_layers,"view_ids":string_list(item.get("view_ids")),
             "source_refs":source.source_refs(&[]),"attributes":attrs,
             "semantics":{"type_ancestors":ancestors},"source_record":source_record,
         });
-        if let Some(dossier) = source_dossier_id(kind, native) {
+        if let Some(dossier) = source_dossier_id(&self.dossier_kinds, kind, native) {
             output["source_dossier_ref"] = Value::String(dossier.to_owned());
         }
         if let Some(view) = view {
@@ -630,12 +663,35 @@ mod tests {
         let relation =
             include_bytes!("../../../../ToS/doctrine/semantic-interchange/relation-types.v1.json");
         let registry = KnowledgeRegistry::parse(entity, relation).unwrap();
+        let descriptor = include_bytes!(
+            "../../../../ToS/doctrine/semantic-interchange/query-vocabulary.v1.json"
+        );
+        let document: Value = serde_json::from_slice(descriptor).unwrap();
+        let mut adapters = document["sources"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|source| source["adapter_profile"].as_str().unwrap().to_owned())
+            .collect::<Vec<_>>();
+        adapters.push(document["extension_adapter_profile"].as_str().unwrap().to_owned());
+        let vocabulary = QueryVocabulary::parse(
+            descriptor,
+            &adapters.iter().map(String::as_str).collect::<Vec<_>>(),
+        )
+        .unwrap();
         let limits = NavigationNodeLimits {
             max_raw_bytes: 4096,
             max_output_bytes: 32768,
             max_ancestor_cache_bytes: 32768,
         };
-        let mut normalizer = NavigationNodeNormalizer::new(&registry, entity, limits).unwrap();
+        let mut normalizer = NavigationNodeNormalizer::new(
+            &registry,
+            entity,
+            &vocabulary,
+            descriptor,
+            limits,
+        )
+        .unwrap();
         let prepared = NavigationPrepareReceipt {
             source_graph: "source-navigation".into(),
             input_role: "source-navigation".into(),
