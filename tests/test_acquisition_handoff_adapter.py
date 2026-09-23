@@ -327,12 +327,31 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
             (self.metadata / first_inventory_ref).read_text(encoding="utf-8")
         )
         first_inventory_event_ref = first_inventory["provenance_event_ref"]
+        first_provenance_ref = f"{first_item_root}/provenance.jsonl"
+        first_provenance_rows = [
+            json.loads(line)
+            for line in (self.metadata / first_provenance_ref)
+            .read_text(encoding="utf-8")
+            .splitlines()
+            if line.strip()
+        ]
         second_item_ref = "tos.item.shared-file-second"
         second_item_root = (
             f"{first_item_root.rsplit('/', 1)[0]}/acquired-note-shared-file-test"
         )
         second_event_ref = "tos.event.acquisition.shared-file-second"
         second_inventory_event_ref = "tos.event.inventory.shared-file-second"
+        second_event_ids = {}
+        for row in first_provenance_rows:
+            old_event_id = row["event_id"]
+            if old_event_id == first_event_ref:
+                new_event_id = second_event_ref
+            elif old_event_id == first_inventory_event_ref:
+                new_event_id = second_inventory_event_ref
+            else:
+                suffix = hashlib.sha256(old_event_id.encode()).hexdigest()[:16]
+                new_event_id = f"tos.event.shared-file-second.{suffix}"
+            second_event_ids[old_event_id] = new_event_id
         second = json.loads(json.dumps(first))
         second["item_ref"] = second_item_ref
         second["item_root_ref"] = second_item_root
@@ -343,10 +362,12 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
             for before, after in (
                 (first_item_root.encode(), second_item_root.encode()),
                 (first_item_ref.encode(), second_item_ref.encode()),
-                (first_event_ref.encode(), second_event_ref.encode()),
-                (first_inventory_event_ref.encode(), second_inventory_event_ref.encode()),
             ):
                 body = body.replace(before, after)
+            for old_event_id, new_event_id in sorted(
+                second_event_ids.items(), key=lambda item: len(item[0]), reverse=True
+            ):
+                body = body.replace(old_event_id.encode(), new_event_id.encode())
             destination = self.metadata / new_ref
             destination.parent.mkdir(parents=True, exist_ok=True)
             destination.write_bytes(body)

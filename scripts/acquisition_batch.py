@@ -789,10 +789,39 @@ def _verify_prepared_item_bindings(context: BatchContext, output: Path) -> None:
                 f"prepared Item {label} does not satisfy its schema: {item_ref}"
             ) from exc
 
+    batch_event_ids: set[str] = set()
     for selection in context.manifest["selection"]:
         item_ref = selection["item_ref"]
         item_root = selection["item_root_ref"]
         records = {record["ref"]: record for record in selection["records"]}
+        for record in selection["records"]:
+            kind = record["kind"]
+            if kind not in {"work", "expression", "edition"}:
+                continue
+            record_path = _path_under(
+                source_root,
+                record["ref"],
+                label=f"prepared selected {kind} record",
+            )
+            _regular_file(record_path, label=f"prepared selected {kind} record")
+            if _sha256_file(record_path) != record["sha256"]:
+                raise SourceIntegrityError(
+                    f"prepared selected {kind} record bytes differ: {record['ref']}"
+                )
+            record_value = _load_json_bytes(
+                record_path.read_bytes(), label=f"prepared selected {kind} record"
+            )
+            validate_contract(
+                record_value,
+                CORPUS_RECORD_SCHEMA,
+                label=f"selected {kind} record",
+                item_ref=item_ref,
+            )
+            if record_value.get("record_type") != kind:
+                raise AcquisitionBatchError(
+                    f"selected {kind} record has record_type "
+                    f"{record_value.get('record_type')}: {record['ref']}"
+                )
         item_manifest_ref = f"{item_root}/item.manifest.json"
         item_manifest_record = records.get(item_manifest_ref)
         if (
@@ -1036,6 +1065,13 @@ def _verify_prepared_item_bindings(context: BatchContext, output: Path) -> None:
             raise AcquisitionBatchError(
                 f"Item provenance contains duplicate event_id: {item_ref}"
             )
+        duplicate_batch_event_ids = batch_event_ids.intersection(event_ids)
+        if duplicate_batch_event_ids:
+            duplicate_event_id = sorted(duplicate_batch_event_ids)[0]
+            raise AcquisitionBatchError(
+                f"batch provenance contains duplicate event_id: {duplicate_event_id}"
+            )
+        batch_event_ids.update(event_ids)
         inventory_event_ref = inventory_value.get("provenance_event_ref")
         inventory_events = [
             event

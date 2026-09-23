@@ -1528,6 +1528,140 @@ class AcquisitionBatchTests(unittest.TestCase):
         self.assertEqual([], fetch_calls)
         self.assertEqual([], list(output_root.glob("receipts/handoff-*.json")))
 
+    def test_provenance_event_ids_are_unique_across_selected_items(self) -> None:
+        fetches, _manifest_sha = self._write_manifest(count=2, shared_payload=True)
+        manifest = json.loads(self.manifest_path.read_text(encoding="utf-8"))
+        first_selection, second_selection = manifest["selection"]
+        first_provenance = next(
+            record for record in first_selection["records"] if record["kind"] == "provenance"
+        )
+        second_provenance = next(
+            record for record in second_selection["records"] if record["kind"] == "provenance"
+        )
+        first_rows = [
+            json.loads(line)
+            for line in (self.metadata / first_provenance["ref"])
+            .read_text(encoding="utf-8")
+            .splitlines()
+            if line.strip()
+        ]
+        second_path = self.metadata / second_provenance["ref"]
+        second_rows = [
+            json.loads(line)
+            for line in second_path.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+        repeated_event = dict(second_rows[-1])
+        repeated_event.update(
+            event_id=first_rows[0]["event_id"],
+            event_type="forensic_inspection",
+            event_version=2,
+        )
+        second_rows.append(repeated_event)
+        second_path.write_text(
+            "".join(json.dumps(row, sort_keys=True) + "\n" for row in second_rows),
+            encoding="utf-8",
+        )
+        second_provenance["sha256"] = hashlib.sha256(second_path.read_bytes()).hexdigest()
+        self.manifest_path.write_text(
+            json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        manifest_sha = hashlib.sha256(self.manifest_path.read_bytes()).hexdigest()
+        output_root = self.root / "duplicate-batch-provenance-event-id"
+        fetch_calls: list[str] = []
+        with self.assertRaisesRegex(
+            acquisition.AcquisitionBatchError,
+            "batch provenance contains duplicate event_id",
+        ):
+            acquisition.acquire_batch(
+                manifest_path=self.manifest_path,
+                metadata_root=self.metadata,
+                output_root=output_root,
+                expected_manifest_sha256=manifest_sha,
+                fetcher=lambda payload: fetch_calls.append(payload["item_ref"])
+                or fetches[payload["file_ref"]],
+            )
+        self.assertEqual([], fetch_calls)
+        self.assertEqual([], list(output_root.glob("receipts/handoff-*.json")))
+
+    def test_selected_identity_records_are_schema_and_kind_bound_before_fetch(self) -> None:
+        cases = ("invalid_schema", "record_type_mismatch")
+        for mutation in cases:
+            with self.subTest(mutation=mutation):
+                fetches, _manifest_sha = self._write_manifest(count=1)
+                manifest = json.loads(self.manifest_path.read_text(encoding="utf-8"))
+                selection = manifest["selection"][0]
+                record_ref = "ToS/source-witnesses/works/fixture/selected-work.json"
+                if mutation == "invalid_schema":
+                    record_value = {
+                        "schema_version": "tos_corpus_record_v1",
+                        "record_type": "work",
+                        "record_id": "tos.work.fixture-selected",
+                        "preferred_label": "Selected fixture Work",
+                        "identity_status": "provisional",
+                        "source_refs": ["https://provider.example/fixture/work"],
+                        "external_identifiers": [],
+                        "same_as_posture": "no_equivalence_claim",
+                        "record_version": 1,
+                    }
+                    expected_error = (
+                        "prepared Item selected work record does not satisfy its schema"
+                    )
+                else:
+                    record_value = {
+                        "schema_version": "tos_corpus_record_v1",
+                        "record_type": "item",
+                        "record_id": "tos.item.fixture-selected-work",
+                        "preferred_label": "Selected fixture Item",
+                        "identity_status": "provisional",
+                        "source_refs": ["https://provider.example/fixture/item"],
+                        "external_identifiers": [],
+                        "same_as_posture": "no_equivalence_claim",
+                        "item_manifest_ref": f"{selection['item_root_ref']}/item.manifest.json",
+                        "record_version": 1,
+                    }
+                    expected_error = "selected work record has record_type item"
+                record_path = self.metadata / record_ref
+                record_path.parent.mkdir(parents=True, exist_ok=True)
+                record_path.write_text(
+                    json.dumps(record_value, sort_keys=True) + "\n",
+                    encoding="utf-8",
+                )
+                selection["records"].append(
+                    {
+                        "ref": record_ref,
+                        "kind": "work",
+                        "sha256": hashlib.sha256(record_path.read_bytes()).hexdigest(),
+                    }
+                )
+                manifest["provenance_delta"]["record_refs"] = sorted(
+                    record["ref"]
+                    for selected in manifest["selection"]
+                    for record in selected["records"]
+                )
+                self.manifest_path.write_text(
+                    json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+                    encoding="utf-8",
+                )
+                manifest_sha = hashlib.sha256(self.manifest_path.read_bytes()).hexdigest()
+                output_root = self.root / f"identity-record-closure-{mutation}"
+                fetch_calls: list[str] = []
+                with self.assertRaisesRegex(
+                    acquisition.AcquisitionBatchError,
+                    expected_error,
+                ):
+                    acquisition.acquire_batch(
+                        manifest_path=self.manifest_path,
+                        metadata_root=self.metadata,
+                        output_root=output_root,
+                        expected_manifest_sha256=manifest_sha,
+                        fetcher=lambda payload: fetch_calls.append(payload["file_ref"])
+                        or fetches[payload["file_ref"]],
+                    )
+                self.assertEqual([], fetch_calls)
+                self.assertEqual([], list(output_root.glob("receipts/handoff-*.json")))
+
     def test_selected_item_contracts_are_schema_validated_before_fetch(self) -> None:
         cases = (
             ("item_record", "prepared Item record does not satisfy its schema"),
