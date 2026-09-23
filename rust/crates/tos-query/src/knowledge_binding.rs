@@ -71,12 +71,18 @@ impl SelectedQueryVocabulary for BoundCmpKnowledge<'_> {
 
 /// CMP must already have verified the immutable selected SQLite bytes,
 /// component roots, source scopes and owner expectation at cold admission.
-/// This second seam confirms the independently authored descriptor is the
-/// one named by that selection, including every zero-row registered source.
+/// This second seam confirms the exact owner-authored descriptor bytes still
+/// produce the supplied vocabulary and are the ones named by that selection,
+/// including every zero-row registered source. `QueryVocabulary` has public
+/// fields, so its cached SHA alone cannot authenticate its current semantics.
 pub fn bind_verified_knowledge<'a>(
     model: &VerifiedKnowledgeModel<'_>,
     vocabulary: &'a QueryVocabulary,
+    authored_descriptor: &[u8],
 ) -> Result<BoundCmpKnowledge<'a>, SearchV2Error> {
+    vocabulary
+        .verify_authored_bytes(authored_descriptor)
+        .map_err(|_| stale("authored query vocabulary bytes differ"))?;
     model
         .check_pin()
         .map_err(|_| stale("selected knowledge pin changed"))?;
