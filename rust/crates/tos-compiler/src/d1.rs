@@ -663,6 +663,10 @@ fn publication(
         body.push(format!("INSERT INTO {serving} SELECT * FROM {new_stage};"));
     }
     body.push(format!("SELECT CASE WHEN {current} IS NOT {} THEN RAISE(ABORT,'D1 successor revision differs') END;", quote(target)));
+    // SQLite's default recursive_triggers=OFF prevents the edge_meta triggers
+    // from firing for writes made inside this publication trigger. Advance the
+    // serving clock in the same atomic body, as the maintained D1 builder does.
+    body.push("UPDATE knowledge_exploration_clock SET epoch=epoch+1 WHERE singleton=1;".into());
     // SQLite limits one statement to 100 KiB. A bounded trigger body may still
     // exceed that at many table families; refuse instead of weakening guards.
     sink.line(&format!("CREATE TRIGGER {trigger} AFTER INSERT ON tos_delta_publications WHEN NEW.revision={} BEGIN {} END;",

@@ -325,6 +325,7 @@ impl<'a> KnowledgeStage<'a> {
             metadata.ino()
         )?;
         lease.sync_all()?;
+        fs::File::open(parent)?.sync_all()?;
         stage.check(WritePhase::SqliteOpen)?;
         let db = Connection::open(candidate)?;
         stage.db = Some(db);
@@ -806,9 +807,9 @@ impl<'a> KnowledgeStage<'a> {
         } else {
             fs::File::open(output_path)?.sync_all()?;
         }
-        if let Some(fresh) = self.fresh_selected.as_ref() {
+        if let Some(fresh) = self.fresh_selected.clone() {
             let old = fs::symlink_metadata(&self.candidate)?;
-            let new = fs::symlink_metadata(fresh)?;
+            let new = fs::symlink_metadata(&fresh)?;
             let pinned = selected_file
                 .as_ref()
                 .ok_or(Error::Invalid("fresh selected file not retained"))?
@@ -823,7 +824,11 @@ impl<'a> KnowledgeStage<'a> {
                 return Err(Error::Invalid("selected stage inode changed"));
             }
             cleanup_sqlite_sidecars(&self.candidate, old.uid())?;
-            fs::rename(fresh, &self.candidate)?;
+            // Persist the replacement inode under the existing locked lease
+            // before rename. A crash on either side of rename then leaves a
+            // recoverable exact old/new inode, never an unqualified path.
+            self.mark_replacement((new.dev(), new.ino()))?;
+            fs::rename(&fresh, &self.candidate)?;
             self.inode = (new.dev(), new.ino());
             self.fresh_selected = None;
             let installed = fs::symlink_metadata(&self.candidate)?;
@@ -1072,6 +1077,25 @@ impl Drop for KnowledgeStage<'_> {
 }
 
 impl KnowledgeStage<'_> {
+    fn mark_replacement(&mut self, replacement: (u64, u64)) -> Result<()> {
+        let metadata = fs::symlink_metadata(&self.lease_path)?;
+        if !metadata.file_type().is_file() || (metadata.dev(), metadata.ino()) != self.lease_inode {
+            return Err(Error::Invalid("stage lease path changed"));
+        }
+        let lease = self
+            .lease
+            .as_mut()
+            .ok_or(Error::Invalid("stage lease absent"))?;
+        lease.seek(SeekFrom::End(0))?;
+        writeln!(
+            lease,
+            "tos-knowledge-stage-new-inode-v1 {} {}",
+            replacement.0, replacement.1
+        )?;
+        lease.sync_all()?;
+        Ok(())
+    }
+
     fn remove_lease(&mut self) -> Result<()> {
         if let Ok(metadata) = fs::symlink_metadata(&self.lease_path) {
             if !metadata.file_type().is_file()
@@ -1080,6 +1104,12 @@ impl KnowledgeStage<'_> {
                 return Err(Error::Invalid("stage lease path changed"));
             }
             fs::remove_file(&self.lease_path)?;
+            fs::File::open(
+                self.lease_path
+                    .parent()
+                    .ok_or(Error::Invalid("stage lease parent"))?,
+            )?
+            .sync_all()?;
         }
         self.lease.take();
         Ok(())
@@ -1145,13 +1175,17 @@ pub fn reap_abandoned_private_stage(candidate: &Path) -> Result<bool> {
         .map_err(|_| Error::Invalid("stage producer still active"))?;
     let mut marker = String::new();
     lease.seek(SeekFrom::Start(0))?;
-    if lease.metadata()?.len() > 128 {
+    if lease.metadata()?.len() > 192 {
         return Err(Error::Invalid("stage lease marker bytes"));
     }
     Read::by_ref(&mut lease)
-        .take(128)
+        .take(192)
         .read_to_string(&mut marker)?;
-    let mut fields = marker.split_whitespace();
+    let mut lines = marker.lines();
+    let mut fields = lines
+        .next()
+        .ok_or(Error::Invalid("stage lease marker"))?
+        .split_whitespace();
     if fields.next() != Some("tos-knowledge-stage-v1") {
         return Err(Error::Invalid("stage lease marker"));
     }
@@ -1169,12 +1203,41 @@ pub fn reap_abandoned_private_stage(candidate: &Path) -> Result<bool> {
         return Err(Error::Invalid("stage lease marker trailing data"));
     }
     let metadata = fs::symlink_metadata(candidate)?;
-    if !metadata.file_type().is_file() || (metadata.dev(), metadata.ino()) != (dev, ino) {
+    if !metadata.file_type().is_file() {
         return Err(Error::Invalid("stage candidate changed since lease"));
+    }
+    let renamed = (metadata.dev(), metadata.ino()) != (dev, ino);
+    if renamed {
+        let mut replacement = lines
+            .next()
+            .ok_or(Error::Invalid("stage replacement lease absent"))?
+            .split_whitespace();
+        if replacement.next() != Some("tos-knowledge-stage-new-inode-v1") {
+            return Err(Error::Invalid("stage replacement lease marker"));
+        }
+        let new_dev: u64 = replacement
+            .next()
+            .ok_or(Error::Invalid("stage replacement device"))?
+            .parse()
+            .map_err(|_| Error::Invalid("stage replacement device"))?;
+        let new_ino: u64 = replacement
+            .next()
+            .ok_or(Error::Invalid("stage replacement inode"))?
+            .parse()
+            .map_err(|_| Error::Invalid("stage replacement inode"))?;
+        if replacement.next().is_some()
+            || lines.next().is_some()
+            || (metadata.dev(), metadata.ino()) != (new_dev, new_ino)
+        {
+            return Err(Error::Invalid("stage replacement inode differs"));
+        }
     }
     let fresh = fresh_selected_path(candidate);
     match fs::symlink_metadata(&fresh) {
         Ok(output) => {
+            if renamed {
+                return Err(Error::Invalid("renamed stage also has fresh output"));
+            }
             if !output.file_type().is_file() || output.uid() != metadata.uid() {
                 return Err(Error::Invalid("abandoned fresh selected path changed"));
             }
@@ -1807,5 +1870,30 @@ mod tests {
         assert!(!orphan.exists());
         assert!(!lease_path(&orphan).unwrap().exists());
         fs::remove_dir_all(orphan.parent().unwrap()).unwrap();
+
+        // The same recovery route also recognizes a replacement inode that
+        // was recorded and renamed before the producer died.
+        let renamed = stage_path("renamed");
+        fs::write(&renamed, b"old private stage").unwrap();
+        let old = fs::metadata(&renamed).unwrap();
+        let fresh = fresh_selected_path(&renamed);
+        fs::write(&fresh, b"new selected candidate").unwrap();
+        let new = fs::metadata(&fresh).unwrap();
+        fs::write(
+            lease_path(&renamed).unwrap(),
+            format!(
+                "tos-knowledge-stage-v1 {} {}\ntos-knowledge-stage-new-inode-v1 {} {}\n",
+                old.dev(),
+                old.ino(),
+                new.dev(),
+                new.ino()
+            ),
+        )
+        .unwrap();
+        fs::rename(&fresh, &renamed).unwrap();
+        assert!(reap_abandoned_private_stage(&renamed).unwrap());
+        assert!(!renamed.exists());
+        assert!(!lease_path(&renamed).unwrap().exists());
+        fs::remove_dir_all(renamed.parent().unwrap()).unwrap();
     }
 }

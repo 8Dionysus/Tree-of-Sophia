@@ -999,20 +999,62 @@ fn verify_graph_root(
 
 // Following physical verifiers are deliberately explicit. Missing tables,
 // columns or roots must not silently fall back to a partial graph.
-const SELECTED_TABLES: [&str; 13] = [
-    "catalog_facet_fields",
-    "catalog_facets",
-    "catalog_index_meta",
-    "catalog_routes",
-    "catalog_source_counts",
-    "graph_header",
-    "knowledge_nodes",
-    "knowledge_relations",
-    "metadata",
-    "search_documents",
-    "search_gram_stats",
-    "search_grams",
-    "source_scope",
+// Exact sqlite_master.sql bytes produced by the owned table constructors.
+// The selected model ABI changes if any DDL changes: column checks alone do
+// not exclude a private DEFAULT expression or payload-bearing SQL comment.
+const SELECTED_TABLES: [(&str, &str); 13] = [
+    (
+        "catalog_facet_fields",
+        "1b34c315675e270607c5c157ae346c790f473a598a86241a59a64cfcd2ba6eb3",
+    ),
+    (
+        "catalog_facets",
+        "6775bdb46634a4d853a5cb8418109a23181d3dcaba4e3ece8a89934fb00e4cc9",
+    ),
+    (
+        "catalog_index_meta",
+        "8e140ee923d3673900116b11bcbef1279ee9f0c2221b74abed8584bae1fcbefb",
+    ),
+    (
+        "catalog_routes",
+        "d185ce15df7016146c2c8532d8f0912aa0d7eed48fd1fb6fc01b54e630e29072",
+    ),
+    (
+        "catalog_source_counts",
+        "d12fe5c97123ab8bacb96d87a8adcd61b0bb5edc3ce44658ed47766ff087643a",
+    ),
+    (
+        "graph_header",
+        "5302e4b65d084a575885cfa418d5e632662d5d83b77166f12c3b5a395698a7bb",
+    ),
+    (
+        "knowledge_nodes",
+        "34b58af97bfc61e662e2d1c1cb6ed74b9b092dcf763f305102b3d67e0a5f0a19",
+    ),
+    (
+        "knowledge_relations",
+        "5470a4a6ca623be58d3df41f31809b224e1d0d1c2f941e19a73b0c42333f079a",
+    ),
+    (
+        "metadata",
+        "6c4078f02b0cfa4433e523de5a92045a65d0d0352d4c89924e9fd3718c731e47",
+    ),
+    (
+        "search_documents",
+        "0b1b8edf910d7be7f780e1b2777f50055879d43b098724bfcfd9f0e992e2c9cd",
+    ),
+    (
+        "search_gram_stats",
+        "92de863c3d48671f36580e57f70252d4c7048f1bc4ae360cf302075a643a14db",
+    ),
+    (
+        "search_grams",
+        "3d485fccd8f105156592462f47999c8f3d4780266bc359798a3db9e27323c646",
+    ),
+    (
+        "source_scope",
+        "7484cf6fb366756db8edc732e4c46ca01800bcdade76c7b6a85e7948b5bfe8f4",
+    ),
 ];
 
 fn verify_selected_table_allowlist(db: &Connection) -> Result<()> {
@@ -1023,7 +1065,7 @@ fn verify_selected_table_allowlist(db: &Connection) -> Result<()> {
          FROM sqlite_master WHERE type='table' ORDER BY name",
     )?;
     let mut table_rows = table_statement.query([])?;
-    for expected_table in SELECTED_TABLES {
+    for (expected_table, _) in SELECTED_TABLES {
         let actual: Option<String> = table_rows
             .next()?
             .ok_or(Error::Invalid("knowledge table omitted"))?
@@ -1041,6 +1083,22 @@ fn verify_selected_table_allowlist(db: &Connection) -> Result<()> {
 pub(crate) fn verify_schema(db: &Connection) -> Result<()> {
     verify_selected_table_allowlist(db)?;
     knowledge_stage::selected_table_closure(db)?;
+    for (table, expected_ddl_sha256) in SELECTED_TABLES {
+        let ddl: Option<Vec<u8>> = db
+            .query_row(
+                "SELECT CASE WHEN typeof(sql)='text' AND length(CAST(sql AS BLOB))<=65536
+                 THEN CAST(sql AS BLOB) ELSE NULL END
+                 FROM sqlite_master WHERE type='table' AND name=?1",
+                [table],
+                |row| row.get(0),
+            )
+            .optional()?
+            .flatten();
+        let ddl = ddl.ok_or(Error::Invalid("selected table DDL absent/oversized"))?;
+        if Digest256::of_bytes(&ddl).to_hex() != expected_ddl_sha256 {
+            return Err(Error::Invalid("selected table DDL differs from model ABI"));
+        }
+    }
     for (table, columns) in [
         ("metadata", &["key:TEXT:1", "value:BLOB:0"][..]),
         (
@@ -1872,7 +1930,7 @@ mod tests {
     #[test]
     fn selected_table_allowlist_refuses_private_input_and_prepare_tables() {
         let db = Connection::open_in_memory().unwrap();
-        for table in SELECTED_TABLES {
+        for (table, _) in SELECTED_TABLES {
             db.execute(&format!("CREATE TABLE {table}(x)"), []).unwrap();
         }
         assert!(verify_selected_table_allowlist(&db).is_ok());
