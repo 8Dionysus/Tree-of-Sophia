@@ -4,7 +4,8 @@
 mod source_forms_shadow;
 
 use source_forms_shadow::{
-    ShadowError, WorkFormsInput, apply_or_replay, run_claim_command, run_work_command,
+    NativeFormsInput, ShadowError, WorkFormsInput, apply_or_replay, run_claim_command,
+    run_native_command, run_work_command,
 };
 use tos_foundation::{CanonicalProfile, JsonLimits, JsonMode, canonical_digest_v1, parse_json};
 
@@ -61,6 +62,334 @@ const CLAIM_V1_PUBLISHED: &[u8] =
     include_bytes!("fixtures/source_forms_shadow/claim_v1/published.json");
 const CLAIM_V2_PUBLISHED: &[u8] =
     include_bytes!("fixtures/source_forms_shadow/claim_v2/published.json");
+
+struct NativeCase {
+    source: &'static [u8],
+    initial: &'static [u8],
+    published: &'static [u8],
+    owner: &'static [u8],
+    schema: &'static [u8],
+    describe: [&'static [u8]; 2],
+    prepare_note: [&'static [u8]; 2],
+    prepare_name: [&'static [u8]; 2],
+    apply: [&'static [u8]; 2],
+    replay: [&'static [u8]; 2],
+    denied: [[&'static [u8]; 2]; 5],
+    schema_version: &'static str,
+    source_path: &'static str,
+    record_version: &'static str,
+    next_version: &'static str,
+}
+
+macro_rules! native_case {
+    ($dir:literal, $schema:literal, $source_path:literal, $version:literal, $next:literal) => {
+        NativeCase {
+            source: include_bytes!(concat!(
+                "fixtures/source_forms_shadow/",
+                $dir,
+                "/source.initial.json"
+            )),
+            initial: include_bytes!(concat!(
+                "fixtures/source_forms_shadow/",
+                $dir,
+                "/form-set.initial.json"
+            )),
+            published: include_bytes!(concat!(
+                "fixtures/source_forms_shadow/",
+                $dir,
+                "/form-set.published.json"
+            )),
+            owner: include_bytes!(concat!(
+                "fixtures/source_forms_shadow/",
+                $dir,
+                "/owner.synthetic.json"
+            )),
+            schema: include_bytes!(concat!(
+                "fixtures/source_forms_shadow/",
+                $dir,
+                "/source-schema.initial.json"
+            )),
+            describe: [
+                include_bytes!(concat!(
+                    "fixtures/source_forms_shadow/",
+                    $dir,
+                    "/describe.request.json"
+                )),
+                include_bytes!(concat!(
+                    "fixtures/source_forms_shadow/",
+                    $dir,
+                    "/describe.response.json"
+                )),
+            ],
+            prepare_note: [
+                include_bytes!(concat!(
+                    "fixtures/source_forms_shadow/",
+                    $dir,
+                    "/prepare.note.request.json"
+                )),
+                include_bytes!(concat!(
+                    "fixtures/source_forms_shadow/",
+                    $dir,
+                    "/prepare.note.response.json"
+                )),
+            ],
+            prepare_name: [
+                include_bytes!(concat!(
+                    "fixtures/source_forms_shadow/",
+                    $dir,
+                    "/prepare.name.request.json"
+                )),
+                include_bytes!(concat!(
+                    "fixtures/source_forms_shadow/",
+                    $dir,
+                    "/prepare.name.response.json"
+                )),
+            ],
+            apply: [
+                include_bytes!(concat!(
+                    "fixtures/source_forms_shadow/",
+                    $dir,
+                    "/apply.request.json"
+                )),
+                include_bytes!(concat!(
+                    "fixtures/source_forms_shadow/",
+                    $dir,
+                    "/apply.response.json"
+                )),
+            ],
+            replay: [
+                include_bytes!(concat!(
+                    "fixtures/source_forms_shadow/",
+                    $dir,
+                    "/replay.request.json"
+                )),
+                include_bytes!(concat!(
+                    "fixtures/source_forms_shadow/",
+                    $dir,
+                    "/replay.response.json"
+                )),
+            ],
+            denied: [
+                [
+                    include_bytes!(concat!(
+                        "fixtures/source_forms_shadow/",
+                        $dir,
+                        "/denied.stale-source-version.request.json"
+                    )),
+                    include_bytes!(concat!(
+                        "fixtures/source_forms_shadow/",
+                        $dir,
+                        "/denied.stale-source-version.response.json"
+                    )),
+                ],
+                [
+                    include_bytes!(concat!(
+                        "fixtures/source_forms_shadow/",
+                        $dir,
+                        "/denied.schema-byte-drift.request.json"
+                    )),
+                    include_bytes!(concat!(
+                        "fixtures/source_forms_shadow/",
+                        $dir,
+                        "/denied.schema-byte-drift.response.json"
+                    )),
+                ],
+                [
+                    include_bytes!(concat!(
+                        "fixtures/source_forms_shadow/",
+                        $dir,
+                        "/denied.recast-native-identity.request.json"
+                    )),
+                    include_bytes!(concat!(
+                        "fixtures/source_forms_shadow/",
+                        $dir,
+                        "/denied.recast-native-identity.response.json"
+                    )),
+                ],
+                [
+                    include_bytes!(concat!(
+                        "fixtures/source_forms_shadow/",
+                        $dir,
+                        "/denied.visibility-revoked-replay.request.json"
+                    )),
+                    include_bytes!(concat!(
+                        "fixtures/source_forms_shadow/",
+                        $dir,
+                        "/denied.visibility-revoked-replay.response.json"
+                    )),
+                ],
+                [
+                    include_bytes!(concat!(
+                        "fixtures/source_forms_shadow/",
+                        $dir,
+                        "/denied.wrong-owner-path.request.json"
+                    )),
+                    include_bytes!(concat!(
+                        "fixtures/source_forms_shadow/",
+                        $dir,
+                        "/denied.wrong-owner-path.response.json"
+                    )),
+                ],
+            ],
+            schema_version: $schema,
+            source_path: $source_path,
+            record_version: $version,
+            next_version: $next,
+        }
+    };
+}
+
+fn native_input<'a>(
+    source: &'a [u8],
+    set: &'a [u8],
+    owner: &'a [u8],
+    schema: &'a [u8],
+    request: &'a [u8],
+) -> NativeFormsInput<'a> {
+    NativeFormsInput {
+        command: input(source, set, owner, request),
+        source_schema_raw: schema,
+    }
+}
+
+fn legacy_error(raw: &[u8]) -> String {
+    let document = parse_json(raw, JsonMode::PublishedStrict, JsonLimits::default()).unwrap();
+    document
+        .root()
+        .object_get("error")
+        .unwrap()
+        .as_str()
+        .unwrap()
+        .to_owned()
+}
+
+#[test]
+fn pinned_native_artifact_and_composite_differential_and_denials() {
+    let cases = [
+        native_case!(
+            "artifact-v1",
+            "tos_artifact_source_witness_v1",
+            "ToS/source-witnesses/artifacts/sumerian/uncertain/louvre-ao-05473/artifact-witness.json",
+            "1",
+            "2"
+        ),
+        native_case!(
+            "artifact-v2",
+            "tos_artifact_source_witness_v2",
+            "ToS/source-witnesses/artifacts/sumerian/adab/oim-a00645/artifact-witness.json",
+            "1",
+            "2"
+        ),
+        native_case!(
+            "composite-v1",
+            "tos_scholarly_composite_witness_v1",
+            "ToS/source-witnesses/scholarly-composites/synoptic/sumerian/old-babylonian-literary-catalogue-witnesses/composite-witness.json",
+            "2",
+            "3"
+        ),
+    ];
+    for case in cases {
+        for pair in [&case.describe, &case.prepare_note, &case.prepare_name] {
+            let actual = run_native_command(native_input(
+                case.source,
+                case.initial,
+                case.owner,
+                case.schema,
+                pair[0],
+            ))
+            .unwrap();
+            assert!(actual.proposed_form_set.is_none());
+            assert_response(&actual.response, pair[1]);
+        }
+        let applied = run_native_command(native_input(
+            case.source,
+            case.initial,
+            case.owner,
+            case.schema,
+            case.apply[0],
+        ))
+        .unwrap();
+        assert_published_bytes(applied.proposed_form_set.as_deref(), case.published);
+        assert_response(&applied.response, case.apply[1]);
+        assert_eq!(case.replay[0], case.apply[0]);
+        let replayed = run_native_command(native_input(
+            case.source,
+            case.published,
+            case.owner,
+            case.schema,
+            case.replay[0],
+        ))
+        .unwrap();
+        assert!(replayed.proposed_form_set.is_none());
+        assert_response(&replayed.response, case.replay[1]);
+
+        let version_key = format!("\"record_version\": {}", case.record_version);
+        let next_version = format!("\"record_version\": {}", case.next_version);
+        let changed_source = edit(case.source, &version_key, &next_version);
+        assert_eq!(legacy_error(case.denied[0][1]), "JournalConflict");
+        assert!(matches!(
+            run_native_command(native_input(
+                &changed_source,
+                case.initial,
+                case.owner,
+                case.schema,
+                case.denied[0][0]
+            )),
+            Err(ShadowError::Conflict(_))
+        ));
+        let mut changed_schema = case.schema.to_vec();
+        changed_schema.push(b'\n');
+        assert_eq!(legacy_error(case.denied[1][1]), "JournalConflict");
+        assert!(matches!(
+            run_native_command(native_input(
+                case.source,
+                case.initial,
+                case.owner,
+                &changed_schema,
+                case.denied[1][0]
+            )),
+            Err(ShadowError::Conflict(_))
+        ));
+        let recast = edit(case.source, case.schema_version, "tos_corpus_record_v1");
+        assert_eq!(legacy_error(case.denied[2][1]), "ValueError");
+        assert!(matches!(
+            run_native_command(native_input(
+                &recast,
+                case.initial,
+                case.owner,
+                case.schema,
+                case.denied[2][0]
+            )),
+            Err(ShadowError::Invalid(_))
+        ));
+        let private = edit(case.source, "public_metadata_only", "local_only");
+        assert_eq!(legacy_error(case.denied[3][1]), "ValueError");
+        assert!(matches!(
+            run_native_command(native_input(
+                &private,
+                case.published,
+                case.owner,
+                case.schema,
+                case.denied[3][0]
+            )),
+            Err(ShadowError::Invalid(_))
+        ));
+        let basename = case.source_path.rsplit('/').next().unwrap();
+        let wrong_route = format!("ToS/source-witnesses/works/native/{basename}");
+        let wrong_owner = edit(case.owner, case.source_path, &wrong_route);
+        assert_eq!(legacy_error(case.denied[4][1]), "ValueError");
+        assert!(matches!(
+            run_native_command(native_input(
+                case.source,
+                case.published,
+                &wrong_owner,
+                case.schema,
+                case.denied[4][0]
+            )),
+            Err(ShadowError::Invalid(_))
+        ));
+    }
+}
 
 #[test]
 fn pinned_claim_v1_statement_describe_prepare_apply_replay() {
@@ -204,9 +533,11 @@ fn pinned_claim_v2_display_batch_describe_prepare_apply_replay_and_revocation() 
         &replay.response,
         include_bytes!("fixtures/source_forms_shadow/claim_v2/replay.json"),
     );
-    let revoked = edit(CLAIM_V2_OWNER,
+    let revoked = edit(
+        CLAIM_V2_OWNER,
         "\"allowed_field_ids\": [\n    \"claim.statement\",\n    \"claim.name\",\n    \"claim.caption\",\n    \"claim.hover\"\n  ]",
-        "\"allowed_field_ids\": [\"claim.statement\"]");
+        "\"allowed_field_ids\": [\"claim.statement\"]",
+    );
     assert!(matches!(
         run_claim_command(input(CLAIM_SOURCE, CLAIM_INITIAL, &revoked, CLAIM_V2_APPLY)),
         Err(ShadowError::Denied(_))

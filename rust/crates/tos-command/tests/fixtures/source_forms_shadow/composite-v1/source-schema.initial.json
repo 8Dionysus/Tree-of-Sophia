@@ -1,0 +1,218 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/scholarly-composite-witness.schema.json",
+  "title": "Tree of Sophia scholarly composite witness",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "composite_id",
+    "composite_kind",
+    "preferred_label",
+    "identity_status",
+    "path_identity",
+    "identifiers",
+    "editorial_object",
+    "provider_representations",
+    "member_observations",
+    "coverage_observations",
+    "content_layer",
+    "layer_separation",
+    "rights_ref",
+    "discovery_ref",
+    "provenance_event_ref",
+    "research_ref",
+    "philosophy_planting_refs",
+    "authority",
+    "maker",
+    "created_at",
+    "record_version"
+  ],
+  "properties": {
+    "$schema": {"const": "https://tree-of-sophia.local/ToS/contracts/scholarly-composite-witness.schema.json"},
+    "schema_version": {"const": "tos_scholarly_composite_witness_v1"},
+    "composite_id": {"$ref": "#/$defs/compositeId"},
+    "composite_kind": {"enum": ["documentary_composite", "critical_reconstruction", "synoptic_composite", "other"]},
+    "preferred_label": {"type": "string", "minLength": 1},
+    "identity_status": {"enum": ["provisional", "verified", "disputed", "superseded"]},
+    "path_identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["basis", "provider_independent", "note"],
+      "properties": {
+        "basis": {"const": "scholarly_composition_identity"},
+        "provider_independent": {"const": true},
+        "note": {"type": "string", "minLength": 1}
+      }
+    },
+    "identifiers": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/identifier"}
+    },
+    "editorial_object": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "tradition", "genre", "period_label", "description", "modern_reconstruction", "ancient_original", "physical_artifact"],
+      "properties": {
+        "title": {"type": "string", "minLength": 1},
+        "tradition": {"type": "string", "minLength": 1},
+        "genre": {"type": "string", "minLength": 1},
+        "period_label": {"type": "string", "minLength": 1},
+        "description": {"type": "string", "minLength": 1},
+        "modern_reconstruction": {"const": true},
+        "ancient_original": {"const": false},
+        "physical_artifact": {"const": false}
+      }
+    },
+    "provider_representations": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/providerRepresentation"}
+    },
+    "member_observations": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["observation_id", "member_artifact_id", "relationship", "provider_relation_ids", "source_refs", "member_text_stored", "review_status"],
+        "properties": {
+          "observation_id": {"type": "string", "pattern": "^tos\\.observation\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+          "member_artifact_id": {"type": "string", "pattern": "^tos\\.artifact\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+          "relationship": {"const": "reported_witness_of"},
+          "provider_relation_ids": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+          "source_refs": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "format": "uri"}},
+          "member_text_stored": {"const": false},
+          "review_status": {"const": "unreviewed"}
+        }
+      }
+    },
+    "coverage_observations": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["provider", "surface", "observed_member_count", "observed_tagged_count", "named_member_present", "coverage_posture", "checked_at", "note"],
+        "properties": {
+          "provider": {"type": "string", "minLength": 1},
+          "surface": {"type": "string", "format": "uri"},
+          "observed_member_count": {"type": "integer", "minimum": 0},
+          "observed_tagged_count": {"type": ["integer", "null"], "minimum": 0},
+          "named_member_present": {"type": "boolean"},
+          "coverage_posture": {"enum": ["provider_reported", "full_api_list", "page_exposed_unknown"]},
+          "checked_at": {"type": "string", "format": "date-time"},
+          "note": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "content_layer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["role", "formats", "availability", "content_stored", "source_text_admitted", "source_refs", "scope_note"],
+      "properties": {
+        "role": {"const": "modern_scholarly_composite"},
+        "formats": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "availability": {"enum": ["open_view", "open_download", "available_not_acquired", "unavailable", "unknown"]},
+        "content_stored": {"const": false},
+        "source_text_admitted": {"const": false},
+        "source_refs": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "format": "uri"}},
+        "scope_note": {"type": "string", "minLength": 1}
+      }
+    },
+    "layer_separation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["composite_is_physical_artifact", "composite_is_ancient_original", "provider_page_is_composite_identity", "member_is_composite", "editorial_line_is_artifact_line", "sign_has_fixed_translation", "composite_is_philosophy"],
+      "properties": {
+        "composite_is_physical_artifact": {"const": false},
+        "composite_is_ancient_original": {"const": false},
+        "provider_page_is_composite_identity": {"const": false},
+        "member_is_composite": {"const": false},
+        "editorial_line_is_artifact_line": {"const": false},
+        "sign_has_fixed_translation": {"const": false},
+        "composite_is_philosophy": {"const": false}
+      }
+    },
+    "rights_ref": {"$ref": "#/$defs/repoPath"},
+    "discovery_ref": {"$ref": "#/$defs/repoPath"},
+    "provenance_event_ref": {"type": "string", "pattern": "^tos\\.event\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+    "research_ref": {"$ref": "#/$defs/repoPath"},
+    "philosophy_planting_refs": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/repoPath"}},
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["evidence_status", "review_status", "visibility", "source_text_admitted", "semantic_authority", "graph_authority", "canon_authority", "publication_authority"],
+      "properties": {
+        "evidence_status": {"const": "metadata_witness"},
+        "review_status": {"enum": ["unreviewed", "human_reviewed", "superseded"]},
+        "visibility": {"const": "public_metadata_only"},
+        "source_text_admitted": {"const": false},
+        "semantic_authority": {"const": false},
+        "graph_authority": {"const": false},
+        "canon_authority": {"const": false},
+        "publication_authority": {"const": false}
+      }
+    },
+    "maker": {"$ref": "#/$defs/maker"},
+    "created_at": {"type": "string", "format": "date-time"},
+    "record_version": {"type": "integer", "minimum": 1}
+  },
+  "$defs": {
+    "repoPath": {"type": "string", "minLength": 1, "pattern": "^(?![A-Za-z][A-Za-z0-9+.-]*:)(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[^\\u0000]+$"},
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "compositeId": {"type": "string", "pattern": "^tos\\.composite\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+    "identifier": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scheme", "value", "source_ref"],
+      "properties": {
+        "scheme": {"type": "string", "minLength": 1},
+        "value": {"type": "string", "minLength": 1},
+        "source_ref": {"type": "string", "format": "uri"}
+      }
+    },
+    "fingerprint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["surface", "byte_size", "sha256", "captured"],
+      "properties": {
+        "surface": {"type": "string", "format": "uri"},
+        "byte_size": {"type": "integer", "minimum": 1},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "captured": {"const": false}
+      }
+    },
+    "providerRepresentation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider", "representation_role", "record_id", "record_url", "api_url", "checked_at", "mutable", "response_fingerprints"],
+      "properties": {
+        "provider": {"type": "string", "minLength": 1},
+        "representation_role": {"enum": ["composite_edition", "composite_catalog", "member_context"]},
+        "record_id": {"type": "string", "minLength": 1},
+        "record_url": {"type": "string", "format": "uri"},
+        "api_url": {"type": ["string", "null"], "format": "uri"},
+        "checked_at": {"type": "string", "format": "date-time"},
+        "mutable": {"const": true},
+        "response_fingerprints": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/fingerprint"}}
+      }
+    },
+    "maker": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["maker_type", "agent_ref", "human_review_performed"],
+      "properties": {
+        "maker_type": {"enum": ["human", "model", "mixed", "software"]},
+        "agent_ref": {"type": "string", "minLength": 1},
+        "human_review_performed": {"type": "boolean"}
+      }
+    }
+  }
+}

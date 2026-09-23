@@ -1,4 +1,4 @@
-//! Private, in-memory CMD.2 shadow for one frozen public Work HumanForms vector.
+//! Private, in-memory CMD.2 HumanForms differential shadow.
 //!
 //! This module is deliberately not exported by `lib.rs`. It neither reads nor
 //! writes owner files, holds a source lock, checks rights, nor consumes a VAL
@@ -29,6 +29,61 @@ const EXISTING_ID: &str = "tos.form.jenseits-von-gut-und-boese.name-original";
 const NEW_ID: &str = "tos.form.oracle.jgb-name-ru-copy";
 const CLAIM_SOURCE_RAW_SHA: &str =
     "sha256:97c8af473ecd35841f7541b6f68ef76a7a8f09c6a90bdbf9da3b3955380e5cd2";
+
+#[derive(Clone, Copy, Debug)]
+pub struct NativeFormsInput<'a> {
+    pub command: WorkFormsInput<'a>,
+    /// The independently copied, exact native source JSON Schema bytes.
+    pub source_schema_raw: &'a [u8],
+}
+
+struct NativeFixture {
+    source_path: &'static str,
+    schema_ref: &'static str,
+    schema_version: &'static str,
+    identity_field: &'static str,
+    source_raw: &'static [u8],
+    schema_raw: &'static [u8],
+    owner_raw: &'static [u8],
+    initial_set_raw: &'static [u8],
+    published_set_raw: &'static [u8],
+}
+
+const NATIVE_FIXTURES: &[NativeFixture] = &[
+    NativeFixture {
+        source_path: "ToS/source-witnesses/artifacts/sumerian/uncertain/louvre-ao-05473/artifact-witness.json",
+        schema_ref: "ToS/contracts/artifact-source-witness.schema.json",
+        schema_version: "tos_artifact_source_witness_v1",
+        identity_field: "artifact_id",
+        source_raw: include_bytes!("../tests/fixtures/source_forms_shadow/artifact-v1/source.initial.json"),
+        schema_raw: include_bytes!("../tests/fixtures/source_forms_shadow/artifact-v1/source-schema.initial.json"),
+        owner_raw: include_bytes!("../tests/fixtures/source_forms_shadow/artifact-v1/owner.synthetic.json"),
+        initial_set_raw: include_bytes!("../tests/fixtures/source_forms_shadow/artifact-v1/form-set.initial.json"),
+        published_set_raw: include_bytes!("../tests/fixtures/source_forms_shadow/artifact-v1/form-set.published.json"),
+    },
+    NativeFixture {
+        source_path: "ToS/source-witnesses/artifacts/sumerian/adab/oim-a00645/artifact-witness.json",
+        schema_ref: "ToS/contracts/artifact-source-witness-v2.schema.json",
+        schema_version: "tos_artifact_source_witness_v2",
+        identity_field: "artifact_id",
+        source_raw: include_bytes!("../tests/fixtures/source_forms_shadow/artifact-v2/source.initial.json"),
+        schema_raw: include_bytes!("../tests/fixtures/source_forms_shadow/artifact-v2/source-schema.initial.json"),
+        owner_raw: include_bytes!("../tests/fixtures/source_forms_shadow/artifact-v2/owner.synthetic.json"),
+        initial_set_raw: include_bytes!("../tests/fixtures/source_forms_shadow/artifact-v2/form-set.initial.json"),
+        published_set_raw: include_bytes!("../tests/fixtures/source_forms_shadow/artifact-v2/form-set.published.json"),
+    },
+    NativeFixture {
+        source_path: "ToS/source-witnesses/scholarly-composites/synoptic/sumerian/old-babylonian-literary-catalogue-witnesses/composite-witness.json",
+        schema_ref: "ToS/contracts/scholarly-composite-witness.schema.json",
+        schema_version: "tos_scholarly_composite_witness_v1",
+        identity_field: "composite_id",
+        source_raw: include_bytes!("../tests/fixtures/source_forms_shadow/composite-v1/source.initial.json"),
+        schema_raw: include_bytes!("../tests/fixtures/source_forms_shadow/composite-v1/source-schema.initial.json"),
+        owner_raw: include_bytes!("../tests/fixtures/source_forms_shadow/composite-v1/owner.synthetic.json"),
+        initial_set_raw: include_bytes!("../tests/fixtures/source_forms_shadow/composite-v1/form-set.initial.json"),
+        published_set_raw: include_bytes!("../tests/fixtures/source_forms_shadow/composite-v1/form-set.published.json"),
+    },
+];
 
 #[derive(Clone, Copy, Debug)]
 pub struct WorkFormsInput<'a> {
@@ -1675,6 +1730,458 @@ fn check_scope(config: &JsonValue, changes: &[JsonValue]) -> Result<()> {
         }
     }
     Ok(())
+}
+
+fn native_fields(source: &JsonValue, fixture: &NativeFixture) -> Result<Vec<WorkField>> {
+    let composite = fixture.identity_field == "composite_id";
+    let name_context = if composite {
+        [
+            "/identity_status",
+            "/layer_separation",
+            "/authority",
+            "/rights_ref",
+        ]
+    } else {
+        ["/custody", "/layer_separation", "/authority", "/rights_ref"]
+    };
+    let fields = vec![
+        WorkField {
+            id: "metadata.preferred-name".to_owned(),
+            pointer: if composite {
+                "/preferred_label"
+            } else {
+                "/custody/inventory_numbers/0"
+            }
+            .to_owned(),
+            role: "name",
+            language: JsonValue::Null,
+            script: JsonValue::Null,
+            context: name_context.iter().map(|part| (*part).to_owned()).collect(),
+        },
+        WorkField {
+            id: "metadata.source-note".to_owned(),
+            pointer: if composite {
+                "/editorial_object/description"
+            } else {
+                "/path_identity/note"
+            }
+            .to_owned(),
+            role: "hover",
+            language: JsonValue::Null,
+            script: JsonValue::Null,
+            context: vec![String::new()],
+        },
+    ];
+    for field in &fields {
+        if pointer(source, &field.pointer)?.as_str().is_none() {
+            return Err(ShadowError::Invalid("native wording is not text"));
+        }
+        for path in &field.context {
+            pointer(source, path)?;
+        }
+    }
+    Ok(fields)
+}
+
+fn native_result(
+    source: &JsonValue,
+    set: &JsonValue,
+    config: &JsonValue,
+    contracts: &JsonValue,
+    fields: &[WorkField],
+    subject: &JsonValue,
+    revision: &str,
+    receipt: JsonValue,
+    replayed: bool,
+) -> Result<JsonValue> {
+    let path = text(config, "source_path")?;
+    let target = format!(
+        "{}.human-forms.json",
+        path.strip_suffix(".json")
+            .ok_or(ShadowError::Invalid("native source filename"))?
+    );
+    let forms = array(set, "forms")?;
+    Ok(obj(vec![
+        (
+            "schema_version",
+            string("tos_local_source_command_result_v1"),
+        ),
+        ("authentication", string("local-unix-account")),
+        (
+            "owner_configuration",
+            string(&claim_config_digest(config, contracts)?),
+        ),
+        ("source", subject.clone()),
+        ("source_path", string(path)),
+        ("target_path", string(&target)),
+        ("revision", string(revision)),
+        (
+            "supported_operations",
+            JsonValue::Array(vec![string("form.create"), string("form.revise")]),
+        ),
+        (
+            "allowed_operations",
+            field(config, "allowed_operations")?.clone(),
+        ),
+        (
+            "command_operations",
+            JsonValue::Array(vec![string("describe"), string("prepare"), string("apply")]),
+        ),
+        (
+            "source_fields",
+            JsonValue::Array(fields.iter().map(WorkField::public).collect()),
+        ),
+        (
+            "allowed_form_ids",
+            field(config, "allowed_form_ids")?.clone(),
+        ),
+        ("source_contracts", contracts.clone()),
+        (
+            "forms",
+            JsonValue::Array(forms.iter().map(form_ref).collect::<Result<Vec<_>>>()?),
+        ),
+        (
+            "materializations",
+            JsonValue::Array(
+                forms
+                    .iter()
+                    .map(|form| materialization(source, subject, form, fields))
+                    .collect::<Result<Vec<_>>>()?,
+            ),
+        ),
+        ("receipt", receipt),
+        ("replayed", JsonValue::Bool(replayed)),
+        ("grants_admission", JsonValue::Bool(false)),
+    ]))
+}
+
+/// Compare a pinned native Artifact/Composite command with the legacy oracle.
+///
+/// This consumes supplied bytes only. Exact fixture source/schema/config
+/// fingerprints intentionally bound the supported profile: this does not
+/// validate arbitrary native JSON Schemas, protected file selection or rights.
+pub fn run_native_command(input: NativeFormsInput<'_>) -> Result<WorkCommandShadow> {
+    let command = input.command;
+    if command.recorded_at.len() != 25
+        || !command.recorded_at.ends_with("+00:00")
+        || !command.recorded_at.is_ascii()
+    {
+        return Err(ShadowError::Unsupported(
+            "only explicit UTC shadow instants",
+        ));
+    }
+    let config = parse(command.owner_config_raw, 1_048_576)?;
+    exact_keys(
+        &config,
+        &[
+            "schema_version",
+            "uid",
+            "principal_id",
+            "source_root",
+            "source_path",
+            "authority_ref",
+            "allowed_form_ids",
+            "allowed_operations",
+            "expires_at",
+        ],
+    )?;
+    if text(&config, "schema_version")? != "tos_local_source_command_owner_v1" {
+        return Err(ShadowError::Unsupported("other native form owner schema"));
+    }
+    if integer(&config, "uid")? != command.effective_uid {
+        return Err(ShadowError::Denied("native owner UID differs"));
+    }
+    let path = text(&config, "source_path")?;
+    let fixture = NATIVE_FIXTURES
+        .iter()
+        .find(|fixture| fixture.source_path == path)
+        .ok_or(ShadowError::Invalid("other native source owner path"))?;
+    if text(&config, "source_root")?.is_empty()
+        || !text(&config, "source_root")?.starts_with('/')
+        || text(&config, "source_root")?
+            .split('/')
+            .any(|part| part == "..")
+        || text(&config, "principal_id")?.trim().is_empty()
+        || text(&config, "authority_ref")?.trim().is_empty()
+        || text(&config, "expires_at")?.len() != 20
+        || &text(&config, "expires_at")?[..19] <= &command.recorded_at[..19]
+    {
+        return Err(ShadowError::Denied("native owner scope or expiry"));
+    }
+    let allowed_ops = array(&config, "allowed_operations")?;
+    if !allowed_ops
+        .iter()
+        .any(|op| op.as_str() == Some("form.create"))
+        || !allowed_ops
+            .iter()
+            .any(|op| op.as_str() == Some("form.revise"))
+    {
+        return Err(ShadowError::Denied("native owner operation revoked"));
+    }
+    if command.owner_config_raw != fixture.owner_raw {
+        return Err(ShadowError::Unsupported(
+            "other native owner configuration bytes",
+        ));
+    }
+    if input.source_schema_raw != fixture.schema_raw {
+        return Err(ShadowError::Conflict("native source schema bytes changed"));
+    }
+    let source = parse(command.source_raw, 1_048_576)?;
+    if text(&source, "schema_version")? != fixture.schema_version {
+        return Err(ShadowError::Invalid(
+            "native source schema identity changed",
+        ));
+    }
+    if !matches!(
+        text(field(&source, "authority")?, "visibility")?,
+        "public" | "public_metadata_only"
+    ) {
+        return Err(ShadowError::Invalid(
+            "native visibility outside public metadata",
+        ));
+    }
+    let initial_source = parse(fixture.source_raw, 1_048_576)?;
+    if text(&source, fixture.identity_field)? != text(&initial_source, fixture.identity_field)? {
+        return Err(ShadowError::Invalid("native source identity changed"));
+    }
+    if command.source_raw != fixture.source_raw {
+        if integer(&source, "record_version")? != integer(&initial_source, "record_version")? {
+            return Err(ShadowError::Conflict("native source version changed"));
+        }
+        return Err(ShadowError::Unsupported("other native source bytes"));
+    }
+    let fields = native_fields(&source, fixture)?;
+    let subject = record_ref(
+        text(&source, fixture.identity_field)?,
+        integer(&source, "record_version")?,
+        &source,
+    )?;
+    if command.form_set_raw != fixture.initial_set_raw
+        && command.form_set_raw != fixture.published_set_raw
+    {
+        return Err(ShadowError::Unsupported("other native form-set bytes"));
+    }
+    let set = parse(command.form_set_raw, 2_097_152)?;
+    validate_history(&set, &subject)?;
+    let revision = Digest256::of_bytes(command.form_set_raw).to_prefixed();
+    let contracts = obj(vec![(
+        fixture.schema_ref,
+        string(&Digest256::of_bytes(input.source_schema_raw).to_prefixed()),
+    )]);
+    let configuration = claim_config_digest(&config, &contracts)?;
+    let request = sorted_copy(&parse(command.request_raw, 1_048_576)?)?;
+    if text(&request, "schema_version")? != "tos_local_source_command_v1" {
+        return Err(ShadowError::Invalid("wrong native command schema"));
+    }
+    let operation = text(&request, "operation")?;
+    if operation == "describe" {
+        exact_keys(&request, &["schema_version", "operation"])?;
+        let response = native_result(
+            &source,
+            &set,
+            &config,
+            &contracts,
+            &fields,
+            &subject,
+            &revision,
+            JsonValue::Null,
+            false,
+        )?;
+        return Ok(WorkCommandShadow {
+            response,
+            proposed_form_set: None,
+        });
+    }
+    if operation == "prepare" {
+        exact_keys(
+            &request,
+            &["schema_version", "operation", "form_id", "field_id"],
+        )?;
+        let id = text(&request, "form_id")?;
+        if !array(&config, "allowed_form_ids")?
+            .iter()
+            .any(|value| value.as_str() == Some(id))
+        {
+            return Err(ShadowError::Denied("native form outside identity scope"));
+        }
+        let chosen = fields
+            .iter()
+            .find(|field| field.id == text(&request, "field_id").unwrap_or(""))
+            .ok_or(ShadowError::Invalid("unknown native metadata field"))?;
+        let change = prepared_change(&set, &subject, text(&config, "principal_id")?, id, chosen)?;
+        let preview = materialization(&source, &subject, field(&change, "form")?, &fields)?;
+        let mut response = native_result(
+            &source,
+            &set,
+            &config,
+            &contracts,
+            &fields,
+            &subject,
+            &revision,
+            JsonValue::Null,
+            false,
+        )?;
+        response_insert(&mut response, "prepared_change", change)?;
+        response_insert(&mut response, "prepared_materialization", preview)?;
+        return Ok(WorkCommandShadow {
+            response,
+            proposed_form_set: None,
+        });
+    }
+    if operation != "apply" {
+        return Err(ShadowError::Invalid("unknown native command operation"));
+    }
+    exact_keys(
+        &request,
+        &[
+            "schema_version",
+            "operation",
+            "command_id",
+            "expected_source",
+            "expected_revision",
+            "expected_configuration",
+            "changes",
+        ],
+    )?;
+    let command_id = text(&request, "command_id")?;
+    if command_id.is_empty() || command_id.len() > 256 {
+        return Err(ShadowError::Invalid("native command identity byte budget"));
+    }
+    let changes = array(&request, "changes")?;
+    if changes.is_empty() || changes.len() > 32 {
+        return Err(ShadowError::Invalid("native batch size"));
+    }
+    check_scope(&config, changes)?;
+    let request_digest = Digest256::of_bytes(&canonical(&request)?).to_prefixed();
+    if let Some(history) = set.object_get("growth_history") {
+        if let Some(receipt) = history.as_array().and_then(|items| {
+            items.iter().find(|row| {
+                row.object_get("command_id").and_then(JsonValue::as_str) == Some(command_id)
+            })
+        }) {
+            if text(receipt, "request_digest")? != request_digest {
+                return Err(ShadowError::Conflict(
+                    "native command ID reused with other input",
+                ));
+            }
+            let response = native_result(
+                &source,
+                &set,
+                &config,
+                &contracts,
+                &fields,
+                &subject,
+                &revision,
+                receipt.clone(),
+                true,
+            )?;
+            return Ok(WorkCommandShadow {
+                response,
+                proposed_form_set: None,
+            });
+        }
+    }
+    if !same_json(field(&request, "expected_source")?, &subject)?
+        || text(&request, "expected_configuration")? != configuration
+        || text(&request, "expected_revision")? != revision
+    {
+        return Err(ShadowError::Conflict(
+            "stale native source, schema, config or form set",
+        ));
+    }
+    for change in changes {
+        let form = field(change, "form")?;
+        let selected = field(field(form, "bindings")?, "wording")?;
+        let chosen = fields
+            .iter()
+            .find(|field| {
+                field.pointer == text(selected, "pointer").unwrap_or("")
+                    && field.role == text(form, "role").unwrap_or("")
+            })
+            .ok_or(ShadowError::Unsupported("other native form field"))?;
+        let expected = prepared_change(
+            &set,
+            &subject,
+            text(&config, "principal_id")?,
+            text(form, "form_id")?,
+            chosen,
+        )?;
+        if !same_json(change, &expected)? {
+            return Err(ShadowError::Unsupported(
+                "other native form production or binding",
+            ));
+        }
+        materialization(&source, &subject, form, &fields)?;
+    }
+    let mut successor = sorted_copy(&set)?;
+    for change in changes {
+        let form = field(change, "form")?.clone();
+        let id = text(&form, "form_id")?;
+        if text(change, "operation")? == "form.revise" {
+            let forms = array_mut(&mut successor, "forms")?;
+            let at = forms
+                .iter()
+                .position(|old| old.object_get("form_id").and_then(JsonValue::as_str) == Some(id))
+                .ok_or(ShadowError::Conflict("native predecessor absent"))?;
+            let old = std::mem::replace(&mut forms[at], form);
+            array_mut(&mut successor, "prior_forms")?.push(old);
+        } else {
+            array_mut(&mut successor, "forms")?.push(form);
+        }
+    }
+    let results = changes
+        .iter()
+        .map(|change| form_ref(field(change, "form")?))
+        .collect::<Result<Vec<_>>>()?;
+    let receipt = obj(vec![
+        ("command_id", string(command_id)),
+        ("request_digest", string(&request_digest)),
+        ("principal_id", field(&config, "principal_id")?.clone()),
+        ("authority_ref", field(&config, "authority_ref")?.clone()),
+        ("owner_configuration", string(&configuration)),
+        ("recorded_at", string(command.recorded_at)),
+        ("source_contracts", contracts.clone()),
+        ("source", subject.clone()),
+        ("previous_revision", string(&revision)),
+        ("results", JsonValue::Array(results)),
+    ]);
+    if successor.object_get("growth_history").is_some() {
+        array_mut(&mut successor, "growth_history")?.push(receipt.clone());
+    } else if let JsonValue::Object(entries) = &mut successor {
+        entries.push((
+            JsonString::from_utf8("growth_history"),
+            JsonValue::Array(vec![receipt.clone()]),
+        ));
+    }
+    if let JsonValue::Object(entries) = &mut successor {
+        let (_, retained) = entries
+            .iter_mut()
+            .find(|(key, _)| key.as_str() == Some("subject"))
+            .ok_or(ShadowError::Invalid("native set subject missing"))?;
+        *retained = subject.clone();
+    }
+    validate_history(&successor, &subject)?;
+    let encoded = emit_json_profile(
+        &successor,
+        JsonEmissionProfile::SourceFormSetPublishedV1,
+        limits(2_097_152),
+    )
+    .map_err(|_| ShadowError::Invalid("native whole-set emission"))?;
+    let response = native_result(
+        &source,
+        &successor,
+        &config,
+        &contracts,
+        &fields,
+        &subject,
+        &encoded.sha256.to_prefixed(),
+        receipt,
+        false,
+    )?;
+    Ok(WorkCommandShadow {
+        response,
+        proposed_form_set: Some(encoded.bytes),
+    })
 }
 
 /// Calculate the exact bounded legacy candidate without any source write.
