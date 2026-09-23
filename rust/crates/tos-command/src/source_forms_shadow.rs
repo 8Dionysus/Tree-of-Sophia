@@ -55,33 +55,63 @@ const NATIVE_FIXTURES: &[NativeFixture] = &[
         schema_ref: "ToS/contracts/artifact-source-witness.schema.json",
         schema_version: "tos_artifact_source_witness_v1",
         identity_field: "artifact_id",
-        source_raw: include_bytes!("../tests/fixtures/source_forms_shadow/artifact-v1/source.initial.json"),
-        schema_raw: include_bytes!("../tests/fixtures/source_forms_shadow/artifact-v1/source-schema.initial.json"),
-        owner_raw: include_bytes!("../tests/fixtures/source_forms_shadow/artifact-v1/owner.synthetic.json"),
-        initial_set_raw: include_bytes!("../tests/fixtures/source_forms_shadow/artifact-v1/form-set.initial.json"),
-        published_set_raw: include_bytes!("../tests/fixtures/source_forms_shadow/artifact-v1/form-set.published.json"),
+        source_raw: include_bytes!(
+            "../tests/fixtures/source_forms_shadow/artifact-v1/source.initial.json"
+        ),
+        schema_raw: include_bytes!(
+            "../tests/fixtures/source_forms_shadow/artifact-v1/source-schema.initial.json"
+        ),
+        owner_raw: include_bytes!(
+            "../tests/fixtures/source_forms_shadow/artifact-v1/owner.synthetic.json"
+        ),
+        initial_set_raw: include_bytes!(
+            "../tests/fixtures/source_forms_shadow/artifact-v1/form-set.initial.json"
+        ),
+        published_set_raw: include_bytes!(
+            "../tests/fixtures/source_forms_shadow/artifact-v1/form-set.published.json"
+        ),
     },
     NativeFixture {
         source_path: "ToS/source-witnesses/artifacts/sumerian/adab/oim-a00645/artifact-witness.json",
         schema_ref: "ToS/contracts/artifact-source-witness-v2.schema.json",
         schema_version: "tos_artifact_source_witness_v2",
         identity_field: "artifact_id",
-        source_raw: include_bytes!("../tests/fixtures/source_forms_shadow/artifact-v2/source.initial.json"),
-        schema_raw: include_bytes!("../tests/fixtures/source_forms_shadow/artifact-v2/source-schema.initial.json"),
-        owner_raw: include_bytes!("../tests/fixtures/source_forms_shadow/artifact-v2/owner.synthetic.json"),
-        initial_set_raw: include_bytes!("../tests/fixtures/source_forms_shadow/artifact-v2/form-set.initial.json"),
-        published_set_raw: include_bytes!("../tests/fixtures/source_forms_shadow/artifact-v2/form-set.published.json"),
+        source_raw: include_bytes!(
+            "../tests/fixtures/source_forms_shadow/artifact-v2/source.initial.json"
+        ),
+        schema_raw: include_bytes!(
+            "../tests/fixtures/source_forms_shadow/artifact-v2/source-schema.initial.json"
+        ),
+        owner_raw: include_bytes!(
+            "../tests/fixtures/source_forms_shadow/artifact-v2/owner.synthetic.json"
+        ),
+        initial_set_raw: include_bytes!(
+            "../tests/fixtures/source_forms_shadow/artifact-v2/form-set.initial.json"
+        ),
+        published_set_raw: include_bytes!(
+            "../tests/fixtures/source_forms_shadow/artifact-v2/form-set.published.json"
+        ),
     },
     NativeFixture {
         source_path: "ToS/source-witnesses/scholarly-composites/synoptic/sumerian/old-babylonian-literary-catalogue-witnesses/composite-witness.json",
         schema_ref: "ToS/contracts/scholarly-composite-witness.schema.json",
         schema_version: "tos_scholarly_composite_witness_v1",
         identity_field: "composite_id",
-        source_raw: include_bytes!("../tests/fixtures/source_forms_shadow/composite-v1/source.initial.json"),
-        schema_raw: include_bytes!("../tests/fixtures/source_forms_shadow/composite-v1/source-schema.initial.json"),
-        owner_raw: include_bytes!("../tests/fixtures/source_forms_shadow/composite-v1/owner.synthetic.json"),
-        initial_set_raw: include_bytes!("../tests/fixtures/source_forms_shadow/composite-v1/form-set.initial.json"),
-        published_set_raw: include_bytes!("../tests/fixtures/source_forms_shadow/composite-v1/form-set.published.json"),
+        source_raw: include_bytes!(
+            "../tests/fixtures/source_forms_shadow/composite-v1/source.initial.json"
+        ),
+        schema_raw: include_bytes!(
+            "../tests/fixtures/source_forms_shadow/composite-v1/source-schema.initial.json"
+        ),
+        owner_raw: include_bytes!(
+            "../tests/fixtures/source_forms_shadow/composite-v1/owner.synthetic.json"
+        ),
+        initial_set_raw: include_bytes!(
+            "../tests/fixtures/source_forms_shadow/composite-v1/form-set.initial.json"
+        ),
+        published_set_raw: include_bytes!(
+            "../tests/fixtures/source_forms_shadow/composite-v1/form-set.published.json"
+        ),
     },
 ];
 
