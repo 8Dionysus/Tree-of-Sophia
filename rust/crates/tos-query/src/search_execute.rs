@@ -356,8 +356,6 @@ pub(crate) fn advance_private_kind(
 
 #[cfg(test)]
 mod tests {
-    use std::collections::BTreeSet;
-
     use tos_foundation::{
         CanonicalProfile, JsonLimits, JsonMode, JsonValue, canonical_bytes_v1, parse_json,
     };
@@ -376,15 +374,15 @@ mod tests {
 
     struct Vocabulary {
         binding: QueryVocabularyBinding,
-        sources: BTreeSet<String>,
+        sources: Vec<String>,
     }
 
     impl SelectedQueryVocabulary for Vocabulary {
         fn binding(&self) -> &QueryVocabularyBinding {
             &self.binding
         }
-        fn contains_source_id(&self, id: &str) -> bool {
-            self.sources.contains(id)
+        fn registered_source_ids(&self) -> &[String] {
+            &self.sources
         }
         fn contains_kind_id(&self, _: &str) -> bool {
             true
@@ -414,7 +412,7 @@ mod tests {
         };
         let vocabulary = Vocabulary {
             binding: binding.clone(),
-            sources: ["canon".into(), "philosophy".into()].into_iter().collect(),
+            sources: vec!["canon".into(), "philosophy".into()],
         };
         let digest = || Digest256::of_bytes(b"selected fixture root");
         let selection = SearchSelectionBinding {

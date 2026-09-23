@@ -20,7 +20,7 @@ use tos_query::search_v2::{
 
 struct FixtureVocabulary {
     binding: QueryVocabularyBinding,
-    sources: BTreeSet<String>,
+    sources: Vec<String>,
     kinds: BTreeSet<String>,
     predicates: BTreeSet<String>,
 }
@@ -33,10 +33,7 @@ impl FixtureVocabulary {
                 descriptor_version: "fixture-v1".into(),
                 membership_root: Digest256::of_bytes(b"fixture vocabulary membership"),
             },
-            sources: ["fixture-source-a", "fixture-source-z"]
-                .into_iter()
-                .map(str::to_owned)
-                .collect(),
+            sources: vec!["fixture-source-a".into(), "fixture-source-z".into()],
             kinds: ["fixture-kind-a", "fixture-kind-z"]
                 .into_iter()
                 .map(str::to_owned)
@@ -54,8 +51,8 @@ impl SelectedQueryVocabulary for FixtureVocabulary {
         &self.binding
     }
 
-    fn contains_source_id(&self, id: &str) -> bool {
-        self.sources.contains(id)
+    fn registered_source_ids(&self) -> &[String] {
+        &self.sources
     }
 
     fn contains_kind_id(&self, id: &str) -> bool {
@@ -461,6 +458,29 @@ fn filters_are_exact_membership_checked_deduplicated_and_sorted() {
 }
 
 #[test]
+fn selected_authored_source_registration_must_be_strictly_ordered() {
+    let mut vocabulary = FixtureVocabulary::selected();
+    let selected = selection(&vocabulary);
+    vocabulary.sources.swap(0, 1);
+    assert_eq!(
+        request("alpha")
+            .normalize(&selected, &vocabulary)
+            .unwrap_err()
+            .code,
+        SearchV2ErrorCode::StaleSelection
+    );
+    vocabulary.sources.sort();
+    vocabulary.sources.push("fixture-source-z".into());
+    assert_eq!(
+        request("alpha")
+            .normalize(&selected, &vocabulary)
+            .unwrap_err()
+            .code,
+        SearchV2ErrorCode::StaleSelection
+    );
+}
+
+#[test]
 fn request_refuses_unknown_membership_and_invalid_page_limits() {
     let vocabulary = FixtureVocabulary::selected();
     let selected = selection(&vocabulary);
@@ -518,7 +538,8 @@ fn request_refuses_unknown_membership_and_invalid_page_limits() {
 
     let mut long_member_vocabulary = FixtureVocabulary::selected();
     let long_id = "x".repeat(257);
-    long_member_vocabulary.sources.insert(long_id.clone());
+    long_member_vocabulary.sources.push(long_id.clone());
+    long_member_vocabulary.sources.sort();
     let long_selected = selection(&long_member_vocabulary);
     let mut too_long = request("query");
     too_long.sources.push(long_id);
@@ -771,6 +792,7 @@ fn selected_candidates_match_independent_cpython_rank_and_false_positive_oracle(
     vocabulary
         .sources
         .extend(["philosophy".into(), "canon".into()]);
+    vocabulary.sources.sort();
     vocabulary.kinds.insert("example".into());
     let selected = selection(&vocabulary);
     let normalized = request(field(&oracle, "query").as_str().unwrap())

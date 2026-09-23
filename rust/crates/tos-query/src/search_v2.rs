@@ -35,7 +35,10 @@ pub struct QueryVocabularyBinding {
 /// backed by that exact descriptor and must not infer IDs from graph rows.
 pub trait SelectedQueryVocabulary {
     fn binding(&self) -> &QueryVocabularyBinding;
-    fn contains_source_id(&self, id: &str) -> bool;
+    /// Exact authored source registration in strict ID order, including
+    /// registered sources with zero selected rows. Derived source_scope rows
+    /// cannot create registration.
+    fn registered_source_ids(&self) -> &[String];
     fn contains_kind_id(&self, id: &str) -> bool;
     fn contains_predicate_id(&self, id: &str) -> bool;
 }
@@ -166,7 +169,12 @@ impl IndexedSearchV2Request {
         let query = normalize_query(&self.query)?;
         let sources = canonical_filter(
             self.sources,
-            |id| vocabulary.contains_source_id(id),
+            |id| {
+                vocabulary
+                    .registered_source_ids()
+                    .binary_search_by(|registered| registered.as_str().cmp(id))
+                    .is_ok()
+            },
             "source",
         )?;
         let kind_ids =
@@ -288,6 +296,14 @@ fn validate_selection<V: SelectedQueryVocabulary + ?Sized>(
         || selection.reader_abi.is_empty()
         || selection.vocabulary.descriptor_version.is_empty()
         || &selection.vocabulary != vocabulary.binding()
+        || vocabulary
+            .registered_source_ids()
+            .iter()
+            .any(|id| id.is_empty())
+        || vocabulary
+            .registered_source_ids()
+            .windows(2)
+            .any(|pair| pair[0] >= pair[1])
     {
         return Err(SearchV2Error::new(
             SearchV2ErrorCode::StaleSelection,

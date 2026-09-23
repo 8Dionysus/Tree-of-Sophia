@@ -228,7 +228,10 @@ pub(crate) fn verify_search_candidate_charged<V: SelectedQueryVocabulary + ?Size
     if field("id") != Some(candidate.id.as_str())
         || field("source_graph") != Some(candidate.source_graph.as_str())
         || field(term.1) != Some(term.0.as_str())
-        || !vocabulary.contains_source_id(&candidate.source_graph)
+        || vocabulary
+            .registered_source_ids()
+            .binary_search_by(|registered| registered.as_str().cmp(&candidate.source_graph))
+            .is_err()
     {
         return Err(error(
             SearchV2ErrorCode::IndexIncomplete,
