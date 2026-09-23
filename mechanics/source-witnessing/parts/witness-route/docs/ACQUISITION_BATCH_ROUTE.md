@@ -14,6 +14,10 @@ stable ToS File ID, Item root, provider URL/revision/source ID, byte size,
 SHA-256, and optional Git blob SHA-1. `provenance_delta` closes over the same
 record and File sets and binds them to the exact accepted base revision. A
 digest supplied to the command is the operator's immutable-selection check.
+Because ToS File IDs are content-addressed, one File may be selected by more
+than one Item in a batch. The provenance delta lists that File ID once, while
+acquisition, fixity, and handoff custody retain one binding per
+`(Item, File, destination)` so every Item keeps its own path and rights closure.
 
 `prepare` copies only the enumerated records into `source/`, emits one
 batch-level `provenance-delta.json`, and writes an immutable preparation
@@ -41,10 +45,11 @@ tree contains only selected record paths and the deterministic delta, and
 whose payload and receipt trees are empty. Existing payload, receipt, or
 foreign source evidence is retained and causes a fail-closed error.
 
-`acquire` uses the provider fields to fetch each payload independently, publishes it through
-`source_payload_custody.publish_bytes_no_clobber`, verifies destination
-readback, and appends a durable per-file journal row. A failed provider is
-recorded and does not prevent other files from completing. A later invocation
+`acquire` uses provider fields to fetch each payload independently and publishes
+it through `source_payload_custody.publish_bytes_no_clobber`. It verifies
+destination readback and appends a durable per-Item/File/destination journal
+row. A failed provider is recorded and does not prevent other files from
+completing. A later invocation
 rechecks successful destinations and retries the failed or missing files.
 Preparation is rebuilt when an interrupted run left only the narrow
 route-owned `source/`, `payload/`, and `receipts/` shape without

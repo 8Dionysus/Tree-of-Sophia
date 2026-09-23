@@ -38,6 +38,7 @@ class AcquisitionBatchTests(unittest.TestCase):
         self,
         *,
         count: int = 2,
+        shared_payload: bool = False,
         rights_posture: str = "local_only",
         rights_visibility: str | None = None,
         rights_redistribution: str | None = None,
@@ -58,7 +59,11 @@ class AcquisitionBatchTests(unittest.TestCase):
             rights_ref = f"{item_root}/rights.json"
             provenance_ref = f"{item_root}/provenance.jsonl"
             payload = f"payload/{slug}.txt"
-            payload_body = f"payload {index}\n".encode()
+            payload_body = (
+                b"shared content-addressed payload\n"
+                if shared_payload
+                else f"payload {index}\n".encode()
+            )
             payload_ref = f"tos.file.sha256.{hashlib.sha256(payload_body).hexdigest()}"
             event_ref = f"tos.event.acquisition.fixture-{index}"
             rights_value = {
@@ -181,7 +186,7 @@ class AcquisitionBatchTests(unittest.TestCase):
                 "change_kind": "batch_delta",
                 "base_revision": "a" * 64,
                 "record_refs": sorted(all_record_refs),
-                "payload_file_refs": sorted(all_payload_refs),
+                "payload_file_refs": sorted(set(all_payload_refs)),
                 "supersedes_event_ref": None,
             },
         }
@@ -305,6 +310,57 @@ class AcquisitionBatchTests(unittest.TestCase):
             "source/ToS/source-witnesses/discovery/acquisition-batches/fixture-20260921/provenance-delta.json",
             handoff["provenance_delta"]["ref"],
         )
+
+    def test_shared_file_id_keeps_separate_item_custody_and_fixity_rows(self) -> None:
+        fetches, manifest_sha = self._write_manifest(count=2, shared_payload=True)
+        calls: list[str] = []
+        item_refs = [
+            selection["item_ref"]
+            for selection in json.loads(self.manifest_path.read_text())["selection"]
+        ]
+
+        def fetch(payload: dict) -> bytes:
+            calls.append(payload["item_ref"])
+            if payload["item_ref"] == item_refs[1] and calls.count(item_refs[1]) == 1:
+                raise acquisition.SourceFetchError("one Item destination temporarily unavailable")
+            return fetches[payload["file_ref"]]
+
+        first = acquisition.acquire_batch(
+            manifest_path=self.manifest_path,
+            metadata_root=self.metadata,
+            output_root=self.output,
+            expected_manifest_sha256=manifest_sha,
+            fetcher=fetch,
+            max_attempts=1,
+        )
+        self.assertEqual("partially-acquired-not-admitted", first["status"])
+        self.assertEqual("incomplete", acquisition.verify_local(output_root=self.output)["status"])
+
+        resumed = acquisition.acquire_batch(
+            manifest_path=self.manifest_path,
+            metadata_root=self.metadata,
+            output_root=self.output,
+            expected_manifest_sha256=manifest_sha,
+            fetcher=fetch,
+            max_attempts=1,
+        )
+        self.assertEqual("acquired-not-admitted", resumed["status"])
+        local = acquisition.verify_local(output_root=self.output)
+        self.assertEqual("verified", local["status"])
+        self.assertEqual(2, len(local["rows"]))
+        self.assertEqual(2, len(set(row["destination_ref"] for row in local["rows"])))
+        self.assertEqual(2, len(set(row["item_ref"] for row in local["rows"])))
+        self.assertEqual([item_refs[0], item_refs[1], item_refs[1]], calls)
+
+        handoff = json.loads((self.output / resumed["handoff_ref"]).read_text())
+        self.assertEqual(2, len(handoff["payload_custody"]))
+        self.assertEqual(2, len({row["item_ref"] for row in handoff["payload_custody"]}))
+        self.assertEqual(1, len({row["file_ref"] for row in handoff["payload_custody"]}))
+        fixity_rows = acquisition._journal_rows(
+            self.output / handoff["independent_fixity"]["ref"]
+        )
+        self.assertEqual(2, len(fixity_rows))
+        self.assertEqual(2, len({row["destination_ref"] for row in fixity_rows}))
 
     def test_resume_rejects_writable_preexisting_payload(self) -> None:
         fetches, manifest_sha = self._write_manifest(count=1)

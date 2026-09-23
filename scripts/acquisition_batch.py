@@ -98,6 +98,21 @@ class PayloadSelection:
     def destination_ref(self) -> str:
         return f"{self.payload['item_root_ref']}/{self.payload['relative_path']}"
 
+    @property
+    def custody_key(self) -> tuple[str, str, str]:
+        """Identity of this Item/File binding at its selected destination."""
+
+        return self.item_ref, self.file_ref, self.destination_ref
+
+
+def _payload_custody_key(row: dict[str, Any]) -> tuple[str, str, str] | None:
+    item_ref = row.get("item_ref")
+    file_ref = row.get("file_ref")
+    destination_ref = row.get("destination_ref")
+    if not all(isinstance(value, str) for value in (item_ref, file_ref, destination_ref)):
+        return None
+    return item_ref, file_ref, destination_ref
+
 
 Fetcher = Callable[[dict[str, Any]], bytes]
 
@@ -341,7 +356,6 @@ def _validate_semantics(manifest: dict[str, Any]) -> None:
         raise AcquisitionBatchError("provenance delta base revision differs from batch")
     selections = manifest["selection"]
     seen_items: set[str] = set()
-    seen_files: set[str] = set()
     seen_destinations: set[str] = set()
     record_refs: set[str] = set()
     record_classifications: dict[str, tuple[str, str]] = {}
@@ -421,9 +435,8 @@ def _validate_semantics(manifest: dict[str, Any]) -> None:
             if payload["byte_size"] > MAX_PAYLOAD_BYTES:
                 raise AcquisitionBatchError(f"payload exceeds bounded transfer limit: {payload['file_ref']}")
             destination = f"{item_root}/{payload['relative_path']}"
-            if payload["file_ref"] in seen_files or destination in seen_destinations:
+            if destination in seen_destinations:
                 raise AcquisitionBatchError(f"duplicate payload destination: {destination}")
-            seen_files.add(payload["file_ref"])
             seen_destinations.add(destination)
             payload_refs.add(payload["file_ref"])
     if set(delta["record_refs"]) != record_refs:
@@ -477,7 +490,7 @@ def _payloads(context: BatchContext) -> list[PayloadSelection]:
             PayloadSelection(selection, payload)
             for payload in selection["payload_files"]
         )
-    return sorted(result, key=lambda value: (value.item_ref, value.file_ref))
+    return sorted(result, key=lambda value: value.custody_key)
 
 
 def _records(context: BatchContext) -> list[tuple[dict[str, Any], dict[str, Any]]]:
@@ -1221,8 +1234,13 @@ def _handoff_receipt(
     fixity_ref: str,
     fixity_summary_ref: str,
 ) -> dict[str, Any]:
-    verified = {row["file_ref"] for row in fixity_rows if row["status"] == "verified"}
-    expected = {item.file_ref for item in _payloads(context)}
+    verified = {
+        key
+        for row in fixity_rows
+        if row.get("status") == "verified"
+        if (key := _payload_custody_key(row)) is not None
+    }
+    expected = {item.custody_key for item in _payloads(context)}
     if verified == expected:
         acquisition_status = "acquired-not-admitted"
     elif verified:
@@ -1320,11 +1338,11 @@ def _acquire_batch_unlocked(
     receipts_root = _checked_root(output / "receipts")
     journal_path = receipts_root / "acquisition.jsonl"
     existing = _journal_rows(journal_path)
-    previous_attempts: dict[str, int] = {}
+    previous_attempts: dict[tuple[str, str, str], int] = {}
     for row in existing:
-        file_ref = row.get("file_ref")
-        if isinstance(file_ref, str):
-            previous_attempts[file_ref] = max(previous_attempts.get(file_ref, 0), int(row.get("attempt", 0)))
+        key = _payload_custody_key(row)
+        if key is not None:
+            previous_attempts[key] = max(previous_attempts.get(key, 0), int(row.get("attempt", 0)))
     fetch = fetcher or _fetch_url
     run_id = _run_id(receipts_root)
     payload_rows: list[dict[str, Any]] = []
@@ -1351,19 +1369,19 @@ def _acquire_batch_unlocked(
                 if destination.is_symlink():
                     raise SourceIntegrityError(f"destination is a symlink: {destination}")
                 _verify_destination(destination, payload)
-                row = {**base_row, "attempt": previous_attempts.get(item.file_ref, 0), "status": "already_present", "completed_at": utc_now()}
+                row = {**base_row, "attempt": previous_attempts.get(item.custody_key, 0), "status": "already_present", "completed_at": utc_now()}
                 _append_journal(journal_path, row)
                 payload_rows.append(row)
                 continue
         except SourceIntegrityError as exc:
-            row = {**base_row, "attempt": previous_attempts.get(item.file_ref, 0), "status": "conflict", "error": str(exc), "completed_at": utc_now()}
+            row = {**base_row, "attempt": previous_attempts.get(item.custody_key, 0), "status": "conflict", "error": str(exc), "completed_at": utc_now()}
             _append_journal(journal_path, row)
             payload_rows.append(row)
             continue
 
         completed: dict[str, Any] | None = None
         for local_attempt in range(1, max_attempts + 1):
-            attempt = previous_attempts.get(item.file_ref, 0) + local_attempt
+            attempt = previous_attempts.get(item.custody_key, 0) + local_attempt
             try:
                 body = fetch(payload)
                 if not isinstance(body, bytes):
@@ -1466,7 +1484,11 @@ def verify_local(*, output_root: Path | str, repo_root: Path | str = REPO_ROOT) 
         destination = custody.payload_path(
             output / "payload", payload["item_root_ref"], payload["relative_path"]
         )
-        row = {"file_ref": item.file_ref, "destination_ref": item.destination_ref}
+        row = {
+            "item_ref": item.item_ref,
+            "file_ref": item.file_ref,
+            "destination_ref": item.destination_ref,
+        }
         try:
             digest = _verify_destination(destination, payload)
         except (SourceIntegrityError, custody.CustodyError, OSError) as exc:

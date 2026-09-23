@@ -225,6 +225,74 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
             records,
         )
 
+    def _add_second_item_reusing_file(self) -> str:
+        manifest = json.loads(self.manifest_path.read_text(encoding="utf-8"))
+        first = manifest["selection"][0]
+        first_item_ref = first["item_ref"]
+        first_item_root = first["item_root_ref"]
+        first_manifest = json.loads(
+            (self.metadata / first_item_root / "item.manifest.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        first_event_ref = first_manifest["acquisition_event_ref"]
+        second_item_ref = "tos.item.shared-file-second"
+        second_item_root = (
+            f"{first_item_root.rsplit('/', 1)[0]}/acquired-note-shared-file-test"
+        )
+        second_event_ref = "tos.event.acquisition.shared-file-second"
+        second = json.loads(json.dumps(first))
+        second["item_ref"] = second_item_ref
+        second["item_root_ref"] = second_item_root
+        second_records: list[dict[str, str]] = []
+        for record in first["records"]:
+            new_ref = record["ref"].replace(first_item_root, second_item_root, 1)
+            body = (self.metadata / record["ref"]).read_bytes()
+            for before, after in (
+                (first_item_root.encode(), second_item_root.encode()),
+                (first_item_ref.encode(), second_item_ref.encode()),
+                (first_event_ref.encode(), second_event_ref.encode()),
+            ):
+                body = body.replace(before, after)
+            destination = self.metadata / new_ref
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            destination.write_bytes(body)
+            second_records.append(
+                {
+                    "ref": new_ref,
+                    "kind": record["kind"],
+                    "sha256": hashlib.sha256(body).hexdigest(),
+                }
+            )
+        second["records"] = second_records
+        second["rights"]["ref"] = f"{second_item_root}/rights.json"
+        second["rights"]["sha256"] = next(
+            row["sha256"] for row in second_records if row["kind"] == "rights"
+        )
+        second["payload_files"] = [
+            {
+                **first["payload_files"][0],
+                "item_ref": second_item_ref,
+                "item_root_ref": second_item_root,
+            }
+        ]
+        manifest["selection"].append(second)
+        manifest["provenance_delta"]["record_refs"] = sorted(
+            row["ref"] for selection in manifest["selection"] for row in selection["records"]
+        )
+        manifest["provenance_delta"]["payload_file_refs"] = sorted(
+            {
+                payload["file_ref"]
+                for selection in manifest["selection"]
+                for payload in selection["payload_files"]
+            }
+        )
+        self.manifest_path.write_text(
+            json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        return hashlib.sha256(self.manifest_path.read_bytes()).hexdigest()
+
     def _write_accepted_base(self, records: list[dict[str, str]]) -> str:
         """Create a tiny cryptographically valid accepted CorpusStore base."""
 
@@ -461,6 +529,81 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
         self.assertEqual(4, len(verified.selected_source_rows))
         self.assertEqual(1, len(verified.payloads))
         self.assertEqual(self.validator_sha256, context["validator_sha256"])
+
+    def test_shared_file_across_items_preserves_custody_binding_and_rejects_loss(self) -> None:
+        fetches, _manifest_sha, _item_root, _records = self._write_manifest(
+            base_revision="a" * 64
+        )
+        manifest_sha = self._add_second_item_reusing_file()
+        result = acquisition.acquire_batch(
+            manifest_path=self.manifest_path,
+            metadata_root=self.metadata,
+            output_root=self.acquisition_root,
+            expected_manifest_sha256=manifest_sha,
+            fetcher=lambda payload: fetches[payload["file_ref"]],
+        )
+        verified = adapter.verify_handoff_for_intake(
+            acquisition_root=self.acquisition_root,
+            handoff_ref=result["handoff_ref"],
+            expected_manifest_sha256=manifest_sha,
+            expected_base_revision="a" * 64,
+            repo_root=ROOT,
+        )
+        self.assertEqual(2, len(verified.payloads))
+        self.assertEqual(
+            {"tos.item.sid-9a5249d273634cf6b2eb96b5e7719fa8", "tos.item.shared-file-second"},
+            {payload["item_ref"] for payload in verified.payloads},
+        )
+        self.assertEqual(8, len(verified.selected_source_rows))
+        self.assertEqual(
+            {"tos.item.sid-9a5249d273634cf6b2eb96b5e7719fa8", "tos.item.shared-file-second"},
+            {
+                row["item_ref"]
+                for row in verified.selected_source_rows
+                if row["kind"] == "rights"
+            },
+        )
+        handoff_path = self.acquisition_root / result["handoff_ref"]
+        original_handoff = handoff_path.read_bytes()
+
+        # A row for only one destination cannot claim complete custody for the
+        # two Item bindings, even though both carry the same content File ID.
+        handoff = json.loads(original_handoff)
+        handoff["payload_custody"].pop()
+        handoff_path.chmod(0o644)
+        handoff_path.write_text(
+            json.dumps(handoff, ensure_ascii=False, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        with self.assertRaisesRegex(
+            adapter.HandoffAdapterError,
+            "handoff payload custody closure differs from manifest",
+        ):
+            adapter.verify_handoff_for_intake(
+                acquisition_root=self.acquisition_root,
+                handoff_ref=result["handoff_ref"],
+                expected_manifest_sha256=manifest_sha,
+                expected_base_revision="a" * 64,
+                repo_root=ROOT,
+            )
+
+        handoff_path.write_bytes(original_handoff)
+        handoff_path.chmod(0o444)
+        second_payload = next(
+            payload
+            for payload in verified.payloads
+            if payload["item_ref"] == "tos.item.shared-file-second"
+        )
+        item_suffix = Path(*second_payload["item_root_ref"].split("/")[2:])
+        (self.acquisition_root / "payload" / item_suffix / second_payload["relative_path"]).unlink()
+        with self.assertRaisesRegex(adapter.HandoffAdapterError, "payload custody differs"):
+            adapter.verify_handoff_for_intake(
+                acquisition_root=self.acquisition_root,
+                handoff_ref=result["handoff_ref"],
+                expected_manifest_sha256=manifest_sha,
+                expected_base_revision="a" * 64,
+                repo_root=ROOT,
+            )
 
     def test_shared_verifier_accepts_file_id_provenance_and_extra_manifest(self) -> None:
         fetches, manifest_sha, _item_root, records = self._write_manifest(

@@ -358,8 +358,10 @@ def _expected_records(context: acquisition.BatchContext) -> dict[str, tuple[dict
     return {record["ref"]: (selection, record) for selection, record in acquisition._records(context)}
 
 
-def _expected_payloads(context: acquisition.BatchContext) -> dict[str, acquisition.PayloadSelection]:
-    return {item.file_ref: item for item in acquisition._payloads(context)}
+def _expected_payloads(
+    context: acquisition.BatchContext,
+) -> dict[tuple[str, str, str], acquisition.PayloadSelection]:
+    return {item.custody_key: item for item in acquisition._payloads(context)}
 
 
 def _verify_item_payload_bindings(context: acquisition.BatchContext, acquisition_root: Path) -> None:
@@ -565,10 +567,14 @@ def _verify_handoff(
     ):
         raise HandoffAdapterError("fixity summary does not bind complete handoff")
     fixity_rows = acquisition._journal_rows(fixity_path)
-    if len(fixity_rows) != len(expected_payloads) or {row.get("file_ref") for row in fixity_rows} != set(expected_payloads):
+    if (
+        len(fixity_rows) != len(expected_payloads)
+        or {acquisition._payload_custody_key(row) for row in fixity_rows}
+        != set(expected_payloads)
+    ):
         raise HandoffAdapterError("fixity rows do not close over selected payloads")
     for row in fixity_rows:
-        payload = expected_payloads.get(row.get("file_ref"))
+        payload = expected_payloads.get(acquisition._payload_custody_key(row))
         if payload is None or row.get("status") != "verified":
             raise HandoffAdapterError("fixity contains an unverified payload row")
         expected = payload.payload
@@ -599,7 +605,12 @@ def _verify_handoff(
     if (
         not isinstance(custody_rows, list)
         or len(custody_rows) != len(expected_payloads)
-        or {row.get("file_ref") for row in custody_rows if isinstance(row, dict)} != set(expected_payloads)
+        or {
+            acquisition._payload_custody_key(row)
+            for row in custody_rows
+            if isinstance(row, dict)
+        }
+        != set(expected_payloads)
     ):
         raise HandoffAdapterError("handoff payload custody closure differs from manifest")
     for row in custody_rows:
@@ -607,10 +618,10 @@ def _verify_handoff(
             raise HandoffAdapterError("handoff payload custody row is not an object")
         if row.get("status") not in {"acquired", "already_present"}:
             raise HandoffAdapterError("handoff payload row is not acquired custody")
-        file_ref = row.get("file_ref")
-        if file_ref not in expected_payloads:
+        payload_key = acquisition._payload_custody_key(row)
+        if payload_key not in expected_payloads:
             raise HandoffAdapterError("handoff payload custody contains an unselected file")
-        payload = expected_payloads[file_ref].payload
+        payload = expected_payloads[payload_key].payload
         expected_custody = {
             "run_id": run_id,
             "batch_id": context.manifest["batch_id"],
@@ -626,7 +637,7 @@ def _verify_handoff(
         }
         if any(row.get(key) != value for key, value in expected_custody.items()):
             raise HandoffAdapterError(f"handoff payload digest binding differs: {row['file_ref']}")
-    return selected_source_rows, [expected_payloads[file_ref].payload for file_ref in sorted(expected_payloads)]
+    return selected_source_rows, [expected_payloads[key].payload for key in sorted(expected_payloads)]
 
 
 def verify_handoff_for_intake(

@@ -61,8 +61,10 @@ payloads into an explicit local custody root. It does not read or copy a
 complete relation topology and never creates a per-target `topology-before`
 preimage. Each payload retains its provider URL, provider revision, source ID,
 ToS Item/File identity, expected bytes, SHA-256, optional Git blob digest, and
-rights record binding. The acquisition journal isolates source failures and
-allows restart; `receipts/handoff-*.json` reports `admission_status` as
+rights record binding. A content-addressed File ID may recur under separate
+Items. Custody and fixity remain distinct for each Item/File destination; the
+provenance delta lists that File ID once. The acquisition journal isolates
+source failures and allows restart; `receipts/handoff-*.json` reports `admission_status` as
 `not-admitted` even when all bytes have been verified. The independent fixity
 receipt is a separate handoff input for the corpus-intake owner. The
 route-owned `scripts/acquisition_handoff_adapter.py` verifies one selected
