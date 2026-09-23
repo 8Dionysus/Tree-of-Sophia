@@ -12,4 +12,6 @@ Legacy `public-source-forms apply` receipts are embedded in a whole form-set his
 
 `Digest256` hashes exact bytes; a digest alone proves neither source trust nor permission to read. `RelativePath` checks lexical normalization only; storage must check actual file identity and symlinks. `StableId` preserves spelling and does not guess a corpus kind. `ByteSpan` and `CodePointSpan` have distinct units; code-point spans bind a representation digest and declared normalization ID.
 
+`LogicalRecordRefV1` (`tos_logical_record_ref_v1`) frames an owner's opaque domain, profile, subject and revision bytes alongside exact content SHA-256 and length. Its `TOSL` v1 little-endian frame has fixed field ceilings and rejects unknown versions, truncation and trailing bytes. The frame digest is logical identity only; storage placement, durability, committed binding and source authority belong to their respective owners.
+
 The target `wasm32-unknown-unknown` builds the same core rules. Optional `wasm` exports a small parity probe; Worker and browser I/O stay in their respective adapters. Independent vectors are owned by `tests/conformance/rust/`.

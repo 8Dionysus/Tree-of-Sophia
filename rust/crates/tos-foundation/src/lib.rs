@@ -9,6 +9,7 @@ mod digest;
 mod error;
 mod identity;
 mod json;
+mod logical_ref;
 mod path;
 
 pub use capability::{FoundationCapabilities, capabilities};
@@ -19,6 +20,7 @@ pub use descriptor::{
 pub use digest::{Digest256, Digest256Hasher};
 pub use error::{FoundationError, FoundationErrorCode, Result};
 pub use identity::{ExactRecordRef, RecordVersion, SourceRevision, StableId};
+pub use logical_ref::LogicalRecordRefV1;
 pub use json::{
     CanonicalProfile, EncodedJson, JsonDocument, JsonEmissionProfile, JsonLimits, JsonMode,
     JsonNumber, JsonNumberKind, JsonString, JsonValue, canonical_bytes_v1, canonical_digest_v1,

@@ -1,5 +1,6 @@
 use crate::descriptor::DESCRIPTOR_FORMAT_VERSION;
 use crate::json::{CanonicalProfile, FORMAT_VERSION, JsonEmissionProfile, JsonMode};
+use crate::logical_ref::LogicalRecordRefV1;
 
 /// Versioned disclosure of what this small foundation package actually supports.
 /// A caller must not infer source admission or complete schema validation from it.
@@ -11,6 +12,7 @@ pub struct FoundationCapabilities {
     pub canonical_profile: &'static str,
     pub canonical_profiles: [&'static str; 3],
     pub emission_profiles: [&'static str; 1],
+    pub logical_record_ref_profile: &'static str,
     pub canonical_float_supported: bool,
     pub strict_duplicate_rejection: bool,
     pub request_last_wins: bool,
@@ -33,6 +35,7 @@ pub const fn capabilities() -> FoundationCapabilities {
             CanonicalProfile::SourceCommandInputV1.as_str(),
         ],
         emission_profiles: [JsonEmissionProfile::SourceFormSetPublishedV1.as_str()],
+        logical_record_ref_profile: LogicalRecordRefV1::PROFILE,
         canonical_float_supported: CanonicalProfile::CorpusSnapshotV1.supports_float(),
         strict_duplicate_rejection: true,
         request_last_wins: true,
