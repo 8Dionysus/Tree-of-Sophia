@@ -22,6 +22,7 @@ mod knowledge_search;
 mod knowledge_selected;
 mod knowledge_source_claims_prepare;
 mod knowledge_source_navigation_node;
+mod knowledge_source_navigation_relation;
 mod knowledge_source_navigation_prepare;
 pub mod knowledge_stage;
 mod legacy;
@@ -64,7 +65,13 @@ pub use knowledge_source_claims_prepare::{
     ClaimExternalDependency, ClaimPrepareLimits, ClaimPrepareReceipt, prepare_source_claims,
 };
 pub use knowledge_source_navigation_node::{
-    NavigationBaseNode, NavigationNodeLimits, NavigationNodeNormalizer,
+    NavigationBaseNode, NavigationEndpoint, NavigationNodeLimits, NavigationNodeNormalizer,
+    NavigationPlaceholderBase,
+};
+pub use knowledge_source_navigation_relation::{
+    NavigationBaseRelation, NavigationRelationDependencyReceipt, NavigationRelationGlobalInputs,
+    NavigationRelationLimits, NavigationRelationNormalizeLimits, NavigationRelationNormalizer,
+    direct_assertion_context, prepare_navigation_relation_dependencies,
 };
 pub use knowledge_source_navigation_prepare::{
     NavigationExternalDependency, NavigationHeaderClaim, NavigationPrepareLimits,
