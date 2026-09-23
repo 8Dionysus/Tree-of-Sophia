@@ -14,6 +14,8 @@ pub const TEXT_UNIT_RULE_ID: &str = "tos.val.text-unit.v1@1";
 pub const TEXT_UNIT_PROFILE: &str = "tos_source_text_unit_packet_v1";
 pub const TEXT_LAYER_RULE_ID: &str = "tos.val.text-layer.v1@1";
 pub const TEXT_LAYER_PROFILE: &str = "tos_source_text_layer_v1";
+pub const ANCHOR_V2_RULE_ID: &str = "tos.val.anchor-selector.v2@1";
+pub const ANCHOR_V2_PROFILE: &str = "tos_source_anchor_v2";
 const MAX_LAYER_RESOURCE_BYTES: usize = 67_108_864;
 const MAX_TOTAL_LAYER_RESOURCE_BYTES: usize = 134_217_728;
 const MAX_PACKET_BYTES: usize = 2_097_152;
@@ -228,6 +230,349 @@ pub struct LayerRuleContext {
     pub requested_profiles: Vec<String>,
     pub interval_generation: String,
     pub reverse_generation: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AnchorRuleContext {
+    pub anchor_path: String,
+    pub target_locator: String,
+    pub method_configuration_locator: String,
+    pub schema_checked: bool,
+    pub requested_profiles: Vec<String>,
+    pub interval_generation: String,
+    pub reverse_generation: String,
+}
+
+fn anchor_selection(
+    report: &mut TextRuleReport,
+    anchor_id: &str,
+    context: &AnchorRuleContext,
+    bytes: &[u8],
+    start: u64,
+    end: u64,
+) {
+    let digest = Digest256::of_bytes(bytes).to_hex();
+    report.reads.push(PredicateRead::ExactBytes {
+        locator: format!("anchor-selection:{anchor_id}"),
+        digest,
+    });
+    report.reads.push(PredicateRead::Interval {
+        scope: context.target_locator.clone(),
+        start,
+        end,
+        generation: context.interval_generation.clone(),
+    });
+    report.intervals.push(IntervalFact {
+        scope: context.target_locator.clone(),
+        member: anchor_id.into(),
+        start,
+        end,
+    });
+}
+
+/// Exact single-selector source-anchor v2 mechanics. The Unicode boundary
+/// proof is deliberately conservative: an ASCII code point at either edge
+/// cannot be a combining mark. Non-ASCII edges, normalization, structural
+/// traversal and compound expressions remain Unsupported without pinned
+/// Unicode/selector implementations and their complete resource closure.
+pub fn inspect_source_anchor_v2_single(
+    raw_anchor: &[u8],
+    target_bytes: &[u8],
+    method_configuration: &[u8],
+    context: &AnchorRuleContext,
+) -> TextRuleReport {
+    let mut out = TextRuleReport::new_for(ANCHOR_V2_RULE_ID);
+    for profile in &context.requested_profiles {
+        if profile != ANCHOR_V2_PROFILE {
+            out.unsupported_profiles.push(profile.clone());
+        }
+    }
+    if !context.schema_checked
+        || context.requested_profiles.is_empty()
+        || !out.unsupported_profiles.is_empty()
+        || context.anchor_path.is_empty()
+        || context.target_locator.is_empty()
+        || context.method_configuration_locator.is_empty()
+        || context.interval_generation.is_empty()
+        || context.reverse_generation.is_empty()
+    {
+        if !context.schema_checked {
+            out.unsupported_profiles.push("schema-unchecked".into());
+        }
+        if context.requested_profiles.is_empty() {
+            out.unsupported_profiles.push("no-profile".into());
+        }
+        if context.anchor_path.is_empty()
+            || context.target_locator.is_empty()
+            || context.method_configuration_locator.is_empty()
+            || context.interval_generation.is_empty()
+            || context.reverse_generation.is_empty()
+        {
+            out.unsupported_profiles
+                .push("missing-snapshot-binding".into());
+        }
+        return out;
+    }
+    if raw_anchor.len() > MAX_PACKET_BYTES
+        || target_bytes.len() > MAX_TEXT_BYTES
+        || method_configuration.len() > MAX_PACKET_BYTES
+    {
+        out.state = TextRuleState::BudgetExceeded;
+        return out;
+    }
+    let limits = match JsonLimits::new(MAX_PACKET_BYTES, 64, 300_000, 4_300) {
+        Ok(v) => v,
+        Err(_) => {
+            out.state = TextRuleState::BudgetExceeded;
+            return out;
+        }
+    };
+    let document = match parse_json(raw_anchor, JsonMode::PublishedStrict, limits) {
+        Ok(v) => v,
+        Err(_) => {
+            out.state = TextRuleState::InvalidInput;
+            out.issue("invalid_published_json", &context.anchor_path);
+            return out;
+        }
+    };
+    let anchor = document.root();
+    if string(anchor, "schema_version") != Some(ANCHOR_V2_PROFILE) {
+        out.unsupported_profiles.push(
+            string(anchor, "schema_version")
+                .unwrap_or("missing-schema-version")
+                .into(),
+        );
+        return out;
+    }
+    let anchor_digest = Digest256::of_bytes(raw_anchor).to_hex();
+    let target_digest = Digest256::of_bytes(target_bytes).to_hex();
+    let method_digest = Digest256::of_bytes(method_configuration).to_hex();
+    out.packet_digest = Some(anchor_digest.clone());
+    out.reads.extend([
+        PredicateRead::ExactPath {
+            path: context.anchor_path.clone(),
+            digest: anchor_digest,
+        },
+        PredicateRead::ExactBytes {
+            locator: context.target_locator.clone(),
+            digest: target_digest.clone(),
+        },
+        PredicateRead::ExactBytes {
+            locator: context.method_configuration_locator.clone(),
+            digest: method_digest.clone(),
+        },
+    ]);
+    let id = string(anchor, "anchor_id").unwrap_or("");
+    out.reads.push(PredicateRead::UniqueKey {
+        namespace: "source-anchor-v2/id".into(),
+        key: id.into(),
+        owner: context.anchor_path.clone(),
+    });
+    out.reads.push(PredicateRead::Range {
+        namespace: "source-anchor-v2/id".into(),
+        lower: id.into(),
+        upper: id.into(),
+        generation: context.reverse_generation.clone(),
+    });
+    if string(anchor, "supersedes_anchor_ref") == Some(id) {
+        out.issue("anchor_self_supersession", id);
+    }
+    let target = field(anchor, "target").unwrap_or(&NULL_JSON);
+    let file_id = string(target, "file_id").unwrap_or("");
+    if string(target, "file_sha256") != Some(target_digest.as_str())
+        || file_id != format!("tos.file.sha256.{target_digest}")
+    {
+        out.issue("anchor_target_digest_drift", id);
+    }
+    out.reads.push(PredicateRead::ReverseRefs {
+        target: file_id.into(),
+        relation: "source-anchor-v2/target-file".into(),
+        generation: context.reverse_generation.clone(),
+    });
+    out.edge(file_id, "target_file", id);
+    let method = field(anchor, "selector_method").unwrap_or(&NULL_JSON);
+    if string(method, "configuration_ref").is_none() {
+        out.unsupported_profiles
+            .push("method-configuration-without-ref".into());
+    } else if string(method, "configuration_ref")
+        != Some(context.method_configuration_locator.as_str())
+        || string(method, "configuration_digest") != Some(method_digest.as_str())
+    {
+        out.issue("anchor_method_configuration_drift", id);
+    }
+    let publication = field(anchor, "publication_boundary").unwrap_or(&NULL_JSON);
+    let payload = field(anchor, "selector_payload").unwrap_or(&NULL_JSON);
+    if string(payload, "kind") == Some("withheld_selector_receipt") {
+        if boolean(publication, "source_text_in_record") == Some(true) {
+            out.issue("anchor_withheld_text_exposure", id);
+        }
+        out.unsupported_profiles
+            .push("withheld-selector-receipt".into());
+        if !out.issues.is_empty() {
+            out.state = TextRuleState::InvalidInput;
+        }
+        return out;
+    }
+    let expression = field(payload, "expression").unwrap_or(&NULL_JSON);
+    if string(expression, "mode") != Some("single") {
+        out.unsupported_profiles.push(format!(
+            "selector-mode:{}",
+            string(expression, "mode").unwrap_or("missing")
+        ));
+        return out;
+    }
+    let envelope = field(expression, "selector").unwrap_or(&NULL_JSON);
+    let state = field(envelope, "state").unwrap_or(&NULL_JSON);
+    let selector = field(envelope, "selector").unwrap_or(&NULL_JSON);
+    let selector_type = string(selector, "type").unwrap_or("");
+    if string(state, "representation_ref") != Some(context.target_locator.as_str())
+        || string(state, "representation_sha256") != Some(target_digest.as_str())
+        || string(state, "representation_sha256") != string(target, "file_sha256")
+        || string(state, "media_type") != string(target, "media_type")
+    {
+        out.issue("anchor_selector_state_drift", id);
+    }
+    if string(state, "version_ref").is_some() {
+        out.unsupported_profiles
+            .push("versioned-representation-state".into());
+    }
+    let text_selector = selector_type == "text_quote" || selector_type == "text_position";
+    if text_selector && string(state, "character_normalization").is_none() {
+        out.issue("anchor_text_normalization_unspecified", id);
+    }
+    if text_selector && string(state, "character_normalization") != Some("none") {
+        out.unsupported_profiles.push(format!(
+            "unicode-normalization:{}",
+            string(state, "character_normalization").unwrap_or("missing")
+        ));
+    }
+    if string(publication, "record_storage") == Some("tracked")
+        && string(publication, "source_content_visibility") != Some("public")
+        && selector_type == "text_quote"
+    {
+        out.issue("anchor_tracked_nonpublic_quote", id);
+    }
+    if boolean(publication, "source_text_in_record") == Some(false) && selector_type == "text_quote"
+    {
+        out.issue("anchor_quote_exposure_conflict", id);
+    }
+    if boolean(publication, "source_text_in_record") == Some(true) && selector_type != "text_quote"
+    {
+        out.issue("anchor_declared_text_absent", id);
+    }
+    if !out.unsupported_profiles.is_empty() {
+        if !out.issues.is_empty() {
+            out.state = TextRuleState::InvalidInput;
+        }
+        return out;
+    }
+    match selector_type {
+        "byte_position" => {
+            if let Some((start, end)) = span(selector) {
+                if start < end && end <= target_bytes.len() {
+                    anchor_selection(
+                        &mut out,
+                        id,
+                        context,
+                        &target_bytes[start..end],
+                        start as u64,
+                        end as u64,
+                    );
+                } else {
+                    out.issue("anchor_byte_span_outside_target", id);
+                }
+            } else {
+                out.issue("anchor_byte_span_invalid", id);
+            }
+        }
+        "text_position" => match std::str::from_utf8(target_bytes) {
+            Ok(text) => {
+                let points: Vec<usize> = text
+                    .char_indices()
+                    .map(|(i, _)| i)
+                    .chain(std::iter::once(text.len()))
+                    .collect();
+                if let Some((start, end)) = span(selector) {
+                    if start < end && end < points.len() {
+                        let start_char = text[points[start]..].chars().next();
+                        let end_char = text[points[end]..].chars().next();
+                        if start_char.is_some_and(|c| c.is_ascii())
+                            && end_char.is_none_or(|c| c.is_ascii())
+                        {
+                            anchor_selection(
+                                &mut out,
+                                id,
+                                context,
+                                &target_bytes[points[start]..points[end]],
+                                start as u64,
+                                end as u64,
+                            );
+                        } else {
+                            out.unsupported_profiles
+                                .push("non-ascii-selector-boundary".into());
+                        }
+                    } else {
+                        out.issue("anchor_text_span_outside_target", id);
+                    }
+                } else {
+                    out.issue("anchor_text_span_invalid", id);
+                }
+            }
+            Err(_) => out.issue("anchor_target_not_utf8", id),
+        },
+        "text_quote" => match std::str::from_utf8(target_bytes) {
+            Ok(text) => {
+                let exact = string(selector, "exact").unwrap_or("");
+                let prefix = string(selector, "prefix");
+                let suffix = string(selector, "suffix");
+                if exact.is_empty() {
+                    out.issue("anchor_quote_empty", id);
+                    out.state = TextRuleState::InvalidInput;
+                    return out;
+                }
+                let mut found = text.match_indices(exact).filter(|(start, _)| {
+                    let end = *start + exact.len();
+                    prefix.is_none_or(|p| text[..*start].ends_with(p))
+                        && suffix.is_none_or(|s| text[end..].starts_with(s))
+                });
+                let first = found.next();
+                if first.is_none() || found.next().is_some() {
+                    out.issue("anchor_quote_not_unique", id);
+                } else {
+                    let start = first.unwrap().0;
+                    let end = start + exact.len();
+                    let start_char = text[start..].chars().next();
+                    let end_char = text[end..].chars().next();
+                    if start_char.is_some_and(|c| c.is_ascii())
+                        && end_char.is_none_or(|c| c.is_ascii())
+                    {
+                        anchor_selection(
+                            &mut out,
+                            id,
+                            context,
+                            exact.as_bytes(),
+                            text[..start].chars().count() as u64,
+                            text[..end].chars().count() as u64,
+                        );
+                    } else {
+                        out.unsupported_profiles
+                            .push("non-ascii-selector-boundary".into());
+                    }
+                }
+            }
+            Err(_) => out.issue("anchor_target_not_utf8", id),
+        },
+        _ => out
+            .unsupported_profiles
+            .push(format!("selector-type:{selector_type}")),
+    }
+    if !out.issues.is_empty() {
+        out.state = TextRuleState::InvalidInput;
+    } else if out.unsupported_profiles.is_empty() {
+        out.state = TextRuleState::Checked;
+        out.checked_profiles.push(ANCHOR_V2_PROFILE.into());
+    }
+    out
 }
 
 fn layer_bound_resource(
@@ -1806,5 +2151,141 @@ mod tests {
             .collect();
         let report = inspect_source_text_layer_v1(&complete.0, &borrowed, &layer_context(false));
         assert_eq!(report.state, TextRuleState::Unsupported);
+    }
+
+    fn anchor_fixture() -> (Vec<u8>, Vec<u8>, Vec<u8>) {
+        let lab =
+            root().join("ToS/research-packets/foundation-laboratory-2026-07/source-anchor-v2-abc");
+        (
+            std::fs::read(lab.join("variant-b.anchor.json")).unwrap(),
+            std::fs::read(lab.join("variant-b-unicode.txt")).unwrap(),
+            std::fs::read(lab.join("lab.manifest.json")).unwrap(),
+        )
+    }
+
+    fn anchor_context() -> AnchorRuleContext {
+        AnchorRuleContext {
+            anchor_path: "fixture/variant-b.anchor.json".into(),
+            target_locator: "fixture:variant-b-unicode".into(),
+            method_configuration_locator: "ToS/research-packets/foundation-laboratory-2026-07/source-anchor-v2-abc/lab.manifest.json".into(),
+            schema_checked: true,
+            requested_profiles: vec![ANCHOR_V2_PROFILE.into()],
+            interval_generation: "fixture-anchor-interval".into(),
+            reverse_generation: "fixture-anchor-reverse".into(),
+        }
+    }
+
+    fn anchor_case(value: &Value, target: &[u8], config: &[u8]) -> TextRuleReport {
+        inspect_source_anchor_v2_single(
+            &serde_json::to_vec(value).unwrap(),
+            target,
+            config,
+            &anchor_context(),
+        )
+    }
+
+    fn selection_digest(report: &TextRuleReport) -> Option<&str> {
+        report.reads.iter().find_map(|read| match read {
+            PredicateRead::ExactBytes { locator, digest }
+                if locator.starts_with("anchor-selection:") =>
+            {
+                Some(digest.as_str())
+            }
+            _ => None,
+        })
+    }
+
+    #[test]
+    fn anchor_v2_frozen_unicode_and_byte_oracle_selections() {
+        let (raw, target, config) = anchor_fixture();
+        let base: Value = serde_json::from_slice(&raw).unwrap();
+        let report = anchor_case(&base, &target, &config);
+        assert_eq!(report.state, TextRuleState::Checked, "{:?}", report.issues);
+        assert_eq!(
+            selection_digest(&report),
+            Some("81ef060bcd98adc7824eb5c1ada83c32491b16018e11e79f00ab9d09e04b015a")
+        );
+        assert_eq!(report.intervals[0].start, 4);
+        assert_eq!(report.intervals[0].end, 9);
+
+        let mut bytes = base.clone();
+        bytes["selector_payload"]["expression"]["selector"]["selector"] = serde_json::json!({
+            "type": "byte_position", "start": 0, "end": 5,
+            "position_unit": "byte", "interval": "half_open"
+        });
+        let report = anchor_case(&bytes, &target, &config);
+        assert_eq!(report.state, TextRuleState::Checked, "{:?}", report.issues);
+        assert_eq!(
+            selection_digest(&report),
+            Some("3c94a0388b52318853918f13698b0677f047c0f298aba9732f8f3f637f652084")
+        );
+
+        let mut quote = base;
+        quote["selector_payload"]["expression"]["selector"]["selector"] =
+            serde_json::json!({"type": "text_quote", "exact": "cafe\u{301}"});
+        quote["publication_boundary"]["source_text_in_record"] = Value::Bool(true);
+        let report = anchor_case(&quote, &target, &config);
+        assert_eq!(report.state, TextRuleState::Checked, "{:?}", report.issues);
+        assert_eq!(
+            selection_digest(&report),
+            Some("81ef060bcd98adc7824eb5c1ada83c32491b16018e11e79f00ab9d09e04b015a")
+        );
+    }
+
+    #[test]
+    fn anchor_v2_negative_oracle_and_unsupported_profiles() {
+        let (raw, target, config) = anchor_fixture();
+        let base: Value = serde_json::from_slice(&raw).unwrap();
+        let mut drift = base.clone();
+        drift["selector_payload"]["expression"]["selector"]["state"]["representation_sha256"] =
+            Value::String("0".repeat(64));
+        assert!(has_issue(
+            &anchor_case(&drift, &target, &config),
+            "anchor_selector_state_drift"
+        ));
+
+        let mut reverse = base.clone();
+        reverse["selector_payload"]["expression"]["selector"]["selector"]["start"] =
+            Value::from(10);
+        assert!(has_issue(
+            &anchor_case(&reverse, &target, &config),
+            "anchor_text_span_outside_target"
+        ));
+
+        let mut utf16 = base.clone();
+        utf16["selector_payload"]["expression"]["selector"]["selector"]["start"] = Value::from(5);
+        utf16["selector_payload"]["expression"]["selector"]["selector"]["end"] = Value::from(10);
+        let report = anchor_case(&utf16, &target, &config);
+        assert_eq!(report.state, TextRuleState::Checked);
+        assert_eq!(
+            selection_digest(&report),
+            Some("db9950f9a1575823de691f2152032a848d3a498b905a46d22c278eae0ff08cff")
+        );
+
+        let mut quote = base.clone();
+        quote["selector_payload"]["expression"]["selector"]["selector"] =
+            serde_json::json!({"type": "text_quote", "exact": "cafe\u{301}"});
+        quote["publication_boundary"]["source_text_in_record"] = Value::Bool(true);
+        quote["publication_boundary"]["source_content_visibility"] =
+            Value::String("local_only".into());
+        assert!(has_issue(
+            &anchor_case(&quote, &target, &config),
+            "anchor_tracked_nonpublic_quote"
+        ));
+
+        let mut normalized = base.clone();
+        normalized["selector_payload"]["expression"]["selector"]["state"]["character_normalization"] =
+            Value::String("NFC".into());
+        assert_eq!(
+            anchor_case(&normalized, &target, &config).state,
+            TextRuleState::Unsupported
+        );
+
+        let mut context = anchor_context();
+        context.schema_checked = false;
+        assert_eq!(
+            inspect_source_anchor_v2_single(&raw, &target, &config, &context).state,
+            TextRuleState::Unsupported
+        );
     }
 }
