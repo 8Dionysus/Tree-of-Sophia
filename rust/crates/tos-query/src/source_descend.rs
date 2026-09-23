@@ -40,7 +40,7 @@ pub struct QueryError {
 }
 
 impl QueryError {
-    const fn new(code: QueryErrorCode, message: &'static str) -> Self {
+    pub(crate) const fn new(code: QueryErrorCode, message: &'static str) -> Self {
         Self { code, message }
     }
 }
