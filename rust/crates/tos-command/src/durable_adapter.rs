@@ -2171,6 +2171,7 @@ impl DurablePgCoordinator {
         cancelled: &AtomicBool,
     ) -> DurableResult<VerifiedSelectedGeneration> {
         let cut = self.cold_verify_cut_with_budget(store, domain, Some((deadline, cancelled)))?;
+        check_cold_deadline(Instant::now(), Some((deadline, cancelled)))?;
         let row = self.client.query_one(
             "SELECT d.head_seq,d.published_seq,d.complete_cut_digest,
                     d.complete_cut_generation,d.selected_generation_digest,
@@ -2201,11 +2202,13 @@ impl DurablePgCoordinator {
         expected_cut.audit_generation = sealed_generation
             .checked_sub(1)
             .ok_or(DurableError::Corrupt("selected generation fence invalid"))?;
+        check_cold_deadline(Instant::now(), Some((deadline, cancelled)))?;
         let installed = store.open_generation_candidate(
             parse_hex(selected_digest)?,
             &expected_cut,
             generation_limits(),
         )?;
+        check_cold_deadline(Instant::now(), Some((deadline, cancelled)))?;
         if installed.descriptor().history.key_codec_digest != Digest256::of_bytes(HISTORY_KEY_CODEC)
             || installed.descriptor().current.key_codec_digest
                 != Digest256::of_bytes(CURRENT_KEY_CODEC)
