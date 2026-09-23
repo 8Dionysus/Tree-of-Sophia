@@ -81,6 +81,9 @@ pub struct SearchSelectionBinding {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CurrentPolicyBinding {
     pub scope: String,
+    pub issuer_ref: String,
+    pub authorization_receipt_id: String,
+    pub policy_epoch: String,
     pub withdrawal_generation: String,
 }
 
@@ -307,7 +310,12 @@ fn validate_selection<V: SelectedQueryVocabulary + ?Sized>(
 }
 
 fn validate_policy_binding(policy: &CurrentPolicyBinding) -> Result<(), SearchV2Error> {
-    if policy.scope.is_empty() || policy.withdrawal_generation.is_empty() {
+    if policy.scope.is_empty()
+        || policy.issuer_ref.is_empty()
+        || policy.authorization_receipt_id.is_empty()
+        || policy.policy_epoch.is_empty()
+        || policy.withdrawal_generation.is_empty()
+    {
         return Err(SearchV2Error::new(
             SearchV2ErrorCode::PolicyBindingUnavailable,
             "current owner policy binding is unavailable",

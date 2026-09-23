@@ -288,6 +288,9 @@ fn request(query: impl Into<String>) -> IndexedSearchV2Request {
 fn current_policy() -> CurrentPolicyBinding {
     CurrentPolicyBinding {
         scope: "fixture-owner-policy-scope".into(),
+        issuer_ref: "fixture-owner-issuer".into(),
+        authorization_receipt_id: "fixture-owner-receipt".into(),
+        policy_epoch: "fixture-policy-epoch-3".into(),
         withdrawal_generation: "fixture-withdrawal-generation-3".into(),
     }
 }
@@ -652,6 +655,15 @@ fn continuation_binds_query_selection_and_independent_kind_positions() {
             .code,
         SearchV2ErrorCode::StalePolicy
     );
+    let mut changed_epoch = policy.clone();
+    changed_epoch.policy_epoch = "fixture-policy-epoch-4".into();
+    assert_eq!(
+        state
+            .validate_resume(&normalized, &selected, &changed_epoch, &vocabulary)
+            .unwrap_err()
+            .code,
+        SearchV2ErrorCode::StalePolicy
+    );
 }
 
 #[test]
@@ -661,6 +673,9 @@ fn continuation_refuses_missing_owner_policy_binding() {
     let normalized = request("query").normalize(&selected, &vocabulary).unwrap();
     let missing = CurrentPolicyBinding {
         scope: "fixture-owner-policy-scope".into(),
+        issuer_ref: "fixture-owner-issuer".into(),
+        authorization_receipt_id: "fixture-owner-receipt".into(),
+        policy_epoch: "fixture-policy-epoch-3".into(),
         withdrawal_generation: String::new(),
     };
     assert_eq!(

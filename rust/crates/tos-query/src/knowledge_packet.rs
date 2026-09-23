@@ -65,15 +65,14 @@ impl IndexedDisclosureScope {
             || self.descriptor_sha256 != bound.selection().vocabulary.descriptor_sha256
             || self.selected_index_sha256 != bound.selection().index_root_sha256
             || self.policy_scope != policy.scope
+            || self.policy_issuer_ref != policy.issuer_ref
+            || self.policy_receipt_id != policy.authorization_receipt_id
+            || self.policy_epoch != policy.policy_epoch
             || self.withdrawal_generation != policy.withdrawal_generation
             || policy.scope.is_empty()
-            || [
-                self.policy_issuer_ref.as_str(),
-                self.policy_receipt_id.as_str(),
-                self.policy_epoch.as_str(),
-            ]
-            .iter()
-            .any(|value| value.is_empty())
+            || policy.issuer_ref.is_empty()
+            || policy.authorization_receipt_id.is_empty()
+            || policy.policy_epoch.is_empty()
         {
             return Err(error(
                 SearchV2ErrorCode::PolicyBindingUnavailable,

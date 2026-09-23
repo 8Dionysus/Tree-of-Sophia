@@ -691,6 +691,9 @@ mod tests {
             request.clone(),
             CurrentPolicyBinding {
                 scope: "fixture-current-policy".into(),
+                issuer_ref: "fixture-issuer".into(),
+                authorization_receipt_id: "fixture-receipt".into(),
+                policy_epoch: "fixture-policy-epoch".into(),
                 withdrawal_generation: "fixture-withdrawal-1".into(),
             },
             &vocabulary,
