@@ -2,12 +2,12 @@
 //! specialized source adapters still own their semantics and global joins.
 
 use crate::{
-    Error, Result,
     knowledge_stage::{KnowledgeStage, WritePhase},
+    Error, Result,
 };
 use rusqlite::params;
 use serde_json::Value;
-use tos_foundation::{Digest256, JsonLimits, JsonMode, parse_json};
+use tos_foundation::{parse_json, Digest256, JsonLimits, JsonMode};
 
 #[derive(Clone, Copy, Debug)]
 pub struct OrderedCandidateLimits {
@@ -123,13 +123,7 @@ impl<'s, 'o> OrderedKnowledgeSink<'s, 'o> {
     fn preflight(&mut self, source_graph: &str, id: &str, payload: &[u8]) -> Result<()> {
         valid_id(source_graph)?;
         valid_id(id)?;
-        if !self
-            .stage
-            .exact_receipt()
-            .collections
-            .iter()
-            .any(|entry| entry.source_graph == source_graph)
-        {
+        if !self.stage.registered_source(source_graph) {
             return Err(Error::Invalid("ordered candidate unregistered source"));
         }
         let next_rows = self
@@ -350,10 +344,10 @@ const RELATION_FINAL: &str = "INSERT INTO knowledge_relations
 mod tests {
     use super::*;
     use crate::{
-        Limits, SourceBinding,
         knowledge_stage::{
             ExactInputReceipt, InputCollectionReceipt, StageIsolation, StageLimits, StageOwner,
         },
+        Limits, SourceBinding,
     };
     use std::{
         fs,

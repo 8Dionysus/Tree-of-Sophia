@@ -210,6 +210,10 @@ pub struct KnowledgeStage<'a> {
 }
 
 impl<'a> KnowledgeStage<'a> {
+    pub(crate) fn registered_source(&self, source_graph: &str) -> bool {
+        self.registrations.contains_key(source_graph)
+    }
+
     fn registered(&self, source_graph: &str, collection: &str) -> bool {
         self.registrations
             .get(source_graph)
