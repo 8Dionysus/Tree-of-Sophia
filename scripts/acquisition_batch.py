@@ -423,6 +423,7 @@ def _validate_semantics(manifest: dict[str, Any]) -> None:
             or not provenance_records
         ):
             raise AcquisitionBatchError(f"selection must contain one Item record: {item_ref}")
+        item_file_refs: set[str] = set()
         for payload in selection["payload_files"]:
             if payload["item_ref"] != item_ref or payload["item_root_ref"] != item_root:
                 raise AcquisitionBatchError(f"payload Item binding differs: {item_ref}")
@@ -434,6 +435,11 @@ def _validate_semantics(manifest: dict[str, Any]) -> None:
                 raise AcquisitionBatchError(f"provider source ID differs for {payload['file_ref']}")
             if payload["byte_size"] > MAX_PAYLOAD_BYTES:
                 raise AcquisitionBatchError(f"payload exceeds bounded transfer limit: {payload['file_ref']}")
+            if payload["file_ref"] in item_file_refs:
+                raise AcquisitionBatchError(
+                    f"duplicate payload File ID within Item: {payload['file_ref']}"
+                )
+            item_file_refs.add(payload["file_ref"])
             destination = f"{item_root}/{payload['relative_path']}"
             if destination in seen_destinations:
                 raise AcquisitionBatchError(f"duplicate payload destination: {destination}")

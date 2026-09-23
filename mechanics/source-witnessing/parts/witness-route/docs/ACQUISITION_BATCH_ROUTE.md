@@ -15,7 +15,8 @@ SHA-256, and optional Git blob SHA-1. `provenance_delta` closes over the same
 record and File sets and binds them to the exact accepted base revision. A
 digest supplied to the command is the operator's immutable-selection check.
 Because ToS File IDs are content-addressed, one File may be selected by more
-than one Item in a batch. The provenance delta lists that File ID once, while
+than one Item in a batch, but each Item binds a File ID to only one payload
+destination. The provenance delta lists the shared File ID once, while
 acquisition, fixity, and handoff custody retain one binding per
 `(Item, File, destination)` so every Item keeps its own path and rights closure.
 

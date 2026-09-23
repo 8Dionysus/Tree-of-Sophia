@@ -362,6 +362,35 @@ class AcquisitionBatchTests(unittest.TestCase):
         self.assertEqual(2, len(fixity_rows))
         self.assertEqual(2, len({row["destination_ref"] for row in fixity_rows}))
 
+    def test_same_item_cannot_bind_one_file_id_to_two_destinations(self) -> None:
+        _fetches, _manifest_sha = self._write_manifest(count=1)
+        manifest = json.loads(self.manifest_path.read_text(encoding="utf-8"))
+        selection = manifest["selection"][0]
+        payload = selection["payload_files"][0]
+        selection["payload_files"].insert(
+            0,
+            {**payload, "relative_path": "payload/not-in-item-manifest.txt"},
+        )
+        self.manifest_path.write_text(
+            json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        caller_selected_sha = hashlib.sha256(self.manifest_path.read_bytes()).hexdigest()
+        fetches: list[str] = []
+        with self.assertRaisesRegex(
+            acquisition.AcquisitionBatchError,
+            "duplicate payload File ID within Item",
+        ):
+            acquisition.acquire_batch(
+                manifest_path=self.manifest_path,
+                metadata_root=self.metadata,
+                output_root=self.output,
+                expected_manifest_sha256=caller_selected_sha,
+                fetcher=lambda row: fetches.append(row["file_ref"]) or b"unexpected",
+            )
+        self.assertEqual([], fetches)
+        self.assertFalse(self.output.exists())
+
     def test_resume_rejects_writable_preexisting_payload(self) -> None:
         fetches, manifest_sha = self._write_manifest(count=1)
         payload = json.loads(self.manifest_path.read_text())["selection"][0]["payload_files"][0]
