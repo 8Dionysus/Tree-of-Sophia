@@ -1462,6 +1462,44 @@ fn selected_generation_binds_complete_current_and_retained_membership() {
     assert_eq!(cut.historical_members(), 3);
     assert_eq!(cut.current_members(), 2);
     let cancelled = AtomicBool::new(false);
+
+    let other_root = ScratchRoot::new();
+    let other_store =
+        SegmentStore::initialize_empty(&other_root.0, lab.domain.as_bytes(), limits()).unwrap();
+    assert_ne!(other_store.store_id(), lab.store.store_id());
+    let incomplete_root = ScratchRoot::new();
+    copy_store_tree(&lab._root.0, &incomplete_root.0);
+    let missing_segment = fs::read_dir(incomplete_root.0.join("segments"))
+        .unwrap()
+        .next()
+        .unwrap()
+        .unwrap()
+        .path();
+    fs::remove_file(missing_segment).unwrap();
+    let incomplete_store = SegmentStore::open_existing(&incomplete_root.0, limits()).unwrap();
+    assert_eq!(incomplete_store.store_id(), lab.store.store_id());
+    for foreign in [&other_store, &incomplete_store] {
+        assert_eq!(foreign.custody_domain(), lab.domain.as_bytes());
+        assert!(matches!(
+            lab.db.build_complete_generation(
+                foreign,
+                &cut,
+                Instant::now() + Duration::from_secs(30),
+                &cancelled,
+            ),
+            Err(DurableError::Storage(_))
+        ));
+    }
+    let mut observer = Client::connect(&url, NoTls).unwrap();
+    let selected_before: Option<String> = observer
+        .query_one(
+            "SELECT selected_generation_digest FROM cmd2_domain WHERE domain=$1",
+            &[&lab.domain],
+        )
+        .unwrap()
+        .get(0);
+    assert!(selected_before.is_none());
+
     let candidate = lab
         .db
         .build_complete_generation(

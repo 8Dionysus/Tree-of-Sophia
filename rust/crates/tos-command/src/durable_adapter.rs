@@ -9,11 +9,12 @@ use postgres::fallible_iterator::FallibleIterator;
 use postgres::{Client, IsolationLevel, NoTls, Transaction};
 use tos_foundation::{Digest256, Digest256Hasher};
 use tos_segment_store::{
-    AttemptRecovery, ByteDurabilityReceipt, GenerationCatalogV1, GenerationCoverageV1,
-    GenerationCutV1, GenerationDescriptorV1, GenerationNamespaceV1, GenerationReadLimits,
-    GenerationRowStreamV1, GenerationShapeLimits, InstalledGenerationV1, KeyComparatorV1,
-    PackedPartitionRefV1, PackedPlacementLeafV1, PartitionBoundsV1, PlacementGenerationRowV1,
-    SegmentError, SegmentStore, VerificationBudget, describe_placement_partition,
+    AttemptRecovery, AuditedStoreRoot, ByteDurabilityReceipt, GenerationCatalogV1,
+    GenerationCoverageV1, GenerationCutV1, GenerationDescriptorV1, GenerationNamespaceV1,
+    GenerationReadLimits, GenerationRowStreamV1, GenerationShapeLimits, InstalledGenerationV1,
+    KeyComparatorV1, PackedPartitionRefV1, PackedPlacementLeafV1, PartitionBoundsV1,
+    PlacementGenerationRowV1, SegmentError, SegmentStore, VerificationBudget,
+    describe_placement_partition,
 };
 
 const PROFILE_ID: &[u8] = b"cmd2.lab.embedded-revision";
@@ -255,8 +256,12 @@ pub struct ColdRecoveredMember {
     receipt: ByteDurabilityReceipt,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug)]
 pub struct ColdCut {
+    // Private anchored STO capability, retained through candidate selection.
+    // Numeric store_id and domain are only descriptive and cannot substitute
+    // for this exact opened root and its held pin custody.
+    audited_root: AuditedStoreRoot,
     domain: String,
     through_commit_seq: u64,
     log_digest: Digest256,
@@ -1450,6 +1455,7 @@ impl DurablePgCoordinator {
         if store.custody_domain() != domain.as_bytes() {
             return Err(DurableError::Conflict("STO custody domain differs"));
         }
+        let audited_root = store.hold_audit_root()?;
         let started = Instant::now();
         check_cold_deadline(started, requested)?;
         let mut tx = self
@@ -1884,6 +1890,7 @@ impl DurablePgCoordinator {
             .get(0);
         part(&mut state_hasher, domain_state.as_bytes());
         let cut = ColdCut {
+            audited_root,
             domain: domain.to_owned(),
             through_commit_seq: head,
             log_digest: log_hasher.finalize(),
@@ -1913,6 +1920,7 @@ impl DurablePgCoordinator {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> DurableResult<CompleteGeneration> {
+        cut.audited_root.require_store(store)?;
         if store.custody_domain() != cut.domain.as_bytes() {
             return Err(DurableError::Conflict("STO custody domain differs"));
         }
@@ -1976,6 +1984,8 @@ impl DurablePgCoordinator {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> DurableResult<CompleteGeneration> {
+        cut.audited_root.require_store(store)?;
+        cut.audited_root.require_installed(&installed)?;
         if store.custody_domain() != cut.domain.as_bytes()
             || installed.descriptor().cut != generation_cut(store, cut)
             || installed.descriptor().history.key_codec_digest
@@ -2082,6 +2092,7 @@ impl DurablePgCoordinator {
         candidate: &CompleteGeneration,
     ) -> DurableResult<()> {
         let cut = &candidate.cut;
+        cut.audited_root.require_installed(&candidate.installed)?;
         let digest = candidate.installed.digest();
         if candidate.history_coverage.descriptor_digest != digest
             || candidate.current_coverage.descriptor_digest != digest
@@ -2208,6 +2219,7 @@ impl DurablePgCoordinator {
             &expected_cut,
             generation_limits(),
         )?;
+        cut.audited_root.require_installed(&installed)?;
         check_cold_deadline(Instant::now(), Some((deadline, cancelled)))?;
         if installed.descriptor().history.key_codec_digest != Digest256::of_bytes(HISTORY_KEY_CODEC)
             || installed.descriptor().current.key_codec_digest
