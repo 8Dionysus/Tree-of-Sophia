@@ -1031,7 +1031,7 @@ fn verify_fresh_selected(
     sqlite_budget::install_progress(&db, limits, used);
     db.pragma_update(None, "cache_size", -(limits.sqlite_cache_kib as i64))?;
     db.execute_batch("PRAGMA temp_store=FILE")?;
-    selected_table_closure(&db)?;
+    crate::knowledge_selected::verify_schema(&db)?;
     let integrity: String = db.query_row("PRAGMA integrity_check", [], |row| row.get(0))?;
     let freelist: u64 = db.query_row("PRAGMA freelist_count", [], |row| row.get(0))?;
     if integrity != "ok" || freelist != 0 {

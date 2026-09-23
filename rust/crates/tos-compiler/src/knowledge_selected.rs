@@ -2,21 +2,21 @@
 //! Source admission, immutable inode custody and current disclosure rights are
 //! independent owner obligations. No model path is reopened after admission.
 
-use crate::{Error, Result, knowledge_stage, safe_open, stream_digest};
-use rusqlite::{Connection, OpenFlags, OptionalExtension, params};
+use crate::{knowledge_stage, safe_open, stream_digest, Error, Result};
+use rusqlite::{params, Connection, OpenFlags, OptionalExtension};
 use std::{
     fs::File,
     io::Seek,
     os::fd::AsRawFd,
     path::Path,
     sync::{
-        Arc,
         atomic::{AtomicU64, Ordering},
+        Arc,
     },
 };
 use tos_foundation::{
-    CanonicalProfile, Digest256, Digest256Hasher, JsonLimits, JsonMode, JsonValue,
-    canonical_bytes_v1, parse_json,
+    canonical_bytes_v1, parse_json, CanonicalProfile, Digest256, Digest256Hasher, JsonLimits,
+    JsonMode, JsonValue,
 };
 
 pub const KNOWLEDGE_MODEL_ABI: &str = "tos_knowledge_read_model_v1";
@@ -1038,7 +1038,7 @@ fn verify_selected_table_allowlist(db: &Connection) -> Result<()> {
     Ok(())
 }
 
-fn verify_schema(db: &Connection) -> Result<()> {
+pub(crate) fn verify_schema(db: &Connection) -> Result<()> {
     verify_selected_table_allowlist(db)?;
     knowledge_stage::selected_table_closure(db)?;
     for (table, columns) in [
@@ -1853,17 +1853,15 @@ mod tests {
         let mut different_registry_bytes = expected();
         different_registry_bytes.entity_registry_sha256 = "0".repeat(64);
         different_registry_bytes.relation_registry_sha256 = "1".repeat(64);
-        assert!(
-            verify_graph_root(
-                &db,
-                &different_registry_bytes,
-                limits(),
-                &mut work,
-                empty,
-                empty
-            )
-            .is_ok()
-        );
+        assert!(verify_graph_root(
+            &db,
+            &different_registry_bytes,
+            limits(),
+            &mut work,
+            empty,
+            empty
+        )
+        .is_ok());
         db.execute("UPDATE graph_header SET packet_len=packet_len+1", [])
             .unwrap();
         assert!(verify_graph_root(&db, &expected(), limits(), &mut work, empty, empty).is_err());
