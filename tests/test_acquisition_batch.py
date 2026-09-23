@@ -207,7 +207,7 @@ class AcquisitionBatchTests(unittest.TestCase):
                     json.dumps(
                         {
                             "record_type": "item",
-                            "item_id": item_ref,
+                            "record_id": item_ref,
                             "item_manifest_ref": item_manifest_ref,
                         }
                     ).encode(),
@@ -1035,7 +1035,7 @@ class AcquisitionBatchTests(unittest.TestCase):
             "source/ToS/source-witnesses/works/fixture/expressions/en/"
             "editions/pinned/items/fixture-0/item.json"
         )
-        item_record.write_bytes(b'{"item_id":"tos.item.other"}\n')
+        item_record.write_bytes(b'{"record_id":"tos.item.other"}\n')
         fetch_calls: list[str] = []
         with self.assertRaisesRegex(
             acquisition.AcquisitionBatchError,
@@ -1049,6 +1049,49 @@ class AcquisitionBatchTests(unittest.TestCase):
                 fetcher=lambda payload: fetch_calls.append(payload["file_ref"]) or b"",
             )
         self.assertEqual([], fetch_calls)
+
+    def test_item_record_requires_record_id_before_fetch(self) -> None:
+        fetches, _manifest_sha = self._write_manifest(count=1)
+        manifest = json.loads(self.manifest_path.read_text(encoding="utf-8"))
+        selection = manifest["selection"][0]
+        item_record = next(
+            record for record in selection["records"] if record["kind"] == "item"
+        )
+        item_record_path = self.metadata / item_record["ref"]
+        item_record_path.write_text(
+            json.dumps(
+                {
+                    "record_type": "item",
+                    "item_id": selection["item_ref"],
+                    "item_manifest_ref": f"{selection['item_root_ref']}/item.manifest.json",
+                }
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        item_record["sha256"] = hashlib.sha256(item_record_path.read_bytes()).hexdigest()
+        self.manifest_path.write_text(
+            json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        manifest_sha = hashlib.sha256(self.manifest_path.read_bytes()).hexdigest()
+        fetch_calls: list[str] = []
+        with self.assertRaisesRegex(
+            acquisition.AcquisitionBatchError,
+            "Item record identity differs",
+        ):
+            acquisition.acquire_batch(
+                manifest_path=self.manifest_path,
+                metadata_root=self.metadata,
+                output_root=self.root / "missing-item-record-id",
+                expected_manifest_sha256=manifest_sha,
+                fetcher=lambda payload: fetch_calls.append(payload["file_ref"])
+                or fetches[payload["file_ref"]],
+            )
+        self.assertEqual([], fetch_calls)
+        self.assertEqual(
+            [], list((self.root / "missing-item-record-id").glob("receipts/handoff-*.json"))
+        )
 
     def test_item_manifest_companions_are_selected_and_fixed_before_fetch(self) -> None:
         for missing_companion in (
@@ -1272,7 +1315,7 @@ class AcquisitionBatchTests(unittest.TestCase):
         item_ref = selection["item_ref"]
         item_record_path = self.metadata / item_record["ref"]
         item_record_path.write_bytes(
-            json.dumps({"record_type": "item", "item_id": item_ref}).encode()
+            json.dumps({"record_type": "item", "record_id": item_ref}).encode()
         )
         item_record["sha256"] = hashlib.sha256(item_record_path.read_bytes()).hexdigest()
         self.manifest_path.write_bytes(

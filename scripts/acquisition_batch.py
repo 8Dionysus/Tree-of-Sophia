@@ -775,12 +775,7 @@ def _verify_prepared_item_bindings(context: BatchContext, output: Path) -> None:
         item_record = _load_json_bytes(
             item_record_path.read_bytes(), label="prepared Item record"
         )
-        identities = {
-            value
-            for value in (item_record.get("record_id"), item_record.get("item_id"))
-            if isinstance(value, str)
-        }
-        if identities != {item_ref}:
+        if item_record.get("record_id") != item_ref:
             raise AcquisitionBatchError(
                 f"prepared Item record identity differs from selection: {item_ref}"
             )
