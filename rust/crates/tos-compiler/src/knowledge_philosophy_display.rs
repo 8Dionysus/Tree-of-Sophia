@@ -184,7 +184,7 @@ pub fn ordinary_philosophy_node_display(
     {
         return Err(Error::Invalid("unsupported philosophy display variant"));
     }
-    let prop = |key| props.and_then(|p| p.get(key));
+    let prop = |key: &str| -> Option<&Value> { props.and_then(|p| p.get(key)) };
     let explicit = first_text(&[
         field(item, "label"),
         field(item, "canonical_label"),
@@ -333,7 +333,7 @@ pub fn ordinary_philosophy_relation_display(
             "unsupported philosophy relation display variant",
         ));
     }
-    let prop = |key| props.and_then(|p| p.get(key));
+    let prop = |key: &str| -> Option<&Value> { props.and_then(|p| p.get(key)) };
     let labels = field(effective_relation_type, "labels").and_then(Value::as_object);
     let mappings = field(effective_relation_type, "source_mappings")
         .and_then(Value::as_array)
