@@ -2417,6 +2417,8 @@ mod tests {
             log_digest: Digest256::of_bytes(b"contiguous-log"),
             historical_members: 2,
             current_members: 1,
+            history_membership_root: Digest256::of_bytes(b"cmd-audited-history"),
+            current_membership_root: Digest256::of_bytes(b"cmd-audited-current"),
         };
         let selected = store
             .install_generation_candidate(
@@ -2439,6 +2441,14 @@ mod tests {
         wrong_cut.through_seq = 2;
         assert_eq!(
             cold.open_generation_candidate(descriptor_digest, &wrong_cut, read_limits)
+                .unwrap_err()
+                .code,
+            Code::InvalidReceipt
+        );
+        let mut wrong_root = cut.clone();
+        wrong_root.current_membership_root = Digest256::of_bytes(b"same-count-current-swap");
+        assert_eq!(
+            cold.open_generation_candidate(descriptor_digest, &wrong_root, read_limits)
                 .unwrap_err()
                 .code,
             Code::InvalidReceipt

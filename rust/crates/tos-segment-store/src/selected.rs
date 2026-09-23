@@ -37,6 +37,10 @@ pub struct GenerationCutV1 {
     pub log_digest: Digest256,
     pub historical_members: u64,
     pub current_members: u64,
+    /// CMD-derived independent exact `{key,digest,length}` transcripts.
+    /// STO binds these claims but cannot issue their completeness proof.
+    pub history_membership_root: Digest256,
+    pub current_membership_root: Digest256,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -302,6 +306,8 @@ impl GenerationDescriptorV1 {
         }
         out.extend_from_slice(&self.cut.historical_members.to_le_bytes());
         out.extend_from_slice(&self.cut.current_members.to_le_bytes());
+        out.extend_from_slice(self.cut.history_membership_root.as_bytes());
+        out.extend_from_slice(self.cut.current_membership_root.as_bytes());
         for catalog in [&self.history, &self.current] {
             out.extend_from_slice(catalog.key_codec_digest.as_bytes());
             out.extend_from_slice(catalog.catalog_root.as_bytes());
@@ -340,7 +346,7 @@ impl GenerationDescriptorV1 {
     pub(crate) fn decode(raw: &[u8], domain: &[u8], limits: GenerationReadLimits) -> Result<Self> {
         let limits = limits.validate()?;
         if raw.len() > limits.max_descriptor_bytes
-            || raw.len() < 8 + 4 + 24 + 16 + 32 + 24 + 96 + 16 + 2 * 68 + 32
+            || raw.len() < 8 + 4 + 24 + 16 + 32 + 24 + 96 + 16 + 64 + 2 * 68 + 32
         {
             return Err(invalid());
         }
@@ -367,6 +373,8 @@ impl GenerationDescriptorV1 {
             log_digest: digest(take(raw, &mut at, 32, end)?)?,
             historical_members: wide(raw, &mut at, end)?,
             current_members: wide(raw, &mut at, end)?,
+            history_membership_root: digest(take(raw, &mut at, 32, end)?)?,
+            current_membership_root: digest(take(raw, &mut at, 32, end)?)?,
         };
         let history = get_catalog(raw, &mut at, end, limits.shape)?;
         let current = get_catalog(raw, &mut at, end, limits.shape)?;
