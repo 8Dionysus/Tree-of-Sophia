@@ -14,6 +14,7 @@ use tos_segment_store::{
 const PROFILE_ID: &[u8] = b"cmd2.lab.embedded-revision";
 const PROFILE_VERSION: &[u8] = b"1";
 const LAB_MAGIC: &[u8; 8] = b"CMD2LAB1";
+const COLD_AUDIT_PROFILE: &[u8] = b"cmd2-private-complete-state-v2:pg16-row-to-json";
 const MAX_MEMBERS: usize = 64;
 const MAX_CUT: u64 = 100_000;
 
@@ -334,7 +335,11 @@ fn parse_hex(value: String) -> DurableResult<Digest256> {
 }
 
 fn schema_profile_digest() -> Digest256 {
-    Digest256::of_bytes(include_bytes!("durable_schema.sql"))
+    let mut hasher = Digest256Hasher::new();
+    part(&mut hasher, b"cmd2-coordinator-schema-profile-v2");
+    part(&mut hasher, include_bytes!("durable_schema.sql"));
+    part(&mut hasher, COLD_AUDIT_PROFILE);
+    hasher.finalize()
 }
 
 fn lock_audit_fence(tx: &mut Transaction<'_>, domain: &str) -> DurableResult<u64> {
@@ -380,6 +385,15 @@ impl DurablePgCoordinator {
     }
 
     pub fn init_lab_schema(&mut self) -> DurableResult<()> {
+        let version: i32 = self
+            .client
+            .query_one("SELECT current_setting('server_version_num')::integer", &[])?
+            .get(0);
+        if version / 10_000 != 16 {
+            return Err(DurableError::Refused(
+                "CMD2 audit row profile requires PostgreSQL 16",
+            ));
+        }
         self.client
             .batch_execute(include_str!("durable_schema.sql"))?;
         Ok(())
@@ -1200,7 +1214,7 @@ impl DurablePgCoordinator {
         let mut log_hasher = Digest256Hasher::new();
         part(&mut log_hasher, b"cmd2-cold-cut-v1");
         let mut state_hasher = Digest256Hasher::new();
-        part(&mut state_hasher, b"cmd2-private-complete-state-v1");
+        part(&mut state_hasher, COLD_AUDIT_PROFILE);
         part(&mut state_hasher, domain.as_bytes());
         part(&mut state_hasher, &head.to_be_bytes());
         part(&mut state_hasher, &database_oid.to_be_bytes());
