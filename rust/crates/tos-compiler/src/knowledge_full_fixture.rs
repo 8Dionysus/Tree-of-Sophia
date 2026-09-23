@@ -4,16 +4,16 @@
 
 use super::*;
 use crate::{
+    ColdOpenLimits, ExpectedSourceScope, ImmutableKnowledgeCustody, IndexedLimits,
+    KnowledgeSelectedExpectation, Limits, SourceBinding,
     catalog::CatalogLimits,
     knowledge_stage::{
         ExactInputReceipt, InputCollectionReceipt, InputRow, KnowledgeStage, StageIsolation,
         StageLimits, StageOwner, WritePhase,
     },
-    materialize_indexed_sources, open_selected_knowledge_model, ColdOpenLimits,
-    ExpectedSourceScope, ImmutableKnowledgeCustody, IndexedLimits,
-    KnowledgeSelectedExpectation, Limits, SourceBinding,
+    materialize_indexed_sources, open_selected_knowledge_model,
 };
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::{
     fs,
     os::unix::fs::MetadataExt,
@@ -106,8 +106,7 @@ fn candidate() -> std::path::PathBuf {
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_nanos();
-    let dir =
-        std::env::temp_dir().join(format!("tos-full-eighth-{}-{tick}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("tos-full-eighth-{}-{tick}", std::process::id()));
     fs::create_dir(&dir).unwrap();
     dir.join("candidate.sqlite3")
 }
@@ -132,8 +131,7 @@ pub fn build_fixture() -> FullKnowledgeFixture {
     ]);
     descriptor["identity"]["source_dossier_graph_id"] = json!("eighth");
     let descriptor_bytes = serde_json::to_vec(&descriptor).unwrap();
-    let vocabulary =
-        QueryVocabulary::parse(&descriptor_bytes, &["indexed-node-edge-v1"]).unwrap();
+    let vocabulary = QueryVocabulary::parse(&descriptor_bytes, &["indexed-node-edge-v1"]).unwrap();
     let mut divergent = vocabulary.clone();
     divergent.registered_source_ids.push("phantom".into());
     assert!(divergent.verify_authored_bytes(&descriptor_bytes).is_err());
@@ -160,7 +158,8 @@ pub fn build_fixture() -> FullKnowledgeFixture {
                 "summary_state":"source","provenance":{"source_summary_available":true}},
             "epistemic":{},"attributes":{},"semantics":{},"graph_layers":[],"view_ids":[],
             "source_refs":["owner:record-1"]
-        })).unwrap()
+        }))
+        .unwrap()
     };
     let alpha_id = "eighth:alpha";
     let visible_id = "eighth:visible";
@@ -186,7 +185,8 @@ pub fn build_fixture() -> FullKnowledgeFixture {
             "provenance":{"source_explanation_available":true}},
         "epistemic":{},"attributes":{},"semantics":{},"graph_layers":[],"view_ids":[],
         "source_refs":["owner:record-1"]
-    })).unwrap();
+    }))
+    .unwrap();
     let sealed = ExactInputReceipt {
         binding: SourceBinding {
             owner_profile: "fixture-owner".into(),

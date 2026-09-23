@@ -148,15 +148,33 @@ mod tests {
         let fork = selected.fork_reader_with_vm_budget(100_000_000).unwrap();
         assert_eq!(fork.source_revision(), selected.source_revision());
         assert_eq!(
-            selected.connection().query_row("SELECT count(*) FROM search_documents", [], |row| row.get::<_, i64>(0)).unwrap(),
+            selected
+                .connection()
+                .query_row("SELECT count(*) FROM search_documents", [], |row| row
+                    .get::<_, i64>(0))
+                .unwrap(),
             5
         );
         assert_eq!(
-            selected.connection().query_row("SELECT postings FROM search_gram_stats WHERE kind='nodes' AND n=3 AND gram=?1", [b"alp".as_slice()], |row| row.get::<_, i64>(0)).unwrap(),
+            selected
+                .connection()
+                .query_row(
+                    "SELECT postings FROM search_gram_stats WHERE kind='nodes' AND n=3 AND gram=?1",
+                    [b"alp".as_slice()],
+                    |row| row.get::<_, i64>(0)
+                )
+                .unwrap(),
             3
         );
         assert_eq!(
-            selected.connection().query_row("SELECT expected_node_count FROM source_scope WHERE source_graph='zero'", [], |row| row.get::<_, i64>(0)).unwrap(),
+            selected
+                .connection()
+                .query_row(
+                    "SELECT expected_node_count FROM source_scope WHERE source_graph='zero'",
+                    [],
+                    |row| row.get::<_, i64>(0)
+                )
+                .unwrap(),
             0
         );
         selected.check_pin().unwrap();
