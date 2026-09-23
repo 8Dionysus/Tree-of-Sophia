@@ -108,3 +108,12 @@ copies, while explicit `*_source_ref` fields retain the original acquisition
 paths.
 The queued-corpus-intake owner can use this adapter's selector and receipt
 shape while its seven-batch converter remains a separate owner surface.
+
+Both `verify_handoff_for_intake` and the adapter API require the caller to
+pass `expected_manifest_sha256` from the immutable selection or preparation
+receipt; the adapter CLI requires the same value as
+`--expected-manifest-sha256`. The verifier checks that caller-held digest
+against the handoff's declared selection and the actual `manifest.json` bytes.
+The hash inside the handoff cannot authenticate the handoff by itself. This
+also permits an older sealed handoff to be consumed when its exact manifest
+digest is independently retained.

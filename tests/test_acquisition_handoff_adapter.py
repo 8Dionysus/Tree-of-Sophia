@@ -290,6 +290,7 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
         adapted = adapter.adapt_handoff(
             acquisition_root=self.acquisition_root,
             handoff_ref=result["handoff_ref"],
+            expected_manifest_sha256=manifest_sha,
             output_root=self.candidate,
             accepted_store_root=self.accepted_store,
             accepted_source_root=self.accepted_source,
@@ -313,6 +314,9 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
         )["admission_status"])
         adapter_receipt = json.loads(
             (self.candidate / "receipts/acquisition-handoff-adapter.json").read_text()
+        )
+        self.assertEqual(
+            manifest_sha, adapter_receipt["caller_expected_manifest_sha256"]
         )
         self.assertEqual(
             "transport-bound; downstream-source-validator-required",
@@ -392,6 +396,47 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
         )
         self.assertEqual(receipt, replay)
 
+    def test_intake_rejects_coherently_replaced_handoff_against_caller_digest(self) -> None:
+        _original_fetches, caller_selected_sha, _item_root, _records = self._write_manifest(
+            base_revision="a" * 64
+        )
+        replacement_fetches, replacement_sha, _item_root, _records = self._write_manifest(
+            base_revision="a" * 64,
+            extra_manifest=True,
+        )
+        self.assertNotEqual(caller_selected_sha, replacement_sha)
+        result = acquisition.acquire_batch(
+            manifest_path=self.manifest_path,
+            metadata_root=self.metadata,
+            output_root=self.acquisition_root,
+            expected_manifest_sha256=replacement_sha,
+            fetcher=lambda payload: replacement_fetches[payload["file_ref"]],
+        )
+
+        # The replacement handoff is internally coherent: the producer sealed
+        # it from its replacement manifest, metadata, payload, and receipts.
+        verified_replacement = adapter.verify_handoff_for_intake(
+            acquisition_root=self.acquisition_root,
+            handoff_ref=result["handoff_ref"],
+            expected_manifest_sha256=replacement_sha,
+            expected_base_revision="a" * 64,
+            repo_root=ROOT,
+        )
+        self.assertEqual(replacement_sha, verified_replacement.context.manifest_sha256)
+
+        # A consumer retaining the original selection digest must reject that
+        # self-consistent replacement before accepting any source evidence.
+        with self.assertRaisesRegex(
+            adapter.HandoffAdapterError, "caller-selected digest"
+        ):
+            adapter.verify_handoff_for_intake(
+                acquisition_root=self.acquisition_root,
+                handoff_ref=result["handoff_ref"],
+                expected_manifest_sha256=caller_selected_sha,
+                expected_base_revision="a" * 64,
+                repo_root=ROOT,
+            )
+
     def test_shared_intake_verifier_accepts_original_handoff_without_store_load(self) -> None:
         fetches, manifest_sha, _item_root, _records = self._write_manifest(base_revision="a" * 64)
         result = acquisition.acquire_batch(
@@ -404,6 +449,7 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
         verified = adapter.verify_handoff_for_intake(
             acquisition_root=self.acquisition_root,
             handoff_ref=result["handoff_ref"],
+            expected_manifest_sha256=manifest_sha,
             expected_base_revision="a" * 64,
             repo_root=ROOT,
         )
@@ -432,6 +478,7 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
         verified = adapter.verify_handoff_for_intake(
             acquisition_root=self.acquisition_root,
             handoff_ref=result["handoff_ref"],
+            expected_manifest_sha256=manifest_sha,
             expected_base_revision="a" * 64,
             repo_root=ROOT,
         )
@@ -496,6 +543,7 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
             adapter.verify_handoff_for_intake(
                 acquisition_root=self.acquisition_root,
                 handoff_ref=result["handoff_ref"],
+                expected_manifest_sha256=manifest_sha,
                 expected_base_revision="a" * 64,
                 repo_root=ROOT,
             )
@@ -522,6 +570,7 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
             adapter.verify_handoff_for_intake(
                 acquisition_root=self.acquisition_root,
                 handoff_ref=result["handoff_ref"],
+                expected_manifest_sha256=manifest_sha,
                 expected_base_revision="a" * 64,
                 repo_root=ROOT,
             )
@@ -554,6 +603,7 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
             adapter.verify_handoff_for_intake(
                 acquisition_root=self.acquisition_root,
                 handoff_ref=result["handoff_ref"],
+                expected_manifest_sha256=manifest_sha,
                 expected_base_revision="a" * 64,
                 repo_root=ROOT,
             )
@@ -623,6 +673,7 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
             adapter.verify_handoff_for_intake(
                 acquisition_root=self.acquisition_root,
                 handoff_ref=result["handoff_ref"],
+                expected_manifest_sha256=manifest_sha,
                 expected_base_revision="a" * 64,
                 repo_root=ROOT,
             )
@@ -663,6 +714,7 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
             adapter.verify_handoff_for_intake(
                 acquisition_root=self.acquisition_root,
                 handoff_ref=result["handoff_ref"],
+                expected_manifest_sha256=manifest_sha,
                 expected_base_revision="a" * 64,
                 repo_root=ROOT,
             )
@@ -728,6 +780,7 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
         adapted = adapter.adapt_handoff(
             acquisition_root=self.acquisition_root,
             handoff_ref=result["handoff_ref"],
+            expected_manifest_sha256=manifest_sha,
             output_root=self.candidate,
             accepted_store_root=self.accepted_store,
             accepted_source_root=self.accepted_source,
@@ -759,6 +812,7 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
             adapter.adapt_handoff(
                 acquisition_root=self.acquisition_root,
                 handoff_ref=result["handoff_ref"],
+                expected_manifest_sha256=manifest_sha,
                 output_root=self.candidate,
                 accepted_store_root=self.accepted_store,
                 accepted_source_root=self.accepted_source,
@@ -817,6 +871,7 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
             adapter.adapt_handoff(
                 acquisition_root=self.acquisition_root,
                 handoff_ref=result["handoff_ref"],
+                expected_manifest_sha256=manifest_sha,
                 output_root=self.candidate,
                 accepted_store_root=self.accepted_store,
                 accepted_source_root=self.accepted_source,
@@ -844,6 +899,7 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
             adapter.adapt_handoff(
                 acquisition_root=self.acquisition_root,
                 handoff_ref=result["handoff_ref"],
+                expected_manifest_sha256=manifest_sha,
                 output_root=self.candidate,
                 accepted_store_root=self.accepted_store,
                 accepted_source_root=empty_view,
@@ -868,6 +924,7 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
         adapted = adapter.adapt_handoff(
             acquisition_root=self.acquisition_root,
             handoff_ref=result["handoff_ref"],
+            expected_manifest_sha256=manifest_sha,
             output_root=self.candidate,
             accepted_store_root=self.accepted_store,
             accepted_source_root=self.accepted_source,
@@ -964,6 +1021,7 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
             adapter.adapt_handoff(
                 acquisition_root=self.acquisition_root,
                 handoff_ref=result["handoff_ref"],
+                expected_manifest_sha256=manifest_sha,
                 output_root=self.candidate,
                 accepted_store_root=self.accepted_store,
                 accepted_source_root=self.accepted_source,

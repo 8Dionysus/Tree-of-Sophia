@@ -371,6 +371,46 @@ def _verify_item_payload_bindings(context: acquisition.BatchContext, acquisition
         raise HandoffAdapterError(str(exc)) from exc
 
 
+def _load_caller_selected_context(
+    *,
+    acquisition_root: Path,
+    handoff: dict[str, Any],
+    expected_manifest_sha256: str,
+    repo_root: Path | str,
+) -> acquisition.BatchContext:
+    """Load only the manifest selected by a caller-held digest.
+
+    The handoff and the acquisition root travel together and therefore cannot
+    authenticate one another.  A caller must retain the manifest digest from
+    selection/preparation and pass it independently to every consumer.
+    """
+
+    if not isinstance(expected_manifest_sha256, str) or not HEX64.fullmatch(
+        expected_manifest_sha256
+    ):
+        raise HandoffAdapterError(
+            "caller-selected manifest digest must be lowercase SHA-256"
+        )
+    input_selection = handoff.get("input_selection")
+    if not isinstance(input_selection, dict) or input_selection.get("ref") != "manifest.json":
+        raise HandoffAdapterError("handoff input selection must name manifest.json")
+    if input_selection.get("sha256") != expected_manifest_sha256:
+        raise HandoffAdapterError(
+            "handoff manifest digest differs from caller-selected digest"
+        )
+    manifest_path = _path_under(
+        acquisition_root, "manifest.json", label="handoff manifest"
+    )
+    try:
+        return acquisition.load_manifest(
+            manifest_path,
+            repo_root=repo_root,
+            expected_sha256=expected_manifest_sha256,
+        )
+    except acquisition.AcquisitionBatchError as exc:
+        raise HandoffAdapterError(str(exc)) from exc
+
+
 def _verify_handoff(
     *,
     acquisition_root: Path,
@@ -590,6 +630,7 @@ def verify_handoff_for_intake(
     acquisition_root: Path | str,
     handoff_ref: str,
     expected_base_revision: str,
+    expected_manifest_sha256: str,
     repo_root: Path | str = acquisition.REPO_ROOT,
 ) -> VerifiedHandoff:
     """Verify one original handoff for direct intake closure.
@@ -602,14 +643,11 @@ def verify_handoff_for_intake(
 
     root = acquisition._checked_root(acquisition_root)
     handoff_path, handoff = _load_handoff(root, handoff_ref)
-    input_selection = handoff.get("input_selection")
-    if not isinstance(input_selection, dict) or input_selection.get("ref") != "manifest.json":
-        raise HandoffAdapterError("handoff input selection must name manifest.json")
-    manifest_path = _path_under(root, "manifest.json", label="handoff manifest")
-    context = acquisition.load_manifest(
-        manifest_path,
+    context = _load_caller_selected_context(
+        acquisition_root=root,
+        handoff=handoff,
+        expected_manifest_sha256=expected_manifest_sha256,
         repo_root=repo_root,
-        expected_sha256=input_selection.get("sha256"),
     )
     try:
         # Immutable legacy handoffs retain their historical directory modes;
@@ -643,6 +681,7 @@ def adapt_handoff(
     *,
     acquisition_root: Path | str,
     handoff_ref: str,
+    expected_manifest_sha256: str,
     output_root: Path | str,
     accepted_store_root: Path | str,
     accepted_source_root: Path | str,
@@ -687,15 +726,13 @@ def adapt_handoff(
         else validator_transition
     )
     handoff_path, handoff = _load_handoff(root, handoff_ref)
-    input_selection = handoff.get("input_selection")
-    if not isinstance(input_selection, dict) or input_selection.get("ref") != "manifest.json":
-        raise HandoffAdapterError("handoff input selection must name manifest.json")
-    manifest_path = _path_under(root, "manifest.json", label="handoff manifest")
-    context = acquisition.load_manifest(
-        manifest_path,
+    context = _load_caller_selected_context(
+        acquisition_root=root,
+        handoff=handoff,
+        expected_manifest_sha256=expected_manifest_sha256,
         repo_root=repo_root,
-        expected_sha256=input_selection.get("sha256"),
     )
+    manifest_path = _path_under(root, "manifest.json", label="handoff manifest")
     try:
         # Immutable legacy handoffs retain their historical directory modes;
         # the producer enforces private roots for every new preparation.
@@ -837,6 +874,7 @@ def adapt_handoff(
             "manifest_ref": evidence_refs["manifest.json"]["ref"],
             "manifest_source_ref": "manifest.json",
             "manifest_sha256": context.manifest_sha256,
+            "caller_expected_manifest_sha256": expected_manifest_sha256,
             "provenance_delta_ref": evidence_refs["provenance-delta.json"]["ref"],
             "provenance_delta_source_ref": handoff["provenance_delta"]["ref"],
             "provenance_delta_sha256": handoff["provenance_delta"]["sha256"],
@@ -890,6 +928,11 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--acquisition-root", type=Path, required=True)
     parser.add_argument("--handoff", required=True)
+    parser.add_argument(
+        "--expected-manifest-sha256",
+        required=True,
+        help="caller-held SHA-256 captured when this acquisition manifest was selected",
+    )
     parser.add_argument("--output-root", type=Path, required=True)
     parser.add_argument("--accepted-store-root", type=Path, required=True)
     parser.add_argument("--accepted-source-root", type=Path, required=True)
@@ -907,6 +950,7 @@ def main(argv: list[str] | None = None) -> int:
         result = adapt_handoff(
             acquisition_root=args.acquisition_root,
             handoff_ref=args.handoff,
+            expected_manifest_sha256=args.expected_manifest_sha256,
             output_root=args.output_root,
             accepted_store_root=args.accepted_store_root,
             accepted_source_root=args.accepted_source_root,
