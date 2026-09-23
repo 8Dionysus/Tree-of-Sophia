@@ -154,6 +154,30 @@ test("File-only candidate rights remain review-required when bound by exact Item
   assert.equal(summary.can_conclude_legal_openness, false);
 });
 
+test("File aggregate requires a context for every Item-manifest edge source", () => {
+  const navigation = sharedFileRightsNavigation(true);
+  const edge = (navigation.edges as Item[])[0]!;
+  edge.source_refs = [
+    "ToS/source-witnesses/fixture/copy-a/item.manifest.json",
+    "ToS/source-witnesses/fixture/copy-a/superseded-item.manifest.json",
+  ];
+  const file = sourceDossier(navigation, "tos.file.sha256.shared", 20);
+  const summary = file.agent_summary as Item;
+  assert.equal(summary.can_conclude_legal_openness, false);
+  assert.equal(summary.rights_posture, "membership_scoped_review_required");
+});
+
+test("File aggregate rejects duplicate manifest contexts", () => {
+  const navigation = sharedFileRightsNavigation(true);
+  const edge = (navigation.edges as Item[])[0]!;
+  const properties = edge.properties as Item;
+  const contexts = properties.item_file_contexts as Item[];
+  edge.properties = { item_file_contexts: [...contexts, { ...contexts[0]! }] };
+  const file = sourceDossier(navigation, "tos.file.sha256.shared", 20);
+  assert.equal((file.agent_summary as Item).can_conclude_legal_openness, false);
+  assert.equal((file.agent_summary as Item).rights_posture, "membership_scoped_review_required");
+});
+
 test("legacy single-Item File dossiers remain compatible while shared unbound Files fail closed", () => {
   const single = sharedFileRightsNavigation();
   single.nodes = (single.nodes as Item[]).filter((node) => node.node_id !== "tos.item.copy.b");
@@ -209,4 +233,15 @@ test("legacy single-Item File fallback rejects File-only assessment scopes", () 
   assert.equal((file.agent_summary as Item).can_conclude_legal_openness, false);
   assert.equal((file.agent_summary as Item).rights_posture, "membership_scoped_review_required");
   assert.deepEqual(file.rights, []);
+});
+
+test("legacy single-manifest edge without context preserves unique Item-scoped rights", () => {
+  const navigation = sharedFileRightsNavigation();
+  navigation.nodes = (navigation.nodes as Item[]).filter((node) => node.node_id !== "tos.item.copy.b");
+  const edge = (navigation.edges as Item[])[0]!;
+  navigation.edges = [{ ...edge, properties: undefined }];
+  navigation.rights = (navigation.rights as Item[]).slice(0, 1);
+  const file = sourceDossier(navigation, "tos.file.sha256.shared", 20);
+  assert.equal((file.agent_summary as Item).can_conclude_legal_openness, true);
+  assert.deepEqual((file.rights as Item[]).map((record) => record.rights_id), ["rights-a"]);
 });

@@ -261,18 +261,24 @@ def source_dossier_query(
             entry = memberships.setdefault(item_id, {"rights_refs": set(), "legacy": False})
             properties = edge.get("properties")
             properties = properties if isinstance(properties, dict) else {}
+            raw_edge_source_refs = edge.get("source_refs")
             edge_source_refs = {
-                ref for ref in edge.get("source_refs", [])
-                if isinstance(edge.get("source_refs"), list) and isinstance(ref, str) and ref
+                ref for ref in raw_edge_source_refs
+                if isinstance(raw_edge_source_refs, list) and isinstance(ref, str) and ref
             }
+            if not isinstance(raw_edge_source_refs, list) or len(edge_source_refs) != len(raw_edge_source_refs):
+                membership_bindings_valid = False
             if "item_file_contexts" not in properties:
                 entry["legacy"] = True
+                if len(edge_source_refs) != 1:
+                    membership_bindings_valid = False
                 continue
             raw_contexts = properties.get("item_file_contexts")
             if not isinstance(raw_contexts, list) or not raw_contexts:
                 membership_bindings_valid = False
                 continue
             contexts = raw_contexts
+            context_manifest_refs: set[str] = set()
             for context in contexts:
                 if not isinstance(context, dict):
                     membership_bindings_valid = False
@@ -281,10 +287,16 @@ def source_dossier_query(
                 rights_ref = context.get("rights_ref")
                 if not isinstance(manifest_ref, str) or not manifest_ref or manifest_ref not in edge_source_refs:
                     membership_bindings_valid = False
+                elif manifest_ref in context_manifest_refs:
+                    membership_bindings_valid = False
+                else:
+                    context_manifest_refs.add(manifest_ref)
                 if isinstance(rights_ref, str) and rights_ref:
                     entry["rights_refs"].add(rights_ref)
                 else:
                     entry["legacy"] = True
+            if context_manifest_refs != edge_source_refs:
+                membership_bindings_valid = False
         member_ids = set(memberships)
         decision_scope_ids = member_ids | {object_id}
         file_membership_complete = bool(member_ids) and member_ids.issubset(component_ids)

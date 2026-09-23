@@ -298,10 +298,16 @@ export function sourceDossier(navigation: Item, objectId: string, limit: number)
       if (prior) prior.duplicate = true;
       const membership = prior ?? { rightsRefs: new Set<string>(), legacy: false, duplicate: false };
       memberships.set(itemId, membership);
+      const rawEdgeSourceRefs = edge.source_refs;
+      const edgeSourceRefs = new Set(stringArray(rawEdgeSourceRefs));
+      if (!Array.isArray(rawEdgeSourceRefs) || edgeSourceRefs.size !== rawEdgeSourceRefs.length) {
+        membershipBindingsValid = false;
+      }
       const properties = itemObject(edge.properties);
       const hasContexts = Object.prototype.hasOwnProperty.call(properties, "item_file_contexts");
       if (!hasContexts) {
         membership.legacy = true;
+        if (edgeSourceRefs.size !== 1) membershipBindingsValid = false;
         continue;
       }
       const rawContexts = properties.item_file_contexts;
@@ -311,13 +317,19 @@ export function sourceDossier(navigation: Item, objectId: string, limit: number)
       }
       const contexts = objectArray(rawContexts);
       if (contexts.length !== rawContexts.length) membershipBindingsValid = false;
-      const edgeSourceRefs = new Set(stringArray(edge.source_refs));
+      const contextManifestRefs = new Set<string>();
       for (const context of contexts) {
         const manifestRef = stringValue(context.manifest_ref);
         const rightsRef = stringValue(context.rights_ref);
         if (!manifestRef || !edgeSourceRefs.has(manifestRef)) membershipBindingsValid = false;
+        if (manifestRef && contextManifestRefs.has(manifestRef)) membershipBindingsValid = false;
+        else if (manifestRef) contextManifestRefs.add(manifestRef);
         if (rightsRef) membership.rightsRefs.add(rightsRef);
         else membership.legacy = true;
+      }
+      if (contextManifestRefs.size !== edgeSourceRefs.size
+        || [...edgeSourceRefs].some((sourceRef) => !contextManifestRefs.has(sourceRef))) {
+        membershipBindingsValid = false;
       }
     }
     const memberIds = new Set(memberships.keys());

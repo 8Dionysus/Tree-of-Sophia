@@ -129,6 +129,38 @@ class SharedFileRightsTests(unittest.TestCase):
         self.assertEqual("candidate_requires_human_review", result["agent_summary"]["rights_posture"])
         self.assertFalse(result["agent_summary"]["can_conclude_legal_openness"])
 
+    def test_file_aggregate_requires_context_for_every_edge_source_ref(self) -> None:
+        fixture = navigation_fixture(rights_b_positive=True)
+        edge = fixture[2][FILE_ID][0]
+        edge["source_refs"].append("ToS/source-witnesses/fixture/copy-a/superseded-item.manifest.json")
+        result = dossier(fixture, FILE_ID)
+        self.assertFalse(result["agent_summary"]["can_conclude_legal_openness"])
+        self.assertEqual("membership_scoped_review_required", result["agent_summary"]["rights_posture"])
+
+    def test_file_aggregate_rejects_duplicate_manifest_contexts(self) -> None:
+        fixture = navigation_fixture(rights_b_positive=True)
+        edge = fixture[2][FILE_ID][0]
+        contexts = edge["properties"]["item_file_contexts"]
+        contexts.append(dict(contexts[0]))
+        result = dossier(fixture, FILE_ID)
+        self.assertFalse(result["agent_summary"]["can_conclude_legal_openness"])
+        self.assertEqual("membership_scoped_review_required", result["agent_summary"]["rights_posture"])
+
+    def test_legacy_single_manifest_edge_without_context_keeps_unique_item_scoped_rights(self) -> None:
+        fixture = navigation_fixture(legacy=True)
+        navigation, nodes, incoming, outgoing, rights = fixture
+        edge = incoming[FILE_ID][0]
+        edge.pop("properties")
+        incoming[FILE_ID] = [edge]
+        outgoing = {ITEM_A: [edge]}
+        nodes.pop(ITEM_B)
+        rights = rights[:1]
+        result = source_dossier_query(
+            navigation, nodes, incoming, outgoing, lambda _ids: rights, FILE_ID, limit=20
+        )
+        self.assertTrue(result["agent_summary"]["can_conclude_legal_openness"])
+        self.assertEqual(["rights-a"], [row["rights_id"] for row in result["rights"]])
+
     def test_actual_jenseits_ocr_layer_is_retained_for_its_exact_file_membership(self) -> None:
         repo_root = Path(__file__).resolve().parents[2]
         manifest = json.loads((repo_root / JENSEITS_MANIFEST).read_text(encoding="utf-8"))
