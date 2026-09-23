@@ -24,9 +24,11 @@ use tos_query::search_v2::{
     SearchV2ErrorCode,
 };
 use tos_query::{
-    IndexedDisclosureLease, IndexedDisclosureScope, IndexedKnowledgeAuthority, IndexedPageBudget,
-    IndexedWireCursorCodec, ObservedSearchCandidate, SearchDocumentBudget, SearchKindBudget,
-    bind_verified_knowledge, execute_indexed_search_page,
+    CatalogBudget, CatalogCurrentAuthority, CatalogDisclosureLease, CatalogDisclosureScope,
+    CatalogError, CatalogErrorCode, IndexedDisclosureLease, IndexedDisclosureScope,
+    IndexedKnowledgeAuthority, IndexedPageBudget, IndexedWireCursorCodec, ObservedSearchCandidate,
+    SearchDocumentBudget, SearchKindBudget, bind_verified_knowledge, execute_indexed_search_page,
+    execute_selected_catalog,
 };
 
 const FALSE_POSITIVE: &str = "eighth:alp-false-positive";
@@ -40,6 +42,44 @@ impl IndexedDisclosureLease for SyntheticLease {
     fn recheck(&mut self) -> Result<(), SearchV2Error> {
         self.0.fetch_add(1, Ordering::Relaxed);
         Ok(())
+    }
+}
+
+struct SyntheticCatalogLease(Arc<AtomicUsize>);
+impl CatalogDisclosureLease for SyntheticCatalogLease {
+    fn recheck(&mut self) -> Result<(), CatalogError> {
+        self.0.fetch_add(1, Ordering::Relaxed);
+        Ok(())
+    }
+}
+
+struct SyntheticCatalogAuthority {
+    policy: CurrentPolicyBinding,
+    scope: CatalogDisclosureScope,
+    checks: Arc<AtomicUsize>,
+    expected_sha: Digest256,
+}
+impl CatalogCurrentAuthority for SyntheticCatalogAuthority {
+    fn policy_binding(&self) -> CurrentPolicyBinding {
+        self.policy.clone()
+    }
+    fn disclosure_scope(&self) -> CatalogDisclosureScope {
+        self.scope.clone()
+    }
+    fn check_selected(&mut self) -> Result<(), CatalogError> {
+        Ok(())
+    }
+    fn authorize_current(&mut self, sha: Digest256) -> Result<(), CatalogError> {
+        assert_eq!(sha, self.expected_sha);
+        Ok(())
+    }
+    fn acquire_disclosure(
+        &mut self,
+        _: &CatalogDisclosureScope,
+        sha: Digest256,
+    ) -> Result<Box<dyn CatalogDisclosureLease>, CatalogError> {
+        assert_eq!(sha, self.expected_sha);
+        Ok(Box::new(SyntheticCatalogLease(Arc::clone(&self.checks))))
     }
 }
 
@@ -314,4 +354,72 @@ fn producer_selected_indexed_pages_match_python_rank_and_original_carriers() {
             .any(|id| id == FALSE_POSITIVE)
     );
     assert!(checks.load(Ordering::Relaxed) >= 6);
+
+    // Reuse the exact same producer-selected inode for the complete bounded
+    // catalog compatibility packet. A one-byte cap must refuse before BLOB
+    // transfer; the admitted request returns the selected packet unchanged.
+    let policy = authority.policy.clone();
+    let mut catalog_authority = SyntheticCatalogAuthority {
+        scope: CatalogDisclosureScope {
+            operation_id: "tos.knowledge.catalog".into(),
+            carrier_layer: "tos_knowledge_public_graph_projection_v1".into(),
+            intended_use: "read_only_public_knowledge_catalog_v1".into(),
+            selected_model_receipt_id: bound.owner_receipt_id().into(),
+            source_cut: bound.selection().source_cut.clone(),
+            through_commit_seq: bound.selection().through_commit_seq,
+            source_membership_root: bound.selection().source_membership_root,
+            descriptor_sha256: bound.selection().vocabulary.descriptor_sha256,
+            selected_index_sha256: bound.selection().index_root_sha256,
+            catalog_packet_sha256: bound.selection().catalog_packet_sha256,
+            policy_issuer_ref: policy.issuer_ref.clone(),
+            policy_receipt_id: policy.authorization_receipt_id.clone(),
+            policy_scope: policy.scope.clone(),
+            policy_epoch: policy.policy_epoch.clone(),
+            withdrawal_generation: policy.withdrawal_generation.clone(),
+        },
+        policy,
+        checks: Arc::clone(&checks),
+        expected_sha: bound.selection().catalog_packet_sha256,
+    };
+    let catalog_budget = CatalogBudget {
+        max_open_vm_steps: 100_000_000,
+        max_read_vm_steps: 1_000_000,
+        max_packet_bytes: 1_000_000,
+        max_decoded_bytes: 1_000_032,
+        json: JsonLimits::default(),
+    };
+    let refused = execute_selected_catalog(
+        &mut reader,
+        &bound,
+        &mut catalog_authority,
+        CatalogBudget {
+            max_packet_bytes: 1,
+            max_decoded_bytes: 33,
+            ..catalog_budget
+        },
+    );
+    assert!(matches!(
+        refused,
+        Err(CatalogError {
+            code: CatalogErrorCode::BudgetExceeded,
+            ..
+        })
+    ));
+    let mut catalog =
+        execute_selected_catalog(&mut reader, &bound, &mut catalog_authority, catalog_budget)
+            .unwrap();
+    catalog.recheck().unwrap();
+    assert_eq!(
+        Digest256::of_bytes(&catalog),
+        bound.selection().catalog_packet_sha256
+    );
+    let packet = parse_json(&catalog, JsonMode::PublishedStrict, JsonLimits::default()).unwrap();
+    assert_eq!(
+        field(packet.root(), "schema").as_str(),
+        Some("tos_knowledge_catalog_v1")
+    );
+    assert_eq!(
+        field(packet.root(), "source_revision").as_str(),
+        Some(bound.source_revision())
+    );
 }
