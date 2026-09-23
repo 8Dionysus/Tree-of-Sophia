@@ -1380,6 +1380,110 @@ class AcquisitionBatchTests(unittest.TestCase):
         self.assertEqual([], fetch_calls)
         self.assertEqual([], list(output_root.glob("receipts/handoff-*.json")))
 
+    def test_item_inventory_resource_summary_and_ids_are_closed_before_fetch(self) -> None:
+        for mutation in ("resource_count", "duplicate_resource_id"):
+            with self.subTest(mutation=mutation):
+                fetches, _manifest_sha = self._write_manifest(count=1)
+                manifest = json.loads(self.manifest_path.read_text(encoding="utf-8"))
+                selection = manifest["selection"][0]
+                inventory_record = next(
+                    record
+                    for record in selection["records"]
+                    if record["ref"].endswith("/resource-inventory.json")
+                )
+                inventory_path = self.metadata / inventory_record["ref"]
+                inventory = json.loads(inventory_path.read_text(encoding="utf-8"))
+                file_inventory = inventory["files"][0]
+                if mutation == "resource_count":
+                    file_inventory["summary"]["resource_count"] = 2
+                    expected_error = (
+                        "Item resource inventory resource_count differs from resources"
+                    )
+                else:
+                    resource = dict(file_inventory["resources"][0])
+                    file_inventory["resources"].append(resource)
+                    file_inventory["summary"]["resource_count"] = 2
+                    expected_error = "Item resource inventory has duplicate resource_id"
+                inventory_path.write_text(
+                    json.dumps(inventory, ensure_ascii=False, sort_keys=True) + "\n",
+                    encoding="utf-8",
+                )
+                inventory_record["sha256"] = hashlib.sha256(
+                    inventory_path.read_bytes()
+                ).hexdigest()
+                self.manifest_path.write_text(
+                    json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+                    encoding="utf-8",
+                )
+                manifest_sha = hashlib.sha256(self.manifest_path.read_bytes()).hexdigest()
+                output_root = self.root / f"inventory-closure-{mutation}"
+                fetch_calls: list[str] = []
+                with self.assertRaisesRegex(
+                    acquisition.AcquisitionBatchError,
+                    expected_error,
+                ):
+                    acquisition.acquire_batch(
+                        manifest_path=self.manifest_path,
+                        metadata_root=self.metadata,
+                        output_root=output_root,
+                        expected_manifest_sha256=manifest_sha,
+                        fetcher=lambda payload: fetch_calls.append(payload["file_ref"])
+                        or fetches[payload["file_ref"]],
+                    )
+                self.assertEqual([], fetch_calls)
+                self.assertEqual([], list(output_root.glob("receipts/handoff-*.json")))
+
+    def test_duplicate_provenance_event_ids_are_rejected_before_fetch(self) -> None:
+        fetches, _manifest_sha = self._write_manifest(count=1)
+        manifest = json.loads(self.manifest_path.read_text(encoding="utf-8"))
+        selection = manifest["selection"][0]
+        provenance_record = next(
+            record for record in selection["records"] if record["kind"] == "provenance"
+        )
+        provenance_path = self.metadata / provenance_record["ref"]
+        rows = [
+            json.loads(line)
+            for line in provenance_path.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+        unrelated_event = dict(rows[0])
+        unrelated_event.update(
+            event_id="tos.event.unrelated.duplicate-fixture",
+            event_type="forensic_inspection",
+            event_version=2,
+        )
+        duplicate_event = dict(unrelated_event)
+        duplicate_event["event_version"] = 3
+        rows.extend((unrelated_event, duplicate_event))
+        provenance_path.write_text(
+            "".join(json.dumps(row, sort_keys=True) + "\n" for row in rows),
+            encoding="utf-8",
+        )
+        provenance_record["sha256"] = hashlib.sha256(
+            provenance_path.read_bytes()
+        ).hexdigest()
+        self.manifest_path.write_text(
+            json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        manifest_sha = hashlib.sha256(self.manifest_path.read_bytes()).hexdigest()
+        output_root = self.root / "duplicate-provenance-event-id"
+        fetch_calls: list[str] = []
+        with self.assertRaisesRegex(
+            acquisition.AcquisitionBatchError,
+            "Item provenance contains duplicate event_id",
+        ):
+            acquisition.acquire_batch(
+                manifest_path=self.manifest_path,
+                metadata_root=self.metadata,
+                output_root=output_root,
+                expected_manifest_sha256=manifest_sha,
+                fetcher=lambda payload: fetch_calls.append(payload["file_ref"])
+                or fetches[payload["file_ref"]],
+            )
+        self.assertEqual([], fetch_calls)
+        self.assertEqual([], list(output_root.glob("receipts/handoff-*.json")))
+
     def test_selected_item_contracts_are_schema_validated_before_fetch(self) -> None:
         cases = (
             ("item_record", "prepared Item record does not satisfy its schema"),
@@ -1646,6 +1750,57 @@ class AcquisitionBatchTests(unittest.TestCase):
             "acquisition journal is malformed at line 1",
         ):
             acquisition._journal_rows(journal)
+
+    def test_acquisition_journal_attempt_must_be_a_nonnegative_integer(self) -> None:
+        fetches, manifest_sha = self._write_manifest(count=1)
+        acquisition.acquire_batch(
+            manifest_path=self.manifest_path,
+            metadata_root=self.metadata,
+            output_root=self.output,
+            expected_manifest_sha256=manifest_sha,
+            fetcher=lambda payload: fetches[payload["file_ref"]],
+        )
+        journal = self.output / "receipts/acquisition.jsonl"
+        original_row = json.loads(journal.read_text(encoding="utf-8").splitlines()[0])
+        original_handoffs = sorted((self.output / "receipts").glob("handoff-*.json"))
+
+        invalid_attempts = (
+            ("null", None),
+            ("object", {}),
+            ("nondecimal string", "retry"),
+            ("negative integer", -1),
+            ("boolean", True),
+            ("missing", None),
+        )
+        for label, invalid_value in invalid_attempts:
+            with self.subTest(attempt=label):
+                row = dict(original_row)
+                if label == "missing":
+                    row.pop("attempt", None)
+                else:
+                    row["attempt"] = invalid_value
+                journal.write_text(
+                    json.dumps(row, sort_keys=True) + "\n",
+                    encoding="utf-8",
+                )
+                fetch_calls: list[str] = []
+                with self.assertRaisesRegex(
+                    acquisition.AcquisitionBatchError,
+                    "acquisition journal attempt must be a nonnegative integer",
+                ):
+                    acquisition.acquire_batch(
+                        manifest_path=self.manifest_path,
+                        metadata_root=self.metadata,
+                        output_root=self.output,
+                        expected_manifest_sha256=manifest_sha,
+                        fetcher=lambda payload: fetch_calls.append(payload["file_ref"])
+                        or fetches[payload["file_ref"]],
+                    )
+                self.assertEqual([], fetch_calls)
+                self.assertEqual(
+                    original_handoffs,
+                    sorted((self.output / "receipts").glob("handoff-*.json")),
+                )
 
     @unittest.skipUnless(hasattr(os, "mkfifo"), "POSIX FIFO boundary")
     def test_fifo_acquisition_journal_read_and_append_fail_without_blocking(self) -> None:

@@ -916,6 +916,18 @@ def _verify_prepared_item_bindings(context: BatchContext, output: Path) -> None:
             label="resource inventory",
             item_ref=item_ref,
         )
+        inventory_files = inventory_value["files"]
+        for file_inventory in inventory_files:
+            resources = file_inventory["resources"]
+            if file_inventory["summary"].get("resource_count") != len(resources):
+                raise AcquisitionBatchError(
+                    f"Item resource inventory resource_count differs from resources: {item_ref}"
+                )
+            resource_ids = [resource["resource_id"] for resource in resources]
+            if len(resource_ids) != len(set(resource_ids)):
+                raise AcquisitionBatchError(
+                    f"Item resource inventory has duplicate resource_id: {file_inventory['file_id']}"
+                )
         expected_inventory_files = [
             {
                 "file_id": payload["file_id"],
@@ -1014,6 +1026,11 @@ def _verify_prepared_item_bindings(context: BatchContext, output: Path) -> None:
                 PROVENANCE_EVENT_SCHEMA,
                 label=f"provenance event {index}",
                 item_ref=item_ref,
+            )
+        event_ids = [event["event_id"] for event in provenance_rows]
+        if len(event_ids) != len(set(event_ids)):
+            raise AcquisitionBatchError(
+                f"Item provenance contains duplicate event_id: {item_ref}"
             )
         inventory_event_ref = inventory_value.get("provenance_event_ref")
         inventory_events = [
@@ -1652,9 +1669,14 @@ def _acquire_batch_unlocked(
     existing = _journal_rows(journal_path)
     previous_attempts: dict[tuple[str, str, str], int] = {}
     for row in existing:
+        attempt = row.get("attempt")
+        if type(attempt) is not int or attempt < 0:
+            raise AcquisitionBatchError(
+                "acquisition journal attempt must be a nonnegative integer"
+            )
         key = _payload_custody_key(row)
         if key is not None:
-            previous_attempts[key] = max(previous_attempts.get(key, 0), int(row.get("attempt", 0)))
+            previous_attempts[key] = max(previous_attempts.get(key, 0), attempt)
     fetch = fetcher or _fetch_url
     run_id = _run_id(receipts_root)
     payload_rows: list[dict[str, Any]] = []
