@@ -20,6 +20,7 @@ jobs:
     outputs:
       software_mode: ${{ steps.select.outputs.software_mode }}
       worker: ${{ steps.select.outputs.worker }}
+      rust: ${{ steps.select.outputs.rust }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
       - name: Select checks from both sides of the exact change
@@ -54,6 +55,7 @@ jobs:
             /mechanics/growth-cycle/parts/branch-growth-cycle/scripts/
             /mechanics/growth-cycle/tests/test_source_revisions.py
             /docs/validation/validation_lanes.json
+            /rust/README.md
             /tests/test_validation_lanes.py
             /tests/test_file_membership.py
             /tests/test_software_ci.py
@@ -175,10 +177,40 @@ jobs:
           npm run typecheck --prefix access/deploy/cloudflare-worker
           npm test --prefix access/deploy/cloudflare-worker
 
+  rust:
+    needs: plan
+    if: ${{ needs.plan.outputs.rust == 'true' }}
+    name: Rust Workspace and Installed Reader
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Rust sources and validation route
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /Cargo.toml
+            /Cargo.lock
+            /rust-toolchain.toml
+            /rust/
+            /tests/conformance/rust/
+            /scripts/validation_lanes.py
+            /scripts/verify_rust_reader_install.py
+            /docs/validation/validation_lanes.json
+      - name: Install pinned Rust toolchain and WASM target
+        run: |
+          rustup toolchain install 1.98.1 --profile minimal --component rustfmt --target wasm32-unknown-unknown
+          rustup default 1.98.1
+      - name: Verify Rust workspace and isolated install
+        env:
+          CARGO_HOME: ${{ runner.temp }}/cargo-home
+          CARGO_TARGET_DIR: ${{ runner.temp }}/cargo-target
+          CARGO_BUILD_JOBS: "2"
+        run: python scripts/validation_lanes.py --run rust_workspace
+
   required_gate:
     name: Repo Validation
     if: ${{ always() }}
-    needs: [plan, software, worker]
+    needs: [plan, software, worker, rust]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd

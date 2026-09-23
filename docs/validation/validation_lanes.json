@@ -337,6 +337,20 @@
         "public PDF/media credential publication"
       ]
     },
+    "rust_workspace": {
+      "label": "Rust workspace",
+      "layer": "software-foundation",
+      "mode": "blocking",
+      "owner_surface": "rust/README.md",
+      "purpose": "Check the pinned native and WASM build, formatting, fixture tests and isolated native install for Rust source changes.",
+      "command_sequence": "rust_workspace",
+      "failure_route": "rust/README.md",
+      "does_not_own": [
+        "ToS source meaning",
+        "Rust runtime acceptance before its implementation",
+        "public deployment"
+      ]
+    },
     "release": {
       "label": "release",
       "layer": "release",
@@ -360,6 +374,24 @@
     }
   },
   "command_sequences": {
+    "rust_workspace": [
+      {
+        "label": "check Rust formatting",
+        "command": ["cargo", "fmt", "--all", "--check"]
+      },
+      {
+        "label": "test Rust workspace",
+        "command": ["cargo", "test", "--workspace", "--locked"]
+      },
+      {
+        "label": "check WASM foundation target",
+        "command": ["cargo", "check", "--locked", "-p", "tos-foundation", "--target", "wasm32-unknown-unknown", "--features", "wasm"]
+      },
+      {
+        "label": "install native exact reader outside checkout",
+        "command": ["python", "scripts/verify_rust_reader_install.py"]
+      }
+    ],
     "validation_authority": [
       {
         "label": "validate validation lane manifest",

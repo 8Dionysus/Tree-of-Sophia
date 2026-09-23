@@ -1,0 +1,17 @@
+[package]
+name = "tos-conformance"
+version = "0.0.0"
+publish = false
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dev-dependencies]
+serde_json = "1"
+tempfile = "3"
+tos-foundation = { path = "../../../rust/crates/tos-foundation" }
+tos-source-store = { path = "../../../rust/crates/tos-source-store" }
+
+[[test]]
+name = "conformance"
+path = "runner.rs"
