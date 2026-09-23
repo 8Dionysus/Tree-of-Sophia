@@ -1,0 +1,41 @@
+{
+  "agent_refs": [
+    "software:tos-source-item-commands"
+  ],
+  "ended_at": "2026-09-10T01:53:38.746445+00:00",
+  "event_id": "tos.event.sid-54c4a601f0924fcda954aced8cbef9ca",
+  "event_type": "forensic_inspection",
+  "event_version": 1,
+  "inputs": [
+    {
+      "ref": "tos.file.sha256.94f66621e381f4a1f34782943f45d4ab65e3b4ba056b8a67df4b500ac897813c",
+      "role": "resource_inventory_input",
+      "sha256": "94f66621e381f4a1f34782943f45d4ab65e3b4ba056b8a67df4b500ac897813c"
+    }
+  ],
+  "method": {
+    "configuration": {
+      "scope": "resource enumeration only; no text extraction or semantic reading"
+    },
+    "maker_type": "software",
+    "name": "build_source_resource_inventories.py",
+    "version": "1"
+  },
+  "outputs": [
+    {
+      "ref": "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/items/acquired-note-utf8-20260910/resource-inventory.json",
+      "role": "tracked_text_free_resource_inventory",
+      "sha256": "187ea9429a5c1d45f18af8b5f0a6c7b58bf1b08a0e3330163abc02a6d3cac54f"
+    }
+  ],
+  "receipt_refs": [
+    "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/items/acquired-note-utf8-20260910/edition-item-receipt.json"
+  ],
+  "rights_basis_ref": "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/items/acquired-note-utf8-20260910/rights.json",
+  "schema_version": "tos_provenance_event_v1",
+  "started_at": "2026-09-10T01:53:38.744414+00:00",
+  "status": "completed_with_warnings",
+  "warnings": [
+    "Local retention only; not rights, bibliographic or textual admission."
+  ]
+}
