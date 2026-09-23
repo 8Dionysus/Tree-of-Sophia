@@ -1,0 +1,87 @@
+#!/usr/bin/env node
+// Real JavaScript WebAssembly host check of the versioned Rust codec binding.
+// The independent fixture supplies expected bytes and errors; JS only carries
+// bytes across the generated wasm-bindgen boundary.
+import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
+import { readFile, stat } from 'node:fs/promises';
+import { pathToFileURL } from 'node:url';
+
+const [bindingPath, wasmPath, fixturePath] = process.argv.slice(2);
+if (!bindingPath || !wasmPath || !fixturePath) {
+  throw new Error('usage: node wasm-host.mjs BINDING.js MODULE_bg.wasm FOUNDATION.jsonl');
+}
+
+const binding = await import(pathToFileURL(bindingPath).href);
+const wasmBytes = await readFile(wasmPath);
+const fixture = (await readFile(fixturePath, 'utf8')).trim().split('\n').map(JSON.parse);
+const before = process.memoryUsage();
+const start = performance.now();
+await binding.default({ module_or_path: wasmBytes });
+const startupMs = performance.now() - start;
+
+const capabilities = JSON.parse(binding.codec_capabilities_v1());
+assert.equal(capabilities.abi, 'tos_web_codec_v1');
+assert.equal(capabilities.json_format, 'tos_foundation_json_v1');
+assert.equal(capabilities.canonical_profile, 'tos_corpus_snapshot_canonical_v1');
+assert.equal(capabilities.canonical_float_supported, false);
+assert.equal(capabilities.strict_duplicate_rejection, true);
+assert.equal(capabilities.request_last_wins, true);
+assert.equal(capabilities.escaped_lone_surrogate_preserved, true);
+assert.equal(capabilities.canonical_lone_surrogate_supported, false);
+
+const encoder = new TextEncoder();
+const decoder = new TextDecoder('utf-8', { fatal: true });
+let checked = 0;
+const operationStart = performance.now();
+for (const vector of fixture) {
+  if (!['parse', 'parse_preserve', 'canonical'].includes(vector.operation)) continue;
+  const raw = vector.input_hex
+    ? Uint8Array.from(Buffer.from(vector.input_hex, 'hex'))
+    : encoder.encode(vector.input_utf8);
+  const operation = vector.operation === 'canonical' ? 'canonical' : 'parse_preserve';
+  if (vector.operation === 'canonical') assert.equal(vector.profile, 'CorpusSnapshotV1');
+  const profile = vector.operation === 'canonical' ? capabilities.canonical_profile : vector.mode;
+  const result = binding.codec_v1(raw, operation, profile);
+  try {
+    if (vector.expected.reject) {
+      assert.equal(result.ok(), false, vector.case_id);
+      assert.equal(result.error_code(), vector.expected.reject, vector.case_id);
+      assert.equal(result.bytes().length, 0, vector.case_id);
+    } else {
+      assert.equal(result.ok(), true, vector.case_id);
+      assert.equal(result.error_code(), undefined, vector.case_id);
+      const actual = decoder.decode(result.bytes());
+      assert.equal(actual, vector.expected.preserved_utf8 ?? vector.expected.canonical_utf8, vector.case_id);
+      if (vector.expected.digest_hex) {
+        assert.equal(createHash('sha256').update(result.bytes()).digest('hex'), vector.expected.digest_hex, vector.case_id);
+      }
+    }
+    checked++;
+  } finally {
+    result.free();
+  }
+}
+assert.equal(checked, 16, 'the declared E1 codec vector selection changed');
+
+const unknown = binding.codec_v1(encoder.encode('{}'), 'canonical', 'FutureV2');
+try {
+  assert.equal(unknown.ok(), false);
+  assert.equal(unknown.error_code(), 'unsupported_format');
+} finally {
+  unknown.free();
+}
+const after = process.memoryUsage();
+console.log(JSON.stringify({
+  status: 'pass',
+  host: `Node ${process.version} WebAssembly`,
+  abi: capabilities.abi,
+  vectors: checked,
+  wasm_bytes: (await stat(wasmPath)).size,
+  js_bytes: (await stat(bindingPath)).size,
+  startup_ms: Number(startupMs.toFixed(3)),
+  vector_ms: Number((performance.now() - operationStart).toFixed(3)),
+  rss_before_bytes: before.rss,
+  rss_after_bytes: after.rss,
+  heap_used_after_bytes: after.heapUsed,
+}));

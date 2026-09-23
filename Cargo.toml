@@ -3,6 +3,7 @@ resolver = "3"
 members = [
   "rust/crates/tos-foundation",
   "rust/crates/tos-source-store",
+  "rust/crates/tos-web-codec",
   "rust/crates/tos-reader",
   "tests/conformance/rust",
 ]

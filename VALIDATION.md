@@ -27,7 +27,7 @@ internal lane membership and command order. This file explains selection;
 | owner-local statistics | `local_stats_port` |
 | cross-family documentation | `cross_corpus_documentation` |
 | standalone software | `release` through `scripts/release_check.py`; `software_browser` for browser behavior after the software build |
-| Rust workspace and crates | `rust_workspace` with the pinned toolchain and WASM target; it verifies only implemented Rust packages |
+| Rust workspace and crates | `rust_workspace` with the pinned toolchain, WASM target and matching wasm-bindgen CLI; it verifies only implemented Rust packages and generated WEB.1 Node host bindings |
 | data or historical integration | select the affected owner operation in `docs/RELEASING.md`; no combined integration gate |
 
 Use the nearest district `VALIDATION.md` when it names a narrower external
