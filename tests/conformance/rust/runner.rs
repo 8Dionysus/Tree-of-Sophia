@@ -9,7 +9,8 @@ use serde_json::Value;
 use tempfile::TempDir;
 use tos_foundation::{
     CanonicalProfile, CodePointSpan, Digest256, JsonLimits, JsonMode, JsonNumberKind, JsonValue,
-    RelativePath, SourceRevision, canonical_bytes_v1, emit_preserved_json, parse_json,
+    RelativePath, SourceRevision, canonical_bytes_v1, canonical_raw_bytes_v1, emit_preserved_json,
+    parse_json,
 };
 use tos_source_store::{CorpusReader, ReadLimits, Selector, StoreErrorCode};
 
@@ -50,7 +51,7 @@ fn source_bytes(case: &Value) -> Vec<u8> {
 #[test]
 fn independent_foundation_vectors() {
     let cases = lines("foundation.jsonl");
-    assert_eq!(cases.len(), 21, "a dropped vector is a contract change");
+    assert_eq!(cases.len(), 23, "a dropped vector is a contract change");
     for case in cases {
         let id = required(&case, "case_id");
         let expected = &case["expected"];
@@ -189,6 +190,83 @@ fn independent_foundation_vectors() {
             other => panic!("{id}: unhandled operation {other}"),
         }
     }
+}
+
+#[test]
+fn independent_python_canonical_profile_oracles() {
+    let cases = lines("canonical-profiles-v1.jsonl");
+    assert_eq!(
+        cases.len(),
+        17,
+        "a dropped Python oracle is a contract change"
+    );
+    for case in cases {
+        let id = required(&case, "case_id");
+        let raw = required(&case, "input_utf8").as_bytes();
+        let parsed = parse_json(raw, JsonMode::PublishedStrict, JsonLimits::default())
+            .unwrap_or_else(|error| {
+                panic!("{id}: Python-accepted input failed Rust parse: {error}")
+            });
+        let expected = &case["expected"];
+        for (profile, bytes_key, digest_key) in [
+            (
+                CanonicalProfile::CorpusSnapshotV1,
+                "corpus_snapshot_v1_utf8",
+                "corpus_snapshot_v1_sha256",
+            ),
+            (
+                CanonicalProfile::SourceRecordDigestV1,
+                "source_record_v1_utf8",
+                "source_record_v1_sha256",
+            ),
+        ] {
+            let bytes = canonical_bytes_v1(parsed.root(), profile, JsonLimits::default())
+                .unwrap_or_else(|error| {
+                    panic!("{id}/{}: canonical error {error}", profile.as_str())
+                });
+            assert_eq!(
+                bytes,
+                required(expected, bytes_key).as_bytes(),
+                "{id}/{} bytes",
+                profile.as_str()
+            );
+            assert_eq!(
+                Digest256::of_bytes(&bytes).to_hex(),
+                required(expected, digest_key),
+                "{id}/{} digest",
+                profile.as_str()
+            );
+            assert_eq!(
+                canonical_raw_bytes_v1(raw, profile, JsonLimits::default()).unwrap(),
+                bytes,
+                "{id}/{} strict raw entry point",
+                profile.as_str()
+            );
+        }
+        assert_eq!(
+            canonical_raw_bytes_v1(
+                raw,
+                CanonicalProfile::SourceCommandInputV1,
+                JsonLimits::default()
+            )
+            .unwrap(),
+            required(expected, "source_record_v1_utf8").as_bytes(),
+            "{id}/command byte profile only"
+        );
+    }
+    let duplicate = br#"{"id":1,"\u0069d":2}"#;
+    assert_eq!(
+        canonical_raw_bytes_v1(
+            duplicate,
+            CanonicalProfile::SourceCommandInputV1,
+            JsonLimits::default()
+        )
+        .unwrap_err()
+        .code
+        .as_str(),
+        "duplicate_member",
+        "command raw bytes must reject decoded duplicate keys"
+    );
 }
 
 fn read_limits() -> ReadLimits {

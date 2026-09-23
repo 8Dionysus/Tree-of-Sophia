@@ -43,13 +43,35 @@ def main() -> None:
         (output / "package.json").write_text('{"type":"module"}\n', encoding="utf-8")
         js = output / "tos_web_codec.js"
         generated_wasm = output / "tos_web_codec_bg.wasm"
+        profiles = ROOT / "tests/conformance/rust/canonical-profiles-v1.jsonl"
+        float_oracle = os.environ.get("TOS_WEB_FLOAT_ORACLE")
+        float_args: list[str] = []
+        if float_oracle:
+            expected_sha = os.environ.get("TOS_WEB_FLOAT_ORACLE_SHA256")
+            if not expected_sha or digest(Path(float_oracle)) != expected_sha:
+                raise ValueError("WEB float oracle SHA-256 missing or mismatched")
+            float_args.append(float_oracle)
         host = run("node", ROOT / "rust/crates/tos-web-codec/tests/wasm-host.mjs",
-                   js, generated_wasm, ROOT / "tests/conformance/rust/foundation.jsonl")
+                   js, generated_wasm, ROOT / "tests/conformance/rust/foundation.jsonl",
+                   profiles, *float_args)
         result = json.loads(host.stdout)
-        if result.get("status") != "pass" or not result.get("vectors"):
+        if (result.get("status") != "pass" or result.get("foundation_vectors") != 18
+                or result.get("profile_vectors") != 51
+                or result.get("float_vectors") != (8258 if float_oracle else 0)):
             raise ValueError("WEB.1 host runner returned incomplete vector result")
+        worker_package = os.environ.get("TOS_WEB_MINIFLARE_PACKAGE")
+        worker_result = None
+        if worker_package:
+            worker = run("node", ROOT / "rust/crates/tos-web-codec/tests/worker-host.mjs",
+                         worker_package, js, generated_wasm,
+                         ROOT / "access/deploy/cloudflare-worker/wrangler.jsonc")
+            worker_result = json.loads(worker.stdout)
+            if worker_result.get("status") != "pass" or worker_result.get("cases") != 2:
+                raise ValueError("WEB.1 Worker host returned incomplete result")
         print(json.dumps({"schema_version": "tos_web_host_verification_v1",
-                          "result": result, "js_sha256": digest(js),
+                          "result": result, "worker_result": worker_result,
+                          "float_oracle_sha256": expected_sha if float_oracle else None,
+                          "js_sha256": digest(js),
                           "wasm_sha256": digest(generated_wasm)}, sort_keys=True))
 
 
