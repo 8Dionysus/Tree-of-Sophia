@@ -345,6 +345,76 @@ fn revocation_rule_drift_external_refusal_and_current_read_gate() {
 }
 
 #[test]
+fn authority_event_payloads_change_the_committed_cut() {
+    let Some(url) = database_url() else { return };
+    let (mut first, first_domain) = setup(&url);
+    let (mut second, second_domain) = setup(&url);
+    first.set_rule_version(&first_domain, 1).unwrap();
+    second.set_rule_version(&second_domain, 2).unwrap();
+    assert_ne!(
+        first.read_cut(&first_domain).unwrap().log_digest,
+        second.read_cut(&second_domain).unwrap().log_digest,
+    );
+
+    let (mut first, first_domain) = setup(&url);
+    let (mut second, second_domain) = setup(&url);
+    let first_token = token(PredicateKind::Unique);
+    let mut second_token = first_token.clone();
+    second_token.definition_version = "different-version".to_owned();
+    first
+        .register_predicate(&first_domain, &first_token, true)
+        .unwrap();
+    second
+        .register_predicate(&second_domain, &second_token, true)
+        .unwrap();
+    assert_ne!(
+        first.read_cut(&first_domain).unwrap().log_digest,
+        second.read_cut(&second_domain).unwrap().log_digest,
+    );
+}
+
+#[test]
+fn authority_events_refuse_at_cut_event_limit_before_mutation() {
+    let Some(url) = database_url() else { return };
+    let (mut db, domain) = setup(&url);
+    let mut inspector = Client::connect(&url, NoTls).unwrap();
+    inspector
+        .execute(
+            "UPDATE cmd1_coordinator SET head_seq=100000 WHERE domain=$1",
+            &[&domain],
+        )
+        .unwrap();
+    assert!(matches!(
+        db.register_predicate(&domain, &token(PredicateKind::Unique), true),
+        Err(Error::Refused(_))
+    ));
+    assert!(matches!(db.revoke_local(&domain), Err(Error::Refused(_))));
+    assert!(matches!(
+        db.set_rule_version(&domain, 1),
+        Err(Error::Refused(_))
+    ));
+    assert!(matches!(
+        db.set_contract_digest(&domain, Digest256::of_bytes(b"new contract")),
+        Err(Error::Refused(_))
+    ));
+    assert_eq!(db.head_seq(&domain).unwrap(), 100000);
+    let row = inspector
+        .query_one(
+            "SELECT rights_version,rights_allowed,rule_version,
+                    (SELECT count(*) FROM cmd1_commit_log WHERE domain=$1),
+                    (SELECT count(*) FROM cmd1_predicate WHERE domain=$1)
+             FROM cmd1_coordinator WHERE domain=$1",
+            &[&domain],
+        )
+        .unwrap();
+    assert_eq!(row.get::<_, i64>(0), 0);
+    assert!(row.get::<_, bool>(1));
+    assert_eq!(row.get::<_, i64>(2), 0);
+    assert_eq!(row.get::<_, i64>(3), 0);
+    assert_eq!(row.get::<_, i64>(4), 0);
+}
+
+#[test]
 fn retained_versions_obey_current_rights() {
     let Some(url) = database_url() else { return };
     let (mut db, domain) = setup(&url);

@@ -99,7 +99,7 @@ impl PgCoordinator {
             "SELECT head_seq FROM cmd1_coordinator WHERE domain=$1 FOR UPDATE",
             &[&domain],
         )?;
-        let seq = from_i64(row.get::<_, i64>(0))? + 1;
+        let seq = next_lab_authority_seq(row.get(0))?;
         let seq_db = to_i64(seq)?;
         tx.execute(
             "INSERT INTO cmd1_predicate(domain,kind,owner,scope,token,definition_version,complete)
@@ -123,10 +123,11 @@ impl PgCoordinator {
             &[&domain, &seq_db],
         )?;
         let event = format!("predicate.update:{seq}");
+        let payload_digest = predicate_update_digest(predicate, complete).to_hex();
         tx.execute(
             "INSERT INTO cmd1_commit_log(domain,commit_seq,event_kind,command_id,delta_digest,members)
              VALUES($1,$2,'rule',$3,$4,$5)",
-            &[&domain, &seq_db, &event, &zero_digest(), &Vec::<String>::new()],
+            &[&domain, &seq_db, &event, &payload_digest, &Vec::<String>::new()],
         )?;
         tx.execute(
             "INSERT INTO cmd1_outbox(domain,commit_seq,event_id) VALUES($1,$2,$3)",
@@ -181,7 +182,7 @@ impl PgCoordinator {
             "SELECT head_seq FROM cmd1_coordinator WHERE domain=$1 FOR UPDATE",
             &[&domain],
         )?;
-        let seq = from_i64(row.get::<_, i64>(0))? + 1;
+        let seq = next_lab_authority_seq(row.get(0))?;
         let seq_db = to_i64(seq)?;
         tx.execute(
             "UPDATE cmd1_coordinator SET head_seq=$2, rights_version=rights_version+1,
@@ -218,13 +219,14 @@ impl PgCoordinator {
             "SELECT head_seq FROM cmd1_coordinator WHERE domain=$1 FOR UPDATE",
             &[&domain],
         )?;
-        let seq = from_i64(row.get::<_, i64>(0))? + 1;
+        let seq = next_lab_authority_seq(row.get(0))?;
         let seq_db = to_i64(seq)?;
         tx.execute(
             "UPDATE cmd1_coordinator SET head_seq=$2,rule_version=$3 WHERE domain=$1",
             &[&domain, &seq_db, &to_i64(version)?],
         )?;
         let event = format!("rule.update:{seq}");
+        let payload_digest = rule_version_digest(version).to_hex();
         tx.execute(
             "INSERT INTO cmd1_commit_log(domain,commit_seq,event_kind,command_id,delta_digest,members)
              VALUES($1,$2,'rule',$3,$4,$5)",
@@ -232,7 +234,7 @@ impl PgCoordinator {
                 &domain,
                 &seq_db,
                 &event,
-                &zero_digest(),
+                &payload_digest,
                 &Vec::<String>::new(),
             ],
         )?;
@@ -254,7 +256,7 @@ impl PgCoordinator {
             "SELECT head_seq FROM cmd1_coordinator WHERE domain=$1 FOR UPDATE",
             &[&domain],
         )?;
-        let seq = from_i64(row.get::<_, i64>(0))? + 1;
+        let seq = next_lab_authority_seq(row.get(0))?;
         let seq_db = to_i64(seq)?;
         tx.execute(
             "UPDATE cmd1_coordinator SET head_seq=$2,contract_digest=$3 WHERE domain=$1",
@@ -948,6 +950,38 @@ fn verify_history_members(
 fn update_part(hasher: &mut Digest256Hasher, bytes: &[u8]) {
     hasher.update(&(bytes.len() as u64).to_be_bytes());
     hasher.update(bytes);
+}
+
+fn next_lab_authority_seq(head: i64) -> Result<u64> {
+    let head = from_i64(head)?;
+    if head >= MAX_LAB_CUT_EVENTS {
+        return Err(Error::Refused("laboratory publication cut budget exceeded"));
+    }
+    head.checked_add(1)
+        .ok_or(Error::Corrupt("sequence overflow"))
+}
+
+fn predicate_update_digest(predicate: &PredicateToken, complete: bool) -> Digest256 {
+    let mut hasher = Digest256Hasher::new();
+    for part in [
+        b"cmd1-predicate-update-v1".as_slice(),
+        predicate.kind.as_str().as_bytes(),
+        predicate.owner.as_bytes(),
+        predicate.scope.as_bytes(),
+        predicate.token.as_bytes(),
+        predicate.definition_version.as_bytes(),
+        &[u8::from(complete)],
+    ] {
+        update_part(&mut hasher, part);
+    }
+    hasher.finalize()
+}
+
+fn rule_version_digest(version: u64) -> Digest256 {
+    let mut hasher = Digest256Hasher::new();
+    update_part(&mut hasher, b"cmd1-rule-version-v1");
+    update_part(&mut hasher, &version.to_be_bytes());
+    hasher.finalize()
 }
 
 fn parse_digest(value: String) -> Result<Digest256> {
