@@ -284,12 +284,13 @@ impl ReadModel for SyntheticReadModel {
                 JsonLimits::default(),
             )
             .unwrap();
-            if value
-                .root()
-                .object_get("node_id")
-                .and_then(JsonValue::as_str)
-                == self.late_denied_id.as_deref()
-            {
+            if self.late_denied_id.as_deref().is_some_and(|denied_id| {
+                value
+                    .root()
+                    .object_get("node_id")
+                    .and_then(JsonValue::as_str)
+                    == Some(denied_id)
+            }) {
                 return Err(QueryError {
                     code: QueryErrorCode::PolicyDenied,
                     message: "synthetic revocation at disclosure acquisition",
