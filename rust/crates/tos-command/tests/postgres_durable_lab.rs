@@ -9,7 +9,7 @@ use std::os::unix::process::ExitStatusExt;
 use std::path::PathBuf;
 use std::process::Command;
 use std::sync::Once;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::mpsc;
 use std::thread;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
@@ -22,7 +22,9 @@ use tos_command::{
 };
 use tos_foundation::Digest256;
 use tos_segment_store::{
-    AttemptRecovery, FrameInput, OwnerBinding, SegmentLimits, SegmentStore, VerificationBudget,
+    AttemptRecovery, FrameInput, GenerationShapeLimits, KeyComparatorV1, OwnerBinding,
+    PackedPartitionRefV1, SegmentLimits, SegmentStore, VerificationBudget,
+    describe_placement_partition,
 };
 
 static NEXT_FIXTURE: AtomicU64 = AtomicU64::new(0);
@@ -1430,6 +1432,155 @@ fn cold_audit_pages_log_and_preadmits_metadata_bytes() {
         lab.db.cold_verify_cut(&lab.store, &lab.domain),
         Err(DurableError::Refused(_))
     ));
+}
+
+#[test]
+fn selected_generation_binds_complete_current_and_retained_membership() {
+    let Some(url) = database_url() else { return };
+    let mut lab = Lab::new(&url);
+    let first = lab.prepare(
+        b"generation-first",
+        "generation-first",
+        &[MemberSpec::first("generation-A", b"retained bytes")],
+    );
+    lab.commit(b"generation-first", &first, 0, 1).unwrap();
+    let second = lab.prepare(
+        b"generation-second",
+        "generation-second",
+        &[
+            MemberSpec {
+                subject: "generation-A",
+                revision: 2,
+                predecessor: Some((1, Digest256::of_bytes(&first[0].exact_bytes))),
+                payload: b"current bytes",
+            },
+            MemberSpec::first("generation-B", b"compound bytes"),
+        ],
+    );
+    lab.commit(b"generation-second", &second, 1, 1).unwrap();
+    let cut = lab.db.cold_verify_cut(&lab.store, &lab.domain).unwrap();
+    assert_eq!(cut.historical_members(), 3);
+    assert_eq!(cut.current_members(), 2);
+    let cancelled = AtomicBool::new(false);
+    let candidate = lab
+        .db
+        .build_complete_generation(
+            &lab.store,
+            &cut,
+            Instant::now() + Duration::from_secs(30),
+            &cancelled,
+        )
+        .unwrap();
+    assert_eq!(candidate.history_coverage().rows, 3);
+    assert_eq!(candidate.current_coverage().rows, 2);
+
+    // A STO leaf and descriptor can be perfectly well-formed yet describe
+    // another same-count logical universe. Only comparison with the audited
+    // PostgreSQL stream may certify complete membership.
+    let mut forged = candidate.descriptor().clone();
+    let shape = GenerationShapeLimits {
+        max_partitions: 2,
+        max_rows_per_partition: 100_000,
+        max_key_bytes: 4096,
+        max_leaf_bytes: 64 * 1024 * 1024,
+    };
+    let original_leaf = &forged.history.partitions[0];
+    let mut leaf = lab
+        .store
+        .open_packed_leaf(original_leaf.content_digest, shape)
+        .unwrap();
+    leaf.rows.last_mut().unwrap().key.push(0xff);
+    let content_digest = lab.store.install_packed_leaf(&leaf, shape).unwrap();
+    let semantic = describe_placement_partition(
+        lab.store.domain_digest(),
+        leaf.bounds.clone(),
+        leaf.rows.iter().cloned().map(Ok),
+        shape,
+    )
+    .unwrap();
+    forged.history.partitions = vec![PackedPartitionRefV1 {
+        semantic,
+        content_digest,
+    }];
+    forged.history.catalog_root = lab
+        .store
+        .verify_packed_catalog_shape(
+            lab.store.custody_domain(),
+            b"cmd2.history.v1",
+            b"all",
+            forged.history.key_codec_digest,
+            KeyComparatorV1::RawUnsignedBytes,
+            &forged.history.partitions,
+            shape,
+        )
+        .unwrap();
+    let forged_installed = lab
+        .store
+        .install_generation_candidate(
+            forged,
+            tos_segment_store::GenerationReadLimits {
+                max_descriptor_bytes: 32 * 1024,
+                shape,
+                max_stream_rows: 100_000,
+                max_stream_key_bytes: 16 * 1024 * 1024,
+            },
+        )
+        .unwrap();
+    assert!(matches!(
+        lab.db.verify_generation_candidate(
+            &lab.store,
+            &cut,
+            forged_installed,
+            Instant::now() + Duration::from_secs(30),
+            &cancelled,
+        ),
+        Err(DurableError::Corrupt("installed membership row differs"))
+    ));
+
+    lab.db.select_complete_generation(&candidate).unwrap();
+    lab.db.select_complete_generation(&candidate).unwrap();
+
+    let copied_root = ScratchRoot::new();
+    copy_store_tree(&lab._root.0, &copied_root.0);
+    let copied_store = SegmentStore::open_existing(&copied_root.0, limits()).unwrap();
+    let mut restored = DurablePgCoordinator::connect(&url).unwrap();
+    assert!(matches!(
+        restored.cold_open_selected_generation(
+            &copied_store,
+            &lab.domain,
+            Instant::now() - Duration::from_secs(1),
+            &cancelled,
+        ),
+        Err(DurableError::Refused("cold audit deadline exceeded"))
+    ));
+    let selected = restored
+        .cold_open_selected_generation(
+            &copied_store,
+            &lab.domain,
+            Instant::now() + Duration::from_secs(30),
+            &cancelled,
+        )
+        .unwrap();
+    assert_eq!(selected.digest(), candidate.digest());
+    assert_eq!(selected.history_coverage().rows, 3);
+    assert_eq!(selected.current_coverage().rows, 2);
+    drop(selected);
+
+    let selected_file = copied_root
+        .0
+        .join("generations")
+        .join(candidate.digest().to_hex());
+    fs::remove_file(selected_file).unwrap();
+    assert!(
+        restored
+            .cold_open_selected_generation(
+                &copied_store,
+                &lab.domain,
+                Instant::now() + Duration::from_secs(30),
+                &cancelled,
+            )
+            .is_err()
+    );
 }
 
 #[test]

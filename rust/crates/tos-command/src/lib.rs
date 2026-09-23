@@ -12,9 +12,10 @@ use tos_foundation::{Digest256, Digest256Hasher};
 
 pub use durable_adapter::{
     AttemptResolution, CancelOutcome, ColdCut, ColdRecoveredMember, CommitShadowAttempt,
-    DurableCommitReceipt, DurableError, DurablePgCoordinator, DurableResult, DurableShadowMember,
-    DurableTiming, RegisterShadowAttempt, ShadowWriteIdentity, durable_shadow_delta,
-    durable_shadow_delta_prepared, lab_record_bytes,
+    CompleteGeneration, DurableCommitReceipt, DurableError, DurablePgCoordinator, DurableResult,
+    DurableShadowMember, DurableTiming, RegisterShadowAttempt, ShadowWriteIdentity,
+    VerifiedSelectedGeneration, durable_shadow_delta, durable_shadow_delta_prepared,
+    lab_record_bytes,
 };
 pub use postgres_adapter::{Cut, PgCoordinator, Timing};
 

@@ -10,7 +10,8 @@ CREATE TABLE IF NOT EXISTS cmd2_domain (
   schema_profile_digest char(64),
   published_seq bigint NOT NULL DEFAULT 0 CHECK (published_seq >= 0),
   complete_cut_digest char(64),
-  complete_cut_generation bigint CHECK (complete_cut_generation >= 0)
+  complete_cut_generation bigint CHECK (complete_cut_generation >= 0),
+  selected_generation_digest char(64)
 );
 ALTER TABLE cmd2_domain ADD COLUMN IF NOT EXISTS schema_profile_digest char(64);
 ALTER TABLE cmd2_domain ADD COLUMN IF NOT EXISTS published_seq bigint NOT NULL DEFAULT 0
@@ -18,6 +19,7 @@ ALTER TABLE cmd2_domain ADD COLUMN IF NOT EXISTS published_seq bigint NOT NULL D
 ALTER TABLE cmd2_domain ADD COLUMN IF NOT EXISTS complete_cut_digest char(64);
 ALTER TABLE cmd2_domain ADD COLUMN IF NOT EXISTS complete_cut_generation bigint
   CHECK (complete_cut_generation >= 0);
+ALTER TABLE cmd2_domain ADD COLUMN IF NOT EXISTS selected_generation_digest char(64);
 
 -- Every selected metadata mutation must change this independent, lockable
 -- generation. Every writer and the short publisher locks it before attempt

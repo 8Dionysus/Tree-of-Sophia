@@ -2,14 +2,18 @@
 
 use std::collections::HashMap;
 use std::fmt;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 
 use postgres::fallible_iterator::FallibleIterator;
 use postgres::{Client, IsolationLevel, NoTls, Transaction};
 use tos_foundation::{Digest256, Digest256Hasher};
 use tos_segment_store::{
-    AttemptRecovery, ByteDurabilityReceipt, PlacementGenerationRowV1, SegmentError, SegmentStore,
-    VerificationBudget,
+    AttemptRecovery, ByteDurabilityReceipt, GenerationCatalogV1, GenerationCoverageV1,
+    GenerationCutV1, GenerationDescriptorV1, GenerationNamespaceV1, GenerationReadLimits,
+    GenerationShapeLimits, InstalledGenerationV1, KeyComparatorV1, PackedPartitionRefV1,
+    PackedPlacementLeafV1, PartitionBoundsV1, PlacementGenerationRowV1, SegmentError, SegmentStore,
+    VerificationBudget, describe_placement_partition,
 };
 
 const PROFILE_ID: &[u8] = b"cmd2.lab.embedded-revision";
@@ -23,10 +27,23 @@ const MAX_MEMBERS: usize = 64;
 const MAX_CUT: u64 = 100_000;
 const MAX_MEMBERSHIP_KEY_BYTES: usize = 4096;
 const MAX_TOTAL_MEMBERSHIP_KEY_BYTES: usize = 16 * 1024 * 1024;
+const HISTORY_NAMESPACE: &[u8] = b"cmd2.history.v1";
+const CURRENT_NAMESPACE: &[u8] = b"cmd2.current.v1";
+const HISTORY_KEY_CODEC: &[u8] =
+    b"cmd2-history-key-v1:tag,u32be-domain-len,domain,u32be-subject-len,subject,u64be-revision";
+const CURRENT_KEY_CODEC: &[u8] =
+    b"cmd2-current-key-v1:tag,u32be-domain-len,domain,u32be-subject-len,subject";
 const MAX_COLD_AUDIT_ELAPSED: Duration = Duration::from_secs(300);
 
-fn check_cold_deadline(started: Instant) -> DurableResult<()> {
-    if started.elapsed() > MAX_COLD_AUDIT_ELAPSED {
+fn check_cold_deadline(
+    started: Instant,
+    requested: Option<(Instant, &AtomicBool)>,
+) -> DurableResult<()> {
+    if started.elapsed() > MAX_COLD_AUDIT_ELAPSED
+        || requested.is_some_and(|(deadline, cancelled)| {
+            cancelled.load(Ordering::Relaxed) || Instant::now() >= deadline
+        })
+    {
         Err(DurableError::Refused("cold audit deadline exceeded"))
     } else {
         Ok(())
@@ -253,6 +270,59 @@ pub struct ColdCut {
     current_membership_root: Digest256,
     history_rows: Vec<PlacementGenerationRowV1>,
     current_rows: Vec<PlacementGenerationRowV1>,
+}
+
+/// Physically installed and independently compared private CMD membership.
+/// This is still a synthetic laboratory cut, never a source admission seal.
+#[derive(Clone, Debug)]
+pub struct CompleteGeneration {
+    cut: ColdCut,
+    installed: InstalledGenerationV1,
+    history_coverage: GenerationCoverageV1,
+    current_coverage: GenerationCoverageV1,
+}
+
+/// Cold reopened selected descriptor, tied to a freshly re-audited private
+/// DB cut. It is historical evidence, not a current-rights disclosure lease.
+#[derive(Clone, Debug)]
+pub struct VerifiedSelectedGeneration {
+    cut: ColdCut,
+    installed: InstalledGenerationV1,
+    history_coverage: GenerationCoverageV1,
+    current_coverage: GenerationCoverageV1,
+}
+
+impl VerifiedSelectedGeneration {
+    pub fn digest(&self) -> Digest256 {
+        self.installed.digest()
+    }
+    pub fn cut(&self) -> &ColdCut {
+        &self.cut
+    }
+    pub fn history_coverage(&self) -> GenerationCoverageV1 {
+        self.history_coverage
+    }
+    pub fn current_coverage(&self) -> GenerationCoverageV1 {
+        self.current_coverage
+    }
+}
+
+impl CompleteGeneration {
+    pub fn digest(&self) -> Digest256 {
+        self.installed.digest()
+    }
+    pub fn cut(&self) -> &ColdCut {
+        &self.cut
+    }
+    pub fn descriptor(&self) -> &GenerationDescriptorV1 {
+        self.installed.descriptor()
+    }
+    pub fn history_coverage(&self) -> GenerationCoverageV1 {
+        self.history_coverage
+    }
+    pub fn current_coverage(&self) -> GenerationCoverageV1 {
+        self.current_coverage
+    }
 }
 
 impl ColdCut {
@@ -1361,10 +1431,20 @@ impl DurablePgCoordinator {
         store: &SegmentStore,
         domain: &str,
     ) -> DurableResult<ColdCut> {
+        self.cold_verify_cut_with_budget(store, domain, None)
+    }
+
+    fn cold_verify_cut_with_budget(
+        &mut self,
+        store: &SegmentStore,
+        domain: &str,
+        requested: Option<(Instant, &AtomicBool)>,
+    ) -> DurableResult<ColdCut> {
         if store.custody_domain() != domain.as_bytes() {
             return Err(DurableError::Conflict("STO custody domain differs"));
         }
         let started = Instant::now();
+        check_cold_deadline(started, requested)?;
         let mut tx = self
             .client
             .build_transaction()
@@ -1408,7 +1488,7 @@ impl DurablePgCoordinator {
         let mut admitted_rows = 0u64;
         let mut admitted_bytes = 0u64;
         for (table, _) in audited_tables {
-            check_cold_deadline(started)?;
+            check_cold_deadline(started, requested)?;
             let query = format!(
                 "SELECT count(*),coalesce(max(octet_length(row_to_json(t)::text)),0),
                         coalesce(sum(octet_length(row_to_json(t)::text)),0)
@@ -1449,7 +1529,7 @@ impl DurablePgCoordinator {
         let mut command_events = 0u64;
         let mut next_log_seq = 1u64;
         loop {
-            check_cold_deadline(started)?;
+            check_cold_deadline(started, requested)?;
             // Keyset pagination keeps the ordered log bounded in process
             // memory while the same REPEATABLE READ snapshot holds throughout
             // all linked history/receipt/outbox checks.
@@ -1463,7 +1543,7 @@ impl DurablePgCoordinator {
                 break;
             }
             for log in &log_rows {
-                check_cold_deadline(started)?;
+                check_cold_deadline(started, requested)?;
                 let seq: i64 = log.get(0);
                 if seq != as_i64(next_log_seq)? {
                     return Err(DurableError::Corrupt("cold cut sequence gap"));
@@ -1565,7 +1645,7 @@ impl DurablePgCoordinator {
                 part(&mut member_hasher, b"cmd2-member-root-v1");
                 part(&mut member_hasher, &(members.len() as u64).to_be_bytes());
                 for (member, historical) in members.iter().zip(history.iter()) {
-                    check_cold_deadline(started)?;
+                    check_cold_deadline(started, requested)?;
                     let slot: i32 = member.get("member_slot");
                     if historical.get::<_, i32>("member_slot") != slot
                         || historical.get::<_, Vec<u8>>("prepare_id") != receipt.prepare_id
@@ -1675,7 +1755,7 @@ impl DurablePgCoordinator {
         let mut current_members = 0usize;
         let mut current_rows = Vec::new();
         while let Some(row) = current.next()? {
-            check_cold_deadline(started)?;
+            check_cold_deadline(started, requested)?;
             current_members = current_members
                 .checked_add(1)
                 .ok_or(DurableError::Refused("current member count overflow"))?;
@@ -1754,7 +1834,7 @@ impl DurablePgCoordinator {
         let mut audited_rows = 0usize;
         let mut audited_metadata_bytes = 0usize;
         for (table, order) in audited_tables {
-            check_cold_deadline(started)?;
+            check_cold_deadline(started, requested)?;
             part(&mut state_hasher, table.as_bytes());
             let query = format!(
                 "SELECT row_to_json(t)::text FROM {table} t WHERE domain=$1 ORDER BY {order}"
@@ -1762,7 +1842,7 @@ impl DurablePgCoordinator {
             let mut rows = tx.query_raw(&query, &[&domain])?;
             let mut table_rows = 0u64;
             while let Some(row) = rows.next()? {
-                check_cold_deadline(started)?;
+                check_cold_deadline(started, requested)?;
                 audited_rows = audited_rows
                     .checked_add(1)
                     .ok_or(DurableError::Refused("cold metadata row count overflow"))?;
@@ -1813,6 +1893,110 @@ impl DurablePgCoordinator {
         };
         tx.commit()?;
         Ok(cut)
+    }
+
+    /// Build the first bounded complete private history/current generation.
+    /// The `ColdCut` is an opaque result of our exhaustive PG/STO cold audit;
+    /// STO installation verifies physical shape, and both exact row streams
+    /// are compared to that independently audited result through EOF.
+    pub fn build_complete_generation(
+        &mut self,
+        store: &SegmentStore,
+        cut: &ColdCut,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<CompleteGeneration> {
+        if store.custody_domain() != cut.domain.as_bytes() {
+            return Err(DurableError::Conflict("STO custody domain differs"));
+        }
+        if cancelled.load(Ordering::Relaxed) || Instant::now() >= deadline {
+            return Err(DurableError::Refused(
+                "generation build cancelled or expired",
+            ));
+        }
+        if cut.schema_profile_digest != schema_profile_digest()
+            || cut.historical_members != cut.history_rows.len() as u64
+            || cut.current_members != cut.current_rows.len() as u64
+            || cut.history_membership_root
+                != logical_membership_root(HISTORY_KEY_TAG, &cut.history_rows)
+            || cut.current_membership_root
+                != logical_membership_root(CURRENT_KEY_TAG, &cut.current_rows)
+        {
+            return Err(DurableError::Corrupt("cold membership certificate differs"));
+        }
+        for rows in [&cut.history_rows, &cut.current_rows] {
+            if rows.windows(2).any(|pair| pair[0].key >= pair[1].key) {
+                return Err(DurableError::Corrupt("cold membership keys are not unique"));
+            }
+        }
+        let limits = generation_limits();
+        let history = install_membership_catalog(
+            store,
+            HISTORY_NAMESPACE,
+            HISTORY_KEY_CODEC,
+            &cut.history_rows,
+            limits,
+        )?;
+        if cancelled.load(Ordering::Relaxed) || Instant::now() >= deadline {
+            return Err(DurableError::Refused(
+                "generation build cancelled or expired",
+            ));
+        }
+        let current = install_membership_catalog(
+            store,
+            CURRENT_NAMESPACE,
+            CURRENT_KEY_CODEC,
+            &cut.current_rows,
+            limits,
+        )?;
+        let descriptor = GenerationDescriptorV1 {
+            cut: generation_cut(store, cut),
+            history,
+            current,
+        };
+        let installed = store.install_generation_candidate(descriptor, limits)?;
+        self.verify_generation_candidate(store, cut, installed, deadline, cancelled)
+    }
+
+    /// Certify a physically installed candidate only when *both* of its
+    /// complete selected streams match the independent CMD cold audit. This
+    /// also rejects validly re-encoded same-count STO leaves with other keys.
+    pub fn verify_generation_candidate(
+        &mut self,
+        store: &SegmentStore,
+        cut: &ColdCut,
+        installed: InstalledGenerationV1,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<CompleteGeneration> {
+        if store.custody_domain() != cut.domain.as_bytes()
+            || installed.descriptor().cut != generation_cut(store, cut)
+        {
+            return Err(DurableError::Conflict("generation candidate cut differs"));
+        }
+        let limits = generation_limits();
+        let history_coverage = compare_installed_membership(
+            &installed,
+            GenerationNamespaceV1::History,
+            &cut.history_rows,
+            limits,
+            deadline,
+            cancelled,
+        )?;
+        let current_coverage = compare_installed_membership(
+            &installed,
+            GenerationNamespaceV1::Current,
+            &cut.current_rows,
+            limits,
+            deadline,
+            cancelled,
+        )?;
+        Ok(CompleteGeneration {
+            cut: cut.clone(),
+            installed,
+            history_coverage,
+            current_coverage,
+        })
     }
 
     pub fn seal_shadow_cut(&mut self, cut: &ColdCut) -> DurableResult<()> {
@@ -1867,7 +2051,7 @@ impl DurablePgCoordinator {
             .ok_or(DurableError::Corrupt("audit generation overflow"))?;
         tx.execute(
             "UPDATE cmd2_domain SET published_seq=$2,complete_cut_digest=$3,
-                    complete_cut_generation=$4 WHERE domain=$1",
+                    complete_cut_generation=$4,selected_generation_digest=NULL WHERE domain=$1",
             &[
                 &cut.domain,
                 &as_i64(cut.through_commit_seq)?,
@@ -1877,6 +2061,162 @@ impl DurablePgCoordinator {
         )?;
         tx.commit()?;
         Ok(())
+    }
+
+    /// Select the exact installed descriptor in the same short publication
+    /// update as the complete private cut. No history, leaf, segment or
+    /// metadata scan occurs while the audit fence is locked.
+    pub fn select_complete_generation(
+        &mut self,
+        candidate: &CompleteGeneration,
+    ) -> DurableResult<()> {
+        let cut = &candidate.cut;
+        let digest = candidate.installed.digest();
+        if candidate.history_coverage.descriptor_digest != digest
+            || candidate.current_coverage.descriptor_digest != digest
+            || candidate.history_coverage.rows != cut.historical_members
+            || candidate.current_coverage.rows != cut.current_members
+            || candidate.installed.descriptor().cut.state_digest != cut.state_digest
+            || candidate.installed.descriptor().cut.history_membership_root
+                != cut.history_membership_root
+            || candidate.installed.descriptor().cut.current_membership_root
+                != cut.current_membership_root
+        {
+            return Err(DurableError::Corrupt("complete generation binding differs"));
+        }
+        let mut tx = self.client.transaction()?;
+        let generation = lock_audit_fence(&mut tx, &cut.domain)?;
+        let row = tx.query_one(
+            "SELECT head_seq,published_seq,complete_cut_digest,complete_cut_generation,
+                    selected_generation_digest,schema_profile_digest
+             FROM cmd2_domain WHERE domain=$1 FOR UPDATE",
+            &[&cut.domain],
+        )?;
+        let head = as_u64(row.get::<_, i64>(0))?;
+        let published = as_u64(row.get::<_, i64>(1))?;
+        let published_digest: Option<String> = row.get(2);
+        let published_generation: Option<i64> = row.get(3);
+        let selected_digest: Option<String> = row.get(4);
+        if row.get::<_, Option<String>>(5) != Some(cut.schema_profile_digest.to_hex())
+            || cut.schema_profile_digest != schema_profile_digest()
+            || database_oid(&mut tx)? != cut.database_oid
+            || head != cut.through_commit_seq
+        {
+            return Err(DurableError::Conflict("audited database or head changed"));
+        }
+        if published == cut.through_commit_seq && selected_digest.is_some() {
+            let sealed_generation = published_generation
+                .ok_or(DurableError::Corrupt("selected fence generation absent"))?;
+            if selected_digest != Some(digest.to_hex())
+                || published_digest != Some(cut.state_digest.to_hex())
+                || generation != as_u64(sealed_generation)?
+                || !(cut.audit_generation == generation
+                    || cut.audit_generation.checked_add(1) == Some(generation))
+            {
+                return Err(DurableError::Conflict(
+                    "selected generation identity differs",
+                ));
+            }
+            tx.commit()?;
+            return Ok(());
+        }
+        if published > cut.through_commit_seq || generation != cut.audit_generation {
+            return Err(DurableError::Conflict(
+                "audited metadata generation changed",
+            ));
+        }
+        if published == cut.through_commit_seq
+            && published_digest.is_some()
+            && published_digest != Some(cut.state_digest.to_hex())
+        {
+            return Err(DurableError::Conflict("prior bare cut digest differs"));
+        }
+        let sealed_generation = generation
+            .checked_add(1)
+            .ok_or(DurableError::Corrupt("audit generation overflow"))?;
+        tx.execute(
+            "UPDATE cmd2_domain SET published_seq=$2,complete_cut_digest=$3,
+                    complete_cut_generation=$4,selected_generation_digest=$5 WHERE domain=$1",
+            &[
+                &cut.domain,
+                &as_i64(cut.through_commit_seq)?,
+                &cut.state_digest.to_hex(),
+                &as_i64(sealed_generation)?,
+                &digest.to_hex(),
+            ],
+        )?;
+        tx.commit()?;
+        Ok(())
+    }
+
+    /// Cold restore/open of the *selected* private descriptor. A standalone
+    /// STO digest never authorizes this read: the exact pointer and fence are
+    /// read from PostgreSQL and matched to a fresh complete cold audit.
+    pub fn cold_open_selected_generation(
+        &mut self,
+        store: &SegmentStore,
+        domain: &str,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<VerifiedSelectedGeneration> {
+        let cut = self.cold_verify_cut_with_budget(store, domain, Some((deadline, cancelled)))?;
+        let row = self.client.query_one(
+            "SELECT d.head_seq,d.published_seq,d.complete_cut_digest,
+                    d.complete_cut_generation,d.selected_generation_digest,
+                    f.generation,f.maintenance_state
+             FROM cmd2_domain d JOIN cmd2_audit_fence f USING(domain)
+             WHERE d.domain=$1",
+            &[&domain],
+        )?;
+        let selected_digest: Option<String> = row.get(4);
+        let selected_digest =
+            selected_digest.ok_or(DurableError::Refused("complete generation not selected"))?;
+        let sealed_generation = as_u64(
+            row.get::<_, Option<i64>>(3)
+                .ok_or(DurableError::Corrupt("selected fence generation absent"))?,
+        )?;
+        if row.get::<_, String>(6) != "normal"
+            || as_u64(row.get::<_, i64>(0))? != cut.through_commit_seq
+            || as_u64(row.get::<_, i64>(1))? != cut.through_commit_seq
+            || row.get::<_, Option<String>>(2) != Some(cut.state_digest.to_hex())
+            || as_u64(row.get::<_, i64>(5))? != cut.audit_generation
+            || sealed_generation != cut.audit_generation
+        {
+            return Err(DurableError::Conflict(
+                "selected cut changed after cold audit",
+            ));
+        }
+        let mut expected_cut = generation_cut(store, &cut);
+        expected_cut.audit_generation = sealed_generation
+            .checked_sub(1)
+            .ok_or(DurableError::Corrupt("selected generation fence invalid"))?;
+        let installed = store.open_generation_candidate(
+            parse_hex(selected_digest)?,
+            &expected_cut,
+            generation_limits(),
+        )?;
+        let history_coverage = compare_installed_membership(
+            &installed,
+            GenerationNamespaceV1::History,
+            &cut.history_rows,
+            generation_limits(),
+            deadline,
+            cancelled,
+        )?;
+        let current_coverage = compare_installed_membership(
+            &installed,
+            GenerationNamespaceV1::Current,
+            &cut.current_rows,
+            generation_limits(),
+            deadline,
+            cancelled,
+        )?;
+        Ok(VerifiedSelectedGeneration {
+            cut,
+            installed,
+            history_coverage,
+            current_coverage,
+        })
     }
 
     pub fn published_seq(&mut self, domain: &str) -> DurableResult<u64> {
@@ -1897,6 +2237,111 @@ fn verification_budget(member_count: usize) -> VerificationBudget {
         max_segments: 1,
         max_total_segment_bytes: 64 * 1024 * 1024,
     }
+}
+
+fn generation_limits() -> GenerationReadLimits {
+    GenerationReadLimits {
+        // Both namespaces repeat their first/last keys in the descriptor.
+        // Four 4096-byte endpoints require more than 16 KiB.
+        max_descriptor_bytes: 32 * 1024,
+        shape: GenerationShapeLimits {
+            max_partitions: 2,
+            max_rows_per_partition: MAX_CUT,
+            max_key_bytes: MAX_MEMBERSHIP_KEY_BYTES,
+            max_leaf_bytes: 64 * 1024 * 1024,
+        },
+        max_stream_rows: MAX_CUT,
+        max_stream_key_bytes: MAX_TOTAL_MEMBERSHIP_KEY_BYTES as u64,
+    }
+}
+
+fn generation_cut(store: &SegmentStore, cut: &ColdCut) -> GenerationCutV1 {
+    GenerationCutV1 {
+        store_id: store.store_id(),
+        domain_digest: store.domain_digest(),
+        through_seq: cut.through_commit_seq,
+        audit_generation: cut.audit_generation,
+        database_oid: cut.database_oid,
+        schema_profile_digest: cut.schema_profile_digest,
+        state_digest: cut.state_digest,
+        log_digest: cut.log_digest,
+        historical_members: cut.historical_members,
+        current_members: cut.current_members,
+        history_membership_root: cut.history_membership_root,
+        current_membership_root: cut.current_membership_root,
+    }
+}
+
+fn install_membership_catalog(
+    store: &SegmentStore,
+    namespace: &[u8],
+    codec: &[u8],
+    rows: &[PlacementGenerationRowV1],
+    limits: GenerationReadLimits,
+) -> DurableResult<GenerationCatalogV1> {
+    let bounds = PartitionBoundsV1 {
+        lower_inclusive: None,
+        upper_exclusive: None,
+    };
+    let leaf = PackedPlacementLeafV1 {
+        domain_digest: store.domain_digest(),
+        bounds: bounds.clone(),
+        rows: rows.to_vec(),
+    };
+    let content_digest = store.install_packed_leaf(&leaf, limits.shape)?;
+    let semantic = describe_placement_partition(
+        store.domain_digest(),
+        bounds,
+        rows.iter().cloned().map(Ok),
+        limits.shape,
+    )?;
+    let partitions = vec![PackedPartitionRefV1 {
+        semantic,
+        content_digest,
+    }];
+    let key_codec_digest = Digest256::of_bytes(codec);
+    let catalog_root = store.verify_packed_catalog_shape(
+        store.custody_domain(),
+        namespace,
+        b"all",
+        key_codec_digest,
+        KeyComparatorV1::RawUnsignedBytes,
+        &partitions,
+        limits.shape,
+    )?;
+    Ok(GenerationCatalogV1 {
+        key_codec_digest,
+        catalog_root,
+        partitions,
+    })
+}
+
+fn compare_installed_membership(
+    installed: &InstalledGenerationV1,
+    namespace: GenerationNamespaceV1,
+    expected: &[PlacementGenerationRowV1],
+    limits: GenerationReadLimits,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> DurableResult<GenerationCoverageV1> {
+    let mut stream = installed.stream(namespace, limits)?;
+    for row in expected {
+        if stream.next_row(deadline, cancelled)? != Some(row.clone()) {
+            return Err(DurableError::Corrupt("installed membership row differs"));
+        }
+    }
+    if stream.next_row(deadline, cancelled)?.is_some() {
+        return Err(DurableError::Corrupt("installed membership has extra row"));
+    }
+    let coverage = stream.coverage().ok_or(DurableError::Corrupt(
+        "installed membership lacks EOF coverage",
+    ))?;
+    if coverage.rows != expected.len() as u64 || coverage.descriptor_digest != installed.digest() {
+        return Err(DurableError::Corrupt(
+            "installed membership coverage differs",
+        ));
+    }
+    Ok(coverage)
 }
 
 fn check_shadow_member(
