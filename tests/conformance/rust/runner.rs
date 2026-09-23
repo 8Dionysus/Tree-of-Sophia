@@ -8,9 +8,9 @@ use std::path::{Path, PathBuf};
 use serde_json::Value;
 use tempfile::TempDir;
 use tos_foundation::{
-    CanonicalProfile, CodePointSpan, Digest256, JsonLimits, JsonMode, JsonNumberKind, JsonValue,
-    RelativePath, SourceRevision, canonical_bytes_v1, canonical_raw_bytes_v1, emit_preserved_json,
-    parse_json,
+    CanonicalProfile, CodePointSpan, Digest256, JsonEmissionProfile, JsonLimits, JsonMode,
+    JsonNumberKind, JsonValue, RelativePath, SourceRevision, canonical_bytes_v1,
+    canonical_raw_bytes_v1, emit_json_profile, emit_preserved_json, parse_json,
 };
 use tos_source_store::{CorpusReader, ReadLimits, Selector, StoreErrorCode};
 
@@ -267,6 +267,86 @@ fn independent_python_canonical_profile_oracles() {
         "duplicate_member",
         "command raw bytes must reject decoded duplicate keys"
     );
+}
+
+#[test]
+fn independent_python_whole_form_set_history_bytes() {
+    let cases = lines("history-v1/legacy-whole-form-set.jsonl");
+    assert_eq!(
+        cases.len(),
+        12,
+        "a dropped Python history oracle is a contract change"
+    );
+    let limits = JsonLimits::new(2 * 1024 * 1024, 64, 300_000, 4_300).unwrap();
+    for case in cases {
+        let id = required(&case, "case_id");
+        let raw = match required(&case, "input_kind") {
+            "inline_json" => required(&case, "input_json").as_bytes().to_vec(),
+            "repeat_string" => format!(
+                "{{\"{}\":\"{}\"}}",
+                required(&case, "key"),
+                required(&case, "unit").repeat(case["count"].as_u64().unwrap() as usize),
+            )
+            .into_bytes(),
+            "repo_file" => {
+                let path = fixtures()
+                    .join("../../..")
+                    .join(required(&case, "input_path"));
+                let raw = fs::read(path).unwrap();
+                assert_eq!(
+                    Digest256::of_bytes(&raw).to_hex(),
+                    required(&case, "input_sha256"),
+                    "{id}"
+                );
+                raw
+            }
+            kind => panic!("{id}: unknown input kind {kind}"),
+        };
+        let parsed = parse_json(&raw, JsonMode::PublishedStrict, limits);
+        if case.get("expected_python_error").and_then(Value::as_str) == Some("ValueError") {
+            assert_eq!(parsed.unwrap_err().code.as_str(), "nonfinite_float", "{id}");
+            continue;
+        }
+        let parsed = parsed.unwrap_or_else(|error| panic!("{id}: parse failed: {error}"));
+        let emitted = emit_json_profile(
+            parsed.root(),
+            JsonEmissionProfile::SourceFormSetPublishedV1,
+            limits,
+        );
+        if case.get("expected_python_error").and_then(Value::as_str) == Some("UnicodeEncodeError") {
+            assert_eq!(
+                emitted.unwrap_err().code.as_str(),
+                "invalid_unicode_scalar",
+                "{id}"
+            );
+            continue;
+        }
+        if case.get("expected_error").is_some() {
+            assert_eq!(
+                emitted.unwrap_err().code.as_str(),
+                required(&case, "expected_error"),
+                "{id}"
+            );
+            continue;
+        }
+        let emitted = emitted.unwrap_or_else(|error| panic!("{id}: emit failed: {error}"));
+        let expected = &case["expected"];
+        assert_eq!(
+            emitted.bytes.len() as u64,
+            expected["size_bytes"].as_u64().unwrap(),
+            "{id}"
+        );
+        assert_eq!(
+            emitted.sha256.to_hex(),
+            required(expected, "sha256"),
+            "{id}"
+        );
+        if let Some(text) = expected.get("utf8").and_then(Value::as_str) {
+            assert_eq!(emitted.bytes, text.as_bytes(), "{id}");
+        } else if required(&case, "input_kind") == "repo_file" {
+            assert_eq!(emitted.bytes, raw, "{id}: pinned public file bytes changed");
+        }
+    }
 }
 
 fn read_limits() -> ReadLimits {
