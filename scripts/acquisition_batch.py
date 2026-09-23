@@ -389,6 +389,7 @@ def _validate_semantics(manifest: dict[str, Any]) -> None:
     record_refs: set[str] = set()
     record_classifications: dict[str, tuple[str, str]] = {}
     payload_refs: set[str] = set()
+    payload_descriptors: dict[str, tuple[str, int, str]] = {}
     for selection in selections:
         item_ref = selection["item_ref"]
         if not TOS_ITEM.fullmatch(item_ref) or item_ref in seen_items:
@@ -475,6 +476,17 @@ def _validate_semantics(manifest: dict[str, Any]) -> None:
                     f"duplicate payload File ID within Item: {payload['file_ref']}"
                 )
             item_file_refs.add(payload["file_ref"])
+            descriptor = (
+                payload["sha256"],
+                payload["byte_size"],
+                payload["media_type"],
+            )
+            prior_descriptor = payload_descriptors.get(payload["file_ref"])
+            if prior_descriptor is not None and prior_descriptor != descriptor:
+                raise AcquisitionBatchError(
+                    f"payload File descriptor differs across Items: {payload['file_ref']}"
+                )
+            payload_descriptors[payload["file_ref"]] = descriptor
             destination = f"{item_root}/{payload['relative_path']}"
             if destination in seen_destinations:
                 raise AcquisitionBatchError(f"duplicate payload destination: {destination}")

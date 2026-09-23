@@ -515,6 +515,40 @@ class AcquisitionBatchTests(unittest.TestCase):
         self.assertEqual(2, len(fixity_rows))
         self.assertEqual(2, len({row["destination_ref"] for row in fixity_rows}))
 
+    def test_shared_file_id_requires_one_global_content_descriptor(self) -> None:
+        for field, conflicting_value in (
+            ("byte_size", 999),
+            ("media_type", "application/pdf"),
+        ):
+            with self.subTest(field=field):
+                self._write_manifest(count=2, shared_payload=True)
+                manifest = json.loads(self.manifest_path.read_text(encoding="utf-8"))
+                manifest["selection"][1]["payload_files"][0][field] = conflicting_value
+                self.manifest_path.write_text(
+                    json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+                    encoding="utf-8",
+                )
+                caller_selected_sha = hashlib.sha256(
+                    self.manifest_path.read_bytes()
+                ).hexdigest()
+                fetch_calls: list[str] = []
+
+                with self.assertRaisesRegex(
+                    acquisition.AcquisitionBatchError,
+                    "payload File descriptor differs across Items",
+                ):
+                    acquisition.acquire_batch(
+                        manifest_path=self.manifest_path,
+                        metadata_root=self.metadata,
+                        output_root=self.output,
+                        expected_manifest_sha256=caller_selected_sha,
+                        fetcher=lambda payload: fetch_calls.append(payload["item_ref"])
+                        or b"unexpected",
+                    )
+
+                self.assertEqual([], fetch_calls)
+                self.assertFalse(self.output.exists())
+
     def test_same_item_cannot_bind_one_file_id_to_two_destinations(self) -> None:
         _fetches, _manifest_sha = self._write_manifest(count=1)
         manifest = json.loads(self.manifest_path.read_text(encoding="utf-8"))
