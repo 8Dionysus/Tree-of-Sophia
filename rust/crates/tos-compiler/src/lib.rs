@@ -7,6 +7,7 @@ pub mod d1_prepared_pair;
 mod knowledge_catalog_index;
 mod knowledge_full;
 mod knowledge_indexed;
+mod knowledge_inherited_views;
 pub mod knowledge_normalization;
 mod knowledge_ordered;
 pub mod knowledge_philosophy_display;
@@ -29,6 +30,10 @@ pub use knowledge_full::{
     FullKnowledgeLimits, FullKnowledgeReceipt, compile_full_knowledge_components,
 };
 pub use knowledge_indexed::{IndexedLimits, IndexedReceipt, materialize_indexed_sources};
+pub use knowledge_inherited_views::{
+    CompleteRelationSeal, InheritedViewLimits, InheritedViewReceipt, clear_inherited_views,
+    endpoint_inherited_views, prepare_global_inherited_views,
+};
 pub use knowledge_ordered::{
     NormalizedNodeCandidate, NormalizedRelationCandidate, OrderedCandidateLimits,
     OrderedCandidateReceipt, OrderedKnowledgeSink,
