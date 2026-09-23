@@ -3,16 +3,16 @@
 //! prerequisites, not hidden fallback behavior.
 
 use crate::{
-    catalog::{compile_catalog, CatalogLimits, CatalogReceipt},
-    knowledge_catalog_index::{materialize_catalog, CatalogIndexLimits, CatalogIndexReceipt},
-    knowledge_scope::{write_source_scope, ScopeLimits, ScopeReceipt},
-    knowledge_seal::{seal_knowledge_model, KnowledgeSealReceipt, SealLimits},
-    knowledge_search::{build_search_index, SearchBuildLimits, SearchIndexReceipt},
-    knowledge_stage::{KnowledgeStage, WritePhase},
     Error, KnowledgeRegistry, QueryVocabulary, Result,
+    catalog::{CatalogLimits, CatalogReceipt, compile_catalog},
+    knowledge_catalog_index::{CatalogIndexLimits, CatalogIndexReceipt, materialize_catalog},
+    knowledge_scope::{ScopeLimits, ScopeReceipt, write_source_scope},
+    knowledge_seal::{KnowledgeSealReceipt, SealLimits, seal_knowledge_model},
+    knowledge_search::{SearchBuildLimits, SearchIndexReceipt, build_search_index},
+    knowledge_stage::{KnowledgeStage, WritePhase},
 };
 use serde_json::Value;
-use tos_foundation::{parse_json, Digest256, JsonLimits, JsonMode};
+use tos_foundation::{Digest256, JsonLimits, JsonMode, parse_json};
 
 #[derive(Clone, Copy, Debug)]
 pub struct FullKnowledgeLimits {
@@ -138,13 +138,13 @@ fn compile_inner(
 mod tests {
     use super::*;
     use crate::{
+        ColdOpenLimits, ExpectedSourceScope, ImmutableKnowledgeCustody, IndexedLimits,
+        KnowledgeSelectedExpectation, Limits, SourceBinding,
         knowledge_stage::{
             ExactInputReceipt, InputCollectionReceipt, InputRow, StageIsolation, StageLimits,
             StageOwner,
         },
-        materialize_indexed_sources, open_selected_knowledge_model, ColdOpenLimits,
-        ExpectedSourceScope, ImmutableKnowledgeCustody, IndexedLimits,
-        KnowledgeSelectedExpectation, Limits, SourceBinding,
+        materialize_indexed_sources, open_selected_knowledge_model,
     };
     use serde_json::json;
     use std::{

@@ -2,10 +2,10 @@
 //! filesystem spill quota are supplied by independent owner/host guards.
 
 use crate::{
-    file_digest, safe_open, sqlite_budget, stream_digest, Error, Limits, Result, SourceBinding,
+    Error, Limits, Result, SourceBinding, file_digest, safe_open, sqlite_budget, stream_digest,
 };
 use fs2::FileExt;
-use rusqlite::{params, Connection, OpenFlags, OptionalExtension};
+use rusqlite::{Connection, OpenFlags, OptionalExtension, params};
 use std::{
     collections::{BTreeMap, BTreeSet},
     fs,
@@ -13,7 +13,7 @@ use std::{
     os::fd::AsRawFd,
     os::unix::fs::{MetadataExt, OpenOptionsExt, PermissionsExt},
     path::{Path, PathBuf},
-    sync::{atomic::AtomicU64, Arc},
+    sync::{Arc, atomic::AtomicU64},
 };
 use tos_foundation::{Digest256, Digest256Hasher};
 
@@ -1491,11 +1491,13 @@ mod tests {
             Digest256::of_bytes(b"raw").to_hex()
         );
         assert!(page.next_id.is_none());
-        assert!(stage
-            .scan_input("fixture.graph", "fixture/raw", Some("raw.1"), 1)
-            .unwrap()
-            .rows
-            .is_empty());
+        assert!(
+            stage
+                .scan_input("fixture.graph", "fixture/raw", Some("raw.1"), 1)
+                .unwrap()
+                .rows
+                .is_empty()
+        );
         let empty = stage
             .scan_input("fixture.graph", "fixture/empty", None, 1)
             .unwrap();
@@ -1562,14 +1564,16 @@ mod tests {
                 payload: b"raw",
             })
             .unwrap();
-        assert!(stage
-            .ingest_input(InputRow {
-                source_graph: "fixture.graph",
-                collection: "fixture/raw",
-                id: "raw.1",
-                payload: b"raw"
-            })
-            .is_err());
+        assert!(
+            stage
+                .ingest_input(InputRow {
+                    source_graph: "fixture.graph",
+                    collection: "fixture/raw",
+                    id: "raw.1",
+                    payload: b"raw"
+                })
+                .is_err()
+        );
         assert!(stage.finish().is_err());
         assert!(!duplicate.exists());
         fs::remove_dir_all(duplicate.parent().unwrap()).unwrap();
@@ -1598,14 +1602,16 @@ mod tests {
             calls: AtomicUsize::new(0),
             deny: true,
         };
-        assert!(KnowledgeStage::create(
-            &denied,
-            limits(),
-            exact_receipt(RAW_ROOT),
-            &owner,
-            &denied_quota
-        )
-        .is_err());
+        assert!(
+            KnowledgeStage::create(
+                &denied,
+                limits(),
+                exact_receipt(RAW_ROOT),
+                &owner,
+                &denied_quota
+            )
+            .is_err()
+        );
         assert!(!denied.exists());
         fs::remove_dir_all(denied.parent().unwrap()).unwrap();
     }
@@ -1751,11 +1757,13 @@ mod tests {
         )
         .unwrap();
         ingest_fixture(&mut stage);
-        assert!(stage
-            .with_connection::<()>(WritePhase::Catalog, |_| Err(Error::Invalid(
-                "catalog failure"
-            )))
-            .is_err());
+        assert!(
+            stage
+                .with_connection::<()>(WritePhase::Catalog, |_| Err(Error::Invalid(
+                    "catalog failure"
+                )))
+                .is_err()
+        );
         assert!(stage.finish().is_err());
         assert!(!candidate.exists());
         fs::remove_dir_all(candidate.parent().unwrap()).unwrap();

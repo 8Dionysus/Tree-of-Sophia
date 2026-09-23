@@ -4,7 +4,7 @@
 use crate::{Error, Result, SourceBinding};
 use serde_json::Value;
 use std::collections::BTreeSet;
-use tos_foundation::{parse_json, Digest256, JsonLimits, JsonMode};
+use tos_foundation::{Digest256, JsonLimits, JsonMode, parse_json};
 
 const MAX_DESCRIPTOR_BYTES: usize = 1024 * 1024;
 const MAX_SOURCES: usize = 4096;
@@ -489,17 +489,19 @@ mod tests {
             .unwrap();
         assert_eq!(binding.source_cut, "cut-1");
         assert_eq!(binding.descriptor_sha256, vocab.descriptor_sha256);
-        assert!(vocab
-            .bind(
-                &source,
-                &"0".repeat(64),
-                &"c".repeat(64),
-                &"d".repeat(64),
-                &"e".repeat(64),
-                &"f".repeat(64),
-                "g1"
-            )
-            .is_err());
+        assert!(
+            vocab
+                .bind(
+                    &source,
+                    &"0".repeat(64),
+                    &"c".repeat(64),
+                    &"d".repeat(64),
+                    &"e".repeat(64),
+                    &"f".repeat(64),
+                    "g1"
+                )
+                .is_err()
+        );
     }
 
     #[test]
@@ -517,10 +519,12 @@ mod tests {
         assert_eq!(selected.sources[7].source_graph_id, "another-owner-source");
         assert_eq!(selected.registered_source_ids().len(), 8);
         assert_eq!(selected.registered_source_ids()[0], "another-owner-source");
-        assert!(selected
-            .registered_source_ids()
-            .windows(2)
-            .all(|ids| ids[0] < ids[1]));
+        assert!(
+            selected
+                .registered_source_ids()
+                .windows(2)
+                .all(|ids| ids[0] < ids[1])
+        );
         doc["sources"][7]["adapter_profile"] = Value::String("uninstalled-v7".into());
         assert!(QueryVocabulary::parse(&serde_json::to_vec(&doc).unwrap(), ADAPTERS).is_err());
         doc["sources"][7]["adapter_profile"] = Value::String("indexed-node-edge-v1".into());
