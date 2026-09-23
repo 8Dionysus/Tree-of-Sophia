@@ -1,0 +1,16 @@
+[package]
+name = "tos-foundation"
+version = "0.0.0"
+publish = false
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[features]
+default = []
+wasm = []
+
+[lib]
+name = "tos_foundation"
+path = "src/lib.rs"
+

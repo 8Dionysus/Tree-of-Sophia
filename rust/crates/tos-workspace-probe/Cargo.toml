@@ -1,0 +1,15 @@
+[package]
+name = "tos-workspace-probe"
+version = "0.0.0"
+publish = false
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+tos-foundation = { path = "../tos-foundation" }
+
+[[bin]]
+name = "tos-workspace-probe"
+path = "src/main.rs"
+

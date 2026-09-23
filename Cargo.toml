@@ -1,0 +1,12 @@
+[workspace]
+resolver = "3"
+members = [
+  "rust/crates/tos-foundation",
+  "rust/crates/tos-workspace-probe",
+]
+
+[workspace.package]
+edition = "2024"
+rust-version = "1.98.1"
+license = "Apache-2.0"
+

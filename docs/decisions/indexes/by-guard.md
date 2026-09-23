@@ -35,6 +35,7 @@
 ## bounded execution
 
 - [TOS-D-0060 - Backend-defined knowledge lenses](../TOS-D-0060-backend-defined-knowledge-lenses.md) (`docs/decisions/TOS-D-0060-backend-defined-knowledge-lenses.md`)
+- [TOS-D-0069 - TOS-D-0069 Rust execution foundation for corpus growth](../TOS-D-0069-rust-execution-foundation.md) (`docs/decisions/TOS-D-0069-rust-execution-foundation.md`)
 
 ## bounded reads
 
@@ -85,6 +86,7 @@
 ## compatibility
 
 - [TOS-D-0062 - TOS-D-0062 Independent Software, Corpus and Integration Releases](../TOS-D-0062-independent-software-corpus-and-integration-releases.md) (`docs/decisions/TOS-D-0062-independent-software-corpus-and-integration-releases.md`)
+- [TOS-D-0069 - TOS-D-0069 Rust execution foundation for corpus growth](../TOS-D-0069-rust-execution-foundation.md) (`docs/decisions/TOS-D-0069-rust-execution-foundation.md`)
 
 ## compatibility boundary
 
@@ -159,6 +161,7 @@
 
 - [TOS-D-0052 - Preserve historical schema inputs without replacing current contracts](../TOS-D-0052-historical-contract-input-bytes.md) (`docs/decisions/TOS-D-0052-historical-contract-input-bytes.md`)
 - [TOS-D-0068 - Subject-first foundation wording with exact historical continuity](../TOS-D-0068-subject-first-foundation-wording-and-retained-history.md) (`docs/decisions/TOS-D-0068-subject-first-foundation-wording-and-retained-history.md`)
+- [TOS-D-0069 - TOS-D-0069 Rust execution foundation for corpus growth](../TOS-D-0069-rust-execution-foundation.md) (`docs/decisions/TOS-D-0069-rust-execution-foundation.md`)
 
 ## exact-version review
 
@@ -396,6 +399,10 @@
 - [TOS-D-0029 - Model-facing skill and owner-port route architecture](../TOS-D-0029-agent-tool-owner-port-documentation-architecture.md) (`docs/decisions/TOS-D-0029-agent-tool-owner-port-documentation-architecture.md`)
 - [TOS-D-0032 - TOS-D-0032 cross-corpus documentation map and minimal projection](../TOS-D-0032-cross-corpus-documentation-map-and-minimal-projection.md) (`docs/decisions/TOS-D-0032-cross-corpus-documentation-map-and-minimal-projection.md`)
 
+## recovery
+
+- [TOS-D-0069 - TOS-D-0069 Rust execution foundation for corpus growth](../TOS-D-0069-rust-execution-foundation.md) (`docs/decisions/TOS-D-0069-rust-execution-foundation.md`)
+
 ## release immutability
 
 - [TOS-D-0030 - Explicit separate KAG action ABI and provider identity](../TOS-D-0030-exact-kag-action-provider-alignment.md) (`docs/decisions/TOS-D-0030-exact-kag-action-provider-alignment.md`)
@@ -560,6 +567,7 @@
 - [TOS-D-0064 - Explicit Claim display fields retain source and permission boundaries](../TOS-D-0064-scoped-claim-display-fields.md) (`docs/decisions/TOS-D-0064-scoped-claim-display-fields.md`)
 - [TOS-D-0067 - Typed historical-time source wording in Claim navigation](../TOS-D-0067-typed-time-claim-navigation.md) (`docs/decisions/TOS-D-0067-typed-time-claim-navigation.md`)
 - [TOS-D-0068 - Subject-first foundation wording with exact historical continuity](../TOS-D-0068-subject-first-foundation-wording-and-retained-history.md) (`docs/decisions/TOS-D-0068-subject-first-foundation-wording-and-retained-history.md`)
+- [TOS-D-0069 - TOS-D-0069 Rust execution foundation for corpus growth](../TOS-D-0069-rust-execution-foundation.md) (`docs/decisions/TOS-D-0069-rust-execution-foundation.md`)
 
 ## source-home symmetry
 
