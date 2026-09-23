@@ -122,8 +122,9 @@ impl<A: IndexedKnowledgeAuthority + ?Sized> SearchCurrentAuthority for Authority
     }
 }
 
-/// Wire token semantics remain local to the native adapter. Python's signed
-/// TTL token and Worker's epoch token are not advertised as interoperable.
+/// Wire token semantics remain local to the native adapter. Python's unsigned
+/// base64url JSON token with a 15-minute expiry and Worker's epoch-bound token
+/// are not advertised as interoperable or as authorization.
 pub trait IndexedWireCursorCodec {
     fn decode(&mut self, token: &str) -> Result<SearchContinuationState, SearchV2Error>;
     fn encode(&mut self, state: &SearchContinuationState) -> Result<String, SearchV2Error>;
