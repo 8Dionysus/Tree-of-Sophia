@@ -7,23 +7,27 @@
 
 mod knowledge_envelope;
 mod search_mode;
+mod workspace_machine;
 mod workspace_proposal;
 
 pub use knowledge_envelope::{
-    KnowledgeEnvelopeError, KnowledgeEnvelopeErrorCode, compact_knowledge_search_page_v1,
+    compact_knowledge_search_page_v1, KnowledgeEnvelopeError, KnowledgeEnvelopeErrorCode,
 };
 pub use search_mode::{
-    SearchMode, SearchSelectionError, SearchSelectionErrorCode, select_knowledge_search_mode_v1,
+    select_knowledge_search_mode_v1, SearchMode, SearchSelectionError, SearchSelectionErrorCode,
+};
+pub use workspace_machine::{
+    workspace_transition_v1, WorkspaceMachineError, WorkspaceMachineErrorCode,
 };
 pub use workspace_proposal::{
-    WorkspaceProposalError, WorkspaceProposalErrorCode, workspace_proposal_digest_v1,
+    workspace_proposal_digest_v1, WorkspaceProposalError, WorkspaceProposalErrorCode,
 };
 
 #[cfg(feature = "wasm")]
 mod wasm {
     use super::{
         compact_knowledge_search_page_v1, select_knowledge_search_mode_v1,
-        workspace_proposal_digest_v1,
+        workspace_proposal_digest_v1, workspace_transition_v1,
     };
     use wasm_bindgen::prelude::*;
 
@@ -123,6 +127,20 @@ mod wasm {
             },
             Err(error) => WorkspaceProposalResult {
                 digest: None,
+                error_code: Some(error.code.as_str().to_owned()),
+            },
+        }
+    }
+
+    #[wasm_bindgen]
+    pub fn workspace_transition_wasm_v1(request_json: &[u8]) -> KnowledgeEnvelopeResult {
+        match workspace_transition_v1(request_json) {
+            Ok(bytes) => KnowledgeEnvelopeResult {
+                bytes,
+                error_code: None,
+            },
+            Err(error) => KnowledgeEnvelopeResult {
+                bytes: Vec::new(),
                 error_code: Some(error.code.as_str().to_owned()),
             },
         }
