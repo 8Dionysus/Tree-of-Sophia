@@ -532,6 +532,27 @@ fn replay_lease_compound_rollback_and_mvcc_prefix() {
         ),
         (1, 1)
     );
+    // A retry consumes no new event at the publication cap. Set only the
+    // synthetic domain head to the boundary, then restore it for this test's
+    // later cut checks; the committed receipt itself stays unchanged.
+    let mut boundary = Client::connect(&url, NoTls).unwrap();
+    boundary
+        .execute(
+            "UPDATE cmd1_coordinator SET head_seq=100000 WHERE domain=$1",
+            &[&domain],
+        )
+        .unwrap();
+    assert!(db.commit(&a).unwrap().0.replayed);
+    assert!(matches!(
+        db.commit(&candidate(&domain, "new-at-cap", "B")),
+        Err(Error::Refused("laboratory publication cut budget exceeded"))
+    ));
+    boundary
+        .execute(
+            "UPDATE cmd1_coordinator SET head_seq=1 WHERE domain=$1",
+            &[&domain],
+        )
+        .unwrap();
     let old_cut = db.read_cut(&domain).unwrap();
     let mut collision = a.clone();
     collision.raw_request_digest = Digest256::of_bytes(b"different");

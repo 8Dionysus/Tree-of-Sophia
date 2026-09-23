@@ -324,9 +324,6 @@ impl PgCoordinator {
             &[&candidate.domain],
         )?;
         let head = from_i64(row.get::<_, i64>(0))?;
-        if head >= MAX_LAB_CUT_EVENTS {
-            return Err(Error::Refused("laboratory publication cut budget exceeded"));
-        }
         let rights_version = from_i64(row.get::<_, i64>(1))?;
         let rights_allowed: bool = row.get(2);
         let rule_version = from_i64(row.get::<_, i64>(3))?;
@@ -374,6 +371,9 @@ impl PgCoordinator {
                     transaction: tx_start.elapsed(),
                 },
             ));
+        }
+        if head >= MAX_LAB_CUT_EVENTS {
+            return Err(Error::Refused("laboratory publication cut budget exceeded"));
         }
         if candidate.expected_rule_version != rule_version {
             return Err(Error::Conflict("rule version changed"));
