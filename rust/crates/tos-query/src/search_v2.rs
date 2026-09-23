@@ -17,6 +17,9 @@ pub const SEARCH_QUERY_MAX_CODE_POINTS: usize = 256;
 pub const SEARCH_QUERY_MAX_UTF8_BYTES: usize = SEARCH_QUERY_MAX_CODE_POINTS * 4;
 pub const SEARCH_QUERY_MIN_CODE_POINTS: usize = 3;
 pub const SEARCH_V2_MAX_PAGE_SIZE: usize = 100;
+pub const SEARCH_V2_MAX_FILTER_VALUES: usize = 100;
+pub const SEARCH_V2_MAX_FILTER_VALUE_CODE_POINTS: usize = 256;
+pub const SEARCH_V2_MAX_FILTER_VALUE_UTF8_BYTES: usize = 4 * SEARCH_V2_MAX_FILTER_VALUE_CODE_POINTS;
 
 /// Descriptor identity and the selected, source-owned vocabulary membership
 /// root. The vocabulary provider supplies exact membership checks; QRY does
@@ -49,6 +52,10 @@ pub struct SearchSelectionBinding {
     pub semantic_primitive_profile: String,
     pub source_cut: String,
     pub through_commit_seq: u64,
+    /// CMD/source publication membership, distinct from vocabulary membership.
+    pub source_membership_root: Digest256,
+    /// Absent only when the selected producer has no history-root capability.
+    pub history_root_sha256: Option<Digest256>,
     pub entity_registry_id: String,
     pub entity_registry_version: String,
     pub entity_registry_sha256: Digest256,
@@ -136,6 +143,23 @@ impl IndexedSearchV2Request {
                 "indexed search v2 limit must be between 1 and 100",
             ));
         }
+        let filter_values = self
+            .sources
+            .len()
+            .checked_add(self.kind_ids.len())
+            .and_then(|count| count.checked_add(self.predicate_ids.len()))
+            .ok_or_else(|| {
+                SearchV2Error::new(
+                    SearchV2ErrorCode::InvalidRequest,
+                    "indexed search v2 filter count overflow",
+                )
+            })?;
+        if filter_values > SEARCH_V2_MAX_FILTER_VALUES {
+            return Err(SearchV2Error::new(
+                SearchV2ErrorCode::InvalidRequest,
+                "indexed search v2 filters exceed 100 values",
+            ));
+        }
 
         let query = normalize_query(&self.query)?;
         let sources = canonical_filter(
@@ -207,7 +231,11 @@ fn canonical_filter(
 ) -> Result<Option<Vec<String>>, SearchV2Error> {
     let mut canonical = BTreeSet::new();
     for value in values {
-        if value.is_empty() || !contains(&value) {
+        if value.is_empty()
+            || value.len() > SEARCH_V2_MAX_FILTER_VALUE_UTF8_BYTES
+            || value.chars().count() > SEARCH_V2_MAX_FILTER_VALUE_CODE_POINTS
+            || !contains(&value)
+        {
             return Err(SearchV2Error::new(
                 SearchV2ErrorCode::InvalidRequest,
                 match field {

@@ -1,15 +1,12 @@
-#[path = "../src/search_v2.rs"]
-mod search_v2;
-
 use std::collections::BTreeSet;
 
-use search_v2::{
+use tos_foundation::{Digest256, JsonLimits, JsonMode, JsonValue, parse_json};
+use tos_query::search_v2::{
     CurrentPolicyBinding, INDEXED_SEARCH_V2_OPERATION, IndexedSearchV2Request,
     NormalizedIndexedSearchV2Request, QueryVocabularyBinding, SEARCH_UNICODE_PROFILE,
     SearchContinuationState, SearchKind, SearchOrderKey, SearchRank, SearchSelectionBinding,
     SearchV2ErrorCode, SelectedQueryVocabulary,
 };
-use tos_foundation::{Digest256, JsonLimits, JsonMode, JsonValue, parse_json};
 
 struct FixtureVocabulary {
     binding: QueryVocabularyBinding,
@@ -67,6 +64,8 @@ fn selection(vocabulary: &FixtureVocabulary) -> SearchSelectionBinding {
         semantic_primitive_profile: SEARCH_UNICODE_PROFILE.into(),
         source_cut: "fixture-cut-a".into(),
         through_commit_seq: 19,
+        source_membership_root: Digest256::of_bytes(b"fixture source membership"),
+        history_root_sha256: Some(Digest256::of_bytes(b"fixture history")),
         entity_registry_id: "fixture-entity-registry".into(),
         entity_registry_version: "fixture-entity-v1".into(),
         entity_registry_sha256: Digest256::of_bytes(b"fixture entity registry"),
@@ -294,6 +293,29 @@ fn request_refuses_unknown_membership_and_invalid_page_limits() {
             SearchV2ErrorCode::InvalidRequest
         );
     }
+
+    // Count raw filter entries before deduplication or source membership
+    // work; otherwise repeated input can cause unbounded allocation/lookup.
+    let mut too_many = request("query");
+    too_many.sources = vec!["fixture-source-a".into(); 101];
+    assert_eq!(
+        too_many.normalize(&selected, &vocabulary).unwrap_err().code,
+        SearchV2ErrorCode::InvalidRequest
+    );
+
+    let mut long_member_vocabulary = FixtureVocabulary::selected();
+    let long_id = "x".repeat(257);
+    long_member_vocabulary.sources.insert(long_id.clone());
+    let long_selected = selection(&long_member_vocabulary);
+    let mut too_long = request("query");
+    too_long.sources.push(long_id);
+    assert_eq!(
+        too_long
+            .normalize(&long_selected, &long_member_vocabulary)
+            .unwrap_err()
+            .code,
+        SearchV2ErrorCode::InvalidRequest
+    );
 }
 
 #[test]
@@ -379,6 +401,24 @@ fn continuation_binds_query_selection_and_independent_kind_positions() {
     assert_eq!(
         state
             .validate_resume(&normalized, &other_selection, &policy, &vocabulary)
+            .unwrap_err()
+            .code,
+        SearchV2ErrorCode::StaleSelection
+    );
+    let mut other_membership = selected.clone();
+    other_membership.source_membership_root = Digest256::of_bytes(b"new source membership");
+    assert_eq!(
+        state
+            .validate_resume(&normalized, &other_membership, &policy, &vocabulary)
+            .unwrap_err()
+            .code,
+        SearchV2ErrorCode::StaleSelection
+    );
+    let mut other_history = selected.clone();
+    other_history.history_root_sha256 = Some(Digest256::of_bytes(b"new history root"));
+    assert_eq!(
+        state
+            .validate_resume(&normalized, &other_history, &policy, &vocabulary)
             .unwrap_err()
             .code,
         SearchV2ErrorCode::StaleSelection

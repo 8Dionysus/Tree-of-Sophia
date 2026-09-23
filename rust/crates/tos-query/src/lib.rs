@@ -5,6 +5,7 @@
 //! treats projection presence as source authority or current rights.
 
 mod search_document;
+pub mod search_v2;
 mod source_descend;
 #[cfg(not(target_arch = "wasm32"))]
 mod sqlite;
