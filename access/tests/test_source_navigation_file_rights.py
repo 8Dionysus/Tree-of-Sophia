@@ -57,14 +57,15 @@ def navigation_fixture(*, rights_b_positive: bool = False, legacy: bool = False)
         },
     ]
     rights = [
-        {"rights_id": "rights-a", "source_ref": RIGHTS_A, "scope_refs": [ITEM_A, FILE_ID], "assessment_status": "public_domain_reviewed", "redistribution_posture": "authorized", "review_status": "accepted"},
+        {"rights_id": "tos.rights.fixture.copy-a" if legacy else "rights-a", "source_ref": RIGHTS_A, "scope_refs": [ITEM_A, FILE_ID], "assessment_status": "public_domain_reviewed", "redistribution_posture": "authorized", "review_status": "accepted", **({} if legacy else {"assessment_kind": "aggregate"})},
         {
-            "rights_id": "rights-b",
+            "rights_id": "tos.rights.fixture.copy-b" if legacy else "rights-b",
             "source_ref": RIGHTS_B,
             "scope_refs": [ITEM_B, FILE_ID],
             "assessment_status": "licensed" if rights_b_positive else "copyright_undetermined",
             "redistribution_posture": "authorized" if rights_b_positive else "not_authorized",
             "review_status": "accepted" if rights_b_positive else "not_reviewed",
+            **({} if legacy else {"assessment_kind": "aggregate"}),
         },
     ]
     incoming = {FILE_ID: edges, ITEM_A: [], ITEM_B: []}
@@ -136,9 +137,9 @@ def shared_work_fixture(*, legacy: bool = False):
         if edge["edge_kind"] == "authored_item_manifest" or edge["predicate_id"] in {"has_expression", "embodied_by", "exemplified_by"}:
             semantic_outgoing.setdefault(edge["from_id"], []).append(edge)
     rights = [
-        {"rights_id": "rights-work-a", "source_ref": "ToS/source-witnesses/fixture/work-a/rights.json", "scope_refs": [work_a], "assessment_status": "licensed", "redistribution_posture": "authorized", "review_status": "accepted"},
-        {"rights_id": "rights-a", "source_ref": RIGHTS_A, "scope_refs": [ITEM_A, FILE_ID], "assessment_status": "public_domain_reviewed", "redistribution_posture": "authorized", "review_status": "accepted"},
-        {"rights_id": "rights-b", "source_ref": RIGHTS_B, "scope_refs": [ITEM_B, FILE_ID], "assessment_status": "copyright_undetermined", "redistribution_posture": "not_authorized", "review_status": "not_reviewed"},
+        {"rights_id": "tos.rights.fixture.work-a" if legacy else "rights-work-a", "source_ref": "ToS/source-witnesses/fixture/work-a/rights.json", "scope_refs": [work_a], "assessment_status": "licensed", "redistribution_posture": "authorized", "review_status": "accepted", **({} if legacy else {"assessment_kind": "aggregate"})},
+        {"rights_id": "tos.rights.fixture.copy-a" if legacy else "rights-a", "source_ref": RIGHTS_A, "scope_refs": [ITEM_A, FILE_ID], "assessment_status": "public_domain_reviewed", "redistribution_posture": "authorized", "review_status": "accepted", **({} if legacy else {"assessment_kind": "aggregate"})},
+        {"rights_id": "tos.rights.fixture.copy-b" if legacy else "rights-b", "source_ref": RIGHTS_B, "scope_refs": [ITEM_B, FILE_ID], "assessment_status": "copyright_undetermined", "redistribution_posture": "not_authorized", "review_status": "not_reviewed", **({} if legacy else {"assessment_kind": "aggregate"})},
     ]
     return nodes, incoming, semantic_outgoing, rights, (work_a, expression_a, edition_a)
 
@@ -153,6 +154,7 @@ class SharedFileRightsTests(unittest.TestCase):
             "assessment_status": "copyright_undetermined",
             "redistribution_posture": "not_authorized",
             "review_status": "unreviewed",
+            "assessment_kind": "layer",
         })
         file_dossier = dossier(fixture, FILE_ID)
         self.assertFalse(file_dossier["agent_summary"]["can_conclude_legal_openness"])
@@ -175,6 +177,7 @@ class SharedFileRightsTests(unittest.TestCase):
         nodes.pop(ITEM_B)
         rights = [{
             "rights_id": "rights-a-file-candidate",
+            "assessment_kind": "aggregate",
             "source_ref": RIGHTS_A,
             "scope_refs": [FILE_ID],
             "assessment_status": "licensed",
@@ -211,12 +214,12 @@ class SharedFileRightsTests(unittest.TestCase):
         incoming[FILE_ID] = [edge]
         outgoing = {ITEM_A: [edge]}
         nodes.pop(ITEM_B)
-        rights = rights[:1]
+        rights = [{**rights[0], "rights_id": "tos.rights.fixture.copy-a"}]
         result = source_dossier_query(
             navigation, nodes, incoming, outgoing, lambda _ids: rights, FILE_ID, limit=20
         )
         self.assertTrue(result["agent_summary"]["can_conclude_legal_openness"])
-        self.assertEqual(["rights-a"], [row["rights_id"] for row in result["rights"]])
+        self.assertEqual(["tos.rights.fixture.copy-a"], [row["rights_id"] for row in result["rights"]])
 
     def test_actual_jenseits_ocr_layer_is_retained_for_its_exact_file_membership(self) -> None:
         repo_root = Path(__file__).resolve().parents[2]
@@ -244,6 +247,7 @@ class SharedFileRightsTests(unittest.TestCase):
             "assessment_status": layer["assessment_status"],
             "redistribution_posture": layer["redistribution_posture"],
             "review_status": layer["review_status"],
+            "assessment_kind": "layer",
         }
         edge = {
             "edge_id": f"{JENSEITS_ITEM}:{JENSEITS_OCR_FILE}",
@@ -275,6 +279,103 @@ class SharedFileRightsTests(unittest.TestCase):
         self.assertEqual("not_cleared", result["agent_summary"]["rights_posture"])
         self.assertFalse(result["agent_summary"]["can_conclude_legal_openness"])
 
+    def test_positive_layer_remains_visible_but_cannot_lift_restrictive_aggregate(self) -> None:
+        fixture = navigation_fixture()
+        rights = fixture[4]
+        rights[0].update({
+            "assessment_status": "copyright_undetermined",
+            "redistribution_posture": "not_authorized",
+        })
+        rights.append({
+            "rights_id": "tos.rights.fixture.copy-a.layer.ocr",
+            "assessment_kind": "layer",
+            "source_ref": RIGHTS_A,
+            "scope_refs": [FILE_ID],
+            "assessment_status": "licensed",
+            "redistribution_posture": "authorized",
+            "review_status": "accepted",
+        })
+
+        result = dossier(fixture, FILE_ID)
+        self.assertFalse(result["agent_summary"]["can_conclude_legal_openness"])
+        self.assertEqual("not_cleared", result["agent_summary"]["rights_posture"])
+        self.assertEqual(
+            {"rights-a", "rights-b", "tos.rights.fixture.copy-a.layer.ocr"},
+            {row["rights_id"] for row in result["rights"]},
+        )
+
+    def test_legacy_aggregate_and_layer_group_keeps_layer_out_of_clearance(self) -> None:
+        fixture = navigation_fixture(legacy=True)
+        navigation, nodes, incoming, outgoing, rights = fixture
+        edge = incoming[FILE_ID][0]
+        edge.pop("properties")
+        incoming[FILE_ID] = [edge]
+        outgoing = {ITEM_A: [edge]}
+        nodes.pop(ITEM_B)
+        rights = [{
+            **rights[0],
+            "rights_id": "tos.rights.fixture.copy-a",
+            "assessment_status": "copyright_undetermined",
+            "redistribution_posture": "not_authorized",
+        }, {
+            "rights_id": "tos.rights.fixture.copy-a.layer.ocr",
+            "source_ref": RIGHTS_A,
+            "scope_refs": [ITEM_A, FILE_ID],
+            "assessment_status": "licensed",
+            "redistribution_posture": "authorized",
+            "review_status": "accepted",
+        }]
+
+        result = source_dossier_query(navigation, nodes, incoming, outgoing, lambda _ids: rights, FILE_ID, limit=20)
+        self.assertFalse(result["agent_summary"]["can_conclude_legal_openness"])
+        self.assertEqual("not_cleared", result["agent_summary"]["rights_posture"])
+        self.assertEqual(2, len(result["rights"]))
+
+    def test_legacy_overlapping_root_layer_pattern_fails_closed(self) -> None:
+        fixture = navigation_fixture(legacy=True)
+        navigation, nodes, incoming, outgoing, rights = fixture
+        edge = incoming[FILE_ID][0]
+        edge.pop("properties")
+        incoming[FILE_ID] = [edge]
+        outgoing = {ITEM_A: [edge]}
+        nodes.pop(ITEM_B)
+        rights = [{
+            **rights[0],
+            "rights_id": "tos.rights.fixture.layer.aggregate",
+            "assessment_status": "licensed",
+            "redistribution_posture": "authorized",
+        }]
+
+        result = source_dossier_query(navigation, nodes, incoming, outgoing, lambda _ids: rights, FILE_ID, limit=20)
+        self.assertFalse(result["agent_summary"]["can_conclude_legal_openness"])
+        self.assertEqual("not_cleared", result["agent_summary"]["rights_posture"])
+        self.assertIn("no unambiguous aggregate rights assessment", result["agent_summary"]["gaps"])
+
+    def test_legacy_multiple_non_layer_rows_for_one_source_fail_closed(self) -> None:
+        fixture = navigation_fixture(legacy=True)
+        navigation, nodes, incoming, outgoing, rights = fixture
+        edge = incoming[FILE_ID][0]
+        edge.pop("properties")
+        incoming[FILE_ID] = [edge]
+        outgoing = {ITEM_A: [edge]}
+        nodes.pop(ITEM_B)
+        rights = [{
+            **rights[0],
+            "rights_id": "tos.rights.fixture.copy-a",
+            "assessment_status": "licensed",
+            "redistribution_posture": "authorized",
+        }, {
+            **rights[0],
+            "rights_id": "tos.rights.fixture.copy-a.extra",
+            "assessment_status": "copyright_undetermined",
+            "redistribution_posture": "not_authorized",
+        }]
+
+        result = source_dossier_query(navigation, nodes, incoming, outgoing, lambda _ids: rights, FILE_ID, limit=20)
+        self.assertFalse(result["agent_summary"]["can_conclude_legal_openness"])
+        self.assertEqual("not_cleared", result["agent_summary"]["rights_posture"])
+        self.assertIn("no unambiguous aggregate rights assessment", result["agent_summary"]["gaps"])
+
     def test_file_conclusion_requires_every_complete_membership_to_be_reviewed_positive(self) -> None:
         fixture = navigation_fixture(rights_b_positive=True)
         self.assertTrue(dossier(fixture, FILE_ID)["agent_summary"]["can_conclude_legal_openness"])
@@ -290,7 +391,7 @@ class SharedFileRightsTests(unittest.TestCase):
         incoming[FILE_ID] = incoming[FILE_ID][:1]
         outgoing = {ITEM_A: outgoing[ITEM_A]}
         nodes.pop(ITEM_B)
-        rights = rights[:1]
+        rights = [{**rights[0], "rights_id": "tos.rights.fixture.copy-a"}]
         result = source_dossier_query(
             navigation,
             nodes,
@@ -301,7 +402,7 @@ class SharedFileRightsTests(unittest.TestCase):
             limit=20,
         )
         self.assertTrue(result["agent_summary"]["can_conclude_legal_openness"])
-        self.assertEqual(["rights-a"], [row["rights_id"] for row in result["rights"]])
+        self.assertEqual(["tos.rights.fixture.copy-a"], [row["rights_id"] for row in result["rights"]])
 
     def test_legacy_single_item_file_rejects_conflicting_unbound_rights_sources(self) -> None:
         fixture = navigation_fixture(legacy=True)
@@ -313,7 +414,7 @@ class SharedFileRightsTests(unittest.TestCase):
             rights[0],
             {
                 **rights[0],
-                "rights_id": "rights-a-conflict",
+                "rights_id": "tos.rights.fixture.alternate",
                 "source_ref": "ToS/source-witnesses/fixture/alternate-rights.json",
                 "redistribution_posture": "not_authorized",
             },
@@ -380,20 +481,20 @@ class SharedFileRightsTests(unittest.TestCase):
         result = source_dossier_query(
             navigation, nodes, incoming, outgoing, lambda _ids: rights, ancestors[0], limit=20
         )
-        self.assertEqual({"rights-work-a", "rights-a"}, {record["rights_id"] for record in result["rights"]})
+        self.assertEqual({"tos.rights.fixture.work-a", "tos.rights.fixture.copy-a"}, {record["rights_id"] for record in result["rights"]})
 
         # A second legacy source for the same Item+File scope remains
         # ambiguous even when one of the records is positive.
         rights.append({
             **rights[1],
-            "rights_id": "rights-a-conflict",
+            "rights_id": "tos.rights.fixture.copy-a.conflict",
             "source_ref": "ToS/source-witnesses/fixture/copy-a/alternate-rights.json",
             "redistribution_posture": "not_authorized",
         })
         conflicted = source_dossier_query(
             navigation, nodes, incoming, outgoing, lambda _ids: rights, ancestors[0], limit=20
         )
-        self.assertEqual({"rights-work-a"}, {record["rights_id"] for record in conflicted["rights"]})
+        self.assertEqual({"tos.rights.fixture.work-a"}, {record["rights_id"] for record in conflicted["rights"]})
 
     def test_truncated_ancestor_dossier_does_not_import_sibling_file_rights(self) -> None:
         nodes, incoming, outgoing, rights, ancestors = shared_work_fixture()

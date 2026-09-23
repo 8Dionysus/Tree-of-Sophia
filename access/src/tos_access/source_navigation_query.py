@@ -1,8 +1,55 @@
 from __future__ import annotations
 
+import re
 from collections import deque
 from collections.abc import Callable, Iterable, Mapping
 from typing import Any
+
+
+_ROOT_RIGHTS_ID = re.compile(r"^tos\.rights\.[a-z0-9]+(?:[.-][a-z0-9]+)*$")
+_LAYER_RIGHTS_ID = re.compile(
+    r"^tos\.rights\.[a-z0-9]+(?:[.-][a-z0-9]+)*\.layer\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+)
+
+
+def _aggregate_rights_records(records: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Return only unambiguous whole-record assessments for openness decisions.
+
+    New projections tag aggregate and layer rows explicitly. Historical rows
+    have no tag, so accept their aggregate only when one rights ID in the exact
+    source record matches the top-level rights schema but not the layer-ID
+    pattern, and every other ID in that source group is layer-shaped. The
+    top-level ID grammar overlaps that pattern, so ambiguous groups fail closed.
+    """
+
+    by_source: dict[str, list[dict[str, Any]]] = {}
+    for record in records:
+        source_ref = record.get("source_ref")
+        if isinstance(source_ref, str) and source_ref:
+            by_source.setdefault(source_ref, []).append(record)
+
+    aggregate_records: list[dict[str, Any]] = []
+    for source_records in by_source.values():
+        if any("assessment_kind" in record for record in source_records):
+            if any(record.get("assessment_kind") not in ("aggregate", "layer") for record in source_records):
+                continue
+            aggregates = [record for record in source_records if record.get("assessment_kind") == "aggregate"]
+            if len(aggregates) == 1:
+                aggregate_records.extend(aggregates)
+            continue
+
+        aggregate_candidates = [
+            record for record in source_records
+            if _ROOT_RIGHTS_ID.fullmatch(str(record.get("rights_id") or ""))
+            and not _LAYER_RIGHTS_ID.fullmatch(str(record.get("rights_id") or ""))
+        ]
+        layer_candidates = [
+            record for record in source_records
+            if _LAYER_RIGHTS_ID.fullmatch(str(record.get("rights_id") or ""))
+        ]
+        if len(aggregate_candidates) == 1 and len(aggregate_candidates) + len(layer_candidates) == len(source_records):
+            aggregate_records.extend(aggregate_candidates)
+    return aggregate_records
 
 
 def _filter_file_scoped_rights(
@@ -524,8 +571,9 @@ def source_dossier_query(
         # identity when its source record cannot be bound to a member.
         rights = decision_rights
         for item_id, member_rights in rights_by_member.items():
+            member_aggregate_rights = _aggregate_rights_records(member_rights)
             member_positive = [
-                record for record in member_rights
+                record for record in member_aggregate_rights
                 if record.get("assessment_status") in {"licensed", "public_domain_reviewed"}
                 and record.get("redistribution_posture") in {"authorized", "authorized_with_conditions"}
             ]
@@ -567,9 +615,10 @@ def source_dossier_query(
         technical_access = "unknown"
 
     positive_statuses = {"licensed", "public_domain_reviewed"}
+    decision_aggregate_rights = _aggregate_rights_records(decision_rights)
     positive_rights = [
         record
-        for record in decision_rights
+        for record in decision_aggregate_rights
         if record.get("assessment_status") in positive_statuses
         and record.get("redistribution_posture") in {"authorized", "authorized_with_conditions"}
     ]
@@ -606,6 +655,8 @@ def source_dossier_query(
     gaps: list[str] = []
     if not decision_rights:
         gaps.append("no associated public rights record")
+    elif not decision_aggregate_rights:
+        gaps.append("no unambiguous aggregate rights assessment")
     if positive_rights and not reviewed_positive:
         gaps.append("positive rights route exists but has no accepted human review")
     if file_membership_gap:

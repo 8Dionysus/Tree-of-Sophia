@@ -19,7 +19,7 @@ const navigation = {
     { edge_id: "e4", from_id: "work", to_id: "link", predicate_id: "downloadable_at", edge_kind: "evidence_claim", source_refs: ["links.jsonl"] },
   ],
   rights: [
-    { rights_id: "r1", scope_refs: ["work"], assessment_status: "licensed", redistribution_posture: "authorized", review_status: "accepted", source_ref: "rights.json" },
+    { rights_id: "r1", assessment_kind: "aggregate", scope_refs: ["work"], assessment_status: "licensed", redistribution_posture: "authorized", review_status: "accepted", source_ref: "rights.json" },
   ],
 };
 
@@ -54,7 +54,7 @@ test("sourceDossier accepts every bibliographic carrier and preserves the select
   }
 });
 
-function sharedFileRightsNavigation(rightsBPositive = false): Item {
+function sharedFileRightsNavigation(rightsBPositive = false, legacyRights = false): Item {
   const fileId = "tos.file.sha256.shared";
   const itemA = "tos.item.copy.a";
   const itemB = "tos.item.copy.b";
@@ -72,7 +72,7 @@ function sharedFileRightsNavigation(rightsBPositive = false): Item {
     properties: { item_file_contexts: [{
       manifest_ref: manifestRef,
       acquisition_event_ref: `tos.event.acquisition.${itemId}`,
-      rights_ref: rightsRef,
+      ...(legacyRights ? {} : { rights_ref: rightsRef }),
       payload_entries: [{ relative_path: `payload/${basename}`, original_basename: basename, fixity_verified_at: "2026-09-22T10:00:00Z", container_member: false }],
     }] },
   });
@@ -85,8 +85,8 @@ function sharedFileRightsNavigation(rightsBPositive = false): Item {
     ],
     edges: [membership(itemA, manifestA, rightsA, "a.bin"), membership(itemB, manifestB, rightsB, "b.bin")],
     rights: [
-      { rights_id: "rights-a", source_ref: rightsA, scope_refs: [itemA, fileId], assessment_status: "public_domain_reviewed", redistribution_posture: "authorized", review_status: "accepted" },
-      { rights_id: "rights-b", source_ref: rightsB, scope_refs: [itemB, fileId], assessment_status: rightsBPositive ? "licensed" : "copyright_undetermined", redistribution_posture: rightsBPositive ? "authorized" : "not_authorized", review_status: rightsBPositive ? "accepted" : "not_reviewed" },
+      { rights_id: "rights-a", source_ref: rightsA, scope_refs: [itemA, fileId], assessment_status: "public_domain_reviewed", redistribution_posture: "authorized", review_status: "accepted", ...(legacyRights ? {} : { assessment_kind: "aggregate" }) },
+      { rights_id: "rights-b", source_ref: rightsB, scope_refs: [itemB, fileId], assessment_status: rightsBPositive ? "licensed" : "copyright_undetermined", redistribution_posture: rightsBPositive ? "authorized" : "not_authorized", review_status: rightsBPositive ? "accepted" : "not_reviewed", ...(legacyRights ? {} : { assessment_kind: "aggregate" }) },
     ],
   };
 }
@@ -137,9 +137,9 @@ function sharedWorkRightsNavigation(legacy = false): Item {
       membership(itemB, manifestB, rightsB, "b.bin"),
     ],
     rights: [
-      { rights_id: "rights-work-a", source_ref: "ToS/source-witnesses/fixture/work-a/rights.json", scope_refs: ["work-a"], assessment_status: "licensed", redistribution_posture: "authorized", review_status: "accepted" },
-      { rights_id: "rights-a", source_ref: rightsA, scope_refs: [itemA, fileId], assessment_status: "public_domain_reviewed", redistribution_posture: "authorized", review_status: "accepted" },
-      { rights_id: "rights-b", source_ref: rightsB, scope_refs: [itemB, fileId], assessment_status: "copyright_undetermined", redistribution_posture: "not_authorized", review_status: "not_reviewed" },
+      { rights_id: legacy ? "tos.rights.fixture.work-a" : "rights-work-a", source_ref: "ToS/source-witnesses/fixture/work-a/rights.json", scope_refs: ["work-a"], assessment_status: "licensed", redistribution_posture: "authorized", review_status: "accepted", ...(legacy ? {} : { assessment_kind: "aggregate" }) },
+      { rights_id: legacy ? "tos.rights.fixture.copy-a" : "rights-a", source_ref: rightsA, scope_refs: [itemA, fileId], assessment_status: "public_domain_reviewed", redistribution_posture: "authorized", review_status: "accepted", ...(legacy ? {} : { assessment_kind: "aggregate" }) },
+      { rights_id: legacy ? "tos.rights.fixture.copy-b" : "rights-b", source_ref: rightsB, scope_refs: [itemB, fileId], assessment_status: "copyright_undetermined", redistribution_posture: "not_authorized", review_status: "not_reviewed", ...(legacy ? {} : { assessment_kind: "aggregate" }) },
     ],
   };
 }
@@ -167,11 +167,85 @@ test("shared File rights remain attached to exact Item memberships", () => {
   assert.equal((truncated.agent_summary as Item).can_conclude_legal_openness, false);
 });
 
+test("positive Item layer remains evidence but cannot lift a restrictive aggregate", () => {
+  const navigation = sharedFileRightsNavigation();
+  const rights = navigation.rights as Item[];
+  rights[0]!.assessment_status = "copyright_undetermined";
+  rights[0]!.redistribution_posture = "not_authorized";
+  rights.push({
+    rights_id: "tos.rights.fixture.copy-a.layer.ocr",
+    assessment_kind: "layer",
+    source_ref: "ToS/source-witnesses/fixture/copy-a/rights.json",
+    scope_refs: ["tos.file.sha256.shared"],
+    assessment_status: "licensed",
+    redistribution_posture: "authorized",
+    review_status: "accepted",
+  });
+
+  const file = sourceDossier(navigation, "tos.file.sha256.shared", 20);
+  const summary = file.agent_summary as Item;
+  assert.equal(summary.can_conclude_legal_openness, false);
+  assert.equal(summary.rights_posture, "not_cleared");
+  assert.deepEqual((file.rights as Item[]).map((record) => record.rights_id), [
+    "rights-a", "rights-b", "tos.rights.fixture.copy-a.layer.ocr",
+  ]);
+});
+
+test("legacy rights rows classify only one unambiguous aggregate per source", () => {
+  const navigation = sharedFileRightsNavigation(false, true);
+  navigation.nodes = (navigation.nodes as Item[]).filter((node) => node.node_id !== "tos.item.copy.b");
+  navigation.edges = (navigation.edges as Item[]).slice(0, 1);
+  const rights = navigation.rights as Item[];
+  navigation.rights = [{
+    ...rights[0]!,
+    rights_id: "tos.rights.fixture.copy-a",
+    assessment_status: "copyright_undetermined",
+    redistribution_posture: "not_authorized",
+  }, {
+    rights_id: "tos.rights.fixture.copy-a.layer.ocr",
+    source_ref: "ToS/source-witnesses/fixture/copy-a/rights.json",
+    scope_refs: ["tos.item.copy.a", "tos.file.sha256.shared"],
+    assessment_status: "licensed",
+    redistribution_posture: "authorized",
+    review_status: "accepted",
+  }];
+  const grouped = sourceDossier(navigation, "tos.file.sha256.shared", 20);
+  assert.equal((grouped.agent_summary as Item).can_conclude_legal_openness, false);
+  assert.equal((grouped.agent_summary as Item).rights_posture, "not_cleared");
+  assert.equal((grouped.rights as Item[]).length, 2);
+
+  navigation.rights = [{
+    ...rights[0]!,
+    rights_id: "tos.rights.fixture.layer.aggregate",
+  }];
+  const overlappingRootId = sourceDossier(navigation, "tos.file.sha256.shared", 20);
+  assert.equal((overlappingRootId.agent_summary as Item).can_conclude_legal_openness, false);
+  assert.equal((overlappingRootId.agent_summary as Item).rights_posture, "not_cleared");
+  assert.ok(((overlappingRootId.agent_summary as Item).gaps as string[]).includes("no unambiguous aggregate rights assessment"));
+
+  navigation.rights = [{
+    ...rights[0]!,
+    rights_id: "tos.rights.fixture.copy-a",
+    assessment_status: "licensed",
+    redistribution_posture: "authorized",
+  }, {
+    ...rights[0]!,
+    rights_id: "tos.rights.fixture.copy-a.extra",
+    assessment_status: "copyright_undetermined",
+    redistribution_posture: "not_authorized",
+  }];
+  const multipleRoots = sourceDossier(navigation, "tos.file.sha256.shared", 20);
+  assert.equal((multipleRoots.agent_summary as Item).can_conclude_legal_openness, false);
+  assert.equal((multipleRoots.agent_summary as Item).rights_posture, "not_cleared");
+  assert.ok(((multipleRoots.agent_summary as Item).gaps as string[]).includes("no unambiguous aggregate rights assessment"));
+});
+
 test("File-only rights rows follow an exact rights_ref and stay out of sibling Item dossiers", () => {
   const navigation = sharedFileRightsNavigation();
   const rights = navigation.rights as Item[];
   rights.push({
     rights_id: "rights-a-file-layer",
+    assessment_kind: "layer",
     source_ref: "ToS/source-witnesses/fixture/copy-a/rights.json",
     scope_refs: ["tos.file.sha256.shared"],
     assessment_status: "copyright_undetermined",
@@ -194,6 +268,7 @@ test("File-only candidate rights remain review-required when bound by exact Item
   navigation.edges = (navigation.edges as Item[]).slice(0, 1);
   navigation.rights = [{
     rights_id: "rights-a-file-candidate",
+    assessment_kind: "aggregate",
     source_ref: "ToS/source-witnesses/fixture/copy-a/rights.json",
     scope_refs: ["tos.file.sha256.shared"],
     assessment_status: "licensed",
@@ -232,7 +307,7 @@ test("File aggregate rejects duplicate manifest contexts", () => {
 });
 
 test("legacy single-Item File dossiers remain compatible while shared unbound Files fail closed", () => {
-  const single = sharedFileRightsNavigation();
+  const single = sharedFileRightsNavigation(false, true);
   single.nodes = (single.nodes as Item[]).filter((node) => node.node_id !== "tos.item.copy.b");
   const withoutRightsRef = (edge: Item): Item => {
     const properties = edge.properties as Item;
@@ -243,12 +318,15 @@ test("legacy single-Item File dossiers remain compatible while shared unbound Fi
     };
   };
   single.edges = (single.edges as Item[]).slice(0, 1).map(withoutRightsRef);
-  single.rights = (single.rights as Item[]).slice(0, 1);
+  single.rights = [{
+    ...(single.rights as Item[])[0]!,
+    rights_id: "tos.rights.fixture.copy-a",
+  }];
   assert.equal((sourceDossier(single, "tos.file.sha256.shared", 20).agent_summary as Item).can_conclude_legal_openness, true);
   const singleRight = (single.rights as Item[])[0]!;
   single.rights = [singleRight, {
     ...singleRight,
-    rights_id: "rights-a-conflict",
+    rights_id: "tos.rights.fixture.alternate",
     source_ref: "ToS/source-witnesses/fixture/alternate-rights.json",
     redistribution_posture: "not_authorized",
   }];
@@ -314,23 +392,23 @@ test("ancestor legacy File rights remain only for a unique single-owner source",
   navigation.edges = edges.filter((edge) => edge.edge_id !== "tos.item.copy.b:tos.file.sha256.shared");
   navigation.rights = (navigation.rights as Item[]).slice(0, 2);
   const singleOwner = sourceDossier(navigation, "work-a", 20);
-  assert.deepEqual((singleOwner.rights as Item[]).map((record) => record.rights_id), ["rights-a", "rights-work-a"]);
+  assert.deepEqual((singleOwner.rights as Item[]).map((record) => record.rights_id), ["tos.rights.fixture.copy-a", "tos.rights.fixture.work-a"]);
 
   navigation.rights = [
     ...(navigation.rights as Item[]),
     {
       ...((navigation.rights as Item[])[1] as Item),
-      rights_id: "rights-a-conflict",
+      rights_id: "tos.rights.fixture.copy-a.conflict",
       source_ref: "ToS/source-witnesses/fixture/copy-a/alternate-rights.json",
       redistribution_posture: "not_authorized",
     },
   ];
   const ambiguous = sourceDossier(navigation, "work-a", 20);
-  assert.deepEqual((ambiguous.rights as Item[]).map((record) => record.rights_id), ["rights-work-a"]);
+  assert.deepEqual((ambiguous.rights as Item[]).map((record) => record.rights_id), ["tos.rights.fixture.work-a"]);
 
   const sharedLegacy = sharedWorkRightsNavigation(true);
   const shared = sourceDossier(sharedLegacy, "work-a", 20);
-  assert.deepEqual((shared.rights as Item[]).map((record) => record.rights_id), ["rights-work-a"]);
+  assert.deepEqual((shared.rights as Item[]).map((record) => record.rights_id), ["tos.rights.fixture.work-a"]);
   assert.equal((shared.source_refs as string[]).includes("ToS/source-witnesses/fixture/copy-b/rights.json"), false);
 });
 

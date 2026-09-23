@@ -16,10 +16,62 @@ if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
 import validate_source_witness_foundation as foundation
-from tos_corpus_index_common import project_source_item_file_memberships
+from tos_corpus_index_common import (
+    _project_source_navigation_rights,
+    project_source_item_file_memberships,
+)
 
 
 class FileMembershipTests(unittest.TestCase):
+    def test_rights_projection_marks_aggregate_and_layer_rows_in_schema(self) -> None:
+        schema = json.loads(
+            (REPO_ROOT / "ToS/contracts/tos-corpus-index.schema.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        validator = Draft202012Validator(schema).evolve(
+            schema={"$ref": "#/$defs/sourceNavigationRights"}
+        )
+        rows = _project_source_navigation_rights(
+            {
+                # This valid top-level ID overlaps the layer-ID pattern. The
+                # explicit projection kind must keep the two roles distinct.
+                "rights_id": "tos.rights.fixture.layer.aggregate",
+                "scope_refs": ["tos.item.fixture.copy-a"],
+                "assessment_status": "copyright_undetermined",
+                "review_status": "accepted",
+                "redistribution_posture": "not_authorized",
+                "derivative_posture": "not_authorized",
+                "server_processing_posture": "not_authorized",
+                "visibility": "public_metadata_only",
+                "restrictions": ["no_redistribution"],
+                "layer_assessments": [{
+                    "layer_id": "tos.rights.fixture.layer.aggregate.layer.ocr",
+                    "scope_refs": ["tos.file.sha256.fixture"],
+                    "assessment_status": "licensed",
+                    "review_status": "accepted",
+                    "redistribution_posture": "authorized",
+                    "derivative_posture": "authorized",
+                    "server_processing_posture": "allowed",
+                    "restrictions": [],
+                }],
+            },
+            "ToS/source-witnesses/fixture/copy-a/rights.json",
+        )
+
+        self.assertEqual(["aggregate", "layer"], [row["assessment_kind"] for row in rows])
+        self.assertEqual(
+            ["tos.rights.fixture.layer.aggregate", "tos.rights.fixture.layer.aggregate.layer.ocr"],
+            [row["rights_id"] for row in rows],
+        )
+        for row in rows:
+            validator.validate(row)
+
+        # The field stays optional so older snapshots remain structurally valid.
+        legacy_row = dict(rows[0])
+        legacy_row.pop("assessment_kind")
+        validator.validate(legacy_row)
+
     def test_identical_bytes_keep_one_file_identity_and_exact_item_pairs(self) -> None:
         payload = b"the same lawful source bytes\n"
         digest = hashlib.sha256(payload).hexdigest()

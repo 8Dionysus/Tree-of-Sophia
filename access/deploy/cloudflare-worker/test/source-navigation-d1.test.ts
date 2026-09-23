@@ -49,7 +49,7 @@ function baseNavigation(): Navigation {
       { edge_id: "e4", from_id: "work", to_id: "link", predicate_id: "downloadable_at", edge_kind: "evidence_claim", review_status: "unreviewed", source_refs: ["link.jsonl"] },
     ],
     rights: [
-      { rights_id: "r1", scope_refs: ["work"], assessment_status: "licensed", redistribution_posture: "authorized", review_status: "accepted", source_ref: "rights.json" },
+      { rights_id: "r1", assessment_kind: "aggregate", scope_refs: ["work"], assessment_status: "licensed", redistribution_posture: "authorized", review_status: "accepted", source_ref: "rights.json" },
     ],
   };
 }
@@ -99,9 +99,9 @@ function sharedWorkRightsNavigation(legacy = false): Navigation {
     membership(itemB, manifestB, rightsB, "b.bin"),
   ];
   const rights: Item[] = [
-    { rights_id: "rights-work-a", source_ref: "ToS/source-witnesses/fixture/work-a/rights.json", scope_refs: ["work-a"], assessment_status: "licensed", redistribution_posture: "authorized", review_status: "accepted" },
-    { rights_id: "rights-a", source_ref: rightsA, scope_refs: [itemA, fileId], assessment_status: "public_domain_reviewed", redistribution_posture: "authorized", review_status: "accepted" },
-    { rights_id: "rights-b", source_ref: rightsB, scope_refs: [itemB, fileId], assessment_status: "copyright_undetermined", redistribution_posture: "not_authorized", review_status: "not_reviewed" },
+    { rights_id: legacy ? "tos.rights.fixture.work-a" : "rights-work-a", ...(legacy ? {} : { assessment_kind: "aggregate" }), source_ref: "ToS/source-witnesses/fixture/work-a/rights.json", scope_refs: ["work-a"], assessment_status: "licensed", redistribution_posture: "authorized", review_status: "accepted" },
+    { rights_id: legacy ? "tos.rights.fixture.copy-a" : "rights-a", ...(legacy ? {} : { assessment_kind: "aggregate" }), source_ref: rightsA, scope_refs: [itemA, fileId], assessment_status: "public_domain_reviewed", redistribution_posture: "authorized", review_status: "accepted" },
+    { rights_id: legacy ? "tos.rights.fixture.copy-b" : "rights-b", ...(legacy ? {} : { assessment_kind: "aggregate" }), source_ref: rightsB, scope_refs: [itemB, fileId], assessment_status: "copyright_undetermined", redistribution_posture: "not_authorized", review_status: "not_reviewed" },
   ];
   return {
     schema_version: "tos_source_navigation_v1",
@@ -340,6 +340,43 @@ test("D1 Work and Link dossiers preserve closure, rights, truncation, and chunk 
   }
 });
 
+test("D1 openness uses aggregate assessments while retaining positive layer evidence", async () => {
+  const { mf, db } = await database();
+  try {
+    const navigation = baseNavigation();
+    navigation.rights = [{
+      rights_id: "tos.rights.fixture.work",
+      assessment_kind: "aggregate",
+      source_ref: "rights.json",
+      scope_refs: ["work"],
+      assessment_status: "copyright_undetermined",
+      redistribution_posture: "not_authorized",
+      review_status: "accepted",
+    }, {
+      rights_id: "tos.rights.fixture.work.layer.ocr",
+      assessment_kind: "layer",
+      source_ref: "rights.json",
+      scope_refs: ["work"],
+      assessment_status: "licensed",
+      redistribution_posture: "authorized",
+      review_status: "accepted",
+    }];
+    navigation.counts.rights = navigation.rights.length;
+    await populate(db, navigation);
+
+    const result = await sourceDossierD1(db, "work", 30);
+    const summary = result.agent_summary as Item;
+    assert.equal(summary.can_conclude_legal_openness, false);
+    assert.equal(summary.rights_posture, "not_cleared");
+    assert.deepEqual((result.rights as Item[]).map((record) => record.rights_id), [
+      "tos.rights.fixture.work",
+      "tos.rights.fixture.work.layer.ocr",
+    ]);
+  } finally {
+    await mf.dispose();
+  }
+});
+
 test("D1 Work dossiers bind File-scoped rights to reachable Item membership contexts", async () => {
   const exact = sharedWorkRightsNavigation();
   const legacySingle = sharedWorkRightsNavigation(true);
@@ -352,7 +389,7 @@ test("D1 Work dossiers bind File-scoped rights to reachable Item membership cont
       ...legacySingle.rights,
       {
         ...(legacySingle.rights[1] as Item),
-        rights_id: "rights-a-conflict",
+        rights_id: "tos.rights.fixture.copy-a.conflict",
         source_ref: "ToS/source-witnesses/fixture/copy-a/alternate-rights.json",
         redistribution_posture: "not_authorized",
       },
@@ -370,9 +407,11 @@ test("D1 Work dossiers bind File-scoped rights to reachable Item membership cont
       const rights = actual.rights as Item[];
       assert.equal(rights.some((record) => record.source_ref === "ToS/source-witnesses/fixture/copy-b/rights.json"), false);
       if (navigation === exact || navigation === legacySingle) {
-        assert.deepEqual(rights.map((record) => record.rights_id), ["rights-a", "rights-work-a"]);
+        assert.deepEqual(rights.map((record) => record.rights_id), navigation === exact
+          ? ["rights-a", "rights-work-a"]
+          : ["tos.rights.fixture.copy-a", "tos.rights.fixture.work-a"]);
       } else {
-        assert.deepEqual(rights.map((record) => record.rights_id), ["rights-work-a"]);
+        assert.deepEqual(rights.map((record) => record.rights_id), ["tos.rights.fixture.work-a"]);
       }
     } finally {
       await mf.dispose();

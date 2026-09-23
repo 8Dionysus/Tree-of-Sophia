@@ -957,6 +957,38 @@ def project_source_item_file_memberships(
     return nodes, edges, diagnostics
 
 
+def _project_source_navigation_rights(record: dict[str, Any], rights_ref: str) -> list[dict[str, Any]]:
+    """Project rights rows with an explicit aggregate/layer discriminator."""
+
+    assessments = [(record, "aggregate")]
+    assessments.extend(
+        (assessment, "layer")
+        for assessment in record.get("layer_assessments", [])
+        if isinstance(assessment, dict)
+    )
+    projected: list[dict[str, Any]] = []
+    for index, (assessment, assessment_kind) in enumerate(assessments):
+        rights_id = str(assessment.get("layer_id") or record.get("rights_id") or f"{rights_ref}#{index}")
+        projected.append(
+            {
+                "rights_id": rights_id,
+                "assessment_kind": assessment_kind,
+                "scope_refs": sorted(str(ref) for ref in assessment.get("scope_refs", []) if isinstance(ref, str)),
+                "assessment_status": str(assessment.get("assessment_status") or "unknown"),
+                "review_status": str(assessment.get("review_status") or record.get("review_status") or "unknown"),
+                "redistribution_posture": str(assessment.get("redistribution_posture") or record.get("redistribution_posture") or "unknown"),
+                "derivative_posture": str(assessment.get("derivative_posture") or record.get("derivative_posture") or "unknown"),
+                "server_processing_posture": str(assessment.get("server_processing_posture") or record.get("server_processing_posture") or "unknown"),
+                "visibility": str(record.get("visibility") or "unknown"),
+                "license_uri": assessment.get("license_uri") or record.get("license_uri"),
+                "rights_statement_uri": assessment.get("rights_statement_uri") or record.get("rights_statement_uri"),
+                "restrictions": [str(item) for item in assessment.get("restrictions", record.get("restrictions", []))],
+                "source_ref": rights_ref,
+            }
+        )
+    return projected
+
+
 def _build_source_navigation(diagnostics, *, assessed_forms, publication, catalog_snapshot=None, storage=None, read_scope):
     """Join authored topology and source records into a read-only descent graph."""
 
@@ -1320,25 +1352,7 @@ def _build_source_navigation(diagnostics, *, assessed_forms, publication, catalo
         if record.get("visibility") not in {"public", "public_payload", "public_metadata_only"}:
             continue
         rights_ref = repo_ref(rights_path)
-        assessments = [record, *[item for item in record.get("layer_assessments", []) if isinstance(item, dict)]]
-        for index, assessment in enumerate(assessments):
-            rights_id = str(assessment.get("layer_id") or record.get("rights_id") or f"{rights_ref}#{index}")
-            rights.append(
-                {
-                    "rights_id": rights_id,
-                    "scope_refs": sorted(str(ref) for ref in assessment.get("scope_refs", []) if isinstance(ref, str)),
-                    "assessment_status": str(assessment.get("assessment_status") or "unknown"),
-                    "review_status": str(assessment.get("review_status") or record.get("review_status") or "unknown"),
-                    "redistribution_posture": str(assessment.get("redistribution_posture") or record.get("redistribution_posture") or "unknown"),
-                    "derivative_posture": str(assessment.get("derivative_posture") or record.get("derivative_posture") or "unknown"),
-                    "server_processing_posture": str(assessment.get("server_processing_posture") or record.get("server_processing_posture") or "unknown"),
-                    "visibility": str(record.get("visibility") or "unknown"),
-                    "license_uri": assessment.get("license_uri") or record.get("license_uri"),
-                    "rights_statement_uri": assessment.get("rights_statement_uri") or record.get("rights_statement_uri"),
-                    "restrictions": [str(item) for item in assessment.get("restrictions", record.get("restrictions", []))],
-                    "source_ref": rights_ref,
-                }
-            )
+        rights.extend(_project_source_navigation_rights(record, rights_ref))
 
     projected_nodes = ordered_rows(storage, nodes.values(), "node_id")
     if assessed_forms is not None:

@@ -54,6 +54,39 @@ function intersects(values: unknown, selected: Set<string>): boolean {
   return stringArray(values).some((value) => selected.has(value));
 }
 
+const ROOT_RIGHTS_ID = /^tos\.rights\.[a-z0-9]+(?:[.-][a-z0-9]+)*$/;
+const LAYER_RIGHTS_ID = /^tos\.rights\.[a-z0-9]+(?:[.-][a-z0-9]+)*\.layer\.[a-z0-9]+(?:[.-][a-z0-9]+)*$/;
+
+/** Keep layer findings visible while deriving openness only from an unambiguous aggregate row. */
+export function aggregateRightsRecords(records: Item[]): Item[] {
+  const bySource = new Map<string, Item[]>();
+  for (const record of records) {
+    const sourceRef = stringValue(record.source_ref);
+    if (!sourceRef) continue;
+    const group = bySource.get(sourceRef) ?? [];
+    group.push(record);
+    bySource.set(sourceRef, group);
+  }
+
+  const aggregateRecords: Item[] = [];
+  for (const sourceRecords of bySource.values()) {
+    if (sourceRecords.some((record) => Object.prototype.hasOwnProperty.call(record, "assessment_kind"))) {
+      if (sourceRecords.some((record) => !["aggregate", "layer"].includes(stringValue(record.assessment_kind)))) continue;
+      const aggregates = sourceRecords.filter((record) => stringValue(record.assessment_kind) === "aggregate");
+      if (aggregates.length === 1) aggregateRecords.push(aggregates[0]!);
+      continue;
+    }
+
+    const aggregateCandidates = sourceRecords.filter((record) =>
+      ROOT_RIGHTS_ID.test(stringValue(record.rights_id)) && !LAYER_RIGHTS_ID.test(stringValue(record.rights_id)));
+    const layerCandidates = sourceRecords.filter((record) => LAYER_RIGHTS_ID.test(stringValue(record.rights_id)));
+    if (aggregateCandidates.length === 1 && aggregateCandidates.length + layerCandidates.length === sourceRecords.length) {
+      aggregateRecords.push(aggregateCandidates[0]!);
+    }
+  }
+  return aggregateRecords;
+}
+
 /** Keep File-scoped rights only through Item→File memberships in this dossier. */
 export function filterFileScopedRights(
   rights: Item[],
@@ -484,7 +517,7 @@ export function sourceDossier(navigation: Item, objectId: string, limit: number)
     // exact Item memberships, never records that merely mention the File ID.
     rights.splice(0, rights.length, ...decisionRights);
     for (const [itemId, memberRights] of rightsByMember) {
-      fileMemberReviewedPositive[itemId] = memberRights.some((record) =>
+      fileMemberReviewedPositive[itemId] = aggregateRightsRecords(memberRights).some((record) =>
         ["licensed", "public_domain_reviewed"].includes(stringValue(record.assessment_status))
         && ["authorized", "authorized_with_conditions"].includes(stringValue(record.redistribution_posture))
         && ["accepted", "accepted_with_limits"].includes(stringValue(record.review_status))
@@ -510,7 +543,8 @@ export function sourceDossier(navigation: Item, objectId: string, limit: number)
     technicalAccess = "restricted_or_unavailable";
   }
 
-  const positiveRights = decisionRights.filter((record) =>
+  const decisionAggregateRights = aggregateRightsRecords(decisionRights);
+  const positiveRights = decisionAggregateRights.filter((record) =>
     ["licensed", "public_domain_reviewed"].includes(stringValue(record.assessment_status))
     && ["authorized", "authorized_with_conditions"].includes(stringValue(record.redistribution_posture))
   );
@@ -540,6 +574,7 @@ export function sourceDossier(navigation: Item, objectId: string, limit: number)
           : "unknown";
   const gaps: string[] = [];
   if (decisionRights.length === 0) gaps.push("no associated public rights record");
+  else if (decisionAggregateRights.length === 0) gaps.push("no unambiguous aggregate rights assessment");
   if (positiveRights.length > 0 && reviewedPositive.length === 0) gaps.push("positive rights route exists but has no accepted human review");
   if (fileMembershipGap) gaps.push(fileMembershipGap);
   else if (selectedKind === "file" && !fileAllMembersReviewedPositive) gaps.push("not every exact Item membership has an accepted positive rights route");

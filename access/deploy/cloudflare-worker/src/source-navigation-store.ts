@@ -1,7 +1,7 @@
 import { HttpError, stringArray, stringValue, type Item } from "./common.ts";
 import {NativeD1Read, nativeD1Limits, nativeSha256} from './native-d1-read.ts';
 import {consistentRead} from './knowledge-store.ts';
-import { filterFileScopedRights, SourceNavigationError } from "./source-navigation.ts";
+import { aggregateRightsRecords, filterFileScopedRights, SourceNavigationError } from "./source-navigation.ts";
 
 /*
  * Source navigation is stored as a row projection in D1.  The JSON payload
@@ -562,7 +562,8 @@ async function readSourceDossierD1(db: D1Database, objectId: string, limit: numb
     technicalAccess = "restricted_or_unavailable";
   }
 
-  const positiveRights = decisionRights.filter((record) =>
+  const decisionAggregateRights = aggregateRightsRecords(decisionRights);
+  const positiveRights = decisionAggregateRights.filter((record) =>
     ["licensed", "public_domain_reviewed"].includes(stringValue(record.assessment_status))
     && ["authorized", "authorized_with_conditions"].includes(stringValue(record.redistribution_posture)),
   );
@@ -578,6 +579,7 @@ async function readSourceDossierD1(db: D1Database, objectId: string, limit: numb
         : "unknown";
   const gaps: string[] = [];
   if (decisionRights.length === 0) gaps.push("no associated public rights record");
+  else if (decisionAggregateRights.length === 0) gaps.push("no unambiguous aggregate rights assessment");
   if (positiveRights.length > 0 && reviewedPositive.length === 0) gaps.push("positive rights route exists but has no accepted human review");
   if ((chain.link ?? []).length === 0) gaps.push("no first-class associated Link record");
 

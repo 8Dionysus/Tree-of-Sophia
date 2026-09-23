@@ -813,6 +813,9 @@
           "type": "string",
           "minLength": 1
         },
+        "assessment_kind": {
+          "enum": ["aggregate", "layer"]
+        },
         "scope_refs": {
           "type": "array",
           "items": {
