@@ -195,7 +195,7 @@ jobs:
             /rust/
             /tests/conformance/rust/
             /scripts/validation_lanes.py
-            /scripts/verify_rust_workspace_install.py
+            /scripts/verify_rust_reader_install.py
             /docs/validation/validation_lanes.json
       - name: Install pinned Rust toolchain and WASM target
         run: |

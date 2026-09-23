@@ -388,8 +388,8 @@
         "command": ["cargo", "check", "--locked", "-p", "tos-foundation", "--target", "wasm32-unknown-unknown", "--features", "wasm"]
       },
       {
-        "label": "install native workspace probe outside checkout",
-        "command": ["python", "scripts/verify_rust_workspace_install.py"]
+        "label": "install native exact reader outside checkout",
+        "command": ["python", "scripts/verify_rust_reader_install.py"]
       }
     ],
     "validation_authority": [

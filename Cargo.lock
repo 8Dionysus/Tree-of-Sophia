@@ -264,15 +264,17 @@ dependencies = [
 ]
 
 [[package]]
-name = "tos-source-store"
+name = "tos-reader"
 version = "0.1.0"
 dependencies = [
+ "tempfile",
  "tos-foundation",
+ "tos-source-store",
 ]
 
 [[package]]
-name = "tos-workspace-probe"
-version = "0.0.0"
+name = "tos-source-store"
+version = "0.1.0"
 dependencies = [
  "tos-foundation",
 ]
