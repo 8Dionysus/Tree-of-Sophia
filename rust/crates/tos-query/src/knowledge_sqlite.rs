@@ -282,7 +282,7 @@ impl SearchCandidateModel for VerifiedKnowledgeModel<'_> {
              CASE WHEN typeof(c.payload_len)='integer' AND c.payload_len>=0 AND c.payload_len<=?4 THEN c.payload_len END,
              CASE WHEN typeof(c.payload_sha256)='blob' AND length(c.payload_sha256)=32 THEN c.payload_sha256 END,
              CASE WHEN typeof(c.payload)='blob' AND c.payload_len>=0 AND c.payload_len<=?4 AND length(c.payload)=c.payload_len THEN c.payload END
-             FROM search_documents d LEFT JOIN {table} c ON c.source_order=d.position
+             FROM search_documents d JOIN {table} c ON c.source_order=d.position
              WHERE d.kind=?1 AND d.position=?2"
         );
         let connection = self.connection();
