@@ -342,7 +342,7 @@ impl<'a> KnowledgeStage<'a> {
             })
         })
     }
-    fn charge(&mut self, payload: &[u8]) -> Result<()> {
+    pub(crate) fn charge(&mut self, payload: &[u8]) -> Result<()> {
         if payload.len() > self.limits.sqlite.max_row_bytes {
             return Err(Error::Budget("stage row bytes"));
         }
@@ -359,6 +359,24 @@ impl<'a> KnowledgeStage<'a> {
             .ok_or(Error::Budget("stage work bytes"))?;
         if self.work_bytes > self.limits.sqlite.max_work_bytes {
             return Err(Error::Budget("stage work bytes"));
+        }
+        Ok(())
+    }
+    /// Charge a disk-backed external-sort copy before the SQL statement that
+    /// writes final rows. A later failure poisons the stage and removes it.
+    pub(crate) fn charge_materialized(&mut self, rows: u64, bytes: u64) -> Result<()> {
+        self.total_rows = self
+            .total_rows
+            .checked_add(rows)
+            .ok_or(Error::Budget("stage rows"))?;
+        self.work_bytes = self
+            .work_bytes
+            .checked_add(bytes)
+            .ok_or(Error::Budget("stage work bytes"))?;
+        if self.total_rows > self.limits.sqlite.max_rows
+            || self.work_bytes > self.limits.sqlite.max_work_bytes
+        {
+            return Err(Error::Budget("stage materialized rows/work bytes"));
         }
         Ok(())
     }

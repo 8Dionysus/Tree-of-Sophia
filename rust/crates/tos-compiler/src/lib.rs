@@ -7,12 +7,14 @@ mod knowledge_catalog_index;
 mod knowledge_full;
 mod knowledge_indexed;
 pub mod knowledge_normalization;
+mod knowledge_ordered;
 pub mod knowledge_philosophy_display;
 mod knowledge_registry;
 mod knowledge_scope;
 mod knowledge_seal;
 mod knowledge_search;
 mod knowledge_selected;
+mod knowledge_source_claims_prepare;
 pub mod knowledge_stage;
 mod legacy;
 mod publication;
@@ -25,6 +27,10 @@ pub use knowledge_full::{
     FullKnowledgeLimits, FullKnowledgeReceipt, compile_full_knowledge_components,
 };
 pub use knowledge_indexed::{IndexedLimits, IndexedReceipt, materialize_indexed_sources};
+pub use knowledge_ordered::{
+    NormalizedNodeCandidate, NormalizedRelationCandidate, OrderedCandidateLimits,
+    OrderedCandidateReceipt, OrderedKnowledgeSink,
+};
 pub use knowledge_registry::{KnowledgeRegistry, ResolvedType};
 pub use knowledge_scope::{ScopeLimits, ScopeReceipt, write_source_scope};
 pub use knowledge_seal::{
@@ -34,6 +40,9 @@ pub use knowledge_search::{SearchBuildLimits, SearchIndexReceipt, build_search_i
 pub use knowledge_selected::{
     ColdOpenLimits, ExpectedSourceScope, ImmutableKnowledgeCustody, KnowledgeSelectedExpectation,
     VerifiedKnowledgeModel, open_selected_knowledge_model,
+};
+pub use knowledge_source_claims_prepare::{
+    ClaimExternalDependency, ClaimPrepareLimits, ClaimPrepareReceipt, prepare_source_claims,
 };
 pub use legacy::LegacyPartitionedNavigation;
 pub use publication::{PublicationAuthority, PublishedReceipt, SelectionFence, publish_candidate};
