@@ -10,8 +10,8 @@ use crate::search_index::{
     SearchPostingModel, choose_rarest_gram, visit_complete_postings,
 };
 use crate::search_v2::{
-    NormalizedIndexedSearchV2Request, SearchKind, SearchOrderKey, SearchV2Error, SearchV2ErrorCode,
-    SelectedQueryVocabulary,
+    NormalizedIndexedSearchV2Request, SearchContinuationState, SearchKind, SearchOrderKey,
+    SearchV2Error, SearchV2ErrorCode, SelectedQueryVocabulary,
 };
 use tos_foundation::Digest256;
 
@@ -334,6 +334,26 @@ where
     })
 }
 
+/// Advance only from the last returned ranked hit. The last examined gram
+/// candidate may be a false positive or rank before/after an unseen result.
+pub(crate) fn advance_private_kind(
+    state: &mut SearchContinuationState,
+    kind: SearchKind,
+    page: &PrivateSearchKindPage,
+) -> Result<(), SearchV2Error> {
+    if page.has_more {
+        let last = page.hits.last().ok_or_else(|| {
+            error(
+                SearchV2ErrorCode::MissingProgress,
+                "nonterminal ranked page is empty",
+            )
+        })?;
+        state.advance(kind, Some(last.order.clone()), false)
+    } else {
+        state.advance(kind, None, true)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::collections::BTreeSet;
@@ -346,8 +366,8 @@ mod tests {
     use crate::search_document::SearchDocumentBudget;
     use crate::search_index::{GramStat, PostingPage};
     use crate::search_v2::{
-        IndexedSearchV2Request, QueryVocabularyBinding, SEARCH_READ_MODEL_ABI_V1,
-        SEARCH_UNICODE_PROFILE, SearchSelectionBinding,
+        CurrentPolicyBinding, IndexedSearchV2Request, QueryVocabularyBinding,
+        SEARCH_READ_MODEL_ABI_V1, SEARCH_UNICODE_PROFILE, SearchSelectionBinding,
     };
 
     fn field<'a>(value: &'a JsonValue, name: &str) -> &'a JsonValue {
@@ -378,6 +398,7 @@ mod tests {
         Vec<SelectedSearchCandidate>,
         Vocabulary,
         NormalizedIndexedSearchV2Request,
+        SearchSelectionBinding,
     ) {
         let oracle = parse_json(
             include_bytes!("../tests/fixtures/search_candidate_python_oracle.json"),
@@ -463,7 +484,7 @@ mod tests {
                 }
             })
             .collect();
-        (rows, vocabulary, request)
+        (rows, vocabulary, request, selection)
     }
 
     struct Model {
@@ -621,7 +642,7 @@ mod tests {
 
     #[test]
     fn private_page_matches_independent_rank_oracle_and_checks_false_positive_policy() {
-        let (rows, vocabulary, request) = fixture();
+        let (rows, vocabulary, request, selection) = fixture();
         let mut model = Model {
             rows,
             posting_calls: 0,
@@ -654,6 +675,28 @@ mod tests {
         assert_eq!(page.candidate_charge.rows, 7);
         assert!(page.verified_chars > 0);
         assert!(page.observed_bytes > 0);
+        let mut continuation = SearchContinuationState::new(
+            selection,
+            request.clone(),
+            CurrentPolicyBinding {
+                scope: "fixture-current-policy".into(),
+                withdrawal_generation: "fixture-withdrawal-1".into(),
+            },
+            &vocabulary,
+        )
+        .unwrap();
+        advance_private_kind(&mut continuation, SearchKind::Nodes, &page).unwrap();
+        assert_eq!(
+            continuation.after(SearchKind::Nodes),
+            page.hits.last().map(|hit| &hit.order)
+        );
+        assert_ne!(
+            continuation
+                .after(SearchKind::Nodes)
+                .unwrap()
+                .source_position(),
+            6
+        );
 
         let mut denied = Authority {
             denied: Some(6),
@@ -678,7 +721,7 @@ mod tests {
 
     #[test]
     fn one_under_verified_work_fails_without_private_result() {
-        let (rows, vocabulary, request) = fixture();
+        let (rows, vocabulary, request, _) = fixture();
         let mut model = Model {
             rows,
             posting_calls: 0,
@@ -707,7 +750,7 @@ mod tests {
 
     #[test]
     fn one_under_observed_identity_bytes_fails_without_private_result() {
-        let (rows, vocabulary, request) = fixture();
+        let (rows, vocabulary, request, _) = fixture();
         let expected: u64 = rows
             .iter()
             .map(|row| {

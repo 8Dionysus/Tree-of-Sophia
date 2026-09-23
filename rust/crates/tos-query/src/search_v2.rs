@@ -470,14 +470,14 @@ impl SearchContinuationState {
         self.progress(kind).exhausted
     }
 
-    /// Commit a completely verified per-kind scan page. For a nonterminal
-    /// page, `examined_through` may be later than the last returned hit when
-    /// bounded indexed verification skipped candidates. Advancing requires a
-    /// strict key increase so an empty progress page cannot loop forever.
+    /// Commit a completely verified per-kind ranked page. For a nonterminal
+    /// page, the key must be that of the last returned hit; using a later
+    /// examined false positive would skip unseen ranked results. Advancing
+    /// requires a strict increase so an empty page cannot loop forever.
     pub fn advance(
         &mut self,
         kind: SearchKind,
-        examined_through: Option<SearchOrderKey>,
+        last_returned: Option<SearchOrderKey>,
         exhausted: bool,
     ) -> Result<(), SearchV2Error> {
         let current = self.progress_mut(kind);
@@ -488,7 +488,7 @@ impl SearchContinuationState {
             ));
         }
         if exhausted {
-            if examined_through.is_some() {
+            if last_returned.is_some() {
                 return Err(SearchV2Error::new(
                     SearchV2ErrorCode::InvalidRequest,
                     "exhausted indexed search page cannot retain a continuation key",
@@ -498,7 +498,7 @@ impl SearchContinuationState {
             current.exhausted = true;
             return Ok(());
         }
-        let Some(next) = examined_through else {
+        let Some(next) = last_returned else {
             return Err(SearchV2Error::new(
                 SearchV2ErrorCode::MissingProgress,
                 "nonterminal indexed search page must advance its order key",
