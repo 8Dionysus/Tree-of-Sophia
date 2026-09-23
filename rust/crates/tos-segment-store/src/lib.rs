@@ -11,6 +11,7 @@ compile_error!("tos-segment-store currently supports Linux only");
 mod audit;
 mod error;
 mod format;
+mod generation;
 mod journal;
 mod placement;
 mod store;
@@ -20,6 +21,11 @@ pub use audit::{
 };
 pub use error::{Result, SegmentError, SegmentErrorCode};
 pub use format::{FrameCoordinate, SegmentLimits};
+pub use generation::{
+    GenerationShapeLimits, GenerationStreamComparison, KeyComparatorV1, PartitionBoundsV1,
+    PlacementGenerationRowV1, PlacementPartitionV1, compare_generation_streams,
+    describe_placement_partition, placement_catalog_shape_root,
+};
 pub use placement::PlacementV1;
 pub use store::{
     AttemptRecovery, ByteDurabilityReceipt, DurabilityClass, FrameInput, OwnerBinding,
