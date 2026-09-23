@@ -1,20 +1,52 @@
 //! One bounded local HTTP route for the first native query family.
 
 use std::io::{Read, Write};
-use std::net::{TcpListener, TcpStream};
+use std::net::{TcpListener, TcpStream, ToSocketAddrs};
 use std::sync::{
     Arc,
-    atomic::{AtomicUsize, Ordering},
+    atomic::{AtomicU64, AtomicUsize, Ordering},
 };
 use std::time::{Duration, Instant};
+use tos_query::{AbortProbe, AbortReason};
 
 use crate::common::{
     AccessError, AccessErrorCode, AccessExecutor, AccessProfile, DisclosureFence, HTTP_PREFIX,
-    Params, error_json, validate_packet,
+    IndexedSearchParams, Params, SEARCH_HTTP_PATH, error_json, validate_packet,
 };
 
 const MAX_HEAD: usize = 8 * 1024;
 const MAX_CONCURRENT: usize = 32;
+
+/// Poll the already-read request socket without blocking QRY's SQLite progress
+/// callback on every VM instruction. The socket is restored to blocking mode
+/// before the response write; this probe lives only through query execution.
+struct HttpAbortProbe {
+    client: TcpStream,
+    deadline: Option<Instant>,
+    checks: AtomicU64,
+}
+
+impl AbortProbe for HttpAbortProbe {
+    fn reason(&self) -> Option<AbortReason> {
+        if self
+            .deadline
+            .is_some_and(|deadline| Instant::now() >= deadline)
+        {
+            return Some(AbortReason::DeadlineExceeded);
+        }
+        if self.checks.fetch_add(1, Ordering::Relaxed) % 1024 != 0 {
+            return None;
+        }
+        match self.client.peek(&mut [0]) {
+            // A peer may half-close its request stream while still reading the
+            // response. EOF alone is not a cancelled HTTP request.
+            Ok(0) => None,
+            Ok(_) => None,
+            Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => None,
+            Err(_) => Some(AbortReason::Cancelled),
+        }
+    }
+}
 
 pub struct HttpResponse {
     pub status: u16,
@@ -117,11 +149,91 @@ fn query_value<'a>(query: &'a str, name: &str) -> Option<String> {
         .next()
 }
 
+fn query_list(query: &str, name: &str) -> Vec<String> {
+    query_value(query, name)
+        .unwrap_or_default()
+        .split(',')
+        .filter(|part| !part.is_empty())
+        .map(str::to_owned)
+        .collect()
+}
+
+fn handle_indexed_search(
+    executor: &dyn AccessExecutor,
+    method: &str,
+    query: &str,
+    profile: AccessProfile,
+    abort_probe: Arc<dyn AbortProbe>,
+) -> HttpResponse {
+    if query_value(query, "mode").as_deref() != Some("indexed") {
+        return HttpResponse::error_for_method(
+            503,
+            "selected knowledge search mode unavailable",
+            method,
+        );
+    }
+    if !executor.knowledge_search_indexed_available() {
+        return HttpResponse::error_for_method(503, "indexed knowledge search unavailable", method);
+    }
+    let offset = bounded_legacy_int(query_value(query, "offset").as_deref(), 0, 0, 100_000);
+    if offset != 0 {
+        return HttpResponse::error_for_method(
+            400,
+            "indexed search uses cursor, not offset",
+            method,
+        );
+    }
+    let limit = bounded_legacy_int(query_value(query, "limit").as_deref(), 40, 1, 100) as usize;
+    let result = IndexedSearchParams::new(
+        query_value(query, "query").unwrap_or_default(),
+        query_list(query, "sources"),
+        query_list(query, "kind_ids"),
+        query_list(query, "predicate_ids"),
+        query_value(query, "cursor").filter(|value| !value.is_empty()),
+        limit,
+    )
+    .and_then(|params| executor.knowledge_search_indexed(params, abort_probe))
+    .and_then(|packet| {
+        if packet.body.len() > profile.max_response_bytes {
+            return Err(AccessError::new(
+                AccessErrorCode::BudgetExceeded,
+                "indexed search response budget exceeded",
+            ));
+        }
+        validate_packet(&packet.body, profile.max_response_bytes)?;
+        Ok(packet)
+    });
+    match result {
+        Ok(packet) => HttpResponse {
+            status: 200,
+            body: packet.body,
+            head_only: method == "HEAD",
+            fence: Some(packet.fence),
+        },
+        Err(error) => HttpResponse {
+            status: error.http_status(),
+            body: error_json(&error),
+            head_only: method == "HEAD",
+            fence: None,
+        },
+    }
+}
+
 pub fn handle_get(
     executor: &dyn AccessExecutor,
     method: &str,
     target: &str,
     profile: AccessProfile,
+) -> HttpResponse {
+    handle_get_with_probe(executor, method, target, profile, profile.deadline_probe())
+}
+
+fn handle_get_with_probe(
+    executor: &dyn AccessExecutor,
+    method: &str,
+    target: &str,
+    profile: AccessProfile,
+    abort_probe: Arc<dyn AbortProbe>,
 ) -> HttpResponse {
     if method != "GET" && method != "HEAD" {
         return HttpResponse::error(405, "method not allowed");
@@ -130,6 +242,9 @@ pub fn handle_get(
         return HttpResponse::error_for_method(413, "request target too large", method);
     }
     let (path, query) = target.split_once('?').unwrap_or((target, ""));
+    if path == SEARCH_HTTP_PATH {
+        return handle_indexed_search(executor, method, query, profile, abort_probe);
+    }
     let Some(encoded_id) = path.strip_prefix(HTTP_PREFIX) else {
         return HttpResponse::error_for_method(404, "not found", method);
     };
@@ -144,7 +259,7 @@ pub fn handle_get(
                 bounded_legacy_int(query_value(query, "limit").as_deref(), 300, 1, 300) as usize;
             Params::new(node_id, max_depth, limit)
         })
-        .and_then(|params| executor.source_descend(params))
+        .and_then(|params| executor.source_descend(params, abort_probe))
         .and_then(|packet| {
             if packet.body.len() > profile.max_response_bytes {
                 return Err(AccessError::new(
@@ -206,6 +321,7 @@ fn write_response(stream: &mut TcpStream, mut response: HttpResponse) -> std::io
         403 => "Forbidden",
         404 => "Not Found",
         405 => "Method Not Allowed",
+        408 => "Request Timeout",
         409 => "Conflict",
         413 => "Content Too Large",
         503 => "Service Unavailable",
@@ -240,9 +356,33 @@ pub fn serve_connection(
                 Ok(text) => {
                     let first = text.split("\r\n").next().unwrap_or("");
                     match first.split_whitespace().collect::<Vec<_>>().as_slice() {
-                        [method, target, "HTTP/1.1"] | [method, target, "HTTP/1.0"] => {
-                            handle_get(executor.as_ref(), method, target, profile)
-                        }
+                        [method, target, "HTTP/1.1"] | [method, target, "HTTP/1.0"] => match stream
+                            .try_clone()
+                            .and_then(|client| {
+                                client.set_nonblocking(true)?;
+                                Ok(client)
+                            }) {
+                            Ok(client) => {
+                                let now = Instant::now();
+                                let deadline = profile
+                                    .query_timeout
+                                    .map(|timeout| now.checked_add(timeout).unwrap_or(now));
+                                handle_get_with_probe(
+                                    executor.as_ref(),
+                                    method,
+                                    target,
+                                    profile,
+                                    Arc::new(HttpAbortProbe {
+                                        client,
+                                        deadline,
+                                        checks: AtomicU64::new(0),
+                                    }),
+                                )
+                            }
+                            Err(_) => {
+                                HttpResponse::error(503, "client cancellation probe unavailable")
+                            }
+                        },
                         _ => HttpResponse::error(400, "invalid HTTP request line"),
                     }
                 }
@@ -251,7 +391,9 @@ pub fn serve_connection(
         }
         _ => HttpResponse::error(400, "HTTP header incomplete or oversized"),
     };
-    let _ = write_response(&mut stream, response);
+    if stream.set_nonblocking(false).is_ok() {
+        let _ = write_response(&mut stream, response);
+    }
 }
 
 /// Loopback-only serving. At most 32 active connections; a full slot pool
@@ -261,13 +403,14 @@ pub fn serve(
     executor: Arc<dyn AccessExecutor>,
     profile: AccessProfile,
 ) -> std::io::Result<()> {
-    let listener = TcpListener::bind(addr)?;
-    if !listener.local_addr()?.ip().is_loopback() {
+    let addresses = addr.to_socket_addrs()?.collect::<Vec<_>>();
+    if addresses.is_empty() || addresses.iter().any(|address| !address.ip().is_loopback()) {
         return Err(std::io::Error::new(
             std::io::ErrorKind::PermissionDenied,
             "native access HTTP must bind loopback",
         ));
     }
+    let listener = TcpListener::bind(addresses.as_slice())?;
     let active = Arc::new(AtomicUsize::new(0));
     for accepted in listener.incoming() {
         let mut stream = accepted?;

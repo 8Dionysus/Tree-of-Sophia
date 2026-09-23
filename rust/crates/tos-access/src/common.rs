@@ -1,16 +1,20 @@
-use std::sync::OnceLock;
+use std::sync::{Arc, OnceLock};
+use std::time::{Duration, Instant};
 
 use tos_foundation::{
     JsonLimits, JsonMode, JsonString, JsonValue, emit_value_preserved_json, parse_json,
 };
 use tos_query::{
-    Budget, DisclosureLease, QueryError, QueryErrorCode, ReadModel, SourceDescendRequest,
-    source_descend,
+    AbortProbe, AbortReason, Budget, DisclosureLease, QueryError, QueryErrorCode, ReadModel,
+    SourceDescendRequest, source_descend,
 };
 
 pub const OPERATION_ID: &str = "tos.source.descend";
 pub const MCP_TOOL: &str = "tos_source_descend";
 pub const HTTP_PREFIX: &str = "/api/source/navigation/";
+pub const SEARCH_OPERATION_ID: &str = "tos.knowledge.search";
+pub const SEARCH_MCP_TOOL: &str = "tos_knowledge_search";
+pub const SEARCH_HTTP_PATH: &str = "/api/knowledge/search";
 pub const REQUEST_PROFILE: &str = "tos_request_last_wins_json_v1";
 pub const DESCRIPTOR: &str = include_str!("../operations.v1.json");
 
@@ -26,10 +30,10 @@ pub struct RegisteredOperation {
     pub input_schema: JsonValue,
 }
 
-static OPERATION: OnceLock<Result<RegisteredOperation, AccessError>> = OnceLock::new();
+static OPERATIONS: OnceLock<Result<Vec<RegisteredOperation>, AccessError>> = OnceLock::new();
 
-pub fn registered_operation() -> Result<&'static RegisteredOperation, AccessError> {
-    OPERATION
+pub fn registered_operations() -> Result<&'static [RegisteredOperation], AccessError> {
+    OPERATIONS
         .get_or_init(|| {
             let limits = JsonLimits {
                 max_bytes: 16_384,
@@ -68,54 +72,67 @@ pub fn registered_operation() -> Result<&'static RegisteredOperation, AccessErro
                         "native operation descriptor list absent",
                     )
                 })?;
-            if items.len() != 1 {
+            if items.len() != 2 {
                 return Err(AccessError::new(
                     AccessErrorCode::Unavailable,
                     "native operation descriptor list invalid",
                 ));
             }
-            let item = &items[0];
-            let op = item.object_get("operation_id").and_then(JsonValue::as_str);
-            let mcp = item.object_get("mcp");
-            let tool = mcp
-                .and_then(|m| m.object_get("tool"))
-                .and_then(JsonValue::as_str);
-            let description = mcp
-                .and_then(|m| m.object_get("description"))
-                .and_then(JsonValue::as_str);
-            let schema = mcp.and_then(|m| m.object_get("input_schema"));
-            let http = item.object_get("http");
-            if op != Some(OPERATION_ID)
-                || tool != Some(MCP_TOOL)
-                || http
-                    .and_then(|h| h.object_get("method"))
-                    .and_then(JsonValue::as_str)
-                    != Some("GET")
-                || http
-                    .and_then(|h| h.object_get("path_template"))
-                    .and_then(JsonValue::as_str)
-                    != Some("/api/source/navigation/{node_id}")
-                || schema.and_then(JsonValue::as_object).is_none()
-                || description.is_none()
-            {
-                return Err(AccessError::new(
-                    AccessErrorCode::Unavailable,
-                    "native operation binding invalid",
-                ));
+            let mut registered = Vec::with_capacity(items.len());
+            for (index, item) in items.iter().enumerate() {
+                let op = item.object_get("operation_id").and_then(JsonValue::as_str);
+                let mcp = item.object_get("mcp");
+                let tool = mcp
+                    .and_then(|m| m.object_get("tool"))
+                    .and_then(JsonValue::as_str);
+                let description = mcp
+                    .and_then(|m| m.object_get("description"))
+                    .and_then(JsonValue::as_str);
+                let schema = mcp.and_then(|m| m.object_get("input_schema"));
+                let http = item.object_get("http");
+                let (expected_op, expected_tool, expected_path) = if index == 0 {
+                    (OPERATION_ID, MCP_TOOL, "/api/source/navigation/{node_id}")
+                } else {
+                    (
+                        SEARCH_OPERATION_ID,
+                        SEARCH_MCP_TOOL,
+                        "/api/knowledge/search?mode=indexed",
+                    )
+                };
+                if op != Some(expected_op)
+                    || tool != Some(expected_tool)
+                    || http
+                        .and_then(|h| h.object_get("method"))
+                        .and_then(JsonValue::as_str)
+                        != Some("GET")
+                    || http
+                        .and_then(|h| h.object_get("path_template"))
+                        .and_then(JsonValue::as_str)
+                        != Some(expected_path)
+                    || schema.and_then(JsonValue::as_object).is_none()
+                    || description.is_none()
+                {
+                    return Err(AccessError::new(
+                        AccessErrorCode::Unavailable,
+                        "native operation binding invalid",
+                    ));
+                }
+                registered.push(RegisteredOperation {
+                    operation_id: op.unwrap().to_owned(),
+                    mcp_tool: tool.unwrap().to_owned(),
+                    mcp_description: description.unwrap().to_owned(),
+                    input_schema: schema.unwrap().clone(),
+                });
             }
-            Ok(RegisteredOperation {
-                operation_id: op.unwrap().to_owned(),
-                mcp_tool: tool.unwrap().to_owned(),
-                mcp_description: description.unwrap().to_owned(),
-                input_schema: schema.unwrap().clone(),
-            })
+            Ok(registered)
         })
         .as_ref()
+        .map(Vec::as_slice)
         .map_err(Clone::clone)
 }
 
-pub(crate) fn mcp_tool_list() -> Result<Vec<u8>, AccessError> {
-    let operation = registered_operation()?;
+pub(crate) fn mcp_tool_list(executor: &dyn AccessExecutor) -> Result<Vec<u8>, AccessError> {
+    let operations = registered_operations()?;
     let string = |text: &str| JsonValue::String(JsonString::from_utf8(text));
     let object = |fields: Vec<(&str, JsonValue)>| {
         JsonValue::Object(
@@ -125,16 +142,26 @@ pub(crate) fn mcp_tool_list() -> Result<Vec<u8>, AccessError> {
                 .collect(),
         )
     };
-    let tool = object(vec![
-        ("name", string(&operation.mcp_tool)),
-        ("description", string(&operation.mcp_description)),
-        ("inputSchema", operation.input_schema.clone()),
-        (
-            "annotations",
-            object(vec![("readOnlyHint", JsonValue::Bool(true))]),
-        ),
-    ]);
-    let list = object(vec![("tools", JsonValue::Array(vec![tool]))]);
+    let tools = operations
+        .iter()
+        .filter(|operation| match operation.operation_id.as_str() {
+            OPERATION_ID => executor.source_descend_available(),
+            SEARCH_OPERATION_ID => executor.knowledge_search_indexed_available(),
+            _ => false,
+        })
+        .map(|operation| {
+            object(vec![
+                ("name", string(&operation.mcp_tool)),
+                ("description", string(&operation.mcp_description)),
+                ("inputSchema", operation.input_schema.clone()),
+                (
+                    "annotations",
+                    object(vec![("readOnlyHint", JsonValue::Bool(true))]),
+                ),
+            ])
+        })
+        .collect();
+    let list = object(vec![("tools", JsonValue::Array(tools))]);
     emit_value_preserved_json(
         &list,
         JsonLimits {
@@ -159,6 +186,8 @@ pub enum AccessErrorCode {
     StaleSelection,
     PublicationPending,
     BudgetExceeded,
+    Cancelled,
+    DeadlineExceeded,
     PolicyDenied,
     IndexIncomplete,
     CorruptSelectedCarrier,
@@ -181,6 +210,7 @@ impl AccessError {
             AccessErrorCode::UnknownExactId => 404,
             AccessErrorCode::StaleSelection | AccessErrorCode::PublicationPending => 409,
             AccessErrorCode::BudgetExceeded => 413,
+            AccessErrorCode::Cancelled | AccessErrorCode::DeadlineExceeded => 408,
             AccessErrorCode::PolicyDenied => 403,
             AccessErrorCode::IndexIncomplete
             | AccessErrorCode::CorruptSelectedCarrier
@@ -194,6 +224,8 @@ impl AccessError {
             AccessErrorCode::StaleSelection => "stale_selection",
             AccessErrorCode::PublicationPending => "publication_pending",
             AccessErrorCode::BudgetExceeded => "budget_exceeded",
+            AccessErrorCode::Cancelled => "cancelled",
+            AccessErrorCode::DeadlineExceeded => "deadline_exceeded",
             AccessErrorCode::PolicyDenied => "policy_denied",
             AccessErrorCode::IndexIncomplete => "index_incomplete",
             AccessErrorCode::CorruptSelectedCarrier => "corrupt_selected_carrier",
@@ -210,6 +242,8 @@ impl From<QueryError> for AccessError {
             QueryErrorCode::StaleSelection => AccessErrorCode::StaleSelection,
             QueryErrorCode::PublicationPending => AccessErrorCode::PublicationPending,
             QueryErrorCode::BudgetExceeded => AccessErrorCode::BudgetExceeded,
+            QueryErrorCode::Cancelled => AccessErrorCode::Cancelled,
+            QueryErrorCode::DeadlineExceeded => AccessErrorCode::DeadlineExceeded,
             QueryErrorCode::PolicyDenied => AccessErrorCode::PolicyDenied,
             QueryErrorCode::IndexIncomplete => AccessErrorCode::IndexIncomplete,
             QueryErrorCode::CorruptSelectedCarrier => AccessErrorCode::CorruptSelectedCarrier,
@@ -275,11 +309,144 @@ impl Params {
     }
 }
 
+/// The direct knowledge API retains its legacy default. This request names
+/// indexed v2 explicitly and carries vocabulary values as selected data.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct IndexedSearchParams {
+    pub query: String,
+    pub sources: Vec<String>,
+    pub kind_ids: Vec<String>,
+    pub predicate_ids: Vec<String>,
+    pub cursor: Option<String>,
+    pub limit: usize,
+}
+
+impl IndexedSearchParams {
+    pub fn new(
+        query: String,
+        sources: Vec<String>,
+        kind_ids: Vec<String>,
+        predicate_ids: Vec<String>,
+        cursor: Option<String>,
+        limit: usize,
+    ) -> Result<Self, AccessError> {
+        // Exact Unicode strip/lower and the three-code-point eligibility
+        // check belong to QRY's pinned text profile, not host Rust casing.
+        if query.chars().count() > 256
+            || !(1..=100).contains(&limit)
+            || cursor.as_ref().is_some_and(|value| value.len() > 65_536)
+            || [&sources, &kind_ids, &predicate_ids].iter().any(|values| {
+                values.len() > 256
+                    || values
+                        .iter()
+                        .any(|value| value.is_empty() || value.chars().count() > 256)
+            })
+        {
+            return Err(AccessError::new(
+                AccessErrorCode::InvalidRequest,
+                "invalid indexed knowledge search request",
+            ));
+        }
+        Ok(Self {
+            query,
+            sources,
+            kind_ids,
+            predicate_ids,
+            cursor,
+            limit,
+        })
+    }
+
+    pub fn from_json(value: &JsonValue) -> Result<Self, AccessError> {
+        if value.as_object().is_none() {
+            return Err(AccessError::new(
+                AccessErrorCode::InvalidRequest,
+                "search arguments must be an object",
+            ));
+        }
+        let mode = value.object_get("mode").and_then(JsonValue::as_str);
+        if mode != Some("indexed")
+            || value
+                .object_get("offset")
+                .is_some_and(|v| v.as_u64() != Some(0))
+        {
+            return Err(AccessError::new(
+                AccessErrorCode::InvalidRequest,
+                "indexed mode required without offset",
+            ));
+        }
+        let query = value
+            .object_get("query")
+            .map(|v| {
+                v.as_str().ok_or_else(|| {
+                    AccessError::new(AccessErrorCode::InvalidRequest, "query must be a string")
+                })
+            })
+            .transpose()?
+            .unwrap_or("")
+            .to_owned();
+        let list = |name: &str| -> Result<Vec<String>, AccessError> {
+            let Some(raw) = value.object_get(name) else {
+                return Ok(Vec::new());
+            };
+            let Some(array) = raw.as_array() else {
+                return Err(AccessError::new(
+                    AccessErrorCode::InvalidRequest,
+                    "search filter must be an array",
+                ));
+            };
+            array
+                .iter()
+                .map(|item| {
+                    item.as_str().map(str::to_owned).ok_or_else(|| {
+                        AccessError::new(
+                            AccessErrorCode::InvalidRequest,
+                            "search filter entry must be a string",
+                        )
+                    })
+                })
+                .collect()
+        };
+        let cursor = match value.object_get("cursor") {
+            None | Some(JsonValue::Null) => None,
+            Some(raw) => Some(
+                raw.as_str()
+                    .ok_or_else(|| {
+                        AccessError::new(
+                            AccessErrorCode::InvalidRequest,
+                            "cursor must be a string or null",
+                        )
+                    })?
+                    .to_owned(),
+            ),
+        };
+        let limit = match value.object_get("limit") {
+            None => 40,
+            Some(raw) => usize::try_from(raw.as_u64().ok_or_else(|| {
+                AccessError::new(AccessErrorCode::InvalidRequest, "limit must be an integer")
+            })?)
+            .map_err(|_| {
+                AccessError::new(AccessErrorCode::InvalidRequest, "limit exceeds range")
+            })?,
+        };
+        Self::new(
+            query,
+            list("sources")?,
+            list("kind_ids")?,
+            list("predicate_ids")?,
+            cursor,
+            limit,
+        )
+    }
+}
+
 #[derive(Clone, Copy)]
 pub struct AccessProfile {
     pub max_request_bytes: usize,
     pub max_response_bytes: usize,
     pub max_line_bytes: usize,
+    /// Caller-selected processing deadline. None does not claim a time cap.
+    pub query_timeout: Option<Duration>,
 }
 
 impl AccessProfile {
@@ -288,7 +455,20 @@ impl AccessProfile {
             max_request_bytes,
             max_response_bytes,
             max_line_bytes,
+            query_timeout: None,
         }
+    }
+    pub fn with_query_timeout(mut self, timeout: Duration) -> Self {
+        self.query_timeout = Some(timeout);
+        self
+    }
+    pub(crate) fn deadline_probe(self) -> Arc<dyn AbortProbe> {
+        let now = Instant::now();
+        Arc::new(DeadlineProbe {
+            deadline: self
+                .query_timeout
+                .map(|timeout| now.checked_add(timeout).unwrap_or(now)),
+        })
     }
     pub fn json_limits(self) -> JsonLimits {
         JsonLimits {
@@ -302,9 +482,39 @@ impl AccessProfile {
 
 pub trait AccessExecutor: Send + Sync {
     /// Only true when a sealed source cut, verified selected model, live source
-    /// policy and pre-disclosure fence are all actually installed.
+    /// policy, pre-disclosure fence and QRY progress-abort probe are installed.
     fn source_descend_available(&self) -> bool;
-    fn source_descend(&self, request: Params) -> Result<PreparedPacket, AccessError>;
+    fn source_descend(
+        &self,
+        request: Params,
+        abort_probe: Arc<dyn AbortProbe>,
+    ) -> Result<PreparedPacket, AccessError>;
+    /// The indexed v2 transport is registered only after a complete selected
+    /// knowledge publication and its QRY executor are installed.
+    fn knowledge_search_indexed_available(&self) -> bool {
+        false
+    }
+    fn knowledge_search_indexed(
+        &self,
+        _: IndexedSearchParams,
+        _: Arc<dyn AbortProbe>,
+    ) -> Result<PreparedPacket, AccessError> {
+        Err(AccessError::new(
+            AccessErrorCode::Unavailable,
+            "indexed knowledge search unavailable",
+        ))
+    }
+}
+
+struct DeadlineProbe {
+    deadline: Option<Instant>,
+}
+impl AbortProbe for DeadlineProbe {
+    fn reason(&self) -> Option<AbortReason> {
+        self.deadline
+            .filter(|deadline| Instant::now() >= *deadline)
+            .map(|_| AbortReason::DeadlineExceeded)
+    }
 }
 
 /// Owner-selected policy/pin fence tied to the exact staged packet. The
@@ -370,6 +580,20 @@ pub(crate) fn json_string(value: &str) -> Vec<u8> {
     }
     output.push(b'"');
     output
+}
+
+/// Exact UTF-8 byte length of `json_string` without constructing the escaped
+/// representation. A transport can reject oversized envelopes before the
+/// duplicate text carrier is allocated.
+pub(crate) fn json_string_len(value: &str) -> Option<usize> {
+    value.chars().try_fold(2usize, |length, character| {
+        let bytes = match character {
+            '"' | '\\' | '\n' | '\r' | '\t' => 2,
+            c if c < '\u{20}' => 6,
+            c => c.len_utf8(),
+        };
+        length.checked_add(bytes)
+    })
 }
 
 pub(crate) fn error_json(error: &AccessError) -> Vec<u8> {

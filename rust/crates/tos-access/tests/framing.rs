@@ -1,10 +1,12 @@
 use std::io::{Cursor, Read, Write};
-use std::net::{TcpListener, TcpStream};
+use std::net::{Shutdown, TcpListener, TcpStream};
 use std::sync::{Arc, Mutex};
+use tos_query::{AbortProbe, AbortReason};
 
 use tos_access::{
-    AccessError, AccessExecutor, AccessProfile, DisclosureFence, Params, PreparedPacket, cli,
-    http::{handle_get, serve_connection},
+    AccessError, AccessExecutor, AccessProfile, DisclosureFence, IndexedSearchParams, Params,
+    PreparedPacket, cli,
+    http::{handle_get, serve, serve_connection},
     mcp::run_io,
 };
 
@@ -24,10 +26,44 @@ impl AccessExecutor for Synthetic {
     fn source_descend_available(&self) -> bool {
         self.allowed
     }
-    fn source_descend(&self, request: Params) -> Result<PreparedPacket, AccessError> {
+    fn source_descend(
+        &self,
+        request: Params,
+        probe: Arc<dyn AbortProbe>,
+    ) -> Result<PreparedPacket, AccessError> {
+        if let Some(reason) = probe.reason() {
+            let code = match reason {
+                AbortReason::Cancelled => tos_access::AccessErrorCode::Cancelled,
+                AbortReason::DeadlineExceeded => tos_access::AccessErrorCode::DeadlineExceeded,
+            };
+            return Err(AccessError::new(code, "synthetic request aborted"));
+        }
         self.calls.lock().unwrap().push(request);
         Ok(PreparedPacket { body: br#"{"schema":"tos_source_descend_v1","authority_note":"synthetic source-owned boundary","nodes":[],"edges":[]}"#.to_vec(), fence: Box::new(Fence) })
     }
+}
+
+#[test]
+fn http_half_closed_request_can_receive_its_response() {
+    let executor: Arc<dyn AccessExecutor> = Arc::new(Synthetic {
+        allowed: true,
+        calls: Mutex::new(vec![]),
+    });
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let addr = listener.local_addr().unwrap();
+    let server = std::thread::spawn(move || {
+        let (stream, _) = listener.accept().unwrap();
+        serve_connection(stream, executor, profile());
+    });
+    let mut client = TcpStream::connect(addr).unwrap();
+    client
+        .write_all(b"GET /api/source/navigation/tos.x HTTP/1.1\r\nHost: 127.0.0.1\r\n\r\n")
+        .unwrap();
+    client.shutdown(Shutdown::Write).unwrap();
+    let mut response = Vec::new();
+    client.read_to_end(&mut response).unwrap();
+    server.join().unwrap();
+    assert!(response.starts_with(b"HTTP/1.1 200 OK\r\n"));
 }
 
 fn profile() -> AccessProfile {
@@ -108,6 +144,109 @@ fn unavailable_head_has_headers_without_an_error_body() {
 }
 
 #[test]
+fn http_refuses_non_loopback_before_listening() {
+    let executor: Arc<dyn AccessExecutor> = Arc::new(Synthetic {
+        allowed: false,
+        calls: Mutex::new(vec![]),
+    });
+    let error = serve("0.0.0.0:0", executor, profile()).unwrap_err();
+    assert_eq!(error.kind(), std::io::ErrorKind::PermissionDenied);
+}
+
+struct SearchSynthetic {
+    available: bool,
+    calls: Mutex<Vec<IndexedSearchParams>>,
+}
+impl AccessExecutor for SearchSynthetic {
+    fn source_descend_available(&self) -> bool {
+        false
+    }
+    fn source_descend(
+        &self,
+        _: Params,
+        _: Arc<dyn AbortProbe>,
+    ) -> Result<PreparedPacket, AccessError> {
+        unreachable!()
+    }
+    fn knowledge_search_indexed_available(&self) -> bool {
+        self.available
+    }
+    fn knowledge_search_indexed(
+        &self,
+        request: IndexedSearchParams,
+        _: Arc<dyn AbortProbe>,
+    ) -> Result<PreparedPacket, AccessError> {
+        self.calls.lock().unwrap().push(request);
+        Ok(PreparedPacket {
+            body: br#"{"schema":"tos_knowledge_search_indexed_v2","nodes":[],"relations":[]}"#
+                .to_vec(),
+            fence: Box::new(Fence),
+        })
+    }
+}
+
+#[test]
+fn indexed_search_requires_explicit_mode_and_routes_all_three_wires() {
+    let executor = SearchSynthetic {
+        available: true,
+        calls: Mutex::new(vec![]),
+    };
+    let unavailable_default = handle_get(
+        &executor,
+        "GET",
+        "/api/knowledge/search?query=abc",
+        profile(),
+    );
+    assert_eq!(unavailable_default.status, 503);
+    let http = handle_get(
+        &executor,
+        "GET",
+        "/api/knowledge/search?mode=indexed&query=abc&sources=source.a,source.b&limit=5",
+        profile(),
+    );
+    assert_eq!(http.status, 200);
+    assert_eq!(
+        executor.calls.lock().unwrap()[0].sources,
+        vec!["source.a", "source.b"]
+    );
+    let mut stdout = Vec::new();
+    let mut stderr = Vec::new();
+    let code = cli::run_cli(
+        &[
+            "knowledge".into(),
+            "search".into(),
+            "abc".into(),
+            "--mode".into(),
+            "indexed".into(),
+            "--limit".into(),
+            "5".into(),
+        ],
+        &executor,
+        profile(),
+        &mut stdout,
+        &mut stderr,
+    );
+    assert_eq!(code, 0);
+    assert!(stderr.is_empty());
+    assert!(stdout.starts_with(b"{\"schema\":\"tos_knowledge_search_indexed_v2\""));
+    let input = br#"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25"}}
+{"jsonrpc":"2.0","method":"notifications/initialized"}
+{"jsonrpc":"2.0","id":2,"method":"tools/list"}
+{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"tos_knowledge_search","arguments":{"mode":"indexed","query":"abc","limit":5}}}
+"#;
+    let mut output = Vec::new();
+    run_io(Cursor::new(input), &mut output, &executor, profile()).unwrap();
+    let frames: Vec<_> = std::str::from_utf8(&output).unwrap().lines().collect();
+    assert_eq!(frames.len(), 3);
+    assert!(frames[1].contains("tos_knowledge_search"));
+    assert!(!frames[1].contains("tos_source_descend"));
+    assert!(
+        frames[2].contains("\"structuredContent\":{\"schema\":\"tos_knowledge_search_indexed_v2\"")
+    );
+    assert_eq!(executor.calls.lock().unwrap().len(), 3);
+}
+
+#[test]
 fn mcp_lifecycle_ids_notifications_and_tool_result() {
     let executor = Synthetic {
         allowed: true,
@@ -148,6 +287,47 @@ fn malformed_mcp_frame_does_not_disclose_packet() {
     run_io(Cursor::new(b"{oops\n"), &mut output, &executor, profile()).unwrap();
     assert!(std::str::from_utf8(&output).unwrap().contains("-32700"));
     assert!(executor.calls.lock().unwrap().is_empty());
+}
+
+struct LargePacket;
+impl AccessExecutor for LargePacket {
+    fn source_descend_available(&self) -> bool {
+        true
+    }
+    fn source_descend(
+        &self,
+        _: Params,
+        _: Arc<dyn AbortProbe>,
+    ) -> Result<PreparedPacket, AccessError> {
+        let mut body = b"{\"schema\":\"synthetic\",\"value\":\"".to_vec();
+        body.extend(vec![b'a'; 600]);
+        body.extend_from_slice(b"\"}");
+        Ok(PreparedPacket {
+            body,
+            fence: Box::new(Fence),
+        })
+    }
+}
+
+#[test]
+fn mcp_rejects_duplicated_packet_over_frame_cap_without_disclosure() {
+    let input = br#"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25"}}
+{"jsonrpc":"2.0","method":"notifications/initialized"}
+{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"tos_source_descend","arguments":{"node_id":"tos.x"}}}
+"#;
+    let mut output = Vec::new();
+    run_io(
+        Cursor::new(input),
+        &mut output,
+        &LargePacket,
+        AccessProfile::new(65_536, 1024, 65_536),
+    )
+    .unwrap();
+    let frames: Vec<_> = std::str::from_utf8(&output).unwrap().lines().collect();
+    assert_eq!(frames.len(), 2);
+    assert!(frames[1].contains("MCP response frame exceeds byte budget"));
+    assert!(!frames[1].contains("structuredContent"));
+    assert!(!frames[1].contains("aaaa"));
 }
 
 #[test]
@@ -246,7 +426,11 @@ impl AccessExecutor for WithdrawnExecutor {
     fn source_descend_available(&self) -> bool {
         true
     }
-    fn source_descend(&self, _: Params) -> Result<PreparedPacket, AccessError> {
+    fn source_descend(
+        &self,
+        _: Params,
+        _: Arc<dyn AbortProbe>,
+    ) -> Result<PreparedPacket, AccessError> {
         Ok(PreparedPacket {
             body: br#"{"secret":"would leak"}"#.to_vec(),
             fence: Box::new(Withdrawn),

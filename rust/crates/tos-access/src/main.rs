@@ -2,6 +2,7 @@
 //! must be installed before it can serve a source operation.
 
 use std::sync::Arc;
+use tos_query::AbortProbe;
 
 use tos_access::{
     AccessError, AccessErrorCode, AccessExecutor, AccessProfile, Params, PreparedPacket, cli, http,
@@ -13,7 +14,11 @@ impl AccessExecutor for NoOwner {
     fn source_descend_available(&self) -> bool {
         false
     }
-    fn source_descend(&self, _: Params) -> Result<PreparedPacket, AccessError> {
+    fn source_descend(
+        &self,
+        _: Params,
+        _: Arc<dyn AbortProbe>,
+    ) -> Result<PreparedPacket, AccessError> {
         Err(AccessError::new(
             AccessErrorCode::Unavailable,
             "source owner is not selected",
@@ -36,8 +41,8 @@ fn main() {
                 http::serve(&address, Arc::new(NoOwner), profile).map_err(|error| error.to_string())
             }
         }
-        Some("source") => {
-            let mut route = vec!["source".to_owned()];
+        Some(route_name @ ("source" | "knowledge")) => {
+            let mut route = vec![route_name.to_owned()];
             route.extend(args);
             let code = cli::run_cli(
                 &route,
@@ -49,7 +54,7 @@ fn main() {
             std::process::exit(code);
         }
         _ => {
-            Err("usage: tos-access mcp | serve [LOOPBACK:PORT] | source descend NODE_ID".to_owned())
+            Err("usage: tos-access mcp | serve [LOOPBACK:PORT] | source descend NODE_ID | knowledge search QUERY --mode indexed".to_owned())
         }
     };
     if let Err(message) = result {

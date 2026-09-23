@@ -28,6 +28,35 @@
       "cli": {"command": "source descend"},
       "request": {"node_id": "opaque exact UTF-8 ID", "max_depth": "1..8; default 8", "limit": "1..300; default 300"},
       "result": "source_descend packet with exact authority_note"
+    },
+    {
+      "operation_id": "tos.knowledge.search",
+      "execution_version": "tos_knowledge_search_indexed_v2",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_complete_trigram_index_and_current_query_fence",
+      "http": {"method": "GET", "path_template": "/api/knowledge/search?mode=indexed"},
+      "mcp": {
+        "tool": "tos_knowledge_search",
+        "description": "Search selected knowledge carriers through the indexed v2 engine",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "query": {"type": "string", "maxLength": 256},
+            "sources": {"type": "array", "maxItems": 256, "items": {"type": "string", "minLength": 1, "maxLength": 256}},
+            "kind_ids": {"type": "array", "maxItems": 256, "items": {"type": "string", "minLength": 1, "maxLength": 256}},
+            "predicate_ids": {"type": "array", "maxItems": 256, "items": {"type": "string", "minLength": 1, "maxLength": 256}},
+            "offset": {"type": "integer", "const": 0, "default": 0},
+            "limit": {"type": "integer", "minimum": 1, "maximum": 100, "default": 40},
+            "mode": {"type": "string", "const": "indexed"},
+            "cursor": {"type": ["string", "null"], "maxLength": 65536}
+          },
+          "required": ["mode"],
+          "additionalProperties": false
+        }
+      },
+      "cli": {"command": "knowledge search QUERY --mode indexed"},
+      "request": {"query": "Unicode text; indexed v2 requires 3..256 normalized code points", "sources": "selected source-owned vocabulary IDs", "kind_ids": "selected source-owned vocabulary IDs", "predicate_ids": "selected source-owned vocabulary IDs", "cursor": "adapter-local continuation", "limit": "1..100; default 40"},
+      "result": "tos_knowledge_search_indexed_v2 packet; never a source-content grant"
     }
   ]
 }

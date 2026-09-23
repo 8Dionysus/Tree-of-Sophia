@@ -6,12 +6,13 @@ use std::{
     net::{TcpListener, TcpStream},
     path::PathBuf,
     sync::{Arc, Mutex},
-    time::{SystemTime, UNIX_EPOCH},
+    time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
 use tos_access::{
     AccessError, AccessExecutor, AccessProfile, Params, PreparedPacket, QuerySession, cli,
-    http::serve_connection, mcp::run_io,
+    http::{handle_get, serve_connection},
+    mcp::run_io,
 };
 use tos_compiler::{
     CandidateReceipt, LegacyPartitionedNavigation, Limits, PublicationAuthority,
@@ -20,8 +21,9 @@ use tos_compiler::{
 };
 use tos_foundation::{JsonLimits, JsonMode, JsonValue, parse_json};
 use tos_query::{
-    Budget, Charged, CmpPinnedModel, CurrentPolicy, DisclosureLease, QueryError, QueryErrorCode,
-    RawRecord, SourcePin, SqliteReadModel,
+    AbortProbe, AdapterAdmissionBudget, Budget, Charged, CmpPinnedModel, CurrentPolicy,
+    DisclosureLease, DisclosureScope, PinnedLocalModel, QueryError, QueryErrorCode, RawRecord,
+    SourcePin, SqliteReadModel,
 };
 
 struct FixtureLease;
@@ -100,7 +102,11 @@ struct FixturePolicy {
     denied: Option<&'static str>,
 }
 impl CurrentPolicy for FixturePolicy {
-    fn authorize_current(&mut self, record: &RawRecord) -> Result<Charged, QueryError> {
+    fn authorize_current(
+        &mut self,
+        _: &DisclosureScope,
+        record: &RawRecord,
+    ) -> Result<Charged, QueryError> {
         if let Some(denied) = self.denied {
             let parsed = parse_json(
                 &record.raw,
@@ -128,11 +134,11 @@ impl CurrentPolicy for FixturePolicy {
     }
     fn acquire_disclosure(
         &mut self,
-        _: &tos_query::Binding,
+        scope: &DisclosureScope,
         selected: &[RawRecord],
     ) -> Result<Box<dyn DisclosureLease>, QueryError> {
         for record in selected {
-            self.authorize_current(record)?;
+            self.authorize_current(scope, record)?;
         }
         Ok(Box::new(FixtureLease))
     }
@@ -168,7 +174,32 @@ fn selected(
     )
     .unwrap();
     let pinned = CmpPinnedModel::new(verified, FixturePin).unwrap();
-    let model = SqliteReadModel::new(pinned, FixturePolicy { denied }).unwrap();
+    let scope = DisclosureScope {
+        operation_id: "tos.source.descend".into(),
+        carrier_layer: "tos_source_navigation_public_metadata_v1".into(),
+        intended_use: "read_only_public_metadata_navigation_v1".into(),
+        selected_binding: pinned.binding().clone(),
+        corpus_revision: "fixture-corpus-revision".into(),
+        data_revision: "fixture-data-revision".into(),
+        selected_export_receipt_id: "fixture-export-receipt".into(),
+        selected_model_receipt_id: pinned.owner_receipt_id().into(),
+        policy_issuer_ref: "fixture-issuer".into(),
+        policy_receipt_id: "fixture-policy-receipt".into(),
+        policy_epoch: "fixture-policy-epoch".into(),
+        withdrawal_generation: "fixture-withdrawal-generation".into(),
+    };
+    let model = SqliteReadModel::new(
+        pinned,
+        FixturePolicy { denied },
+        scope,
+        AdapterAdmissionBudget {
+            max_selected_open_vm_steps: 1_000_000,
+            max_metadata_vm_steps: 1_000_000,
+            max_metadata_decoded_bytes: 1_000_000,
+            max_metadata_rows: 64,
+        },
+    )
+    .unwrap();
     (dir, model)
 }
 
@@ -194,8 +225,16 @@ impl AccessExecutor for SelectedExecutor {
     fn source_descend_available(&self) -> bool {
         true
     }
-    fn source_descend(&self, request: Params) -> Result<PreparedPacket, AccessError> {
-        self.session.lock().unwrap().execute(request)
+    fn source_descend(
+        &self,
+        request: Params,
+        abort_probe: Arc<dyn AbortProbe>,
+    ) -> Result<PreparedPacket, AccessError> {
+        let mut session = self.session.lock().unwrap();
+        session.model.set_abort_probe(Some(abort_probe));
+        let result = session.execute(request);
+        session.model.set_abort_probe(None);
+        result
     }
 }
 
@@ -306,6 +345,19 @@ fn selected_cmp_packet_survives_all_three_native_wire_adapters() {
         .object_get("structuredContent")
         .unwrap();
     assert!(semantic_eq(packet, &expected()));
+
+    let timed = handle_get(
+        executor.as_ref(),
+        "GET",
+        "/api/source/navigation/id.alpha?max_depth=2",
+        profile.with_query_timeout(Duration::ZERO),
+    );
+    assert_eq!(timed.status, 408);
+    assert!(
+        std::str::from_utf8(&timed.body)
+            .unwrap()
+            .contains("deadline_exceeded")
+    );
 
     drop(executor);
     fs::remove_dir_all(dir).unwrap();

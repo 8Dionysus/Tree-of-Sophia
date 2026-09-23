@@ -3,7 +3,126 @@
 use std::io::Write;
 
 use crate::common::validate_packet;
-use crate::{AccessExecutor, AccessProfile, Params};
+use crate::{AccessExecutor, AccessProfile, IndexedSearchParams, Params, PreparedPacket};
+
+fn write_packet(
+    mut packet: PreparedPacket,
+    profile: AccessProfile,
+    stdout: &mut dyn Write,
+    stderr: &mut dyn Write,
+) -> i32 {
+    if packet.body.len() > profile.max_response_bytes {
+        let _ = writeln!(stderr, "budget_exceeded: response byte budget exceeded");
+        return 1;
+    }
+    if let Err(error) = validate_packet(&packet.body, profile.max_response_bytes) {
+        let _ = writeln!(stderr, "{}: {}", error.code_str(), error.message);
+        return 1;
+    }
+    if let Err(error) = packet.fence.recheck() {
+        let _ = writeln!(stderr, "{}: {}", error.code_str(), error.message);
+        return 1;
+    }
+    let result = stdout
+        .write_all(&packet.body)
+        .and_then(|_| stdout.write_all(b"\n"))
+        .and_then(|_| stdout.flush());
+    drop(packet);
+    if let Err(error) = result {
+        let _ = writeln!(stderr, "output failed: {error}");
+        return 1;
+    }
+    0
+}
+
+fn run_indexed_search(
+    args: &[String],
+    executor: &dyn AccessExecutor,
+    profile: AccessProfile,
+    stdout: &mut dyn Write,
+    stderr: &mut dyn Write,
+) -> i32 {
+    if args.len() < 3 {
+        let _ = writeln!(
+            stderr,
+            "usage: tos-access knowledge search QUERY --mode indexed [--sources ID...] [--kind ID] [--predicate ID] [--cursor TOKEN] [--limit 1..100]"
+        );
+        return 2;
+    }
+    let mut mode = None;
+    let mut sources = Vec::new();
+    let mut kind_ids = Vec::new();
+    let mut predicate_ids = Vec::new();
+    let mut cursor = None;
+    let mut limit = 40;
+    let mut at = 3;
+    while at < args.len() {
+        let option = args[at].as_str();
+        if option == "--sources" {
+            at += 1;
+            while at < args.len() && !args[at].starts_with("--") {
+                sources.push(args[at].clone());
+                at += 1;
+            }
+            continue;
+        }
+        let Some(value) = args.get(at + 1) else {
+            let _ = writeln!(stderr, "missing value for {option}");
+            return 2;
+        };
+        match option {
+            "--mode" => mode = Some(value.as_str()),
+            "--kind" => kind_ids.push(value.clone()),
+            "--predicate" => predicate_ids.push(value.clone()),
+            "--cursor" => cursor = Some(value.clone()),
+            "--limit" => match value.parse::<usize>() {
+                Ok(parsed) => limit = parsed,
+                Err(_) => {
+                    let _ = writeln!(stderr, "invalid limit");
+                    return 2;
+                }
+            },
+            "--offset" if value == "0" => {}
+            _ => {
+                let _ = writeln!(stderr, "unsupported indexed search option: {option}");
+                return 2;
+            }
+        }
+        at += 2;
+    }
+    if mode != Some("indexed") {
+        let _ = writeln!(stderr, "indexed mode must be explicit");
+        return 2;
+    }
+    let params = match IndexedSearchParams::new(
+        args[2].clone(),
+        sources,
+        kind_ids,
+        predicate_ids,
+        cursor,
+        limit,
+    ) {
+        Ok(params) => params,
+        Err(error) => {
+            let _ = writeln!(stderr, "{}: {}", error.code_str(), error.message);
+            return 2;
+        }
+    };
+    if !executor.knowledge_search_indexed_available() {
+        let _ = writeln!(
+            stderr,
+            "indexed knowledge search unavailable: no selected complete read model"
+        );
+        return 3;
+    }
+    match executor.knowledge_search_indexed(params, profile.deadline_probe()) {
+        Ok(packet) => write_packet(packet, profile, stdout, stderr),
+        Err(error) => {
+            let _ = writeln!(stderr, "{}: {}", error.code_str(), error.message);
+            1
+        }
+    }
+}
 
 /// Exit code: 0 success, 2 request syntax, 3 selected capability unavailable,
 /// 1 query/disclosure or output failure. Diagnostics stay on stderr.
@@ -14,6 +133,9 @@ pub fn run_cli(
     stdout: &mut dyn Write,
     stderr: &mut dyn Write,
 ) -> i32 {
+    if args.len() >= 2 && args[0] == "knowledge" && args[1] == "search" {
+        return run_indexed_search(args, executor, profile, stdout, stderr);
+    }
     if args.len() < 3 || args[0] != "source" || args[1] != "descend" {
         let _ = writeln!(
             stderr,
@@ -60,36 +182,12 @@ pub fn run_cli(
         );
         return 3;
     }
-    let mut packet = match executor.source_descend(params) {
+    let packet = match executor.source_descend(params, profile.deadline_probe()) {
         Ok(packet) => packet,
         Err(error) => {
             let _ = writeln!(stderr, "{}: {}", error.code_str(), error.message);
             return 1;
         }
     };
-    if packet.body.len() > profile.max_response_bytes {
-        let _ = writeln!(
-            stderr,
-            "budget_exceeded: source descent response budget exceeded"
-        );
-        return 1;
-    }
-    if let Err(error) = validate_packet(&packet.body, profile.max_response_bytes) {
-        let _ = writeln!(stderr, "{}: {}", error.code_str(), error.message);
-        return 1;
-    }
-    if let Err(error) = packet.fence.recheck() {
-        let _ = writeln!(stderr, "{}: {}", error.code_str(), error.message);
-        return 1;
-    }
-    let result = stdout
-        .write_all(&packet.body)
-        .and_then(|_| stdout.write_all(b"\n"))
-        .and_then(|_| stdout.flush());
-    drop(packet);
-    if let Err(error) = result {
-        let _ = writeln!(stderr, "output failed: {error}");
-        return 1;
-    }
-    0
+    write_packet(packet, profile, stdout, stderr)
 }

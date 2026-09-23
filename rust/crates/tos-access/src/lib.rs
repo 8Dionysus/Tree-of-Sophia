@@ -10,6 +10,6 @@ pub mod http;
 pub mod mcp;
 
 pub use common::{
-    AccessError, AccessErrorCode, AccessExecutor, AccessProfile, DisclosureFence, Params,
-    PreparedPacket, QuerySession, descriptor,
+    AccessError, AccessErrorCode, AccessExecutor, AccessProfile, DisclosureFence,
+    IndexedSearchParams, Params, PreparedPacket, QuerySession, descriptor,
 };

@@ -5,8 +5,9 @@ use std::io::{self, BufRead, Write};
 use tos_foundation::{JsonMode, JsonNumberKind, JsonValue, parse_json};
 
 use crate::common::{
-    AccessExecutor, AccessProfile, DisclosureFence, Params, json_string, mcp_tool_list,
-    registered_operation, validate_packet,
+    AccessExecutor, AccessProfile, DisclosureFence, IndexedSearchParams, MCP_TOOL, Params,
+    SEARCH_MCP_TOOL, json_string, json_string_len, mcp_tool_list, registered_operations,
+    validate_packet,
 };
 
 struct McpSession {
@@ -93,74 +94,117 @@ impl McpSession {
         }
         match method {
             "ping" => Some(rpc_result(&id, b"{}")),
-            "tools/list" => {
-                if executor.source_descend_available() {
-                    match mcp_tool_list() {
-                        Ok(list) => Some(rpc_result(&id, &list)),
-                        Err(_) => Some(rpc_error(
-                            &id,
-                            -32603,
-                            "Native operation registry unavailable",
-                        )),
-                    }
-                } else {
-                    Some(rpc_result(&id, br#"{"tools":[]}"#))
-                }
-            }
+            "tools/list" => match mcp_tool_list(executor) {
+                Ok(list) => Some(rpc_result(&id, &list)),
+                Err(_) => Some(rpc_error(
+                    &id,
+                    -32603,
+                    "Native operation registry unavailable",
+                )),
+            },
             "tools/call" => {
                 let params = value.object_get("params");
                 let name = params
                     .and_then(|p| p.object_get("name"))
                     .and_then(JsonValue::as_str);
-                let registered = registered_operation();
-                if name != registered.ok().map(|operation| operation.mcp_tool.as_str())
-                    || !executor.source_descend_available()
-                {
+                let known = registered_operations().ok().is_some_and(|operations| {
+                    operations
+                        .iter()
+                        .any(|operation| Some(operation.mcp_tool.as_str()) == name)
+                });
+                let available = match name {
+                    Some(MCP_TOOL) => executor.source_descend_available(),
+                    Some(SEARCH_MCP_TOOL) => executor.knowledge_search_indexed_available(),
+                    _ => false,
+                };
+                if !known || !available {
                     return Some(rpc_error(&id, -32602, "Unknown tool"));
                 }
                 let Some(arguments) = params.and_then(|p| p.object_get("arguments")) else {
                     return Some(rpc_error(&id, -32602, "Tool arguments required"));
                 };
-                if let Some(fields) = arguments.as_object() {
-                    if fields.iter().any(|(name, _)| {
-                        !matches!(name.as_str(), Some("node_id" | "max_depth" | "limit"))
-                    }) {
-                        return Some(rpc_error(&id, -32602, "Unknown tool argument"));
-                    }
+                let allowed: &[&str] = if name == Some(MCP_TOOL) {
+                    &["node_id", "max_depth", "limit"]
+                } else {
+                    &[
+                        "query",
+                        "sources",
+                        "kind_ids",
+                        "predicate_ids",
+                        "offset",
+                        "limit",
+                        "mode",
+                        "cursor",
+                    ]
+                };
+                if arguments.as_object().is_some_and(|fields| {
+                    fields
+                        .iter()
+                        .any(|(name, _)| !name.as_str().is_some_and(|name| allowed.contains(&name)))
+                }) {
+                    return Some(rpc_error(&id, -32602, "Unknown tool argument"));
                 }
-                let result = Params::from_json(arguments)
-                    .and_then(|request| executor.source_descend(request))
-                    .and_then(|packet| {
-                        if packet.body.len() > self.profile.max_response_bytes {
-                            return Err(crate::common::AccessError::new(
-                                crate::common::AccessErrorCode::BudgetExceeded,
-                                "source descent response budget exceeded",
-                            ));
-                        }
-                        validate_packet(&packet.body, self.profile.max_response_bytes)?;
-                        Ok(packet)
-                    });
+                let result = match name {
+                    Some(MCP_TOOL) => Params::from_json(arguments).and_then(|request| {
+                        executor.source_descend(request, self.profile.deadline_probe())
+                    }),
+                    Some(SEARCH_MCP_TOOL) => {
+                        IndexedSearchParams::from_json(arguments).and_then(|request| {
+                            executor
+                                .knowledge_search_indexed(request, self.profile.deadline_probe())
+                        })
+                    }
+                    _ => unreachable!(),
+                }
+                .and_then(|packet| {
+                    if packet.body.len() > self.profile.max_response_bytes {
+                        return Err(crate::common::AccessError::new(
+                            crate::common::AccessErrorCode::BudgetExceeded,
+                            "source descent response budget exceeded",
+                        ));
+                    }
+                    validate_packet(&packet.body, self.profile.max_response_bytes)?;
+                    Ok(packet)
+                });
                 match result {
                     Ok(packet) => {
                         let text = match std::str::from_utf8(&packet.body) {
-                            Ok(text) => json_string(text),
+                            Ok(text) => text,
                             Err(_) => {
                                 return Some(rpc_error(&id, -32603, "Query packet is not UTF-8"));
                             }
                         };
-                        let mut body = b"{\"content\":[{\"type\":\"text\",\"text\":".to_vec();
-                        body.extend(text);
-                        body.extend_from_slice(b"}],\"structuredContent\":");
-                        body.extend(packet.body);
-                        body.push(b'}');
-                        let frame = rpc_result(&id, &body);
-                        if frame.len() > self.profile.max_response_bytes {
+                        const TEXT_PREFIX: &[u8] = b"{\"content\":[{\"type\":\"text\",\"text\":";
+                        const STRUCTURED_PREFIX: &[u8] = b"}],\"structuredContent\":";
+                        let frame_len = [
+                            b"{\"jsonrpc\":\"2.0\",\"id\":".len(),
+                            id.len(),
+                            b",\"result\":".len(),
+                            TEXT_PREFIX.len(),
+                            json_string_len(text).unwrap_or(usize::MAX),
+                            STRUCTURED_PREFIX.len(),
+                            packet.body.len(),
+                            2, // closing braces
+                            1, // newline
+                        ]
+                        .into_iter()
+                        .try_fold(0usize, usize::checked_add);
+                        if !frame_len
+                            .is_some_and(|length| length <= self.profile.max_response_bytes)
+                        {
                             return Some(rpc_error(
                                 &id,
                                 -32603,
                                 "MCP response frame exceeds byte budget",
                             ));
                         }
+                        let mut body = Vec::with_capacity(frame_len.unwrap());
+                        body.extend_from_slice(TEXT_PREFIX);
+                        body.extend(json_string(text));
+                        body.extend_from_slice(STRUCTURED_PREFIX);
+                        body.extend(packet.body);
+                        body.push(b'}');
+                        let frame = rpc_result(&id, &body);
                         self.pending_fence = Some(packet.fence);
                         self.pending_id = Some(id.clone());
                         Some(frame)
