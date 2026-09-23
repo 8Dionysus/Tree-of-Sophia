@@ -12,6 +12,7 @@ mod knowledge_registry;
 mod knowledge_scope;
 mod knowledge_seal;
 mod knowledge_search;
+mod knowledge_selected;
 pub mod knowledge_stage;
 mod legacy;
 mod publication;
@@ -30,6 +31,10 @@ pub use knowledge_seal::{
     KNOWLEDGE_MODEL_ABI, KnowledgeSealReceipt, SealLimits, seal_knowledge_model,
 };
 pub use knowledge_search::{SearchBuildLimits, SearchIndexReceipt, build_search_index};
+pub use knowledge_selected::{
+    ColdOpenLimits, ExpectedSourceScope, ImmutableKnowledgeCustody, KnowledgeSelectedExpectation,
+    VerifiedKnowledgeModel, open_selected_knowledge_model,
+};
 pub use legacy::LegacyPartitionedNavigation;
 pub use publication::{PublicationAuthority, PublishedReceipt, SelectionFence, publish_candidate};
 pub use selected::{
