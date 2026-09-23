@@ -8,11 +8,20 @@
 #[cfg(not(target_os = "linux"))]
 compile_error!("tos-segment-store currently supports Linux only");
 
+mod audit;
 mod error;
 mod format;
 mod journal;
+mod placement;
 mod store;
 
+pub use audit::{
+    PlacementAuditLimits, PlacementAuditRow, PlacementComparison, compare_placement_streams,
+};
 pub use error::{Result, SegmentError, SegmentErrorCode};
 pub use format::{FrameCoordinate, SegmentLimits};
-pub use store::{ByteDurabilityReceipt, DurabilityClass, FrameInput, OwnerBinding, SegmentStore};
+pub use placement::PlacementV1;
+pub use store::{
+    ByteDurabilityReceipt, DurabilityClass, FrameInput, OwnerBinding, SegmentStore,
+    VerificationBudget, VerifiedSealGuard,
+};

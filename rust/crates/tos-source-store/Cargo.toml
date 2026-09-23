@@ -9,4 +9,4 @@ default = []
 
 [dependencies]
 tos-foundation = { path = "../tos-foundation" }
-rustix = { version = "=1.1.5", features = ["fs"] }
+tos-fd-open = { path = "../tos-fd-open" }

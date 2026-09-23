@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::{Read, Write};
 use std::os::unix::fs::MetadataExt;
@@ -6,15 +6,17 @@ use std::path::{Component, Path};
 use std::sync::Arc;
 
 use rustix::fs::{
-    AtFlags, FlockOperation, Mode, OFlags, ResolveFlags, flock, fsync, linkat, mkdirat, openat,
-    openat2, renameat, unlinkat,
+    AtFlags, FlockOperation, Mode, OFlags, flock, fsync, linkat, mkdirat, openat, renameat,
+    unlinkat,
 };
 use rustix::io::Errno;
+use tos_fd_open::{OpenError, OpenErrorCode};
 use tos_foundation::{Digest256, Digest256Hasher};
 
 use crate::error::{Result, SegmentError, SegmentErrorCode as Code};
 use crate::format::{self, FrameCoordinate, SegmentLimits};
 use crate::journal::{JournalFrame, PinJournal, PinState};
+use crate::placement::PlacementV1;
 
 const ROOT_MAGIC: &[u8; 8] = b"TOSROOT2";
 const BLOCK_BYTES: usize = 64 * 1024;
@@ -83,7 +85,49 @@ pub enum DurabilityClass {
     LinuxFileAndDirectorySyncReopenSha256V1,
 }
 
+/// Caller-selected finite budget for pre-commit full-byte verification.
+#[derive(Clone, Copy, Debug)]
+pub struct VerificationBudget {
+    pub max_receipts: usize,
+    pub max_segments: usize,
+    pub max_total_segment_bytes: u64,
+}
+
+/// A local, process-held pin lock and the receipts verified beneath it.
+/// The coordinator holds this guard through its short metadata transaction.
+/// Dropping it releases the Linux lock; the durable sealed pins remain.
+#[derive(Debug)]
+pub struct VerifiedSealGuard {
+    _pin_lock: File,
+    receipts: Vec<ByteDurabilityReceipt>,
+    prepare_id: Vec<u8>,
+}
+
+impl VerifiedSealGuard {
+    pub fn receipts(&self) -> &[ByteDurabilityReceipt] {
+        &self.receipts
+    }
+    pub fn prepare_id(&self) -> &[u8] {
+        &self.prepare_id
+    }
+}
+
 impl ByteDurabilityReceipt {
+    /// Descriptive persisted coordinate only. CMD must retain the private
+    /// receipt through commit; cold readers must recover and verify it.
+    pub fn placement(&self) -> PlacementV1 {
+        PlacementV1 {
+            store_id: self.inner.store_id,
+            domain_digest: self.inner.domain_digest,
+            pin_id: self.pin_id,
+            fence_epoch: self.fence_epoch,
+            receipt_id: self.receipt_id,
+            segment_digest: self.segment_digest,
+            segment_size: self.segment_size,
+            frame_index: self.frame_index,
+            coordinate: self.coordinate,
+        }
+    }
     pub fn pin_id(&self) -> [u8; 16] {
         self.pin_id
     }
@@ -499,6 +543,7 @@ impl SegmentStore {
     /// Cold re-open requires both a sealed durable pin and a complete actual
     /// segment verification. A caller-supplied field packet is never trusted.
     pub fn recover_sealed(&self, pin_id: [u8; 16]) -> Result<Vec<ByteDurabilityReceipt>> {
+        let _pin_lock = self.lock_pin_dir(FlockOperation::NonBlockingLockShared)?;
         let journal = self.read_pin(pin_id)?;
         if journal.state != PinState::Sealed {
             return Err(SegmentError::new(Code::InvalidReceipt, "pin is not sealed"));
@@ -532,11 +577,184 @@ impl SegmentStore {
         Ok(self.receipts_from_journal(journal, metadata.dev(), metadata.ino()))
     }
 
+    /// Admission of a stored placement into a warm generation. This cold path
+    /// hashes the whole segment once; subsequent selected reads use the
+    /// returned private handle and verify only the selected frame.
+    pub fn recover_placement(&self, placement: &PlacementV1) -> Result<ByteDurabilityReceipt> {
+        if placement.store_id != self.inner.store_id
+            || placement.domain_digest != self.inner.domain_digest
+        {
+            return Err(SegmentError::new(
+                Code::InvalidReceipt,
+                "placement store/domain differs",
+            ));
+        }
+        let receipts = self.recover_sealed(placement.pin_id)?;
+        let receipt = receipts
+            .get(placement.frame_index as usize)
+            .ok_or_else(|| {
+                SegmentError::new(Code::InvalidReceipt, "placement frame index absent")
+            })?;
+        if receipt.placement() != *placement {
+            return Err(SegmentError::new(
+                Code::InvalidReceipt,
+                "placement differs from sealed pin",
+            ));
+        }
+        Ok(receipt.clone())
+    }
+
+    /// Cold-admit a bounded set of physical placements. Every distinct pin
+    /// incurs one whole-segment verification, including when many logical
+    /// records share a segment; returned receipts preserve caller order.
+    /// This is an offline/generation admission path, never a warm query step.
+    pub fn recover_placements(
+        &self,
+        placements: &[PlacementV1],
+        budget: VerificationBudget,
+    ) -> Result<Vec<ByteDurabilityReceipt>> {
+        if placements.is_empty()
+            || budget.max_receipts == 0
+            || budget.max_segments == 0
+            || budget.max_total_segment_bytes == 0
+            || budget.max_total_segment_bytes == u64::MAX
+            || placements.len() > budget.max_receipts
+        {
+            return Err(SegmentError::new(
+                Code::BudgetExceeded,
+                "invalid cold placement budget",
+            ));
+        }
+        let _pin_lock = self.lock_pin_dir(FlockOperation::NonBlockingLockShared)?;
+        let mut by_pin: HashMap<[u8; 16], Vec<ByteDurabilityReceipt>> = HashMap::new();
+        let mut seen = HashSet::with_capacity(placements.len());
+        let mut total_bytes = 0u64;
+        let mut result = Vec::with_capacity(placements.len());
+        for placement in placements {
+            if placement.store_id != self.inner.store_id
+                || placement.domain_digest != self.inner.domain_digest
+                || !seen.insert(placement.receipt_id)
+            {
+                return Err(SegmentError::new(
+                    Code::InvalidReceipt,
+                    "placement store/domain or duplicate receipt differs",
+                ));
+            }
+            if !by_pin.contains_key(&placement.pin_id) {
+                if by_pin.len() >= budget.max_segments {
+                    return Err(SegmentError::new(
+                        Code::BudgetExceeded,
+                        "cold placement segment count exceeds budget",
+                    ));
+                }
+                total_bytes = total_bytes
+                    .checked_add(placement.segment_size)
+                    .ok_or_else(|| {
+                        SegmentError::new(
+                            Code::BudgetExceeded,
+                            "cold placement byte count overflow",
+                        )
+                    })?;
+                if total_bytes > budget.max_total_segment_bytes {
+                    return Err(SegmentError::new(
+                        Code::BudgetExceeded,
+                        "cold placement byte budget exceeded",
+                    ));
+                }
+                by_pin.insert(placement.pin_id, self.recover_sealed(placement.pin_id)?);
+            }
+            let receipt = by_pin
+                .get(&placement.pin_id)
+                .and_then(|receipts| receipts.get(placement.frame_index as usize))
+                .ok_or_else(|| {
+                    SegmentError::new(Code::InvalidReceipt, "placement frame index absent")
+                })?;
+            if receipt.placement() != *placement {
+                return Err(SegmentError::new(
+                    Code::InvalidReceipt,
+                    "placement differs from sealed pin",
+                ));
+            }
+            result.push(receipt.clone());
+        }
+        Ok(result)
+    }
+
     /// CMD's same-process durability gate. Only a crate-constructed handle
     /// can enter, and the pinned on-disk bytes are re-read in full at use.
     /// CMD retains the pin until its transaction commits or explicitly aborts.
     pub fn verify_receipt(&self, receipt: &ByteDurabilityReceipt) -> Result<()> {
+        let _pin_lock = self.lock_pin_dir(FlockOperation::NonBlockingLockShared)?;
         let journal = self.validated_receipt_journal(receipt)?;
+        self.verify_actual_segment(receipt, &journal)
+    }
+
+    /// Reverify all exact bytes before CMD opens its short metadata transaction,
+    /// retaining a shared pin lock until CMD has resolved that transaction.
+    /// One segment is hashed at most once even if it contains many members.
+    pub fn verify_and_hold(
+        &self,
+        receipts: &[ByteDurabilityReceipt],
+        budget: VerificationBudget,
+    ) -> Result<VerifiedSealGuard> {
+        if receipts.is_empty()
+            || budget.max_receipts == 0
+            || budget.max_segments == 0
+            || budget.max_total_segment_bytes == 0
+            || budget.max_total_segment_bytes == u64::MAX
+            || receipts.len() > budget.max_receipts
+        {
+            return Err(SegmentError::new(
+                Code::BudgetExceeded,
+                "invalid receipt verification budget",
+            ));
+        }
+        let pin_lock = self.lock_pin_dir(FlockOperation::NonBlockingLockShared)?;
+        let prepare_id = receipts[0].prepare_id.clone();
+        let mut seen_receipts = HashSet::with_capacity(receipts.len());
+        let mut seen_segments = HashSet::new();
+        let mut total_bytes = 0u64;
+        for receipt in receipts {
+            if receipt.prepare_id != prepare_id || !seen_receipts.insert(receipt.receipt_id) {
+                return Err(SegmentError::new(
+                    Code::InvalidReceipt,
+                    "mixed prepare or duplicate receipt",
+                ));
+            }
+            let journal = self.validated_receipt_journal(receipt)?;
+            if seen_segments.insert(receipt.pin_id) {
+                if seen_segments.len() > budget.max_segments {
+                    return Err(SegmentError::new(
+                        Code::BudgetExceeded,
+                        "too many segments in verification",
+                    ));
+                }
+                total_bytes = total_bytes
+                    .checked_add(receipt.segment_size)
+                    .ok_or_else(|| {
+                        SegmentError::new(Code::BudgetExceeded, "verification byte count overflow")
+                    })?;
+                if total_bytes > budget.max_total_segment_bytes {
+                    return Err(SegmentError::new(
+                        Code::BudgetExceeded,
+                        "verification byte budget exceeded",
+                    ));
+                }
+                self.verify_actual_segment(receipt, &journal)?;
+            }
+        }
+        Ok(VerifiedSealGuard {
+            _pin_lock: pin_lock,
+            receipts: receipts.to_vec(),
+            prepare_id,
+        })
+    }
+
+    fn verify_actual_segment(
+        &self,
+        receipt: &ByteDurabilityReceipt,
+        journal: &PinJournal,
+    ) -> Result<()> {
         let file = open_regular(&self.inner.segments, &receipt.segment_digest.to_hex())?;
         let metadata = file
             .metadata()
@@ -578,9 +796,8 @@ impl SegmentStore {
         prepare_id: &[u8],
         fence_epoch: u64,
     ) -> Result<u64> {
-        flock(&self.inner.pins, FlockOperation::LockExclusive)
-            .map_err(|error| SegmentError::io("cannot lock pin directory", error.into()))?;
-        let result = (|| {
+        let _pin_lock = self.lock_pin_dir(FlockOperation::NonBlockingLockExclusive)?;
+        (|| {
             let mut journal = self.read_pin(pin_id)?;
             if journal.state != PinState::Sealed
                 || journal.prepare_id != prepare_id
@@ -602,15 +819,7 @@ impl SegmentStore {
                 &journal.encode(self.inner.limits)?,
             )?;
             Ok(journal.fence_epoch)
-        })();
-        let unlock = flock(&self.inner.pins, FlockOperation::Unlock);
-        if let Err(error) = unlock {
-            return Err(SegmentError::io(
-                "cannot unlock pin directory",
-                error.into(),
-            ));
-        }
-        result
+        })()
     }
 
     /// A selected frame is checked before writing any byte to the caller sink.
@@ -621,6 +830,7 @@ impl SegmentStore {
         max_bytes: u64,
         sink: &mut impl Write,
     ) -> Result<u64> {
+        let _pin_lock = self.lock_pin_dir(FlockOperation::NonBlockingLockShared)?;
         let journal = self.validated_receipt_journal(receipt)?;
         let file = open_regular(&self.inner.segments, &receipt.segment_digest.to_hex())?;
         let metadata = file
@@ -664,6 +874,22 @@ impl SegmentStore {
             ));
         }
         Ok(journal)
+    }
+
+    fn lock_pin_dir(&self, operation: FlockOperation) -> Result<File> {
+        // A fresh open description is essential: dup/try_clone share flock
+        // ownership on Linux and would not exclude a same-process abort.
+        let file = tos_fd_open::reopen_directory(&self.inner.pins).map_err(|error| {
+            map_fd_open(error, Code::UnsafePath, "cannot reopen pinned directory")
+        })?;
+        flock(&file, operation).map_err(|error| {
+            if error == Errno::AGAIN {
+                SegmentError::new(Code::PinConflict, "pin lock held by another operation")
+            } else {
+                SegmentError::io("cannot lock pin directory", error.into())
+            }
+        })?;
+        Ok(file)
     }
 
     fn validated_receipt_journal(&self, receipt: &ByteDurabilityReceipt) -> Result<PinJournal> {
@@ -762,37 +988,18 @@ fn write_part(
 }
 
 fn open_root(path: &Path) -> Result<File> {
-    if !path.is_absolute()
-        || path
+    if path.is_absolute()
+        && path
             .components()
-            .any(|component| !matches!(component, Component::RootDir | Component::Normal(_)))
+            .all(|component| matches!(component, Component::RootDir))
     {
-        return Err(SegmentError::new(
-            Code::InvalidRoot,
-            "segment root must be absolute without parent components",
-        ));
-    }
-    let relative = path
-        .strip_prefix("/")
-        .map_err(|_| SegmentError::new(Code::InvalidRoot, "segment root is not absolute"))?;
-    if relative.as_os_str().is_empty() {
         return Err(SegmentError::new(
             Code::InvalidRoot,
             "filesystem root is not a segment store",
         ));
     }
-    let anchor =
-        File::open("/").map_err(|error| SegmentError::io("cannot open filesystem root", error))?;
-    openat2(
-        &anchor,
-        relative,
-        dir_flags(),
-        Mode::empty(),
-        resolve_flags(),
-    )
-    .map(File::from)
-    .map_err(|error| {
-        map_open(
+    tos_fd_open::open_absolute_directory(path).map_err(|error| {
+        map_fd_open(
             error,
             Code::InvalidRoot,
             "cannot securely open segment root",
@@ -800,41 +1007,19 @@ fn open_root(path: &Path) -> Result<File> {
     })
 }
 
-fn dir_flags() -> OFlags {
-    OFlags::RDONLY | OFlags::DIRECTORY | OFlags::CLOEXEC | OFlags::NOFOLLOW
-}
-fn resolve_flags() -> ResolveFlags {
-    ResolveFlags::BENEATH | ResolveFlags::NO_SYMLINKS
-}
-
 fn open_directory(parent: &File, name: &str) -> Result<File> {
-    openat2(parent, name, dir_flags(), Mode::empty(), resolve_flags())
-        .map(File::from)
-        .map_err(|error| {
-            map_open(
-                error,
-                Code::UnsafePath,
-                "cannot securely open segment directory",
-            )
-        })
+    tos_fd_open::open_directory_at(parent, Path::new(name)).map_err(|error| {
+        map_fd_open(
+            error,
+            Code::UnsafePath,
+            "cannot securely open segment directory",
+        )
+    })
 }
 
 fn open_regular(parent: &File, name: &str) -> Result<File> {
-    let flags = OFlags::RDONLY | OFlags::CLOEXEC | OFlags::NOFOLLOW | OFlags::NONBLOCK;
-    let file: File = openat2(parent, name, flags, Mode::empty(), resolve_flags())
-        .map(File::from)
-        .map_err(|error| map_open(error, Code::UnsafePath, "cannot securely open segment file"))?;
-    if !file
-        .metadata()
-        .map_err(|error| SegmentError::io("cannot stat opened segment file", error))?
-        .is_file()
-    {
-        return Err(SegmentError::new(
-            Code::UnsafePath,
-            "opened segment file is not regular",
-        ));
-    }
-    Ok(file)
+    tos_fd_open::open_regular_at(parent, Path::new(name))
+        .map_err(|error| map_fd_open(error, Code::UnsafePath, "cannot securely open segment file"))
 }
 
 fn create_exclusive(parent: &File, name: &str) -> Result<File> {
@@ -870,16 +1055,19 @@ fn replace_pin(parent: &File, name: &str, raw: &[u8]) -> Result<()> {
         .map_err(|error| SegmentError::io("cannot sync sealed pin directory", error.into()))
 }
 
-fn map_open(error: Errno, unsafe_code: Code, detail: &'static str) -> SegmentError {
-    if error == Errno::NOSYS {
-        SegmentError::new(Code::UnsupportedPlatform, "Linux openat2 unavailable")
-    } else if matches!(
-        error,
-        Errno::LOOP | Errno::NOTDIR | Errno::XDEV | Errno::AGAIN
-    ) {
-        SegmentError::new(unsafe_code, detail)
-    } else {
-        SegmentError::io(detail, error.into())
+fn map_fd_open(error: OpenError, unsafe_code: Code, detail: &'static str) -> SegmentError {
+    match error.code {
+        OpenErrorCode::InvalidPath | OpenErrorCode::UnsafePath => {
+            SegmentError::new(unsafe_code, detail)
+        }
+        OpenErrorCode::UnsupportedPlatform => {
+            SegmentError::new(Code::UnsupportedPlatform, "Linux openat2 unavailable")
+        }
+        OpenErrorCode::BudgetExceeded => SegmentError::new(Code::BudgetExceeded, detail),
+        OpenErrorCode::Io => match error.source {
+            Some(source) => SegmentError::io(detail, source),
+            None => SegmentError::new(Code::Io, detail),
+        },
     }
 }
 
@@ -969,6 +1157,329 @@ mod tests {
             profile_version: b"v1".to_vec(),
             subject_key: format!("opaque-{slot}").into_bytes(),
             member_slot: slot,
+        }
+    }
+
+    #[test]
+    fn verified_guard_excludes_same_process_abort_until_commit_decision() {
+        let root = PrivateRoot::new();
+        let store = SegmentStore::initialize_empty(&root.0, b"private-domain", limits()).unwrap();
+        let bytes = b"guarded exact bytes".to_vec();
+        let mut first_reader = Cursor::new(bytes.clone());
+        let mut second_reader = Cursor::new(bytes.clone());
+        let mut frames = [
+            FrameInput {
+                binding: binding(0),
+                declared_size: bytes.len() as u64,
+                declared_sha256: Digest256::of_bytes(&bytes),
+                reader: &mut first_reader,
+            },
+            FrameInput {
+                binding: binding(1),
+                declared_size: bytes.len() as u64,
+                declared_sha256: Digest256::of_bytes(&bytes),
+                reader: &mut second_reader,
+            },
+        ];
+        let receipts = store.seal_segment(b"guard-prepare", &mut frames).unwrap();
+        let budget = VerificationBudget {
+            max_receipts: 2,
+            max_segments: 1,
+            max_total_segment_bytes: receipts[0].segment_size(),
+        };
+        let guard = store.verify_and_hold(&receipts, budget).unwrap();
+        assert_eq!(guard.prepare_id(), b"guard-prepare");
+        assert_eq!(guard.receipts().len(), 2);
+        assert_eq!(
+            store
+                .abort_uncommitted(receipts[0].pin_id(), b"guard-prepare", 1)
+                .unwrap_err()
+                .code,
+            Code::PinConflict
+        );
+        let mut selected = Vec::new();
+        store
+            .read_selected(&receipts[1], 64, &mut selected)
+            .unwrap();
+        assert_eq!(selected, bytes);
+        drop(guard);
+        assert_eq!(
+            store
+                .abort_uncommitted(receipts[0].pin_id(), b"guard-prepare", 1)
+                .unwrap(),
+            2
+        );
+        assert_eq!(
+            store.verify_and_hold(&receipts, budget).unwrap_err().code,
+            Code::InvalidReceipt
+        );
+    }
+
+    #[test]
+    fn verification_budget_and_duplicate_receipt_refuse_before_commit() {
+        let root = PrivateRoot::new();
+        let store = SegmentStore::initialize_empty(&root.0, b"private-domain", limits()).unwrap();
+        let bytes = b"budgeted bytes".to_vec();
+        let mut reader = Cursor::new(bytes.clone());
+        let mut frames = [FrameInput {
+            binding: binding(0),
+            declared_size: bytes.len() as u64,
+            declared_sha256: Digest256::of_bytes(&bytes),
+            reader: &mut reader,
+        }];
+        let receipt = store
+            .seal_segment(b"budget-prepare", &mut frames)
+            .unwrap()
+            .remove(0);
+        let too_small = VerificationBudget {
+            max_receipts: 1,
+            max_segments: 1,
+            max_total_segment_bytes: receipt.segment_size() - 1,
+        };
+        assert_eq!(
+            store
+                .verify_and_hold(&[receipt.clone()], too_small)
+                .unwrap_err()
+                .code,
+            Code::BudgetExceeded
+        );
+        let enough = VerificationBudget {
+            max_receipts: 2,
+            max_segments: 1,
+            max_total_segment_bytes: receipt.segment_size(),
+        };
+        assert_eq!(
+            store
+                .verify_and_hold(&[receipt.clone(), receipt], enough)
+                .unwrap_err()
+                .code,
+            Code::InvalidReceipt
+        );
+    }
+
+    #[test]
+    fn placement_wire_cold_recovers_exact_member_and_rejects_mismatch() {
+        let root = PrivateRoot::new();
+        let store = SegmentStore::initialize_empty(&root.0, b"private-domain", limits()).unwrap();
+        let same = b"same bytes, separate subjects".to_vec();
+        let mut first_reader = Cursor::new(same.clone());
+        let mut second_reader = Cursor::new(same.clone());
+        let mut frames = [
+            FrameInput {
+                binding: binding(0),
+                declared_size: same.len() as u64,
+                declared_sha256: Digest256::of_bytes(&same),
+                reader: &mut first_reader,
+            },
+            FrameInput {
+                binding: binding(1),
+                declared_size: same.len() as u64,
+                declared_sha256: Digest256::of_bytes(&same),
+                reader: &mut second_reader,
+            },
+        ];
+        let receipts = store
+            .seal_segment(b"placement-prepare", &mut frames)
+            .unwrap();
+        let wire = receipts[1].placement().encode();
+        let placement = PlacementV1::decode(&wire).unwrap();
+        assert_eq!(placement, receipts[1].placement());
+        assert_eq!(placement.coordinate().sha256, Digest256::of_bytes(&same));
+        let cold = SegmentStore::open_existing(&root.0, limits()).unwrap();
+        let recovered = cold.recover_placement(&placement).unwrap();
+        assert_eq!(recovered.binding(), &binding(1));
+        let both = cold
+            .recover_placements(
+                &[receipts[0].placement(), placement],
+                VerificationBudget {
+                    max_receipts: 2,
+                    max_segments: 1,
+                    max_total_segment_bytes: placement.segment_size(),
+                },
+            )
+            .unwrap();
+        assert_eq!(both[0].binding(), &binding(0));
+        assert_eq!(both[1].binding(), &binding(1));
+        assert_eq!(
+            cold.recover_placements(
+                &[receipts[0].placement(), placement],
+                VerificationBudget {
+                    max_receipts: 2,
+                    max_segments: 1,
+                    max_total_segment_bytes: placement.segment_size() - 1,
+                },
+            )
+            .unwrap_err()
+            .code,
+            Code::BudgetExceeded
+        );
+        let mut selected = Vec::new();
+        cold.read_selected(&recovered, same.len() as u64, &mut selected)
+            .unwrap();
+        assert_eq!(selected, same);
+
+        let mut bad = wire;
+        bad[8] = 2;
+        assert_eq!(
+            PlacementV1::decode(&bad).unwrap_err().code,
+            Code::InvalidFormat
+        );
+        assert_eq!(
+            PlacementV1::decode(&wire[..wire.len() - 1])
+                .unwrap_err()
+                .code,
+            Code::InvalidFormat
+        );
+        let mut trailing = wire.to_vec();
+        trailing.push(0);
+        assert_eq!(
+            PlacementV1::decode(&trailing).unwrap_err().code,
+            Code::InvalidFormat
+        );
+        let mut wrong_member = placement;
+        wrong_member.frame_index = 0;
+        assert_eq!(
+            cold.recover_placement(&wrong_member).unwrap_err().code,
+            Code::InvalidReceipt
+        );
+        let mut wrong_store = placement;
+        wrong_store.store_id = [0; 16];
+        assert_eq!(
+            cold.recover_placement(&wrong_store).unwrap_err().code,
+            Code::InvalidReceipt
+        );
+    }
+
+    #[test]
+    fn physical_backup_copy_restores_into_new_root_and_refuses_corrupt_bytes() {
+        let source_root = PrivateRoot::new();
+        let backup_root = PrivateRoot::new();
+        let source =
+            SegmentStore::initialize_empty(&source_root.0, b"backup-domain", limits()).unwrap();
+        let bytes = b"retained historical exact bytes".to_vec();
+        let mut reader = Cursor::new(bytes.clone());
+        let receipt = source
+            .seal_segment(
+                b"backup-prepare",
+                &mut [FrameInput {
+                    binding: binding(7),
+                    declared_size: bytes.len() as u64,
+                    declared_sha256: Digest256::of_bytes(&bytes),
+                    reader: &mut reader,
+                }],
+            )
+            .unwrap()
+            .remove(0);
+        let placement = PlacementV1::decode(&receipt.placement().encode()).unwrap();
+        for directory in ["staging", "segments", "pins"] {
+            fs::create_dir(backup_root.0.join(directory)).unwrap();
+        }
+        fs::copy(
+            source_root.0.join("store.meta"),
+            backup_root.0.join("store.meta"),
+        )
+        .unwrap();
+        let segment_name = placement.segment_digest().to_hex();
+        fs::copy(
+            source_root.0.join("segments").join(&segment_name),
+            backup_root.0.join("segments").join(&segment_name),
+        )
+        .unwrap();
+        let pin_name = hex_id(placement.pin_id());
+        fs::copy(
+            source_root.0.join("pins").join(&pin_name),
+            backup_root.0.join("pins").join(&pin_name),
+        )
+        .unwrap();
+
+        let restored = SegmentStore::open_existing(&backup_root.0, limits()).unwrap();
+        let recovered = restored.recover_placement(&placement).unwrap();
+        let mut exact = Vec::new();
+        restored
+            .read_selected(&recovered, bytes.len() as u64, &mut exact)
+            .unwrap();
+        assert_eq!(exact, bytes);
+        let mut file = OpenOptions::new()
+            .write(true)
+            .open(backup_root.0.join("segments").join(segment_name))
+            .unwrap();
+        file.seek(SeekFrom::Start(
+            placement.coordinate().header_offset + format::FRAME_HEADER_BYTES,
+        ))
+        .unwrap();
+        file.write_all(b"X").unwrap();
+        file.sync_all().unwrap();
+        assert_eq!(
+            restored.recover_placement(&placement).unwrap_err().code,
+            Code::CorruptBytes
+        );
+        let mut disclosed = Vec::new();
+        assert_eq!(
+            restored
+                .read_selected(&recovered, bytes.len() as u64, &mut disclosed)
+                .unwrap_err()
+                .code,
+            Code::CorruptBytes
+        );
+        assert!(disclosed.is_empty());
+    }
+
+    #[test]
+    fn synthetic_repack_keeps_old_and_new_exact_physical_placements() {
+        let root = PrivateRoot::new();
+        let store = SegmentStore::initialize_empty(&root.0, b"repack-domain", limits()).unwrap();
+        let original = b"retained exact frame".to_vec();
+        let mut source_reader = Cursor::new(original.clone());
+        let old = store
+            .seal_segment(
+                b"original-prepare",
+                &mut [FrameInput {
+                    binding: binding(0),
+                    declared_size: original.len() as u64,
+                    declared_sha256: Digest256::of_bytes(&original),
+                    reader: &mut source_reader,
+                }],
+            )
+            .unwrap()
+            .remove(0);
+        let mut verified_old = Vec::new();
+        store
+            .read_selected(&old, original.len() as u64, &mut verified_old)
+            .unwrap();
+        let filler = b"different packing".to_vec();
+        let mut selected_reader = Cursor::new(verified_old);
+        let mut filler_reader = Cursor::new(filler.clone());
+        let repacked = store
+            .seal_segment(
+                b"new-placement-prepare",
+                &mut [
+                    FrameInput {
+                        binding: binding(0),
+                        declared_size: original.len() as u64,
+                        declared_sha256: Digest256::of_bytes(&original),
+                        reader: &mut selected_reader,
+                    },
+                    FrameInput {
+                        binding: binding(1),
+                        declared_size: filler.len() as u64,
+                        declared_sha256: Digest256::of_bytes(&filler),
+                        reader: &mut filler_reader,
+                    },
+                ],
+            )
+            .unwrap();
+        assert_ne!(old.segment_digest(), repacked[0].segment_digest());
+        assert_eq!(old.coordinate(), repacked[0].coordinate());
+        let old_placement = old.placement();
+        let new_placement = repacked[0].placement();
+        assert_ne!(old_placement, new_placement);
+        for placement in [old_placement, new_placement] {
+            let recovered = store.recover_placement(&placement).unwrap();
+            let mut output = Vec::new();
+            store
+                .read_selected(&recovered, original.len() as u64, &mut output)
+                .unwrap();
+            assert_eq!(output, original);
         }
     }
 
