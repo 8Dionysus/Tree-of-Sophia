@@ -7,8 +7,8 @@
 
 use std::collections::HashSet;
 use tos_foundation::{
-    emit_value_preserved_json, parse_json, JsonLimits, JsonMode, JsonNumber, JsonNumberKind,
-    JsonString, JsonValue,
+    JsonLimits, JsonMode, JsonNumber, JsonNumberKind, JsonString, JsonValue,
+    emit_value_preserved_json, parse_json,
 };
 
 use crate::workspace_proposal::workspace_proposal_digest_v1;

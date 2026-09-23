@@ -18,7 +18,7 @@ const glue = await readFile(bindingPath, 'utf8');
 const wasm = await readFile(wasmPath);
 const moduleRoot = dirname(bindingPath);
 const entry = `
-import { initSync, compact_knowledge_search_page_wasm_v1, workspace_proposal_digest_wasm_v1 } from './tos_web_rules.mjs';
+import { initSync, compact_knowledge_search_page_wasm_v1, workspace_proposal_digest_wasm_v1, workspace_transition_wasm_v1 } from './tos_web_rules.mjs';
 import rulesModule from './tos_web_rules_bg.wasm';
 let ready = false;
 export default { async fetch(request) {
@@ -26,6 +26,11 @@ export default { async fetch(request) {
   const raw = new Uint8Array(await request.arrayBuffer());
   if (new URL(request.url).pathname === '/envelope') {
     const result = compact_knowledge_search_page_wasm_v1(raw);
+    try { return result.ok() ? new Response(result.bytes(), { headers: { 'content-type': 'application/json' } }) : Response.json({ error: result.error_code() }); }
+    finally { result.free(); }
+  }
+  if (new URL(request.url).pathname === '/workspace') {
+    const result = workspace_transition_wasm_v1(raw);
     try { return result.ok() ? new Response(result.bytes(), { headers: { 'content-type': 'application/json' } }) : Response.json({ error: result.error_code() }); }
     finally { result.free(); }
   }
@@ -82,7 +87,18 @@ try {
   assert.equal(page.source_revision, 'revision:test');
   const refused = await call('/envelope', { limit: 6, expected_mode: 'compressed', result });
   assert.deepEqual(refused, { error: 'invalid_mode_schema' });
-  console.log(JSON.stringify({ status: 'pass', host: 'local Miniflare/workerd WebAssembly', compatibility_date: compatibilityDate, cases: 5 }));
+  const schema = 'tos_research_workspace_transition_v1';
+  const created = await call('/workspace', { schema, operation: 'create', session_id: 'workerd', history_limit: 2 });
+  assert.equal(created.machine.state.revision, 0);
+  const excluded = await call('/workspace', { schema, operation: 'apply', machine: created.machine,
+    command: { kind: 'edge.exclude', edge_id: 'edge:a' } });
+  assert.equal(excluded.machine.state.revision, 1);
+  assert.deepEqual(excluded.machine.state.excluded_edge_ids, ['edge:a']);
+  const undone = await call('/workspace', { schema, operation: 'undo', machine: excluded.machine });
+  assert.equal(undone.value, true);
+  assert.deepEqual(undone.machine.state.excluded_edge_ids, []);
+  assert.deepEqual(await call('/workspace', { schema, operation: 'import', machine: undone.machine, packet: '{"schema":"bad"}' }), { error: 'invalid_packet' });
+  console.log(JSON.stringify({ status: 'pass', host: 'local Miniflare/workerd WebAssembly', compatibility_date: compatibilityDate, cases: 9 }));
 } finally {
   if (mf) await mf.dispose();
   process.chdir(originalCwd);

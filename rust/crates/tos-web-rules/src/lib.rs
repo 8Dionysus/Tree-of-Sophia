@@ -11,16 +11,16 @@ mod workspace_machine;
 mod workspace_proposal;
 
 pub use knowledge_envelope::{
-    compact_knowledge_search_page_v1, KnowledgeEnvelopeError, KnowledgeEnvelopeErrorCode,
+    KnowledgeEnvelopeError, KnowledgeEnvelopeErrorCode, compact_knowledge_search_page_v1,
 };
 pub use search_mode::{
-    select_knowledge_search_mode_v1, SearchMode, SearchSelectionError, SearchSelectionErrorCode,
+    SearchMode, SearchSelectionError, SearchSelectionErrorCode, select_knowledge_search_mode_v1,
 };
 pub use workspace_machine::{
-    workspace_transition_v1, WorkspaceMachineError, WorkspaceMachineErrorCode,
+    WorkspaceMachineError, WorkspaceMachineErrorCode, workspace_transition_v1,
 };
 pub use workspace_proposal::{
-    workspace_proposal_digest_v1, WorkspaceProposalError, WorkspaceProposalErrorCode,
+    WorkspaceProposalError, WorkspaceProposalErrorCode, workspace_proposal_digest_v1,
 };
 
 #[cfg(feature = "wasm")]
