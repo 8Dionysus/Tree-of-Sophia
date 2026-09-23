@@ -569,7 +569,7 @@ fn ingest_nodes(
 ) -> Result<u64> {
     let facets = facet_names(vocab, NODE)?;
     let mut stmt = db.prepare(
-        "SELECT id,source_graph,kind_id,type_id,source_order,payload,payload_len,payload_sha256
+        "SELECT id,source_graph,kind_id,type_id,source_order,length(payload),payload,payload_len,payload_sha256
         FROM knowledge_nodes ORDER BY source_order",
     )?;
     let mut rows = stmt.query([])?;
@@ -580,6 +580,14 @@ fn ingest_nodes(
     let mut prior = None;
     let mut n = 0u64;
     while let Some(r) = rows.next()? {
+        n = n.checked_add(1).ok_or(Error::Budget("catalog rows"))?;
+        if n > limits.max_rows {
+            return Err(Error::Budget("catalog rows"));
+        }
+        let actual_len: i64 = r.get(5)?;
+        if actual_len < 0 || actual_len as u64 > limits.max_row_bytes as u64 {
+            return Err(Error::Budget("catalog row bytes"));
+        }
         let (id, source, kind, type_id, order, raw, len, sha): (
             String,
             String,
@@ -595,14 +603,10 @@ fn ingest_nodes(
             r.get(2)?,
             r.get(3)?,
             r.get(4)?,
-            r.get(5)?,
             r.get(6)?,
             r.get(7)?,
+            r.get(8)?,
         );
-        n += 1;
-        if n > limits.max_rows {
-            return Err(Error::Budget("catalog rows"));
-        }
         valid_order(&mut prior, &source, &id, order)?;
         if !registered.contains(&source) {
             return Err(Error::Invalid("unregistered catalog node source"));
@@ -699,7 +703,7 @@ fn ingest_relations(
     limits: CatalogLimits,
 ) -> Result<u64> {
     let facets = facet_names(vocab, RELATION)?;
-    let mut stmt=db.prepare("SELECT id,source_graph,from_id,to_id,predicate_id,relation_type_id,source_order,payload,payload_len,payload_sha256
+    let mut stmt=db.prepare("SELECT id,source_graph,from_id,to_id,predicate_id,relation_type_id,source_order,length(payload),payload,payload_len,payload_sha256
         FROM knowledge_relations ORDER BY source_order")?;
     let mut rows = stmt.query([])?;
     let registered: BTreeSet<String> = array(vocab, "sources")?
@@ -709,6 +713,14 @@ fn ingest_relations(
     let mut prior = None;
     let mut n = 0u64;
     while let Some(r) = rows.next()? {
+        n = n.checked_add(1).ok_or(Error::Budget("catalog rows"))?;
+        if n > limits.max_rows {
+            return Err(Error::Budget("catalog rows"));
+        }
+        let actual_len: i64 = r.get(7)?;
+        if actual_len < 0 || actual_len as u64 > limits.max_row_bytes as u64 {
+            return Err(Error::Budget("catalog row bytes"));
+        }
         let (id, source, from, to, predicate, type_id, order, raw, len, sha): (
             String,
             String,
@@ -728,14 +740,10 @@ fn ingest_relations(
             r.get(4)?,
             r.get(5)?,
             r.get(6)?,
-            r.get(7)?,
             r.get(8)?,
             r.get(9)?,
+            r.get(10)?,
         );
-        n += 1;
-        if n > limits.max_rows {
-            return Err(Error::Budget("catalog rows"));
-        }
         valid_order(&mut prior, &source, &id, order)?;
         if !registered.contains(&source) {
             return Err(Error::Invalid("unregistered catalog relation source"));
@@ -1294,6 +1302,8 @@ pub fn compile_catalog(
     {
         return Err(Error::Invalid("catalog vocabulary route mismatch"));
     }
+    let original_temp_page_ceiling: u64 =
+        db.query_row("PRAGMA temp.max_page_count", [], |r| r.get(0))?;
     db.execute_batch("SAVEPOINT cmp_catalog_build")?;
     let result = (|| {
         stage(db, limits)?;
@@ -1320,7 +1330,13 @@ pub fn compile_catalog(
             &relation_entries,
             text(relation_registry, "fallback_relation_type_id")?,
             &cross_source_ids,
-            limits,
+            CatalogLimits {
+                max_rows: limits
+                    .max_rows
+                    .checked_sub(nodes)
+                    .ok_or(Error::Budget("catalog rows"))?,
+                ..limits
+            },
         )?;
         if nodes
             .checked_add(relations)
@@ -1398,7 +1414,16 @@ pub fn compile_catalog(
             relation_count: relations,
         })
     })();
-    db.execute_batch("ROLLBACK TO cmp_catalog_build; RELEASE cmp_catalog_build")?;
+    let rollback = db.execute_batch("ROLLBACK TO cmp_catalog_build; RELEASE cmp_catalog_build");
+    let restored: rusqlite::Result<u64> = db.query_row(
+        &format!("PRAGMA temp.max_page_count={original_temp_page_ceiling}"),
+        [],
+        |r| r.get(0),
+    );
+    rollback?;
+    if restored? != original_temp_page_ceiling {
+        return Err(Error::Budget("catalog staging page ceiling restore"));
+    }
     result
 }
 
@@ -1485,6 +1510,9 @@ mod tests {
     #[test]
     fn full_catalog_is_deterministic_and_preserves_route_confirmation() {
         let (mut db, header, entity, relation, vocab) = fixture("concept");
+        let initial_page_ceiling: u64 = db
+            .query_row("PRAGMA temp.max_page_count", [], |r| r.get(0))
+            .unwrap();
         let a = compile_catalog(
             &mut db,
             &header,
@@ -1508,6 +1536,10 @@ mod tests {
         )
         .unwrap();
         assert_eq!(a.sha256, b.sha256);
+        let final_page_ceiling: u64 = db
+            .query_row("PRAGMA temp.max_page_count", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(initial_page_ceiling, final_page_ceiling);
         assert_eq!((a.node_count, a.relation_count), (2, 1));
         assert_eq!(
             a.catalog["capabilities"]["facets"]["nodes"]["kind_id"][0]["value"],
@@ -1563,6 +1595,59 @@ mod tests {
         )
         .unwrap_err();
         assert!(error.to_string().contains("catalog aggregate entries"));
+    }
+
+    #[test]
+    fn combined_row_limit_refuses_before_relation_payload_decode() {
+        let (mut db, header, entity, relation, vocab) = fixture("concept");
+        db.execute(
+            "UPDATE knowledge_relations SET payload=zeroblob(200000) WHERE id='canon:r'",
+            [],
+        )
+        .unwrap();
+        let limits = CatalogLimits {
+            max_rows: 2,
+            max_row_bytes: 1024,
+            ..CatalogLimits::default()
+        };
+        let error = compile_catalog(
+            &mut db,
+            &header,
+            &entity,
+            &relation,
+            &[],
+            &vocab,
+            VOCAB,
+            limits,
+        )
+        .unwrap_err();
+        assert!(error.to_string().contains("catalog rows"));
+    }
+
+    #[test]
+    fn oversized_blob_refuses_on_sql_length_before_decode() {
+        let (mut db, header, entity, relation, vocab) = fixture("concept");
+        db.execute(
+            "UPDATE knowledge_nodes SET payload=zeroblob(200000) WHERE id='canon:a'",
+            [],
+        )
+        .unwrap();
+        let limits = CatalogLimits {
+            max_row_bytes: 1024,
+            ..CatalogLimits::default()
+        };
+        let error = compile_catalog(
+            &mut db,
+            &header,
+            &entity,
+            &relation,
+            &[],
+            &vocab,
+            VOCAB,
+            limits,
+        )
+        .unwrap_err();
+        assert!(error.to_string().contains("catalog row bytes"));
     }
 
     #[test]
