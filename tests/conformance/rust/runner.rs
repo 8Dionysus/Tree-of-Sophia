@@ -567,9 +567,13 @@ fn corpus_reader_refuses_symlinked_revision() {
     let (_temporary, root) = working_store();
     let linked_parent = root.parent().unwrap().join("linked-parent");
     symlink(root.parent().unwrap(), &linked_parent).unwrap();
-    assert_eq!(CorpusReader::open_existing(&linked_parent.join("store"), read_limits())
-               .unwrap_err().code, StoreErrorCode::InvalidRoot,
-               "symlink in the absolute root path");
+    assert_eq!(
+        CorpusReader::open_existing(&linked_parent.join("store"), read_limits())
+            .unwrap_err()
+            .code,
+        StoreErrorCode::InvalidRoot,
+        "symlink in the absolute root path"
+    );
 
     let (_temporary, root) = working_store();
     let reader = CorpusReader::open_existing(&root, read_limits()).unwrap();
