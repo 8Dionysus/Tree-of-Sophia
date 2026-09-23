@@ -782,15 +782,18 @@ impl<P: PinnedLocalModel, G: CurrentPolicy> ReadModel for SqliteReadModel<P, G> 
         }
         const PREFLIGHT_RESULT_BYTES: u64 = 4 * SQLITE_I64_RESULT_BYTES;
         let minimum = ADJACENCY_CERT_RESULT_BYTES + PREFLIGHT_RESULT_BYTES;
-        if (max_bytes as u64) < minimum || max_work_probes < 2 || max_work_rows < 2 {
+        if (max_bytes as u64) < ADJACENCY_CERT_RESULT_BYTES
+            || max_work_probes < 1
+            || max_work_rows < 1
+        {
             return Err(error(
                 QueryErrorCode::BudgetExceeded,
-                "selected adjacency metadata preflight over byte cap",
+                "selected adjacency certificate admission exceeded",
             ));
         }
         let binding = self.pinned.binding().clone();
         let connection = self.pinned.connection();
-        let ((expected_count, expected_digest, edges, exhausted, scanned, meta_bytes), steps) =
+        let ((expected_count, expected_digest, edges, exhausted, meta_bytes, probes, rows), steps) =
             budgeted(connection, max_vm_steps, self.abort_probe.as_ref(), || {
                 let certificate: Option<(i64, Option<String>)> = connection
                     .query_row(
@@ -822,6 +825,50 @@ impl<P: PinnedLocalModel, G: CurrentPolicy> ReadModel for SqliteReadModel<P, G> 
                     )
                 })?;
                 let expected_digest = digest(&sha)?;
+                if count == 0 {
+                    if expected_digest != Digest256::of_bytes(&[]) {
+                        return Err(error(
+                            QueryErrorCode::IndexIncomplete,
+                            "empty adjacency digest invalid",
+                        ));
+                    }
+                    // The owner-sealed complete adjacency certificate proves
+                    // the empty scope; no second index scan is needed.
+                    return Ok((
+                        0,
+                        expected_digest,
+                        Vec::new(),
+                        true,
+                        ADJACENCY_CERT_RESULT_BYTES,
+                        1,
+                        1,
+                    ));
+                }
+                if (max_bytes as u64) < minimum || max_work_probes < 4 || max_work_rows < 5 {
+                    return Err(error(
+                        QueryErrorCode::BudgetExceeded,
+                        "selected adjacency page admission exceeded",
+                    ));
+                }
+                // Admit every possible row visited by the bounded prefix
+                // before the SQL seek. A smaller prefix is a valid progress
+                // page; it may need one extra seek to prove exhaustion.
+                let mut scan_limit = 0usize;
+                for candidate in 1..=max_rows + 1 {
+                    let emitted = candidate.min(max_rows) as u64;
+                    if 2 + 2 * candidate as u64 + emitted > max_work_rows
+                        || 3 + emitted > max_work_probes
+                    {
+                        break;
+                    }
+                    scan_limit = candidate;
+                }
+                if scan_limit == 0 {
+                    return Err(error(
+                        QueryErrorCode::BudgetExceeded,
+                        "selected adjacency scan admission absent",
+                    ));
+                }
                 // This indexed LIMIT limits SQLite work to one page plus the
                 // exhaustion lookahead. The aggregate returns four i64s, not
                 // edge IDs or SHA strings; no unbounded text reaches Rust.
@@ -834,11 +881,11 @@ impl<P: PinnedLocalModel, G: CurrentPolicy> ReadModel for SqliteReadModel<P, G> 
                      FROM (SELECT edge_id,carrier_sha256 FROM edges
                            WHERE visible=1 AND from_id=?1 AND edge_id>?2
                            ORDER BY edge_id LIMIT ?3)",
-                    params![from_id, after_edge_id.unwrap_or(""), (max_rows + 1) as i64],
+                    params![from_id, after_edge_id.unwrap_or(""), scan_limit as i64],
                     |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
                 ).map_err(sql_error)?;
                 if preflight_count < 0
-                    || preflight_count as usize > max_rows + 1
+                    || preflight_count as usize > scan_limit
                     || header_bytes < 0
                     || max_sha_len < 0
                     || min_sha_len < 0
@@ -865,7 +912,7 @@ impl<P: PinnedLocalModel, G: CurrentPolicy> ReadModel for SqliteReadModel<P, G> 
                 }
                 let scanned = preflight_count as u64;
                 let emitted = scanned.min(max_rows as u64);
-                if 3 + emitted > max_work_probes || 2 + scanned + emitted > max_work_rows {
+                if 3 + emitted > max_work_probes || 2 + 2 * scanned + emitted > max_work_rows {
                     return Err(error(
                         QueryErrorCode::BudgetExceeded,
                         "selected adjacency row or probe admission exceeded",
@@ -883,7 +930,7 @@ impl<P: PinnedLocalModel, G: CurrentPolicy> ReadModel for SqliteReadModel<P, G> 
                         params![
                             from_id,
                             after_edge_id.unwrap_or(""),
-                            (max_rows + 1) as i64,
+                            scan_limit as i64,
                             i64::try_from(max_bytes).unwrap_or(i64::MAX),
                             SHA256_HEX_RESULT_BYTES
                         ],
@@ -915,7 +962,8 @@ impl<P: PinnedLocalModel, G: CurrentPolicy> ReadModel for SqliteReadModel<P, G> 
                     ));
                 }
                 let scanned = headers.len() as u64;
-                let exhausted = headers.len() <= max_rows;
+                let exhausted = headers.len() < scan_limit
+                    || (scan_limit == max_rows + 1 && headers.len() <= max_rows);
                 headers.truncate(max_rows);
                 let mut edges = Vec::with_capacity(headers.len());
                 let mut transferred = 0u64;
@@ -929,11 +977,19 @@ impl<P: PinnedLocalModel, G: CurrentPolicy> ReadModel for SqliteReadModel<P, G> 
                             "selected adjacency over byte cap",
                         ));
                     }
-                    let raw: Option<Vec<u8>> = connection.query_row(
-                    "SELECT CASE WHEN length(carrier)<=?3 AND carrier_size<=?3 THEN carrier END
+                    let raw: Option<Vec<u8>> = connection
+                    .query_row(
+                        "SELECT CASE WHEN length(carrier)<=?3 AND carrier_size<=?3 THEN carrier END
                      FROM edges WHERE edge_id=?1 AND visible=1 AND from_id=?2",
-                    params![edge_id, from_id, i64::try_from(remaining.min(max_carrier_bytes as u64)).unwrap_or(i64::MAX)], |row| row.get(0),
-                ).map_err(sql_error)?;
+                        params![
+                            edge_id,
+                            from_id,
+                            i64::try_from(remaining.min(max_carrier_bytes as u64))
+                                .unwrap_or(i64::MAX)
+                        ],
+                        |row| row.get(0),
+                    )
+                    .map_err(sql_error)?;
                     let raw = raw.ok_or_else(|| {
                         error(
                             QueryErrorCode::BudgetExceeded,
@@ -948,11 +1004,11 @@ impl<P: PinnedLocalModel, G: CurrentPolicy> ReadModel for SqliteReadModel<P, G> 
                     expected_digest,
                     edges,
                     exhausted,
-                    scanned,
                     meta_bytes,
+                    3 + emitted,
+                    2 + 2 * scanned + emitted,
                 ))
             })?;
-        let emitted_count = edges.len() as u64;
         Ok(AdjacencyPage {
             binding,
             from_id: from_id.to_owned(),
@@ -962,8 +1018,8 @@ impl<P: PinnedLocalModel, G: CurrentPolicy> ReadModel for SqliteReadModel<P, G> 
             expected_count,
             expected_digest,
             charged: Charged {
-                probes: 3 + emitted_count,
-                rows: scanned + 2 + emitted_count,
+                probes,
+                rows,
                 bytes: meta_bytes,
                 cpu_steps: steps,
             },

@@ -437,7 +437,7 @@ fn selected_cmp_model_matches_frozen_python_packet_and_refuses_current_denial() 
             .code,
         QueryErrorCode::BudgetExceeded
     );
-    model
+    let tight_page = model
         .visible_outgoing(
             "id.alpha",
             None,
@@ -446,10 +446,18 @@ fn selected_cmp_model_matches_frozen_python_packet_and_refuses_current_denial() 
             1_000_000,
             100_000,
             4,
-            4,
+            5,
         )
         .unwrap();
-    for (probes, rows) in [(3, 4), (4, 3)] {
+    assert_eq!(tight_page.edges.len(), 1);
+    assert!(!tight_page.exhausted);
+    assert!(
+        model
+            .visible_outgoing("id.alpha", Some("edge.visible"), 1, 104, 1, 100_000, 4, 5,)
+            .unwrap()
+            .exhausted
+    );
+    for (probes, rows) in [(3, 5), (4, 4)] {
         assert_eq!(
             model
                 .visible_outgoing(
@@ -468,21 +476,21 @@ fn selected_cmp_model_matches_frozen_python_packet_and_refuses_current_denial() 
         );
     }
     let empty_page = model
-        .visible_outgoing("id.beta", None, 1, 104, 1, 100_000, 3, 2)
+        .visible_outgoing("id.beta", None, 1, 72, 1, 100_000, 1, 1)
         .unwrap();
     assert!(empty_page.edges.is_empty());
-    assert_eq!(empty_page.charged.bytes, 104);
+    assert_eq!(empty_page.charged.bytes, 72);
     assert_eq!(
         model
-            .visible_outgoing("id.beta", None, 1, 103, 1, 100_000, 3, 2)
+            .visible_outgoing("id.beta", None, 1, 71, 1, 100_000, 1, 1)
             .unwrap_err()
             .code,
         QueryErrorCode::BudgetExceeded
     );
-    for (probes, rows) in [(2, 2), (3, 1)] {
+    for (probes, rows) in [(0, 1), (1, 0)] {
         assert_eq!(
             model
-                .visible_outgoing("id.beta", None, 1, 104, 1, 100_000, probes, rows)
+                .visible_outgoing("id.beta", None, 1, 72, 1, 100_000, probes, rows)
                 .unwrap_err()
                 .code,
             QueryErrorCode::BudgetExceeded
