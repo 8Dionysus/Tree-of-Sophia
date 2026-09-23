@@ -1923,6 +1923,152 @@ mod tests {
     }
 
     #[test]
+    fn two_physical_generations_retain_old_selected_bytes_after_repack() {
+        let root = PrivateRoot::new();
+        let store = SegmentStore::initialize_empty(&root.0, b"private-domain", limits()).unwrap();
+        let exact = b"one historical version".to_vec();
+        let padding = b"different physical order".to_vec();
+        let mut old_exact = Cursor::new(exact.clone());
+        let mut old_padding = Cursor::new(padding.clone());
+        let old_receipts = store
+            .seal_segment(
+                b"old-placement",
+                &mut [
+                    FrameInput {
+                        binding: binding(0),
+                        declared_size: exact.len() as u64,
+                        declared_sha256: Digest256::of_bytes(&exact),
+                        reader: &mut old_exact,
+                    },
+                    FrameInput {
+                        binding: binding(1),
+                        declared_size: padding.len() as u64,
+                        declared_sha256: Digest256::of_bytes(&padding),
+                        reader: &mut old_padding,
+                    },
+                ],
+            )
+            .unwrap();
+        let mut new_padding = Cursor::new(padding.clone());
+        let mut new_exact = Cursor::new(exact.clone());
+        let new_receipts = store
+            .seal_segment(
+                b"new-placement",
+                &mut [
+                    FrameInput {
+                        binding: binding(1),
+                        declared_size: padding.len() as u64,
+                        declared_sha256: Digest256::of_bytes(&padding),
+                        reader: &mut new_padding,
+                    },
+                    FrameInput {
+                        binding: binding(0),
+                        declared_size: exact.len() as u64,
+                        declared_sha256: Digest256::of_bytes(&exact),
+                        reader: &mut new_exact,
+                    },
+                ],
+            )
+            .unwrap();
+        assert_ne!(old_receipts[0].placement(), new_receipts[1].placement());
+        assert_ne!(
+            old_receipts[0].segment_digest(),
+            new_receipts[1].segment_digest()
+        );
+        let shape = GenerationShapeLimits {
+            max_partitions: 1,
+            max_rows_per_partition: 2,
+            max_key_bytes: 64,
+            max_leaf_bytes: 4096,
+        };
+        let leaf_for = |receipt: &ByteDurabilityReceipt| PackedPlacementLeafV1 {
+            domain_digest: store.domain_digest(),
+            bounds: crate::generation::PartitionBoundsV1 {
+                lower_inclusive: None,
+                upper_exclusive: None,
+            },
+            rows: vec![crate::generation::PlacementGenerationRowV1 {
+                key: b"history/exact-version".to_vec(),
+                logical_digest: receipt.coordinate().sha256,
+                logical_length: receipt.coordinate().size_bytes,
+                placement: receipt.placement(),
+            }],
+        };
+        let old_leaf = leaf_for(&old_receipts[0]);
+        let new_leaf = leaf_for(&new_receipts[1]);
+        let old_digest = store.install_packed_leaf(&old_leaf, shape).unwrap();
+        let new_digest = store.install_packed_leaf(&new_leaf, shape).unwrap();
+        assert_ne!(old_digest, new_digest);
+        let catalog_for = |leaf: &PackedPlacementLeafV1, content_digest| {
+            let semantic = describe_placement_partition(
+                store.domain_digest(),
+                leaf.bounds.clone(),
+                leaf.rows.clone().into_iter().map(Ok),
+                shape,
+            )
+            .unwrap();
+            store
+                .verify_packed_catalog_shape(
+                    b"private-domain",
+                    b"history",
+                    b"all",
+                    Digest256::of_bytes(b"cmd-history-key"),
+                    KeyComparatorV1::RawUnsignedBytes,
+                    &[PackedPartitionRefV1 {
+                        semantic,
+                        content_digest,
+                    }],
+                    shape,
+                )
+                .unwrap()
+        };
+        let old_catalog = catalog_for(&old_leaf, old_digest);
+        let new_catalog = catalog_for(&new_leaf, new_digest);
+        assert_ne!(old_catalog, new_catalog);
+        drop(store);
+        let cold = SegmentStore::open_existing(&root.0, limits()).unwrap();
+        let old_reopened = cold.open_packed_leaf(old_digest, shape).unwrap();
+        let new_reopened = cold.open_packed_leaf(new_digest, shape).unwrap();
+        assert_eq!(
+            old_reopened.rows[0].logical_digest,
+            new_reopened.rows[0].logical_digest
+        );
+        let old_admitted = cold
+            .recover_placement(&old_reopened.rows[0].placement)
+            .unwrap();
+        let new_admitted = cold
+            .recover_placement(&new_reopened.rows[0].placement)
+            .unwrap();
+        for receipt in [&new_admitted, &old_admitted] {
+            let mut selected = Vec::new();
+            cold.read_selected(receipt, 64, &mut selected).unwrap();
+            assert_eq!(selected, exact);
+        }
+        let new_segment = root
+            .0
+            .join("segments")
+            .join(new_admitted.segment_digest().to_hex());
+        OpenOptions::new()
+            .write(true)
+            .open(new_segment)
+            .unwrap()
+            .write_all(b"broken!!")
+            .unwrap();
+        let mut refused = Vec::new();
+        assert_eq!(
+            cold.read_selected(&new_admitted, 64, &mut refused)
+                .unwrap_err()
+                .code,
+            Code::CorruptBytes
+        );
+        assert!(refused.is_empty());
+        let mut retained_old = Vec::new();
+        cold.read_selected(&old_admitted, 64, &mut retained_old)
+            .unwrap();
+        assert_eq!(retained_old, exact);
+    }
+
+    #[test]
     fn verified_guard_excludes_same_process_abort_until_commit_decision() {
         let root = PrivateRoot::new();
         let store = SegmentStore::initialize_empty(&root.0, b"private-domain", limits()).unwrap();
