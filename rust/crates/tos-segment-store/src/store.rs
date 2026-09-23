@@ -1492,6 +1492,16 @@ mod tests {
             cold.recover_attempt(b"attempt-7").unwrap(),
             Some(AttemptRecovery::Aborted { fence_epoch: 2, .. })
         ));
+        let mut intent = OpenOptions::new()
+            .write(true)
+            .open(root.0.join("attempts").join(attempt_name(b"attempt-7")))
+            .unwrap();
+        intent.write_all(b"X").unwrap();
+        intent.sync_all().unwrap();
+        assert_eq!(
+            cold.recover_attempt(b"attempt-7").unwrap_err().code,
+            Code::InvalidReceipt
+        );
     }
 
     #[test]
@@ -1637,6 +1647,10 @@ mod tests {
 
         let restored = SegmentStore::open_existing(&backup_root.0, limits()).unwrap();
         let recovered = restored.recover_placement(&placement).unwrap();
+        assert!(matches!(
+            restored.recover_attempt(b"backup-prepare").unwrap(),
+            Some(AttemptRecovery::Sealed { .. })
+        ));
         let mut exact = Vec::new();
         restored
             .read_selected(&recovered, bytes.len() as u64, &mut exact)
