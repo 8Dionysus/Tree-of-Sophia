@@ -188,6 +188,20 @@ jobs:
     if: ${{ needs.plan.outputs.rust == 'true' }}
     name: Rust Workspace, Reader and WebAssembly Host
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16.14
+        env:
+          POSTGRES_DB: tos_cmd_lab
+          POSTGRES_USER: tos_cmd_lab
+          POSTGRES_PASSWORD: synthetic_lab_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U tos_cmd_lab -d tos_cmd_lab"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - name: Checkout Rust sources and validation route
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
@@ -227,6 +241,13 @@ jobs:
           CARGO_TARGET_DIR: ${{ runner.temp }}/cargo-target
           CARGO_BUILD_JOBS: "2"
         run: python scripts/validation_lanes.py --run rust_workspace
+      - name: Verify command transaction laboratory against PostgreSQL
+        env:
+          CARGO_HOME: ${{ runner.temp }}/cargo-home
+          CARGO_TARGET_DIR: ${{ runner.temp }}/cargo-target
+          CARGO_BUILD_JOBS: "2"
+          TOS_CMD_POSTGRES_URL: postgres://tos_cmd_lab:synthetic_lab_only@127.0.0.1:5432/tos_cmd_lab
+        run: cargo test -p tos-command --test postgres_lab --locked -- --nocapture
 
   required_gate:
     name: Repo Validation
