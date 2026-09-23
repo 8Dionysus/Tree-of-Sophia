@@ -6,14 +6,18 @@
 //! direct knowledge API's legacy default.
 
 mod search_mode;
+mod knowledge_envelope;
 
 pub use search_mode::{
     SearchMode, SearchSelectionError, SearchSelectionErrorCode, select_knowledge_search_mode_v1,
 };
+pub use knowledge_envelope::{
+    KnowledgeEnvelopeError, KnowledgeEnvelopeErrorCode, compact_knowledge_search_page_v1,
+};
 
 #[cfg(feature = "wasm")]
 mod wasm {
-    use super::select_knowledge_search_mode_v1;
+    use super::{compact_knowledge_search_page_v1, select_knowledge_search_mode_v1};
     use wasm_bindgen::prelude::*;
 
     /// Raw request JSON is parsed by the same Rust rule in native and WASM.
@@ -50,6 +54,29 @@ mod wasm {
                 mode: None,
                 error_code: Some(error.code.as_str().to_owned()),
                 minimum: error.minimum,
+            },
+        }
+    }
+
+    #[wasm_bindgen]
+    pub struct KnowledgeEnvelopeResult {
+        bytes: Vec<u8>,
+        error_code: Option<String>,
+    }
+
+    #[wasm_bindgen]
+    impl KnowledgeEnvelopeResult {
+        pub fn ok(&self) -> bool { self.error_code.is_none() }
+        pub fn bytes(&self) -> Vec<u8> { self.bytes.clone() }
+        pub fn error_code(&self) -> Option<String> { self.error_code.clone() }
+    }
+
+    #[wasm_bindgen]
+    pub fn compact_knowledge_search_page_wasm_v1(request_json: &[u8]) -> KnowledgeEnvelopeResult {
+        match compact_knowledge_search_page_v1(request_json) {
+            Ok(bytes) => KnowledgeEnvelopeResult { bytes, error_code: None },
+            Err(error) => KnowledgeEnvelopeResult {
+                bytes: Vec::new(), error_code: Some(error.code.as_str().to_owned()),
             },
         }
     }
