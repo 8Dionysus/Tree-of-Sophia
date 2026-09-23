@@ -222,6 +222,23 @@ fn pinned_claim_v2_display_batch_describe_prepare_apply_replay_and_revocation() 
     ));
 }
 
+#[test]
+fn pinned_claim_stream_requires_exactly_one_selected_claim() {
+    let request = include_bytes!("fixtures/source_forms_shadow/claim_v1/describe_request.json");
+    let absent = run_claim_command(input(b"", CLAIM_INITIAL, CLAIM_V1_OWNER, request));
+    assert_eq!(
+        absent.unwrap_err(),
+        ShadowError::Invalid("delegated Claim is not exactly once")
+    );
+    let mut duplicate = CLAIM_SOURCE.to_vec();
+    duplicate.extend_from_slice(CLAIM_SOURCE);
+    let repeated = run_claim_command(input(&duplicate, CLAIM_INITIAL, CLAIM_V1_OWNER, request));
+    assert_eq!(
+        repeated.unwrap_err(),
+        ShadowError::Invalid("delegated Claim is not exactly once")
+    );
+}
+
 fn input<'a>(
     source: &'a [u8],
     set: &'a [u8],

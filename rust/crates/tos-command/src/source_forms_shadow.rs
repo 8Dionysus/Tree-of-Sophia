@@ -1069,6 +1069,24 @@ pub fn run_work_command(input: WorkFormsInput<'_>) -> Result<WorkCommandShadow> 
 const CLAIM_CONTRACTS: &[u8] =
     include_bytes!("../tests/fixtures/source_forms_shadow/claim_v2/source_contracts.json");
 
+fn selected_claim(source_raw: &[u8], claim_id: &str) -> Result<JsonValue> {
+    if source_raw.len() > 1_048_576 {
+        return Err(ShadowError::Invalid("Claim stream byte budget"));
+    }
+    let source_text =
+        std::str::from_utf8(source_raw).map_err(|_| ShadowError::Invalid("Claim stream UTF-8"))?;
+    let mut selected = None;
+    for line in source_text.lines().filter(|line| !line.trim().is_empty()) {
+        let row = parse(line.as_bytes(), 1_048_576)?;
+        if text(&row, "claim_id")? == claim_id {
+            if selected.replace(row).is_some() {
+                return Err(ShadowError::Invalid("delegated Claim is not exactly once"));
+            }
+        }
+    }
+    selected.ok_or(ShadowError::Invalid("delegated Claim is not exactly once"))
+}
+
 fn claim_fields(source: &JsonValue) -> Result<Vec<WorkField>> {
     if text(source, "schema_version")? != "tos_source_relation_claim_v1"
         || text(source, "claim_id")? != "tos.claim.nietzsche-letter-705.addressee"
@@ -1389,13 +1407,12 @@ pub fn run_claim_command(input: WorkFormsInput<'_>) -> Result<WorkCommandShadow>
             "Claim shadow needs explicit UTC instant",
         ));
     }
+    let claim = selected_claim(input.source_raw, "tos.claim.nietzsche-letter-705.addressee")?;
     if Digest256::of_bytes(input.source_raw).to_prefixed() != CLAIM_SOURCE_RAW_SHA {
         return Err(ShadowError::Unsupported(
             "other Claim source profile snapshot",
         ));
     }
-    let source = parse(input.source_raw, 16_777_216)?;
-    let claim = source;
     let fields = claim_fields(&claim)?;
     let config = parse(input.owner_config_raw, 1_048_576)?;
     let allowed = check_claim_owner(input, &config)?;
