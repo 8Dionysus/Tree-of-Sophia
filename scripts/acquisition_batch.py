@@ -773,9 +773,9 @@ def _verify_prepared_item_bindings(context: BatchContext, output: Path) -> None:
                 f"prepared Item record identity differs from selection: {item_ref}"
             )
         item_record_manifest_ref = item_record.get("item_manifest_ref")
-        if item_record_manifest_ref is not None and item_record_manifest_ref != item_manifest_ref:
+        if item_record_manifest_ref != item_manifest_ref:
             raise AcquisitionBatchError(
-                f"prepared Item record manifest binding differs: {item_ref}"
+                f"prepared Item record does not bind the selected manifest: {item_ref}"
             )
 
         item_manifest = _load_json_bytes(

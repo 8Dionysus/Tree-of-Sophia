@@ -127,7 +127,17 @@ class AcquisitionBatchTests(unittest.TestCase):
             ).encode()
             records = []
             for ref, kind, body in (
-                (item_record_ref, "item", json.dumps({"item_id": item_ref}).encode()),
+                (
+                    item_record_ref,
+                    "item",
+                    json.dumps(
+                        {
+                            "record_type": "item",
+                            "item_id": item_ref,
+                            "item_manifest_ref": item_manifest_ref,
+                        }
+                    ).encode(),
+                ),
                 (item_manifest_ref, "manifest", item_manifest_body),
                 (rights_ref, "rights", rights_body),
                 (provenance_ref, "provenance", provenance_body),
@@ -764,6 +774,39 @@ class AcquisitionBatchTests(unittest.TestCase):
                 fetcher=lambda payload: fetch_calls.append(payload["file_ref"]) or b"",
             )
         self.assertEqual([], fetch_calls)
+
+    def test_item_record_must_bind_selected_manifest_before_fetch(self) -> None:
+        _fetches, _manifest_sha = self._write_manifest(count=1)
+        manifest = json.loads(self.manifest_path.read_text(encoding="utf-8"))
+        selection = manifest["selection"][0]
+        item_record = next(record for record in selection["records"] if record["kind"] == "item")
+        item_ref = selection["item_ref"]
+        item_record_path = self.metadata / item_record["ref"]
+        item_record_path.write_bytes(
+            json.dumps({"record_type": "item", "item_id": item_ref}).encode()
+        )
+        item_record["sha256"] = hashlib.sha256(item_record_path.read_bytes()).hexdigest()
+        self.manifest_path.write_bytes(
+            (json.dumps(manifest, ensure_ascii=False, indent=2) + "\n").encode()
+        )
+        manifest_sha = hashlib.sha256(self.manifest_path.read_bytes()).hexdigest()
+        fetch_calls: list[str] = []
+
+        with self.assertRaisesRegex(
+            acquisition.AcquisitionBatchError,
+            "Item record does not bind the selected manifest",
+        ):
+            acquisition.acquire_batch(
+                manifest_path=self.manifest_path,
+                metadata_root=self.metadata,
+                output_root=self.output,
+                expected_manifest_sha256=manifest_sha,
+                fetcher=lambda payload: fetch_calls.append(payload["file_ref"])
+                or _fetches[payload["file_ref"]],
+            )
+
+        self.assertEqual([], fetch_calls)
+        self.assertFalse(list((self.output / "receipts").glob("handoff-*.json")))
 
     def test_selected_rights_mutation_rejects_resume_and_handoff(self) -> None:
         _fetches, manifest_sha = self._write_manifest(count=1)

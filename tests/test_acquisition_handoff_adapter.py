@@ -977,6 +977,43 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
         ):
             adapter._verify_item_payload_bindings(context, self.acquisition_root)
 
+    def test_shared_verifier_rejects_item_without_manifest_binding(self) -> None:
+        _fetches, _manifest_sha, _item_root, _records = self._write_manifest(
+            base_revision="a" * 64,
+        )
+        manifest = json.loads(self.manifest_path.read_text(encoding="utf-8"))
+        selection = manifest["selection"][0]
+        item_record = next(record for record in selection["records"] if record["kind"] == "item")
+        item_path = self.metadata / item_record["ref"]
+        item_value = json.loads(item_path.read_text(encoding="utf-8"))
+        item_value.pop("item_manifest_ref")
+        item_path.write_bytes(canonical(item_value))
+        item_record["sha256"] = hashlib.sha256(item_path.read_bytes()).hexdigest()
+        self.manifest_path.write_bytes(canonical(manifest))
+        manifest_sha = hashlib.sha256(self.manifest_path.read_bytes()).hexdigest()
+
+        with self.assertRaisesRegex(
+            acquisition.AcquisitionBatchError,
+            "Item record does not bind the selected manifest",
+        ):
+            acquisition.prepare_batch(
+                manifest_path=self.manifest_path,
+                metadata_root=self.metadata,
+                output_root=self.acquisition_root,
+                expected_manifest_sha256=manifest_sha,
+            )
+
+        context = acquisition.load_manifest(
+            self.manifest_path,
+            repo_root=ROOT,
+            expected_sha256=manifest_sha,
+        )
+        with self.assertRaisesRegex(
+            adapter.HandoffAdapterError,
+            "Item record does not bind the selected manifest",
+        ):
+            adapter._verify_item_payload_bindings(context, self.acquisition_root)
+
     def test_item_provenance_binding_uses_manifest_ref_after_record_reordering(self) -> None:
         fetches, _unused_manifest_sha, item_root, records = self._write_manifest(base_revision="0" * 64)
         base_revision = self._write_accepted_base(records)
