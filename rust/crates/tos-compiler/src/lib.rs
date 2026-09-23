@@ -6,6 +6,8 @@ pub mod d1;
 pub mod d1_prepared_pair;
 mod knowledge_catalog_index;
 mod knowledge_full;
+#[cfg(all(not(target_arch = "wasm32"), any(test, feature = "test-fixture")))]
+pub mod knowledge_full_fixture;
 mod knowledge_indexed;
 mod knowledge_inherited_views;
 pub mod knowledge_normalization;
