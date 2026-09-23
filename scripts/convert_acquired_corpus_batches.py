@@ -625,7 +625,7 @@ def _iter_snapshot_file_entries(snapshot: Path) -> Iterator[dict[str, Any]]:
 def _accepted_index(
     snapshot: Path,
     *,
-    include_entries: bool = False,
+    include_entries_for: set[str] | None = None,
 ) -> tuple[
     set[str],
     dict[str, dict[str, Any]],
@@ -647,7 +647,7 @@ def _accepted_index(
         if not isinstance(path, str):
             raise ConversionError("accepted snapshot file entry has no path")
         paths.add(path)
-        if include_entries:
+        if include_entries_for is not None and path in include_entries_for:
             accepted_entries[path] = {
                 key: entry.get(key)
                 for key in ("path", "sha256", "size_bytes", "mode")
@@ -663,10 +663,11 @@ def _accepted_index(
         raise ConversionError("accepted snapshot is missing a relation claim object")
     if topology_event_entry is None:
         raise ConversionError("accepted snapshot is missing the topology provenance event")
-    if include_entries:
+    if include_entries_for is not None:
         # Keep the historical four-value API for callers which only need the
-        # topology indexes.  The direct handoff route opts into this compact
-        # path-to-digest map while streaming the same snapshot exactly once.
+        # topology indexes. The direct handoff route retains entries only for
+        # source refs selected by its already verified handoffs while streaming
+        # the same snapshot exactly once.
         return paths, selected, record_entries, topology_event_entry, accepted_entries  # type: ignore[return-value]
     return paths, selected, record_entries, topology_event_entry
 
@@ -1268,21 +1269,35 @@ def _refresh_topology_event(
             raise ConversionError(f"accepted topology event input has invalid digest: {ref}")
         input_map[ref] = item
 
+    original_outputs = event.get("outputs")
+    if not isinstance(original_outputs, list):
+        raise ConversionError("accepted topology event outputs are not a list")
+    output_map: dict[str, dict[str, Any]] = {}
+    for item in original_outputs:
+        if not isinstance(item, dict) or not isinstance(item.get("ref"), str):
+            raise ConversionError("accepted topology event has malformed output")
+        ref = item["ref"]
+        if ref in output_map:
+            raise ConversionError(f"accepted topology event repeats output ref: {ref}")
+        digest = item.get("sha256")
+        if not isinstance(digest, str) or _HEX64.fullmatch(digest) is None:
+            raise ConversionError(f"topology event output has invalid digest: {ref}")
+        output_map[ref] = item
+
     all_claims: list[dict[str, Any]] = []
-    outputs: list[dict[str, Any]] = []
     for claim_path, _new_rows in sorted(claim_rows.items()):
+        if not _new_rows:
+            continue
         route = _topology_route(claim_path)
         candidate_path = metadata_root / claim_path
         _regular(candidate_path, label="candidate topology claim file")
         claims = _read_jsonl(candidate_path, label="candidate topology claims")
         all_claims.extend(claims)
-        outputs.append(
-            {
-                "ref": claim_path,
-                "role": route[3],
-                "sha256": _sha256(candidate_path),
-            }
-        )
+        output_map[claim_path] = {
+            "ref": claim_path,
+            "role": route[3],
+            "sha256": _sha256(candidate_path),
+        }
         for claim in claims:
             evidence_refs = claim.get("evidence_refs")
             if not isinstance(evidence_refs, list):
@@ -1308,8 +1323,24 @@ def _refresh_topology_event(
                     raise ConversionError(f"topology event input has no role: {relative}")
                 input_map[relative] = {"ref": relative, "role": role, "sha256": digest}
 
+    changed_claim_paths = {
+        claim_path for claim_path, rows in claim_rows.items() if rows
+    }
+    for claim_path, output in sorted(output_map.items()):
+        if (
+            claim_path in changed_claim_paths
+            or claim_path.rsplit("/", 1)[-1] not in TOPOLOGY_RELATION_ROUTES
+        ):
+            continue
+        digest = output["sha256"]
+        base_claim_path = store_root / "objects" / digest
+        _regular(base_claim_path, label="accepted topology claim object")
+        if _sha256(base_claim_path) != digest:
+            raise ConversionError(f"accepted topology claim digest mismatch: {claim_path}")
+        all_claims.extend(_read_jsonl(base_claim_path, label="accepted topology claims"))
+
     event["inputs"] = [input_map[key] for key in sorted(input_map)]
-    event["outputs"] = outputs
+    event["outputs"] = [output_map[key] for key in sorted(output_map)]
     method = event.get("method")
     if not isinstance(method, dict):
         raise ConversionError("accepted topology event method is not an object")
@@ -1620,7 +1651,16 @@ def convert(
         if batch_selection is not None and acquisition_root is None:
             raise ConversionError("batch selection requires an acquisition root")
         specs, selection = _load_batch_selection(batch_selection)
-    accepted_index = _accepted_index(snapshot, include_entries=bool(direct_handoffs))
+    selected_handoff_refs = (
+        {
+            row["ref"]
+            for handoff in direct_handoffs
+            for row in handoff.source_records
+        }
+        if direct_handoffs
+        else None
+    )
+    accepted_index = _accepted_index(snapshot, include_entries_for=selected_handoff_refs)
     if direct_handoffs:
         accepted_paths, claim_entries, record_entries, topology_event_entry, accepted_entries = accepted_index
     else:

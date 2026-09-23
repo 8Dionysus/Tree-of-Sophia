@@ -9,8 +9,8 @@ compares path references in changed metadata with the accepted base so an
 acquisition cannot silently introduce a new external history dependency.
 
 This tool performs no materialization, source validation, admission, rights
-decision, or publication.  Every historical pair is explicit on the command
-line.  Omitting a pair is an error rather than an implicit empty selection.
+decision, or publication. Every historical pair is explicit on the command
+line. Omitting a pair is an error rather than an implicit empty selection.
 """
 from __future__ import annotations
 
@@ -37,8 +37,13 @@ EXTERNAL_ROOTS = frozenset({
     ".agents", ".github", "access", "docs", "evals", "kag", "manifests",
     "mechanics", "memo", "quests", "scripts", "stats", "tests",
 })
+_EXTERNAL_ROOT_PATTERN = b"(?:" + b"|".join(
+    re.escape(root.encode("ascii")) for root in sorted(EXTERNAL_ROOTS)
+) + b")"
+_JSON_STRING_TAIL = rb'(?:[^"\\\x00-\x1f]|\\(?:["\\/bfnrt]|u[0-9a-fA-F]{4}))*'
 _QUOTED_PATH = re.compile(
-    rb'"((?:[A-Za-z0-9_.-]+/){1,24}[A-Za-z0-9_.@+(),-]+(?:#[^"\\]*)?)"'
+    rb'"(' + _EXTERNAL_ROOT_PATTERN
+    + rb'(?:/|\\/|\\u002[fF])' + _JSON_STRING_TAIL + rb')"'
 )
 
 
@@ -151,6 +156,26 @@ def _iter_snapshot_files(snapshot: Path) -> Iterator[dict[str, Any]]:
             mapped.close()
 
 
+def _selected_snapshot_entries(
+    snapshot: Path, selected_paths: set[str]
+) -> tuple[int, dict[str, dict[str, Any]]]:
+    """Stream the base snapshot, retaining only entries needed by updates."""
+
+    selected: dict[str, dict[str, Any]] = {}
+    scanned = 0
+    for entry in _iter_snapshot_files(snapshot):
+        scanned += 1
+        relative = entry.get("path")
+        if not isinstance(relative, str):
+            raise PreflightError("accepted snapshot entry has no path")
+        if relative not in selected_paths:
+            continue
+        if relative in selected:
+            raise PreflightError(f"accepted snapshot repeats path: {relative}")
+        selected[relative] = entry
+    return scanned, selected
+
+
 def _safe_digest(value: Any, *, label: str) -> str:
     if not isinstance(value, str) or HEX64.fullmatch(value) is None:
         raise PreflightError(f"{label} is not a lowercase SHA-256")
@@ -240,9 +265,10 @@ def _external_path(value: str) -> str | None:
     return candidate
 
 
-def _external_refs(path: Path) -> set[str]:
+def _external_refs(path: Path, *, relative_ref: str | None = None) -> set[str]:
     """Extract quoted repository paths without trusting a metadata schema."""
-    if path.suffix not in {".json", ".jsonl"}:
+    metadata_path = Path(relative_ref) if relative_ref is not None else path
+    if metadata_path.suffix not in {".json", ".jsonl"}:
         return set()
     found: set[str] = set()
     # Keep enough bytes to cover a long path split between read blocks.  The
@@ -254,8 +280,10 @@ def _external_refs(path: Path) -> set[str]:
             block = carry + block
             for match in _QUOTED_PATH.finditer(block):
                 try:
-                    value = match.group(1).decode("utf-8")
-                except UnicodeDecodeError:
+                    value = json.loads(b'"' + match.group(1) + b'"')
+                except (UnicodeDecodeError, json.JSONDecodeError):
+                    continue
+                if not isinstance(value, str):
                     continue
                 ref = _external_path(value)
                 if ref:
@@ -265,8 +293,10 @@ def _external_refs(path: Path) -> set[str]:
     # this helper correct for a file whose last value ends at the boundary.
     for match in _QUOTED_PATH.finditer(carry):
         try:
-            value = match.group(1).decode("utf-8")
-        except UnicodeDecodeError:
+            value = json.loads(b'"' + match.group(1) + b'"')
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            continue
+        if not isinstance(value, str):
             continue
         ref = _external_path(value)
         if ref:
@@ -322,16 +352,7 @@ def run_preflight(*, store_root: Path, base_revision: str, batch_path: Path,
     pointer_matches = pointer_current == base_revision
     snapshot = store_root / "revisions" / base_revision / "snapshot.json"
     snapshot_info = _regular(snapshot, label="accepted base snapshot")
-    base_entries: dict[str, dict[str, Any]] = {}
-    scanned = 0
-    for entry in _iter_snapshot_files(snapshot):
-        scanned += 1
-        relative = entry.get("path")
-        if not isinstance(relative, str):
-            raise PreflightError("accepted snapshot entry has no path")
-        if relative in base_entries:
-            raise PreflightError(f"accepted snapshot repeats path: {relative}")
-        base_entries[relative] = entry
+    scanned, base_entries = _selected_snapshot_entries(snapshot, set(updates))
 
     capture_results: list[dict[str, Any]] = []
     all_rows: list[dict[str, Any]] = []
@@ -403,12 +424,12 @@ def run_preflight(*, store_root: Path, base_revision: str, batch_path: Path,
     candidate_external_total: set[str] = set()
     for relative, update in sorted(updates.items()):
         candidate_path = update["source"]
-        candidate_refs = _external_refs(candidate_path)
+        candidate_refs = _external_refs(candidate_path, relative_ref=relative)
         base_refs: set[str] = set()
         previous = base_entries.get(relative)
         if previous is not None:
             base_path = _base_source_path(store_root, previous)
-            base_refs = _external_refs(base_path)
+            base_refs = _external_refs(base_path, relative_ref=relative)
         added = sorted(candidate_refs - base_refs)
         removed = sorted(base_refs - candidate_refs)
         if added:
@@ -420,7 +441,9 @@ def run_preflight(*, store_root: Path, base_revision: str, batch_path: Path,
 
     evidence_paths = set(evidence_by_path)
     added_refs = sorted(set().union(*(set(rows) for rows in added_external.values())) if added_external else set())
-    uncovered = sorted(ref for ref in added_refs if ref not in evidence_paths)
+    candidate_refs = sorted(candidate_external_total)
+    uncovered_added = sorted(ref for ref in added_refs if ref not in evidence_paths)
+    uncovered_candidate = sorted(ref for ref in candidate_refs if ref not in evidence_paths)
     issues: list[str] = []
     if not pointer_matches:
         issues.append("accepted pointer does not equal requested base")
@@ -428,8 +451,8 @@ def run_preflight(*, store_root: Path, base_revision: str, batch_path: Path,
         issues.append("historical evidence root is incomplete or changed")
     if validator.sha256 != batch.get("validator_sha256"):
         issues.append("batch validator identity does not match selected software and evidence")
-    if uncovered:
-        issues.append("changed metadata adds external references outside selected historical evidence")
+    if uncovered_candidate:
+        issues.append("candidate metadata references external paths outside selected historical evidence")
 
     return {
         "schema_version": SCHEMA,
@@ -473,11 +496,13 @@ def run_preflight(*, store_root: Path, base_revision: str, batch_path: Path,
             "files_with_added_refs": added_external,
             "files_with_removed_refs": removed_external,
             "base_external_refs": sorted(base_external_total),
-            "candidate_external_refs": sorted(candidate_external_total),
+            "candidate_external_refs": candidate_refs,
             "added_external_refs": added_refs,
             "added_refs_covered_by_selected_evidence": sorted(ref for ref in added_refs if ref in evidence_paths),
-            "added_refs_without_selected_evidence": uncovered,
-            "new_metadata_adds_uncovered_external_refs": bool(uncovered),
+            "added_refs_without_selected_evidence": uncovered_added,
+            "candidate_refs_without_selected_evidence": uncovered_candidate,
+            "new_metadata_adds_uncovered_external_refs": bool(uncovered_added),
+            "candidate_metadata_has_uncovered_external_refs": bool(uncovered_candidate),
         },
         "materialization_performed": False,
         "full_validation_performed": False,

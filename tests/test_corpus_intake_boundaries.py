@@ -49,6 +49,56 @@ class SnapshotReaderBoundaryTests(unittest.TestCase):
                 with self.subTest(reader=reader.__module__ + "." + reader.__name__):
                     self.assertEqual(list(reader(snapshot)), [entry])
 
+    def test_direct_accepted_index_retains_only_selected_source_entries(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="tos-accepted-index-") as raw:
+            root = Path(raw)
+            entries = [
+                {
+                    "path": (
+                        "ToS/source-witnesses/relations/"
+                        f"{route}/{suffix}"
+                    ),
+                    "sha256": str(index) * 64,
+                    "size_bytes": index,
+                    "mode": 0o644,
+                }
+                for index, (suffix, route) in enumerate(converter.CLAIM_SUFFIXES.items(), 1)
+            ]
+            entries.extend(
+                [
+                    {
+                        "path": converter.TOPOLOGY_EVENT_PATH,
+                        "sha256": "a" * 64,
+                        "size_bytes": 1,
+                        "mode": 0o644,
+                    },
+                    {
+                        "path": "ToS/source-witnesses/works/fixture/work.json",
+                        "sha256": "b" * 64,
+                        "size_bytes": 1,
+                        "mode": 0o644,
+                    },
+                    {
+                        "path": "ToS/source-witnesses/works/other/work.json",
+                        "sha256": "c" * 64,
+                        "size_bytes": 1,
+                        "mode": 0o644,
+                    },
+                ]
+            )
+            snapshot = root / "snapshot.json"
+            snapshot.write_bytes(_canonical({"files": entries}))
+            selected_ref = "ToS/source-witnesses/works/fixture/work.json"
+
+            paths, claims, records, _event, accepted_entries = converter._accepted_index(
+                snapshot, include_entries_for={selected_ref}
+            )
+
+            self.assertEqual({selected_ref}, set(accepted_entries))
+            self.assertEqual(set(entries[index]["path"] for index in range(3)), set(claims))
+            self.assertIn("ToS/source-witnesses/works/other/work.json", records)
+            self.assertEqual(len(entries), len(paths))
+
 
 class HistoricalContextBoundaryTests(unittest.TestCase):
     BASE = "e6b296b17d9e91bc444caf020b976f6a0e5e6f026f1992474bfa2977420407ea"
@@ -64,6 +114,141 @@ class HistoricalContextBoundaryTests(unittest.TestCase):
                 historical_capture=[Path("capture")],
                 historical_root=[],
             )
+
+    def test_historical_refs_accept_unicode_and_json_escaped_paths(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="tos-history-unicode-") as raw:
+            metadata = Path(raw) / "metadata.json"
+            metadata.write_text(
+                json.dumps(
+                    {
+                        "raw": "docs/пример.md",
+                        "escaped": "scripts/проверка.py",
+                        "non_history": "https://example.test/пример",
+                    },
+                    ensure_ascii=True,
+                ),
+                encoding="utf-8",
+            )
+
+            refs = history_preflight._external_refs(metadata)
+
+            self.assertEqual({"docs/пример.md", "scripts/проверка.py"}, refs)
+
+    def test_historical_preflight_rejects_uncovered_retained_refs(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="tos-history-retained-") as raw:
+            root = Path(raw)
+            store = root / "store"
+            objects = store / "objects"
+            revision = store / "revisions" / self.BASE
+            objects.mkdir(parents=True)
+            revision.mkdir(parents=True)
+            input_root = root / "input"
+            input_root.mkdir()
+            grammar_root = root / "grammar"
+            grammar_root.mkdir()
+            software_root = root / "software"
+            software_root.mkdir()
+            evidence_root = root / "history"
+            evidence_root.mkdir()
+            capture = root / "capture"
+            capture.mkdir()
+            (capture / "members.jsonl").write_bytes(b"")
+            capture_manifest = {"schema_version": "fixture"}
+            (capture / "capture.json").write_bytes(_canonical(capture_manifest))
+
+            relative = "ToS/source-witnesses/fixture/record.json"
+            metadata_bytes = _canonical({"historical_ref": "docs/retained.md"})
+            object_digest = hashlib.sha256(metadata_bytes).hexdigest()
+            (objects / object_digest).write_bytes(metadata_bytes)
+            (revision / "snapshot.json").write_bytes(
+                _canonical(
+                    {
+                        "files": [
+                            {
+                                "path": relative,
+                                "sha256": object_digest,
+                                "size_bytes": len(metadata_bytes),
+                                "mode": 0o644,
+                            }
+                        ]
+                    }
+                )
+            )
+            (store / "current.json").write_bytes(_canonical({"current": self.BASE}))
+            candidate = input_root / "candidate.json"
+            candidate.write_bytes(metadata_bytes)
+            batch_path = root / "batch.json"
+            batch_path.write_bytes(b"fixture batch\n")
+            validator_sha = "d" * 64
+            batch = {
+                "schema_version": "tos_corpus_batch_v1",
+                "base_revision": self.BASE,
+                "validator_sha256": validator_sha,
+            }
+
+            class Validator:
+                sha256 = validator_sha
+                grammar_sha256 = "e" * 64
+                evidence: list[dict[str, object]] = []
+
+                def __init__(self, _grammar: Path, **_kwargs: object) -> None:
+                    self._evidence_roots: dict[str, Path] = {}
+
+            def read_batch(_batch_path: Path, _input_root: Path):
+                return batch, {
+                    relative: {"source": candidate, "size_bytes": candidate.stat().st_size}
+                }, {}
+
+            def verify_capture(path: Path):
+                return json.loads((path / "capture.json").read_text(encoding="utf-8"))
+
+            def read_json(path: Path):
+                return json.loads(path.read_text(encoding="utf-8"))
+
+            with patch.object(
+                history_preflight,
+                "_load_program",
+                return_value=(
+                    read_batch,
+                    verify_capture,
+                    Validator,
+                    lambda value: value.startswith("ToS/"),
+                    lambda path: hashlib.sha256(path.read_bytes()).hexdigest(),
+                    read_json,
+                ),
+            ):
+                result = history_preflight.run_preflight(
+                    store_root=store,
+                    base_revision=self.BASE,
+                    batch_path=batch_path,
+                    input_root=input_root,
+                    grammar_root=grammar_root,
+                    software_root=software_root,
+                    historical_captures=[capture],
+                    historical_roots=[evidence_root],
+                )
+
+            self.assertFalse(result["ok"])
+            comparison = result["metadata_external_reference_comparison"]
+            self.assertEqual([], comparison["added_external_refs"])
+            self.assertEqual(["docs/retained.md"], comparison["candidate_refs_without_selected_evidence"])
+            self.assertTrue(comparison["candidate_metadata_has_uncovered_external_refs"])
+
+    def test_historical_preflight_retains_only_changed_snapshot_entries(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="tos-history-selected-entries-") as raw:
+            snapshot = Path(raw) / "snapshot.json"
+            snapshot.write_bytes(_canonical({"files": []}))
+            rows = [
+                {"path": f"ToS/source-witnesses/fixture/item-{index}.json"}
+                for index in range(50)
+            ]
+            with patch.object(history_preflight, "_iter_snapshot_files", return_value=iter(rows)):
+                scanned, retained = history_preflight._selected_snapshot_entries(
+                    snapshot, {rows[3]["path"], "not-in-base.json"}
+                )
+
+            self.assertEqual(50, scanned)
+            self.assertEqual({rows[3]["path"]}, set(retained))
 
     def test_grammar_preflight_omits_empty_context_and_forwards_pairs(self) -> None:
         with tempfile.TemporaryDirectory(prefix="tos-intake-context-") as raw:
@@ -177,6 +362,113 @@ class HistoricalContextBoundaryTests(unittest.TestCase):
                 historical_captures=[Path("capture")],
                 historical_roots=None,
             )
+
+
+class TopologyEventOutputTests(unittest.TestCase):
+    def test_refresh_preserves_unchanged_outputs_for_no_claims_and_subset(self) -> None:
+        predicates = {
+            "work-expression-claims.jsonl": "has_expression",
+            "expression-edition-claims.jsonl": "embodied_by",
+            "edition-item-claims.jsonl": "exemplified_by",
+        }
+        paths = {
+            suffix: f"ToS/source-witnesses/relations/{route}/{suffix}"
+            for suffix, route in converter.CLAIM_SUFFIXES.items()
+        }
+
+        for changed_suffix in (None, "work-expression-claims.jsonl"):
+            with self.subTest(changed_suffix=changed_suffix):
+                with tempfile.TemporaryDirectory(prefix="tos-topology-output-") as raw:
+                    root = Path(raw)
+                    store_root = root / "store"
+                    objects = store_root / "objects"
+                    objects.mkdir(parents=True)
+                    metadata_root = root / "metadata"
+                    metadata_root.mkdir()
+                    original_rows: dict[str, dict[str, object]] = {}
+                    original_outputs: list[dict[str, str]] = []
+                    for suffix, path in paths.items():
+                        row = {
+                            "claim_id": f"accepted.{suffix}",
+                            "predicate": predicates[suffix],
+                            "evidence_refs": [],
+                        }
+                        original_rows[path] = row
+                        body = _canonical(row)
+                        digest = hashlib.sha256(body).hexdigest()
+                        (objects / digest).write_bytes(body)
+                        original_outputs.append(
+                            {
+                                "ref": path,
+                                "role": converter._topology_route(path)[3],
+                                "sha256": digest,
+                            }
+                        )
+
+                    event = {
+                        "event_id": "tos.event.annotation.source-witness-bibliographic-topology.2026-07-31",
+                        "event_version": 4,
+                        "inputs": [],
+                        "outputs": original_outputs,
+                        "method": {"configuration": {"stale": True}},
+                    }
+                    event_body = _canonical(event)
+                    event_digest = hashlib.sha256(event_body).hexdigest()
+                    (objects / event_digest).write_bytes(event_body)
+                    selected_paths: dict[str, converter.SourceFile] = {}
+                    claim_rows: dict[str, list[dict[str, object]]] = {}
+                    expected_outputs = {row["ref"]: row for row in original_outputs}
+                    expected_counts = {predicate: 1 for predicate in predicates.values()}
+
+                    if changed_suffix is not None:
+                        changed_path = paths[changed_suffix]
+                        new_row = {
+                            "claim_id": "acquired.new-work-expression",
+                            "predicate": "has_expression",
+                            "evidence_refs": [],
+                        }
+                        destination = metadata_root / changed_path
+                        destination.parent.mkdir(parents=True)
+                        destination.write_bytes(
+                            _canonical(original_rows[changed_path]) + _canonical(new_row)
+                        )
+                        selected_paths[changed_path] = converter.SourceFile(
+                            changed_path, destination, "fixture"
+                        )
+                        claim_rows[changed_path] = [new_row]
+                        expected_outputs[changed_path] = {
+                            "ref": changed_path,
+                            "role": converter._topology_route(changed_path)[3],
+                            "sha256": hashlib.sha256(destination.read_bytes()).hexdigest(),
+                        }
+                        expected_counts["has_expression"] += 1
+
+                    converter._refresh_topology_event(
+                        store_root=store_root,
+                        metadata_root=metadata_root,
+                        accepted_event_entry={"sha256": event_digest},
+                        selected_paths=selected_paths,
+                        claim_rows=claim_rows,
+                        topology_ended_at=None,
+                    )
+                    candidate_event_path = metadata_root / converter.TOPOLOGY_EVENT_PATH
+                    candidate_event = json.loads(candidate_event_path.read_text(encoding="utf-8"))
+                    actual_outputs = {row["ref"]: row for row in candidate_event["outputs"]}
+
+                    self.assertEqual(expected_outputs, actual_outputs)
+                    configuration = candidate_event["method"]["configuration"]
+                    self.assertEqual(
+                        expected_counts["has_expression"],
+                        configuration["work_expression_claims_materialized"],
+                    )
+                    self.assertEqual(
+                        expected_counts["embodied_by"],
+                        configuration["expression_edition_claims_materialized"],
+                    )
+                    self.assertEqual(
+                        expected_counts["exemplified_by"],
+                        configuration["edition_item_claims_materialized"],
+                    )
 
 
 class DirectHandoffBoundaryTests(unittest.TestCase):
