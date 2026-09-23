@@ -725,6 +725,7 @@ impl<'a> KnowledgeStage<'a> {
         self.check(WritePhase::Sort)?;
         if self.selected_full {
             self.check(WritePhase::Finalize)?;
+            preflight_selected_vacuum(self.db(), &self.candidate, self.inode, self.limits)?;
             // Raw owner rows can contain nonpublic material and may never be
             // shipped inside a selected query model. All independent input
             // roots were checked above, while the selected seal is already
@@ -784,6 +785,46 @@ impl<'a> KnowledgeStage<'a> {
             sqlite_size_bytes,
         })
     }
+}
+
+/// VACUUM builds a second database while the current one is still present.
+/// Reserve two current-file equivalents in the declared private temp budget
+/// before dropping owner input or starting that rebuild. The host isolation
+/// guard remains responsible for enforcing the actual peak across temp,
+/// rollback, fallback paths and output files; this arithmetic is an early
+/// refusal, not a filesystem quota implementation.
+fn preflight_selected_vacuum(
+    db: &Connection,
+    candidate: &Path,
+    inode: (u64, u64),
+    limits: StageLimits,
+) -> Result<()> {
+    let page_count: i64 = db.query_row("PRAGMA page_count", [], |row| row.get(0))?;
+    let page_size: i64 = db.query_row("PRAGMA page_size", [], |row| row.get(0))?;
+    let (page_count, page_size) = (
+        u64::try_from(page_count).map_err(|_| Error::Invalid("selected page count"))?,
+        u64::try_from(page_size).map_err(|_| Error::Invalid("selected page size"))?,
+    );
+    if page_count == 0 || page_size == 0 {
+        return Err(Error::Invalid("selected SQLite page geometry"));
+    }
+    let database_bytes = page_count
+        .checked_mul(page_size)
+        .ok_or(Error::Budget("selected SQLite page bytes"))?;
+    let rebuild_reserve = database_bytes
+        .checked_mul(2)
+        .ok_or(Error::Budget("selected VACUUM rebuild reserve"))?;
+    let metadata = fs::symlink_metadata(candidate)?;
+    if !metadata.file_type().is_file()
+        || (metadata.dev(), metadata.ino()) != inode
+        || metadata.len() != database_bytes
+    {
+        return Err(Error::Invalid("selected SQLite file/page mismatch"));
+    }
+    if database_bytes > limits.sqlite.max_output_bytes || rebuild_reserve > limits.max_temp_bytes {
+        return Err(Error::Budget("selected VACUUM output/temp reserve"));
+    }
+    Ok(())
 }
 
 fn selected_table_closure(db: &Connection) -> Result<()> {
@@ -1327,6 +1368,39 @@ mod tests {
         );
         assert!(!denied.exists());
         fs::remove_dir_all(denied.parent().unwrap()).unwrap();
+    }
+
+    #[test]
+    fn selected_vacuum_refuses_unadmitted_rebuild_before_private_drop() {
+        let candidate = stage_path("vacuum-reserve");
+        let owner = Owner {
+            checks: AtomicUsize::new(0),
+        };
+        let quota = TestQuota {
+            calls: AtomicUsize::new(0),
+            deny: false,
+        };
+        let mut tight = limits();
+        tight.max_temp_bytes = 1;
+        let mut stage =
+            KnowledgeStage::create(&candidate, tight, exact_receipt(RAW_ROOT), &owner, &quota)
+                .unwrap();
+        stage
+            .ingest_input(InputRow {
+                source_graph: "fixture.graph",
+                collection: "fixture/raw",
+                id: "raw.1",
+                payload: b"raw",
+            })
+            .unwrap();
+        stage.mark_selected_full().unwrap();
+        let result = stage.finish();
+        assert!(matches!(
+            result,
+            Err(Error::Budget("selected VACUUM output/temp reserve"))
+        ));
+        assert!(!candidate.exists());
+        fs::remove_dir_all(candidate.parent().unwrap()).unwrap();
     }
 
     #[test]
