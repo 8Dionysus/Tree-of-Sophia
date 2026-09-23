@@ -1063,6 +1063,92 @@ class AcquisitionBatchTests(unittest.TestCase):
         self.assertEqual([], list(output_root.glob("receipts/handoff-*.json")))
         self.assertEqual([], list((output_root / "payload").rglob("*")))
 
+    def test_unbound_selected_metadata_kinds_are_rejected_before_fetch(self) -> None:
+        for kind in ("discovery", "rights", "provenance", "manifest"):
+            with self.subTest(kind=kind):
+                fetches, _manifest_sha = self._write_manifest(count=1)
+                manifest = json.loads(self.manifest_path.read_text(encoding="utf-8"))
+                selection = manifest["selection"][0]
+                extra_ref = (
+                    "ToS/source-witnesses/works/fixture/"
+                    f"unbound-{kind}-record.json"
+                )
+                extra_path = self.metadata / extra_ref
+                extra_path.parent.mkdir(parents=True, exist_ok=True)
+                extra_path.write_bytes(b'{"unvalidated":"selected bytes"}\n')
+                selection["records"].append(
+                    {
+                        "ref": extra_ref,
+                        "kind": kind,
+                        "sha256": hashlib.sha256(extra_path.read_bytes()).hexdigest(),
+                    }
+                )
+                manifest["provenance_delta"]["record_refs"] = sorted(
+                    record["ref"]
+                    for selected in manifest["selection"]
+                    for record in selected["records"]
+                )
+                self.manifest_path.write_text(
+                    json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+                    encoding="utf-8",
+                )
+                manifest_sha = hashlib.sha256(
+                    self.manifest_path.read_bytes()
+                ).hexdigest()
+
+                fetch_calls: list[str] = []
+                output_root = self.root / f"unbound-selected-{kind}"
+                with self.assertRaisesRegex(
+                    acquisition.AcquisitionBatchError,
+                    "selected metadata record is outside the validated Item/discovery closure",
+                ):
+                    acquisition.acquire_batch(
+                        manifest_path=self.manifest_path,
+                        metadata_root=self.metadata,
+                        output_root=output_root,
+                        expected_manifest_sha256=manifest_sha,
+                        fetcher=lambda payload: fetch_calls.append(payload["file_ref"])
+                        or fetches[payload["file_ref"]],
+                    )
+                self.assertEqual([], fetch_calls)
+                self.assertEqual(
+                    [], list(output_root.glob("receipts/handoff-*.json"))
+                )
+                self.assertEqual([], list((output_root / "payload").rglob("*")))
+
+    def test_item_companion_kind_must_match_its_validation_route(self) -> None:
+        fetches, _manifest_sha = self._write_manifest(count=1)
+        manifest = json.loads(self.manifest_path.read_text(encoding="utf-8"))
+        selection = manifest["selection"][0]
+        inventory_ref = f"{selection['item_root_ref']}/resource-inventory.json"
+        inventory_record = next(
+            row for row in selection["records"] if row["ref"] == inventory_ref
+        )
+        inventory_record["kind"] = "manifest"
+        self.manifest_path.write_text(
+            json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        manifest_sha = hashlib.sha256(self.manifest_path.read_bytes()).hexdigest()
+        fetch_calls: list[str] = []
+        output_root = self.root / "misclassified-item-companion"
+
+        with self.assertRaisesRegex(
+            acquisition.AcquisitionBatchError,
+            "Item manifest companion is not selected as discovery metadata",
+        ):
+            acquisition.acquire_batch(
+                manifest_path=self.manifest_path,
+                metadata_root=self.metadata,
+                output_root=output_root,
+                expected_manifest_sha256=manifest_sha,
+                fetcher=lambda payload: fetch_calls.append(payload["file_ref"])
+                or fetches[payload["file_ref"]],
+            )
+        self.assertEqual([], fetch_calls)
+        self.assertEqual([], list(output_root.glob("receipts/handoff-*.json")))
+        self.assertEqual([], list((output_root / "payload").rglob("*")))
+
     def test_selected_source_claim_carrier_uses_its_declared_profile_before_fetch(self) -> None:
         fetches, _manifest_sha = self._write_manifest(count=1)
         manifest = json.loads(self.manifest_path.read_text(encoding="utf-8"))
@@ -2312,6 +2398,29 @@ class AcquisitionBatchTests(unittest.TestCase):
         ):
             acquisition._journal_rows(journal)
 
+    def test_local_and_portable_jsonl_reject_invalid_utf8_as_route_errors(self) -> None:
+        readers = (
+            (
+                "acquisition journal",
+                lambda path: acquisition._journal_rows(path),
+            ),
+            (
+                "handoff fixity",
+                lambda path: acquisition._portable_jsonl_rows(
+                    path, label="handoff fixity"
+                ),
+            ),
+        )
+        for label, read_rows in readers:
+            with self.subTest(label=label):
+                path = self.root / f"{label.replace(' ', '-')}.jsonl"
+                path.write_bytes(b"\xff\n")
+                with self.assertRaisesRegex(
+                    acquisition.AcquisitionBatchError,
+                    f"{label} is not valid UTF-8",
+                ):
+                    read_rows(path)
+
     def test_acquisition_journal_attempt_must_be_a_nonnegative_integer(self) -> None:
         fetches, manifest_sha = self._write_manifest(count=1)
         acquisition.acquire_batch(
@@ -2492,6 +2601,35 @@ else:
         ):
             with acquisition._batch_execution_lock(hardlinked_output):
                 self.fail("hard-linked lock must not be acquired")
+
+    def test_batch_lock_rejects_path_replaced_after_acquiring_lock(self) -> None:
+        output = self.root / "replaced-lock-output"
+        lock_path = self.root / f".{output.name}.acquisition.lock"
+        moved_path = self.root / "moved-original-lock"
+        real_flock = acquisition.fcntl.flock
+        replaced = False
+        entered = False
+
+        def replace_after_lock(descriptor: int, operation: int) -> None:
+            nonlocal replaced
+            real_flock(descriptor, operation)
+            if operation == acquisition.fcntl.LOCK_EX and not replaced:
+                os.replace(lock_path, moved_path)
+                lock_path.write_text("replacement lock inode\n", encoding="utf-8")
+                replaced = True
+
+        with patch.object(acquisition.fcntl, "flock", side_effect=replace_after_lock):
+            with self.assertRaisesRegex(
+                acquisition.AcquisitionBatchError,
+                "batch lock pathname changed after acquiring lock",
+            ):
+                with acquisition._batch_execution_lock(output):
+                    entered = True
+
+        self.assertTrue(replaced)
+        self.assertFalse(entered)
+        self.assertTrue(lock_path.is_file())
+        self.assertTrue(moved_path.is_file())
 
     @unittest.skipUnless(hasattr(os, "mkfifo"), "POSIX FIFO boundary")
     def test_prepared_source_fifo_is_rejected_before_provider_fetch(self) -> None:

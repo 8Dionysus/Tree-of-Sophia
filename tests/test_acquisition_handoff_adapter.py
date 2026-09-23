@@ -51,7 +51,6 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
         *,
         base_revision: str,
         manifest_payload_matches: bool = True,
-        extra_manifest: bool = False,
         provenance_output_ref: str = "destination",
         provenance_output_sha256: str | None = None,
         provenance_rights_ref: str | None = None,
@@ -239,19 +238,6 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
             stream.write((json.dumps(inventory_event, sort_keys=True) + "\n").encode())
         provenance_record = next(record for record in records if record["ref"] == provenance_ref)
         provenance_record["sha256"] = hashlib.sha256(provenance_path.read_bytes()).hexdigest()
-        if extra_manifest:
-            extra_ref = f"{item_root}/batch-scope.json"
-            extra_body = b'{"scope":"fixture-batch"}\n'
-            extra_path = self.metadata / extra_ref
-            extra_path.parent.mkdir(parents=True, exist_ok=True)
-            extra_path.write_bytes(extra_body)
-            records.append(
-                {
-                    "ref": extra_ref,
-                    "kind": "manifest",
-                    "sha256": hashlib.sha256(extra_body).hexdigest(),
-                }
-            )
         manifest = {
             "$schema": "https://tree-of-sophia.local/ToS/contracts/acquisition-batch.schema.json",
             "schema_version": "tos_acquisition_batch_v1",
@@ -671,8 +657,13 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
         )
         replacement_fetches, replacement_sha, _item_root, _records = self._write_manifest(
             base_revision="a" * 64,
-            extra_manifest=True,
         )
+        replacement_manifest = json.loads(
+            self.manifest_path.read_text(encoding="utf-8")
+        )
+        replacement_manifest["batch_revision"] = 2
+        self.manifest_path.write_bytes(canonical(replacement_manifest))
+        replacement_sha = hashlib.sha256(self.manifest_path.read_bytes()).hexdigest()
         self.assertNotEqual(caller_selected_sha, replacement_sha)
         result = acquisition.acquire_batch(
             manifest_path=self.manifest_path,
@@ -816,10 +807,9 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
                 repo_root=ROOT,
             )
 
-    def test_shared_verifier_accepts_file_id_provenance_and_extra_manifest(self) -> None:
+    def test_shared_verifier_accepts_file_id_provenance(self) -> None:
         fetches, manifest_sha, _item_root, records = self._write_manifest(
             base_revision="a" * 64,
-            extra_manifest=True,
             provenance_output_ref="file",
         )
         result = acquisition.acquire_batch(
@@ -1294,7 +1284,6 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
     def test_shared_verifier_rejects_non_item_manifest_target(self) -> None:
         fetches, manifest_sha, item_root, _records = self._write_manifest(
             base_revision="a" * 64,
-            extra_manifest=True,
         )
         acquisition.acquire_batch(
             manifest_path=self.manifest_path,
@@ -1361,18 +1350,9 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
         base_revision = self._write_accepted_base(records)
         fetches, _manifest_sha, item_root, _records = self._write_manifest(base_revision=base_revision)
 
-        secondary_ref = f"{item_root}/provenance-secondary.jsonl"
-        secondary_body = b'{"kind":"unrelated-evidence"}\n'
-        secondary_path = self.metadata / secondary_ref
-        secondary_path.write_bytes(secondary_body)
-        secondary_record = {
-            "ref": secondary_ref,
-            "kind": "provenance",
-            "sha256": hashlib.sha256(secondary_body).hexdigest(),
-        }
         manifest = json.loads(self.manifest_path.read_text(encoding="utf-8"))
         selection = manifest["selection"][0]
-        selection["records"].insert(0, secondary_record)
+        selection["records"].reverse()
         manifest["provenance_delta"]["record_refs"] = sorted(
             record["ref"] for record in selection["records"]
         )
@@ -1400,7 +1380,7 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
         )
         self.assertEqual("candidate-not-admitted", adapted["status"])
         self.assertTrue(
-            (self.candidate / "source" / secondary_ref).is_file()
+            (self.candidate / "source" / f"{item_root}/provenance.jsonl").is_file()
         )
 
     def test_adapter_rejects_different_accepted_base_bytes(self) -> None:

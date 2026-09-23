@@ -820,6 +820,7 @@ def _verify_prepared_item_bindings(context: BatchContext, output: Path) -> None:
         item_ref = selection["item_ref"]
         item_root = selection["item_root_ref"]
         records = {record["ref"]: record for record in selection["records"]}
+        validated_record_refs: set[str] = set()
         for record in selection["records"]:
             kind = record["kind"]
             record_ref = record["ref"]
@@ -827,8 +828,9 @@ def _verify_prepared_item_bindings(context: BatchContext, output: Path) -> None:
                 if PurePosixPath(record_ref).name != "source-claims.jsonl":
                     raise AcquisitionBatchError(
                         f"selected Claim carrier must use source-claims.jsonl: {record_ref}"
-                    )
+                )
                 if record_ref in validated_claim_refs:
+                    validated_record_refs.add(record_ref)
                     continue
                 claim_path = _path_under(
                     source_root,
@@ -865,6 +867,7 @@ def _verify_prepared_item_bindings(context: BatchContext, output: Path) -> None:
                         f"selected source Claim carrier violates its profile: {record_ref}"
                     ) from exc
                 validated_claim_refs.add(record_ref)
+                validated_record_refs.add(record_ref)
                 continue
             if record_ref.startswith(f"{MATERIAL_DISCOVERY_RUN_ROOT}/"):
                 discovery_path = PurePosixPath(record_ref)
@@ -906,8 +909,13 @@ def _verify_prepared_item_bindings(context: BatchContext, output: Path) -> None:
                         "selected discovery record violates foundation semantics: "
                         f"{record_ref}: {discovery_issues[0]}"
                     )
+                validated_record_refs.add(record_ref)
                 continue
             if kind not in {"work", "expression", "edition"}:
+                if kind not in {"item", "rights", "provenance", "manifest", "discovery"}:
+                    raise AcquisitionBatchError(
+                        f"selected record kind has no validation route: {kind}: {record_ref}"
+                    )
                 continue
             record_path = _path_under(
                 source_root,
@@ -940,6 +948,7 @@ def _verify_prepared_item_bindings(context: BatchContext, output: Path) -> None:
                     f"selected corpus identity is bound to multiple records: {identity_ref}"
                 )
             batch_identity_refs[identity_ref] = record["ref"]
+            validated_record_refs.add(record_ref)
         item_manifest_ref = f"{item_root}/item.manifest.json"
         item_manifest_record = records.get(item_manifest_ref)
         if (
@@ -982,6 +991,7 @@ def _verify_prepared_item_bindings(context: BatchContext, output: Path) -> None:
             label="record",
             item_ref=item_ref,
         )
+        validated_record_refs.add(f"{item_root}/item.json")
 
         item_manifest = _load_json_bytes(
             item_manifest_path.read_bytes(), label="prepared Item manifest"
@@ -992,6 +1002,7 @@ def _verify_prepared_item_bindings(context: BatchContext, output: Path) -> None:
             label="manifest",
             item_ref=item_ref,
         )
+        validated_record_refs.add(item_manifest_ref)
         provenance_ref = item_manifest.get("provenance_ref")
         provenance_record = (
             records.get(provenance_ref) if isinstance(provenance_ref, str) else None
@@ -1013,9 +1024,22 @@ def _verify_prepared_item_bindings(context: BatchContext, output: Path) -> None:
             companion_record = (
                 records.get(companion_ref) if isinstance(companion_ref, str) else None
             )
-            if not isinstance(companion_record, dict):
+            if (
+                not isinstance(companion_record, dict)
+                or companion_record.get("kind") != "discovery"
+            ):
                 raise AcquisitionBatchError(
-                    f"Item manifest companion is not selected: {item_ref}: {field}"
+                    "Item manifest companion is not selected as discovery metadata: "
+                    f"{item_ref}: {field}"
+                )
+            expected_companion_ref = (
+                f"{item_root}/forensic-report.md"
+                if field == "forensic_report_ref"
+                else f"{item_root}/resource-inventory.json"
+            )
+            if companion_ref != expected_companion_ref:
+                raise AcquisitionBatchError(
+                    f"Item manifest {field} is outside the Item companion route: {item_ref}"
                 )
             companion_path = _path_under(
                 source_root, companion_ref, label=f"prepared Item {field}"
@@ -1025,11 +1049,27 @@ def _verify_prepared_item_bindings(context: BatchContext, output: Path) -> None:
                 raise SourceIntegrityError(
                     f"prepared Item {field} bytes differ: {item_ref}"
                 )
+            if field == "forensic_report_ref":
+                try:
+                    report_text = companion_path.read_text(encoding="utf-8")
+                except (OSError, UnicodeError) as exc:
+                    raise AcquisitionBatchError(
+                        f"Item forensic report is not UTF-8 text: {item_ref}"
+                    ) from exc
+                if "\x00" in report_text:
+                    raise AcquisitionBatchError(
+                        f"Item forensic report contains a NUL byte: {item_ref}"
+                    )
+            validated_record_refs.add(companion_ref)
         fixity_ref = f"{item_root}/fixity.sha256"
         fixity_record = records.get(fixity_ref)
-        if not isinstance(fixity_record, dict):
+        if (
+            not isinstance(fixity_record, dict)
+            or fixity_record.get("kind") != "discovery"
+        ):
             raise AcquisitionBatchError(
-                f"Item fixity companion is not selected: {item_ref}"
+                "Item fixity companion is not selected as discovery metadata: "
+                f"{item_ref}"
             )
         fixity_path = _path_under(
             source_root, fixity_ref, label="prepared Item fixity companion"
@@ -1037,6 +1077,7 @@ def _verify_prepared_item_bindings(context: BatchContext, output: Path) -> None:
         _regular_file(fixity_path, label="prepared Item fixity companion")
         if _sha256_file(fixity_path) != fixity_record["sha256"]:
             raise SourceIntegrityError(f"prepared Item fixity bytes differ: {item_ref}")
+        validated_record_refs.add(fixity_ref)
 
         manifest_by_file: dict[str, dict[str, Any]] = {}
         for payload in item_manifest["payload_files"]:
@@ -1108,6 +1149,7 @@ def _verify_prepared_item_bindings(context: BatchContext, output: Path) -> None:
             raise AcquisitionBatchError(
                 f"Item resource inventory does not close over manifest payloads: {item_ref}"
             )
+        validated_record_refs.add(inventory_ref)
 
         expected_fixity_lines = [
             f"{payload['sha256']}  {payload['relative_path']}"
@@ -1164,6 +1206,7 @@ def _verify_prepared_item_bindings(context: BatchContext, output: Path) -> None:
             raise AcquisitionBatchError(
                 f"Item rights scope does not cover selected Item and payloads: {item_ref}"
             )
+        validated_record_refs.add(rights_ref)
 
         provenance_path = _path_under(
             source_root, provenance_ref, label="prepared Item provenance"
@@ -1264,6 +1307,14 @@ def _verify_prepared_item_bindings(context: BatchContext, output: Path) -> None:
                 raise AcquisitionBatchError(
                     f"Item provenance does not bind acquired payload: {file_ref}"
                 )
+
+        validated_record_refs.add(provenance_ref)
+        unvalidated_refs = sorted(set(records) - validated_record_refs)
+        if unvalidated_refs:
+            raise AcquisitionBatchError(
+                "selected metadata record is outside the validated Item/discovery closure: "
+                + unvalidated_refs[0]
+            )
 
 
 def _verify_prepared_output(
@@ -1516,6 +1567,22 @@ def _batch_execution_lock(output: Path):
         except OSError as exc:
             raise AcquisitionBatchError(f"cannot lock batch output: {output}") from exc
         try:
+            path_info = os.stat(lock_path, follow_symlinks=False)
+        except OSError as exc:
+            raise AcquisitionBatchError(
+                f"batch lock pathname changed after acquiring lock: {lock_path}"
+            ) from exc
+        if (
+            not stat.S_ISREG(path_info.st_mode)
+            or path_info.st_dev != lock_info.st_dev
+            or path_info.st_ino != lock_info.st_ino
+            or path_info.st_uid != os.geteuid()
+            or path_info.st_nlink != 1
+        ):
+            raise AcquisitionBatchError(
+                f"batch lock pathname changed after acquiring lock: {lock_path}"
+            )
+        try:
             yield
         finally:
             fcntl.flock(descriptor, fcntl.LOCK_UN)
@@ -1647,6 +1714,10 @@ def _read_jsonl_rows(
                 if not isinstance(value, dict):
                     raise AcquisitionBatchError(f"{label} rows must be objects")
                 rows.append(value)
+    except UnicodeError as exc:
+        raise AcquisitionBatchError(
+            f"{label} is not valid UTF-8: {path}"
+        ) from exc
     except OSError as exc:
         if path.is_symlink():
             raise AcquisitionBatchError(f"{label} may not be a symlink: {path}") from exc
