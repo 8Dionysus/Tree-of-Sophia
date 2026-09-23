@@ -73,6 +73,41 @@ pub struct SegmentStore {
     inner: Arc<Inner>,
 }
 
+/// Process-local custody of the exact anchored store that a caller audits.
+/// The shared pin lock retains already sealed bytes against STO abort while
+/// the caller carries its audit through candidate installation and selection.
+/// A matching store ID or copied metadata cannot substitute for this handle;
+/// a restored root needs a fresh full physical audit and a new handle.
+#[derive(Clone, Debug)]
+pub struct AuditedStoreRoot {
+    inner: Arc<Inner>,
+    _pin_lock: Arc<File>,
+}
+
+impl PartialEq for AuditedStoreRoot {
+    fn eq(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.inner, &other.inner)
+    }
+}
+
+impl Eq for AuditedStoreRoot {}
+
+impl AuditedStoreRoot {
+    pub fn require_store(&self, store: &SegmentStore) -> Result<()> {
+        if !Arc::ptr_eq(&self.inner, &store.inner) {
+            return Err(SegmentError::new(
+                Code::InvalidReceipt,
+                "audited store root differs",
+            ));
+        }
+        Ok(())
+    }
+
+    pub fn require_installed(&self, installed: &InstalledGenerationV1) -> Result<()> {
+        self.require_store(&installed.store)
+    }
+}
+
 /// Only this crate can construct a verified receipt. Its field accessors are
 /// descriptive; passing copied fields to CMD is never sufficient admission.
 #[derive(Clone, Debug)]
@@ -349,6 +384,16 @@ impl SegmentStore {
     }
     pub fn custody_domain(&self) -> &[u8] {
         &self.inner.domain
+    }
+
+    /// Hold the exact anchored store through a caller's physical audit and
+    /// subsequent selection decision. This does not itself audit membership
+    /// or authorize disclosure.
+    pub fn hold_audit_root(&self) -> Result<AuditedStoreRoot> {
+        Ok(AuditedStoreRoot {
+            inner: self.inner.clone(),
+            _pin_lock: Arc::new(self.hold_generation_pin()?),
+        })
     }
 
     /// Install exact packed placement bytes by content digest. This is an
@@ -2552,6 +2597,42 @@ mod tests {
             Code::CorruptBytes
         );
         assert!(corrupted.coverage().is_none());
+    }
+
+    #[test]
+    fn audited_root_guard_rejects_other_store_and_incomplete_same_id_copy() {
+        let root = PrivateRoot::new();
+        let store = SegmentStore::initialize_empty(&root.0, b"same-domain", limits()).unwrap();
+        let guard = store.hold_audit_root().unwrap();
+        guard.require_store(&store.clone()).unwrap();
+
+        let other_root = PrivateRoot::new();
+        let other =
+            SegmentStore::initialize_empty(&other_root.0, b"same-domain", limits()).unwrap();
+        assert_eq!(
+            guard.require_store(&other).unwrap_err().code,
+            Code::InvalidReceipt
+        );
+
+        let copy_root = PrivateRoot::new();
+        for directory in [
+            "staging",
+            "segments",
+            "pins",
+            "attempts",
+            "leaves",
+            "generations",
+        ] {
+            fs::create_dir(copy_root.0.join(directory)).unwrap();
+        }
+        fs::copy(root.0.join("store.meta"), copy_root.0.join("store.meta")).unwrap();
+        let incomplete_copy = SegmentStore::open_existing(&copy_root.0, limits()).unwrap();
+        assert_eq!(incomplete_copy.store_id(), store.store_id());
+        assert_eq!(incomplete_copy.custody_domain(), store.custody_domain());
+        assert_eq!(
+            guard.require_store(&incomplete_copy).unwrap_err().code,
+            Code::InvalidReceipt
+        );
     }
 
     #[test]

@@ -35,6 +35,6 @@ pub use selected::{
     GenerationNamespaceV1, GenerationReadLimits, GenerationRowStreamV1, InstalledGenerationV1,
 };
 pub use store::{
-    AttemptRecovery, ByteDurabilityReceipt, DurabilityClass, FrameInput, OwnerBinding,
-    SegmentStore, VerificationBudget, VerifiedSealGuard,
+    AttemptRecovery, AuditedStoreRoot, ByteDurabilityReceipt, DurabilityClass, FrameInput,
+    OwnerBinding, SegmentStore, VerificationBudget, VerifiedSealGuard,
 };
