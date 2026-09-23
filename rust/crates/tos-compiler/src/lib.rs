@@ -9,6 +9,7 @@ mod knowledge_indexed;
 pub mod knowledge_normalization;
 mod knowledge_ordered;
 pub mod knowledge_philosophy_display;
+mod knowledge_philosophy_prepare;
 mod knowledge_registry;
 mod knowledge_scope;
 mod knowledge_seal;
@@ -30,6 +31,10 @@ pub use knowledge_indexed::{IndexedLimits, IndexedReceipt, materialize_indexed_s
 pub use knowledge_ordered::{
     NormalizedNodeCandidate, NormalizedRelationCandidate, OrderedCandidateLimits,
     OrderedCandidateReceipt, OrderedKnowledgeSink,
+};
+pub use knowledge_philosophy_prepare::{
+    PhilosophyExternalDependency, PhilosophyPrepareLimits, PhilosophyPrepareReceipt,
+    prepare_philosophy,
 };
 pub use knowledge_registry::{KnowledgeRegistry, ResolvedType};
 pub use knowledge_scope::{ScopeLimits, ScopeReceipt, write_source_scope};
