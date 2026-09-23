@@ -1,0 +1,18 @@
+[package]
+name = "tos-query"
+version = "0.0.0"
+publish = false
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+tos-foundation = { path = "../tos-foundation" }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+rusqlite = { version = "0.37", features = ["bundled", "hooks"] }
+tos-compiler = { path = "../tos-compiler" }
+
+[lib]
+name = "tos_query"
+path = "src/lib.rs"
