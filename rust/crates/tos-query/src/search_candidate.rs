@@ -31,6 +31,34 @@ pub struct SelectedSearchCandidate {
 }
 
 #[derive(Clone, Copy, Debug)]
+pub struct CandidateReadBudget {
+    pub max_vm_steps: u64,
+    pub max_decoded_bytes: u64,
+    pub max_payload_bytes: usize,
+    pub max_field_bytes: usize,
+    pub max_document_chars: u64,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct CandidateReadCharge {
+    pub vm_steps: u64,
+    pub rows: u64,
+    pub decoded_bytes: u64,
+}
+
+/// One exact row and carrier from the pinned complete selected model. The
+/// implementation must bound every selected field/BLOB before transfer and
+/// interrupt SQL at the supplied VM cap. It never grants current disclosure.
+pub trait SearchCandidateModel {
+    fn exact_candidate(
+        &mut self,
+        kind: SearchKind,
+        position: u64,
+        budget: CandidateReadBudget,
+    ) -> Result<(SelectedSearchCandidate, CandidateReadCharge), SearchV2Error>;
+}
+
+#[derive(Clone, Copy, Debug)]
 pub struct CandidateVerifyBudget {
     pub document: SearchDocumentBudget,
     pub max_rank_field_bytes: usize,
