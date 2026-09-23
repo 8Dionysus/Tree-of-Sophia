@@ -324,6 +324,40 @@ impl SegmentStore {
         prepare_id: &[u8],
         frames: &mut [FrameInput<'_>],
     ) -> Result<Vec<ByteDurabilityReceipt>> {
+        self.seal_segment_with_intent(prepare_id, None, frames)
+    }
+
+    /// CMD2's fenced one-segment profile. The intent is synced before any
+    /// pin or frame bytes. The registered attempt fence is an exact binding,
+    /// not a grant to commit; CMD must still recheck it under its DB lock.
+    pub fn seal_segment_fenced(
+        &self,
+        prepare_id: &[u8],
+        attempt_fence: u64,
+        segment_slot: u32,
+        frames: &mut [FrameInput<'_>],
+    ) -> Result<Vec<ByteDurabilityReceipt>> {
+        if attempt_fence == 0 {
+            return Err(SegmentError::new(
+                Code::InvalidReceipt,
+                "invalid attempt fence",
+            ));
+        }
+        if segment_slot != 0 {
+            return Err(SegmentError::new(
+                Code::UnsupportedOversized,
+                "unsupported multi-segment attempt",
+            ));
+        }
+        self.seal_segment_with_intent(prepare_id, Some((attempt_fence, segment_slot)), frames)
+    }
+
+    fn seal_segment_with_intent(
+        &self,
+        prepare_id: &[u8],
+        fenced: Option<(u64, u32)>,
+        frames: &mut [FrameInput<'_>],
+    ) -> Result<Vec<ByteDurabilityReceipt>> {
         let limits = self.inner.limits;
         if prepare_id.is_empty()
             || prepare_id.len() > u16::MAX as usize
@@ -408,7 +442,12 @@ impl SegmentStore {
         // A crash after sealing but before CMD's attach_ready must leave a
         // prepare-keyed route to this pin. The one-segment-per-prepare first
         // profile refuses reuse; reconciliation precedes any retry.
-        self.write_attempt_intent(prepare_id, pin_id)?;
+        match fenced {
+            Some((attempt_fence, segment_slot)) => {
+                self.write_attempt_intent_fenced(prepare_id, attempt_fence, segment_slot, pin_id)?
+            }
+            None => self.write_attempt_intent(prepare_id, pin_id)?,
+        }
         #[cfg(test)]
         crash_test_barrier("intent-synced", pin_id);
         write_initial_pin(&self.inner.pins, &pin_name, &journal.encode(limits)?)?;
@@ -624,10 +663,31 @@ impl SegmentStore {
         let Some(pin_id) = self.read_attempt_intent(prepare_id)? else {
             return Ok(None);
         };
+        self.recover_attempt_pin(prepare_id, pin_id).map(Some)
+    }
+
+    /// Resolve only the exact registered CMD attempt generation and segment
+    /// slot. A v1 intent or mismatched fence is an error, never an absent pin.
+    pub fn recover_attempt_fenced(
+        &self,
+        prepare_id: &[u8],
+        attempt_fence: u64,
+        segment_slot: u32,
+    ) -> Result<Option<AttemptRecovery>> {
+        let _pin_lock = self.lock_pin_dir(FlockOperation::NonBlockingLockShared)?;
+        let Some(pin_id) =
+            self.read_attempt_intent_fenced(prepare_id, attempt_fence, segment_slot)?
+        else {
+            return Ok(None);
+        };
+        self.recover_attempt_pin(prepare_id, pin_id).map(Some)
+    }
+
+    fn recover_attempt_pin(&self, prepare_id: &[u8], pin_id: [u8; 16]) -> Result<AttemptRecovery> {
         let journal = match self.read_pin(pin_id) {
             Ok(journal) => journal,
             Err(error) if is_missing(&error) => {
-                return Ok(Some(AttemptRecovery::IntentOnly { pin_id }));
+                return Ok(AttemptRecovery::IntentOnly { pin_id });
             }
             Err(error) => return Err(error),
         };
@@ -637,7 +697,7 @@ impl SegmentStore {
                 "intent pin prepare differs",
             ));
         }
-        Ok(Some(match journal.state {
+        Ok(match journal.state {
             PinState::Preparing => AttemptRecovery::Preparing {
                 pin_id,
                 fence_epoch: journal.fence_epoch,
@@ -649,7 +709,7 @@ impl SegmentStore {
                 pin_id,
                 fence_epoch: journal.fence_epoch,
             },
-        }))
+        })
     }
 
     fn write_attempt_intent(&self, prepare_id: &[u8], pin_id: [u8; 16]) -> Result<()> {
@@ -659,6 +719,28 @@ impl SegmentStore {
             prepare_id,
             pin_id,
         )?;
+        self.write_intent_raw(prepare_id, &raw)
+    }
+
+    fn write_attempt_intent_fenced(
+        &self,
+        prepare_id: &[u8],
+        attempt_fence: u64,
+        segment_slot: u32,
+        pin_id: [u8; 16],
+    ) -> Result<()> {
+        let raw = encode_attempt_intent_fenced(
+            self.inner.store_id,
+            self.inner.domain_digest,
+            prepare_id,
+            attempt_fence,
+            segment_slot,
+            pin_id,
+        )?;
+        self.write_intent_raw(prepare_id, &raw)
+    }
+
+    fn write_intent_raw(&self, prepare_id: &[u8], raw: &[u8]) -> Result<()> {
         let name = attempt_name(prepare_id);
         let attempts = self.inner.attempts.as_ref().ok_or_else(|| {
             SegmentError::new(Code::InvalidRoot, "store lacks durable attempt intents")
@@ -687,6 +769,45 @@ impl SegmentStore {
     }
 
     fn read_attempt_intent(&self, prepare_id: &[u8]) -> Result<Option<[u8; 16]>> {
+        let Some(raw) = self.read_intent_raw(prepare_id)? else {
+            return Ok(None);
+        };
+        decode_attempt_intent(
+            &raw,
+            self.inner.store_id,
+            self.inner.domain_digest,
+            prepare_id,
+        )
+        .map(Some)
+    }
+
+    fn read_attempt_intent_fenced(
+        &self,
+        prepare_id: &[u8],
+        attempt_fence: u64,
+        segment_slot: u32,
+    ) -> Result<Option<[u8; 16]>> {
+        if attempt_fence == 0 || segment_slot != 0 {
+            return Err(SegmentError::new(
+                Code::InvalidReceipt,
+                "invalid fenced attempt or unsupported segment slot",
+            ));
+        }
+        let Some(raw) = self.read_intent_raw(prepare_id)? else {
+            return Ok(None);
+        };
+        decode_attempt_intent_fenced(
+            &raw,
+            self.inner.store_id,
+            self.inner.domain_digest,
+            prepare_id,
+            attempt_fence,
+            segment_slot,
+        )
+        .map(Some)
+    }
+
+    fn read_intent_raw(&self, prepare_id: &[u8]) -> Result<Option<Vec<u8>>> {
         if prepare_id.is_empty() || prepare_id.len() > u16::MAX as usize {
             return Err(SegmentError::new(
                 Code::InvalidReceipt,
@@ -702,16 +823,14 @@ impl SegmentStore {
             Err(error) => return Err(error),
         };
         let mut raw = Vec::new();
-        file.take(self.inner.limits.max_journal_bytes as u64 + 129)
+        let read_cap = u64::try_from(self.inner.limits.max_journal_bytes)
+            .ok()
+            .and_then(|value| value.checked_add(141))
+            .ok_or_else(|| SegmentError::new(Code::BudgetExceeded, "intent read cap overflow"))?;
+        file.take(read_cap)
             .read_to_end(&mut raw)
             .map_err(|error| SegmentError::io("cannot read attempt intent", error))?;
-        decode_attempt_intent(
-            &raw,
-            self.inner.store_id,
-            self.inner.domain_digest,
-            prepare_id,
-        )
-        .map(Some)
+        Ok(Some(raw))
     }
 
     /// Admission of a stored placement into a warm generation. This cold path
@@ -887,6 +1006,34 @@ impl SegmentStore {
         })
     }
 
+    /// CMD2's exact pre-transaction gate for the registered attempt fence.
+    /// The outer lock closes the intent-check to guard-acquisition gap;
+    /// returned guard continues holding its own fresh shared file description.
+    pub fn verify_and_hold_fenced(
+        &self,
+        prepare_id: &[u8],
+        attempt_fence: u64,
+        segment_slot: u32,
+        receipts: &[ByteDurabilityReceipt],
+        budget: VerificationBudget,
+    ) -> Result<VerifiedSealGuard> {
+        let _pin_lock = self.lock_pin_dir(FlockOperation::NonBlockingLockShared)?;
+        let pin_id = self
+            .read_attempt_intent_fenced(prepare_id, attempt_fence, segment_slot)?
+            .ok_or_else(|| SegmentError::new(Code::InvalidReceipt, "fenced intent absent"))?;
+        if receipts.is_empty()
+            || receipts
+                .iter()
+                .any(|receipt| receipt.pin_id != pin_id || receipt.prepare_id != prepare_id)
+        {
+            return Err(SegmentError::new(
+                Code::InvalidReceipt,
+                "fenced receipt pin or prepare differs",
+            ));
+        }
+        self.verify_and_hold(receipts, budget)
+    }
+
     fn verify_actual_segment(
         &self,
         receipt: &ByteDurabilityReceipt,
@@ -934,29 +1081,60 @@ impl SegmentStore {
         fence_epoch: u64,
     ) -> Result<u64> {
         let _pin_lock = self.lock_pin_dir(FlockOperation::NonBlockingLockExclusive)?;
-        (|| {
-            let mut journal = self.read_pin(pin_id)?;
-            if journal.state != PinState::Sealed
-                || journal.prepare_id != prepare_id
-                || journal.fence_epoch != fence_epoch
-            {
-                return Err(SegmentError::new(
-                    Code::PinConflict,
-                    "abort pin fence or owner differs",
-                ));
-            }
-            journal.fence_epoch = journal
-                .fence_epoch
-                .checked_add(1)
-                .ok_or_else(|| SegmentError::new(Code::PinConflict, "pin fence exhausted"))?;
-            journal.state = PinState::Aborted;
-            replace_pin(
-                &self.inner.pins,
-                &hex_id(pin_id),
-                &journal.encode(self.inner.limits)?,
-            )?;
-            Ok(journal.fence_epoch)
-        })()
+        self.abort_pin_locked(pin_id, prepare_id, fence_epoch)
+    }
+
+    /// CMD calls this only after an authoritative DB abort has committed and
+    /// all DB locks were released. The argument is the *pre-abort* attempt
+    /// fence captured under CMD's attempt-row lock, not its incremented value.
+    pub fn abort_uncommitted_fenced(
+        &self,
+        pin_id: [u8; 16],
+        prepare_id: &[u8],
+        attempt_fence: u64,
+        segment_slot: u32,
+        pin_fence_epoch: u64,
+    ) -> Result<u64> {
+        let _pin_lock = self.lock_pin_dir(FlockOperation::NonBlockingLockExclusive)?;
+        let expected_pin = self
+            .read_attempt_intent_fenced(prepare_id, attempt_fence, segment_slot)?
+            .ok_or_else(|| SegmentError::new(Code::InvalidReceipt, "fenced intent absent"))?;
+        if expected_pin != pin_id {
+            return Err(SegmentError::new(
+                Code::InvalidReceipt,
+                "fenced intent pin differs",
+            ));
+        }
+        self.abort_pin_locked(pin_id, prepare_id, pin_fence_epoch)
+    }
+
+    fn abort_pin_locked(
+        &self,
+        pin_id: [u8; 16],
+        prepare_id: &[u8],
+        fence_epoch: u64,
+    ) -> Result<u64> {
+        let mut journal = self.read_pin(pin_id)?;
+        if journal.state != PinState::Sealed
+            || journal.prepare_id != prepare_id
+            || journal.fence_epoch != fence_epoch
+        {
+            return Err(SegmentError::new(
+                Code::PinConflict,
+                "abort pin fence or owner differs",
+            ));
+        }
+        journal.fence_epoch = journal
+            .fence_epoch
+            .checked_add(1)
+            .ok_or_else(|| SegmentError::new(Code::PinConflict, "pin fence exhausted"))?;
+        journal.state = PinState::Aborted;
+        replace_pin(
+            &self.inner.pins,
+            &hex_id(pin_id),
+            &journal.encode(self.inner.limits)?,
+        )?;
+        Ok(journal.fence_epoch)
     }
 
     /// A selected frame is checked before writing any byte to the caller sink.
@@ -1219,6 +1397,7 @@ fn hex_id(id: [u8; 16]) -> String {
 }
 
 const INTENT_MAGIC: &[u8; 8] = b"TOSINT1\0";
+const FENCED_INTENT_MAGIC: &[u8; 8] = b"TOSINT2\0";
 
 fn attempt_name(prepare_id: &[u8]) -> String {
     Digest256::of_bytes(prepare_id).to_hex()
@@ -1266,6 +1445,75 @@ fn decode_attempt_intent(
         return Err(SegmentError::new(
             Code::InvalidReceipt,
             "attempt intent differs",
+        ));
+    }
+    Ok(raw[56..72].try_into().expect("fixed pin ID"))
+}
+
+fn encode_attempt_intent_fenced(
+    store_id: [u8; 16],
+    domain_digest: Digest256,
+    prepare_id: &[u8],
+    attempt_fence: u64,
+    segment_slot: u32,
+    pin_id: [u8; 16],
+) -> Result<Vec<u8>> {
+    if prepare_id.is_empty()
+        || prepare_id.len() > u16::MAX as usize
+        || attempt_fence == 0
+        || segment_slot != 0
+    {
+        return Err(SegmentError::new(
+            Code::InvalidReceipt,
+            "invalid fenced attempt identity",
+        ));
+    }
+    let mut raw = Vec::with_capacity(8 + 16 + 32 + 16 + 8 + 4 + 2 + prepare_id.len() + 32);
+    raw.extend_from_slice(FENCED_INTENT_MAGIC);
+    raw.extend_from_slice(&store_id);
+    raw.extend_from_slice(domain_digest.as_bytes());
+    raw.extend_from_slice(&pin_id);
+    raw.extend_from_slice(&attempt_fence.to_le_bytes());
+    raw.extend_from_slice(&segment_slot.to_le_bytes());
+    raw.extend_from_slice(&(prepare_id.len() as u16).to_le_bytes());
+    raw.extend_from_slice(prepare_id);
+    let checksum = Digest256::of_bytes(&raw);
+    raw.extend_from_slice(checksum.as_bytes());
+    Ok(raw)
+}
+
+fn decode_attempt_intent_fenced(
+    raw: &[u8],
+    store_id: [u8; 16],
+    domain_digest: Digest256,
+    prepare_id: &[u8],
+    attempt_fence: u64,
+    segment_slot: u32,
+) -> Result<[u8; 16]> {
+    if prepare_id.is_empty()
+        || prepare_id.len() > u16::MAX as usize
+        || attempt_fence == 0
+        || segment_slot != 0
+    {
+        return Err(SegmentError::new(
+            Code::InvalidReceipt,
+            "invalid fenced attempt identity",
+        ));
+    }
+    let expected_len = 8 + 16 + 32 + 16 + 8 + 4 + 2 + prepare_id.len() + 32;
+    if raw.len() != expected_len
+        || &raw[..8] != FENCED_INTENT_MAGIC
+        || &raw[8..24] != store_id.as_slice()
+        || &raw[24..56] != domain_digest.as_bytes()
+        || u64::from_le_bytes(raw[72..80].try_into().expect("fixed fence")) != attempt_fence
+        || u32::from_le_bytes(raw[80..84].try_into().expect("fixed slot")) != segment_slot
+        || u16::from_le_bytes([raw[84], raw[85]]) as usize != prepare_id.len()
+        || &raw[86..86 + prepare_id.len()] != prepare_id
+        || Digest256::of_bytes(&raw[..raw.len() - 32]).as_bytes() != &raw[raw.len() - 32..]
+    {
+        return Err(SegmentError::new(
+            Code::InvalidReceipt,
+            "fenced attempt intent differs",
         ));
     }
     Ok(raw[56..72].try_into().expect("fixed pin ID"))
@@ -1395,6 +1643,116 @@ mod tests {
         );
         assert_eq!(
             store.verify_and_hold(&receipts, budget).unwrap_err().code,
+            Code::InvalidReceipt
+        );
+    }
+
+    #[test]
+    fn fenced_intent_binds_cmd_attempt_and_excludes_abort_under_guard() {
+        let root = PrivateRoot::new();
+        let store = SegmentStore::initialize_empty(&root.0, b"private-domain", limits()).unwrap();
+        let bytes = b"fenced exact bytes".to_vec();
+        let mut reader = Cursor::new(bytes.clone());
+        let mut frames = [FrameInput {
+            binding: binding(0),
+            declared_size: bytes.len() as u64,
+            declared_sha256: Digest256::of_bytes(&bytes),
+            reader: &mut reader,
+        }];
+        assert_eq!(
+            store
+                .seal_segment_fenced(b"fenced-prepare", 0, 0, &mut frames)
+                .unwrap_err()
+                .code,
+            Code::InvalidReceipt
+        );
+        assert_eq!(
+            store
+                .seal_segment_fenced(b"fenced-prepare", 7, 1, &mut frames)
+                .unwrap_err()
+                .code,
+            Code::UnsupportedOversized
+        );
+        assert_eq!(fs::read_dir(root.0.join("attempts")).unwrap().count(), 0);
+        let receipts = store
+            .seal_segment_fenced(b"fenced-prepare", 7, 0, &mut frames)
+            .unwrap();
+        assert!(matches!(
+            store
+                .recover_attempt_fenced(b"fenced-prepare", 7, 0)
+                .unwrap(),
+            Some(AttemptRecovery::Sealed { .. })
+        ));
+        assert_eq!(
+            store
+                .recover_attempt_fenced(b"fenced-prepare", 8, 0)
+                .unwrap_err()
+                .code,
+            Code::InvalidReceipt
+        );
+        assert_eq!(
+            store.recover_attempt(b"fenced-prepare").unwrap_err().code,
+            Code::InvalidReceipt
+        );
+        assert_eq!(
+            store
+                .seal_segment(b"fenced-prepare", &mut frames)
+                .unwrap_err()
+                .code,
+            Code::PinConflict
+        );
+        let budget = VerificationBudget {
+            max_receipts: 1,
+            max_segments: 1,
+            max_total_segment_bytes: receipts[0].segment_size(),
+        };
+        let guard = store
+            .verify_and_hold_fenced(b"fenced-prepare", 7, 0, &receipts, budget)
+            .unwrap();
+        assert_eq!(guard.receipts().len(), 1);
+        assert_eq!(
+            store
+                .abort_uncommitted_fenced(receipts[0].pin_id(), b"fenced-prepare", 7, 0, 1)
+                .unwrap_err()
+                .code,
+            Code::PinConflict
+        );
+        drop(guard);
+        assert_eq!(
+            store
+                .abort_uncommitted_fenced(receipts[0].pin_id(), b"fenced-prepare", 8, 0, 1)
+                .unwrap_err()
+                .code,
+            Code::InvalidReceipt
+        );
+        assert_eq!(
+            store
+                .abort_uncommitted_fenced(receipts[0].pin_id(), b"fenced-prepare", 7, 0, 1)
+                .unwrap(),
+            2
+        );
+        assert!(matches!(
+            store
+                .recover_attempt_fenced(b"fenced-prepare", 7, 0)
+                .unwrap(),
+            Some(AttemptRecovery::Aborted { fence_epoch: 2, .. })
+        ));
+        let mut intent = OpenOptions::new()
+            .write(true)
+            .open(
+                root.0
+                    .join("attempts")
+                    .join(attempt_name(b"fenced-prepare")),
+            )
+            .unwrap();
+        intent.seek(SeekFrom::Start(72)).unwrap();
+        intent.write_all(&8u64.to_le_bytes()).unwrap();
+        intent.sync_all().unwrap();
+        assert_eq!(
+            store
+                .recover_attempt_fenced(b"fenced-prepare", 7, 0)
+                .unwrap_err()
+                .code,
             Code::InvalidReceipt
         );
     }
@@ -2023,5 +2381,71 @@ mod tests {
             .seal_segment(b"phase-crash-prepare", &mut frames)
             .unwrap();
         panic!("test barrier did not terminate child");
+    }
+
+    #[test]
+    fn fenced_intent_crash_barriers_reconcile_without_marker() {
+        for phase in ["intent-synced", "pin-synced", "sealed-pin-synced"] {
+            let root = PrivateRoot::new();
+            let mut child = Command::new(env::current_exe().unwrap())
+                .arg("--exact")
+                .arg("store::tests::fenced_seal_at_phase_then_sigkill_child")
+                .arg("--ignored")
+                .env("TOS_SEGMENT_CRASH_TEST_ROOT", &root.0)
+                .env("TOS_SEGMENT_CRASH_AT", phase)
+                .spawn()
+                .unwrap();
+            let deadline = Instant::now() + Duration::from_secs(30);
+            let status = loop {
+                if let Some(status) = child.try_wait().unwrap() {
+                    break status;
+                }
+                if Instant::now() >= deadline {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    panic!("{phase} fenced crash child exceeded 30-second bound");
+                }
+                std::thread::sleep(Duration::from_millis(10));
+            };
+            assert_eq!(status.signal(), Some(9), "{phase} did not SIGKILL");
+            let store = SegmentStore::open_existing(&root.0, limits()).unwrap();
+            match (
+                phase,
+                store
+                    .recover_attempt_fenced(b"fenced-phase-prepare", 7, 0)
+                    .unwrap(),
+            ) {
+                ("intent-synced", Some(AttemptRecovery::IntentOnly { .. })) => {}
+                ("pin-synced", Some(AttemptRecovery::Preparing { .. })) => {}
+                ("sealed-pin-synced", Some(AttemptRecovery::Sealed { receipts })) => {
+                    assert_eq!(receipts.len(), 1);
+                    let mut selected = Vec::new();
+                    store
+                        .read_selected(&receipts[0], 64, &mut selected)
+                        .unwrap();
+                    assert_eq!(selected, b"fenced phase bytes");
+                }
+                (_, state) => panic!("{phase} recovered unexpected fenced state: {state:?}"),
+            }
+        }
+    }
+
+    #[test]
+    #[ignore = "run only as child of fenced_intent_crash_barriers_reconcile_without_marker"]
+    fn fenced_seal_at_phase_then_sigkill_child() {
+        let root = PathBuf::from(env::var_os("TOS_SEGMENT_CRASH_TEST_ROOT").expect("child root"));
+        let store = SegmentStore::initialize_empty(&root, b"private-domain", limits()).unwrap();
+        let bytes = b"fenced phase bytes".to_vec();
+        let mut reader = Cursor::new(bytes.clone());
+        let mut frames = [FrameInput {
+            binding: binding(0),
+            declared_size: bytes.len() as u64,
+            declared_sha256: Digest256::of_bytes(&bytes),
+            reader: &mut reader,
+        }];
+        let _ = store
+            .seal_segment_fenced(b"fenced-phase-prepare", 7, 0, &mut frames)
+            .unwrap();
+        panic!("fenced test barrier did not terminate child");
     }
 }
