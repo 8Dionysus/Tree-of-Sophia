@@ -20,9 +20,10 @@ pub use digest::{Digest256, Digest256Hasher};
 pub use error::{FoundationError, FoundationErrorCode, Result};
 pub use identity::{ExactRecordRef, RecordVersion, SourceRevision, StableId};
 pub use json::{
-    CanonicalProfile, JsonDocument, JsonLimits, JsonMode, JsonNumber, JsonNumberKind, JsonString,
-    JsonValue, canonical_bytes_v1, canonical_digest_v1, canonical_raw_bytes_profile,
-    canonical_raw_bytes_v1, emit_preserved_json, parse_json, parse_json_profile,
+    CanonicalProfile, EncodedJson, JsonDocument, JsonEmissionProfile, JsonLimits, JsonMode,
+    JsonNumber, JsonNumberKind, JsonString, JsonValue, canonical_bytes_v1, canonical_digest_v1,
+    canonical_raw_bytes_profile, canonical_raw_bytes_v1, emit_json_profile,
+    emit_preserved_json, emit_value_preserved_json, parse_json, parse_json_profile,
 };
 pub use path::RelativePath;
 

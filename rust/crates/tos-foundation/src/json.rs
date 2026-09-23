@@ -549,7 +549,13 @@ impl CanonicalProfile {
 }
 
 pub fn emit_preserved_json(document: &JsonDocument, limits: JsonLimits) -> Result<Vec<u8>> {
-    write_document(document.root(), limits, false, false)
+    emit_value_preserved_json(document.root(), limits)
+}
+
+/// Bounded compact emission for an explicitly constructed ordered value.
+/// This retains numeric lexemes; it does not select a transport response ABI.
+pub fn emit_value_preserved_json(value: &JsonValue, limits: JsonLimits) -> Result<Vec<u8>> {
+    write_document(value, limits, WriteStyle::PreservedCompact)
 }
 
 /// Produce owner-profile bytes using Python's sorted compact JSON spelling.
@@ -560,11 +566,59 @@ pub fn canonical_bytes_v1(
     limits: JsonLimits,
 ) -> Result<Vec<u8>> {
     match profile {
-        CanonicalProfile::CorpusSnapshotV1 => write_document(value, limits, true, true),
+        CanonicalProfile::CorpusSnapshotV1 => {
+            write_document(value, limits, WriteStyle::PythonCompactLf)
+        }
         CanonicalProfile::SourceRecordDigestV1 | CanonicalProfile::SourceCommandInputV1 => {
-            write_document(value, limits, true, false)
+            write_document(value, limits, WriteStyle::PythonCompact)
         }
     }
+}
+
+/// Exact published bytes of the legacy public Work/HumanForm set as a whole.
+/// The receipt is an embedded field; this is not a standalone receipt codec.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum JsonEmissionProfile {
+    SourceFormSetPublishedV1,
+}
+
+impl JsonEmissionProfile {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::SourceFormSetPublishedV1 => "tos_source_form_set_published_v1",
+        }
+    }
+
+    pub fn from_profile(profile: &str) -> Result<Self> {
+        match profile {
+            "tos_source_form_set_published_v1" => Ok(Self::SourceFormSetPublishedV1),
+            _ => Err(FoundationError::new(Code::UnsupportedFormat, "unknown JSON emission profile")),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct EncodedJson {
+    pub bytes: Vec<u8>,
+    pub sha256: Digest256,
+}
+
+/// Python `json.dumps(value, ensure_ascii=False, allow_nan=False, indent=2)
+/// + '\n'` for a caller-built, insertion-ordered entire form-set value.
+pub fn emit_json_profile(
+    value: &JsonValue,
+    profile: JsonEmissionProfile,
+    limits: JsonLimits,
+) -> Result<EncodedJson> {
+    let bytes = match profile {
+        JsonEmissionProfile::SourceFormSetPublishedV1 => {
+            if value.as_object().is_none() {
+                return Err(FoundationError::new(Code::InvalidJson, "form set must be a JSON object"));
+            }
+            write_document(value, limits, WriteStyle::PythonPretty2Lf)?
+        }
+    };
+    Ok(EncodedJson { sha256: Digest256::of_bytes(&bytes), bytes })
 }
 
 pub fn canonical_digest_v1(
@@ -597,17 +651,29 @@ pub fn canonical_raw_bytes_profile(
     canonical_raw_bytes_v1(raw, CanonicalProfile::from_profile(profile)?, limits)
 }
 
-fn write_document(
-    value: &JsonValue,
-    limits: JsonLimits,
-    sort_keys: bool,
-    newline: bool,
-) -> Result<Vec<u8>> {
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum WriteStyle {
+    PreservedCompact,
+    PythonCompact,
+    PythonCompactLf,
+    PythonPretty2Lf,
+}
+
+impl WriteStyle {
+    fn sort_keys(self) -> bool {
+        matches!(self, Self::PythonCompact | Self::PythonCompactLf)
+    }
+    fn python_numbers(self) -> bool { self != Self::PreservedCompact }
+    fn pretty(self) -> bool { self == Self::PythonPretty2Lf }
+    fn newline(self) -> bool { matches!(self, Self::PythonCompactLf | Self::PythonPretty2Lf) }
+}
+
+fn write_document(value: &JsonValue, limits: JsonLimits, style: WriteStyle) -> Result<Vec<u8>> {
     limits.validate()?;
     let mut output = Vec::new();
     let mut visits = 0;
-    write_value(value, &mut output, 0, &mut visits, limits, sort_keys)?;
-    if newline {
+    write_value(value, &mut output, 0, &mut visits, limits, style)?;
+    if style.newline() {
         emit(&mut output, b"\n", limits)?;
     }
     Ok(output)
@@ -702,7 +768,7 @@ fn write_value(
     depth: usize,
     visits: &mut usize,
     limits: JsonLimits,
-    sort_keys: bool,
+    style: WriteStyle,
 ) -> Result<()> {
     if depth > limits.max_depth || *visits >= limits.max_visits {
         return Err(FoundationError::new(
@@ -725,25 +791,32 @@ fn write_value(
                     "number lexeme and kind disagree",
                 ));
             }
-            if sort_keys && number.kind == JsonNumberKind::Float {
+            if style.python_numbers() && number.kind == JsonNumberKind::Float {
                 let value = number.lexeme.parse::<f64>().map_err(|_| {
                     FoundationError::new(Code::InvalidNumber, "float lexeme is invalid")
                 })?;
                 emit(output, python_float_text(value).as_bytes(), limits)?;
-            } else if sort_keys && number.lexeme == "-0" {
+            } else if style.python_numbers() && number.lexeme == "-0" {
                 emit(output, b"0", limits)?;
             } else {
                 emit(output, number.lexeme.as_bytes(), limits)?;
             }
         }
-        JsonValue::String(value) => write_string(value, output, sort_keys, limits)?,
+        JsonValue::String(value) => write_string(value, output, style.python_numbers(), limits)?,
         JsonValue::Array(items) => {
             emit(output, b"[", limits)?;
             for (index, item) in items.iter().enumerate() {
                 if index != 0 {
-                    emit(output, b",", limits)?;
+                    emit(output, if style.pretty() { &b",\n"[..] } else { &b","[..] }, limits)?;
+                } else if style.pretty() {
+                    emit(output, b"\n", limits)?;
                 }
-                write_value(item, output, depth + 1, visits, limits, sort_keys)?;
+                if style.pretty() { emit_indent(output, depth + 1, limits)?; }
+                write_value(item, output, depth + 1, visits, limits, style)?;
+            }
+            if style.pretty() && !items.is_empty() {
+                emit(output, b"\n", limits)?;
+                emit_indent(output, depth, limits)?;
             }
             emit(output, b"]", limits)?;
         }
@@ -762,7 +835,7 @@ fn write_value(
                 ));
             }
             emit(output, b"{", limits)?;
-            if sort_keys {
+            if style.sort_keys() {
                 let mut ordered: Vec<_> = entries.iter().collect();
                 ordered.sort_by(|(left, _), (right, _)| left.as_str().cmp(&right.as_str()));
                 for (index, (key, item)) in ordered.into_iter().enumerate() {
@@ -771,22 +844,40 @@ fn write_value(
                     }
                     write_string(key, output, true, limits)?;
                     emit(output, b":", limits)?;
-                    write_value(item, output, depth + 1, visits, limits, sort_keys)?;
+                    write_value(item, output, depth + 1, visits, limits, style)?;
                 }
             } else {
                 for (index, (key, item)) in entries.iter().enumerate() {
                     if index != 0 {
-                        emit(output, b",", limits)?;
+                        emit(output, if style.pretty() { &b",\n"[..] } else { &b","[..] }, limits)?;
+                    } else if style.pretty() {
+                        emit(output, b"\n", limits)?;
                     }
-                    write_string(key, output, false, limits)?;
-                    emit(output, b":", limits)?;
-                    write_value(item, output, depth + 1, visits, limits, sort_keys)?;
+                    if style.pretty() { emit_indent(output, depth + 1, limits)?; }
+                    write_string(key, output, style.python_numbers(), limits)?;
+                    emit(output, if style.pretty() { &b": "[..] } else { &b":"[..] }, limits)?;
+                    write_value(item, output, depth + 1, visits, limits, style)?;
                 }
+            }
+            if style.pretty() && !entries.is_empty() {
+                emit(output, b"\n", limits)?;
+                emit_indent(output, depth, limits)?;
             }
             emit(output, b"}", limits)?;
         }
     }
     Ok(())
+}
+
+fn emit_indent(output: &mut Vec<u8>, depth: usize, limits: JsonLimits) -> Result<()> {
+    const SPACES: [u8; 256] = [b' '; 256];
+    let count = depth.checked_mul(2).ok_or_else(|| {
+        FoundationError::new(Code::BudgetExceeded, "JSON indentation depth exceeded")
+    })?;
+    let spaces = SPACES.get(..count).ok_or_else(|| {
+        FoundationError::new(Code::BudgetExceeded, "JSON indentation depth exceeded")
+    })?;
+    emit(output, spaces, limits)
 }
 
 fn write_string(

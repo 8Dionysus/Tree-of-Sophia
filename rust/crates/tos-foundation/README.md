@@ -8,6 +8,8 @@ Canonical profiles are distinct: `CorpusSnapshotV1` uses sorted compact JSON wit
 
 Legacy `public-source-forms apply` receipts are embedded in a whole form-set history file written with unsorted two-space indentation and a final LF. That is a separate byte contract; no standalone receipt canonicalizer is inferred from the command input profile. Current raw receipt bytes remain authoritative until the owner freezes an exact history serializer and vectors.
 
+`JsonEmissionProfile::SourceFormSetPublishedV1` names that whole-file byte contract. Its writer retains insertion order and exact Unicode scalar values, formats Python finite numbers, applies a caller-supplied output budget, and returns both bytes and their SHA-256 revision. It does not validate the form-set schema, source authority or growth history. `emit_value_preserved_json` is a separate bounded compact primitive for constructed packets; its retained number lexemes do not by themselves establish an HTTP or MCP wire profile.
+
 `Digest256` hashes exact bytes; a digest alone proves neither source trust nor permission to read. `RelativePath` checks lexical normalization only; storage must check actual file identity and symlinks. `StableId` preserves spelling and does not guess a corpus kind. `ByteSpan` and `CodePointSpan` have distinct units; code-point spans bind a representation digest and declared normalization ID.
 
 The target `wasm32-unknown-unknown` builds the same core rules. Optional `wasm` exports a small parity probe; Worker and browser I/O stay in their respective adapters. Independent vectors are owned by `tests/conformance/rust/`.

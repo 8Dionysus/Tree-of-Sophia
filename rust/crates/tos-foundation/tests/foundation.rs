@@ -1,8 +1,8 @@
 use tos_foundation::{
     CanonicalProfile, CodePointSpan, ContractDescriptor, ContractKey, DescriptorRegistry,
-    Digest256, Digest256Hasher, FoundationErrorCode, JsonLimits, JsonMode, JsonNumber,
+    Digest256, Digest256Hasher, FoundationErrorCode, JsonEmissionProfile, JsonLimits, JsonMode, JsonNumber,
     JsonNumberKind, JsonString, JsonValue, OperationDescriptor, OperationEffect, RelativePath,
-    StableId, canonical_bytes_v1, emit_preserved_json, parse_json,
+    StableId, canonical_bytes_v1, emit_json_profile, emit_preserved_json, parse_json,
 };
 
 #[test]
@@ -293,4 +293,41 @@ fn python_float_layout_boundaries() {
             "{raw}"
         );
     }
+}
+
+#[test]
+fn whole_form_set_profile_preserves_order_and_python_layout() {
+    let limits = JsonLimits::default();
+    let raw = "{\"z\":{\"empty\":{},\"items\":[1.0,{\"Ω\":\"é\"},[],null]},\"a\":18446744073709551616,\"growth_history\":[{\"command_id\":\"c\",\"request_digest\":\"sha256:x\"}]}";
+    let parsed = parse_json(raw.as_bytes(), JsonMode::PublishedStrict, limits).unwrap();
+    let expected = concat!(
+        "{\n",
+        "  \"z\": {\n",
+        "    \"empty\": {},\n",
+        "    \"items\": [\n",
+        "      1.0,\n",
+        "      {\n",
+        "        \"Ω\": \"é\"\n",
+        "      },\n",
+        "      [],\n",
+        "      null\n",
+        "    ]\n",
+        "  },\n",
+        "  \"a\": 18446744073709551616,\n",
+        "  \"growth_history\": [\n",
+        "    {\n",
+        "      \"command_id\": \"c\",\n",
+        "      \"request_digest\": \"sha256:x\"\n",
+        "    }\n",
+        "  ]\n",
+        "}\n",
+    );
+    let encoded = emit_json_profile(parsed.root(), JsonEmissionProfile::SourceFormSetPublishedV1, limits).unwrap();
+    assert_eq!(encoded.bytes, expected.as_bytes());
+    assert_eq!(encoded.sha256.to_hex(), "3fff42c509876255bd080702a4b8b411e3626cbe1cf8cd2474e7d56778f22f00");
+    let tiny = JsonLimits::new(32, 64, 300_000, 4_300).unwrap();
+    assert_eq!(emit_json_profile(parsed.root(), JsonEmissionProfile::SourceFormSetPublishedV1, tiny).unwrap_err().code,
+               FoundationErrorCode::BudgetExceeded);
+    assert_eq!(JsonEmissionProfile::from_profile("unknown").unwrap_err().code,
+               FoundationErrorCode::UnsupportedFormat);
 }
