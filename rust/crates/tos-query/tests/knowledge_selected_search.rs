@@ -69,9 +69,8 @@ impl IndexedKnowledgeAuthority for SyntheticAuthority {
     fn acquire_disclosure(
         &mut self,
         _: &IndexedDisclosureScope,
-        consulted: &[ObservedSearchCandidate],
+        _: &[ObservedSearchCandidate],
     ) -> Result<Box<dyn IndexedDisclosureLease>, SearchV2Error> {
-        assert!(consulted.iter().any(|row| row.id == FALSE_POSITIVE));
         Ok(Box::new(SyntheticLease(Arc::clone(&self.lease_checks))))
     }
 }
@@ -280,6 +279,39 @@ fn producer_selected_indexed_pages_match_python_rank_and_original_carriers() {
             .map(|item| field(item, "id").as_str().unwrap())
             .collect::<Vec<_>>()
     );
-    assert!(authority.consulted.iter().any(|id| id == FALSE_POSITIVE));
-    assert!(checks.load(Ordering::Relaxed) >= 4);
+    let prior_consulted = authority.consulted.len();
+    let mut false_positive_page = execute_indexed_search_page(
+        &mut reader,
+        &bound,
+        &mut authority,
+        &mut cursor,
+        IndexedSearchV2Request {
+            query: field(&oracle, "false_positive_query")
+                .as_str()
+                .unwrap()
+                .into(),
+            ..request
+        },
+        None,
+        budget(),
+    )
+    .unwrap();
+    false_positive_page.recheck().unwrap();
+    let false_packet = parse_json(
+        &false_positive_page,
+        JsonMode::PublishedStrict,
+        JsonLimits::default(),
+    )
+    .unwrap()
+    .into_root();
+    assert_eq!(
+        canonical(field(&false_packet, "nodes")),
+        canonical(field(field(&oracle, "false_positive_reference"), "nodes"))
+    );
+    assert!(
+        authority.consulted[prior_consulted..]
+            .iter()
+            .any(|id| id == FALSE_POSITIVE)
+    );
+    assert!(checks.load(Ordering::Relaxed) >= 6);
 }
