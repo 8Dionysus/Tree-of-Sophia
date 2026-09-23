@@ -569,11 +569,11 @@ fn sorted_strings(value: Option<&Value>) -> Vec<String> {
 fn relation_epistemic(item: &Value) -> Value {
     let props = item.get("properties").and_then(Value::as_object);
     let p = |key| props.and_then(|p| p.get(key));
-    let text = |v: Option<&Value>| {
+    fn text(v: Option<&Value>) -> Option<&str> {
         v.and_then(Value::as_str)
             .map(str::trim)
             .filter(|s| !s.is_empty())
-    };
+    }
     let authority = text(p("authority_posture"))
         .or_else(|| text(item.get("authority_layer")))
         .unwrap_or("derived-export");
