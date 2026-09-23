@@ -161,6 +161,17 @@ def _copy_no_clobber(source: Path, destination: Path, *, sha256: str, byte_size:
         temporary.unlink(missing_ok=True)
 
 
+def _publish_new_output(staging: Path, output: Path) -> None:
+    """Atomically publish a completed candidate without replacing a raced target."""
+
+    try:
+        corpus_store._rename_new(staging, output)
+    except (corpus_store.CorpusStoreError, OSError) as exc:
+        raise HandoffAdapterError(
+            f"cannot publish adapter output without replacement: {output}"
+        ) from exc
+
+
 def _provenance_delta_ref(context: acquisition.BatchContext) -> str:
     return acquisition._provenance_delta_ref(context)
 
@@ -940,7 +951,7 @@ def adapt_handoff(
         os.chmod(receipts_root / "validation-context.json", 0o644)
         (receipts_root / "acquisition-handoff-adapter.json").write_bytes(_canonical(adapter_receipt))
         os.chmod(receipts_root / "acquisition-handoff-adapter.json", 0o644)
-        os.replace(staging, output)
+        _publish_new_output(staging, output)
     except Exception:
         shutil.rmtree(staging, ignore_errors=True)
         raise

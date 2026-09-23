@@ -1082,6 +1082,50 @@ class AcquisitionBatchTests(unittest.TestCase):
             )
         self.assertEqual([], fetch_calls)
 
+    def test_prepared_item_record_type_is_bound_before_fetch(self) -> None:
+        fetches, _manifest_sha = self._write_manifest(count=1)
+        manifest = json.loads(self.manifest_path.read_text(encoding="utf-8"))
+        selection = manifest["selection"][0]
+        item_record = next(
+            record for record in selection["records"] if record["kind"] == "item"
+        )
+        item_record_path = self.metadata / item_record["ref"]
+        item_value = json.loads(item_record_path.read_text(encoding="utf-8"))
+        # This remains valid under the generic corpus-record schema for a Work,
+        # but it is not a valid record for the selected Item identity.
+        item_value["record_type"] = "work"
+        item_value["expression_claim_refs"] = []
+        Draft202012Validator(
+            json.loads((ROOT / "ToS/contracts/corpus-record.schema.json").read_text())
+        ).validate(item_value)
+        item_record_path.write_text(
+            json.dumps(item_value, ensure_ascii=False, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        item_record["sha256"] = hashlib.sha256(item_record_path.read_bytes()).hexdigest()
+        self.manifest_path.write_text(
+            json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        manifest_sha = hashlib.sha256(self.manifest_path.read_bytes()).hexdigest()
+        fetch_calls: list[str] = []
+
+        with self.assertRaisesRegex(
+            acquisition.AcquisitionBatchError,
+            "prepared Item record type differs",
+        ):
+            acquisition.acquire_batch(
+                manifest_path=self.manifest_path,
+                metadata_root=self.metadata,
+                output_root=self.output,
+                expected_manifest_sha256=manifest_sha,
+                fetcher=lambda payload: fetch_calls.append(payload["file_ref"])
+                or fetches[payload["file_ref"]],
+            )
+
+        self.assertEqual([], fetch_calls)
+        self.assertEqual([], list(self.output.glob("receipts/handoff-*.json")))
+
     def test_item_record_requires_record_id_before_fetch(self) -> None:
         fetches, _manifest_sha = self._write_manifest(count=1)
         manifest = json.loads(self.manifest_path.read_text(encoding="utf-8"))

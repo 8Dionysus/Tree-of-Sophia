@@ -820,6 +820,10 @@ def _verify_prepared_item_bindings(context: BatchContext, output: Path) -> None:
             raise AcquisitionBatchError(
                 f"prepared Item record identity differs from selection: {item_ref}"
             )
+        if item_record.get("record_type") != "item":
+            raise AcquisitionBatchError(
+                f"prepared Item record type differs from selection: {item_ref}"
+            )
         item_record_manifest_ref = item_record.get("item_manifest_ref")
         if item_record_manifest_ref != item_manifest_ref:
             raise AcquisitionBatchError(

@@ -588,6 +588,62 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
         )
         self.assertEqual(receipt, replay)
 
+    def test_adapter_refuses_to_replace_output_created_during_staging(self) -> None:
+        fetches, _unused_manifest_sha, _item_root, records = self._write_manifest(
+            base_revision="0" * 64
+        )
+        base_revision = self._write_accepted_base(records)
+        fetches, manifest_sha, _item_root, _records = self._write_manifest(
+            base_revision=base_revision
+        )
+        result = acquisition.acquire_batch(
+            manifest_path=self.manifest_path,
+            metadata_root=self.metadata,
+            output_root=self.acquisition_root,
+            expected_manifest_sha256=manifest_sha,
+            fetcher=lambda payload: fetches[payload["file_ref"]],
+        )
+
+        original_copy = adapter._copy_no_clobber
+        raced_output_created = False
+
+        def create_empty_output_after_preflight(
+            source: Path, destination: Path, *, sha256: str, byte_size: int
+        ) -> None:
+            nonlocal raced_output_created
+            original_copy(source, destination, sha256=sha256, byte_size=byte_size)
+            if not raced_output_created:
+                # adapt_handoff already checked that this destination was new.
+                self.candidate.mkdir()
+                raced_output_created = True
+
+        with patch.object(
+            adapter,
+            "_copy_no_clobber",
+            side_effect=create_empty_output_after_preflight,
+        ):
+            with self.assertRaisesRegex(
+                adapter.HandoffAdapterError,
+                "cannot publish adapter output without replacement",
+            ):
+                adapter.adapt_handoff(
+                    acquisition_root=self.acquisition_root,
+                    handoff_ref=result["handoff_ref"],
+                    expected_manifest_sha256=manifest_sha,
+                    output_root=self.candidate,
+                    accepted_store_root=self.accepted_store,
+                    accepted_source_root=self.accepted_source,
+                    base_revision=base_revision,
+                    validator_sha256=self.validator_sha256,
+                    validation_context=self._validation_context(),
+                    repo_root=ROOT,
+                )
+
+        self.assertTrue(raced_output_created)
+        self.assertTrue(self.candidate.is_dir())
+        self.assertEqual([], list(self.candidate.iterdir()))
+        self.assertEqual([], list(self.root.glob(".candidate.adapter-*")))
+
     def test_intake_rejects_coherently_replaced_handoff_against_caller_digest(self) -> None:
         _original_fetches, caller_selected_sha, _item_root, _records = self._write_manifest(
             base_revision="a" * 64
