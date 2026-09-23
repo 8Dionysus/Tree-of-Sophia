@@ -884,7 +884,7 @@ impl<P: PinnedLocalModel, G: CurrentPolicy> ReadModel for SqliteReadModel<P, G> 
                             from_id,
                             after_edge_id.unwrap_or(""),
                             (max_rows + 1) as i64,
-                            max_bytes as u64,
+                            i64::try_from(max_bytes).unwrap_or(i64::MAX),
                             SHA256_HEX_RESULT_BYTES
                         ],
                         |row| {
