@@ -5,8 +5,8 @@
 //! No source authority, rights, admission or corpus access is conferred.
 
 use tos_foundation::{
-    CanonicalProfile, FoundationError, JsonLimits, JsonMode, canonical_bytes_v1, capabilities,
-    emit_preserved_json, parse_json,
+    FoundationError, JsonLimits, canonical_raw_bytes_profile, capabilities, emit_preserved_json,
+    parse_json_profile,
 };
 
 #[cfg(feature = "wasm")]
@@ -71,22 +71,13 @@ impl CodecResult {
 /// closed. `parse_preserve` emits source member order and exact number lexemes.
 #[cfg_attr(feature = "wasm", wasm_bindgen)]
 pub fn codec_v1(raw: &[u8], operation: &str, profile: &str) -> CodecResult {
-    let mode = match (operation, profile) {
-        ("parse_preserve", "PublishedStrict") => JsonMode::PublishedStrict,
-        ("parse_preserve", "RequestLastWins") => JsonMode::RequestLastWins,
-        ("canonical", selected) if selected == CanonicalProfile::CorpusSnapshotV1.as_str() => {
-            JsonMode::PublishedStrict
-        }
+    let limits = JsonLimits::default();
+    let result = match operation {
+        "parse_preserve" => parse_json_profile(raw, profile, limits)
+            .and_then(|document| emit_preserved_json(&document, limits)),
+        "canonical" => canonical_raw_bytes_profile(raw, profile, limits),
         _ => return CodecResult::unsupported(),
     };
-    let limits = JsonLimits::default();
-    let result = parse_json(raw, mode, limits).and_then(|document| {
-        if operation == "canonical" {
-            canonical_bytes_v1(document.root(), CanonicalProfile::CorpusSnapshotV1, limits)
-        } else {
-            emit_preserved_json(&document, limits)
-        }
-    });
     match result {
         Ok(bytes) => CodecResult::success(bytes),
         Err(error) => CodecResult::failure(error),
@@ -99,10 +90,15 @@ pub fn codec_v1(raw: &[u8], operation: &str, profile: &str) -> CodecResult {
 pub fn codec_capabilities_v1() -> String {
     let cap = capabilities();
     format!(
-        "{{\"abi\":\"{ABI_VERSION}\",\"json_format\":\"{}\",\"descriptor_format\":\"{}\",\"canonical_profile\":\"{}\",\"canonical_float_supported\":{},\"strict_duplicate_rejection\":{},\"request_last_wins\":{},\"escaped_lone_surrogate_preserved\":{},\"canonical_lone_surrogate_supported\":{}}}",
+        "{{\"abi\":\"{ABI_VERSION}\",\"json_format\":\"{}\",\"descriptor_format\":\"{}\",\"json_profiles\":[\"{}\",\"{}\"],\"canonical_profile\":\"{}\",\"canonical_profiles\":[\"{}\",\"{}\",\"{}\"],\"canonical_float_supported\":{},\"strict_duplicate_rejection\":{},\"request_last_wins\":{},\"escaped_lone_surrogate_preserved\":{},\"canonical_lone_surrogate_supported\":{}}}",
         cap.json_format,
         cap.descriptor_format,
+        cap.json_profiles[0],
+        cap.json_profiles[1],
         cap.canonical_profile,
+        cap.canonical_profiles[0],
+        cap.canonical_profiles[1],
+        cap.canonical_profiles[2],
         cap.canonical_float_supported,
         cap.strict_duplicate_rejection,
         cap.request_last_wins,
@@ -114,20 +110,21 @@ pub fn codec_capabilities_v1() -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use tos_foundation::{CanonicalProfile, JsonMode};
 
     #[test]
     fn adapter_keeps_exact_numeric_and_duplicate_profiles() {
         let request = codec_v1(
             br#"{"a":1,"b":2,"\u0061":9007199254740993}"#,
             "parse_preserve",
-            "RequestLastWins",
+            JsonMode::RequestLastWins.as_str(),
         );
         assert!(request.ok());
         assert_eq!(request.bytes(), br#"{"a":9007199254740993,"b":2}"#);
         let strict = codec_v1(
             br#"{"a":1,"\u0061":2}"#,
             "parse_preserve",
-            "PublishedStrict",
+            JsonMode::PublishedStrict.as_str(),
         );
         assert_eq!(strict.error_code().as_deref(), Some("duplicate_member"));
         assert_eq!(strict.bytes(), b"");
@@ -137,6 +134,21 @@ mod tests {
             CanonicalProfile::CorpusSnapshotV1.as_str(),
         );
         assert_eq!(canonical.bytes(), "{\"a\":\"é\",\"z\":0}\n".as_bytes());
+        let record = codec_v1(
+            br#"{"f":1.25}"#,
+            "canonical",
+            CanonicalProfile::SourceRecordDigestV1.as_str(),
+        );
+        assert_eq!(record.bytes(), br#"{"f":1.25}"#);
+        let command_duplicate = codec_v1(
+            br#"{"id":1,"\u0069d":2}"#,
+            "canonical",
+            CanonicalProfile::SourceCommandInputV1.as_str(),
+        );
+        assert_eq!(
+            command_duplicate.error_code().as_deref(),
+            Some("duplicate_member")
+        );
     }
 
     #[test]

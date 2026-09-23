@@ -13,6 +13,26 @@ pub enum JsonMode {
     RequestLastWins,
 }
 
+impl JsonMode {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::PublishedStrict => "tos_published_json_v1",
+            Self::RequestLastWins => "tos_request_last_wins_json_v1",
+        }
+    }
+
+    pub fn from_profile(profile: &str) -> Result<Self> {
+        match profile {
+            "tos_published_json_v1" => Ok(Self::PublishedStrict),
+            "tos_request_last_wins_json_v1" => Ok(Self::RequestLastWins),
+            _ => Err(FoundationError::new(
+                Code::UnsupportedFormat,
+                "unknown JSON parse profile",
+            )),
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct JsonLimits {
     pub max_bytes: usize,
@@ -242,6 +262,10 @@ pub fn parse_json(raw: &[u8], mode: JsonMode, limits: JsonLimits) -> Result<Json
         return Err(parser.error(Code::InvalidJson, "trailing JSON input"));
     }
     Ok(JsonDocument { root, mode })
+}
+
+pub fn parse_json_profile(raw: &[u8], profile: &str, limits: JsonLimits) -> Result<JsonDocument> {
+    parse_json(raw, JsonMode::from_profile(profile)?, limits)
 }
 
 struct Parser<'a> {
@@ -491,16 +515,36 @@ impl Parser<'_> {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum CanonicalProfile {
-    /// `scripts/corpus_store.py` v1 canonical bytes. Currently floats fail closed.
+    /// `scripts/corpus_store.py` v1: sorted compact JSON plus one LF.
     CorpusSnapshotV1,
+    /// `knowledge_assessment.py` source-record digest: sorted compact JSON, no LF.
+    SourceRecordDigestV1,
+    /// Legacy `source_commands.py` request identity: the same bytes as the
+    /// source-record digest, but a distinct owner contract and lifetime.
+    SourceCommandInputV1,
 }
 
 impl CanonicalProfile {
     pub const fn as_str(self) -> &'static str {
-        "tos_corpus_snapshot_canonical_v1"
+        match self {
+            Self::CorpusSnapshotV1 => "tos_corpus_snapshot_canonical_v1",
+            Self::SourceRecordDigestV1 => "tos_source_record_digest_v1",
+            Self::SourceCommandInputV1 => "tos_source_command_input_v1",
+        }
     }
     pub const fn supports_float(self) -> bool {
-        false
+        true
+    }
+    pub fn from_profile(profile: &str) -> Result<Self> {
+        match profile {
+            "tos_corpus_snapshot_canonical_v1" => Ok(Self::CorpusSnapshotV1),
+            "tos_source_record_digest_v1" => Ok(Self::SourceRecordDigestV1),
+            "tos_source_command_input_v1" => Ok(Self::SourceCommandInputV1),
+            _ => Err(FoundationError::new(
+                Code::UnsupportedFormat,
+                "unknown canonical profile",
+            )),
+        }
     }
 }
 
@@ -508,8 +552,8 @@ pub fn emit_preserved_json(document: &JsonDocument, limits: JsonLimits) -> Resul
     write_document(document.root(), limits, false, false)
 }
 
-/// Produce exact Python `json.dumps(..., sort_keys=True, ensure_ascii=False,
-/// separators=(',', ':'), allow_nan=False) + '\n'` for the declared profile.
+/// Produce owner-profile bytes using Python's sorted compact JSON spelling.
+/// Only `CorpusSnapshotV1` includes a final line feed.
 pub fn canonical_bytes_v1(
     value: &JsonValue,
     profile: CanonicalProfile,
@@ -517,6 +561,9 @@ pub fn canonical_bytes_v1(
 ) -> Result<Vec<u8>> {
     match profile {
         CanonicalProfile::CorpusSnapshotV1 => write_document(value, limits, true, true),
+        CanonicalProfile::SourceRecordDigestV1 | CanonicalProfile::SourceCommandInputV1 => {
+            write_document(value, limits, true, false)
+        }
     }
 }
 
@@ -528,6 +575,26 @@ pub fn canonical_digest_v1(
     Ok(Digest256::of_bytes(&canonical_bytes_v1(
         value, profile, limits,
     )?))
+}
+
+/// Decode exact raw source/command input with duplicate rejection before
+/// canonicalization. This entry point cannot silently collapse a request's
+/// duplicate members under `RequestLastWins`.
+pub fn canonical_raw_bytes_v1(
+    raw: &[u8],
+    profile: CanonicalProfile,
+    limits: JsonLimits,
+) -> Result<Vec<u8>> {
+    let document = parse_json(raw, JsonMode::PublishedStrict, limits)?;
+    canonical_bytes_v1(document.root(), profile, limits)
+}
+
+pub fn canonical_raw_bytes_profile(
+    raw: &[u8],
+    profile: &str,
+    limits: JsonLimits,
+) -> Result<Vec<u8>> {
+    canonical_raw_bytes_v1(raw, CanonicalProfile::from_profile(profile)?, limits)
 }
 
 fn write_document(
@@ -555,6 +622,78 @@ fn emit(output: &mut Vec<u8>, bytes: &[u8], limits: JsonLimits) -> Result<()> {
     }
     output.extend_from_slice(bytes);
     Ok(())
+}
+
+/// Render a finite IEEE-754 value with CPython's `repr(float)` layout used by
+/// `json.dumps`. Rust's shortest round-trip decimal supplies the significant
+/// digits; Python's fixed/scientific threshold and exponent spelling are
+/// applied without converting an integer through binary64.
+fn python_float_text(value: f64) -> String {
+    if value == 0.0 {
+        return if value.is_sign_negative() {
+            "-0.0"
+        } else {
+            "0.0"
+        }
+        .to_owned();
+    }
+    let negative = value.is_sign_negative();
+    let shortest = value.abs().to_string();
+    let (mantissa, exponent_suffix) = match shortest.find(|ch| ch == 'e' || ch == 'E') {
+        Some(position) => (
+            &shortest[..position],
+            shortest[position + 1..]
+                .parse::<i32>()
+                .expect("finite f64 exponent"),
+        ),
+        None => (shortest.as_str(), 0),
+    };
+    let decimal_position = mantissa.find('.').unwrap_or(mantissa.len()) as i32;
+    let mut digits: String = mantissa.chars().filter(|ch| *ch != '.').collect();
+    let leading = digits.bytes().take_while(|byte| *byte == b'0').count();
+    let exponent = exponent_suffix + decimal_position - 1 - leading as i32;
+    digits.drain(..leading);
+    while digits.len() > 1 && digits.ends_with('0') {
+        digits.pop();
+    }
+    let mut result = String::with_capacity(shortest.len() + 8);
+    if negative {
+        result.push('-');
+    }
+    if (-4..16).contains(&exponent) {
+        let point = exponent + 1;
+        if point <= 0 {
+            result.push_str("0.");
+            for _ in 0..-point {
+                result.push('0');
+            }
+            result.push_str(&digits);
+        } else if point as usize >= digits.len() {
+            result.push_str(&digits);
+            for _ in 0..(point as usize - digits.len()) {
+                result.push('0');
+            }
+            result.push_str(".0");
+        } else {
+            result.push_str(&digits[..point as usize]);
+            result.push('.');
+            result.push_str(&digits[point as usize..]);
+        }
+    } else {
+        result.push(digits.as_bytes()[0] as char);
+        if digits.len() > 1 {
+            result.push('.');
+            result.push_str(&digits[1..]);
+        }
+        result.push('e');
+        result.push(if exponent < 0 { '-' } else { '+' });
+        let magnitude = exponent.unsigned_abs();
+        if magnitude < 10 {
+            result.push('0');
+        }
+        result.push_str(&magnitude.to_string());
+    }
+    result
 }
 
 fn write_value(
@@ -587,12 +726,11 @@ fn write_value(
                 ));
             }
             if sort_keys && number.kind == JsonNumberKind::Float {
-                return Err(FoundationError::new(
-                    Code::UnsupportedCanonicalNumber,
-                    "float formatter has not passed Python parity",
-                ));
-            }
-            if sort_keys && number.lexeme == "-0" {
+                let value = number.lexeme.parse::<f64>().map_err(|_| {
+                    FoundationError::new(Code::InvalidNumber, "float lexeme is invalid")
+                })?;
+                emit(output, python_float_text(value).as_bytes(), limits)?;
+            } else if sort_keys && number.lexeme == "-0" {
                 emit(output, b"0", limits)?;
             } else {
                 emit(output, number.lexeme.as_bytes(), limits)?;

@@ -1,5 +1,5 @@
 use crate::descriptor::DESCRIPTOR_FORMAT_VERSION;
-use crate::json::{CanonicalProfile, FORMAT_VERSION};
+use crate::json::{CanonicalProfile, FORMAT_VERSION, JsonMode};
 
 /// Versioned disclosure of what this small foundation package actually supports.
 /// A caller must not infer source admission or complete schema validation from it.
@@ -7,7 +7,9 @@ use crate::json::{CanonicalProfile, FORMAT_VERSION};
 pub struct FoundationCapabilities {
     pub json_format: &'static str,
     pub descriptor_format: &'static str,
+    pub json_profiles: [&'static str; 2],
     pub canonical_profile: &'static str,
+    pub canonical_profiles: [&'static str; 3],
     pub canonical_float_supported: bool,
     pub strict_duplicate_rejection: bool,
     pub request_last_wins: bool,
@@ -19,7 +21,16 @@ pub const fn capabilities() -> FoundationCapabilities {
     FoundationCapabilities {
         json_format: FORMAT_VERSION,
         descriptor_format: DESCRIPTOR_FORMAT_VERSION,
+        json_profiles: [
+            JsonMode::PublishedStrict.as_str(),
+            JsonMode::RequestLastWins.as_str(),
+        ],
         canonical_profile: CanonicalProfile::CorpusSnapshotV1.as_str(),
+        canonical_profiles: [
+            CanonicalProfile::CorpusSnapshotV1.as_str(),
+            CanonicalProfile::SourceRecordDigestV1.as_str(),
+            CanonicalProfile::SourceCommandInputV1.as_str(),
+        ],
         canonical_float_supported: CanonicalProfile::CorpusSnapshotV1.supports_float(),
         strict_duplicate_rejection: true,
         request_last_wins: true,
