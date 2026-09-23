@@ -1490,6 +1490,11 @@ fn selected_generation_binds_complete_current_and_retained_membership() {
             Err(DurableError::Storage(_))
         ));
     }
+    assert!(
+        lab.db
+            .cold_verify_cut(&incomplete_store, &lab.domain)
+            .is_err()
+    );
     let mut observer = Client::connect(&url, NoTls).unwrap();
     let selected_before: Option<String> = observer
         .query_one(
