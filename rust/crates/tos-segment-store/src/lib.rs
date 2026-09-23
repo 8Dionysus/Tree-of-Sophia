@@ -22,6 +22,6 @@ pub use error::{Result, SegmentError, SegmentErrorCode};
 pub use format::{FrameCoordinate, SegmentLimits};
 pub use placement::PlacementV1;
 pub use store::{
-    ByteDurabilityReceipt, DurabilityClass, FrameInput, OwnerBinding, SegmentStore,
-    VerificationBudget, VerifiedSealGuard,
+    AttemptRecovery, ByteDurabilityReceipt, DurabilityClass, FrameInput, OwnerBinding,
+    SegmentStore, VerificationBudget, VerifiedSealGuard,
 };

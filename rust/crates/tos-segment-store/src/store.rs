@@ -49,6 +49,7 @@ struct Inner {
     staging: File,
     segments: File,
     pins: File,
+    attempts: File,
     store_id: [u8; 16],
     domain: Vec<u8>,
     domain_digest: Digest256,
@@ -101,6 +102,26 @@ pub struct VerifiedSealGuard {
     _pin_lock: File,
     receipts: Vec<ByteDurabilityReceipt>,
     prepare_id: Vec<u8>,
+}
+
+/// Physical custody observed through a durable, exact prepare-ID lookup.
+/// None of these states decides whether CMD committed or may abort the attempt.
+#[derive(Debug)]
+pub enum AttemptRecovery {
+    IntentOnly {
+        pin_id: [u8; 16],
+    },
+    Preparing {
+        pin_id: [u8; 16],
+        fence_epoch: u64,
+    },
+    Sealed {
+        receipts: Vec<ByteDurabilityReceipt>,
+    },
+    Aborted {
+        pin_id: [u8; 16],
+        fence_epoch: u64,
+    },
 }
 
 impl VerifiedSealGuard {
@@ -184,7 +205,7 @@ impl SegmentStore {
             ));
         }
         let root_fd = open_root(root)?;
-        for name in ["staging", "segments", "pins"] {
+        for name in ["staging", "segments", "pins", "attempts"] {
             mkdirat(&root_fd, name, Mode::RUSR | Mode::WUSR | Mode::XUSR).map_err(|error| {
                 SegmentError::io("cannot initialize segment directory", error.into())
             })?;
@@ -209,12 +230,14 @@ impl SegmentStore {
         let staging = open_directory(&root_fd, "staging")?;
         let segments = open_directory(&root_fd, "segments")?;
         let pins = open_directory(&root_fd, "pins")?;
+        let attempts = open_directory(&root_fd, "attempts")?;
         Ok(Self {
             inner: Arc::new(Inner {
                 _root: root_fd,
                 staging,
                 segments,
                 pins,
+                attempts,
                 store_id,
                 domain: domain.to_vec(),
                 domain_digest: Digest256::of_bytes(domain),
@@ -229,6 +252,7 @@ impl SegmentStore {
         let staging = open_directory(&root_fd, "staging")?;
         let segments = open_directory(&root_fd, "segments")?;
         let pins = open_directory(&root_fd, "pins")?;
+        let attempts = open_directory(&root_fd, "attempts")?;
         let mut meta = Vec::new();
         open_regular(&root_fd, "store.meta")?
             .take(65_594)
@@ -266,6 +290,7 @@ impl SegmentStore {
                 staging,
                 segments,
                 pins,
+                attempts,
                 store_id,
                 domain,
                 domain_digest,
@@ -373,6 +398,12 @@ impl SegmentStore {
             frames: Vec::new(),
         };
         let pin_name = hex_id(pin_id);
+        // A crash after sealing but before CMD's attach_ready must leave a
+        // prepare-keyed route to this pin. The one-segment-per-prepare first
+        // profile refuses reuse; reconciliation precedes any retry.
+        self.write_attempt_intent(prepare_id, pin_id)?;
+        #[cfg(test)]
+        crash_test_barrier("intent-synced", pin_id);
         write_initial_pin(&self.inner.pins, &pin_name, &journal.encode(limits)?)?;
         #[cfg(test)]
         crash_test_barrier("pin-synced", pin_id);
@@ -575,6 +606,99 @@ impl SegmentStore {
             ));
         }
         Ok(self.receipts_from_journal(journal, metadata.dev(), metadata.ino()))
+    }
+
+    /// Bounded direct lookup by the CMD-registered prepare ID. The durable
+    /// intent is written before the pin and segment, so even an interrupted
+    /// seal remains discoverable without a marker or directory-wide scan.
+    /// A missing pin after an intent is uncertain custody, not abort proof.
+    pub fn recover_attempt(&self, prepare_id: &[u8]) -> Result<Option<AttemptRecovery>> {
+        let _pin_lock = self.lock_pin_dir(FlockOperation::NonBlockingLockShared)?;
+        let Some(pin_id) = self.read_attempt_intent(prepare_id)? else {
+            return Ok(None);
+        };
+        let journal = match self.read_pin(pin_id) {
+            Ok(journal) => journal,
+            Err(error) if is_missing(&error) => {
+                return Ok(Some(AttemptRecovery::IntentOnly { pin_id }));
+            }
+            Err(error) => return Err(error),
+        };
+        if journal.prepare_id != prepare_id {
+            return Err(SegmentError::new(
+                Code::InvalidReceipt,
+                "intent pin prepare differs",
+            ));
+        }
+        Ok(Some(match journal.state {
+            PinState::Preparing => AttemptRecovery::Preparing {
+                pin_id,
+                fence_epoch: journal.fence_epoch,
+            },
+            PinState::Sealed => AttemptRecovery::Sealed {
+                receipts: self.recover_sealed(pin_id)?,
+            },
+            PinState::Aborted => AttemptRecovery::Aborted {
+                pin_id,
+                fence_epoch: journal.fence_epoch,
+            },
+        }))
+    }
+
+    fn write_attempt_intent(&self, prepare_id: &[u8], pin_id: [u8; 16]) -> Result<()> {
+        let raw = encode_attempt_intent(
+            self.inner.store_id,
+            self.inner.domain_digest,
+            prepare_id,
+            pin_id,
+        )?;
+        let name = attempt_name(prepare_id);
+        let mut file = match create_exclusive(&self.inner.attempts, &name) {
+            Ok(file) => file,
+            Err(error)
+                if error
+                    .source
+                    .as_ref()
+                    .is_some_and(|source| source.kind() == std::io::ErrorKind::AlreadyExists) =>
+            {
+                return Err(SegmentError::new(
+                    Code::PinConflict,
+                    "prepare already has durable pin intent",
+                ));
+            }
+            Err(error) => return Err(error),
+        };
+        file.write_all(&raw)
+            .map_err(|error| SegmentError::io("cannot write attempt intent", error))?;
+        file.sync_all()
+            .map_err(|error| SegmentError::io("cannot sync attempt intent", error))?;
+        fsync(&self.inner.attempts)
+            .map_err(|error| SegmentError::io("cannot sync attempt directory", error.into()))
+    }
+
+    fn read_attempt_intent(&self, prepare_id: &[u8]) -> Result<Option<[u8; 16]>> {
+        if prepare_id.is_empty() || prepare_id.len() > u16::MAX as usize {
+            return Err(SegmentError::new(
+                Code::InvalidReceipt,
+                "invalid prepare ID",
+            ));
+        }
+        let file = match open_regular(&self.inner.attempts, &attempt_name(prepare_id)) {
+            Ok(file) => file,
+            Err(error) if is_missing(&error) => return Ok(None),
+            Err(error) => return Err(error),
+        };
+        let mut raw = Vec::new();
+        file.take(self.inner.limits.max_journal_bytes as u64 + 129)
+            .read_to_end(&mut raw)
+            .map_err(|error| SegmentError::io("cannot read attempt intent", error))?;
+        decode_attempt_intent(
+            &raw,
+            self.inner.store_id,
+            self.inner.domain_digest,
+            prepare_id,
+        )
+        .map(Some)
     }
 
     /// Admission of a stored placement into a warm generation. This cold path
@@ -1081,24 +1205,71 @@ fn hex_id(id: [u8; 16]) -> String {
     text
 }
 
-#[cfg(test)]
-fn crash_test_barrier(phase: &str, pin_id: [u8; 16]) {
-    use std::io::Write;
+const INTENT_MAGIC: &[u8; 8] = b"TOSINT1\0";
 
+fn attempt_name(prepare_id: &[u8]) -> String {
+    Digest256::of_bytes(prepare_id).to_hex()
+}
+
+fn encode_attempt_intent(
+    store_id: [u8; 16],
+    domain_digest: Digest256,
+    prepare_id: &[u8],
+    pin_id: [u8; 16],
+) -> Result<Vec<u8>> {
+    if prepare_id.is_empty() || prepare_id.len() > u16::MAX as usize {
+        return Err(SegmentError::new(
+            Code::InvalidReceipt,
+            "invalid prepare ID",
+        ));
+    }
+    let mut raw = Vec::with_capacity(8 + 16 + 32 + 16 + 2 + prepare_id.len() + 32);
+    raw.extend_from_slice(INTENT_MAGIC);
+    raw.extend_from_slice(&store_id);
+    raw.extend_from_slice(domain_digest.as_bytes());
+    raw.extend_from_slice(&pin_id);
+    raw.extend_from_slice(&(prepare_id.len() as u16).to_le_bytes());
+    raw.extend_from_slice(prepare_id);
+    let checksum = Digest256::of_bytes(&raw);
+    raw.extend_from_slice(checksum.as_bytes());
+    Ok(raw)
+}
+
+fn decode_attempt_intent(
+    raw: &[u8],
+    store_id: [u8; 16],
+    domain_digest: Digest256,
+    prepare_id: &[u8],
+) -> Result<[u8; 16]> {
+    let expected_len = 8 + 16 + 32 + 16 + 2 + prepare_id.len() + 32;
+    if raw.len() != expected_len
+        || &raw[..8] != INTENT_MAGIC
+        || &raw[8..24] != store_id.as_slice()
+        || &raw[24..56] != domain_digest.as_bytes()
+        || u16::from_le_bytes([raw[72], raw[73]]) as usize != prepare_id.len()
+        || &raw[74..74 + prepare_id.len()] != prepare_id
+        || Digest256::of_bytes(&raw[..raw.len() - 32]).as_bytes() != &raw[raw.len() - 32..]
+    {
+        return Err(SegmentError::new(
+            Code::InvalidReceipt,
+            "attempt intent differs",
+        ));
+    }
+    Ok(raw[56..72].try_into().expect("fixed pin ID"))
+}
+
+fn is_missing(error: &SegmentError) -> bool {
+    error
+        .source
+        .as_ref()
+        .is_some_and(|source| source.kind() == std::io::ErrorKind::NotFound)
+}
+
+#[cfg(test)]
+fn crash_test_barrier(phase: &str, _pin_id: [u8; 16]) {
     if std::env::var("TOS_SEGMENT_CRASH_AT").ok().as_deref() != Some(phase) {
         return;
     }
-    let marker = std::path::PathBuf::from(
-        std::env::var_os("TOS_SEGMENT_CRASH_MARKER").expect("crash marker path"),
-    );
-    let mut file = std::fs::OpenOptions::new()
-        .write(true)
-        .create_new(true)
-        .open(marker)
-        .expect("create crash marker");
-    file.write_all(hex_id(pin_id).as_bytes())
-        .expect("write crash pin ID");
-    file.sync_all().expect("sync crash marker");
     let _ = std::process::Command::new("/usr/bin/kill")
         .arg("-9")
         .arg(std::process::id().to_string())
@@ -1258,6 +1429,59 @@ mod tests {
     }
 
     #[test]
+    fn exact_prepare_intent_recovers_seal_and_retains_abort_fence() {
+        let root = PrivateRoot::new();
+        let store = SegmentStore::initialize_empty(&root.0, b"private-domain", limits()).unwrap();
+        assert!(store.recover_attempt(b"attempt-7").unwrap().is_none());
+        let bytes = b"attempt-bound bytes".to_vec();
+        let mut reader = Cursor::new(bytes.clone());
+        let receipt = store
+            .seal_segment(
+                b"attempt-7",
+                &mut [FrameInput {
+                    binding: binding(7),
+                    declared_size: bytes.len() as u64,
+                    declared_sha256: Digest256::of_bytes(&bytes),
+                    reader: &mut reader,
+                }],
+            )
+            .unwrap()
+            .remove(0);
+        let cold = SegmentStore::open_existing(&root.0, limits()).unwrap();
+        let Some(AttemptRecovery::Sealed { receipts }) =
+            cold.recover_attempt(b"attempt-7").unwrap()
+        else {
+            panic!("sealed attempt not found by exact prepare ID");
+        };
+        assert_eq!(receipts.len(), 1);
+        assert_eq!(receipts[0].placement(), receipt.placement());
+        let mut retry_reader = Cursor::new(bytes);
+        assert_eq!(
+            cold.seal_segment(
+                b"attempt-7",
+                &mut [FrameInput {
+                    binding: binding(7),
+                    declared_size: receipt.coordinate().size_bytes,
+                    declared_sha256: receipt.coordinate().sha256,
+                    reader: &mut retry_reader,
+                }],
+            )
+            .unwrap_err()
+            .code,
+            Code::PinConflict
+        );
+        assert_eq!(
+            cold.abort_uncommitted(receipt.pin_id(), b"attempt-7", 1)
+                .unwrap(),
+            2
+        );
+        assert!(matches!(
+            cold.recover_attempt(b"attempt-7").unwrap(),
+            Some(AttemptRecovery::Aborted { fence_epoch: 2, .. })
+        ));
+    }
+
+    #[test]
     fn placement_wire_cold_recovers_exact_member_and_rejects_mismatch() {
         let root = PrivateRoot::new();
         let store = SegmentStore::initialize_empty(&root.0, b"private-domain", limits()).unwrap();
@@ -1371,7 +1595,7 @@ mod tests {
             .unwrap()
             .remove(0);
         let placement = PlacementV1::decode(&receipt.placement().encode()).unwrap();
-        for directory in ["staging", "segments", "pins"] {
+        for directory in ["staging", "segments", "pins", "attempts"] {
             fs::create_dir(backup_root.0.join(directory)).unwrap();
         }
         fs::copy(
@@ -1389,6 +1613,12 @@ mod tests {
         fs::copy(
             source_root.0.join("pins").join(&pin_name),
             backup_root.0.join("pins").join(&pin_name),
+        )
+        .unwrap();
+        let intent_name = attempt_name(b"backup-prepare");
+        fs::copy(
+            source_root.0.join("attempts").join(&intent_name),
+            backup_root.0.join("attempts").join(&intent_name),
         )
         .unwrap();
 
@@ -1662,12 +1892,13 @@ mod tests {
             std::thread::sleep(Duration::from_millis(10));
         };
         assert_eq!(status.signal(), Some(9));
-        let pin_text = fs::read_to_string(root.0.join("sealed-pin-id")).unwrap();
-        let pin_id: [u8; 16] = std::array::from_fn(|index| {
-            u8::from_str_radix(&pin_text[index * 2..index * 2 + 2], 16).unwrap()
-        });
         let store = SegmentStore::open_existing(&root.0, limits()).unwrap();
-        let receipt = store.recover_sealed(pin_id).unwrap().remove(0);
+        let Some(AttemptRecovery::Sealed { mut receipts }) =
+            store.recover_attempt(b"crash-prepare").unwrap()
+        else {
+            panic!("sealed prepare absent after crash");
+        };
+        let receipt = receipts.remove(0);
         store.verify_receipt(&receipt).unwrap();
         let mut bytes = Vec::new();
         store.read_selected(&receipt, 64, &mut bytes).unwrap();
@@ -1687,19 +1918,7 @@ mod tests {
             declared_sha256: Digest256::of_bytes(&bytes),
             reader: &mut reader,
         }];
-        let receipt = store
-            .seal_segment(b"crash-prepare", &mut frames)
-            .unwrap()
-            .remove(0);
-        let mut marker = OpenOptions::new()
-            .write(true)
-            .create_new(true)
-            .open(root.join("sealed-pin-id"))
-            .unwrap();
-        marker
-            .write_all(hex_id(receipt.pin_id()).as_bytes())
-            .unwrap();
-        marker.sync_all().unwrap();
+        store.seal_segment(b"crash-prepare", &mut frames).unwrap();
         let _ = Command::new("/usr/bin/kill")
             .arg("-9")
             .arg(std::process::id().to_string())
@@ -1711,6 +1930,7 @@ mod tests {
     #[test]
     fn crash_barriers_never_recover_an_unsealed_receipt() {
         for phase in [
+            "intent-synced",
             "pin-synced",
             "stage-synced",
             "segment-installed",
@@ -1719,14 +1939,12 @@ mod tests {
             "sealed-pin-synced",
         ] {
             let root = PrivateRoot::new();
-            let marker = root.0.join("crash-pin-id");
             let mut child = Command::new(env::current_exe().unwrap())
                 .arg("--exact")
                 .arg("store::tests::seal_at_phase_then_sigkill_child")
                 .arg("--ignored")
                 .env("TOS_SEGMENT_CRASH_TEST_ROOT", &root.0)
                 .env("TOS_SEGMENT_CRASH_AT", phase)
-                .env("TOS_SEGMENT_CRASH_MARKER", &marker)
                 .spawn()
                 .unwrap();
             let deadline = Instant::now() + Duration::from_secs(30);
@@ -1742,23 +1960,21 @@ mod tests {
                 std::thread::sleep(Duration::from_millis(10));
             };
             assert_eq!(status.signal(), Some(9), "{phase} did not SIGKILL");
-            let pin_text = fs::read_to_string(marker).unwrap();
-            let pin_id: [u8; 16] = std::array::from_fn(|index| {
-                u8::from_str_radix(&pin_text[index * 2..index * 2 + 2], 16).unwrap()
-            });
             let store = SegmentStore::open_existing(&root.0, limits()).unwrap();
-            if phase == "sealed-pin-synced" {
-                let receipt = store.recover_sealed(pin_id).unwrap().remove(0);
-                store.verify_receipt(&receipt).unwrap();
-                let mut selected = Vec::new();
-                store.read_selected(&receipt, 64, &mut selected).unwrap();
-                assert_eq!(selected, b"phase crash bytes");
-            } else {
-                assert_eq!(
-                    store.recover_sealed(pin_id).unwrap_err().code,
-                    Code::InvalidReceipt,
-                    "{phase} minted a premature receipt"
-                );
+            match (
+                phase,
+                store.recover_attempt(b"phase-crash-prepare").unwrap(),
+            ) {
+                ("intent-synced", Some(AttemptRecovery::IntentOnly { .. })) => {}
+                ("sealed-pin-synced", Some(AttemptRecovery::Sealed { mut receipts })) => {
+                    let receipt = receipts.remove(0);
+                    store.verify_receipt(&receipt).unwrap();
+                    let mut selected = Vec::new();
+                    store.read_selected(&receipt, 64, &mut selected).unwrap();
+                    assert_eq!(selected, b"phase crash bytes");
+                }
+                (_, Some(AttemptRecovery::Preparing { .. })) => {}
+                (_, state) => panic!("{phase} recovered unexpected state: {state:?}"),
             }
         }
     }
