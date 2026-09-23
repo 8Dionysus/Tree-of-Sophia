@@ -797,14 +797,21 @@ class SourceClaimProfiles:
                 if kind is None or not self.ancestry(kind).intersection(allowed):
                     raise SourceProfileError(f'source claim {field} violates registry domain/range or is unresolved')
 
-    def read_rows(self, ref):
+    def read_rows(self, ref, *, source_root: Path | None = None):
+        """Read and validate one tracked claim carrier.
+
+        ``source_root`` lets a caller validate a sealed, not-yet-admitted
+        carrier while keeping registries and schemas bound to this reader's
+        owner root.
+        """
+
         path = Path(ref)
         if (path.is_absolute() or '..' in path.parts or path.as_posix() != ref
                 or not path.is_relative_to(SOURCE_ROOT) or path.name != SOURCE_CLAIM_BASENAME
                 or path.is_relative_to(OWNER_LOCAL_HOME)
                 or any(part in {'catalog', 'payload', 'local-content'} for part in path.parts)):
             raise SourceProfileError('source claim path is outside its metadata home')
-        target = self.root / path
+        target = (source_root if source_root is not None else self.root) / path
         if target.is_symlink() or not target.is_file() or target.resolve() != target.absolute():
             raise SourceProfileError('source claims must be a regular non-symlink file')
         with target.open('rb') as stream:

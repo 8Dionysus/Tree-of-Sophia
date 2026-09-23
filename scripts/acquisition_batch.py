@@ -48,6 +48,24 @@ except ModuleNotFoundError as exc:  # pragma: no cover - direct package import
     from scripts import source_payload_custody as custody
     from scripts.corpus_source_validation import is_source_member
 
+try:
+    from material_discovery_semantics import material_discovery_semantic_issues
+    from source_record_profiles import SourceClaimProfiles, SourceProfileError
+except ModuleNotFoundError as exc:  # pragma: no cover - package import
+    if exc.name not in {
+        "material_discovery_semantics",
+        "source_record_profiles",
+        "source_owner_context",
+        "source_identity_proposals",
+        "source_document_catalogue",
+    }:
+        raise
+    scripts_dir = Path(__file__).resolve().parent
+    if str(scripts_dir) not in sys.path:
+        sys.path.insert(0, str(scripts_dir))
+    from material_discovery_semantics import material_discovery_semantic_issues
+    from source_record_profiles import SourceClaimProfiles, SourceProfileError
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 MANIFEST_SCHEMA = Path("ToS/contracts/acquisition-batch.schema.json")
@@ -760,6 +778,9 @@ def _verify_prepared_item_bindings(context: BatchContext, output: Path) -> None:
 
     source_root = output / "source"
     schema_validators: dict[Path, Draft202012Validator] = {}
+    claim_profiles: SourceClaimProfiles | None = None
+    validated_claim_refs: set[str] = set()
+    batch_claim_ids: dict[str, str] = {}
 
     def schema_validator(schema_ref: Path, *, label: str) -> Draft202012Validator:
         validator = schema_validators.get(schema_ref)
@@ -802,6 +823,49 @@ def _verify_prepared_item_bindings(context: BatchContext, output: Path) -> None:
         for record in selection["records"]:
             kind = record["kind"]
             record_ref = record["ref"]
+            if kind == "claim":
+                if PurePosixPath(record_ref).name != "source-claims.jsonl":
+                    raise AcquisitionBatchError(
+                        f"selected Claim carrier must use source-claims.jsonl: {record_ref}"
+                    )
+                if record_ref in validated_claim_refs:
+                    continue
+                claim_path = _path_under(
+                    source_root,
+                    record_ref,
+                    label="prepared selected source Claim carrier",
+                )
+                _regular_file(
+                    claim_path, label="prepared selected source Claim carrier"
+                )
+                if _sha256_file(claim_path) != record["sha256"]:
+                    raise SourceIntegrityError(
+                        f"prepared selected source Claim bytes differ: {record_ref}"
+                    )
+                claim_profiles = claim_profiles or SourceClaimProfiles(
+                    context.repo_root
+                )
+                try:
+                    for line_number, claim in claim_profiles.read_rows(
+                        record_ref, source_root=source_root
+                    ):
+                        claim_id = claim["claim_id"]
+                        if claim_id in batch_claim_ids:
+                            raise AcquisitionBatchError(
+                                "selected source Claim identity is duplicated: "
+                                f"{claim_id}"
+                            )
+                        batch_claim_ids[claim_id] = (
+                            f"{record_ref}:{line_number}"
+                        )
+                except AcquisitionBatchError:
+                    raise
+                except (OSError, SourceProfileError, KeyError, TypeError) as exc:
+                    raise AcquisitionBatchError(
+                        f"selected source Claim carrier violates its profile: {record_ref}"
+                    ) from exc
+                validated_claim_refs.add(record_ref)
+                continue
             if record_ref.startswith(f"{MATERIAL_DISCOVERY_RUN_ROOT}/"):
                 discovery_path = PurePosixPath(record_ref)
                 if (
@@ -834,6 +898,14 @@ def _verify_prepared_item_bindings(context: BatchContext, output: Path) -> None:
                     label="selected discovery record",
                     item_ref=item_ref,
                 )
+                discovery_issues = material_discovery_semantic_issues(
+                    record_value
+                )
+                if discovery_issues:
+                    raise AcquisitionBatchError(
+                        "selected discovery record violates foundation semantics: "
+                        f"{record_ref}: {discovery_issues[0]}"
+                    )
                 continue
             if kind not in {"work", "expression", "edition"}:
                 continue

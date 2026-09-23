@@ -14,7 +14,7 @@ import time
 import unittest
 from unittest.mock import patch
 
-from jsonschema import Draft202012Validator
+from jsonschema import Draft202012Validator, FormatChecker
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -951,6 +951,195 @@ class AcquisitionBatchTests(unittest.TestCase):
         self.assertEqual([], fetch_calls)
         self.assertEqual([], list(output_root.glob("receipts/handoff-*.json")))
         self.assertEqual([], list((output_root / "payload").rglob("*")))
+
+    def test_selected_discovery_run_semantics_are_checked_before_fetch(self) -> None:
+        fetches, _manifest_sha = self._write_manifest(count=1)
+        manifest = json.loads(self.manifest_path.read_text(encoding="utf-8"))
+        selection = manifest["selection"][0]
+        discovery_ref = (
+            "ToS/source-witnesses/discovery/runs/duplicate-channel-fixture.json"
+        )
+        discovery_path = self.metadata / discovery_ref
+        discovery_path.parent.mkdir(parents=True, exist_ok=True)
+        channel = {
+            "channel_id": "channel-fixture",
+            "sequence": 1,
+            "channel_type": "national-catalog",
+            "role": "originating-record",
+            "source_name": "Fixture catalog",
+            "endpoint_url": "https://catalog.example/search",
+            "interface_type": "web",
+            "interface_version": None,
+            "exact_query": "fixture query",
+            "queried_at": "2026-09-21T12:00:00Z",
+            "elapsed_seconds": 0,
+            "result_order_preserved": True,
+            "results": [],
+        }
+        discovery = {
+            "$schema": "https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json",
+            "schema_version": "tos_material_discovery_record_v1",
+            "discovery_id": "tos.discovery.duplicate-channel-fixture",
+            "protocol_ref": "ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md",
+            "target": {
+                "target_kind": "work",
+                "known_tos_refs": ["tos.work.fixture.0"],
+                "description": "A bounded test target.",
+                "required_properties": ["title"],
+                "acceptable_substitutions": [],
+                "languages": ["en"],
+                "formats": ["text/plain"],
+                "purpose_ref": "tests/test_acquisition_batch.py",
+            },
+            "channels": [channel, {**channel, "sequence": 2, "source_name": "Second fixture catalog"}],
+            "channel_comparison": [
+                {
+                    "channel_id": "channel-fixture",
+                    "completeness": "unknown",
+                    "metadata_precision": "unknown",
+                    "rights_clarity": "unknown",
+                    "machine_interface_quality": "unknown",
+                    "human_minutes": 0,
+                    "machine_seconds": 0,
+                    "notes": "Fixture comparison.",
+                }
+            ],
+            "selected_result_ids": [],
+            "rejected_result_ids": [],
+            "rights_inference_from_availability_prohibited": True,
+            "general_web_search_is_last_resort": True,
+            "technical_access_bypass_used": False,
+            "maker": {"maker_type": "software", "agent_ref": "software:fixture"},
+            "started_at": "2026-09-21T12:00:00Z",
+            "ended_at": "2026-09-21T12:00:00Z",
+            "status": "planned",
+            "provenance_event_refs": ["tos.event.discovery-fixture"],
+            "record_version": 1,
+        }
+        schema = json.loads(
+            (ROOT / acquisition.MATERIAL_DISCOVERY_RECORD_SCHEMA).read_text(
+                encoding="utf-8"
+            )
+        )
+        Draft202012Validator(schema, format_checker=FormatChecker()).validate(
+            discovery
+        )
+        discovery_path.write_text(
+            json.dumps(discovery, sort_keys=True) + "\n", encoding="utf-8"
+        )
+        selection["records"].append(
+            {
+                "ref": discovery_ref,
+                "kind": "discovery",
+                "sha256": hashlib.sha256(discovery_path.read_bytes()).hexdigest(),
+            }
+        )
+        manifest["provenance_delta"]["record_refs"] = sorted(
+            record["ref"]
+            for selected in manifest["selection"]
+            for record in selected["records"]
+        )
+        self.manifest_path.write_text(
+            json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        manifest_sha = hashlib.sha256(self.manifest_path.read_bytes()).hexdigest()
+
+        fetch_calls: list[str] = []
+        output_root = self.root / "duplicate-channel-discovery-run"
+        with self.assertRaisesRegex(
+            acquisition.AcquisitionBatchError,
+            "discovery channel IDs are not unique",
+        ):
+            acquisition.acquire_batch(
+                manifest_path=self.manifest_path,
+                metadata_root=self.metadata,
+                output_root=output_root,
+                expected_manifest_sha256=manifest_sha,
+                fetcher=lambda payload: fetch_calls.append(payload["file_ref"])
+                or fetches[payload["file_ref"]],
+            )
+        self.assertEqual([], fetch_calls)
+        self.assertEqual([], list(output_root.glob("receipts/handoff-*.json")))
+        self.assertEqual([], list((output_root / "payload").rglob("*")))
+
+    def test_selected_source_claim_carrier_uses_its_declared_profile_before_fetch(self) -> None:
+        fetches, _manifest_sha = self._write_manifest(count=1)
+        manifest = json.loads(self.manifest_path.read_text(encoding="utf-8"))
+        selection = manifest["selection"][0]
+        claim_ref = f"{selection['item_root_ref']}/source-claims.jsonl"
+        claim_path = self.metadata / claim_ref
+        claim_path.parent.mkdir(parents=True, exist_ok=True)
+        source_claims = (
+            ROOT
+            / "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/source-claims.jsonl"
+        )
+        claim = json.loads(source_claims.read_text(encoding="utf-8").splitlines()[0])
+        claim["claim_id"] = "tos.claim.acquisition-profile-fixture"
+        claim_path.write_text(
+            json.dumps(claim, sort_keys=True) + "\n", encoding="utf-8"
+        )
+        selection["records"].append(
+            {
+                "ref": claim_ref,
+                "kind": "claim",
+                "sha256": hashlib.sha256(claim_path.read_bytes()).hexdigest(),
+            }
+        )
+        manifest["provenance_delta"]["record_refs"] = sorted(
+            record["ref"]
+            for selected in manifest["selection"]
+            for record in selected["records"]
+        )
+        self.manifest_path.write_text(
+            json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        manifest_sha = hashlib.sha256(self.manifest_path.read_bytes()).hexdigest()
+
+        valid_output = self.root / "valid-selected-source-claim"
+        valid_result = acquisition.acquire_batch(
+            manifest_path=self.manifest_path,
+            metadata_root=self.metadata,
+            output_root=valid_output,
+            expected_manifest_sha256=manifest_sha,
+            fetcher=lambda payload: fetches[payload["file_ref"]],
+        )
+        self.assertEqual("acquired-not-admitted", valid_result["status"])
+
+        claim["predicate"] = "not_a_declared_source_relation"
+        claim_path.write_text(
+            json.dumps(claim, sort_keys=True) + "\n", encoding="utf-8"
+        )
+        claim_record = next(
+            record for record in selection["records"] if record["ref"] == claim_ref
+        )
+        claim_record["sha256"] = hashlib.sha256(claim_path.read_bytes()).hexdigest()
+        self.manifest_path.write_text(
+            json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        invalid_manifest_sha = hashlib.sha256(
+            self.manifest_path.read_bytes()
+        ).hexdigest()
+
+        fetch_calls: list[str] = []
+        invalid_output = self.root / "invalid-selected-source-claim"
+        with self.assertRaisesRegex(
+            acquisition.AcquisitionBatchError,
+            "source Claim carrier violates its profile",
+        ):
+            acquisition.acquire_batch(
+                manifest_path=self.manifest_path,
+                metadata_root=self.metadata,
+                output_root=invalid_output,
+                expected_manifest_sha256=invalid_manifest_sha,
+                fetcher=lambda payload: fetch_calls.append(payload["file_ref"])
+                or fetches[payload["file_ref"]],
+            )
+        self.assertEqual([], fetch_calls)
+        self.assertEqual([], list(invalid_output.glob("receipts/handoff-*.json")))
+        self.assertEqual([], list((invalid_output / "payload").rglob("*")))
 
     def test_public_payload_posture_rejects_values_outside_rights_contract(self) -> None:
         cases = (
