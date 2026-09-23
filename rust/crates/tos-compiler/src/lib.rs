@@ -1,12 +1,14 @@
 //! Bounded compilation of a derived source-navigation read model.
 //! This crate writes private candidates; admission, rights and selection remain owner routes.
 
+mod knowledge_registry;
 mod legacy;
 mod publication;
 mod safe_open;
 mod selected;
 mod sqlite_budget;
 mod vocabulary;
+pub use knowledge_registry::{KnowledgeRegistry, ResolvedType};
 pub use legacy::LegacyPartitionedNavigation;
 pub use publication::{PublicationAuthority, PublishedReceipt, SelectionFence, publish_candidate};
 pub use selected::{
