@@ -267,3 +267,31 @@ pub fn apply_navigation_inherited_views(
     }
     result
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    // Frozen CPython `_apply_final_node_changes` result for a detached node.
+    #[test]
+    fn inherited_view_union_preserves_python_content_revision() {
+        let mut node = json!({
+            "id":"source-navigation:n:a","view_ids":["base","route"],
+            "semantics":{"type_ancestors":["tos.entity.work"]},
+            "attributes":{},"display":{"title":{"default":"A"}}
+        });
+        stamp_content_revision(&mut node, 4096).unwrap();
+        assert_eq!(
+            node["content_revision"],
+            "dda4801f595534e3ff7422bf486e14fbdd1fb833229907122796060cf49097b0"
+        );
+        assert!(apply_views(&mut node, &["route".into(), "atlas".into()], 4096).unwrap());
+        assert_eq!(node["view_ids"], json!(["atlas", "base", "route"]));
+        assert_eq!(
+            node["content_revision"],
+            "f98b0f7a8629357fc14a5363c495be15e7edbddda43441d3733c8a2505eb3e2d"
+        );
+        assert!(!apply_views(&mut node, &["route".into(), "atlas".into()], 4096).unwrap());
+    }
+}
