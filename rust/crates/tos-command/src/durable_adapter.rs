@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use std::fmt;
 use std::time::{Duration, Instant};
 
+use postgres::fallible_iterator::FallibleIterator;
 use postgres::{Client, IsolationLevel, NoTls, Transaction};
 use tos_foundation::{Digest256, Digest256Hasher};
 use tos_segment_store::{
@@ -1419,26 +1420,37 @@ impl DurablePgCoordinator {
             ("cmd2_outbox", "commit_seq"),
         ];
         let mut audited_rows = 0usize;
+        let mut audited_metadata_bytes = 0usize;
         for (table, order) in audited_tables {
             part(&mut state_hasher, table.as_bytes());
             let query = format!(
-                "SELECT row_to_json(t)::text FROM {table} t WHERE domain=$1 ORDER BY {order} LIMIT 100001"
+                "SELECT row_to_json(t)::text FROM {table} t WHERE domain=$1 ORDER BY {order}"
             );
-            let rows = tx.query(&query, &[&domain])?;
-            if rows.len() > 100_000 || audited_rows.saturating_add(rows.len()) > 100_000 {
-                return Err(DurableError::Refused("cold metadata row budget exceeded"));
-            }
-            audited_rows += rows.len();
-            part(&mut state_hasher, &(rows.len() as u64).to_be_bytes());
-            for row in rows {
+            let mut rows = tx.query_raw(&query, &[&domain])?;
+            let mut table_rows = 0u64;
+            while let Some(row) = rows.next()? {
+                audited_rows = audited_rows
+                    .checked_add(1)
+                    .ok_or(DurableError::Refused("cold metadata row count overflow"))?;
+                if audited_rows > 100_000 {
+                    return Err(DurableError::Refused("cold metadata row budget exceeded"));
+                }
+                table_rows += 1;
                 let encoded: String = row.get(0);
                 if encoded.len() > 1_048_576 {
                     return Err(DurableError::Refused(
                         "cold metadata row exceeds byte budget",
                     ));
                 }
+                audited_metadata_bytes = audited_metadata_bytes
+                    .checked_add(encoded.len())
+                    .ok_or(DurableError::Refused("cold metadata byte count overflow"))?;
+                if audited_metadata_bytes > 64 * 1024 * 1024 {
+                    return Err(DurableError::Refused("cold metadata byte budget exceeded"));
+                }
                 part(&mut state_hasher, encoded.as_bytes());
             }
+            part(&mut state_hasher, &table_rows.to_be_bytes());
         }
         let domain_state: String = tx
             .query_one(
