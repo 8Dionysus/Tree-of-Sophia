@@ -84,8 +84,8 @@ struct SourceRow {
 struct Document {
     id_lower: String,
     native_id_lower: String,
-    identity_values: Vec<u8>,
-    visible_values: Vec<u8>,
+    identity_values: String,
+    visible_values: String,
     text: String,
     chars: usize,
     digest: Digest256,
@@ -411,7 +411,7 @@ fn rank_values(
     display: Option<&JsonValue>,
     fields: &[&str],
     limits: SearchBuildLimits,
-) -> Result<Vec<u8>> {
+) -> Result<String> {
     let mut values = Vec::new();
     for field in fields {
         let Some(value) = display.and_then(|d| d.object_get(field)) else {
@@ -435,13 +435,14 @@ fn rank_values(
             }
         }
     }
-    canonical_bytes_v1(
+    let bytes = canonical_bytes_v1(
         &JsonValue::Array(values),
         CanonicalProfile::SourceRecordDigestV1,
         JsonLimits::new(limits.max_rank_field_bytes, 96, 1_000_000, 4096)
             .map_err(|_| Error::Budget("search rank JSON limit"))?,
     )
-    .map_err(|e| Error::Source(e.to_string()))
+    .map_err(|e| Error::Source(e.to_string()))?;
+    String::from_utf8(bytes).map_err(|_| Error::Invalid("search rank JSON UTF-8"))
 }
 
 /// FND emits the exact Python sorted compact JSON. Python's search ABI uses
@@ -608,7 +609,7 @@ CREATE TABLE search_documents(
  kind TEXT NOT NULL, position INTEGER NOT NULL,id TEXT NOT NULL,
  source_graph TEXT NOT NULL,kind_id TEXT NOT NULL,predicate_id TEXT NOT NULL,
  id_lower TEXT NOT NULL,native_id_lower TEXT NOT NULL,
- identity_values BLOB NOT NULL,visible_values BLOB NOT NULL,
+ identity_values TEXT NOT NULL,visible_values TEXT NOT NULL,
  document_chars INTEGER NOT NULL,document_digest BLOB NOT NULL,
  PRIMARY KEY(kind,position)) WITHOUT ROWID;
 CREATE TABLE search_grams(
@@ -663,11 +664,8 @@ mod tests {
             got.digest.to_hex(),
             "39c0f3c2a308c5da0f6aaf3a3d01a6787fdfe20f49ec0566188c41f9c7f1bd68"
         );
-        assert_eq!(got.identity_values, "[\"árbol\",\"straße\"]".as_bytes());
-        assert_eq!(
-            got.visible_values,
-            "[\"árbol\",\"straße\",\"ος\"]".as_bytes()
-        );
+        assert_eq!(got.identity_values, "[\"árbol\",\"straße\"]");
+        assert_eq!(got.visible_values, "[\"árbol\",\"straße\",\"ος\"]");
     }
 
     #[test]
@@ -698,6 +696,29 @@ mod tests {
             .query_row("SELECT COUNT(*) FROM search_grams", [], |r| r.get(0))
             .unwrap();
         assert_eq!(count, 3);
+    }
+
+    #[test]
+    fn rank_arrays_are_text_for_pinned_sqlite_json1() {
+        let db = Connection::open_in_memory().unwrap();
+        db.execute_batch(SCHEMA).unwrap();
+        db.execute(
+            "INSERT INTO search_documents VALUES
+             ('nodes',0,'n','g','k','', 'n','n',?1,?2,3,zeroblob(32))",
+            params!["[\"árbol\"]", "[\"árbol\",\"ος\"]"],
+        )
+        .unwrap();
+        let (kind, matches): (String, i64) = db
+            .query_row(
+                "SELECT typeof(identity_values),
+                    (SELECT count(*) FROM json_each(identity_values) WHERE value='árbol')
+             FROM search_documents",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .unwrap();
+        assert_eq!(kind, "text");
+        assert_eq!(matches, 1);
     }
 
     #[test]
