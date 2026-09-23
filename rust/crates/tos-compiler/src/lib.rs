@@ -4,7 +4,9 @@
 pub mod catalog;
 pub mod d1;
 mod knowledge_indexed;
+pub mod knowledge_normalization;
 mod knowledge_registry;
+mod knowledge_scope;
 pub mod knowledge_stage;
 mod legacy;
 mod publication;
@@ -14,6 +16,7 @@ mod sqlite_budget;
 mod vocabulary;
 pub use knowledge_indexed::{IndexedLimits, IndexedReceipt, materialize_indexed_sources};
 pub use knowledge_registry::{KnowledgeRegistry, ResolvedType};
+pub use knowledge_scope::{ScopeLimits, ScopeReceipt, write_source_scope};
 pub use legacy::LegacyPartitionedNavigation;
 pub use publication::{PublicationAuthority, PublishedReceipt, SelectionFence, publish_candidate};
 pub use selected::{

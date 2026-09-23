@@ -199,6 +199,13 @@ pub struct KnowledgeStage<'a> {
 }
 
 impl<'a> KnowledgeStage<'a> {
+    pub(crate) fn exact_receipt(&self) -> &ExactInputReceipt {
+        &self.receipt
+    }
+    pub(crate) fn poison(&mut self) {
+        self.poisoned = true;
+    }
+
     pub fn create(
         candidate: &Path,
         limits: StageLimits,

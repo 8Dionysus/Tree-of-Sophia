@@ -187,10 +187,23 @@ pub fn materialize_indexed_sources(
     stage: &mut KnowledgeStage<'_>,
     vocabulary: &QueryVocabulary,
     registry: &KnowledgeRegistry,
-    receipt: &ExactInputReceipt,
+    limits: IndexedLimits,
+) -> Result<IndexedReceipt> {
+    let result = materialize_indexed_sources_inner(stage, vocabulary, registry, limits);
+    if result.is_err() {
+        stage.poison();
+    }
+    result
+}
+
+fn materialize_indexed_sources_inner(
+    stage: &mut KnowledgeStage<'_>,
+    vocabulary: &QueryVocabulary,
+    registry: &KnowledgeRegistry,
     limits: IndexedLimits,
 ) -> Result<IndexedReceipt> {
     limits.validate()?;
+    let receipt = stage.exact_receipt().clone();
     if registry.entity_registry_id != vocabulary.entity_registry_id
         || registry.relation_registry_id != vocabulary.relation_registry_id
     {
@@ -203,7 +216,7 @@ pub fn materialize_indexed_sources(
                 "source adapter not implemented by indexed materializer",
             ));
         }
-        registered_pair(receipt, &source.source_graph_id, &source.input_role)?;
+        registered_pair(&receipt, &source.source_graph_id, &source.input_role)?;
         registered.insert(source.source_graph_id.as_str());
     }
     if receipt.collections.len() != vocabulary.sources.len() * 2
@@ -296,10 +309,11 @@ pub fn materialize_indexed_sources(
 mod tests {
     use super::*;
     use crate::{
-        Limits, SourceBinding,
+        Limits, ScopeLimits, SourceBinding,
         knowledge_stage::{
             InputCollectionReceipt, InputRow, StageIsolation, StageLimits, StageOwner, WritePhase,
         },
+        write_source_scope,
     };
     use std::{
         fs,
@@ -477,7 +491,6 @@ mod tests {
             &mut stage,
             &vocabulary,
             &registry,
-            &sealed,
             IndexedLimits {
                 max_row_bytes: 1024 * 1024,
                 max_page_rows: 1,
@@ -490,6 +503,20 @@ mod tests {
                 indexed.node_count,
                 indexed.relation_count
             ),
+            (1, 1, 1)
+        );
+        let scope = write_source_scope(
+            &mut stage,
+            &vocabulary,
+            ScopeLimits {
+                max_sources: 2,
+                max_rows: 4,
+                max_index_work_bytes: 4096,
+            },
+        )
+        .unwrap();
+        assert_eq!(
+            (scope.source_count, scope.node_count, scope.relation_count),
             (1, 1, 1)
         );
         let finished = stage.finish().unwrap();
@@ -506,6 +533,14 @@ mod tests {
             "SELECT n.id,r.id FROM knowledge_nodes n JOIN knowledge_relations r ON r.from_id=n.id",
             [], |row| Ok((row.get(0)?,row.get(1)?))).unwrap();
         assert_eq!(actual, ("eighth:node-1".into(), "eighth:relation-1".into()));
+        let scope_rows: i64 = db
+            .query_row(
+                "SELECT count(*) FROM source_scope WHERE source_graph='eighth'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(scope_rows, 1);
         drop(db);
         fs::remove_dir_all(path.parent().unwrap()).unwrap();
     }
@@ -541,7 +576,6 @@ mod tests {
                 &mut stage,
                 &vocabulary,
                 &registry,
-                &sealed,
                 IndexedLimits {
                     max_row_bytes: 1024 * 1024,
                     max_page_rows: 1
@@ -549,7 +583,7 @@ mod tests {
             )
             .is_err()
         );
-        drop(stage);
+        assert!(stage.finish().is_err());
         assert!(!path.exists());
         fs::remove_dir_all(path.parent().unwrap()).unwrap();
     }
