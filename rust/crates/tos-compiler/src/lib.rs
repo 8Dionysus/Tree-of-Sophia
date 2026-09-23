@@ -4,6 +4,7 @@
 pub mod catalog;
 pub mod d1;
 mod knowledge_catalog_index;
+mod knowledge_full;
 mod knowledge_indexed;
 pub mod knowledge_normalization;
 pub mod knowledge_philosophy_display;
@@ -19,6 +20,9 @@ mod selected;
 mod sqlite_budget;
 mod vocabulary;
 pub use knowledge_catalog_index::{CatalogIndexLimits, CatalogIndexReceipt, materialize_catalog};
+pub use knowledge_full::{
+    FullKnowledgeLimits, FullKnowledgeReceipt, compile_full_knowledge_components,
+};
 pub use knowledge_indexed::{IndexedLimits, IndexedReceipt, materialize_indexed_sources};
 pub use knowledge_registry::{KnowledgeRegistry, ResolvedType};
 pub use knowledge_scope::{ScopeLimits, ScopeReceipt, write_source_scope};

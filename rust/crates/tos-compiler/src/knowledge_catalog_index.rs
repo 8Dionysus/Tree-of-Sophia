@@ -17,6 +17,7 @@ pub struct CatalogIndexLimits {
     pub max_row_bytes: usize,
     pub max_index_rows: u64,
     pub max_index_bytes: u64,
+    pub max_decoded_bytes: u64,
 }
 impl Default for CatalogIndexLimits {
     fn default() -> Self {
@@ -25,6 +26,7 @@ impl Default for CatalogIndexLimits {
             max_row_bytes: 1024 * 1024,
             max_index_rows: 100_000,
             max_index_bytes: 64 * 1024 * 1024,
+            max_decoded_bytes: 256 * 1024 * 1024,
         }
     }
 }
@@ -34,6 +36,7 @@ impl CatalogIndexLimits {
             || self.max_row_bytes == 0
             || self.max_index_rows == 0
             || self.max_index_bytes == 0
+            || self.max_decoded_bytes == 0
         {
             return Err(Error::Budget("catalog index limits"));
         }
@@ -79,6 +82,35 @@ struct Work {
     limits: CatalogIndexLimits,
     rows: u64,
     bytes: u64,
+}
+
+struct DecodeBudget {
+    used: u64,
+    max: u64,
+}
+impl DecodeBudget {
+    fn new(max: u64) -> Self {
+        Self { used: 0, max }
+    }
+    fn charge(&mut self, bytes: u64) -> Result<()> {
+        self.used = self
+            .used
+            .checked_add(bytes)
+            .ok_or(Error::Budget("catalog index decoded bytes"))?;
+        if self.used > self.max {
+            return Err(Error::Budget("catalog index decoded bytes"));
+        }
+        Ok(())
+    }
+    fn charge_text(&mut self, parts: &[&str], overhead: u64) -> Result<()> {
+        let mut total = overhead;
+        for part in parts {
+            total = total
+                .checked_add(part.len() as u64)
+                .ok_or(Error::Budget("catalog index decoded bytes"))?;
+        }
+        self.charge(total)
+    }
 }
 impl Work {
     fn new(limits: CatalogIndexLimits) -> Self {
@@ -253,6 +285,7 @@ fn materialize_inner(
 ) -> Result<CatalogIndexReceipt> {
     db.execute_batch(TABLES)?;
     let mut work = Work::new(limits);
+    let mut decoded = DecodeBudget::new(limits.max_decoded_bytes);
     work.charge_packet(packet)?;
     let desc = &vocabulary.descriptor_sha256;
     if vocabulary
@@ -428,7 +461,7 @@ fn materialize_inner(
                 route_packet
             ],
         )?;
-        verify_route_packet(db, desc, id, limits.max_row_bytes, &route_sha)?;
+        verify_route_packet(db, desc, id, limits.max_row_bytes, &route_sha, &mut decoded)?;
     }
 
     let scope_count: u64 = db.query_row("SELECT count(*) FROM source_scope", [], |r| r.get(0))?;
@@ -491,6 +524,7 @@ fn materialize_inner(
         routes.len() as u64,
         vocabulary.sources.len() as u64,
         packet_sha,
+        &mut decoded,
     )?;
     work.charge(&[
         desc.as_bytes(),
@@ -515,7 +549,7 @@ fn materialize_inner(
         ],
     )?;
     // A consumer must make the same pre-BLOB length check before transfer.
-    let returned = read_packet(db, desc, limits.max_packet_bytes)?;
+    let returned = read_packet(db, desc, limits.max_packet_bytes, &mut decoded)?;
     if returned != packet {
         return Err(Error::Invalid("catalog index packet readback"));
     }
@@ -531,13 +565,23 @@ fn materialize_inner(
     })
 }
 
-fn read_packet(db: &Connection, descriptor: &str, max_bytes: usize) -> Result<Vec<u8>> {
+fn read_packet(
+    db: &Connection,
+    descriptor: &str,
+    max_bytes: usize,
+    decoded: &mut DecodeBudget,
+) -> Result<Vec<u8>> {
     let (actual,declared,digest_len): (i64,i64,i64) = db.query_row(
         "SELECT length(packet),packet_len,length(packet_sha256) FROM catalog_index_meta WHERE descriptor_sha256=?1",
         [descriptor],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?)))?;
     if actual < 0 || declared != actual || actual as u64 > max_bytes as u64 || digest_len != 32 {
         return Err(Error::Budget("catalog indexed packet length"));
     }
+    decoded.charge(
+        (actual as u64)
+            .checked_add(32)
+            .ok_or(Error::Budget("catalog index decoded bytes"))?,
+    )?;
     let digest: Vec<u8> = db.query_row(
         "SELECT packet_sha256 FROM catalog_index_meta WHERE descriptor_sha256=?1",
         [descriptor],
@@ -562,6 +606,7 @@ fn verify_route_packet(
     route_id: &str,
     max_bytes: usize,
     expected: &Digest256,
+    decoded: &mut DecodeBudget,
 ) -> Result<()> {
     let (actual, declared, digest_len): (i64, i64, i64) = db.query_row(
         "SELECT length(packet),packet_len,length(packet_sha256) FROM catalog_routes
@@ -572,6 +617,11 @@ fn verify_route_packet(
     if actual < 0 || declared != actual || actual as u64 > max_bytes as u64 || digest_len != 32 {
         return Err(Error::Budget("catalog indexed route length"));
     }
+    decoded.charge(
+        (actual as u64)
+            .checked_add(32)
+            .ok_or(Error::Budget("catalog index decoded bytes"))?,
+    )?;
     let (digest, bytes): (Vec<u8>, Vec<u8>) = db.query_row(
         "SELECT packet_sha256,packet FROM catalog_routes
          WHERE descriptor_sha256=?1 AND route_id=?2",
@@ -596,6 +646,7 @@ fn index_root(
     routes: u64,
     sources: u64,
     packet_sha: &Digest256,
+    decoded: &mut DecodeBudget,
 ) -> Result<String> {
     let mut hash = Digest256Hasher::new();
     hash_text(&mut hash, SCHEMA);
@@ -620,10 +671,12 @@ fn index_root(
     )?;
     let mut rows = stmt.query([desc])?;
     while let Some(row) = rows.next()? {
+        let domain: String = row.get(0)?;
+        let field: String = row.get(1)?;
+        decoded.charge_text(&[&domain, &field], 16)?;
         hash.update(b"F");
-        for index in 0..2 {
-            hash_text(&mut hash, &row.get::<_, String>(index)?);
-        }
+        hash_text(&mut hash, &domain);
+        hash_text(&mut hash, &field);
         for index in 2..4 {
             hash_number(&mut hash, row.get::<_, u64>(index)?);
         }
@@ -635,30 +688,42 @@ fn index_root(
     )?;
     let mut rows = stmt.query([desc])?;
     while let Some(row) = rows.next()? {
+        let domain: String = row.get(0)?;
+        let field: String = row.get(1)?;
+        let value_json: String = row.get(3)?;
+        decoded.charge_text(&[&domain, &field, &value_json], 16)?;
         hash.update(b"V");
-        hash_text(&mut hash, &row.get::<_, String>(0)?);
-        hash_text(&mut hash, &row.get::<_, String>(1)?);
+        hash_text(&mut hash, &domain);
+        hash_text(&mut hash, &field);
         hash_number(&mut hash, row.get::<_, u64>(2)?);
-        hash_text(&mut hash, &row.get::<_, String>(3)?);
+        hash_text(&mut hash, &value_json);
         hash_number(&mut hash, row.get::<_, u64>(4)?);
         seen[1] += 1;
     }
     let mut stmt = db.prepare(
         "SELECT route_id,ordinal,node_count,confirming_relation_count,
-        semantic_confirming_relation_count,availability,role_readiness,packet_len,packet_sha256
+        semantic_confirming_relation_count,availability,role_readiness,packet_len,
+        length(packet_sha256),packet_sha256
         FROM catalog_routes WHERE descriptor_sha256=?1 ORDER BY ordinal",
     )?;
     let mut rows = stmt.query([desc])?;
     while let Some(row) = rows.next()? {
+        let route_id: String = row.get(0)?;
+        let availability: String = row.get(5)?;
+        let readiness: String = row.get(6)?;
+        if row.get::<_, i64>(8)? != 32 {
+            return Err(Error::Invalid("catalog route digest length"));
+        }
+        decoded.charge_text(&[&route_id, &availability, &readiness], 64)?;
         hash.update(b"R");
-        hash_text(&mut hash, &row.get::<_, String>(0)?);
+        hash_text(&mut hash, &route_id);
         for index in 1..5 {
             hash_number(&mut hash, row.get::<_, u64>(index)?);
         }
-        hash_text(&mut hash, &row.get::<_, String>(5)?);
-        hash_text(&mut hash, &row.get::<_, String>(6)?);
+        hash_text(&mut hash, &availability);
+        hash_text(&mut hash, &readiness);
         hash_number(&mut hash, row.get::<_, u64>(7)?);
-        let digest: Vec<u8> = row.get(8)?;
+        let digest: Vec<u8> = row.get(9)?;
         if digest.len() != 32 {
             return Err(Error::Invalid("catalog route digest length"));
         }
@@ -671,8 +736,10 @@ fn index_root(
     )?;
     let mut rows = stmt.query([desc])?;
     while let Some(row) = rows.next()? {
+        let source: String = row.get(0)?;
+        decoded.charge_text(&[&source], 16)?;
         hash.update(b"S");
-        hash_text(&mut hash, &row.get::<_, String>(0)?);
+        hash_text(&mut hash, &source);
         hash_number(&mut hash, row.get::<_, u64>(1)?);
         hash_number(&mut hash, row.get::<_, u64>(2)?);
         seen[3] += 1;
@@ -809,7 +876,13 @@ mod tests {
                 .unwrap();
             assert_eq!(exact, 1);
             assert_eq!(
-                read_packet(&db, &vocab.descriptor_sha256, packet.len()).unwrap(),
+                read_packet(
+                    &db,
+                    &vocab.descriptor_sha256,
+                    packet.len(),
+                    &mut DecodeBudget::new(u64::MAX)
+                )
+                .unwrap(),
                 packet
             );
             roots.push(index.catalog_index_root_sha256);
@@ -845,8 +918,27 @@ mod tests {
         .unwrap();
         db.execute("UPDATE catalog_index_meta SET packet=zeroblob(200000)", [])
             .unwrap();
-        let error = read_packet(&db, &vocab.descriptor_sha256, packet.len()).unwrap_err();
+        let error = read_packet(
+            &db,
+            &vocab.descriptor_sha256,
+            packet.len(),
+            &mut DecodeBudget::new(u64::MAX),
+        )
+        .unwrap_err();
         assert!(error.to_string().contains("packet length"));
+    }
+
+    #[test]
+    fn cumulative_decoded_budget_refuses_before_blob_transfer() {
+        let (mut db, receipt, vocab, packet) = fixture(false);
+        let digest = Digest256::of_bytes(&packet);
+        let limits = CatalogIndexLimits {
+            max_decoded_bytes: 1,
+            ..CatalogIndexLimits::default()
+        };
+        let error =
+            materialize_inner(&mut db, &receipt, &vocab, limits, &packet, &digest).unwrap_err();
+        assert!(error.to_string().contains("decoded bytes"));
     }
 
     #[test]
