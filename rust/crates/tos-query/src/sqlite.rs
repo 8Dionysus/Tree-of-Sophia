@@ -20,7 +20,33 @@ use crate::{
 use tos_compiler::{VerifiedSelectedModel, VerifiedSelection};
 
 const METADATA_ROWS_CAP: usize = 64;
-const OPEN_VM_CAP: u64 = 1_000_000;
+const METADATA_KEY_BYTES_CAP: u64 = 128;
+const METADATA_VALUE_BYTES_CAP: u64 = 4096;
+const AUTHORITY_VALUE_BYTES_CAP: u64 = 262_144;
+const SQLITE_I64_RESULT_BYTES: u64 = 8;
+const SHA256_HEX_RESULT_BYTES: u64 = 64;
+const NODE_HEADER_RESULT_BYTES: u64 = 2 * SQLITE_I64_RESULT_BYTES + SHA256_HEX_RESULT_BYTES;
+const ADJACENCY_CERT_RESULT_BYTES: u64 = SQLITE_I64_RESULT_BYTES + SHA256_HEX_RESULT_BYTES;
+
+/// Caller-selected warm adapter initialization admission. `decoded_bytes`
+/// counts SQLite result-column payload: each returned i64 as 8 bytes and each
+/// returned TEXT/BLOB by its UTF-8/byte length. It is not file/page I/O or
+/// allocator footprint; CMP separately meters cold/fork SQLite startup.
+#[derive(Clone, Copy, Debug)]
+pub struct AdapterAdmissionBudget {
+    pub max_selected_open_vm_steps: u64,
+    pub max_metadata_vm_steps: u64,
+    pub max_metadata_decoded_bytes: u64,
+    pub max_metadata_rows: usize,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct AdapterAdmissionCharge {
+    pub selected_open_vm_steps: u64,
+    pub metadata_vm_steps: u64,
+    pub metadata_decoded_bytes: u64,
+    pub metadata_rows: u64,
+}
 
 /// Implement only for an owner-verified selected model whose SQLite connection
 /// holds the already-digested immutable inode. The receipt, full source cut,
@@ -30,6 +56,8 @@ pub trait PinnedLocalModel {
     fn selected_model_sha256(&self) -> Digest256;
     fn owner_receipt_id(&self) -> &str;
     fn source_authority_boundary(&self) -> &str;
+    /// Actual SQLite startup VM steps from the owner opener/fork receipt.
+    fn selected_open_vm_steps(&self) -> u64;
     fn connection(&self) -> &Connection;
     fn check_pin(&mut self) -> Result<(), QueryError>;
     fn source_disclosure(&mut self) -> Result<Box<dyn DisclosureLease>, QueryError>;
@@ -82,13 +110,24 @@ impl<S: SourcePin> CmpPinnedModel<S> {
     pub fn fork_reader<T: SourcePin>(
         &self,
         source_pin: T,
+        max_open_vm_steps: u64,
     ) -> Result<CmpPinnedModel<T>, QueryError> {
-        let model = self.model.fork_reader().map_err(|_| {
-            error(
-                QueryErrorCode::StaleSelection,
-                "selected model warm reader unavailable",
-            )
-        })?;
+        let model = self
+            .model
+            .fork_reader_with_vm_budget(max_open_vm_steps)
+            .map_err(|reason| {
+                if matches!(reason, tos_compiler::Error::Budget(_)) {
+                    error(
+                        QueryErrorCode::BudgetExceeded,
+                        "selected model warm-reader VM admission exceeded",
+                    )
+                } else {
+                    error(
+                        QueryErrorCode::StaleSelection,
+                        "selected model warm reader unavailable",
+                    )
+                }
+            })?;
         CmpPinnedModel::new(model, source_pin)
     }
 }
@@ -105,6 +144,9 @@ impl<S: SourcePin> PinnedLocalModel for CmpPinnedModel<S> {
     }
     fn source_authority_boundary(&self) -> &str {
         &self.model.selection().authority_boundary
+    }
+    fn selected_open_vm_steps(&self) -> u64 {
+        self.model.open_vm_steps()
     }
     fn connection(&self) -> &Connection {
         self.model.connection()
@@ -159,6 +201,7 @@ pub struct SqliteReadModel<P: PinnedLocalModel, G: CurrentPolicy> {
     pinned: P,
     policy: G,
     authority: RawRecord,
+    admission_charge: AdapterAdmissionCharge,
 }
 
 fn error(code: QueryErrorCode, message: &'static str) -> QueryError {
@@ -206,38 +249,140 @@ fn budgeted<T>(
     result.map(|value| (value, charged))
 }
 
-fn read_metadata(connection: &Connection) -> Result<BTreeMap<String, String>, QueryError> {
-    let (values, _) = budgeted(connection, OPEN_VM_CAP, || {
-        let mut statement = connection
-            .prepare("SELECT key, CASE WHEN (key='authority_boundary' AND length(CAST(value AS BLOB))<=262144) OR (key<>'authority_boundary' AND length(CAST(value AS BLOB))<=4096) THEN value END FROM metadata LIMIT ?1")
-            .map_err(sql_error)?;
-        let rows = statement
-            .query_map(params![(METADATA_ROWS_CAP + 1) as i64], |row| {
-                Ok((row.get::<_, String>(0)?, row.get::<_, Option<String>>(1)?))
-            })
-            .map_err(sql_error)?;
-        let mut values = BTreeMap::new();
-        for row in rows {
-            let (key, value) = row.map_err(sql_error)?;
-            let value = value.ok_or_else(|| {
-                error(
-                    QueryErrorCode::CorruptSelectedCarrier,
-                    "selected metadata value oversized",
+fn read_metadata(
+    connection: &Connection,
+    admission: AdapterAdmissionBudget,
+) -> Result<(BTreeMap<String, String>, AdapterAdmissionCharge), QueryError> {
+    // One COUNT scalar and four aggregate scalars are returned even for an
+    // empty table. Refuse before their transfer when the caller cannot admit
+    // that fixed decoded-column cost.
+    const PREFLIGHT_SCALARS_BYTES: u64 = 5 * 8;
+    if admission.max_metadata_rows == 0
+        || admission.max_metadata_decoded_bytes < PREFLIGHT_SCALARS_BYTES
+        || admission.max_metadata_vm_steps == 0
+    {
+        return Err(error(
+            QueryErrorCode::BudgetExceeded,
+            "selected metadata admission budget absent",
+        ));
+    }
+    let ((values, decoded_bytes, row_count), steps) = budgeted(
+        connection,
+        admission.max_metadata_vm_steps,
+        || {
+            let row_limit = admission.max_metadata_rows.min(METADATA_ROWS_CAP);
+            let count: i64 = connection
+                .query_row(
+                    "SELECT COUNT(*) FROM (SELECT 1 FROM metadata LIMIT ?1)",
+                    params![(row_limit + 1) as i64],
+                    |row| row.get(0),
                 )
-            })?;
-            if key.len() > 128
-                || values.insert(key, value).is_some()
-                || values.len() > METADATA_ROWS_CAP
-            {
+                .map_err(sql_error)?;
+            if count < 0 || count as usize > row_limit {
                 return Err(error(
-                    QueryErrorCode::CorruptSelectedCarrier,
-                    "selected metadata keys invalid",
+                    QueryErrorCode::BudgetExceeded,
+                    "selected metadata row admission exceeded",
                 ));
             }
-        }
-        Ok(values)
-    })?;
-    Ok(values)
+            // A bounded scalar preflight prevents transferring any key/value
+            // before its length and the total decoded-column cost are known.
+            let (key_bytes, value_bytes, max_key, oversized): (i64, i64, i64, i64) = connection
+                .query_row(
+                    "SELECT COALESCE(SUM(length(CAST(key AS BLOB))),0),
+                            COALESCE(SUM(length(CAST(value AS BLOB))),0),
+                            COALESCE(MAX(length(CAST(key AS BLOB))),0),
+                            COALESCE(SUM(CASE WHEN (key='authority_boundary' AND length(CAST(value AS BLOB))>?1)
+                                  OR (key<>'authority_boundary' AND length(CAST(value AS BLOB))>?2)
+                                  THEN 1 ELSE 0 END),0)
+                     FROM metadata",
+                    params![AUTHORITY_VALUE_BYTES_CAP, METADATA_VALUE_BYTES_CAP],
+                    |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+                )
+                .map_err(sql_error)?;
+            if key_bytes < 0 || value_bytes < 0 || max_key < 0 || oversized < 0 {
+                return Err(error(
+                    QueryErrorCode::CorruptSelectedCarrier,
+                    "selected metadata lengths invalid",
+                ));
+            }
+            if max_key as u64 > METADATA_KEY_BYTES_CAP || oversized != 0 {
+                return Err(error(
+                    QueryErrorCode::CorruptSelectedCarrier,
+                    "selected metadata field oversized",
+                ));
+            }
+            let decoded_bytes = PREFLIGHT_SCALARS_BYTES
+                .checked_add(key_bytes as u64)
+                .and_then(|value| value.checked_add(value_bytes as u64))
+                .ok_or_else(|| {
+                    error(
+                        QueryErrorCode::BudgetExceeded,
+                        "selected metadata byte total overflow",
+                    )
+                })?;
+            if decoded_bytes > admission.max_metadata_decoded_bytes {
+                return Err(error(
+                    QueryErrorCode::BudgetExceeded,
+                    "selected metadata decoded-byte admission exceeded",
+                ));
+            }
+            let mut statement = connection
+                .prepare("SELECT CASE WHEN length(CAST(key AS BLOB))<=?1 THEN key END,
+                                 CASE WHEN (key='authority_boundary' AND length(CAST(value AS BLOB))<=?2)
+                                        OR (key<>'authority_boundary' AND length(CAST(value AS BLOB))<=?3)
+                                      THEN value END
+                          FROM metadata LIMIT ?4")
+                .map_err(sql_error)?;
+            let rows = statement
+                .query_map(
+                    params![
+                        METADATA_KEY_BYTES_CAP,
+                        AUTHORITY_VALUE_BYTES_CAP,
+                        METADATA_VALUE_BYTES_CAP,
+                        (row_limit + 1) as i64
+                    ],
+                    |row| {
+                        Ok((
+                            row.get::<_, Option<String>>(0)?,
+                            row.get::<_, Option<String>>(1)?,
+                        ))
+                    },
+                )
+                .map_err(sql_error)?;
+            let mut values = BTreeMap::new();
+            for row in rows {
+                let (key, value) = row.map_err(sql_error)?;
+                let (Some(key), Some(value)) = (key, value) else {
+                    return Err(error(
+                        QueryErrorCode::CorruptSelectedCarrier,
+                        "selected metadata field invalid",
+                    ));
+                };
+                if values.insert(key, value).is_some() || values.len() > row_limit {
+                    return Err(error(
+                        QueryErrorCode::CorruptSelectedCarrier,
+                        "selected metadata keys invalid",
+                    ));
+                }
+            }
+            if values.len() != count as usize {
+                return Err(error(
+                    QueryErrorCode::StaleSelection,
+                    "selected metadata row count changed during admission",
+                ));
+            }
+            Ok((values, decoded_bytes, count as u64))
+        },
+    )?;
+    Ok((
+        values,
+        AdapterAdmissionCharge {
+            selected_open_vm_steps: 0,
+            metadata_vm_steps: steps,
+            metadata_decoded_bytes: decoded_bytes,
+            metadata_rows: row_count,
+        },
+    ))
 }
 
 fn metadata<'a>(values: &'a BTreeMap<String, String>, key: &str) -> Result<&'a str, QueryError> {
@@ -285,8 +430,20 @@ fn selected_carrier(
 }
 
 impl<P: PinnedLocalModel, G: CurrentPolicy> SqliteReadModel<P, G> {
-    pub fn new(mut pinned: P, policy: G) -> Result<Self, QueryError> {
+    pub fn new(
+        mut pinned: P,
+        policy: G,
+        admission: AdapterAdmissionBudget,
+    ) -> Result<Self, QueryError> {
         pinned.check_pin()?;
+        if admission.max_selected_open_vm_steps == 0
+            || pinned.selected_open_vm_steps() > admission.max_selected_open_vm_steps
+        {
+            return Err(error(
+                QueryErrorCode::BudgetExceeded,
+                "selected model opener VM admission exceeded",
+            ));
+        }
         if pinned.owner_receipt_id().is_empty()
             || pinned.binding().index_root != pinned.selected_model_sha256()
         {
@@ -296,7 +453,8 @@ impl<P: PinnedLocalModel, G: CurrentPolicy> SqliteReadModel<P, G> {
             ));
         }
         let binding = pinned.binding().clone();
-        let values = read_metadata(pinned.connection())?;
+        let (values, mut admission_charge) = read_metadata(pinned.connection(), admission)?;
+        admission_charge.selected_open_vm_steps = pinned.selected_open_vm_steps();
         let membership_hex = binding.membership_root.to_hex();
         let projection_hex = binding.projection_root.to_hex();
         for (key, expected) in [
@@ -345,7 +503,12 @@ impl<P: PinnedLocalModel, G: CurrentPolicy> SqliteReadModel<P, G> {
             pinned,
             policy,
             authority,
+            admission_charge,
         })
+    }
+
+    pub fn admission_charge(&self) -> AdapterAdmissionCharge {
+        self.admission_charge
     }
 }
 
@@ -356,8 +519,14 @@ impl<S: SourcePin, G: CurrentPolicy> SqliteReadModel<CmpPinnedModel<S>, G> {
         &self,
         source_pin: T,
         policy: H,
+        admission: AdapterAdmissionBudget,
     ) -> Result<SqliteReadModel<CmpPinnedModel<T>, H>, QueryError> {
-        SqliteReadModel::new(self.pinned.fork_reader(source_pin)?, policy)
+        SqliteReadModel::new(
+            self.pinned
+                .fork_reader(source_pin, admission.max_selected_open_vm_steps)?,
+            policy,
+            admission,
+        )
     }
 }
 
@@ -371,59 +540,83 @@ impl<P: PinnedLocalModel, G: CurrentPolicy> ReadModel for SqliteReadModel<P, G> 
         &mut self,
         id: &str,
         max_bytes: usize,
+        max_carrier_bytes: usize,
         max_vm_steps: u64,
     ) -> Result<ExactNode, QueryError> {
-        const HEADER_CHARGE: usize = 72;
-        if max_bytes < HEADER_CHARGE {
+        if (max_bytes as u64) < NODE_HEADER_RESULT_BYTES {
             return Err(error(
                 QueryErrorCode::BudgetExceeded,
                 "selected node metadata over byte cap",
             ));
         }
-        let body_cap = max_bytes - HEADER_CHARGE;
+        let body_cap =
+            ((max_bytes as u64) - NODE_HEADER_RESULT_BYTES).min(max_carrier_bytes as u64);
         let binding = self.pinned.binding().clone();
         let connection = self.pinned.connection();
-        let (record, steps) =
-            budgeted(connection, max_vm_steps, || {
-                let header: Option<(i64, i64, String)> = connection
-                    .query_row(
-                        "SELECT visible,carrier_size,carrier_sha256 FROM nodes WHERE node_id=?1",
-                        params![id],
-                        |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
-                    )
-                    .optional()
-                    .map_err(sql_error)?;
-                let Some((visible, size, sha)) = header else {
-                    return Ok(None);
-                };
-                if visible == 0 {
-                    return Ok(None);
-                }
-                if visible != 1 || size < 0 {
-                    return Err(error(
-                        QueryErrorCode::CorruptSelectedCarrier,
-                        "visible node metadata invalid",
-                    ));
-                }
-                if size as u64 > body_cap as u64 {
-                    return Err(error(
-                        QueryErrorCode::BudgetExceeded,
-                        "selected node over byte cap",
-                    ));
-                }
-                let raw: Vec<u8> = connection.query_row(
-                "SELECT carrier FROM nodes WHERE node_id=?1 AND visible=1 AND carrier_size<=?2",
-                params![id, i64::try_from(body_cap).unwrap_or(i64::MAX)], |row| row.get(0),
-            ).map_err(sql_error)?;
-                selected_carrier(&binding, raw, size, &sha).map(Some)
+        let ((record, header_rows, probes), steps) = budgeted(connection, max_vm_steps, || {
+            let header: Option<(i64, i64, Option<String>)> = connection
+                .query_row(
+                    "SELECT visible,carrier_size,
+                                CASE WHEN length(CAST(carrier_sha256 AS BLOB))=?2
+                                     THEN carrier_sha256 END
+                         FROM nodes WHERE node_id=?1",
+                    params![id, SHA256_HEX_RESULT_BYTES],
+                    |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+                )
+                .optional()
+                .map_err(sql_error)?;
+            let Some((visible, size, sha)) = header else {
+                return Ok((None, 0, 1));
+            };
+            let sha = sha.ok_or_else(|| {
+                error(
+                    QueryErrorCode::CorruptSelectedCarrier,
+                    "selected node SHA size invalid",
+                )
             })?;
+            digest(&sha)?;
+            if size < 0 || (visible != 0 && visible != 1) {
+                return Err(error(
+                    QueryErrorCode::CorruptSelectedCarrier,
+                    "visible node metadata invalid",
+                ));
+            }
+            if visible == 0 {
+                return Ok((None, 1, 1));
+            }
+            if size as u64 > body_cap {
+                return Err(error(
+                    QueryErrorCode::BudgetExceeded,
+                    "selected node over byte cap",
+                ));
+            }
+            let raw: Option<Vec<u8>> = connection
+                .query_row(
+                    "SELECT CASE WHEN length(carrier)<=?2 AND carrier_size<=?2 THEN carrier END
+                 FROM nodes WHERE node_id=?1 AND visible=1",
+                    params![id, i64::try_from(body_cap).unwrap_or(i64::MAX)],
+                    |row| row.get(0),
+                )
+                .map_err(sql_error)?;
+            let raw = raw.ok_or_else(|| {
+                error(
+                    QueryErrorCode::BudgetExceeded,
+                    "selected node actual carrier over byte cap",
+                )
+            })?;
+            Ok((Some(selected_carrier(&binding, raw, size, &sha)?), 2, 2))
+        })?;
         Ok(ExactNode {
             binding,
             complete_unique_lookup: true,
             charged: Charged {
-                probes: 1,
-                rows: 1,
-                bytes: HEADER_CHARGE as u64,
+                probes,
+                rows: header_rows,
+                bytes: if header_rows == 0 {
+                    0
+                } else {
+                    NODE_HEADER_RESULT_BYTES
+                },
                 cpu_steps: steps,
             },
             record,
@@ -436,6 +629,7 @@ impl<P: PinnedLocalModel, G: CurrentPolicy> ReadModel for SqliteReadModel<P, G> 
         after_edge_id: Option<&str>,
         max_rows: usize,
         max_bytes: usize,
+        max_carrier_bytes: usize,
         max_vm_steps: u64,
     ) -> Result<AdjacencyPage, QueryError> {
         if max_rows == 0 || max_rows > 1024 {
@@ -444,20 +638,25 @@ impl<P: PinnedLocalModel, G: CurrentPolicy> ReadModel for SqliteReadModel<P, G> 
                 "invalid adjacency page size",
             ));
         }
-        if max_bytes < 72 {
+        const PREFLIGHT_RESULT_BYTES: u64 = 4 * SQLITE_I64_RESULT_BYTES;
+        let minimum = ADJACENCY_CERT_RESULT_BYTES + PREFLIGHT_RESULT_BYTES;
+        if (max_bytes as u64) < minimum {
             return Err(error(
                 QueryErrorCode::BudgetExceeded,
-                "selected adjacency certificate over byte cap",
+                "selected adjacency metadata preflight over byte cap",
             ));
         }
         let binding = self.pinned.binding().clone();
         let connection = self.pinned.connection();
         let ((expected_count, expected_digest, edges, exhausted, scanned, meta_bytes), steps) =
             budgeted(connection, max_vm_steps, || {
-                let certificate: Option<(i64, String)> = connection
+                let certificate: Option<(i64, Option<String>)> = connection
                     .query_row(
-                        "SELECT edge_count,edges_sha256 FROM adjacency WHERE from_id=?1",
-                        params![from_id],
+                        "SELECT edge_count,
+                                CASE WHEN length(CAST(edges_sha256 AS BLOB))=?2
+                                     THEN edges_sha256 END
+                         FROM adjacency WHERE from_id=?1",
+                        params![from_id, SHA256_HEX_RESULT_BYTES],
                         |row| Ok((row.get(0)?, row.get(1)?)),
                     )
                     .optional()
@@ -474,37 +673,96 @@ impl<P: PinnedLocalModel, G: CurrentPolicy> ReadModel for SqliteReadModel<P, G> 
                         "visible adjacency count invalid",
                     ));
                 }
+                let sha = sha.ok_or_else(|| {
+                    error(
+                        QueryErrorCode::IndexIncomplete,
+                        "visible adjacency certificate SHA size invalid",
+                    )
+                })?;
                 let expected_digest = digest(&sha)?;
+                // This indexed LIMIT limits SQLite work to one page plus the
+                // exhaustion lookahead. The aggregate returns four i64s, not
+                // edge IDs or SHA strings; no unbounded text reaches Rust.
+                let (preflight_count, header_bytes, max_sha_len, min_sha_len):
+                    (i64, i64, i64, i64) = connection.query_row(
+                    "SELECT COUNT(*),
+                            COALESCE(SUM(length(CAST(edge_id AS BLOB)) + 8 + length(CAST(carrier_sha256 AS BLOB))),0),
+                            COALESCE(MAX(length(CAST(carrier_sha256 AS BLOB))),0),
+                            COALESCE(MIN(length(CAST(carrier_sha256 AS BLOB))),0)
+                     FROM (SELECT edge_id,carrier_sha256 FROM edges
+                           WHERE visible=1 AND from_id=?1 AND edge_id>?2
+                           ORDER BY edge_id LIMIT ?3)",
+                    params![from_id, after_edge_id.unwrap_or(""), (max_rows + 1) as i64],
+                    |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+                ).map_err(sql_error)?;
+                if preflight_count < 0
+                    || preflight_count as usize > max_rows + 1
+                    || header_bytes < 0
+                    || max_sha_len < 0
+                    || min_sha_len < 0
+                    || (preflight_count > 0
+                        && (max_sha_len as u64 != SHA256_HEX_RESULT_BYTES
+                            || min_sha_len as u64 != SHA256_HEX_RESULT_BYTES))
+                {
+                    return Err(error(
+                        QueryErrorCode::IndexIncomplete,
+                        "selected adjacency header lengths invalid",
+                    ));
+                }
+                let meta_bytes = minimum.checked_add(header_bytes as u64).ok_or_else(|| {
+                    error(
+                        QueryErrorCode::BudgetExceeded,
+                        "selected adjacency metadata overflow",
+                    )
+                })?;
+                if meta_bytes > max_bytes as u64 {
+                    return Err(error(
+                        QueryErrorCode::BudgetExceeded,
+                        "selected adjacency metadata over byte cap",
+                    ));
+                }
                 let mut stmt = connection.prepare(
-                "SELECT edge_id,carrier_size,carrier_sha256 FROM edges WHERE visible=1 AND from_id=?1 AND edge_id>?2 ORDER BY edge_id LIMIT ?3"
-            ).map_err(sql_error)?;
+                    "SELECT CASE WHEN length(CAST(edge_id AS BLOB))<=?4 THEN edge_id END,
+                            carrier_size,
+                            CASE WHEN length(CAST(carrier_sha256 AS BLOB))=?5 THEN carrier_sha256 END
+                     FROM edges WHERE visible=1 AND from_id=?1 AND edge_id>?2
+                     ORDER BY edge_id LIMIT ?3"
+                ).map_err(sql_error)?;
                 let rows = stmt
                     .query_map(
-                        params![from_id, after_edge_id.unwrap_or(""), (max_rows + 1) as i64],
+                        params![
+                            from_id,
+                            after_edge_id.unwrap_or(""),
+                            (max_rows + 1) as i64,
+                            max_bytes as u64,
+                            SHA256_HEX_RESULT_BYTES
+                        ],
                         |row| {
                             Ok((
-                                row.get::<_, String>(0)?,
+                                row.get::<_, Option<String>>(0)?,
                                 row.get::<_, i64>(1)?,
-                                row.get::<_, String>(2)?,
+                                row.get::<_, Option<String>>(2)?,
                             ))
                         },
                     )
                     .map_err(sql_error)?;
                 let mut headers = Vec::new();
-                // Include the sealed adjacency certificate (count + SHA)
-                // before admitting edge headers or carrier bodies.
-                let mut meta_bytes = 72u64;
                 for row in rows {
-                    let header = row.map_err(sql_error)?;
-                    meta_bytes =
-                        meta_bytes.saturating_add((header.0.len() + header.2.len() + 8) as u64);
-                    if meta_bytes > max_bytes as u64 {
+                    let (edge_id, size, sha) = row.map_err(sql_error)?;
+                    let (Some(edge_id), Some(sha)) = (edge_id, sha) else {
                         return Err(error(
-                            QueryErrorCode::BudgetExceeded,
-                            "selected adjacency metadata over byte cap",
+                            QueryErrorCode::IndexIncomplete,
+                            "selected adjacency header invalid",
                         ));
-                    }
-                    headers.push(header);
+                    };
+                    digest(&sha)?;
+                    headers.push((edge_id, size, sha));
+                }
+                if headers.len() != preflight_count as usize {
+                    return Err(error(
+                        QueryErrorCode::StaleSelection,
+                        "selected adjacency changed during preflight",
+                    ));
                 }
                 let scanned = headers.len() as u64;
                 let exhausted = headers.len() <= max_rows;
@@ -515,16 +773,23 @@ impl<P: PinnedLocalModel, G: CurrentPolicy> ReadModel for SqliteReadModel<P, G> 
                     let remaining = (max_bytes as u64)
                         .saturating_sub(meta_bytes)
                         .saturating_sub(transferred);
-                    if size < 0 || size as u64 > remaining {
+                    if size < 0 || size as u64 > remaining.min(max_carrier_bytes as u64) {
                         return Err(error(
                             QueryErrorCode::BudgetExceeded,
                             "selected adjacency over byte cap",
                         ));
                     }
-                    let raw: Vec<u8> = connection.query_row(
-                    "SELECT carrier FROM edges WHERE edge_id=?1 AND visible=1 AND from_id=?2 AND carrier_size<=?3",
-                    params![edge_id, from_id, i64::try_from(remaining).unwrap_or(i64::MAX)], |row| row.get(0),
+                    let raw: Option<Vec<u8>> = connection.query_row(
+                    "SELECT CASE WHEN length(carrier)<=?3 AND carrier_size<=?3 THEN carrier END
+                     FROM edges WHERE edge_id=?1 AND visible=1 AND from_id=?2",
+                    params![edge_id, from_id, i64::try_from(remaining.min(max_carrier_bytes as u64)).unwrap_or(i64::MAX)], |row| row.get(0),
                 ).map_err(sql_error)?;
+                    let raw = raw.ok_or_else(|| {
+                        error(
+                            QueryErrorCode::BudgetExceeded,
+                            "selected adjacency actual carrier over byte cap",
+                        )
+                    })?;
                     transferred += raw.len() as u64;
                     edges.push(selected_carrier(&binding, raw, size, &sha)?);
                 }
@@ -537,6 +802,7 @@ impl<P: PinnedLocalModel, G: CurrentPolicy> ReadModel for SqliteReadModel<P, G> 
                     meta_bytes,
                 ))
             })?;
+        let emitted_count = edges.len() as u64;
         Ok(AdjacencyPage {
             binding,
             from_id: from_id.to_owned(),
@@ -546,8 +812,8 @@ impl<P: PinnedLocalModel, G: CurrentPolicy> ReadModel for SqliteReadModel<P, G> 
             expected_count,
             expected_digest,
             charged: Charged {
-                probes: 2 + scanned,
-                rows: scanned + 1,
+                probes: 3 + emitted_count,
+                rows: scanned + 2 + emitted_count,
                 bytes: meta_bytes,
                 cpu_steps: steps,
             },

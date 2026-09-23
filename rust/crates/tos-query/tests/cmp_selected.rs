@@ -13,8 +13,9 @@ use tos_compiler::{
 };
 use tos_foundation::{JsonLimits, JsonMode, JsonValue, parse_json};
 use tos_query::{
-    Budget, Charged, CmpPinnedModel, CurrentPolicy, DisclosureLease, QueryError, QueryErrorCode,
-    RawRecord, ReadModel, SourceDescendRequest, SourcePin, SqliteReadModel, source_descend,
+    AdapterAdmissionBudget, Budget, Charged, CmpPinnedModel, CurrentPolicy, DisclosureLease,
+    QueryError, QueryErrorCode, RawRecord, ReadModel, SourceDescendRequest, SourcePin,
+    SqliteReadModel, source_descend,
 };
 
 struct FixtureLease;
@@ -161,8 +162,17 @@ fn selected(
     )
     .unwrap();
     let pinned = CmpPinnedModel::new(verified, FixturePin).unwrap();
-    let model = SqliteReadModel::new(pinned, FixturePolicy { denied }).unwrap();
+    let model = SqliteReadModel::new(pinned, FixturePolicy { denied }, admission()).unwrap();
     (dir, model)
+}
+
+fn admission() -> AdapterAdmissionBudget {
+    AdapterAdmissionBudget {
+        max_selected_open_vm_steps: 1_000_000,
+        max_metadata_vm_steps: 1_000_000,
+        max_metadata_decoded_bytes: 1_000_000,
+        max_metadata_rows: 64,
+    }
 }
 
 fn budget() -> Budget {
@@ -209,6 +219,51 @@ fn selected_cmp_model_matches_frozen_python_packet_and_refuses_current_denial() 
     )
     .unwrap();
     let (dir, mut model) = selected(None);
+    let initialized = model.admission_charge();
+    assert!(initialized.selected_open_vm_steps > 1);
+    assert!(initialized.metadata_vm_steps > 1);
+    assert!(initialized.metadata_decoded_bytes > 40);
+    assert!(initialized.metadata_rows > 1);
+    let exact_admission = AdapterAdmissionBudget {
+        max_metadata_decoded_bytes: initialized.metadata_decoded_bytes,
+        max_metadata_rows: initialized.metadata_rows as usize,
+        ..admission()
+    };
+    let exact_reader = model
+        .fork_reader(FixturePin, FixturePolicy { denied: None }, exact_admission)
+        .unwrap();
+    assert_eq!(
+        exact_reader.admission_charge().metadata_decoded_bytes,
+        initialized.metadata_decoded_bytes
+    );
+    drop(exact_reader);
+    for tight in [
+        AdapterAdmissionBudget {
+            max_metadata_decoded_bytes: initialized.metadata_decoded_bytes - 1,
+            ..admission()
+        },
+        AdapterAdmissionBudget {
+            max_metadata_rows: initialized.metadata_rows as usize - 1,
+            ..admission()
+        },
+        AdapterAdmissionBudget {
+            max_metadata_vm_steps: 1,
+            ..admission()
+        },
+        AdapterAdmissionBudget {
+            max_selected_open_vm_steps: 1,
+            ..admission()
+        },
+    ] {
+        assert_eq!(
+            model
+                .fork_reader(FixturePin, FixturePolicy { denied: None }, tight)
+                .err()
+                .unwrap()
+                .code,
+            QueryErrorCode::BudgetExceeded
+        );
+    }
     let request = SourceDescendRequest {
         node_id: "id.alpha".into(),
         max_depth: 2,
@@ -216,21 +271,42 @@ fn selected_cmp_model_matches_frozen_python_packet_and_refuses_current_denial() 
         at_least_commit_seq: Some(7),
     };
     let exact = model
-        .exact_visible_node("id.alpha", 1_000_000, 100_000)
+        .exact_visible_node("id.alpha", 1_000_000, 1_000_000, 100_000)
         .unwrap();
     let exact_bytes = exact.charged.bytes as usize + exact.record.unwrap().raw.len();
     model
-        .exact_visible_node("id.alpha", exact_bytes, 100_000)
+        .exact_visible_node("id.alpha", exact_bytes, 1_000_000, 100_000)
         .unwrap();
     assert_eq!(
         model
-            .exact_visible_node("id.alpha", exact_bytes - 1, 100_000)
+            .exact_visible_node("id.alpha", exact_bytes - 1, 1_000_000, 100_000)
             .unwrap_err()
             .code,
         QueryErrorCode::BudgetExceeded
     );
+    // Two SQLite i64 columns and one 64-byte digest are the exact decoded
+    // header width even when a selected row is hidden by the visibility rule.
+    let hidden = model
+        .exact_visible_node("id.packet", 2 * 8 + 64, 1, 100_000)
+        .unwrap();
+    assert!(hidden.record.is_none());
+    assert_eq!(hidden.charged.bytes, 80);
+    let missing = model
+        .exact_visible_node("id.absent", 80, 1, 100_000)
+        .unwrap();
+    assert!(missing.record.is_none());
+    assert_eq!(missing.charged.bytes, 0);
+    for id in ["id.packet", "id.absent"] {
+        assert_eq!(
+            model
+                .exact_visible_node(id, 79, 1, 100_000)
+                .unwrap_err()
+                .code,
+            QueryErrorCode::BudgetExceeded
+        );
+    }
     let adjacency = model
-        .visible_outgoing("id.alpha", None, 1, 1_000_000, 100_000)
+        .visible_outgoing("id.alpha", None, 1, 1_000_000, 1_000_000, 100_000)
         .unwrap();
     let adjacency_bytes = adjacency.charged.bytes as usize
         + adjacency
@@ -239,11 +315,23 @@ fn selected_cmp_model_matches_frozen_python_packet_and_refuses_current_denial() 
             .map(|edge| edge.raw.len())
             .sum::<usize>();
     model
-        .visible_outgoing("id.alpha", None, 1, adjacency_bytes, 100_000)
+        .visible_outgoing("id.alpha", None, 1, adjacency_bytes, 1_000_000, 100_000)
         .unwrap();
     assert_eq!(
         model
-            .visible_outgoing("id.alpha", None, 1, adjacency_bytes - 1, 100_000)
+            .visible_outgoing("id.alpha", None, 1, adjacency_bytes - 1, 1_000_000, 100_000)
+            .unwrap_err()
+            .code,
+        QueryErrorCode::BudgetExceeded
+    );
+    let empty_page = model
+        .visible_outgoing("id.beta", None, 1, 104, 1, 100_000)
+        .unwrap();
+    assert!(empty_page.edges.is_empty());
+    assert_eq!(empty_page.charged.bytes, 104);
+    assert_eq!(
+        model
+            .visible_outgoing("id.beta", None, 1, 103, 1, 100_000)
             .unwrap_err()
             .code,
         QueryErrorCode::BudgetExceeded
@@ -252,7 +340,7 @@ fn selected_cmp_model_matches_frozen_python_packet_and_refuses_current_denial() 
     let actual = parse_json(&packet, JsonMode::PublishedStrict, JsonLimits::default()).unwrap();
     assert!(semantic_eq(actual.root(), field(oracle.root(), "expected")));
     let mut warm_reader = model
-        .fork_reader(FixturePin, FixturePolicy { denied: None })
+        .fork_reader(FixturePin, FixturePolicy { denied: None }, admission())
         .unwrap();
     let warm_packet = source_descend(&mut warm_reader, &request, budget()).unwrap();
     let warm_actual = parse_json(

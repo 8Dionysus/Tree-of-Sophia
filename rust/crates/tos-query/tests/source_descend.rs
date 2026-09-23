@@ -150,13 +150,14 @@ impl ReadModel for SyntheticReadModel {
         &mut self,
         id: &str,
         max_bytes: usize,
+        max_carrier_bytes: usize,
         max_vm_steps: u64,
     ) -> Result<ExactNode, QueryError> {
         assert!(max_vm_steps > 0);
         if self
             .nodes
             .get(id)
-            .is_some_and(|record| record.raw.len() > max_bytes)
+            .is_some_and(|record| record.raw.len() > max_bytes.min(max_carrier_bytes))
         {
             return Err(QueryError {
                 code: QueryErrorCode::BudgetExceeded,
@@ -176,6 +177,7 @@ impl ReadModel for SyntheticReadModel {
         after_edge_id: Option<&str>,
         max_rows: usize,
         max_bytes: usize,
+        max_carrier_bytes: usize,
         max_vm_steps: u64,
     ) -> Result<AdjacencyPage, QueryError> {
         assert!(max_vm_steps > 0);
@@ -189,9 +191,12 @@ impl ReadModel for SyntheticReadModel {
         let end = (start + max_rows).min(all.len());
         if all[start..end]
             .iter()
-            .map(|record| record.raw.len())
-            .sum::<usize>()
-            > max_bytes
+            .any(|record| record.raw.len() > max_carrier_bytes)
+            || all[start..end]
+                .iter()
+                .map(|record| record.raw.len())
+                .sum::<usize>()
+                > max_bytes
         {
             return Err(QueryError {
                 code: QueryErrorCode::BudgetExceeded,

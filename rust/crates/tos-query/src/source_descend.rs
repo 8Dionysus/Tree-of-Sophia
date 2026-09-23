@@ -59,8 +59,12 @@ pub struct RawRecord {
     pub sha256: Digest256,
 }
 
-/// The adapter accounts physical work, including rows skipped by visibility,
-/// dangling targets, and verification reads. Returned rows are only a subset.
+/// Adapter work units: `probes` count bounded backend requests, `rows` count
+/// backend result rows (including lookahead/hidden rows), `bytes` count decoded
+/// result-column payload (i64=8, TEXT=UTF-8 length, BLOB=byte length), and
+/// `cpu_steps` count declared backend instruction/fuel units. File/page I/O,
+/// allocator footprint and wall time are separate admission dimensions, never
+/// inferred from `bytes` or `cpu_steps`. Returned rows are only a subset.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Charged {
     pub probes: u64,
@@ -96,12 +100,13 @@ pub struct AdjacencyPage {
 /// the same sealed range/count/digest and pin semantics at its boundary.
 pub trait ReadModel {
     fn selected_binding(&mut self) -> Result<Binding, QueryError>;
-    /// `max_bytes` must be enforced before transferring a wide row from the
-    /// physical backend, including an oversized-row refusal.
+    /// `max_bytes` bounds all decoded columns in this call; `max_carrier_bytes`
+    /// separately bounds any individual raw carrier before BLOB transfer.
     fn exact_visible_node(
         &mut self,
         id: &str,
         max_bytes: usize,
+        max_carrier_bytes: usize,
         max_vm_steps: u64,
     ) -> Result<ExactNode, QueryError>;
     fn visible_outgoing(
@@ -110,6 +115,7 @@ pub trait ReadModel {
         after_edge_id: Option<&str>,
         max_rows: usize,
         max_bytes: usize,
+        max_carrier_bytes: usize,
         max_vm_steps: u64,
     ) -> Result<AdjacencyPage, QueryError>;
     /// Source owner current decision. Must be rechecked before disclosure.
@@ -299,7 +305,7 @@ fn exact_node<M: ReadModel>(
     work: &mut Work,
 ) -> Result<Option<(RawRecord, JsonValue)>, QueryError> {
     let remaining = budget.max_bytes.saturating_sub(work.bytes);
-    let max_bytes = remaining.min(budget.json.max_bytes as u64) as usize;
+    let max_bytes = remaining.min(usize::MAX as u64) as usize;
     if max_bytes == 0 {
         return Err(QueryError::new(
             QueryErrorCode::BudgetExceeded,
@@ -313,7 +319,7 @@ fn exact_node<M: ReadModel>(
             "source descent VM budget exhausted",
         ));
     }
-    let got = model.exact_visible_node(id, max_bytes, max_vm_steps)?;
+    let got = model.exact_visible_node(id, max_bytes, budget.json.max_bytes, max_vm_steps)?;
     work.charge(got.charged, budget)?;
     work.charge(
         Charged {
@@ -473,9 +479,7 @@ fn prepare_source_descend<M: ReadModel>(
         loop {
             model.check_pin(&binding)?;
             let remaining = budget.max_bytes.saturating_sub(work.bytes);
-            let max_bytes = remaining
-                .min(budget.json.max_bytes.saturating_mul(budget.page_rows) as u64)
-                as usize;
+            let max_bytes = remaining.min(usize::MAX as u64) as usize;
             if max_bytes == 0 {
                 return Err(QueryError::new(
                     QueryErrorCode::BudgetExceeded,
@@ -494,6 +498,7 @@ fn prepare_source_descend<M: ReadModel>(
                 after.as_deref(),
                 budget.page_rows,
                 max_bytes,
+                budget.json.max_bytes,
                 max_vm_steps,
             )?;
             work.charge(page.charged, budget)?;
