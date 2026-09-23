@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use tos_foundation::{
-    CanonicalProfile, Digest256, Digest256Hasher, JsonLimits, JsonMode, JsonValue,
+    CanonicalProfile, Digest256, Digest256Hasher, JsonLimits, JsonMode, JsonString, JsonValue,
     canonical_bytes_v1, parse_json,
 };
 use tos_query::{
@@ -649,6 +649,42 @@ fn resumable_session_matches_python_and_sync_oracle_without_graph_prefetch() {
     let direct = source_descend(&mut synchronous, &request, budget()).unwrap();
     assert_eq!(packet, direct.to_vec());
     assert!(model.pin_checks >= 3);
+}
+
+#[test]
+fn non_ascii_edge_ids_follow_python_codepoint_order_across_pages() {
+    // CPython source_descend_query with the frozen fixture's first two edge IDs
+    // changed to these values emits ["edge.z", "edge.Å"].  JS localeCompare
+    // reverses them, while the source-navigation index uses binary key order.
+    let (mut model, _, mut request) = SyntheticReadModel::fixture();
+    let edges = model.edges.get_mut("α").unwrap();
+    for (edge, id) in edges.iter_mut().zip(["edge.z", "edge.Å"]) {
+        let mut value = parse_json(&edge.raw, JsonMode::PublishedStrict, JsonLimits::default())
+            .unwrap()
+            .into_root();
+        let JsonValue::Object(entries) = &mut value else {
+            panic!("fixture edge is not an object")
+        };
+        let (_, edge_id) = entries
+            .iter_mut()
+            .find(|(key, _)| key.as_str() == Some("edge_id"))
+            .unwrap();
+        *edge_id = JsonValue::String(JsonString::from_utf8(id));
+        *edge = raw(&value, &model.binding);
+    }
+    edges.sort_by_key(SyntheticReadModel::edge_id);
+    request.max_depth = 1;
+    let mut limits = budget();
+    limits.page_rows = 1;
+    let packet = synthetic_session(&mut model, request, limits).unwrap();
+    let parsed = parse_json(&packet, JsonMode::PublishedStrict, JsonLimits::default()).unwrap();
+    let ids: Vec<_> = field(parsed.root(), "edges")
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|edge| string(edge, "edge_id"))
+        .collect();
+    assert_eq!(ids, ["edge.z", "edge.Å"]);
 }
 
 #[test]
