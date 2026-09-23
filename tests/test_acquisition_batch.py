@@ -517,6 +517,89 @@ class AcquisitionBatchTests(unittest.TestCase):
         self.assertEqual([], fetch_calls)
         self.assertEqual([], list(self.output.glob("receipts/handoff-*.json")))
 
+    def test_public_payload_posture_rejects_values_outside_rights_contract(self) -> None:
+        cases = (
+            ("public", "authorized"),
+            ("public_payload", "allowed"),
+            ("public_payload", "open"),
+            ("public_payload", "public"),
+        )
+        for index, (visibility, redistribution) in enumerate(cases):
+            with self.subTest(visibility=visibility, redistribution=redistribution):
+                fetches, manifest_sha = self._write_manifest(
+                    count=1,
+                    rights_posture="public_payload",
+                    rights_visibility=visibility,
+                    rights_redistribution=redistribution,
+                )
+                output = self.root / f"public-posture-{index}"
+                fetch_calls: list[str] = []
+                with self.assertRaisesRegex(
+                    acquisition.AcquisitionBatchError,
+                    "declared rights posture public_payload",
+                ):
+                    acquisition.acquire_batch(
+                        manifest_path=self.manifest_path,
+                        metadata_root=self.metadata,
+                        output_root=output,
+                        expected_manifest_sha256=manifest_sha,
+                        fetcher=lambda payload: fetch_calls.append(payload["file_ref"])
+                        or fetches[payload["file_ref"]],
+                    )
+                self.assertEqual([], fetch_calls)
+                self.assertEqual([], list(output.glob("receipts/handoff-*.json")))
+
+    def test_selected_metadata_modes_are_rejected_before_provider_fetch(self) -> None:
+        for mode in (0o600, 0o755):
+            with self.subTest(mode=oct(mode)):
+                fetches, manifest_sha = self._write_manifest(count=1)
+                manifest = json.loads(self.manifest_path.read_text(encoding="utf-8"))
+                record = manifest["selection"][0]["records"][0]
+                (self.metadata / record["ref"]).chmod(mode)
+                output = self.root / f"metadata-mode-{mode:o}"
+                fetch_calls: list[str] = []
+                with self.assertRaisesRegex(
+                    acquisition.AcquisitionBatchError,
+                    "selected source mode is unsupported for candidate update",
+                ):
+                    acquisition.acquire_batch(
+                        manifest_path=self.manifest_path,
+                        metadata_root=self.metadata,
+                        output_root=output,
+                        expected_manifest_sha256=manifest_sha,
+                        fetcher=lambda payload: fetch_calls.append(payload["file_ref"])
+                        or fetches[payload["file_ref"]],
+                    )
+                self.assertEqual([], fetch_calls)
+                self.assertFalse(output.exists())
+
+    def test_resume_rejects_unsupported_prepared_metadata_mode_before_provider_fetch(self) -> None:
+        fetches, manifest_sha = self._write_manifest(count=1)
+        manifest = json.loads(self.manifest_path.read_text(encoding="utf-8"))
+        record = manifest["selection"][0]["records"][0]
+        output = self.root / "prepared-metadata-mode"
+        acquisition.prepare_batch(
+            manifest_path=self.manifest_path,
+            metadata_root=self.metadata,
+            output_root=output,
+            expected_manifest_sha256=manifest_sha,
+        )
+        (output / "source" / record["ref"]).chmod(0o600)
+        fetch_calls: list[str] = []
+        with self.assertRaisesRegex(
+            acquisition.AcquisitionBatchError,
+            "prepared selected source mode is unsupported for candidate update",
+        ):
+            acquisition.acquire_batch(
+                manifest_path=self.manifest_path,
+                metadata_root=self.metadata,
+                output_root=output,
+                expected_manifest_sha256=manifest_sha,
+                fetcher=lambda payload: fetch_calls.append(payload["file_ref"])
+                or fetches[payload["file_ref"]],
+            )
+        self.assertEqual([], fetch_calls)
+
     def test_manifest_digest_and_revision_binding_fail_closed(self) -> None:
         _fetches, manifest_sha = self._write_manifest(count=1)
         with self.assertRaisesRegex(acquisition.AcquisitionBatchError, "manifest SHA-256"):

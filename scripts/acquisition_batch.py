@@ -253,12 +253,9 @@ def _verify_declared_rights_posture(
         return
     visibility = rights_value.get("visibility")
     redistribution = rights_value.get("redistribution_posture")
-    if visibility not in {"public", "public_payload"} or redistribution not in {
+    if visibility != "public_payload" or redistribution not in {
         "authorized",
         "authorized_with_conditions",
-        "allowed",
-        "open",
-        "public",
     }:
         raise AcquisitionBatchError(
             "declared rights posture public_payload is not supported by selected rights record: "
@@ -314,8 +311,23 @@ def _write_immutable(path: Path, body: bytes) -> None:
         temporary.unlink(missing_ok=True)
 
 
-def _copy_metadata_no_clobber(source: Path, destination: Path, expected_sha256: str) -> str:
+def _selected_metadata_info(source: Path, *, source_ref: str) -> os.stat_result:
     info = _regular_file(source, label="selected source record")
+    if stat.S_IMODE(info.st_mode) != 0o644:
+        raise AcquisitionBatchError(
+            f"selected source mode is unsupported for candidate update: {source_ref}"
+        )
+    return info
+
+
+def _copy_metadata_no_clobber(
+    source: Path,
+    destination: Path,
+    expected_sha256: str,
+    *,
+    source_ref: str,
+) -> str:
+    _selected_metadata_info(source, source_ref=source_ref)
     body = source.read_bytes()
     if _sha256(body) != expected_sha256:
         raise SourceIntegrityError(f"selected record digest differs: {source}")
@@ -343,7 +355,7 @@ def _copy_metadata_no_clobber(source: Path, destination: Path, expected_sha256: 
             if destination.is_symlink() or _sha256_file(destination) != expected_sha256:
                 raise AcquisitionBatchError(f"selected record destination race: {destination}")
             return "already_present"
-        os.chmod(destination, stat.S_IMODE(info.st_mode) or 0o644)
+        os.chmod(destination, 0o644)
         return "copied"
     finally:
         temporary.unlink(missing_ok=True)
@@ -619,6 +631,10 @@ def _prepare_batch_unlocked(
         raise AcquisitionBatchError(f"preparation output must be new: {output}")
     if not output.parent.is_dir() or output.parent.is_symlink():
         raise AcquisitionBatchError(f"preparation output parent must be a regular directory: {output.parent}")
+    selected_records = _records(context)
+    for _selection, record in selected_records:
+        source = _path_under(metadata, record["ref"], label="selected metadata path")
+        _selected_metadata_info(source, source_ref=record["ref"])
     output.mkdir(mode=0o700, parents=True)
     output.chmod(0o700)
     _private_directory(output, label="preparation output")
@@ -637,13 +653,14 @@ def _prepare_batch_unlocked(
 
     _write_immutable(_output_manifest_path(output), context.raw_manifest)
     record_rows: list[dict[str, Any]] = []
-    for _selection, record in _records(context):
+    for _selection, record in selected_records:
         source = _path_under(metadata, record["ref"], label="selected metadata path")
-        info = _regular_file(source, label="selected metadata record")
+        info = _selected_metadata_info(source, source_ref=record["ref"])
         status = _copy_metadata_no_clobber(
             source,
             _path_under(source_root, record["ref"], label="handoff metadata path"),
             record["sha256"],
+            source_ref=record["ref"],
         )
         record_rows.append(
             {
@@ -945,6 +962,10 @@ def _verify_prepared_output(
     for selection, record in _records(context):
         source = _path_under(source_root, record["ref"], label="prepared selected metadata path")
         info = _regular_file(source, label="prepared selected metadata record")
+        if stat.S_IMODE(info.st_mode) != 0o644:
+            raise AcquisitionBatchError(
+                f"prepared selected source mode is unsupported for candidate update: {record['ref']}"
+            )
         actual_sha = _sha256_file(source)
         if actual_sha != record["sha256"]:
             raise SourceIntegrityError(f"prepared selected record digest differs: {record['ref']}")
