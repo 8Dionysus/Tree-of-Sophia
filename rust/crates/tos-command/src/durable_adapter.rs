@@ -941,6 +941,9 @@ impl DurablePgCoordinator {
         domain: &str,
         prepare_id: &[u8],
     ) -> DurableResult<CancelOutcome> {
+        if store.custody_domain() != domain.as_bytes() {
+            return Err(DurableError::Conflict("STO custody domain differs"));
+        }
         let mut tx = self.client.transaction()?;
         lock_audit_fence(&mut tx, domain)?;
         let attempt = tx.query_one(

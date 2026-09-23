@@ -802,6 +802,42 @@ fn registered_cancel_survives_without_attached_pin() {
 }
 
 #[test]
+fn cancel_refuses_a_different_domains_store_before_fencing_either_attempt() {
+    let Some(url) = database_url() else { return };
+    let mut a = Lab::new(&url);
+    let mut b = Lab::new(&url);
+    let prepare_id = b"same-prepare-different-domains";
+    let members = a.prepare(
+        prepare_id,
+        "domain-a-commit",
+        &[MemberSpec::first("subject-A", b"A's committed bytes")],
+    );
+    a.commit(prepare_id, &members, 0, 1).unwrap();
+    b.db.register_attempt(&RegisterShadowAttempt {
+        domain: &b.domain,
+        prepare_id,
+        command_id: "domain-b-registered",
+        raw_request_digest: Digest256::of_bytes(b"domain-b-registered"),
+        delta_digest: Digest256::of_bytes(b"domain-b-no-seal"),
+    })
+    .unwrap();
+
+    assert!(matches!(
+        b.db.cancel_attempt(&a.store, &b.domain, prepare_id),
+        Err(DurableError::Conflict(_))
+    ));
+    assert!(matches!(
+        b.db.resolve_attempt(&b.domain, prepare_id).unwrap(),
+        AttemptResolution::Registered
+    ));
+    assert!(matches!(
+        a.db.resolve_attempt(&a.domain, prepare_id).unwrap(),
+        AttemptResolution::Committed(_)
+    ));
+    a.store.verify_receipt(&members[0].receipt).unwrap();
+}
+
+#[test]
 fn cancel_during_fenced_seal_retries_after_late_pin_completion() {
     let Some(url) = database_url() else { return };
     let mut lab = Lab::new(&url);
