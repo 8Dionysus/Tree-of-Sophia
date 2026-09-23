@@ -151,6 +151,7 @@ mod tests {
     use serde_json::json;
     use std::{
         fs,
+        os::unix::fs::MetadataExt,
         path::Path,
         time::{SystemTime, UNIX_EPOCH},
     };
@@ -435,7 +436,9 @@ mod tests {
             },
         )
         .unwrap();
+        let private_inode = fs::metadata(&path).unwrap().ino();
         let output = stage.finish().unwrap();
+        assert_ne!(fs::metadata(&path).unwrap().ino(), private_inode);
         let raw_table_count: i64 = rusqlite::Connection::open(&path)
             .unwrap()
             .query_row(

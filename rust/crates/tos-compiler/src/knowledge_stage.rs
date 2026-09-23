@@ -3,13 +3,14 @@
 
 use crate::{Error, Limits, Result, SourceBinding, file_digest, sqlite_budget};
 use fs2::FileExt;
-use rusqlite::{Connection, OptionalExtension, params};
+use rusqlite::{Connection, OpenFlags, OptionalExtension, params};
 use std::{
     collections::{BTreeMap, BTreeSet},
     fs,
     io::{Read, Seek, SeekFrom, Write},
-    os::unix::fs::{MetadataExt, OpenOptionsExt},
+    os::unix::fs::{MetadataExt, OpenOptionsExt, PermissionsExt},
     path::{Path, PathBuf},
+    sync::{Arc, atomic::AtomicU64},
 };
 use tos_foundation::{Digest256, Digest256Hasher};
 
@@ -190,6 +191,7 @@ pub struct KnowledgeStage<'a> {
     lease_inode: (u64, u64),
     lease: Option<fs::File>,
     db: Option<Connection>,
+    vm_used: Option<Arc<AtomicU64>>,
     limits: StageLimits,
     receipt: ExactInputReceipt,
     registrations: BTreeMap<String, BTreeSet<String>>,
@@ -200,6 +202,7 @@ pub struct KnowledgeStage<'a> {
     poisoned: bool,
     keep: bool,
     selected_full: bool,
+    fresh_selected: Option<PathBuf>,
 }
 
 impl<'a> KnowledgeStage<'a> {
@@ -252,6 +255,10 @@ impl<'a> KnowledgeStage<'a> {
         {
             return Err(Error::Invalid("stage SQLite sidecar path exists"));
         }
+        let fresh = fresh_selected_path(candidate);
+        if fresh.exists() || fresh.is_symlink() {
+            return Err(Error::Invalid("stage fresh selected path exists"));
+        }
         let lease_path = lease_path(candidate)?;
         if lease_path.exists() || lease_path.is_symlink() {
             return Err(Error::Invalid("stage lease exists"));
@@ -289,6 +296,7 @@ impl<'a> KnowledgeStage<'a> {
             lease_inode: (lease_metadata.dev(), lease_metadata.ino()),
             lease: Some(lease),
             db: None,
+            vm_used: None,
             limits,
             receipt,
             registrations,
@@ -299,6 +307,7 @@ impl<'a> KnowledgeStage<'a> {
             poisoned: false,
             keep: false,
             selected_full: false,
+            fresh_selected: None,
         };
         let lease = stage.lease.as_mut().expect("stage lease open");
         write!(
@@ -311,7 +320,7 @@ impl<'a> KnowledgeStage<'a> {
         stage.check(WritePhase::SqliteOpen)?;
         let db = Connection::open(candidate)?;
         stage.db = Some(db);
-        sqlite_budget::configure(stage.db(), limits.sqlite)?;
+        stage.vm_used = Some(sqlite_budget::configure(stage.db(), limits.sqlite)?);
         stage.check(WritePhase::Schema)?;
         stage.db().execute_batch(SCHEMA)?;
         stage.check(WritePhase::Schema)?;
@@ -733,30 +742,29 @@ impl<'a> KnowledgeStage<'a> {
         if self.selected_full {
             self.check(WritePhase::Finalize)?;
             preflight_selected_vacuum(self.db(), &self.candidate, self.inode, self.limits)?;
-            // Raw owner rows can contain nonpublic material and may never be
-            // shipped inside a selected query model. All independent input
-            // roots were checked above, while the selected seal is already
-            // present. Secure deletion and VACUUM rebuild the distributable
-            // SQLite bytes under the same bounded VM and host spill guard.
+            // Owner input is removed from the private stage only after exact
+            // root checks. VACUUM INTO then creates a different SQLite inode
+            // containing the allowlisted logical tables; the private stage
+            // inode is never the selected artifact.
             self.db()
                 .execute_batch("PRAGMA secure_delete=ON; DROP TABLE raw_records")?;
             selected_table_closure(self.db())?;
             self.check(WritePhase::Finalize)?;
-            self.db().execute_batch("VACUUM")?;
+            let fresh = fresh_selected_path(&self.candidate);
+            self.isolation
+                .verify(&fresh, self.limits, WritePhase::Finalize)?;
+            let fresh_utf8 = fresh
+                .to_str()
+                .ok_or(Error::Invalid("stage fresh selected path encoding"))?;
+            self.fresh_selected = Some(fresh.clone());
+            self.db().execute("VACUUM INTO ?1", [fresh_utf8])?;
             self.check(WritePhase::Finalize)?;
-            let freelist: u64 = self
-                .db()
-                .query_row("PRAGMA freelist_count", [], |row| row.get(0))?;
-            let secure_delete: u64 = self
-                .db()
-                .query_row("PRAGMA secure_delete", [], |row| row.get(0))?;
-            if freelist != 0 || secure_delete != 1 {
-                return Err(Error::Invalid("selected SQLite sanitized pages"));
-            }
-            let metadata = fs::symlink_metadata(&self.candidate)?;
-            if !metadata.file_type().is_file() || (metadata.dev(), metadata.ino()) != self.inode {
-                return Err(Error::Invalid("selected stage inode changed"));
-            }
+            fs::set_permissions(&fresh, fs::Permissions::from_mode(0o600))?;
+            verify_fresh_selected(
+                &fresh,
+                self.limits.sqlite,
+                Arc::clone(self.vm_used.as_ref().expect("stage VM counter")),
+            )?;
         }
         self.check(WritePhase::Finalize)?;
         if self
@@ -770,11 +778,27 @@ impl<'a> KnowledgeStage<'a> {
         self.owner.recheck_sealed_cut(&self.receipt)?;
         let db = self.db.take().expect("stage database open");
         db.close().map_err(|(_, e)| Error::Sql(e))?;
-        let (sqlite_sha256, sqlite_size_bytes) = file_digest(&self.candidate)?;
+        let output_path = self.fresh_selected.as_deref().unwrap_or(&self.candidate);
+        let (sqlite_sha256, sqlite_size_bytes) = file_digest(output_path)?;
         if sqlite_size_bytes > self.limits.sqlite.max_output_bytes {
             return Err(Error::Budget("stage final output bytes"));
         }
-        fs::File::open(&self.candidate)?.sync_all()?;
+        fs::File::open(output_path)?.sync_all()?;
+        if let Some(fresh) = self.fresh_selected.as_ref() {
+            let old = fs::symlink_metadata(&self.candidate)?;
+            let new = fs::symlink_metadata(fresh)?;
+            if !old.file_type().is_file()
+                || (old.dev(), old.ino()) != self.inode
+                || !new.file_type().is_file()
+                || old.uid() != new.uid()
+            {
+                return Err(Error::Invalid("selected stage inode changed"));
+            }
+            cleanup_sqlite_sidecars(&self.candidate, old.uid())?;
+            fs::rename(fresh, &self.candidate)?;
+            self.inode = (new.dev(), new.ino());
+            self.fresh_selected = None;
+        }
         fs::File::open(self.candidate.parent().expect("stage parent"))?.sync_all()?;
         self.remove_lease()?;
         self.keep = true;
@@ -867,10 +891,49 @@ fn selected_table_closure(db: &Connection) -> Result<()> {
     Ok(())
 }
 
+fn verify_fresh_selected(path: &Path, limits: Limits, used: Arc<AtomicU64>) -> Result<()> {
+    let metadata = fs::symlink_metadata(path)?;
+    if !metadata.file_type().is_file() || metadata.len() > limits.max_output_bytes {
+        return Err(Error::Budget("fresh selected SQLite bytes/type"));
+    }
+    if sqlite_sidecar_paths(path)
+        .iter()
+        .any(|sidecar| sidecar.exists() || sidecar.is_symlink())
+    {
+        return Err(Error::Invalid("fresh selected SQLite sidecar"));
+    }
+    let db = Connection::open_with_flags(path, OpenFlags::SQLITE_OPEN_READ_ONLY)?;
+    sqlite_budget::install_progress(&db, limits, used);
+    db.pragma_update(None, "cache_size", -(limits.sqlite_cache_kib as i64))?;
+    db.execute_batch("PRAGMA temp_store=FILE")?;
+    selected_table_closure(&db)?;
+    let integrity: String = db.query_row("PRAGMA integrity_check", [], |row| row.get(0))?;
+    let freelist: u64 = db.query_row("PRAGMA freelist_count", [], |row| row.get(0))?;
+    if integrity != "ok" || freelist != 0 {
+        return Err(Error::Invalid("fresh selected SQLite integrity/pages"));
+    }
+    db.close().map_err(|(_, error)| Error::Sql(error))?;
+    Ok(())
+}
+
 impl Drop for KnowledgeStage<'_> {
     fn drop(&mut self) {
         self.db.take();
         if !self.keep {
+            if let Some(fresh) = self.fresh_selected.as_ref() {
+                if let (Ok(metadata), Some(lease)) =
+                    (fs::symlink_metadata(fresh), self.lease.as_ref())
+                {
+                    if metadata.file_type().is_file()
+                        && lease
+                            .metadata()
+                            .is_ok_and(|lease| lease.uid() == metadata.uid())
+                    {
+                        let _ = cleanup_sqlite_sidecars(fresh, metadata.uid());
+                        let _ = fs::remove_file(fresh);
+                    }
+                }
+            }
             if let Ok(metadata) = fs::symlink_metadata(&self.candidate) {
                 if metadata.file_type().is_file() && (metadata.dev(), metadata.ino()) == self.inode
                 {
@@ -905,6 +968,12 @@ fn lease_path(candidate: &Path) -> Result<PathBuf> {
     let mut name = name.to_os_string();
     name.push(".stage-lease");
     Ok(candidate.with_file_name(name))
+}
+
+fn fresh_selected_path(candidate: &Path) -> PathBuf {
+    let mut path = candidate.as_os_str().to_os_string();
+    path.push(".fresh-selected");
+    PathBuf::from(path)
 }
 
 fn sqlite_sidecar_paths(candidate: &Path) -> [PathBuf; 3] {
@@ -977,6 +1046,18 @@ pub fn reap_abandoned_private_stage(candidate: &Path) -> Result<bool> {
     let metadata = fs::symlink_metadata(candidate)?;
     if !metadata.file_type().is_file() || (metadata.dev(), metadata.ino()) != (dev, ino) {
         return Err(Error::Invalid("stage candidate changed since lease"));
+    }
+    let fresh = fresh_selected_path(candidate);
+    match fs::symlink_metadata(&fresh) {
+        Ok(output) => {
+            if !output.file_type().is_file() || output.uid() != metadata.uid() {
+                return Err(Error::Invalid("abandoned fresh selected path changed"));
+            }
+            cleanup_sqlite_sidecars(&fresh, output.uid())?;
+            fs::remove_file(&fresh)?;
+        }
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+        Err(error) => return Err(Error::Io(error)),
     }
     cleanup_sqlite_sidecars(candidate, metadata.uid())?;
     fs::remove_file(candidate)?;

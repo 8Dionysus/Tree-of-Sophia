@@ -3,20 +3,29 @@
 
 use crate::{Error, Limits, Result};
 use rusqlite::Connection;
+use std::sync::{
+    Arc,
+    atomic::{AtomicU64, Ordering},
+};
 
 const MAX_PROGRESS_INTERVAL: u64 = 1_000;
 
-pub(crate) fn configure(db: &Connection, limits: Limits) -> Result<()> {
-    let mut used = 0u64;
+pub(crate) fn install_progress(db: &Connection, limits: Limits, used: Arc<AtomicU64>) {
     let interval = limits.max_sql_vm_steps.min(MAX_PROGRESS_INTERVAL);
     let effective_cap = (limits.max_sql_vm_steps / interval) * interval;
     db.progress_handler(
         interval as i32,
         Some(move || {
-            used = used.saturating_add(interval);
-            used >= effective_cap
+            used.fetch_add(interval, Ordering::Relaxed)
+                .saturating_add(interval)
+                >= effective_cap
         }),
     );
+}
+
+pub(crate) fn configure(db: &Connection, limits: Limits) -> Result<Arc<AtomicU64>> {
+    let used = Arc::new(AtomicU64::new(0));
+    install_progress(db, limits, Arc::clone(&used));
     db.execute_batch(
         "PRAGMA journal_mode=DELETE; PRAGMA synchronous=FULL; PRAGMA temp_store=FILE;",
     )?;
@@ -36,5 +45,5 @@ pub(crate) fn configure(db: &Connection, limits: Limits) -> Result<()> {
     if effective_page_cap > page_cap {
         return Err(Error::Invalid("SQLite output page cap not applied"));
     }
-    Ok(())
+    Ok(used)
 }
