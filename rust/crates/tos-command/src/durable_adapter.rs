@@ -16,8 +16,61 @@ const PROFILE_VERSION: &[u8] = b"1";
 const LAB_MAGIC: &[u8; 8] = b"CMD2LAB1";
 const COLD_AUDIT_PROFILE: &[u8] = b"cmd2-private-complete-state-v3:pg16-row-to-json:fenced-intent";
 const RECEIPT_PROFILE: &[u8] = b"cmd2-receipt-v2:attempt-fence";
+const HISTORY_KEY_TAG: &[u8] = b"cmd2-history-key-v1";
+const CURRENT_KEY_TAG: &[u8] = b"cmd2-current-key-v1";
 const MAX_MEMBERS: usize = 64;
 const MAX_CUT: u64 = 100_000;
+
+/// The framed keys are sorted as raw unsigned bytes by STO. The exact
+/// PostgreSQL traversal therefore orders by UTF-8 byte length, UTF-8 bytes,
+/// then revision, rather than by the database's text collation.
+fn membership_key(
+    tag: &[u8],
+    domain: &str,
+    subject: &str,
+    revision: Option<u64>,
+) -> DurableResult<Vec<u8>> {
+    if domain.is_empty() || subject.is_empty() || revision == Some(0) {
+        return Err(DurableError::Invalid("membership key identity is empty"));
+    }
+    let domain_len = u32::try_from(domain.len())
+        .map_err(|_| DurableError::Refused("membership domain key too long"))?;
+    let subject_len = u32::try_from(subject.len())
+        .map_err(|_| DurableError::Refused("membership subject key too long"))?;
+    let mut key = Vec::with_capacity(
+        tag.len() + 8 + domain.len() + subject.len() + usize::from(revision.is_some()) * 8,
+    );
+    key.extend_from_slice(tag);
+    key.extend_from_slice(&domain_len.to_be_bytes());
+    key.extend_from_slice(domain.as_bytes());
+    key.extend_from_slice(&subject_len.to_be_bytes());
+    key.extend_from_slice(subject.as_bytes());
+    if let Some(revision) = revision {
+        key.extend_from_slice(&revision.to_be_bytes());
+    }
+    Ok(key)
+}
+
+#[cfg(test)]
+mod membership_key_tests {
+    use super::{CURRENT_KEY_TAG, HISTORY_KEY_TAG, membership_key};
+
+    #[test]
+    fn framed_history_and_current_keys_are_injective_and_byte_ordered() {
+        let current_a = membership_key(CURRENT_KEY_TAG, "d", "a", None).unwrap();
+        let current_aa = membership_key(CURRENT_KEY_TAG, "d", "aa", None).unwrap();
+        let other_domain = membership_key(CURRENT_KEY_TAG, "dd", "a", None).unwrap();
+        let history_a1 = membership_key(HISTORY_KEY_TAG, "d", "a", Some(1)).unwrap();
+        let history_a2 = membership_key(HISTORY_KEY_TAG, "d", "a", Some(2)).unwrap();
+        let history_aa1 = membership_key(HISTORY_KEY_TAG, "d", "aa", Some(1)).unwrap();
+        assert!(current_a < current_aa);
+        assert_ne!(current_a, other_domain);
+        assert!(history_a1 < history_a2);
+        assert!(history_a2 < history_aa1);
+        assert_ne!(history_a1, current_a);
+        assert!(membership_key(HISTORY_KEY_TAG, "d", "a", Some(0)).is_err());
+    }
+}
 
 #[derive(Debug)]
 pub enum DurableError {
