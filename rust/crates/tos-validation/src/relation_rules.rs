@@ -27,6 +27,9 @@ const MAX_PROVENANCE_REFERENCES: usize = 65_536;
 const MAX_READS: usize = 262_144;
 const MAX_FACTS: usize = 65_536;
 const MAX_ISSUES: usize = 64;
+const MAX_SKIPPED_PROFILES: usize = 1_024;
+const MAX_SOURCE_REF_BYTES: usize = 4_096;
+const MAX_GENERATION_BYTES: usize = 256;
 const ENTITY_CONTRACT: &str =
     "https://treeofsophia.local/ToS/contracts/semantic-entity-type-registry.schema.json";
 const RELATION_CONTRACT: &str =
@@ -73,7 +76,12 @@ impl RelationShadow {
 
     fn skip(&mut self, profile: impl Into<String>) {
         self.unsupported = true;
-        self.skipped_profiles.insert(profile.into());
+        if self.skipped_profiles.len() < MAX_SKIPPED_PROFILES {
+            self.skipped_profiles.insert(profile.into());
+        } else {
+            self.skipped_profiles
+                .insert("skipped-profile-sink-capacity".into());
+        }
     }
 
     fn read(&mut self, read: PredicateRead) {
@@ -483,6 +491,18 @@ pub fn inspect_profiled_claims(
         shadow.skip("complete-current-claim-union");
         return Ok(shadow);
     }
+    if input.union_generation.len() > MAX_GENERATION_BYTES
+        || input
+            .claim_streams
+            .iter()
+            .any(|stream| stream.source_ref.len() > MAX_SOURCE_REF_BYTES)
+        || input
+            .endpoints
+            .iter()
+            .any(|endpoint| endpoint.source_ref.len() > MAX_SOURCE_REF_BYTES)
+    {
+        return Err(RelationError::BudgetExceeded);
+    }
     if input.claim_streams.len() > MAX_CLAIM_STREAMS || input.endpoints.len() > MAX_ENDPOINTS {
         return Err(RelationError::BudgetExceeded);
     }
@@ -780,6 +800,10 @@ pub fn inspect_current_topology(
         shadow.skip("verified-current-topology-union");
         return shadow;
     }
+    if union_generation.len() > MAX_GENERATION_BYTES {
+        shadow.skip("current-topology-generation-capacity");
+        return shadow;
+    }
     if records.len() > MAX_TOPOLOGY_OBJECTS
         || claims.len() > MAX_TOPOLOGY_OBJECTS
         || item_edition.len() > MAX_TOPOLOGY_OBJECTS
@@ -995,6 +1019,9 @@ pub fn inspect_provenance_event(
     probe: &SchemaBackendProbe,
 ) -> Result<RelationShadow, RelationError> {
     let mut shadow = RelationShadow::default();
+    if event_ref.len() > MAX_SOURCE_REF_BYTES {
+        return Err(RelationError::BudgetExceeded);
+    }
     if local_bytes.len() > MAX_PROVENANCE_REFERENCES
         || local_bytes
             .values()
