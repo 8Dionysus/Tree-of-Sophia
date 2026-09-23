@@ -835,6 +835,13 @@ fn cancel_refuses_a_different_domains_store_before_fencing_either_attempt() {
         AttemptResolution::Committed(_)
     ));
     a.store.verify_receipt(&members[0].receipt).unwrap();
+    let selected =
+        a.db.cold_recover_exact(&a.store, &a.domain, "subject-A", 1)
+            .unwrap();
+    assert_eq!(
+        a.db.warm_read_selected(&a.store, &selected, 1024).unwrap(),
+        members[0].exact_bytes
+    );
 }
 
 #[test]
