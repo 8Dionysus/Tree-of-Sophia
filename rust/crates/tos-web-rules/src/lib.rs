@@ -5,14 +5,14 @@
 //! execute a query, interpret a cursor, grant source access or alter the
 //! direct knowledge API's legacy default.
 
-mod search_mode;
 mod knowledge_envelope;
+mod search_mode;
 
-pub use search_mode::{
-    SearchMode, SearchSelectionError, SearchSelectionErrorCode, select_knowledge_search_mode_v1,
-};
 pub use knowledge_envelope::{
     KnowledgeEnvelopeError, KnowledgeEnvelopeErrorCode, compact_knowledge_search_page_v1,
+};
+pub use search_mode::{
+    SearchMode, SearchSelectionError, SearchSelectionErrorCode, select_knowledge_search_mode_v1,
 };
 
 #[cfg(feature = "wasm")]
@@ -66,17 +66,27 @@ mod wasm {
 
     #[wasm_bindgen]
     impl KnowledgeEnvelopeResult {
-        pub fn ok(&self) -> bool { self.error_code.is_none() }
-        pub fn bytes(&self) -> Vec<u8> { self.bytes.clone() }
-        pub fn error_code(&self) -> Option<String> { self.error_code.clone() }
+        pub fn ok(&self) -> bool {
+            self.error_code.is_none()
+        }
+        pub fn bytes(&self) -> Vec<u8> {
+            self.bytes.clone()
+        }
+        pub fn error_code(&self) -> Option<String> {
+            self.error_code.clone()
+        }
     }
 
     #[wasm_bindgen]
     pub fn compact_knowledge_search_page_wasm_v1(request_json: &[u8]) -> KnowledgeEnvelopeResult {
         match compact_knowledge_search_page_v1(request_json) {
-            Ok(bytes) => KnowledgeEnvelopeResult { bytes, error_code: None },
+            Ok(bytes) => KnowledgeEnvelopeResult {
+                bytes,
+                error_code: None,
+            },
             Err(error) => KnowledgeEnvelopeResult {
-                bytes: Vec::new(), error_code: Some(error.code.as_str().to_owned()),
+                bytes: Vec::new(),
+                error_code: Some(error.code.as_str().to_owned()),
             },
         }
     }
