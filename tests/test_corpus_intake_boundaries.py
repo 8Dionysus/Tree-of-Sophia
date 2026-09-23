@@ -196,20 +196,25 @@ class DirectHandoffBoundaryTests(unittest.TestCase):
                         "root": str(handoff_root),
                         "handoff_ref": "receipts/handoff.json",
                         "sha256": hashlib.sha256(handoff_path.read_bytes()).hexdigest(),
+                        "manifest_sha256": hashlib.sha256(
+                            f"manifest-{index}\n".encode()
+                        ).hexdigest(),
                     }
                 )
             selection_path = root / "selection.json"
-            selection_path.write_bytes(
-                _canonical(
-                    {
-                        "schema_version": converter.HANDOFF_SELECTION_SCHEMA,
-                        "selection_id": "two-producers",
-                        "handoffs": handoffs,
-                    }
-                )
+            selection_bytes = _canonical(
+                {
+                    "schema_version": converter.HANDOFF_SELECTION_SCHEMA,
+                    "selection_id": "two-producers",
+                    "handoffs": handoffs,
+                }
             )
+            selection_path.write_bytes(selection_bytes)
             rows, selection = converter._load_handoff_selection(selection_path)
             self.assertEqual("two-producers", selection["selection_id"])
+            self.assertEqual(
+                hashlib.sha256(selection_bytes).hexdigest(), selection["selection_sha256"]
+            )
             self.assertEqual(2, len(rows))
             self.assertEqual({"receipts/handoff.json"}, {row["handoff_ref"] for row in rows})
 
@@ -222,6 +227,9 @@ class DirectHandoffBoundaryTests(unittest.TestCase):
             handoff_path = root / "receipts" / "handoff.json"
             handoff_path.write_bytes(b"immutable handoff\n")
             digest = hashlib.sha256(handoff_path.read_bytes()).hexdigest()
+            manifest_path = root / "manifest.json"
+            manifest_path.write_bytes(b'{"batch_id":"tos.acquisition-batch.fixture"}\n')
+            manifest_digest = hashlib.sha256(manifest_path.read_bytes()).hexdigest()
             calls: list[dict[str, object]] = []
             fake = SimpleNamespace(
                 verify_handoff_for_intake=lambda **kwargs: (
@@ -247,17 +255,31 @@ class DirectHandoffBoundaryTests(unittest.TestCase):
                     root=root,
                     handoff_ref="receipts/handoff.json",
                     expected_sha256=digest,
+                    expected_manifest_sha256=manifest_digest,
                     base_revision=self.BASE,
                 )
             self.assertEqual(1, len(calls))
             self.assertEqual(self.BASE, calls[0]["expected_base_revision"])
+            self.assertEqual(manifest_digest, calls[0]["expected_manifest_sha256"])
+            self.assertEqual(manifest_digest, normalized.manifest_sha256)
             self.assertEqual("tos.acquisition-batch.fixture", normalized.manifest["batch_id"])
+            with patch.dict(sys.modules, {"acquisition_handoff_adapter": fake}):
+                with self.assertRaisesRegex(converter.ConversionError, "caller-bound selection"):
+                    converter._load_direct_handoff(
+                        root=root,
+                        handoff_ref="receipts/handoff.json",
+                        expected_sha256=digest,
+                        expected_manifest_sha256="0" * 64,
+                        base_revision=self.BASE,
+                    )
+            self.assertEqual(1, len(calls), "manifest mismatch must stop before shared verification")
             with patch.dict(sys.modules, {"acquisition_handoff_adapter": fake}):
                 with self.assertRaisesRegex(converter.ConversionError, "digest changed"):
                     converter._load_direct_handoff(
                         root=root,
                         handoff_ref="receipts/handoff.json",
                         expected_sha256="0" * 64,
+                        expected_manifest_sha256=manifest_digest,
                         base_revision=self.BASE,
                     )
 
@@ -478,6 +500,7 @@ class DirectHandoffBoundaryTests(unittest.TestCase):
                     handoff_path=handoff_path,
                     handoff=handoff,
                     manifest_path=manifest_path,
+                    manifest_sha256=hashlib.sha256(manifest_path.read_bytes()).hexdigest(),
                     manifest={"batch_id": batch_id},
                     source_root=source_root,
                     payload_root=payload_root,
@@ -490,6 +513,7 @@ class DirectHandoffBoundaryTests(unittest.TestCase):
                         "root": str(batch_root),
                         "handoff_ref": "receipts/handoff.json",
                         "sha256": handoffs[batch_id].handoff_sha256,
+                        "manifest_sha256": handoffs[batch_id].manifest_sha256,
                     }
                 )
 
@@ -521,8 +545,15 @@ class DirectHandoffBoundaryTests(unittest.TestCase):
                 verify_validation_context=lambda value, **_kwargs: value,
             )
 
-            def load_handoff(*, root: Path, handoff_ref: str, expected_sha256: str, base_revision: str):
-                del handoff_ref, expected_sha256, base_revision
+            def load_handoff(
+                *,
+                root: Path,
+                handoff_ref: str,
+                expected_sha256: str,
+                expected_manifest_sha256: str,
+                base_revision: str,
+            ):
+                del handoff_ref, expected_sha256, expected_manifest_sha256, base_revision
                 batch_id = root.name
                 return handoffs[f"tos.acquisition-batch.fixture-{batch_id.removeprefix('handoff-')}"]
 

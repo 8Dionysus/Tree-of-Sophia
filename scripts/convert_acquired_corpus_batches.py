@@ -70,7 +70,7 @@ DEFAULT_BATCH_SELECTION = (
 )
 
 BATCH_SCHEMA = "tos_corpus_batch_v1"
-HANDOFF_SELECTION_SCHEMA = "tos_acquired_handoff_selection_v1"
+HANDOFF_SELECTION_SCHEMA = "tos_acquired_handoff_selection_v2"
 HANDOFF_SCHEMA = "tos_acquisition_handoff_v1"
 CLAIM_SUFFIXES = {
     "work-expression-claims.jsonl": "work-expression",
@@ -138,6 +138,7 @@ class DirectHandoff:
     handoff_path: Path
     handoff: dict[str, Any]
     manifest_path: Path
+    manifest_sha256: str
     manifest: dict[str, Any]
     source_root: Path
     payload_root: Path
@@ -274,11 +275,20 @@ def _load_handoff_selection(path: Path) -> tuple[list[dict[str, Any]], dict[str,
     This is an invocation selector, not a durable acquisition registry.  Each
     row binds the immutable handoff bytes so a stale or silently replaced
     producer output is rejected before any candidate directory is created.
+    The manifest digest must also be supplied by the caller from an independent
+    verification result; it is never inferred from the handoff being checked.
     """
 
     path = path.absolute()
     _regular(path, label="handoff selection")
-    raw = _read_json(path, label="handoff selection")
+    try:
+        selection_bytes = path.read_bytes()
+        raw = json.loads(selection_bytes.decode("utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        raise ConversionError(f"handoff selection is not readable JSON: {path}") from exc
+    if not isinstance(raw, dict):
+        raise ConversionError(f"handoff selection must be a JSON object: {path}")
+    selection_sha256 = hashlib.sha256(selection_bytes).hexdigest()
     if raw.get("schema_version") != HANDOFF_SELECTION_SCHEMA:
         raise ConversionError("handoff selection has an unexpected schema_version")
     selection_id = raw.get("selection_id")
@@ -295,6 +305,7 @@ def _load_handoff_selection(path: Path) -> tuple[list[dict[str, Any]], dict[str,
         root_value = row.get("root")
         handoff_ref = row.get("handoff_ref")
         handoff_sha256 = row.get("sha256")
+        manifest_sha256 = row.get("manifest_sha256")
         if (
             not isinstance(root_value, str)
             or not Path(root_value).is_absolute()
@@ -303,19 +314,31 @@ def _load_handoff_selection(path: Path) -> tuple[list[dict[str, Any]], dict[str,
             or not isinstance(handoff_ref, str)
             or not isinstance(handoff_sha256, str)
             or _HEX64.fullmatch(handoff_sha256) is None
+            or not isinstance(manifest_sha256, str)
+            or _HEX64.fullmatch(manifest_sha256) is None
         ):
-            raise ConversionError("handoff selection row has an invalid root/ref/digest binding")
+            raise ConversionError(
+                "handoff selection row has an invalid root/ref/handoff/manifest digest binding"
+            )
         _safe_handoff_ref(handoff_ref, label="handoff reference")
         root = Path(root_value).resolve()
         key = (str(root), handoff_ref)
         if key in seen:
             raise ConversionError("handoff selection repeats a root/reference")
         seen.add(key)
-        normalized.append({"root": root, "handoff_ref": handoff_ref, "sha256": handoff_sha256})
+        normalized.append(
+            {
+                "root": root,
+                "handoff_ref": handoff_ref,
+                "sha256": handoff_sha256,
+                "manifest_sha256": manifest_sha256,
+            }
+        )
     return normalized, {
         "schema_version": HANDOFF_SELECTION_SCHEMA,
         "selection_id": selection_id,
         "source": str(path),
+        "selection_sha256": selection_sha256,
         "handoffs": normalized,
     }
 
@@ -325,15 +348,17 @@ def _load_direct_handoff(
     root: Path,
     handoff_ref: str,
     expected_sha256: str,
+    expected_manifest_sha256: str,
     base_revision: str,
 ) -> DirectHandoff:
     """Normalize one raw handoff using acquisition's shared verifier.
 
     The verifier is deliberately the acquisition owner's public seam.  It
     checks the handoff manifest, source/rights records, Item/File bindings,
-    independent fixity, and local custody without loading the accepted store
-    or producing a corpus batch.  This module then performs one aggregated
-    accepted-index/topology closure pass for all returned handoffs.
+    independent fixity, and local custody against the caller-bound manifest
+    digest without loading the accepted store or producing a corpus batch.
+    This module then performs one aggregated accepted-index/topology closure
+    pass for all returned handoffs.
     """
 
     _safe_handoff_ref(handoff_ref, label="handoff reference")
@@ -346,6 +371,18 @@ def _load_direct_handoff(
     if _sha256(handoff_path) != expected_sha256:
         raise ConversionError(
             f"handoff digest changed; re-acquire immutable input: {handoff_ref}"
+        )
+    manifest_path = root / "manifest.json"
+    if manifest_path.is_symlink() or not manifest_path.is_file():
+        raise ConversionError("handoff manifest is not a regular file: manifest.json")
+    if (
+        not isinstance(expected_manifest_sha256, str)
+        or _HEX64.fullmatch(expected_manifest_sha256) is None
+    ):
+        raise ConversionError("caller-supplied manifest digest is invalid")
+    if _sha256(manifest_path) != expected_manifest_sha256:
+        raise ConversionError(
+            "handoff manifest digest differs from caller-bound selection: manifest.json"
         )
     try:
         import acquisition_handoff_adapter as acquisition_adapter
@@ -366,6 +403,7 @@ def _load_direct_handoff(
             acquisition_root=root,
             handoff_ref=handoff_ref,
             expected_base_revision=base_revision,
+            expected_manifest_sha256=expected_manifest_sha256,
             repo_root=verifier_repo_root,
         )
     except Exception as exc:
@@ -411,7 +449,8 @@ def _load_direct_handoff(
         handoff_sha256=expected_sha256,
         handoff_path=handoff_path,
         handoff=handoff,
-        manifest_path=root / "manifest.json",
+        manifest_path=manifest_path,
+        manifest_sha256=expected_manifest_sha256,
         manifest=manifest,
         source_root=source_root,
         payload_root=payload_root,
@@ -1567,6 +1606,7 @@ def convert(
                 root=row["root"],
                 handoff_ref=row["handoff_ref"],
                 expected_sha256=row["sha256"],
+                expected_manifest_sha256=row["manifest_sha256"],
                 base_revision=base_revision,
             )
             batch_id = handoff.handoff.get("batch_id")
@@ -2154,7 +2194,9 @@ def convert(
             str(handoff_selection) if direct_handoffs and handoff_selection is not None else None
         ),
         "handoff_selection_sha256": (
-            _sha256(handoff_selection) if direct_handoffs and handoff_selection is not None else None
+            direct_selection["selection_sha256"]
+            if direct_handoffs and direct_selection is not None
+            else None
         ),
         "handoffs": [
             {
@@ -2162,7 +2204,7 @@ def convert(
                 "handoff_ref": item.handoff_ref,
                 "handoff_sha256": item.handoff_sha256,
                 "batch_id": item.handoff.get("batch_id"),
-                "manifest_sha256": _sha256(item.manifest_path),
+                "manifest_sha256": item.manifest_sha256,
             }
             for item in direct_handoffs
         ],
