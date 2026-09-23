@@ -1410,7 +1410,7 @@ mod native {
     }
 
     fn batch_worker_once(
-        mut stdin: impl Read,
+        stdin: impl Read,
         mut stdout: impl Write,
         magic: [u8; 8],
     ) -> io::Result<()> {

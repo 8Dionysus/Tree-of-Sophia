@@ -189,10 +189,10 @@ pub(crate) struct NativeSchemaPlan {
 impl RecordFamily {
     /// Shadow-only constructor. Its inline schema probe has no CPU deadline
     /// and must not be used to complete an audit rule.
-    pub fn new(
+    pub fn new<'a>(
         registry_raw: &[u8],
         contract_raw: &[u8],
-        schemas: impl IntoIterator<Item = RecordSchema<'_>>,
+        schemas: impl IntoIterator<Item = RecordSchema<'a>>,
         format_profile: FormatProfile,
     ) -> Result<Self, RecordRuleError> {
         Self::new_inner(registry_raw, contract_raw, schemas, format_profile, None)
@@ -200,10 +200,10 @@ impl RecordFamily {
 
     /// Audit-consumable constructor only when the caller has checked that the
     /// exact registry schema verdict came from a deadline-bounded worker.
-    pub(crate) fn new_with_bounded_registry(
+    pub(crate) fn new_with_bounded_registry<'a>(
         registry_raw: &[u8],
         contract_raw: &[u8],
-        schemas: impl IntoIterator<Item = RecordSchema<'_>>,
+        schemas: impl IntoIterator<Item = RecordSchema<'a>>,
         format_profile: FormatProfile,
         registry_evidence: &BoundedSchemaVerdict,
     ) -> Result<Self, RecordRuleError> {
@@ -216,10 +216,10 @@ impl RecordFamily {
         )
     }
 
-    fn new_inner(
+    fn new_inner<'a>(
         registry_raw: &[u8],
         contract_raw: &[u8],
-        schemas: impl IntoIterator<Item = RecordSchema<'_>>,
+        schemas: impl IntoIterator<Item = RecordSchema<'a>>,
         format_profile: FormatProfile,
         registry_evidence: Option<&BoundedSchemaVerdict>,
     ) -> Result<Self, RecordRuleError> {

@@ -150,7 +150,7 @@ fn rows<'a>(value: &'a JsonValue, key: &str) -> &'a [JsonValue] {
         .and_then(JsonValue::as_array)
         .unwrap_or(&[])
 }
-fn strings(value: &JsonValue, key: &str) -> Vec<&str> {
+fn strings<'a>(value: &'a JsonValue, key: &str) -> Vec<&'a str> {
     rows(value, key)
         .iter()
         .filter_map(JsonValue::as_str)
