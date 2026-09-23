@@ -630,10 +630,17 @@ impl PgCoordinator {
         verify_history_members(&mut tx, &cut.domain, cut.through_commit_seq, &prefix)?;
         let cut_digest_hex = cut.log_digest.to_hex();
         if cut.through_commit_seq <= published {
-            if cut.through_commit_seq == published
-                && published_digest.as_deref() != Some(cut_digest_hex.as_str())
-            {
-                return Err(Error::Corrupt("published cut digest differs from log"));
+            if cut.through_commit_seq == published {
+                if published == 0 && published_digest.is_none() {
+                    // A newly created domain has no published digest yet. The
+                    // verified empty cut may establish it without advancing K.
+                    tx.execute(
+                        "UPDATE cmd1_publication SET log_digest=$2 WHERE domain=$1",
+                        &[&cut.domain, &cut_digest_hex],
+                    )?;
+                } else if published_digest.as_deref() != Some(cut_digest_hex.as_str()) {
+                    return Err(Error::Corrupt("published cut digest differs from log"));
+                }
             }
             tx.commit()?;
             return Ok(());

@@ -137,6 +137,21 @@ fn wait_for_sequencer_block(url: &str, worker_pid: i32, blocker_pid: i32) {
 }
 
 #[test]
+fn initial_empty_cut_seals_without_advancing_publication() {
+    let Some(url) = database_url() else { return };
+    let (mut db, domain) = setup(&url);
+    let cut = db.read_cut(&domain).unwrap();
+    assert_eq!(cut.through_commit_seq, 0);
+    assert!(cut.command_ids.is_empty());
+    db.seal_cut(&cut).unwrap();
+    db.seal_cut(&cut).unwrap();
+    assert_eq!(db.published_seq(&domain).unwrap(), 0);
+    let mut forged = cut;
+    forged.log_digest = Digest256::of_bytes(b"forged empty cut");
+    must_conflict(db.seal_cut(&forged));
+}
+
+#[test]
 fn disjoint_commit_order_closed_cut_and_observed_lock_wait() {
     let Some(url) = database_url() else { return };
     let (mut db, domain) = setup(&url);
