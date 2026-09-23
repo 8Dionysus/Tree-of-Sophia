@@ -74,3 +74,14 @@ catalog facet and canonical order. The owner `source_home` and
 and baseline behavioral agreement of the declared data only. They do not
 prove a Rust producer, eighth-source compatibility, live corpus migration,
 public rights or deployment.
+
+## Follow-up profile clarification
+
+The doctrine README now states the `indexed-node-edge-v1` extension contract:
+an owner-selected complete pair of already normalized node/relation carriers
+may be indexed with exact source, provenance and registry checks. This is a
+read-model adapter for declared carriers, not a semantic normalizer for an
+arbitrary new raw source. Both collections, including a zero-row one, must be
+in the independent owner receipt. A distinct raw format requires its own
+reviewed adapter. This clarification does not change the reviewed descriptor
+bytes or add a public eighth source to the current Python/Worker readers.

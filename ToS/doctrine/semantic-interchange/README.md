@@ -38,6 +38,20 @@ source access, review, canon or publication authority. An incompatible change
 to this vocabulary or its selected registry invalidates derived query
 fingerprints and requires a rebuilt reader or an explicit refusal.
 
+The `indexed-node-edge-v1` extension adapter accepts an owner-selected,
+complete pair of normalized node and relation collections with exact IDs,
+declared source graph, native vocabulary, provenance and source-layer fields.
+It is a byte-preserving indexing route for already normalized owner carriers,
+not a route that invents a subject, identity, summary or semantic mapping.
+The compiler checks every carrier's declared graph against its single
+registration and the selected semantic registries, requires both collections
+even when one is empty, and verifies their complete owner roots before making
+them eligible to query. An owner with different raw material must supply a
+separate reviewed adapter rather than relabel that material as this profile.
+This profile does not make the current Python knowledge builder emit an eighth
+source; its public graph contract and readers have their own compatibility
+route.
+
 ## Scoped composition and research corpora
 
 Entity registry 32 adds the persistent `research-corpus` source profile and two
