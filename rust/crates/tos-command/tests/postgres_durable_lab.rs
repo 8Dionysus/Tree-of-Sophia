@@ -22,8 +22,8 @@ use tos_command::{
 };
 use tos_foundation::Digest256;
 use tos_segment_store::{
-    AttemptRecovery, FrameInput, GenerationShapeLimits, KeyComparatorV1, OwnerBinding,
-    PackedPartitionRefV1, SegmentLimits, SegmentStore, VerificationBudget,
+    AttemptRecovery, FrameInput, GenerationNamespaceV1, GenerationShapeLimits, KeyComparatorV1,
+    OwnerBinding, PackedPartitionRefV1, SegmentLimits, SegmentStore, VerificationBudget,
     describe_placement_partition,
 };
 
@@ -1564,6 +1564,24 @@ fn selected_generation_binds_complete_current_and_retained_membership() {
     assert_eq!(selected.digest(), candidate.digest());
     assert_eq!(selected.history_coverage().rows, 3);
     assert_eq!(selected.current_coverage().rows, 2);
+    let mut current_stream = selected.stream(GenerationNamespaceV1::Current).unwrap();
+    assert!(
+        current_stream
+            .next_row(Instant::now() + Duration::from_secs(30), &cancelled)
+            .unwrap()
+            .is_some()
+    );
+    assert!(current_stream.coverage().is_none());
+    let mut observed_current = 1;
+    while current_stream
+        .next_row(Instant::now() + Duration::from_secs(30), &cancelled)
+        .unwrap()
+        .is_some()
+    {
+        observed_current += 1;
+    }
+    assert_eq!(observed_current, 2);
+    assert_eq!(current_stream.coverage().unwrap().rows, 2);
     drop(selected);
 
     let selected_file = copied_root

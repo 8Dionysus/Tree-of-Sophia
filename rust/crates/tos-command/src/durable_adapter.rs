@@ -11,9 +11,9 @@ use tos_foundation::{Digest256, Digest256Hasher};
 use tos_segment_store::{
     AttemptRecovery, ByteDurabilityReceipt, GenerationCatalogV1, GenerationCoverageV1,
     GenerationCutV1, GenerationDescriptorV1, GenerationNamespaceV1, GenerationReadLimits,
-    GenerationShapeLimits, InstalledGenerationV1, KeyComparatorV1, PackedPartitionRefV1,
-    PackedPlacementLeafV1, PartitionBoundsV1, PlacementGenerationRowV1, SegmentError, SegmentStore,
-    VerificationBudget, describe_placement_partition,
+    GenerationRowStreamV1, GenerationShapeLimits, InstalledGenerationV1, KeyComparatorV1,
+    PackedPartitionRefV1, PackedPlacementLeafV1, PartitionBoundsV1, PlacementGenerationRowV1,
+    SegmentError, SegmentStore, VerificationBudget, describe_placement_partition,
 };
 
 const PROFILE_ID: &[u8] = b"cmd2.lab.embedded-revision";
@@ -304,6 +304,13 @@ impl VerifiedSelectedGeneration {
     }
     pub fn current_coverage(&self) -> GenerationCoverageV1 {
         self.current_coverage
+    }
+
+    /// Pinned, bounded row traversal of the exact selected descriptor. The
+    /// caller must consume through EOF and inspect coverage; this is neither
+    /// a current-rights lease nor a source validation attestation.
+    pub fn stream(&self, namespace: GenerationNamespaceV1) -> DurableResult<GenerationRowStreamV1> {
+        Ok(self.installed.stream(namespace, generation_limits())?)
     }
 }
 
@@ -1971,6 +1978,10 @@ impl DurablePgCoordinator {
     ) -> DurableResult<CompleteGeneration> {
         if store.custody_domain() != cut.domain.as_bytes()
             || installed.descriptor().cut != generation_cut(store, cut)
+            || installed.descriptor().history.key_codec_digest
+                != Digest256::of_bytes(HISTORY_KEY_CODEC)
+            || installed.descriptor().current.key_codec_digest
+                != Digest256::of_bytes(CURRENT_KEY_CODEC)
         {
             return Err(DurableError::Conflict("generation candidate cut differs"));
         }
@@ -2195,6 +2206,12 @@ impl DurablePgCoordinator {
             &expected_cut,
             generation_limits(),
         )?;
+        if installed.descriptor().history.key_codec_digest != Digest256::of_bytes(HISTORY_KEY_CODEC)
+            || installed.descriptor().current.key_codec_digest
+                != Digest256::of_bytes(CURRENT_KEY_CODEC)
+        {
+            return Err(DurableError::Conflict("selected key codec differs"));
+        }
         let history_coverage = compare_installed_membership(
             &installed,
             GenerationNamespaceV1::History,
