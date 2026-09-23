@@ -4,6 +4,7 @@
 
 use std::collections::BTreeSet;
 use std::path::Path;
+use std::time::{Duration, Instant};
 
 use tos_foundation::{Digest256, Digest256Hasher};
 
@@ -48,14 +49,18 @@ pub(crate) struct MembershipExpectation {
 }
 
 pub(crate) trait MemberStream {
-    fn next_member(&mut self) -> Result<Option<AuditMember>, String>;
+    /// A production implementation must honor this deadline while reading a
+    /// sealed cut. A timestamp check cannot interrupt a blocked reader.
+    fn next_member(&mut self, deadline: Instant) -> Result<Option<AuditMember>, String>;
 }
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct AuditLimits {
     pub max_members: u64,
     pub max_member_bytes: usize,
+    pub max_path_bytes: usize,
     pub max_total_bytes: u64,
+    pub max_wall: Duration,
     pub max_issues: usize,
     pub max_reads: usize,
     pub max_facts: usize,
@@ -79,6 +84,7 @@ pub(crate) enum AuditRefusal {
     DuplicateMemberPath,
     MembershipMismatch,
     BudgetExceeded,
+    DeadlineExceeded,
     RuleIndeterminate {
         rule_id: &'static str,
         reason: String,
@@ -213,6 +219,14 @@ pub(crate) fn run_full_probe(
         return AuditResult::Refused(AuditRefusal::MissingRules(missing));
     }
 
+    if limits.max_wall.is_zero() {
+        return AuditResult::Refused(AuditRefusal::BudgetExceeded);
+    }
+    let deadline = match Instant::now().checked_add(limits.max_wall) {
+        Some(deadline) => deadline,
+        None => return AuditResult::Refused(AuditRefusal::BudgetExceeded),
+    };
+
     let mut sink = match AuditSink::new(limits, scratch_dir, attempt_id) {
         Ok(sink) => sink,
         Err(reason) => return AuditResult::Refused(reason),
@@ -223,11 +237,17 @@ pub(crate) fn run_full_probe(
     let mut total_bytes = 0u64;
     let mut previous_path = None::<String>;
     loop {
-        let member = match stream.next_member() {
+        if Instant::now() >= deadline {
+            return AuditResult::Refused(AuditRefusal::DeadlineExceeded);
+        }
+        let member = match stream.next_member(deadline) {
             Ok(Some(member)) => member,
             Ok(None) => break,
             Err(_) => return AuditResult::Refused(AuditRefusal::IncompleteMemberStream),
         };
+        if Instant::now() >= deadline {
+            return AuditResult::Refused(AuditRefusal::DeadlineExceeded);
+        }
         count = match count.checked_add(1) {
             Some(value) if value <= limits.max_members => value,
             _ => return AuditResult::Refused(AuditRefusal::BudgetExceeded),
@@ -237,6 +257,7 @@ pub(crate) fn run_full_probe(
             _ => return AuditResult::Refused(AuditRefusal::BudgetExceeded),
         };
         if member.raw.len() > limits.max_member_bytes
+            || member.path.len() > limits.max_path_bytes
             || member.path.is_empty()
             || member.path.starts_with('/')
             || member
@@ -257,8 +278,14 @@ pub(crate) fn run_full_probe(
         previous_path = Some(member.path.clone());
         feed_member(&mut hasher, &member);
         for rule in rules.iter_mut() {
+            if Instant::now() >= deadline {
+                return AuditResult::Refused(AuditRefusal::DeadlineExceeded);
+            }
             if let Err(reason) = rule.inspect(&member, &mut sink) {
                 return AuditResult::Refused(reason);
+            }
+            if Instant::now() >= deadline {
+                return AuditResult::Refused(AuditRefusal::DeadlineExceeded);
             }
         }
     }
@@ -270,14 +297,23 @@ pub(crate) fn run_full_probe(
         return AuditResult::Refused(AuditRefusal::MembershipMismatch);
     }
     for rule in rules.iter_mut() {
+        if Instant::now() >= deadline {
+            return AuditResult::Refused(AuditRefusal::DeadlineExceeded);
+        }
         if let Err(reason) = rule.finish(&mut sink) {
             return AuditResult::Refused(reason);
+        }
+        if Instant::now() >= deadline {
+            return AuditResult::Refused(AuditRefusal::DeadlineExceeded);
         }
     }
     let global_issues = match sink.global.take().expect("global store available").finish() {
         Ok(issues) => issues,
         Err(reason) => return AuditResult::Refused(AuditRefusal::GlobalFacts(reason)),
     };
+    if Instant::now() >= deadline {
+        return AuditResult::Refused(AuditRefusal::DeadlineExceeded);
+    }
     for issue in global_issues {
         let (path, code) = match issue {
             GlobalIssue::DuplicateOwner { namespace, key } => {
@@ -327,7 +363,7 @@ mod tests {
     struct VecStream(Vec<Result<AuditMember, String>>);
 
     impl MemberStream for VecStream {
-        fn next_member(&mut self) -> Result<Option<AuditMember>, String> {
+        fn next_member(&mut self, _deadline: Instant) -> Result<Option<AuditMember>, String> {
             if self.0.is_empty() {
                 Ok(None)
             } else {
@@ -367,7 +403,9 @@ mod tests {
         AuditLimits {
             max_members: 2,
             max_member_bytes: 32,
+            max_path_bytes: 64,
             max_total_bytes: 64,
+            max_wall: Duration::from_secs(2),
             max_issues: 4,
             max_reads: 4,
             max_facts: 4,
