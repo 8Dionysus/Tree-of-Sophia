@@ -387,12 +387,18 @@ def entries_from_registry_manifest(
     return entries, missing
 
 
-def digest_file(path: Path, *, expected_mode: int | None = None) -> FileDigest:
+def digest_file(
+    path: Path,
+    *,
+    expected_mode: int | None = None,
+    expected_owner_uid: int | None = None,
+    require_single_link: bool = False,
+) -> FileDigest:
     """Hash one regular file through an O_NOFOLLOW descriptor.
 
-    When ``expected_mode`` is supplied, check it on the opened descriptor
-    before and after reading so custody verification binds permissions as well
-    as bytes.
+    Requested mode, owner, and link-count constraints are checked on the same
+    opened descriptor before and after reading so custody verification binds
+    the inode whose bytes were hashed.
     """
 
     flags = (
@@ -408,8 +414,19 @@ def digest_file(path: Path, *, expected_mode: int | None = None) -> FileDigest:
         info = os.fstat(fd)
         if not stat.S_ISREG(info.st_mode):
             raise CustodyError(f"payload is not a regular file: {path}")
-        if expected_mode is not None and stat.S_IMODE(info.st_mode) != expected_mode:
-            raise CustodyError(f"payload mode differs from required {expected_mode:o}: {path}")
+        def check_posture(value: os.stat_result, *, after_read: bool) -> None:
+            if not stat.S_ISREG(value.st_mode):
+                raise CustodyError(f"payload is not a regular file: {path}")
+            if expected_mode is not None and stat.S_IMODE(value.st_mode) != expected_mode:
+                raise CustodyError(f"payload mode differs from required {expected_mode:o}: {path}")
+            if expected_owner_uid is not None and value.st_uid != expected_owner_uid:
+                raise CustodyError(f"payload owner differs from required uid {expected_owner_uid}: {path}")
+            if require_single_link and value.st_nlink != 1:
+                raise CustodyError(f"payload must have one hard link: {path}")
+            if after_read and value.st_size != info.st_size:
+                raise CustodyError(f"payload size changed while hashing: {path}")
+
+        check_posture(info, after_read=False)
         size = 0
         sha = hashlib.sha256()
         blob = hashlib.sha1()
@@ -425,16 +442,7 @@ def digest_file(path: Path, *, expected_mode: int | None = None) -> FileDigest:
                 size += len(chunk)
                 sha.update(chunk)
                 blob.update(chunk)
-            if expected_mode is not None:
-                final_info = os.fstat(stream.fileno())
-                if (
-                    not stat.S_ISREG(final_info.st_mode)
-                    or stat.S_IMODE(final_info.st_mode) != expected_mode
-                    or final_info.st_size != info.st_size
-                ):
-                    raise CustodyError(
-                        f"payload mode or size changed while hashing: {path}"
-                    )
+            check_posture(os.fstat(stream.fileno()), after_read=True)
         return FileDigest(size, sha.hexdigest(), blob.hexdigest())
     finally:
         if fd != -1:

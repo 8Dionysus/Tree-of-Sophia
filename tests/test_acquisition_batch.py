@@ -323,6 +323,108 @@ class AcquisitionBatchTests(unittest.TestCase):
             handoff["provenance_delta"]["ref"],
         )
 
+    @unittest.skipUnless(hasattr(os, "link"), "payload hard-link boundary")
+    def test_hardlinked_payload_is_rejected_without_blocking_other_items(self) -> None:
+        fetches, manifest_sha = self._write_manifest(count=2)
+        acquisition.prepare_batch(
+            manifest_path=self.manifest_path,
+            metadata_root=self.metadata,
+            output_root=self.output,
+            expected_manifest_sha256=manifest_sha,
+        )
+        selections = json.loads(self.manifest_path.read_text(encoding="utf-8"))["selection"]
+        first = selections[0]["payload_files"][0]
+        destination = custody.payload_path(
+            self.output / "payload", first["item_root_ref"], first["relative_path"]
+        )
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        outside_alias = self.root / "outside-payload.bin"
+        outside_alias.write_bytes(fetches[first["file_ref"]])
+        outside_alias.chmod(0o444)
+        original = outside_alias.read_bytes()
+        os.link(outside_alias, destination)
+
+        fetch_calls: list[str] = []
+        result = acquisition.acquire_batch(
+            manifest_path=self.manifest_path,
+            metadata_root=self.metadata,
+            output_root=self.output,
+            expected_manifest_sha256=manifest_sha,
+            fetcher=lambda payload: fetch_calls.append(payload["item_ref"])
+            or fetches[payload["file_ref"]],
+            max_attempts=1,
+        )
+
+        self.assertEqual("partially-acquired-not-admitted", result["status"])
+        self.assertEqual([selections[1]["item_ref"]], fetch_calls)
+        self.assertEqual(original, outside_alias.read_bytes())
+        handoff = json.loads((self.output / result["handoff_ref"]).read_text())
+        custody_by_item = {row["item_ref"]: row for row in handoff["payload_custody"]}
+        self.assertEqual("conflict", custody_by_item[selections[0]["item_ref"]]["status"])
+        self.assertEqual("acquired", custody_by_item[selections[1]["item_ref"]]["status"])
+        fixity_rows = acquisition._portable_jsonl_rows(
+            self.output / result["fixity_ref"], label="fixity JSONL"
+        )
+        fixity_by_item = {row["item_ref"]: row for row in fixity_rows}
+        self.assertEqual("missing-or-invalid", fixity_by_item[selections[0]["item_ref"]]["status"])
+        self.assertEqual("verified", fixity_by_item[selections[1]["item_ref"]]["status"])
+        self.assertEqual("incomplete", acquisition.verify_local(output_root=self.output)["status"])
+
+    def test_invalid_payload_path_does_not_block_later_items(self) -> None:
+        fetches, manifest_sha = self._write_manifest(count=2)
+        acquisition.prepare_batch(
+            manifest_path=self.manifest_path,
+            metadata_root=self.metadata,
+            output_root=self.output,
+            expected_manifest_sha256=manifest_sha,
+        )
+        selections = json.loads(self.manifest_path.read_text(encoding="utf-8"))["selection"]
+        first_item_root = self.output / "payload" / Path(
+            *selections[0]["item_root_ref"].split("/")[2:]
+        )
+        first_item_root.parent.mkdir(parents=True, exist_ok=True)
+        outside = self.root / "outside-item-payload"
+        outside.mkdir()
+        first_item_root.symlink_to(outside, target_is_directory=True)
+
+        fetch_calls: list[str] = []
+        result = acquisition.acquire_batch(
+            manifest_path=self.manifest_path,
+            metadata_root=self.metadata,
+            output_root=self.output,
+            expected_manifest_sha256=manifest_sha,
+            fetcher=lambda payload: fetch_calls.append(payload["item_ref"])
+            or fetches[payload["file_ref"]],
+            max_attempts=1,
+        )
+
+        self.assertEqual("partially-acquired-not-admitted", result["status"])
+        self.assertEqual([selections[1]["item_ref"]], fetch_calls)
+        handoff = json.loads((self.output / result["handoff_ref"]).read_text())
+        custody_by_item = {row["item_ref"]: row for row in handoff["payload_custody"]}
+        self.assertEqual("conflict", custody_by_item[selections[0]["item_ref"]]["status"])
+        self.assertEqual("acquired", custody_by_item[selections[1]["item_ref"]]["status"])
+        fixity_rows = acquisition._portable_jsonl_rows(
+            self.output / result["fixity_ref"], label="fixity JSONL"
+        )
+        fixity_by_item = {row["item_ref"]: row for row in fixity_rows}
+        self.assertEqual("missing-or-invalid", fixity_by_item[selections[0]["item_ref"]]["status"])
+        self.assertEqual("verified", fixity_by_item[selections[1]["item_ref"]]["status"])
+        self.assertEqual("incomplete", acquisition.verify_local(output_root=self.output)["status"])
+
+    def test_payload_digest_rejects_unexpected_owner_on_open_descriptor(self) -> None:
+        payload_path = self.root / "payload-owner.bin"
+        payload_path.write_bytes(b"owned payload\n")
+        payload_path.chmod(0o444)
+        actual_owner = payload_path.stat().st_uid
+        with self.assertRaisesRegex(custody.CustodyError, "owner differs"):
+            custody.digest_file(
+                payload_path,
+                expected_mode=0o444,
+                expected_owner_uid=actual_owner + 1,
+                require_single_link=True,
+            )
+
     def test_shared_file_id_keeps_separate_item_custody_and_fixity_rows(self) -> None:
         fetches, manifest_sha = self._write_manifest(count=2, shared_payload=True)
         calls: list[str] = []

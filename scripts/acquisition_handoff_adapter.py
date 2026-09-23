@@ -569,7 +569,9 @@ def _verify_handoff(
     ):
         raise HandoffAdapterError("fixity summary does not bind complete handoff")
     try:
-        fixity_rows = acquisition._journal_rows(fixity_path)
+        fixity_rows = acquisition._portable_jsonl_rows(
+            fixity_path, label="fixity JSONL"
+        )
     except acquisition.AcquisitionBatchError as exc:
         raise HandoffAdapterError(f"fixity JSONL is malformed: {exc}") from exc
     if (
@@ -820,7 +822,9 @@ def adapt_handoff(
             if status not in {"copied", "already_present"}:
                 raise HandoffAdapterError(f"payload custody conflict: {payload['file_ref']}")
             try:
-                acquisition._verify_destination(destination, payload)
+                acquisition._verify_destination(
+                    destination, payload, expected_owner_uid=os.geteuid()
+                )
             except (acquisition.SourceIntegrityError, custody.CustodyError, OSError) as exc:
                 raise HandoffAdapterError(f"candidate payload fixity differs: {payload['file_ref']}") from exc
 

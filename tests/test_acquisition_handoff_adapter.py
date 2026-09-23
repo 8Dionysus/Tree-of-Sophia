@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from pathlib import Path
 import shutil
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
@@ -529,6 +531,16 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
         self.assertEqual(4, len(verified.selected_source_rows))
         self.assertEqual(1, len(verified.payloads))
         self.assertEqual(self.validator_sha256, context["validator_sha256"])
+        actual_uid = os.geteuid()
+        with patch.object(acquisition.os, "geteuid", return_value=actual_uid + 1):
+            portable = adapter.verify_handoff_for_intake(
+                acquisition_root=self.acquisition_root,
+                handoff_ref=result["handoff_ref"],
+                expected_manifest_sha256=manifest_sha,
+                expected_base_revision="a" * 64,
+                repo_root=ROOT,
+            )
+        self.assertEqual(manifest_sha, portable.context.manifest_sha256)
 
     def test_shared_file_across_items_preserves_custody_binding_and_rejects_loss(self) -> None:
         fetches, _manifest_sha, _item_root, _records = self._write_manifest(
@@ -828,7 +840,7 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
         handoff_path.write_bytes(canonical(handoff))
         with self.assertRaisesRegex(
             adapter.HandoffAdapterError,
-            "fixity JSONL is malformed: acquisition journal is malformed at line 1",
+            "fixity JSONL is malformed: fixity JSONL is malformed at line 1",
         ):
             adapter.verify_handoff_for_intake(
                 acquisition_root=self.acquisition_root,

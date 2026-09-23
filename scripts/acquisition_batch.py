@@ -1151,9 +1151,19 @@ def _expected_file_digest(payload: dict[str, Any], body: bytes) -> custody.FileD
     return custody.FileDigest(payload["byte_size"], payload["sha256"], expected_git)
 
 
-def _verify_destination(path: Path, payload: dict[str, Any]) -> custody.FileDigest:
+def _verify_destination(
+    path: Path,
+    payload: dict[str, Any],
+    *,
+    expected_owner_uid: int | None = None,
+) -> custody.FileDigest:
     try:
-        digest = custody.digest_file(path, expected_mode=0o444)
+        digest = custody.digest_file(
+            path,
+            expected_mode=0o444,
+            expected_owner_uid=expected_owner_uid,
+            require_single_link=True,
+        )
     except custody.CustodyError as exc:
         raise SourceIntegrityError(str(exc)) from exc
     if digest.byte_size != payload["byte_size"] or digest.sha256 != payload["sha256"]:
@@ -1199,9 +1209,15 @@ def _append_journal(path: Path, row: dict[str, Any]) -> None:
         raise AcquisitionBatchError(f"cannot append acquisition journal: {path}") from exc
 
 
-def _journal_rows(path: Path) -> list[dict[str, Any]]:
+def _read_jsonl_rows(
+    path: Path,
+    *,
+    label: str,
+    require_current_owner: bool,
+    require_single_link: bool,
+) -> list[dict[str, Any]]:
     if path.is_symlink():
-        raise AcquisitionBatchError(f"acquisition journal may not be a symlink: {path}")
+        raise AcquisitionBatchError(f"{label} may not be a symlink: {path}")
     if not path.exists():
         return []
     rows: list[dict[str, Any]] = []
@@ -1214,15 +1230,15 @@ def _journal_rows(path: Path) -> list[dict[str, Any]]:
             journal_stat = os.fstat(stream.fileno())
             if not stat.S_ISREG(journal_stat.st_mode):
                 raise AcquisitionBatchError(
-                    f"acquisition journal is not a regular file: {path}"
+                    f"{label} is not a regular file: {path}"
                 )
-            if journal_stat.st_uid != os.geteuid():
+            if require_current_owner and journal_stat.st_uid != os.geteuid():
                 raise AcquisitionBatchError(
-                    f"acquisition journal owner differs from current user: {path}"
+                    f"{label} owner differs from current user: {path}"
                 )
-            if journal_stat.st_nlink != 1:
+            if require_single_link and journal_stat.st_nlink != 1:
                 raise AcquisitionBatchError(
-                    f"acquisition journal must have one hard link: {path}"
+                    f"{label} must have one hard link: {path}"
                 )
             for line_number, line in enumerate(stream, 1):
                 if not line.strip():
@@ -1230,15 +1246,35 @@ def _journal_rows(path: Path) -> list[dict[str, Any]]:
                 try:
                     value = json.loads(line, object_pairs_hook=_strict_pairs)
                 except (AcquisitionBatchError, json.JSONDecodeError) as exc:
-                    raise AcquisitionBatchError(f"acquisition journal is malformed at line {line_number}") from exc
+                    raise AcquisitionBatchError(f"{label} is malformed at line {line_number}") from exc
                 if not isinstance(value, dict):
-                    raise AcquisitionBatchError("acquisition journal rows must be objects")
+                    raise AcquisitionBatchError(f"{label} rows must be objects")
                 rows.append(value)
     except OSError as exc:
         if path.is_symlink():
-            raise AcquisitionBatchError(f"acquisition journal may not be a symlink: {path}") from exc
-        raise AcquisitionBatchError(f"cannot read acquisition journal: {path}") from exc
+            raise AcquisitionBatchError(f"{label} may not be a symlink: {path}") from exc
+        raise AcquisitionBatchError(f"cannot read {label}: {path}") from exc
     return rows
+
+
+def _journal_rows(path: Path) -> list[dict[str, Any]]:
+    return _read_jsonl_rows(
+        path,
+        label="acquisition journal",
+        require_current_owner=True,
+        require_single_link=True,
+    )
+
+
+def _portable_jsonl_rows(path: Path, *, label: str) -> list[dict[str, Any]]:
+    """Read immutable handoff JSONL without local-journal owner constraints."""
+
+    return _read_jsonl_rows(
+        path,
+        label=label,
+        require_current_owner=False,
+        require_single_link=False,
+    )
 
 
 def _run_id(receipts_root: Path) -> str:
@@ -1259,9 +1295,6 @@ def _fixity_receipt(
     rows: list[dict[str, Any]] = []
     for item in _payloads(context):
         payload = item.payload
-        destination = custody.payload_path(
-            output / "payload", payload["item_root_ref"], payload["relative_path"]
-        )
         row: dict[str, Any] = {
             "item_ref": item.item_ref,
             "file_ref": item.file_ref,
@@ -1273,7 +1306,12 @@ def _fixity_receipt(
             "expected_sha256": payload["sha256"],
         }
         try:
-            digest = _verify_destination(destination, payload)
+            destination = custody.payload_path(
+                output / "payload", payload["item_root_ref"], payload["relative_path"]
+            )
+            digest = _verify_destination(
+                destination, payload, expected_owner_uid=os.geteuid()
+            )
         except (SourceIntegrityError, custody.CustodyError, OSError) as exc:
             row.update({"status": "missing-or-invalid", "error": str(exc)})
         else:
@@ -1433,9 +1471,6 @@ def _acquire_batch_unlocked(
     payload_rows: list[dict[str, Any]] = []
     for item in _payloads(context):
         payload = item.payload
-        destination = custody.payload_path(
-            output / "payload", payload["item_root_ref"], payload["relative_path"]
-        )
         base_row = {
             "run_id": run_id,
             "batch_id": context.manifest["batch_id"],
@@ -1450,10 +1485,28 @@ def _acquire_batch_unlocked(
             "expected_sha256": payload["sha256"],
         }
         try:
+            destination = custody.payload_path(
+                output / "payload", payload["item_root_ref"], payload["relative_path"]
+            )
+        except custody.CustodyError as exc:
+            row = {
+                **base_row,
+                "attempt": previous_attempts.get(item.custody_key, 0),
+                "status": "conflict",
+                "error": str(exc),
+                "failure_type": type(exc).__name__,
+                "completed_at": utc_now(),
+            }
+            _append_journal(journal_path, row)
+            payload_rows.append(row)
+            continue
+        try:
             if destination.exists() or destination.is_symlink():
                 if destination.is_symlink():
                     raise SourceIntegrityError(f"destination is a symlink: {destination}")
-                _verify_destination(destination, payload)
+                _verify_destination(
+                    destination, payload, expected_owner_uid=os.geteuid()
+                )
                 row = {**base_row, "attempt": previous_attempts.get(item.custody_key, 0), "status": "already_present", "completed_at": utc_now()}
                 _append_journal(journal_path, row)
                 payload_rows.append(row)
@@ -1475,7 +1528,9 @@ def _acquire_batch_unlocked(
                     raise SourceIntegrityError(f"provider bytes differ for {item.file_ref}")
                 expected = _expected_file_digest(payload, body)
                 status = custody.publish_bytes_no_clobber(destination, body, expected)
-                _verify_destination(destination, payload)
+                _verify_destination(
+                    destination, payload, expected_owner_uid=os.geteuid()
+                )
                 completed = {
                     **base_row,
                     "attempt": attempt,
@@ -1566,16 +1621,18 @@ def verify_local(*, output_root: Path | str, repo_root: Path | str = REPO_ROOT) 
     rows: list[dict[str, Any]] = []
     for item in _payloads(context):
         payload = item.payload
-        destination = custody.payload_path(
-            output / "payload", payload["item_root_ref"], payload["relative_path"]
-        )
         row = {
             "item_ref": item.item_ref,
             "file_ref": item.file_ref,
             "destination_ref": item.destination_ref,
         }
         try:
-            digest = _verify_destination(destination, payload)
+            destination = custody.payload_path(
+                output / "payload", payload["item_root_ref"], payload["relative_path"]
+            )
+            digest = _verify_destination(
+                destination, payload, expected_owner_uid=os.geteuid()
+            )
         except (SourceIntegrityError, custody.CustodyError, OSError) as exc:
             row.update({"status": "missing-or-invalid", "error": str(exc)})
         else:
