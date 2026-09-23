@@ -52,19 +52,43 @@ impl LogicalRecordRefV1 {
         })
     }
 
-    pub fn domain(&self) -> &[u8] { &self.domain }
-    pub fn profile_id(&self) -> &[u8] { &self.profile_id }
-    pub fn profile_version(&self) -> &[u8] { &self.profile_version }
-    pub fn subject(&self) -> &[u8] { &self.subject }
-    pub fn revision_token(&self) -> &[u8] { &self.revision_token }
-    pub fn content_sha256(&self) -> Digest256 { self.content_sha256 }
-    pub fn content_length(&self) -> u64 { self.content_length }
+    pub fn domain(&self) -> &[u8] {
+        &self.domain
+    }
+    pub fn profile_id(&self) -> &[u8] {
+        &self.profile_id
+    }
+    pub fn profile_version(&self) -> &[u8] {
+        &self.profile_version
+    }
+    pub fn subject(&self) -> &[u8] {
+        &self.subject
+    }
+    pub fn revision_token(&self) -> &[u8] {
+        &self.revision_token
+    }
+    pub fn content_sha256(&self) -> Digest256 {
+        self.content_sha256
+    }
+    pub fn content_length(&self) -> u64 {
+        self.content_length
+    }
 
     pub fn encode(&self) -> Vec<u8> {
         let mut bytes = Vec::with_capacity(
-            4 + 2 + 2 + self.domain.len() + 2 + self.profile_id.len()
-                + 2 + self.profile_version.len() + 4 + self.subject.len()
-                + 4 + self.revision_token.len() + 32 + 8,
+            4 + 2
+                + 2
+                + self.domain.len()
+                + 2
+                + self.profile_id.len()
+                + 2
+                + self.profile_version.len()
+                + 4
+                + self.subject.len()
+                + 4
+                + self.revision_token.len()
+                + 32
+                + 8,
         );
         bytes.extend_from_slice(MAGIC);
         bytes.extend_from_slice(&VERSION.to_le_bytes());
@@ -81,43 +105,71 @@ impl LogicalRecordRefV1 {
         bytes
     }
 
-    pub fn digest(&self) -> Digest256 { Digest256::of_bytes(&self.encode()) }
+    pub fn digest(&self) -> Digest256 {
+        Digest256::of_bytes(&self.encode())
+    }
 
     pub fn decode(bytes: &[u8]) -> Result<Self> {
         if bytes.len() > MAX_FRAME {
-            return Err(FoundationError::new(Code::BudgetExceeded, "logical reference frame exceeds v1 limit"));
+            return Err(FoundationError::new(
+                Code::BudgetExceeded,
+                "logical reference frame exceeds v1 limit",
+            ));
         }
         let mut cursor = Cursor { bytes, position: 0 };
         if cursor.take(4)? != MAGIC {
-            return Err(FoundationError::new(Code::InvalidFrame, "logical reference magic differs"));
+            return Err(FoundationError::new(
+                Code::InvalidFrame,
+                "logical reference magic differs",
+            ));
         }
         let version = u16::from_le_bytes(cursor.take(2)?.try_into().expect("two bytes"));
         if version != VERSION {
-            return Err(FoundationError::new(Code::UnsupportedFormat, "unknown logical reference version"));
+            return Err(FoundationError::new(
+                Code::UnsupportedFormat,
+                "unknown logical reference version",
+            ));
         }
         let domain = cursor.small_field()?;
         let profile_id = cursor.small_field()?;
         let profile_version = cursor.small_field()?;
         let subject = cursor.large_field()?;
         let revision_token = cursor.large_field()?;
-        let content_sha256 = Digest256::from_bytes(cursor.take(32)?.try_into().expect("digest bytes"));
+        let content_sha256 =
+            Digest256::from_bytes(cursor.take(32)?.try_into().expect("digest bytes"));
         let content_length = u64::from_le_bytes(cursor.take(8)?.try_into().expect("eight bytes"));
         if cursor.position != bytes.len() {
-            return Err(FoundationError::new(Code::InvalidFrame, "trailing logical reference bytes"));
+            return Err(FoundationError::new(
+                Code::InvalidFrame,
+                "trailing logical reference bytes",
+            ));
         }
-        Self::new(domain, profile_id, profile_version, subject, revision_token,
-                  content_sha256, content_length)
+        Self::new(
+            domain,
+            profile_id,
+            profile_version,
+            subject,
+            revision_token,
+            content_sha256,
+            content_length,
+        )
     }
 }
 
 fn check_field(field: &[u8], max: usize) -> Result<()> {
     if field.is_empty() || field.len() > max {
-        return Err(FoundationError::new(Code::InvalidFrame, "logical reference field length is out of range"));
+        return Err(FoundationError::new(
+            Code::InvalidFrame,
+            "logical reference field length is out of range",
+        ));
     }
     Ok(())
 }
 
-struct Cursor<'a> { bytes: &'a [u8], position: usize }
+struct Cursor<'a> {
+    bytes: &'a [u8],
+    position: usize,
+}
 
 impl<'a> Cursor<'a> {
     fn take(&mut self, len: usize) -> Result<&'a [u8]> {
@@ -134,7 +186,10 @@ impl<'a> Cursor<'a> {
     fn small_field(&mut self) -> Result<&'a [u8]> {
         let len = u16::from_le_bytes(self.take(2)?.try_into().expect("two bytes")) as usize;
         if len == 0 || len > MAX_SMALL {
-            return Err(FoundationError::new(Code::InvalidFrame, "logical reference small field length is out of range"));
+            return Err(FoundationError::new(
+                Code::InvalidFrame,
+                "logical reference small field length is out of range",
+            ));
         }
         self.take(len)
     }
@@ -142,7 +197,10 @@ impl<'a> Cursor<'a> {
     fn large_field(&mut self) -> Result<&'a [u8]> {
         let len = u32::from_le_bytes(self.take(4)?.try_into().expect("four bytes")) as usize;
         if len == 0 || len > MAX_LARGE {
-            return Err(FoundationError::new(Code::InvalidFrame, "logical reference large field length is out of range"));
+            return Err(FoundationError::new(
+                Code::InvalidFrame,
+                "logical reference large field length is out of range",
+            ));
         }
         self.take(len)
     }

@@ -592,7 +592,10 @@ impl JsonEmissionProfile {
     pub fn from_profile(profile: &str) -> Result<Self> {
         match profile {
             "tos_source_form_set_published_v1" => Ok(Self::SourceFormSetPublishedV1),
-            _ => Err(FoundationError::new(Code::UnsupportedFormat, "unknown JSON emission profile")),
+            _ => Err(FoundationError::new(
+                Code::UnsupportedFormat,
+                "unknown JSON emission profile",
+            )),
         }
     }
 }
@@ -613,12 +616,18 @@ pub fn emit_json_profile(
     let bytes = match profile {
         JsonEmissionProfile::SourceFormSetPublishedV1 => {
             if value.as_object().is_none() {
-                return Err(FoundationError::new(Code::InvalidJson, "form set must be a JSON object"));
+                return Err(FoundationError::new(
+                    Code::InvalidJson,
+                    "form set must be a JSON object",
+                ));
             }
             write_document(value, limits, WriteStyle::PythonPretty2Lf)?
         }
     };
-    Ok(EncodedJson { sha256: Digest256::of_bytes(&bytes), bytes })
+    Ok(EncodedJson {
+        sha256: Digest256::of_bytes(&bytes),
+        bytes,
+    })
 }
 
 pub fn canonical_digest_v1(
@@ -663,9 +672,15 @@ impl WriteStyle {
     fn sort_keys(self) -> bool {
         matches!(self, Self::PythonCompact | Self::PythonCompactLf)
     }
-    fn python_numbers(self) -> bool { self != Self::PreservedCompact }
-    fn pretty(self) -> bool { self == Self::PythonPretty2Lf }
-    fn newline(self) -> bool { matches!(self, Self::PythonCompactLf | Self::PythonPretty2Lf) }
+    fn python_numbers(self) -> bool {
+        self != Self::PreservedCompact
+    }
+    fn pretty(self) -> bool {
+        self == Self::PythonPretty2Lf
+    }
+    fn newline(self) -> bool {
+        matches!(self, Self::PythonCompactLf | Self::PythonPretty2Lf)
+    }
 }
 
 fn write_document(value: &JsonValue, limits: JsonLimits, style: WriteStyle) -> Result<Vec<u8>> {
@@ -807,11 +822,21 @@ fn write_value(
             emit(output, b"[", limits)?;
             for (index, item) in items.iter().enumerate() {
                 if index != 0 {
-                    emit(output, if style.pretty() { &b",\n"[..] } else { &b","[..] }, limits)?;
+                    emit(
+                        output,
+                        if style.pretty() {
+                            &b",\n"[..]
+                        } else {
+                            &b","[..]
+                        },
+                        limits,
+                    )?;
                 } else if style.pretty() {
                     emit(output, b"\n", limits)?;
                 }
-                if style.pretty() { emit_indent(output, depth + 1, limits)?; }
+                if style.pretty() {
+                    emit_indent(output, depth + 1, limits)?;
+                }
                 write_value(item, output, depth + 1, visits, limits, style)?;
             }
             if style.pretty() && !items.is_empty() {
@@ -849,13 +874,31 @@ fn write_value(
             } else {
                 for (index, (key, item)) in entries.iter().enumerate() {
                     if index != 0 {
-                        emit(output, if style.pretty() { &b",\n"[..] } else { &b","[..] }, limits)?;
+                        emit(
+                            output,
+                            if style.pretty() {
+                                &b",\n"[..]
+                            } else {
+                                &b","[..]
+                            },
+                            limits,
+                        )?;
                     } else if style.pretty() {
                         emit(output, b"\n", limits)?;
                     }
-                    if style.pretty() { emit_indent(output, depth + 1, limits)?; }
+                    if style.pretty() {
+                        emit_indent(output, depth + 1, limits)?;
+                    }
                     write_string(key, output, style.python_numbers(), limits)?;
-                    emit(output, if style.pretty() { &b": "[..] } else { &b":"[..] }, limits)?;
+                    emit(
+                        output,
+                        if style.pretty() {
+                            &b": "[..]
+                        } else {
+                            &b":"[..]
+                        },
+                        limits,
+                    )?;
                     write_value(item, output, depth + 1, visits, limits, style)?;
                 }
             }

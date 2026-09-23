@@ -1,9 +1,9 @@
 use tos_foundation::{
     CanonicalProfile, CodePointSpan, ContractDescriptor, ContractKey, DescriptorRegistry,
-    Digest256, Digest256Hasher, FoundationErrorCode, JsonEmissionProfile, JsonLimits, JsonMode, JsonNumber,
-    JsonNumberKind, JsonString, JsonValue, LogicalRecordRefV1, OperationDescriptor, OperationEffect, RelativePath,
-    UnicodeProfile, python_lower_unicode16_v1, python_strip_unicode16_v1,
-    StableId, canonical_bytes_v1, emit_json_profile, emit_preserved_json, parse_json,
+    Digest256, Digest256Hasher, FoundationErrorCode, JsonEmissionProfile, JsonLimits, JsonMode,
+    JsonNumber, JsonNumberKind, JsonString, JsonValue, LogicalRecordRefV1, OperationDescriptor,
+    OperationEffect, RelativePath, StableId, UnicodeProfile, canonical_bytes_v1, emit_json_profile,
+    emit_preserved_json, parse_json, python_lower_unicode16_v1, python_strip_unicode16_v1,
 };
 
 #[test]
@@ -323,64 +323,123 @@ fn whole_form_set_profile_preserves_order_and_python_layout() {
         "  ]\n",
         "}\n",
     );
-    let encoded = emit_json_profile(parsed.root(), JsonEmissionProfile::SourceFormSetPublishedV1, limits).unwrap();
+    let encoded = emit_json_profile(
+        parsed.root(),
+        JsonEmissionProfile::SourceFormSetPublishedV1,
+        limits,
+    )
+    .unwrap();
     assert_eq!(encoded.bytes, expected.as_bytes());
-    assert_eq!(encoded.sha256.to_hex(), "3fff42c509876255bd080702a4b8b411e3626cbe1cf8cd2474e7d56778f22f00");
+    assert_eq!(
+        encoded.sha256.to_hex(),
+        "3fff42c509876255bd080702a4b8b411e3626cbe1cf8cd2474e7d56778f22f00"
+    );
     let tiny = JsonLimits::new(32, 64, 300_000, 4_300).unwrap();
-    assert_eq!(emit_json_profile(parsed.root(), JsonEmissionProfile::SourceFormSetPublishedV1, tiny).unwrap_err().code,
-               FoundationErrorCode::BudgetExceeded);
-    assert_eq!(JsonEmissionProfile::from_profile("unknown").unwrap_err().code,
-               FoundationErrorCode::UnsupportedFormat);
+    assert_eq!(
+        emit_json_profile(
+            parsed.root(),
+            JsonEmissionProfile::SourceFormSetPublishedV1,
+            tiny
+        )
+        .unwrap_err()
+        .code,
+        FoundationErrorCode::BudgetExceeded
+    );
+    assert_eq!(
+        JsonEmissionProfile::from_profile("unknown")
+            .unwrap_err()
+            .code,
+        FoundationErrorCode::UnsupportedFormat
+    );
 }
 
 #[test]
 fn logical_record_reference_has_exact_bounded_binary_identity() {
     let content = Digest256::from_bytes(std::array::from_fn(|index| index as u8));
-    let identity = LogicalRecordRefV1::new(b"lab", b"p", b"1", &[0xff, b'A'],
-                                           &[b'r', 0], content, 5).unwrap();
+    let identity =
+        LogicalRecordRefV1::new(b"lab", b"p", b"1", &[0xff, b'A'], &[b'r', 0], content, 5).unwrap();
     let expected_hex = concat!(
         "544f534c010003006c616201007001003102000000ff41020000007200",
         "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
         "0500000000000000",
     );
-    let expected = expected_hex.as_bytes().chunks_exact(2).map(|pair| {
-        u8::from_str_radix(std::str::from_utf8(pair).unwrap(), 16).unwrap()
-    }).collect::<Vec<_>>();
+    let expected = expected_hex
+        .as_bytes()
+        .chunks_exact(2)
+        .map(|pair| u8::from_str_radix(std::str::from_utf8(pair).unwrap(), 16).unwrap())
+        .collect::<Vec<_>>();
     let encoded = identity.encode();
     assert_eq!(encoded, expected);
-    assert_eq!(identity.digest().to_hex(), "d7ad3667d125d9bb42bf77374db117ed91c597e786f59d6ab2f12555b04d0197");
+    assert_eq!(
+        identity.digest().to_hex(),
+        "d7ad3667d125d9bb42bf77374db117ed91c597e786f59d6ab2f12555b04d0197"
+    );
     assert_eq!(LogicalRecordRefV1::decode(&encoded).unwrap(), identity);
     assert_eq!(identity.subject(), &[0xff, b'A']);
     for cut in 0..encoded.len() {
-        assert!(LogicalRecordRefV1::decode(&encoded[..cut]).is_err(), "truncation {cut}");
+        assert!(
+            LogicalRecordRefV1::decode(&encoded[..cut]).is_err(),
+            "truncation {cut}"
+        );
     }
     let mut extra = encoded.clone();
     extra.push(0);
-    assert_eq!(LogicalRecordRefV1::decode(&extra).unwrap_err().code, FoundationErrorCode::InvalidFrame);
+    assert_eq!(
+        LogicalRecordRefV1::decode(&extra).unwrap_err().code,
+        FoundationErrorCode::InvalidFrame
+    );
     let mut unknown = encoded.clone();
     unknown[4] = 2;
-    assert_eq!(LogicalRecordRefV1::decode(&unknown).unwrap_err().code, FoundationErrorCode::UnsupportedFormat);
-    assert_eq!(LogicalRecordRefV1::new(b"", b"p", b"1", b"s", b"r", content, 5).unwrap_err().code,
-               FoundationErrorCode::InvalidFrame);
-    assert_eq!(LogicalRecordRefV1::new(&[b'x'; 256], b"p", b"1", b"s", b"r", content, 5).unwrap_err().code,
-               FoundationErrorCode::InvalidFrame);
+    assert_eq!(
+        LogicalRecordRefV1::decode(&unknown).unwrap_err().code,
+        FoundationErrorCode::UnsupportedFormat
+    );
+    assert_eq!(
+        LogicalRecordRefV1::new(b"", b"p", b"1", b"s", b"r", content, 5)
+            .unwrap_err()
+            .code,
+        FoundationErrorCode::InvalidFrame
+    );
+    assert_eq!(
+        LogicalRecordRefV1::new(&[b'x'; 256], b"p", b"1", b"s", b"r", content, 5)
+            .unwrap_err()
+            .code,
+        FoundationErrorCode::InvalidFrame
+    );
 }
 
 #[test]
 fn unicode16_lower_and_strip_are_versioned_and_bounded() {
-    assert_eq!(UnicodeProfile::PythonNativeUnicodeV1.as_str(), "tos-python-native-unicode-v1");
-    assert_eq!(UnicodeProfile::PythonNativeUnicodeV1.ucd_version(), "16.0.0");
-    assert_eq!(UnicodeProfile::from_profile("unknown").unwrap_err().code,
-               FoundationErrorCode::UnsupportedFormat);
+    assert_eq!(
+        UnicodeProfile::PythonNativeUnicodeV1.as_str(),
+        "tos-python-native-unicode-v1"
+    );
+    assert_eq!(
+        UnicodeProfile::PythonNativeUnicodeV1.ucd_version(),
+        "16.0.0"
+    );
+    assert_eq!(
+        UnicodeProfile::from_profile("unknown").unwrap_err().code,
+        FoundationErrorCode::UnsupportedFormat
+    );
     let lower = |input| python_lower_unicode16_v1(input, 256, 256, 1024).unwrap();
     assert_eq!(lower("ΣΟΣ"), "σος");
     assert_eq!(lower("İ"), "i\u{307}");
     assert_eq!(lower("ẞ Straße K 𐐀"), "ß straße k 𐐨");
-    assert_eq!(python_strip_unicode16_v1("\u{85}\u{2003}  ΣΟΣ\u{3000}", 256).unwrap(), "ΣΟΣ");
-    assert_eq!(python_lower_unicode16_v1("İ", 1, 1, 8).unwrap_err().code,
-               FoundationErrorCode::BudgetExceeded);
-    assert_eq!(python_lower_unicode16_v1("İ", 1, 2, 2).unwrap_err().code,
-               FoundationErrorCode::BudgetExceeded);
-    assert_eq!(python_strip_unicode16_v1("ΣΟΣ", 2).unwrap_err().code,
-               FoundationErrorCode::BudgetExceeded);
+    assert_eq!(
+        python_strip_unicode16_v1("\u{85}\u{2003}  ΣΟΣ\u{3000}", 256).unwrap(),
+        "ΣΟΣ"
+    );
+    assert_eq!(
+        python_lower_unicode16_v1("İ", 1, 1, 8).unwrap_err().code,
+        FoundationErrorCode::BudgetExceeded
+    );
+    assert_eq!(
+        python_lower_unicode16_v1("İ", 1, 2, 2).unwrap_err().code,
+        FoundationErrorCode::BudgetExceeded
+    );
+    assert_eq!(
+        python_strip_unicode16_v1("ΣΟΣ", 2).unwrap_err().code,
+        FoundationErrorCode::BudgetExceeded
+    );
 }

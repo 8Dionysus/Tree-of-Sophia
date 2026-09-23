@@ -18,12 +18,17 @@ impl UnicodeProfile {
         }
     }
 
-    pub const fn ucd_version(self) -> &'static str { "16.0.0" }
+    pub const fn ucd_version(self) -> &'static str {
+        "16.0.0"
+    }
 
     pub fn from_profile(profile: &str) -> Result<Self> {
         match profile {
             "tos-python-native-unicode-v1" => Ok(Self::PythonNativeUnicodeV1),
-            _ => Err(FoundationError::new(Code::UnsupportedFormat, "unknown Unicode profile")),
+            _ => Err(FoundationError::new(
+                Code::UnsupportedFormat,
+                "unknown Unicode profile",
+            )),
         }
     }
 }
@@ -63,14 +68,17 @@ pub fn python_lower_unicode16_v1(
         let mapped = if point == 0x3a3 && previous && !following_cased[index] {
             Some("ς")
         } else {
-            LOWER.binary_search_by_key(&point, |(key, _)| *key)
-                .ok().map(|position| LOWER[position].1)
+            LOWER
+                .binary_search_by_key(&point, |(key, _)| *key)
+                .ok()
+                .map(|position| LOWER[position].1)
         };
         let (new_points, new_bytes) = match mapped {
             Some(text) => (text.chars().count(), text.len()),
             None => (1, ch.len_utf8()),
         };
-        output_points = output_points.checked_add(new_points)
+        output_points = output_points
+            .checked_add(new_points)
             .ok_or_else(|| budget_error("Unicode output code-point budget exceeded"))?;
         if output_points > max_output_code_points
             || new_bytes > max_output_bytes.saturating_sub(output.len())
@@ -100,11 +108,17 @@ fn budget_error(detail: &'static str) -> FoundationError {
 }
 
 fn in_ranges(point: u32, ranges: &[(u32, u32)]) -> bool {
-    ranges.binary_search_by(|(start, end)| {
-        if point < *start { std::cmp::Ordering::Greater }
-        else if point > *end { std::cmp::Ordering::Less }
-        else { std::cmp::Ordering::Equal }
-    }).is_ok()
+    ranges
+        .binary_search_by(|(start, end)| {
+            if point < *start {
+                std::cmp::Ordering::Greater
+            } else if point > *end {
+                std::cmp::Ordering::Less
+            } else {
+                std::cmp::Ordering::Equal
+            }
+        })
+        .is_ok()
 }
 
 fn is_python_whitespace(ch: char) -> bool {
