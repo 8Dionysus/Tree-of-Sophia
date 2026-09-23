@@ -2,7 +2,9 @@
 resolver = "3"
 members = [
   "rust/crates/tos-foundation",
+  "rust/crates/tos-source-store",
   "rust/crates/tos-workspace-probe",
+  "tests/conformance/rust",
 ]
 
 [workspace.package]

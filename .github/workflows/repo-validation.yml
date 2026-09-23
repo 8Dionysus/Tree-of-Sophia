@@ -55,6 +55,7 @@ jobs:
             /mechanics/growth-cycle/parts/branch-growth-cycle/scripts/
             /mechanics/growth-cycle/tests/test_source_revisions.py
             /docs/validation/validation_lanes.json
+            /rust/README.md
             /tests/test_validation_lanes.py
             /tests/test_software_ci.py
             /tests/test_corpus_*.py
@@ -192,6 +193,7 @@ jobs:
             /Cargo.lock
             /rust-toolchain.toml
             /rust/
+            /tests/conformance/rust/
             /scripts/validation_lanes.py
             /scripts/verify_rust_workspace_install.py
             /docs/validation/validation_lanes.json
