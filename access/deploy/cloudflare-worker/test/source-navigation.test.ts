@@ -91,6 +91,59 @@ function sharedFileRightsNavigation(rightsBPositive = false): Item {
   };
 }
 
+function sharedWorkRightsNavigation(legacy = false): Item {
+  const fileId = "tos.file.sha256.shared";
+  const itemA = "tos.item.copy.a";
+  const itemB = "tos.item.copy.b";
+  const manifestA = "ToS/source-witnesses/fixture/copy-a/item.manifest.json";
+  const manifestB = "ToS/source-witnesses/fixture/copy-b/item.manifest.json";
+  const rightsA = "ToS/source-witnesses/fixture/copy-a/rights.json";
+  const rightsB = "ToS/source-witnesses/fixture/copy-b/rights.json";
+  const membership = (itemId: string, manifestRef: string, rightsRef: string, basename: string) => ({
+    edge_id: `${itemId}:${fileId}`,
+    from_id: itemId,
+    predicate_id: "has_file",
+    to_id: fileId,
+    edge_kind: "authored_item_manifest",
+    source_refs: [manifestRef],
+    properties: { item_file_contexts: [{
+      manifest_ref: manifestRef,
+      acquisition_event_ref: `tos.event.acquisition.${itemId}`,
+      ...(legacy ? {} : { rights_ref: rightsRef }),
+      payload_entries: [{ relative_path: `payload/${basename}`, original_basename: basename }],
+    }] },
+  });
+  return {
+    authority_boundary: "source-owned fixture navigation",
+    nodes: [
+      { node_id: "work-a", node_kind: "work", source_ref: "work-a.json" },
+      { node_id: "expression-a", node_kind: "expression", source_ref: "expression-a.json" },
+      { node_id: "edition-a", node_kind: "edition", source_ref: "edition-a.json" },
+      { node_id: "work-b", node_kind: "work", source_ref: "work-b.json" },
+      { node_id: "expression-b", node_kind: "expression", source_ref: "expression-b.json" },
+      { node_id: "edition-b", node_kind: "edition", source_ref: "edition-b.json" },
+      { node_id: itemA, node_kind: "item", source_ref: manifestA },
+      { node_id: itemB, node_kind: "item", source_ref: manifestB },
+      { node_id: fileId, node_kind: "file", source_ref: manifestA },
+    ],
+    edges: [
+      { edge_id: "a-work-expression", from_id: "work-a", to_id: "expression-a", predicate_id: "has_expression", edge_kind: "evidence_claim", source_refs: ["claim-a.jsonl"] },
+      { edge_id: "a-expression-edition", from_id: "expression-a", to_id: "edition-a", predicate_id: "embodied_by", edge_kind: "evidence_claim", source_refs: ["claim-a.jsonl"] },
+      { edge_id: "a-edition-item", from_id: "edition-a", to_id: itemA, predicate_id: "exemplified_by", edge_kind: "evidence_claim", source_refs: ["claim-a.jsonl"] },
+      membership(itemA, manifestA, rightsA, "a.bin"),
+      { edge_id: "b-work-expression", from_id: "work-b", to_id: "expression-b", predicate_id: "has_expression", edge_kind: "evidence_claim", source_refs: ["claim-b.jsonl"] },
+      { edge_id: "b-expression-edition", from_id: "expression-b", to_id: "edition-b", predicate_id: "embodied_by", edge_kind: "evidence_claim", source_refs: ["claim-b.jsonl"] },
+      { edge_id: "b-edition-item", from_id: "edition-b", to_id: itemB, predicate_id: "exemplified_by", edge_kind: "evidence_claim", source_refs: ["claim-b.jsonl"] },
+      membership(itemB, manifestB, rightsB, "b.bin"),
+    ],
+    rights: [
+      { rights_id: "rights-work-a", source_ref: "ToS/source-witnesses/fixture/work-a/rights.json", scope_refs: ["work-a"], assessment_status: "licensed", redistribution_posture: "authorized", review_status: "accepted" },
+      { rights_id: "rights-a", source_ref: rightsA, scope_refs: [itemA, fileId], assessment_status: "public_domain_reviewed", redistribution_posture: "authorized", review_status: "accepted" },
+      { rights_id: "rights-b", source_ref: rightsB, scope_refs: [itemB, fileId], assessment_status: "copyright_undetermined", redistribution_posture: "not_authorized", review_status: "not_reviewed" },
+    ],
+  };
+}
+
 test("shared File rights remain attached to exact Item memberships", () => {
   const navigation = sharedFileRightsNavigation();
   const file = sourceDossier(navigation, "tos.file.sha256.shared", 20);
@@ -244,4 +297,46 @@ test("legacy single-manifest edge without context preserves unique Item-scoped r
   const file = sourceDossier(navigation, "tos.file.sha256.shared", 20);
   assert.equal((file.agent_summary as Item).can_conclude_legal_openness, true);
   assert.deepEqual((file.rights as Item[]).map((record) => record.rights_id), ["rights-a"]);
+});
+
+test("Work, Expression, and Edition dossiers expose File rights only through their reachable Item memberships", () => {
+  const navigation = sharedWorkRightsNavigation();
+  for (const ancestorId of ["work-a", "expression-a", "edition-a"]) {
+    const dossier = sourceDossier(navigation, ancestorId, 20);
+    assert.deepEqual((dossier.rights as Item[]).map((record) => record.rights_id), ["rights-a", "rights-work-a"]);
+    assert.equal((dossier.source_refs as string[]).includes("ToS/source-witnesses/fixture/copy-b/rights.json"), false);
+  }
+});
+
+test("ancestor legacy File rights remain only for a unique single-owner source", () => {
+  const navigation = sharedWorkRightsNavigation(true);
+  const edges = navigation.edges as Item[];
+  navigation.edges = edges.filter((edge) => edge.edge_id !== "tos.item.copy.b:tos.file.sha256.shared");
+  navigation.rights = (navigation.rights as Item[]).slice(0, 2);
+  const singleOwner = sourceDossier(navigation, "work-a", 20);
+  assert.deepEqual((singleOwner.rights as Item[]).map((record) => record.rights_id), ["rights-a", "rights-work-a"]);
+
+  navigation.rights = [
+    ...(navigation.rights as Item[]),
+    {
+      ...((navigation.rights as Item[])[1] as Item),
+      rights_id: "rights-a-conflict",
+      source_ref: "ToS/source-witnesses/fixture/copy-a/alternate-rights.json",
+      redistribution_posture: "not_authorized",
+    },
+  ];
+  const ambiguous = sourceDossier(navigation, "work-a", 20);
+  assert.deepEqual((ambiguous.rights as Item[]).map((record) => record.rights_id), ["rights-work-a"]);
+
+  const sharedLegacy = sharedWorkRightsNavigation(true);
+  const shared = sourceDossier(sharedLegacy, "work-a", 20);
+  assert.deepEqual((shared.rights as Item[]).map((record) => record.rights_id), ["rights-work-a"]);
+  assert.equal((shared.source_refs as string[]).includes("ToS/source-witnesses/fixture/copy-b/rights.json"), false);
+});
+
+test("truncated ancestor dossiers do not import rights from an untraversed shared File", () => {
+  const dossier = sourceDossier(sharedWorkRightsNavigation(), "work-a", 4);
+  assert.equal(dossier.truncated, true);
+  assert.deepEqual((dossier.rights as Item[]).map((record) => record.rights_id), ["rights-a", "rights-work-a"]);
+  assert.equal((dossier.source_refs as string[]).includes("ToS/source-witnesses/fixture/copy-b/rights.json"), false);
 });

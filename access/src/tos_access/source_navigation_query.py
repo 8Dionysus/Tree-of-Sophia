@@ -5,6 +5,160 @@ from collections.abc import Callable, Iterable, Mapping
 from typing import Any
 
 
+def _filter_file_scoped_rights(
+    rights: list[dict[str, Any]],
+    component_ids: set[str],
+    nodes_by_id: Mapping[str, dict[str, Any]],
+    component_edges: Iterable[dict[str, Any]],
+    incoming: Mapping[str, Iterable[dict[str, Any]]],
+) -> list[dict[str, Any]]:
+    """Keep File-scoped rights only through memberships in this dossier."""
+
+    file_ids = {
+        node_id for node_id in component_ids
+        if nodes_by_id.get(node_id, {}).get("node_kind") == "file"
+    }
+    if not file_ids:
+        return rights
+    target_bibliographic_ids = {
+        node_id for node_id in component_ids
+        if nodes_by_id.get(node_id, {}).get("node_kind") in {"work", "expression", "edition"}
+    }
+    memberships_by_file: dict[str, list[dict[str, Any]]] = {}
+    for edge in component_edges:
+        if edge.get("edge_kind") != "authored_item_manifest" or edge.get("predicate_id") != "has_file":
+            continue
+        item_id = edge.get("from_id")
+        file_id = edge.get("to_id")
+        if (
+            not isinstance(item_id, str) or item_id not in component_ids
+            or nodes_by_id.get(item_id, {}).get("node_kind") != "item"
+            or not isinstance(file_id, str) or file_id not in file_ids
+        ):
+            continue
+
+        raw_source_refs = edge.get("source_refs")
+        source_refs = {
+            ref for ref in raw_source_refs
+            if isinstance(raw_source_refs, list) and isinstance(ref, str) and ref
+        }
+        valid = (
+            isinstance(raw_source_refs, list)
+            and len(source_refs) == len(raw_source_refs)
+            and bool(source_refs)
+        )
+        properties = edge.get("properties")
+        properties = properties if isinstance(properties, dict) else {}
+        rights_refs: set[str] = set()
+        legacy = False
+        if "item_file_contexts" not in properties:
+            legacy = True
+            valid = valid and len(source_refs) == 1
+        else:
+            raw_contexts = properties.get("item_file_contexts")
+            context_manifest_refs: set[str] = set()
+            if not isinstance(raw_contexts, list) or not raw_contexts:
+                valid = False
+            else:
+                for context in raw_contexts:
+                    if not isinstance(context, dict):
+                        valid = False
+                        continue
+                    manifest_ref = context.get("manifest_ref")
+                    if (
+                        not isinstance(manifest_ref, str) or not manifest_ref
+                        or manifest_ref not in source_refs or manifest_ref in context_manifest_refs
+                    ):
+                        valid = False
+                    else:
+                        context_manifest_refs.add(manifest_ref)
+                    rights_ref = context.get("rights_ref")
+                    if isinstance(rights_ref, str) and rights_ref:
+                        rights_refs.add(rights_ref)
+                    elif rights_ref is None or rights_ref == "":
+                        legacy = True
+                    else:
+                        valid = False
+                if context_manifest_refs != source_refs:
+                    valid = False
+        if len(rights_refs) > 1 or (rights_refs and legacy):
+            valid = False
+        memberships_by_file.setdefault(file_id, []).append({
+            "item_id": item_id,
+            "rights_refs": rights_refs,
+            "legacy": legacy,
+            "valid": valid,
+        })
+    for memberships in memberships_by_file.values():
+        item_counts: dict[str, int] = {}
+        for membership in memberships:
+            item_counts[membership["item_id"]] = item_counts.get(membership["item_id"], 0) + 1
+        for membership in memberships:
+            if item_counts[membership["item_id"]] > 1:
+                membership["valid"] = False
+
+    def record_scopes(record: dict[str, Any]) -> set[str]:
+        raw_scopes = record.get("scope_refs")
+        if not isinstance(raw_scopes, list):
+            return set()
+        return {ref for ref in raw_scopes if isinstance(ref, str) and ref}
+
+    def legacy_source_is_unique(item_id: str, file_id: str, source_ref: Any) -> bool:
+        owner_edges = [
+            edge for edge in incoming.get(file_id, [])
+            if edge.get("edge_kind") == "authored_item_manifest"
+            and edge.get("predicate_id") == "has_file"
+        ]
+        if len(owner_edges) != 1 or owner_edges[0].get("from_id") != item_id:
+            return False
+        matching = [
+            record for record in rights
+            if {item_id, file_id}.issubset(record_scopes(record))
+        ]
+        sources = {
+            record.get("source_ref") for record in matching
+            if isinstance(record.get("source_ref"), str) and record.get("source_ref")
+        }
+        return (
+            len(sources) == 1
+            and all(isinstance(record.get("source_ref"), str) and record.get("source_ref") for record in matching)
+            and isinstance(source_ref, str)
+            and source_ref in sources
+        )
+
+    filtered: list[dict[str, Any]] = []
+    for record in rights:
+        scopes = record_scopes(record)
+        file_scopes = scopes & file_ids
+        if not file_scopes or scopes & target_bibliographic_ids:
+            filtered.append(record)
+            continue
+        source_ref = record.get("source_ref")
+        bound_to_every_file = True
+        for file_id in file_scopes:
+            bound_to_file = False
+            for membership in memberships_by_file.get(file_id, []):
+                if not membership["valid"] or file_id not in scopes:
+                    continue
+                if membership["rights_refs"]:
+                    if isinstance(source_ref, str) and source_ref in membership["rights_refs"]:
+                        bound_to_file = True
+                        break
+                elif (
+                    membership["legacy"]
+                    and membership["item_id"] in scopes
+                    and legacy_source_is_unique(membership["item_id"], file_id, source_ref)
+                ):
+                    bound_to_file = True
+                    break
+            if not bound_to_file:
+                bound_to_every_file = False
+                break
+        if bound_to_every_file:
+            filtered.append(record)
+    return filtered
+
+
 def source_descend_query(
     navigation: Mapping[str, Any],
     nodes_by_id: Mapping[str, dict[str, Any]],
@@ -232,6 +386,10 @@ def source_dossier_query(
         if isinstance(record, dict)
         and set(str(item) for item in record.get("scope_refs", []) if isinstance(record.get("scope_refs"), list)) & component_ids
     ]
+    if selected.get("node_kind") != "file":
+        rights = _filter_file_scoped_rights(
+            rights, component_ids, nodes_by_id, component_edges.values(), incoming,
+        )
     decision_scope_ids = {object_id}
     file_membership_complete = False
     file_member_reviewed_positive: dict[str, bool] = {}

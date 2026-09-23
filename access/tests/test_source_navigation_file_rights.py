@@ -86,6 +86,63 @@ def dossier(fixture, object_id: str, *, limit: int = 20):
     )
 
 
+def shared_work_fixture(*, legacy: bool = False):
+    work_a, expression_a, edition_a = "tos.work.a", "tos.expression.a", "tos.edition.a"
+    work_b, expression_b, edition_b = "tos.work.b", "tos.expression.b", "tos.edition.b"
+    nodes = {
+        work_a: {"node_id": work_a, "node_kind": "work"},
+        expression_a: {"node_id": expression_a, "node_kind": "expression"},
+        edition_a: {"node_id": edition_a, "node_kind": "edition"},
+        work_b: {"node_id": work_b, "node_kind": "work"},
+        expression_b: {"node_id": expression_b, "node_kind": "expression"},
+        edition_b: {"node_id": edition_b, "node_kind": "edition"},
+        ITEM_A: {"node_id": ITEM_A, "node_kind": "item"},
+        ITEM_B: {"node_id": ITEM_B, "node_kind": "item"},
+        FILE_ID: {"node_id": FILE_ID, "node_kind": "file"},
+    }
+
+    def membership(item_id: str, manifest_ref: str, rights_ref: str, basename: str):
+        context = {
+            "manifest_ref": manifest_ref,
+            "acquisition_event_ref": f"tos.event.acquisition.{basename}",
+            "payload_entries": [{"relative_path": f"payload/{basename}", "original_basename": basename}],
+        }
+        if not legacy:
+            context["rights_ref"] = rights_ref
+        return {
+            "edge_id": f"{item_id}:{FILE_ID}",
+            "from_id": item_id,
+            "to_id": FILE_ID,
+            "predicate_id": "has_file",
+            "edge_kind": "authored_item_manifest",
+            "source_refs": [manifest_ref],
+            "properties": {"item_file_contexts": [context]},
+        }
+
+    edges = [
+        {"edge_id": "a-work-expression", "from_id": work_a, "to_id": expression_a, "predicate_id": "has_expression", "edge_kind": "evidence_claim", "source_refs": ["claim-a.jsonl"]},
+        {"edge_id": "a-expression-edition", "from_id": expression_a, "to_id": edition_a, "predicate_id": "embodied_by", "edge_kind": "evidence_claim", "source_refs": ["claim-a.jsonl"]},
+        {"edge_id": "a-edition-item", "from_id": edition_a, "to_id": ITEM_A, "predicate_id": "exemplified_by", "edge_kind": "evidence_claim", "source_refs": ["claim-a.jsonl"]},
+        membership(ITEM_A, MANIFEST_A, RIGHTS_A, "a.bin"),
+        {"edge_id": "b-work-expression", "from_id": work_b, "to_id": expression_b, "predicate_id": "has_expression", "edge_kind": "evidence_claim", "source_refs": ["claim-b.jsonl"]},
+        {"edge_id": "b-expression-edition", "from_id": expression_b, "to_id": edition_b, "predicate_id": "embodied_by", "edge_kind": "evidence_claim", "source_refs": ["claim-b.jsonl"]},
+        {"edge_id": "b-edition-item", "from_id": edition_b, "to_id": ITEM_B, "predicate_id": "exemplified_by", "edge_kind": "evidence_claim", "source_refs": ["claim-b.jsonl"]},
+        membership(ITEM_B, MANIFEST_B, RIGHTS_B, "b.bin"),
+    ]
+    incoming = {}
+    semantic_outgoing = {}
+    for edge in edges:
+        incoming.setdefault(edge["to_id"], []).append(edge)
+        if edge["edge_kind"] == "authored_item_manifest" or edge["predicate_id"] in {"has_expression", "embodied_by", "exemplified_by"}:
+            semantic_outgoing.setdefault(edge["from_id"], []).append(edge)
+    rights = [
+        {"rights_id": "rights-work-a", "source_ref": "ToS/source-witnesses/fixture/work-a/rights.json", "scope_refs": [work_a], "assessment_status": "licensed", "redistribution_posture": "authorized", "review_status": "accepted"},
+        {"rights_id": "rights-a", "source_ref": RIGHTS_A, "scope_refs": [ITEM_A, FILE_ID], "assessment_status": "public_domain_reviewed", "redistribution_posture": "authorized", "review_status": "accepted"},
+        {"rights_id": "rights-b", "source_ref": RIGHTS_B, "scope_refs": [ITEM_B, FILE_ID], "assessment_status": "copyright_undetermined", "redistribution_posture": "not_authorized", "review_status": "not_reviewed"},
+    ]
+    return nodes, incoming, semantic_outgoing, rights, (work_a, expression_a, edition_a)
+
+
 class SharedFileRightsTests(unittest.TestCase):
     def test_shared_file_does_not_promote_one_items_rights_to_the_other(self) -> None:
         fixture = navigation_fixture()
@@ -299,6 +356,59 @@ class SharedFileRightsTests(unittest.TestCase):
         self.assertFalse(result["agent_summary"]["can_conclude_legal_openness"])
         self.assertEqual([], result["rights"])
         self.assertEqual("membership_scoped_review_required", result["agent_summary"]["rights_posture"])
+
+    def test_ancestor_dossiers_filter_file_rights_to_reachable_memberships(self) -> None:
+        nodes, incoming, outgoing, rights, ancestors = shared_work_fixture()
+        navigation = {"authority_boundary": "source-owned fixture navigation"}
+        for ancestor_id in ancestors:
+            result = source_dossier_query(
+                navigation, nodes, incoming, outgoing, lambda _ids: rights, ancestor_id, limit=20
+            )
+            result_ids = {record["rights_id"] for record in result["rights"]}
+            self.assertEqual({"rights-work-a", "rights-a"}, result_ids)
+            self.assertNotIn(RIGHTS_B, result["source_refs"])
+
+    def test_ancestor_dossier_preserves_only_unambiguous_legacy_single_owner_rights(self) -> None:
+        nodes, incoming, outgoing, rights, ancestors = shared_work_fixture(legacy=True)
+        navigation = {"authority_boundary": "source-owned fixture navigation"}
+
+        # A legacy single-owner File still resolves through exact Item+File
+        # scope when there is one source rights record.
+        incoming[FILE_ID] = incoming[FILE_ID][:1]
+        outgoing[ITEM_B] = []
+        rights = rights[:2]
+        result = source_dossier_query(
+            navigation, nodes, incoming, outgoing, lambda _ids: rights, ancestors[0], limit=20
+        )
+        self.assertEqual({"rights-work-a", "rights-a"}, {record["rights_id"] for record in result["rights"]})
+
+        # A second legacy source for the same Item+File scope remains
+        # ambiguous even when one of the records is positive.
+        rights.append({
+            **rights[1],
+            "rights_id": "rights-a-conflict",
+            "source_ref": "ToS/source-witnesses/fixture/copy-a/alternate-rights.json",
+            "redistribution_posture": "not_authorized",
+        })
+        conflicted = source_dossier_query(
+            navigation, nodes, incoming, outgoing, lambda _ids: rights, ancestors[0], limit=20
+        )
+        self.assertEqual({"rights-work-a"}, {record["rights_id"] for record in conflicted["rights"]})
+
+    def test_truncated_ancestor_dossier_does_not_import_sibling_file_rights(self) -> None:
+        nodes, incoming, outgoing, rights, ancestors = shared_work_fixture()
+        result = source_dossier_query(
+            {"authority_boundary": "source-owned fixture navigation"},
+            nodes,
+            incoming,
+            outgoing,
+            lambda _ids: rights,
+            ancestors[0],
+            limit=4,
+        )
+        self.assertTrue(result["truncated"])
+        self.assertEqual({"rights-work-a", "rights-a"}, {record["rights_id"] for record in result["rights"]})
+        self.assertNotIn(RIGHTS_B, result["source_refs"])
 
 
 if __name__ == "__main__":
