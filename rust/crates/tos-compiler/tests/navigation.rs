@@ -480,6 +480,10 @@ fn selection_is_atomic_and_requires_exact_previous_pointer() {
     let mut sibling = verified.fork_reader().unwrap();
     assert!(sibling.open_vm_steps() > 0);
     assert!(sibling.open_vm_steps() < 1_000_000);
+    assert!(verified.fork_reader_with_vm_budget(1).is_err());
+    assert!(verified.fork_reader_with_vm_budget(1_000_001).is_err());
+    let bounded_sibling = verified.fork_reader_with_vm_budget(100_000).unwrap();
+    assert!(bounded_sibling.open_vm_steps() < 100_000);
     let sibling_visible: u64 = sibling
         .connection_mut()
         .query_row("SELECT count(*) FROM nodes WHERE visible=1", [], |r| {

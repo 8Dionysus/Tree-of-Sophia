@@ -91,14 +91,23 @@ impl VerifiedSelectedModel {
     /// has the same explicit VM budget, while the query adapter installs a
     /// separate per-operation progress cap before each seek.
     pub fn fork_reader(&self) -> Result<Self> {
+        self.fork_reader_with_vm_budget(self.cold_open_vm_steps)
+    }
+    /// Admit a warm reader only within the caller's predeclared SQLite
+    /// startup VM allowance. The cap cannot exceed this selection's cold
+    /// admission cap and applies before any SQLite statement executes.
+    pub fn fork_reader_with_vm_budget(&self, max_vm_steps: u64) -> Result<Self> {
+        if max_vm_steps == 0 || max_vm_steps > self.cold_open_vm_steps {
+            return Err(Error::Budget("warm-reader SQLite VM steps"));
+        }
         self.check_pin()?;
         let pinned = self.pinned.try_clone()?;
-        let (connection, vm_counter) = open_sqlite(&pinned, self.cold_open_vm_steps)?;
+        let (connection, vm_counter) = open_sqlite(&pinned, max_vm_steps)?;
         Ok(Self {
             connection,
             pinned,
             selection: self.selection.clone(),
-            cold_open_vm_steps: self.cold_open_vm_steps,
+            cold_open_vm_steps: max_vm_steps,
             open_vm_steps: vm_counter.load(Ordering::Relaxed),
         })
     }
