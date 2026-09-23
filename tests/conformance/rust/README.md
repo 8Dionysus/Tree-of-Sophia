@@ -34,3 +34,11 @@ checks avoid the production corpus. OPS owns this directory's Cargo manifest,
 workspace registration, lockfile and CI wiring; FND and STO own their APIs.
 The scenario-to-risk map and current validation limits live in the migration
 execution evidence folder.
+
+On Linux, the runner also swaps the root, revisions, and objects pathnames
+after opening a reader. Exact old bytes must still come from opened directory
+capabilities. A symlinked revision component and a FIFO selected object must
+be refused. These are deterministic hostile fixtures; they do not claim to
+exercise every possible concurrent rename interleaving. The Linux FIFO probe
+uses `mkfifo` and a subprocess watchdog so a regression that blocks in `open`
+fails within ten seconds instead of hanging the suite.
