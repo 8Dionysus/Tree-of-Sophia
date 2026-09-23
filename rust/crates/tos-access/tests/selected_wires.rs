@@ -2,6 +2,7 @@
 
 use std::{
     fs,
+    fs::File,
     io::{Cursor, Read, Write},
     net::{TcpListener, TcpStream},
     path::PathBuf,
@@ -15,9 +16,9 @@ use tos_access::{
     mcp::run_io,
 };
 use tos_compiler::{
-    CandidateReceipt, LegacyPartitionedNavigation, Limits, PublicationAuthority,
-    SelectedExpectation, SelectionFence, SourceBinding, VerifiedSelection, compile_navigation,
-    open_selected_model, publish_candidate,
+    CandidateReceipt, ImmutableModelCustody, LegacyPartitionedNavigation, Limits,
+    PublicationAuthority, SelectedExpectation, SelectionFence, SourceBinding, VerifiedSelection,
+    compile_navigation, open_selected_model, publish_candidate,
 };
 use tos_foundation::{JsonLimits, JsonMode, JsonValue, parse_json};
 use tos_query::{
@@ -25,6 +26,16 @@ use tos_query::{
     DisclosureLease, DisclosureScope, PinnedLocalModel, QueryError, QueryErrorCode, RawRecord,
     SourcePin, SqliteReadModel,
 };
+
+struct FixtureCustody;
+impl ImmutableModelCustody for FixtureCustody {
+    fn verify_held(&self, pinned: &File, _: &str, size_bytes: u64) -> tos_compiler::Result<()> {
+        if pinned.metadata()?.len() != size_bytes {
+            return Err(tos_compiler::Error::Invalid("fixture custody size"));
+        }
+        Ok(())
+    }
+}
 
 struct FixtureLease;
 impl DisclosureLease for FixtureLease {
@@ -168,6 +179,7 @@ fn selected(
             model_sha256: &receipt.sqlite_sha256,
             model_size_bytes: receipt.sqlite_size_bytes,
             owner_receipt_id: "fixture-owner-selection",
+            custody: Arc::new(FixtureCustody),
             max_cold_open_bytes: receipt.sqlite_size_bytes,
             max_cold_open_vm_steps: 1_000_000,
         },
