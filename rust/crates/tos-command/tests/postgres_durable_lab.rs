@@ -1599,6 +1599,29 @@ fn selected_generation_binds_complete_current_and_retained_membership() {
             )
             .is_err()
     );
+
+    // A real next commit invalidates the optimistic selected cut. The old
+    // descriptor remains an immutable historical object but cannot be
+    // replayed as the new complete head.
+    let third = lab.prepare(
+        b"generation-third",
+        "generation-third",
+        &[MemberSpec::first("generation-C", b"advancing bytes")],
+    );
+    lab.commit(b"generation-third", &third, 2, 1).unwrap();
+    assert!(matches!(
+        lab.db.select_complete_generation(&candidate),
+        Err(DurableError::Conflict(_))
+    ));
+    assert!(matches!(
+        lab.db.cold_open_selected_generation(
+            &lab.store,
+            &lab.domain,
+            Instant::now() + Duration::from_secs(30),
+            &cancelled,
+        ),
+        Err(DurableError::Conflict(_))
+    ));
 }
 
 #[test]
