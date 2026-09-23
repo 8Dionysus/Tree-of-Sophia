@@ -5,6 +5,7 @@ use crate::{Error, Limits, Result, SourceBinding, file_digest, sqlite_budget};
 use fs2::FileExt;
 use rusqlite::{Connection, OptionalExtension, params};
 use std::{
+    collections::{BTreeMap, BTreeSet},
     fs,
     io::{Read, Seek, SeekFrom, Write},
     os::unix::fs::{MetadataExt, OpenOptionsExt},
@@ -12,7 +13,9 @@ use std::{
 };
 use tos_foundation::{Digest256, Digest256Hasher};
 
-const MAX_COLLECTIONS: usize = 256;
+// A selected descriptor permits up to 4,096 source registrations. A full
+// source family can contribute several independently sealed collections.
+const MAX_COLLECTIONS: usize = 16_384;
 const MAX_NAME_BYTES: usize = 4096;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -89,7 +92,8 @@ impl ExactInputReceipt {
         if self.collections.is_empty() || self.collections.len() > MAX_COLLECTIONS {
             return Err(Error::Invalid("input collection registration count"));
         }
-        for (index, entry) in self.collections.iter().enumerate() {
+        let mut seen = BTreeSet::new();
+        for entry in &self.collections {
             for value in [
                 &entry.source_graph,
                 &entry.collection,
@@ -102,23 +106,11 @@ impl ExactInputReceipt {
             }
             Digest256::from_hex(&entry.expected_root_sha256)
                 .map_err(|_| Error::Invalid("input collection root digest"))?;
-            if self.collections[..index].iter().any(|earlier| {
-                earlier.source_graph == entry.source_graph && earlier.collection == entry.collection
-            }) {
+            if !seen.insert((&entry.source_graph, &entry.collection)) {
                 return Err(Error::Invalid("duplicate input collection registration"));
             }
         }
         Ok(())
-    }
-    fn registered(&self, source_graph: &str, collection: &str) -> bool {
-        self.collections
-            .iter()
-            .any(|entry| entry.source_graph == source_graph && entry.collection == collection)
-    }
-    fn registered_source(&self, source_graph: &str) -> bool {
-        self.collections
-            .iter()
-            .any(|entry| entry.source_graph == source_graph)
     }
 }
 
@@ -200,6 +192,7 @@ pub struct KnowledgeStage<'a> {
     db: Option<Connection>,
     limits: StageLimits,
     receipt: ExactInputReceipt,
+    registrations: BTreeMap<String, BTreeSet<String>>,
     owner: &'a dyn StageOwner,
     isolation: &'a dyn StageIsolation,
     total_rows: u64,
@@ -210,6 +203,12 @@ pub struct KnowledgeStage<'a> {
 }
 
 impl<'a> KnowledgeStage<'a> {
+    fn registered(&self, source_graph: &str, collection: &str) -> bool {
+        self.registrations
+            .get(source_graph)
+            .is_some_and(|collections| collections.contains(collection))
+    }
+
     pub(crate) fn exact_receipt(&self) -> &ExactInputReceipt {
         &self.receipt
     }
@@ -233,6 +232,13 @@ impl<'a> KnowledgeStage<'a> {
     ) -> Result<Self> {
         limits.validate()?;
         receipt.validate()?;
+        let mut registrations: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
+        for entry in &receipt.collections {
+            registrations
+                .entry(entry.source_graph.clone())
+                .or_default()
+                .insert(entry.collection.clone());
+        }
         owner.verify_receipt(&receipt)?;
         let parent = candidate
             .parent()
@@ -285,6 +291,7 @@ impl<'a> KnowledgeStage<'a> {
             db: None,
             limits,
             receipt,
+            registrations,
             owner,
             isolation,
             total_rows: 0,
@@ -395,7 +402,7 @@ impl<'a> KnowledgeStage<'a> {
         result
     }
     fn ingest_input_inner(&mut self, row: InputRow<'_>) -> Result<()> {
-        if !self.receipt.registered(row.source_graph, row.collection) {
+        if !self.registered(row.source_graph, row.collection) {
             return Err(Error::Invalid("unregistered input collection"));
         }
         valid_id(row.id)?;
@@ -422,7 +429,7 @@ impl<'a> KnowledgeStage<'a> {
         result
     }
     fn insert_node_inner(&mut self, row: NodeRow<'_>) -> Result<()> {
-        if !self.receipt.registered_source(row.source_graph) {
+        if !self.registrations.contains_key(row.source_graph) {
             return Err(Error::Invalid("unregistered node source"));
         }
         for value in [row.id, row.kind_id, row.type_id] {
@@ -461,7 +468,7 @@ impl<'a> KnowledgeStage<'a> {
         result
     }
     fn insert_relation_inner(&mut self, row: RelationRow<'_>) -> Result<()> {
-        if !self.receipt.registered_source(row.source_graph) {
+        if !self.registrations.contains_key(row.source_graph) {
             return Err(Error::Invalid("unregistered relation source"));
         }
         for value in [
@@ -510,7 +517,7 @@ impl<'a> KnowledgeStage<'a> {
         collection: &str,
         id: &str,
     ) -> Result<Option<SeekRow>> {
-        if !self.receipt.registered(source_graph, collection) {
+        if !self.registered(source_graph, collection) {
             return Err(Error::Invalid("unregistered input collection"));
         }
         valid_id(id)?;
@@ -543,7 +550,7 @@ impl<'a> KnowledgeStage<'a> {
         after_id: Option<&str>,
         max_rows: usize,
     ) -> Result<ScanPage> {
-        if !self.receipt.registered(source_graph, collection) {
+        if !self.registered(source_graph, collection) {
             return Err(Error::Invalid("unregistered input collection"));
         }
         if let Some(id) = after_id {
@@ -1160,6 +1167,43 @@ mod tests {
                 },
             ],
         }
+    }
+
+    #[test]
+    fn registration_index_accepts_more_than_legacy_collection_ceiling() {
+        let candidate = stage_path("many-collections");
+        let owner = Owner {
+            checks: AtomicUsize::new(0),
+        };
+        let quota = TestQuota {
+            calls: AtomicUsize::new(0),
+            deny: false,
+        };
+        let mut receipt = exact_receipt(RAW_ROOT);
+        for index in 0..300 {
+            receipt.collections.push(InputCollectionReceipt {
+                source_graph: "fixture.graph".into(),
+                collection: format!("extra/{index}"),
+                input_role: "fixture".into(),
+                adapter_profile: "fixture-adapter-v1".into(),
+                expected_count: 0,
+                expected_root_sha256: EMPTY_ROOT.into(),
+            });
+        }
+        let mut stage =
+            KnowledgeStage::create(&candidate, limits(), receipt, &owner, &quota).unwrap();
+        assert!(stage.registered("fixture.graph", "extra/299"));
+        assert!(!stage.registered("fixture.graph", "extra/300"));
+        stage
+            .ingest_input(InputRow {
+                source_graph: "fixture.graph",
+                collection: "extra/299",
+                id: "row.1",
+                payload: b"row",
+            })
+            .unwrap();
+        drop(stage);
+        fs::remove_dir_all(candidate.parent().unwrap()).unwrap();
     }
     fn stage_path(label: &str) -> PathBuf {
         let tick = SystemTime::now()
