@@ -307,6 +307,7 @@ def source_dossier_query(
             if not rights_refs and not (legacy_single_owner and membership["legacy"]):
                 membership_bindings_valid = False
                 continue
+            member_rights = []
             for record in rights:
                 scope_refs = {
                     str(ref) for ref in record.get("scope_refs", [])
@@ -316,8 +317,25 @@ def source_dossier_query(
                     continue
                 if rights_refs and record.get("source_ref") not in rights_refs:
                     continue
-                rights_by_member[item_id].append(record)
-                bound_rights.append(record)
+                member_rights.append(record)
+            if not rights_refs:
+                # A legacy single-owner File has no exact edge-level rights
+                # ref. Preserve it only if its Item+File scope resolves to a
+                # single source rights file; otherwise an any-positive record
+                # could mask a conflicting unbound source record.
+                legacy_sources = {
+                    record.get("source_ref")
+                    for record in member_rights
+                    if isinstance(record.get("source_ref"), str) and record.get("source_ref")
+                }
+                if len(legacy_sources) != 1 or any(
+                    not isinstance(record.get("source_ref"), str) or not record.get("source_ref")
+                    for record in member_rights
+                ):
+                    membership_bindings_valid = False
+                    continue
+            rights_by_member[item_id] = member_rights
+            bound_rights.extend(member_rights)
         decision_rights = sorted(
             {str(record.get("rights_id") or id(record)): record for record in bound_rights}.values(),
             key=lambda record: str(record.get("rights_id") or ""),

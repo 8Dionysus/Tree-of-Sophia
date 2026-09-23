@@ -339,6 +339,16 @@ export function sourceDossier(navigation: Item, objectId: string, limit: number)
         return scopes.has(itemId) && scopes.has(objectId)
           && (membership.rightsRefs.size === 0 || membership.rightsRefs.has(stringValue(record.source_ref)));
       });
+      if (membership.rightsRefs.size === 0) {
+        // Keep the prior single-owner behavior only when Item+File scope
+        // resolves to one legacy rights source. Multiple source files without
+        // an edge-level ref are ambiguous even if one record is positive.
+        const legacySources = new Set(memberRights.map((record) => stringValue(record.source_ref)).filter(Boolean));
+        if (legacySources.size !== 1 || memberRights.some((record) => !stringValue(record.source_ref))) {
+          membershipBindingsValid = false;
+          continue;
+        }
+      }
       rightsByMember.set(itemId, memberRights);
       for (const record of memberRights) boundRights.set(stringValue(record.rights_id) || JSON.stringify(record), record);
       if (memberRights.length === 0) membershipBindingsValid = false;

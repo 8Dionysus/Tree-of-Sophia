@@ -128,6 +128,17 @@ test("legacy single-Item File dossiers remain compatible while shared unbound Fi
   single.edges = (single.edges as Item[]).slice(0, 1).map(withoutRightsRef);
   single.rights = (single.rights as Item[]).slice(0, 1);
   assert.equal((sourceDossier(single, "tos.file.sha256.shared", 20).agent_summary as Item).can_conclude_legal_openness, true);
+  const singleRight = (single.rights as Item[])[0]!;
+  single.rights = [singleRight, {
+    ...singleRight,
+    rights_id: "rights-a-conflict",
+    source_ref: "ToS/source-witnesses/fixture/alternate-rights.json",
+    redistribution_posture: "not_authorized",
+  }];
+  const conflictingLegacy = sourceDossier(single, "tos.file.sha256.shared", 20);
+  assert.equal((conflictingLegacy.agent_summary as Item).can_conclude_legal_openness, false);
+  assert.equal((conflictingLegacy.agent_summary as Item).rights_posture, "membership_scoped_review_required");
+  assert.deepEqual(conflictingLegacy.rights, []);
 
   const sharedLegacy = sharedFileRightsNavigation();
   sharedLegacy.edges = (sharedLegacy.edges as Item[]).map(withoutRightsRef);

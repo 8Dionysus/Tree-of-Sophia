@@ -124,6 +124,34 @@ class SharedFileRightsTests(unittest.TestCase):
         self.assertTrue(result["agent_summary"]["can_conclude_legal_openness"])
         self.assertEqual(["rights-a"], [row["rights_id"] for row in result["rights"]])
 
+    def test_legacy_single_item_file_rejects_conflicting_unbound_rights_sources(self) -> None:
+        fixture = navigation_fixture(legacy=True)
+        navigation, nodes, incoming, outgoing, rights = fixture
+        incoming[FILE_ID] = incoming[FILE_ID][:1]
+        outgoing = {ITEM_A: outgoing[ITEM_A]}
+        nodes.pop(ITEM_B)
+        rights = [
+            rights[0],
+            {
+                **rights[0],
+                "rights_id": "rights-a-conflict",
+                "source_ref": "ToS/source-witnesses/fixture/alternate-rights.json",
+                "redistribution_posture": "not_authorized",
+            },
+        ]
+        result = source_dossier_query(
+            navigation,
+            nodes,
+            incoming,
+            outgoing,
+            lambda _ids: rights,
+            FILE_ID,
+            limit=20,
+        )
+        self.assertFalse(result["agent_summary"]["can_conclude_legal_openness"])
+        self.assertEqual("membership_scoped_review_required", result["agent_summary"]["rights_posture"])
+        self.assertEqual([], result["rights"])
+
     def test_legacy_shared_file_without_rights_refs_fails_closed(self) -> None:
         fixture = navigation_fixture(legacy=True)
         result = dossier(fixture, FILE_ID)
