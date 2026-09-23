@@ -303,13 +303,16 @@ fn layer_maker_configuration(
     owner: &str,
     maker: &JsonValue,
     resources: &[LayerResource<'_>],
+    seen: &mut BTreeSet<(String, String)>,
     report: &mut TextRuleReport,
 ) {
     if let (Some(reference), Some(digest)) = (
         string(maker, "configuration_ref"),
         string(maker, "configuration_digest"),
     ) {
-        layer_bound_resource(owner, reference, digest, resources, report);
+        if seen.insert((reference.into(), digest.into())) {
+            layer_bound_resource(owner, reference, digest, resources, report);
+        }
     } else if string(maker, "configuration_ref").is_none() {
         report
             .unsupported_profiles
@@ -534,10 +537,12 @@ pub fn inspect_source_text_layer_v1(
         layer_bound_resource(id, reference, digest, resources, &mut out);
     }
     let derivation = field(layer, "derivation").unwrap_or(&NULL_JSON);
+    let mut maker_configurations = BTreeSet::new();
     layer_maker_configuration(
         id,
         field(derivation, "maker").unwrap_or(&NULL_JSON),
         resources,
+        &mut maker_configurations,
         &mut out,
     );
     let inputs = rows(derivation, "input_layers");
@@ -662,6 +667,7 @@ pub fn inspect_source_text_layer_v1(
             id,
             field(operation, "responsibility").unwrap_or(&NULL_JSON),
             resources,
+            &mut maker_configurations,
             &mut out,
         );
         if string(operation, "operation") == Some("unicode_normalization") {
