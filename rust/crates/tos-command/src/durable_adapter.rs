@@ -14,7 +14,8 @@ use tos_segment_store::{
 const PROFILE_ID: &[u8] = b"cmd2.lab.embedded-revision";
 const PROFILE_VERSION: &[u8] = b"1";
 const LAB_MAGIC: &[u8; 8] = b"CMD2LAB1";
-const COLD_AUDIT_PROFILE: &[u8] = b"cmd2-private-complete-state-v2:pg16-row-to-json";
+const COLD_AUDIT_PROFILE: &[u8] = b"cmd2-private-complete-state-v3:pg16-row-to-json:fenced-intent";
+const RECEIPT_PROFILE: &[u8] = b"cmd2-receipt-v2:attempt-fence";
 const MAX_MEMBERS: usize = 64;
 const MAX_CUT: u64 = 100_000;
 
@@ -91,6 +92,7 @@ pub struct RegisterShadowAttempt<'a> {
 pub struct CommitShadowAttempt<'a> {
     pub domain: &'a str,
     pub prepare_id: &'a [u8],
+    pub attempt_fence: u64,
     pub receipts: &'a [ByteDurabilityReceipt],
     pub expected_contract_digest: Digest256,
     pub expected_rule_version: u64,
@@ -336,9 +338,10 @@ fn parse_hex(value: String) -> DurableResult<Digest256> {
 
 fn schema_profile_digest() -> Digest256 {
     let mut hasher = Digest256Hasher::new();
-    part(&mut hasher, b"cmd2-coordinator-schema-profile-v2");
+    part(&mut hasher, b"cmd2-coordinator-schema-profile-v3");
     part(&mut hasher, include_bytes!("durable_schema.sql"));
     part(&mut hasher, COLD_AUDIT_PROFILE);
+    part(&mut hasher, RECEIPT_PROFILE);
     hasher.finalize()
 }
 
@@ -429,7 +432,10 @@ impl DurablePgCoordinator {
         Ok(())
     }
 
-    pub fn register_attempt(&mut self, request: &RegisterShadowAttempt<'_>) -> DurableResult<()> {
+    /// Return the durable registration fence that must be bound into the
+    /// synced STO intent. A repeated registration cannot restart an attempt
+    /// that already advanced beyond `registered`.
+    pub fn register_attempt(&mut self, request: &RegisterShadowAttempt<'_>) -> DurableResult<u64> {
         if request.domain.is_empty()
             || request.prepare_id.is_empty()
             || request.command_id.is_empty()
@@ -450,9 +456,9 @@ impl DurablePgCoordinator {
                 &request.delta_digest.to_hex(),
             ],
         )?;
-        if changed == 0 {
+        let attempt_fence = if changed == 0 {
             let row = tx.query_opt(
-                "SELECT command_id,raw_request_digest,delta_digest,state
+                "SELECT command_id,raw_request_digest,delta_digest,state,attempt_fence
                  FROM cmd2_attempt WHERE domain=$1 AND prepare_id=$2",
                 &[&request.domain, &request.prepare_id],
             )?;
@@ -467,9 +473,18 @@ impl DurablePgCoordinator {
             {
                 return Err(DurableError::Conflict("attempt identity collision"));
             }
+            if row.get::<_, String>(3) != "registered" {
+                return Err(DurableError::Refused("registered attempt already advanced"));
+            }
+            as_u64(row.get::<_, i64>(4))?
+        } else {
+            1
+        };
+        if attempt_fence == 0 {
+            return Err(DurableError::Corrupt("registered attempt fence is zero"));
         }
         tx.commit()?;
-        Ok(())
+        Ok(attempt_fence)
     }
 
     /// Attach exact STO handles to a registered private attempt. The shared
@@ -480,16 +495,23 @@ impl DurablePgCoordinator {
         store: &SegmentStore,
         domain: &str,
         prepare_id: &[u8],
+        expected_attempt_fence: u64,
         members: &[DurableShadowMember],
     ) -> DurableResult<()> {
-        if members.is_empty() || members.len() > MAX_MEMBERS {
+        if expected_attempt_fence == 0 || members.is_empty() || members.len() > MAX_MEMBERS {
             return Err(DurableError::Invalid("invalid member count"));
         }
         let receipts: Vec<_> = members
             .iter()
             .map(|member| member.receipt.clone())
             .collect();
-        let _guard = store.verify_and_hold(&receipts, verification_budget(receipts.len()))?;
+        let _guard = store.verify_and_hold_fenced(
+            prepare_id,
+            expected_attempt_fence,
+            0,
+            &receipts,
+            verification_budget(receipts.len()),
+        )?;
         let first = &members[0].receipt;
         let mut slots = std::collections::HashSet::new();
         let mut subjects = std::collections::HashSet::new();
@@ -513,7 +535,7 @@ impl DurablePgCoordinator {
             .start()?;
         lock_audit_fence(&mut tx, domain)?;
         let row = tx.query_one(
-            "SELECT state,delta_digest FROM cmd2_attempt
+            "SELECT state,delta_digest,attempt_fence FROM cmd2_attempt
              WHERE domain=$1 AND prepare_id=$2 FOR UPDATE",
             &[&domain, &prepare_id],
         )?;
@@ -522,6 +544,9 @@ impl DurablePgCoordinator {
             return Err(DurableError::Conflict(
                 "attached delta differs from registration",
             ));
+        }
+        if as_u64(row.get::<_, i64>(2))? != expected_attempt_fence {
+            return Err(DurableError::Conflict("registered attempt fence changed"));
         }
         if state == "ready" {
             let existing = tx.query(
@@ -609,11 +634,17 @@ impl DurablePgCoordinator {
         store: &SegmentStore,
         request: &CommitShadowAttempt<'_>,
     ) -> DurableResult<(DurableCommitReceipt, DurableTiming)> {
-        if request.receipts.is_empty() || request.receipts.len() > MAX_MEMBERS {
+        if request.attempt_fence == 0
+            || request.receipts.is_empty()
+            || request.receipts.len() > MAX_MEMBERS
+        {
             return Err(DurableError::Invalid("invalid receipt count"));
         }
         let verification_start = Instant::now();
-        let guard = store.verify_and_hold(
+        let guard = store.verify_and_hold_fenced(
+            request.prepare_id,
+            request.attempt_fence,
+            0,
             request.receipts,
             verification_budget(request.receipts.len()),
         )?;
@@ -637,9 +668,12 @@ impl DurablePgCoordinator {
         )?;
         let state: String = attempt.get("state");
         let replayed = state == "committed";
-        if !replayed && (state != "ready" || attempt.get::<_, i64>("attempt_fence") != 1) {
+        if as_u64(attempt.get::<_, i64>("attempt_fence"))? != request.attempt_fence {
+            return Err(DurableError::Conflict("attempt fence changed after seal"));
+        }
+        if !replayed && state != "ready" {
             return Err(DurableError::Refused(
-                "attempt is not ready at original fence",
+                "attempt is not ready at registered fence",
             ));
         }
         let member_rows = tx.query(
@@ -791,9 +825,11 @@ impl DurablePgCoordinator {
         let raw_request_digest: String = attempt.get("raw_request_digest");
         let delta_digest: String = attempt.get("delta_digest");
         let mut receipt_hasher = Digest256Hasher::new();
+        part(&mut receipt_hasher, RECEIPT_PROFILE);
         for value in [
             request.domain.as_bytes(),
             request.prepare_id,
+            &request.attempt_fence.to_be_bytes(),
             command_id.as_bytes(),
             &seq.to_be_bytes(),
             raw_request_digest.as_bytes(),
@@ -917,6 +953,18 @@ impl DurablePgCoordinator {
             tx.commit()?;
             return Ok(CancelOutcome::AlreadyCommitted(receipt));
         }
+        let stored_attempt_fence = as_u64(attempt.get::<_, i64>("attempt_fence"))?;
+        let pre_abort_attempt_fence = if state == "aborted" {
+            stored_attempt_fence
+                .checked_sub(1)
+                .filter(|fence| *fence > 0)
+                .ok_or(DurableError::Corrupt("aborted attempt fence invalid"))?
+        } else {
+            if stored_attempt_fence == 0 {
+                return Err(DurableError::Corrupt("registered attempt fence is zero"));
+            }
+            stored_attempt_fence
+        };
         let member_rows = tx.query(
             "SELECT pin_id,pin_fence FROM cmd2_member
              WHERE domain=$1 AND prepare_id=$2",
@@ -956,7 +1004,7 @@ impl DurablePgCoordinator {
         // The durable STO intent discovers that pin by exact prepare ID; the
         // already-committed PostgreSQL attempt fence is the abort authority.
         // No physical lookup or absent receipt alone authorizes abort.
-        let recovered = store.recover_attempt(prepare_id)?;
+        let recovered = store.recover_attempt_fenced(prepare_id, pre_abort_attempt_fence, 0)?;
         let pin_fenced =
             match recovered {
                 Some(AttemptRecovery::Sealed { receipts }) => {
@@ -973,7 +1021,13 @@ impl DurablePgCoordinator {
                         ));
                     }
                     store
-                        .abort_uncommitted(first.pin_id(), prepare_id, first.fence_epoch())
+                        .abort_uncommitted_fenced(
+                            first.pin_id(),
+                            prepare_id,
+                            pre_abort_attempt_fence,
+                            0,
+                            first.fence_epoch(),
+                        )
                         .is_ok()
                 }
                 Some(AttemptRecovery::Aborted { pin_id, .. }) => {
@@ -1103,7 +1157,28 @@ impl DurablePgCoordinator {
         }
         let mut pin_id = [0u8; 16];
         pin_id.copy_from_slice(&pin);
-        let receipts = store.recover_sealed(pin_id)?;
+        let prepare_id: Vec<u8> = row.get("prepare_id");
+        let attempt = self
+            .client
+            .query_opt(
+                "SELECT state,attempt_fence,commit_seq FROM cmd2_attempt
+                 WHERE domain=$1 AND prepare_id=$2",
+                &[&domain, &prepare_id],
+            )?
+            .ok_or(DurableError::Corrupt("historical attempt absent"))?;
+        if attempt.get::<_, String>(0) != "committed"
+            || attempt.get::<_, Option<i64>>(2) != Some(row.get("commit_seq"))
+        {
+            return Err(DurableError::Corrupt("historical attempt not committed"));
+        }
+        let attempt_fence = as_u64(attempt.get::<_, i64>(1))?;
+        let receipts = match store.recover_attempt_fenced(&prepare_id, attempt_fence, 0)? {
+            Some(AttemptRecovery::Sealed { receipts }) => receipts,
+            _ => return Err(DurableError::Corrupt("historical fenced intent not sealed")),
+        };
+        if receipts.iter().any(|receipt| receipt.pin_id() != pin_id) {
+            return Err(DurableError::Corrupt("historical fenced pin differs"));
+        }
         let expected_id: String = row.get("sto_receipt_id");
         let receipt = receipts
             .into_iter()
@@ -1205,7 +1280,7 @@ impl DurablePgCoordinator {
         if log_rows.len() as u64 != head {
             return Err(DurableError::Corrupt("cold cut log has a gap"));
         }
-        let mut pins: HashMap<[u8; 16], Vec<ByteDurabilityReceipt>> = HashMap::new();
+        let mut recovered_pins = 0usize;
         let mut segment_bytes = 0u64;
         let mut historical_members = 0u64;
         let mut latest: HashMap<String, (u64, Digest256)> = HashMap::new();
@@ -1283,6 +1358,31 @@ impl DurablePgCoordinator {
             if history.len() != members.len() || members.is_empty() || members.len() > MAX_MEMBERS {
                 return Err(DurableError::Corrupt("cold cut member count differs"));
             }
+            if recovered_pins >= 10_000 {
+                return Err(DurableError::Refused("cold pin budget exceeded"));
+            }
+            let attempt_fence = as_u64(attempt.get::<_, i64>("attempt_fence"))?;
+            let sealed =
+                match store.recover_attempt_fenced(&receipt.prepare_id, attempt_fence, 0)? {
+                    Some(AttemptRecovery::Sealed { receipts }) => receipts,
+                    _ => return Err(DurableError::Corrupt("cold fenced intent not sealed")),
+                };
+            let first = sealed
+                .first()
+                .ok_or(DurableError::Corrupt("sealed attempt has no frames"))?;
+            if sealed
+                .iter()
+                .any(|candidate| candidate.pin_id() != first.pin_id())
+            {
+                return Err(DurableError::Corrupt("compound fenced pin differs"));
+            }
+            recovered_pins += 1;
+            segment_bytes = segment_bytes
+                .checked_add(first.segment_size())
+                .ok_or(DurableError::Refused("cold byte budget overflow"))?;
+            if segment_bytes > 256 * 1024 * 1024 {
+                return Err(DurableError::Refused("cold byte budget exceeded"));
+            }
             let mut member_hasher = Digest256Hasher::new();
             part(&mut member_hasher, b"cmd2-member-root-v1");
             part(&mut member_hasher, &(members.len() as u64).to_be_bytes());
@@ -1305,29 +1405,14 @@ impl DurablePgCoordinator {
                 }
                 let mut pin_id = [0u8; 16];
                 pin_id.copy_from_slice(&pin);
-                if !pins.contains_key(&pin_id) {
-                    if pins.len() >= 10_000 {
-                        return Err(DurableError::Refused("cold pin budget exceeded"));
-                    }
-                    let receipts = store.recover_sealed(pin_id)?;
-                    let first = receipts
-                        .first()
-                        .ok_or(DurableError::Corrupt("sealed pin has no frames"))?;
-                    segment_bytes = segment_bytes
-                        .checked_add(first.segment_size())
-                        .ok_or(DurableError::Refused("cold byte budget overflow"))?;
-                    if segment_bytes > 256 * 1024 * 1024 {
-                        return Err(DurableError::Refused("cold byte budget exceeded"));
-                    }
-                    pins.insert(pin_id, receipts);
+                if pin_id != first.pin_id() {
+                    return Err(DurableError::Corrupt("cold history fenced pin differs"));
                 }
-                let selected = pins
-                    .get(&pin_id)
-                    .and_then(|receipts| {
-                        receipts.iter().find(|candidate| {
-                            candidate.receipt_id().to_hex()
-                                == historical.get::<_, String>("sto_receipt_id")
-                        })
+                let selected = sealed
+                    .iter()
+                    .find(|candidate| {
+                        candidate.receipt_id().to_hex()
+                            == historical.get::<_, String>("sto_receipt_id")
                     })
                     .ok_or(DurableError::Corrupt("cold committed frame absent"))?;
                 check_history_locator(
@@ -1657,6 +1742,10 @@ fn receipt_from_committed_attempt(
     let prepare_id: Vec<u8> = attempt.get("prepare_id");
     let command_id: String = attempt.get("command_id");
     let commit_seq: i64 = attempt.get("commit_seq");
+    let attempt_fence = as_u64(attempt.get::<_, i64>("attempt_fence"))?;
+    if attempt_fence == 0 {
+        return Err(DurableError::Corrupt("committed attempt fence is zero"));
+    }
     let receipt_digest: String = attempt.get("receipt_digest");
     let row = tx
         .query_opt(
@@ -1715,9 +1804,11 @@ fn receipt_from_committed_attempt(
     let commit_seq_u64 = as_u64(commit_seq)?;
     let members_root_digest = parse_hex(members_root.clone())?;
     let mut receipt_hasher = Digest256Hasher::new();
+    part(&mut receipt_hasher, RECEIPT_PROFILE);
     for value in [
         domain.as_bytes(),
         &prepare_id,
+        &attempt_fence.to_be_bytes(),
         command_id.as_bytes(),
         &commit_seq_u64.to_be_bytes(),
         raw_request_digest.as_bytes(),

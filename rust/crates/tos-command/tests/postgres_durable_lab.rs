@@ -2,8 +2,9 @@
 //! synthetic records in an isolated database/domain and temporary byte store.
 //! Set TOS_CMD_POSTGRES_URL for a dedicated ephemeral PostgreSQL instance.
 
+use std::collections::HashMap;
 use std::fs;
-use std::io::Cursor;
+use std::io::{self, Cursor, Read};
 use std::os::unix::process::ExitStatusExt;
 use std::path::PathBuf;
 use std::process::Command;
@@ -86,6 +87,7 @@ fn unique_domain() -> String {
 fn seal(
     store: &SegmentStore,
     prepare_id: &[u8],
+    attempt_fence: u64,
     records: &[(&str, Vec<u8>)],
 ) -> Vec<tos_segment_store::ByteDurabilityReceipt> {
     let mut readers: Vec<_> = records
@@ -109,7 +111,7 @@ fn seal(
         })
         .collect();
     store
-        .seal_segment(prepare_id, &mut frames)
+        .seal_segment_fenced(prepare_id, attempt_fence, 0, &mut frames)
         .expect("exact private frames sealed")
 }
 
@@ -128,6 +130,56 @@ fn scalar_count(url: &str, table: &str, domain: &str) -> i64 {
     client.query_one(statement, &[&domain]).unwrap().get(0)
 }
 
+fn registered_fence(url: &str, domain: &str, prepare_id: &[u8]) -> u64 {
+    let mut client = Client::connect(url, NoTls).expect("lab PostgreSQL connects");
+    let value: i64 = client
+        .query_one(
+            "SELECT attempt_fence FROM cmd2_attempt WHERE domain=$1 AND prepare_id=$2",
+            &[&domain, &prepare_id],
+        )
+        .expect("durable attempt exists")
+        .get(0);
+    value.try_into().expect("positive attempt fence")
+}
+
+fn copy_store_tree(source: &std::path::Path, target: &std::path::Path) {
+    for entry in fs::read_dir(source).expect("source store directory opens") {
+        let entry = entry.expect("source store entry reads");
+        let destination = target.join(entry.file_name());
+        let kind = entry.file_type().expect("source store entry type reads");
+        if kind.is_dir() {
+            fs::create_dir(&destination).expect("copied store directory created");
+            copy_store_tree(&entry.path(), &destination);
+        } else if kind.is_file() {
+            fs::copy(entry.path(), destination).expect("exact store file copied");
+        } else {
+            panic!("unexpected non-regular store entry");
+        }
+    }
+}
+
+struct PausingReader {
+    cursor: Cursor<Vec<u8>>,
+    entered: mpsc::Sender<()>,
+    release: mpsc::Receiver<()>,
+    paused: bool,
+}
+
+impl Read for PausingReader {
+    fn read(&mut self, buffer: &mut [u8]) -> io::Result<usize> {
+        if !self.paused {
+            self.paused = true;
+            self.entered
+                .send(())
+                .map_err(|_| io::Error::other("seal checkpoint observer gone"))?;
+            self.release
+                .recv_timeout(Duration::from_secs(5))
+                .map_err(|_| io::Error::other("seal checkpoint release timed out"))?;
+        }
+        self.cursor.read(buffer)
+    }
+}
+
 fn contract_digest() -> Digest256 {
     Digest256::of_bytes(b"cmd2.private.shadow.contract.v1")
 }
@@ -138,6 +190,7 @@ struct Lab {
     _root: ScratchRoot,
     domain: String,
     url: String,
+    attempt_fences: HashMap<Vec<u8>, u64>,
 }
 
 impl Lab {
@@ -158,6 +211,7 @@ impl Lab {
             _root: root,
             domain,
             url: url.to_owned(),
+            attempt_fences: HashMap::new(),
         }
     }
 
@@ -204,7 +258,8 @@ impl Lab {
                 exact_bytes: bytes,
             })
             .collect();
-        self.db
+        let attempt_fence = self
+            .db
             .register_attempt(&RegisterShadowAttempt {
                 domain: &self.domain,
                 prepare_id,
@@ -213,7 +268,9 @@ impl Lab {
                 delta_digest: durable_shadow_delta_prepared(&identities),
             })
             .expect("private attempt registered before STO seal");
-        let receipts = seal(&self.store, prepare_id, &records);
+        self.attempt_fences
+            .insert(prepare_id.to_vec(), attempt_fence);
+        let receipts = seal(&self.store, prepare_id, attempt_fence, &records);
         let members: Vec<_> = specs
             .iter()
             .zip(records)
@@ -231,7 +288,13 @@ impl Lab {
             )
             .collect();
         self.db
-            .attach_ready(&self.store, &self.domain, prepare_id, &members)
+            .attach_ready(
+                &self.store,
+                &self.domain,
+                prepare_id,
+                attempt_fence,
+                &members,
+            )
             .expect("exact STO locators attached");
         members
     }
@@ -250,6 +313,10 @@ impl Lab {
         let request = CommitShadowAttempt {
             domain: &self.domain,
             prepare_id,
+            attempt_fence: *self
+                .attempt_fences
+                .get(prepare_id)
+                .expect("registered attempt fence known"),
             receipts: &receipts,
             expected_contract_digest: contract_digest(),
             expected_rule_version: 0,
@@ -504,7 +571,8 @@ fn embedded_revision_and_owner_binding_fail_before_attachment() {
     let Some(url) = database_url() else { return };
     let mut lab = Lab::new(&url);
     let bytes = lab_record_bytes("subject-A", 1, b"private payload");
-    lab.db
+    let attempt_fence = lab
+        .db
         .register_attempt(&RegisterShadowAttempt {
             domain: &lab.domain,
             prepare_id: b"prepare-mismatch",
@@ -522,6 +590,7 @@ fn embedded_revision_and_owner_binding_fail_before_attachment() {
     let receipts = seal(
         &lab.store,
         b"prepare-mismatch",
+        attempt_fence,
         &[("subject-A", bytes.clone())],
     );
     let wrong_revision = DurableShadowMember {
@@ -537,6 +606,7 @@ fn embedded_revision_and_owner_binding_fail_before_attachment() {
             &lab.store,
             &lab.domain,
             b"prepare-mismatch",
+            attempt_fence,
             &[wrong_revision]
         ),
         Err(DurableError::Invalid(_))
@@ -556,10 +626,86 @@ fn embedded_revision_and_owner_binding_fail_before_attachment() {
             &lab.store,
             &lab.domain,
             b"prepare-mismatch",
+            attempt_fence,
             &[wrong_subject]
         ),
         Err(DurableError::Invalid(_))
     ));
+}
+
+#[test]
+fn fenced_attempt_and_slot_mismatch_cannot_attach_or_commit() {
+    let Some(url) = database_url() else { return };
+    let mut lab = Lab::new(&url);
+    let prepare_id = b"prepare-fence-negative";
+    let members = lab.prepare(
+        prepare_id,
+        "fence-negative",
+        &[MemberSpec::first("subject-F", b"fenced exact bytes")],
+    );
+    let fence = lab.attempt_fences[prepare_id.as_slice()];
+    assert!(
+        lab.store
+            .recover_attempt_fenced(prepare_id, fence + 1, 0)
+            .is_err()
+    );
+    assert!(
+        lab.store
+            .recover_attempt_fenced(prepare_id, fence, 1)
+            .is_err()
+    );
+    let receipts = [members[0].receipt.clone()];
+    let budget = VerificationBudget {
+        max_receipts: 1,
+        max_segments: 1,
+        max_total_segment_bytes: 8 * 1024 * 1024,
+    };
+    assert!(
+        lab.store
+            .verify_and_hold_fenced(prepare_id, fence + 1, 0, &receipts, budget)
+            .is_err()
+    );
+    assert!(
+        lab.store
+            .verify_and_hold_fenced(prepare_id, fence, 1, &receipts, budget)
+            .is_err()
+    );
+    assert!(
+        lab.db
+            .attach_ready(&lab.store, &lab.domain, prepare_id, fence + 1, &members)
+            .is_err()
+    );
+    let mut wrong_slot = members.clone();
+    wrong_slot[0].member_slot = 1;
+    assert!(matches!(
+        lab.db
+            .attach_ready(&lab.store, &lab.domain, prepare_id, fence, &wrong_slot),
+        Err(DurableError::Invalid(_))
+    ));
+    assert!(
+        lab.db
+            .commit_shadow(
+                &lab.store,
+                &CommitShadowAttempt {
+                    domain: &lab.domain,
+                    prepare_id,
+                    attempt_fence: fence + 1,
+                    receipts: &receipts,
+                    expected_contract_digest: contract_digest(),
+                    expected_rule_version: 0,
+                    expected_rights_version: 0,
+                    job_id: "private-job",
+                    job_fence: 1,
+                    full_base_seq: 0,
+                },
+            )
+            .is_err()
+    );
+    assert_eq!(lab.count("receipt"), 0);
+    assert_eq!(
+        lab.commit(prepare_id, &members, 0, 1).unwrap().commit_seq,
+        1
+    );
 }
 
 #[test]
@@ -653,6 +799,110 @@ fn registered_cancel_survives_without_attached_pin() {
             .unwrap(),
         AttemptResolution::Aborted
     ));
+}
+
+#[test]
+fn cancel_during_fenced_seal_retries_after_late_pin_completion() {
+    let Some(url) = database_url() else { return };
+    let mut lab = Lab::new(&url);
+    let prepare_id = b"cancel-during-seal";
+    let bytes = lab_record_bytes("late-subject", 1, b"late sealed bytes");
+    let attempt_fence = lab
+        .db
+        .register_attempt(&RegisterShadowAttempt {
+            domain: &lab.domain,
+            prepare_id,
+            command_id: "cancel-during-seal",
+            raw_request_digest: Digest256::of_bytes(b"cancel-during-seal"),
+            delta_digest: durable_shadow_delta_prepared(&[ShadowWriteIdentity {
+                member_slot: 0,
+                subject: "late-subject",
+                expected_predecessor: None,
+                proposed_revision: 1,
+                exact_bytes: &bytes,
+            }]),
+        })
+        .unwrap();
+    let (entered_send, entered_recv) = mpsc::channel();
+    let (release_send, release_recv) = mpsc::channel();
+    let worker_store = lab.store.clone();
+    let worker_bytes = bytes.clone();
+    let sealing = thread::spawn(move || {
+        let mut reader = PausingReader {
+            cursor: Cursor::new(worker_bytes.clone()),
+            entered: entered_send,
+            release: release_recv,
+            paused: false,
+        };
+        let mut frames = [FrameInput {
+            binding: OwnerBinding {
+                profile_id: PROFILE_ID.to_vec(),
+                profile_version: PROFILE_VERSION.to_vec(),
+                subject_key: b"late-subject".to_vec(),
+                member_slot: 0,
+            },
+            declared_size: worker_bytes.len() as u64,
+            declared_sha256: Digest256::of_bytes(&worker_bytes),
+            reader: &mut reader,
+        }];
+        worker_store
+            .seal_segment_fenced(prepare_id, attempt_fence, 0, &mut frames)
+            .expect("late seal completes after DB abort")
+    });
+    entered_recv
+        .recv_timeout(Duration::from_secs(5))
+        .expect("seal reached input read after intent/pin sync");
+    assert!(matches!(
+        lab.store
+            .recover_attempt_fenced(prepare_id, attempt_fence, 0)
+            .unwrap(),
+        Some(AttemptRecovery::Preparing { .. })
+    ));
+    assert!(matches!(
+        lab.db
+            .cancel_attempt(&lab.store, &lab.domain, prepare_id)
+            .unwrap(),
+        CancelOutcome::Cancelled { pin_fenced: false }
+    ));
+    assert!(matches!(
+        lab.db.resolve_attempt(&lab.domain, prepare_id).unwrap(),
+        AttemptResolution::Aborted
+    ));
+    release_send.send(()).unwrap();
+    let receipts = sealing.join().unwrap();
+    assert!(matches!(
+        lab.store
+            .recover_attempt_fenced(prepare_id, attempt_fence, 0)
+            .unwrap(),
+        Some(AttemptRecovery::Sealed { .. })
+    ));
+    let members = [DurableShadowMember {
+        member_slot: 0,
+        subject: "late-subject".to_owned(),
+        expected_predecessor: None,
+        proposed_revision: 1,
+        exact_bytes: bytes,
+        receipt: receipts[0].clone(),
+    }];
+    assert!(
+        lab.db
+            .attach_ready(&lab.store, &lab.domain, prepare_id, attempt_fence, &members)
+            .is_err()
+    );
+    assert!(matches!(
+        lab.db
+            .cancel_attempt(&lab.store, &lab.domain, prepare_id)
+            .unwrap(),
+        CancelOutcome::Cancelled { pin_fenced: true }
+    ));
+    assert!(matches!(
+        lab.store
+            .recover_attempt_fenced(prepare_id, attempt_fence, 0)
+            .unwrap(),
+        Some(AttemptRecovery::Aborted { .. })
+    ));
+    assert_eq!(lab.count("member"), 0);
+    assert_eq!(lab.count("receipt"), 0);
 }
 
 #[test]
@@ -788,6 +1038,87 @@ fn selected_history_obeys_current_rights_after_cold_reopen() {
     ));
 }
 
+#[test]
+fn independent_store_copy_requires_exact_v2_attempt_intents() {
+    let Some(url) = database_url() else { return };
+    let mut lab = Lab::new(&url);
+    let first = lab.prepare(
+        b"copy-prepare-v1",
+        "copy-version-one",
+        &[MemberSpec::first("copy-subject", b"retained original")],
+    );
+    lab.commit(b"copy-prepare-v1", &first, 0, 1).unwrap();
+    let predecessor = Digest256::of_bytes(&first[0].exact_bytes);
+    let second = lab.prepare(
+        b"copy-prepare-v2",
+        "copy-version-two",
+        &[MemberSpec {
+            subject: "copy-subject",
+            revision: 2,
+            predecessor: Some((1, predecessor)),
+            payload: b"selected successor",
+        }],
+    );
+    lab.commit(b"copy-prepare-v2", &second, 1, 1).unwrap();
+
+    let copied_root = ScratchRoot::new();
+    copy_store_tree(&lab._root.0, &copied_root.0);
+    assert_ne!(copied_root.0, lab._root.0);
+    let copied_store = SegmentStore::open_existing(&copied_root.0, limits()).unwrap();
+    let mut cold_db = DurablePgCoordinator::connect(&url).unwrap();
+    for (prepare, revision, expected) in [
+        (b"copy-prepare-v1".as_slice(), 1, &first[0].exact_bytes),
+        (b"copy-prepare-v2".as_slice(), 2, &second[0].exact_bytes),
+    ] {
+        let fence = registered_fence(&url, &lab.domain, prepare);
+        assert!(matches!(
+            copied_store
+                .recover_attempt_fenced(prepare, fence, 0)
+                .unwrap(),
+            Some(AttemptRecovery::Sealed { .. })
+        ));
+        let selected = cold_db
+            .cold_recover_exact(&copied_store, &lab.domain, "copy-subject", revision)
+            .unwrap();
+        let selected_bytes = cold_db
+            .warm_read_selected(&copied_store, &selected, 1024)
+            .unwrap();
+        assert_eq!(selected_bytes.as_slice(), expected.as_slice());
+    }
+    let cut = cold_db.cold_verify_cut(&copied_store, &lab.domain).unwrap();
+    assert_eq!(cut.through_commit_seq(), 2);
+    assert_eq!(cut.historical_members(), 2);
+
+    let incomplete_root = ScratchRoot::new();
+    copy_store_tree(&lab._root.0, &incomplete_root.0);
+    let omitted = incomplete_root
+        .0
+        .join("attempts")
+        .join(Digest256::of_bytes(b"copy-prepare-v1").to_hex());
+    fs::remove_file(&omitted).expect("one v2 intent intentionally omitted from copy");
+    let incomplete_store = SegmentStore::open_existing(&incomplete_root.0, limits()).unwrap();
+    assert!(
+        incomplete_store
+            .recover_attempt_fenced(
+                b"copy-prepare-v1",
+                registered_fence(&url, &lab.domain, b"copy-prepare-v1"),
+                0
+            )
+            .unwrap()
+            .is_none()
+    );
+    assert!(
+        cold_db
+            .cold_recover_exact(&incomplete_store, &lab.domain, "copy-subject", 1)
+            .is_err()
+    );
+    assert!(
+        cold_db
+            .cold_verify_cut(&incomplete_store, &lab.domain)
+            .is_err()
+    );
+}
+
 fn wait_for_pg_row_block(url: &str, worker_pid: i32, blocker_pid: i32) {
     let mut observer = Client::connect(url, NoTls).unwrap();
     let deadline = Instant::now() + Duration::from_secs(5);
@@ -843,6 +1174,7 @@ fn rights_change_after_observed_audit_fence_wait_refuses_commit() {
     let worker_url = url.clone();
     let worker_domain = lab.domain.clone();
     let worker_store = lab.store.clone();
+    let worker_fence = lab.attempt_fences[b"prepare-waiting".as_slice()];
     let worker = thread::spawn(move || {
         let mut db = DurablePgCoordinator::connect(&worker_url).unwrap();
         pid_send.send(db.backend_pid().unwrap()).unwrap();
@@ -851,6 +1183,7 @@ fn rights_change_after_observed_audit_fence_wait_refuses_commit() {
             &CommitShadowAttempt {
                 domain: &worker_domain,
                 prepare_id: b"prepare-waiting",
+                attempt_fence: worker_fence,
                 receipts: &receipts,
                 expected_contract_digest: contract_digest(),
                 expected_rule_version: 0,
@@ -903,9 +1236,13 @@ fn verified_guard_blocks_adversarial_pin_abort_until_release() {
         &[MemberSpec::first("subject-G", b"guarded bytes")],
     );
     let receipts = [members[0].receipt.clone()];
+    let attempt_fence = lab.attempt_fences[b"prepare-guard".as_slice()];
     let guard = lab
         .store
-        .verify_and_hold(
+        .verify_and_hold_fenced(
+            b"prepare-guard",
+            attempt_fence,
+            0,
             &receipts,
             VerificationBudget {
                 max_receipts: 1,
@@ -915,17 +1252,34 @@ fn verified_guard_blocks_adversarial_pin_abort_until_release() {
         )
         .unwrap();
     let pin_id = receipts[0].pin_id();
-    let fence = receipts[0].fence_epoch();
+    let pin_fence = receipts[0].fence_epoch();
     assert!(
         lab.store
-            .abort_uncommitted(pin_id, b"prepare-guard", fence)
+            .abort_uncommitted_fenced(pin_id, b"prepare-guard", attempt_fence, 0, pin_fence)
             .is_err(),
         "exclusive STO abort passed a live same-process shared guard"
     );
     lab.store.verify_receipt(&members[0].receipt).unwrap();
     drop(guard);
+    assert!(
+        lab.store
+            .abort_uncommitted(pin_id, b"prepare-guard", pin_fence)
+            .is_err(),
+        "v1 abort must not bypass a TOSINT2 attempt fence"
+    );
+    assert!(
+        lab.store
+            .abort_uncommitted_fenced(pin_id, b"prepare-guard", attempt_fence + 1, 0, pin_fence)
+            .is_err()
+    );
+    assert!(
+        lab.store
+            .abort_uncommitted_fenced(pin_id, b"prepare-guard", attempt_fence, 1, pin_fence)
+            .is_err()
+    );
+    lab.store.verify_receipt(&members[0].receipt).unwrap();
     lab.store
-        .abort_uncommitted(pin_id, b"prepare-guard", fence)
+        .abort_uncommitted_fenced(pin_id, b"prepare-guard", attempt_fence, 0, pin_fence)
         .expect("abort fences pin after guard release");
     assert!(lab.store.verify_receipt(&members[0].receipt).is_err());
 }
@@ -1259,7 +1613,8 @@ fn export_cold_restore_fixture() {
     // Sealed-before-attach is discoverable only through the synced STO
     // prepare intent. A backup must copy attempts/ with pins/ and segments/.
     let orphan_bytes = lab_record_bytes("restore-unattached", 1, b"orphan forensic bytes");
-    lab.db
+    let orphan_fence = lab
+        .db
         .register_attempt(&RegisterShadowAttempt {
             domain: &lab.domain,
             prepare_id: b"restore-prepare-unattached",
@@ -1277,11 +1632,12 @@ fn export_cold_restore_fixture() {
     seal(
         &lab.store,
         b"restore-prepare-unattached",
+        orphan_fence,
         &[("restore-unattached", orphan_bytes)],
     );
     assert!(matches!(
         lab.store
-            .recover_attempt(b"restore-prepare-unattached")
+            .recover_attempt_fenced(b"restore-prepare-unattached", orphan_fence, 0)
             .unwrap(),
         Some(AttemptRecovery::Sealed { .. })
     ));
@@ -1315,9 +1671,10 @@ fn verify_cold_restored_fixture() {
         b"restore-prepare-compound".as_slice(),
         b"restore-prepare-unattached".as_slice(),
     ] {
+        let fence = registered_fence(&url, &domain, prepare);
         assert!(
             matches!(
-                store.recover_attempt(prepare).unwrap(),
+                store.recover_attempt_fenced(prepare, fence, 0).unwrap(),
                 Some(AttemptRecovery::Sealed { .. })
             ),
             "restored STO root must retain exact durable prepare intent"
@@ -1335,7 +1692,11 @@ fn verify_cold_restored_fixture() {
     ));
     assert!(matches!(
         store
-            .recover_attempt(b"restore-prepare-unattached")
+            .recover_attempt_fenced(
+                b"restore-prepare-unattached",
+                registered_fence(&url, &domain, b"restore-prepare-unattached") - 1,
+                0
+            )
             .unwrap(),
         Some(AttemptRecovery::Aborted { .. })
     ));
@@ -1389,8 +1750,9 @@ fn sigkill_after_seal_ready_and_commit_has_distinct_recovery() {
         assert_eq!(status.signal(), Some(9), "{phase} did not receive SIGKILL");
         let cold_store = SegmentStore::open_existing(&lab._root.0, limits())
             .expect("exact STO instance reopens after killed process");
+        let attempt_fence = registered_fence(&url, &lab.domain, b"child-prepare");
         let pin_id = match cold_store
-            .recover_attempt(b"child-prepare")
+            .recover_attempt_fenced(b"child-prepare", attempt_fence, 0)
             .unwrap()
             .unwrap()
         {
@@ -1424,7 +1786,9 @@ fn sigkill_after_seal_ready_and_commit_has_distinct_recovery() {
                     "unattached sealed pin must be fenced after DB abort decision"
                 );
                 assert!(matches!(
-                    cold_store.recover_attempt(b"child-prepare").unwrap(),
+                    cold_store
+                        .recover_attempt_fenced(b"child-prepare", attempt_fence, 0)
+                        .unwrap(),
                     Some(AttemptRecovery::Aborted { .. })
                 ));
             }
@@ -1477,23 +1841,25 @@ fn cmd2_process_kill_child() {
     let store = SegmentStore::open_existing(&root, limits()).unwrap();
     let mut db = DurablePgCoordinator::connect(&url).unwrap();
     let bytes = lab_record_bytes("child-subject", 1, b"child private bytes");
-    db.register_attempt(&RegisterShadowAttempt {
-        domain: &domain,
-        prepare_id: b"child-prepare",
-        command_id: "child-command",
-        raw_request_digest: Digest256::of_bytes(b"child-command"),
-        delta_digest: durable_shadow_delta_prepared(&[ShadowWriteIdentity {
-            member_slot: 0,
-            subject: "child-subject",
-            expected_predecessor: None,
-            proposed_revision: 1,
-            exact_bytes: &bytes,
-        }]),
-    })
-    .unwrap();
+    let attempt_fence = db
+        .register_attempt(&RegisterShadowAttempt {
+            domain: &domain,
+            prepare_id: b"child-prepare",
+            command_id: "child-command",
+            raw_request_digest: Digest256::of_bytes(b"child-command"),
+            delta_digest: durable_shadow_delta_prepared(&[ShadowWriteIdentity {
+                member_slot: 0,
+                subject: "child-subject",
+                expected_predecessor: None,
+                proposed_revision: 1,
+                exact_bytes: &bytes,
+            }]),
+        })
+        .unwrap();
     let receipts = seal(
         &store,
         b"child-prepare",
+        attempt_fence,
         &[("child-subject", bytes.clone())],
     );
     if phase != "sealed" {
@@ -1505,7 +1871,7 @@ fn cmd2_process_kill_child() {
             exact_bytes: bytes,
             receipt: receipts[0].clone(),
         }];
-        db.attach_ready(&store, &domain, b"child-prepare", &members)
+        db.attach_ready(&store, &domain, b"child-prepare", attempt_fence, &members)
             .unwrap();
         if phase == "committed" {
             db.commit_shadow(
@@ -1513,6 +1879,7 @@ fn cmd2_process_kill_child() {
                 &CommitShadowAttempt {
                     domain: &domain,
                     prepare_id: b"child-prepare",
+                    attempt_fence,
                     receipts: &receipts,
                     expected_contract_digest: contract_digest(),
                     expected_rule_version: 0,
