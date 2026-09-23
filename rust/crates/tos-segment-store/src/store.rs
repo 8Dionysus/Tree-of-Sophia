@@ -2603,8 +2603,33 @@ mod tests {
     fn audited_root_guard_rejects_other_store_and_incomplete_same_id_copy() {
         let root = PrivateRoot::new();
         let store = SegmentStore::initialize_empty(&root.0, b"same-domain", limits()).unwrap();
+        let bytes = b"audited retained bytes".to_vec();
+        let mut reader = Cursor::new(bytes.clone());
+        let receipt = store
+            .seal_segment(
+                b"audited-prepare",
+                &mut [FrameInput {
+                    binding: binding(0),
+                    declared_size: bytes.len() as u64,
+                    declared_sha256: Digest256::of_bytes(&bytes),
+                    reader: &mut reader,
+                }],
+            )
+            .unwrap()
+            .remove(0);
         let guard = store.hold_audit_root().unwrap();
         guard.require_store(&store.clone()).unwrap();
+        assert_eq!(
+            store
+                .abort_uncommitted(
+                    receipt.pin_id(),
+                    receipt.prepare_id(),
+                    receipt.fence_epoch(),
+                )
+                .unwrap_err()
+                .code,
+            Code::PinConflict
+        );
 
         let other_root = PrivateRoot::new();
         let other =
