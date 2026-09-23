@@ -2281,6 +2281,25 @@ mod tests {
             TextRuleState::Unsupported
         );
 
+        let mut combining_edge = base.clone();
+        combining_edge["selector_payload"]["expression"]["selector"]["selector"]["start"] =
+            Value::from(8);
+        assert!(
+            anchor_case(&combining_edge, &target, &config)
+                .unsupported_profiles
+                .iter()
+                .any(|p| p == "non-ascii-selector-boundary")
+        );
+
+        let mut alternatives = base.clone();
+        alternatives["selector_payload"]["expression"] = serde_json::json!({
+            "mode": "alternatives", "alternatives": []
+        });
+        assert_eq!(
+            anchor_case(&alternatives, &target, &config).state,
+            TextRuleState::Unsupported
+        );
+
         let mut context = anchor_context();
         context.schema_checked = false;
         assert_eq!(
