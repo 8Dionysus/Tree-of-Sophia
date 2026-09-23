@@ -391,8 +391,16 @@ pub(crate) fn run_full_probe(
             return AuditResult::Refused(AuditRefusal::DeadlineExceeded);
         }
     }
-    let global_issues = match sink.global.take().expect("global store available").finish() {
+    let global_issues = match sink
+        .global
+        .take()
+        .expect("global store available")
+        .finish(deadline)
+    {
         Ok(issues) => issues,
+        Err(GlobalRefusal::DeadlineExceeded) => {
+            return AuditResult::Refused(AuditRefusal::DeadlineExceeded);
+        }
         Err(reason) => return AuditResult::Refused(AuditRefusal::GlobalFacts(reason)),
     };
     if Instant::now() >= deadline {

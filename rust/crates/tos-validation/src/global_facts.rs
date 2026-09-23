@@ -7,6 +7,7 @@ use std::collections::BinaryHeap;
 use std::fs::{File, OpenOptions};
 use std::io::{BufReader, BufWriter, Read, Write};
 use std::path::{Path, PathBuf};
+use std::time::Instant;
 use tos_foundation::{Digest256, Digest256Hasher};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -56,6 +57,7 @@ pub(crate) enum GlobalIssue {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum GlobalRefusal {
     BudgetExceeded,
+    DeadlineExceeded,
     ScratchUnavailable,
     ScratchCorrupt,
 }
@@ -235,6 +237,8 @@ pub(crate) struct GlobalFactStore {
 struct Run {
     path: PathBuf,
     digest: Digest256,
+    byte_len: u64,
+    fact_count: u64,
 }
 
 fn run_hasher() -> Digest256Hasher {
@@ -243,19 +247,72 @@ fn run_hasher() -> Digest256Hasher {
     hasher
 }
 
-fn read_checked(
-    reader: &mut impl Read,
-    hasher: &mut Digest256Hasher,
-    expected: Digest256,
-    max_string: usize,
-) -> Result<Option<SortFact>, GlobalRefusal> {
-    let fact = SortFact::read_from(reader, max_string)?;
-    if let Some(ref fact) = fact {
-        fact.hash_into(hasher);
-    } else if hasher.clone().finalize() != expected {
-        return Err(GlobalRefusal::ScratchCorrupt);
+struct RunCursor {
+    reader: BufReader<File>,
+    hasher: Digest256Hasher,
+    digest: Digest256,
+    byte_len: u64,
+    fact_count: u64,
+    consumed_bytes: u64,
+    consumed_facts: u64,
+}
+
+impl RunCursor {
+    fn open(run: &Run) -> Result<Self, GlobalRefusal> {
+        let file = File::open(&run.path).map_err(|_| GlobalRefusal::ScratchCorrupt)?;
+        if file
+            .metadata()
+            .map_err(|_| GlobalRefusal::ScratchCorrupt)?
+            .len()
+            != run.byte_len
+        {
+            return Err(GlobalRefusal::ScratchCorrupt);
+        }
+        Ok(Self {
+            reader: BufReader::new(file),
+            hasher: run_hasher(),
+            digest: run.digest,
+            byte_len: run.byte_len,
+            fact_count: run.fact_count,
+            consumed_bytes: 0,
+            consumed_facts: 0,
+        })
     }
-    Ok(fact)
+
+    fn next(&mut self, max_string: usize) -> Result<Option<SortFact>, GlobalRefusal> {
+        if self.consumed_facts == self.fact_count {
+            if self.consumed_bytes != self.byte_len {
+                return Err(GlobalRefusal::ScratchCorrupt);
+            }
+            let mut trailing = [0u8; 1];
+            if self
+                .reader
+                .read(&mut trailing)
+                .map_err(|_| GlobalRefusal::ScratchCorrupt)?
+                != 0
+                || self.hasher.clone().finalize() != self.digest
+            {
+                return Err(GlobalRefusal::ScratchCorrupt);
+            }
+            return Ok(None);
+        }
+        let remaining = self
+            .byte_len
+            .checked_sub(self.consumed_bytes)
+            .ok_or(GlobalRefusal::ScratchCorrupt)?;
+        let mut limited = (&mut self.reader).take(remaining);
+        let fact =
+            SortFact::read_from(&mut limited, max_string)?.ok_or(GlobalRefusal::ScratchCorrupt)?;
+        let size = fact.encoded_len().ok_or(GlobalRefusal::ScratchCorrupt)?;
+        self.consumed_bytes = self
+            .consumed_bytes
+            .checked_add(size)
+            .filter(|total| *total <= self.byte_len)
+            .ok_or(GlobalRefusal::ScratchCorrupt)?;
+        self.consumed_facts += 1;
+        fact.hash_into(&mut self.hasher);
+        Ok(Some(fact))
+    }
 }
 
 impl GlobalFactStore {
@@ -336,6 +393,8 @@ impl GlobalFactStore {
         self.runs.push(Run {
             path,
             digest: Digest256::of_bytes(b""),
+            byte_len: bytes,
+            fact_count: self.memory.len() as u64,
         });
         let mut digest = run_hasher();
         let mut writer = BufWriter::new(file);
@@ -353,43 +412,41 @@ impl GlobalFactStore {
         Ok(())
     }
 
-    pub fn finish(mut self) -> Result<Vec<GlobalIssue>, GlobalRefusal> {
+    pub fn finish(mut self, deadline: Instant) -> Result<Vec<GlobalIssue>, GlobalRefusal> {
+        if Instant::now() >= deadline {
+            return Err(GlobalRefusal::DeadlineExceeded);
+        }
         if self.runs.is_empty() {
             self.memory.sort_unstable();
-            return inspect_sorted(self.memory.iter(), self.budget.max_issues);
+            return inspect_sorted(self.memory.iter(), self.budget.max_issues, deadline);
         }
         self.flush()?;
         let mut readers = Vec::with_capacity(self.runs.len());
         let mut heap = BinaryHeap::new();
-        let mut hashers = Vec::with_capacity(self.runs.len());
         for (index, run) in self.runs.iter().enumerate() {
-            let file = File::open(&run.path).map_err(|_| GlobalRefusal::ScratchCorrupt)?;
-            let mut reader = BufReader::new(file);
-            let mut hasher = run_hasher();
-            if let Some(fact) = read_checked(
-                &mut reader,
-                &mut hasher,
-                run.digest,
-                self.budget.max_memory_bytes,
-            )? {
+            if Instant::now() >= deadline {
+                return Err(GlobalRefusal::DeadlineExceeded);
+            }
+            let mut reader = RunCursor::open(run)?;
+            if let Some(fact) = reader.next(self.budget.max_memory_bytes)? {
                 heap.push(Reverse((fact, index)));
             }
             readers.push(reader);
-            hashers.push(hasher);
         }
         // The merge itself remains bounded: inspect each fact as it appears,
         // retaining only the current key/interval and bounded issues.
         let mut inspector = Inspector::new(self.budget.max_issues);
         while let Some(Reverse((fact, index))) = heap.pop() {
+            if Instant::now() >= deadline {
+                return Err(GlobalRefusal::DeadlineExceeded);
+            }
             inspector.accept(&fact)?;
-            if let Some(next) = read_checked(
-                &mut readers[index],
-                &mut hashers[index],
-                self.runs[index].digest,
-                self.budget.max_memory_bytes,
-            )? {
+            if let Some(next) = readers[index].next(self.budget.max_memory_bytes)? {
                 heap.push(Reverse((next, index)));
             }
+        }
+        if Instant::now() >= deadline {
+            return Err(GlobalRefusal::DeadlineExceeded);
         }
         inspector.finish()
     }
@@ -406,10 +463,17 @@ impl Drop for GlobalFactStore {
 fn inspect_sorted<'a>(
     facts: impl IntoIterator<Item = &'a SortFact>,
     limit: usize,
+    deadline: Instant,
 ) -> Result<Vec<GlobalIssue>, GlobalRefusal> {
     let mut inspector = Inspector::new(limit);
     for fact in facts {
+        if Instant::now() >= deadline {
+            return Err(GlobalRefusal::DeadlineExceeded);
+        }
         inspector.accept(fact)?;
+    }
+    if Instant::now() >= deadline {
+        return Err(GlobalRefusal::DeadlineExceeded);
     }
     inspector.finish()
 }
@@ -505,6 +569,11 @@ impl Inspector {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::time::Duration;
+
+    fn deadline() -> Instant {
+        Instant::now() + Duration::from_secs(10)
+    }
 
     fn budget(memory: usize) -> GlobalBudget {
         GlobalBudget {
@@ -550,7 +619,7 @@ mod tests {
         ] {
             store.push(fact).unwrap();
         }
-        let issues = store.finish().unwrap();
+        let issues = store.finish(deadline()).unwrap();
         assert!(
             issues.iter().any(
                 |issue| matches!(issue, GlobalIssue::DuplicateOwner { key, .. } if key == "a")
@@ -598,7 +667,7 @@ mod tests {
             memory.push(fact.clone()).unwrap();
             spill.push(fact).unwrap();
         }
-        assert_eq!(spill.finish(), memory.finish());
+        assert_eq!(spill.finish(deadline()), memory.finish(deadline()));
         assert_eq!(std::fs::read_dir(&dir).unwrap().count(), 0);
         std::fs::remove_dir(&dir).unwrap();
     }
@@ -644,7 +713,75 @@ mod tests {
             .unwrap();
         bytes[index] = b'X';
         std::fs::write(path, bytes).unwrap();
-        assert_eq!(store.finish(), Err(GlobalRefusal::ScratchCorrupt));
+        assert_eq!(store.finish(deadline()), Err(GlobalRefusal::ScratchCorrupt));
+        assert_eq!(std::fs::read_dir(&dir).unwrap().count(), 0);
+        std::fs::remove_dir(dir).unwrap();
+    }
+
+    #[test]
+    fn appended_valid_facts_refuse_before_processing_them() {
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let dir = std::env::temp_dir().join(format!(
+            "tos-val-facts-append-{}-{nonce}",
+            std::process::id()
+        ));
+        std::fs::create_dir(&dir).unwrap();
+        let mut store = GlobalFactStore::new(budget(80), Some(&dir), "append").unwrap();
+        store
+            .push(GlobalFact::Owner {
+                namespace: "ids".into(),
+                key: "a".into(),
+                source: "original".into(),
+            })
+            .unwrap();
+        store.flush().unwrap();
+        let original_bytes = store.runs[0].byte_len;
+        let extra = SortFact::from_fact(GlobalFact::Owner {
+            namespace: "ids".into(),
+            key: "b".into(),
+            source: "injected".into(),
+        });
+        let mut file = OpenOptions::new()
+            .append(true)
+            .open(&store.runs[0].path)
+            .unwrap();
+        for _ in 0..1024 {
+            extra.write_to(&mut file).unwrap();
+        }
+        file.flush().unwrap();
+        assert!(std::fs::metadata(&store.runs[0].path).unwrap().len() > original_bytes);
+        assert_eq!(store.finish(deadline()), Err(GlobalRefusal::ScratchCorrupt));
+        assert_eq!(std::fs::read_dir(&dir).unwrap().count(), 0);
+        std::fs::remove_dir(dir).unwrap();
+    }
+
+    #[test]
+    fn expired_merge_deadline_refuses_without_leaving_runs() {
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let dir = std::env::temp_dir().join(format!(
+            "tos-val-facts-deadline-{}-{nonce}",
+            std::process::id()
+        ));
+        std::fs::create_dir(&dir).unwrap();
+        let mut store = GlobalFactStore::new(budget(80), Some(&dir), "deadline").unwrap();
+        store
+            .push(GlobalFact::Owner {
+                namespace: "ids".into(),
+                key: "a".into(),
+                source: "original".into(),
+            })
+            .unwrap();
+        store.flush().unwrap();
+        assert_eq!(
+            store.finish(Instant::now()),
+            Err(GlobalRefusal::DeadlineExceeded)
+        );
         assert_eq!(std::fs::read_dir(&dir).unwrap().count(), 0);
         std::fs::remove_dir(dir).unwrap();
     }
