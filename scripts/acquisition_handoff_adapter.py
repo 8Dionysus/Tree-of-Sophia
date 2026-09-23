@@ -553,6 +553,8 @@ def _verify_handoff(
         summary = acquisition._load_json_bytes(summary_path.read_bytes(), label="fixity summary")
     except acquisition.AcquisitionBatchError as exc:
         raise HandoffAdapterError(str(exc)) from exc
+    if summary.get("schema_version") != "tos_acquisition_independent_fixity_v1":
+        raise HandoffAdapterError("fixity summary schema is unsupported")
     expected_payloads = _expected_payloads(context)
     if (
         summary.get("batch_id") != context.manifest["batch_id"]

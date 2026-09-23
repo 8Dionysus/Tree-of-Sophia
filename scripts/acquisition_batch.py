@@ -943,10 +943,17 @@ def _verify_prepared_output(
     actual_source_refs: set[str] = set()
     if source_root.exists() and not source_root.is_symlink():
         for candidate in source_root.rglob("*"):
-            if candidate.is_symlink():
+            info = candidate.lstat()
+            if stat.S_ISLNK(info.st_mode):
                 raise AcquisitionBatchError(f"prepared source contains a symlink: {candidate}")
-            if candidate.is_file():
+            if stat.S_ISDIR(info.st_mode):
+                continue
+            if stat.S_ISREG(info.st_mode):
                 actual_source_refs.add(candidate.relative_to(source_root).as_posix())
+            else:
+                raise AcquisitionBatchError(
+                    f"prepared source contains a special file: {candidate}"
+                )
     if actual_source_refs != expected_source_refs:
         extra = sorted(actual_source_refs - expected_source_refs)
         missing = sorted(expected_source_refs - actual_source_refs)

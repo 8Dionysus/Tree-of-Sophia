@@ -929,6 +929,37 @@ else:
         )
         self.assertEqual(0, result.returncode, result.stderr)
 
+    @unittest.skipUnless(hasattr(os, "mkfifo"), "POSIX FIFO boundary")
+    def test_prepared_source_fifo_is_rejected_before_provider_fetch(self) -> None:
+        fetches, manifest_sha = self._write_manifest(count=1)
+        output = self.root / "source-fifo"
+        acquisition.prepare_batch(
+            manifest_path=self.manifest_path,
+            metadata_root=self.metadata,
+            output_root=output,
+            expected_manifest_sha256=manifest_sha,
+        )
+        item_source = (
+            output
+            / "source/ToS/source-witnesses/works/fixture/expressions/en/"
+            "editions/pinned/items/fixture-0"
+        )
+        os.mkfifo(item_source / "unselected.fifo")
+        fetch_calls: list[str] = []
+        with self.assertRaisesRegex(
+            acquisition.AcquisitionBatchError,
+            "prepared source contains a special file",
+        ):
+            acquisition.acquire_batch(
+                manifest_path=self.manifest_path,
+                metadata_root=self.metadata,
+                output_root=output,
+                expected_manifest_sha256=manifest_sha,
+                fetcher=lambda payload: fetch_calls.append(payload["file_ref"])
+                or fetches[payload["file_ref"]],
+            )
+        self.assertEqual([], fetch_calls)
+
     def test_interrupted_prepare_is_rebuilt_before_acquisition(self) -> None:
         fetches, manifest_sha = self._write_manifest(count=1)
         self.output.mkdir()

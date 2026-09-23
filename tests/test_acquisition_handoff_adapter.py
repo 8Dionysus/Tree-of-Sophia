@@ -751,6 +751,45 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
                 repo_root=ROOT,
             )
 
+    def test_shared_verifier_rejects_unsupported_fixity_summary_schema(self) -> None:
+        fetches, manifest_sha, _item_root, _records = self._write_manifest(
+            base_revision="a" * 64,
+        )
+        result = acquisition.acquire_batch(
+            manifest_path=self.manifest_path,
+            metadata_root=self.metadata,
+            output_root=self.acquisition_root,
+            expected_manifest_sha256=manifest_sha,
+            fetcher=lambda payload: fetches[payload["file_ref"]],
+        )
+        handoff_path = self.acquisition_root / result["handoff_ref"]
+        handoff = json.loads(handoff_path.read_text())
+        summary_path = self.acquisition_root / handoff["independent_fixity"]["summary_ref"]
+        original_summary = json.loads(summary_path.read_text())
+        for schema_version in (None, "tos_acquisition_independent_fixity_v0"):
+            with self.subTest(schema_version=schema_version):
+                summary = dict(original_summary)
+                if schema_version is None:
+                    summary.pop("schema_version", None)
+                else:
+                    summary["schema_version"] = schema_version
+                summary_path.write_bytes(canonical(summary))
+                handoff["independent_fixity"]["summary_sha256"] = hashlib.sha256(
+                    summary_path.read_bytes()
+                ).hexdigest()
+                handoff_path.write_bytes(canonical(handoff))
+                with self.assertRaisesRegex(
+                    adapter.HandoffAdapterError,
+                    "fixity summary schema is unsupported",
+                ):
+                    adapter.verify_handoff_for_intake(
+                        acquisition_root=self.acquisition_root,
+                        handoff_ref=result["handoff_ref"],
+                        expected_manifest_sha256=manifest_sha,
+                        expected_base_revision="a" * 64,
+                        repo_root=ROOT,
+                    )
+
     def test_shared_verifier_rejects_duplicate_json_keys_in_fixity_rows(self) -> None:
         fetches, manifest_sha, _item_root, _records = self._write_manifest(
             base_revision="a" * 64,
