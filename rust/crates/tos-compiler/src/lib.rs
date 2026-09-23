@@ -2,13 +2,16 @@
 //! This crate writes private candidates; admission, rights and selection remain owner routes.
 
 pub mod d1;
+mod knowledge_indexed;
 mod knowledge_registry;
+pub mod knowledge_stage;
 mod legacy;
 mod publication;
 mod safe_open;
 mod selected;
 mod sqlite_budget;
 mod vocabulary;
+pub use knowledge_indexed::{IndexedLimits, IndexedReceipt, materialize_indexed_sources};
 pub use knowledge_registry::{KnowledgeRegistry, ResolvedType};
 pub use legacy::LegacyPartitionedNavigation;
 pub use publication::{PublicationAuthority, PublishedReceipt, SelectionFence, publish_candidate};
