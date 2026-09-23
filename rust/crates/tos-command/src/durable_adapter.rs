@@ -372,9 +372,16 @@ pub struct DurablePgCoordinator {
 
 impl DurablePgCoordinator {
     pub fn connect(url: &str) -> DurableResult<Self> {
-        Ok(Self {
-            client: Client::connect(url, NoTls)?,
-        })
+        let mut client = Client::connect(url, NoTls)?;
+        let version: i32 = client
+            .query_one("SELECT current_setting('server_version_num')::integer", &[])?
+            .get(0);
+        if version / 10_000 != 16 {
+            return Err(DurableError::Refused(
+                "CMD2 audit row profile requires PostgreSQL 16",
+            ));
+        }
+        Ok(Self { client })
     }
 
     pub fn backend_pid(&mut self) -> DurableResult<i32> {
@@ -385,15 +392,6 @@ impl DurablePgCoordinator {
     }
 
     pub fn init_lab_schema(&mut self) -> DurableResult<()> {
-        let version: i32 = self
-            .client
-            .query_one("SELECT current_setting('server_version_num')::integer", &[])?
-            .get(0);
-        if version / 10_000 != 16 {
-            return Err(DurableError::Refused(
-                "CMD2 audit row profile requires PostgreSQL 16",
-            ));
-        }
         self.client
             .batch_execute(include_str!("durable_schema.sql"))?;
         Ok(())
