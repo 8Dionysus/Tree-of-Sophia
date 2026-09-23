@@ -20,6 +20,8 @@ const MAX_RECORD_BYTES: usize = 1_048_576;
 const MAX_SOURCE_RESOURCES: usize = 512;
 const MAX_SOURCE_RESOURCE_BYTES: usize = 32 * 1_048_576;
 const MAX_COMPILED_ROUTES: usize = 256;
+const MAX_GLOBAL_FACTS: u64 = 1_000_000;
+const MAX_GLOBAL_FACT_BYTES: usize = 128 * 1_048_576;
 
 /// One exact verdict returned by a separately bounded schema worker. The
 /// auditor owns worker execution, timeout, process identity and complete
@@ -92,12 +94,30 @@ pub enum RecordObservation {
     Reference {
         from_path: String,
         target_path: String,
+        check: PathReferenceCheck,
+    },
+    RecordIdReference {
+        from_path: String,
+        target_id: String,
+        expected_kind: &'static str,
+    },
+    LinkUriOwner {
+        uri: String,
+        id: String,
+        path: String,
     },
     IdOwner {
         id: String,
+        kind: String,
         path: String,
         version: u64,
         raw_sha256: String,
+    },
+    /// Separate kind-scoped lookup namespace for typed references.
+    IdKindOwner {
+        kind: String,
+        id: String,
+        path: String,
     },
     /// A native packet can reserve the same semantic ID in successive packet
     /// versions; cross-carrier collision checks use this distinct fact.
@@ -112,10 +132,384 @@ pub enum RecordObservation {
     },
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PathReferenceCheck {
+    /// `_validate_source_refs`: non-ToS strings are allowed external locators.
+    RepoExistsIfToS,
+    /// Foundation Link `observation_ref` requires a regular file if ToS-local.
+    FileIfToS,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum IdCarrier {
+    Standalone,
+    NativePacket,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct GlobalIdFact {
+    pub id: String,
+    pub kind: String,
+    pub path: String,
+    pub carrier: IdCarrier,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct LinkUriFact {
+    pub uri: String,
+    pub id: String,
+    pub path: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct TypedIdRefFact {
+    pub target_id: String,
+    pub expected_kind: String,
+    pub from_path: String,
+}
+
+impl RecordObservation {
+    pub(crate) fn into_global_id_fact(self) -> Option<GlobalIdFact> {
+        match self {
+            Self::IdOwner { id, kind, path, .. } => Some(GlobalIdFact {
+                id,
+                kind,
+                path,
+                carrier: IdCarrier::Standalone,
+            }),
+            Self::NativeReservation {
+                id, packet_path, ..
+            } => Some(GlobalIdFact {
+                kind: id.split('.').nth(1).unwrap_or("").to_owned(),
+                id,
+                path: packet_path,
+                carrier: IdCarrier::NativePacket,
+            }),
+            _ => None,
+        }
+    }
+
+    pub(crate) fn into_link_uri_fact(self) -> Option<LinkUriFact> {
+        match self {
+            Self::LinkUriOwner { uri, id, path } => Some(LinkUriFact { uri, id, path }),
+            _ => None,
+        }
+    }
+
+    pub(crate) fn into_typed_id_ref_fact(self) -> Option<TypedIdRefFact> {
+        match self {
+            Self::RecordIdReference {
+                from_path,
+                target_id,
+                expected_kind,
+            } => Some(TypedIdRefFact {
+                target_id,
+                expected_kind: expected_kind.to_owned(),
+                from_path,
+            }),
+            _ => None,
+        }
+    }
+}
+
+/// A pure streaming join over auditor-supplied, externally sorted *complete*
+/// current facts. This cannot establish membership or admission by itself.
+pub(crate) struct RecordGlobalJoin;
+
+impl RecordGlobalJoin {
+    pub fn check_id_collisions(
+        facts: impl IntoIterator<Item = GlobalIdFact>,
+        sink: &mut impl RecordSink,
+    ) -> Result<u64, RecordRuleError> {
+        let mut budget = GlobalFactBudget::default();
+        let mut previous_id = String::new();
+        let mut first_owner: Option<String> = None;
+        let mut native_seen = false;
+        let mut issues = 0;
+        for fact in facts {
+            budget.check(&[&fact.id, &fact.kind, &fact.path])?;
+            if fact.id < previous_id {
+                return Err(unsupported("id_facts_unsorted", &fact.id));
+            }
+            if fact.id != previous_id {
+                previous_id = fact.id.clone();
+                first_owner = None;
+                native_seen = false;
+            }
+            match fact.carrier {
+                IdCarrier::Standalone => {
+                    if first_owner.is_some() || native_seen {
+                        issues += 1;
+                        emit(
+                            sink,
+                            RecordObservation::Issue {
+                                path: fact.path.clone(),
+                                code: if native_seen {
+                                    "native_record_id_collision"
+                                } else {
+                                    "duplicate_record_id"
+                                },
+                            },
+                        )?;
+                    }
+                    if first_owner.is_none() {
+                        first_owner = Some(fact.path);
+                    }
+                }
+                IdCarrier::NativePacket => {
+                    if first_owner.is_some() && !native_seen {
+                        issues += 1;
+                        emit(
+                            sink,
+                            RecordObservation::Issue {
+                                path: fact.path,
+                                code: "native_record_id_collision",
+                            },
+                        )?;
+                    }
+                    native_seen = true;
+                }
+            }
+        }
+        Ok(issues)
+    }
+
+    pub fn check_link_uri_collisions(
+        facts: impl IntoIterator<Item = LinkUriFact>,
+        sink: &mut impl RecordSink,
+    ) -> Result<u64, RecordRuleError> {
+        let mut budget = GlobalFactBudget::default();
+        let mut previous_uri: Option<String> = None;
+        let mut issues = 0;
+        for fact in facts {
+            budget.check(&[&fact.uri, &fact.id, &fact.path])?;
+            if previous_uri
+                .as_ref()
+                .is_some_and(|previous| fact.uri.as_str() < previous.as_str())
+            {
+                return Err(unsupported("link_uri_facts_unsorted", &fact.uri));
+            }
+            if previous_uri
+                .as_ref()
+                .is_some_and(|previous| fact.uri.as_str() == previous.as_str())
+            {
+                issues += 1;
+                emit(
+                    sink,
+                    RecordObservation::Issue {
+                        path: fact.path,
+                        code: "duplicate_link_uri",
+                    },
+                )?;
+            }
+            previous_uri = Some(fact.uri);
+        }
+        Ok(issues)
+    }
+
+    pub fn check_typed_references(
+        owners: impl IntoIterator<Item = GlobalIdFact>,
+        references: impl IntoIterator<Item = TypedIdRefFact>,
+        sink: &mut impl RecordSink,
+    ) -> Result<u64, RecordRuleError> {
+        let mut budget = GlobalFactBudget::default();
+        let mut owners = owners.into_iter();
+        let mut last_owner_id = String::new();
+        let mut current = next_owner(&mut owners, &mut last_owner_id, &mut budget)?;
+        let mut last_ref_id = String::new();
+        let mut issues = 0;
+        for reference in references {
+            budget.check(&[
+                &reference.target_id,
+                &reference.expected_kind,
+                &reference.from_path,
+            ])?;
+            if reference.target_id < last_ref_id {
+                return Err(unsupported(
+                    "typed_ref_facts_unsorted",
+                    &reference.target_id,
+                ));
+            }
+            last_ref_id = reference.target_id.clone();
+            while current
+                .as_ref()
+                .is_some_and(|owner| owner.id < reference.target_id)
+            {
+                current = next_owner(&mut owners, &mut last_owner_id, &mut budget)?;
+            }
+            let code = match current.as_ref() {
+                Some(owner)
+                    if owner.id == reference.target_id
+                        && owner.kind == reference.expected_kind
+                        && owner.carrier == IdCarrier::Standalone =>
+                {
+                    None
+                }
+                Some(owner) if owner.id == reference.target_id => {
+                    Some("record_reference_wrong_kind")
+                }
+                _ => Some("record_reference_missing"),
+            };
+            if let Some(code) = code {
+                issues += 1;
+                emit(
+                    sink,
+                    RecordObservation::Issue {
+                        path: reference.from_path,
+                        code,
+                    },
+                )?;
+            }
+        }
+        while next_owner(&mut owners, &mut last_owner_id, &mut budget)?.is_some() {}
+        Ok(issues)
+    }
+}
+
+#[derive(Default)]
+struct GlobalFactBudget {
+    count: u64,
+    bytes: usize,
+}
+
+impl GlobalFactBudget {
+    fn check(&mut self, fields: &[&str]) -> Result<(), RecordRuleError> {
+        self.count = self.count.checked_add(1).ok_or(RecordRuleError::Budget {
+            code: "global_fact_count",
+        })?;
+        let size = fields
+            .iter()
+            .try_fold(0usize, |sum, field| sum.checked_add(field.len()))
+            .ok_or(RecordRuleError::Budget {
+                code: "global_fact_bytes",
+            })?;
+        self.bytes = self
+            .bytes
+            .checked_add(size)
+            .ok_or(RecordRuleError::Budget {
+                code: "global_fact_bytes",
+            })?;
+        if self.count > MAX_GLOBAL_FACTS || self.bytes > MAX_GLOBAL_FACT_BYTES {
+            return Err(RecordRuleError::Budget {
+                code: "global_fact_budget",
+            });
+        }
+        Ok(())
+    }
+}
+
+fn next_owner(
+    owners: &mut impl Iterator<Item = GlobalIdFact>,
+    last_id: &mut String,
+    budget: &mut GlobalFactBudget,
+) -> Result<Option<GlobalIdFact>, RecordRuleError> {
+    let Some(owner) = owners.next() else {
+        return Ok(None);
+    };
+    budget.check(&[&owner.id, &owner.kind, &owner.path])?;
+    if owner.id < *last_id {
+        return Err(unsupported("id_facts_unsorted", &owner.id));
+    }
+    *last_id = owner.id.clone();
+    Ok(Some(owner))
+}
+
 /// A sink may spill sorted ID owners and reference queries. Its error must
 /// prevent the caller from treating a truncated output as complete.
 pub trait RecordSink {
     fn push(&mut self, observation: RecordObservation) -> Result<(), String>;
+}
+
+struct AccountingSink<'a, S: RecordSink> {
+    inner: &'a mut S,
+    count: u64,
+    bytes: usize,
+    budget_failed: bool,
+}
+
+impl<'a, S: RecordSink> AccountingSink<'a, S> {
+    fn new(inner: &'a mut S, count: u64, bytes: usize) -> Self {
+        Self {
+            inner,
+            count,
+            bytes,
+            budget_failed: false,
+        }
+    }
+}
+
+impl<S: RecordSink> RecordSink for AccountingSink<'_, S> {
+    fn push(&mut self, observation: RecordObservation) -> Result<(), String> {
+        let size = observation_size(&observation);
+        let Some(next_count) = self.count.checked_add(1) else {
+            self.budget_failed = true;
+            return Err("record fact count overflow".to_owned());
+        };
+        let Some(next_bytes) = self.bytes.checked_add(size) else {
+            self.budget_failed = true;
+            return Err("record fact byte overflow".to_owned());
+        };
+        if next_count > MAX_GLOBAL_FACTS || next_bytes > MAX_GLOBAL_FACT_BYTES {
+            self.budget_failed = true;
+            return Err("record fact budget exceeded".to_owned());
+        }
+        self.inner.push(observation)?;
+        self.count = next_count;
+        self.bytes = next_bytes;
+        Ok(())
+    }
+}
+
+fn observation_size(observation: &RecordObservation) -> usize {
+    let fields: Vec<&str> = match observation {
+        RecordObservation::ExactPath { path, raw_sha256 } => vec![path, raw_sha256],
+        RecordObservation::Registry {
+            path,
+            version,
+            raw_sha256,
+        } => vec![path, version, raw_sha256],
+        RecordObservation::Schema {
+            path,
+            uri,
+            raw_sha256,
+        } => vec![path, uri, raw_sha256],
+        RecordObservation::Profile {
+            path,
+            kind,
+            schema_version,
+            ..
+        } => vec![path, kind, schema_version],
+        RecordObservation::Reference {
+            from_path,
+            target_path,
+            ..
+        } => vec![from_path, target_path],
+        RecordObservation::RecordIdReference {
+            from_path,
+            target_id,
+            expected_kind,
+        } => vec![from_path, target_id, expected_kind],
+        RecordObservation::LinkUriOwner { uri, id, path } => vec![uri, id, path],
+        RecordObservation::IdOwner {
+            id,
+            kind,
+            path,
+            raw_sha256,
+            ..
+        } => vec![id, kind, path, raw_sha256],
+        RecordObservation::IdKindOwner { kind, id, path } => vec![kind, id, path],
+        RecordObservation::NativeReservation {
+            id,
+            packet_path,
+            raw_sha256,
+        } => vec![id, packet_path, raw_sha256],
+        RecordObservation::Issue { path, code } => vec![path, code],
+    };
+    // Six bytes per input byte conservatively covers JSON escape expansion;
+    // the parent spill sink still owns its exact encoded-byte quota.
+    fields.into_iter().fold(32usize, |total, field| {
+        total.saturating_add(field.len().saturating_mul(6))
+    })
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -124,6 +518,8 @@ pub struct RecordFamilyReport {
     pub registry_sha256: String,
     pub inspected_members: u64,
     pub issue_count: u64,
+    pub emitted_member_fact_count: u64,
+    pub emitted_member_fact_bytes: usize,
     pub enumerated_profile_ids: Vec<String>,
     pub skipped_profile_ids: Vec<String>,
     /// Always true: whole-source admission also needs other owner modules.
@@ -167,6 +563,8 @@ pub struct RecordFamily {
     seen_profiles: BTreeSet<String>,
     native_packet_count: usize,
     native_packet_bytes: usize,
+    fact_count: u64,
+    fact_bytes: usize,
 }
 
 #[derive(Clone, Copy)]
@@ -299,6 +697,8 @@ impl RecordFamily {
             seen_profiles: BTreeSet::new(),
             native_packet_count: 0,
             native_packet_bytes: 0,
+            fact_count: 0,
+            fact_bytes: 0,
         })
     }
 
@@ -415,6 +815,26 @@ impl RecordFamily {
         evidence: &BoundedSchemaVerdict,
         sink: &mut impl RecordSink,
     ) -> Result<(), RecordRuleError> {
+        let mut counted = AccountingSink::new(sink, self.fact_count, self.fact_bytes);
+        let result = self.inspect_native_inner(path, raw, evidence, &mut counted);
+        self.fact_count = counted.count;
+        self.fact_bytes = counted.bytes;
+        if counted.budget_failed {
+            Err(RecordRuleError::Budget {
+                code: "record_fact_budget",
+            })
+        } else {
+            result
+        }
+    }
+
+    fn inspect_native_inner(
+        &mut self,
+        path: &str,
+        raw: &[u8],
+        evidence: &BoundedSchemaVerdict,
+        sink: &mut impl RecordSink,
+    ) -> Result<(), RecordRuleError> {
         emit(
             sink,
             RecordObservation::ExactPath {
@@ -497,6 +917,7 @@ impl RecordFamily {
             }
             return Ok(());
         }
+        self.emit_foundation_refs(&record, path, sink)?;
         if matches!(
             carrier.kind,
             "agent"
@@ -525,11 +946,55 @@ impl RecordFamily {
             sink,
             RecordObservation::IdOwner {
                 id: id.to_owned(),
+                kind: carrier.kind.to_owned(),
                 path: path.to_owned(),
                 version,
                 raw_sha256: Digest256::of_bytes(raw).to_hex(),
             },
-        )
+        )?;
+        emit(
+            sink,
+            RecordObservation::IdKindOwner {
+                kind: carrier.kind.to_owned(),
+                id: id.to_owned(),
+                path: path.to_owned(),
+            },
+        )?;
+        if carrier.kind == "link" {
+            if let Some(uri) = record.get("uri").and_then(Value::as_str) {
+                emit(
+                    sink,
+                    RecordObservation::LinkUriOwner {
+                        uri: uri.to_owned(),
+                        id: id.to_owned(),
+                        path: path.to_owned(),
+                    },
+                )?;
+            }
+            if let Some(target_path) = record.get("observation_ref").and_then(Value::as_str) {
+                emit(
+                    sink,
+                    RecordObservation::Reference {
+                        from_path: path.to_owned(),
+                        target_path: target_path.to_owned(),
+                        check: PathReferenceCheck::FileIfToS,
+                    },
+                )?;
+            }
+        }
+        if carrier.kind == "expression" {
+            self.emit_typed_ref(&record, path, "work_ref", "work", sink)?;
+        } else if carrier.kind == "edition" {
+            self.emit_typed_refs(
+                &record,
+                path,
+                "embodies_expression_refs",
+                "expression",
+                sink,
+            )?;
+            self.emit_typed_ref(&record, path, "collection_ref", "collection", sink)?;
+        }
+        Ok(())
     }
 
     /// Shadow-only inline schema probe. It has no CPU deadline and cannot
@@ -540,7 +1005,7 @@ impl RecordFamily {
         raw: &[u8],
         sink: &mut impl RecordSink,
     ) -> Result<(), RecordRuleError> {
-        self.inspect_member_inner(path, raw, sink, None)
+        self.inspect_member_accounted(path, raw, sink, None)
     }
 
     /// Consumes two exact verdicts from the auditor's deadline-bounded worker.
@@ -552,7 +1017,27 @@ impl RecordFamily {
         evidence: &BoundedMemberSchemaEvidence,
         sink: &mut impl RecordSink,
     ) -> Result<(), RecordRuleError> {
-        self.inspect_member_inner(path, raw, sink, Some(evidence))
+        self.inspect_member_accounted(path, raw, sink, Some(evidence))
+    }
+
+    fn inspect_member_accounted(
+        &mut self,
+        path: &str,
+        raw: &[u8],
+        sink: &mut impl RecordSink,
+        evidence: Option<&BoundedMemberSchemaEvidence>,
+    ) -> Result<(), RecordRuleError> {
+        let mut counted = AccountingSink::new(sink, self.fact_count, self.fact_bytes);
+        let result = self.inspect_member_inner(path, raw, &mut counted, evidence);
+        self.fact_count = counted.count;
+        self.fact_bytes = counted.bytes;
+        if counted.budget_failed {
+            Err(RecordRuleError::Budget {
+                code: "record_fact_budget",
+            })
+        } else {
+            result
+        }
     }
 
     fn inspect_member_inner(
@@ -685,21 +1170,34 @@ impl RecordFamily {
             sink,
             RecordObservation::IdOwner {
                 id: id.to_owned(),
+                kind: kind.clone(),
                 path: path.to_owned(),
                 version,
                 raw_sha256: Digest256::of_bytes(raw).to_hex(),
             },
         )?;
+        emit(
+            sink,
+            RecordObservation::IdKindOwner {
+                kind: kind.clone(),
+                id: id.to_owned(),
+                path: path.to_owned(),
+            },
+        )?;
+        self.emit_foundation_refs(&record, path, sink)?;
+        Ok(())
+    }
+
+    fn emit_foundation_refs(
+        &mut self,
+        record: &Value,
+        path: &str,
+        sink: &mut impl RecordSink,
+    ) -> Result<(), RecordRuleError> {
         for field in ["source_refs", "source_record_refs", "receipt_refs"] {
             if let Some(values) = record.get(field).and_then(Value::as_array) {
-                for target in values.iter().filter_map(Value::as_str) {
-                    emit(
-                        sink,
-                        RecordObservation::Reference {
-                            from_path: path.to_owned(),
-                            target_path: target.to_owned(),
-                        },
-                    )?;
+                for value in values {
+                    self.emit_path_ref(value, path, PathReferenceCheck::RepoExistsIfToS, sink)?;
                 }
             }
         }
@@ -711,14 +1209,81 @@ impl RecordFamily {
             "generated_from_manifest_ref",
             "item_manifest_ref",
         ] {
-            if let Some(target) = record.get(field).and_then(Value::as_str) {
+            if let Some(value) = record.get(field) {
+                self.emit_path_ref(value, path, PathReferenceCheck::RepoExistsIfToS, sink)?;
+            }
+        }
+        Ok(())
+    }
+
+    fn emit_path_ref(
+        &mut self,
+        value: &Value,
+        path: &str,
+        check: PathReferenceCheck,
+        sink: &mut impl RecordSink,
+    ) -> Result<(), RecordRuleError> {
+        if let Some(target_path) = value.as_str() {
+            emit(
+                sink,
+                RecordObservation::Reference {
+                    from_path: path.to_owned(),
+                    target_path: target_path.to_owned(),
+                    check,
+                },
+            )
+        } else {
+            self.issue(sink, path, "reference_type")
+        }
+    }
+
+    fn emit_typed_ref(
+        &mut self,
+        record: &Value,
+        path: &str,
+        field: &str,
+        expected_kind: &'static str,
+        sink: &mut impl RecordSink,
+    ) -> Result<(), RecordRuleError> {
+        if let Some(value) = record.get(field) {
+            if let Some(target_id) = value.as_str() {
                 emit(
                     sink,
-                    RecordObservation::Reference {
+                    RecordObservation::RecordIdReference {
                         from_path: path.to_owned(),
-                        target_path: target.to_owned(),
+                        target_id: target_id.to_owned(),
+                        expected_kind,
                     },
                 )?;
+            } else {
+                self.issue(sink, path, "record_id_reference_type")?;
+            }
+        }
+        Ok(())
+    }
+
+    fn emit_typed_refs(
+        &mut self,
+        record: &Value,
+        path: &str,
+        field: &str,
+        expected_kind: &'static str,
+        sink: &mut impl RecordSink,
+    ) -> Result<(), RecordRuleError> {
+        if let Some(values) = record.get(field).and_then(Value::as_array) {
+            for value in values {
+                if let Some(target_id) = value.as_str() {
+                    emit(
+                        sink,
+                        RecordObservation::RecordIdReference {
+                            from_path: path.to_owned(),
+                            target_id: target_id.to_owned(),
+                            expected_kind,
+                        },
+                    )?;
+                } else {
+                    self.issue(sink, path, "record_id_reference_type")?;
+                }
             }
         }
         Ok(())
@@ -810,6 +1375,8 @@ impl RecordFamily {
             registry_sha256: self.registry_sha256,
             inspected_members: self.inspected_members,
             issue_count: self.issue_count,
+            emitted_member_fact_count: self.fact_count,
+            emitted_member_fact_bytes: self.fact_bytes,
             enumerated_profile_ids,
             skipped_profile_ids,
             incomplete: true,
@@ -1584,5 +2151,183 @@ mod tests {
             .unwrap();
         assert!(events.0.iter().any(|event| matches!(event,
             RecordObservation::IdOwner { id, .. } if id.starts_with("tos.artifact."))));
+    }
+
+    #[test]
+    fn sorted_global_join_separates_duplicates_native_reservations_and_wrong_kind() {
+        let agent: Value = serde_json::from_slice(&source(
+            "ToS/source-witnesses/agents/erasmus-of-rotterdam/agent.json",
+        ))
+        .unwrap();
+        let agent_id = agent["record_id"].as_str().unwrap().to_owned();
+        let mut events = Events::default();
+        let duplicates = RecordGlobalJoin::check_id_collisions(
+            vec![
+                GlobalIdFact {
+                    id: agent_id.clone(),
+                    kind: "agent".into(),
+                    path: "agent-a".into(),
+                    carrier: IdCarrier::Standalone,
+                },
+                GlobalIdFact {
+                    id: agent_id.clone(),
+                    kind: "agent".into(),
+                    path: "agent-b".into(),
+                    carrier: IdCarrier::Standalone,
+                },
+            ],
+            &mut events,
+        )
+        .unwrap();
+        assert_eq!(duplicates, 1);
+        assert!(events.0.iter().any(|event| matches!(
+            event,
+            RecordObservation::Issue {
+                code: "duplicate_record_id",
+                ..
+            }
+        )));
+        let unsorted = RecordGlobalJoin::check_id_collisions(
+            vec![
+                GlobalIdFact {
+                    id: "tos.work.z".into(),
+                    kind: "work".into(),
+                    path: "z".into(),
+                    carrier: IdCarrier::Standalone,
+                },
+                GlobalIdFact {
+                    id: "tos.work.a".into(),
+                    kind: "work".into(),
+                    path: "a".into(),
+                    carrier: IdCarrier::Standalone,
+                },
+            ],
+            &mut Events::default(),
+        );
+        assert!(matches!(
+            unsorted,
+            Err(RecordRuleError::Unsupported {
+                code: "id_facts_unsorted",
+                ..
+            })
+        ));
+
+        let mut events = Events::default();
+        let native_collisions = RecordGlobalJoin::check_id_collisions(
+            vec![
+                GlobalIdFact {
+                    id: "tos.sign.test".into(),
+                    kind: "sign".into(),
+                    path: "packet-v1".into(),
+                    carrier: IdCarrier::NativePacket,
+                },
+                GlobalIdFact {
+                    id: "tos.sign.test".into(),
+                    kind: "sign".into(),
+                    path: "packet-v2".into(),
+                    carrier: IdCarrier::NativePacket,
+                },
+                GlobalIdFact {
+                    id: "tos.sign.test".into(),
+                    kind: "sign".into(),
+                    path: "standalone".into(),
+                    carrier: IdCarrier::Standalone,
+                },
+            ],
+            &mut events,
+        )
+        .unwrap();
+        assert_eq!(native_collisions, 1);
+        assert!(events.0.iter().any(|event| matches!(
+            event,
+            RecordObservation::Issue {
+                code: "native_record_id_collision",
+                ..
+            }
+        )));
+
+        let mut events = Events::default();
+        let issues = RecordGlobalJoin::check_typed_references(
+            vec![GlobalIdFact {
+                id: agent_id.clone(),
+                kind: "agent".into(),
+                path: "agent-a".into(),
+                carrier: IdCarrier::Standalone,
+            }],
+            vec![TypedIdRefFact {
+                target_id: agent_id,
+                expected_kind: "work".into(),
+                from_path: "expression".into(),
+            }],
+            &mut events,
+        )
+        .unwrap();
+        assert_eq!(issues, 1);
+        assert!(events.0.iter().any(|event| matches!(
+            event,
+            RecordObservation::Issue {
+                code: "record_reference_wrong_kind",
+                ..
+            }
+        )));
+
+        let link: Value = serde_json::from_slice(&source(
+            "ToS/source-witnesses/links/cdli/cdlb-2006-1/article/link.json",
+        ))
+        .unwrap();
+        let uri = link["uri"].as_str().unwrap().to_owned();
+        let mut events = Events::default();
+        let uri_issues = RecordGlobalJoin::check_link_uri_collisions(
+            vec![
+                LinkUriFact {
+                    uri: uri.clone(),
+                    id: "tos.link.one".into(),
+                    path: "link-a".into(),
+                },
+                LinkUriFact {
+                    uri,
+                    id: "tos.link.two".into(),
+                    path: "link-b".into(),
+                },
+            ],
+            &mut events,
+        )
+        .unwrap();
+        assert_eq!(uri_issues, 1);
+        assert!(events.0.iter().any(|event| matches!(
+            event,
+            RecordObservation::Issue {
+                code: "duplicate_link_uri",
+                ..
+            }
+        )));
+    }
+
+    #[test]
+    fn source_link_emits_uri_and_file_reference_facts() {
+        const LINK: &str = "ToS/source-witnesses/links/cdli/cdlb-2006-1/article/link.json";
+        let mut rule = family();
+        let raw = source(LINK);
+        let plan = rule.native_schema_plan(LINK, &raw).unwrap();
+        let evidence = synthetic_verdict(
+            plan.instance_sha256,
+            plan.schema_set_digest,
+            plan.format_profile,
+            &plan.root_uri,
+        );
+        let mut events = Events::default();
+        rule.inspect_native_with_bounded_schema(LINK, &raw, &evidence, &mut events)
+            .unwrap();
+        assert!(events.0.iter().any(|event| matches!(event,
+            RecordObservation::LinkUriOwner { uri, .. } if uri == "https://cdli.earth/articles/cdlb/2006-1")));
+        assert!(events.0.iter().any(|event| matches!(
+            event,
+            RecordObservation::Reference {
+                check: PathReferenceCheck::FileIfToS,
+                ..
+            }
+        )));
+        assert!(events.0.iter().any(|event| matches!(event,
+            RecordObservation::IdKindOwner { kind, .. } if kind == "link")));
     }
 }
