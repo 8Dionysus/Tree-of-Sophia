@@ -144,9 +144,17 @@ pub trait ReadModel {
     ) -> Result<Box<dyn DisclosureLease>, QueryError>;
 }
 
-/// An owner hold, not merely a one-time policy observation. The transport
-/// rechecks immediately before framing and retains the lease until flush.
+/// An owner hold, not merely a one-time policy observation. Native transports
+/// may move it across threads, so native leases must be Send. A WASM host
+/// lease stays on its creating JS agent and must not claim Send. Both retain
+/// the hold until the final transport flush.
+#[cfg(not(target_arch = "wasm32"))]
 pub trait DisclosureLease: Send {
+    fn recheck(&mut self) -> Result<(), QueryError>;
+}
+
+#[cfg(target_arch = "wasm32")]
+pub trait DisclosureLease {
     fn recheck(&mut self) -> Result<(), QueryError>;
 }
 
