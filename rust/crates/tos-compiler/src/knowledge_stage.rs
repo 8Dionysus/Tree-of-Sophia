@@ -206,6 +206,7 @@ pub struct KnowledgeStage<'a> {
     work_bytes: u64,
     poisoned: bool,
     keep: bool,
+    selected_full: bool,
 }
 
 impl<'a> KnowledgeStage<'a> {
@@ -214,6 +215,13 @@ impl<'a> KnowledgeStage<'a> {
     }
     pub(crate) fn poison(&mut self) {
         self.poisoned = true;
+    }
+    pub(crate) fn mark_selected_full(&mut self) -> Result<()> {
+        if self.poisoned || self.selected_full {
+            return Err(Error::Invalid("selected full-model stage state"));
+        }
+        self.selected_full = true;
+        Ok(())
     }
 
     pub fn create(
@@ -283,6 +291,7 @@ impl<'a> KnowledgeStage<'a> {
             work_bytes: 0,
             poisoned: false,
             keep: false,
+            selected_full: false,
         };
         let lease = stage.lease.as_mut().expect("stage lease open");
         write!(
@@ -714,6 +723,33 @@ impl<'a> KnowledgeStage<'a> {
             return Err(Error::Invalid("stage relation endpoint absent"));
         }
         self.check(WritePhase::Sort)?;
+        if self.selected_full {
+            self.check(WritePhase::Finalize)?;
+            // Raw owner rows can contain nonpublic material and may never be
+            // shipped inside a selected query model. All independent input
+            // roots were checked above, while the selected seal is already
+            // present. Secure deletion and VACUUM rebuild the distributable
+            // SQLite bytes under the same bounded VM and host spill guard.
+            self.db()
+                .execute_batch("PRAGMA secure_delete=ON; DROP TABLE raw_records")?;
+            selected_table_closure(self.db())?;
+            self.check(WritePhase::Finalize)?;
+            self.db().execute_batch("VACUUM")?;
+            self.check(WritePhase::Finalize)?;
+            let freelist: u64 = self
+                .db()
+                .query_row("PRAGMA freelist_count", [], |row| row.get(0))?;
+            let secure_delete: u64 = self
+                .db()
+                .query_row("PRAGMA secure_delete", [], |row| row.get(0))?;
+            if freelist != 0 || secure_delete != 1 {
+                return Err(Error::Invalid("selected SQLite sanitized pages"));
+            }
+            let metadata = fs::symlink_metadata(&self.candidate)?;
+            if !metadata.file_type().is_file() || (metadata.dev(), metadata.ino()) != self.inode {
+                return Err(Error::Invalid("selected stage inode changed"));
+            }
+        }
         self.check(WritePhase::Finalize)?;
         if self
             .db()
@@ -748,6 +784,39 @@ impl<'a> KnowledgeStage<'a> {
             sqlite_size_bytes,
         })
     }
+}
+
+fn selected_table_closure(db: &Connection) -> Result<()> {
+    const TABLES: &[&str] = &[
+        "metadata",
+        "graph_header",
+        "knowledge_nodes",
+        "knowledge_relations",
+        "source_scope",
+        "search_documents",
+        "search_grams",
+        "search_gram_stats",
+        "catalog_index_meta",
+        "catalog_facet_fields",
+        "catalog_facets",
+        "catalog_routes",
+        "catalog_source_counts",
+    ];
+    let mut statement = db.prepare(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name",
+    )?;
+    let mut rows = statement.query([])?;
+    let mut seen = std::collections::BTreeSet::new();
+    while let Some(row) = rows.next()? {
+        let name: String = row.get(0)?;
+        if name.len() > 128 || !TABLES.contains(&name.as_str()) || !seen.insert(name) {
+            return Err(Error::Invalid("unexpected selected knowledge table"));
+        }
+    }
+    if seen.len() != TABLES.len() {
+        return Err(Error::Invalid("missing selected knowledge table"));
+    }
+    Ok(())
 }
 
 impl Drop for KnowledgeStage<'_> {

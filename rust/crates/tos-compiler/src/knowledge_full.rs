@@ -330,7 +330,19 @@ mod tests {
                 "configuration_digest":"4".repeat(64)
             },
             "query_properties":[],
-            "counts":{"nodes":1,"relations":1,"sources":{"eighth":1}},
+            "counts":{"nodes":1,"relations":1,"sources":{"eighth":1},
+                "display_coverage":{
+                    "node_titles":1,"node_summaries":1,"node_summary_states":{"source":1},
+                    "nodes_without_source_summary":0,
+                    "relation_labels":1,"relation_statements":1,"relation_explanations":1,
+                    "relation_explanation_states":{"source":1},
+                    "relations_without_source_explanation":0
+                },
+                "semantic_mapping":{
+                    "mapped_nodes":0,"unmapped_nodes":1,"mapped_relations":0,
+                    "unmapped_relations":1,"cross_layer_relations":0
+                }
+            },
             "authority_boundary":{"is_source":false,"is_canon":false,"writes_to_tree":false}
         });
         let full = compile_full_knowledge_components(
@@ -367,6 +379,15 @@ mod tests {
         )
         .unwrap();
         let output = stage.finish().unwrap();
+        let raw_table_count: i64 = rusqlite::Connection::open(&path)
+            .unwrap()
+            .query_row(
+                "SELECT count(*) FROM sqlite_master WHERE type='table' AND name='raw_records'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(raw_table_count, 0);
         let expectation = KnowledgeSelectedExpectation {
             model_sha256: output.sqlite_sha256.clone(),
             model_size_bytes: output.sqlite_size_bytes,

@@ -138,6 +138,8 @@ fn checked_header(header: &Value, nodes: u64, relations: u64) -> Result<&Value> 
         .ok_or(Error::Invalid("knowledge graph counts"))?;
     if counts.get("nodes").and_then(Value::as_u64) != Some(nodes)
         || counts.get("relations").and_then(Value::as_u64) != Some(relations)
+        || !counts.get("display_coverage").is_some_and(Value::is_object)
+        || !counts.get("semantic_mapping").is_some_and(Value::is_object)
     {
         return Err(Error::Invalid("knowledge graph count mismatch"));
     }
@@ -401,6 +403,7 @@ fn seal_inner(
         }
         write
     })?;
+    stage.mark_selected_full()?;
     Ok(KnowledgeSealReceipt {
         graph_root_sha256,
         graph_header_sha256: header_sha.to_hex(),
@@ -433,7 +436,7 @@ mod tests {
             },
             "query_properties": [],
             "counts": {"nodes": 2, "relations": 1, "sources": {"a": 2},
-                "display_coverage": {"node_titles": 2}},
+                "display_coverage": {"node_titles": 2}, "semantic_mapping": {}},
             "authority_boundary": {"is_source": false, "is_canon": false}
         })
     }
