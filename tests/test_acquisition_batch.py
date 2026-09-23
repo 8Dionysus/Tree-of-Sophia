@@ -1070,12 +1070,33 @@ class AcquisitionBatchTests(unittest.TestCase):
         claim_ref = f"{selection['item_root_ref']}/source-claims.jsonl"
         claim_path = self.metadata / claim_ref
         claim_path.parent.mkdir(parents=True, exist_ok=True)
-        source_claims = (
-            ROOT
-            / "ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/source-claims.jsonl"
-        )
-        claim = json.loads(source_claims.read_text(encoding="utf-8").splitlines()[0])
-        claim["claim_id"] = "tos.claim.acquisition-profile-fixture"
+        claim = {
+            "schema_version": "tos_source_relation_claim_v1",
+            "claim_id": "tos.claim.acquisition-profile-fixture",
+            "claim_type": "relation",
+            "assertion_layer": "bibliographic_assertion",
+            "predicate": "has_expression",
+            "subject_ref": "tos.work.acquisition-profile-fixture",
+            "object": "tos.expression.acquisition-profile-fixture",
+            "claim_version": 1,
+            "review_status": "unreviewed",
+            "visibility": "public_metadata_only",
+            "epistemic_status": "observed",
+            "polarity": "positive",
+            "evidence_refs": [
+                f"{selection['item_root_ref']}/item.json",
+                f"{selection['item_root_ref']}/item.manifest.json",
+            ],
+            "assessment_refs": [],
+            "maker": {"maker_type": "model", "agent_ref": "model:fixture"},
+            "provenance_event_ref": "tos.event.acquisition-profile-fixture",
+            "qualifiers": {
+                "statement": "Synthetic profile fixture only.",
+                "statement_language": "en",
+                "statement_script": "Latn",
+                "limits": "No claim is admitted.",
+            },
+        }
         claim_path.write_text(
             json.dumps(claim, sort_keys=True) + "\n", encoding="utf-8"
         )
