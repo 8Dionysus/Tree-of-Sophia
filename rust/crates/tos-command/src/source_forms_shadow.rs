@@ -8,9 +8,9 @@
 use std::collections::HashSet;
 
 use tos_foundation::{
-    canonical_bytes_v1, canonical_digest_v1, emit_json_profile, parse_json, CanonicalProfile,
-    Digest256, JsonEmissionProfile, JsonLimits, JsonMode, JsonNumber, JsonNumberKind, JsonString,
-    JsonValue,
+    CanonicalProfile, Digest256, JsonEmissionProfile, JsonLimits, JsonMode, JsonNumber,
+    JsonNumberKind, JsonString, JsonValue, canonical_bytes_v1, canonical_digest_v1,
+    emit_json_profile, parse_json,
 };
 
 const SOURCE_RAW_SHA: &str =
@@ -333,6 +333,11 @@ pub fn apply_or_replay(input: WorkFormsInput<'_>) -> Result<WorkFormsShadow> {
         })
         .ok_or(ShadowError::Invalid("missing prior forms"))?;
     prior.push(old);
+    let retained_subject = items
+        .iter_mut()
+        .find(|(key, _)| key.as_str() == Some("subject"))
+        .ok_or(ShadowError::Invalid("missing subject"))?;
+    retained_subject.1 = subject.clone();
     let results = changes
         .iter()
         .map(|change| form_ref(field(change, "form")?))
