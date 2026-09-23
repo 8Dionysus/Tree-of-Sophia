@@ -7,6 +7,7 @@ mod knowledge_indexed;
 pub mod knowledge_normalization;
 mod knowledge_registry;
 mod knowledge_scope;
+mod knowledge_search;
 pub mod knowledge_stage;
 mod legacy;
 mod publication;
@@ -17,6 +18,7 @@ mod vocabulary;
 pub use knowledge_indexed::{IndexedLimits, IndexedReceipt, materialize_indexed_sources};
 pub use knowledge_registry::{KnowledgeRegistry, ResolvedType};
 pub use knowledge_scope::{ScopeLimits, ScopeReceipt, write_source_scope};
+pub use knowledge_search::{SearchBuildLimits, SearchIndexReceipt, build_search_index};
 pub use legacy::LegacyPartitionedNavigation;
 pub use publication::{PublicationAuthority, PublishedReceipt, SelectionFence, publish_candidate};
 pub use selected::{
