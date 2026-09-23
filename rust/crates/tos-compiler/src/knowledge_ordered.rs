@@ -101,10 +101,16 @@ impl<'s, 'o> OrderedKnowledgeSink<'s, 'o> {
         stage: &'s mut KnowledgeStage<'o>,
         limits: OrderedCandidateLimits,
     ) -> Result<Self> {
-        limits.validate()?;
-        stage.with_connection(WritePhase::Normalized, |db| {
-            db.execute_batch(SCHEMA).map_err(Error::from)
-        })?;
+        let setup: Result<()> = (|| {
+            limits.validate()?;
+            stage.with_connection(WritePhase::Normalized, |db| {
+                db.execute_batch(SCHEMA).map_err(Error::from)
+            })
+        })();
+        if setup.is_err() {
+            stage.poison();
+        }
+        setup?;
         Ok(Self {
             stage,
             limits,
