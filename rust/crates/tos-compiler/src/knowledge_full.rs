@@ -445,7 +445,10 @@ mod tests {
         )
         .unwrap();
         assert_eq!(selected.selection().node_count, 1);
+        assert_eq!(selected.source_revision(), "2".repeat(64));
         assert!(selected.open_vm_steps() > 0);
+        let fork = selected.fork_reader_with_vm_budget(100_000_000).unwrap();
+        assert_eq!(fork.source_revision(), selected.source_revision());
         assert_eq!(
             selected
                 .connection()

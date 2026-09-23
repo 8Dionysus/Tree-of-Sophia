@@ -99,6 +99,7 @@ pub struct VerifiedKnowledgeModel<'a> {
     connection: Connection,
     pinned: File,
     selection: KnowledgeSelectedExpectation,
+    source_revision: String,
     custody: &'a dyn ImmutableKnowledgeCustody,
     max_cold_vm_steps: u64,
     sqlite_cache_kib: u64,
@@ -108,6 +109,11 @@ pub struct VerifiedKnowledgeModel<'a> {
 impl<'a> VerifiedKnowledgeModel<'a> {
     pub fn selection(&self) -> &KnowledgeSelectedExpectation {
         &self.selection
+    }
+    /// The exact revision in the canonical graph header, verified during
+    /// cold admission against the selected graph root and file SHA.
+    pub fn source_revision(&self) -> &str {
+        &self.source_revision
     }
     pub fn connection(&self) -> &Connection {
         &self.connection
@@ -138,6 +144,7 @@ impl<'a> VerifiedKnowledgeModel<'a> {
             connection,
             pinned,
             selection: self.selection.clone(),
+            source_revision: self.source_revision.clone(),
             custody: self.custody,
             max_cold_vm_steps: max_vm_steps,
             sqlite_cache_kib: self.sqlite_cache_kib,
@@ -762,7 +769,8 @@ pub fn open_selected_knowledge_model<'a>(
     check_metadata(&db, &expected, limits.max_metadata_bytes)?;
     let (node_root, relation_root) = verify_core_and_scope(&db, &expected, limits, &mut work)?;
     verify_search(&db, &expected, limits, &mut work)?;
-    verify_graph_root(&db, &expected, limits, &mut work, node_root, relation_root)?;
+    let source_revision =
+        verify_graph_root(&db, &expected, limits, &mut work, node_root, relation_root)?;
     verify_catalog(&db, &expected, limits, &mut work)?;
     custody.verify_cold_resources(limits)?;
     custody.verify(&pinned, &expected)?;
@@ -770,6 +778,7 @@ pub fn open_selected_knowledge_model<'a>(
         connection: db,
         pinned,
         selection: expected,
+        source_revision,
         custody,
         max_cold_vm_steps: limits.max_vm_steps,
         sqlite_cache_kib: limits.sqlite_cache_kib,
@@ -800,7 +809,7 @@ fn verify_graph_root(
     work: &mut u64,
     node_root: Digest256,
     relation_root: Digest256,
-) -> Result<()> {
+) -> Result<String> {
     let mut statement = db.prepare(
         "SELECT singleton,packet_len,CASE WHEN typeof(packet_sha256)='blob' AND length(packet_sha256)=32 THEN packet_sha256 ELSE NULL END,CASE WHEN typeof(packet)='blob' AND length(packet)<=?1 THEN packet ELSE NULL END FROM graph_header"
     )?;
@@ -980,7 +989,7 @@ fn verify_graph_root(
     if hash.finalize().to_hex() != expected.graph_root_sha256 {
         return Err(Error::Invalid("knowledge graph root mismatch"));
     }
-    Ok(())
+    Ok(revision.to_owned())
 }
 
 // Following physical verifiers are deliberately explicit. Missing tables,
