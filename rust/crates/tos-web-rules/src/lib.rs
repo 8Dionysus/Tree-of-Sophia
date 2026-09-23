@@ -7,6 +7,7 @@
 
 mod knowledge_envelope;
 mod search_mode;
+mod workspace_proposal;
 
 pub use knowledge_envelope::{
     KnowledgeEnvelopeError, KnowledgeEnvelopeErrorCode, compact_knowledge_search_page_v1,
@@ -14,10 +15,16 @@ pub use knowledge_envelope::{
 pub use search_mode::{
     SearchMode, SearchSelectionError, SearchSelectionErrorCode, select_knowledge_search_mode_v1,
 };
+pub use workspace_proposal::{
+    WorkspaceProposalError, WorkspaceProposalErrorCode, workspace_proposal_digest_v1,
+};
 
 #[cfg(feature = "wasm")]
 mod wasm {
-    use super::{compact_knowledge_search_page_v1, select_knowledge_search_mode_v1};
+    use super::{
+        compact_knowledge_search_page_v1, select_knowledge_search_mode_v1,
+        workspace_proposal_digest_v1,
+    };
     use wasm_bindgen::prelude::*;
 
     /// Raw request JSON is parsed by the same Rust rule in native and WASM.
@@ -86,6 +93,36 @@ mod wasm {
             },
             Err(error) => KnowledgeEnvelopeResult {
                 bytes: Vec::new(),
+                error_code: Some(error.code.as_str().to_owned()),
+            },
+        }
+    }
+
+    #[wasm_bindgen]
+    pub struct WorkspaceProposalResult {
+        digest: Option<String>,
+        error_code: Option<String>,
+    }
+
+    #[wasm_bindgen]
+    impl WorkspaceProposalResult {
+        pub fn digest(&self) -> Option<String> {
+            self.digest.clone()
+        }
+        pub fn error_code(&self) -> Option<String> {
+            self.error_code.clone()
+        }
+    }
+
+    #[wasm_bindgen]
+    pub fn workspace_proposal_digest_wasm_v1(request_json: &[u8]) -> WorkspaceProposalResult {
+        match workspace_proposal_digest_v1(request_json) {
+            Ok(digest) => WorkspaceProposalResult {
+                digest: Some(digest),
+                error_code: None,
+            },
+            Err(error) => WorkspaceProposalResult {
+                digest: None,
                 error_code: Some(error.code.as_str().to_owned()),
             },
         }
