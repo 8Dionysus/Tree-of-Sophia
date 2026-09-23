@@ -946,6 +946,9 @@ fn cold_cut_seal_is_monotone_and_rejects_forged_digest() {
     assert_eq!(first_cut.historical_members(), 1);
     lab.db.seal_shadow_cut(&first_cut).unwrap();
     lab.db.seal_shadow_cut(&first_cut).unwrap();
+    let audited_again = lab.db.cold_verify_cut(&cold_store, &lab.domain).unwrap();
+    assert_eq!(audited_again.state_digest(), first_cut.state_digest());
+    lab.db.seal_shadow_cut(&audited_again).unwrap();
     assert_eq!(lab.db.published_seq(&lab.domain).unwrap(), 1);
     let mut corrupter = Client::connect(&url, NoTls).unwrap();
     let old_delta: String = corrupter
