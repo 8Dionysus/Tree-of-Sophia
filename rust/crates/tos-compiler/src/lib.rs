@@ -9,6 +9,7 @@ pub mod knowledge_normalization;
 pub mod knowledge_philosophy_display;
 mod knowledge_registry;
 mod knowledge_scope;
+mod knowledge_seal;
 mod knowledge_search;
 pub mod knowledge_stage;
 mod legacy;
@@ -21,6 +22,9 @@ pub use knowledge_catalog_index::{CatalogIndexLimits, CatalogIndexReceipt, mater
 pub use knowledge_indexed::{IndexedLimits, IndexedReceipt, materialize_indexed_sources};
 pub use knowledge_registry::{KnowledgeRegistry, ResolvedType};
 pub use knowledge_scope::{ScopeLimits, ScopeReceipt, write_source_scope};
+pub use knowledge_seal::{
+    KNOWLEDGE_MODEL_ABI, KnowledgeSealReceipt, SealLimits, seal_knowledge_model,
+};
 pub use knowledge_search::{SearchBuildLimits, SearchIndexReceipt, build_search_index};
 pub use legacy::LegacyPartitionedNavigation;
 pub use publication::{PublicationAuthority, PublishedReceipt, SelectionFence, publish_candidate};

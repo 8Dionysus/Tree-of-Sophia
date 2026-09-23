@@ -255,6 +255,13 @@ fn materialize_inner(
     let mut work = Work::new(limits);
     work.charge_packet(packet)?;
     let desc = &vocabulary.descriptor_sha256;
+    if vocabulary
+        .sources
+        .iter()
+        .any(|source| !source.source_graph_id.is_ascii())
+    {
+        return Err(Error::Invalid("unsupported Unicode catalog facet casefold"));
+    }
     if string(&receipt.catalog, "schema")? != "tos_knowledge_catalog_v1" {
         return Err(Error::Invalid("catalog index packet schema"));
     }
@@ -878,6 +885,23 @@ mod tests {
         )
         .unwrap_err();
         assert!(error.to_string().contains("packet schema"));
+    }
+
+    #[test]
+    fn zero_count_unicode_registered_source_refuses_whole_candidate() {
+        let (mut db, receipt, mut vocab, packet) = fixture(false);
+        vocab.sources[0].source_graph_id = "Café".into();
+        let digest = Digest256::of_bytes(&packet);
+        let error = materialize_inner(
+            &mut db,
+            &receipt,
+            &vocab,
+            CatalogIndexLimits::default(),
+            &packet,
+            &digest,
+        )
+        .unwrap_err();
+        assert!(error.to_string().contains("casefold"));
     }
 
     struct TestOwner;
