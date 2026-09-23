@@ -1170,8 +1170,8 @@ def _journal_rows(path: Path) -> list[dict[str, Any]]:
                 if not line.strip():
                     continue
                 try:
-                    value = json.loads(line)
-                except json.JSONDecodeError as exc:
+                    value = json.loads(line, object_pairs_hook=_strict_pairs)
+                except (AcquisitionBatchError, json.JSONDecodeError) as exc:
                     raise AcquisitionBatchError(f"acquisition journal is malformed at line {line_number}") from exc
                 if not isinstance(value, dict):
                     raise AcquisitionBatchError("acquisition journal rows must be objects")

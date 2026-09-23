@@ -812,6 +812,19 @@ class AcquisitionBatchTests(unittest.TestCase):
             acquisition._append_journal(journal, {"status": "failed"})
         self.assertEqual('{"status":"acquired"}\n', outside.read_text(encoding="utf-8"))
 
+    def test_acquisition_journal_rejects_duplicate_json_keys(self) -> None:
+        journal = self.root / "duplicate-journal.jsonl"
+        journal.write_text(
+            '{"file_ref":"tos.file.sha256.fixture",'
+            '"status":"failed","status":"verified"}\n',
+            encoding="utf-8",
+        )
+        with self.assertRaisesRegex(
+            acquisition.AcquisitionBatchError,
+            "acquisition journal is malformed at line 1",
+        ):
+            acquisition._journal_rows(journal)
+
     def test_interrupted_prepare_is_rebuilt_before_acquisition(self) -> None:
         fetches, manifest_sha = self._write_manifest(count=1)
         self.output.mkdir()

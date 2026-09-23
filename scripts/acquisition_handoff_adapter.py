@@ -566,7 +566,10 @@ def _verify_handoff(
         or summary.get("invalid") != 0
     ):
         raise HandoffAdapterError("fixity summary does not bind complete handoff")
-    fixity_rows = acquisition._journal_rows(fixity_path)
+    try:
+        fixity_rows = acquisition._journal_rows(fixity_path)
+    except acquisition.AcquisitionBatchError as exc:
+        raise HandoffAdapterError(f"fixity JSONL is malformed: {exc}") from exc
     if (
         len(fixity_rows) != len(expected_payloads)
         or {acquisition._payload_custody_key(row) for row in fixity_rows}

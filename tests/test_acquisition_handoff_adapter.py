@@ -751,6 +751,54 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
                 repo_root=ROOT,
             )
 
+    def test_shared_verifier_rejects_duplicate_json_keys_in_fixity_rows(self) -> None:
+        fetches, manifest_sha, _item_root, _records = self._write_manifest(
+            base_revision="a" * 64,
+        )
+        result = acquisition.acquire_batch(
+            manifest_path=self.manifest_path,
+            metadata_root=self.metadata,
+            output_root=self.acquisition_root,
+            expected_manifest_sha256=manifest_sha,
+            fetcher=lambda payload: fetches[payload["file_ref"]],
+        )
+        handoff_path = self.acquisition_root / result["handoff_ref"]
+        handoff = json.loads(handoff_path.read_text())
+        fixity_path = self.acquisition_root / handoff["independent_fixity"]["ref"]
+        fixity_body = fixity_path.read_text(encoding="utf-8")
+        self.assertIn('"status": "verified"', fixity_body)
+        fixity_path.write_text(
+            fixity_body.replace(
+                '"status": "verified"',
+                '"status": "failed", "status": "verified"',
+                1,
+            ),
+            encoding="utf-8",
+        )
+        fixity_sha = hashlib.sha256(fixity_path.read_bytes()).hexdigest()
+        summary_path = self.acquisition_root / handoff["independent_fixity"]["summary_ref"]
+        summary = json.loads(summary_path.read_text())
+        summary["fixity_jsonl_sha256"] = fixity_sha
+        summary_path.write_bytes(canonical(summary))
+        summary_sha = hashlib.sha256(summary_path.read_bytes()).hexdigest()
+        handoff["independent_fixity"].update(
+            sha256=fixity_sha,
+            jsonl_sha256=fixity_sha,
+            summary_sha256=summary_sha,
+        )
+        handoff_path.write_bytes(canonical(handoff))
+        with self.assertRaisesRegex(
+            adapter.HandoffAdapterError,
+            "fixity JSONL is malformed: acquisition journal is malformed at line 1",
+        ):
+            adapter.verify_handoff_for_intake(
+                acquisition_root=self.acquisition_root,
+                handoff_ref=result["handoff_ref"],
+                expected_manifest_sha256=manifest_sha,
+                expected_base_revision="a" * 64,
+                repo_root=ROOT,
+            )
+
     def test_shared_verifier_rejects_rights_scope_and_event_identity(self) -> None:
         controls = ("rights", "event", "status")
         for control in controls:
