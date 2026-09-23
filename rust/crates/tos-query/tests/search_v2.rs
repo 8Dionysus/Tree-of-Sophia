@@ -1,6 +1,9 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use tos_foundation::{Digest256, JsonLimits, JsonMode, JsonValue, parse_json};
+use tos_query::search_index::{
+    GramSeekBudget, GramSeekCharge, GramStat, SearchGramModel, choose_rarest_gram,
+};
 use tos_query::search_v2::{
     CurrentPolicyBinding, INDEXED_SEARCH_V2_OPERATION, IndexedSearchV2Request,
     NormalizedIndexedSearchV2Request, QueryVocabularyBinding, SEARCH_UNICODE_PROFILE,
@@ -55,6 +58,96 @@ impl SelectedQueryVocabulary for FixtureVocabulary {
     fn contains_predicate_id(&self, id: &str) -> bool {
         self.predicates.contains(id)
     }
+}
+
+#[derive(Default)]
+struct FixtureGramModel {
+    stats: BTreeMap<String, u64>,
+    calls: Vec<String>,
+}
+
+impl SearchGramModel for FixtureGramModel {
+    fn gram_stat(
+        &mut self,
+        _kind: SearchKind,
+        gram: &str,
+        max_vm_steps: u64,
+        max_rows: u64,
+        max_decoded_bytes: u64,
+    ) -> Result<GramStat, tos_query::search_v2::SearchV2Error> {
+        assert!(max_vm_steps > 0 && max_rows > 0 && max_decoded_bytes >= 8);
+        self.calls.push(gram.to_owned());
+        let postings = self.stats.get(gram).copied();
+        let rows = u64::from(postings.is_some());
+        Ok(GramStat {
+            postings,
+            charged: GramSeekCharge {
+                lookups: 1,
+                vm_steps: 1,
+                rows,
+                decoded_bytes: rows * 8,
+            },
+        })
+    }
+}
+
+fn gram_budget() -> GramSeekBudget {
+    GramSeekBudget {
+        max_lookups: 3,
+        max_candidates: 10,
+        max_vm_steps: 100,
+        max_rows: 3,
+        max_decoded_bytes: 24,
+    }
+}
+
+#[test]
+fn rarest_global_gram_is_admitted_before_any_posting_seek() {
+    let vocabulary = FixtureVocabulary::selected();
+    let selection = selection(&vocabulary);
+    let mut request = request("alpha");
+    request.sources.push("fixture-source-a".into());
+    let normalized = request.normalize(&selection, &vocabulary).unwrap();
+    let mut model = FixtureGramModel {
+        stats: [("alp", 7), ("lph", 2), ("pha", 2)]
+            .into_iter()
+            .map(|(key, value)| (key.into(), value))
+            .collect(),
+        ..FixtureGramModel::default()
+    };
+    let seed =
+        choose_rarest_gram(&mut model, SearchKind::Nodes, &normalized, gram_budget()).unwrap();
+    assert_eq!(seed.gram.as_deref(), Some("lph"));
+    assert_eq!(seed.postings, 2);
+    assert_eq!(model.calls, ["alp", "lph", "pha"]);
+    assert_eq!(seed.charged.rows, 3);
+    assert_eq!(seed.charged.decoded_bytes, 24);
+
+    let mut low = gram_budget();
+    low.max_candidates = 1;
+    assert_eq!(
+        choose_rarest_gram(&mut model, SearchKind::Nodes, &normalized, low)
+            .unwrap_err()
+            .code,
+        SearchV2ErrorCode::BudgetExceeded
+    );
+    let mut low = gram_budget();
+    low.max_decoded_bytes = 23;
+    let before = model.calls.len();
+    assert_eq!(
+        choose_rarest_gram(&mut model, SearchKind::Nodes, &normalized, low)
+            .unwrap_err()
+            .code,
+        SearchV2ErrorCode::BudgetExceeded
+    );
+    assert_eq!(model.calls.len(), before);
+
+    model.stats.remove("lph");
+    let empty =
+        choose_rarest_gram(&mut model, SearchKind::Nodes, &normalized, gram_budget()).unwrap();
+    assert_eq!(empty.gram, None);
+    assert_eq!(empty.postings, 0);
+    assert_eq!(empty.charged.rows, 2);
 }
 
 fn selection(vocabulary: &FixtureVocabulary) -> SearchSelectionBinding {

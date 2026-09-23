@@ -4,7 +4,10 @@
 //! expose a sealed, visibility-filtered local read model; this crate never
 //! treats projection presence as source authority or current rights.
 
+#[cfg(not(target_arch = "wasm32"))]
+mod knowledge_sqlite;
 mod search_document;
+pub mod search_index;
 pub mod search_v2;
 mod source_descend;
 #[cfg(not(target_arch = "wasm32"))]
