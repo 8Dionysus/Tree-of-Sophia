@@ -113,7 +113,7 @@ fn stable_digest_value(value: &Value, hasher: &mut Digest256Hasher) -> Result<()
     Ok(())
 }
 
-fn stable_digest(value: &Value) -> Result<String> {
+pub(crate) fn stable_digest(value: &Value) -> Result<String> {
     let mut hasher = Digest256Hasher::new();
     stable_digest_value(value, &mut hasher)?;
     Ok(hasher.finalize().to_hex())

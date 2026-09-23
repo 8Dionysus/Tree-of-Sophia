@@ -20,6 +20,8 @@ pub struct ResolvedType<'a> {
 pub struct KnowledgeRegistry {
     pub entity_sha256: String,
     pub relation_sha256: String,
+    pub entity_semantic_digest: String,
+    pub relation_semantic_digest: String,
     pub entity_registry_id: String,
     pub relation_registry_id: String,
     pub entity_registry_version: u64,
@@ -204,6 +206,8 @@ impl KnowledgeRegistry {
         Ok(Self {
             entity_sha256: Digest256::of_bytes(entity_bytes).to_hex(),
             relation_sha256: Digest256::of_bytes(relation_bytes).to_hex(),
+            entity_semantic_digest: crate::knowledge_normalization::stable_digest(&entity)?,
+            relation_semantic_digest: crate::knowledge_normalization::stable_digest(&relation)?,
             entity_registry_id,
             relation_registry_id,
             entity_registry_version,

@@ -218,6 +218,20 @@ fn seal_inner(
         return Err(Error::Invalid("knowledge component row counts"));
     }
     let authority = checked_header(header, roots.nodes, roots.relations)?;
+    let normalization = header
+        .get("normalization_binding")
+        .ok_or(Error::Invalid("knowledge normalization binding"))?;
+    if normalization
+        .get("entity_registry_digest")
+        .and_then(Value::as_str)
+        != Some(registry.entity_semantic_digest.as_str())
+        || normalization
+            .get("relation_registry_digest")
+            .and_then(Value::as_str)
+            != Some(registry.relation_semantic_digest.as_str())
+    {
+        return Err(Error::Invalid("knowledge normalization registry digest"));
+    }
     let packet = canonical(header, limits.max_header_bytes)?;
     let authority_packet = canonical(authority, limits.max_header_bytes)?;
     let authority_text = String::from_utf8(authority_packet)
