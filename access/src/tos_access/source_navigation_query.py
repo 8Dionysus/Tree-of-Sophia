@@ -233,17 +233,125 @@ def source_dossier_query(
         and set(str(item) for item in record.get("scope_refs", []) if isinstance(record.get("scope_refs"), list)) & component_ids
     ]
     decision_scope_ids = {object_id}
+    file_membership_complete = False
+    file_member_reviewed_positive: dict[str, bool] = {}
+    file_membership_gap: str | None = None
     if selected.get("node_kind") == "link":
         decision_scope_ids = {
             str(edge.get("from_id"))
             for edge in component_edges.values()
             if edge.get("to_id") == object_id and edge.get("edge_kind") == "evidence_claim"
         }
-    decision_rights = [
-        record
-        for record in rights
-        if set(str(item) for item in record.get("scope_refs", []) if isinstance(record.get("scope_refs"), list)) & decision_scope_ids
-    ]
+    if selected.get("node_kind") == "file":
+        membership_edges = [
+            edge for edge in incoming.get(object_id, [])
+            if edge.get("edge_kind") == "authored_item_manifest"
+            and edge.get("predicate_id") == "has_file"
+            and edge.get("to_id") == object_id
+        ]
+        memberships: dict[str, dict[str, Any]] = {}
+        membership_bindings_valid = bool(membership_edges)
+        for edge in membership_edges:
+            item_id = str(edge.get("from_id") or "")
+            if not item_id or nodes_by_id.get(item_id, {}).get("node_kind") != "item":
+                membership_bindings_valid = False
+                continue
+            if item_id in memberships:
+                membership_bindings_valid = False
+            entry = memberships.setdefault(item_id, {"rights_refs": set(), "legacy": False})
+            properties = edge.get("properties")
+            properties = properties if isinstance(properties, dict) else {}
+            edge_source_refs = {
+                ref for ref in edge.get("source_refs", [])
+                if isinstance(edge.get("source_refs"), list) and isinstance(ref, str) and ref
+            }
+            if "item_file_contexts" not in properties:
+                entry["legacy"] = True
+                continue
+            raw_contexts = properties.get("item_file_contexts")
+            if not isinstance(raw_contexts, list) or not raw_contexts:
+                membership_bindings_valid = False
+                continue
+            contexts = raw_contexts
+            for context in contexts:
+                if not isinstance(context, dict):
+                    membership_bindings_valid = False
+                    continue
+                manifest_ref = context.get("manifest_ref")
+                rights_ref = context.get("rights_ref")
+                if not isinstance(manifest_ref, str) or not manifest_ref or manifest_ref not in edge_source_refs:
+                    membership_bindings_valid = False
+                if isinstance(rights_ref, str) and rights_ref:
+                    entry["rights_refs"].add(rights_ref)
+                else:
+                    entry["legacy"] = True
+        member_ids = set(memberships)
+        decision_scope_ids = member_ids | {object_id}
+        file_membership_complete = bool(member_ids) and member_ids.issubset(component_ids)
+        if not file_membership_complete:
+            membership_bindings_valid = False
+        # Older projections did not carry rights_ref on Item→File edges. A
+        # single, complete membership remains safely resolvable from the
+        # rights record's exact Item+File scope; shared legacy Files do not.
+        legacy_single_owner = len(member_ids) == 1
+        bound_rights: list[dict[str, Any]] = []
+        rights_by_member: dict[str, list[dict[str, Any]]] = {item_id: [] for item_id in member_ids}
+        for item_id, membership in memberships.items():
+            rights_refs = membership["rights_refs"]
+            if len(rights_refs) > 1:
+                membership_bindings_valid = False
+                continue
+            if rights_refs and membership["legacy"]:
+                membership_bindings_valid = False
+                continue
+            if not rights_refs and not (legacy_single_owner and membership["legacy"]):
+                membership_bindings_valid = False
+                continue
+            for record in rights:
+                scope_refs = {
+                    str(ref) for ref in record.get("scope_refs", [])
+                    if isinstance(record.get("scope_refs"), list) and isinstance(ref, str)
+                }
+                if not {item_id, object_id}.issubset(scope_refs):
+                    continue
+                if rights_refs and record.get("source_ref") not in rights_refs:
+                    continue
+                rights_by_member[item_id].append(record)
+                bound_rights.append(record)
+        decision_rights = sorted(
+            {str(record.get("rights_id") or id(record)): record for record in bound_rights}.values(),
+            key=lambda record: str(record.get("rights_id") or ""),
+        )
+        # A File packet is an aggregate over its explicit Item memberships;
+        # do not attach a merely File-intersecting rights row to that content
+        # identity when its source record cannot be bound to a member.
+        rights = decision_rights
+        for item_id, member_rights in rights_by_member.items():
+            member_positive = [
+                record for record in member_rights
+                if record.get("assessment_status") in {"licensed", "public_domain_reviewed"}
+                and record.get("redistribution_posture") in {"authorized", "authorized_with_conditions"}
+            ]
+            member_reviewed_positive = [
+                record for record in member_positive
+                if record.get("review_status") in {"accepted", "accepted_with_limits"}
+            ]
+            file_member_reviewed_positive[item_id] = bool(member_reviewed_positive)
+            if not member_rights:
+                membership_bindings_valid = False
+        file_membership_complete = file_membership_complete and membership_bindings_valid
+        if not file_membership_complete:
+            file_membership_gap = "File membership or its exact rights binding is incomplete"
+    else:
+        decision_rights = [
+            record
+            for record in rights
+            if set(str(item) for item in record.get("scope_refs", []) if isinstance(record.get("scope_refs"), list)) & decision_scope_ids
+        ]
+        if selected.get("node_kind") == "item":
+            # An Item packet is scoped to that acquisition; rights from a
+            # neighboring Item can share its File but are not its context.
+            rights = decision_rights
 
     dossier_links = [selected] if selected.get("node_kind") == "link" else grouped_chain["link"]
     link_statuses = {
@@ -273,7 +381,24 @@ def source_dossier_query(
         for record in positive_rights
         if record.get("review_status") in {"accepted", "accepted_with_limits"}
     ]
-    if reviewed_positive:
+    file_all_members_reviewed_positive = (
+        selected.get("node_kind") == "file"
+        and file_membership_complete
+        and bool(file_member_reviewed_positive)
+        and all(file_member_reviewed_positive.values())
+    )
+    if selected.get("node_kind") == "file":
+        if file_all_members_reviewed_positive:
+            rights_posture = "reviewed_reuse_route"
+        elif file_membership_gap or any(file_member_reviewed_positive.values()):
+            rights_posture = "membership_scoped_review_required"
+        elif positive_rights:
+            rights_posture = "candidate_requires_human_review"
+        elif decision_rights:
+            rights_posture = "not_cleared"
+        else:
+            rights_posture = "unknown"
+    elif reviewed_positive:
         rights_posture = "reviewed_reuse_route"
     elif positive_rights:
         rights_posture = "candidate_requires_human_review"
@@ -286,6 +411,10 @@ def source_dossier_query(
         gaps.append("no associated public rights record")
     if positive_rights and not reviewed_positive:
         gaps.append("positive rights route exists but has no accepted human review")
+    if file_membership_gap:
+        gaps.append(file_membership_gap)
+    elif selected.get("node_kind") == "file" and not file_all_members_reviewed_positive:
+        gaps.append("not every exact Item membership has an accepted positive rights route")
     if not grouped_chain["link"]:
         gaps.append("no first-class associated Link record")
 
@@ -315,8 +444,8 @@ def source_dossier_query(
         "agent_summary": {
             "technical_access": technical_access,
             "rights_posture": rights_posture,
-            "human_review_required": not bool(reviewed_positive),
-            "can_conclude_legal_openness": bool(reviewed_positive),
+            "human_review_required": not (file_all_members_reviewed_positive if selected.get("node_kind") == "file" else bool(reviewed_positive)),
+            "can_conclude_legal_openness": file_all_members_reviewed_positive if selected.get("node_kind") == "file" else bool(reviewed_positive),
             "availability_is_license": False,
             "rights_scope_refs": sorted(decision_scope_ids),
             "gaps": gaps,

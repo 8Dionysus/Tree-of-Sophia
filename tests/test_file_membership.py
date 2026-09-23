@@ -135,13 +135,18 @@ class FileMembershipTests(unittest.TestCase):
             context = edge["properties"]["item_file_contexts"][0]
             self.assertEqual(manifest_ref, context["manifest_ref"])
             self.assertEqual(manifest["acquisition_event_ref"], context["acquisition_event_ref"])
+            self.assertEqual(manifest["rights_ref"], context["rights_ref"])
             self.assertEqual(manifest["payload_files"][0]["original_basename"],
                              context["payload_entries"][0]["original_basename"])
             self.assertEqual(manifest["payload_files"][0]["fixity_verified_at"],
                              context["payload_entries"][0]["fixity_verified_at"])
-            self.assertNotIn("rights_ref", context)
             root_validator.evolve(schema={"$ref": "#/$defs/sourceNavigationEdge"}).validate(
                 edge
+            )
+            prior_snapshot_edge = json.loads(json.dumps(edge))
+            prior_snapshot_edge["properties"]["item_file_contexts"][0].pop("rights_ref")
+            root_validator.evolve(schema={"$ref": "#/$defs/sourceNavigationEdge"}).validate(
+                prior_snapshot_edge
             )
 
     def test_same_file_id_rejects_digest_size_and_media_type_conflicts(self) -> None:
@@ -200,6 +205,7 @@ class FileMembershipTests(unittest.TestCase):
                 "ToS/source-witnesses/fixture/first/item.manifest.json",
                 {
                     "acquisition_event_ref": "tos.event.acquisition.fixture.first",
+                    "rights_ref": "ToS/source-witnesses/fixture/first/rights.json",
                     "payload_files": [{
                         "file_id": file_id,
                         "relative_path": "payload/source.bin",
@@ -216,6 +222,7 @@ class FileMembershipTests(unittest.TestCase):
                 "ToS/source-witnesses/fixture/second/item.manifest.json",
                 {
                     "acquisition_event_ref": "tos.event.acquisition.fixture.second",
+                    "rights_ref": "ToS/source-witnesses/fixture/second/rights.json",
                     "payload_files": [{
                         "file_id": file_id,
                         "relative_path": "payload/source.bin",

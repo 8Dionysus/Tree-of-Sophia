@@ -786,11 +786,18 @@ def project_source_item_file_memberships(
     )
     for item_id, manifest_ref, manifest in manifest_rows:
         acquisition_event_ref = manifest.get("acquisition_event_ref")
+        rights_ref = manifest.get("rights_ref")
         if not isinstance(acquisition_event_ref, str) or not acquisition_event_ref:
             diagnostics.append({
                 "level": "error",
                 "path": manifest_ref,
                 "message": "source-navigation Item manifest has no acquisition event reference",
+            })
+        if not isinstance(rights_ref, str) or not rights_ref:
+            diagnostics.append({
+                "level": "error",
+                "path": manifest_ref,
+                "message": "source-navigation Item manifest has no rights reference",
             })
         payload_files = manifest.get("payload_files", [])
         if not isinstance(payload_files, list):
@@ -855,7 +862,8 @@ def project_source_item_file_memberships(
                     })
                     group["invalid"] = True
             group["source_refs"].add(manifest_ref)
-            if not isinstance(acquisition_event_ref, str) or not acquisition_event_ref:
+            if (not isinstance(acquisition_event_ref, str) or not acquisition_event_ref
+                    or not isinstance(rights_ref, str) or not rights_ref):
                 group["invalid"] = True
                 continue
             relative_path = entry.get("relative_path")
@@ -877,14 +885,16 @@ def project_source_item_file_memberships(
             if context is None:
                 context = {
                     "acquisition_event_ref": acquisition_event_ref,
+                    "rights_ref": rights_ref,
                     "payload_entries": [],
                 }
                 membership[manifest_ref] = context
-            elif context["acquisition_event_ref"] != acquisition_event_ref:
+            elif (context["acquisition_event_ref"] != acquisition_event_ref
+                    or context["rights_ref"] != rights_ref):
                 diagnostics.append({
                     "level": "error",
                     "path": manifest_ref,
-                    "message": f"source-navigation Item manifest {manifest_ref} has conflicting acquisition events",
+                    "message": f"source-navigation Item manifest {manifest_ref} has conflicting acquisition or rights references",
                 })
                 group["invalid"] = True
             context["payload_entries"].append({
@@ -930,6 +940,7 @@ def project_source_item_file_memberships(
                 manifest_contexts.append({
                     "manifest_ref": manifest_ref,
                     "acquisition_event_ref": context["acquisition_event_ref"],
+                    "rights_ref": context["rights_ref"],
                     "payload_entries": context["payload_entries"],
                 })
             edges.append({

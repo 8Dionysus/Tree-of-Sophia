@@ -271,6 +271,10 @@ export function sourceDossier(navigation: Item, objectId: string, limit: number)
 
   const rights = objectArray(navigation.rights).filter((record) => intersects(record.scope_refs, componentIds));
   let decisionScopeIds = new Set([objectId]);
+  let decisionRights: Item[];
+  let fileMembershipComplete = false;
+  let fileMemberReviewedPositive: Record<string, boolean> = {};
+  let fileMembershipGap = "";
   if (selectedKind === "link") {
     decisionScopeIds = new Set(
       [...componentEdges.values()]
@@ -278,7 +282,88 @@ export function sourceDossier(navigation: Item, objectId: string, limit: number)
         .map((edge) => stringValue(edge.from_id)),
     );
   }
-  const decisionRights = rights.filter((record) => intersects(record.scope_refs, decisionScopeIds));
+  if (selectedKind === "file") {
+    const membershipEdges = (incoming.get(objectId) ?? []).filter((edge) =>
+      edge.edge_kind === "authored_item_manifest" && edge.predicate_id === "has_file" && edge.to_id === objectId,
+    );
+    const memberships = new Map<string, { rightsRefs: Set<string>; legacy: boolean; duplicate: boolean }>();
+    let membershipBindingsValid = membershipEdges.length > 0;
+    for (const edge of membershipEdges) {
+      const itemId = stringValue(edge.from_id);
+      if (!itemId || stringValue(nodesById.get(itemId)?.node_kind) !== "item") {
+        membershipBindingsValid = false;
+        continue;
+      }
+      const prior = memberships.get(itemId);
+      if (prior) prior.duplicate = true;
+      const membership = prior ?? { rightsRefs: new Set<string>(), legacy: false, duplicate: false };
+      memberships.set(itemId, membership);
+      const properties = itemObject(edge.properties);
+      const hasContexts = Object.prototype.hasOwnProperty.call(properties, "item_file_contexts");
+      if (!hasContexts) {
+        membership.legacy = true;
+        continue;
+      }
+      const rawContexts = properties.item_file_contexts;
+      if (!Array.isArray(rawContexts) || rawContexts.length === 0) {
+        membershipBindingsValid = false;
+        continue;
+      }
+      const contexts = objectArray(rawContexts);
+      if (contexts.length !== rawContexts.length) membershipBindingsValid = false;
+      const edgeSourceRefs = new Set(stringArray(edge.source_refs));
+      for (const context of contexts) {
+        const manifestRef = stringValue(context.manifest_ref);
+        const rightsRef = stringValue(context.rights_ref);
+        if (!manifestRef || !edgeSourceRefs.has(manifestRef)) membershipBindingsValid = false;
+        if (rightsRef) membership.rightsRefs.add(rightsRef);
+        else membership.legacy = true;
+      }
+    }
+    const memberIds = new Set(memberships.keys());
+    decisionScopeIds = new Set([objectId, ...memberIds]);
+    fileMembershipComplete = memberIds.size > 0 && [...memberIds].every((id) => componentIds.has(id));
+    if (!fileMembershipComplete) membershipBindingsValid = false;
+    const legacySingleOwner = memberIds.size === 1;
+    const rightsByMember = new Map<string, Item[]>();
+    const boundRights = new Map<string, Item>();
+    for (const [itemId, membership] of memberships) {
+      if (membership.duplicate || membership.rightsRefs.size > 1
+        || (membership.rightsRefs.size > 0 && membership.legacy)
+        || (membership.rightsRefs.size === 0 && !(legacySingleOwner && membership.legacy))) {
+        membershipBindingsValid = false;
+        continue;
+      }
+      const memberRights = rights.filter((record) => {
+        const scopes = new Set(stringArray(record.scope_refs));
+        return scopes.has(itemId) && scopes.has(objectId)
+          && (membership.rightsRefs.size === 0 || membership.rightsRefs.has(stringValue(record.source_ref)));
+      });
+      rightsByMember.set(itemId, memberRights);
+      for (const record of memberRights) boundRights.set(stringValue(record.rights_id) || JSON.stringify(record), record);
+      if (memberRights.length === 0) membershipBindingsValid = false;
+    }
+    decisionRights = [...boundRights.values()].sort((left, right) => stringValue(left.rights_id).localeCompare(stringValue(right.rights_id)));
+    // A File packet only contains rights records that are bound to one of its
+    // exact Item memberships, never records that merely mention the File ID.
+    rights.splice(0, rights.length, ...decisionRights);
+    for (const [itemId, memberRights] of rightsByMember) {
+      fileMemberReviewedPositive[itemId] = memberRights.some((record) =>
+        ["licensed", "public_domain_reviewed"].includes(stringValue(record.assessment_status))
+        && ["authorized", "authorized_with_conditions"].includes(stringValue(record.redistribution_posture))
+        && ["accepted", "accepted_with_limits"].includes(stringValue(record.review_status))
+      );
+    }
+    fileMembershipComplete = fileMembershipComplete && membershipBindingsValid;
+    if (!fileMembershipComplete) fileMembershipGap = "File membership or its exact rights binding is incomplete";
+  } else {
+    decisionRights = rights.filter((record) => intersects(record.scope_refs, decisionScopeIds));
+    if (selectedKind === "item") {
+      // An Item packet is scoped to that acquisition, not a sibling that
+      // happens to share one of its content-addressed Files.
+      rights.splice(0, rights.length, ...decisionRights);
+    }
+  }
   const dossierLinks = selectedKind === "link" ? [selected] : (chain.link ?? []);
   const linkStatuses = new Set(dossierLinks.map((node) => stringValue(itemObject(node.properties).access_status) || "unknown"));
   let technicalAccess = "unknown";
@@ -296,16 +381,32 @@ export function sourceDossier(navigation: Item, objectId: string, limit: number)
   const reviewedPositive = positiveRights.filter((record) =>
     ["accepted", "accepted_with_limits"].includes(stringValue(record.review_status))
   );
-  const rightsPosture = reviewedPositive.length > 0
-    ? "reviewed_reuse_route"
-    : positiveRights.length > 0
-      ? "candidate_requires_human_review"
-      : decisionRights.length > 0
-        ? "not_cleared"
-        : "unknown";
+  const fileAllMembersReviewedPositive = selectedKind === "file"
+    && fileMembershipComplete
+    && Object.keys(fileMemberReviewedPositive).length > 0
+    && Object.values(fileMemberReviewedPositive).every(Boolean);
+  const rightsPosture = selectedKind === "file"
+    ? fileAllMembersReviewedPositive
+      ? "reviewed_reuse_route"
+      : fileMembershipGap || Object.values(fileMemberReviewedPositive).some(Boolean)
+        ? "membership_scoped_review_required"
+        : positiveRights.length > 0
+          ? "candidate_requires_human_review"
+          : decisionRights.length > 0
+            ? "not_cleared"
+            : "unknown"
+    : reviewedPositive.length > 0
+      ? "reviewed_reuse_route"
+      : positiveRights.length > 0
+        ? "candidate_requires_human_review"
+        : decisionRights.length > 0
+          ? "not_cleared"
+          : "unknown";
   const gaps: string[] = [];
   if (decisionRights.length === 0) gaps.push("no associated public rights record");
   if (positiveRights.length > 0 && reviewedPositive.length === 0) gaps.push("positive rights route exists but has no accepted human review");
+  if (fileMembershipGap) gaps.push(fileMembershipGap);
+  else if (selectedKind === "file" && !fileAllMembersReviewedPositive) gaps.push("not every exact Item membership has an accepted positive rights route");
   if ((chain.link ?? []).length === 0) gaps.push("no first-class associated Link record");
 
   const sourceRefSet = new Set<string>();
@@ -328,8 +429,8 @@ export function sourceDossier(navigation: Item, objectId: string, limit: number)
     agent_summary: {
       technical_access: technicalAccess,
       rights_posture: rightsPosture,
-      human_review_required: reviewedPositive.length === 0,
-      can_conclude_legal_openness: reviewedPositive.length > 0,
+      human_review_required: selectedKind === "file" ? !fileAllMembersReviewedPositive : reviewedPositive.length === 0,
+      can_conclude_legal_openness: selectedKind === "file" ? fileAllMembersReviewedPositive : reviewedPositive.length > 0,
       availability_is_license: false,
       rights_scope_refs: [...decisionScopeIds].sort(),
       gaps,
