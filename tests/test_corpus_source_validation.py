@@ -25,6 +25,23 @@ import validate_source_witness_foundation as foundation  # noqa: E402
 import source_record_profiles  # noqa: E402
 
 
+class FoundationValidationIssueReportingTests(unittest.TestCase):
+    def test_error_retains_all_structured_issues_and_keeps_bounded_text_summary(self) -> None:
+        issues = [(f"source-{index}.json", f"issue-{index}") for index in range(12)]
+
+        error = source_validation.FoundationValidationError(issues)
+
+        self.assertEqual(error.issues, tuple(issues))
+        self.assertEqual(error.issue_count, len(issues))
+        self.assertEqual(
+            error.issue_rows,
+            tuple({"path": path, "message": message} for path, message in issues),
+        )
+        self.assertIn("source admission rejected (12 issues):", str(error))
+        self.assertIn("source-7.json: issue-7", str(error))
+        self.assertNotIn("source-8.json", str(error))
+
+
 def _git(root: Path, *args: str) -> str:
     completed = subprocess.run(
         ["git", *args],
