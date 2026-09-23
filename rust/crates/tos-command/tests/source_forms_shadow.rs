@@ -3,8 +3,8 @@
 #[path = "../src/source_forms_shadow.rs"]
 mod source_forms_shadow;
 
-use source_forms_shadow::{apply_or_replay, ShadowError, WorkFormsInput};
-use tos_foundation::{canonical_digest_v1, parse_json, CanonicalProfile, JsonLimits, JsonMode};
+use source_forms_shadow::{ShadowError, WorkFormsInput, apply_or_replay};
+use tos_foundation::{CanonicalProfile, JsonLimits, JsonMode, canonical_digest_v1, parse_json};
 
 const SOURCE: &[u8] = include_bytes!("fixtures/source_forms_shadow/source.initial.json");
 const INITIAL: &[u8] = include_bytes!("fixtures/source_forms_shadow/form-set.initial.json");

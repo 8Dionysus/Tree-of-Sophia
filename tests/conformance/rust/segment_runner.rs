@@ -297,15 +297,11 @@ fn placement_wire_requires_cold_pin_and_exact_physical_member() {
     assert_eq!(recovered.binding(), &binding(1));
     assert_ne!(recovered.receipt_id(), receipts[0].receipt_id());
 
-    for bad in [
-        wire[..207].to_vec(),
-        [wire.as_slice(), &[0]].concat(),
-        {
-            let mut v = wire.to_vec();
-            v[8] ^= 1; // wire version
-            v
-        },
-    ] {
+    for bad in [wire[..207].to_vec(), [wire.as_slice(), &[0]].concat(), {
+        let mut v = wire.to_vec();
+        v[8] ^= 1; // wire version
+        v
+    }] {
         assert_eq!(
             PlacementV1::decode(&bad).unwrap_err().code,
             SegmentErrorCode::InvalidFormat
@@ -364,7 +360,10 @@ fn placement_wire_is_exact_little_endian_v1() {
         "42478dde48195a3b9c4e6292c63ca2a7d7e5a2a942b83456d6cd0e2437c18fc7"
     );
     let placement = PlacementV1::decode(&wire).unwrap();
-    assert_eq!(placement.store_id(), [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]);
+    assert_eq!(
+        placement.store_id(),
+        [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    );
     assert_eq!(placement.fence_epoch(), 7);
     assert_eq!(placement.segment_size(), 200);
     assert_eq!(placement.frame_index(), 2);

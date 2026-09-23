@@ -8,17 +8,17 @@ use std::io::Write;
 use std::os::unix::process::ExitStatusExt;
 use std::path::PathBuf;
 use std::process::Command;
+use std::sync::Once;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::mpsc;
-use std::sync::Once;
 use std::thread;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use postgres::{Client, NoTls};
 use tos_command::{
-    durable_shadow_delta, durable_shadow_delta_prepared, lab_record_bytes, AttemptResolution,
-    CancelOutcome, CommitShadowAttempt, DurableError, DurablePgCoordinator, DurableShadowMember,
-    RegisterShadowAttempt, ShadowWriteIdentity,
+    AttemptResolution, CancelOutcome, CommitShadowAttempt, DurableError, DurablePgCoordinator,
+    DurableShadowMember, RegisterShadowAttempt, ShadowWriteIdentity, durable_shadow_delta,
+    durable_shadow_delta_prepared, lab_record_bytes,
 };
 use tos_foundation::Digest256;
 use tos_segment_store::{

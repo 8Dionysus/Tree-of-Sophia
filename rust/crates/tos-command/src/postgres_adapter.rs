@@ -692,7 +692,7 @@ impl PgCoordinator {
             &[&domain, &namespace, &key],
         )?;
         let result = row
-            .map(|r| Ok((from_i64(r.get::<_, i64>(0))?, parse_digest(r.get(1))?)))
+            .map(|r| -> Result<_> { Ok((from_i64(r.get::<_, i64>(0))?, parse_digest(r.get(1))?)) })
             .transpose()?;
         tx.commit()?;
         Ok(result)
