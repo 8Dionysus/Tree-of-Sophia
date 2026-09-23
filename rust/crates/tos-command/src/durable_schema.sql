@@ -22,7 +22,7 @@ ALTER TABLE cmd2_domain ADD COLUMN IF NOT EXISTS complete_cut_generation bigint
 -- Every selected metadata mutation must change this independent, lockable
 -- generation. Every writer and the short publisher locks it before attempt
 -- and domain rows; AFTER triggers then re-enter that same transaction lock.
--- compares the private offline audit generation. Direct fence writes and
+-- The publisher compares the private offline audit generation. Direct fence writes and
 -- trigger/DDL bypass are outside this private laboratory trust profile.
 CREATE TABLE IF NOT EXISTS cmd2_audit_fence (
   domain text PRIMARY KEY REFERENCES cmd2_domain(domain) ON DELETE RESTRICT,
