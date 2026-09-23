@@ -90,6 +90,22 @@ const collidingPacket = colliding.exportPacket();
 const collidingMachine = call('import', machine, { packet: collidingPacket });
 assert.ok(collidingMachine.value, `collision import: ${collidingMachine.error}`);
 assert.equal(call('comparable_routes_ready', collidingMachine.value.machine).value.value, false);
+const stageTs = createResearchWorkspace({ sessionId: 'proposal-oracle', persistence: false });
+let stageMachine = call('create', null, { session_id: 'proposal-oracle' }).value.machine;
+stageTs.addHypothesis({ id: 'hyp:stage', title: 'Reading', body: 'Local reading.' });
+stageMachine = call('apply', stageMachine, { command: { kind: 'hypothesis.add', hypothesis: JSON.parse(stageTs.exportPacket()).hypotheses[0] } }).value.machine;
+assert.equal(call('export', stageMachine).value.value, stageTs.exportPacket(), 'proposal hypothesis packet');
+stageTs.stageProposal({ id: 'proposal:stage', kind: 'interpretation', parentHypothesisId: 'hyp:stage', targetId: 'edge:stage',
+  statement: 'Another reading.', sourceRefs: ['source:one'], evidenceRefs: ['evidence:one'],
+  confidencePosture: { value: 'low', meaning: 'maker_declared_uncertainty_not_truth_probability' },
+  actorOrigin: 'agent', basePageRevision: 7, baseWorkspaceRevision: 1, dataFingerprint: 'sha256:fixture',
+  createdAt: '2026-09-23T12:00:00.000Z' });
+const unsignedProposal = { ...JSON.parse(stageTs.exportPacket()).proposals[0] };
+delete unsignedProposal.digest;
+const staged = call('apply', stageMachine, { command: { kind: 'proposal.stage', proposal: unsignedProposal } });
+assert.ok(staged.value, `proposal stage: ${staged.error}`);
+assert.equal(call('export', staged.value.machine).value.value, stageTs.exportPacket(), 'proposal stage packet');
+cases++;
 const after = process.memoryUsage();
 console.log(JSON.stringify({ status: 'pass', host: `Node ${process.version} WebAssembly`, packet_summary_cases: cases, independent_ts: true,
   measured_nonparity_cases: 2,
