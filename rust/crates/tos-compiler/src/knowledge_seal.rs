@@ -166,6 +166,49 @@ fn graph_root(
     hash.finalize().to_hex()
 }
 
+fn check_source_counts(
+    stage: &mut KnowledgeStage<'_>,
+    header: &Value,
+    max_sources: usize,
+) -> Result<()> {
+    let sources = header
+        .get("counts")
+        .and_then(|counts| counts.get("sources"))
+        .and_then(Value::as_object)
+        .ok_or(Error::Invalid("knowledge graph source counts"))?;
+    if sources.len() > max_sources {
+        return Err(Error::Budget("knowledge graph source counts"));
+    }
+    stage.with_connection(WritePhase::Finalize, |db| {
+        let mut statement = db.prepare(
+            "SELECT source_graph,expected_node_count FROM source_scope ORDER BY source_graph",
+        )?;
+        let mut rows = statement.query([])?;
+        let mut seen = 0usize;
+        let mut populated = 0usize;
+        while let Some(row) = rows.next()? {
+            let source: String = row.get(0)?;
+            let count: i64 = row.get(1)?;
+            if count < 0 || seen >= max_sources {
+                return Err(Error::Invalid("knowledge source-scope count"));
+            }
+            seen += 1;
+            if count > 0 {
+                populated += 1;
+                if sources.get(&source).and_then(Value::as_u64) != Some(count as u64) {
+                    return Err(Error::Invalid("knowledge graph source count mismatch"));
+                }
+            } else if sources.contains_key(&source) {
+                return Err(Error::Invalid("zero-node source in graph header counts"));
+            }
+        }
+        if seen != max_sources || populated != sources.len() {
+            return Err(Error::Invalid("knowledge graph source count closure"));
+        }
+        Ok(())
+    })
+}
+
 /// Seal after source scope, catalog and search have all been written. A failed
 /// check poisons the private stage, and `finish` repeats core-root verification.
 pub fn seal_knowledge_model(
@@ -218,6 +261,7 @@ fn seal_inner(
         return Err(Error::Invalid("knowledge component row counts"));
     }
     let authority = checked_header(header, roots.nodes, roots.relations)?;
+    check_source_counts(stage, header, vocabulary.sources.len())?;
     let normalization = header
         .get("normalization_binding")
         .ok_or(Error::Invalid("knowledge normalization binding"))?;
