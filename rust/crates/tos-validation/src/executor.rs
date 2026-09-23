@@ -324,9 +324,9 @@ mod native {
             rlim_max: budget.cpu_seconds,
         };
         if unsafe { libc::setpgid(0, 0) } != 0
-            || unsafe { libc::prctl(libc::PR_SET_PDEATHSIG, libc::SIGKILL) } != 0
+            || unsafe { libc::prctl(libc::PR_SET_PDEATHSIG, libc::SIGKILL, 0, 0, 0) } != 0
             || unsafe { libc::getppid() } != parent_pid
-            || unsafe { libc::prctl(libc::PR_SET_NO_NEW_PRIVS, 1) } != 0
+            || unsafe { libc::prctl(libc::PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) } != 0
             || unsafe { libc::setrlimit(libc::RLIMIT_AS, &as_limit) } != 0
             || unsafe { libc::setrlimit(libc::RLIMIT_CPU, &cpu_limit) } != 0
             || unsafe { libc::chdir(c"/".as_ptr()) } != 0
@@ -795,7 +795,7 @@ mod native {
                 interpret_response(&response, identity),
                 ExecutorOutcome::SchemaValid(identity)
             );
-            for index in [0, 8, 40, 72, 104] {
+            for index in [0, 8, 40, 72, 105] {
                 let mut forged = response.clone();
                 forged[index] ^= 1;
                 assert!(matches!(

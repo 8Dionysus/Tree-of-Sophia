@@ -688,7 +688,7 @@ mod tests {
         }
         let expected = resources.len();
         assert_eq!(
-            expected, 183,
+            expected, 184,
             "baseline source schema set changed; re-inventory the profile"
         );
         let backend =
