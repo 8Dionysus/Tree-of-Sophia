@@ -15,7 +15,9 @@ use tos_foundation::{Digest256, Digest256Hasher};
 
 use crate::error::{Result, SegmentError, SegmentErrorCode as Code};
 use crate::format::{self, FrameCoordinate, SegmentLimits};
+use crate::generation::GenerationShapeLimits;
 use crate::journal::{JournalFrame, PinJournal, PinState};
+use crate::packed_leaf::PackedPlacementLeafV1;
 use crate::placement::PlacementV1;
 
 const ROOT_MAGIC: &[u8; 8] = b"TOSROOT2";
@@ -50,6 +52,7 @@ struct Inner {
     segments: File,
     pins: File,
     attempts: Option<File>,
+    leaves: Option<File>,
     store_id: [u8; 16],
     domain: Vec<u8>,
     domain_digest: Digest256,
@@ -205,7 +208,7 @@ impl SegmentStore {
             ));
         }
         let root_fd = open_root(root)?;
-        for name in ["staging", "segments", "pins", "attempts"] {
+        for name in ["staging", "segments", "pins", "attempts", "leaves"] {
             mkdirat(&root_fd, name, Mode::RUSR | Mode::WUSR | Mode::XUSR).map_err(|error| {
                 SegmentError::io("cannot initialize segment directory", error.into())
             })?;
@@ -231,6 +234,7 @@ impl SegmentStore {
         let segments = open_directory(&root_fd, "segments")?;
         let pins = open_directory(&root_fd, "pins")?;
         let attempts = open_directory(&root_fd, "attempts")?;
+        let leaves = open_directory(&root_fd, "leaves")?;
         Ok(Self {
             inner: Arc::new(Inner {
                 _root: root_fd,
@@ -238,6 +242,7 @@ impl SegmentStore {
                 segments,
                 pins,
                 attempts: Some(attempts),
+                leaves: Some(leaves),
                 store_id,
                 domain: domain.to_vec(),
                 domain_digest: Digest256::of_bytes(domain),
@@ -257,6 +262,11 @@ impl SegmentStore {
         // writer or treated as evidence of an absent historical attempt.
         let attempts = match open_directory(&root_fd, "attempts") {
             Ok(attempts) => Some(attempts),
+            Err(error) if is_missing(&error) => None,
+            Err(error) => return Err(error),
+        };
+        let leaves = match open_directory(&root_fd, "leaves") {
+            Ok(leaves) => Some(leaves),
             Err(error) if is_missing(&error) => None,
             Err(error) => return Err(error),
         };
@@ -298,6 +308,7 @@ impl SegmentStore {
                 segments,
                 pins,
                 attempts,
+                leaves,
                 store_id,
                 domain,
                 domain_digest,
@@ -314,6 +325,108 @@ impl SegmentStore {
     }
     pub fn custody_domain(&self) -> &[u8] {
         &self.inner.domain
+    }
+
+    /// Install exact packed placement bytes by content digest. This is an
+    /// immutable physical leaf, not a selected or complete CMD generation.
+    /// Existing roots without a leaves directory stay readable by placement
+    /// but cannot install a new leaf implicitly.
+    pub fn install_packed_leaf(
+        &self,
+        leaf: &PackedPlacementLeafV1,
+        limits: GenerationShapeLimits,
+    ) -> Result<Digest256> {
+        if leaf.domain_digest != self.inner.domain_digest {
+            return Err(SegmentError::new(
+                Code::InvalidReceipt,
+                "packed leaf custody domain differs",
+            ));
+        }
+        let raw = leaf.encode(limits)?;
+        let digest = Digest256::of_bytes(&raw);
+        let leaves = self.inner.leaves.as_ref().ok_or_else(|| {
+            SegmentError::new(Code::InvalidRoot, "store lacks immutable leaf directory")
+        })?;
+        let name = digest.to_hex();
+        let mut stage_id = [0u8; 16];
+        getrandom::fill(&mut stage_id)
+            .map_err(|_| SegmentError::new(Code::Io, "cannot create leaf staging ID"))?;
+        let stage_name = format!("{}.part", hex_id(stage_id));
+        let mut stage = create_exclusive(leaves, &stage_name)?;
+        stage
+            .write_all(&raw)
+            .map_err(|error| SegmentError::io("cannot write staged packed leaf", error))?;
+        stage
+            .sync_all()
+            .map_err(|error| SegmentError::io("cannot sync staged packed leaf", error))?;
+        drop(stage);
+        match linkat(
+            leaves,
+            stage_name.as_str(),
+            leaves,
+            name.as_str(),
+            AtFlags::empty(),
+        ) {
+            Ok(()) | Err(Errno::EXIST) => {}
+            Err(error) => {
+                return Err(SegmentError::io(
+                    "cannot no-replace install packed leaf",
+                    error.into(),
+                ));
+            }
+        }
+        fsync(leaves)
+            .map_err(|error| SegmentError::io("cannot sync packed leaf directory", error.into()))?;
+        unlinkat(leaves, stage_name.as_str(), AtFlags::empty())
+            .map_err(|error| SegmentError::io("cannot unlink staged packed leaf", error.into()))?;
+        fsync(leaves)
+            .map_err(|error| SegmentError::io("cannot sync packed leaf directory", error.into()))?;
+        let readback = self.open_packed_leaf(digest, limits)?;
+        if &readback != leaf {
+            return Err(SegmentError::new(
+                Code::CorruptBytes,
+                "packed leaf readback differs",
+            ));
+        }
+        open_regular(leaves, &name)?
+            .sync_all()
+            .map_err(|error| SegmentError::io("cannot sync verified packed leaf", error))?;
+        fsync(leaves).map_err(|error| {
+            SegmentError::io("cannot sync verified leaf directory", error.into())
+        })?;
+        Ok(digest)
+    }
+
+    /// Cold exact content read for a caller-selected immutable leaf. A leaf
+    /// path is derived from SHA-256; this does not authorize a negative key.
+    pub fn open_packed_leaf(
+        &self,
+        digest: Digest256,
+        limits: GenerationShapeLimits,
+    ) -> Result<PackedPlacementLeafV1> {
+        let limits = limits.validate()?;
+        let leaves = self.inner.leaves.as_ref().ok_or_else(|| {
+            SegmentError::new(Code::InvalidRoot, "store lacks immutable leaf directory")
+        })?;
+        let mut raw = Vec::new();
+        open_regular(leaves, &digest.to_hex())?
+            .take(limits.max_leaf_bytes + 1)
+            .read_to_end(&mut raw)
+            .map_err(|error| SegmentError::io("cannot read packed leaf", error))?;
+        if Digest256::of_bytes(&raw) != digest {
+            return Err(SegmentError::new(
+                Code::CorruptBytes,
+                "packed leaf content digest differs",
+            ));
+        }
+        let leaf = PackedPlacementLeafV1::decode(&raw, limits)?;
+        if leaf.domain_digest != self.inner.domain_digest {
+            return Err(SegmentError::new(
+                Code::InvalidReceipt,
+                "packed leaf custody domain differs",
+            ));
+        }
+        Ok(leaf)
     }
 
     /// Seal multiple bounded frames under one durable pin. All frames belong
@@ -1604,6 +1717,87 @@ mod tests {
             subject_key: format!("opaque-{slot}").into_bytes(),
             member_slot: slot,
         }
+    }
+
+    #[test]
+    fn packed_leaf_is_immutable_and_cold_recovers_selected_bytes() {
+        let root = PrivateRoot::new();
+        let store = SegmentStore::initialize_empty(&root.0, b"private-domain", limits()).unwrap();
+        let first = b"first exact bytes".to_vec();
+        let second = b"second exact bytes".to_vec();
+        let mut first_reader = Cursor::new(first.clone());
+        let mut second_reader = Cursor::new(second.clone());
+        let mut frames = [
+            FrameInput {
+                binding: binding(0),
+                declared_size: first.len() as u64,
+                declared_sha256: Digest256::of_bytes(&first),
+                reader: &mut first_reader,
+            },
+            FrameInput {
+                binding: binding(1),
+                declared_size: second.len() as u64,
+                declared_sha256: Digest256::of_bytes(&second),
+                reader: &mut second_reader,
+            },
+        ];
+        let receipts = store.seal_segment(b"leaf-prepare", &mut frames).unwrap();
+        let leaf = PackedPlacementLeafV1 {
+            domain_digest: store.domain_digest(),
+            bounds: crate::generation::PartitionBoundsV1 {
+                lower_inclusive: None,
+                upper_exclusive: None,
+            },
+            rows: [b"history/1".as_slice(), b"history/2"]
+                .into_iter()
+                .zip(&receipts)
+                .map(
+                    |(key, receipt)| crate::generation::PlacementGenerationRowV1 {
+                        key: key.to_vec(),
+                        logical_digest: receipt.coordinate().sha256,
+                        logical_length: receipt.coordinate().size_bytes,
+                        placement: receipt.placement(),
+                    },
+                )
+                .collect(),
+        };
+        let shape = GenerationShapeLimits {
+            max_partitions: 2,
+            max_rows_per_partition: 4,
+            max_key_bytes: 64,
+            max_leaf_bytes: 4096,
+        };
+        let digest = store.install_packed_leaf(&leaf, shape).unwrap();
+        assert_eq!(store.install_packed_leaf(&leaf, shape).unwrap(), digest);
+        drop(store);
+        let cold = SegmentStore::open_existing(&root.0, limits()).unwrap();
+        let restored = cold.open_packed_leaf(digest, shape).unwrap();
+        assert_eq!(restored, leaf);
+        let placements: Vec<_> = restored.rows.iter().map(|row| row.placement).collect();
+        let admitted = cold
+            .recover_placements(
+                &placements,
+                VerificationBudget {
+                    max_receipts: 2,
+                    max_segments: 1,
+                    max_total_segment_bytes: 1024 * 1024,
+                },
+            )
+            .unwrap();
+        let mut selected = Vec::new();
+        cold.read_selected(&admitted[1], 64, &mut selected).unwrap();
+        assert_eq!(selected, second);
+        let path = root.0.join("leaves").join(digest.to_hex());
+        OpenOptions::new()
+            .write(true)
+            .open(&path)
+            .unwrap()
+            .write_all(b"corrupt!")
+            .unwrap();
+        assert_eq!(
+            cold.open_packed_leaf(digest, shape).unwrap_err().code,
+            Code::CorruptBytes
+        );
     }
 
     #[test]
