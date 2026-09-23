@@ -135,3 +135,306 @@ fn compile_inner(
         seal,
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{
+        ColdOpenLimits, ExpectedSourceScope, ImmutableKnowledgeCustody, IndexedLimits,
+        KnowledgeSelectedExpectation, Limits, SourceBinding,
+        knowledge_stage::{
+            ExactInputReceipt, InputCollectionReceipt, InputRow, StageIsolation, StageLimits,
+            StageOwner,
+        },
+        materialize_indexed_sources, open_selected_knowledge_model,
+    };
+    use serde_json::json;
+    use std::{
+        fs,
+        path::Path,
+        time::{SystemTime, UNIX_EPOCH},
+    };
+    use tos_foundation::Digest256Hasher;
+
+    struct FixtureOwner;
+    impl StageOwner for FixtureOwner {
+        fn verify_receipt(&self, _: &ExactInputReceipt) -> Result<()> {
+            Ok(())
+        }
+        fn recheck_sealed_cut(&self, _: &ExactInputReceipt) -> Result<()> {
+            Ok(())
+        }
+    }
+    struct FixtureQuota;
+    impl StageIsolation for FixtureQuota {
+        fn verify(&self, _: &Path, _: StageLimits, _: WritePhase) -> Result<()> {
+            Ok(())
+        }
+    }
+    // Synthetic fixture custody only. Production must hold a real immutable
+    // generation and separately enforce cold temp/heap quotas.
+    struct FixtureCustody;
+    impl ImmutableKnowledgeCustody for FixtureCustody {
+        fn verify(&self, pinned: &fs::File, expected: &KnowledgeSelectedExpectation) -> Result<()> {
+            if expected.owner_receipt_id != "fixture-owner-receipt"
+                || pinned.metadata()?.len() != expected.model_size_bytes
+            {
+                return Err(Error::Invalid("synthetic custody mismatch"));
+            }
+            Ok(())
+        }
+        fn verify_cold_resources(&self, _: ColdOpenLimits) -> Result<()> {
+            Ok(())
+        }
+    }
+    fn root(id: &str, payload: &[u8]) -> String {
+        let mut hash = Digest256Hasher::new();
+        hash.update(&(id.len() as u64).to_be_bytes());
+        hash.update(id.as_bytes());
+        hash.update(Digest256::of_bytes(payload).as_bytes());
+        hash.finalize().to_hex()
+    }
+    fn candidate() -> std::path::PathBuf {
+        let tick = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let dir =
+            std::env::temp_dir().join(format!("tos-full-eighth-{}-{tick}", std::process::id()));
+        fs::create_dir(&dir).unwrap();
+        dir.join("candidate.sqlite3")
+    }
+
+    #[test]
+    fn eighth_source_private_producer_opens_one_complete_selected_model() {
+        let entity_bytes =
+            include_bytes!("../../../../ToS/doctrine/semantic-interchange/entity-types.v1.json");
+        let relation_bytes =
+            include_bytes!("../../../../ToS/doctrine/semantic-interchange/relation-types.v1.json");
+        let registry = KnowledgeRegistry::parse(entity_bytes, relation_bytes).unwrap();
+        let mut descriptor: Value = serde_json::from_slice(include_bytes!(
+            "../../../../ToS/doctrine/semantic-interchange/query-vocabulary.v1.json"
+        ))
+        .unwrap();
+        descriptor["sources"] = json!([{
+            "source_graph_id":"eighth", "owner_ref":"owner:eighth",
+            "input_role":"source-graph", "adapter_profile":"indexed-node-edge-v1",
+            "representative_priority":0
+        }]);
+        descriptor["identity"]["source_dossier_graph_id"] = json!("eighth");
+        let descriptor_bytes = serde_json::to_vec(&descriptor).unwrap();
+        let vocabulary =
+            QueryVocabulary::parse(&descriptor_bytes, &["indexed-node-edge-v1"]).unwrap();
+        let node_id = "eighth:node-1";
+        let relation_id = "eighth:relation-1";
+        let node = serde_json::to_vec(&json!({
+            "id":node_id,"native_id":"node-1","entity_id":"external.subject.1",
+            "source_graph":"eighth","kind_id":"unknown-owner-kind","type_id":"tos.entity.unmapped",
+            "type_mapping":{"status":"unmapped","source_kind_id":"unknown-owner-kind"},
+            "content_revision":"0".repeat(64),
+            "display":{"kind_label":{"default":"Owner kind"},"title":{"default":"Example"},
+                "summary_state":"source","provenance":{"source_summary_available":true}},
+            "epistemic":{},"attributes":{},"semantics":{},"graph_layers":[],"view_ids":[],
+            "source_refs":["owner:record-1"]
+        }))
+        .unwrap();
+        let relation = serde_json::to_vec(&json!({
+            "id":relation_id,"native_id":"relation-1","from_id":node_id,"to_id":node_id,
+            "source_graph":"eighth","predicate_id":"unknown-owner-relation",
+            "relation_type_id":"tos.relation.unmapped",
+            "predicate_mapping":{"status":"unmapped","source_predicate_id":"unknown-owner-relation"},
+            "content_revision":"1".repeat(64),
+            "display":{"label":{"default":"Owner relation"},"explanation_state":"source",
+                "provenance":{"source_explanation_available":true}},
+            "epistemic":{},"attributes":{},"semantics":{},"graph_layers":[],"view_ids":[],
+            "source_refs":["owner:record-1"]
+        })).unwrap();
+        let sealed = ExactInputReceipt {
+            binding: SourceBinding {
+                owner_profile: "fixture-owner".into(),
+                source_cut: "fixture-cut".into(),
+                through_commit_seq: 7,
+                membership_root: "0".repeat(64),
+                index_generation: "fixture-generation".into(),
+                route_map_version: "fixture-routes".into(),
+                reader_abi: "fixture-reader".into(),
+                projection_root_sha256: "1".repeat(64),
+                complete: true,
+            },
+            collections: vec![
+                InputCollectionReceipt {
+                    source_graph: "eighth".into(),
+                    collection: "nodes".into(),
+                    input_role: "source-graph".into(),
+                    adapter_profile: "indexed-node-edge-v1".into(),
+                    expected_count: 1,
+                    expected_root_sha256: root(node_id, &node),
+                },
+                InputCollectionReceipt {
+                    source_graph: "eighth".into(),
+                    collection: "relations".into(),
+                    input_role: "source-graph".into(),
+                    adapter_profile: "indexed-node-edge-v1".into(),
+                    expected_count: 1,
+                    expected_root_sha256: root(relation_id, &relation),
+                },
+            ],
+        };
+        let path = candidate();
+        let owner = FixtureOwner;
+        let quota = FixtureQuota;
+        let mut stage = KnowledgeStage::create(
+            &path,
+            StageLimits {
+                sqlite: Limits::default(),
+                max_temp_bytes: 64 * 1024 * 1024,
+                max_seek_rows: 8,
+                max_seek_bytes: 1024 * 1024,
+            },
+            sealed,
+            &owner,
+            &quota,
+        )
+        .unwrap();
+        for (collection, id, payload) in [
+            ("nodes", node_id, &node),
+            ("relations", relation_id, &relation),
+        ] {
+            stage
+                .ingest_input(InputRow {
+                    source_graph: "eighth",
+                    collection,
+                    id,
+                    payload,
+                })
+                .unwrap();
+        }
+        materialize_indexed_sources(
+            &mut stage,
+            &vocabulary,
+            &registry,
+            IndexedLimits {
+                max_row_bytes: 1024 * 1024,
+                max_page_rows: 1,
+            },
+        )
+        .unwrap();
+        let header = json!({
+            "schema":"tos_knowledge_graph_v1",
+            "source_revision":"2".repeat(64),
+            "normalization_binding":{
+                "schema":"tos_knowledge_graph_normalization_binding_v1",
+                "processor_digest":"3".repeat(64),
+                "entity_registry_digest":registry.entity_semantic_digest,
+                "relation_registry_digest":registry.relation_semantic_digest,
+                "configuration_digest":"4".repeat(64)
+            },
+            "query_properties":[],
+            "counts":{"nodes":1,"relations":1,"sources":{"eighth":1}},
+            "authority_boundary":{"is_source":false,"is_canon":false,"writes_to_tree":false}
+        });
+        let full = compile_full_knowledge_components(
+            &mut stage,
+            &header,
+            &registry,
+            entity_bytes,
+            relation_bytes,
+            &[],
+            &vocabulary,
+            &descriptor_bytes,
+            FullKnowledgeLimits {
+                scope: ScopeLimits {
+                    max_sources: 2,
+                    max_rows: 4,
+                    max_index_work_bytes: 4096,
+                },
+                catalog: CatalogLimits::default(),
+                catalog_index: CatalogIndexLimits::default(),
+                search: SearchBuildLimits {
+                    max_payload_bytes: 1024 * 1024,
+                    max_document_chars: 1024 * 1024,
+                    max_document_bytes: 4 * 1024 * 1024,
+                    max_rank_field_bytes: 1024 * 1024,
+                    max_postings: 100_000,
+                    max_work_bytes: 100 * 1024 * 1024,
+                    gram_batch_rows: 64,
+                },
+                seal: SealLimits {
+                    max_header_bytes: 1024 * 1024,
+                },
+                max_registry_bytes: 4 * 1024 * 1024,
+            },
+        )
+        .unwrap();
+        let output = stage.finish().unwrap();
+        let expectation = KnowledgeSelectedExpectation {
+            model_sha256: output.sqlite_sha256.clone(),
+            model_size_bytes: output.sqlite_size_bytes,
+            owner_receipt_id: "fixture-owner-receipt".into(),
+            model_abi: crate::KNOWLEDGE_MODEL_ABI.into(),
+            descriptor_sha256: vocabulary.descriptor_sha256.clone(),
+            descriptor_version: vocabulary.descriptor_version,
+            semantic_primitive_profile: vocabulary.semantic_primitive_profile.clone(),
+            source_cut: output.source_cut,
+            through_commit_seq: 7,
+            membership_root: output.membership_root,
+            entity_registry_id: registry.entity_registry_id.clone(),
+            entity_registry_version: registry.entity_registry_version.to_string(),
+            entity_registry_sha256: registry.entity_sha256.clone(),
+            relation_registry_id: registry.relation_registry_id.clone(),
+            relation_registry_version: registry.relation_registry_version.to_string(),
+            relation_registry_sha256: registry.relation_sha256.clone(),
+            graph_root_sha256: full.seal.graph_root_sha256,
+            catalog_packet_sha256: full.catalog.catalog_packet_sha256,
+            catalog_index_root_sha256: full.catalog.catalog_index_root_sha256,
+            source_scope_root_sha256: full.source_scope.source_scope_root_sha256,
+            search_index_root_sha256: full.search.search_index_root_sha256,
+            node_count: 1,
+            relation_count: 1,
+            index_generation: "fixture-generation".into(),
+            route_map_version: "fixture-routes".into(),
+            reader_abi: "fixture-reader".into(),
+            authority_boundary: serde_json::to_string(&header["authority_boundary"]).unwrap(),
+            source_scopes: vec![ExpectedSourceScope {
+                source_graph: "eighth".into(),
+                input_role: "source-graph".into(),
+                adapter_profile: "indexed-node-edge-v1".into(),
+                node_count: 1,
+                relation_count: 1,
+                node_root_sha256: root(node_id, &node),
+                relation_root_sha256: root(relation_id, &relation),
+            }],
+            complete: true,
+        };
+        let custody = FixtureCustody;
+        let selected = open_selected_knowledge_model(
+            &path,
+            expectation,
+            &custody,
+            ColdOpenLimits {
+                max_file_bytes: 64 * 1024 * 1024,
+                max_vm_steps: 100_000_000,
+                sqlite_cache_kib: 8192,
+                max_rows: 100_000,
+                max_work_bytes: 100 * 1024 * 1024,
+                max_row_bytes: 1024 * 1024,
+                max_metadata_bytes: 256 * 1024,
+                max_sources: 2,
+            },
+        )
+        .unwrap();
+        assert_eq!(selected.selection().node_count, 1);
+        assert!(selected.open_vm_steps() > 0);
+        assert_eq!(
+            selected
+                .connection()
+                .query_row("SELECT count(*) FROM search_documents", [], |row| row
+                    .get::<_, i64>(0))
+                .unwrap(),
+            2
+        );
+        selected.check_pin().unwrap();
+        drop(selected);
+        fs::remove_dir_all(path.parent().unwrap()).unwrap();
+    }
+}
