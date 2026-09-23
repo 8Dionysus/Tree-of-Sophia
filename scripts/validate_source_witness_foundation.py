@@ -343,6 +343,56 @@ EXPRESSION_DERIVATION_EVENT_REF = (
 
 Issue = tuple[str, str]
 
+
+class SourceFileMembershipIndex:
+    """Keep one content descriptor and every exact Item-to-File membership."""
+
+    def __init__(self) -> None:
+        self.item_ids_by_file: dict[str, set[str]] = {}
+        self.descriptor_by_file: dict[str, tuple[object, object, object]] = {}
+
+    def add(
+        self,
+        *,
+        item_id: object,
+        file_id: object,
+        sha256: object,
+        byte_size: object,
+        media_type: object,
+    ) -> tuple[str, ...]:
+        if not isinstance(file_id, str) or not isinstance(item_id, str):
+            return ()
+
+        self.item_ids_by_file.setdefault(file_id, set()).add(item_id)
+        descriptor = (sha256, byte_size, media_type)
+        conflicts: list[str] = []
+        existing = self.descriptor_by_file.get(file_id)
+        if existing is None:
+            self.descriptor_by_file[file_id] = descriptor
+        else:
+            for field, previous, current in zip(
+                ("sha256", "byte_size", "media_type"), existing, descriptor
+            ):
+                if previous != current:
+                    conflicts.append(field)
+
+        if isinstance(sha256, str) and file_id != f"tos.file.sha256.{sha256}":
+            conflicts.append("file_id_sha256")
+        return tuple(dict.fromkeys(conflicts))
+
+    def contains(self, item_id: object, file_id: object) -> bool:
+        return (
+            isinstance(item_id, str)
+            and isinstance(file_id, str)
+            and item_id in self.item_ids_by_file.get(file_id, set())
+        )
+
+    def sha256_for(self, file_id: object) -> object | None:
+        if not isinstance(file_id, str):
+            return None
+        descriptor = self.descriptor_by_file.get(file_id)
+        return descriptor[0] if descriptor is not None else None
+
 PRIVATE_HANDOFF_REQUIRED_FORBIDDEN_CLASSES = {
     "source_page_bytes",
     "source_text_or_transcription",
@@ -8117,8 +8167,7 @@ def _validate_foundation(
     rights_ids: set[str] = set()
     manifest_item_ids: set[str] = set()
     item_edition_by_id: dict[str, str] = {}
-    file_owner_by_id: dict[str, str] = {}
-    file_digest_by_id: dict[str, str] = {}
+    file_memberships = SourceFileMembershipIndex()
 
     for manifest_path in sorted((repo_root / SOURCE_ROOT).rglob("item.manifest.json")):
         manifest = _load_json(manifest_path, repo_root, issues)
@@ -8304,14 +8353,21 @@ def _validate_foundation(
             file_id = payload_entry.get("file_id")
             if isinstance(file_id, str):
                 file_ids.add(file_id)
-                if isinstance(item_id, str):
-                    existing_owner = file_owner_by_id.get(file_id)
-                    if existing_owner is not None and existing_owner != item_id:
-                        issues.append((location, f"file_id {file_id} belongs to multiple items"))
-                    file_owner_by_id[file_id] = item_id
-                file_digest = payload_entry.get("sha256")
-                if isinstance(file_digest, str):
-                    file_digest_by_id[file_id] = file_digest
+                descriptor_conflicts = file_memberships.add(
+                    item_id=item_id,
+                    file_id=file_id,
+                    sha256=payload_entry.get("sha256"),
+                    byte_size=payload_entry.get("byte_size"),
+                    media_type=payload_entry.get("media_type"),
+                )
+                if descriptor_conflicts:
+                    issues.append(
+                        (
+                            location,
+                            f"file_id {file_id} has conflicting File identity fields: "
+                            f"{', '.join(descriptor_conflicts)}",
+                        )
+                    )
             issues.extend(
                 validate_payload_file(
                     repo_root,
@@ -11382,9 +11438,9 @@ def _validate_foundation(
                 file_ref = anchor.get("file_id")
                 if item_ref not in records_by_id:
                     issues.append((anchor_location, f"unresolved item_id: {item_ref}"))
-                if file_owner_by_id.get(str(file_ref)) != item_ref:
+                if not file_memberships.contains(item_ref, file_ref):
                     issues.append((anchor_location, f"file_id {file_ref} does not belong to {item_ref}"))
-                if file_digest_by_id.get(str(file_ref)) != anchor.get("file_sha256"):
+                if file_memberships.sha256_for(file_ref) != anchor.get("file_sha256"):
                     issues.append((anchor_location, f"file_sha256 does not match manifest file {file_ref}"))
                 if anchor.get("provenance_event_ref") not in local_event_ids:
                     issues.append((anchor_location, "anchor provenance_event_ref is absent from gold-set provenance"))
@@ -11418,9 +11474,9 @@ def _validate_foundation(
                 group_language = (
                     next(iter(group_languages)) if len(group_languages) == 1 else None
                 )
-                if file_owner_by_id.get(str(file_ref)) != item_ref:
+                if not file_memberships.contains(item_ref, file_ref):
                     issues.append((_relative(sample_path, repo_root), f"file_ref {file_ref} does not belong to {item_ref}"))
-                if file_digest_by_id.get(str(file_ref)) != group.get("file_sha256"):
+                if file_memberships.sha256_for(file_ref) != group.get("file_sha256"):
                     issues.append((_relative(sample_path, repo_root), f"file_sha256 differs from manifest file {file_ref}"))
                 if len(samples) != 12:
                     issues.append((_relative(sample_path, repo_root), f"{item_ref} must have exactly 12 samples"))
@@ -11468,13 +11524,11 @@ def _validate_foundation(
             target_source = transfer_plan.get("target_source", {})
             target_item_ref = target_source.get("collection_item_ref")
             target_file_ref = target_source.get("file_ref")
-            if file_owner_by_id.get(str(target_file_ref)) != target_item_ref:
+            if not file_memberships.contains(target_item_ref, target_file_ref):
                 issues.append(
                     (transfer_location, "transfer target file does not belong to its collection item")
                 )
-            if file_digest_by_id.get(str(target_file_ref)) != target_source.get(
-                "file_sha256"
-            ):
+            if file_memberships.sha256_for(target_file_ref) != target_source.get("file_sha256"):
                 issues.append((transfer_location, "transfer target file digest drifted"))
             rights_record_ref = target_source.get("rights_record_ref")
             rights_record = (
@@ -11789,8 +11843,9 @@ def _validate_foundation(
                         )
                     )
                 if (
-                    file_owner_by_id.get(str(candidate.get("file_ref")))
-                    != candidate.get("item_ref")
+                    not file_memberships.contains(
+                        candidate.get("item_ref"), candidate.get("file_ref")
+                    )
                 ):
                     issues.append(
                         (
@@ -12336,9 +12391,9 @@ def _validate_foundation(
                     issues.append((ocr_location, f"duplicate or invalid OCR source item: {item_ref}"))
                 else:
                     ocr_group_items.add(item_ref)
-                if file_owner_by_id.get(str(file_ref)) != item_ref:
+                if not file_memberships.contains(item_ref, file_ref):
                     issues.append((ocr_location, f"OCR file_ref {file_ref} does not belong to {item_ref}"))
-                if file_digest_by_id.get(str(file_ref)) != group.get("file_sha256"):
+                if file_memberships.sha256_for(file_ref) != group.get("file_sha256"):
                     issues.append((ocr_location, f"OCR file_sha256 differs from manifest file {file_ref}"))
                 if len(samples) != 12:
                     issues.append((ocr_location, f"{item_ref} must have exactly 12 OCR samples"))
@@ -13863,9 +13918,9 @@ def _validate_foundation(
 
         item_ref = boundary_map.get("item_ref")
         file_id = boundary_map.get("file_id")
-        if file_owner_by_id.get(file_id) != item_ref:
+        if not file_memberships.contains(item_ref, file_id):
             issues.append((location, "work-boundary file does not belong to its item"))
-        if file_digest_by_id.get(file_id) != boundary_map.get("file_sha256"):
+        if file_memberships.sha256_for(file_id) != boundary_map.get("file_sha256"):
             issues.append((location, "work-boundary file digest differs from the item manifest"))
         if boundary_map.get("provenance_event_ref") not in event_ids:
             issues.append((location, "work-boundary provenance event is unresolved"))
