@@ -624,6 +624,16 @@
           "type": "string",
           "minLength": 1
         },
+        "source_refs": {
+          "description": "All exact Item-manifest sources for a shared content File; source_ref remains one compatible navigation handle.",
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
         "properties": {
           "type": "object"
         }
@@ -680,8 +690,57 @@
           "minLength": 1
         },
         "properties": {
-          "$ref": "#/$defs/retainedObjectLinkContext"
+          "$ref": "#/$defs/sourceNavigationEdgeProperties"
         }
+      }
+    },
+    "sourceNavigationEdgeProperties": {
+      "oneOf": [
+        {"$ref": "#/$defs/retainedObjectLinkContext"},
+        {"$ref": "#/$defs/sourceItemFileMembershipContext"}
+      ]
+    },
+    "sourceItemFileMembershipContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["item_file_contexts"],
+      "properties": {
+        "item_file_contexts": {
+          "description": "Per-Item manifest and payload context. Rights and source attribution stay with their Item owners.",
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/sourceItemFileManifestContext"}
+        }
+      }
+    },
+    "sourceItemFileManifestContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["manifest_ref", "acquisition_event_ref", "payload_entries"],
+      "properties": {
+        "manifest_ref": {"type": "string", "minLength": 1},
+        "acquisition_event_ref": {"type": "string", "minLength": 1},
+        "rights_ref": {
+          "description": "Exact Item-owned rights record from its source manifest; omitted only in earlier snapshots, where multi-Item File rights remain unresolved.",
+          "type": "string",
+          "minLength": 1
+        },
+        "payload_entries": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/sourceItemFilePayloadEntry"}
+        }
+      }
+    },
+    "sourceItemFilePayloadEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["relative_path", "original_basename", "fixity_verified_at", "container_member"],
+      "properties": {
+        "relative_path": {"type": "string", "minLength": 1},
+        "original_basename": {"type": "string", "minLength": 1},
+        "fixity_verified_at": {"type": "string", "format": "date-time"},
+        "container_member": {"type": "boolean"}
       }
     },
     "retainedObjectLinkContext": {
@@ -753,6 +812,9 @@
         "rights_id": {
           "type": "string",
           "minLength": 1
+        },
+        "assessment_kind": {
+          "enum": ["aggregate", "layer"]
         },
         "scope_refs": {
           "type": "array",
