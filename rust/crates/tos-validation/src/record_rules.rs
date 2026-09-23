@@ -2002,17 +2002,35 @@ mod tests {
     fn family() -> RecordFamily {
         let registry = source(ENTITY_REGISTRY);
         let contract = source(ENTITY_CONTRACT);
-        let contract_dir = root().join("ToS/contracts");
-        let files: Vec<_> = std::fs::read_dir(contract_dir)
+        let registry_value: Value = serde_json::from_slice(&registry).unwrap();
+        let mut schema_paths = BTreeSet::from([
+            CORPUS_CONTRACT.to_owned(),
+            "ToS/contracts/source-link.schema.json".to_owned(),
+            "ToS/contracts/artifact-source-witness-v2.schema.json".to_owned(),
+        ]);
+        for profile in registry_value["types"]
+            .as_array()
             .unwrap()
-            .filter_map(Result::ok)
-            .filter(|item| item.file_name().to_string_lossy().ends_with(".schema.json"))
-            .map(|item| {
-                let name = item.file_name().to_string_lossy().into_owned();
-                (
-                    format!("ToS/contracts/{name}"),
-                    std::fs::read(item.path()).unwrap(),
-                )
+            .iter()
+            .filter_map(|entry| {
+                entry
+                    .get("source_record_profile")
+                    .and_then(|profile| profile.get("schemas"))
+                    .and_then(Value::as_array)
+            })
+        {
+            for route in profile {
+                schema_paths.insert(route["schema_ref"].as_str().unwrap().to_owned());
+                for dependency in route["schema_dependencies"].as_array().unwrap() {
+                    schema_paths.insert(dependency.as_str().unwrap().to_owned());
+                }
+            }
+        }
+        let files: Vec<_> = schema_paths
+            .into_iter()
+            .map(|path| {
+                let raw = source(&path);
+                (path, raw)
             })
             .collect();
         RecordFamily::new(
