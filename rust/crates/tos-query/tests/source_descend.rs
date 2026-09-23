@@ -615,7 +615,7 @@ fn synthetic_session(
         SourceDescendSession::start(model.binding.clone(), request, limits)?;
     loop {
         let header = parse_json(
-            &need.wire_header(),
+            &need.wire_header(16 * 1024)?,
             JsonMode::PublishedStrict,
             JsonLimits::default(),
         )
@@ -649,6 +649,31 @@ fn resumable_session_matches_python_and_sync_oracle_without_graph_prefetch() {
     let direct = source_descend(&mut synchronous, &request, budget()).unwrap();
     assert_eq!(packet, direct.to_vec());
     assert!(model.pin_checks >= 3);
+}
+
+#[test]
+fn session_header_preserves_wide_integer_identity_and_refuses_one_over() {
+    let (model, _, request) = SyntheticReadModel::fixture();
+    let mut binding = model.binding;
+    binding.through_commit_seq = 9_007_199_254_740_993;
+    let mut limits = budget();
+    limits.max_probes = 9_007_199_254_740_993;
+    let (_, need) = SourceDescendSession::start(binding, request, limits).unwrap();
+    let header = need.wire_header(16 * 1024).unwrap();
+    let parsed = parse_json(&header, JsonMode::PublishedStrict, JsonLimits::default()).unwrap();
+    assert_eq!(
+        string(field(parsed.root(), "binding"), "through_commit_seq"),
+        "9007199254740993"
+    );
+    assert_eq!(
+        string(field(parsed.root(), "caps"), "probes"),
+        "9007199254740993"
+    );
+    assert_eq!(string(parsed.root(), "nonce"), "1");
+    assert_eq!(
+        need.wire_header(header.len() - 1).unwrap_err().code,
+        QueryErrorCode::BudgetExceeded
+    );
 }
 
 #[test]

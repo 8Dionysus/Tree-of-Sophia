@@ -222,13 +222,40 @@ impl SessionNeed {
     /// UTF-8 JSON control header for a WASM/async adapter. Exact carrier
     /// bytes in an AcquireDisclosure need are separate raw attachments from
     /// `selected_records`; the header alone never grants disclosure.
-    pub fn wire_header(&self) -> Vec<u8> {
+    pub fn wire_header(&self, max_header_bytes: usize) -> Result<Vec<u8>, QueryError> {
         fn quoted(value: &str) -> String {
             String::from_utf8(json_string(value)).expect("JSON string is UTF-8")
         }
         let b = &self.binding;
+        let variable_bytes = [
+            b.source_cut.as_str(),
+            b.index_generation.as_str(),
+            b.route_map_version.as_str(),
+            b.reader_abi.as_str(),
+            b.model_abi.as_str(),
+            b.selection_profile.as_str(),
+        ]
+        .iter()
+        .try_fold(0usize, |sum, value| sum.checked_add(value.len()))
+        .ok_or_else(|| QueryError::new(QueryErrorCode::BudgetExceeded, "header size overflow"))?;
+        let variable_bytes = match &self.kind {
+            SessionNeedKind::ExactNode { id } => variable_bytes.checked_add(id.len()),
+            SessionNeedKind::Outgoing {
+                from_id,
+                after_edge_id,
+            } => variable_bytes
+                .checked_add(from_id.len())
+                .and_then(|size| size.checked_add(after_edge_id.as_ref().map_or(0, String::len))),
+            _ => Some(variable_bytes),
+        };
+        if variable_bytes.is_none_or(|size| size > max_header_bytes) {
+            return Err(QueryError::new(
+                QueryErrorCode::BudgetExceeded,
+                "source descent header exceeds admitted bytes",
+            ));
+        }
         let binding = format!(
-            "{{\"source_cut\":{},\"through_commit_seq\":{},\"membership_root\":{},\"projection_root\":{},\"index_root\":{},\"index_generation\":{},\"route_map_version\":{},\"reader_abi\":{},\"model_abi\":{},\"selection_profile\":{}}}",
+            "{{\"source_cut\":{},\"through_commit_seq\":\"{}\",\"membership_root\":{},\"projection_root\":{},\"index_root\":{},\"index_generation\":{},\"route_map_version\":{},\"reader_abi\":{},\"model_abi\":{},\"selection_profile\":{}}}",
             quoted(&b.source_cut),
             b.through_commit_seq,
             quoted(&b.membership_root.to_hex()),
@@ -261,17 +288,24 @@ impl SessionNeed {
                 selected,
                 selected_digest,
             } => format!(
-                "{{\"acquire_disclosure\":{{\"selected_count\":{},\"selected_digest\":{}}}}}",
+                "{{\"acquire_disclosure\":{{\"selected_count\":\"{}\",\"selected_digest\":{}}}}}",
                 selected.len(),
                 quoted(&selected_digest.to_hex())
             ),
         };
-        format!(
-            "{{\"schema\":{},\"meter_profile\":{},\"nonce\":{},\"binding\":{},\"caps\":{{\"probes\":{},\"rows\":{},\"bytes\":{},\"cpu_steps\":{},\"carrier_bytes\":{},\"page_rows\":{}}},\"operation\":{}}}",
+        let header = format!(
+            "{{\"schema\":{},\"meter_profile\":{},\"nonce\":\"{}\",\"binding\":{},\"caps\":{{\"probes\":\"{}\",\"rows\":\"{}\",\"bytes\":\"{}\",\"cpu_steps\":\"{}\",\"carrier_bytes\":\"{}\",\"page_rows\":\"{}\"}},\"operation\":{}}}",
             quoted(self.schema), quoted(self.meter_profile), self.nonce, binding,
             self.caps.probes, self.caps.rows, self.caps.bytes, self.caps.cpu_steps,
             self.caps.carrier_bytes, self.caps.page_rows, operation
-        ).into_bytes()
+        ).into_bytes();
+        if header.len() > max_header_bytes {
+            return Err(QueryError::new(
+                QueryErrorCode::BudgetExceeded,
+                "source descent header exceeds admitted bytes",
+            ));
+        }
+        Ok(header)
     }
 
     pub fn selected_records(&self) -> Option<&[RawRecord]> {
