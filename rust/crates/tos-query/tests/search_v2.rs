@@ -1,6 +1,12 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use tos_foundation::{Digest256, JsonLimits, JsonMode, JsonValue, parse_json};
+use tos_foundation::{
+    CanonicalProfile, Digest256, JsonLimits, JsonMode, JsonValue, canonical_bytes_v1, parse_json,
+};
+use tos_query::SearchDocumentBudget;
+use tos_query::search_candidate::{
+    CandidateVerifyBudget, SelectedSearchCandidate, verify_search_candidate,
+};
 use tos_query::search_index::{
     GramSeed, GramSeekBudget, GramSeekCharge, GramStat, PostingPage, PostingSeekBudget,
     SearchGramModel, SearchPostingModel, choose_rarest_gram, visit_complete_postings,
@@ -743,4 +749,91 @@ fn normalized_request_keeps_backend_page_size() {
         assert_eq!(normalized.limit(), limit);
         let _: NormalizedIndexedSearchV2Request = normalized;
     }
+}
+
+#[test]
+fn selected_candidates_match_independent_cpython_rank_and_false_positive_oracle() {
+    let oracle = parse_json(
+        include_bytes!("fixtures/search_candidate_python_oracle.json"),
+        JsonMode::PublishedStrict,
+        JsonLimits::default(),
+    )
+    .unwrap()
+    .into_root();
+    let mut vocabulary = FixtureVocabulary::selected();
+    vocabulary
+        .sources
+        .extend(["philosophy".into(), "canon".into()]);
+    vocabulary.kinds.insert("example".into());
+    let selected = selection(&vocabulary);
+    let normalized = request(field(&oracle, "query").as_str().unwrap())
+        .normalize(&selected, &vocabulary)
+        .unwrap();
+    let limits = CandidateVerifyBudget {
+        document: SearchDocumentBudget {
+            max_carrier_bytes: 4096,
+            max_document_bytes: 8192,
+            max_document_code_points: 8192,
+            json: JsonLimits::default(),
+        },
+        max_rank_field_bytes: 4096,
+        max_rank_values: 64,
+    };
+    let mut hits = Vec::new();
+    for row in field(&oracle, "rows").as_array().unwrap() {
+        let item = field(row, "item");
+        let payload = canonical_bytes_v1(
+            item,
+            CanonicalProfile::SourceRecordDigestV1,
+            JsonLimits::default(),
+        )
+        .unwrap();
+        let candidate = SelectedSearchCandidate {
+            kind: SearchKind::Nodes,
+            position: field(row, "position").as_u64().unwrap(),
+            id: field(item, "id").as_str().unwrap().into(),
+            source_graph: field(item, "source_graph").as_str().unwrap().into(),
+            kind_id: field(item, "kind_id").as_str().unwrap().into(),
+            predicate_id: String::new(),
+            id_lower: field(row, "id_lower").as_str().unwrap().into(),
+            native_id_lower: field(row, "native_id_lower").as_str().unwrap().into(),
+            identity_values: field(row, "identity_values").as_str().unwrap().into(),
+            visible_values: field(row, "visible_values").as_str().unwrap().into(),
+            document_chars: field(row, "document_chars").as_u64().unwrap(),
+            document_digest: Digest256::from_hex(field(row, "document_digest").as_str().unwrap())
+                .unwrap(),
+            payload_sha256: Digest256::of_bytes(&payload),
+            payload,
+        };
+        let result =
+            verify_search_candidate(candidate.clone(), &normalized, &vocabulary, limits).unwrap();
+        match field(row, "rank").as_u64() {
+            Some(rank) => {
+                let hit = result.expect("Python-ranked candidate must match");
+                assert_eq!(hit.order.rank() as u64, rank);
+                hits.push(hit);
+            }
+            None => assert!(result.is_none(), "gram false positive must be skipped"),
+        }
+        let mut corrupt = candidate;
+        corrupt.identity_values.push_str("corrupt");
+        assert_eq!(
+            verify_search_candidate(corrupt, &normalized, &vocabulary, limits)
+                .unwrap_err()
+                .code,
+            SearchV2ErrorCode::CorruptSelectedCarrier
+        );
+    }
+    hits.sort_by(|left, right| left.order.cmp(&right.order));
+    assert_eq!(
+        hits.iter().map(|hit| hit.id.as_str()).collect::<Vec<_>>(),
+        [
+            "alpha",
+            "node.native",
+            "node.title",
+            "alphabet",
+            "node.visible",
+            "node.metadata"
+        ]
+    );
 }

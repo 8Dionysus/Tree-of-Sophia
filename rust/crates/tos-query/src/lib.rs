@@ -6,6 +6,7 @@
 
 #[cfg(not(target_arch = "wasm32"))]
 mod knowledge_sqlite;
+pub mod search_candidate;
 mod search_document;
 pub mod search_index;
 pub mod search_v2;

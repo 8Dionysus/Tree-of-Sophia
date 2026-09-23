@@ -349,8 +349,10 @@ pub struct SessionResponse {
     /// For exact/adjacency reads, this must be certified against the selected
     /// compiler index root. A D1 table-local count/digest is insufficient.
     pub certified_index_root: Option<Digest256>,
-    /// Actual host work, including hidden/lookahead rows and transferred
-    /// columns. The host must meter it independently of QRY's local work.
+    /// Host-profile work, including hidden/lookahead rows and bounded returned
+    /// fields. D1 rows-read is observed; its byte value is an admitted logical
+    /// field/input-key charge, not measured network transfer. The host meters
+    /// this independently of QRY's local work.
     pub charged: Charged,
     pub kind: SessionResponseKind,
 }
