@@ -87,7 +87,7 @@ pub struct ColdOpenLimits {
 /// lease (for example sealed read-only generation or fs-verity) for the full
 /// reader lifetime. FD pin blocks path replacement, not in-place same-inode
 /// mutation; a metadata-only or no-op implementation is insufficient.
-pub trait ImmutableKnowledgeCustody {
+pub trait ImmutableKnowledgeCustody: Send + Sync {
     fn verify(&self, pinned: &File, expected: &KnowledgeSelectedExpectation) -> Result<()>;
     /// The host preadmits this cold scan and confines SQLite temp/heap under
     /// independently enforced process/filesystem quotas. Size samples after
@@ -922,17 +922,10 @@ fn verify_graph_root(
             .ok_or(Error::Invalid("knowledge normalization digest"))?;
         checked_digest(digest)?;
     }
-    if normalization
-        .object_get("entity_registry_digest")
-        .and_then(JsonValue::as_str)
-        != Some(expected.entity_registry_sha256.as_str())
-        || normalization
-            .object_get("relation_registry_digest")
-            .and_then(JsonValue::as_str)
-            != Some(expected.relation_registry_sha256.as_str())
-    {
-        return Err(Error::Invalid("knowledge normalization registry binding"));
-    }
+    // These are semantic digests of parsed registries. The expectation's
+    // registry SHA fields bind the original registry bytes in metadata; they
+    // are intentionally different digests. The exact graph root and selected
+    // file SHA bind this canonical header packet.
     let counts = required("counts")?;
     let sources = counts
         .object_get("sources")
@@ -992,7 +985,47 @@ fn verify_graph_root(
 
 // Following physical verifiers are deliberately explicit. Missing tables,
 // columns or roots must not silently fall back to a partial graph.
+const SELECTED_TABLES: [&str; 13] = [
+    "catalog_facet_fields",
+    "catalog_facets",
+    "catalog_index_meta",
+    "catalog_routes",
+    "catalog_source_counts",
+    "graph_header",
+    "knowledge_nodes",
+    "knowledge_relations",
+    "metadata",
+    "search_documents",
+    "search_gram_stats",
+    "search_grams",
+    "source_scope",
+];
+
+fn verify_selected_table_allowlist(db: &Connection) -> Result<()> {
+    // The selected file contains only the read model. In particular, private
+    // raw input and intermediate build tables must not survive publication.
+    let mut table_statement = db.prepare(
+        "SELECT CASE WHEN typeof(name)='text' AND length(CAST(name AS BLOB))<=128 THEN name ELSE NULL END
+         FROM sqlite_master WHERE type='table' ORDER BY name",
+    )?;
+    let mut table_rows = table_statement.query([])?;
+    for expected_table in SELECTED_TABLES {
+        let actual: Option<String> = table_rows
+            .next()?
+            .ok_or(Error::Invalid("knowledge table omitted"))?
+            .get(0)?;
+        if actual.as_deref() != Some(expected_table) {
+            return Err(Error::Invalid("knowledge selected table allowlist"));
+        }
+    }
+    if table_rows.next()?.is_some() {
+        return Err(Error::Invalid("knowledge selected extra table"));
+    }
+    Ok(())
+}
+
 fn verify_schema(db: &Connection) -> Result<()> {
+    verify_selected_table_allowlist(db)?;
     for (table, columns) in [
         ("metadata", &["key:TEXT:1", "value:BLOB:0"][..]),
         (
@@ -1146,14 +1179,16 @@ fn verify_schema(db: &Connection) -> Result<()> {
             ][..],
         ),
     ] {
-        let create: String = db
+        let create: Option<String> = db
             .query_row(
-                "SELECT sql FROM sqlite_master WHERE type='table' AND name=?1",
+                "SELECT CASE WHEN typeof(sql)='text' AND length(CAST(sql AS BLOB))<=65536 THEN sql ELSE NULL END
+                 FROM sqlite_master WHERE type='table' AND name=?1",
                 [table],
                 |r| r.get(0),
             )
             .optional()?
-            .ok_or(Error::Invalid("knowledge table absent"))?;
+            .flatten();
+        let create = create.ok_or(Error::Invalid("knowledge table DDL absent/oversized"))?;
         if table != "graph_header" && !create.to_ascii_uppercase().contains("WITHOUT ROWID") {
             return Err(Error::Invalid("knowledge table rowid policy"));
         }
@@ -1491,10 +1526,17 @@ fn verify_search(
         limits.max_row_bytes as i64,
         limits.max_metadata_bytes as i64
     ])?;
-    let mut core_node =
-        db.prepare("SELECT id,source_graph,kind_id FROM knowledge_nodes WHERE source_order=?1")?;
+    let mut core_node = db.prepare(
+        "SELECT CASE WHEN typeof(id)='text' AND length(CAST(id AS BLOB))<=?2 THEN id ELSE NULL END,
+         CASE WHEN typeof(source_graph)='text' AND length(CAST(source_graph AS BLOB))<=?3 THEN source_graph ELSE NULL END,
+         CASE WHEN typeof(kind_id)='text' AND length(CAST(kind_id AS BLOB))<=?2 THEN kind_id ELSE NULL END
+         FROM knowledge_nodes WHERE source_order=?1",
+    )?;
     let mut core_relation = db.prepare(
-        "SELECT id,source_graph,predicate_id FROM knowledge_relations WHERE source_order=?1",
+        "SELECT CASE WHEN typeof(id)='text' AND length(CAST(id AS BLOB))<=?2 THEN id ELSE NULL END,
+         CASE WHEN typeof(source_graph)='text' AND length(CAST(source_graph AS BLOB))<=?3 THEN source_graph ELSE NULL END,
+         CASE WHEN typeof(predicate_id)='text' AND length(CAST(predicate_id AS BLOB))<=?2 THEN predicate_id ELSE NULL END
+         FROM knowledge_relations WHERE source_order=?1",
     )?;
     while let Some(row) = doc_rows.next()? {
         let kind: String = row
@@ -1550,9 +1592,23 @@ fn verify_search(
         rank_array(&identity, limits)?;
         rank_array(&visible, limits)?;
         let (core_id, core_source, core_term): (String, String, String) = if k == 0 {
-            core_node.query_row([position], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))?
+            core_node.query_row(
+                params![
+                    position,
+                    limits.max_row_bytes as i64,
+                    limits.max_metadata_bytes as i64
+                ],
+                |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+            )?
         } else {
-            core_relation.query_row([position], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))?
+            core_relation.query_row(
+                params![
+                    position,
+                    limits.max_row_bytes as i64,
+                    limits.max_metadata_bytes as i64
+                ],
+                |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+            )?
         };
         if (
             id.as_str(),
@@ -1772,9 +1828,40 @@ mod tests {
         let empty = Digest256::of_bytes(b"");
         let mut work = 0;
         assert!(verify_graph_root(&db, &expected(), limits(), &mut work, empty, empty).is_ok());
+        // The seal uses semantic registry digests in the header, whereas
+        // metadata binds the distinct byte digests of the registry files.
+        let mut different_registry_bytes = expected();
+        different_registry_bytes.entity_registry_sha256 = "0".repeat(64);
+        different_registry_bytes.relation_registry_sha256 = "1".repeat(64);
+        assert!(
+            verify_graph_root(
+                &db,
+                &different_registry_bytes,
+                limits(),
+                &mut work,
+                empty,
+                empty
+            )
+            .is_ok()
+        );
         db.execute("UPDATE graph_header SET packet_len=packet_len+1", [])
             .unwrap();
         assert!(verify_graph_root(&db, &expected(), limits(), &mut work, empty, empty).is_err());
+    }
+
+    #[test]
+    fn selected_table_allowlist_refuses_private_input_and_prepare_tables() {
+        let db = Connection::open_in_memory().unwrap();
+        for table in SELECTED_TABLES {
+            db.execute(&format!("CREATE TABLE {table}(x)"), []).unwrap();
+        }
+        assert!(verify_selected_table_allowlist(&db).is_ok());
+        db.execute("CREATE TABLE raw_records(x)", []).unwrap();
+        assert!(verify_selected_table_allowlist(&db).is_err());
+        db.execute("DROP TABLE raw_records", []).unwrap();
+        db.execute("CREATE TABLE search_pending_grams(x)", [])
+            .unwrap();
+        assert!(verify_selected_table_allowlist(&db).is_err());
     }
 
     #[test]
