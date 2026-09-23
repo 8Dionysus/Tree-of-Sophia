@@ -237,6 +237,7 @@ def _validate_knowledge_contracts(repo_root: Path, *, data_root: Path | None = N
     contract_root = repo_root / "access/contracts"
     schema_names = (
         "knowledge-graph.v1.schema.json",
+        "knowledge-search-indexed.v2.schema.json",
         "lens-spec.v1.schema.json",
         "lens-result.v1.schema.json",
         "temporal-comparison-request.v1.schema.json",

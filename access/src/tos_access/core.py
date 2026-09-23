@@ -73,6 +73,7 @@ SOURCE_READ_CONTRACT_RELATIVE_PATH = Path("access/contracts/source-read.v1.schem
 KNOWLEDGE_CONTRACT_RELATIVE_PATHS = {
     "api": Path("access/contracts/knowledge-api.v1.json"),
     "knowledge_graph": Path("access/contracts/knowledge-graph.v1.schema.json"),
+    "knowledge_search_indexed": Path("access/contracts/knowledge-search-indexed.v2.schema.json"),
     "readable_context": Path("access/contracts/readable-context.v1.schema.json"),
     "lens_spec": Path("access/contracts/lens-spec.v1.schema.json"),
     "lens_result": Path("access/contracts/lens-result.v1.schema.json"),

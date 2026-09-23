@@ -312,6 +312,7 @@ def write_fixture(root: Path) -> None:
     for name in (
         "knowledge-api.v1.json",
         "knowledge-graph.v1.schema.json",
+        "knowledge-search-indexed.v2.schema.json",
         "source-read.v1.schema.json",
         "readable-context.v1.schema.json",
         "lens-spec.v1.schema.json",
@@ -1269,6 +1270,7 @@ class CoreContractTests(unittest.TestCase):
                 {
                     "api",
                     "knowledge_graph",
+                    "knowledge_search_indexed",
                     "source_read",
                     "readable_context",
                     "lens_spec",
