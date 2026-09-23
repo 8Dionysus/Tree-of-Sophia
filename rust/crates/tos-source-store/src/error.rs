@@ -5,6 +5,7 @@ use std::io;
 pub enum StoreErrorCode {
     InvalidRoot,
     UnsupportedFormat,
+    UnsupportedPlatform,
     InvalidCanonicalSnapshot,
     RevisionMismatch,
     InvalidMemberIndex,

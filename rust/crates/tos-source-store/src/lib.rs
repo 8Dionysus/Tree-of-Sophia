@@ -7,6 +7,7 @@ mod error;
 mod limits;
 mod manifest;
 mod object;
+mod secure_open;
 
 pub use error::{Result, StoreError, StoreErrorCode};
 pub use limits::ReadLimits;

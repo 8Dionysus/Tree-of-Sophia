@@ -1,9 +1,10 @@
 //! Exact, bounded reads of the existing `tos_corpus_snapshot_v1` carrier.
 
 use std::collections::{BTreeMap, BTreeSet};
-use std::fs::{self, File};
+use std::fs::File;
 use std::io::{Read, Write};
-use std::path::{Path, PathBuf};
+use std::path::Path;
+use std::sync::Arc;
 
 use tos_foundation::{
     CanonicalProfile, Digest256, FoundationError, FoundationErrorCode, JsonMode, JsonValue,
@@ -13,6 +14,7 @@ use tos_foundation::{
 use crate::error::{Result, StoreError, StoreErrorCode as Code};
 use crate::limits::ReadLimits;
 use crate::object::{verify_selected_object, verify_without_copy};
+use crate::secure_open::StoreRoot;
 
 const SNAPSHOT_SCHEMA: &str = "tos_corpus_snapshot_v1";
 const POINTER_SCHEMA: &str = "tos_corpus_pointer_v1";
@@ -20,7 +22,7 @@ const POINTER_SCHEMA: &str = "tos_corpus_pointer_v1";
 /// A read-only corpus root. Opening does not create directories or select current.
 #[derive(Clone, Debug)]
 pub struct CorpusReader {
-    root: PathBuf,
+    root: Arc<StoreRoot>,
     limits: ReadLimits,
 }
 
@@ -46,7 +48,7 @@ pub struct RetirementMetadata {
 /// An exact v1 snapshot with disposable lookup indexes. It is not admission evidence.
 #[derive(Debug)]
 pub struct Snapshot {
-    root: PathBuf,
+    root: Arc<StoreRoot>,
     revision: SourceRevision,
     base_revision: Option<SourceRevision>,
     validator_sha256: Digest256,
@@ -109,44 +111,19 @@ impl Snapshot {
 impl CorpusReader {
     pub fn open_existing(root: &Path, limits: ReadLimits) -> Result<Self> {
         let limits = limits.validate()?;
-        if !root.is_absolute() || root.canonicalize().ok().as_deref() != Some(root) {
-            return Err(StoreError::new(
-                Code::InvalidRoot,
-                "corpus root must be an existing absolute unlinked directory",
-            ));
-        }
-        if !fs::metadata(root)
-            .map_err(|error| StoreError::io("cannot stat corpus root", error))?
-            .is_dir()
-        {
-            return Err(StoreError::new(
-                Code::InvalidRoot,
-                "corpus root is not a directory",
-            ));
-        }
-        check_directory(&root.join("revisions"))?;
-        check_directory(&root.join("objects"))?;
         Ok(Self {
-            root: root.to_owned(),
+            root: Arc::new(StoreRoot::open_existing(root)?),
             limits,
         })
     }
 
     /// Explicitly inspect the mutable pointer. It is never consulted by `load_exact`.
     pub fn select_current(&self) -> Result<Option<SourceRevision>> {
-        let path = self.root.join("current.json");
-        match fs::symlink_metadata(&path) {
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
-            Err(error) => return Err(StoreError::io("cannot stat current pointer", error)),
-            Ok(metadata) if !metadata.is_file() || metadata.file_type().is_symlink() => {
-                return Err(StoreError::new(
-                    Code::UnsafePath,
-                    "current pointer is not a regular file",
-                ));
-            }
-            Ok(_) => {}
-        }
-        let value = self.read_canonical(&path)?;
+        let file = match self.root.open_pointer() {
+            Err(error) if is_not_found(&error) => return Ok(None),
+            other => other?,
+        };
+        let value = self.read_canonical(file)?;
         exact_keys(
             &value,
             &["schema_version", "current", "previous"],
@@ -165,38 +142,24 @@ impl CorpusReader {
 
     /// Validate exactly one canonical manifest, without hashing unrelated objects.
     pub fn load_exact(&self, revision: SourceRevision) -> Result<Snapshot> {
-        let dir = self.root.join("revisions").join(revision.0.to_hex());
-        match check_directory(&dir) {
-            Err(error)
-                if error.code == Code::Io
-                    && error
-                        .source
-                        .as_ref()
-                        .is_some_and(|source| source.kind() == std::io::ErrorKind::NotFound) =>
-            {
-                return Err(StoreError::new(
-                    Code::MissingRevision,
-                    "exact corpus revision is absent",
-                ));
+        let dir = self
+            .root
+            .open_revision(&revision.0.to_hex())
+            .map_err(|error| {
+                if is_not_found(&error) {
+                    StoreError::new(Code::MissingRevision, "exact corpus revision is absent")
+                } else {
+                    error
+                }
+            })?;
+        let file = self.root.open_manifest(&dir).map_err(|error| {
+            if is_not_found(&error) {
+                StoreError::new(Code::MissingRevision, "exact corpus snapshot is absent")
+            } else {
+                error
             }
-            other => other?,
-        }
-        let manifest_path = dir.join("snapshot.json");
-        let value = match self.read_canonical(&manifest_path) {
-            Err(error)
-                if error.code == Code::Io
-                    && error
-                        .source
-                        .as_ref()
-                        .is_some_and(|source| source.kind() == std::io::ErrorKind::NotFound) =>
-            {
-                return Err(StoreError::new(
-                    Code::MissingRevision,
-                    "exact corpus snapshot is absent",
-                ));
-            }
-            other => other?,
-        };
+        })?;
+        let value = self.read_canonical(file)?;
         exact_keys(
             &value,
             &[
@@ -342,7 +305,7 @@ impl CorpusReader {
     }
 
     fn check_snapshot(&self, snapshot: &Snapshot) -> Result<()> {
-        if self.root != snapshot.root {
+        if !Arc::ptr_eq(&self.root, &snapshot.root) {
             return Err(StoreError::new(
                 Code::DescriptorMismatch,
                 "snapshot belongs to another corpus root",
@@ -351,17 +314,7 @@ impl CorpusReader {
         Ok(())
     }
 
-    fn read_canonical(&self, path: &Path) -> Result<JsonValue> {
-        let metadata = fs::symlink_metadata(path)
-            .map_err(|error| StoreError::io("cannot stat corpus manifest", error))?;
-        if !metadata.is_file() || metadata.file_type().is_symlink() {
-            return Err(StoreError::new(
-                Code::UnsafePath,
-                "corpus manifest is not a regular file",
-            ));
-        }
-        let mut file = File::open(path)
-            .map_err(|error| StoreError::io("cannot open corpus manifest", error))?;
+    fn read_canonical(&self, mut file: File) -> Result<JsonValue> {
         let cap = self
             .limits
             .max_manifest_bytes
@@ -395,16 +348,12 @@ impl CorpusReader {
     }
 }
 
-fn check_directory(path: &Path) -> Result<()> {
-    let metadata = fs::symlink_metadata(path)
-        .map_err(|error| StoreError::io("cannot stat corpus directory", error))?;
-    if !metadata.is_dir() || metadata.file_type().is_symlink() {
-        return Err(StoreError::new(
-            Code::UnsafePath,
-            "corpus directory is linked or not a directory",
-        ));
-    }
-    Ok(())
+fn is_not_found(error: &StoreError) -> bool {
+    error.code == Code::Io
+        && error
+            .source
+            .as_ref()
+            .is_some_and(|source| source.kind() == std::io::ErrorKind::NotFound)
 }
 
 fn canonical_error(error: FoundationError) -> StoreError {
