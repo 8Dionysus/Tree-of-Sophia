@@ -672,7 +672,7 @@ fn check_work_owner(input: WorkFormsInput<'_>, config: &JsonValue) -> Result<()>
         || !expiry.is_ascii()
         || !expiry.ends_with('Z')
         || input.recorded_at.len() < 19
-        || expiry[..19] <= input.recorded_at[..19]
+        || &expiry[..19] <= &input.recorded_at[..19]
     {
         return Err(ShadowError::Denied(
             "owner delegation expired or unsupported clock",

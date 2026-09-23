@@ -221,6 +221,66 @@ fn portable_work_profile_refuses_stale_scope_history_and_other_families() {
 }
 
 #[test]
+fn independent_ru_cyrl_work_rejects_stale_scope_and_language_guard() {
+    let stale = edit(
+        LIPSIUS_APPLY_REQUEST,
+        "sha256:29f1e0d7f8a73d565238753bcd90f01a6b883a605a45b799f5f9f411f7c6dfce",
+        "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+    );
+    assert!(matches!(
+        run_work_command(input(
+            LIPSIUS_SOURCE,
+            LIPSIUS_INITIAL,
+            LIPSIUS_CONFIG,
+            &stale
+        )),
+        Err(ShadowError::Conflict(_))
+    ));
+    let impostor = edit(
+        LIPSIUS_APPLY_REQUEST,
+        "agent:cmd2-de-constantia-oracle",
+        "impostor",
+    );
+    assert!(matches!(
+        run_work_command(input(
+            LIPSIUS_SOURCE,
+            LIPSIUS_INITIAL,
+            LIPSIUS_CONFIG,
+            &impostor
+        )),
+        Err(ShadowError::Denied(_))
+    ));
+    let wrong_guard = edit(
+        LIPSIUS_APPLY_REQUEST,
+        "/field_languages/notes",
+        "/absent-language-guard",
+    );
+    assert!(matches!(
+        run_work_command(input(
+            LIPSIUS_SOURCE,
+            LIPSIUS_INITIAL,
+            LIPSIUS_CONFIG,
+            &wrong_guard
+        )),
+        Err(ShadowError::Unsupported(_))
+    ));
+    let unknown_field = edit(
+        LIPSIUS_PREPARE_REQUEST,
+        "metadata.source-note",
+        "metadata.unknown",
+    );
+    assert!(matches!(
+        run_work_command(input(
+            LIPSIUS_SOURCE,
+            LIPSIUS_INITIAL,
+            LIPSIUS_CONFIG,
+            &unknown_field
+        )),
+        Err(ShadowError::Invalid(_))
+    ));
+}
+
+#[test]
 fn exact_python_two_change_candidate_and_replay() {
     let result = apply_or_replay(input(SOURCE, INITIAL, CONFIG, REQUEST)).unwrap();
     assert!(!result.replayed);
