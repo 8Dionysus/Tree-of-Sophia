@@ -428,6 +428,7 @@ export function sourceDossier(navigation: Item, objectId: string, limit: number)
     );
     const memberships = new Map<string, { rightsRefs: Set<string>; legacy: boolean; duplicate: boolean }>();
     let membershipBindingsValid = membershipEdges.length > 0;
+    const representedManifestRefs = new Set<string>();
     for (const edge of membershipEdges) {
       const itemId = stringValue(edge.from_id);
       if (!itemId || stringValue(nodesById.get(itemId)?.node_kind) !== "item") {
@@ -443,6 +444,7 @@ export function sourceDossier(navigation: Item, objectId: string, limit: number)
       if (!Array.isArray(rawEdgeSourceRefs) || edgeSourceRefs.size !== rawEdgeSourceRefs.length) {
         membershipBindingsValid = false;
       }
+      for (const sourceRef of edgeSourceRefs) representedManifestRefs.add(sourceRef);
       const properties = itemObject(edge.properties);
       const hasContexts = Object.prototype.hasOwnProperty.call(properties, "item_file_contexts");
       if (!hasContexts) {
@@ -469,6 +471,21 @@ export function sourceDossier(navigation: Item, objectId: string, limit: number)
       }
       if (contextManifestRefs.size !== edgeSourceRefs.size
         || [...edgeSourceRefs].some((sourceRef) => !contextManifestRefs.has(sourceRef))) {
+        membershipBindingsValid = false;
+      }
+    }
+    // New content-addressed File nodes list every Item manifest that
+    // establishes a membership. Old snapshots without node.source_refs retain
+    // the legacy membership fallback above.
+    if (Object.prototype.hasOwnProperty.call(selected, "source_refs")) {
+      const rawFileSourceRefs = selected.source_refs;
+      const fileSourceRefs = stringArray(rawFileSourceRefs);
+      if (!Array.isArray(rawFileSourceRefs) || fileSourceRefs.length === 0
+        || fileSourceRefs.length !== rawFileSourceRefs.length
+        || new Set(fileSourceRefs).size !== fileSourceRefs.length
+        || fileSourceRefs.some((sourceRef) => !sourceRef)
+        || fileSourceRefs.length !== representedManifestRefs.size
+        || fileSourceRefs.some((sourceRef) => !representedManifestRefs.has(sourceRef))) {
         membershipBindingsValid = false;
       }
     }

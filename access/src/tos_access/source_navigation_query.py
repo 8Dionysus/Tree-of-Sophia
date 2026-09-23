@@ -456,6 +456,7 @@ def source_dossier_query(
         ]
         memberships: dict[str, dict[str, Any]] = {}
         membership_bindings_valid = bool(membership_edges)
+        represented_manifest_refs: set[str] = set()
         for edge in membership_edges:
             item_id = str(edge.get("from_id") or "")
             if not item_id or nodes_by_id.get(item_id, {}).get("node_kind") != "item":
@@ -473,6 +474,7 @@ def source_dossier_query(
             }
             if not isinstance(raw_edge_source_refs, list) or len(edge_source_refs) != len(raw_edge_source_refs):
                 membership_bindings_valid = False
+            represented_manifest_refs.update(edge_source_refs)
             if "item_file_contexts" not in properties:
                 entry["legacy"] = True
                 if len(edge_source_refs) != 1:
@@ -502,6 +504,19 @@ def source_dossier_query(
                     entry["legacy"] = True
             if context_manifest_refs != edge_source_refs:
                 membership_bindings_valid = False
+        # New content-addressed File nodes list every Item manifest that
+        # establishes a membership. Require the available edges to close that
+        # source set; old snapshots without node.source_refs retain the legacy
+        # membership fallback above.
+        if "source_refs" in selected:
+            raw_file_source_refs = selected.get("source_refs")
+            if (not isinstance(raw_file_source_refs, list) or not raw_file_source_refs
+                    or any(not isinstance(ref, str) or not ref for ref in raw_file_source_refs)):
+                membership_bindings_valid = False
+            else:
+                file_source_refs = set(raw_file_source_refs)
+                if len(file_source_refs) != len(raw_file_source_refs) or file_source_refs != represented_manifest_refs:
+                    membership_bindings_valid = False
         member_ids = set(memberships)
         decision_scope_ids = member_ids | {object_id}
         file_membership_complete = bool(member_ids) and member_ids.issubset(component_ids)

@@ -167,6 +167,25 @@ test("shared File rights remain attached to exact Item memberships", () => {
   assert.equal((truncated.agent_summary as Item).can_conclude_legal_openness, false);
 });
 
+test("File node source refs require every exact membership edge", () => {
+  const manifestA = "ToS/source-witnesses/fixture/copy-a/item.manifest.json";
+  const manifestB = "ToS/source-witnesses/fixture/copy-b/item.manifest.json";
+  const complete = sharedFileRightsNavigation(true);
+  const completeNodes = complete.nodes as Item[];
+  completeNodes.find((node) => node.node_id === "tos.file.sha256.shared")!.source_refs = [manifestA, manifestB];
+  assert.equal((sourceDossier(complete, "tos.file.sha256.shared", 20).agent_summary as Item).can_conclude_legal_openness, true);
+
+  const incomplete = sharedFileRightsNavigation(true);
+  const incompleteNodes = incomplete.nodes as Item[];
+  incompleteNodes.find((node) => node.node_id === "tos.file.sha256.shared")!.source_refs = [manifestA, manifestB];
+  incomplete.nodes = incompleteNodes.filter((node) => node.node_id !== "tos.item.copy.b");
+  incomplete.edges = (incomplete.edges as Item[]).filter((edge) => edge.from_id !== "tos.item.copy.b");
+  const result = sourceDossier(incomplete, "tos.file.sha256.shared", 20);
+  const summary = result.agent_summary as Item;
+  assert.equal(summary.can_conclude_legal_openness, false);
+  assert.ok((summary.gaps as string[]).includes("File membership or its exact rights binding is incomplete"));
+});
+
 test("positive Item layer remains evidence but cannot lift a restrictive aggregate", () => {
   const navigation = sharedFileRightsNavigation();
   const rights = navigation.rights as Item[];

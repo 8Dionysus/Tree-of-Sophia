@@ -169,6 +169,25 @@ class SharedFileRightsTests(unittest.TestCase):
         self.assertFalse(item_b["agent_summary"]["can_conclude_legal_openness"])
         self.assertEqual(["rights-b"], [row["rights_id"] for row in item_b["rights"]])
 
+    def test_file_source_refs_require_the_complete_membership_edge_set(self) -> None:
+        complete = navigation_fixture(rights_b_positive=True)
+        complete[1][FILE_ID]["source_refs"] = [MANIFEST_A, MANIFEST_B]
+        self.assertTrue(dossier(complete, FILE_ID)["agent_summary"]["can_conclude_legal_openness"])
+
+        navigation, nodes, incoming, outgoing, rights = navigation_fixture(rights_b_positive=True)
+        nodes[FILE_ID]["source_refs"] = [MANIFEST_A, MANIFEST_B]
+        incoming[FILE_ID] = incoming[FILE_ID][:1]
+        outgoing = {ITEM_A: outgoing[ITEM_A]}
+        nodes.pop(ITEM_B)
+        incomplete = source_dossier_query(
+            navigation, nodes, incoming, outgoing, lambda _ids: rights, FILE_ID, limit=20
+        )
+        self.assertFalse(incomplete["agent_summary"]["can_conclude_legal_openness"])
+        self.assertIn(
+            "File membership or its exact rights binding is incomplete",
+            incomplete["agent_summary"]["gaps"],
+        )
+
     def test_file_only_candidate_from_exact_source_stays_review_required(self) -> None:
         fixture = navigation_fixture()
         navigation, nodes, incoming, outgoing, _rights = fixture
