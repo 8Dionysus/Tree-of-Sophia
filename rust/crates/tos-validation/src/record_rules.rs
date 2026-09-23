@@ -26,12 +26,12 @@ const MAX_COMPILED_ROUTES: usize = 256;
 /// response accounting; a value alone is never proof of those properties.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct BoundedSchemaVerdict {
-    pub instance_sha256: String,
-    pub schema_set_digest: String,
-    pub format_profile_id: String,
+    pub instance_sha256: Digest256,
+    pub schema_set_digest: Digest256,
+    pub format_profile: FormatProfile,
     pub root_uri: String,
     pub worker_protocol_id: String,
-    pub worker_binary_digest: String,
+    pub worker_binary_digest: Digest256,
     pub valid: bool,
 }
 
@@ -47,9 +47,9 @@ pub(crate) struct BoundedMemberSchemaPlan {
     pub resources: Vec<SchemaResource>,
     pub route_uri: String,
     pub common_uri: String,
-    pub schema_set_digest: String,
-    pub format_profile_id: String,
-    pub instance_sha256: String,
+    pub schema_set_digest: Digest256,
+    pub format_profile: FormatProfile,
+    pub instance_sha256: Digest256,
 }
 
 /// Exact source-owned resource bytes. The URI is read from `$id`, not chosen by
@@ -181,9 +181,9 @@ struct NativeCarrier {
 pub(crate) struct NativeSchemaPlan {
     pub resources: Vec<SchemaResource>,
     pub root_uri: String,
-    pub schema_set_digest: String,
-    pub format_profile_id: String,
-    pub instance_sha256: String,
+    pub schema_set_digest: Digest256,
+    pub format_profile: FormatProfile,
+    pub instance_sha256: Digest256,
 }
 
 impl RecordFamily {
@@ -326,7 +326,7 @@ impl RecordFamily {
         contract_raw: &[u8],
         registry_raw: &[u8],
         format_profile: FormatProfile,
-    ) -> Result<(Vec<SchemaResource>, String, String, String), RecordRuleError> {
+    ) -> Result<(Vec<SchemaResource>, String, Digest256, Digest256), RecordRuleError> {
         let contract = parse_object(contract_raw, MAX_RECORD_BYTES, "registry_contract_json")?;
         let uri = schema_uri(ENTITY_CONTRACT, &contract)?;
         let resources = vec![SchemaResource {
@@ -338,8 +338,8 @@ impl RecordFamily {
         Ok((
             resources,
             uri,
-            probe.schema_set_digest().to_hex(),
-            Digest256::of_bytes(registry_raw).to_hex(),
+            probe.schema_set_digest(),
+            Digest256::of_bytes(registry_raw),
         ))
     }
 
@@ -371,9 +371,9 @@ impl RecordFamily {
         Ok(BoundedMemberSchemaPlan {
             route_uri: self.resources[&route.schema_ref].0.clone(),
             common_uri: COMMON_URI.to_owned(),
-            schema_set_digest: probe.schema_set_digest().to_hex(),
-            format_profile_id: self.format_profile.id().to_owned(),
-            instance_sha256: Digest256::of_bytes(raw).to_hex(),
+            schema_set_digest: probe.schema_set_digest(),
+            format_profile: self.format_profile,
+            instance_sha256: Digest256::of_bytes(raw),
             resources,
         })
     }
@@ -400,9 +400,9 @@ impl RecordFamily {
         Ok(NativeSchemaPlan {
             resources,
             root_uri: uri.clone(),
-            schema_set_digest: probe.schema_set_digest().to_hex(),
-            format_profile_id: self.format_profile.id().to_owned(),
-            instance_sha256: Digest256::of_bytes(raw).to_hex(),
+            schema_set_digest: probe.schema_set_digest(),
+            format_profile: self.format_profile,
+            instance_sha256: Digest256::of_bytes(raw),
         })
     }
 
@@ -829,16 +829,11 @@ fn check_verdict(
     root_uri: &str,
     format_profile: FormatProfile,
 ) -> Result<bool, RecordRuleError> {
-    if verdict.instance_sha256 != Digest256::of_bytes(raw).to_hex()
-        || verdict.schema_set_digest != probe.schema_set_digest().to_hex()
-        || verdict.format_profile_id != format_profile.id()
+    if verdict.instance_sha256 != Digest256::of_bytes(raw)
+        || verdict.schema_set_digest != probe.schema_set_digest()
+        || verdict.format_profile != format_profile
         || verdict.root_uri != root_uri
         || verdict.worker_protocol_id.is_empty()
-        || verdict.worker_binary_digest.len() != 64
-        || !verdict
-            .worker_binary_digest
-            .bytes()
-            .all(|byte| byte.is_ascii_hexdigit())
     {
         return Err(unsupported("bounded_schema_evidence_mismatch", root_uri));
     }
@@ -1510,18 +1505,18 @@ mod tests {
     }
 
     fn synthetic_verdict(
-        raw_digest: &str,
-        schema_set_digest: &str,
-        profile: &str,
+        raw_digest: Digest256,
+        schema_set_digest: Digest256,
+        profile: FormatProfile,
         root: &str,
     ) -> BoundedSchemaVerdict {
         BoundedSchemaVerdict {
-            instance_sha256: raw_digest.to_owned(),
-            schema_set_digest: schema_set_digest.to_owned(),
-            format_profile_id: profile.to_owned(),
+            instance_sha256: raw_digest,
+            schema_set_digest,
+            format_profile: profile,
             root_uri: root.to_owned(),
             worker_protocol_id: "test-only-worker-protocol".to_owned(),
-            worker_binary_digest: "a".repeat(64),
+            worker_binary_digest: Digest256::from_hex(&"a".repeat(64)).unwrap(),
             valid: true,
         }
     }
@@ -1533,15 +1528,15 @@ mod tests {
         let plan = rule.member_schema_plan(RECORD, &raw).unwrap();
         let evidence = BoundedMemberSchemaEvidence {
             route: synthetic_verdict(
-                &plan.instance_sha256,
-                &plan.schema_set_digest,
-                &plan.format_profile_id,
+                plan.instance_sha256,
+                plan.schema_set_digest,
+                plan.format_profile,
                 &plan.route_uri,
             ),
             common: synthetic_verdict(
-                &plan.instance_sha256,
-                &plan.schema_set_digest,
-                &plan.format_profile_id,
+                plan.instance_sha256,
+                plan.schema_set_digest,
+                plan.format_profile,
                 &plan.common_uri,
             ),
         };
@@ -1555,7 +1550,7 @@ mod tests {
                 .any(|event| matches!(event, RecordObservation::IdOwner { .. }))
         );
         let mut wrong = evidence;
-        wrong.common.instance_sha256 = "b".repeat(64);
+        wrong.common.instance_sha256 = Digest256::from_hex(&"b".repeat(64)).unwrap();
         assert!(matches!(
             rule.inspect_member_with_bounded_schema(RECORD, &raw, &wrong, &mut events),
             Err(RecordRuleError::Unsupported {
@@ -1579,9 +1574,9 @@ mod tests {
                     .ends_with("artifact-source-witness.schema.json")
         );
         let evidence = synthetic_verdict(
-            &plan.instance_sha256,
-            &plan.schema_set_digest,
-            &plan.format_profile_id,
+            plan.instance_sha256,
+            plan.schema_set_digest,
+            plan.format_profile,
             &plan.root_uri,
         );
         let mut events = Events::default();
