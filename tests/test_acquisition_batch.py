@@ -72,12 +72,26 @@ class AcquisitionBatchTests(unittest.TestCase):
             payload_ref = f"tos.file.sha256.{hashlib.sha256(payload_body).hexdigest()}"
             event_ref = f"tos.event.acquisition.fixture-{index}"
             rights_value = {
-                "rights": "local_only",
+                "schema_version": "tos_rights_record_v1",
+                "rights_id": f"tos.rights.fixture.{index}",
                 "scope_refs": [item_ref, payload_ref],
+                "assessment_status": "not_assessed",
+                "jurisdictions_reviewed": [],
+                "source_refs": [f"https://provider.example/{slug}/rights"],
+                "permissions": [],
+                "restrictions": [],
                 "visibility": rights_visibility or "local_only",
+                "redistribution_posture": rights_redistribution or "not_authorized",
+                "derivative_posture": "local_research_only",
+                "assessed_by": {
+                    "maker_type": "imported_source",
+                    "agent_ref": "software:fixture-acquisition",
+                },
+                "assessed_at": "2026-09-21T12:00:00Z",
+                "rationale": "Fixture rights metadata only.",
+                "review_status": "unreviewed",
+                "record_version": 1,
             }
-            if rights_redistribution is not None:
-                rights_value["redistribution_posture"] = rights_redistribution
             rights_body = json.dumps(rights_value, sort_keys=True).encode()
             item_manifest_body = json.dumps(
                 {
@@ -115,10 +129,21 @@ class AcquisitionBatchTests(unittest.TestCase):
                         "event_type": "acquisition",
                         "status": "completed",
                         "event_version": 1,
+                        "started_at": "2026-09-21T12:00:00Z",
+                        "ended_at": "2026-09-21T12:00:00Z",
+                        "agent_refs": ["software:fixture-acquisition"],
+                        "inputs": [],
+                        "method": {
+                            "maker_type": "software",
+                            "name": "fixture-acquisition",
+                            "version": "1",
+                            "configuration": {},
+                        },
                         "rights_basis_ref": rights_ref,
                         "outputs": [
                             {
                                 "ref": f"{item_root}/{payload}",
+                                "role": "immutable-acquired-source-file",
                                 "sha256": hashlib.sha256(payload_body).hexdigest(),
                             }
                         ],
@@ -206,9 +231,16 @@ class AcquisitionBatchTests(unittest.TestCase):
                     "item",
                     json.dumps(
                         {
+                            "schema_version": "tos_corpus_record_v1",
                             "record_type": "item",
                             "record_id": item_ref,
+                            "preferred_label": f"Fixture Item {index}",
+                            "identity_status": "provisional",
+                            "source_refs": [item_manifest_ref],
+                            "external_identifiers": [],
+                            "same_as_posture": "no_equivalence_claim",
                             "item_manifest_ref": item_manifest_ref,
+                            "record_version": 1,
                         }
                     ).encode(),
                 ),
@@ -823,7 +855,7 @@ class AcquisitionBatchTests(unittest.TestCase):
                 fetch_calls: list[str] = []
                 with self.assertRaisesRegex(
                     acquisition.AcquisitionBatchError,
-                    "declared rights posture public_payload",
+                    "prepared Item rights record does not satisfy its schema",
                 ):
                     acquisition.acquire_batch(
                         manifest_path=self.manifest_path,
@@ -1347,6 +1379,90 @@ class AcquisitionBatchTests(unittest.TestCase):
             )
         self.assertEqual([], fetch_calls)
         self.assertEqual([], list(output_root.glob("receipts/handoff-*.json")))
+
+    def test_selected_item_contracts_are_schema_validated_before_fetch(self) -> None:
+        cases = (
+            ("item_record", "prepared Item record does not satisfy its schema"),
+            ("item_manifest", "prepared Item manifest does not satisfy its schema"),
+            ("rights_record", "prepared Item rights record does not satisfy its schema"),
+            ("provenance_event", "prepared Item provenance event 1 does not satisfy its schema"),
+        )
+        for mutation, expected_error in cases:
+            with self.subTest(mutation=mutation):
+                fetches, _manifest_sha = self._write_manifest(count=1)
+                manifest = json.loads(self.manifest_path.read_text(encoding="utf-8"))
+                selection = manifest["selection"][0]
+                if mutation == "item_record":
+                    record = next(
+                        row for row in selection["records"] if row["kind"] == "item"
+                    )
+                    path = self.metadata / record["ref"]
+                    value = json.loads(path.read_text(encoding="utf-8"))
+                    del value["preferred_label"]
+                    path.write_text(json.dumps(value, sort_keys=True) + "\n", encoding="utf-8")
+                    record["sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
+                elif mutation == "item_manifest":
+                    record = next(
+                        row for row in selection["records"] if row["kind"] == "manifest"
+                    )
+                    path = self.metadata / record["ref"]
+                    value = json.loads(path.read_text(encoding="utf-8"))
+                    del value["manifest_version"]
+                    path.write_text(json.dumps(value, sort_keys=True) + "\n", encoding="utf-8")
+                    record["sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
+                elif mutation == "rights_record":
+                    rights_ref = selection["rights"]["ref"]
+                    record = next(
+                        row for row in selection["records"] if row["ref"] == rights_ref
+                    )
+                    path = self.metadata / rights_ref
+                    value = json.loads(path.read_text(encoding="utf-8"))
+                    del value["permissions"]
+                    path.write_text(json.dumps(value, sort_keys=True) + "\n", encoding="utf-8")
+                    digest = hashlib.sha256(path.read_bytes()).hexdigest()
+                    record["sha256"] = digest
+                    selection["rights"]["sha256"] = digest
+                else:
+                    record = next(
+                        row
+                        for row in selection["records"]
+                        if row["kind"] == "provenance"
+                    )
+                    path = self.metadata / record["ref"]
+                    rows = [
+                        json.loads(line)
+                        for line in path.read_text(encoding="utf-8").splitlines()
+                        if line.strip()
+                    ]
+                    event = next(row for row in rows if row["event_type"] == "acquisition")
+                    del event["method"]
+                    path.write_text(
+                        "".join(json.dumps(row, sort_keys=True) + "\n" for row in rows),
+                        encoding="utf-8",
+                    )
+                    record["sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
+
+                self.manifest_path.write_text(
+                    json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+                    encoding="utf-8",
+                )
+                manifest_sha = hashlib.sha256(self.manifest_path.read_bytes()).hexdigest()
+                output_root = self.root / f"source-contract-schema-{mutation}"
+                fetch_calls: list[str] = []
+                with self.assertRaisesRegex(
+                    acquisition.AcquisitionBatchError,
+                    expected_error,
+                ):
+                    acquisition.acquire_batch(
+                        manifest_path=self.manifest_path,
+                        metadata_root=self.metadata,
+                        output_root=output_root,
+                        expected_manifest_sha256=manifest_sha,
+                        fetcher=lambda payload: fetch_calls.append(payload["file_ref"])
+                        or fetches[payload["file_ref"]],
+                    )
+                self.assertEqual([], fetch_calls)
+                self.assertEqual([], list(output_root.glob("receipts/handoff-*.json")))
 
     def test_item_record_must_bind_selected_manifest_before_fetch(self) -> None:
         _fetches, _manifest_sha = self._write_manifest(count=1)

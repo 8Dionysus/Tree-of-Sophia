@@ -57,6 +57,10 @@ PROVENANCE_DELTA_SCHEMA = Path(
 RESOURCE_INVENTORY_SCHEMA = Path(
     "ToS/contracts/source-resource-inventory.schema.json"
 )
+CORPUS_RECORD_SCHEMA = Path("ToS/contracts/corpus-record.schema.json")
+ITEM_MANIFEST_SCHEMA = Path("ToS/contracts/source-item-manifest.schema.json")
+RIGHTS_RECORD_SCHEMA = Path("ToS/contracts/rights-record.schema.json")
+PROVENANCE_EVENT_SCHEMA = Path("ToS/contracts/provenance-event.schema.json")
 MAX_PAYLOAD_BYTES = 300 * 1024 * 1024
 SHA256 = re.compile(r"^[a-f0-9]{64}$")
 SHA1 = re.compile(r"^[a-f0-9]{40}$")
@@ -751,7 +755,40 @@ def _verify_prepared_item_bindings(context: BatchContext, output: Path) -> None:
     """
 
     source_root = output / "source"
-    inventory_validator = None
+    schema_validators: dict[Path, Draft202012Validator] = {}
+
+    def schema_validator(schema_ref: Path, *, label: str) -> Draft202012Validator:
+        validator = schema_validators.get(schema_ref)
+        if validator is not None:
+            return validator
+        schema_path = context.repo_root / schema_ref
+        try:
+            _regular_file(schema_path, label=f"{label} schema")
+            schema = _load_json_bytes(
+                schema_path.read_bytes(), label=f"{label} schema"
+            )
+            Draft202012Validator.check_schema(schema)
+            validator = Draft202012Validator(
+                schema, format_checker=FormatChecker()
+            )
+        except Exception as exc:
+            raise AcquisitionBatchError(
+                f"{label} schema is unavailable or invalid"
+            ) from exc
+        schema_validators[schema_ref] = validator
+        return validator
+
+    def validate_contract(
+        value: Any, schema_ref: Path, *, label: str, item_ref: str
+    ) -> None:
+        validator = schema_validator(schema_ref, label=label)
+        try:
+            validator.validate(value)
+        except Exception as exc:
+            raise AcquisitionBatchError(
+                f"prepared Item {label} does not satisfy its schema: {item_ref}"
+            ) from exc
+
     for selection in context.manifest["selection"]:
         item_ref = selection["item_ref"]
         item_root = selection["item_root_ref"]
@@ -788,9 +825,21 @@ def _verify_prepared_item_bindings(context: BatchContext, output: Path) -> None:
             raise AcquisitionBatchError(
                 f"prepared Item record does not bind the selected manifest: {item_ref}"
             )
+        validate_contract(
+            item_record,
+            CORPUS_RECORD_SCHEMA,
+            label="record",
+            item_ref=item_ref,
+        )
 
         item_manifest = _load_json_bytes(
             item_manifest_path.read_bytes(), label="prepared Item manifest"
+        )
+        validate_contract(
+            item_manifest,
+            ITEM_MANIFEST_SCHEMA,
+            label="manifest",
+            item_ref=item_ref,
         )
         provenance_ref = item_manifest.get("provenance_ref")
         provenance_record = (
@@ -861,30 +910,12 @@ def _verify_prepared_item_bindings(context: BatchContext, output: Path) -> None:
         inventory_value = _load_json_bytes(
             inventory_path.read_bytes(), label="prepared Item resource inventory"
         )
-        if inventory_validator is None:
-            inventory_schema_path = context.repo_root / RESOURCE_INVENTORY_SCHEMA
-            try:
-                _regular_file(
-                    inventory_schema_path, label="source resource inventory schema"
-                )
-                inventory_schema = _load_json_bytes(
-                    inventory_schema_path.read_bytes(),
-                    label="source resource inventory schema",
-                )
-                Draft202012Validator.check_schema(inventory_schema)
-                inventory_validator = Draft202012Validator(
-                    inventory_schema, format_checker=FormatChecker()
-                )
-            except Exception as exc:
-                raise AcquisitionBatchError(
-                    "source resource inventory schema is unavailable or invalid"
-                ) from exc
-        try:
-            inventory_validator.validate(inventory_value)
-        except Exception as exc:
-            raise AcquisitionBatchError(
-                f"Item resource inventory does not satisfy its schema: {item_ref}"
-            ) from exc
+        validate_contract(
+            inventory_value,
+            RESOURCE_INVENTORY_SCHEMA,
+            label="resource inventory",
+            item_ref=item_ref,
+        )
         expected_inventory_files = [
             {
                 "file_id": payload["file_id"],
@@ -945,6 +976,12 @@ def _verify_prepared_item_bindings(context: BatchContext, output: Path) -> None:
         rights_value = _load_json_bytes(
             rights_path.read_bytes(), label="prepared Item rights"
         )
+        validate_contract(
+            rights_value,
+            RIGHTS_RECORD_SCHEMA,
+            label="rights record",
+            item_ref=item_ref,
+        )
         _verify_declared_rights_posture(selection, rights_value, item_ref=item_ref)
         if rights_value.get("visibility") != item_manifest.get("visibility"):
             raise AcquisitionBatchError(
@@ -971,6 +1008,13 @@ def _verify_prepared_item_bindings(context: BatchContext, output: Path) -> None:
             raise AcquisitionBatchError("prepared Item provenance is not valid JSONL") from exc
         if not provenance_rows:
             raise AcquisitionBatchError("prepared Item provenance is empty")
+        for index, event in enumerate(provenance_rows, start=1):
+            validate_contract(
+                event,
+                PROVENANCE_EVENT_SCHEMA,
+                label=f"provenance event {index}",
+                item_ref=item_ref,
+            )
         inventory_event_ref = inventory_value.get("provenance_event_ref")
         inventory_events = [
             event
