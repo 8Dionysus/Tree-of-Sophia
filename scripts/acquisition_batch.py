@@ -1177,9 +1177,14 @@ def _append_journal(path: Path, row: dict[str, Any]) -> None:
         raise AcquisitionBatchError(f"cannot open acquisition journal: {path}") from exc
     try:
         with os.fdopen(descriptor, "a", encoding="utf-8", closefd=True) as stream:
-            if not stat.S_ISREG(os.fstat(stream.fileno()).st_mode):
+            journal_stat = os.fstat(stream.fileno())
+            if not stat.S_ISREG(journal_stat.st_mode):
                 raise AcquisitionBatchError(
                     f"acquisition journal is not a regular file: {path}"
+                )
+            if journal_stat.st_nlink != 1:
+                raise AcquisitionBatchError(
+                    f"acquisition journal must have one hard link: {path}"
                 )
             fcntl.flock(stream.fileno(), fcntl.LOCK_EX)
             stream.write(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n")
@@ -1202,9 +1207,14 @@ def _journal_rows(path: Path) -> list[dict[str, Any]]:
     try:
         descriptor = os.open(path, flags)
         with os.fdopen(descriptor, "r", encoding="utf-8", closefd=True) as stream:
-            if not stat.S_ISREG(os.fstat(stream.fileno()).st_mode):
+            journal_stat = os.fstat(stream.fileno())
+            if not stat.S_ISREG(journal_stat.st_mode):
                 raise AcquisitionBatchError(
                     f"acquisition journal is not a regular file: {path}"
+                )
+            if journal_stat.st_nlink != 1:
+                raise AcquisitionBatchError(
+                    f"acquisition journal must have one hard link: {path}"
                 )
             for line_number, line in enumerate(stream, 1):
                 if not line.strip():

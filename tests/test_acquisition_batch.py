@@ -897,6 +897,34 @@ class AcquisitionBatchTests(unittest.TestCase):
             acquisition._append_journal(journal, {"status": "failed"})
         self.assertEqual('{"status":"acquired"}\n', outside.read_text(encoding="utf-8"))
 
+    @unittest.skipUnless(hasattr(os, "link"), "hard link boundary")
+    def test_hardlinked_acquisition_journal_is_rejected_for_read_and_append(self) -> None:
+        _fetches, manifest_sha = self._write_manifest(count=1)
+        acquisition.prepare_batch(
+            manifest_path=self.manifest_path,
+            metadata_root=self.metadata,
+            output_root=self.output,
+            expected_manifest_sha256=manifest_sha,
+        )
+        journal = self.output / "receipts/acquisition.jsonl"
+        outside = self.root / "outside-journal.jsonl"
+        outside.write_text('{"status":"acquired"}\n', encoding="utf-8")
+        os.link(outside, journal)
+        original = outside.read_bytes()
+
+        with self.assertRaisesRegex(
+            acquisition.AcquisitionBatchError,
+            "acquisition journal must have one hard link",
+        ):
+            acquisition._journal_rows(journal)
+        with self.assertRaisesRegex(
+            acquisition.AcquisitionBatchError,
+            "acquisition journal must have one hard link",
+        ):
+            acquisition._append_journal(journal, {"status": "failed"})
+
+        self.assertEqual(original, outside.read_bytes())
+
     def test_acquisition_journal_rejects_duplicate_json_keys(self) -> None:
         journal = self.root / "duplicate-journal.jsonl"
         journal.write_text(
