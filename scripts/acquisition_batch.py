@@ -1035,6 +1035,14 @@ def _verify_prepared_item_bindings(context: BatchContext, output: Path) -> None:
             label="rights record",
             item_ref=item_ref,
         )
+        layer_ids = [
+            layer["layer_id"]
+            for layer in rights_value.get("layer_assessments", [])
+        ]
+        if len(layer_ids) != len(set(layer_ids)):
+            raise AcquisitionBatchError(
+                f"prepared Item rights record contains duplicate layer_id: {item_ref}"
+            )
         _verify_declared_rights_posture(selection, rights_value, item_ref=item_ref)
         if rights_value.get("visibility") != item_manifest.get("visibility"):
             raise AcquisitionBatchError(
@@ -1366,18 +1374,43 @@ def _batch_execution_lock(output: Path):
     if not parent.is_dir() or parent.is_symlink():
         raise AcquisitionBatchError(f"batch lock parent must be a regular directory: {parent}")
     lock_path = parent / f".{output.name}.acquisition.lock"
-    if lock_path.is_symlink():
-        raise AcquisitionBatchError(f"batch lock may not be a symlink: {lock_path}")
+    flags = os.O_RDWR | os.O_CREAT | os.O_APPEND | os.O_CLOEXEC
+    flags |= os.O_NOFOLLOW | os.O_NONBLOCK
     try:
-        stream = lock_path.open("a+", encoding="utf-8")
+        descriptor = os.open(lock_path, flags, 0o600)
     except OSError as exc:
+        if lock_path.is_symlink():
+            raise AcquisitionBatchError(
+                f"batch lock may not be a symlink: {lock_path}"
+            ) from exc
         raise AcquisitionBatchError(f"cannot open batch lock: {lock_path}") from exc
     try:
-        fcntl.flock(stream.fileno(), fcntl.LOCK_EX)
-        yield
+        try:
+            lock_info = os.fstat(descriptor)
+        except OSError as exc:
+            raise AcquisitionBatchError(f"cannot inspect batch lock: {lock_path}") from exc
+        if not stat.S_ISREG(lock_info.st_mode):
+            raise AcquisitionBatchError(
+                f"batch lock is not a regular file: {lock_path}"
+            )
+        if lock_info.st_uid != os.geteuid():
+            raise AcquisitionBatchError(
+                f"batch lock owner differs from current user: {lock_path}"
+            )
+        if lock_info.st_nlink != 1:
+            raise AcquisitionBatchError(
+                f"batch lock must have one hard link: {lock_path}"
+            )
+        try:
+            fcntl.flock(descriptor, fcntl.LOCK_EX)
+        except OSError as exc:
+            raise AcquisitionBatchError(f"cannot lock batch output: {output}") from exc
+        try:
+            yield
+        finally:
+            fcntl.flock(descriptor, fcntl.LOCK_UN)
     finally:
-        fcntl.flock(stream.fileno(), fcntl.LOCK_UN)
-        stream.close()
+        os.close(descriptor)
 
 
 def _fetch_url(payload: dict[str, Any]) -> bytes:

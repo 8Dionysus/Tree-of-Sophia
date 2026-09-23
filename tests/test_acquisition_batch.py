@@ -836,6 +836,76 @@ class AcquisitionBatchTests(unittest.TestCase):
         self.assertEqual([], fetch_calls)
         self.assertEqual([], list(self.output.glob("receipts/handoff-*.json")))
 
+    def test_duplicate_rights_layer_ids_are_rejected_before_fetch(self) -> None:
+        fetches, _manifest_sha = self._write_manifest(count=1)
+        manifest = json.loads(self.manifest_path.read_text(encoding="utf-8"))
+        selection = manifest["selection"][0]
+        rights_ref = selection["rights"]["ref"]
+        rights_path = self.metadata / rights_ref
+        rights_value = json.loads(rights_path.read_text(encoding="utf-8"))
+        layer = {
+            "layer_id": "tos.rights.fixture.0.layer.scan",
+            "layer_role": "digital_scan",
+            "scope_refs": [selection["item_ref"]],
+            "assessment_status": "not_assessed",
+            "assessment_basis": "not_assessed",
+            "jurisdictions_reviewed": [],
+            "source_refs": ["https://provider.example/fixture-0/rights-layer"],
+            "rights_holder_refs": [],
+            "permissions": [],
+            "restrictions": [],
+            "redistribution_posture": "not_authorized",
+            "derivative_posture": "local_research_only",
+            "server_processing_posture": "not_authorized",
+            "term": {
+                "calculation_status": "not_calculated",
+                "basis": "Fixture assessment only.",
+                "starts_on": None,
+                "ends_on": None,
+                "uncertainty": "No term calculation was performed.",
+            },
+            "uncertainty": "Fixture rights layer only.",
+            "assessed_at": "2026-09-21T12:00:00Z",
+            "review_status": "unreviewed",
+            "rationale": "First fixture layer assessment.",
+        }
+        rights_value["layer_assessments"] = [
+            layer,
+            {**layer, "rationale": "Distinct object with the same layer identity."},
+        ]
+        rights_path.write_text(
+            json.dumps(rights_value, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        digest = hashlib.sha256(rights_path.read_bytes()).hexdigest()
+        next(row for row in selection["records"] if row["ref"] == rights_ref)[
+            "sha256"
+        ] = digest
+        selection["rights"]["sha256"] = digest
+        self.manifest_path.write_text(
+            json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        manifest_sha = hashlib.sha256(self.manifest_path.read_bytes()).hexdigest()
+
+        fetch_calls: list[str] = []
+        output_root = self.root / "duplicate-rights-layer-ids"
+        with self.assertRaisesRegex(
+            acquisition.AcquisitionBatchError,
+            "duplicate layer_id",
+        ):
+            acquisition.acquire_batch(
+                manifest_path=self.manifest_path,
+                metadata_root=self.metadata,
+                output_root=output_root,
+                expected_manifest_sha256=manifest_sha,
+                fetcher=lambda payload: fetch_calls.append(payload["file_ref"])
+                or fetches[payload["file_ref"]],
+            )
+        self.assertEqual([], fetch_calls)
+        self.assertEqual([], list(output_root.glob("receipts/handoff-*.json")))
+        self.assertEqual([], list((output_root / "payload").rglob("*")))
+
     def test_public_payload_posture_rejects_values_outside_rights_contract(self) -> None:
         cases = (
             ("public", "authorized"),
@@ -2098,6 +2168,74 @@ else:
             timeout=10,
         )
         self.assertEqual(0, result.returncode, result.stderr)
+
+    @unittest.skipUnless(hasattr(os, "mkfifo"), "POSIX FIFO boundary")
+    def test_batch_lock_rejects_fifo_for_prepare_and_acquire(self) -> None:
+        _fetches, manifest_sha = self._write_manifest(count=1)
+        script = """
+import sys
+from pathlib import Path
+sys.path.insert(0, sys.argv[6])
+import acquisition_batch as acquisition
+operation, manifest, metadata, output, expected_sha = sys.argv[1:6]
+try:
+    if operation == "prepare":
+        acquisition.prepare_batch(
+            manifest_path=manifest,
+            metadata_root=metadata,
+            output_root=output,
+            expected_manifest_sha256=expected_sha,
+        )
+    else:
+        acquisition.acquire_batch(
+            manifest_path=manifest,
+            metadata_root=metadata,
+            output_root=output,
+            expected_manifest_sha256=expected_sha,
+            fetcher=lambda _payload: (_ for _ in ()).throw(AssertionError("unexpected fetch")),
+        )
+except acquisition.AcquisitionBatchError as exc:
+    if "batch lock is not a regular file" not in str(exc):
+        raise SystemExit(f"unexpected lock rejection: {exc}")
+else:
+    raise SystemExit("special batch lock was accepted")
+"""
+        for operation in ("prepare", "acquire"):
+            with self.subTest(operation=operation):
+                output = self.root / f"fifo-{operation}-output"
+                lock_path = self.root / f".{output.name}.acquisition.lock"
+                os.mkfifo(lock_path)
+                result = subprocess.run(
+                    [
+                        sys.executable,
+                        "-c",
+                        script,
+                        operation,
+                        str(self.manifest_path),
+                        str(self.metadata),
+                        str(output),
+                        manifest_sha,
+                        str(ROOT / "scripts"),
+                    ],
+                    cwd=ROOT,
+                    capture_output=True,
+                    text=True,
+                    timeout=5,
+                )
+                self.assertEqual(0, result.returncode, result.stderr)
+                self.assertFalse(output.exists())
+
+        hardlinked_output = self.root / "hardlinked-lock-output"
+        hardlink_path = self.root / f".{hardlinked_output.name}.acquisition.lock"
+        lock_source = self.root / "other-lock-source"
+        lock_source.write_text("owned by another route\n", encoding="utf-8")
+        os.link(lock_source, hardlink_path)
+        with self.assertRaisesRegex(
+            acquisition.AcquisitionBatchError,
+            "batch lock must have one hard link",
+        ):
+            with acquisition._batch_execution_lock(hardlinked_output):
+                self.fail("hard-linked lock must not be acquired")
 
     @unittest.skipUnless(hasattr(os, "mkfifo"), "POSIX FIFO boundary")
     def test_prepared_source_fifo_is_rejected_before_provider_fetch(self) -> None:
