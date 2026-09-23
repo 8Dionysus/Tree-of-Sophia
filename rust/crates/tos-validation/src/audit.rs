@@ -510,6 +510,8 @@ mod tests {
                 max_spill_bytes: 0,
                 max_runs: 0,
                 max_issues: 4,
+                max_merge_head_bytes: 0,
+                max_issue_bytes: 256,
             },
         }
     }

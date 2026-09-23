@@ -54,6 +54,27 @@ pub(crate) enum GlobalIssue {
     },
 }
 
+impl GlobalIssue {
+    fn string_bytes(&self) -> Option<usize> {
+        match self {
+            Self::DuplicateOwner { namespace, key } | Self::MissingTarget { namespace, key } => {
+                namespace.len().checked_add(key.len())
+            }
+            Self::InvalidInterval { namespace, source } => {
+                namespace.len().checked_add(source.len())
+            }
+            Self::OverlappingInterval {
+                namespace,
+                left,
+                right,
+            } => namespace
+                .len()
+                .checked_add(left.len())?
+                .checked_add(right.len()),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum GlobalRefusal {
     BudgetExceeded,
@@ -69,6 +90,10 @@ pub(crate) struct GlobalBudget {
     pub max_spill_bytes: u64,
     pub max_runs: usize,
     pub max_issues: usize,
+    /// Sum of encoded facts retained as one head per spill run. This is a
+    /// logical data bound; process RSS still requires separate containment.
+    pub max_merge_head_bytes: usize,
+    pub max_issue_bytes: usize,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -247,6 +272,16 @@ fn run_hasher() -> Digest256Hasher {
     hasher
 }
 
+fn add_head_bytes(total: &mut usize, fact: &SortFact, limit: usize) -> Result<(), GlobalRefusal> {
+    let bytes = usize::try_from(fact.encoded_len().ok_or(GlobalRefusal::BudgetExceeded)?)
+        .map_err(|_| GlobalRefusal::BudgetExceeded)?;
+    *total = total
+        .checked_add(bytes)
+        .filter(|total| *total <= limit)
+        .ok_or(GlobalRefusal::BudgetExceeded)?;
+    Ok(())
+}
+
 struct RunCursor {
     reader: BufReader<File>,
     hasher: Digest256Hasher,
@@ -418,30 +453,43 @@ impl GlobalFactStore {
         }
         if self.runs.is_empty() {
             self.memory.sort_unstable();
-            return inspect_sorted(self.memory.iter(), self.budget.max_issues, deadline);
+            return inspect_sorted(
+                self.memory.iter(),
+                self.budget.max_issues,
+                self.budget.max_issue_bytes,
+                deadline,
+            );
         }
         self.flush()?;
         let mut readers = Vec::with_capacity(self.runs.len());
         let mut heap = BinaryHeap::new();
+        let mut heap_bytes = 0usize;
         for (index, run) in self.runs.iter().enumerate() {
             if Instant::now() >= deadline {
                 return Err(GlobalRefusal::DeadlineExceeded);
             }
             let mut reader = RunCursor::open(run)?;
             if let Some(fact) = reader.next(self.budget.max_memory_bytes)? {
+                add_head_bytes(&mut heap_bytes, &fact, self.budget.max_merge_head_bytes)?;
                 heap.push(Reverse((fact, index)));
             }
             readers.push(reader);
         }
         // The merge itself remains bounded: inspect each fact as it appears,
         // retaining only the current key/interval and bounded issues.
-        let mut inspector = Inspector::new(self.budget.max_issues);
+        let mut inspector = Inspector::new(self.budget.max_issues, self.budget.max_issue_bytes);
         while let Some(Reverse((fact, index))) = heap.pop() {
             if Instant::now() >= deadline {
                 return Err(GlobalRefusal::DeadlineExceeded);
             }
+            let bytes = usize::try_from(fact.encoded_len().ok_or(GlobalRefusal::BudgetExceeded)?)
+                .map_err(|_| GlobalRefusal::BudgetExceeded)?;
+            heap_bytes = heap_bytes
+                .checked_sub(bytes)
+                .ok_or(GlobalRefusal::BudgetExceeded)?;
             inspector.accept(&fact)?;
             if let Some(next) = readers[index].next(self.budget.max_memory_bytes)? {
+                add_head_bytes(&mut heap_bytes, &next, self.budget.max_merge_head_bytes)?;
                 heap.push(Reverse((next, index)));
             }
         }
@@ -463,9 +511,10 @@ impl Drop for GlobalFactStore {
 fn inspect_sorted<'a>(
     facts: impl IntoIterator<Item = &'a SortFact>,
     limit: usize,
+    max_issue_bytes: usize,
     deadline: Instant,
 ) -> Result<Vec<GlobalIssue>, GlobalRefusal> {
-    let mut inspector = Inspector::new(limit);
+    let mut inspector = Inspector::new(limit, max_issue_bytes);
     for fact in facts {
         if Instant::now() >= deadline {
             return Err(GlobalRefusal::DeadlineExceeded);
@@ -480,6 +529,8 @@ fn inspect_sorted<'a>(
 
 struct Inspector {
     max_issues: usize,
+    max_issue_bytes: usize,
+    issue_bytes: usize,
     issues: Vec<GlobalIssue>,
     group: Option<(String, String)>,
     owner_count: u64,
@@ -488,9 +539,11 @@ struct Inspector {
 }
 
 impl Inspector {
-    fn new(max_issues: usize) -> Self {
+    fn new(max_issues: usize, max_issue_bytes: usize) -> Self {
         Self {
             max_issues,
+            max_issue_bytes,
+            issue_bytes: 0,
             issues: Vec::new(),
             group: None,
             owner_count: 0,
@@ -499,9 +552,16 @@ impl Inspector {
         }
     }
     fn issue(&mut self, issue: GlobalIssue) -> Result<(), GlobalRefusal> {
-        if self.issues.len() >= self.max_issues {
+        let bytes = issue.string_bytes().ok_or(GlobalRefusal::BudgetExceeded)?;
+        if self.issues.len() >= self.max_issues
+            || self
+                .issue_bytes
+                .checked_add(bytes)
+                .is_none_or(|total| total > self.max_issue_bytes)
+        {
             return Err(GlobalRefusal::BudgetExceeded);
         }
+        self.issue_bytes += bytes;
         self.issues.push(issue);
         Ok(())
     }
@@ -582,6 +642,8 @@ mod tests {
             max_spill_bytes: 100_000,
             max_runs: 100,
             max_issues: 10,
+            max_merge_head_bytes: 100_000,
+            max_issue_bytes: 10_000,
         }
     }
 
@@ -784,5 +846,56 @@ mod tests {
         );
         assert_eq!(std::fs::read_dir(&dir).unwrap().count(), 0);
         std::fs::remove_dir(dir).unwrap();
+    }
+
+    #[test]
+    fn aggregate_merge_heads_refuse_before_exceeding_budget() {
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let dir = std::env::temp_dir().join(format!(
+            "tos-val-facts-heads-{}-{nonce}",
+            std::process::id()
+        ));
+        std::fs::create_dir(&dir).unwrap();
+        let mut limits = budget(60);
+        limits.max_merge_head_bytes = SortFact::from_fact(GlobalFact::Owner {
+            namespace: "ids".into(),
+            key: "a".into(),
+            source: "abcdefgh".into(),
+        })
+        .encoded_len()
+        .unwrap() as usize;
+        let mut store = GlobalFactStore::new(limits, Some(&dir), "heads").unwrap();
+        for key in ["a", "b"] {
+            store
+                .push(GlobalFact::Owner {
+                    namespace: "ids".into(),
+                    key: key.into(),
+                    source: "abcdefgh".into(),
+                })
+                .unwrap();
+        }
+        assert_eq!(store.finish(deadline()), Err(GlobalRefusal::BudgetExceeded));
+        assert_eq!(std::fs::read_dir(&dir).unwrap().count(), 0);
+        std::fs::remove_dir(dir).unwrap();
+    }
+
+    #[test]
+    fn global_issue_string_bytes_refuse_before_truncation() {
+        let mut limits = budget(1000);
+        limits.max_issue_bytes = 3;
+        let mut store = GlobalFactStore::new(limits, None, "issues").unwrap();
+        for source in ["left", "right"] {
+            store
+                .push(GlobalFact::Owner {
+                    namespace: "ids".into(),
+                    key: "a".into(),
+                    source: source.into(),
+                })
+                .unwrap();
+        }
+        assert_eq!(store.finish(deadline()), Err(GlobalRefusal::BudgetExceeded));
     }
 }
