@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+from pathlib import Path
 import unittest
 
 from tos_access.source_navigation_query import source_dossier_query
@@ -12,6 +14,10 @@ MANIFEST_A = "ToS/source-witnesses/fixture/copy-a/item.manifest.json"
 MANIFEST_B = "ToS/source-witnesses/fixture/copy-b/item.manifest.json"
 RIGHTS_A = "ToS/source-witnesses/fixture/copy-a/rights.json"
 RIGHTS_B = "ToS/source-witnesses/fixture/copy-b/rights.json"
+JENSEITS_MANIFEST = "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/item.manifest.json"
+JENSEITS_RIGHTS = "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/rights.json"
+JENSEITS_ITEM = "tos.item.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.internet-archive-google-harvard-scan-pdf"
+JENSEITS_OCR_FILE = "tos.file.sha256.ba8f4c91a317a3de03ab1f318860aaba6837d979e1ec99365e6d13def7db5a34"
 
 
 def navigation_fixture(*, rights_b_positive: bool = False, legacy: bool = False):
@@ -83,11 +89,19 @@ def dossier(fixture, object_id: str, *, limit: int = 20):
 class SharedFileRightsTests(unittest.TestCase):
     def test_shared_file_does_not_promote_one_items_rights_to_the_other(self) -> None:
         fixture = navigation_fixture()
+        fixture[4].append({
+            "rights_id": "rights-a-file-layer",
+            "source_ref": RIGHTS_A,
+            "scope_refs": [FILE_ID],
+            "assessment_status": "copyright_undetermined",
+            "redistribution_posture": "not_authorized",
+            "review_status": "unreviewed",
+        })
         file_dossier = dossier(fixture, FILE_ID)
         self.assertFalse(file_dossier["agent_summary"]["can_conclude_legal_openness"])
         self.assertEqual("membership_scoped_review_required", file_dossier["agent_summary"]["rights_posture"])
         self.assertEqual([FILE_ID, ITEM_A, ITEM_B], file_dossier["agent_summary"]["rights_scope_refs"])
-        self.assertEqual({"rights-a", "rights-b"}, {row["rights_id"] for row in file_dossier["rights"]})
+        self.assertEqual({"rights-a", "rights-a-file-layer", "rights-b"}, {row["rights_id"] for row in file_dossier["rights"]})
 
         item_a = dossier(fixture, ITEM_A)
         self.assertTrue(item_a["agent_summary"]["can_conclude_legal_openness"])
@@ -95,6 +109,82 @@ class SharedFileRightsTests(unittest.TestCase):
         item_b = dossier(fixture, ITEM_B)
         self.assertFalse(item_b["agent_summary"]["can_conclude_legal_openness"])
         self.assertEqual(["rights-b"], [row["rights_id"] for row in item_b["rights"]])
+
+    def test_file_only_candidate_from_exact_source_stays_review_required(self) -> None:
+        fixture = navigation_fixture()
+        navigation, nodes, incoming, outgoing, _rights = fixture
+        incoming[FILE_ID] = incoming[FILE_ID][:1]
+        outgoing = {ITEM_A: outgoing[ITEM_A]}
+        nodes.pop(ITEM_B)
+        rights = [{
+            "rights_id": "rights-a-file-candidate",
+            "source_ref": RIGHTS_A,
+            "scope_refs": [FILE_ID],
+            "assessment_status": "licensed",
+            "redistribution_posture": "authorized",
+            "review_status": "not_reviewed",
+        }]
+        result = source_dossier_query(navigation, nodes, incoming, outgoing, lambda _ids: rights, FILE_ID, limit=20)
+        self.assertEqual(["rights-a-file-candidate"], [row["rights_id"] for row in result["rights"]])
+        self.assertEqual("candidate_requires_human_review", result["agent_summary"]["rights_posture"])
+        self.assertFalse(result["agent_summary"]["can_conclude_legal_openness"])
+
+    def test_actual_jenseits_ocr_layer_is_retained_for_its_exact_file_membership(self) -> None:
+        repo_root = Path(__file__).resolve().parents[2]
+        manifest = json.loads((repo_root / JENSEITS_MANIFEST).read_text(encoding="utf-8"))
+        rights_record = json.loads((repo_root / JENSEITS_RIGHTS).read_text(encoding="utf-8"))
+        layer = next(
+            entry for entry in rights_record["layer_assessments"]
+            if entry.get("layer_id") == (
+                "tos.rights.jenseits-naumann-1886.internet-archive-google-harvard-scan-pdf"
+                ".layer.ocr-coordinate-xml"
+            )
+        )
+        self.assertEqual("local_only", rights_record["visibility"])
+        self.assertEqual(JENSEITS_RIGHTS, manifest["rights_ref"])
+        self.assertIn(JENSEITS_OCR_FILE, layer["scope_refs"])
+        self.assertNotIn(JENSEITS_ITEM, layer["scope_refs"])
+
+        # Match the bounded fields emitted by source-navigation projection. The
+        # local_only source remains excluded from public projection; this only
+        # verifies exact-source Item/File consumer binding.
+        projected_layer = {
+            "rights_id": layer["layer_id"],
+            "source_ref": manifest["rights_ref"],
+            "scope_refs": layer["scope_refs"],
+            "assessment_status": layer["assessment_status"],
+            "redistribution_posture": layer["redistribution_posture"],
+            "review_status": layer["review_status"],
+        }
+        edge = {
+            "edge_id": f"{JENSEITS_ITEM}:{JENSEITS_OCR_FILE}",
+            "from_id": JENSEITS_ITEM,
+            "predicate_id": "has_file",
+            "to_id": JENSEITS_OCR_FILE,
+            "edge_kind": "authored_item_manifest",
+            "source_refs": [JENSEITS_MANIFEST],
+            "properties": {"item_file_contexts": [{
+                "manifest_ref": JENSEITS_MANIFEST,
+                "rights_ref": manifest["rights_ref"],
+                "acquisition_event_ref": manifest["acquisition_event_ref"],
+                "payload_entries": [],
+            }]},
+        }
+        result = source_dossier_query(
+            {"authority_boundary": "source-owned fixture navigation"},
+            {
+                JENSEITS_ITEM: {"node_id": JENSEITS_ITEM, "node_kind": "item"},
+                JENSEITS_OCR_FILE: {"node_id": JENSEITS_OCR_FILE, "node_kind": "file"},
+            },
+            {JENSEITS_ITEM: [], JENSEITS_OCR_FILE: [edge]},
+            {JENSEITS_ITEM: [edge]},
+            lambda _ids: [projected_layer],
+            JENSEITS_OCR_FILE,
+            limit=20,
+        )
+        self.assertEqual([layer["layer_id"]], [row["rights_id"] for row in result["rights"]])
+        self.assertEqual("not_cleared", result["agent_summary"]["rights_posture"])
+        self.assertFalse(result["agent_summary"]["can_conclude_legal_openness"])
 
     def test_file_conclusion_requires_every_complete_membership_to_be_reviewed_positive(self) -> None:
         fixture = navigation_fixture(rights_b_positive=True)
@@ -148,6 +238,25 @@ class SharedFileRightsTests(unittest.TestCase):
             FILE_ID,
             limit=20,
         )
+        self.assertFalse(result["agent_summary"]["can_conclude_legal_openness"])
+        self.assertEqual("membership_scoped_review_required", result["agent_summary"]["rights_posture"])
+        self.assertEqual([], result["rights"])
+
+    def test_legacy_file_only_rights_scope_stays_unbound(self) -> None:
+        fixture = navigation_fixture(legacy=True)
+        navigation, nodes, incoming, outgoing, _rights = fixture
+        incoming[FILE_ID] = incoming[FILE_ID][:1]
+        outgoing = {ITEM_A: outgoing[ITEM_A]}
+        nodes.pop(ITEM_B)
+        rights = [{
+            "rights_id": "legacy-file-only",
+            "source_ref": RIGHTS_A,
+            "scope_refs": [FILE_ID],
+            "assessment_status": "licensed",
+            "redistribution_posture": "authorized",
+            "review_status": "accepted",
+        }]
+        result = source_dossier_query(navigation, nodes, incoming, outgoing, lambda _ids: rights, FILE_ID, limit=20)
         self.assertFalse(result["agent_summary"]["can_conclude_legal_openness"])
         self.assertEqual("membership_scoped_review_required", result["agent_summary"]["rights_posture"])
         self.assertEqual([], result["rights"])

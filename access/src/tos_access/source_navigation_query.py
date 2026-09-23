@@ -313,9 +313,18 @@ def source_dossier_query(
                     str(ref) for ref in record.get("scope_refs", [])
                     if isinstance(record.get("scope_refs"), list) and isinstance(ref, str)
                 }
-                if not {item_id, object_id}.issubset(scope_refs):
-                    continue
-                if rights_refs and record.get("source_ref") not in rights_refs:
+                if rights_refs:
+                    # The exact manifest rights_ref supplies the Item context.
+                    # Keep rows scoped to that Item or this selected File;
+                    # layered source records need not repeat both IDs in every
+                    # assessment scope.
+                    if record.get("source_ref") not in rights_refs:
+                        continue
+                    if not scope_refs.intersection({item_id, object_id}):
+                        continue
+                elif not {item_id, object_id}.issubset(scope_refs):
+                    # Legacy snapshots lack an edge-level binding, so keep the
+                    # stricter Item+File scope requirement.
                     continue
                 member_rights.append(record)
             if not rights_refs:

@@ -114,6 +114,46 @@ test("shared File rights remain attached to exact Item memberships", () => {
   assert.equal((truncated.agent_summary as Item).can_conclude_legal_openness, false);
 });
 
+test("File-only rights rows follow an exact rights_ref and stay out of sibling Item dossiers", () => {
+  const navigation = sharedFileRightsNavigation();
+  const rights = navigation.rights as Item[];
+  rights.push({
+    rights_id: "rights-a-file-layer",
+    source_ref: "ToS/source-witnesses/fixture/copy-a/rights.json",
+    scope_refs: ["tos.file.sha256.shared"],
+    assessment_status: "copyright_undetermined",
+    redistribution_posture: "not_authorized",
+    review_status: "unreviewed",
+  });
+
+  const file = sourceDossier(navigation, "tos.file.sha256.shared", 20);
+  assert.deepEqual((file.rights as Item[]).map((record) => record.rights_id), [
+    "rights-a", "rights-a-file-layer", "rights-b",
+  ]);
+  const itemB = sourceDossier(navigation, "tos.item.copy.b", 20);
+  assert.deepEqual((itemB.rights as Item[]).map((record) => record.rights_id), ["rights-b"]);
+  assert.equal((itemB.agent_summary as Item).can_conclude_legal_openness, false);
+});
+
+test("File-only candidate rights remain review-required when bound by exact Item context", () => {
+  const navigation = sharedFileRightsNavigation();
+  navigation.nodes = (navigation.nodes as Item[]).filter((node) => node.node_id !== "tos.item.copy.b");
+  navigation.edges = (navigation.edges as Item[]).slice(0, 1);
+  navigation.rights = [{
+    rights_id: "rights-a-file-candidate",
+    source_ref: "ToS/source-witnesses/fixture/copy-a/rights.json",
+    scope_refs: ["tos.file.sha256.shared"],
+    assessment_status: "licensed",
+    redistribution_posture: "authorized",
+    review_status: "not_reviewed",
+  }];
+  const file = sourceDossier(navigation, "tos.file.sha256.shared", 20);
+  const summary = file.agent_summary as Item;
+  assert.deepEqual((file.rights as Item[]).map((record) => record.rights_id), ["rights-a-file-candidate"]);
+  assert.equal(summary.rights_posture, "candidate_requires_human_review");
+  assert.equal(summary.can_conclude_legal_openness, false);
+});
+
 test("legacy single-Item File dossiers remain compatible while shared unbound Files fail closed", () => {
   const single = sharedFileRightsNavigation();
   single.nodes = (single.nodes as Item[]).filter((node) => node.node_id !== "tos.item.copy.b");
@@ -144,5 +184,29 @@ test("legacy single-Item File dossiers remain compatible while shared unbound Fi
   sharedLegacy.edges = (sharedLegacy.edges as Item[]).map(withoutRightsRef);
   const file = sourceDossier(sharedLegacy, "tos.file.sha256.shared", 20);
   assert.equal((file.agent_summary as Item).can_conclude_legal_openness, false);
+  assert.deepEqual(file.rights, []);
+});
+
+test("legacy single-Item File fallback rejects File-only assessment scopes", () => {
+  const navigation = sharedFileRightsNavigation();
+  navigation.nodes = (navigation.nodes as Item[]).filter((node) => node.node_id !== "tos.item.copy.b");
+  const edge = (navigation.edges as Item[])[0]!;
+  const properties = edge.properties as Item;
+  const contexts = properties.item_file_contexts as Item[];
+  navigation.edges = [{
+    ...edge,
+    properties: { item_file_contexts: contexts.map(({ rights_ref: _rightsRef, ...context }) => context) },
+  }];
+  navigation.rights = [{
+    rights_id: "legacy-file-only",
+    source_ref: "ToS/source-witnesses/fixture/copy-a/rights.json",
+    scope_refs: ["tos.file.sha256.shared"],
+    assessment_status: "licensed",
+    redistribution_posture: "authorized",
+    review_status: "accepted",
+  }];
+  const file = sourceDossier(navigation, "tos.file.sha256.shared", 20);
+  assert.equal((file.agent_summary as Item).can_conclude_legal_openness, false);
+  assert.equal((file.agent_summary as Item).rights_posture, "membership_scoped_review_required");
   assert.deepEqual(file.rights, []);
 });

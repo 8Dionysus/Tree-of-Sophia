@@ -336,8 +336,15 @@ export function sourceDossier(navigation: Item, objectId: string, limit: number)
       }
       const memberRights = rights.filter((record) => {
         const scopes = new Set(stringArray(record.scope_refs));
-        return scopes.has(itemId) && scopes.has(objectId)
-          && (membership.rightsRefs.size === 0 || membership.rightsRefs.has(stringValue(record.source_ref)));
+        if (membership.rightsRefs.size > 0) {
+          // The exact manifest rights_ref supplies the Item context. Preserve
+          // assessments scoped to that Item or this selected File even when a
+          // layered row does not repeat both scope IDs.
+          return membership.rightsRefs.has(stringValue(record.source_ref))
+            && (scopes.has(itemId) || scopes.has(objectId));
+        }
+        // Legacy snapshots have no edge-level binding and stay strict.
+        return scopes.has(itemId) && scopes.has(objectId);
       });
       if (membership.rightsRefs.size === 0) {
         // Keep the prior single-owner behavior only when Item+File scope
