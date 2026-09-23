@@ -203,7 +203,7 @@ fn canonical_utc(value: &str) -> bool {
             .parse()
             .ok()
     };
-    let (Some(month), Some(day), Some(hour), Some(minute), Some(second), Some(_millis)) = (
+    let (Some(month), Some(day), Some(hour), Some(minute), Some(second), Some(millis)) = (
         part(1, 3),
         part(4, 6),
         part(7, 9),
@@ -223,7 +223,27 @@ fn canonical_utc(value: &str) -> bool {
         4 | 6 | 9 | 11 => 30,
         _ => 31,
     };
-    (1..=days).contains(&day)
+    if !(1..=days).contains(&day) {
+        return false;
+    }
+    // JS Date TimeClip accepts only an exact UTC millisecond in
+    // [-8.64e15, 8.64e15]. The shape/calendar check alone would admit, for
+    // example, +275760-12-31, while the maintained TS rule rejects it.
+    let mut year = i64::from(year_number);
+    let month = i64::from(month);
+    year -= i64::from(month <= 2);
+    let era = if year >= 0 { year } else { year - 399 } / 400;
+    let year_of_era = year - era * 400;
+    let month_prime = month + if month > 2 { -3 } else { 9 };
+    let day_of_year = (153 * month_prime + 2) / 5 + i64::from(day) - 1;
+    let year_of_era_day = year_of_era * 365 + year_of_era / 4 - year_of_era / 100 + day_of_year;
+    let days_since_epoch = era * 146_097 + year_of_era_day - 719_468;
+    let milliseconds = days_since_epoch * 86_400_000
+        + i64::from(hour) * 3_600_000
+        + i64::from(minute) * 60_000
+        + i64::from(second) * 1_000
+        + i64::from(millis);
+    (-8_640_000_000_000_000..=8_640_000_000_000_000).contains(&milliseconds)
 }
 fn sort_keys(value: &JsonValue) -> JsonValue {
     match value {
@@ -472,5 +492,14 @@ mod tests {
                 .code,
             WorkspaceProposalErrorCode::InvalidProposal
         );
+    }
+
+    #[test]
+    fn canonical_utc_obeys_javascript_timeclip_edges() {
+        assert!(canonical_utc("+275760-09-13T00:00:00.000Z"));
+        assert!(!canonical_utc("+275760-09-13T00:00:00.001Z"));
+        assert!(!canonical_utc("+275760-12-31T00:00:00.000Z"));
+        assert!(canonical_utc("-271821-04-20T00:00:00.000Z"));
+        assert!(!canonical_utc("-271821-04-19T23:59:59.999Z"));
     }
 }
