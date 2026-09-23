@@ -790,6 +790,7 @@ def _verify_prepared_item_bindings(context: BatchContext, output: Path) -> None:
             ) from exc
 
     batch_event_ids: set[str] = set()
+    batch_identity_refs: dict[str, str] = {}
     for selection in context.manifest["selection"]:
         item_ref = selection["item_ref"]
         item_root = selection["item_root_ref"]
@@ -822,6 +823,13 @@ def _verify_prepared_item_bindings(context: BatchContext, output: Path) -> None:
                     f"selected {kind} record has record_type "
                     f"{record_value.get('record_type')}: {record['ref']}"
                 )
+            identity_ref = record_value["record_id"]
+            prior_ref = batch_identity_refs.get(identity_ref)
+            if prior_ref is not None and prior_ref != record["ref"]:
+                raise AcquisitionBatchError(
+                    f"selected corpus identity is bound to multiple records: {identity_ref}"
+                )
+            batch_identity_refs[identity_ref] = record["ref"]
         item_manifest_ref = f"{item_root}/item.manifest.json"
         item_manifest_record = records.get(item_manifest_ref)
         if (

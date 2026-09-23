@@ -470,16 +470,20 @@ def _verify_handoff(
     )
     expected_records = _expected_records(context)
     source_rows = handoff.get("source_records")
-    if (
-        not isinstance(source_rows, list)
-        or len(source_rows) != len(expected_records)
-        or {row.get("ref") for row in source_rows if isinstance(row, dict)} != set(expected_records)
-    ):
+    if not isinstance(source_rows, list) or len(source_rows) != len(expected_records):
         raise HandoffAdapterError("handoff source record closure differs from manifest")
-    selected_source_rows: list[dict[str, Any]] = []
+    source_refs: list[str] = []
     for row in source_rows:
         if not isinstance(row, dict):
             raise HandoffAdapterError("handoff source record row is not an object")
+        ref = row.get("ref")
+        if not isinstance(ref, str):
+            raise HandoffAdapterError("handoff source record ref is not a string")
+        source_refs.append(ref)
+    if set(source_refs) != set(expected_records):
+        raise HandoffAdapterError("handoff source record closure differs from manifest")
+    selected_source_rows: list[dict[str, Any]] = []
+    for row in source_rows:
         ref = row.get("ref")
         if ref not in expected_records:
             raise HandoffAdapterError(f"handoff contains an unselected source record: {ref}")

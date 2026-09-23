@@ -1662,6 +1662,63 @@ class AcquisitionBatchTests(unittest.TestCase):
                 self.assertEqual([], fetch_calls)
                 self.assertEqual([], list(output_root.glob("receipts/handoff-*.json")))
 
+    def test_selected_identity_ids_cannot_bind_distinct_records(self) -> None:
+        fetches, _manifest_sha = self._write_manifest(count=2)
+        manifest = json.loads(self.manifest_path.read_text(encoding="utf-8"))
+        for index, selection in enumerate(manifest["selection"]):
+            record_ref = f"ToS/source-witnesses/works/fixture-{index}/work.json"
+            record_value = {
+                "schema_version": "tos_corpus_record_v1",
+                "record_type": "work",
+                "record_id": "tos.work.repeated-selected-identity",
+                "preferred_label": f"Selected fixture Work {index}",
+                "identity_status": "provisional",
+                "source_refs": [selection["item_ref"]],
+                "external_identifiers": [],
+                "same_as_posture": "no_equivalence_claim",
+                "expression_claim_refs": [],
+                "record_version": 1,
+            }
+            record_path = self.metadata / record_ref
+            record_path.parent.mkdir(parents=True, exist_ok=True)
+            record_path.write_text(
+                json.dumps(record_value, sort_keys=True) + "\n",
+                encoding="utf-8",
+            )
+            selection["records"].append(
+                {
+                    "ref": record_ref,
+                    "kind": "work",
+                    "sha256": hashlib.sha256(record_path.read_bytes()).hexdigest(),
+                }
+            )
+        manifest["provenance_delta"]["record_refs"] = sorted(
+            record["ref"]
+            for selection in manifest["selection"]
+            for record in selection["records"]
+        )
+        self.manifest_path.write_text(
+            json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        manifest_sha = hashlib.sha256(self.manifest_path.read_bytes()).hexdigest()
+        output_root = self.root / "duplicate-selected-corpus-identity"
+        fetch_calls: list[str] = []
+        with self.assertRaisesRegex(
+            acquisition.AcquisitionBatchError,
+            "selected corpus identity is bound to multiple records",
+        ):
+            acquisition.acquire_batch(
+                manifest_path=self.manifest_path,
+                metadata_root=self.metadata,
+                output_root=output_root,
+                expected_manifest_sha256=manifest_sha,
+                fetcher=lambda payload: fetch_calls.append(payload["file_ref"])
+                or fetches[payload["file_ref"]],
+            )
+        self.assertEqual([], fetch_calls)
+        self.assertEqual([], list(output_root.glob("receipts/handoff-*.json")))
+
     def test_selected_item_contracts_are_schema_validated_before_fetch(self) -> None:
         cases = (
             ("item_record", "prepared Item record does not satisfy its schema"),

@@ -984,6 +984,55 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
                 repo_root=ROOT,
             )
 
+    def test_shared_verifier_rejects_non_string_source_record_ref(self) -> None:
+        _fetches, _unused_manifest_sha, _item_root, records = self._write_manifest(
+            base_revision="0" * 64,
+        )
+        base_revision = self._write_accepted_base(records)
+        fetches, manifest_sha, _item_root, _records = self._write_manifest(
+            base_revision=base_revision,
+        )
+        result = acquisition.acquire_batch(
+            manifest_path=self.manifest_path,
+            metadata_root=self.metadata,
+            output_root=self.acquisition_root,
+            expected_manifest_sha256=manifest_sha,
+            fetcher=lambda payload: fetches[payload["file_ref"]],
+        )
+        handoff_path = self.acquisition_root / result["handoff_ref"]
+        handoff = json.loads(handoff_path.read_text(encoding="utf-8"))
+        handoff["source_records"][0]["ref"] = ["unhashable-source-ref"]
+        handoff_path.write_bytes(canonical(handoff))
+
+        with self.assertRaisesRegex(
+            adapter.HandoffAdapterError,
+            "handoff source record ref is not a string",
+        ):
+            adapter.verify_handoff_for_intake(
+                acquisition_root=self.acquisition_root,
+                handoff_ref=result["handoff_ref"],
+                expected_manifest_sha256=manifest_sha,
+                expected_base_revision=base_revision,
+                repo_root=ROOT,
+            )
+        with self.assertRaisesRegex(
+            adapter.HandoffAdapterError,
+            "handoff source record ref is not a string",
+        ):
+            adapter.adapt_handoff(
+                acquisition_root=self.acquisition_root,
+                handoff_ref=result["handoff_ref"],
+                expected_manifest_sha256=manifest_sha,
+                output_root=self.candidate,
+                accepted_store_root=self.accepted_store,
+                accepted_source_root=self.accepted_source,
+                base_revision=base_revision,
+                validator_sha256=self.validator_sha256,
+                validation_context=self._validation_context(),
+                repo_root=ROOT,
+            )
+        self.assertFalse(self.candidate.exists())
+
     def test_shared_verifier_rejects_provenance_delta_base_mutation(self) -> None:
         fetches, manifest_sha, _item_root, _records = self._write_manifest(
             base_revision="a" * 64,
