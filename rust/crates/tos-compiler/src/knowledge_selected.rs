@@ -115,6 +115,13 @@ impl<'a> VerifiedKnowledgeModel<'a> {
     pub fn selection(&self) -> &KnowledgeSelectedExpectation {
         &self.selection
     }
+    /// Unicode and 3-gram semantics of the selected search index. The cold
+    /// opener verifies the fixed model ABI, complete index root and rows;
+    /// the producer seal accepts only this compiled search profile. This is
+    /// distinct from the authored query primitive profile in the descriptor.
+    pub fn search_index_profile(&self) -> &'static str {
+        crate::knowledge_search::SEARCH_PROFILE
+    }
     /// The exact revision in the canonical graph header, verified during
     /// cold admission against the selected graph root and file SHA.
     pub fn source_revision(&self) -> &str {
