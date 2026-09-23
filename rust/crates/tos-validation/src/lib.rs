@@ -672,8 +672,8 @@ mod tests {
         }
         let expected = resources.len();
         assert_eq!(
-            expected, 183,
-            "baseline source schema set changed; re-inventory the profile"
+            expected, 185,
+            "source schema set includes the two acquisition batch contracts; re-inventory the profile on future changes"
         );
         let backend =
             SchemaBackendProbe::new(resources, FormatProfile::AssertedSourceCandidateV1).unwrap();
