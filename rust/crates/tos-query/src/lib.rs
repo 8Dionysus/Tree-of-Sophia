@@ -15,7 +15,10 @@ pub use search_document::{
 };
 pub use source_descend::{
     AdjacencyPage, Binding, Budget, Charged, DisclosableSourceDescend, DisclosureLease, ExactNode,
-    QueryError, QueryErrorCode, RawRecord, ReadModel, SourceDescendRequest, source_descend,
+    QueryError, QueryErrorCode, RawRecord, ReadModel, SOURCE_DESCEND_D1_METER_V1,
+    SOURCE_DESCEND_SESSION_V1, SessionAdvance, SessionCaps, SessionNeed, SessionNeedKind,
+    SessionResponse, SessionResponseKind, SourceDescendRequest, SourceDescendSession,
+    source_descend,
 };
 #[cfg(not(target_arch = "wasm32"))]
 pub use sqlite::{

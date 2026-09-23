@@ -6,7 +6,9 @@ use tos_foundation::{
 };
 use tos_query::{
     AdjacencyPage, Binding, Budget, Charged, DisclosureLease, ExactNode, QueryError,
-    QueryErrorCode, RawRecord, ReadModel, SourceDescendRequest, source_descend,
+    QueryErrorCode, RawRecord, ReadModel, SOURCE_DESCEND_D1_METER_V1, SOURCE_DESCEND_SESSION_V1,
+    SessionAdvance, SessionNeed, SessionNeedKind, SessionResponse, SessionResponseKind,
+    SourceDescendRequest, SourceDescendSession, source_descend,
 };
 
 struct SyntheticLease;
@@ -507,4 +509,272 @@ fn selected_row_byte_cap_is_enforced_before_transfer() {
             .code,
         QueryErrorCode::BudgetExceeded
     );
+}
+
+fn synthetic_response(model: &mut SyntheticReadModel, need: &SessionNeed) -> SessionResponse {
+    let (kind, charged) = match &need.kind {
+        SessionNeedKind::CheckPin => {
+            model.check_pin(&need.binding).unwrap();
+            (SessionResponseKind::PinHeld, Charged::default())
+        }
+        SessionNeedKind::ExactNode { id } => {
+            let mut got = model
+                .exact_visible_node(
+                    id,
+                    need.caps.bytes as usize,
+                    need.caps.carrier_bytes,
+                    need.caps.cpu_steps,
+                    need.caps.probes,
+                    need.caps.rows,
+                )
+                .unwrap();
+            got.charged.bytes = got
+                .record
+                .as_ref()
+                .map_or(0, |record| record.raw.len() as u64);
+            let charged = got.charged;
+            (SessionResponseKind::ExactNode(got), charged)
+        }
+        SessionNeedKind::Outgoing {
+            from_id,
+            after_edge_id,
+        } => {
+            let mut page = model
+                .visible_outgoing(
+                    from_id,
+                    after_edge_id.as_deref(),
+                    need.caps.page_rows,
+                    need.caps.bytes as usize,
+                    need.caps.carrier_bytes,
+                    need.caps.cpu_steps,
+                    need.caps.probes,
+                    need.caps.rows,
+                )
+                .unwrap();
+            page.charged.bytes = page.edges.iter().map(|edge| edge.raw.len() as u64).sum();
+            let charged = page.charged;
+            (SessionResponseKind::Outgoing(page), charged)
+        }
+        SessionNeedKind::CurrentPolicy { sha256 } => {
+            let record = model
+                .nodes
+                .values()
+                .chain(model.edges.values().flatten())
+                .chain(std::iter::once(&model.authority))
+                .find(|item| item.sha256 == *sha256)
+                .unwrap()
+                .clone();
+            let mut charged = model.authorize_current(&record).unwrap();
+            charged.cpu_steps = 0;
+            (
+                SessionResponseKind::PolicyApproved { sha256: *sha256 },
+                charged,
+            )
+        }
+        SessionNeedKind::AuthorityBoundary => {
+            let record = model.authority_boundary(need.caps.bytes as usize).unwrap();
+            let charged = Charged {
+                probes: 1,
+                rows: 1,
+                bytes: record.raw.len() as u64,
+                ..Charged::default()
+            };
+            (SessionResponseKind::AuthorityBoundary(record), charged)
+        }
+        SessionNeedKind::AcquireDisclosure {
+            selected,
+            selected_digest,
+        } => {
+            let lease = model.acquire_disclosure(&need.binding, selected).unwrap();
+            (
+                SessionResponseKind::Disclosure {
+                    selected_digest: *selected_digest,
+                    lease,
+                },
+                Charged::default(),
+            )
+        }
+    };
+    SessionResponse {
+        schema: SOURCE_DESCEND_SESSION_V1,
+        meter_profile: SOURCE_DESCEND_D1_METER_V1,
+        nonce: need.nonce,
+        binding: need.binding.clone(),
+        certified_index_root: Some(need.binding.index_root),
+        charged,
+        kind,
+    }
+}
+
+fn synthetic_session(
+    model: &mut SyntheticReadModel,
+    request: SourceDescendRequest,
+    limits: Budget,
+) -> Result<Vec<u8>, QueryError> {
+    let (mut session, mut need) =
+        SourceDescendSession::start(model.binding.clone(), request, limits)?;
+    loop {
+        let header = parse_json(
+            &need.wire_header(),
+            JsonMode::PublishedStrict,
+            JsonLimits::default(),
+        )
+        .unwrap();
+        assert_eq!(string(header.root(), "schema"), SOURCE_DESCEND_SESSION_V1);
+        assert_eq!(
+            string(header.root(), "meter_profile"),
+            SOURCE_DESCEND_D1_METER_V1
+        );
+        if let SessionNeedKind::AcquireDisclosure { selected, .. } = &need.kind {
+            assert_eq!(need.selected_records().unwrap().len(), selected.len());
+        }
+        let response = synthetic_response(model, &need);
+        match session.resume(response)? {
+            SessionAdvance::Need(next) => need = next,
+            SessionAdvance::Ready(mut ready) => {
+                ready.recheck()?;
+                return Ok(ready.to_vec());
+            }
+        }
+    }
+}
+
+#[test]
+fn resumable_session_matches_python_and_sync_oracle_without_graph_prefetch() {
+    let (mut model, expected, request) = SyntheticReadModel::fixture();
+    let packet = synthetic_session(&mut model, request.clone(), budget()).unwrap();
+    let actual = parse_json(&packet, JsonMode::PublishedStrict, JsonLimits::default()).unwrap();
+    assert!(semantic_eq(actual.root(), &expected));
+    let (mut synchronous, _, _) = SyntheticReadModel::fixture();
+    let direct = source_descend(&mut synchronous, &request, budget()).unwrap();
+    assert_eq!(packet, direct.to_vec());
+    assert!(model.pin_checks >= 3);
+}
+
+#[test]
+fn resumable_session_rejects_replayed_nonce_and_wrong_selected_binding() {
+    let (mut model, _, request) = SyntheticReadModel::fixture();
+    let (mut session, need) =
+        SourceDescendSession::start(model.binding.clone(), request, budget()).unwrap();
+    let mut reply = synthetic_response(&mut model, &need);
+    reply.nonce += 1;
+    assert_eq!(
+        session.resume(reply).unwrap_err().code,
+        QueryErrorCode::StaleSelection
+    );
+    let (mut session, need) = SourceDescendSession::start(
+        model.binding.clone(),
+        SyntheticReadModel::fixture().2,
+        budget(),
+    )
+    .unwrap();
+    let mut reply = synthetic_response(&mut model, &need);
+    reply.binding.index_generation = "other".into();
+    assert_eq!(
+        session.resume(reply).unwrap_err().code,
+        QueryErrorCode::StaleSelection
+    );
+}
+
+#[test]
+fn resumable_session_refuses_incomplete_adjacency_and_over_admission() {
+    let (mut model, _, request) = SyntheticReadModel::fixture();
+    model.bad_digest = true;
+    assert_eq!(
+        synthetic_session(&mut model, request.clone(), budget())
+            .unwrap_err()
+            .code,
+        QueryErrorCode::IndexIncomplete
+    );
+    let (mut model, _, request) = SyntheticReadModel::fixture();
+    let (mut session, need) =
+        SourceDescendSession::start(model.binding.clone(), request, budget()).unwrap();
+    let mut reply = synthetic_response(&mut model, &need);
+    reply.charged.probes = need.caps.probes + 1;
+    assert_eq!(
+        session.resume(reply).unwrap_err().code,
+        QueryErrorCode::BudgetExceeded
+    );
+    let (mut model, _, request) = SyntheticReadModel::fixture();
+    let (mut session, mut need) =
+        SourceDescendSession::start(model.binding.clone(), request, budget()).unwrap();
+    loop {
+        let mut reply = synthetic_response(&mut model, &need);
+        if matches!(need.kind, SessionNeedKind::Outgoing { .. }) {
+            reply.certified_index_root = None;
+            assert_eq!(
+                session.resume(reply).unwrap_err().code,
+                QueryErrorCode::IndexIncomplete
+            );
+            break;
+        }
+        need = match session.resume(reply).unwrap() {
+            SessionAdvance::Need(next) => next,
+            SessionAdvance::Ready(_) => panic!("ready before index-root check"),
+        };
+    }
+}
+
+#[test]
+fn resumable_session_requires_owner_lease_and_current_policy() {
+    let (mut model, _, request) = SyntheticReadModel::fixture();
+    let (mut session, mut need) =
+        SourceDescendSession::start(model.binding.clone(), request.clone(), budget()).unwrap();
+    loop {
+        if let SessionNeedKind::AcquireDisclosure { .. } = &need.kind {
+            let wrong = SessionResponse {
+                schema: SOURCE_DESCEND_SESSION_V1,
+                meter_profile: SOURCE_DESCEND_D1_METER_V1,
+                nonce: need.nonce,
+                binding: need.binding.clone(),
+                certified_index_root: None,
+                charged: Charged::default(),
+                kind: SessionResponseKind::PolicyApproved {
+                    sha256: Digest256::of_bytes(b"wrong"),
+                },
+            };
+            assert_eq!(
+                session.resume(wrong).unwrap_err().code,
+                QueryErrorCode::InvalidRequest
+            );
+            break;
+        }
+        let response = synthetic_response(&mut model, &need);
+        need = match session.resume(response).unwrap() {
+            SessionAdvance::Need(next) => next,
+            SessionAdvance::Ready(_) => panic!("ready before disclosure"),
+        };
+    }
+    let (mut model, _, request) = SyntheticReadModel::fixture();
+    model.denied_id = Some("δ".into());
+    let (mut session, mut need) =
+        SourceDescendSession::start(model.binding.clone(), request, budget()).unwrap();
+    loop {
+        if let SessionNeedKind::CurrentPolicy { sha256 } = &need.kind {
+            let denied = model.nodes.get("δ").unwrap();
+            if sha256 == &denied.sha256 {
+                let response = SessionResponse {
+                    schema: SOURCE_DESCEND_SESSION_V1,
+                    meter_profile: SOURCE_DESCEND_D1_METER_V1,
+                    nonce: need.nonce,
+                    binding: need.binding.clone(),
+                    certified_index_root: None,
+                    charged: Charged::default(),
+                    kind: SessionResponseKind::Refused {
+                        code: QueryErrorCode::PolicyDenied,
+                    },
+                };
+                assert_eq!(
+                    session.resume(response).unwrap_err().code,
+                    QueryErrorCode::PolicyDenied
+                );
+                break;
+            }
+        }
+        let response = synthetic_response(&mut model, &need);
+        need = match session.resume(response).unwrap() {
+            SessionAdvance::Need(next) => next,
+            SessionAdvance::Ready(_) => panic!("ready before policy refusal"),
+        };
+    }
 }
