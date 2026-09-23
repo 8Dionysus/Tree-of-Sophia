@@ -7,12 +7,31 @@ CREATE TABLE IF NOT EXISTS cmd2_domain (
   rights_allowed boolean NOT NULL DEFAULT true,
   rule_version bigint NOT NULL DEFAULT 0 CHECK (rule_version >= 0),
   contract_digest char(64) NOT NULL,
+  schema_profile_digest char(64),
   published_seq bigint NOT NULL DEFAULT 0 CHECK (published_seq >= 0),
-  complete_cut_digest char(64)
+  complete_cut_digest char(64),
+  complete_cut_generation bigint CHECK (complete_cut_generation >= 0)
 );
+ALTER TABLE cmd2_domain ADD COLUMN IF NOT EXISTS schema_profile_digest char(64);
 ALTER TABLE cmd2_domain ADD COLUMN IF NOT EXISTS published_seq bigint NOT NULL DEFAULT 0
   CHECK (published_seq >= 0);
 ALTER TABLE cmd2_domain ADD COLUMN IF NOT EXISTS complete_cut_digest char(64);
+ALTER TABLE cmd2_domain ADD COLUMN IF NOT EXISTS complete_cut_generation bigint
+  CHECK (complete_cut_generation >= 0);
+
+-- Every selected metadata mutation must change this independent, lockable
+-- generation. Every writer and the short publisher locks it before attempt
+-- and domain rows; AFTER triggers then re-enter that same transaction lock.
+-- compares the private offline audit generation. Direct fence writes and
+-- trigger/DDL bypass are outside this private laboratory trust profile.
+CREATE TABLE IF NOT EXISTS cmd2_audit_fence (
+  domain text PRIMARY KEY REFERENCES cmd2_domain(domain) ON DELETE RESTRICT,
+  generation bigint NOT NULL DEFAULT 0 CHECK (generation >= 0),
+  maintenance_state text NOT NULL DEFAULT 'normal'
+    CHECK (maintenance_state IN ('normal','active'))
+);
+ALTER TABLE cmd2_audit_fence ADD COLUMN IF NOT EXISTS maintenance_state text
+  NOT NULL DEFAULT 'normal' CHECK (maintenance_state IN ('normal','active'));
 
 CREATE TABLE IF NOT EXISTS cmd2_job (
   domain text NOT NULL REFERENCES cmd2_domain(domain),
@@ -180,3 +199,66 @@ CREATE TABLE IF NOT EXISTS cmd2_outbox (
   PRIMARY KEY (domain, event_id),
   UNIQUE (domain, commit_seq)
 );
+
+CREATE OR REPLACE FUNCTION cmd2_register_audit_domain() RETURNS trigger
+LANGUAGE plpgsql AS $$
+BEGIN
+  INSERT INTO cmd2_audit_fence(domain,generation) VALUES(NEW.domain,0);
+  RETURN NULL;
+END $$;
+
+CREATE OR REPLACE FUNCTION cmd2_bump_audit_fence() RETURNS trigger
+LANGUAGE plpgsql AS $$
+DECLARE changed_domain text;
+BEGIN
+  IF TG_OP = 'UPDATE' THEN
+    IF NEW.domain IS DISTINCT FROM OLD.domain THEN
+      RAISE EXCEPTION 'CMD2 domain identity cannot move';
+    END IF;
+  END IF;
+  IF TG_OP = 'DELETE' THEN
+    changed_domain := OLD.domain;
+  ELSE
+    changed_domain := NEW.domain;
+  END IF;
+  UPDATE cmd2_audit_fence SET generation=generation+1
+    WHERE domain=changed_domain AND generation < 9223372036854775807;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'CMD2 audit fence absent or exhausted for %', changed_domain;
+  END IF;
+  RETURN NULL;
+END $$;
+
+CREATE OR REPLACE FUNCTION cmd2_refuse_audited_truncate() RETURNS trigger
+LANGUAGE plpgsql AS $$
+BEGIN
+  RAISE EXCEPTION 'CMD2 audited table cannot be truncated';
+END $$;
+
+CREATE OR REPLACE TRIGGER cmd2_audit_domain_insert
+  AFTER INSERT ON cmd2_domain FOR EACH ROW
+  EXECUTE FUNCTION cmd2_register_audit_domain();
+CREATE OR REPLACE TRIGGER cmd2_audit_domain_update
+  AFTER UPDATE ON cmd2_domain FOR EACH ROW
+  EXECUTE FUNCTION cmd2_bump_audit_fence();
+CREATE OR REPLACE TRIGGER cmd2_refuse_domain_truncate
+  BEFORE TRUNCATE ON cmd2_domain FOR EACH STATEMENT
+  EXECUTE FUNCTION cmd2_refuse_audited_truncate();
+
+DO $$
+DECLARE table_name text;
+BEGIN
+  FOREACH table_name IN ARRAY ARRAY[
+    'cmd2_job','cmd2_predicate','cmd2_attempt','cmd2_member',
+    'cmd2_current','cmd2_history','cmd2_receipt','cmd2_log','cmd2_outbox'
+  ] LOOP
+    EXECUTE format(
+      'CREATE OR REPLACE TRIGGER %I AFTER INSERT OR UPDATE OR DELETE ON %I '
+      || 'FOR EACH ROW EXECUTE FUNCTION cmd2_bump_audit_fence()',
+      'cmd2_audit_' || table_name, table_name);
+    EXECUTE format(
+      'CREATE OR REPLACE TRIGGER %I BEFORE TRUNCATE ON %I '
+      || 'FOR EACH STATEMENT EXECUTE FUNCTION cmd2_refuse_audited_truncate()',
+      'cmd2_refuse_' || table_name || '_truncate', table_name);
+  END LOOP;
+END $$;

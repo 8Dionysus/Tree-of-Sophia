@@ -818,14 +818,14 @@ fn wait_for_pg_row_block(url: &str, worker_pid: i32, blocker_pid: i32) {
         }
         assert!(
             Instant::now() < deadline,
-            "worker {worker_pid} never waited on domain sequencer; blockers={blockers:?}"
+            "worker {worker_pid} never waited on audit fence; blockers={blockers:?}"
         );
         thread::sleep(Duration::from_millis(10));
     }
 }
 
 #[test]
-fn rights_change_after_observed_sequencer_wait_refuses_commit() {
+fn rights_change_after_observed_audit_fence_wait_refuses_commit() {
     let Some(url) = database_url() else { return };
     let mut lab = Lab::new(&url);
     let members = lab.prepare(
@@ -840,6 +840,11 @@ fn rights_change_after_observed_sequencer_wait_refuses_commit() {
     let mut blocker = Client::connect(&url, NoTls).unwrap();
     let mut tx = blocker.transaction().unwrap();
     let blocker_pid: i32 = tx.query_one("SELECT pg_backend_pid()", &[]).unwrap().get(0);
+    tx.query_one(
+        "SELECT 1 FROM cmd2_audit_fence WHERE domain=$1 FOR UPDATE",
+        &[&lab.domain],
+    )
+    .unwrap();
     tx.query_one(
         "SELECT 1 FROM cmd2_domain WHERE domain=$1 FOR UPDATE",
         &[&lab.domain],
@@ -990,7 +995,10 @@ fn cold_cut_seal_is_monotone_and_rejects_forged_digest() {
     assert_eq!(second_cut.through_commit_seq(), 2);
     assert_eq!(second_cut.historical_members(), 2);
     lab.db.seal_shadow_cut(&second_cut).unwrap();
-    lab.db.seal_shadow_cut(&first_cut).unwrap();
+    assert!(matches!(
+        lab.db.seal_shadow_cut(&first_cut),
+        Err(DurableError::Conflict(_))
+    ));
     assert_eq!(lab.db.published_seq(&lab.domain).unwrap(), 2);
     corrupter
         .execute(
@@ -1006,6 +1014,118 @@ fn cold_cut_seal_is_monotone_and_rejects_forged_digest() {
         Err(DurableError::Conflict(_))
     ));
     assert_eq!(lab.db.published_seq(&lab.domain).unwrap(), 2);
+}
+
+#[test]
+fn cold_cut_fence_rejects_same_count_mutation_and_aba() {
+    let Some(url) = database_url() else { return };
+    let mut lab = Lab::new(&url);
+    let members = lab.prepare(
+        b"prepare-cut-fence",
+        "cut-fence",
+        &[MemberSpec::first("subject-F", b"fenced bytes")],
+    );
+    lab.commit(b"prepare-cut-fence", &members, 0, 1).unwrap();
+    let cold_store = SegmentStore::open_existing(&lab._root.0, limits()).unwrap();
+    let mut admin = Client::connect(&url, NoTls).unwrap();
+    let mutations = [
+        "UPDATE cmd2_history SET durability_class='forged' WHERE domain=$1",
+        "UPDATE cmd2_current SET durability_class='forged' WHERE domain=$1",
+        "UPDATE cmd2_member SET durability_class='forged' WHERE domain=$1",
+        "UPDATE cmd2_receipt SET raw_request_digest=repeat('a',64) WHERE domain=$1",
+        "UPDATE cmd2_outbox SET event_id='forged-event' WHERE domain=$1",
+    ];
+    let restorations = [
+        "UPDATE cmd2_history SET durability_class='fsync-reopened' WHERE domain=$1",
+        "UPDATE cmd2_current SET durability_class='fsync-reopened' WHERE domain=$1",
+        "UPDATE cmd2_member SET durability_class='fsync-reopened' WHERE domain=$1",
+        "UPDATE cmd2_receipt SET raw_request_digest=(SELECT raw_request_digest FROM cmd2_attempt WHERE domain=$1) WHERE domain=$1",
+        "UPDATE cmd2_outbox SET event_id=domain || ':1' WHERE domain=$1",
+    ];
+    // Read the exact original class rather than assuming a store enum spelling.
+    let original_class: String = admin
+        .query_one(
+            "SELECT durability_class FROM cmd2_history WHERE domain=$1",
+            &[&lab.domain],
+        )
+        .unwrap()
+        .get(0);
+    for (index, (mutation, restoration)) in mutations.iter().zip(restorations).enumerate() {
+        let cut = lab.db.cold_verify_cut(&cold_store, &lab.domain).unwrap();
+        assert_eq!(
+            admin.execute(mutation, &[&lab.domain]).unwrap(),
+            1,
+            "mutation {index}"
+        );
+        if index < 3 {
+            let table = ["cmd2_history", "cmd2_current", "cmd2_member"][index];
+            let query = format!("UPDATE {table} SET durability_class=$2 WHERE domain=$1");
+            assert_eq!(
+                admin
+                    .execute(&query, &[&lab.domain, &original_class])
+                    .unwrap(),
+                1
+            );
+        } else {
+            assert_eq!(admin.execute(restoration, &[&lab.domain]).unwrap(), 1);
+        }
+        assert!(
+            matches!(lab.db.seal_shadow_cut(&cut), Err(DurableError::Conflict(_))),
+            "same-count or ABA metadata mutation {index} passed a stale cut"
+        );
+    }
+    let fresh = lab.db.cold_verify_cut(&cold_store, &lab.domain).unwrap();
+    lab.db.seal_shadow_cut(&fresh).unwrap();
+}
+
+#[test]
+fn seal_waits_on_trigger_ordered_fence_then_refuses_changed_cut() {
+    let Some(url) = database_url() else { return };
+    let mut lab = Lab::new(&url);
+    let members = lab.prepare(
+        b"prepare-seal-order",
+        "seal-order",
+        &[MemberSpec::first("subject-O", b"ordering bytes")],
+    );
+    lab.commit(b"prepare-seal-order", &members, 0, 1).unwrap();
+    let cold_store = SegmentStore::open_existing(&lab._root.0, limits()).unwrap();
+    let cut = lab.db.cold_verify_cut(&cold_store, &lab.domain).unwrap();
+    let mut blocker = Client::connect(&url, NoTls).unwrap();
+    let mut tx = blocker.transaction().unwrap();
+    let blocker_pid: i32 = tx.query_one("SELECT pg_backend_pid()", &[]).unwrap().get(0);
+    tx.query_one(
+        "SELECT 1 FROM cmd2_audit_fence WHERE domain=$1 FOR UPDATE",
+        &[&lab.domain],
+    )
+    .unwrap();
+    // This UPDATE fires the implicit audit trigger while the transaction
+    // already owns its first lock. The publisher must wait on that lock,
+    // never take the domain first and deadlock with the trigger.
+    tx.execute(
+        "UPDATE cmd2_member SET durability_class=durability_class WHERE domain=$1",
+        &[&lab.domain],
+    )
+    .unwrap();
+    let (pid_send, pid_recv) = mpsc::channel();
+    let (result_send, result_recv) = mpsc::channel();
+    let worker_url = url.clone();
+    let worker = thread::spawn(move || {
+        let mut db = DurablePgCoordinator::connect(&worker_url).unwrap();
+        pid_send.send(db.backend_pid().unwrap()).unwrap();
+        result_send
+            .send(matches!(
+                db.seal_shadow_cut(&cut),
+                Err(DurableError::Conflict(_))
+            ))
+            .unwrap();
+    });
+    let worker_pid = pid_recv.recv_timeout(Duration::from_secs(5)).unwrap();
+    wait_for_pg_row_block(&url, worker_pid, blocker_pid);
+    tx.commit().unwrap();
+    assert!(result_recv.recv_timeout(Duration::from_secs(5)).unwrap());
+    worker.join().unwrap();
+    let fresh = lab.db.cold_verify_cut(&cold_store, &lab.domain).unwrap();
+    lab.db.seal_shadow_cut(&fresh).unwrap();
 }
 
 #[test]

@@ -146,6 +146,10 @@ pub struct ColdCut {
     domain: String,
     through_commit_seq: u64,
     log_digest: Digest256,
+    state_digest: Digest256,
+    schema_profile_digest: Digest256,
+    database_oid: u64,
+    audit_generation: u64,
     historical_members: u64,
 }
 
@@ -155,6 +159,12 @@ impl ColdCut {
     }
     pub fn log_digest(&self) -> Digest256 {
         self.log_digest
+    }
+    pub fn state_digest(&self) -> Digest256 {
+        self.state_digest
+    }
+    pub fn audit_generation(&self) -> u64 {
+        self.audit_generation
     }
     pub fn historical_members(&self) -> u64 {
         self.historical_members
@@ -320,6 +330,34 @@ fn parse_hex(value: String) -> DurableResult<Digest256> {
     Digest256::from_hex(&value).map_err(|_| DurableError::Corrupt("invalid metadata digest"))
 }
 
+fn schema_profile_digest() -> Digest256 {
+    Digest256::of_bytes(include_bytes!("durable_schema.sql"))
+}
+
+fn lock_audit_fence(tx: &mut Transaction<'_>, domain: &str) -> DurableResult<u64> {
+    let row = tx
+        .query_opt(
+            "SELECT generation,maintenance_state FROM cmd2_audit_fence
+             WHERE domain=$1 FOR UPDATE",
+            &[&domain],
+        )?
+        .ok_or(DurableError::Corrupt("domain audit fence absent"))?;
+    if row.get::<_, String>(1) != "normal" {
+        return Err(DurableError::Refused("physical maintenance in progress"));
+    }
+    as_u64(row.get(0))
+}
+
+fn database_oid(tx: &mut Transaction<'_>) -> DurableResult<u64> {
+    let oid: i64 = tx
+        .query_one(
+            "SELECT oid::bigint FROM pg_database WHERE datname=current_database()",
+            &[],
+        )?
+        .get(0);
+    as_u64(oid)
+}
+
 pub struct DurablePgCoordinator {
     client: Client,
 }
@@ -349,14 +387,21 @@ impl DurablePgCoordinator {
             return Err(DurableError::Invalid("empty domain"));
         }
         self.client.execute(
-            "INSERT INTO cmd2_domain(domain,contract_digest) VALUES($1,$2) ON CONFLICT DO NOTHING",
-            &[&domain, &contract_digest.to_hex()],
+            "INSERT INTO cmd2_domain(domain,contract_digest,schema_profile_digest)
+             VALUES($1,$2,$3) ON CONFLICT DO NOTHING",
+            &[
+                &domain,
+                &contract_digest.to_hex(),
+                &schema_profile_digest().to_hex(),
+            ],
         )?;
         Ok(())
     }
 
     pub fn set_job_epoch(&mut self, domain: &str, job_id: &str, epoch: u64) -> DurableResult<()> {
-        let changed = self.client.execute(
+        let mut tx = self.client.transaction()?;
+        lock_audit_fence(&mut tx, domain)?;
+        let changed = tx.execute(
             "INSERT INTO cmd2_job(domain,job_id,fence_epoch) VALUES($1,$2,$3)
              ON CONFLICT(domain,job_id) DO UPDATE SET fence_epoch=EXCLUDED.fence_epoch
              WHERE EXCLUDED.fence_epoch >= cmd2_job.fence_epoch",
@@ -365,6 +410,7 @@ impl DurablePgCoordinator {
         if changed != 1 {
             return Err(DurableError::Refused("job fence cannot decrease"));
         }
+        tx.commit()?;
         Ok(())
     }
 
@@ -375,7 +421,9 @@ impl DurablePgCoordinator {
         {
             return Err(DurableError::Invalid("empty attempt identity"));
         }
-        let changed = self.client.execute(
+        let mut tx = self.client.transaction()?;
+        lock_audit_fence(&mut tx, request.domain)?;
+        let changed = tx.execute(
             "INSERT INTO cmd2_attempt(domain,prepare_id,command_id,raw_request_digest,delta_digest,
              state,attempt_fence) VALUES($1,$2,$3,$4,$5,'registered',1)
              ON CONFLICT DO NOTHING",
@@ -388,7 +436,7 @@ impl DurablePgCoordinator {
             ],
         )?;
         if changed == 0 {
-            let row = self.client.query_opt(
+            let row = tx.query_opt(
                 "SELECT command_id,raw_request_digest,delta_digest,state
                  FROM cmd2_attempt WHERE domain=$1 AND prepare_id=$2",
                 &[&request.domain, &request.prepare_id],
@@ -405,6 +453,7 @@ impl DurablePgCoordinator {
                 return Err(DurableError::Conflict("attempt identity collision"));
             }
         }
+        tx.commit()?;
         Ok(())
     }
 
@@ -447,6 +496,7 @@ impl DurablePgCoordinator {
             .build_transaction()
             .isolation_level(IsolationLevel::ReadCommitted)
             .start()?;
+        lock_audit_fence(&mut tx, domain)?;
         let row = tx.query_one(
             "SELECT state,delta_digest FROM cmd2_attempt
              WHERE domain=$1 AND prepare_id=$2 FOR UPDATE",
@@ -563,6 +613,9 @@ impl DurablePgCoordinator {
             .isolation_level(IsolationLevel::ReadCommitted)
             .start()?;
         tx.batch_execute("SET LOCAL lock_timeout = '5s'; SET LOCAL statement_timeout = '15s'")?;
+        let lock_start = Instant::now();
+        lock_audit_fence(&mut tx, request.domain)?;
+        let fence_acquired = Instant::now();
         let attempt = tx.query_one(
             "SELECT * FROM cmd2_attempt WHERE domain=$1 AND prepare_id=$2 FOR UPDATE",
             &[&request.domain, &request.prepare_id],
@@ -592,17 +645,18 @@ impl DurablePgCoordinator {
             let revision = as_u64(row.get("proposed_revision"))?;
             check_member_row(row, receipt, &subject, revision)?;
         }
-        let lock_start = Instant::now();
         tx.query_one(
             "SELECT 1 FROM cmd2_domain WHERE domain=$1 FOR UPDATE",
             &[&request.domain],
         )?;
         let lock_wait = lock_start.elapsed();
-        let lock_acquired = Instant::now();
+        // The fence is the first serialization lock in this lab profile.
+        // Report its full hold duration, including later attempt/domain waits.
         // A fresh READ COMMITTED statement after the row-lock wait observes
         // any rights/rule/sequence decision made by the preceding owner.
         let domain = tx.query_one(
-            "SELECT head_seq,rights_version,rights_allowed,rule_version,contract_digest
+            "SELECT head_seq,rights_version,rights_allowed,rule_version,contract_digest,
+                    schema_profile_digest
              FROM cmd2_domain WHERE domain=$1",
             &[&request.domain],
         )?;
@@ -617,7 +671,7 @@ impl DurablePgCoordinator {
         }
         if replayed {
             let receipt = receipt_from_committed_attempt(&mut tx, &attempt)?;
-            let lock_held = lock_acquired.elapsed();
+            let lock_held = fence_acquired.elapsed();
             tx.commit()
                 .map_err(|_| DurableError::Indeterminate("replay transaction outcome unknown"))?;
             drop(guard);
@@ -641,6 +695,7 @@ impl DurablePgCoordinator {
         }
         if as_u64(domain.get(3))? != request.expected_rule_version
             || domain.get::<_, String>(4) != request.expected_contract_digest.to_hex()
+            || domain.get::<_, Option<String>>(5) != Some(schema_profile_digest().to_hex())
         {
             return Err(DurableError::Conflict(
                 "rule/schema/registry contract changed",
@@ -777,7 +832,7 @@ impl DurablePgCoordinator {
                 &receipt_digest.to_hex(),
             ],
         )?;
-        let lock_held = lock_acquired.elapsed();
+        let lock_held = fence_acquired.elapsed();
         tx.commit()
             .map_err(|_| DurableError::Indeterminate("commit outcome unknown; retain pin"))?;
         drop(guard);
@@ -807,6 +862,7 @@ impl DurablePgCoordinator {
         prepare_id: &[u8],
     ) -> DurableResult<AttemptResolution> {
         let mut tx = self.client.transaction()?;
+        lock_audit_fence(&mut tx, domain)?;
         let row = tx.query_one(
             "SELECT * FROM cmd2_attempt WHERE domain=$1 AND prepare_id=$2 FOR UPDATE",
             &[&domain, &prepare_id],
@@ -835,6 +891,7 @@ impl DurablePgCoordinator {
         prepare_id: &[u8],
     ) -> DurableResult<CancelOutcome> {
         let mut tx = self.client.transaction()?;
+        lock_audit_fence(&mut tx, domain)?;
         let attempt = tx.query_one(
             "SELECT * FROM cmd2_attempt WHERE domain=$1 AND prepare_id=$2 FOR UPDATE",
             &[&domain, &prepare_id],
@@ -893,6 +950,7 @@ impl DurablePgCoordinator {
             .build_transaction()
             .isolation_level(IsolationLevel::ReadCommitted)
             .start()?;
+        lock_audit_fence(&mut tx, domain)?;
         tx.query_one(
             "SELECT 1 FROM cmd2_domain WHERE domain=$1 FOR UPDATE",
             &[&domain],
@@ -1059,13 +1117,22 @@ impl DurablePgCoordinator {
             .isolation_level(IsolationLevel::RepeatableRead)
             .read_only(true)
             .start()?;
-        let head: i64 = tx
-            .query_one(
-                "SELECT head_seq FROM cmd2_domain WHERE domain=$1",
-                &[&domain],
-            )?
-            .get(0);
-        let head = as_u64(head)?;
+        let domain_row = tx.query_one(
+            "SELECT d.head_seq,d.schema_profile_digest,f.generation,f.maintenance_state
+                 FROM cmd2_domain d JOIN cmd2_audit_fence f USING(domain)
+                 WHERE d.domain=$1",
+            &[&domain],
+        )?;
+        if domain_row.get::<_, String>(3) != "normal" {
+            return Err(DurableError::Refused("physical maintenance is active"));
+        }
+        let profile_digest = schema_profile_digest();
+        if domain_row.get::<_, Option<String>>(1) != Some(profile_digest.to_hex()) {
+            return Err(DurableError::Conflict("coordinator schema profile changed"));
+        }
+        let head = as_u64(domain_row.get::<_, i64>(0))?;
+        let audit_generation = as_u64(domain_row.get::<_, i64>(2))?;
+        let database_oid = database_oid(&mut tx)?;
         if head > MAX_CUT {
             return Err(DurableError::Refused("cold cut exceeds laboratory budget"));
         }
@@ -1083,6 +1150,13 @@ impl DurablePgCoordinator {
         let mut latest: HashMap<String, (u64, Digest256)> = HashMap::new();
         let mut log_hasher = Digest256Hasher::new();
         part(&mut log_hasher, b"cmd2-cold-cut-v1");
+        let mut state_hasher = Digest256Hasher::new();
+        part(&mut state_hasher, b"cmd2-private-complete-state-v1");
+        part(&mut state_hasher, domain.as_bytes());
+        part(&mut state_hasher, &head.to_be_bytes());
+        part(&mut state_hasher, &database_oid.to_be_bytes());
+        part(&mut state_hasher, profile_digest.to_hex().as_bytes());
+        let mut command_events = 0u64;
         for (index, log) in log_rows.iter().enumerate() {
             let seq: i64 = log.get(0);
             if seq != index as i64 + 1 {
@@ -1123,6 +1197,7 @@ impl DurablePgCoordinator {
                 }
                 continue;
             }
+            command_events += 1;
             let attempt = tx
                 .query_opt(
                     "SELECT * FROM cmd2_attempt WHERE domain=$1 AND command_id=$2",
@@ -1207,6 +1282,10 @@ impl DurablePgCoordinator {
                     &member.get::<_, String>("subject"),
                     as_u64(member.get("proposed_revision"))?,
                 )?;
+                // The private STO handle was recovered from the actual sealed
+                // pin and full segment. Bind its physical placement as well
+                // as the corresponding coordinator row into this cut.
+                part(&mut state_hasher, &selected.placement().encode());
                 let subject: String = historical.get("subject");
                 let revision = as_u64(historical.get("revision"))?;
                 let commitment = metadata_locator_digest(historical);
@@ -1251,10 +1330,86 @@ impl DurablePgCoordinator {
                 ));
             }
         }
+        let receipt_count: i64 = tx
+            .query_one(
+                "SELECT count(*) FROM cmd2_receipt WHERE domain=$1",
+                &[&domain],
+            )?
+            .get(0);
+        let outbox_count: i64 = tx
+            .query_one(
+                "SELECT count(*) FROM cmd2_outbox WHERE domain=$1",
+                &[&domain],
+            )?
+            .get(0);
+        let history_count: i64 = tx
+            .query_one(
+                "SELECT count(*) FROM cmd2_history WHERE domain=$1",
+                &[&domain],
+            )?
+            .get(0);
+        if as_u64(receipt_count)? != command_events
+            || as_u64(outbox_count)? != head
+            || as_u64(history_count)? != historical_members
+        {
+            return Err(DurableError::Corrupt("cold cut table membership differs"));
+        }
+        // This is deliberately an offline metadata scan. The publication
+        // transaction later compares only its trigger-maintained generation;
+        // no full scan or segment hashing occurs under the sequencer lock.
+        // The row encoding is a PostgreSQL-16 laboratory profile, bound by
+        // schema_profile_digest and database_oid, not a portable source codec.
+        let audited_tables = [
+            ("cmd2_job", "job_id"),
+            ("cmd2_predicate", "kind,owner,scope,token"),
+            ("cmd2_attempt", "prepare_id"),
+            ("cmd2_member", "prepare_id,member_slot"),
+            ("cmd2_current", "subject"),
+            ("cmd2_history", "subject,revision"),
+            ("cmd2_receipt", "command_id"),
+            ("cmd2_log", "commit_seq"),
+            ("cmd2_outbox", "commit_seq"),
+        ];
+        let mut audited_rows = 0usize;
+        for (table, order) in audited_tables {
+            part(&mut state_hasher, table.as_bytes());
+            let query = format!(
+                "SELECT row_to_json(t)::text FROM {table} t WHERE domain=$1 ORDER BY {order} LIMIT 100001"
+            );
+            let rows = tx.query(&query, &[&domain])?;
+            if rows.len() > 100_000 || audited_rows.saturating_add(rows.len()) > 100_000 {
+                return Err(DurableError::Refused("cold metadata row budget exceeded"));
+            }
+            audited_rows += rows.len();
+            part(&mut state_hasher, &(rows.len() as u64).to_be_bytes());
+            for row in rows {
+                let encoded: String = row.get(0);
+                if encoded.len() > 1_048_576 {
+                    return Err(DurableError::Refused(
+                        "cold metadata row exceeds byte budget",
+                    ));
+                }
+                part(&mut state_hasher, encoded.as_bytes());
+            }
+        }
+        let domain_state: String = tx
+            .query_one(
+                "SELECT row_to_json(d)::text FROM
+             (SELECT domain,head_seq,rights_version,rights_allowed,rule_version,
+                     contract_digest,schema_profile_digest
+              FROM cmd2_domain WHERE domain=$1) d",
+                &[&domain],
+            )?
+            .get(0);
+        part(&mut state_hasher, domain_state.as_bytes());
         let cut = ColdCut {
             domain: domain.to_owned(),
             through_commit_seq: head,
             log_digest: log_hasher.finalize(),
+            state_digest: state_hasher.finalize(),
+            schema_profile_digest: profile_digest,
+            database_oid,
+            audit_generation,
             historical_members,
         };
         tx.commit()?;
@@ -1263,70 +1418,62 @@ impl DurablePgCoordinator {
 
     pub fn seal_shadow_cut(&mut self, cut: &ColdCut) -> DurableResult<()> {
         let mut tx = self.client.transaction()?;
+        // The audit fence is the first metadata lock for every laboratory
+        // writer. Its generation substitutes for a full scan under this
+        // short publication transaction.
+        let generation = lock_audit_fence(&mut tx, &cut.domain)?;
         let row = tx.query_one(
-            "SELECT published_seq,complete_cut_digest FROM cmd2_domain
+            "SELECT head_seq,published_seq,complete_cut_digest,complete_cut_generation,
+                    schema_profile_digest FROM cmd2_domain
              WHERE domain=$1 FOR UPDATE",
             &[&cut.domain],
         )?;
-        let published = as_u64(row.get::<_, i64>(0))?;
-        let published_digest: Option<String> = row.get(1);
-        let rows = tx.query(
-            "SELECT commit_seq,event_kind,command_id,delta_digest,members_root
-             FROM cmd2_log WHERE domain=$1 AND commit_seq <= $2 ORDER BY commit_seq",
-            &[&cut.domain, &as_i64(cut.through_commit_seq)?],
-        )?;
-        if rows.len() as u64 != cut.through_commit_seq {
-            return Err(DurableError::Conflict("publication log prefix incomplete"));
+        let head = as_u64(row.get::<_, i64>(0))?;
+        let published = as_u64(row.get::<_, i64>(1))?;
+        let published_digest: Option<String> = row.get(2);
+        let published_generation: Option<i64> = row.get(3);
+        if row.get::<_, Option<String>>(4) != Some(cut.schema_profile_digest.to_hex())
+            || cut.schema_profile_digest != schema_profile_digest()
+            || database_oid(&mut tx)? != cut.database_oid
+        {
+            return Err(DurableError::Conflict(
+                "database or coordinator schema changed",
+            ));
         }
-        let mut hasher = Digest256Hasher::new();
-        part(&mut hasher, b"cmd2-cold-cut-v1");
-        for (index, row) in rows.iter().enumerate() {
-            let seq: i64 = row.get(0);
-            if seq != index as i64 + 1 {
-                return Err(DurableError::Corrupt("publication log prefix gap"));
-            }
-            let kind: String = row.get(1);
-            let command_id: String = row.get(2);
-            let delta: String = row.get(3);
-            let members_root: String = row.get(4);
-            for bytes in [
-                &seq.to_be_bytes()[..],
-                kind.as_bytes(),
-                command_id.as_bytes(),
-                delta.as_bytes(),
-                members_root.as_bytes(),
-            ] {
-                part(&mut hasher, bytes);
-            }
+        if head != cut.through_commit_seq {
+            return Err(DurableError::Conflict("audited head advanced; re-audit"));
         }
-        let exact_digest = hasher.finalize();
-        if exact_digest != cut.log_digest {
-            return Err(DurableError::Conflict("publication cut digest differs"));
-        }
-        let historical_members: i64 = tx
-            .query_one(
-                "SELECT count(*) FROM cmd2_history WHERE domain=$1 AND commit_seq <= $2",
-                &[&cut.domain, &as_i64(cut.through_commit_seq)?],
-            )?
-            .get(0);
-        if as_u64(historical_members)? != cut.historical_members {
-            return Err(DurableError::Conflict("publication history count differs"));
-        }
-        if cut.through_commit_seq <= published {
-            if cut.through_commit_seq == published
-                && published_digest.as_deref() != Some(cut.log_digest.to_hex().as_str())
+        if published == cut.through_commit_seq && published_digest.is_some() {
+            let sealed_generation = published_generation
+                .ok_or(DurableError::Corrupt("published fence generation absent"))?;
+            if published_digest != Some(cut.state_digest.to_hex())
+                || generation != as_u64(sealed_generation)?
+                || !(cut.audit_generation == generation
+                    || cut.audit_generation.checked_add(1) == Some(generation))
             {
-                return Err(DurableError::Corrupt("published digest differs"));
+                return Err(DurableError::Conflict(
+                    "published cut identity or fence differs",
+                ));
             }
             tx.commit()?;
             return Ok(());
         }
+        if published > cut.through_commit_seq || generation != cut.audit_generation {
+            return Err(DurableError::Conflict(
+                "audited metadata generation changed",
+            ));
+        }
+        let sealed_generation = generation
+            .checked_add(1)
+            .ok_or(DurableError::Corrupt("audit generation overflow"))?;
         tx.execute(
-            "UPDATE cmd2_domain SET published_seq=$2,complete_cut_digest=$3 WHERE domain=$1",
+            "UPDATE cmd2_domain SET published_seq=$2,complete_cut_digest=$3,
+                    complete_cut_generation=$4 WHERE domain=$1",
             &[
                 &cut.domain,
                 &as_i64(cut.through_commit_seq)?,
-                &cut.log_digest.to_hex(),
+                &cut.state_digest.to_hex(),
+                &as_i64(sealed_generation)?,
             ],
         )?;
         tx.commit()?;
