@@ -80,6 +80,7 @@ pub enum ExecutorFailure {
     Backend,
     ParseRejected,
     CoverageMismatch,
+    SinkRejected,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -183,6 +184,96 @@ pub enum BatchOutcome {
     },
 }
 
+/// Finite transport profile for a sequence of disposable batch processes.
+/// It is not a source-universe limit or source-membership authority.
+#[derive(Debug, Clone, Copy)]
+pub struct BatchStreamBudget {
+    pub batch: BatchBudget,
+    pub max_chunks: u64,
+    pub max_total_units: u64,
+    pub max_total_raw_bytes: u64,
+    pub total_execution_wall: Duration,
+}
+
+impl BatchStreamBudget {
+    pub fn laboratory() -> Self {
+        Self {
+            batch: BatchBudget::laboratory(),
+            max_chunks: 64,
+            max_total_units: 4096,
+            max_total_raw_bytes: 128 * 1024 * 1024,
+            total_execution_wall: Duration::from_secs(300),
+        }
+    }
+}
+
+/// Independently established transport expectation. A match cannot establish
+/// that the source owner supplied every member of a source/current cut.
+#[derive(Debug, Clone, Copy)]
+pub struct BatchStreamExpectation {
+    pub transport_count: u64,
+    pub ordered_transport_sha256: Digest256,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BatchStreamUnitReceipt {
+    pub global_ordinal: u64,
+    pub global_unit_sha256: Digest256,
+    pub batch_receipt: BatchUnitReceipt,
+}
+
+/// A sink must treat each accepted chunk as provisional until `finish` returns
+/// `TransportComplete`. It may store receipts externally without growing the
+/// executor's memory with the number of source units.
+pub trait BatchStreamSink {
+    fn accept_chunk(
+        &mut self,
+        chunk_index: u64,
+        global_start: u64,
+        checkpoint: BatchCoverageCheckpoint,
+        receipts: &[BatchStreamUnitReceipt],
+    ) -> Result<(), ()>;
+}
+
+impl<F> BatchStreamSink for F
+where
+    F: FnMut(u64, u64, BatchCoverageCheckpoint, &[BatchStreamUnitReceipt]) -> Result<(), ()>,
+{
+    fn accept_chunk(
+        &mut self,
+        chunk_index: u64,
+        global_start: u64,
+        checkpoint: BatchCoverageCheckpoint,
+        receipts: &[BatchStreamUnitReceipt],
+    ) -> Result<(), ()> {
+        self(chunk_index, global_start, checkpoint, receipts)
+    }
+}
+
+/// A digest of submitted identities and verified result/chunk streams. It
+/// proves transport coverage only; source membership remains external.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct BatchStreamCheckpoint {
+    pub worker_sha256: Digest256,
+    pub profile: FormatProfile,
+    pub schema_set_sha256: Digest256,
+    pub submitted_count: u64,
+    pub completed_count: u64,
+    pub chunks_completed: u64,
+    pub ordered_transport_sha256: Digest256,
+    pub result_stream_sha256: Digest256,
+    pub chunk_chain_sha256: Digest256,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BatchStreamOutcome {
+    TransportComplete(BatchStreamCheckpoint),
+    Incomplete {
+        checkpoint: BatchStreamCheckpoint,
+        reason: ExecutorFailure,
+    },
+}
+
 fn unknown(reason: ExecutorFailure, identity: Option<ExecutionIdentity>) -> ExecutorOutcome {
     ExecutorOutcome::Indeterminate { reason, identity }
 }
@@ -254,6 +345,24 @@ pub fn worker_once() -> std::io::Result<()> {
         std::io::ErrorKind::Unsupported,
         "bounded schema worker requires Linux process limits",
     ))
+}
+
+#[cfg(all(target_os = "linux", target_pointer_width = "64"))]
+pub use native::BatchStreamDriver;
+
+#[cfg(not(all(target_os = "linux", target_pointer_width = "64")))]
+pub struct BatchStreamDriver;
+
+#[cfg(not(all(target_os = "linux", target_pointer_width = "64")))]
+impl BatchStreamDriver {
+    pub fn new(
+        _worker: ExactWorkerIdentity,
+        _resources: Vec<SchemaResource>,
+        _profile: FormatProfile,
+        _budget: BatchStreamBudget,
+    ) -> Result<Self, ExecutorFailure> {
+        Err(ExecutorFailure::UnsupportedHost)
+    }
 }
 
 #[cfg(all(target_os = "linux", target_pointer_width = "64"))]
@@ -569,6 +678,361 @@ mod native {
             receipts,
             checkpoint,
             reason,
+        }
+    }
+
+    fn stream_unit_digest(unit: &BatchUnit) -> Result<Digest256, ExecutorFailure> {
+        if unit.member_id.is_empty()
+            || unit.member_id.len() > MAX_MEMBER_ID_BYTES
+            || unit.relative_path.is_empty()
+            || unit.relative_path.len() > MAX_PATH_BYTES
+            || unit.relative_path.starts_with('/')
+            || unit.relative_path.split('/').any(|part| part == "..")
+            || unit.root_uri.len() > MAX_URI_BYTES
+            || unit.raw_instance.len() > crate::SchemaBackendProbe::MAX_INSTANCE_BYTES
+        {
+            return Err(ExecutorFailure::InputBudget);
+        }
+        let mut digest = Digest256Hasher::new();
+        digest.update(b"tos-val2-batch-unit-v1\0");
+        digest.update(&unit.ordinal.to_be_bytes());
+        for value in [
+            unit.member_id.as_bytes(),
+            unit.relative_path.as_bytes(),
+            unit.root_uri.as_bytes(),
+            unit.raw_instance.as_slice(),
+        ] {
+            digest.update(&(value.len() as u32).to_be_bytes());
+            digest.update(value);
+        }
+        Ok(digest.finalize())
+    }
+
+    struct StreamPendingUnit {
+        unit: BatchUnit,
+        global_unit_sha256: Digest256,
+    }
+
+    /// One pending bounded chunk and digest accumulators only. The caller owns
+    /// source enumeration and the provisional receipt sink.
+    pub struct BatchStreamDriver {
+        worker: ExactWorkerIdentity,
+        resources: Vec<SchemaResource>,
+        profile: FormatProfile,
+        schema_set_sha256: Digest256,
+        budget: BatchStreamBudget,
+        started: Instant,
+        pending: Vec<StreamPendingUnit>,
+        pending_raw_bytes: usize,
+        submitted_count: u64,
+        completed_count: u64,
+        total_raw_bytes: u64,
+        chunks_completed: u64,
+        ordered_transport: Digest256Hasher,
+        result_stream: Digest256Hasher,
+        chunk_chain: Digest256Hasher,
+        failure: Option<ExecutorFailure>,
+    }
+
+    impl BatchStreamDriver {
+        pub fn new(
+            worker: ExactWorkerIdentity,
+            resources: Vec<SchemaResource>,
+            profile: FormatProfile,
+            budget: BatchStreamBudget,
+        ) -> Result<Self, ExecutorFailure> {
+            if budget.max_chunks == 0
+                || budget.max_chunks > 1_000_000
+                || budget.max_total_units == 0
+                || budget.max_total_units > 64_000_000
+                || budget.max_total_raw_bytes == 0
+                || budget.max_total_raw_bytes > 1024 * 1024 * 1024 * 1024
+                || budget.total_execution_wall.is_zero()
+                || budget.total_execution_wall > Duration::from_secs(24 * 3600)
+                || budget.batch.max_units == 0
+                || budget.batch.max_units > MAX_BATCH_UNITS
+                || budget.batch.max_total_raw_bytes == 0
+                || budget.batch.max_total_raw_bytes > MAX_BATCH_RAW_BYTES
+                || resources.len() > crate::SchemaBackendProbe::MAX_RESOURCES
+            {
+                return Err(ExecutorFailure::ResourceLimitUnknown);
+            }
+            let mut raw_total = 0usize;
+            for resource in &resources {
+                raw_total = raw_total
+                    .checked_add(resource.raw.len())
+                    .ok_or(ExecutorFailure::InputBudget)?;
+                if resource.uri.len() > MAX_URI_BYTES
+                    || resource.raw.len() > crate::SchemaBackendProbe::MAX_RESOURCE_BYTES
+                    || raw_total > crate::SchemaBackendProbe::MAX_TOTAL_BYTES
+                {
+                    return Err(ExecutorFailure::InputBudget);
+                }
+            }
+            let schema_set_sha256 = schema_set_digest(&resources)?;
+            let mut ordered_transport = Digest256Hasher::new();
+            ordered_transport.update(b"tos-val2-batch-manifest-v1\0");
+            let mut result_stream = Digest256Hasher::new();
+            result_stream.update(b"tos-val2-stream-results-v1\0");
+            let mut chunk_chain = Digest256Hasher::new();
+            chunk_chain.update(b"tos-val2-stream-chunks-v1\0");
+            Ok(Self {
+                worker,
+                resources,
+                profile,
+                schema_set_sha256,
+                budget,
+                started: Instant::now(),
+                pending: Vec::new(),
+                pending_raw_bytes: 0,
+                submitted_count: 0,
+                completed_count: 0,
+                total_raw_bytes: 0,
+                chunks_completed: 0,
+                ordered_transport,
+                result_stream,
+                chunk_chain,
+                failure: None,
+            })
+        }
+
+        fn deadline(&mut self) -> Result<(), ExecutorFailure> {
+            if let Some(reason) = self.failure {
+                return Err(reason);
+            }
+            if self.started.elapsed() >= self.budget.total_execution_wall {
+                self.failure = Some(ExecutorFailure::Timeout);
+                return Err(ExecutorFailure::Timeout);
+            }
+            Ok(())
+        }
+
+        pub fn push(
+            &mut self,
+            unit: BatchUnit,
+            sink: &mut impl BatchStreamSink,
+        ) -> Result<(), ExecutorFailure> {
+            self.deadline()?;
+            if unit.ordinal != self.submitted_count
+                || self.submitted_count >= self.budget.max_total_units
+            {
+                self.failure = Some(ExecutorFailure::CoverageMismatch);
+                return Err(ExecutorFailure::CoverageMismatch);
+            }
+            let global_unit_sha256 = match stream_unit_digest(&unit) {
+                Ok(digest) => digest,
+                Err(reason) => {
+                    self.failure = Some(reason);
+                    return Err(reason);
+                }
+            };
+            let next_total = match self.total_raw_bytes.checked_add(unit.raw_instance.len() as u64) {
+                Some(total) if total <= self.budget.max_total_raw_bytes => total,
+                _ => {
+                    self.failure = Some(ExecutorFailure::InputBudget);
+                    return Err(ExecutorFailure::InputBudget);
+                }
+            };
+            if unit.raw_instance.len() > self.budget.batch.max_total_raw_bytes {
+                self.failure = Some(ExecutorFailure::InputBudget);
+                return Err(ExecutorFailure::InputBudget);
+            }
+            if self.pending.is_empty() && self.chunks_completed >= self.budget.max_chunks {
+                self.failure = Some(ExecutorFailure::InputBudget);
+                return Err(ExecutorFailure::InputBudget);
+            }
+            if self.pending.len() >= self.budget.batch.max_units
+                || self.pending_raw_bytes + unit.raw_instance.len()
+                    > self.budget.batch.max_total_raw_bytes
+            {
+                self.flush(sink)?;
+                if self.chunks_completed >= self.budget.max_chunks {
+                    self.failure = Some(ExecutorFailure::InputBudget);
+                    return Err(ExecutorFailure::InputBudget);
+                }
+            }
+            self.pending_raw_bytes += unit.raw_instance.len();
+            self.pending.push(StreamPendingUnit {
+                unit,
+                global_unit_sha256,
+            });
+            self.submitted_count += 1;
+            self.total_raw_bytes = next_total;
+            self.ordered_transport.update(global_unit_sha256.as_bytes());
+            Ok(())
+        }
+
+        pub fn flush(&mut self, sink: &mut impl BatchStreamSink) -> Result<(), ExecutorFailure> {
+            self.deadline()?;
+            if self.pending.is_empty() {
+                return Ok(());
+            }
+            if self.chunks_completed >= self.budget.max_chunks {
+                self.failure = Some(ExecutorFailure::InputBudget);
+                return Err(ExecutorFailure::InputBudget);
+            }
+            let remaining = self
+                .budget
+                .total_execution_wall
+                .saturating_sub(self.started.elapsed());
+            if remaining.is_zero() {
+                self.failure = Some(ExecutorFailure::Timeout);
+                return Err(ExecutorFailure::Timeout);
+            }
+            let mut batch_budget = self.budget.batch;
+            batch_budget.total_execution_wall = batch_budget.total_execution_wall.min(remaining);
+            batch_budget.startup_wall = batch_budget.startup_wall.min(batch_budget.total_execution_wall);
+            batch_budget.per_unit_wall = batch_budget.per_unit_wall.min(batch_budget.total_execution_wall);
+            let pending = std::mem::take(&mut self.pending);
+            self.pending_raw_bytes = 0;
+            let global_start = pending[0].unit.ordinal;
+            let mut locals = Vec::with_capacity(pending.len());
+            let mut globals = Vec::with_capacity(pending.len());
+            let mut local_manifest = Digest256Hasher::new();
+            local_manifest.update(b"tos-val2-batch-manifest-v1\0");
+            for (local_ordinal, entry) in pending.into_iter().enumerate() {
+                let mut unit = entry.unit;
+                globals.push((unit.ordinal, entry.global_unit_sha256));
+                unit.ordinal = local_ordinal as u64;
+                let local_sha256 = match stream_unit_digest(&unit) {
+                    Ok(digest) => digest,
+                    Err(reason) => {
+                        self.failure = Some(reason);
+                        return Err(reason);
+                    }
+                };
+                local_manifest.update(local_sha256.as_bytes());
+                locals.push(unit);
+            }
+            let count = locals.len() as u64;
+            let expected = BatchCoverageExpectation {
+                count,
+                ordered_manifest_sha256: local_manifest.finalize(),
+            };
+            let outcome = BoundedSchemaExecutor::evaluate_batch(
+                &self.worker,
+                &self.resources,
+                self.profile,
+                locals,
+                expected,
+                batch_budget,
+            );
+            let (receipts, checkpoint) = match outcome {
+                BatchOutcome::Complete {
+                    receipts,
+                    checkpoint,
+                } => (receipts, checkpoint),
+                BatchOutcome::Incomplete { reason, .. } => {
+                    self.failure = Some(reason);
+                    return Err(reason);
+                }
+            };
+            if receipts.len() != globals.len()
+                || checkpoint.completed_count != count
+                || checkpoint.ordered_manifest_sha256 != expected.ordered_manifest_sha256
+                || checkpoint.worker_sha256 != self.worker.sha256
+                || checkpoint.profile != self.profile
+                || checkpoint.schema_set_sha256 != self.schema_set_sha256
+            {
+                self.failure = Some(ExecutorFailure::Protocol);
+                return Err(ExecutorFailure::Protocol);
+            }
+            let stream_receipts: Vec<_> = receipts
+                .into_iter()
+                .zip(globals)
+                .map(|(batch_receipt, (global_ordinal, global_unit_sha256))| {
+                    BatchStreamUnitReceipt {
+                        global_ordinal,
+                        global_unit_sha256,
+                        batch_receipt,
+                    }
+                })
+                .collect();
+            if sink
+                .accept_chunk(
+                    self.chunks_completed,
+                    global_start,
+                    checkpoint,
+                    &stream_receipts,
+                )
+                .is_err()
+            {
+                self.failure = Some(ExecutorFailure::SinkRejected);
+                return Err(ExecutorFailure::SinkRejected);
+            }
+            for receipt in &stream_receipts {
+                self.result_stream.update(receipt.global_unit_sha256.as_bytes());
+                let verdict = match receipt.batch_receipt.verdict {
+                    BatchUnitVerdict::SchemaValid => [0, 0],
+                    BatchUnitVerdict::SchemaInvalid => [1, 0],
+                    BatchUnitVerdict::InputRejected => [2, 1],
+                };
+                self.result_stream.update(&verdict);
+            }
+            self.chunk_chain.update(&self.chunks_completed.to_be_bytes());
+            self.chunk_chain.update(&global_start.to_be_bytes());
+            self.chunk_chain.update(checkpoint.request_sha256.as_bytes());
+            self.chunk_chain.update(checkpoint.ordered_manifest_sha256.as_bytes());
+            self.chunk_chain.update(checkpoint.result_stream_sha256.as_bytes());
+            self.completed_count += count;
+            self.chunks_completed += 1;
+            Ok(())
+        }
+
+        fn checkpoint(&self) -> BatchStreamCheckpoint {
+            BatchStreamCheckpoint {
+                worker_sha256: self.worker.sha256,
+                profile: self.profile,
+                schema_set_sha256: self.schema_set_sha256,
+                submitted_count: self.submitted_count,
+                completed_count: self.completed_count,
+                chunks_completed: self.chunks_completed,
+                ordered_transport_sha256: self.ordered_transport.clone().finalize(),
+                result_stream_sha256: self.result_stream.clone().finalize(),
+                chunk_chain_sha256: self.chunk_chain.clone().finalize(),
+            }
+        }
+
+        pub fn finish(
+            mut self,
+            expected: BatchStreamExpectation,
+            sink: &mut impl BatchStreamSink,
+        ) -> BatchStreamOutcome {
+            if let Err(reason) = self.deadline() {
+                return BatchStreamOutcome::Incomplete {
+                    checkpoint: self.checkpoint(),
+                    reason,
+                };
+            }
+            if self.submitted_count == 0 {
+                return BatchStreamOutcome::Incomplete {
+                    checkpoint: self.checkpoint(),
+                    reason: ExecutorFailure::InputBudget,
+                };
+            }
+            if expected.transport_count != self.submitted_count
+                || expected.ordered_transport_sha256
+                    != self.ordered_transport.clone().finalize()
+            {
+                return BatchStreamOutcome::Incomplete {
+                    checkpoint: self.checkpoint(),
+                    reason: ExecutorFailure::CoverageMismatch,
+                };
+            }
+            if let Err(reason) = self.flush(sink) {
+                return BatchStreamOutcome::Incomplete {
+                    checkpoint: self.checkpoint(),
+                    reason,
+                };
+            }
+            let checkpoint = self.checkpoint();
+            if checkpoint.completed_count != checkpoint.submitted_count {
+                return BatchStreamOutcome::Incomplete {
+                    checkpoint,
+                    reason: ExecutorFailure::CoverageMismatch,
+                };
+            }
+            BatchStreamOutcome::TransportComplete(checkpoint)
         }
     }
 
@@ -1832,6 +2296,87 @@ mod native {
             assert_eq!(permuted[BATCH_ACK_BYTES + 48], 1);
             assert_eq!(permuted[BATCH_ACK_BYTES + BATCH_UNIT_BYTES + 48], 0);
             assert_eq!(permuted[BATCH_ACK_BYTES + 2 * BATCH_UNIT_BYTES + 48], 0);
+        }
+
+        #[test]
+        fn independent_fixed_manifest_oracle_catches_unit_framing_drift() {
+            let uri = "https://treeofsophia.local/tests/batch-integer.schema.json";
+            let units = [
+                BatchUnit {
+                    ordinal: 0,
+                    member_id: "unit-0".to_owned(),
+                    relative_path: "synthetic/0.json".to_owned(),
+                    root_uri: uri.to_owned(),
+                    raw_instance: b"7".to_vec(),
+                },
+                BatchUnit {
+                    ordinal: 1,
+                    member_id: "unit-1".to_owned(),
+                    relative_path: "synthetic/1.json".to_owned(),
+                    root_uri: uri.to_owned(),
+                    raw_instance: b"\"x\"".to_vec(),
+                },
+            ];
+            // Values computed independently with Python hashlib+struct using
+            // the published binary framing, not `make_batch_request`.
+            let expected_units = [
+                "71b39a8481983557b3a69c93c8657c166cbc1baeb5f0668bb15089a07e935af6",
+                "d934c3e71a992a994c57209d0f39f106e460cb2ccc06d45aa8ceec2ee69e4213",
+            ];
+            let prepared = make_batch_request(
+                Digest256::of_bytes(b"fixture-worker"),
+                &batch_schema(),
+                FormatProfile::AssertedSourceCandidateV1,
+                units,
+                BatchBudget::laboratory(),
+            )
+            .unwrap();
+            for (unit, expected) in prepared.units.iter().zip(expected_units) {
+                assert_eq!(unit.unit_sha256.to_hex(), expected);
+            }
+            assert_eq!(
+                prepared.ordered_manifest_sha256.to_hex(),
+                "fb0a7be8c7c650bf92309ffe2da54cf36ed2f1a492732518353950b30a4945a0"
+            );
+        }
+
+        #[test]
+        fn stream_requires_global_order_and_finite_cumulative_budget_before_launch() {
+            let worker = ExactWorkerIdentity {
+                absolute_path: "/does/not/exist/tos-schema-worker".into(),
+                sha256: Digest256::of_bytes(b"fixture-worker"),
+            };
+            let mut budget = BatchStreamBudget::laboratory();
+            budget.max_total_units = 1;
+            let mut driver = BatchStreamDriver::new(
+                worker,
+                batch_schema(),
+                FormatProfile::AssertedSourceCandidateV1,
+                budget,
+            )
+            .unwrap();
+            let mut sink = |_, _, _, _: &[BatchStreamUnitReceipt]| Ok(());
+            assert_eq!(driver.push(batch_unit(0, b"7"), &mut sink), Ok(()));
+            assert_eq!(driver.pending.len(), 1);
+            assert_eq!(
+                driver.push(batch_unit(1, b"7"), &mut sink),
+                Err(ExecutorFailure::CoverageMismatch)
+            );
+            assert_eq!(driver.pending.len(), 1);
+            let outcome = driver.finish(
+                BatchStreamExpectation {
+                    transport_count: 1,
+                    ordered_transport_sha256: Digest256::of_bytes(b"wrong"),
+                },
+                &mut sink,
+            );
+            assert!(matches!(
+                outcome,
+                BatchStreamOutcome::Incomplete {
+                    reason: ExecutorFailure::CoverageMismatch,
+                    ..
+                }
+            ));
         }
 
         #[test]
