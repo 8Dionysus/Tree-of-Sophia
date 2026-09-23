@@ -826,7 +826,10 @@ mod native {
                     return Err(reason);
                 }
             };
-            let next_total = match self.total_raw_bytes.checked_add(unit.raw_instance.len() as u64) {
+            let next_total = match self
+                .total_raw_bytes
+                .checked_add(unit.raw_instance.len() as u64)
+            {
                 Some(total) if total <= self.budget.max_total_raw_bytes => total,
                 _ => {
                     self.failure = Some(ExecutorFailure::InputBudget);
@@ -881,8 +884,12 @@ mod native {
             }
             let mut batch_budget = self.budget.batch;
             batch_budget.total_execution_wall = batch_budget.total_execution_wall.min(remaining);
-            batch_budget.startup_wall = batch_budget.startup_wall.min(batch_budget.total_execution_wall);
-            batch_budget.per_unit_wall = batch_budget.per_unit_wall.min(batch_budget.total_execution_wall);
+            batch_budget.startup_wall = batch_budget
+                .startup_wall
+                .min(batch_budget.total_execution_wall);
+            batch_budget.per_unit_wall = batch_budget
+                .per_unit_wall
+                .min(batch_budget.total_execution_wall);
             let pending = std::mem::take(&mut self.pending);
             self.pending_raw_bytes = 0;
             let global_start = pending[0].unit.ordinal;
@@ -961,7 +968,8 @@ mod native {
                 return Err(ExecutorFailure::SinkRejected);
             }
             for receipt in &stream_receipts {
-                self.result_stream.update(receipt.global_unit_sha256.as_bytes());
+                self.result_stream
+                    .update(receipt.global_unit_sha256.as_bytes());
                 let verdict = match receipt.batch_receipt.verdict {
                     BatchUnitVerdict::SchemaValid => [0, 0],
                     BatchUnitVerdict::SchemaInvalid => [1, 0],
@@ -969,11 +977,15 @@ mod native {
                 };
                 self.result_stream.update(&verdict);
             }
-            self.chunk_chain.update(&self.chunks_completed.to_be_bytes());
+            self.chunk_chain
+                .update(&self.chunks_completed.to_be_bytes());
             self.chunk_chain.update(&global_start.to_be_bytes());
-            self.chunk_chain.update(checkpoint.request_sha256.as_bytes());
-            self.chunk_chain.update(checkpoint.ordered_manifest_sha256.as_bytes());
-            self.chunk_chain.update(checkpoint.result_stream_sha256.as_bytes());
+            self.chunk_chain
+                .update(checkpoint.request_sha256.as_bytes());
+            self.chunk_chain
+                .update(checkpoint.ordered_manifest_sha256.as_bytes());
+            self.chunk_chain
+                .update(checkpoint.result_stream_sha256.as_bytes());
             self.completed_count += count;
             self.chunks_completed += 1;
             Ok(())
@@ -1011,8 +1023,7 @@ mod native {
                 };
             }
             if expected.transport_count != self.submitted_count
-                || expected.ordered_transport_sha256
-                    != self.ordered_transport.clone().finalize()
+                || expected.ordered_transport_sha256 != self.ordered_transport.clone().finalize()
             {
                 return BatchStreamOutcome::Incomplete {
                     checkpoint: self.checkpoint(),
