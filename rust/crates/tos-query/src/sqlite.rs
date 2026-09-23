@@ -173,14 +173,71 @@ impl<S: SourcePin> PinnedLocalModel for CmpPinnedModel<S> {
 
 pub type CmpSqliteReadModel<S, G> = SqliteReadModel<CmpPinnedModel<S>, G>;
 
-/// Source-owner current policy. Historical selection does not freeze rights.
+/// Source-owner disclosure route for this selected public metadata projection.
+/// The export/publication and policy fields must come from their actual ToS
+/// owners; a CMP file receipt or access packaging receipt alone is no grant.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct DisclosureScope {
+    pub operation_id: String,
+    pub carrier_layer: String,
+    pub intended_use: String,
+    pub selected_binding: Binding,
+    pub corpus_revision: String,
+    pub data_revision: String,
+    pub selected_export_receipt_id: String,
+    pub selected_model_receipt_id: String,
+    pub policy_issuer_ref: String,
+    pub policy_receipt_id: String,
+    pub policy_epoch: String,
+    pub withdrawal_generation: String,
+}
+
+impl DisclosureScope {
+    fn validate(
+        &self,
+        binding: &Binding,
+        selected_model_receipt_id: &str,
+    ) -> Result<(), QueryError> {
+        if self.operation_id != "tos.source.descend"
+            || self.carrier_layer != "tos_source_navigation_public_metadata_v1"
+            || self.intended_use != "read_only_public_metadata_navigation_v1"
+            || &self.selected_binding != binding
+            || self.selected_model_receipt_id != selected_model_receipt_id
+            || [
+                &self.corpus_revision,
+                &self.data_revision,
+                &self.selected_export_receipt_id,
+                &self.policy_issuer_ref,
+                &self.policy_receipt_id,
+                &self.policy_epoch,
+                &self.withdrawal_generation,
+            ]
+            .iter()
+            .any(|value| value.is_empty())
+        {
+            return Err(error(
+                QueryErrorCode::Unavailable,
+                "source-owner public metadata disclosure scope absent or mismatched",
+            ));
+        }
+        Ok(())
+    }
+}
+
+/// Source-owner current policy for the explicit carried layer and intended
+/// use. Historical selection and Item payload rights cannot imply metadata
+/// disclosure permission, nor can metadata permission grant Item payload use.
 pub trait CurrentPolicy {
-    fn authorize_current(&mut self, record: &RawRecord) -> Result<Charged, QueryError>;
+    fn authorize_current(
+        &mut self,
+        scope: &DisclosureScope,
+        record: &RawRecord,
+    ) -> Result<Charged, QueryError>;
     /// Recheck all selected records under one current-policy hold. It must
     /// serialize revocation through disclosure, not return a stale observation.
     fn acquire_disclosure(
         &mut self,
-        binding: &Binding,
+        scope: &DisclosureScope,
         selected: &[RawRecord],
     ) -> Result<Box<dyn DisclosureLease>, QueryError>;
 }
@@ -200,6 +257,7 @@ impl DisclosureLease for CombinedLease {
 pub struct SqliteReadModel<P: PinnedLocalModel, G: CurrentPolicy> {
     pinned: P,
     policy: G,
+    disclosure_scope: DisclosureScope,
     authority: RawRecord,
     admission_charge: AdapterAdmissionCharge,
 }
@@ -433,6 +491,7 @@ impl<P: PinnedLocalModel, G: CurrentPolicy> SqliteReadModel<P, G> {
     pub fn new(
         mut pinned: P,
         policy: G,
+        disclosure_scope: DisclosureScope,
         admission: AdapterAdmissionBudget,
     ) -> Result<Self, QueryError> {
         pinned.check_pin()?;
@@ -453,6 +512,7 @@ impl<P: PinnedLocalModel, G: CurrentPolicy> SqliteReadModel<P, G> {
             ));
         }
         let binding = pinned.binding().clone();
+        disclosure_scope.validate(&binding, pinned.owner_receipt_id())?;
         let (values, mut admission_charge) = read_metadata(pinned.connection(), admission)?;
         admission_charge.selected_open_vm_steps = pinned.selected_open_vm_steps();
         let membership_hex = binding.membership_root.to_hex();
@@ -502,6 +562,7 @@ impl<P: PinnedLocalModel, G: CurrentPolicy> SqliteReadModel<P, G> {
         Ok(Self {
             pinned,
             policy,
+            disclosure_scope,
             authority,
             admission_charge,
         })
@@ -509,6 +570,10 @@ impl<P: PinnedLocalModel, G: CurrentPolicy> SqliteReadModel<P, G> {
 
     pub fn admission_charge(&self) -> AdapterAdmissionCharge {
         self.admission_charge
+    }
+
+    pub fn disclosure_scope(&self) -> &DisclosureScope {
+        &self.disclosure_scope
     }
 }
 
@@ -519,12 +584,14 @@ impl<S: SourcePin, G: CurrentPolicy> SqliteReadModel<CmpPinnedModel<S>, G> {
         &self,
         source_pin: T,
         policy: H,
+        disclosure_scope: DisclosureScope,
         admission: AdapterAdmissionBudget,
     ) -> Result<SqliteReadModel<CmpPinnedModel<T>, H>, QueryError> {
         SqliteReadModel::new(
             self.pinned
                 .fork_reader(source_pin, admission.max_selected_open_vm_steps)?,
             policy,
+            disclosure_scope,
             admission,
         )
     }
@@ -821,7 +888,8 @@ impl<P: PinnedLocalModel, G: CurrentPolicy> ReadModel for SqliteReadModel<P, G> 
     }
 
     fn authorize_current(&mut self, record: &RawRecord) -> Result<Charged, QueryError> {
-        self.policy.authorize_current(record)
+        self.policy
+            .authorize_current(&self.disclosure_scope, record)
     }
 
     fn authority_boundary(&mut self, max_bytes: usize) -> Result<RawRecord, QueryError> {
@@ -851,7 +919,11 @@ impl<P: PinnedLocalModel, G: CurrentPolicy> ReadModel for SqliteReadModel<P, G> 
     ) -> Result<Box<dyn DisclosureLease>, QueryError> {
         self.check_pin(binding)?;
         let source = self.pinned.source_disclosure()?;
-        let rights = self.policy.acquire_disclosure(binding, selected)?;
+        self.disclosure_scope
+            .validate(binding, self.pinned.owner_receipt_id())?;
+        let rights = self
+            .policy
+            .acquire_disclosure(&self.disclosure_scope, selected)?;
         let mut combined = CombinedLease { source, rights };
         combined.recheck()?;
         Ok(Box::new(combined))

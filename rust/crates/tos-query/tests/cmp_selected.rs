@@ -14,8 +14,8 @@ use tos_compiler::{
 use tos_foundation::{JsonLimits, JsonMode, JsonValue, parse_json};
 use tos_query::{
     AdapterAdmissionBudget, Budget, Charged, CmpPinnedModel, CurrentPolicy, DisclosureLease,
-    QueryError, QueryErrorCode, RawRecord, ReadModel, SourceDescendRequest, SourcePin,
-    SqliteReadModel, source_descend,
+    DisclosureScope, PinnedLocalModel, QueryError, QueryErrorCode, RawRecord, ReadModel,
+    SourceDescendRequest, SourcePin, SqliteReadModel, source_descend,
 };
 
 struct FixtureLease;
@@ -94,7 +94,11 @@ struct FixturePolicy {
     denied: Option<&'static str>,
 }
 impl CurrentPolicy for FixturePolicy {
-    fn authorize_current(&mut self, record: &RawRecord) -> Result<Charged, QueryError> {
+    fn authorize_current(
+        &mut self,
+        _: &DisclosureScope,
+        record: &RawRecord,
+    ) -> Result<Charged, QueryError> {
         if let Some(denied) = self.denied {
             let parsed = parse_json(
                 &record.raw,
@@ -122,11 +126,11 @@ impl CurrentPolicy for FixturePolicy {
     }
     fn acquire_disclosure(
         &mut self,
-        _: &tos_query::Binding,
+        scope: &DisclosureScope,
         selected: &[RawRecord],
     ) -> Result<Box<dyn DisclosureLease>, QueryError> {
         for record in selected {
-            self.authorize_current(record)?;
+            self.authorize_current(scope, record)?;
         }
         Ok(Box::new(FixtureLease))
     }
@@ -162,7 +166,21 @@ fn selected(
     )
     .unwrap();
     let pinned = CmpPinnedModel::new(verified, FixturePin).unwrap();
-    let model = SqliteReadModel::new(pinned, FixturePolicy { denied }, admission()).unwrap();
+    let scope = DisclosureScope {
+        operation_id: "tos.source.descend".into(),
+        carrier_layer: "tos_source_navigation_public_metadata_v1".into(),
+        intended_use: "read_only_public_metadata_navigation_v1".into(),
+        selected_binding: pinned.binding().clone(),
+        corpus_revision: "fixture-corpus-revision".into(),
+        data_revision: "fixture-data-revision".into(),
+        selected_export_receipt_id: "fixture-export-receipt".into(),
+        selected_model_receipt_id: pinned.owner_receipt_id().into(),
+        policy_issuer_ref: "fixture-issuer".into(),
+        policy_receipt_id: "fixture-policy-receipt".into(),
+        policy_epoch: "fixture-policy-epoch".into(),
+        withdrawal_generation: "fixture-withdrawal-generation".into(),
+    };
+    let model = SqliteReadModel::new(pinned, FixturePolicy { denied }, scope, admission()).unwrap();
     (dir, model)
 }
 
@@ -230,7 +248,12 @@ fn selected_cmp_model_matches_frozen_python_packet_and_refuses_current_denial() 
         ..admission()
     };
     let exact_reader = model
-        .fork_reader(FixturePin, FixturePolicy { denied: None }, exact_admission)
+        .fork_reader(
+            FixturePin,
+            FixturePolicy { denied: None },
+            model.disclosure_scope().clone(),
+            exact_admission,
+        )
         .unwrap();
     assert_eq!(
         exact_reader.admission_charge().metadata_decoded_bytes,
@@ -257,11 +280,35 @@ fn selected_cmp_model_matches_frozen_python_packet_and_refuses_current_denial() 
     ] {
         assert_eq!(
             model
-                .fork_reader(FixturePin, FixturePolicy { denied: None }, tight)
+                .fork_reader(
+                    FixturePin,
+                    FixturePolicy { denied: None },
+                    model.disclosure_scope().clone(),
+                    tight
+                )
                 .err()
                 .unwrap()
                 .code,
             QueryErrorCode::BudgetExceeded
+        );
+    }
+    let mut wrong_layer = model.disclosure_scope().clone();
+    wrong_layer.carrier_layer = "tos_item_payload_v1".into();
+    let mut missing_issuer = model.disclosure_scope().clone();
+    missing_issuer.policy_issuer_ref.clear();
+    for scope in [wrong_layer, missing_issuer] {
+        assert_eq!(
+            model
+                .fork_reader(
+                    FixturePin,
+                    FixturePolicy { denied: None },
+                    scope,
+                    admission()
+                )
+                .err()
+                .unwrap()
+                .code,
+            QueryErrorCode::Unavailable
         );
     }
     let request = SourceDescendRequest {
@@ -340,7 +387,12 @@ fn selected_cmp_model_matches_frozen_python_packet_and_refuses_current_denial() 
     let actual = parse_json(&packet, JsonMode::PublishedStrict, JsonLimits::default()).unwrap();
     assert!(semantic_eq(actual.root(), field(oracle.root(), "expected")));
     let mut warm_reader = model
-        .fork_reader(FixturePin, FixturePolicy { denied: None }, admission())
+        .fork_reader(
+            FixturePin,
+            FixturePolicy { denied: None },
+            model.disclosure_scope().clone(),
+            admission(),
+        )
         .unwrap();
     let warm_packet = source_descend(&mut warm_reader, &request, budget()).unwrap();
     let warm_actual = parse_json(

@@ -15,5 +15,5 @@ pub use source_descend::{
 #[cfg(not(target_arch = "wasm32"))]
 pub use sqlite::{
     AdapterAdmissionBudget, AdapterAdmissionCharge, CmpPinnedModel, CmpSqliteReadModel,
-    CurrentPolicy, PinnedLocalModel, SourcePin, SqliteReadModel,
+    CurrentPolicy, DisclosureScope, PinnedLocalModel, SourcePin, SqliteReadModel,
 };
