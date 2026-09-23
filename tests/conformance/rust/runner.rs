@@ -565,6 +565,13 @@ fn corpus_reader_refuses_symlinked_revision() {
     let old = required(&fixture, "revision_old");
 
     let (_temporary, root) = working_store();
+    let linked_parent = root.parent().unwrap().join("linked-parent");
+    symlink(root.parent().unwrap(), &linked_parent).unwrap();
+    assert_eq!(CorpusReader::open_existing(&linked_parent.join("store"), read_limits())
+               .unwrap_err().code, StoreErrorCode::InvalidRoot,
+               "symlink in the absolute root path");
+
+    let (_temporary, root) = working_store();
     let reader = CorpusReader::open_existing(&root, read_limits()).unwrap();
     let revision_dir = root.join("revisions").join(old);
     let real_dir = root.join("revisions").join("saved-revision");
