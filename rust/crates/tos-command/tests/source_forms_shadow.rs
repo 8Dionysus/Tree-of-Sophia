@@ -3,7 +3,7 @@
 #[path = "../src/source_forms_shadow.rs"]
 mod source_forms_shadow;
 
-use source_forms_shadow::{ShadowError, WorkFormsInput, apply_or_replay};
+use source_forms_shadow::{ShadowError, WorkFormsInput, apply_or_replay, run_work_command};
 use tos_foundation::{CanonicalProfile, JsonLimits, JsonMode, canonical_digest_v1, parse_json};
 
 const SOURCE: &[u8] = include_bytes!("fixtures/source_forms_shadow/source.initial.json");
@@ -12,6 +12,39 @@ const PUBLISHED: &[u8] = include_bytes!("fixtures/source_forms_shadow/form-set.p
 const CONFIG: &[u8] = include_bytes!("fixtures/source_forms_shadow/owner.synthetic.json");
 const REQUEST: &[u8] = include_bytes!("fixtures/source_forms_shadow/apply.request.json");
 const RESPONSE: &[u8] = include_bytes!("fixtures/source_forms_shadow/apply.response.json");
+const DESCRIBE_RESPONSE: &[u8] =
+    include_bytes!("fixtures/source_forms_shadow/describe.response.json");
+const PREPARE_PREFERRED_RESPONSE: &[u8] =
+    include_bytes!("fixtures/source_forms_shadow/prepare.preferred.response.json");
+const PREPARE_RUSSIAN_RESPONSE: &[u8] =
+    include_bytes!("fixtures/source_forms_shadow/prepare.russian.response.json");
+const REPLAY_RESPONSE: &[u8] = include_bytes!("fixtures/source_forms_shadow/replay.response.json");
+const LIPSIUS_SOURCE: &[u8] =
+    include_bytes!("fixtures/source_forms_shadow/de_constantia/source.json");
+const LIPSIUS_INITIAL: &[u8] =
+    include_bytes!("fixtures/source_forms_shadow/de_constantia/initial.json");
+const LIPSIUS_PUBLISHED: &[u8] =
+    include_bytes!("fixtures/source_forms_shadow/de_constantia/published.json");
+const LIPSIUS_CONFIG: &[u8] =
+    include_bytes!("fixtures/source_forms_shadow/de_constantia/owner.json");
+const LIPSIUS_DESCRIBE_REQUEST: &[u8] =
+    include_bytes!("fixtures/source_forms_shadow/de_constantia/describe_request.json");
+const LIPSIUS_DESCRIBE_RESPONSE: &[u8] =
+    include_bytes!("fixtures/source_forms_shadow/de_constantia/describe.json");
+const LIPSIUS_PREPARE_REQUEST: &[u8] =
+    include_bytes!("fixtures/source_forms_shadow/de_constantia/prepare_request.json");
+const LIPSIUS_PREPARE_RESPONSE: &[u8] =
+    include_bytes!("fixtures/source_forms_shadow/de_constantia/prepare.json");
+const LIPSIUS_CREATE_REQUEST: &[u8] =
+    include_bytes!("fixtures/source_forms_shadow/de_constantia/create_request.json");
+const LIPSIUS_CREATE_RESPONSE: &[u8] =
+    include_bytes!("fixtures/source_forms_shadow/de_constantia/create.json");
+const LIPSIUS_APPLY_REQUEST: &[u8] =
+    include_bytes!("fixtures/source_forms_shadow/de_constantia/apply_request.json");
+const LIPSIUS_APPLY_RESPONSE: &[u8] =
+    include_bytes!("fixtures/source_forms_shadow/de_constantia/apply.json");
+const LIPSIUS_REPLAY_RESPONSE: &[u8] =
+    include_bytes!("fixtures/source_forms_shadow/de_constantia/replay.json");
 const INSTANT: &str = "2026-01-01T12:34:56+00:00";
 
 fn input<'a>(
@@ -26,6 +59,7 @@ fn input<'a>(
         owner_config_raw: config,
         request_raw: request,
         recorded_at: INSTANT,
+        effective_uid: 1000,
     }
 }
 
@@ -33,6 +67,157 @@ fn edit(raw: &[u8], old: &str, new: &str) -> Vec<u8> {
     let value = String::from_utf8(raw.to_vec()).unwrap();
     assert!(value.contains(old), "fixture edit target missing: {old}");
     value.replacen(old, new, 1).into_bytes()
+}
+
+fn assert_response(actual: &tos_foundation::JsonValue, expected_raw: &[u8]) {
+    let expected = parse_json(
+        expected_raw,
+        JsonMode::PublishedStrict,
+        JsonLimits::default(),
+    )
+    .unwrap();
+    let actual = canonical_digest_v1(
+        actual,
+        CanonicalProfile::SourceRecordDigestV1,
+        JsonLimits::default(),
+    )
+    .unwrap();
+    let expected = canonical_digest_v1(
+        expected.root(),
+        CanonicalProfile::SourceRecordDigestV1,
+        JsonLimits::default(),
+    )
+    .unwrap();
+    assert_eq!(actual, expected, "exact typed Work command response");
+}
+
+#[test]
+fn portable_work_profile_matches_jgb_describe_prepare_apply_replay() {
+    let describe = run_work_command(input(
+        SOURCE,
+        INITIAL,
+        CONFIG,
+        br#"{"schema_version":"tos_local_source_command_v1","operation":"describe"}"#,
+    ))
+    .unwrap();
+    assert!(describe.proposed_form_set.is_none());
+    assert_response(&describe.response, DESCRIBE_RESPONSE);
+    let prepared = run_work_command(input(SOURCE, INITIAL, CONFIG,
+        br#"{"schema_version":"tos_local_source_command_v1","operation":"prepare","form_id":"tos.form.jenseits-von-gut-und-boese.name-original","field_id":"metadata.preferred-name"}"#)).unwrap();
+    assert!(prepared.proposed_form_set.is_none());
+    assert_response(&prepared.response, PREPARE_PREFERRED_RESPONSE);
+    let created = run_work_command(input(SOURCE, INITIAL, CONFIG,
+        br#"{"schema_version":"tos_local_source_command_v1","operation":"prepare","form_id":"tos.form.oracle.jgb-name-ru-copy","field_id":"metadata.variant-name:0"}"#)).unwrap();
+    assert!(created.proposed_form_set.is_none());
+    assert_response(&created.response, PREPARE_RUSSIAN_RESPONSE);
+    let applied = run_work_command(input(SOURCE, INITIAL, CONFIG, REQUEST)).unwrap();
+    assert_eq!(applied.proposed_form_set.as_deref(), Some(PUBLISHED));
+    assert_response(&applied.response, RESPONSE);
+    let replay = run_work_command(input(SOURCE, PUBLISHED, CONFIG, REQUEST)).unwrap();
+    assert!(replay.proposed_form_set.is_none());
+    assert_response(&replay.response, REPLAY_RESPONSE);
+}
+
+#[test]
+fn portable_work_profile_matches_independent_ru_cyrl_work() {
+    for (request, expected) in [
+        (LIPSIUS_DESCRIBE_REQUEST, LIPSIUS_DESCRIBE_RESPONSE),
+        (LIPSIUS_PREPARE_REQUEST, LIPSIUS_PREPARE_RESPONSE),
+        (LIPSIUS_CREATE_REQUEST, LIPSIUS_CREATE_RESPONSE),
+    ] {
+        let result = run_work_command(input(
+            LIPSIUS_SOURCE,
+            LIPSIUS_INITIAL,
+            LIPSIUS_CONFIG,
+            request,
+        ))
+        .unwrap();
+        assert!(result.proposed_form_set.is_none());
+        assert_response(&result.response, expected);
+    }
+    let applied = run_work_command(input(
+        LIPSIUS_SOURCE,
+        LIPSIUS_INITIAL,
+        LIPSIUS_CONFIG,
+        LIPSIUS_APPLY_REQUEST,
+    ))
+    .unwrap();
+    assert_eq!(
+        applied.proposed_form_set.as_deref(),
+        Some(LIPSIUS_PUBLISHED)
+    );
+    assert_response(&applied.response, LIPSIUS_APPLY_RESPONSE);
+    let replay = run_work_command(input(
+        LIPSIUS_SOURCE,
+        LIPSIUS_PUBLISHED,
+        LIPSIUS_CONFIG,
+        LIPSIUS_APPLY_REQUEST,
+    ))
+    .unwrap();
+    assert!(replay.proposed_form_set.is_none());
+    assert_response(&replay.response, LIPSIUS_REPLAY_RESPONSE);
+}
+
+#[test]
+fn portable_work_profile_refuses_stale_scope_history_and_other_families() {
+    let stale = edit(
+        REQUEST,
+        "sha256:7abcf8fe8b90667ac5ca8e2eb5affe51cc56283fb3ca4f7f26a2e03750f4e25b",
+        "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+    );
+    assert!(matches!(
+        run_work_command(input(SOURCE, INITIAL, CONFIG, &stale)),
+        Err(ShadowError::Conflict(_))
+    ));
+    let impostor = edit(REQUEST, "agent:cmd2-forms-oracle", "impostor");
+    assert!(matches!(
+        run_work_command(input(SOURCE, INITIAL, CONFIG, &impostor)),
+        Err(ShadowError::Denied(_))
+    ));
+    let forged = edit(REQUEST, "/identity_status", "/forged-context");
+    assert!(matches!(
+        run_work_command(input(SOURCE, INITIAL, CONFIG, &forged)),
+        Err(ShadowError::Unsupported(_))
+    ));
+    let reused = edit(
+        REQUEST,
+        "sha256:7abcf8fe8b90667ac5ca8e2eb5affe51cc56283fb3ca4f7f26a2e03750f4e25b",
+        "sha256:68eaceb9d4689d37d5814fc626a7ab67c4b14ed52c654f5569d3a71d041fcb74",
+    );
+    assert!(matches!(
+        run_work_command(input(SOURCE, PUBLISHED, CONFIG, &reused)),
+        Err(ShadowError::Conflict(_))
+    ));
+    let revoked = edit(
+        CONFIG,
+        "\"allowed_operations\": [\n    \"form.create\",\n    \"form.revise\"\n  ]",
+        "\"allowed_operations\": []",
+    );
+    assert!(matches!(
+        run_work_command(input(SOURCE, PUBLISHED, &revoked, REQUEST)),
+        Err(ShadowError::Denied(_))
+    ));
+    let corrupt = edit(
+        PUBLISHED,
+        "\"prior_forms\": [",
+        "\"prior_forms\": [] , \"forged\": [",
+    );
+    assert!(run_work_command(input(SOURCE, &corrupt, CONFIG, REQUEST)).is_err());
+    let claim_source = edit(
+        SOURCE,
+        "\"record_type\": \"work\"",
+        "\"record_type\": \"claim\"",
+    );
+    assert!(matches!(
+        run_work_command(input(&claim_source, INITIAL, CONFIG, REQUEST)),
+        Err(ShadowError::Unsupported(_))
+    ));
+    let mut wrong_uid = input(SOURCE, INITIAL, CONFIG, REQUEST);
+    wrong_uid.effective_uid = 1001;
+    assert!(matches!(
+        run_work_command(wrong_uid),
+        Err(ShadowError::Denied(_))
+    ));
 }
 
 #[test]
