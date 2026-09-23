@@ -1224,6 +1224,35 @@ fn export_cold_restore_fixture() {
     );
     lab.commit(b"restore-prepare-compound", &second, 1, 1)
         .unwrap();
+    // Sealed-before-attach is discoverable only through the synced STO
+    // prepare intent. A backup must copy attempts/ with pins/ and segments/.
+    let orphan_bytes = lab_record_bytes("restore-unattached", 1, b"orphan forensic bytes");
+    lab.db
+        .register_attempt(&RegisterShadowAttempt {
+            domain: &lab.domain,
+            prepare_id: b"restore-prepare-unattached",
+            command_id: "restore-command-unattached",
+            raw_request_digest: Digest256::of_bytes(b"restore-command-unattached"),
+            delta_digest: durable_shadow_delta_prepared(&[ShadowWriteIdentity {
+                member_slot: 0,
+                subject: "restore-unattached",
+                expected_predecessor: None,
+                proposed_revision: 1,
+                exact_bytes: &orphan_bytes,
+            }]),
+        })
+        .unwrap();
+    seal(
+        &lab.store,
+        b"restore-prepare-unattached",
+        &[("restore-unattached", orphan_bytes)],
+    );
+    assert!(matches!(
+        lab.store
+            .recover_attempt(b"restore-prepare-unattached")
+            .unwrap(),
+        Some(AttemptRecovery::Sealed { .. })
+    ));
     let original_cut = lab.db.cold_verify_cut(&lab.store, &lab.domain).unwrap();
     assert_eq!(original_cut.through_commit_seq(), 2);
     assert_eq!(original_cut.historical_members(), 3);
@@ -1249,6 +1278,35 @@ fn verify_cold_restored_fixture() {
     let store = SegmentStore::open_existing(&PathBuf::from(store_path), limits())
         .expect("copied STO store cold-opens");
     let mut db = DurablePgCoordinator::connect(&url).unwrap();
+    for prepare in [
+        b"restore-prepare-a1".as_slice(),
+        b"restore-prepare-compound".as_slice(),
+        b"restore-prepare-unattached".as_slice(),
+    ] {
+        assert!(
+            matches!(
+                store.recover_attempt(prepare).unwrap(),
+                Some(AttemptRecovery::Sealed { .. })
+            ),
+            "restored STO root must retain exact durable prepare intent"
+        );
+    }
+    assert!(matches!(
+        db.resolve_attempt(&domain, b"restore-prepare-unattached")
+            .unwrap(),
+        AttemptResolution::Registered
+    ));
+    assert!(matches!(
+        db.cancel_attempt(&store, &domain, b"restore-prepare-unattached")
+            .unwrap(),
+        CancelOutcome::Cancelled { pin_fenced: true }
+    ));
+    assert!(matches!(
+        store
+            .recover_attempt(b"restore-prepare-unattached")
+            .unwrap(),
+        Some(AttemptRecovery::Aborted { .. })
+    ));
     let expected = [
         ("restore-A", 1, b"retained predecessor".as_slice()),
         ("restore-A", 2, b"new selected version".as_slice()),
@@ -1266,6 +1324,14 @@ fn verify_cold_restored_fixture() {
     assert_eq!(cut.historical_members(), 3);
     db.seal_shadow_cut(&cut).unwrap();
     assert_eq!(db.published_seq(&domain).unwrap(), 2);
+    let predecessor = db
+        .cold_recover_exact(&store, &domain, "restore-A", 1)
+        .unwrap();
+    db.revoke_local(&domain).unwrap();
+    assert!(matches!(
+        db.warm_read_selected(&store, &predecessor, 1024),
+        Err(DurableError::Refused(_))
+    ));
     println!(
         "CMD2_RESTORED domain={} cut={} historical_members={}",
         domain,
