@@ -444,6 +444,12 @@ impl<P: PinnedLocalModel, G: CurrentPolicy> ReadModel for SqliteReadModel<P, G> 
                 "invalid adjacency page size",
             ));
         }
+        if max_bytes < 72 {
+            return Err(error(
+                QueryErrorCode::BudgetExceeded,
+                "selected adjacency certificate over byte cap",
+            ));
+        }
         let binding = self.pinned.binding().clone();
         let connection = self.pinned.connection();
         let ((expected_count, expected_digest, edges, exhausted, scanned, meta_bytes), steps) =
@@ -485,7 +491,9 @@ impl<P: PinnedLocalModel, G: CurrentPolicy> ReadModel for SqliteReadModel<P, G> 
                     )
                     .map_err(sql_error)?;
                 let mut headers = Vec::new();
-                let mut meta_bytes = 0u64;
+                // Include the sealed adjacency certificate (count + SHA)
+                // before admitting edge headers or carrier bodies.
+                let mut meta_bytes = 72u64;
                 for row in rows {
                     let header = row.map_err(sql_error)?;
                     meta_bytes =
