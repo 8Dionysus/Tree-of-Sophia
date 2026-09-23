@@ -1144,6 +1144,10 @@ fn capabilities(
         .iter()
         .map(|s| text(s, "source_graph_id").map(str::to_owned))
         .collect::<Result<_>>()?;
+    let mut node_fields = strings(filters, "node_fields")?;
+    node_fields.sort();
+    let mut relation_fields = strings(filters, "relation_fields")?;
+    relation_fields.sort();
     Ok(json!({
         "execution_version":"tos-lens-execution-v7",
         "property_filters":{"selector":"property_id","scope":"node-query-and-path-node-query",
@@ -1169,8 +1173,8 @@ fn capabilities(
         "operator_value_contracts":{"eq":"scalar","neq":"scalar","in":"scalar-or-scalar-array",
             "contains":"scalar-or-scalar-array","prefix":"string","exists":"boolean",
             "gt":"number","gte":"number","lt":"number","lte":"number"},
-        "node_fields":{let mut v=strings(filters,"node_fields")?;v.sort();v},
-        "relation_fields":{let mut v=strings(filters,"relation_fields")?;v.sort();v},
+        "node_fields":node_fields,
+        "relation_fields":relation_fields,
         "human_languages":{"key_pattern":"^(?:[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*|[iIxX](?:-[A-Za-z0-9]{1,8})+)$(?![\\s\\S])",
             "reserved_roles":["default","original"],"registration_verified":false,
             "node_fields":field_catalog(db,NODE,"display",budget)?,"relation_fields":field_catalog(db,RELATION,"display",budget)?,
