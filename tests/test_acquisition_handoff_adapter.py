@@ -193,6 +193,8 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
                 )
             elif filename == "fixity.sha256":
                 body = f"{payload_sha}  payload/adapter.txt\n".encode()
+            elif filename == "forensic-report.md":
+                body = b"Fixture forensic report; no interpretation was accepted.\n"
             else:
                 body = (owner_item_root / filename).read_bytes()
             path = self.metadata / ref
