@@ -281,6 +281,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "tos-web-codec"
+version = "0.0.0"
+dependencies = [
+ "tos-foundation",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "typenum"
 version = "1.20.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"

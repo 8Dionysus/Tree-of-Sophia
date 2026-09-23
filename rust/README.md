@@ -20,5 +20,7 @@ Run the named `rust_workspace` lane from
 when the pinned toolchain, rustfmt and WASM target are available. Set
 `CARGO_TARGET_DIR` to an owner-approved build-cache path outside the
 checkout. Passing this lane proves only the checked Rust contracts, WASM
-compilation and native reader installation against a tiny synthetic store. It
-does not prove a released public adapter or production-scale runtime.
+compilation, native reader installation and generated WEB.1 codec execution in
+Node WebAssembly against tiny synthetic vectors. The WEB.1 route requires the
+matching `wasm-bindgen` CLI 0.2.128 and Node. It does not prove a released
+public adapter, browser/Worker bundle integration or production-scale runtime.
