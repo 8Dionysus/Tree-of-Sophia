@@ -1578,6 +1578,21 @@
       "disposition": "keep"
     },
     {
+      "path": "tests/test_file_membership.py",
+      "home": "tests",
+      "home_scope": "root",
+      "family": "validator_behavior",
+      "validation_lane": "source_witness_foundation",
+      "owner_surface": "ToS/doctrine/CORPUS_FOUNDATION.md",
+      "protects": "one content-addressed File identity across distinct Item copies, exact Item-to-File binding, immutable digest/size/media-type checks, and per-Item source/fixity context without rights inheritance",
+      "coverage_authority": "tests/AGENTS.md root test collection (including unittest cases)",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "tests/test_file_membership.py",
+      "failure_route": "Fix the corpus File membership contract, source-witness validator, or source-navigation projection without changing source data or merging Item rights.",
+      "disposition": "keep"
+    },
+    {
       "path": "tests/test_philosophy_atlas_projection.py",
       "home": "tests",
       "home_scope": "root",
