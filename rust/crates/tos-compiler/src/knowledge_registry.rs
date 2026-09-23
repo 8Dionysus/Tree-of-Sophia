@@ -30,8 +30,8 @@ pub struct KnowledgeRegistry {
     fallback_relation_type_id: String,
     entity_types: BTreeMap<String, Vec<String>>,
     relation_types: BTreeSet<String>,
-    entity_mappings: BTreeMap<(String, String), String>,
-    relation_mappings: BTreeMap<(String, String, String), String>,
+    entity_mappings: BTreeMap<String, BTreeMap<String, String>>,
+    relation_mappings: BTreeMap<String, BTreeMap<String, BTreeMap<String, String>>>,
 }
 
 fn strict(raw: &[u8]) -> Result<Value> {
@@ -109,6 +109,10 @@ fn acyclic(parents: &BTreeMap<String, Vec<String>>) -> Result<()> {
 }
 
 impl KnowledgeRegistry {
+    pub fn fallback_entity_type_id(&self) -> &str {
+        &self.fallback_type_id
+    }
+
     pub fn parse(entity_bytes: &[u8], relation_bytes: &[u8]) -> Result<Self> {
         let entity = strict(entity_bytes)?;
         let relation = strict(relation_bytes)?;
@@ -148,11 +152,14 @@ impl KnowledgeRegistry {
                 if mapping_count > MAX_MAPPINGS {
                     return Err(Error::Budget("entity mapping count"));
                 }
-                let key = (
-                    text(mapping, "source_graph")?.to_owned(),
-                    text(mapping, "source_kind_id")?.to_owned(),
-                );
-                if entity_mappings.insert(key, id.clone()).is_some() {
+                let source = text(mapping, "source_graph")?;
+                let kind = text(mapping, "source_kind_id")?;
+                if entity_mappings
+                    .entry(source.to_owned())
+                    .or_insert_with(BTreeMap::new)
+                    .insert(kind.to_owned(), id.clone())
+                    .is_some()
+                {
                     return Err(Error::Invalid("duplicate entity source mapping"));
                 }
             }
@@ -188,12 +195,17 @@ impl KnowledgeRegistry {
                 if mapping_count > MAX_MAPPINGS {
                     return Err(Error::Budget("relation mapping count"));
                 }
-                let key = (
-                    text(mapping, "source_graph")?.to_owned(),
-                    text(mapping, "source_predicate_id")?.to_owned(),
-                    text(mapping, "scope")?.to_owned(),
-                );
-                if relation_mappings.insert(key, id.clone()).is_some() {
+                let source = text(mapping, "source_graph")?;
+                let predicate = text(mapping, "source_predicate_id")?;
+                let scope = text(mapping, "scope")?;
+                if relation_mappings
+                    .entry(source.to_owned())
+                    .or_insert_with(BTreeMap::new)
+                    .entry(predicate.to_owned())
+                    .or_insert_with(BTreeMap::new)
+                    .insert(scope.to_owned(), id.clone())
+                    .is_some()
+                {
                     return Err(Error::Invalid("duplicate relation source mapping"));
                 }
             }
@@ -224,7 +236,8 @@ impl KnowledgeRegistry {
     pub fn entity(&self, source_graph: &str, native_kind: &str) -> ResolvedType<'_> {
         match self
             .entity_mappings
-            .get(&(source_graph.to_owned(), native_kind.to_owned()))
+            .get(source_graph)
+            .and_then(|kinds| kinds.get(native_kind))
         {
             Some(id) => ResolvedType {
                 type_id: id,
@@ -242,11 +255,12 @@ impl KnowledgeRegistry {
         native_predicate: &str,
         scope: &str,
     ) -> ResolvedType<'_> {
-        match self.relation_mappings.get(&(
-            source_graph.to_owned(),
-            native_predicate.to_owned(),
-            scope.to_owned(),
-        )) {
+        match self
+            .relation_mappings
+            .get(source_graph)
+            .and_then(|predicates| predicates.get(native_predicate))
+            .and_then(|scopes| scopes.get(scope))
+        {
             Some(id) => ResolvedType {
                 type_id: id,
                 mapped: true,
