@@ -786,8 +786,12 @@ pub fn inspect_profiled_claims(
     Ok(shadow)
 }
 
-/// A separately verified current union is required: retained legacy and
-/// compound native Claims must already have their source/provenance bindings.
+/// A separately verified current union is required. The source owner joins
+/// three retained topology streams (work-expression, expression-edition,
+/// edition-item) to native source-claims rows only after their respective
+/// fixed event/evidence and compound-command verification. This local
+/// structural closure does not inspect or certify those carrier routes.
+/// Polarity, including negative/unknown, remains a Claim value in the union.
 pub fn inspect_current_topology(
     records: &[Value],
     claims: &[Value],
@@ -858,7 +862,9 @@ pub fn inspect_current_topology(
             }
         } else if kind == "edition" {
             if let Some(refs) = string_array(record, "embodies_expression_refs") {
-                if refs.is_empty() || refs.iter().collect::<BTreeSet<_>>().len() != refs.len() {
+                if refs.iter().any(String::is_empty)
+                    || refs.iter().collect::<BTreeSet<_>>().len() != refs.len()
+                {
                     shadow.issue("invalid-expression-refs", id);
                 }
                 for expression in refs {
@@ -885,12 +891,21 @@ pub fn inspect_current_topology(
     let mut seen_pairs = BTreeSet::new();
     let mut expression_works = BTreeMap::<String, String>::new();
     for claim in claims {
+        if !claim.is_object() {
+            shadow.issue("topology-claim-object", "claims");
+            continue;
+        }
         let Some(predicate) = field_str(claim, "predicate") else {
             continue;
         };
         let Some((_, subject_type, object_type, _)) =
             ROUTES.iter().find(|route| route.0 == predicate)
         else {
+            if predicate.len() <= MAX_GENERATION_BYTES {
+                shadow.skip(format!("non-topology-claim-profile:{predicate}"));
+            } else {
+                shadow.skip("non-topology-claim-profile-overlong");
+            }
             continue;
         };
         let (Some(id), Some(subject), Some(object)) = (
@@ -901,28 +916,54 @@ pub fn inspect_current_topology(
             shadow.issue("topology-claim-shape", predicate);
             continue;
         };
+        if id.is_empty() || subject.is_empty() || object.is_empty() {
+            shadow.issue("topology-claim-shape", predicate);
+            continue;
+        }
         if !seen_ids.insert(id.to_owned()) {
             shadow.issue("duplicate-topology-claim-id", id);
         }
+        shadow.read(PredicateRead::UniqueKey {
+            namespace: "bibliographic-topology-claim-id".into(),
+            key: id.into(),
+            owner: format!("{predicate}:{subject}:{object}"),
+        });
         if !seen_pairs.insert((predicate.to_owned(), subject.to_owned(), object.to_owned())) {
             shadow.issue("duplicate-topology-pair", id);
         }
-        if by_id.get(subject).and_then(|r| field_str(r, "record_type")) != Some(*subject_type)
-            || by_id.get(object).and_then(|r| field_str(r, "record_type")) != Some(*object_type)
+        shadow.read(PredicateRead::UniqueKey {
+            namespace: "bibliographic-topology-pair".into(),
+            key: serde_json::json!([predicate, subject, object]).to_string(),
+            owner: id.into(),
+        });
+        let subject_state = if by_id.get(subject).and_then(|r| field_str(r, "record_type"))
+            == Some(*subject_type)
         {
-            shadow.issue("topology-endpoint", id);
-            continue;
-        }
+            KeyState::Present
+        } else {
+            KeyState::Absent
+        };
+        let object_state =
+            if by_id.get(object).and_then(|r| field_str(r, "record_type")) == Some(*object_type) {
+                KeyState::Present
+            } else {
+                KeyState::Absent
+            };
         shadow.read(PredicateRead::RefEndpoint {
             endpoint_type: (*subject_type).into(),
             id: subject.into(),
-            observed: KeyState::Present,
+            observed: subject_state,
         });
         shadow.read(PredicateRead::RefEndpoint {
             endpoint_type: (*object_type).into(),
             id: object.into(),
-            observed: KeyState::Present,
+            observed: object_state,
         });
+        if by_id.get(subject).and_then(|r| field_str(r, "record_type")) != Some(*subject_type)
+            || by_id.get(object).and_then(|r| field_str(r, "record_type")) != Some(*object_type)
+        {
+            shadow.issue("topology-endpoint", id);
+        }
         if !expected
             .get(&(predicate.into(), subject.into()))
             .is_some_and(|targets| targets.contains(object))
@@ -940,14 +981,17 @@ pub fn inspect_current_topology(
             .entry((predicate.into(), subject.into()))
             .or_default()
             .insert(id.into(), object.into());
-        shadow.fact(ValidationFact {
-            namespace: "bibliographic-topology-claim".into(),
-            key: id.into(),
-            value_digest: Digest256::of_bytes(
-                format!("{predicate}\0{subject}\0{object}").as_bytes(),
-            )
-            .to_prefixed(),
-        });
+        if let Ok(canonical_claim) = serde_json::to_vec(claim) {
+            // Polarity is retained in this value digest. A negative Claim is
+            // still an observed Claim, never an AbsentKey for its relation.
+            shadow.fact(ValidationFact {
+                namespace: "bibliographic-topology-claim-value".into(),
+                key: id.into(),
+                value_digest: Digest256::of_bytes(&canonical_claim).to_prefixed(),
+            });
+        } else {
+            shadow.issue("topology-claim-serialization", id);
+        }
     }
     for (predicate, subject_type, _, field) in ROUTES {
         for record in records {
@@ -963,7 +1007,8 @@ pub fn inspect_current_topology(
                 .map(|rows| rows.keys().cloned().collect())
                 .unwrap_or_default();
             if refs.as_ref().is_none_or(|items| {
-                items.iter().cloned().collect::<BTreeSet<_>>() != found_ids
+                items.iter().any(String::is_empty)
+                    || items.iter().cloned().collect::<BTreeSet<_>>() != found_ids
                     || items.len() != found_ids.len()
             }) {
                 shadow.issue("topology-reverse-closure", subject);
@@ -979,6 +1024,17 @@ pub fn inspect_current_topology(
             {
                 shadow.issue("topology-forward-closure", subject);
             }
+            if let Ok(closure) =
+                serde_json::to_vec(&(found, expected.get(&(predicate.into(), subject.into()))))
+            {
+                shadow.fact(ValidationFact {
+                    namespace: "bibliographic-topology-subject-closure".into(),
+                    key: serde_json::json!([predicate, subject]).to_string(),
+                    value_digest: Digest256::of_bytes(&closure).to_prefixed(),
+                });
+            } else {
+                shadow.issue("topology-closure-serialization", subject);
+            }
             shadow.read(PredicateRead::Range {
                 namespace: format!("topology:{predicate}:subject"),
                 lower: subject.into(),
@@ -987,18 +1043,85 @@ pub fn inspect_current_topology(
             });
         }
     }
+    for (predicate, _, _, _) in ROUTES {
+        shadow.read(PredicateRead::Range {
+            namespace: "source-topology-current-claims".into(),
+            lower: predicate.into(),
+            upper: predicate.into(),
+            generation: union_generation.into(),
+        });
+        let rows: Vec<_> = actual
+            .iter()
+            .filter(|((route, _), _)| route.as_str() == predicate)
+            .collect();
+        if let Ok(union) = serde_json::to_vec(&rows) {
+            shadow.fact(ValidationFact {
+                namespace: "bibliographic-topology-predicate-union".into(),
+                key: predicate.into(),
+                value_digest: Digest256::of_bytes(&union).to_prefixed(),
+            });
+        } else {
+            shadow.issue("topology-union-serialization", predicate);
+        }
+    }
+    let mut reverse_objects = BTreeSet::new();
     for ((predicate, subject), targets) in &expected {
-        if !by_id.contains_key(subject) {
-            shadow.issue("topology-missing-source", subject);
+        let Some(route) = ROUTES.iter().find(|route| route.0 == predicate.as_str()) else {
+            shadow.skip("unknown-expected-topology-route");
+            continue;
+        };
+        let subject_present = by_id
+            .get(subject)
+            .and_then(|record| field_str(record, "record_type"))
+            == Some(route.1);
+        shadow.read(PredicateRead::RefEndpoint {
+            endpoint_type: route.1.into(),
+            id: subject.clone(),
+            observed: if subject_present {
+                KeyState::Present
+            } else {
+                KeyState::Absent
+            },
+        });
+        if !subject_present {
+            shadow.issue("topology-declared-link-endpoint", subject);
         }
         for target in targets {
-            if !by_id.contains_key(target) {
-                shadow.issue("topology-missing-target", target);
+            let target_present = by_id
+                .get(target)
+                .and_then(|record| field_str(record, "record_type"))
+                == Some(route.2);
+            shadow.read(PredicateRead::RefEndpoint {
+                endpoint_type: route.2.into(),
+                id: target.clone(),
+                observed: if target_present {
+                    KeyState::Present
+                } else {
+                    KeyState::Absent
+                },
+            });
+            if !target_present {
+                shadow.issue("topology-declared-link-endpoint", target);
             }
         }
         shadow.read(PredicateRead::ReverseRefs {
             target: subject.clone(),
-            relation: predicate.clone(),
+            relation: format!("source-topology:{predicate}:subject"),
+            generation: union_generation.into(),
+        });
+        for target in targets {
+            reverse_objects.insert((predicate.clone(), target.clone()));
+        }
+    }
+    for ((predicate, _), rows) in &actual {
+        for target in rows.values() {
+            reverse_objects.insert((predicate.clone(), target.clone()));
+        }
+    }
+    for (predicate, target) in reverse_objects {
+        shadow.read(PredicateRead::ReverseRefs {
+            target,
+            relation: format!("source-topology:{predicate}:object"),
             generation: union_generation.into(),
         });
     }
@@ -1321,6 +1444,87 @@ mod tests {
         );
         assert!(positive.issues.is_empty(), "{:?}", positive.issues);
         assert!(positive.unsupported);
+        let mixed = inspect_current_topology(
+            &[work.clone(), expression.clone()],
+            &[edge.clone(), json!({"predicate":"contains_work"})],
+            &items,
+            true,
+            "test-union",
+        );
+        assert!(mixed.issues.is_empty(), "{:?}", mixed.issues);
+        assert!(
+            mixed
+                .skipped_profiles
+                .contains("non-topology-claim-profile:contains_work")
+        );
+        assert!(positive.reads.iter().any(|read| matches!(read,
+            PredicateRead::Range { namespace, lower, upper, .. }
+            if namespace == "source-topology-current-claims"
+                && lower == "embodied_by" && upper == "embodied_by"
+        )));
+        assert!(positive.reads.iter().any(|read| matches!(read,
+            PredicateRead::ReverseRefs { target, relation, .. }
+            if target == "tos.expression.b" && relation == "source-topology:has_expression:object"
+        )));
+        assert!(positive.facts.iter().any(|fact| fact.namespace
+            == "bibliographic-topology-subject-closure"
+            && fact.key == r#"["has_expression","tos.work.a"]"#));
+        let mut negative = edge.clone();
+        negative["polarity"] = json!("negative");
+        let negative_result = inspect_current_topology(
+            &[work.clone(), expression.clone()],
+            &[negative],
+            &items,
+            true,
+            "test-union",
+        );
+        assert!(
+            negative_result.issues.is_empty(),
+            "{:?}",
+            negative_result.issues
+        );
+        assert!(
+            !negative_result
+                .reads
+                .iter()
+                .any(|read| matches!(read, PredicateRead::AbsentKey { .. }))
+        );
+        let claim_digest = |shadow: &RelationShadow| {
+            shadow
+                .facts
+                .iter()
+                .find(|fact| fact.namespace == "bibliographic-topology-claim-value")
+                .unwrap()
+                .value_digest
+                .clone()
+        };
+        assert_ne!(claim_digest(&positive), claim_digest(&negative_result));
+        let mut unknown = edge.clone();
+        unknown["polarity"] = json!("unknown");
+        assert!(
+            inspect_current_topology(
+                &[work.clone(), expression.clone()],
+                &[unknown],
+                &items,
+                true,
+                "test-union"
+            )
+            .issues
+            .is_empty()
+        );
+        let edition = json!({"record_id":"tos.edition.c","record_type":"edition",
+            "embodies_expression_refs":[],"exemplar_claim_refs":[]});
+        assert!(
+            inspect_current_topology(
+                &[work.clone(), expression.clone(), edition],
+                &[edge.clone()],
+                &items,
+                true,
+                "test-union"
+            )
+            .issues
+            .is_empty()
+        );
         let missing = inspect_current_topology(
             &[work.clone(), expression.clone()],
             &[],
@@ -1350,6 +1554,51 @@ mod tests {
         );
         let mut other = edge.clone();
         other["claim_id"] = json!("tos.claim.b");
+        let mut unbacked = edge.clone();
+        unbacked["object"] = json!("tos.expression.absent");
+        let bad_endpoint = inspect_current_topology(
+            &[work.clone(), expression.clone()],
+            &[unbacked],
+            &items,
+            true,
+            "test-union",
+        );
+        assert!(
+            bad_endpoint
+                .issues
+                .iter()
+                .any(|issue| issue.code == "topology-link-unbacked")
+        );
+        assert!(bad_endpoint.reads.iter().any(|read| matches!(read,
+            PredicateRead::RefEndpoint { id, observed: KeyState::Absent, .. }
+            if id == "tos.expression.absent"
+        )));
+        let mut mistyped = expression.clone();
+        mistyped["work_ref"] = json!("tos.expression.b");
+        assert!(
+            inspect_current_topology(
+                &[work.clone(), mistyped],
+                &[edge.clone()],
+                &items,
+                true,
+                "test-union"
+            )
+            .issues
+            .iter()
+            .any(|issue| issue.code == "topology-declared-link-endpoint")
+        );
+        assert!(
+            inspect_current_topology(
+                &[work.clone(), expression.clone()],
+                &[edge.clone(), edge.clone()],
+                &items,
+                true,
+                "test-union"
+            )
+            .issues
+            .iter()
+            .any(|issue| issue.code == "duplicate-topology-claim-id")
+        );
         assert!(
             inspect_current_topology(
                 &[work, expression],
