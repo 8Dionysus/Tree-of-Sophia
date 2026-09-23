@@ -12,6 +12,10 @@ use crate::{Coverage, KeyState, PredicateRead};
 
 pub const TEXT_UNIT_RULE_ID: &str = "tos.val.text-unit.v1@1";
 pub const TEXT_UNIT_PROFILE: &str = "tos_source_text_unit_packet_v1";
+pub const TEXT_LAYER_RULE_ID: &str = "tos.val.text-layer.v1@1";
+pub const TEXT_LAYER_PROFILE: &str = "tos_source_text_layer_v1";
+const MAX_LAYER_RESOURCE_BYTES: usize = 67_108_864;
+const MAX_TOTAL_LAYER_RESOURCE_BYTES: usize = 134_217_728;
 const MAX_PACKET_BYTES: usize = 2_097_152;
 const MAX_TEXT_BYTES: usize = 8_388_608;
 const MAX_ROWS: usize = 4096;
@@ -74,9 +78,9 @@ pub struct TextRuleReport {
 }
 
 impl TextRuleReport {
-    fn new() -> Self {
+    fn new_for(rule_id: &'static str) -> Self {
         Self {
-            rule_id: TEXT_UNIT_RULE_ID,
+            rule_id,
             packet_digest: None,
             coverage: Coverage::FullOnly,
             state: TextRuleState::Unsupported,
@@ -201,6 +205,608 @@ fn interval(value: &JsonValue) -> Option<(u64, u64)> {
         field(selector, "end")?.as_u64()?,
     ))
 }
+
+fn span(value: &JsonValue) -> Option<(usize, usize)> {
+    Some((
+        usize::try_from(field(value, "start")?.as_u64()?).ok()?,
+        usize::try_from(field(value, "end")?.as_u64()?).ok()?,
+    ))
+}
+
+/// One exact snapshot resource. The caller must bind these bytes to the same
+/// serializable cut as the layer; the helper never reopens a path.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LayerResource<'a> {
+    pub locator: &'a str,
+    pub raw: &'a [u8],
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LayerRuleContext {
+    pub layer_path: String,
+    pub schema_checked: bool,
+    pub requested_profiles: Vec<String>,
+    pub interval_generation: String,
+    pub reverse_generation: String,
+}
+
+fn layer_bound_resource(
+    owner: &str,
+    reference: &str,
+    expected_digest: &str,
+    resources: &[LayerResource<'_>],
+    report: &mut TextRuleReport,
+) -> bool {
+    let matches: Vec<_> = resources
+        .iter()
+        .filter(|r| r.locator == reference)
+        .collect();
+    report.reads.push(PredicateRead::RefEndpoint {
+        endpoint_type: "text-layer/exact-resource".into(),
+        id: reference.into(),
+        observed: if matches.len() == 1 {
+            KeyState::Present
+        } else {
+            KeyState::Absent
+        },
+    });
+    report.edge(reference, "layer_resource", owner);
+    if matches.len() != 1 {
+        if matches.is_empty() {
+            report
+                .unsupported_profiles
+                .push(format!("unavailable-resource:{reference}"));
+            report.reads.push(PredicateRead::AbsentKey {
+                namespace: "text-layer/exact-resource".into(),
+                key: reference.into(),
+            });
+        } else {
+            report.issue("layer_resource_not_unique", reference);
+        }
+        return false;
+    }
+    let resource = matches[0];
+    if resource.raw.len() > MAX_LAYER_RESOURCE_BYTES {
+        report.state = TextRuleState::BudgetExceeded;
+        return false;
+    }
+    let actual = Digest256::of_bytes(resource.raw).to_hex();
+    report.reads.push(PredicateRead::ExactBytes {
+        locator: reference.into(),
+        digest: actual.clone(),
+    });
+    if actual != expected_digest {
+        report.issue("layer_resource_digest_drift", reference);
+        return false;
+    }
+    true
+}
+
+fn layer_binding_refs(
+    owner: &str,
+    bindings: &[JsonValue],
+    reference_key: &str,
+    digest_key: &str,
+    resources: &[LayerResource<'_>],
+    report: &mut TextRuleReport,
+) {
+    for binding in bindings {
+        if let (Some(reference), Some(digest)) =
+            (string(binding, reference_key), string(binding, digest_key))
+        {
+            layer_bound_resource(owner, reference, digest, resources, report);
+        }
+    }
+}
+
+fn layer_maker_configuration(
+    owner: &str,
+    maker: &JsonValue,
+    resources: &[LayerResource<'_>],
+    report: &mut TextRuleReport,
+) {
+    if let (Some(reference), Some(digest)) = (
+        string(maker, "configuration_ref"),
+        string(maker, "configuration_digest"),
+    ) {
+        layer_bound_resource(owner, reference, digest, resources, report);
+    } else if string(maker, "configuration_ref").is_none() {
+        report
+            .unsupported_profiles
+            .push("maker-configuration-without-ref".into());
+    }
+}
+
+/// Mechanical source-text-layer v1 observation over exact snapshot bytes.
+/// This probe is not an AuditRule while schema_checked is caller asserted.
+/// Every declared external reference must be present in `resources`; otherwise
+/// the result is Unsupported. Unicode normalization profiles remain explicit
+/// Unsupported until a pinned Unicode algorithm is available.
+pub fn inspect_source_text_layer_v1(
+    raw_layer: &[u8],
+    resources: &[LayerResource<'_>],
+    context: &LayerRuleContext,
+) -> TextRuleReport {
+    let mut out = TextRuleReport::new_for(TEXT_LAYER_RULE_ID);
+    for profile in &context.requested_profiles {
+        if profile != TEXT_LAYER_PROFILE {
+            out.unsupported_profiles.push(profile.clone());
+        }
+    }
+    if !context.schema_checked
+        || context.requested_profiles.is_empty()
+        || !out.unsupported_profiles.is_empty()
+        || context.layer_path.is_empty()
+        || context.interval_generation.is_empty()
+        || context.reverse_generation.is_empty()
+    {
+        if !context.schema_checked {
+            out.unsupported_profiles.push("schema-unchecked".into());
+        }
+        if context.requested_profiles.is_empty() {
+            out.unsupported_profiles.push("no-profile".into());
+        }
+        if context.layer_path.is_empty()
+            || context.interval_generation.is_empty()
+            || context.reverse_generation.is_empty()
+        {
+            out.unsupported_profiles
+                .push("missing-snapshot-binding".into());
+        }
+        return out;
+    }
+    if raw_layer.len() > MAX_PACKET_BYTES
+        || resources.len() > MAX_ROWS
+        || resources
+            .iter()
+            .any(|r| r.raw.len() > MAX_LAYER_RESOURCE_BYTES)
+        || resources.iter().map(|r| r.raw.len()).sum::<usize>() > MAX_TOTAL_LAYER_RESOURCE_BYTES
+    {
+        out.state = TextRuleState::BudgetExceeded;
+        return out;
+    }
+    let limits = match JsonLimits::new(MAX_PACKET_BYTES, 64, 300_000, 4_300) {
+        Ok(v) => v,
+        Err(_) => {
+            out.state = TextRuleState::BudgetExceeded;
+            return out;
+        }
+    };
+    let document = match parse_json(raw_layer, JsonMode::PublishedStrict, limits) {
+        Ok(v) => v,
+        Err(_) => {
+            out.state = TextRuleState::InvalidInput;
+            out.issue("invalid_published_json", &context.layer_path);
+            return out;
+        }
+    };
+    let layer = document.root();
+    if string(layer, "schema_version") != Some(TEXT_LAYER_PROFILE) {
+        out.unsupported_profiles.push(
+            string(layer, "schema_version")
+                .unwrap_or("missing-schema-version")
+                .into(),
+        );
+        return out;
+    }
+    let layer_digest = Digest256::of_bytes(raw_layer).to_hex();
+    out.packet_digest = Some(layer_digest.clone());
+    out.reads.push(PredicateRead::ExactPath {
+        path: context.layer_path.clone(),
+        digest: layer_digest.clone(),
+    });
+    let id = string(layer, "layer_id").unwrap_or("");
+    out.reads.push(PredicateRead::UniqueKey {
+        namespace: "source-text-layer/id".into(),
+        key: id.into(),
+        owner: context.layer_path.clone(),
+    });
+    out.reads.push(PredicateRead::Range {
+        namespace: format!("source-text-layer/{id}/bindings"),
+        lower: String::new(),
+        upper: "\u{10ffff}".into(),
+        generation: context.reverse_generation.clone(),
+    });
+    if string(layer, "supersedes_layer_ref") == Some(id) {
+        out.issue("layer_self_supersession", id);
+    }
+    let binding = field(layer, "source_binding").unwrap_or(&NULL_JSON);
+    let anchors = rows(binding, "anchors");
+    if anchors.len() > MAX_ROWS {
+        out.state = TextRuleState::BudgetExceeded;
+        return out;
+    }
+    let anchor_ids: BTreeSet<&str> = anchors
+        .iter()
+        .filter_map(|a| string(a, "anchor_id"))
+        .collect();
+    layer_binding_refs(
+        id,
+        anchors,
+        "anchor_record_ref",
+        "anchor_record_sha256",
+        resources,
+        &mut out,
+    );
+    if let (Some(source_ref), Some(digest)) = (
+        string(binding, "source_file_ref"),
+        string(binding, "source_file_sha256"),
+    ) {
+        layer_bound_resource(id, source_ref, digest, resources, &mut out);
+        if source_ref != format!("tos.file.sha256.{digest}") {
+            out.issue("layer_source_identity_drift", source_ref);
+        }
+    }
+    let representation = field(layer, "representation").unwrap_or(&NULL_JSON);
+    let content_ref = string(representation, "content_ref").unwrap_or("");
+    let content_digest = string(representation, "content_sha256").unwrap_or("");
+    let content_ok = layer_bound_resource(id, content_ref, content_digest, resources, &mut out);
+    let content_resource = resources.iter().find(|r| r.locator == content_ref);
+    if content_resource.is_some_and(|r| r.raw.len() > MAX_TEXT_BYTES) {
+        out.state = TextRuleState::BudgetExceeded;
+        return out;
+    }
+    let content = content_resource.and_then(|r| std::str::from_utf8(r.raw).ok());
+    if content_resource.is_some() && content.is_none() {
+        out.issue("layer_content_not_utf8", content_ref);
+    }
+    let text_scope = field(representation, "text_scope").unwrap_or(&NULL_JSON);
+    let selected = match (content, span(text_scope)) {
+        (Some(text), Some((start, end))) if start <= end => {
+            let points: Vec<usize> = text
+                .char_indices()
+                .map(|(i, _)| i)
+                .chain(std::iter::once(text.len()))
+                .collect();
+            out.reads.push(PredicateRead::Interval {
+                scope: content_ref.into(),
+                start: start as u64,
+                end: end as u64,
+                generation: context.interval_generation.clone(),
+            });
+            out.intervals.push(IntervalFact {
+                scope: content_ref.into(),
+                member: id.into(),
+                start: start as u64,
+                end: end as u64,
+            });
+            if end > points.len().saturating_sub(1) {
+                out.issue("layer_scope_outside_content", id);
+                None
+            } else {
+                Some(&text[points[start]..points[end]])
+            }
+        }
+        _ => {
+            out.issue("layer_scope_reversed_or_missing", id);
+            None
+        }
+    };
+    if content_ok {
+        if let Some(normalization) = string(representation, "character_normalization") {
+            if normalization != "none" {
+                out.unsupported_profiles
+                    .push(format!("unicode-normalization:{normalization}"));
+            }
+        }
+    }
+    let storage = string(representation, "storage");
+    let tracked = boolean(representation, "tracked_content");
+    let visibility = string(representation, "content_visibility");
+    if (storage == Some("tracked")) != (tracked == Some(true)) {
+        out.issue("layer_storage_tracking_disagree", id);
+    }
+    if tracked == Some(true) && visibility != Some("public") {
+        out.issue("layer_tracked_nonpublic", id);
+    }
+    let published = boolean(representation, "publication_authorized") == Some(true);
+    let publication_refs = rows(representation, "publication_authority_refs");
+    if rows(representation, "rights_record_refs").len() > MAX_ROWS
+        || publication_refs.len() > MAX_ROWS
+    {
+        out.state = TextRuleState::BudgetExceeded;
+        return out;
+    }
+    if published && visibility != Some("public") {
+        out.issue("layer_nonpublic_publication", id);
+    }
+    if published && publication_refs.is_empty() {
+        out.issue("layer_publication_authority_missing", id);
+    }
+    if !published && !publication_refs.is_empty() {
+        out.issue("layer_closed_publication_gate_conflict", id);
+    }
+    layer_binding_refs(
+        id,
+        rows(representation, "rights_record_refs"),
+        "ref",
+        "sha256",
+        resources,
+        &mut out,
+    );
+    layer_binding_refs(id, publication_refs, "ref", "sha256", resources, &mut out);
+    let editorial = field(layer, "editorial_policy").unwrap_or(&NULL_JSON);
+    if let (Some(reference), Some(digest)) = (
+        string(editorial, "policy_ref"),
+        string(editorial, "policy_sha256"),
+    ) {
+        layer_bound_resource(id, reference, digest, resources, &mut out);
+    }
+    let derivation = field(layer, "derivation").unwrap_or(&NULL_JSON);
+    layer_maker_configuration(
+        id,
+        field(derivation, "maker").unwrap_or(&NULL_JSON),
+        resources,
+        &mut out,
+    );
+    let inputs = rows(derivation, "input_layers");
+    if inputs.len() > MAX_ROWS {
+        out.state = TextRuleState::BudgetExceeded;
+        return out;
+    }
+    let mut input_text = None;
+    for input in inputs {
+        let input_id = string(input, "layer_id").unwrap_or("");
+        if input_id == id {
+            out.issue("layer_self_derivation", id);
+        }
+        let record_ref = string(input, "record_ref").unwrap_or("");
+        let record_digest = string(input, "record_sha256").unwrap_or("");
+        if layer_bound_resource(id, record_ref, record_digest, resources, &mut out) {
+            if let Some(record) = resources.iter().find(|r| r.locator == record_ref) {
+                let parsed = JsonLimits::new(MAX_PACKET_BYTES, 64, 300_000, 4_300)
+                    .ok()
+                    .and_then(|l| parse_json(record.raw, JsonMode::PublishedStrict, l).ok());
+                if let Some(parsed) = parsed {
+                    let predecessor = parsed.root();
+                    if string(predecessor, "layer_id") != Some(input_id) {
+                        out.issue("layer_predecessor_identity_drift", record_ref);
+                    }
+                    let rep = field(predecessor, "representation").unwrap_or(&NULL_JSON);
+                    if string(rep, "content_sha256") != string(input, "content_sha256") {
+                        out.issue("layer_predecessor_content_digest_drift", record_ref);
+                    }
+                    if inputs.len() == 1 {
+                        let predecessor_ref = string(rep, "content_ref").unwrap_or("");
+                        let predecessor_digest = string(rep, "content_sha256").unwrap_or("");
+                        if layer_bound_resource(
+                            id,
+                            predecessor_ref,
+                            predecessor_digest,
+                            resources,
+                            &mut out,
+                        ) {
+                            if let Some(raw) =
+                                resources.iter().find(|r| r.locator == predecessor_ref)
+                            {
+                                if raw.raw.len() > MAX_TEXT_BYTES {
+                                    out.state = TextRuleState::BudgetExceeded;
+                                    return out;
+                                }
+                                if let Ok(text) = std::str::from_utf8(raw.raw) {
+                                    if let Some((s, e)) = field(rep, "text_scope").and_then(span) {
+                                        let points: Vec<usize> = text
+                                            .char_indices()
+                                            .map(|(i, _)| i)
+                                            .chain(std::iter::once(text.len()))
+                                            .collect();
+                                        if s <= e && e < points.len() {
+                                            input_text =
+                                                Some(text[points[s]..points[e]].to_owned());
+                                        } else {
+                                            out.issue(
+                                                "layer_predecessor_scope_outside_content",
+                                                input_id,
+                                            );
+                                        }
+                                    }
+                                } else {
+                                    out.issue("layer_predecessor_not_utf8", predecessor_ref);
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    out.issue("layer_predecessor_invalid_json", record_ref);
+                }
+            }
+        }
+        out.reads.push(PredicateRead::ReverseRefs {
+            target: input_id.into(),
+            relation: "source-text-layer/input".into(),
+            generation: context.reverse_generation.clone(),
+        });
+        out.edge(input_id, "input_layer", id);
+    }
+    if let Some(last) = inputs.last() {
+        if string(layer, "supersedes_layer_ref") != string(last, "layer_id") {
+            out.issue("layer_immediate_supersession_drift", id);
+        }
+    }
+    let payload = field(derivation, "change_payload").unwrap_or(&NULL_JSON);
+    if string(payload, "kind") == Some("withheld_operations_receipt") {
+        out.unsupported_profiles
+            .push("withheld-operations-receipt".into());
+    }
+    if inputs.len() > 1 {
+        out.unsupported_profiles
+            .push("multiple-input-layers".into());
+    }
+    let operations = if string(payload, "kind") == Some("explicit_operations") {
+        rows(payload, "operations")
+    } else {
+        &[]
+    };
+    if operations.len() > MAX_ROWS {
+        out.state = TextRuleState::BudgetExceeded;
+        return out;
+    }
+    if string(payload, "kind") == Some("explicit_operations") && inputs.len() != 1 {
+        out.unsupported_profiles
+            .push("explicit-operations-multiple-inputs".into());
+    }
+    let mut in_end = 0usize;
+    let mut out_end = 0usize;
+    let mut replay = String::new();
+    for operation in operations {
+        let edit_id = string(operation, "edit_id").unwrap_or("");
+        layer_maker_configuration(
+            id,
+            field(operation, "responsibility").unwrap_or(&NULL_JSON),
+            resources,
+            &mut out,
+        );
+        if string(operation, "operation") == Some("unicode_normalization") {
+            out.unsupported_profiles
+                .push("unicode-normalization-edit".into());
+        }
+        let input_span = field(operation, "input_span").and_then(span);
+        let output_span = field(operation, "output_span").and_then(span);
+        let input_exact = string(operation, "input_exact").unwrap_or("");
+        let output_exact = string(operation, "output_exact").unwrap_or("");
+        if string(operation, "input_sha256")
+            != Some(
+                Digest256::of_bytes(input_exact.as_bytes())
+                    .to_hex()
+                    .as_str(),
+            )
+        {
+            out.issue("layer_edit_input_digest_drift", edit_id);
+        }
+        if string(operation, "output_sha256")
+            != Some(
+                Digest256::of_bytes(output_exact.as_bytes())
+                    .to_hex()
+                    .as_str(),
+            )
+        {
+            out.issue("layer_edit_output_digest_drift", edit_id);
+        }
+        let (Some((ins, ine)), Some((outs, oute))) = (input_span, output_span) else {
+            out.issue("layer_edit_span_missing", edit_id);
+            continue;
+        };
+        if ine < ins || oute < outs || ins < in_end || outs < out_end {
+            out.issue("layer_edit_span_order_drift", edit_id);
+        }
+        if ine.saturating_sub(ins) != input_exact.chars().count()
+            || oute.saturating_sub(outs) != output_exact.chars().count()
+        {
+            out.issue("layer_edit_span_length_drift", edit_id);
+        }
+        for anchor in strings(operation, "evidence_anchor_refs") {
+            if !anchor_ids.contains(anchor) {
+                out.issue("layer_edit_anchor_outside_binding", edit_id);
+            }
+        }
+        if rows(operation, "evidence_anchor_refs").is_empty() {
+            out.issue("layer_edit_anchor_missing", edit_id);
+        }
+        if let Some(text) = input_text.as_deref() {
+            let points: Vec<usize> = text
+                .char_indices()
+                .map(|(i, _)| i)
+                .chain(std::iter::once(text.len()))
+                .collect();
+            if ine < points.len() && ins >= in_end {
+                let unchanged = &text[points[in_end]..points[ins]];
+                replay.push_str(unchanged);
+                if &text[points[ins]..points[ine]] != input_exact {
+                    out.issue("layer_edit_input_text_drift", edit_id);
+                }
+                if outs != replay.chars().count() || oute != outs + output_exact.chars().count() {
+                    out.issue("layer_edit_output_alignment_drift", edit_id);
+                }
+                replay.push_str(output_exact);
+            } else {
+                out.issue("layer_edit_input_outside_predecessor", edit_id);
+            }
+        }
+        in_end = in_end.max(ine);
+        out_end = out_end.max(oute);
+    }
+    if let (Some(input), Some(output)) = (input_text.as_deref(), selected) {
+        if !operations.is_empty() {
+            let points: Vec<usize> = input
+                .char_indices()
+                .map(|(i, _)| i)
+                .chain(std::iter::once(input.len()))
+                .collect();
+            if in_end < points.len() {
+                replay.push_str(&input[points[in_end]..]);
+            }
+            if replay != output {
+                out.issue("layer_edit_replay_output_drift", id);
+            }
+        }
+        if string(derivation, "method") == Some("identity_copy") && input != output {
+            out.issue("layer_identity_copy_output_drift", id);
+        }
+    }
+    if string(derivation, "method") == Some("unicode_normalization") {
+        out.unsupported_profiles.push("unicode-derivation".into());
+    }
+    if string(derivation, "method") == Some("editorial_normalization") {
+        out.unsupported_profiles
+            .push("editorial-normalization-derivation".into());
+    }
+    let uncertainty = field(layer, "uncertainty").unwrap_or(&NULL_JSON);
+    if rows(uncertainty, "annotations").len() > MAX_ROWS {
+        out.state = TextRuleState::BudgetExceeded;
+        return out;
+    }
+    for annotation in rows(uncertainty, "annotations") {
+        if let Some(anchor) = string(annotation, "anchor_ref") {
+            if !anchor_ids.contains(anchor) {
+                out.issue("layer_uncertainty_anchor_outside_binding", anchor);
+            }
+        }
+        for alternative in rows(annotation, "alternatives") {
+            let value = string(alternative, "value");
+            let in_record = boolean(alternative, "value_in_record");
+            if in_record == Some(true) && value.is_none() {
+                out.issue("layer_uncertainty_value_missing", id);
+            }
+            if in_record == Some(false) && value.is_some() {
+                out.issue("layer_uncertainty_withheld_value_exposed", id);
+            }
+            if let Some(value) = value {
+                if string(alternative, "value_sha256")
+                    != Some(Digest256::of_bytes(value.as_bytes()).to_hex().as_str())
+                {
+                    out.issue("layer_uncertainty_digest_drift", id);
+                }
+            }
+        }
+    }
+    if out.reads.len() > 100_000
+        || out.reverse_facts.len() > 25_000
+        || out.intervals.len() > MAX_ROWS * 2
+    {
+        out.state = TextRuleState::BudgetExceeded;
+    }
+    if out.state != TextRuleState::BudgetExceeded {
+        let reverse: BTreeSet<_> = out
+            .reverse_facts
+            .iter()
+            .map(|fact| (fact.target.clone(), fact.relation.to_owned()))
+            .collect();
+        for (target, relation) in reverse {
+            out.reads.push(PredicateRead::ReverseRefs {
+                target,
+                relation,
+                generation: context.reverse_generation.clone(),
+            });
+        }
+        if !out.issues.is_empty() {
+            out.state = TextRuleState::InvalidInput;
+        } else if out.unsupported_profiles.is_empty() {
+            out.state = TextRuleState::Checked;
+            out.checked_profiles.push(TEXT_LAYER_PROFILE.into());
+        }
+    }
+    out
+}
 fn visibility_rank(value: Option<&str>) -> Option<u8> {
     match value? {
         "public" => Some(0),
@@ -225,7 +831,7 @@ pub fn inspect_source_text_unit_v1(
     frozen_text: &[u8],
     context: &TextRuleContext,
 ) -> TextRuleReport {
-    let mut out = TextRuleReport::new();
+    let mut out = TextRuleReport::new_for(TEXT_UNIT_RULE_ID);
     for profile in &context.requested_profiles {
         if profile != TEXT_UNIT_PROFILE {
             out.unsupported_profiles.push(profile.clone());
@@ -1073,5 +1679,105 @@ mod tests {
         let report = inspect_source_text_unit_v1(bad, &text, &context(true));
         assert_eq!(report.state, TextRuleState::InvalidInput);
         assert!(has_issue(&report, "invalid_published_json"));
+    }
+
+    fn layer_context(schema_checked: bool) -> LayerRuleContext {
+        LayerRuleContext {
+            layer_path: "fixture/layer.json".into(),
+            schema_checked,
+            requested_profiles: vec![TEXT_LAYER_PROFILE.into()],
+            interval_generation: "fixture-layer-interval-generation".into(),
+            reverse_generation: "fixture-layer-reverse-generation".into(),
+        }
+    }
+
+    fn layer_fixture(name: &str) -> (Vec<u8>, Vec<(String, Vec<u8>)>) {
+        let prefix = "ToS/research-packets/foundation-laboratory-2026-07/source-text-layer-abc";
+        let raw = std::fs::read(root().join(format!("{prefix}/{name}"))).unwrap();
+        let value: Value = serde_json::from_slice(&raw).unwrap();
+        let mut refs = Vec::new();
+        let source_ref = value["source_binding"]["source_file_ref"].as_str().unwrap();
+        refs.push((source_ref.to_owned(), std::fs::read(root().join("ToS/research-packets/foundation-laboratory-2026-07/source-anchor-v2-abc/variant-b-unicode.txt")).unwrap()));
+        for anchor in value["source_binding"]["anchors"].as_array().unwrap() {
+            let path = anchor["anchor_record_ref"].as_str().unwrap();
+            refs.push((path.into(), std::fs::read(root().join(path)).unwrap()));
+        }
+        let path = value["representation"]["content_ref"].as_str().unwrap();
+        refs.push((path.into(), std::fs::read(root().join(path)).unwrap()));
+        let path = value["editorial_policy"]["policy_ref"].as_str().unwrap();
+        refs.push((path.into(), std::fs::read(root().join(path)).unwrap()));
+        for input in value["derivation"]["input_layers"].as_array().unwrap() {
+            let path = input["record_ref"].as_str().unwrap();
+            let record = std::fs::read(root().join(path)).unwrap();
+            let predecessor: Value = serde_json::from_slice(&record).unwrap();
+            refs.push((path.into(), record));
+            let path = predecessor["representation"]["content_ref"]
+                .as_str()
+                .unwrap();
+            refs.push((path.into(), std::fs::read(root().join(path)).unwrap()));
+        }
+        (raw, refs)
+    }
+
+    fn layer_case(raw: &[u8], owned: &[(String, Vec<u8>)]) -> TextRuleReport {
+        let resources: Vec<_> = owned
+            .iter()
+            .map(|(locator, raw)| LayerResource { locator, raw })
+            .collect();
+        inspect_source_text_layer_v1(raw, &resources, &layer_context(true))
+    }
+
+    #[test]
+    fn text_layer_raw_ocr_closed_and_unicode_declared_unsupported() {
+        let (raw, resources) = layer_fixture("variant-a.layer.json");
+        let report = layer_case(&raw, &resources);
+        assert_eq!(report.state, TextRuleState::Checked, "{:?}", report.issues);
+        assert!(report.issues.is_empty());
+        assert!(!report.reads.is_empty());
+        assert_eq!(report.intervals.len(), 1);
+
+        let (raw, resources) = layer_fixture("variant-b.layer.json");
+        let report = layer_case(&raw, &resources);
+        assert_eq!(
+            report.state,
+            TextRuleState::Unsupported,
+            "{:?}",
+            report.issues
+        );
+        assert!(report.issues.is_empty(), "{:?}", report.issues);
+        assert!(
+            report
+                .unsupported_profiles
+                .iter()
+                .any(|p| p == "unicode-normalization:NFD")
+        );
+    }
+
+    #[test]
+    fn text_layer_oracle_mutations_and_missing_snapshot_fail_closed() {
+        let (raw, mut resources) = layer_fixture("variant-a.layer.json");
+        let mut value: Value = serde_json::from_slice(&raw).unwrap();
+        value["representation"]["content_sha256"] = Value::String("0".repeat(64));
+        let report = layer_case(&serde_json::to_vec(&value).unwrap(), &resources);
+        assert!(has_issue(&report, "layer_resource_digest_drift"));
+
+        let mut value: Value = serde_json::from_slice(&raw).unwrap();
+        value["representation"]["content_visibility"] = Value::String("local_only".into());
+        let report = layer_case(&serde_json::to_vec(&value).unwrap(), &resources);
+        assert!(has_issue(&report, "layer_tracked_nonpublic"));
+
+        resources.pop();
+        let report = layer_case(&raw, &resources);
+        assert_eq!(report.state, TextRuleState::Unsupported);
+        assert!(!report.unsupported_profiles.is_empty());
+
+        let complete = layer_fixture("variant-a.layer.json");
+        let borrowed: Vec<_> = complete
+            .1
+            .iter()
+            .map(|(locator, raw)| LayerResource { locator, raw })
+            .collect();
+        let report = inspect_source_text_layer_v1(&complete.0, &borrowed, &layer_context(false));
+        assert_eq!(report.state, TextRuleState::Unsupported);
     }
 }
