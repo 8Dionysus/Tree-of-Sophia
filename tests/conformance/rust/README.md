@@ -28,6 +28,9 @@ available results retain unknown record fields without granting current use.
 The exact record digest uses compact sorted UTF-8 JSON **without** the corpus
 snapshot's final newline; these two canonical profiles must not be conflated.
 
-No Rust implementation is imported by these fixture files. OPS owns the Cargo
-runner/CI wiring; FND and STO own their public APIs. The scenario-to-risk map
-and current validation limits live in the migration execution evidence folder.
+The `runner.rs` integration test reads these independent expectations and
+calls only the public FND/STO APIs. Its 21 foundation cases and tiny store
+checks avoid the production corpus. OPS owns this directory's Cargo manifest,
+workspace registration, lockfile and CI wiring; FND and STO own their APIs.
+The scenario-to-risk map and current validation limits live in the migration
+execution evidence folder.
