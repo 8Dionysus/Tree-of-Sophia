@@ -8,7 +8,11 @@ license.workspace = true
 
 [features]
 default = []
-wasm = []
+wasm = ["dep:wasm-bindgen"]
+
+[dependencies]
+sha2 = "0.10"
+wasm-bindgen = { version = "0.2", optional = true }
 
 [lib]
 name = "tos_foundation"
