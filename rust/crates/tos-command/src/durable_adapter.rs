@@ -6,7 +6,9 @@ use std::time::{Duration, Instant};
 
 use postgres::{Client, IsolationLevel, NoTls, Transaction};
 use tos_foundation::{Digest256, Digest256Hasher};
-use tos_segment_store::{ByteDurabilityReceipt, SegmentError, SegmentStore, VerificationBudget};
+use tos_segment_store::{
+    AttemptRecovery, ByteDurabilityReceipt, SegmentError, SegmentStore, VerificationBudget,
+};
 
 const PROFILE_ID: &[u8] = b"cmd2.lab.embedded-revision";
 const PROFILE_VERSION: &[u8] = b"1";
@@ -937,10 +939,56 @@ impl DurablePgCoordinator {
         }
         tx.commit()
             .map_err(|_| DurableError::Indeterminate("cancel fence outcome unknown; retain pin"))?;
-        let pin_fenced = match pin {
-            None => false,
-            Some((pin_id, fence)) => store.abort_uncommitted(pin_id, prepare_id, fence).is_ok(),
-        };
+        // A seal can survive SIGKILL before attach_ready wrote member rows.
+        // The durable STO intent discovers that pin by exact prepare ID; the
+        // already-committed PostgreSQL attempt fence is the abort authority.
+        // No physical lookup or absent receipt alone authorizes abort.
+        let recovered = store.recover_attempt(prepare_id)?;
+        let pin_fenced =
+            match recovered {
+                Some(AttemptRecovery::Sealed { receipts }) => {
+                    let first = receipts
+                        .first()
+                        .ok_or(DurableError::Corrupt("sealed attempt has no frames"))?;
+                    if receipts.iter().any(|r| {
+                        r.pin_id() != first.pin_id() || r.fence_epoch() != first.fence_epoch()
+                    }) || pin.is_some_and(|(id, fence)| {
+                        id != first.pin_id() || fence != first.fence_epoch()
+                    }) {
+                        return Err(DurableError::Corrupt(
+                            "attempt pin differs from member rows",
+                        ));
+                    }
+                    store
+                        .abort_uncommitted(first.pin_id(), prepare_id, first.fence_epoch())
+                        .is_ok()
+                }
+                Some(AttemptRecovery::Aborted { pin_id, .. }) => {
+                    if pin.is_some_and(|(id, _)| id != pin_id) {
+                        return Err(DurableError::Corrupt(
+                            "aborted pin differs from member rows",
+                        ));
+                    }
+                    true
+                }
+                Some(AttemptRecovery::IntentOnly { pin_id })
+                | Some(AttemptRecovery::Preparing { pin_id, .. }) => {
+                    if pin.is_some_and(|(id, _)| id != pin_id) {
+                        return Err(DurableError::Corrupt(
+                            "preparing pin differs from member rows",
+                        ));
+                    }
+                    false
+                }
+                None => {
+                    if pin.is_some() {
+                        return Err(DurableError::Indeterminate(
+                            "member pin has no durable intent",
+                        ));
+                    }
+                    false
+                }
+            };
         Ok(CancelOutcome::Cancelled { pin_fenced })
     }
 

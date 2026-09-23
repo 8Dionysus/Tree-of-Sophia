@@ -4,7 +4,6 @@
 
 use std::fs;
 use std::io::Cursor;
-use std::io::Write;
 use std::os::unix::process::ExitStatusExt;
 use std::path::PathBuf;
 use std::process::Command;
@@ -22,7 +21,7 @@ use tos_command::{
 };
 use tos_foundation::Digest256;
 use tos_segment_store::{
-    FrameInput, OwnerBinding, SegmentLimits, SegmentStore, VerificationBudget,
+    AttemptRecovery, FrameInput, OwnerBinding, SegmentLimits, SegmentStore, VerificationBudget,
 };
 
 static NEXT_FIXTURE: AtomicU64 = AtomicU64::new(0);
@@ -789,17 +788,6 @@ fn selected_history_obeys_current_rights_after_cold_reopen() {
     ));
 }
 
-fn pin_id_from_marker(path: &PathBuf) -> [u8; 16] {
-    let text = fs::read_to_string(path).expect("child pin marker survived process kill");
-    assert_eq!(text.len(), 32);
-    let mut id = [0u8; 16];
-    for (index, byte) in id.iter_mut().enumerate() {
-        *byte = u8::from_str_radix(&text[index * 2..index * 2 + 2], 16)
-            .expect("pin marker uses exact hex");
-    }
-    id
-}
-
 fn wait_for_pg_row_block(url: &str, worker_pid: i32, blocker_pid: i32) {
     let mut observer = Client::connect(url, NoTls).unwrap();
     let deadline = Instant::now() + Duration::from_secs(5);
@@ -1075,7 +1063,32 @@ fn cold_cut_fence_rejects_same_count_mutation_and_aba() {
         );
     }
     let fresh = lab.db.cold_verify_cut(&cold_store, &lab.domain).unwrap();
-    lab.db.seal_shadow_cut(&fresh).unwrap();
+    admin
+        .execute(
+            "UPDATE cmd2_audit_fence SET maintenance_state='active' WHERE domain=$1",
+            &[&lab.domain],
+        )
+        .unwrap();
+    assert!(matches!(
+        lab.db.cold_verify_cut(&cold_store, &lab.domain),
+        Err(DurableError::Refused(_))
+    ));
+    assert!(matches!(
+        lab.db.seal_shadow_cut(&fresh),
+        Err(DurableError::Refused(_))
+    ));
+    admin
+        .execute(
+            "UPDATE cmd2_audit_fence SET maintenance_state='normal' WHERE domain=$1",
+            &[&lab.domain],
+        )
+        .unwrap();
+    assert!(matches!(
+        lab.db.seal_shadow_cut(&fresh),
+        Err(DurableError::Conflict(_))
+    ));
+    let after_maintenance = lab.db.cold_verify_cut(&cold_store, &lab.domain).unwrap();
+    lab.db.seal_shadow_cut(&after_maintenance).unwrap();
 }
 
 #[test]
@@ -1273,9 +1286,18 @@ fn sigkill_after_seal_ready_and_commit_has_distinct_recovery() {
             .status()
             .expect("child test starts");
         assert_eq!(status.signal(), Some(9), "{phase} did not receive SIGKILL");
-        let pin_id = pin_id_from_marker(&lab._root.0.join("pin.marker"));
         let cold_store = SegmentStore::open_existing(&lab._root.0, limits())
             .expect("exact STO instance reopens after killed process");
+        let pin_id = match cold_store
+            .recover_attempt(b"child-prepare")
+            .unwrap()
+            .unwrap()
+        {
+            AttemptRecovery::Sealed { receipts } => receipts[0].pin_id(),
+            other => {
+                panic!("{phase}: durable prepare intent did not recover sealed pin: {other:?}")
+            }
+        };
         let recovered = cold_store
             .recover_sealed(pin_id)
             .expect("sealed pin remains recoverable after process kill");
@@ -1294,12 +1316,16 @@ fn sigkill_after_seal_ready_and_commit_has_distinct_recovery() {
                     lab.db
                         .cancel_attempt(&cold_store, &lab.domain, b"child-prepare")
                         .unwrap(),
-                    CancelOutcome::Cancelled { pin_fenced: false }
+                    CancelOutcome::Cancelled { pin_fenced: true }
                 ));
                 assert!(
-                    cold_store.recover_sealed(pin_id).is_ok(),
-                    "unattached sealed pin must remain forensic after DB abort fence"
+                    cold_store.recover_sealed(pin_id).is_err(),
+                    "unattached sealed pin must be fenced after DB abort decision"
                 );
+                assert!(matches!(
+                    cold_store.recover_attempt(b"child-prepare").unwrap(),
+                    Some(AttemptRecovery::Aborted { .. })
+                ));
             }
             "ready" => {
                 assert!(matches!(
@@ -1369,12 +1395,6 @@ fn cmd2_process_kill_child() {
         b"child-prepare",
         &[("child-subject", bytes.clone())],
     );
-    let pin_id = receipts[0].pin_id();
-    let mut marker = fs::File::create(root.join("pin.marker")).unwrap();
-    for byte in pin_id {
-        write!(marker, "{byte:02x}").unwrap();
-    }
-    marker.sync_all().unwrap();
     if phase != "sealed" {
         let members = [DurableShadowMember {
             member_slot: 0,

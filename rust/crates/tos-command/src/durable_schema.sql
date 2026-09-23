@@ -235,6 +235,25 @@ BEGIN
   RAISE EXCEPTION 'CMD2 audited table cannot be truncated';
 END $$;
 
+-- Entering or leaving maintenance invalidates every earlier certificate.
+-- A future physical-maintenance route must keep 'active' for the entire
+-- operation and authorize normal only after independent verified completion.
+CREATE OR REPLACE FUNCTION cmd2_fence_maintenance_transition() RETURNS trigger
+LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.domain IS DISTINCT FROM OLD.domain THEN
+    RAISE EXCEPTION 'CMD2 audit fence domain cannot move';
+  END IF;
+  IF NEW.maintenance_state IS DISTINCT FROM OLD.maintenance_state THEN
+    IF NEW.generation IS DISTINCT FROM OLD.generation
+       OR OLD.generation >= 9223372036854775807 THEN
+      RAISE EXCEPTION 'CMD2 maintenance transition generation invalid';
+    END IF;
+    NEW.generation := OLD.generation + 1;
+  END IF;
+  RETURN NEW;
+END $$;
+
 CREATE OR REPLACE TRIGGER cmd2_audit_domain_insert
   AFTER INSERT ON cmd2_domain FOR EACH ROW
   EXECUTE FUNCTION cmd2_register_audit_domain();
@@ -244,6 +263,9 @@ CREATE OR REPLACE TRIGGER cmd2_audit_domain_update
 CREATE OR REPLACE TRIGGER cmd2_refuse_domain_truncate
   BEFORE TRUNCATE ON cmd2_domain FOR EACH STATEMENT
   EXECUTE FUNCTION cmd2_refuse_audited_truncate();
+CREATE OR REPLACE TRIGGER cmd2_fence_maintenance_transition
+  BEFORE UPDATE ON cmd2_audit_fence FOR EACH ROW
+  EXECUTE FUNCTION cmd2_fence_maintenance_transition();
 
 DO $$
 DECLARE table_name text;
