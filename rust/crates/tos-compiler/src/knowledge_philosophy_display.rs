@@ -172,23 +172,58 @@ pub fn ordinary_philosophy_node_display(
     kind_id: &str,
     effective_type_labels: Option<&Value>,
 ) -> Result<Value> {
+    node_display(row, kind_id, effective_type_labels, None, false)
+}
+
+/// Frozen `_node_display` for the source-navigation owner carrier. The
+/// caller supplies the selected type's object role and effective labels.
+pub fn source_navigation_node_display(
+    row: &SourceRow,
+    kind_id: &str,
+    effective_type_labels: Option<&Value>,
+    object_role: Option<&str>,
+) -> Result<Value> {
+    node_display(row, kind_id, effective_type_labels, object_role, true)
+}
+
+fn node_display(
+    row: &SourceRow,
+    kind_id: &str,
+    effective_type_labels: Option<&Value>,
+    object_role: Option<&str>,
+    navigation: bool,
+) -> Result<Value> {
     let item = row.value();
     let props = field(item, "properties").and_then(Value::as_object);
     if kind_id.is_empty()
         || text(field(item, "node_id")).is_none()
         || field(item, "display").is_some()
-        || props.is_some_and(|p| p.contains_key("variant_labels") || p.contains_key("value"))
-        || kind_id == "claim"
-        || kind_id == "temporal-assertion"
-        || text(field(item, "node_kind")).as_deref() == Some("literal")
+        || (!navigation
+            && (props.is_some_and(|p| p.contains_key("variant_labels") || p.contains_key("value"))
+                || kind_id == "claim"
+                || kind_id == "temporal-assertion"
+                || text(field(item, "node_kind")).as_deref() == Some("literal")))
     {
         return Err(Error::Invalid("unsupported philosophy display variant"));
     }
     let prop = |key: &str| -> Option<&Value> { props.and_then(|p| p.get(key)) };
+    let time_wording = if navigation
+        && (kind_id == "temporal-assertion"
+            || (text(field(item, "node_kind")).as_deref() == Some("literal")
+                && object_role == Some("literal")))
+    {
+        prop("value")
+            .and_then(|value| field(value, "source_wording"))
+            .filter(|value| value.is_object())
+    } else {
+        None
+    };
+    let time_text = text(time_wording.and_then(|wording| field(wording, "text")));
     let explicit = first_text(&[
         field(item, "label"),
         field(item, "canonical_label"),
         prop("preferred_label"),
+        time_wording.and_then(|wording| field(wording, "text")),
     ]);
     let path_label = first_text(&[
         field(item, "title"),
@@ -208,9 +243,31 @@ pub fn ordinary_philosophy_node_display(
         });
     let multilingual_labels = field(item, "multilingual").and_then(|m| field(m, "label"));
     let mut title = localized_from(None, &label);
+    if let (Some(language), Some(wording)) = (
+        time_wording.and_then(|wording| text(field(wording, "language"))),
+        time_text.as_ref(),
+    ) {
+        if language_key(&language) && title.get(&language).is_none_or(Value::is_null) {
+            title.insert(language, Value::String(wording.clone()));
+        }
+    }
     for (language, wording) in form_items(multilingual_labels) {
         if title.get(&language).is_none_or(Value::is_null) {
             title.insert(language, wording);
+        }
+    }
+    if navigation {
+        if let Some(variants) = prop("variant_labels").and_then(Value::as_array) {
+            for variant in variants {
+                if let (Some(language), Some(wording)) = (
+                    text(field(variant, "language")),
+                    text(field(variant, "value")),
+                ) {
+                    if language_key(&language) && title.get(&language).is_none_or(Value::is_null) {
+                        title.insert(language, Value::String(wording));
+                    }
+                }
+            }
         }
     }
     if explicit.is_none() && path_label.is_none() {
@@ -248,6 +305,7 @@ pub fn ordinary_philosophy_node_display(
         prop("role"),
         prop("purpose"),
         prop("comment"),
+        time_wording.and_then(|wording| field(wording, "text")),
     ]);
     let summary_state = if authored_summary.is_some() {
         "source-derived"
@@ -296,6 +354,37 @@ pub fn ordinary_philosophy_node_display(
         "source_summary_available".into(),
         Value::Bool(authored_summary.is_some()),
     );
+    if navigation && kind_id == "claim" {
+        if let Some(descriptor) = prop("navigation_descriptor").and_then(Value::as_object) {
+            let mut copy = Map::new();
+            for key in [
+                "schema_version",
+                "purpose",
+                "standalone",
+                "state",
+                "reason",
+                "template",
+                "claim",
+            ] {
+                let value = descriptor
+                    .get(key)
+                    .ok_or(Error::Invalid("navigation claim descriptor coverage"))?;
+                copy.insert(key.to_owned(), value.clone());
+            }
+            provenance.insert("navigation_descriptor".into(), Value::Object(copy));
+            if descriptor.get("state").and_then(Value::as_str) == Some("ready") {
+                let descriptor_title = descriptor
+                    .get("title")
+                    .and_then(Value::as_object)
+                    .ok_or(Error::Invalid("navigation claim title"))?;
+                let fallback = text(descriptor_title.get("default"))
+                    .ok_or(Error::Invalid("navigation claim title default"))?;
+                title = localized_from(descriptor.get("title"), &fallback);
+                provenance.insert("title".into(), Value::String("navigation-template".into()));
+                provenance.insert("source_title_available".into(), Value::Bool(false));
+            }
+        }
+    }
     let mut display = Map::new();
     display.insert("title".into(), Value::Object(title));
     display.insert("kind_label".into(), Value::Object(kind_label));
