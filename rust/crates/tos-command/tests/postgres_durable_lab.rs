@@ -1065,6 +1065,38 @@ fn cold_cut_fence_rejects_same_count_mutation_and_aba() {
             "same-count or ABA metadata mutation {index} passed a stale cut"
         );
     }
+    let profile_cut = lab.db.cold_verify_cut(&cold_store, &lab.domain).unwrap();
+    let original_profile: String = admin
+        .query_one(
+            "SELECT schema_profile_digest FROM cmd2_domain WHERE domain=$1",
+            &[&lab.domain],
+        )
+        .unwrap()
+        .get(0);
+    admin
+        .execute(
+            "UPDATE cmd2_domain SET schema_profile_digest=repeat('0',64) WHERE domain=$1",
+            &[&lab.domain],
+        )
+        .unwrap();
+    assert!(matches!(
+        lab.db.cold_verify_cut(&cold_store, &lab.domain),
+        Err(DurableError::Conflict(_))
+    ));
+    assert!(matches!(
+        lab.db.seal_shadow_cut(&profile_cut),
+        Err(DurableError::Conflict(_))
+    ));
+    admin
+        .execute(
+            "UPDATE cmd2_domain SET schema_profile_digest=$2 WHERE domain=$1",
+            &[&lab.domain, &original_profile],
+        )
+        .unwrap();
+    assert!(matches!(
+        lab.db.seal_shadow_cut(&profile_cut),
+        Err(DurableError::Conflict(_))
+    ));
     let fresh = lab.db.cold_verify_cut(&cold_store, &lab.domain).unwrap();
     admin
         .execute(
