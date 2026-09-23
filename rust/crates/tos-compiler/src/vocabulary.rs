@@ -4,7 +4,7 @@
 use crate::{Error, Result, SourceBinding};
 use serde_json::Value;
 use std::collections::BTreeSet;
-use tos_foundation::{Digest256, JsonLimits, JsonMode, parse_json};
+use tos_foundation::{parse_json, Digest256, JsonLimits, JsonMode};
 
 const MAX_DESCRIPTOR_BYTES: usize = 1024 * 1024;
 const MAX_SOURCES: usize = 4096;
@@ -21,7 +21,7 @@ pub struct RegisteredSource {
 
 /// The exact authored descriptor bytes are owner data; no graph/catalog or
 /// runtime generation is stored in that authored document.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct QueryVocabulary {
     pub descriptor_sha256: String,
     pub descriptor_version: u64,
@@ -102,6 +102,28 @@ fn strings(v: &Value, key: &str, cap: usize) -> Result<Vec<String>> {
 impl QueryVocabulary {
     pub fn registered_source_ids(&self) -> &[String] {
         &self.registered_source_ids
+    }
+
+    /// Rebind a parsed descriptor to its exact owner-supplied bytes before a
+    /// selected full build. The public fields permit fixture construction and
+    /// composition, so their cached registration must not be taken as
+    /// authority merely because the byte digest still matches.
+    pub fn verify_authored_bytes(&self, authored_bytes: &[u8]) -> Result<()> {
+        if Digest256::of_bytes(authored_bytes).to_hex() != self.descriptor_sha256 {
+            return Err(Error::Invalid("query vocabulary descriptor bytes"));
+        }
+        let mut adapters = BTreeSet::new();
+        adapters.insert(self.extension_adapter_profile.as_str());
+        for source in &self.sources {
+            adapters.insert(source.adapter_profile.as_str());
+        }
+        let parsed = Self::parse(authored_bytes, &adapters.into_iter().collect::<Vec<_>>())?;
+        if &parsed != self {
+            return Err(Error::Invalid(
+                "parsed query vocabulary differs from authored bytes",
+            ));
+        }
+        Ok(())
     }
 
     /// `supported_adapters` comes from actual installed compiler capabilities,
@@ -467,19 +489,17 @@ mod tests {
             .unwrap();
         assert_eq!(binding.source_cut, "cut-1");
         assert_eq!(binding.descriptor_sha256, vocab.descriptor_sha256);
-        assert!(
-            vocab
-                .bind(
-                    &source,
-                    &"0".repeat(64),
-                    &"c".repeat(64),
-                    &"d".repeat(64),
-                    &"e".repeat(64),
-                    &"f".repeat(64),
-                    "g1"
-                )
-                .is_err()
-        );
+        assert!(vocab
+            .bind(
+                &source,
+                &"0".repeat(64),
+                &"c".repeat(64),
+                &"d".repeat(64),
+                &"e".repeat(64),
+                &"f".repeat(64),
+                "g1"
+            )
+            .is_err());
     }
 
     #[test]
@@ -497,12 +517,10 @@ mod tests {
         assert_eq!(selected.sources[7].source_graph_id, "another-owner-source");
         assert_eq!(selected.registered_source_ids().len(), 8);
         assert_eq!(selected.registered_source_ids()[0], "another-owner-source");
-        assert!(
-            selected
-                .registered_source_ids()
-                .windows(2)
-                .all(|ids| ids[0] < ids[1])
-        );
+        assert!(selected
+            .registered_source_ids()
+            .windows(2)
+            .all(|ids| ids[0] < ids[1]));
         doc["sources"][7]["adapter_profile"] = Value::String("uninstalled-v7".into());
         assert!(QueryVocabulary::parse(&serde_json::to_vec(&doc).unwrap(), ADAPTERS).is_err());
         doc["sources"][7]["adapter_profile"] = Value::String("indexed-node-edge-v1".into());

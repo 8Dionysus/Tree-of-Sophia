@@ -3,16 +3,16 @@
 //! prerequisites, not hidden fallback behavior.
 
 use crate::{
-    Error, KnowledgeRegistry, QueryVocabulary, Result,
-    catalog::{CatalogLimits, CatalogReceipt, compile_catalog},
-    knowledge_catalog_index::{CatalogIndexLimits, CatalogIndexReceipt, materialize_catalog},
-    knowledge_scope::{ScopeLimits, ScopeReceipt, write_source_scope},
-    knowledge_seal::{KnowledgeSealReceipt, SealLimits, seal_knowledge_model},
-    knowledge_search::{SearchBuildLimits, SearchIndexReceipt, build_search_index},
+    catalog::{compile_catalog, CatalogLimits, CatalogReceipt},
+    knowledge_catalog_index::{materialize_catalog, CatalogIndexLimits, CatalogIndexReceipt},
+    knowledge_scope::{write_source_scope, ScopeLimits, ScopeReceipt},
+    knowledge_seal::{seal_knowledge_model, KnowledgeSealReceipt, SealLimits},
+    knowledge_search::{build_search_index, SearchBuildLimits, SearchIndexReceipt},
     knowledge_stage::{KnowledgeStage, WritePhase},
+    Error, KnowledgeRegistry, QueryVocabulary, Result,
 };
 use serde_json::Value;
-use tos_foundation::{Digest256, JsonLimits, JsonMode, parse_json};
+use tos_foundation::{parse_json, Digest256, JsonLimits, JsonMode};
 
 #[derive(Clone, Copy, Debug)]
 pub struct FullKnowledgeLimits {
@@ -90,9 +90,7 @@ fn compile_inner(
     descriptor_bytes: &[u8],
     limits: FullKnowledgeLimits,
 ) -> Result<FullKnowledgeReceipt> {
-    if Digest256::of_bytes(descriptor_bytes).to_hex() != vocabulary.descriptor_sha256 {
-        return Err(Error::Invalid("full knowledge descriptor bytes"));
-    }
+    vocabulary.verify_authored_bytes(descriptor_bytes)?;
     let entity = registry_value(
         entity_registry_bytes,
         &registry.entity_sha256,
@@ -140,13 +138,13 @@ fn compile_inner(
 mod tests {
     use super::*;
     use crate::{
-        ColdOpenLimits, ExpectedSourceScope, ImmutableKnowledgeCustody, IndexedLimits,
-        KnowledgeSelectedExpectation, Limits, SourceBinding,
         knowledge_stage::{
             ExactInputReceipt, InputCollectionReceipt, InputRow, StageIsolation, StageLimits,
             StageOwner,
         },
-        materialize_indexed_sources, open_selected_knowledge_model,
+        materialize_indexed_sources, open_selected_knowledge_model, ColdOpenLimits,
+        ExpectedSourceScope, ImmutableKnowledgeCustody, IndexedLimits,
+        KnowledgeSelectedExpectation, Limits, SourceBinding,
     };
     use serde_json::json;
     use std::{
@@ -236,6 +234,9 @@ mod tests {
         let descriptor_bytes = serde_json::to_vec(&descriptor).unwrap();
         let vocabulary =
             QueryVocabulary::parse(&descriptor_bytes, &["indexed-node-edge-v1"]).unwrap();
+        let mut divergent = vocabulary.clone();
+        divergent.registered_source_ids.push("phantom".into());
+        assert!(divergent.verify_authored_bytes(&descriptor_bytes).is_err());
         let node_id = "eighth:node-1";
         let relation_id = "eighth:relation-1";
         let node = serde_json::to_vec(&json!({
