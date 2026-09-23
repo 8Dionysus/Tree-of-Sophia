@@ -88,6 +88,9 @@ pub struct ColdOpenLimits {
 /// reader lifetime. FD pin blocks path replacement, not in-place same-inode
 /// mutation; a metadata-only or no-op implementation is insufficient.
 pub trait ImmutableKnowledgeCustody: Send + Sync {
+    /// This is a bounded retained-lease/fence check on every warm seek.
+    /// The owner must not rehash or rescan the model here: the full SHA is
+    /// charged once at cold admission, and QRY budgets SQLite work separately.
     fn verify(&self, pinned: &File, expected: &KnowledgeSelectedExpectation) -> Result<()>;
     /// The host preadmits this cold scan and confines SQLite temp/heap under
     /// independently enforced process/filesystem quotas. Size samples after
