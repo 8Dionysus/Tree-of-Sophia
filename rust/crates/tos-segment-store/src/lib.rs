@@ -15,6 +15,7 @@ mod generation;
 mod journal;
 mod packed_leaf;
 mod placement;
+mod selected;
 mod store;
 
 pub use audit::{
@@ -29,6 +30,10 @@ pub use generation::{
 };
 pub use packed_leaf::PackedPlacementLeafV1;
 pub use placement::PlacementV1;
+pub use selected::{
+    GenerationCatalogV1, GenerationCoverageV1, GenerationCutV1, GenerationDescriptorV1,
+    GenerationNamespaceV1, GenerationReadLimits, GenerationRowStreamV1, InstalledGenerationV1,
+};
 pub use store::{
     AttemptRecovery, ByteDurabilityReceipt, DurabilityClass, FrameInput, OwnerBinding,
     SegmentStore, VerificationBudget, VerifiedSealGuard,

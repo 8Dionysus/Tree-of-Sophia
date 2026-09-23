@@ -4,6 +4,8 @@ use std::io::{Read, Write};
 use std::os::unix::fs::MetadataExt;
 use std::path::{Component, Path};
 use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
+use std::time::Instant;
 
 use rustix::fs::{
     AtFlags, FlockOperation, Mode, OFlags, flock, fsync, linkat, mkdirat, openat, renameat,
@@ -22,6 +24,9 @@ use crate::generation::{
 use crate::journal::{JournalFrame, PinJournal, PinState};
 use crate::packed_leaf::PackedPlacementLeafV1;
 use crate::placement::PlacementV1;
+use crate::selected::{
+    GenerationDescriptorV1, GenerationReadLimits, InstalledGenerationV1, check as check_generation,
+};
 
 const ROOT_MAGIC: &[u8; 8] = b"TOSROOT2";
 const BLOCK_BYTES: usize = 64 * 1024;
@@ -56,6 +61,7 @@ struct Inner {
     pins: File,
     attempts: Option<File>,
     leaves: Option<File>,
+    generations: Option<File>,
     store_id: [u8; 16],
     domain: Vec<u8>,
     domain_digest: Digest256,
@@ -211,7 +217,14 @@ impl SegmentStore {
             ));
         }
         let root_fd = open_root(root)?;
-        for name in ["staging", "segments", "pins", "attempts", "leaves"] {
+        for name in [
+            "staging",
+            "segments",
+            "pins",
+            "attempts",
+            "leaves",
+            "generations",
+        ] {
             mkdirat(&root_fd, name, Mode::RUSR | Mode::WUSR | Mode::XUSR).map_err(|error| {
                 SegmentError::io("cannot initialize segment directory", error.into())
             })?;
@@ -238,6 +251,7 @@ impl SegmentStore {
         let pins = open_directory(&root_fd, "pins")?;
         let attempts = open_directory(&root_fd, "attempts")?;
         let leaves = open_directory(&root_fd, "leaves")?;
+        let generations = open_directory(&root_fd, "generations")?;
         Ok(Self {
             inner: Arc::new(Inner {
                 _root: root_fd,
@@ -246,6 +260,7 @@ impl SegmentStore {
                 pins,
                 attempts: Some(attempts),
                 leaves: Some(leaves),
+                generations: Some(generations),
                 store_id,
                 domain: domain.to_vec(),
                 domain_digest: Digest256::of_bytes(domain),
@@ -270,6 +285,11 @@ impl SegmentStore {
         };
         let leaves = match open_directory(&root_fd, "leaves") {
             Ok(leaves) => Some(leaves),
+            Err(error) if is_missing(&error) => None,
+            Err(error) => return Err(error),
+        };
+        let generations = match open_directory(&root_fd, "generations") {
+            Ok(generations) => Some(generations),
             Err(error) if is_missing(&error) => None,
             Err(error) => return Err(error),
         };
@@ -312,6 +332,7 @@ impl SegmentStore {
                 pins,
                 attempts,
                 leaves,
+                generations,
                 store_id,
                 domain,
                 domain_digest,
@@ -496,6 +517,217 @@ impl SegmentStore {
             hasher.update(reference.content_digest.as_bytes());
         }
         Ok(hasher.finalize())
+    }
+
+    /// Cold-install an immutable two-namespace generation candidate. This
+    /// checks every referenced physical leaf, but only CMD's independent
+    /// complete history/current audit and fenced DB selection can publish it.
+    pub fn install_generation_candidate(
+        &self,
+        descriptor: GenerationDescriptorV1,
+        limits: GenerationReadLimits,
+    ) -> Result<InstalledGenerationV1> {
+        let limits = limits.validate()?;
+        let _pin_lock = self.hold_generation_pin()?;
+        if descriptor.cut.store_id != self.inner.store_id
+            || descriptor.cut.domain_digest != self.inner.domain_digest
+        {
+            return Err(SegmentError::new(
+                Code::InvalidReceipt,
+                "generation store/domain differs",
+            ));
+        }
+        for (namespace, catalog) in [
+            (b"cmd2.history.v1".as_slice(), &descriptor.history),
+            (b"cmd2.current.v1".as_slice(), &descriptor.current),
+        ] {
+            let root = self.verify_packed_catalog_shape(
+                &self.inner.domain,
+                namespace,
+                b"all",
+                catalog.key_codec_digest,
+                KeyComparatorV1::RawUnsignedBytes,
+                &catalog.partitions,
+                limits.shape,
+            )?;
+            if root != catalog.catalog_root {
+                return Err(SegmentError::new(
+                    Code::InvalidReceipt,
+                    "generation catalog root differs",
+                ));
+            }
+        }
+        let raw = descriptor.encode(&self.inner.domain, limits)?;
+        let digest = Digest256::of_bytes(&raw);
+        let generations = self.inner.generations.as_ref().ok_or_else(|| {
+            SegmentError::new(
+                Code::InvalidRoot,
+                "store lacks immutable generation directory",
+            )
+        })?;
+        let name = digest.to_hex();
+        let mut id = [0u8; 16];
+        getrandom::fill(&mut id)
+            .map_err(|_| SegmentError::new(Code::Io, "cannot create generation staging ID"))?;
+        let stage_name = format!("{}.part", hex_id(id));
+        let mut stage = create_exclusive(generations, &stage_name)?;
+        stage
+            .write_all(&raw)
+            .map_err(|error| SegmentError::io("cannot write staged generation", error))?;
+        stage
+            .sync_all()
+            .map_err(|error| SegmentError::io("cannot sync staged generation", error))?;
+        drop(stage);
+        match linkat(
+            generations,
+            stage_name.as_str(),
+            generations,
+            name.as_str(),
+            AtFlags::empty(),
+        ) {
+            Ok(()) | Err(Errno::EXIST) => {}
+            Err(error) => {
+                return Err(SegmentError::io(
+                    "cannot no-replace install generation",
+                    error.into(),
+                ));
+            }
+        }
+        fsync(generations)
+            .map_err(|error| SegmentError::io("cannot sync generation directory", error.into()))?;
+        unlinkat(generations, stage_name.as_str(), AtFlags::empty())
+            .map_err(|error| SegmentError::io("cannot unlink staged generation", error.into()))?;
+        fsync(generations)
+            .map_err(|error| SegmentError::io("cannot sync generation directory", error.into()))?;
+        let opened = self.open_generation_candidate(digest, &descriptor.cut, limits)?;
+        if opened.descriptor() != &descriptor {
+            return Err(SegmentError::new(
+                Code::CorruptBytes,
+                "installed generation readback differs",
+            ));
+        }
+        open_regular(generations, &name)?
+            .sync_all()
+            .map_err(|error| SegmentError::io("cannot sync verified generation", error))?;
+        fsync(generations).map_err(|error| {
+            SegmentError::io("cannot sync verified generation directory", error.into())
+        })?;
+        Ok(opened)
+    }
+
+    /// Reopen an exact descriptor selected by CMD. The expected cut must come
+    /// from CMD's live selected DB row; a caller-supplied digest alone is not
+    /// complete-membership or disclosure authority.
+    pub fn open_generation_candidate(
+        &self,
+        digest: Digest256,
+        expected_cut: &crate::selected::GenerationCutV1,
+        limits: GenerationReadLimits,
+    ) -> Result<InstalledGenerationV1> {
+        let limits = limits.validate()?;
+        let pin_lock = Arc::new(self.hold_generation_pin()?);
+        let generations = self.inner.generations.as_ref().ok_or_else(|| {
+            SegmentError::new(
+                Code::InvalidRoot,
+                "store lacks immutable generation directory",
+            )
+        })?;
+        let mut raw = Vec::new();
+        open_regular(generations, &digest.to_hex())?
+            .take(limits.max_descriptor_bytes as u64 + 1)
+            .read_to_end(&mut raw)
+            .map_err(|error| SegmentError::io("cannot read generation descriptor", error))?;
+        if Digest256::of_bytes(&raw) != digest {
+            return Err(SegmentError::new(
+                Code::CorruptBytes,
+                "generation digest differs",
+            ));
+        }
+        let descriptor = GenerationDescriptorV1::decode(&raw, &self.inner.domain, limits)?;
+        if descriptor.cut != *expected_cut || descriptor.cut.store_id != self.inner.store_id {
+            return Err(SegmentError::new(
+                Code::InvalidReceipt,
+                "selected generation cut differs",
+            ));
+        }
+        Ok(InstalledGenerationV1 {
+            store: self.clone(),
+            digest,
+            descriptor,
+            pin_lock,
+        })
+    }
+
+    pub(crate) fn hold_generation_pin(&self) -> Result<File> {
+        self.lock_pin_dir(FlockOperation::NonBlockingLockShared)
+    }
+
+    pub(crate) fn open_packed_leaf_checked(
+        &self,
+        digest: Digest256,
+        limits: GenerationShapeLimits,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<PackedPlacementLeafV1> {
+        let limits = limits.validate()?;
+        check_generation(deadline, cancelled)?;
+        let leaves = self.inner.leaves.as_ref().ok_or_else(|| {
+            SegmentError::new(Code::InvalidRoot, "store lacks immutable leaf directory")
+        })?;
+        let mut file = open_regular(leaves, &digest.to_hex())?;
+        let length = file
+            .metadata()
+            .map_err(|error| SegmentError::io("cannot stat selected leaf", error))?
+            .len();
+        if length > limits.max_leaf_bytes {
+            return Err(SegmentError::new(
+                Code::BudgetExceeded,
+                "selected leaf exceeds limit",
+            ));
+        }
+        let mut raw = Vec::new();
+        let length = usize::try_from(length).map_err(|_| {
+            SegmentError::new(Code::BudgetExceeded, "selected leaf exceeds address space")
+        })?;
+        raw.try_reserve_exact(length).map_err(|_| {
+            SegmentError::new(Code::BudgetExceeded, "selected leaf allocation failed")
+        })?;
+        let mut block = [0u8; BLOCK_BYTES];
+        loop {
+            check_generation(deadline, cancelled)?;
+            let count = file
+                .read(&mut block)
+                .map_err(|error| SegmentError::io("cannot read selected leaf", error))?;
+            if count == 0 {
+                break;
+            }
+            if raw
+                .len()
+                .checked_add(count)
+                .is_none_or(|n| n as u64 > limits.max_leaf_bytes)
+            {
+                return Err(SegmentError::new(
+                    Code::BudgetExceeded,
+                    "selected leaf grew beyond limit",
+                ));
+            }
+            raw.extend_from_slice(&block[..count]);
+        }
+        check_generation(deadline, cancelled)?;
+        if Digest256::of_bytes(&raw) != digest {
+            return Err(SegmentError::new(
+                Code::CorruptBytes,
+                "selected leaf digest differs",
+            ));
+        }
+        let leaf = PackedPlacementLeafV1::decode(&raw, limits)?;
+        if leaf.domain_digest != self.inner.domain_digest {
+            return Err(SegmentError::new(
+                Code::InvalidReceipt,
+                "selected leaf domain differs",
+            ));
+        }
+        Ok(leaf)
     }
 
     /// Seal multiple bounded frames under one durable pin. All frames belong
@@ -2066,6 +2298,226 @@ mod tests {
         cold.read_selected(&old_admitted, 64, &mut retained_old)
             .unwrap();
         assert_eq!(retained_old, exact);
+    }
+
+    #[test]
+    fn installed_generation_reopens_two_complete_bounded_membership_streams() {
+        use crate::selected::{
+            GenerationCatalogV1, GenerationCutV1, GenerationDescriptorV1, GenerationNamespaceV1,
+            GenerationReadLimits,
+        };
+        use std::sync::atomic::AtomicBool;
+
+        let root = PrivateRoot::new();
+        let store = SegmentStore::initialize_empty(&root.0, b"private-domain", limits()).unwrap();
+        let old = b"retained exact version".to_vec();
+        let new = b"current exact version".to_vec();
+        let mut old_reader = Cursor::new(old.clone());
+        let mut new_reader = Cursor::new(new.clone());
+        let receipts = store
+            .seal_segment(
+                b"generation-members",
+                &mut [
+                    FrameInput {
+                        binding: binding(0),
+                        declared_size: old.len() as u64,
+                        declared_sha256: Digest256::of_bytes(&old),
+                        reader: &mut old_reader,
+                    },
+                    FrameInput {
+                        binding: binding(1),
+                        declared_size: new.len() as u64,
+                        declared_sha256: Digest256::of_bytes(&new),
+                        reader: &mut new_reader,
+                    },
+                ],
+            )
+            .unwrap();
+        let shape = GenerationShapeLimits {
+            max_partitions: 2,
+            max_rows_per_partition: 4,
+            max_key_bytes: 64,
+            max_leaf_bytes: 4096,
+        };
+        let read_limits = GenerationReadLimits {
+            max_descriptor_bytes: 4096,
+            shape,
+            max_stream_rows: 4,
+            max_stream_key_bytes: 128,
+        };
+        let row = |key: &[u8], receipt: &ByteDurabilityReceipt| {
+            crate::generation::PlacementGenerationRowV1 {
+                key: key.to_vec(),
+                logical_digest: receipt.coordinate().sha256,
+                logical_length: receipt.coordinate().size_bytes,
+                placement: receipt.placement(),
+            }
+        };
+        let make_catalog =
+            |namespace: &[u8],
+             codec: &[u8],
+             rows: Vec<crate::generation::PlacementGenerationRowV1>| {
+                let bounds = crate::generation::PartitionBoundsV1 {
+                    lower_inclusive: None,
+                    upper_exclusive: None,
+                };
+                let leaf = PackedPlacementLeafV1 {
+                    domain_digest: store.domain_digest(),
+                    bounds: bounds.clone(),
+                    rows,
+                };
+                let content_digest = store.install_packed_leaf(&leaf, shape).unwrap();
+                let semantic = describe_placement_partition(
+                    store.domain_digest(),
+                    bounds,
+                    leaf.rows.clone().into_iter().map(Ok),
+                    shape,
+                )
+                .unwrap();
+                let partitions = vec![PackedPartitionRefV1 {
+                    semantic,
+                    content_digest,
+                }];
+                let key_codec_digest = Digest256::of_bytes(codec);
+                let catalog_root = store
+                    .verify_packed_catalog_shape(
+                        b"private-domain",
+                        namespace,
+                        b"all",
+                        key_codec_digest,
+                        KeyComparatorV1::RawUnsignedBytes,
+                        &partitions,
+                        shape,
+                    )
+                    .unwrap();
+                GenerationCatalogV1 {
+                    key_codec_digest,
+                    catalog_root,
+                    partitions,
+                }
+            };
+        let history = make_catalog(
+            b"cmd2.history.v1",
+            b"history-key-codec",
+            vec![row(b"h/a/1", &receipts[0]), row(b"h/a/2", &receipts[1])],
+        );
+        let current = make_catalog(
+            b"cmd2.current.v1",
+            b"current-key-codec",
+            vec![row(b"c/a", &receipts[1])],
+        );
+        let cut = GenerationCutV1 {
+            store_id: store.store_id(),
+            domain_digest: store.domain_digest(),
+            through_seq: 1,
+            audit_generation: 7,
+            database_oid: 123,
+            schema_profile_digest: Digest256::of_bytes(b"profile"),
+            state_digest: Digest256::of_bytes(b"audited-state"),
+            log_digest: Digest256::of_bytes(b"contiguous-log"),
+            historical_members: 2,
+            current_members: 1,
+        };
+        let selected = store
+            .install_generation_candidate(
+                GenerationDescriptorV1 {
+                    cut: cut.clone(),
+                    history,
+                    current,
+                },
+                read_limits,
+            )
+            .unwrap();
+        let descriptor_digest = selected.digest();
+        drop(selected);
+        drop(store);
+        let cold = SegmentStore::open_existing(&root.0, limits()).unwrap();
+        let selected = cold
+            .open_generation_candidate(descriptor_digest, &cut, read_limits)
+            .unwrap();
+        let mut wrong_cut = cut.clone();
+        wrong_cut.through_seq = 2;
+        assert_eq!(
+            cold.open_generation_candidate(descriptor_digest, &wrong_cut, read_limits)
+                .unwrap_err()
+                .code,
+            Code::InvalidReceipt
+        );
+        let cancelled = AtomicBool::new(false);
+        let deadline = Instant::now() + Duration::from_secs(10);
+        let mut history = selected
+            .stream(GenerationNamespaceV1::History, read_limits)
+            .unwrap();
+        assert_eq!(
+            history.next_row(deadline, &cancelled).unwrap().unwrap().key,
+            b"h/a/1"
+        );
+        assert_eq!(
+            history.next_row(deadline, &cancelled).unwrap().unwrap().key,
+            b"h/a/2"
+        );
+        assert!(history.next_row(deadline, &cancelled).unwrap().is_none());
+        assert_eq!(history.coverage().unwrap().rows, 2);
+        let mut current = selected
+            .stream(GenerationNamespaceV1::Current, read_limits)
+            .unwrap();
+        assert_eq!(
+            current.next_row(deadline, &cancelled).unwrap().unwrap().key,
+            b"c/a"
+        );
+        assert!(current.next_row(deadline, &cancelled).unwrap().is_none());
+        assert_eq!(current.coverage().unwrap().rows, 1);
+        let mut tiny = read_limits;
+        tiny.max_stream_key_bytes = 1;
+        let mut refused = selected
+            .stream(GenerationNamespaceV1::History, tiny)
+            .unwrap();
+        assert_eq!(
+            refused.next_row(deadline, &cancelled).unwrap_err().code,
+            Code::BudgetExceeded
+        );
+        assert!(refused.coverage().is_none());
+        assert_eq!(
+            refused.next_row(deadline, &cancelled).unwrap_err().code,
+            Code::InvalidReceipt
+        );
+        cancelled.store(true, std::sync::atomic::Ordering::Relaxed);
+        assert_eq!(
+            selected
+                .stream(GenerationNamespaceV1::History, read_limits)
+                .unwrap()
+                .next_row(deadline, &cancelled)
+                .unwrap_err()
+                .code,
+            Code::Cancelled
+        );
+        let expired = Instant::now() - Duration::from_secs(1);
+        assert_eq!(
+            selected
+                .stream(GenerationNamespaceV1::History, read_limits)
+                .unwrap()
+                .next_row(expired, &AtomicBool::new(false))
+                .unwrap_err()
+                .code,
+            Code::DeadlineExceeded
+        );
+        cancelled.store(false, std::sync::atomic::Ordering::Relaxed);
+        let current_leaf = selected.descriptor().current.partitions[0].content_digest;
+        let leaf_path = root.0.join("leaves").join(current_leaf.to_hex());
+        OpenOptions::new()
+            .write(true)
+            .open(leaf_path)
+            .unwrap()
+            .write_all(b"broken!!")
+            .unwrap();
+        let mut corrupted = selected
+            .stream(GenerationNamespaceV1::Current, read_limits)
+            .unwrap();
+        assert_eq!(
+            corrupted.next_row(deadline, &cancelled).unwrap_err().code,
+            Code::CorruptBytes
+        );
+        assert!(corrupted.coverage().is_none());
     }
 
     #[test]
