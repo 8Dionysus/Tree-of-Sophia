@@ -12,6 +12,7 @@ use tos_foundation::{Digest256, python_lower_unicode16_v1, python_strip_unicode1
 
 pub const INDEXED_SEARCH_V2_OPERATION: &str = "tos_knowledge_search_indexed_v2";
 pub const SEARCH_READ_MODEL_ABI_V1: &str = "tos_knowledge_read_model_v1";
+pub const QUERY_PRIMITIVE_PROFILE: &str = "tos-query-primitives-v1";
 pub const SEARCH_UNICODE_PROFILE: &str = "tos-python-native-unicode-v1";
 pub const SEARCH_QUERY_MAX_CODE_POINTS: usize = 256;
 pub const SEARCH_QUERY_MAX_UTF8_BYTES: usize = SEARCH_QUERY_MAX_CODE_POINTS * 4;
@@ -49,7 +50,11 @@ pub trait SelectedQueryVocabulary {
 pub struct SearchSelectionBinding {
     pub model_abi: String,
     pub vocabulary: QueryVocabularyBinding,
+    /// Exact authored QueryVocabulary semantic-primitive family.
     pub semantic_primitive_profile: String,
+    /// CMP search-index lower/3-gram producer profile, independent of the
+    /// broader authored query-primitive family.
+    pub search_unicode_profile: String,
     pub source_cut: String,
     pub through_commit_seq: u64,
     /// CMD/source publication membership, distinct from vocabulary membership.
@@ -270,10 +275,12 @@ fn validate_selection<V: SelectedQueryVocabulary + ?Sized>(
             "selected knowledge search model is incomplete",
         ));
     }
-    if selection.semantic_primitive_profile != SEARCH_UNICODE_PROFILE {
+    if selection.semantic_primitive_profile != QUERY_PRIMITIVE_PROFILE
+        || selection.search_unicode_profile != SEARCH_UNICODE_PROFILE
+    {
         return Err(SearchV2Error::new(
             SearchV2ErrorCode::UnsupportedProfile,
-            "selected knowledge search model uses an unsupported Unicode profile",
+            "selected knowledge search model uses an unsupported primitive profile",
         ));
     }
     if selection.model_abi != SEARCH_READ_MODEL_ABI_V1 {

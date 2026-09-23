@@ -384,8 +384,9 @@ mod tests {
     use crate::search_document::SearchDocumentBudget;
     use crate::search_index::{GramStat, PostingPage};
     use crate::search_v2::{
-        CurrentPolicyBinding, IndexedSearchV2Request, QueryVocabularyBinding,
-        SEARCH_READ_MODEL_ABI_V1, SEARCH_UNICODE_PROFILE, SearchSelectionBinding,
+        CurrentPolicyBinding, IndexedSearchV2Request, QUERY_PRIMITIVE_PROFILE,
+        QueryVocabularyBinding, SEARCH_READ_MODEL_ABI_V1, SEARCH_UNICODE_PROFILE,
+        SearchSelectionBinding,
     };
 
     fn field<'a>(value: &'a JsonValue, name: &str) -> &'a JsonValue {
@@ -431,7 +432,8 @@ mod tests {
         let selection = SearchSelectionBinding {
             model_abi: SEARCH_READ_MODEL_ABI_V1.into(),
             vocabulary: binding,
-            semantic_primitive_profile: SEARCH_UNICODE_PROFILE.into(),
+            semantic_primitive_profile: QUERY_PRIMITIVE_PROFILE.into(),
+            search_unicode_profile: SEARCH_UNICODE_PROFILE.into(),
             source_cut: "fixture-cut".into(),
             through_commit_seq: 1,
             source_membership_root: digest(),

@@ -5,8 +5,9 @@ use tos_compiler::{QueryVocabulary, VerifiedKnowledgeModel};
 use tos_foundation::Digest256;
 
 use crate::search_v2::{
-    QueryVocabularyBinding, SEARCH_READ_MODEL_ABI_V1, SEARCH_UNICODE_PROFILE,
-    SearchSelectionBinding, SearchV2Error, SearchV2ErrorCode, SelectedQueryVocabulary,
+    QUERY_PRIMITIVE_PROFILE, QueryVocabularyBinding, SEARCH_READ_MODEL_ABI_V1,
+    SEARCH_UNICODE_PROFILE, SearchSelectionBinding, SearchV2Error, SearchV2ErrorCode,
+    SelectedQueryVocabulary,
 };
 
 fn stale(message: &'static str) -> SearchV2Error {
@@ -53,6 +54,7 @@ impl BoundCmpKnowledge<'_> {
             .map_err(|_| stale("selected knowledge pin changed"))?;
         if digest(&model.selection().model_sha256)? != self.selection.index_root_sha256
             || model.source_revision() != self.source_revision
+            || model.search_index_profile() != self.selection.search_unicode_profile
         {
             return Err(stale("selected knowledge model differs from query binding"));
         }
@@ -89,8 +91,9 @@ pub fn bind_verified_knowledge<'a>(
     let selected = model.selection();
     if !selected.complete
         || selected.model_abi != SEARCH_READ_MODEL_ABI_V1
-        || selected.semantic_primitive_profile != SEARCH_UNICODE_PROFILE
+        || selected.semantic_primitive_profile != QUERY_PRIMITIVE_PROFILE
         || selected.semantic_primitive_profile != vocabulary.semantic_primitive_profile
+        || model.search_index_profile() != SEARCH_UNICODE_PROFILE
         || selected.descriptor_sha256 != vocabulary.descriptor_sha256
         || selected.descriptor_version != vocabulary.descriptor_version
         || selected.entity_registry_id != vocabulary.entity_registry_id
@@ -125,6 +128,7 @@ pub fn bind_verified_knowledge<'a>(
             descriptor_version: selected.descriptor_version,
         },
         semantic_primitive_profile: selected.semantic_primitive_profile.clone(),
+        search_unicode_profile: model.search_index_profile().into(),
         source_cut: selected.source_cut.clone(),
         through_commit_seq: selected.through_commit_seq,
         source_membership_root: digest(&selected.membership_root)?,

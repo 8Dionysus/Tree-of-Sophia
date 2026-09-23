@@ -13,9 +13,9 @@ use tos_query::search_index::{
 };
 use tos_query::search_v2::{
     CurrentPolicyBinding, INDEXED_SEARCH_V2_OPERATION, IndexedSearchV2Request,
-    NormalizedIndexedSearchV2Request, QueryVocabularyBinding, SEARCH_UNICODE_PROFILE,
-    SearchContinuationState, SearchKind, SearchOrderKey, SearchRank, SearchSelectionBinding,
-    SearchV2ErrorCode, SelectedQueryVocabulary,
+    NormalizedIndexedSearchV2Request, QUERY_PRIMITIVE_PROFILE, QueryVocabularyBinding,
+    SEARCH_UNICODE_PROFILE, SearchContinuationState, SearchKind, SearchOrderKey, SearchRank,
+    SearchSelectionBinding, SearchV2ErrorCode, SelectedQueryVocabulary,
 };
 
 struct FixtureVocabulary {
@@ -251,7 +251,8 @@ fn selection(vocabulary: &FixtureVocabulary) -> SearchSelectionBinding {
     SearchSelectionBinding {
         model_abi: "tos_knowledge_read_model_v1".into(),
         vocabulary: vocabulary.binding.clone(),
-        semantic_primitive_profile: SEARCH_UNICODE_PROFILE.into(),
+        semantic_primitive_profile: QUERY_PRIMITIVE_PROFILE.into(),
+        search_unicode_profile: SEARCH_UNICODE_PROFILE.into(),
         source_cut: "fixture-cut-a".into(),
         through_commit_seq: 19,
         source_membership_root: Digest256::of_bytes(b"fixture source membership"),
@@ -536,10 +537,20 @@ fn selection_must_be_complete_profiled_and_bound_to_selected_vocabulary() {
     );
 
     let mut unsupported = selection(&vocabulary);
-    unsupported.semantic_primitive_profile = "host-default-lowercase".into();
+    unsupported.search_unicode_profile = "host-default-lowercase".into();
     assert_eq!(
         request("query")
             .normalize(&unsupported, &vocabulary)
+            .unwrap_err()
+            .code,
+        SearchV2ErrorCode::UnsupportedProfile
+    );
+
+    let mut wrong_authored_profile = selection(&vocabulary);
+    wrong_authored_profile.semantic_primitive_profile = "another-query-family".into();
+    assert_eq!(
+        request("query")
+            .normalize(&wrong_authored_profile, &vocabulary)
             .unwrap_err()
             .code,
         SearchV2ErrorCode::UnsupportedProfile

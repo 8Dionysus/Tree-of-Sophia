@@ -29,7 +29,6 @@ use tos_query::{
     bind_verified_knowledge, execute_indexed_search_page,
 };
 
-const PYTHON_ALPHA_ORDER: [&str; 2] = ["eighth:alpha", "eighth:visible"];
 const FALSE_POSITIVE: &str = "eighth:alp-false-positive";
 
 fn error(code: SearchV2ErrorCode, message: &'static str) -> SearchV2Error {
@@ -171,15 +170,20 @@ fn producer_selected_indexed_pages_match_python_rank_and_original_carriers() {
     if let Some(path) = std::env::var_os("TOS_CMP_GRAPH_INPUT_EXPORT") {
         std::fs::write(path, &fixture.graph_input_bytes).unwrap();
     }
-    let input = parse_json(
-        &fixture.graph_input_bytes,
+    let oracle = parse_json(
+        include_bytes!("fixtures/cmp_knowledge_search_python_oracle.json"),
         JsonMode::PublishedStrict,
         JsonLimits::default(),
     )
     .unwrap()
     .into_root();
-    let input_nodes = field(&input, "nodes").as_array().unwrap();
-    assert_eq!(input_nodes.len(), 4);
+    assert_eq!(
+        Digest256::of_bytes(&fixture.graph_input_bytes).to_hex(),
+        field(&oracle, "input_sha256").as_str().unwrap()
+    );
+    let reference = field(&oracle, "reference");
+    let reference_nodes = field(reference, "nodes").as_array().unwrap();
+    assert_eq!(reference_nodes.len(), 2);
     let cold = fixture.open().unwrap();
     let bound =
         bind_verified_knowledge(&cold, &fixture.vocabulary, &fixture.descriptor_bytes).unwrap();
@@ -244,24 +248,23 @@ fn producer_selected_indexed_pages_match_python_rank_and_original_carriers() {
             Some("tos_knowledge_search_indexed_v2")
         );
         assert_eq!(
-            field(&packet, "source_revision").as_str(),
-            Some("2".repeat(64).as_str())
+            field(&packet, "source_revision"),
+            field(reference, "source_revision")
         );
         assert_eq!(
             canonical(field(&packet, "authority_boundary")),
-            canonical(field(&input, "authority_boundary"))
+            canonical(field(reference, "authority_boundary"))
         );
         let nodes = field(&packet, "nodes").as_array().unwrap();
         assert_eq!(nodes.len(), 1);
         assert!(field(&packet, "relations").as_array().unwrap().is_empty());
         let item = &nodes[0];
         let id = field(item, "id").as_str().unwrap();
-        assert_eq!(id, PYTHON_ALPHA_ORDER[page_index]);
-        let original = input_nodes
-            .iter()
-            .find(|source| field(source, "id").as_str() == Some(id))
-            .unwrap();
-        assert_eq!(canonical(item), canonical(original));
+        assert_eq!(
+            id,
+            field(&reference_nodes[page_index], "id").as_str().unwrap()
+        );
+        assert_eq!(canonical(item), canonical(&reference_nodes[page_index]));
         returned.push(id.to_owned());
         assert!(field(field(&packet, "counts"), "matching_nodes").is_null());
         token = field(field(&packet, "page"), "next_cursor")
@@ -270,13 +273,13 @@ fn producer_selected_indexed_pages_match_python_rank_and_original_carriers() {
         assert_eq!(token.is_some(), page_index == 0);
         drop(page);
     }
-    assert_eq!(returned, PYTHON_ALPHA_ORDER);
+    assert_eq!(
+        returned,
+        reference_nodes
+            .iter()
+            .map(|item| field(item, "id").as_str().unwrap())
+            .collect::<Vec<_>>()
+    );
     assert!(authority.consulted.iter().any(|id| id == FALSE_POSITIVE));
     assert!(checks.load(Ordering::Relaxed) >= 4);
-    assert_eq!(
-        Digest256::of_bytes(&fixture.graph_input_bytes)
-            .to_hex()
-            .len(),
-        64
-    );
 }
