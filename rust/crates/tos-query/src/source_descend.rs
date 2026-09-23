@@ -678,6 +678,7 @@ impl SourceDescendSession {
                         ));
                     }
                     self.finish_edge_target(None)?;
+                    self.phase = SessionPhase::Advance;
                     return self.advance();
                 };
                 if record.raw.len() as u64 > need.caps.bytes

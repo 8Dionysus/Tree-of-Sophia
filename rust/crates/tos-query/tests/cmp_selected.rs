@@ -2,6 +2,7 @@
 
 use std::{
     fs,
+    fs::File,
     path::PathBuf,
     sync::{
         Arc,
@@ -11,10 +12,20 @@ use std::{
 };
 
 use tos_compiler::{
-    CandidateReceipt, LegacyPartitionedNavigation, Limits, PublicationAuthority,
-    SelectedExpectation, SelectionFence, SourceBinding, VerifiedSelection, compile_navigation,
-    open_selected_model, publish_candidate,
+    CandidateReceipt, ImmutableModelCustody, LegacyPartitionedNavigation, Limits,
+    PublicationAuthority, SelectedExpectation, SelectionFence, SourceBinding, VerifiedSelection,
+    compile_navigation, open_selected_model, publish_candidate,
 };
+
+struct FixtureCustody;
+impl ImmutableModelCustody for FixtureCustody {
+    fn verify_held(&self, pinned: &File, _: &str, size_bytes: u64) -> tos_compiler::Result<()> {
+        if pinned.metadata()?.len() != size_bytes {
+            return Err(tos_compiler::Error::Invalid("fixture custody size"));
+        }
+        Ok(())
+    }
+}
 use tos_foundation::{JsonLimits, JsonMode, JsonValue, parse_json};
 use tos_query::{
     AbortProbe, AbortReason, AdapterAdmissionBudget, Budget, Charged, CmpPinnedModel,
@@ -175,6 +186,7 @@ fn selected(
             model_sha256: &receipt.sqlite_sha256,
             model_size_bytes: receipt.sqlite_size_bytes,
             owner_receipt_id: "fixture-owner-selection",
+            custody: Arc::new(FixtureCustody),
             max_cold_open_bytes: receipt.sqlite_size_bytes,
             max_cold_open_vm_steps: 1_000_000,
         },
