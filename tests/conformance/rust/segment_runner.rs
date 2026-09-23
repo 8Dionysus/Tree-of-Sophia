@@ -343,3 +343,32 @@ fn placement_wire_requires_cold_pin_and_exact_physical_member() {
     );
     assert!(unpublished.is_empty());
 }
+
+#[test]
+fn placement_wire_is_exact_little_endian_v1() {
+    // Independently assembled with Python struct.pack, not the Rust encoder.
+    let wire = hex_bytes(concat!(
+        "544f53504c43563101000000",
+        "000102030405060708090a0b0c0d0e0f",
+        "101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f",
+        "303132333435363738393a3b3c3d3e3f",
+        "0700000000000000",
+        "404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f",
+        "606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f",
+        "c8000000000000000200000064000000000000001400000000000000",
+        "808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9f",
+    ));
+    assert_eq!(wire.len(), PlacementV1::ENCODED_BYTES);
+    assert_eq!(
+        Digest256::of_bytes(&wire).to_hex(),
+        "42478dde48195a3b9c4e6292c63ca2a7d7e5a2a942b83456d6cd0e2437c18fc7"
+    );
+    let placement = PlacementV1::decode(&wire).unwrap();
+    assert_eq!(placement.store_id(), [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]);
+    assert_eq!(placement.fence_epoch(), 7);
+    assert_eq!(placement.segment_size(), 200);
+    assert_eq!(placement.frame_index(), 2);
+    assert_eq!(placement.coordinate().header_offset, 100);
+    assert_eq!(placement.coordinate().size_bytes, 20);
+    assert_eq!(placement.encode().as_slice(), wire.as_slice());
+}
