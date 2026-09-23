@@ -401,20 +401,29 @@ impl<'a> NavigationNodeNormalizer<'a> {
             .and_then(Value::as_array)
             .ok_or(Error::Invalid("navigation descriptor dossier kinds"))?
             .iter()
-            .map(|kind| kind.as_str().map(str::to_owned).ok_or(Error::Invalid("navigation dossier kind")))
+            .map(|kind| {
+                kind.as_str()
+                    .map(str::to_owned)
+                    .ok_or(Error::Invalid("navigation dossier kind"))
+            })
             .collect::<Result<BTreeSet<_>>>()?;
         if dossier_kinds.is_empty()
-            || !vocabulary.sources.iter().any(|source|
-                source.source_graph_id == source_graph_id && source.adapter_profile == ADAPTER_PROFILE)
+            || !vocabulary.sources.iter().any(|source| {
+                source.source_graph_id == source_graph_id
+                    && source.adapter_profile == ADAPTER_PROFILE
+            })
         {
             return Err(Error::Invalid("navigation selected dossier owner"));
         }
         let entity_registry_ref = required(
-            descriptor.value().get("semantic_registry_refs")
+            descriptor
+                .value()
+                .get("semantic_registry_refs")
                 .and_then(|refs| refs.get("entity"))
                 .ok_or(Error::Invalid("navigation entity registry descriptor"))?,
             "source_ref",
-        )?.to_owned();
+        )?
+        .to_owned();
         if entity_bytes.is_empty()
             || entity_bytes.len() > MAX_REGISTRY_BYTES
             || Digest256::of_bytes(entity_bytes).to_hex() != registry.entity_sha256
@@ -673,7 +682,12 @@ mod tests {
             .iter()
             .map(|source| source["adapter_profile"].as_str().unwrap().to_owned())
             .collect::<Vec<_>>();
-        adapters.push(document["extension_adapter_profile"].as_str().unwrap().to_owned());
+        adapters.push(
+            document["extension_adapter_profile"]
+                .as_str()
+                .unwrap()
+                .to_owned(),
+        );
         let vocabulary = QueryVocabulary::parse(
             descriptor,
             &adapters.iter().map(String::as_str).collect::<Vec<_>>(),
@@ -684,14 +698,9 @@ mod tests {
             max_output_bytes: 32768,
             max_ancestor_cache_bytes: 32768,
         };
-        let mut normalizer = NavigationNodeNormalizer::new(
-            &registry,
-            entity,
-            &vocabulary,
-            descriptor,
-            limits,
-        )
-        .unwrap();
+        let mut normalizer =
+            NavigationNodeNormalizer::new(&registry, entity, &vocabulary, descriptor, limits)
+                .unwrap();
         let prepared = NavigationPrepareReceipt {
             source_graph: "source-navigation".into(),
             input_role: "source-navigation".into(),
