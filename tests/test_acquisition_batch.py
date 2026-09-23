@@ -1307,6 +1307,47 @@ class AcquisitionBatchTests(unittest.TestCase):
                 self.assertEqual([], fetch_calls)
                 self.assertEqual([], list(output_root.glob("receipts/handoff-*.json")))
 
+    def test_item_inventory_schema_is_required_before_fetch(self) -> None:
+        fetches, _manifest_sha = self._write_manifest(count=1)
+        manifest = json.loads(self.manifest_path.read_text(encoding="utf-8"))
+        selection = manifest["selection"][0]
+        inventory_record = next(
+            record
+            for record in selection["records"]
+            if record["ref"].endswith("/resource-inventory.json")
+        )
+        inventory_path = self.metadata / inventory_record["ref"]
+        inventory = json.loads(inventory_path.read_text(encoding="utf-8"))
+        del inventory["inventory_authority"]
+        inventory_path.write_text(
+            json.dumps(inventory, ensure_ascii=False, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        inventory_record["sha256"] = hashlib.sha256(
+            inventory_path.read_bytes()
+        ).hexdigest()
+        self.manifest_path.write_text(
+            json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        manifest_sha = hashlib.sha256(self.manifest_path.read_bytes()).hexdigest()
+        output_root = self.root / "inventory-schema-missing-authority"
+        fetch_calls: list[str] = []
+        with self.assertRaisesRegex(
+            acquisition.AcquisitionBatchError,
+            "Item resource inventory does not satisfy its schema",
+        ):
+            acquisition.acquire_batch(
+                manifest_path=self.manifest_path,
+                metadata_root=self.metadata,
+                output_root=output_root,
+                expected_manifest_sha256=manifest_sha,
+                fetcher=lambda payload: fetch_calls.append(payload["file_ref"])
+                or fetches[payload["file_ref"]],
+            )
+        self.assertEqual([], fetch_calls)
+        self.assertEqual([], list(output_root.glob("receipts/handoff-*.json")))
+
     def test_item_record_must_bind_selected_manifest_before_fetch(self) -> None:
         _fetches, _manifest_sha = self._write_manifest(count=1)
         manifest = json.loads(self.manifest_path.read_text(encoding="utf-8"))

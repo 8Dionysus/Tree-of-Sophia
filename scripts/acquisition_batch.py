@@ -54,6 +54,9 @@ MANIFEST_SCHEMA = Path("ToS/contracts/acquisition-batch.schema.json")
 PROVENANCE_DELTA_SCHEMA = Path(
     "ToS/contracts/acquisition-provenance-delta.schema.json"
 )
+RESOURCE_INVENTORY_SCHEMA = Path(
+    "ToS/contracts/source-resource-inventory.schema.json"
+)
 MAX_PAYLOAD_BYTES = 300 * 1024 * 1024
 SHA256 = re.compile(r"^[a-f0-9]{64}$")
 SHA1 = re.compile(r"^[a-f0-9]{40}$")
@@ -748,6 +751,7 @@ def _verify_prepared_item_bindings(context: BatchContext, output: Path) -> None:
     """
 
     source_root = output / "source"
+    inventory_validator = None
     for selection in context.manifest["selection"]:
         item_ref = selection["item_ref"]
         item_root = selection["item_root_ref"]
@@ -857,6 +861,30 @@ def _verify_prepared_item_bindings(context: BatchContext, output: Path) -> None:
         inventory_value = _load_json_bytes(
             inventory_path.read_bytes(), label="prepared Item resource inventory"
         )
+        if inventory_validator is None:
+            inventory_schema_path = context.repo_root / RESOURCE_INVENTORY_SCHEMA
+            try:
+                _regular_file(
+                    inventory_schema_path, label="source resource inventory schema"
+                )
+                inventory_schema = _load_json_bytes(
+                    inventory_schema_path.read_bytes(),
+                    label="source resource inventory schema",
+                )
+                Draft202012Validator.check_schema(inventory_schema)
+                inventory_validator = Draft202012Validator(
+                    inventory_schema, format_checker=FormatChecker()
+                )
+            except Exception as exc:
+                raise AcquisitionBatchError(
+                    "source resource inventory schema is unavailable or invalid"
+                ) from exc
+        try:
+            inventory_validator.validate(inventory_value)
+        except Exception as exc:
+            raise AcquisitionBatchError(
+                f"Item resource inventory does not satisfy its schema: {item_ref}"
+            ) from exc
         expected_inventory_files = [
             {
                 "file_id": payload["file_id"],
