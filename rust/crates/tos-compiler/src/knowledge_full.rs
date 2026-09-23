@@ -188,10 +188,17 @@ mod tests {
         }
     }
     fn root(id: &str, payload: &[u8]) -> String {
+        roots(&[(id, payload)])
+    }
+    fn roots(rows: &[(&str, &[u8])]) -> String {
         let mut hash = Digest256Hasher::new();
-        hash.update(&(id.len() as u64).to_be_bytes());
-        hash.update(id.as_bytes());
-        hash.update(Digest256::of_bytes(payload).as_bytes());
+        let mut sorted = rows.to_vec();
+        sorted.sort_by_key(|(id, _)| *id);
+        for (id, payload) in sorted {
+            hash.update(&(id.len() as u64).to_be_bytes());
+            hash.update(id.as_bytes());
+            hash.update(Digest256::of_bytes(payload).as_bytes());
+        }
         hash.finalize().to_hex()
     }
     fn candidate() -> std::path::PathBuf {
@@ -216,11 +223,14 @@ mod tests {
             "../../../../ToS/doctrine/semantic-interchange/query-vocabulary.v1.json"
         ))
         .unwrap();
-        descriptor["sources"] = json!([{
-            "source_graph_id":"eighth", "owner_ref":"owner:eighth",
-            "input_role":"source-graph", "adapter_profile":"indexed-node-edge-v1",
-            "representative_priority":0
-        }]);
+        descriptor["sources"] = json!([
+            {"source_graph_id":"eighth", "owner_ref":"owner:eighth",
+             "input_role":"source-graph", "adapter_profile":"indexed-node-edge-v1",
+             "representative_priority":0},
+            {"source_graph_id":"zero", "owner_ref":"owner:zero",
+             "input_role":"source-graph", "adapter_profile":"indexed-node-edge-v1",
+             "representative_priority":1}
+        ]);
         descriptor["identity"]["source_dossier_graph_id"] = json!("eighth");
         let descriptor_bytes = serde_json::to_vec(&descriptor).unwrap();
         let vocabulary =
@@ -238,6 +248,32 @@ mod tests {
             "source_refs":["owner:record-1"]
         }))
         .unwrap();
+        let extra_node = |id: &str, native: &str, title: &str| {
+            serde_json::to_vec(&json!({
+                "id":id,"native_id":native,"entity_id":format!("external.subject.{native}"),
+                "source_graph":"eighth","kind_id":"unknown-owner-kind","type_id":"tos.entity.unmapped",
+                "type_mapping":{"status":"unmapped","source_kind_id":"unknown-owner-kind"},
+                "content_revision":"0".repeat(64),
+                "display":{"kind_label":{"default":"Owner kind"},"title":{"default":title},
+                    "summary_state":"source","provenance":{"source_summary_available":true}},
+                "epistemic":{},"attributes":{},"semantics":{},"graph_layers":[],"view_ids":[],
+                "source_refs":["owner:record-1"]
+            })).unwrap()
+        };
+        let alpha_id = "eighth:alpha";
+        let visible_id = "eighth:visible";
+        let false_positive_id = "eighth:alp-false-positive";
+        let alpha = extra_node(alpha_id, "alpha", "Alpha");
+        let visible = extra_node(visible_id, "visible", "Alpha Beta");
+        let false_positive = extra_node(false_positive_id, "alp-false-positive", "Alpine");
+        let node_rows: [(&str, &[u8]); 4] = [
+            (node_id, &node),
+            (alpha_id, &alpha),
+            (visible_id, &visible),
+            (false_positive_id, &false_positive),
+        ];
+        let node_root = roots(&node_rows);
+        let zero_root = roots(&[]);
         let relation = serde_json::to_vec(&json!({
             "id":relation_id,"native_id":"relation-1","from_id":node_id,"to_id":node_id,
             "source_graph":"eighth","predicate_id":"unknown-owner-relation",
@@ -267,8 +303,8 @@ mod tests {
                     collection: "nodes".into(),
                     input_role: "source-graph".into(),
                     adapter_profile: "indexed-node-edge-v1".into(),
-                    expected_count: 1,
-                    expected_root_sha256: root(node_id, &node),
+                    expected_count: 4,
+                    expected_root_sha256: node_root.clone(),
                 },
                 InputCollectionReceipt {
                     source_graph: "eighth".into(),
@@ -277,6 +313,22 @@ mod tests {
                     adapter_profile: "indexed-node-edge-v1".into(),
                     expected_count: 1,
                     expected_root_sha256: root(relation_id, &relation),
+                },
+                InputCollectionReceipt {
+                    source_graph: "zero".into(),
+                    collection: "nodes".into(),
+                    input_role: "source-graph".into(),
+                    adapter_profile: "indexed-node-edge-v1".into(),
+                    expected_count: 0,
+                    expected_root_sha256: zero_root.clone(),
+                },
+                InputCollectionReceipt {
+                    source_graph: "zero".into(),
+                    collection: "relations".into(),
+                    input_role: "source-graph".into(),
+                    adapter_profile: "indexed-node-edge-v1".into(),
+                    expected_count: 0,
+                    expected_root_sha256: zero_root.clone(),
                 },
             ],
         };
@@ -296,10 +348,15 @@ mod tests {
             &quota,
         )
         .unwrap();
-        for (collection, id, payload) in [
-            ("nodes", node_id, &node),
-            ("relations", relation_id, &relation),
-        ] {
+        for (collection, id, payload) in node_rows
+            .into_iter()
+            .map(|(id, payload)| ("nodes", id, payload))
+            .chain(std::iter::once((
+                "relations",
+                relation_id,
+                relation.as_slice(),
+            )))
+        {
             stage
                 .ingest_input(InputRow {
                     source_graph: "eighth",
@@ -330,16 +387,16 @@ mod tests {
                 "configuration_digest":"4".repeat(64)
             },
             "query_properties":[],
-            "counts":{"nodes":1,"relations":1,"sources":{"eighth":1},
+            "counts":{"nodes":4,"relations":1,"sources":{"eighth":4},
                 "display_coverage":{
-                    "node_titles":1,"node_summaries":1,"node_summary_states":{"source":1},
+                    "node_titles":4,"node_summaries":4,"node_summary_states":{"source":4},
                     "nodes_without_source_summary":0,
                     "relation_labels":1,"relation_statements":1,"relation_explanations":1,
                     "relation_explanation_states":{"source":1},
                     "relations_without_source_explanation":0
                 },
                 "semantic_mapping":{
-                    "mapped_nodes":0,"unmapped_nodes":1,"mapped_relations":0,
+                    "mapped_nodes":0,"unmapped_nodes":4,"mapped_relations":0,
                     "unmapped_relations":1,"cross_layer_relations":0
                 }
             },
@@ -357,7 +414,7 @@ mod tests {
             FullKnowledgeLimits {
                 scope: ScopeLimits {
                     max_sources: 2,
-                    max_rows: 4,
+                    max_rows: 5,
                     max_index_work_bytes: 4096,
                 },
                 catalog: CatalogLimits::default(),
@@ -410,21 +467,32 @@ mod tests {
             catalog_index_root_sha256: full.catalog.catalog_index_root_sha256,
             source_scope_root_sha256: full.source_scope.source_scope_root_sha256,
             search_index_root_sha256: full.search.search_index_root_sha256,
-            node_count: 1,
+            node_count: 4,
             relation_count: 1,
             index_generation: "fixture-generation".into(),
             route_map_version: "fixture-routes".into(),
             reader_abi: "fixture-reader".into(),
             authority_boundary: serde_json::to_string(&header["authority_boundary"]).unwrap(),
-            source_scopes: vec![ExpectedSourceScope {
-                source_graph: "eighth".into(),
-                input_role: "source-graph".into(),
-                adapter_profile: "indexed-node-edge-v1".into(),
-                node_count: 1,
-                relation_count: 1,
-                node_root_sha256: root(node_id, &node),
-                relation_root_sha256: root(relation_id, &relation),
-            }],
+            source_scopes: vec![
+                ExpectedSourceScope {
+                    source_graph: "eighth".into(),
+                    input_role: "source-graph".into(),
+                    adapter_profile: "indexed-node-edge-v1".into(),
+                    node_count: 4,
+                    relation_count: 1,
+                    node_root_sha256: node_root,
+                    relation_root_sha256: root(relation_id, &relation),
+                },
+                ExpectedSourceScope {
+                    source_graph: "zero".into(),
+                    input_role: "source-graph".into(),
+                    adapter_profile: "indexed-node-edge-v1".into(),
+                    node_count: 0,
+                    relation_count: 0,
+                    node_root_sha256: zero_root.clone(),
+                    relation_root_sha256: zero_root,
+                },
+            ],
             complete: true,
         };
         let custody = FixtureCustody;
@@ -444,7 +512,7 @@ mod tests {
             },
         )
         .unwrap();
-        assert_eq!(selected.selection().node_count, 1);
+        assert_eq!(selected.selection().node_count, 4);
         assert_eq!(selected.source_revision(), "2".repeat(64));
         assert!(selected.open_vm_steps() > 0);
         let fork = selected.fork_reader_with_vm_budget(100_000_000).unwrap();
@@ -455,7 +523,29 @@ mod tests {
                 .query_row("SELECT count(*) FROM search_documents", [], |row| row
                     .get::<_, i64>(0))
                 .unwrap(),
-            2
+            5
+        );
+        assert_eq!(
+            selected
+                .connection()
+                .query_row(
+                    "SELECT postings FROM search_gram_stats WHERE kind='nodes' AND n=3 AND gram=?1",
+                    [b"alp".as_slice()],
+                    |row| row.get::<_, i64>(0),
+                )
+                .unwrap(),
+            3
+        );
+        assert_eq!(
+            selected
+                .connection()
+                .query_row(
+                    "SELECT expected_node_count FROM source_scope WHERE source_graph='zero'",
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .unwrap(),
+            0
         );
         selected.check_pin().unwrap();
         drop(selected);
