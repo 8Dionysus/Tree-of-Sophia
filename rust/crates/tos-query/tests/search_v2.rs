@@ -2,7 +2,8 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use tos_foundation::{Digest256, JsonLimits, JsonMode, JsonValue, parse_json};
 use tos_query::search_index::{
-    GramSeekBudget, GramSeekCharge, GramStat, SearchGramModel, choose_rarest_gram,
+    GramSeed, GramSeekBudget, GramSeekCharge, GramStat, PostingPage, PostingSeekBudget,
+    SearchGramModel, SearchPostingModel, choose_rarest_gram, visit_complete_postings,
 };
 use tos_query::search_v2::{
     CurrentPolicyBinding, INDEXED_SEARCH_V2_OPERATION, IndexedSearchV2Request,
@@ -64,6 +65,8 @@ impl SelectedQueryVocabulary for FixtureVocabulary {
 struct FixtureGramModel {
     stats: BTreeMap<String, u64>,
     calls: Vec<String>,
+    positions: Vec<u64>,
+    posting_calls: usize,
 }
 
 impl SearchGramModel for FixtureGramModel {
@@ -81,6 +84,39 @@ impl SearchGramModel for FixtureGramModel {
         let rows = u64::from(postings.is_some());
         Ok(GramStat {
             postings,
+            charged: GramSeekCharge {
+                lookups: 1,
+                vm_steps: 1,
+                rows,
+                decoded_bytes: rows * 8,
+            },
+        })
+    }
+}
+
+impl SearchPostingModel for FixtureGramModel {
+    fn seek_postings(
+        &mut self,
+        _kind: SearchKind,
+        _gram: &str,
+        after: Option<u64>,
+        max_rows: usize,
+        max_vm_steps: u64,
+        max_decoded_bytes: u64,
+    ) -> Result<PostingPage, tos_query::search_v2::SearchV2Error> {
+        assert!(max_rows > 0 && max_vm_steps > 0 && max_decoded_bytes >= max_rows as u64 * 8);
+        self.posting_calls += 1;
+        let positions: Vec<_> = self
+            .positions
+            .iter()
+            .copied()
+            .filter(|position| after.is_none_or(|last| *position > last))
+            .take(max_rows)
+            .collect();
+        let rows = positions.len() as u64;
+        Ok(PostingPage {
+            exhausted: positions.len() < max_rows,
+            positions,
             charged: GramSeekCharge {
                 lookups: 1,
                 vm_steps: 1,
@@ -148,6 +184,76 @@ fn rarest_global_gram_is_admitted_before_any_posting_seek() {
     assert_eq!(empty.gram, None);
     assert_eq!(empty.postings, 0);
     assert_eq!(empty.charged.rows, 2);
+}
+
+#[test]
+fn posting_pages_visit_exact_selected_count_and_admit_completion_probe() {
+    let mut model = FixtureGramModel {
+        positions: vec![0, 3, 8],
+        ..FixtureGramModel::default()
+    };
+    let seed = GramSeed {
+        gram: Some("alp".into()),
+        postings: 3,
+        charged: GramSeekCharge::default(),
+    };
+    let budget = PostingSeekBudget {
+        max_probes: 2,
+        max_rows: 4,
+        max_decoded_bytes: 32,
+        max_vm_steps: 10,
+        page_rows: 2,
+    };
+    let mut visited = Vec::new();
+    let charged =
+        visit_complete_postings(&mut model, SearchKind::Nodes, &seed, budget, |position| {
+            visited.push(position);
+            Ok(())
+        })
+        .unwrap();
+    assert_eq!(visited, [0, 3, 8]);
+    assert_eq!(charged.rows, 3);
+    assert_eq!(charged.lookups, 2);
+
+    let exact_page_seed = GramSeed {
+        postings: 2,
+        ..seed.clone()
+    };
+    model.positions = vec![0, 3];
+    let exact_page_budget = PostingSeekBudget {
+        max_rows: 3,
+        max_decoded_bytes: 24,
+        ..budget
+    };
+    let exact_page = visit_complete_postings(
+        &mut model,
+        SearchKind::Nodes,
+        &exact_page_seed,
+        exact_page_budget,
+        |_| Ok(()),
+    )
+    .unwrap();
+    assert_eq!(exact_page.lookups, 2); // one full page, then empty completion seek
+    model.positions.push(8);
+
+    let mut one_under = budget;
+    one_under.max_rows = 3;
+    let before = model.posting_calls;
+    assert_eq!(
+        visit_complete_postings(&mut model, SearchKind::Nodes, &seed, one_under, |_| Ok(()))
+            .unwrap_err()
+            .code,
+        SearchV2ErrorCode::BudgetExceeded
+    );
+    assert_eq!(model.posting_calls, before);
+
+    model.positions.pop();
+    assert_eq!(
+        visit_complete_postings(&mut model, SearchKind::Nodes, &seed, budget, |_| Ok(()))
+            .unwrap_err()
+            .code,
+        SearchV2ErrorCode::IndexIncomplete
+    );
 }
 
 fn selection(vocabulary: &FixtureVocabulary) -> SearchSelectionBinding {

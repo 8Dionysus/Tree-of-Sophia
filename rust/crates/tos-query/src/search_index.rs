@@ -44,6 +44,34 @@ pub trait SearchGramModel {
     ) -> Result<GramStat, SearchV2Error>;
 }
 
+#[derive(Clone, Copy, Debug)]
+pub struct PostingSeekBudget {
+    pub max_probes: u64,
+    pub max_rows: u64,
+    pub max_decoded_bytes: u64,
+    pub max_vm_steps: u64,
+    pub page_rows: usize,
+}
+
+#[derive(Clone, Debug)]
+pub struct PostingPage {
+    pub positions: Vec<u64>,
+    pub exhausted: bool,
+    pub charged: GramSeekCharge,
+}
+
+pub trait SearchPostingModel {
+    fn seek_postings(
+        &mut self,
+        kind: SearchKind,
+        gram: &str,
+        after: Option<u64>,
+        max_rows: usize,
+        max_vm_steps: u64,
+        max_decoded_bytes: u64,
+    ) -> Result<PostingPage, SearchV2Error>;
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct GramSeed {
     pub gram: Option<String>,
@@ -177,4 +205,133 @@ pub fn choose_rarest_gram<M: SearchGramModel>(
         postings,
         charged,
     })
+}
+
+/// Drain one *bounded* selected posting list in source position order. The
+/// complete stat count is checked against every visited row and a final empty
+/// seek. `visit` may verify/hydrate a candidate, but the engine never builds
+/// the whole graph or an unbounded posting closure.
+pub fn visit_complete_postings<M: SearchPostingModel>(
+    model: &mut M,
+    kind: SearchKind,
+    seed: &GramSeed,
+    budget: PostingSeekBudget,
+    mut visit: impl FnMut(u64) -> Result<(), SearchV2Error>,
+) -> Result<GramSeekCharge, SearchV2Error> {
+    let gram = seed.gram.as_deref().ok_or_else(|| {
+        SearchV2Error::new(
+            SearchV2ErrorCode::InvalidRequest,
+            "empty gram has no posting list",
+        )
+    })?;
+    if budget.page_rows == 0 || budget.page_rows > 1024 || budget.max_vm_steps == 0 {
+        return Err(SearchV2Error::new(
+            SearchV2ErrorCode::BudgetExceeded,
+            "posting seek budget is invalid",
+        ));
+    }
+    let row_ceiling = seed.postings.checked_add(1).ok_or_else(|| {
+        SearchV2Error::new(SearchV2ErrorCode::BudgetExceeded, "posting count overflow")
+    })?;
+    let byte_ceiling = row_ceiling.checked_mul(8).ok_or_else(|| {
+        SearchV2Error::new(
+            SearchV2ErrorCode::BudgetExceeded,
+            "posting byte cap overflow",
+        )
+    })?;
+    let probe_ceiling = seed.postings / budget.page_rows as u64 + 1;
+    if seed.postings == 0
+        || budget.max_rows < row_ceiling
+        || budget.max_decoded_bytes < byte_ceiling
+        || budget.max_probes < probe_ceiling
+    {
+        return Err(SearchV2Error::new(
+            SearchV2ErrorCode::BudgetExceeded,
+            "posting list cannot be preadmitted",
+        ));
+    }
+    let mut charged = GramSeekCharge::default();
+    let mut after = None;
+    let mut visited = 0u64;
+    loop {
+        let remaining_vm = budget.max_vm_steps.saturating_sub(charged.vm_steps);
+        let remaining_rows = budget.max_rows.saturating_sub(charged.rows);
+        let remaining_bytes = budget
+            .max_decoded_bytes
+            .saturating_sub(charged.decoded_bytes);
+        let max_rows = budget
+            .page_rows
+            .min(remaining_rows.min(usize::MAX as u64) as usize)
+            .min((remaining_bytes / 8).min(usize::MAX as u64) as usize);
+        if remaining_vm == 0
+            || max_rows == 0
+            || remaining_bytes < 8
+            || charged.lookups >= budget.max_probes
+        {
+            return Err(SearchV2Error::new(
+                SearchV2ErrorCode::BudgetExceeded,
+                "posting seek work budget exhausted",
+            ));
+        }
+        let page =
+            model.seek_postings(kind, gram, after, max_rows, remaining_vm, remaining_bytes)?;
+        if page.positions.len() > max_rows
+            || page.charged.lookups != 1
+            || page.charged.rows != page.positions.len() as u64
+            || page.charged.decoded_bytes != page.charged.rows * 8
+            || page.charged.vm_steps > remaining_vm
+            || (!page.exhausted && page.positions.len() < max_rows)
+        {
+            return Err(SearchV2Error::new(
+                SearchV2ErrorCode::IndexIncomplete,
+                "posting page or work receipt invalid",
+            ));
+        }
+        charged.lookups = charged.lookups.checked_add(1).ok_or_else(|| {
+            SearchV2Error::new(SearchV2ErrorCode::BudgetExceeded, "posting probe overflow")
+        })?;
+        charged.rows = charged.rows.checked_add(page.charged.rows).ok_or_else(|| {
+            SearchV2Error::new(SearchV2ErrorCode::BudgetExceeded, "posting row overflow")
+        })?;
+        charged.decoded_bytes = charged
+            .decoded_bytes
+            .checked_add(page.charged.decoded_bytes)
+            .ok_or_else(|| {
+                SearchV2Error::new(SearchV2ErrorCode::BudgetExceeded, "posting byte overflow")
+            })?;
+        charged.vm_steps = charged
+            .vm_steps
+            .checked_add(page.charged.vm_steps)
+            .ok_or_else(|| {
+                SearchV2Error::new(SearchV2ErrorCode::BudgetExceeded, "posting VM overflow")
+            })?;
+        for position in page.positions {
+            if after.is_some_and(|previous| position <= previous) || position > i64::MAX as u64 {
+                return Err(SearchV2Error::new(
+                    SearchV2ErrorCode::IndexIncomplete,
+                    "posting position order is invalid",
+                ));
+            }
+            after = Some(position);
+            visited = visited.checked_add(1).ok_or_else(|| {
+                SearchV2Error::new(SearchV2ErrorCode::BudgetExceeded, "posting visit overflow")
+            })?;
+            if visited > seed.postings {
+                return Err(SearchV2Error::new(
+                    SearchV2ErrorCode::IndexIncomplete,
+                    "posting list exceeds selected stat count",
+                ));
+            }
+            visit(position)?;
+        }
+        if page.exhausted {
+            if visited != seed.postings {
+                return Err(SearchV2Error::new(
+                    SearchV2ErrorCode::IndexIncomplete,
+                    "posting list omits selected stat rows",
+                ));
+            }
+            return Ok(charged);
+        }
+    }
 }
