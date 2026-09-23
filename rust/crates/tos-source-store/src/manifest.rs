@@ -33,6 +33,16 @@ pub struct MemberMetadata {
     pub mode: u32,
 }
 
+/// A v1 retirement event binding; retained-object bytes are not verified on normal lookup.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RetirementMetadata {
+    pub path: RelativePath,
+    pub sha256: Digest256,
+    pub event_ref: RelativePath,
+    pub event_sha256: Digest256,
+    pub event_size_bytes: u64,
+}
+
 /// An exact v1 snapshot with disposable lookup indexes. It is not admission evidence.
 #[derive(Clone, Debug)]
 pub struct Snapshot {
@@ -43,7 +53,7 @@ pub struct Snapshot {
     files: BTreeMap<RelativePath, MemberMetadata>,
     identities: BTreeMap<String, RelativePath>,
     dependencies: BTreeMap<RelativePath, Vec<RelativePath>>,
-    retirement_count: usize,
+    retirements: Vec<RetirementMetadata>,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -68,7 +78,8 @@ impl Snapshot {
     pub fn validator_sha256(&self) -> Digest256 { self.validator_sha256 }
     pub fn member_count(&self) -> usize { self.files.len() }
     pub fn identity_count(&self) -> usize { self.identities.len() }
-    pub fn retirement_count(&self) -> usize { self.retirement_count }
+    pub fn retirement_count(&self) -> usize { self.retirements.len() }
+    pub fn retirements(&self) -> &[RetirementMetadata] { &self.retirements }
     pub fn member(&self, path: &RelativePath) -> Option<&MemberMetadata> { self.files.get(path) }
     pub fn identity_path(&self, id: &str) -> Option<&RelativePath> { self.identities.get(id) }
     /// These are stored index claims, not a proof that the owner validator found every dependency.
@@ -166,10 +177,10 @@ impl CorpusReader {
         }
         let identities = parse_identities(&value, &files, self.limits.max_manifest_entries)?;
         let dependencies = parse_dependencies(&value, &files, self.limits.max_manifest_entries)?;
-        let retirement_count = validate_retirements(&value, self.limits.max_manifest_entries)?;
+        let retirements = validate_retirements(&value, self.limits.max_manifest_entries)?;
         Ok(Snapshot {
             root: self.root.clone(), revision, base_revision, validator_sha256,
-            files, identities, dependencies, retirement_count,
+            files, identities, dependencies, retirements,
         })
     }
 
@@ -244,8 +255,11 @@ fn check_directory(path: &Path) -> Result<()> {
 }
 
 fn canonical_error(error: FoundationError) -> StoreError {
-    let code = if error.code == FoundationErrorCode::BudgetExceeded { Code::BudgetExceeded }
-        else { Code::InvalidCanonicalSnapshot };
+    let code = match error.code {
+        FoundationErrorCode::BudgetExceeded => Code::BudgetExceeded,
+        FoundationErrorCode::UnsupportedCanonicalNumber => Code::UnsupportedFormat,
+        _ => Code::InvalidCanonicalSnapshot,
+    };
     StoreError::new(code, "invalid canonical corpus JSON")
 }
 
@@ -342,20 +356,22 @@ fn parse_dependencies(value: &JsonValue, files: &BTreeMap<RelativePath, MemberMe
     Ok(result)
 }
 
-fn validate_retirements(value: &JsonValue, maximum: usize) -> Result<usize> {
+fn validate_retirements(value: &JsonValue, maximum: usize) -> Result<Vec<RetirementMetadata>> {
     let entries = array_field(value, "retirements", Code::InvalidRetirementIndex)?;
     check_count(entries.len(), maximum)?;
     let mut seen = BTreeSet::new();
+    let mut retirements = Vec::with_capacity(entries.len());
     for item in entries {
         exact_keys(item, &["path", "sha256", "event_ref", "event_sha256", "event_size_bytes"], Code::InvalidRetirementIndex)?;
         let path = path_field(item, "path", Code::InvalidRetirementIndex)?;
         let sha = digest_field(item, "sha256", Code::InvalidRetirementIndex)?;
         let event_ref = path_field(item, "event_ref", Code::InvalidRetirementIndex)?;
         let event_sha = digest_field(item, "event_sha256", Code::InvalidRetirementIndex)?;
-        uint_field(item, "event_size_bytes", Code::InvalidRetirementIndex)?;
-        if path == event_ref || !seen.insert((path, sha, event_ref, event_sha)) {
+        let event_size_bytes = uint_field(item, "event_size_bytes", Code::InvalidRetirementIndex)?;
+        if path == event_ref || !seen.insert((path.clone(), sha, event_ref.clone(), event_sha)) {
             return Err(StoreError::new(Code::InvalidRetirementIndex, "retirement is self-referential or duplicate"));
         }
+        retirements.push(RetirementMetadata { path, sha256: sha, event_ref, event_sha256: event_sha, event_size_bytes });
     }
-    Ok(entries.len())
+    Ok(retirements)
 }
