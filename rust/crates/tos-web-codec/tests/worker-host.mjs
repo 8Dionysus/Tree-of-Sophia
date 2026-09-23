@@ -7,10 +7,13 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-const [miniflarePackage, bindingPath, wasmPath] = process.argv.slice(2);
-if (!miniflarePackage || !bindingPath || !wasmPath) {
-  throw new Error('usage: node worker-host.mjs MINIFLARE_PACKAGE.json BINDING.js MODULE_bg.wasm');
+const [miniflarePackage, bindingPath, wasmPath, wranglerPath] = process.argv.slice(2);
+if (!miniflarePackage || !bindingPath || !wasmPath || !wranglerPath) {
+  throw new Error('usage: node worker-host.mjs MINIFLARE_PACKAGE.json BINDING.js MODULE_bg.wasm WRANGLER.jsonc');
 }
+const wrangler = await readFile(wranglerPath, 'utf8');
+const compatibilityDate = /^\s*"compatibility_date"\s*:\s*"(\d{4}-\d{2}-\d{2})"/m.exec(wrangler)?.[1];
+if (!compatibilityDate) throw new Error('Wrangler compatibility_date is missing');
 const originalCwd = process.cwd();
 const workerCwd = await mkdtemp(join(tmpdir(), 'tos-web-worker-host-'));
 process.chdir(workerCwd);
@@ -48,7 +51,7 @@ export default {
       { type: 'ESModule', path: join(moduleRoot, 'tos_web_codec.mjs'), contents: generatedGlue },
       { type: 'CompiledWasm', path: join(moduleRoot, 'tos_web_codec_bg.wasm'), contents: generatedWasm },
     ],
-    compatibilityDate: '2026-09-10',
+    compatibilityDate,
   }));
   const good = await mf.dispatchFetch('http://local.test/', {
     method: 'POST', body: '{"f":1e-6}',
@@ -60,7 +63,7 @@ export default {
   });
   assert.equal(duplicate.status, 422);
   assert.equal(duplicate.headers.get('x-tos-error'), 'duplicate_member');
-  console.log(JSON.stringify({ status: 'pass', host: 'local Miniflare/workerd', cases: 2 }));
+  console.log(JSON.stringify({ status: 'pass', host: 'local Miniflare/workerd', compatibility_date: compatibilityDate, cases: 2 }));
 } finally {
   if (mf) await mf.dispose();
   process.chdir(originalCwd);
