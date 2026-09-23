@@ -10,7 +10,8 @@ checkout and never mutates the shared source topology.
 The manifest is the frozen input selection. Every selected Item carries its
 exact metadata record references and SHA-256 values, a rights record and
 posture, and one provider revision/source identity. Every payload carries its
-stable ToS File ID, Item root, provider URL/revision/source ID, byte size,
+stable ToS File ID, Item root, credential-free provider URL (no userinfo,
+query string, or fragment), provider revision/source ID, byte size,
 SHA-256, and optional Git blob SHA-1. `provenance_delta` closes over the same
 record and File sets and binds them to the exact accepted base revision. A
 digest supplied to the command is the operator's immutable-selection check.

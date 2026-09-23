@@ -59,7 +59,8 @@ explicitly selected reviewed records into a new handoff, writes one
 batch-level provenance delta bound to the exact base revision, and acquires
 payloads into an explicit local custody root. It does not read or copy a
 complete relation topology and never creates a per-target `topology-before`
-preimage. Each payload retains its provider URL, provider revision, source ID,
+preimage. Each payload retains a credential-free provider URL (no userinfo,
+query string, or fragment), provider revision, source ID,
 ToS Item/File identity, expected bytes, SHA-256, optional Git blob digest, and
 rights record binding. A content-addressed File ID may recur under separate
 Items, with one destination per File ID within each Item. Custody and fixity

@@ -34,6 +34,7 @@ import stat
 import sys
 import tempfile
 from typing import Any, Callable
+from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
 
 from jsonschema import Draft202012Validator, FormatChecker
@@ -361,6 +362,22 @@ def _copy_metadata_no_clobber(
         temporary.unlink(missing_ok=True)
 
 
+def _validate_public_provider_url(value: str, *, label: str) -> None:
+    try:
+        parsed = urlsplit(value)
+    except ValueError as exc:
+        raise AcquisitionBatchError(f"{label} is malformed") from exc
+    if (
+        parsed.username is not None
+        or parsed.password is not None
+        or parsed.query
+        or parsed.fragment
+    ):
+        raise AcquisitionBatchError(
+            f"{label} must not contain userinfo, a query, or a fragment"
+        )
+
+
 def _validate_semantics(manifest: dict[str, Any]) -> None:
     base_revision = manifest["base_revision"]
     delta = manifest["provenance_delta"]
@@ -380,6 +397,9 @@ def _validate_semantics(manifest: dict[str, Any]) -> None:
         item_root = selection["item_root_ref"]
         _safe_ref(item_root, label="Item root", prefix="ToS/source-witnesses/")
         provider = selection["provider"]
+        _validate_public_provider_url(
+            provider["source_url"], label="provider source_url"
+        )
         record_by_ref: dict[str, dict[str, Any]] = {}
         for record in selection["records"]:
             ref = record["ref"]
@@ -437,6 +457,9 @@ def _validate_semantics(manifest: dict[str, Any]) -> None:
             raise AcquisitionBatchError(f"selection must contain one Item record: {item_ref}")
         item_file_refs: set[str] = set()
         for payload in selection["payload_files"]:
+            _validate_public_provider_url(
+                payload["provider_url"], label="payload provider_url"
+            )
             if payload["item_ref"] != item_ref or payload["item_root_ref"] != item_root:
                 raise AcquisitionBatchError(f"payload Item binding differs: {item_ref}")
             if payload["file_ref"] != f"tos.file.sha256.{payload['sha256']}":

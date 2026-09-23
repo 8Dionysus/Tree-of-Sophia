@@ -960,6 +960,56 @@ else:
             )
         self.assertEqual([], fetch_calls)
 
+    def test_provider_urls_reject_embedded_credentials_before_output_or_fetch(self) -> None:
+        cases = (
+            (
+                "payload-query-token",
+                "payload_url",
+                "https://provider.example/file?X-Amz-Signature=signed-secret",
+            ),
+            (
+                "payload-userinfo",
+                "payload_url",
+                "https://operator:secret@provider.example/file",
+            ),
+            (
+                "provider-source-query",
+                "source_url",
+                "https://provider.example/catalog?access_token=signed-secret",
+            ),
+        )
+        for suffix, target, url in cases:
+            with self.subTest(case=suffix):
+                fetches, _manifest_sha = self._write_manifest(count=1)
+                manifest = json.loads(self.manifest_path.read_text(encoding="utf-8"))
+                selection = manifest["selection"][0]
+                if target == "payload_url":
+                    selection["payload_files"][0]["provider_url"] = url
+                else:
+                    selection["provider"]["source_url"] = url
+                self.manifest_path.write_text(
+                    json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+                    encoding="utf-8",
+                )
+                manifest_sha = hashlib.sha256(self.manifest_path.read_bytes()).hexdigest()
+                output = self.root / f"credential-url-{suffix}"
+                fetch_calls: list[str] = []
+                with self.assertRaisesRegex(
+                    acquisition.AcquisitionBatchError,
+                    "must not contain userinfo, a query, or a fragment",
+                ) as raised:
+                    acquisition.acquire_batch(
+                        manifest_path=self.manifest_path,
+                        metadata_root=self.metadata,
+                        output_root=output,
+                        expected_manifest_sha256=manifest_sha,
+                        fetcher=lambda payload: fetch_calls.append(payload["file_ref"])
+                        or fetches[payload["file_ref"]],
+                    )
+                self.assertNotIn("signed-secret", str(raised.exception))
+                self.assertEqual([], fetch_calls)
+                self.assertFalse(output.exists())
+
     def test_interrupted_prepare_is_rebuilt_before_acquisition(self) -> None:
         fetches, manifest_sha = self._write_manifest(count=1)
         self.output.mkdir()
