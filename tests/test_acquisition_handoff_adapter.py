@@ -882,6 +882,42 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
             )
         self.assertFalse(self.candidate.exists())
 
+    def test_adapter_rejects_unsupported_mode_for_new_source_record(self) -> None:
+        _fetches, _unused_manifest_sha, _item_root, _records = self._write_manifest(
+            base_revision="0" * 64
+        )
+        base_revision = self._write_accepted_base([])
+        fetches, manifest_sha, _item_root, records = self._write_manifest(
+            base_revision=base_revision
+        )
+        result = acquisition.acquire_batch(
+            manifest_path=self.manifest_path,
+            metadata_root=self.metadata,
+            output_root=self.acquisition_root,
+            expected_manifest_sha256=manifest_sha,
+            fetcher=lambda payload: fetches[payload["file_ref"]],
+        )
+        selected_source = self.acquisition_root / "source" / records[0]["ref"]
+        selected_source.chmod(0o600)
+
+        with self.assertRaisesRegex(
+            adapter.HandoffAdapterError,
+            "selected source mode is unsupported for candidate update",
+        ):
+            adapter.adapt_handoff(
+                acquisition_root=self.acquisition_root,
+                handoff_ref=result["handoff_ref"],
+                expected_manifest_sha256=manifest_sha,
+                output_root=self.candidate,
+                accepted_store_root=self.accepted_store,
+                accepted_source_root=self.accepted_source,
+                base_revision=base_revision,
+                validator_sha256=self.validator_sha256,
+                validation_context=self._validation_context(),
+                repo_root=ROOT,
+            )
+        self.assertFalse(self.candidate.exists())
+
     def test_adapter_rejects_unbound_empty_accepted_source_view(self) -> None:
         fetches, _unused_manifest_sha, _item_root, records = self._write_manifest(base_revision="0" * 64)
         base_revision = self._write_accepted_base(records)

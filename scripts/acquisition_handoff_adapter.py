@@ -479,6 +479,10 @@ def _verify_handoff(
             raise HandoffAdapterError(f"handoff rights binding differs: {ref}")
         source = _path_under(acquisition_root, row["handoff_ref"], label="handoff source reference")
         info = _regular(source, label="handoff selected source")
+        if stat.S_IMODE(info.st_mode) != 0o644:
+            raise HandoffAdapterError(
+                f"selected source mode is unsupported for candidate update: {ref}"
+            )
         if info.st_size != row.get("byte_size"):
             raise HandoffAdapterError(f"handoff source size differs: {ref}")
         if _sha256_file(source) != record["sha256"]:

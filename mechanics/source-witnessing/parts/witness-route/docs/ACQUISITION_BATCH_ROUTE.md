@@ -95,9 +95,12 @@ acceptance. The receipt marks this as
 the adapter does not recompute validator identity or claim the grammar/history
 preflight has run. It also binds every custody row to all selected provider
 fields and the handoff run, checks the selected Item rights scope and
-acquisition event, and compares both the payload Git-blob digest and accepted
-source mode before emitting a candidate. It also copies the exact selection manifest, handoff, provenance
-delta, and independent fixity files under
+acquisition event, and compares the payload Git-blob digest and filesystem
+modes before emitting a candidate. Accepted files and selected metadata
+records must use mode `0644`, matching the candidate update contract; other
+modes fail closed rather than being silently rewritten. It also copies the
+exact selection manifest, handoff, provenance delta, and independent fixity
+files under
 `receipts/acquisition-evidence/`. The selected Item provenance event must be
 an `acquisition` event with `status` `completed` or
 `completed_with_warnings`; a failed, stopped, or superseded event cannot be
