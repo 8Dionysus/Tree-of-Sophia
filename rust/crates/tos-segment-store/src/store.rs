@@ -49,7 +49,7 @@ struct Inner {
     staging: File,
     segments: File,
     pins: File,
-    attempts: File,
+    attempts: Option<File>,
     store_id: [u8; 16],
     domain: Vec<u8>,
     domain_digest: Digest256,
@@ -237,7 +237,7 @@ impl SegmentStore {
                 staging,
                 segments,
                 pins,
-                attempts,
+                attempts: Some(attempts),
                 store_id,
                 domain: domain.to_vec(),
                 domain_digest: Digest256::of_bytes(domain),
@@ -252,7 +252,14 @@ impl SegmentStore {
         let staging = open_directory(&root_fd, "staging")?;
         let segments = open_directory(&root_fd, "segments")?;
         let pins = open_directory(&root_fd, "pins")?;
-        let attempts = open_directory(&root_fd, "attempts")?;
+        // Older physical roots remain readable by exact known placement.
+        // Their missing prepare-keyed intent route cannot be used by a new
+        // writer or treated as evidence of an absent historical attempt.
+        let attempts = match open_directory(&root_fd, "attempts") {
+            Ok(attempts) => Some(attempts),
+            Err(error) if is_missing(&error) => None,
+            Err(error) => return Err(error),
+        };
         let mut meta = Vec::new();
         open_regular(&root_fd, "store.meta")?
             .take(65_594)
@@ -653,7 +660,10 @@ impl SegmentStore {
             pin_id,
         )?;
         let name = attempt_name(prepare_id);
-        let mut file = match create_exclusive(&self.inner.attempts, &name) {
+        let attempts = self.inner.attempts.as_ref().ok_or_else(|| {
+            SegmentError::new(Code::InvalidRoot, "store lacks durable attempt intents")
+        })?;
+        let mut file = match create_exclusive(attempts, &name) {
             Ok(file) => file,
             Err(error)
                 if error
@@ -672,7 +682,7 @@ impl SegmentStore {
             .map_err(|error| SegmentError::io("cannot write attempt intent", error))?;
         file.sync_all()
             .map_err(|error| SegmentError::io("cannot sync attempt intent", error))?;
-        fsync(&self.inner.attempts)
+        fsync(attempts)
             .map_err(|error| SegmentError::io("cannot sync attempt directory", error.into()))
     }
 
@@ -683,7 +693,10 @@ impl SegmentStore {
                 "invalid prepare ID",
             ));
         }
-        let file = match open_regular(&self.inner.attempts, &attempt_name(prepare_id)) {
+        let attempts = self.inner.attempts.as_ref().ok_or_else(|| {
+            SegmentError::new(Code::InvalidRoot, "store lacks durable attempt intents")
+        })?;
+        let file = match open_regular(attempts, &attempt_name(prepare_id)) {
             Ok(file) => file,
             Err(error) if is_missing(&error) => return Ok(None),
             Err(error) => return Err(error),
