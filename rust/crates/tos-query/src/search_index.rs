@@ -216,7 +216,7 @@ pub fn visit_complete_postings<M: SearchPostingModel>(
     kind: SearchKind,
     seed: &GramSeed,
     budget: PostingSeekBudget,
-    mut visit: impl FnMut(u64) -> Result<(), SearchV2Error>,
+    mut visit: impl FnMut(&mut M, u64) -> Result<(), SearchV2Error>,
 ) -> Result<GramSeekCharge, SearchV2Error> {
     let gram = seed.gram.as_deref().ok_or_else(|| {
         SearchV2Error::new(
@@ -322,7 +322,7 @@ pub fn visit_complete_postings<M: SearchPostingModel>(
                     "posting list exceeds selected stat count",
                 ));
             }
-            visit(position)?;
+            visit(model, position)?;
         }
         if page.exhausted {
             if visited != seed.postings {

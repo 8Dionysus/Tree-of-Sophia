@@ -211,12 +211,17 @@ fn posting_pages_visit_exact_selected_count_and_admit_completion_probe() {
         page_rows: 2,
     };
     let mut visited = Vec::new();
-    let charged =
-        visit_complete_postings(&mut model, SearchKind::Nodes, &seed, budget, |position| {
+    let charged = visit_complete_postings(
+        &mut model,
+        SearchKind::Nodes,
+        &seed,
+        budget,
+        |_, position| {
             visited.push(position);
             Ok(())
-        })
-        .unwrap();
+        },
+    )
+    .unwrap();
     assert_eq!(visited, [0, 3, 8]);
     assert_eq!(charged.rows, 3);
     assert_eq!(charged.lookups, 2);
@@ -236,7 +241,7 @@ fn posting_pages_visit_exact_selected_count_and_admit_completion_probe() {
         SearchKind::Nodes,
         &exact_page_seed,
         exact_page_budget,
-        |_| Ok(()),
+        |_, _| Ok(()),
     )
     .unwrap();
     assert_eq!(exact_page.lookups, 2); // one full page, then empty completion seek
@@ -246,16 +251,18 @@ fn posting_pages_visit_exact_selected_count_and_admit_completion_probe() {
     one_under.max_rows = 3;
     let before = model.posting_calls;
     assert_eq!(
-        visit_complete_postings(&mut model, SearchKind::Nodes, &seed, one_under, |_| Ok(()))
-            .unwrap_err()
-            .code,
+        visit_complete_postings(&mut model, SearchKind::Nodes, &seed, one_under, |_, _| Ok(
+            ()
+        ))
+        .unwrap_err()
+        .code,
         SearchV2ErrorCode::BudgetExceeded
     );
     assert_eq!(model.posting_calls, before);
 
     model.positions.pop();
     assert_eq!(
-        visit_complete_postings(&mut model, SearchKind::Nodes, &seed, budget, |_| Ok(()))
+        visit_complete_postings(&mut model, SearchKind::Nodes, &seed, budget, |_, _| Ok(()))
             .unwrap_err()
             .code,
         SearchV2ErrorCode::IndexIncomplete

@@ -8,6 +8,7 @@
 mod knowledge_sqlite;
 pub mod search_candidate;
 mod search_document;
+mod search_execute;
 pub mod search_index;
 pub mod search_v2;
 mod source_descend;

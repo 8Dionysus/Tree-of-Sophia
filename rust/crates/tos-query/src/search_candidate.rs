@@ -74,6 +74,13 @@ pub struct VerifiedSearchCandidate {
     pub payload_sha256: Digest256,
 }
 
+#[derive(Clone, Debug)]
+pub(crate) struct ChargedVerifiedCandidate {
+    pub(crate) hit: Option<VerifiedSearchCandidate>,
+    pub(crate) document_code_points: u64,
+    pub(crate) document_bytes: u64,
+}
+
 fn error(code: SearchV2ErrorCode, message: &'static str) -> SearchV2Error {
     SearchV2Error { code, message }
 }
@@ -177,6 +184,15 @@ pub fn verify_search_candidate<V: SelectedQueryVocabulary + ?Sized>(
     vocabulary: &V,
     budget: CandidateVerifyBudget,
 ) -> Result<Option<VerifiedSearchCandidate>, SearchV2Error> {
+    Ok(verify_search_candidate_charged(candidate, request, vocabulary, budget)?.hit)
+}
+
+pub(crate) fn verify_search_candidate_charged<V: SelectedQueryVocabulary + ?Sized>(
+    candidate: SelectedSearchCandidate,
+    request: &NormalizedIndexedSearchV2Request,
+    vocabulary: &V,
+    budget: CandidateVerifyBudget,
+) -> Result<ChargedVerifiedCandidate, SearchV2Error> {
     if candidate.position > i64::MAX as u64
         || candidate.id.is_empty()
         || candidate.source_graph.is_empty()
@@ -261,9 +277,15 @@ pub fn verify_search_candidate<V: SelectedQueryVocabulary + ?Sized>(
             reason.message,
         )
     })?;
+    let document_code_points = document.code_points as u64;
+    let document_bytes = document.lower.len() as u64;
     let needle = request.query();
     if !document.lower.contains(needle) {
-        return Ok(None);
+        return Ok(ChargedVerifiedCandidate {
+            hit: None,
+            document_code_points,
+            document_bytes,
+        });
     }
     if request
         .sources()
@@ -285,7 +307,11 @@ pub fn verify_search_candidate<V: SelectedQueryVocabulary + ?Sized>(
             }
         }
     {
-        return Ok(None);
+        return Ok(ChargedVerifiedCandidate {
+            hit: None,
+            document_code_points,
+            document_bytes,
+        });
     }
     let rank = if id_lower == needle
         || native_lower == needle
@@ -305,11 +331,15 @@ pub fn verify_search_candidate<V: SelectedQueryVocabulary + ?Sized>(
         SearchRank::OtherSerializedCarrierSubstring
     };
     let order = SearchOrderKey::new(rank, id_lower, candidate.position)?;
-    Ok(Some(VerifiedSearchCandidate {
-        order,
-        source_graph: candidate.source_graph,
-        id: candidate.id,
-        payload: candidate.payload,
-        payload_sha256: candidate.payload_sha256,
-    }))
+    Ok(ChargedVerifiedCandidate {
+        hit: Some(VerifiedSearchCandidate {
+            order,
+            source_graph: candidate.source_graph,
+            id: candidate.id,
+            payload: candidate.payload,
+            payload_sha256: candidate.payload_sha256,
+        }),
+        document_code_points,
+        document_bytes,
+    })
 }
