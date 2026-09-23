@@ -7,6 +7,7 @@ use std::collections::BinaryHeap;
 use std::fs::{File, OpenOptions};
 use std::io::{BufReader, BufWriter, Read, Write};
 use std::path::{Path, PathBuf};
+use tos_foundation::{Digest256, Digest256Hasher};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum GlobalFact {
@@ -155,6 +156,16 @@ impl SortFact {
             .map_err(|_| GlobalRefusal::ScratchUnavailable)
     }
 
+    fn hash_into(&self, hasher: &mut Digest256Hasher) {
+        hasher.update(&[self.domain, self.kind]);
+        for value in [&self.namespace, &self.key, &self.source] {
+            hasher.update(&(value.len() as u32).to_be_bytes());
+            hasher.update(value.as_bytes());
+        }
+        hasher.update(&self.start.to_be_bytes());
+        hasher.update(&self.end.to_be_bytes());
+    }
+
     fn read_from(reader: &mut impl Read, max_string: usize) -> Result<Option<Self>, GlobalRefusal> {
         let mut first = [0u8; 1];
         if reader
@@ -218,7 +229,33 @@ pub(crate) struct GlobalFactStore {
     memory_bytes: usize,
     count: u64,
     spilled_bytes: u64,
-    runs: Vec<PathBuf>,
+    runs: Vec<Run>,
+}
+
+struct Run {
+    path: PathBuf,
+    digest: Digest256,
+}
+
+fn run_hasher() -> Digest256Hasher {
+    let mut hasher = Digest256Hasher::new();
+    hasher.update(b"tos-val-fact-run-v1\0");
+    hasher
+}
+
+fn read_checked(
+    reader: &mut impl Read,
+    hasher: &mut Digest256Hasher,
+    expected: Digest256,
+    max_string: usize,
+) -> Result<Option<SortFact>, GlobalRefusal> {
+    let fact = SortFact::read_from(reader, max_string)?;
+    if let Some(ref fact) = fact {
+        fact.hash_into(hasher);
+    } else if hasher.clone().finalize() != expected {
+        return Err(GlobalRefusal::ScratchCorrupt);
+    }
+    Ok(fact)
 }
 
 impl GlobalFactStore {
@@ -296,14 +333,20 @@ impl GlobalFactStore {
             .create_new(true)
             .open(&path)
             .map_err(|_| GlobalRefusal::ScratchUnavailable)?;
-        self.runs.push(path);
+        self.runs.push(Run {
+            path,
+            digest: Digest256::of_bytes(b""),
+        });
+        let mut digest = run_hasher();
         let mut writer = BufWriter::new(file);
         for fact in &self.memory {
             fact.write_to(&mut writer)?;
+            fact.hash_into(&mut digest);
         }
         writer
             .flush()
             .map_err(|_| GlobalRefusal::ScratchUnavailable)?;
+        self.runs.last_mut().expect("created run is tracked").digest = digest.finalize();
         self.spilled_bytes += bytes;
         self.memory.clear();
         self.memory_bytes = 0;
@@ -318,22 +361,33 @@ impl GlobalFactStore {
         self.flush()?;
         let mut readers = Vec::with_capacity(self.runs.len());
         let mut heap = BinaryHeap::new();
-        for (index, path) in self.runs.iter().enumerate() {
-            let file = File::open(path).map_err(|_| GlobalRefusal::ScratchCorrupt)?;
+        let mut hashers = Vec::with_capacity(self.runs.len());
+        for (index, run) in self.runs.iter().enumerate() {
+            let file = File::open(&run.path).map_err(|_| GlobalRefusal::ScratchCorrupt)?;
             let mut reader = BufReader::new(file);
-            if let Some(fact) = SortFact::read_from(&mut reader, self.budget.max_memory_bytes)? {
+            let mut hasher = run_hasher();
+            if let Some(fact) = read_checked(
+                &mut reader,
+                &mut hasher,
+                run.digest,
+                self.budget.max_memory_bytes,
+            )? {
                 heap.push(Reverse((fact, index)));
             }
             readers.push(reader);
+            hashers.push(hasher);
         }
         // The merge itself remains bounded: inspect each fact as it appears,
         // retaining only the current key/interval and bounded issues.
         let mut inspector = Inspector::new(self.budget.max_issues);
         while let Some(Reverse((fact, index))) = heap.pop() {
             inspector.accept(&fact)?;
-            if let Some(next) =
-                SortFact::read_from(&mut readers[index], self.budget.max_memory_bytes)?
-            {
+            if let Some(next) = read_checked(
+                &mut readers[index],
+                &mut hashers[index],
+                self.runs[index].digest,
+                self.budget.max_memory_bytes,
+            )? {
                 heap.push(Reverse((next, index)));
             }
         }
@@ -343,8 +397,8 @@ impl GlobalFactStore {
 
 impl Drop for GlobalFactStore {
     fn drop(&mut self) {
-        for path in &self.runs {
-            let _ = std::fs::remove_file(path);
+        for run in &self.runs {
+            let _ = std::fs::remove_file(&run.path);
         }
     }
 }
@@ -560,5 +614,38 @@ mod tests {
             }),
             Err(GlobalRefusal::BudgetExceeded)
         );
+    }
+
+    #[test]
+    fn changed_spill_bytes_refuse_and_cleanup() {
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let dir = std::env::temp_dir().join(format!(
+            "tos-val-facts-tamper-{}-{nonce}",
+            std::process::id()
+        ));
+        std::fs::create_dir(&dir).unwrap();
+        let mut store = GlobalFactStore::new(budget(80), Some(&dir), "tamper").unwrap();
+        store
+            .push(GlobalFact::Owner {
+                namespace: "ids".into(),
+                key: "a".into(),
+                source: "owner-original".into(),
+            })
+            .unwrap();
+        store.flush().unwrap();
+        let path = store.runs[0].path.clone();
+        let mut bytes = std::fs::read(&path).unwrap();
+        let index = bytes
+            .windows(14)
+            .position(|slice| slice == b"owner-original")
+            .unwrap();
+        bytes[index] = b'X';
+        std::fs::write(path, bytes).unwrap();
+        assert_eq!(store.finish(), Err(GlobalRefusal::ScratchCorrupt));
+        assert_eq!(std::fs::read_dir(&dir).unwrap().count(), 0);
+        std::fs::remove_dir(dir).unwrap();
     }
 }
