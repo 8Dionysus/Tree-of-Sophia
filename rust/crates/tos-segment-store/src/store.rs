@@ -2433,7 +2433,25 @@ mod tests {
         let descriptor_digest = selected.digest();
         drop(selected);
         drop(store);
-        let cold = SegmentStore::open_existing(&root.0, limits()).unwrap();
+        let backup = PrivateRoot::new();
+        fs::copy(root.0.join("store.meta"), backup.0.join("store.meta")).unwrap();
+        for directory in [
+            "staging",
+            "segments",
+            "pins",
+            "attempts",
+            "leaves",
+            "generations",
+        ] {
+            let destination = backup.0.join(directory);
+            fs::create_dir(&destination).unwrap();
+            for entry in fs::read_dir(root.0.join(directory)).unwrap() {
+                let entry = entry.unwrap();
+                assert!(entry.file_type().unwrap().is_file());
+                fs::copy(entry.path(), destination.join(entry.file_name())).unwrap();
+            }
+        }
+        let cold = SegmentStore::open_existing(&backup.0, limits()).unwrap();
         let selected = cold
             .open_generation_candidate(descriptor_digest, &cut, read_limits)
             .unwrap();
@@ -2458,10 +2476,13 @@ mod tests {
         let mut history = selected
             .stream(GenerationNamespaceV1::History, read_limits)
             .unwrap();
-        assert_eq!(
-            history.next_row(deadline, &cancelled).unwrap().unwrap().key,
-            b"h/a/1"
-        );
+        let retained_row = history.next_row(deadline, &cancelled).unwrap().unwrap();
+        assert_eq!(retained_row.key, b"h/a/1");
+        let retained = cold.recover_placement(&retained_row.placement).unwrap();
+        let mut retained_exact = Vec::new();
+        cold.read_selected(&retained, old.len() as u64, &mut retained_exact)
+            .unwrap();
+        assert_eq!(retained_exact, old);
         assert_eq!(
             history.next_row(deadline, &cancelled).unwrap().unwrap().key,
             b"h/a/2"
@@ -2471,10 +2492,13 @@ mod tests {
         let mut current = selected
             .stream(GenerationNamespaceV1::Current, read_limits)
             .unwrap();
-        assert_eq!(
-            current.next_row(deadline, &cancelled).unwrap().unwrap().key,
-            b"c/a"
-        );
+        let current_row = current.next_row(deadline, &cancelled).unwrap().unwrap();
+        assert_eq!(current_row.key, b"c/a");
+        let recovered = cold.recover_placement(&current_row.placement).unwrap();
+        let mut restored_exact = Vec::new();
+        cold.read_selected(&recovered, new.len() as u64, &mut restored_exact)
+            .unwrap();
+        assert_eq!(restored_exact, new);
         assert!(current.next_row(deadline, &cancelled).unwrap().is_none());
         assert_eq!(current.coverage().unwrap().rows, 1);
         let mut tiny = read_limits;
@@ -2513,7 +2537,7 @@ mod tests {
         );
         cancelled.store(false, std::sync::atomic::Ordering::Relaxed);
         let current_leaf = selected.descriptor().current.partitions[0].content_digest;
-        let leaf_path = root.0.join("leaves").join(current_leaf.to_hex());
+        let leaf_path = backup.0.join("leaves").join(current_leaf.to_hex());
         OpenOptions::new()
             .write(true)
             .open(leaf_path)
