@@ -21,6 +21,7 @@ pub mod record_rules;
 pub mod relation_rules;
 pub mod source_copy;
 pub mod source_forms;
+pub mod text_rules;
 
 /// An immutable private prepare view over an exact base plus proposed delta.
 #[derive(Debug, Clone, PartialEq, Eq)]
