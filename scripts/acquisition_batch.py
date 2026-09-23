@@ -1182,6 +1182,10 @@ def _append_journal(path: Path, row: dict[str, Any]) -> None:
                 raise AcquisitionBatchError(
                     f"acquisition journal is not a regular file: {path}"
                 )
+            if journal_stat.st_uid != os.geteuid():
+                raise AcquisitionBatchError(
+                    f"acquisition journal owner differs from current user: {path}"
+                )
             if journal_stat.st_nlink != 1:
                 raise AcquisitionBatchError(
                     f"acquisition journal must have one hard link: {path}"
@@ -1211,6 +1215,10 @@ def _journal_rows(path: Path) -> list[dict[str, Any]]:
             if not stat.S_ISREG(journal_stat.st_mode):
                 raise AcquisitionBatchError(
                     f"acquisition journal is not a regular file: {path}"
+                )
+            if journal_stat.st_uid != os.geteuid():
+                raise AcquisitionBatchError(
+                    f"acquisition journal owner differs from current user: {path}"
                 )
             if journal_stat.st_nlink != 1:
                 raise AcquisitionBatchError(

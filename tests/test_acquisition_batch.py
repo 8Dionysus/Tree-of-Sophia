@@ -925,6 +925,26 @@ class AcquisitionBatchTests(unittest.TestCase):
 
         self.assertEqual(original, outside.read_bytes())
 
+    def test_acquisition_journal_with_unexpected_owner_is_rejected(self) -> None:
+        journal = self.root / "unexpected-owner-journal.jsonl"
+        journal.write_text('{"status":"acquired"}\n', encoding="utf-8")
+        original = journal.read_bytes()
+        owner_uid = journal.stat().st_uid
+
+        with patch.object(acquisition.os, "geteuid", return_value=owner_uid + 1):
+            with self.assertRaisesRegex(
+                acquisition.AcquisitionBatchError,
+                "acquisition journal owner differs from current user",
+            ):
+                acquisition._journal_rows(journal)
+            with self.assertRaisesRegex(
+                acquisition.AcquisitionBatchError,
+                "acquisition journal owner differs from current user",
+            ):
+                acquisition._append_journal(journal, {"status": "failed"})
+
+        self.assertEqual(original, journal.read_bytes())
+
     def test_acquisition_journal_rejects_duplicate_json_keys(self) -> None:
         journal = self.root / "duplicate-journal.jsonl"
         journal.write_text(
