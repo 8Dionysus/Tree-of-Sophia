@@ -247,10 +247,30 @@ struct Work {
 
 impl Work {
     fn charge(&mut self, cost: Charged, budget: Budget) -> Result<(), QueryError> {
-        self.probes = self.probes.saturating_add(cost.probes);
-        self.rows = self.rows.saturating_add(cost.rows);
-        self.bytes = self.bytes.saturating_add(cost.bytes);
-        self.cpu_steps = self.cpu_steps.saturating_add(cost.cpu_steps);
+        self.probes = self.probes.checked_add(cost.probes).ok_or_else(|| {
+            QueryError::new(
+                QueryErrorCode::BudgetExceeded,
+                "source descent probe count overflow",
+            )
+        })?;
+        self.rows = self.rows.checked_add(cost.rows).ok_or_else(|| {
+            QueryError::new(
+                QueryErrorCode::BudgetExceeded,
+                "source descent row count overflow",
+            )
+        })?;
+        self.bytes = self.bytes.checked_add(cost.bytes).ok_or_else(|| {
+            QueryError::new(
+                QueryErrorCode::BudgetExceeded,
+                "source descent byte count overflow",
+            )
+        })?;
+        self.cpu_steps = self.cpu_steps.checked_add(cost.cpu_steps).ok_or_else(|| {
+            QueryError::new(
+                QueryErrorCode::BudgetExceeded,
+                "source descent CPU count overflow",
+            )
+        })?;
         if self.probes > budget.max_probes
             || self.rows > budget.max_rows
             || self.bytes > budget.max_bytes
@@ -525,15 +545,19 @@ fn prepare_source_descend<M: ReadModel>(
                 budget.max_rows.saturating_sub(work.rows),
             )?;
             work.charge(page.charged, budget)?;
+            let page_raw_bytes = page.edges.iter().try_fold(0u64, |total, record| {
+                total.checked_add(record.raw.len() as u64).ok_or_else(|| {
+                    QueryError::new(
+                        QueryErrorCode::BudgetExceeded,
+                        "source descent page byte count overflow",
+                    )
+                })
+            })?;
             work.charge(
                 Charged {
                     probes: 0,
                     rows: 0,
-                    bytes: page
-                        .edges
-                        .iter()
-                        .map(|record| record.raw.len() as u64)
-                        .sum(),
+                    bytes: page_raw_bytes,
                     cpu_steps: page.edges.len() as u64,
                 },
                 budget,
