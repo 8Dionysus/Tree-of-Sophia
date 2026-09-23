@@ -7637,6 +7637,7 @@ def _validate_server_import_plans(
     repo_root: Path,
     server_import_validator: Any,
     boundary_events_by_id: dict[str, dict[str, Any]],
+    item_manifest_refs: set[str],
     issues: list[Issue],
 ) -> None:
     """Validate every present transfer plan against its exact source evidence."""
@@ -7651,6 +7652,13 @@ def _validate_server_import_plans(
         manifest_evidence = payload.get("manifest", {})
         manifest_ref = manifest_evidence.get("ref") if isinstance(manifest_evidence, dict) else None
         if isinstance(manifest_ref, str):
+            if manifest_ref not in item_manifest_refs:
+                issues.append(
+                    (
+                        location,
+                        f"server plan manifest ref is not a discovered item manifest: {manifest_ref}",
+                    )
+                )
             manifest_path = repo_root / manifest_ref
             manifest = _load_json(manifest_path, repo_root, issues)
             if manifest is not None:
@@ -8259,14 +8267,16 @@ def _validate_foundation(
     claim_ids: set[str] = set()
     rights_ids: set[str] = set()
     manifest_item_ids: set[str] = set()
+    item_manifest_refs: set[str] = set()
     item_edition_by_id: dict[str, str] = {}
     file_memberships = SourceFileMembershipIndex()
 
     for manifest_path in sorted((repo_root / SOURCE_ROOT).rglob("item.manifest.json")):
+        location = _relative(manifest_path, repo_root)
+        item_manifest_refs.add(location)
         manifest = _load_json(manifest_path, repo_root, issues)
         if manifest is None:
             continue
-        location = _relative(manifest_path, repo_root)
         _validate_payload(manifest, manifest_validator, location, issues)
         _validate_source_refs(repo_root, manifest, location, issues)
         item_id = manifest.get("item_id")
@@ -13892,6 +13902,7 @@ def _validate_foundation(
         repo_root,
         server_import_validator,
         boundary_events_by_id,
+        item_manifest_refs,
         issues,
     )
 
