@@ -20,7 +20,9 @@ use tos_foundation::{
 };
 
 pub const KNOWLEDGE_MODEL_ABI: &str = "tos_knowledge_read_model_v1";
-pub const KNOWLEDGE_SEARCH_PROFILE: &str = "tos-python-native-unicode-v1";
+// Query vocabulary's semantic primitive profile is distinct from the
+// search-index Unicode normalization profile.
+pub const KNOWLEDGE_QUERY_PRIMITIVE_PROFILE: &str = "tos-query-primitives-v1";
 
 #[derive(Clone, Debug)]
 pub struct ExpectedSourceScope {
@@ -203,7 +205,7 @@ fn validate(expected: &KnowledgeSelectedExpectation, limits: ColdOpenLimits) -> 
             return Err(Error::Invalid("knowledge selection field"));
         }
     }
-    if expected.semantic_primitive_profile != KNOWLEDGE_SEARCH_PROFILE
+    if expected.semantic_primitive_profile != KNOWLEDGE_QUERY_PRIMITIVE_PROFILE
         || expected.descriptor_version == 0
     {
         return Err(Error::Invalid("knowledge selection profile/version"));
@@ -1217,11 +1219,16 @@ fn verify_schema(db: &Connection) -> Result<()> {
             let notnull: i64 = row.get(3)?;
             let pk: i64 = row.get(5)?;
             let hidden: i64 = row.get(6)?;
+            let nullable = matches!(
+                (table, name.as_str()),
+                ("graph_header", "singleton")
+                    | ("knowledge_nodes", "native_id" | "entity_id")
+                    | ("knowledge_relations", "native_id")
+            );
             if name != parts.next().unwrap()
                 || ty.to_ascii_uppercase() != parts.next().unwrap()
                 || pk.to_string() != parts.next().unwrap()
-                || (notnull != 1
-                    && !(table == "graph_header" && name == "singleton" && notnull == 0))
+                || notnull != i64::from(!nullable)
                 || hidden != 0
             {
                 return Err(Error::Invalid("knowledge table column shape"));
@@ -1767,7 +1774,7 @@ mod tests {
             model_abi: KNOWLEDGE_MODEL_ABI.into(),
             descriptor_sha256: EMPTY.into(),
             descriptor_version: 1,
-            semantic_primitive_profile: KNOWLEDGE_SEARCH_PROFILE.into(),
+            semantic_primitive_profile: KNOWLEDGE_QUERY_PRIMITIVE_PROFILE.into(),
             source_cut: "cut".into(),
             through_commit_seq: 0,
             membership_root: EMPTY.into(),
