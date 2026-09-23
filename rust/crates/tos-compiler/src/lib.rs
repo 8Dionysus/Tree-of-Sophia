@@ -15,6 +15,7 @@ pub mod knowledge_normalization;
 mod knowledge_ordered;
 pub mod knowledge_philosophy_display;
 mod knowledge_philosophy_prepare;
+mod knowledge_readable_context;
 mod knowledge_registry;
 mod knowledge_scope;
 mod knowledge_seal;
@@ -50,6 +51,9 @@ pub use knowledge_ordered::{
 pub use knowledge_philosophy_prepare::{
     PhilosophyExternalDependency, PhilosophyPrepareLimits, PhilosophyPrepareReceipt,
     prepare_philosophy,
+};
+pub use knowledge_readable_context::{
+    ReadableContextCarrier, ReadableContextCompiler, ReadableContextLimits,
 };
 pub use knowledge_registry::{KnowledgeRegistry, ResolvedType};
 pub use knowledge_scope::{ScopeLimits, ScopeReceipt, write_source_scope};
