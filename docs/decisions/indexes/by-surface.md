@@ -39,6 +39,7 @@
 ## access/runtime
 
 - [TOS-D-0062 - TOS-D-0062 Independent Software, Corpus and Integration Releases](../TOS-D-0062-independent-software-corpus-and-integration-releases.md) (`docs/decisions/TOS-D-0062-independent-software-corpus-and-integration-releases.md`)
+- [TOS-D-0069 - TOS-D-0069 Rust execution foundation for corpus growth](../TOS-D-0069-rust-execution-foundation.md) (`docs/decisions/TOS-D-0069-rust-execution-foundation.md`)
 
 ## agent route
 
@@ -106,6 +107,7 @@
 - [TOS-D-0064 - Explicit Claim display fields retain source and permission boundaries](../TOS-D-0064-scoped-claim-display-fields.md) (`docs/decisions/TOS-D-0064-scoped-claim-display-fields.md`)
 - [TOS-D-0067 - Typed historical-time source wording in Claim navigation](../TOS-D-0067-typed-time-claim-navigation.md) (`docs/decisions/TOS-D-0067-typed-time-claim-navigation.md`)
 - [TOS-D-0068 - Subject-first foundation wording with exact historical continuity](../TOS-D-0068-subject-first-foundation-wording-and-retained-history.md) (`docs/decisions/TOS-D-0068-subject-first-foundation-wording-and-retained-history.md`)
+- [TOS-D-0069 - TOS-D-0069 Rust execution foundation for corpus growth](../TOS-D-0069-rust-execution-foundation.md) (`docs/decisions/TOS-D-0069-rust-execution-foundation.md`)
 
 ## derived-export
 
@@ -185,6 +187,7 @@
 - [TOS-D-0044 - TOS-D-0044 End the Temporary KAG Freeze](../TOS-D-0044-end-temporary-kag-freeze.md) (`docs/decisions/TOS-D-0044-end-temporary-kag-freeze.md`)
 - [TOS-D-0058 - Traceable research registry imports and local source planting](../TOS-D-0058-research-registry-import-and-local-source-planting.md) (`docs/decisions/TOS-D-0058-research-registry-import-and-local-source-planting.md`)
 - [TOS-D-0062 - TOS-D-0062 Independent Software, Corpus and Integration Releases](../TOS-D-0062-independent-software-corpus-and-integration-releases.md) (`docs/decisions/TOS-D-0062-independent-software-corpus-and-integration-releases.md`)
+- [TOS-D-0069 - TOS-D-0069 Rust execution foundation for corpus growth](../TOS-D-0069-rust-execution-foundation.md) (`docs/decisions/TOS-D-0069-rust-execution-foundation.md`)
 
 ## docs/testing
 
@@ -271,6 +274,10 @@
 - [TOS-D-0005 - Mechanics Operation Topology](../TOS-D-0005-mechanics-operation-topology.md) (`docs/decisions/TOS-D-0005-mechanics-operation-topology.md`)
 - [TOS-D-0007 - Doctrine Mechanics And Zarathustra Route Correction](../TOS-D-0007-doctrine-mechanics-and-zarathustra-route-correction.md) (`docs/decisions/TOS-D-0007-doctrine-mechanics-and-zarathustra-route-correction.md`)
 - [TOS-D-0043 - TOS-D-0043 Spark And Legacy Scaffolding Retirement](../TOS-D-0043-spark-and-legacy-scaffolding-retirement.md) (`docs/decisions/TOS-D-0043-spark-and-legacy-scaffolding-retirement.md`)
+
+## mechanics
+
+- [TOS-D-0069 - TOS-D-0069 Rust execution foundation for corpus growth](../TOS-D-0069-rust-execution-foundation.md) (`docs/decisions/TOS-D-0069-rust-execution-foundation.md`)
 
 ## mechanics/agon
 
@@ -407,6 +414,7 @@
 - [TOS-D-0059 - Partitioned projections and explicit query compilation](../TOS-D-0059-partitioned-projections-and-explicit-query-compilation.md) (`docs/decisions/TOS-D-0059-partitioned-projections-and-explicit-query-compilation.md`)
 - [TOS-D-0062 - TOS-D-0062 Independent Software, Corpus and Integration Releases](../TOS-D-0062-independent-software-corpus-and-integration-releases.md) (`docs/decisions/TOS-D-0062-independent-software-corpus-and-integration-releases.md`)
 - [TOS-D-0068 - Subject-first foundation wording with exact historical continuity](../TOS-D-0068-subject-first-foundation-wording-and-retained-history.md) (`docs/decisions/TOS-D-0068-subject-first-foundation-wording-and-retained-history.md`)
+- [TOS-D-0069 - TOS-D-0069 Rust execution foundation for corpus growth](../TOS-D-0069-rust-execution-foundation.md) (`docs/decisions/TOS-D-0069-rust-execution-foundation.md`)
 
 ## source-home
 

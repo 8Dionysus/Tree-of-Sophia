@@ -57,12 +57,16 @@ use the full suite; a missing or failed selector fails the required gate.
 | `access/web/` or `access/e2e/` code/configuration | Software contracts, browser build/unit/types/behavior, isolated software package install |
 | `access/src/` or `access/tests/` | The browser/package checks, reader/API fixture tests, and Worker cross-adapter tests |
 | `access/deploy/cloudflare-worker/` code/configuration | Worker type and behavior tests, including cross-adapter fixtures |
-| Shared contracts/profiles, packaging, dependencies, scripts, workflow, owner cards, source surfaces or any other path | Full software release suite and Worker tests |
+| `Cargo.toml`, `Cargo.lock`, `rust-toolchain.toml`, `rust/` or `tests/conformance/rust/` | Pinned Rust workspace formatting, native tests, WASM target check and isolated exact reader install |
+| Shared contracts/profiles, packaging, dependencies, scripts, workflow, owner cards, source surfaces or any other path | Full software release suite, Worker tests and Rust workspace |
 
 A combined change takes all needed checks. Human Markdown is identified before
 its surrounding implementation directory; `ToS/` source Markdown does not use
 the documentation-only shortcut. Source assessment/admission still belongs to
 its owner, not to a green software gate. This selector does not publish data.
+The Rust job uses its own sparse checkout and temporary Cargo cache. The
+installed reader checks exact old/current bytes from a tiny synthetic store;
+public access and larger runtime profiles remain subject to later gates.
 
 PR and `main` checks use the same rules. `workflow_dispatch` explicitly runs the
 full release suite, as does the local `python scripts/release_check.py` command
