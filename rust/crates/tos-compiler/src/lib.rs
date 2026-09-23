@@ -10,6 +10,7 @@ mod knowledge_full;
 pub mod knowledge_full_fixture;
 mod knowledge_indexed;
 mod knowledge_inherited_views;
+mod knowledge_navigation_finalize;
 pub mod knowledge_normalization;
 mod knowledge_ordered;
 pub mod knowledge_philosophy_display;
@@ -37,6 +38,9 @@ pub use knowledge_indexed::{IndexedLimits, IndexedReceipt, materialize_indexed_s
 pub use knowledge_inherited_views::{
     CompleteRelationSeal, InheritedViewLimits, InheritedViewReceipt, clear_inherited_views,
     endpoint_inherited_views, prepare_global_inherited_views,
+};
+pub use knowledge_navigation_finalize::{
+    NavigationFinalizeLimits, NavigationInheritedReceipt, apply_navigation_inherited_views,
 };
 pub use knowledge_ordered::{
     NormalizedNodeCandidate, NormalizedRelationCandidate, OrderedCandidateLimits,
