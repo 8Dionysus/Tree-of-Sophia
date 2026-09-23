@@ -5,11 +5,11 @@
 //! objects through `serde_json::Value`, whose maps sort keys. The witness is
 //! checked for exact canonical value equality with the normalized carrier.
 
-use crate::{knowledge_normalization::stable_digest, Error, Result};
-use serde_json::{json, Map, Value};
+use crate::{Error, Result, knowledge_normalization::stable_digest};
+use serde_json::{Map, Value, json};
 use std::collections::{BTreeMap, BTreeSet};
 use tos_foundation::{
-    canonical_bytes_v1, parse_json, CanonicalProfile, Digest256, JsonLimits, JsonMode, JsonValue,
+    CanonicalProfile, Digest256, JsonLimits, JsonMode, JsonValue, canonical_bytes_v1, parse_json,
 };
 
 const MAX_REGISTRY_BYTES: usize = 4 * 1024 * 1024;
@@ -1243,12 +1243,14 @@ mod tests {
     }
     #[test]
     fn ordered_source_claim_matches_independent_python_oracle() {
-        assert!(ReadableContextCompiler::from_selected_registry_bytes(
-            ENTITY,
-            &"0".repeat(64),
-            limits()
-        )
-        .is_err());
+        assert!(
+            ReadableContextCompiler::from_selected_registry_bytes(
+                ENTITY,
+                &"0".repeat(64),
+                limits()
+            )
+            .is_err()
+        );
         let compiler = ReadableContextCompiler::from_selected_registry_bytes(
             ENTITY,
             &Digest256::of_bytes(ENTITY).to_hex(),
@@ -1370,9 +1372,11 @@ mod tests {
         };
         assert_eq!(Digest256::of_bytes(&packet).to_hex(), ORACLE_NUMERIC);
         let sidecar: Value = serde_json::from_slice(&packet).unwrap();
-        assert!(sidecar["exact_materials"][0]["canonical_json"]
-            .as_str()
-            .unwrap()
-            .contains("[1,1.0,9007199254740993,-0.0,1e-07,1e+21,false]"));
+        assert!(
+            sidecar["exact_materials"][0]["canonical_json"]
+                .as_str()
+                .unwrap()
+                .contains("[1,1.0,9007199254740993,-0.0,1e-07,1e+21,false]")
+        );
     }
 }

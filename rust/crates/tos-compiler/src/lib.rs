@@ -23,8 +23,8 @@ mod knowledge_search;
 mod knowledge_selected;
 mod knowledge_source_claims_prepare;
 mod knowledge_source_navigation_node;
-mod knowledge_source_navigation_relation;
 mod knowledge_source_navigation_prepare;
+mod knowledge_source_navigation_relation;
 pub mod knowledge_stage;
 mod legacy;
 mod publication;
@@ -72,14 +72,14 @@ pub use knowledge_source_navigation_node::{
     NavigationBaseNode, NavigationEndpoint, NavigationNodeLimits, NavigationNodeNormalizer,
     NavigationPlaceholderBase,
 };
+pub use knowledge_source_navigation_prepare::{
+    NavigationExternalDependency, NavigationHeaderClaim, NavigationPrepareLimits,
+    NavigationPrepareReceipt, prepare_source_navigation,
+};
 pub use knowledge_source_navigation_relation::{
     NavigationBaseRelation, NavigationRelationDependencyReceipt, NavigationRelationGlobalInputs,
     NavigationRelationLimits, NavigationRelationNormalizeLimits, NavigationRelationNormalizer,
     direct_assertion_context, prepare_navigation_relation_dependencies,
-};
-pub use knowledge_source_navigation_prepare::{
-    NavigationExternalDependency, NavigationHeaderClaim, NavigationPrepareLimits,
-    NavigationPrepareReceipt, prepare_source_navigation,
 };
 pub use legacy::LegacyPartitionedNavigation;
 pub use publication::{PublicationAuthority, PublishedReceipt, SelectionFence, publish_candidate};
