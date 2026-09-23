@@ -13,6 +13,10 @@ use std::{
     io::Seek,
     os::fd::AsRawFd,
     path::{Path, PathBuf},
+    sync::{
+        Arc,
+        atomic::{AtomicU64, Ordering},
+    },
 };
 use tos_foundation::{Digest256, JsonMode};
 
@@ -56,6 +60,7 @@ pub struct VerifiedSelectedModel {
     pinned: File,
     selection: VerifiedSelection,
     cold_open_vm_steps: u64,
+    open_vm_steps: u64,
 }
 impl VerifiedSelectedModel {
     pub fn selection(&self) -> &VerifiedSelection {
@@ -66,6 +71,11 @@ impl VerifiedSelectedModel {
     }
     pub fn connection_mut(&mut self) -> &mut Connection {
         &mut self.connection
+    }
+    /// Actual SQLite VM instructions charged while opening and checking this
+    /// reader. This excludes the independently capped full-file SHA I/O.
+    pub fn open_vm_steps(&self) -> u64 {
+        self.open_vm_steps
     }
     /// Cheap local FD continuity check. The owner must separately renew the
     /// sealed source pin and current disclosure/rights fence; this does not
@@ -83,12 +93,13 @@ impl VerifiedSelectedModel {
     pub fn fork_reader(&self) -> Result<Self> {
         self.check_pin()?;
         let pinned = self.pinned.try_clone()?;
-        let connection = open_sqlite(&pinned, self.cold_open_vm_steps)?;
+        let (connection, vm_counter) = open_sqlite(&pinned, self.cold_open_vm_steps)?;
         Ok(Self {
             connection,
             pinned,
             selection: self.selection.clone(),
             cold_open_vm_steps: self.cold_open_vm_steps,
+            open_vm_steps: vm_counter.load(Ordering::Relaxed),
         })
     }
     pub fn into_parts(self) -> (Connection, File, VerifiedSelection) {
@@ -115,7 +126,7 @@ fn metadata(db: &Connection, key: &str, max_bytes: usize) -> Result<String> {
     ))
 }
 
-fn open_sqlite(pinned: &File, max_vm_steps: u64) -> Result<Connection> {
+fn open_sqlite(pinned: &File, max_vm_steps: u64) -> Result<(Connection, Arc<AtomicU64>)> {
     if max_vm_steps == 0 {
         return Err(Error::Budget("cold-open SQLite VM steps"));
     }
@@ -129,16 +140,19 @@ fn open_sqlite(pinned: &File, max_vm_steps: u64) -> Result<Connection> {
             | OpenFlags::SQLITE_OPEN_URI
             | OpenFlags::SQLITE_OPEN_NO_MUTEX,
     )?;
-    let mut used = 0u64;
+    let used = Arc::new(AtomicU64::new(0));
+    let callback_used = Arc::clone(&used);
     db.progress_handler(
         1,
         Some(move || {
-            used = used.saturating_add(1);
-            used >= max_vm_steps
+            callback_used
+                .fetch_add(1, Ordering::Relaxed)
+                .saturating_add(1)
+                >= max_vm_steps
         }),
     );
     db.execute_batch("PRAGMA query_only=ON; PRAGMA trusted_schema=OFF;")?;
-    Ok(db)
+    Ok((db, used))
 }
 
 pub fn open_selected_model(
@@ -190,7 +204,7 @@ pub fn open_selected_model(
         return Err(Error::Invalid("selected model digest/size mismatch"));
     }
     pinned.rewind()?;
-    let db = open_sqlite(&pinned, expected.max_cold_open_vm_steps)?;
+    let (db, vm_counter) = open_sqlite(&pinned, expected.max_cold_open_vm_steps)?;
     for (key, expected_value) in [
         ("model_abi", MODEL_ABI),
         ("selection_profile", SELECTION_PROFILE),
@@ -231,6 +245,7 @@ pub fn open_selected_model(
         connection: db,
         pinned,
         cold_open_vm_steps: expected.max_cold_open_vm_steps,
+        open_vm_steps: vm_counter.load(Ordering::Relaxed),
         selection: VerifiedSelection {
             model_sha256: digest,
             model_size_bytes: size,

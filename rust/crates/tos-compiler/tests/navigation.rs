@@ -429,6 +429,8 @@ fn selection_is_atomic_and_requires_exact_previous_pointer() {
     )
     .unwrap();
     assert_eq!(verified.selection().authority_boundary, "fixture");
+    assert!(verified.open_vm_steps() > 0);
+    assert!(verified.open_vm_steps() < 1_000_000);
     verified.check_pin().unwrap();
     let visible: u64 = verified
         .connection_mut()
@@ -476,6 +478,8 @@ fn selection_is_atomic_and_requires_exact_previous_pointer() {
         .unwrap();
     assert_eq!(still_visible, 2);
     let mut sibling = verified.fork_reader().unwrap();
+    assert!(sibling.open_vm_steps() > 0);
+    assert!(sibling.open_vm_steps() < 1_000_000);
     let sibling_visible: u64 = sibling
         .connection_mut()
         .query_row("SELECT count(*) FROM nodes WHERE visible=1", [], |r| {
