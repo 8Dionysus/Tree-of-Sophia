@@ -5,6 +5,8 @@
 //! treats projection presence as source authority or current rights.
 
 #[cfg(not(target_arch = "wasm32"))]
+mod knowledge_binding;
+#[cfg(not(target_arch = "wasm32"))]
 mod knowledge_sqlite;
 pub mod search_candidate;
 mod search_document;
@@ -15,6 +17,8 @@ mod source_descend;
 #[cfg(not(target_arch = "wasm32"))]
 mod sqlite;
 
+#[cfg(not(target_arch = "wasm32"))]
+pub use knowledge_binding::{BoundCmpKnowledge, bind_verified_knowledge};
 pub use search_document::{
     SearchDocumentBudget, VerifiedSearchDocument, verify_indexed_search_document,
 };

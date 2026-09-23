@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 
 use tos_foundation::{
     CanonicalProfile, Digest256, JsonLimits, JsonMode, JsonValue, canonical_bytes_v1, parse_json,
@@ -21,8 +21,6 @@ use tos_query::search_v2::{
 struct FixtureVocabulary {
     binding: QueryVocabularyBinding,
     sources: Vec<String>,
-    kinds: BTreeSet<String>,
-    predicates: BTreeSet<String>,
 }
 
 impl FixtureVocabulary {
@@ -30,18 +28,9 @@ impl FixtureVocabulary {
         Self {
             binding: QueryVocabularyBinding {
                 descriptor_sha256: Digest256::of_bytes(b"fixture vocabulary descriptor"),
-                descriptor_version: "fixture-v1".into(),
-                membership_root: Digest256::of_bytes(b"fixture vocabulary membership"),
+                descriptor_version: 1,
             },
             sources: vec!["fixture-source-a".into(), "fixture-source-z".into()],
-            kinds: ["fixture-kind-a", "fixture-kind-z"]
-                .into_iter()
-                .map(str::to_owned)
-                .collect(),
-            predicates: ["fixture-predicate-a", "fixture-predicate-z"]
-                .into_iter()
-                .map(str::to_owned)
-                .collect(),
         }
     }
 }
@@ -53,14 +42,6 @@ impl SelectedQueryVocabulary for FixtureVocabulary {
 
     fn registered_source_ids(&self) -> &[String] {
         &self.sources
-    }
-
-    fn contains_kind_id(&self, id: &str) -> bool {
-        self.kinds.contains(id)
-    }
-
-    fn contains_predicate_id(&self, id: &str) -> bool {
-        self.predicates.contains(id)
     }
 }
 
@@ -495,28 +476,14 @@ fn request_refuses_unknown_membership_and_invalid_page_limits() {
             .code,
         SearchV2ErrorCode::InvalidRequest
     );
-    let mut unknown_kind = request("query");
-    unknown_kind
-        .kind_ids
-        .push("not-in-selected-descriptor".into());
-    assert_eq!(
-        unknown_kind
-            .normalize(&selected, &vocabulary)
-            .unwrap_err()
-            .code,
-        SearchV2ErrorCode::InvalidRequest
-    );
-    let mut unknown_predicate = request("query");
-    unknown_predicate
+    let mut unknown_terms = request("query");
+    unknown_terms.kind_ids.push("unseen-owner-kind".into());
+    unknown_terms
         .predicate_ids
-        .push("not-in-selected-descriptor".into());
-    assert_eq!(
-        unknown_predicate
-            .normalize(&selected, &vocabulary)
-            .unwrap_err()
-            .code,
-        SearchV2ErrorCode::InvalidRequest
-    );
+        .push("unseen-owner-predicate".into());
+    let normalized = unknown_terms.normalize(&selected, &vocabulary).unwrap();
+    assert_eq!(normalized.kind_ids(), ["unseen-owner-kind"]);
+    assert_eq!(normalized.predicate_ids(), ["unseen-owner-predicate"]);
 
     for limit in [0, 101] {
         let mut invalid = request("query");
@@ -586,7 +553,7 @@ fn selection_must_be_complete_profiled_and_bound_to_selected_vocabulary() {
     );
 
     let mut stale = selection(&vocabulary);
-    stale.vocabulary.membership_root = Digest256::of_bytes(b"different selected root");
+    stale.vocabulary.descriptor_sha256 = Digest256::of_bytes(b"different selected descriptor");
     assert_eq!(
         request("query")
             .normalize(&stale, &vocabulary)
@@ -793,7 +760,6 @@ fn selected_candidates_match_independent_cpython_rank_and_false_positive_oracle(
         .sources
         .extend(["philosophy".into(), "canon".into()]);
     vocabulary.sources.sort();
-    vocabulary.kinds.insert("example".into());
     let selected = selection(&vocabulary);
     let normalized = request(field(&oracle, "query").as_str().unwrap())
         .normalize(&selected, &vocabulary)

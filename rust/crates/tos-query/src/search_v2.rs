@@ -21,14 +21,13 @@ pub const SEARCH_V2_MAX_FILTER_VALUES: usize = 100;
 pub const SEARCH_V2_MAX_FILTER_VALUE_CODE_POINTS: usize = 256;
 pub const SEARCH_V2_MAX_FILTER_VALUE_UTF8_BYTES: usize = 4 * SEARCH_V2_MAX_FILTER_VALUE_CODE_POINTS;
 
-/// Descriptor identity and the selected, source-owned vocabulary membership
-/// root. The vocabulary provider supplies exact membership checks; QRY does
-/// not carry a closed list of source, kind, or predicate IDs.
+/// Exact authored descriptor identity. The selected source registration list
+/// and CMP's sealed source scopes are checked separately; no second
+/// vocabulary membership root is invented.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct QueryVocabularyBinding {
     pub descriptor_sha256: Digest256,
-    pub descriptor_version: String,
-    pub membership_root: Digest256,
+    pub descriptor_version: u64,
 }
 
 /// Membership view for one selected descriptor. Implementations must be
@@ -39,8 +38,6 @@ pub trait SelectedQueryVocabulary {
     /// registered sources with zero selected rows. Derived source_scope rows
     /// cannot create registration.
     fn registered_source_ids(&self) -> &[String];
-    fn contains_kind_id(&self, id: &str) -> bool;
-    fn contains_predicate_id(&self, id: &str) -> bool;
 }
 
 /// The immutable selection fields that determine this semantic search view.
@@ -177,15 +174,11 @@ impl IndexedSearchV2Request {
             },
             "source",
         )?;
-        let kind_ids =
-            canonical_filter(self.kind_ids, |id| vocabulary.contains_kind_id(id), "kind")?
-                .unwrap_or_default();
-        let predicate_ids = canonical_filter(
-            self.predicate_ids,
-            |id| vocabulary.contains_predicate_id(id),
-            "predicate",
-        )?
-        .unwrap_or_default();
+        // The authored vocabulary does not enumerate all possible owner
+        // kind/predicate literals. Exact filters may match zero selected rows.
+        let kind_ids = canonical_filter(self.kind_ids, |_| true, "kind")?.unwrap_or_default();
+        let predicate_ids =
+            canonical_filter(self.predicate_ids, |_| true, "predicate")?.unwrap_or_default();
 
         Ok(NormalizedIndexedSearchV2Request {
             query,
@@ -250,8 +243,8 @@ fn canonical_filter(
                 SearchV2ErrorCode::InvalidRequest,
                 match field {
                     "source" => "indexed search v2 source filter is not in the selected vocabulary",
-                    "kind" => "indexed search v2 kind filter is not in the selected vocabulary",
-                    _ => "indexed search v2 predicate filter is not in the selected vocabulary",
+                    "kind" => "indexed search v2 kind filter is empty or overlong",
+                    _ => "indexed search v2 predicate filter is empty or overlong",
                 },
             ));
         }
@@ -294,7 +287,7 @@ fn validate_selection<V: SelectedQueryVocabulary + ?Sized>(
         || selection.index_generation.is_empty()
         || selection.route_map_version.is_empty()
         || selection.reader_abi.is_empty()
-        || selection.vocabulary.descriptor_version.is_empty()
+        || selection.vocabulary.descriptor_version == 0
         || &selection.vocabulary != vocabulary.binding()
         || vocabulary
             .registered_source_ids()

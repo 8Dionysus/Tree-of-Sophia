@@ -384,12 +384,6 @@ mod tests {
         fn registered_source_ids(&self) -> &[String] {
             &self.sources
         }
-        fn contains_kind_id(&self, _: &str) -> bool {
-            true
-        }
-        fn contains_predicate_id(&self, _: &str) -> bool {
-            true
-        }
     }
 
     fn fixture() -> (
@@ -407,8 +401,7 @@ mod tests {
         .into_root();
         let binding = QueryVocabularyBinding {
             descriptor_sha256: Digest256::of_bytes(b"fixture descriptor"),
-            descriptor_version: "fixture-v1".into(),
-            membership_root: Digest256::of_bytes(b"fixture vocabulary members"),
+            descriptor_version: 1,
         };
         let vocabulary = Vocabulary {
             binding: binding.clone(),
