@@ -180,12 +180,8 @@ jobs:
   rust:
     needs: plan
     if: ${{ needs.plan.outputs.rust == 'true' }}
-    name: Rust Workspace and Installed Probe
+    name: Rust Workspace and Installed Reader
     runs-on: ubuntu-latest
-    env:
-      CARGO_HOME: ${{ runner.temp }}/cargo-home
-      CARGO_TARGET_DIR: ${{ runner.temp }}/cargo-target
-      CARGO_BUILD_JOBS: "2"
     steps:
       - name: Checkout Rust sources and validation route
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
@@ -205,6 +201,10 @@ jobs:
           rustup toolchain install 1.98.1 --profile minimal --component rustfmt --target wasm32-unknown-unknown
           rustup default 1.98.1
       - name: Verify Rust workspace and isolated install
+        env:
+          CARGO_HOME: ${{ runner.temp }}/cargo-home
+          CARGO_TARGET_DIR: ${{ runner.temp }}/cargo-target
+          CARGO_BUILD_JOBS: "2"
         run: python scripts/validation_lanes.py --run rust_workspace
 
   required_gate:
