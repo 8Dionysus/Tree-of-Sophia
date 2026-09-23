@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from contextlib import redirect_stderr
 import hashlib
 from http.client import IncompleteRead, LineTooLong
+import io
 import json
 import os
 from pathlib import Path
@@ -361,6 +363,82 @@ class AcquisitionBatchTests(unittest.TestCase):
         with self.assertRaisesRegex(acquisition.AcquisitionBatchError, "owner-only"):
             acquisition.verify_local(output_root=self.output)
         self.output.chmod(0o700)
+
+    def test_directory_creation_races_are_bounded_before_custody_writes(self) -> None:
+        _fetches, manifest_sha = self._write_manifest(count=1)
+        real_mkdir = acquisition.os.mkdir
+        cases = (
+            ("prepare", "output"),
+            ("acquire", "output"),
+            ("acquire", "source"),
+        )
+        for operation, race_target in cases:
+            with self.subTest(operation=operation, race_target=race_target):
+                output = self.root / f"race-{operation}-{race_target}"
+                marker = (
+                    output / "operator-owned"
+                    if race_target == "output"
+                    else output / "source" / "operator-owned"
+                )
+                created = False
+
+                def create_racing_directory(
+                    path: Path | str,
+                    mode: int = 0o777,
+                    *,
+                    dir_fd: int | None = None,
+                ) -> None:
+                    nonlocal created
+                    matches_output = (
+                        race_target == "output"
+                        and dir_fd is None
+                        and Path(path) == output
+                    )
+                    matches_child = (
+                        race_target == "source"
+                        and dir_fd is not None
+                        and path == "source"
+                    )
+                    if not created and (matches_output or matches_child):
+                        real_mkdir(path, mode, dir_fd=dir_fd)
+                        marker.write_text(
+                            "preserve concurrent output\n", encoding="utf-8"
+                        )
+                        created = True
+                        raise FileExistsError("concurrent directory creation")
+                    real_mkdir(path, mode, dir_fd=dir_fd)
+
+                stderr = io.StringIO()
+                with patch.object(
+                    acquisition.os, "mkdir", side_effect=create_racing_directory
+                ), patch.object(
+                    acquisition, "_fetch_url"
+                ) as fetch, redirect_stderr(stderr):
+                    status = acquisition.main(
+                        [
+                            operation,
+                            "--manifest",
+                            str(self.manifest_path),
+                            "--metadata-root",
+                            str(self.metadata),
+                            "--output-root",
+                            str(output),
+                            "--expected-manifest-sha256",
+                            manifest_sha,
+                        ]
+                    )
+
+                self.assertTrue(created)
+                self.assertEqual(2, status)
+                self.assertIn("acquisition-batch:", stderr.getvalue())
+                self.assertIn("created concurrently", stderr.getvalue())
+                self.assertNotIn("Traceback", stderr.getvalue())
+                self.assertEqual(
+                    "preserve concurrent output\n",
+                    marker.read_text(encoding="utf-8"),
+                )
+                self.assertFalse((output / "manifest.json").exists())
+                fetch.assert_not_called()
 
     def test_failure_isolated_and_restart_retries_only_failed_file(self) -> None:
         fetches, manifest_sha = self._write_manifest(count=2)

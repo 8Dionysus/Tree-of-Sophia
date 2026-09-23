@@ -265,6 +265,83 @@ def _private_directory(path: Path, *, label: str) -> os.stat_result:
     return info
 
 
+def _verify_directory_binding(
+    path: Path | str,
+    descriptor: int,
+    *,
+    label: str,
+    parent_fd: int | None = None,
+) -> os.stat_result:
+    """Require a reserved directory path to still name its opened inode."""
+
+    try:
+        opened = os.fstat(descriptor)
+        named = os.stat(path, dir_fd=parent_fd, follow_symlinks=False)
+    except OSError as exc:
+        raise AcquisitionBatchError(
+            f"cannot rebind reserved {label} to its path"
+        ) from exc
+    if (
+        not stat.S_ISDIR(opened.st_mode)
+        or not stat.S_ISDIR(named.st_mode)
+        or opened.st_uid != os.geteuid()
+        or named.st_uid != os.geteuid()
+        or stat.S_IMODE(opened.st_mode) != 0o700
+        or stat.S_IMODE(named.st_mode) != 0o700
+        or (opened.st_dev, opened.st_ino) != (named.st_dev, named.st_ino)
+    ):
+        raise AcquisitionBatchError(
+            f"reserved {label} path changed before custody writes"
+        )
+    return opened
+
+
+def _reserve_private_directory(
+    path: Path | str,
+    *,
+    label: str,
+    parent_fd: int | None = None,
+) -> int:
+    """Exclusively create, open, and bind one owner-only custody directory."""
+
+    try:
+        os.mkdir(path, mode=0o700, dir_fd=parent_fd)
+    except FileExistsError as exc:
+        raise AcquisitionBatchError(
+            f"{label} was created concurrently: {path}"
+        ) from exc
+    except OSError as exc:
+        raise AcquisitionBatchError(f"cannot reserve {label}: {path}") from exc
+
+    flags = (
+        os.O_RDONLY
+        | os.O_DIRECTORY
+        | os.O_NOFOLLOW
+        | os.O_CLOEXEC
+        | os.O_NONBLOCK
+    )
+    try:
+        descriptor = os.open(path, flags, dir_fd=parent_fd)
+    except OSError as exc:
+        raise AcquisitionBatchError(
+            f"cannot open reserved {label}: {path}"
+        ) from exc
+    try:
+        try:
+            os.fchmod(descriptor, 0o700)
+        except OSError as exc:
+            raise AcquisitionBatchError(
+                f"cannot make reserved {label} owner-only: {path}"
+            ) from exc
+        _verify_directory_binding(
+            path, descriptor, label=label, parent_fd=parent_fd
+        )
+        return descriptor
+    except BaseException:
+        os.close(descriptor)
+        raise
+
+
 def _verify_declared_rights_posture(
     selection: dict[str, Any], rights_value: dict[str, Any], *, item_ref: str
 ) -> None:
@@ -699,18 +776,42 @@ def _prepare_batch_unlocked(
     for _selection, record in selected_records:
         source = _path_under(metadata, record["ref"], label="selected metadata path")
         _selected_metadata_info(source, source_ref=record["ref"])
-    output.mkdir(mode=0o700, parents=True)
-    output.chmod(0o700)
-    _private_directory(output, label="preparation output")
     source_root = output / "source"
     payload_root = output / "payload"
     receipts_root = output / "receipts"
-    source_root.mkdir(mode=0o700)
-    payload_root.mkdir(mode=0o700)
-    receipts_root.mkdir(mode=0o700)
-    source_root.chmod(0o700)
-    payload_root.chmod(0o700)
-    receipts_root.chmod(0o700)
+
+    directory_fds: list[int] = []
+    try:
+        output_fd = _reserve_private_directory(
+            output, label="preparation output"
+        )
+        directory_fds.append(output_fd)
+        source_fd = _reserve_private_directory(
+            "source", label="prepared source root", parent_fd=output_fd
+        )
+        directory_fds.append(source_fd)
+        payload_fd = _reserve_private_directory(
+            "payload", label="prepared payload root", parent_fd=output_fd
+        )
+        directory_fds.append(payload_fd)
+        receipts_fd = _reserve_private_directory(
+            "receipts", label="prepared receipts root", parent_fd=output_fd
+        )
+        directory_fds.append(receipts_fd)
+        _verify_directory_binding(output, output_fd, label="preparation output")
+        _verify_directory_binding(
+            "source", source_fd, label="prepared source root", parent_fd=output_fd
+        )
+        _verify_directory_binding(
+            "payload", payload_fd, label="prepared payload root", parent_fd=output_fd
+        )
+        _verify_directory_binding(
+            "receipts", receipts_fd, label="prepared receipts root", parent_fd=output_fd
+        )
+    finally:
+        for descriptor in reversed(directory_fds):
+            os.close(descriptor)
+
     _private_directory(source_root, label="prepared source root")
     _private_directory(payload_root, label="prepared payload root")
     _private_directory(receipts_root, label="prepared receipts root")
