@@ -1138,6 +1138,7 @@ def _append_journal(path: Path, row: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     flags = os.O_WRONLY | os.O_CREAT | os.O_APPEND | getattr(os, "O_CLOEXEC", 0)
     flags |= getattr(os, "O_NOFOLLOW", 0)
+    flags |= getattr(os, "O_NONBLOCK", 0)
     try:
         descriptor = os.open(path, flags, 0o644)
     except OSError as exc:
@@ -1146,6 +1147,10 @@ def _append_journal(path: Path, row: dict[str, Any]) -> None:
         raise AcquisitionBatchError(f"cannot open acquisition journal: {path}") from exc
     try:
         with os.fdopen(descriptor, "a", encoding="utf-8", closefd=True) as stream:
+            if not stat.S_ISREG(os.fstat(stream.fileno()).st_mode):
+                raise AcquisitionBatchError(
+                    f"acquisition journal is not a regular file: {path}"
+                )
             fcntl.flock(stream.fileno(), fcntl.LOCK_EX)
             stream.write(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n")
             stream.flush()
@@ -1163,9 +1168,14 @@ def _journal_rows(path: Path) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     flags = os.O_RDONLY | getattr(os, "O_CLOEXEC", 0)
     flags |= getattr(os, "O_NOFOLLOW", 0)
+    flags |= getattr(os, "O_NONBLOCK", 0)
     try:
         descriptor = os.open(path, flags)
         with os.fdopen(descriptor, "r", encoding="utf-8", closefd=True) as stream:
+            if not stat.S_ISREG(os.fstat(stream.fileno()).st_mode):
+                raise AcquisitionBatchError(
+                    f"acquisition journal is not a regular file: {path}"
+                )
             for line_number, line in enumerate(stream, 1):
                 if not line.strip():
                     continue

@@ -3,7 +3,9 @@ from __future__ import annotations
 import hashlib
 from http.client import IncompleteRead, LineTooLong
 import json
+import os
 from pathlib import Path
+import subprocess
 import sys
 import stat
 import tempfile
@@ -864,6 +866,68 @@ class AcquisitionBatchTests(unittest.TestCase):
             "acquisition journal is malformed at line 1",
         ):
             acquisition._journal_rows(journal)
+
+    @unittest.skipUnless(hasattr(os, "mkfifo"), "POSIX FIFO boundary")
+    def test_fifo_acquisition_journal_read_and_append_fail_without_blocking(self) -> None:
+        journal = self.root / "fifo-journal.jsonl"
+        os.mkfifo(journal)
+        script = """
+import sys
+from pathlib import Path
+sys.path.insert(0, sys.argv[2])
+import acquisition_batch as acquisition
+journal = Path(sys.argv[1])
+try:
+    acquisition._journal_rows(journal)
+except acquisition.AcquisitionBatchError:
+    pass
+else:
+    raise SystemExit("FIFO journal read was accepted")
+try:
+    acquisition._append_journal(journal, {"status": "failed"})
+except acquisition.AcquisitionBatchError:
+    pass
+else:
+    raise SystemExit("FIFO journal append was accepted")
+"""
+        result = subprocess.run(
+            [sys.executable, "-c", script, str(journal), str(ROOT / "scripts")],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        self.assertEqual(0, result.returncode, result.stderr)
+
+    @unittest.skipUnless(hasattr(os, "mkfifo"), "POSIX FIFO boundary")
+    def test_fifo_payload_destination_fails_fixity_without_blocking(self) -> None:
+        payload = self.root / "fifo-payload.bin"
+        os.mkfifo(payload)
+        digest = hashlib.sha256(b"expected").hexdigest()
+        script = """
+import sys
+from pathlib import Path
+sys.path.insert(0, sys.argv[2])
+import acquisition_batch as acquisition
+payload = Path(sys.argv[1])
+try:
+    acquisition._verify_destination(
+        payload,
+        {"byte_size": 8, "sha256": sys.argv[3], "file_ref": "tos.file.sha256." + sys.argv[3]},
+    )
+except acquisition.SourceIntegrityError:
+    pass
+else:
+    raise SystemExit("FIFO payload destination passed fixity")
+"""
+        result = subprocess.run(
+            [sys.executable, "-c", script, str(payload), str(ROOT / "scripts"), digest],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        self.assertEqual(0, result.returncode, result.stderr)
 
     def test_interrupted_prepare_is_rebuilt_before_acquisition(self) -> None:
         fetches, manifest_sha = self._write_manifest(count=1)
