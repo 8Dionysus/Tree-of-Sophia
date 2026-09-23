@@ -20,6 +20,14 @@ use std::{
 };
 use tos_foundation::{Digest256, Digest256Hasher, JsonMode};
 
+/// Owner/host capability retained across every warm reader. Its provider
+/// controls the selected artifact namespace and guarantees that no writer
+/// alias can mutate this inode while the capability is held. Metadata/stat
+/// checks alone cannot establish this condition.
+pub trait ImmutableModelCustody: Send + Sync {
+    fn verify_held(&self, pinned: &File, sha256: &str, size_bytes: u64) -> Result<()>;
+}
+
 /// This expectation comes from the source/selection owner, independently of
 /// the local pointer bytes. It carries no grant to disclose current content.
 pub struct SelectedExpectation<'a> {
@@ -27,6 +35,7 @@ pub struct SelectedExpectation<'a> {
     pub model_sha256: &'a str,
     pub model_size_bytes: u64,
     pub owner_receipt_id: &'a str,
+    pub custody: Arc<dyn ImmutableModelCustody>,
     /// Cold-open SHA work limit. This is an admission job budget, not a
     /// per-query allowance; a model above it remains pending/unavailable.
     pub max_cold_open_bytes: u64,
@@ -58,6 +67,7 @@ pub struct VerifiedSelection {
 pub struct VerifiedSelectedModel {
     connection: Connection,
     pinned: File,
+    custody: Arc<dyn ImmutableModelCustody>,
     selection: VerifiedSelection,
     cold_open_vm_steps: u64,
     open_vm_steps: u64,
@@ -85,6 +95,11 @@ impl VerifiedSelectedModel {
         if !meta.file_type().is_file() || meta.len() != self.selection.model_size_bytes {
             return Err(Error::Invalid("selected model pinned file changed"));
         }
+        self.custody.verify_held(
+            &self.pinned,
+            &self.selection.model_sha256,
+            self.selection.model_size_bytes,
+        )?;
         Ok(())
     }
     /// New warm reader against the same admitted inode. Its SQLite startup
@@ -103,16 +118,16 @@ impl VerifiedSelectedModel {
         self.check_pin()?;
         let pinned = self.pinned.try_clone()?;
         let (connection, vm_counter) = open_sqlite(&pinned, max_vm_steps)?;
-        Ok(Self {
+        let reader = Self {
             connection,
             pinned,
+            custody: Arc::clone(&self.custody),
             selection: self.selection.clone(),
             cold_open_vm_steps: max_vm_steps,
             open_vm_steps: vm_counter.load(Ordering::Relaxed),
-        })
-    }
-    pub fn into_parts(self) -> (Connection, File, VerifiedSelection) {
-        (self.connection, self.pinned, self.selection)
+        };
+        reader.check_pin()?;
+        Ok(reader)
     }
 }
 
@@ -359,6 +374,9 @@ pub fn open_selected_model(
     }
     let path: PathBuf = publication_dir.join(format!("{}.sqlite3", expected.model_sha256));
     let mut pinned = safe_open::open_regular(&path, expected.model_size_bytes)?;
+    expected
+        .custody
+        .verify_held(&pinned, expected.model_sha256, expected.model_size_bytes)?;
     let (digest, size) = stream_digest(&mut pinned)?;
     if digest != expected_digest.to_hex() || size != expected.model_size_bytes {
         return Err(Error::Invalid("selected model digest/size mismatch"));
@@ -402,9 +420,13 @@ pub fn open_selected_model(
         return Err(Error::Invalid("selected model derived authority marker"));
     }
     verify_cold_closure(&db)?;
+    expected
+        .custody
+        .verify_held(&pinned, expected.model_sha256, expected.model_size_bytes)?;
     Ok(VerifiedSelectedModel {
         connection: db,
         pinned,
+        custody: Arc::clone(&expected.custody),
         cold_open_vm_steps: expected.max_cold_open_vm_steps,
         open_vm_steps: vm_counter.load(Ordering::Relaxed),
         selection: VerifiedSelection {

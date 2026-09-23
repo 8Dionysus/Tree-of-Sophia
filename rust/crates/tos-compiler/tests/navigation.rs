@@ -1,17 +1,29 @@
 use rusqlite::Connection;
 use std::{
     fs,
+    fs::File,
     path::PathBuf,
+    sync::Arc,
     time::{SystemTime, UNIX_EPOCH},
 };
 use tos_compiler::{
-    CandidateReceipt, Collection, LegacyPartitionedNavigation, Limits, MODEL_ABI, NavigationInput,
-    PublicationAuthority, SELECTION_PROFILE, SelectedExpectation, SelectionFence, SourceBinding,
-    compile_navigation, open_selected_model, publish_candidate,
+    CandidateReceipt, Collection, ImmutableModelCustody, LegacyPartitionedNavigation, Limits,
+    MODEL_ABI, NavigationInput, PublicationAuthority, SELECTION_PROFILE, SelectedExpectation,
+    SelectionFence, SourceBinding, compile_navigation, open_selected_model, publish_candidate,
 };
 
 const ROOT_SHA: &str = "2d9edbd88ebee606fc6fc4b06e23b43d4c73ccaed15e2ffb171d7518ead2f3e3";
 const ASSESSED_AUTHORITY: &str = "generated read-only navigation; authored branch manifests, source records, claims, item manifests, and rights records retain authority; local assessed research candidate, not public clearance or a current runtime grant";
+
+struct FixtureCustody;
+impl ImmutableModelCustody for FixtureCustody {
+    fn verify_held(&self, pinned: &File, _: &str, size_bytes: u64) -> tos_compiler::Result<()> {
+        if pinned.metadata()?.len() != size_bytes {
+            return Err(tos_compiler::Error::Invalid("fixture custody size"));
+        }
+        Ok(())
+    }
+}
 
 fn fixture() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/tos_corpus_index.min.json")
@@ -423,6 +435,7 @@ fn selection_is_atomic_and_requires_exact_previous_pointer() {
             model_sha256: &receipt.sqlite_sha256,
             model_size_bytes: receipt.sqlite_size_bytes,
             owner_receipt_id: "fixture-owner-selection",
+            custody: Arc::new(FixtureCustody),
             max_cold_open_bytes: receipt.sqlite_size_bytes,
             max_cold_open_vm_steps: 1_000_000,
         },
@@ -447,6 +460,7 @@ fn selection_is_atomic_and_requires_exact_previous_pointer() {
                 model_sha256: &receipt.sqlite_sha256,
                 model_size_bytes: receipt.sqlite_size_bytes,
                 owner_receipt_id: "fixture-owner-selection",
+                custody: Arc::new(FixtureCustody),
                 max_cold_open_bytes: receipt.sqlite_size_bytes - 1,
                 max_cold_open_vm_steps: 1_000_000,
             },
@@ -461,6 +475,7 @@ fn selection_is_atomic_and_requires_exact_previous_pointer() {
                 model_sha256: &receipt.sqlite_sha256,
                 model_size_bytes: receipt.sqlite_size_bytes,
                 owner_receipt_id: "fixture-owner-selection",
+                custody: Arc::new(FixtureCustody),
                 max_cold_open_bytes: receipt.sqlite_size_bytes,
                 max_cold_open_vm_steps: 1,
             },
@@ -499,6 +514,7 @@ fn selection_is_atomic_and_requires_exact_previous_pointer() {
                 model_sha256: &receipt.sqlite_sha256,
                 model_size_bytes: receipt.sqlite_size_bytes,
                 owner_receipt_id: "fixture-owner-selection",
+                custody: Arc::new(FixtureCustody),
                 max_cold_open_bytes: receipt.sqlite_size_bytes,
                 max_cold_open_vm_steps: 1_000_000,
             },

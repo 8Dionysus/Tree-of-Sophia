@@ -22,7 +22,8 @@ pub use knowledge_search::{SearchBuildLimits, SearchIndexReceipt, build_search_i
 pub use legacy::LegacyPartitionedNavigation;
 pub use publication::{PublicationAuthority, PublishedReceipt, SelectionFence, publish_candidate};
 pub use selected::{
-    SelectedExpectation, VerifiedSelectedModel, VerifiedSelection, open_selected_model,
+    ImmutableModelCustody, SelectedExpectation, VerifiedSelectedModel, VerifiedSelection,
+    open_selected_model,
 };
 pub use vocabulary::{QueryVocabulary, RegisteredSource, VocabularyBinding};
 
