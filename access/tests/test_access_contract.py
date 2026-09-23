@@ -2655,19 +2655,22 @@ class AuthoredContractTests(unittest.TestCase):
         import yaml
         workflow = yaml.safe_load((REPO_ROOT / ".github/workflows/repo-validation.yml").read_text())
         gate = workflow["jobs"]["required_gate"]
-        self.assertEqual(set(gate["needs"]), {"plan", "software", "worker"})
+        self.assertEqual(set(gate["needs"]), {"plan", "software", "worker", "rust"})
         self.assertEqual(gate["if"], "${{ always() }}")
         run_steps = [step for step in gate["steps"] if "run" in step]
         self.assertEqual(len(run_steps), 1)
         command = run_steps[0]["run"]
         self.assertEqual(run_steps[0]["env"]["CI_NEEDS"], "${{ toJSON(needs) }}")
-        for mode, worker in [("full", True), ("reader", True), ("browser", False),
-                             ("none", True), ("none", False)]:
+        for mode, worker, rust in [("full", True, True), ("reader", True, False),
+                                   ("browser", False, False), ("none", True, False),
+                                   ("none", False, True), ("none", False, False)]:
             baseline = {
                 "plan": {"result": "success", "outputs": {
-                    "software_mode": mode, "worker": str(worker).lower()}},
+                    "software_mode": mode, "worker": str(worker).lower(),
+                    "rust": str(rust).lower()}},
                 "software": {"result": "skipped" if mode == "none" else "success"},
                 "worker": {"result": "success" if worker else "skipped"},
+                "rust": {"result": "success" if rust else "skipped"},
             }
             for changed_job in [None, *gate["needs"]]:
                 for state in ("failure", "cancelled", "skipped"):
