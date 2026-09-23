@@ -991,7 +991,14 @@ def _verify_prepared_item_bindings(context: BatchContext, output: Path) -> None:
             label="record",
             item_ref=item_ref,
         )
-        validated_record_refs.add(f"{item_root}/item.json")
+        item_record_ref = f"{item_root}/item.json"
+        prior_ref = batch_identity_refs.get(item_ref)
+        if prior_ref is not None and prior_ref != item_record_ref:
+            raise AcquisitionBatchError(
+                f"selected corpus identity is bound to multiple records: {item_ref}"
+            )
+        batch_identity_refs[item_ref] = item_record_ref
+        validated_record_refs.add(item_record_ref)
 
         item_manifest = _load_json_bytes(
             item_manifest_path.read_bytes(), label="prepared Item manifest"

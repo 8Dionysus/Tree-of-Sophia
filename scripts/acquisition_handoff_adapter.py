@@ -176,16 +176,17 @@ def _provenance_delta_ref(context: acquisition.BatchContext) -> str:
     return acquisition._provenance_delta_ref(context)
 
 
-def _load_handoff(root: Path, handoff_ref: str) -> tuple[Path, dict[str, Any]]:
+def _load_handoff(root: Path, handoff_ref: str) -> tuple[Path, dict[str, Any], str]:
     path = _path_under(root, handoff_ref, label="handoff reference")
     _regular(path, label="handoff receipt")
     try:
-        value = acquisition._load_json_bytes(path.read_bytes(), label="handoff receipt")
-    except acquisition.AcquisitionBatchError as exc:
+        body = path.read_bytes()
+        value = acquisition._load_json_bytes(body, label="handoff receipt")
+    except (acquisition.AcquisitionBatchError, OSError) as exc:
         raise HandoffAdapterError(str(exc)) from exc
     if value.get("schema_version") != "tos_acquisition_handoff_v1":
         raise HandoffAdapterError("handoff has an unexpected schema")
-    return path, value
+    return path, value, _sha256(body)
 
 
 def _verify_accepted_pointer(store_root: Path, expected_revision: str) -> None:
@@ -681,7 +682,7 @@ def verify_handoff_for_intake(
     """
 
     root = acquisition._checked_root(acquisition_root)
-    handoff_path, handoff = _load_handoff(root, handoff_ref)
+    handoff_path, handoff, _handoff_sha256 = _load_handoff(root, handoff_ref)
     context = _load_caller_selected_context(
         acquisition_root=root,
         handoff=handoff,
@@ -764,7 +765,7 @@ def adapt_handoff(
         if validator_transition == "aligned"
         else validator_transition
     )
-    handoff_path, handoff = _load_handoff(root, handoff_ref)
+    handoff_path, handoff, handoff_sha256 = _load_handoff(root, handoff_ref)
     context = _load_caller_selected_context(
         acquisition_root=root,
         handoff=handoff,
@@ -855,7 +856,7 @@ def adapt_handoff(
         # the batch delta remains explicitly not-admitted.
         evidence_sources = (
             ("manifest.json", manifest_path, context.manifest_sha256),
-            ("handoff.json", handoff_path, _sha256_file(handoff_path)),
+            ("handoff.json", handoff_path, handoff_sha256),
             (
                 "provenance-delta.json",
                 _path_under(root, _provenance_delta_ref(context), label="handoff provenance delta"),
@@ -915,7 +916,7 @@ def adapt_handoff(
             "schema_version": "tos_acquisition_handoff_adapter_receipt_v1",
             "handoff_ref": evidence_refs["handoff.json"]["ref"],
             "handoff_source_ref": handoff_relative,
-            "handoff_sha256": _sha256_file(handoff_path),
+            "handoff_sha256": handoff_sha256,
             "manifest_ref": evidence_refs["manifest.json"]["ref"],
             "manifest_source_ref": "manifest.json",
             "manifest_sha256": context.manifest_sha256,

@@ -471,6 +471,23 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
             shutil.copyfile(self.metadata / record["path"], objects / record["sha256"])
         return revision
 
+    def _produce_adaptable_handoff(self) -> tuple[str, str, dict[str, object]]:
+        _fetches, _manifest_sha, _item_root, records = self._write_manifest(
+            base_revision="0" * 64
+        )
+        base_revision = self._write_accepted_base(records)
+        fetches, manifest_sha, _item_root, _records = self._write_manifest(
+            base_revision=base_revision
+        )
+        result = acquisition.acquire_batch(
+            manifest_path=self.manifest_path,
+            metadata_root=self.metadata,
+            output_root=self.acquisition_root,
+            expected_manifest_sha256=manifest_sha,
+            fetcher=lambda payload: fetches[payload["file_ref"]],
+        )
+        return base_revision, manifest_sha, result
+
     def test_producer_to_consumer_fixture_emits_valid_batch_input(self) -> None:
         # The accepted base is a real, cryptographically bound CorpusStore
         # snapshot.  Its selected source view is populated from current ToS
@@ -650,6 +667,88 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
         self.assertTrue(self.candidate.is_dir())
         self.assertEqual([], list(self.candidate.iterdir()))
         self.assertEqual([], list(self.root.glob(".candidate.adapter-*")))
+
+    def test_adapter_rejects_handoff_replaced_after_verification_before_copy(self) -> None:
+        base_revision, manifest_sha, result = self._produce_adaptable_handoff()
+        handoff_path = self.acquisition_root / result["handoff_ref"]
+        original_verify = adapter._verify_handoff
+
+        def replace_after_verification(**kwargs: object) -> object:
+            verified = original_verify(**kwargs)
+            path = kwargs["handoff_path"]
+            assert isinstance(path, Path)
+            path.unlink()
+            path.write_bytes(
+                b'{"schema_version":"tos_acquisition_handoff_v1","replacement":true}\n'
+            )
+            return verified
+
+        with patch.object(
+            adapter, "_verify_handoff", side_effect=replace_after_verification
+        ):
+            with self.assertRaisesRegex(
+                adapter.HandoffAdapterError, "handoff source fixity differs"
+            ):
+                adapter.adapt_handoff(
+                    acquisition_root=self.acquisition_root,
+                    handoff_ref=result["handoff_ref"],
+                    expected_manifest_sha256=manifest_sha,
+                    output_root=self.candidate,
+                    accepted_store_root=self.accepted_store,
+                    accepted_source_root=self.accepted_source,
+                    base_revision=base_revision,
+                    validator_sha256=self.validator_sha256,
+                    validation_context=self._validation_context(),
+                    repo_root=ROOT,
+                )
+
+        self.assertFalse(self.candidate.exists())
+        self.assertEqual([], list(self.root.glob(".candidate.adapter-*")))
+
+    def test_adapter_receipt_keeps_verified_handoff_digest_after_source_replacement(self) -> None:
+        base_revision, manifest_sha, result = self._produce_adaptable_handoff()
+        handoff_path = self.acquisition_root / result["handoff_ref"]
+        verified_bytes = handoff_path.read_bytes()
+        verified_sha256 = hashlib.sha256(verified_bytes).hexdigest()
+        original_copy = adapter._copy_no_clobber
+
+        def replace_after_copy(
+            source: Path, destination: Path, *, sha256: str, byte_size: int
+        ) -> None:
+            original_copy(source, destination, sha256=sha256, byte_size=byte_size)
+            if destination.name == "handoff.json":
+                handoff_path.unlink()
+                handoff_path.write_bytes(
+                    b'{"schema_version":"tos_acquisition_handoff_v1","replacement":true}\n'
+                )
+
+        with patch.object(adapter, "_copy_no_clobber", side_effect=replace_after_copy):
+            adapter.adapt_handoff(
+                acquisition_root=self.acquisition_root,
+                handoff_ref=result["handoff_ref"],
+                expected_manifest_sha256=manifest_sha,
+                output_root=self.candidate,
+                accepted_store_root=self.accepted_store,
+                accepted_source_root=self.accepted_source,
+                base_revision=base_revision,
+                validator_sha256=self.validator_sha256,
+                validation_context=self._validation_context(),
+                repo_root=ROOT,
+            )
+
+        adapter_receipt = json.loads(
+            (self.candidate / "receipts/acquisition-handoff-adapter.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        handoff_evidence = adapter_receipt["evidence"]["handoff.json"]
+        copied_bytes = (self.candidate / handoff_evidence["ref"]).read_bytes()
+        self.assertEqual(verified_sha256, handoff_evidence["sha256"])
+        self.assertEqual(verified_sha256, adapter_receipt["handoff_sha256"])
+        self.assertEqual(verified_sha256, hashlib.sha256(copied_bytes).hexdigest())
+        self.assertNotEqual(
+            verified_sha256, hashlib.sha256(handoff_path.read_bytes()).hexdigest()
+        )
 
     def test_intake_rejects_coherently_replaced_handoff_against_caller_digest(self) -> None:
         _original_fetches, caller_selected_sha, _item_root, _records = self._write_manifest(
