@@ -14,6 +14,7 @@ use tos_foundation::{
     Digest256, Digest256Hasher, FoundationErrorCode, JsonLimits, JsonMode, JsonValue, parse_json,
 };
 
+mod audit;
 pub mod executor;
 pub mod source_copy;
 pub mod source_forms;
@@ -672,25 +673,58 @@ mod tests {
         let contract_dir =
             std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../ToS/contracts");
         let mut resources = Vec::new();
+        let mut paths = std::collections::BTreeSet::new();
+        let mut ids = std::collections::BTreeMap::new();
         for entry in std::fs::read_dir(contract_dir).unwrap() {
             let entry = entry.unwrap();
             if entry.path().extension().and_then(|value| value.to_str()) != Some("json") {
                 continue;
             }
+            let filename = entry.file_name().to_string_lossy().into_owned();
+            assert!(
+                filename.ends_with(".schema.json"),
+                "every owner contract JSON must be an explicit schema resource: {filename}"
+            );
+            assert!(paths.insert(filename.clone()), "duplicate contract path");
             let raw = std::fs::read(entry.path()).unwrap();
             let value: Value = serde_json::from_slice(&raw).unwrap();
-            if value.get("$schema").and_then(Value::as_str) == Some(DRAFT) {
-                resources.push(SchemaResource {
-                    uri: value.get("$id").and_then(Value::as_str).unwrap().into(),
-                    raw,
-                });
-            }
+            assert_eq!(
+                value.get("$schema").and_then(Value::as_str),
+                Some(DRAFT),
+                "all enumerated owner contract JSON must declare the supported dialect"
+            );
+            let uri = value.get("$id").and_then(Value::as_str).unwrap().to_owned();
+            ids.insert(filename, uri.clone());
+            resources.push(SchemaResource { uri, raw });
         }
         let expected = resources.len();
-        assert_eq!(
-            expected, 184,
-            "baseline source schema set changed; re-inventory the profile"
-        );
+        for (required, uri) in [
+            (
+                "corpus-record.schema.json",
+                "https://tree-of-sophia.local/ToS/contracts/corpus-record.schema.json",
+            ),
+            (
+                "human-form.schema.json",
+                "https://treeofsophia.local/ToS/contracts/human-form.schema.json",
+            ),
+            (
+                "human-form-set.schema.json",
+                "https://treeofsophia.local/ToS/contracts/human-form-set.schema.json",
+            ),
+            (
+                "provenance-event.schema.json",
+                "https://tree-of-sophia.local/ToS/contracts/provenance-event.schema.json",
+            ),
+            (
+                "source-structured-value.schema.json",
+                "https://tree-of-sophia.local/ToS/contracts/source-structured-value.schema.json",
+            ),
+        ] {
+            assert!(
+                paths.contains(required) && ids.get(required).map(String::as_str) == Some(uri),
+                "missing or changed required owner contract: {required}"
+            );
+        }
         let backend =
             SchemaBackendProbe::new(resources, FormatProfile::AssertedSourceCandidateV1).unwrap();
         assert_eq!(backend.compile_all(), Ok(expected));
