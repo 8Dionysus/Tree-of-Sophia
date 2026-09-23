@@ -646,6 +646,7 @@ mod tests {
                 adapter_profile: PROFILE.into(),
                 representative_priority: 0,
             }],
+            registered_source_ids: vec!["fixture.claims".into()],
             extension_adapter_profile: "indexed-node-edge-v1".into(),
             entity_registry_id: "entities".into(),
             relation_registry_id: "relations".into(),

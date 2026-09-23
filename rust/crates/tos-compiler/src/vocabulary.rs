@@ -26,6 +26,9 @@ pub struct QueryVocabulary {
     pub descriptor_sha256: String,
     pub descriptor_version: u64,
     pub sources: Vec<RegisteredSource>,
+    /// Sorted exact IDs from the authored registration, including sources
+    /// with zero selected rows. Kept separate from derived source_scope.
+    pub registered_source_ids: Vec<String>,
     pub extension_adapter_profile: String,
     pub entity_registry_id: String,
     pub relation_registry_id: String,
@@ -97,6 +100,10 @@ fn strings(v: &Value, key: &str, cap: usize) -> Result<Vec<String>> {
 }
 
 impl QueryVocabulary {
+    pub fn registered_source_ids(&self) -> &[String] {
+        &self.registered_source_ids
+    }
+
     /// `supported_adapters` comes from actual installed compiler capabilities,
     /// never from the descriptor itself. An eighth registered source needs no
     /// source-ID code branch when it uses an installed adapter.
@@ -356,10 +363,12 @@ impl QueryVocabulary {
         exact_keys(catalog, &["canonical_order", "facets"])?;
         string(catalog, "canonical_order")?;
         strings(catalog, "facets", MAX_ROUTES)?;
+        let registered_source_ids = ids.into_iter().collect();
         Ok(Self {
             descriptor_sha256: Digest256::of_bytes(authored_bytes).to_hex(),
             descriptor_version,
             sources,
+            registered_source_ids,
             extension_adapter_profile,
             entity_registry_id,
             relation_registry_id,
@@ -486,6 +495,14 @@ mod tests {
         let selected = QueryVocabulary::parse(&bytes, ADAPTERS).unwrap();
         assert_eq!(selected.sources.len(), 8);
         assert_eq!(selected.sources[7].source_graph_id, "another-owner-source");
+        assert_eq!(selected.registered_source_ids().len(), 8);
+        assert_eq!(selected.registered_source_ids()[0], "another-owner-source");
+        assert!(
+            selected
+                .registered_source_ids()
+                .windows(2)
+                .all(|ids| ids[0] < ids[1])
+        );
         doc["sources"][7]["adapter_profile"] = Value::String("uninstalled-v7".into());
         assert!(QueryVocabulary::parse(&serde_json::to_vec(&doc).unwrap(), ADAPTERS).is_err());
         doc["sources"][7]["adapter_profile"] = Value::String("indexed-node-edge-v1".into());
