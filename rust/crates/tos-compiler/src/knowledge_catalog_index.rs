@@ -1,0 +1,947 @@
+//! Disk-indexed catalog lookup rows derived from one bounded catalog receipt.
+//! These rows are a private read model, not source admission or publication.
+
+use crate::knowledge_stage::{KnowledgeStage, WritePhase};
+use crate::{Error, QueryVocabulary, Result, catalog::CatalogReceipt};
+use rusqlite::{Connection, OptionalExtension, params};
+use serde_json::Value;
+use std::io::{self, Write};
+use tos_foundation::{Digest256, Digest256Hasher};
+
+const SCHEMA: &str = "tos_catalog_index_v1";
+const ORDER_PROFILE: &str = "python-str-casefold-v1-ascii-domain";
+
+#[derive(Clone, Copy, Debug)]
+pub struct CatalogIndexLimits {
+    pub max_packet_bytes: usize,
+    pub max_row_bytes: usize,
+    pub max_index_rows: u64,
+    pub max_index_bytes: u64,
+}
+impl Default for CatalogIndexLimits {
+    fn default() -> Self {
+        Self {
+            max_packet_bytes: 16 * 1024 * 1024,
+            max_row_bytes: 1024 * 1024,
+            max_index_rows: 100_000,
+            max_index_bytes: 64 * 1024 * 1024,
+        }
+    }
+}
+impl CatalogIndexLimits {
+    fn validate(self) -> Result<()> {
+        if self.max_packet_bytes == 0
+            || self.max_row_bytes == 0
+            || self.max_index_rows == 0
+            || self.max_index_bytes == 0
+        {
+            return Err(Error::Budget("catalog index limits"));
+        }
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct CatalogIndexReceipt {
+    pub descriptor_sha256: String,
+    pub catalog_packet_sha256: String,
+    pub catalog_index_root_sha256: String,
+    pub source_count: u64,
+    pub facet_field_count: u64,
+    pub facet_value_count: u64,
+    pub route_count: u64,
+    pub packet_bytes: u64,
+}
+
+struct CappedWriter {
+    bytes: Vec<u8>,
+    max: usize,
+}
+impl Write for CappedWriter {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        let next = self
+            .bytes
+            .len()
+            .checked_add(buf.len())
+            .ok_or_else(|| io::Error::other("catalog packet overflow"))?;
+        if next > self.max {
+            return Err(io::Error::other("catalog packet cap"));
+        }
+        self.bytes.extend_from_slice(buf);
+        Ok(buf.len())
+    }
+    fn flush(&mut self) -> io::Result<()> {
+        Ok(())
+    }
+}
+
+struct Work {
+    limits: CatalogIndexLimits,
+    rows: u64,
+    bytes: u64,
+}
+impl Work {
+    fn new(limits: CatalogIndexLimits) -> Self {
+        Self {
+            limits,
+            rows: 0,
+            bytes: 0,
+        }
+    }
+    fn charge(&mut self, parts: &[&[u8]]) -> Result<()> {
+        self.rows = self
+            .rows
+            .checked_add(1)
+            .ok_or(Error::Budget("catalog index rows"))?;
+        if self.rows > self.limits.max_index_rows {
+            return Err(Error::Budget("catalog index rows"));
+        }
+        let mut n = 48u64;
+        for part in parts {
+            if part.len() > self.limits.max_row_bytes {
+                return Err(Error::Budget("catalog index cell bytes"));
+            }
+            n = n
+                .checked_add(part.len() as u64)
+                .ok_or(Error::Budget("catalog index bytes"))?;
+        }
+        self.bytes = self
+            .bytes
+            .checked_add(n)
+            .ok_or(Error::Budget("catalog index bytes"))?;
+        if self.bytes > self.limits.max_index_bytes {
+            return Err(Error::Budget("catalog index bytes"));
+        }
+        Ok(())
+    }
+    fn charge_packet(&mut self, packet: &[u8]) -> Result<()> {
+        self.bytes = self
+            .bytes
+            .checked_add(packet.len() as u64)
+            .ok_or(Error::Budget("catalog index bytes"))?;
+        if self.bytes > self.limits.max_index_bytes {
+            return Err(Error::Budget("catalog index bytes"));
+        }
+        Ok(())
+    }
+}
+
+fn object<'a>(value: &'a Value, key: &str) -> Result<&'a serde_json::Map<String, Value>> {
+    value
+        .get(key)
+        .and_then(Value::as_object)
+        .ok_or(Error::Invalid("catalog index object"))
+}
+fn array<'a>(value: &'a Value, key: &str) -> Result<&'a [Value]> {
+    value
+        .get(key)
+        .and_then(Value::as_array)
+        .map(Vec::as_slice)
+        .ok_or(Error::Invalid("catalog index array"))
+}
+fn string<'a>(value: &'a Value, key: &str) -> Result<&'a str> {
+    value
+        .get(key)
+        .and_then(Value::as_str)
+        .ok_or(Error::Invalid("catalog index string"))
+}
+fn number(value: &Value, key: &str) -> Result<u64> {
+    value
+        .get(key)
+        .and_then(Value::as_u64)
+        .ok_or(Error::Invalid("catalog index count"))
+}
+fn signed(n: u64) -> Result<i64> {
+    i64::try_from(n).map_err(|_| Error::Budget("catalog index signed count"))
+}
+fn scalar_json(value: &str, max_bytes: usize) -> Result<String> {
+    let mut writer = CappedWriter {
+        bytes: Vec::new(),
+        max: max_bytes,
+    };
+    serde_json::to_writer(&mut writer, value)
+        .map_err(|_| Error::Budget("catalog facet scalar bytes"))?;
+    String::from_utf8(writer.bytes).map_err(|_| Error::Invalid("catalog facet scalar UTF-8"))
+}
+fn hash_text(hash: &mut Digest256Hasher, value: &str) {
+    hash.update(&(value.len() as u64).to_be_bytes());
+    hash.update(value.as_bytes());
+}
+fn hash_number(hash: &mut Digest256Hasher, value: u64) {
+    hash.update(&value.to_be_bytes());
+}
+
+const TABLES: &str = r#"
+CREATE TABLE catalog_index_meta(
+ descriptor_sha256 TEXT PRIMARY KEY, catalog_packet_sha256 TEXT NOT NULL,
+ index_schema TEXT NOT NULL, order_profile TEXT NOT NULL,
+ source_count INTEGER NOT NULL, facet_field_count INTEGER NOT NULL,
+ facet_value_count INTEGER NOT NULL, route_count INTEGER NOT NULL,
+ catalog_index_root_sha256 TEXT NOT NULL, packet_len INTEGER NOT NULL,
+ packet_sha256 BLOB NOT NULL, packet BLOB NOT NULL) WITHOUT ROWID;
+CREATE TABLE catalog_facet_fields(
+ descriptor_sha256 TEXT NOT NULL, domain TEXT NOT NULL, field_id TEXT NOT NULL,
+ value_count INTEGER NOT NULL, total_count INTEGER NOT NULL,
+ PRIMARY KEY(descriptor_sha256,domain,field_id)) WITHOUT ROWID;
+CREATE TABLE catalog_facets(
+ descriptor_sha256 TEXT NOT NULL, domain TEXT NOT NULL, field_id TEXT NOT NULL,
+ ordinal INTEGER NOT NULL, value_json TEXT NOT NULL, item_count INTEGER NOT NULL,
+ PRIMARY KEY(descriptor_sha256,domain,field_id,ordinal),
+ UNIQUE(descriptor_sha256,domain,field_id,value_json)) WITHOUT ROWID;
+CREATE TABLE catalog_routes(
+ descriptor_sha256 TEXT NOT NULL, route_id TEXT NOT NULL, ordinal INTEGER NOT NULL,
+ node_count INTEGER NOT NULL, confirming_relation_count INTEGER NOT NULL,
+ semantic_confirming_relation_count INTEGER NOT NULL,
+ availability TEXT NOT NULL, role_readiness TEXT NOT NULL,
+ packet_len INTEGER NOT NULL, packet_sha256 BLOB NOT NULL, packet BLOB NOT NULL,
+ PRIMARY KEY(descriptor_sha256,route_id),
+ UNIQUE(descriptor_sha256,ordinal)) WITHOUT ROWID;
+CREATE TABLE catalog_source_counts(
+ descriptor_sha256 TEXT NOT NULL, source_graph_id TEXT NOT NULL,
+ node_count INTEGER NOT NULL, relation_count INTEGER NOT NULL,
+ PRIMARY KEY(descriptor_sha256,source_graph_id)) WITHOUT ROWID;
+"#;
+
+/// Materialize a complete indexed companion to a catalog packet. The stage
+/// host guard checks storage quota before and after the callback, and any
+/// failure poisons the stage so that `finish` cannot publish partial rows.
+pub fn materialize_catalog(
+    stage: &mut KnowledgeStage<'_>,
+    receipt: &CatalogReceipt,
+    vocabulary: &QueryVocabulary,
+    limits: CatalogIndexLimits,
+) -> Result<CatalogIndexReceipt> {
+    let result = (|| {
+        limits.validate()?;
+        let mut writer = CappedWriter {
+            bytes: Vec::new(),
+            max: limits.max_packet_bytes,
+        };
+        serde_json::to_writer(&mut writer, &receipt.catalog)
+            .map_err(|_| Error::Budget("catalog index packet bytes"))?;
+        let packet = writer.bytes;
+        let packet_sha = Digest256::of_bytes(&packet);
+        if packet_sha.to_hex() != receipt.sha256 {
+            return Err(Error::Invalid("catalog index receipt digest"));
+        }
+        Digest256::from_hex(&vocabulary.descriptor_sha256)
+            .map_err(|_| Error::Invalid("catalog index descriptor digest"))?;
+        stage.with_connection(WritePhase::Catalog, |db| {
+            db.execute_batch("SAVEPOINT cmp_catalog_index")?;
+            let value = materialize_inner(db, receipt, vocabulary, limits, &packet, &packet_sha);
+            if value.is_ok() {
+                db.execute_batch("RELEASE cmp_catalog_index")?;
+            } else {
+                db.execute_batch("ROLLBACK TO cmp_catalog_index; RELEASE cmp_catalog_index")?;
+            }
+            value
+        })
+    })();
+    if result.is_err() {
+        stage.poison();
+    }
+    result
+}
+
+fn materialize_inner(
+    db: &mut Connection,
+    receipt: &CatalogReceipt,
+    vocabulary: &QueryVocabulary,
+    limits: CatalogIndexLimits,
+    packet: &[u8],
+    packet_sha: &Digest256,
+) -> Result<CatalogIndexReceipt> {
+    db.execute_batch(TABLES)?;
+    let mut work = Work::new(limits);
+    work.charge_packet(packet)?;
+    let desc = &vocabulary.descriptor_sha256;
+    if string(&receipt.catalog, "schema")? != "tos_knowledge_catalog_v1" {
+        return Err(Error::Invalid("catalog index packet schema"));
+    }
+    if let Some(counts) = receipt.catalog.get("counts") {
+        for (key, expected) in [
+            ("nodes", receipt.node_count),
+            ("relations", receipt.relation_count),
+        ] {
+            if counts.get(key).is_some() && number(counts, key)? != expected {
+                return Err(Error::Invalid("catalog index packet count"));
+            }
+        }
+    }
+    let caps = receipt
+        .catalog
+        .get("capabilities")
+        .filter(|value| value.is_object())
+        .ok_or(Error::Invalid("catalog capabilities absent"))?;
+    let facets = caps
+        .get("facets")
+        .ok_or(Error::Invalid("catalog facets absent"))?;
+    let mut field_count = 0u64;
+    let mut value_count = 0u64;
+    for (packet_domain, domain, required) in [
+        ("nodes", "node", &["source_graph", "kind_id", "type_id"][..]),
+        (
+            "relations",
+            "relation",
+            &["source_graph", "predicate_id", "relation_type_id"][..],
+        ),
+    ] {
+        let fields = object(facets, packet_domain)?;
+        for field in required {
+            if !fields.contains_key(*field) {
+                return Err(Error::Invalid("catalog required facet field absent"));
+            }
+        }
+        for (field, values) in fields {
+            if field.is_empty() || field.len() > limits.max_row_bytes {
+                return Err(Error::Budget("catalog facet field bytes"));
+            }
+            let values = values
+                .as_array()
+                .ok_or(Error::Invalid("catalog facet array"))?;
+            let mut total = 0u64;
+            for (ordinal, row) in values.iter().enumerate() {
+                let value = string(row, "value")?;
+                if value.is_empty() || !value.is_ascii() {
+                    return Err(Error::Invalid("unsupported Unicode catalog facet casefold"));
+                }
+                let value_json = scalar_json(value, limits.max_row_bytes)?;
+                let count = number(row, "count")?;
+                if count == 0 {
+                    return Err(Error::Invalid("zero catalog facet value"));
+                }
+                total = total
+                    .checked_add(count)
+                    .ok_or(Error::Budget("catalog facet total"))?;
+                work.charge(&[
+                    desc.as_bytes(),
+                    domain.as_bytes(),
+                    field.as_bytes(),
+                    value_json.as_bytes(),
+                ])?;
+                db.execute(
+                    "INSERT INTO catalog_facets VALUES(?1,?2,?3,?4,?5,?6)",
+                    params![
+                        desc,
+                        domain,
+                        field,
+                        signed(ordinal as u64)?,
+                        value_json,
+                        signed(count)?
+                    ],
+                )?;
+                value_count = value_count
+                    .checked_add(1)
+                    .ok_or(Error::Budget("catalog facet values"))?;
+            }
+            work.charge(&[desc.as_bytes(), domain.as_bytes(), field.as_bytes()])?;
+            db.execute(
+                "INSERT INTO catalog_facet_fields VALUES(?1,?2,?3,?4,?5)",
+                params![
+                    desc,
+                    domain,
+                    field,
+                    signed(values.len() as u64)?,
+                    signed(total)?
+                ],
+            )?;
+            field_count = field_count
+                .checked_add(1)
+                .ok_or(Error::Budget("catalog facet fields"))?;
+            let expected_total = match (domain, field.as_str()) {
+                ("node", "source_graph" | "kind_id" | "type_id") => Some(receipt.node_count),
+                ("relation", "source_graph" | "predicate_id" | "relation_type_id") => {
+                    Some(receipt.relation_count)
+                }
+                _ => None,
+            };
+            if expected_total.is_some_and(|expected| expected != total) {
+                return Err(Error::Invalid("catalog required facet total"));
+            }
+        }
+    }
+
+    let routes = array(caps, "entity_routes")?;
+    if routes.len() != vocabulary.overview_route_ids.len() {
+        return Err(Error::Invalid("catalog route coverage"));
+    }
+    for (ordinal, (route, expected_id)) in routes
+        .iter()
+        .zip(&vocabulary.overview_route_ids)
+        .enumerate()
+    {
+        let id = string(route, "route_id")?;
+        if id != expected_id {
+            return Err(Error::Invalid("catalog route order"));
+        }
+        let mut writer = CappedWriter {
+            bytes: Vec::new(),
+            max: limits.max_row_bytes,
+        };
+        serde_json::to_writer(&mut writer, route)
+            .map_err(|_| Error::Budget("catalog route packet bytes"))?;
+        let route_packet = writer.bytes;
+        let route_sha = Digest256::of_bytes(&route_packet);
+        let node_count = number(route, "node_count")?;
+        let confirming = number(route, "confirming_relation_count")?;
+        let semantic = number(route, "semantic_confirming_relation_count")?;
+        if node_count > receipt.node_count
+            || confirming > receipt.relation_count
+            || semantic > receipt.relation_count
+        {
+            return Err(Error::Invalid("catalog route count exceeds graph"));
+        }
+        let availability = string(route, "availability")?;
+        let readiness = string(route, "role_readiness")?;
+        if !matches!(availability, "available" | "not_projected")
+            || !matches!(readiness, "not_projected" | "kind_only" | "confirmed")
+        {
+            return Err(Error::Invalid("catalog route state"));
+        }
+        work.charge(&[
+            desc.as_bytes(),
+            id.as_bytes(),
+            availability.as_bytes(),
+            readiness.as_bytes(),
+            &route_packet,
+        ])?;
+        db.execute(
+            "INSERT INTO catalog_routes VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11)",
+            params![
+                desc,
+                id,
+                signed(ordinal as u64)?,
+                signed(node_count)?,
+                signed(confirming)?,
+                signed(semantic)?,
+                availability,
+                readiness,
+                signed(route_packet.len() as u64)?,
+                route_sha.as_bytes().as_slice(),
+                route_packet
+            ],
+        )?;
+        verify_route_packet(db, desc, id, limits.max_row_bytes, &route_sha)?;
+    }
+
+    let scope_count: u64 = db.query_row("SELECT count(*) FROM source_scope", [], |r| r.get(0))?;
+    if scope_count != vocabulary.sources.len() as u64 {
+        return Err(Error::Invalid("catalog source scope coverage"));
+    }
+    let mut source_nodes = 0u64;
+    let mut source_relations = 0u64;
+    for source in &vocabulary.sources {
+        let id = &source.source_graph_id;
+        let scoped: Option<(u64,u64)> = db.query_row(
+            "SELECT expected_node_count,expected_relation_count FROM source_scope WHERE source_graph=?1",
+            [id],|r| Ok((r.get(0)?,r.get(1)?))).optional()?;
+        let (scoped_nodes, scoped_relations) = scoped.ok_or(Error::Invalid(
+            "catalog registered source absent from scope",
+        ))?;
+        let nodes: u64 = db.query_row(
+            "SELECT count(*) FROM knowledge_nodes WHERE source_graph=?1",
+            [id],
+            |r| r.get(0),
+        )?;
+        let relations: u64 = db.query_row(
+            "SELECT count(*) FROM knowledge_relations WHERE source_graph=?1",
+            [id],
+            |r| r.get(0),
+        )?;
+        if (nodes, relations) != (scoped_nodes, scoped_relations) {
+            return Err(Error::Invalid("catalog source scope count mismatch"));
+        }
+        for (domain, count) in [("node", nodes), ("relation", relations)] {
+            let value_json = scalar_json(id, limits.max_row_bytes)?;
+            let facet: Option<u64> = db.query_row(
+                "SELECT item_count FROM catalog_facets WHERE descriptor_sha256=?1 AND domain=?2 AND field_id='source_graph' AND value_json=?3",
+                params![desc,domain,value_json],|r|r.get(0)).optional()?;
+            if facet.unwrap_or(0) != count {
+                return Err(Error::Invalid("catalog source facet count mismatch"));
+            }
+        }
+        work.charge(&[desc.as_bytes(), id.as_bytes()])?;
+        db.execute(
+            "INSERT INTO catalog_source_counts VALUES(?1,?2,?3,?4)",
+            params![desc, id, signed(nodes)?, signed(relations)?],
+        )?;
+        source_nodes = source_nodes
+            .checked_add(nodes)
+            .ok_or(Error::Budget("catalog source nodes"))?;
+        source_relations = source_relations
+            .checked_add(relations)
+            .ok_or(Error::Budget("catalog source relations"))?;
+    }
+    if (source_nodes, source_relations) != (receipt.node_count, receipt.relation_count) {
+        return Err(Error::Invalid("catalog normalized row count"));
+    }
+    let index_root = index_root(
+        db,
+        desc,
+        receipt,
+        field_count,
+        value_count,
+        routes.len() as u64,
+        vocabulary.sources.len() as u64,
+        packet_sha,
+    )?;
+    work.charge(&[
+        desc.as_bytes(),
+        receipt.sha256.as_bytes(),
+        index_root.as_bytes(),
+    ])?;
+    db.execute(
+        "INSERT INTO catalog_index_meta VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12)",
+        params![
+            desc,
+            receipt.sha256,
+            SCHEMA,
+            ORDER_PROFILE,
+            signed(vocabulary.sources.len() as u64)?,
+            signed(field_count)?,
+            signed(value_count)?,
+            signed(routes.len() as u64)?,
+            index_root,
+            signed(packet.len() as u64)?,
+            packet_sha.as_bytes().as_slice(),
+            packet
+        ],
+    )?;
+    // A consumer must make the same pre-BLOB length check before transfer.
+    let returned = read_packet(db, desc, limits.max_packet_bytes)?;
+    if returned != packet {
+        return Err(Error::Invalid("catalog index packet readback"));
+    }
+    Ok(CatalogIndexReceipt {
+        descriptor_sha256: desc.clone(),
+        catalog_packet_sha256: receipt.sha256.clone(),
+        catalog_index_root_sha256: index_root,
+        source_count: vocabulary.sources.len() as u64,
+        facet_field_count: field_count,
+        facet_value_count: value_count,
+        route_count: routes.len() as u64,
+        packet_bytes: packet.len() as u64,
+    })
+}
+
+fn read_packet(db: &Connection, descriptor: &str, max_bytes: usize) -> Result<Vec<u8>> {
+    let (actual,declared,digest_len): (i64,i64,i64) = db.query_row(
+        "SELECT length(packet),packet_len,length(packet_sha256) FROM catalog_index_meta WHERE descriptor_sha256=?1",
+        [descriptor],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?)))?;
+    if actual < 0 || declared != actual || actual as u64 > max_bytes as u64 || digest_len != 32 {
+        return Err(Error::Budget("catalog indexed packet length"));
+    }
+    let digest: Vec<u8> = db.query_row(
+        "SELECT packet_sha256 FROM catalog_index_meta WHERE descriptor_sha256=?1",
+        [descriptor],
+        |r| r.get(0),
+    )?;
+    let bytes: Vec<u8> = db.query_row(
+        "SELECT packet FROM catalog_index_meta WHERE descriptor_sha256=?1",
+        [descriptor],
+        |r| r.get(0),
+    )?;
+    if bytes.len() != actual as usize
+        || Digest256::of_bytes(&bytes).as_bytes().as_slice() != digest.as_slice()
+    {
+        return Err(Error::Invalid("catalog indexed packet digest"));
+    }
+    Ok(bytes)
+}
+
+fn verify_route_packet(
+    db: &Connection,
+    descriptor: &str,
+    route_id: &str,
+    max_bytes: usize,
+    expected: &Digest256,
+) -> Result<()> {
+    let (actual, declared, digest_len): (i64, i64, i64) = db.query_row(
+        "SELECT length(packet),packet_len,length(packet_sha256) FROM catalog_routes
+         WHERE descriptor_sha256=?1 AND route_id=?2",
+        params![descriptor, route_id],
+        |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+    )?;
+    if actual < 0 || declared != actual || actual as u64 > max_bytes as u64 || digest_len != 32 {
+        return Err(Error::Budget("catalog indexed route length"));
+    }
+    let (digest, bytes): (Vec<u8>, Vec<u8>) = db.query_row(
+        "SELECT packet_sha256,packet FROM catalog_routes
+         WHERE descriptor_sha256=?1 AND route_id=?2",
+        params![descriptor, route_id],
+        |r| Ok((r.get(0)?, r.get(1)?)),
+    )?;
+    if bytes.len() != actual as usize
+        || digest.as_slice() != expected.as_bytes()
+        || Digest256::of_bytes(&bytes) != *expected
+    {
+        return Err(Error::Invalid("catalog indexed route digest"));
+    }
+    Ok(())
+}
+
+fn index_root(
+    db: &Connection,
+    desc: &str,
+    receipt: &CatalogReceipt,
+    fields: u64,
+    values: u64,
+    routes: u64,
+    sources: u64,
+    packet_sha: &Digest256,
+) -> Result<String> {
+    let mut hash = Digest256Hasher::new();
+    hash_text(&mut hash, SCHEMA);
+    hash_text(&mut hash, ORDER_PROFILE);
+    hash_text(&mut hash, desc);
+    hash_text(&mut hash, &receipt.sha256);
+    hash.update(packet_sha.as_bytes());
+    for n in [
+        receipt.node_count,
+        receipt.relation_count,
+        fields,
+        values,
+        routes,
+        sources,
+    ] {
+        hash_number(&mut hash, n);
+    }
+    let mut seen = [0u64; 4];
+    let mut stmt = db.prepare(
+        "SELECT domain,field_id,value_count,total_count FROM catalog_facet_fields
+        WHERE descriptor_sha256=?1 ORDER BY domain,field_id",
+    )?;
+    let mut rows = stmt.query([desc])?;
+    while let Some(row) = rows.next()? {
+        hash.update(b"F");
+        for index in 0..2 {
+            hash_text(&mut hash, &row.get::<_, String>(index)?);
+        }
+        for index in 2..4 {
+            hash_number(&mut hash, row.get::<_, u64>(index)?);
+        }
+        seen[0] += 1;
+    }
+    let mut stmt = db.prepare(
+        "SELECT domain,field_id,ordinal,value_json,item_count FROM catalog_facets
+        WHERE descriptor_sha256=?1 ORDER BY domain,field_id,ordinal",
+    )?;
+    let mut rows = stmt.query([desc])?;
+    while let Some(row) = rows.next()? {
+        hash.update(b"V");
+        hash_text(&mut hash, &row.get::<_, String>(0)?);
+        hash_text(&mut hash, &row.get::<_, String>(1)?);
+        hash_number(&mut hash, row.get::<_, u64>(2)?);
+        hash_text(&mut hash, &row.get::<_, String>(3)?);
+        hash_number(&mut hash, row.get::<_, u64>(4)?);
+        seen[1] += 1;
+    }
+    let mut stmt = db.prepare(
+        "SELECT route_id,ordinal,node_count,confirming_relation_count,
+        semantic_confirming_relation_count,availability,role_readiness,packet_len,packet_sha256
+        FROM catalog_routes WHERE descriptor_sha256=?1 ORDER BY ordinal",
+    )?;
+    let mut rows = stmt.query([desc])?;
+    while let Some(row) = rows.next()? {
+        hash.update(b"R");
+        hash_text(&mut hash, &row.get::<_, String>(0)?);
+        for index in 1..5 {
+            hash_number(&mut hash, row.get::<_, u64>(index)?);
+        }
+        hash_text(&mut hash, &row.get::<_, String>(5)?);
+        hash_text(&mut hash, &row.get::<_, String>(6)?);
+        hash_number(&mut hash, row.get::<_, u64>(7)?);
+        let digest: Vec<u8> = row.get(8)?;
+        if digest.len() != 32 {
+            return Err(Error::Invalid("catalog route digest length"));
+        }
+        hash.update(&digest);
+        seen[2] += 1;
+    }
+    let mut stmt = db.prepare(
+        "SELECT source_graph_id,node_count,relation_count FROM catalog_source_counts
+        WHERE descriptor_sha256=?1 ORDER BY source_graph_id",
+    )?;
+    let mut rows = stmt.query([desc])?;
+    while let Some(row) = rows.next()? {
+        hash.update(b"S");
+        hash_text(&mut hash, &row.get::<_, String>(0)?);
+        hash_number(&mut hash, row.get::<_, u64>(1)?);
+        hash_number(&mut hash, row.get::<_, u64>(2)?);
+        seen[3] += 1;
+    }
+    if seen != [fields, values, routes, sources] {
+        return Err(Error::Invalid("catalog index row count/root"));
+    }
+    Ok(hash.finalize().to_hex())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::knowledge_stage::{
+        ExactInputReceipt, InputCollectionReceipt, StageIsolation, StageLimits, StageOwner,
+    };
+    use crate::{Limits, SourceBinding};
+    use serde_json::json;
+    use std::{
+        fs,
+        path::Path,
+        time::{SystemTime, UNIX_EPOCH},
+    };
+
+    const VOCAB: &[u8] = include_bytes!("../tests/fixtures/query-vocabulary.v1.json");
+    const ADAPTERS: &[&str] = &[
+        "philosophy-node-edge-v1",
+        "canon-node-relation-v1",
+        "candidate-relation-v1",
+        "source-navigation-node-edge-v1",
+        "reified-bibliographic-claims-v1",
+        "declared-identity-and-source-ref-joins-v1",
+        "repository-topology-v1",
+        "indexed-node-edge-v1",
+    ];
+
+    fn fixture(scope_mismatch: bool) -> (Connection, CatalogReceipt, QueryVocabulary, Vec<u8>) {
+        let vocab = QueryVocabulary::parse(VOCAB, ADAPTERS).unwrap();
+        let mut db = Connection::open_in_memory().unwrap();
+        db.execute_batch(
+            "CREATE TABLE source_scope(
+            source_graph TEXT PRIMARY KEY,expected_node_count INTEGER NOT NULL,
+            expected_relation_count INTEGER NOT NULL) WITHOUT ROWID;
+            CREATE TABLE knowledge_nodes(source_graph TEXT NOT NULL);
+            CREATE TABLE knowledge_relations(source_graph TEXT NOT NULL);",
+        )
+        .unwrap();
+        db.execute("INSERT INTO knowledge_nodes VALUES('canon')", [])
+            .unwrap();
+        for source in &vocab.sources {
+            let nodes = if source.source_graph_id == "canon" {
+                if scope_mismatch { 2 } else { 1 }
+            } else {
+                0
+            };
+            db.execute(
+                "INSERT INTO source_scope VALUES(?1,?2,0)",
+                params![source.source_graph_id, nodes],
+            )
+            .unwrap();
+        }
+        let routes: Vec<Value> = vocab
+            .overview_route_ids
+            .iter()
+            .map(|id| {
+                json!({
+            "route_id":id,"node_count":0,"confirming_relation_count":0,
+            "semantic_confirming_relation_count":0,"availability":"not_projected",
+            "role_readiness":"not_projected"})
+            })
+            .collect();
+        let catalog = json!({"schema":"tos_knowledge_catalog_v1",
+            "counts":{"nodes":1,"relations":0},"capabilities":{"facets":{
+            "nodes":{
+                "source_graph":[{"value":"canon","count":1}],
+                "kind_id":[{"value":"work","count":1}],
+                "type_id":[{"value":"tos.entity.work","count":1}]},
+            "relations":{"source_graph":[],"predicate_id":[],"relation_type_id":[]}},
+            "entity_routes":routes}});
+        let packet = serde_json::to_vec(&catalog).unwrap();
+        let receipt = CatalogReceipt {
+            catalog,
+            sha256: Digest256::of_bytes(&packet).to_hex(),
+            node_count: 1,
+            relation_count: 0,
+        };
+        (db, receipt, vocab, packet)
+    }
+
+    #[test]
+    fn complete_zero_sources_fields_routes_and_exact_seek_have_stable_root() {
+        let mut roots = Vec::new();
+        for _ in 0..2 {
+            let (mut db, receipt, vocab, packet) = fixture(false);
+            let digest = Digest256::of_bytes(&packet);
+            let index = materialize_inner(
+                &mut db,
+                &receipt,
+                &vocab,
+                CatalogIndexLimits::default(),
+                &packet,
+                &digest,
+            )
+            .unwrap();
+            assert_eq!(index.source_count, vocab.sources.len() as u64);
+            assert_eq!(index.facet_field_count, 6);
+            assert_eq!(index.facet_value_count, 3);
+            assert_eq!(index.route_count, vocab.overview_route_ids.len() as u64);
+            let zeros: u64 = db
+                .query_row(
+                    "SELECT count(*) FROM catalog_source_counts
+                WHERE node_count=0 AND relation_count=0",
+                    [],
+                    |r| r.get(0),
+                )
+                .unwrap();
+            assert_eq!(zeros, vocab.sources.len() as u64 - 1);
+            let empty_field: u64 = db
+                .query_row(
+                    "SELECT value_count FROM catalog_facet_fields
+                WHERE domain='relation' AND field_id='predicate_id'",
+                    [],
+                    |r| r.get(0),
+                )
+                .unwrap();
+            assert_eq!(empty_field, 0);
+            let exact: u64 = db
+                .query_row(
+                    "SELECT item_count FROM catalog_facets
+                WHERE domain='node' AND field_id='source_graph' AND value_json='\"canon\"'",
+                    [],
+                    |r| r.get(0),
+                )
+                .unwrap();
+            assert_eq!(exact, 1);
+            assert_eq!(
+                read_packet(&db, &vocab.descriptor_sha256, packet.len()).unwrap(),
+                packet
+            );
+            roots.push(index.catalog_index_root_sha256);
+        }
+        assert_eq!(roots[0], roots[1]);
+    }
+
+    #[test]
+    fn scope_count_and_packet_length_mismatch_refuse() {
+        let (mut db, receipt, vocab, packet) = fixture(true);
+        let digest = Digest256::of_bytes(&packet);
+        let error = materialize_inner(
+            &mut db,
+            &receipt,
+            &vocab,
+            CatalogIndexLimits::default(),
+            &packet,
+            &digest,
+        )
+        .unwrap_err();
+        assert!(error.to_string().contains("scope count mismatch"));
+
+        let (mut db, receipt, vocab, packet) = fixture(false);
+        let digest = Digest256::of_bytes(&packet);
+        materialize_inner(
+            &mut db,
+            &receipt,
+            &vocab,
+            CatalogIndexLimits::default(),
+            &packet,
+            &digest,
+        )
+        .unwrap();
+        db.execute("UPDATE catalog_index_meta SET packet=zeroblob(200000)", [])
+            .unwrap();
+        let error = read_packet(&db, &vocab.descriptor_sha256, packet.len()).unwrap_err();
+        assert!(error.to_string().contains("packet length"));
+    }
+
+    #[test]
+    fn non_ascii_facet_fails_closed() {
+        let (mut db, mut receipt, vocab, _) = fixture(false);
+        receipt.catalog["capabilities"]["facets"]["nodes"]["kind_id"][0]["value"] = json!("Straße");
+        let packet = serde_json::to_vec(&receipt.catalog).unwrap();
+        receipt.sha256 = Digest256::of_bytes(&packet).to_hex();
+        let digest = Digest256::of_bytes(&packet);
+        let error = materialize_inner(
+            &mut db,
+            &receipt,
+            &vocab,
+            CatalogIndexLimits::default(),
+            &packet,
+            &digest,
+        )
+        .unwrap_err();
+        assert!(error.to_string().contains("casefold"));
+    }
+
+    #[test]
+    fn self_hashed_wrong_catalog_schema_refuses() {
+        let (mut db, mut receipt, vocab, _) = fixture(false);
+        receipt.catalog["schema"] = json!("other_catalog");
+        let packet = serde_json::to_vec(&receipt.catalog).unwrap();
+        receipt.sha256 = Digest256::of_bytes(&packet).to_hex();
+        let digest = Digest256::of_bytes(&packet);
+        let error = materialize_inner(
+            &mut db,
+            &receipt,
+            &vocab,
+            CatalogIndexLimits::default(),
+            &packet,
+            &digest,
+        )
+        .unwrap_err();
+        assert!(error.to_string().contains("packet schema"));
+    }
+
+    struct TestOwner;
+    impl StageOwner for TestOwner {
+        fn verify_receipt(&self, _: &ExactInputReceipt) -> Result<()> {
+            Ok(())
+        }
+        fn recheck_sealed_cut(&self, _: &ExactInputReceipt) -> Result<()> {
+            Ok(())
+        }
+    }
+    struct TestQuota;
+    impl StageIsolation for TestQuota {
+        fn verify(&self, _: &Path, _: StageLimits, _: WritePhase) -> Result<()> {
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn callback_failure_poison_prevents_stage_finish() {
+        let (_, receipt, vocab, _) = fixture(false);
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let dir =
+            std::env::temp_dir().join(format!("tos-catalog-index-{}-{unique}", std::process::id()));
+        fs::create_dir(&dir).unwrap();
+        let candidate = dir.join("stage.sqlite3");
+        let owner = TestOwner;
+        let quota = TestQuota;
+        let exact = ExactInputReceipt {
+            binding: SourceBinding {
+                owner_profile: "fixture-owner".into(),
+                source_cut: "fixture-cut".into(),
+                through_commit_seq: 1,
+                membership_root: "0".repeat(64),
+                index_generation: "fixture-generation".into(),
+                route_map_version: "fixture-routes".into(),
+                reader_abi: "fixture-reader".into(),
+                projection_root_sha256: "1".repeat(64),
+                complete: true,
+            },
+            collections: vec![InputCollectionReceipt {
+                source_graph: "fixture.graph".into(),
+                collection: "fixture/raw".into(),
+                input_role: "fixture".into(),
+                adapter_profile: "fixture-adapter".into(),
+                expected_count: 0,
+                expected_root_sha256: Digest256::of_bytes(b"").to_hex(),
+            }],
+        };
+        let limits = StageLimits {
+            sqlite: Limits::default(),
+            max_temp_bytes: 64 * 1024 * 1024,
+            max_seek_rows: 8,
+            max_seek_bytes: 1024,
+        };
+        let mut stage = KnowledgeStage::create(&candidate, limits, exact, &owner, &quota).unwrap();
+        assert!(
+            materialize_catalog(&mut stage, &receipt, &vocab, CatalogIndexLimits::default())
+                .is_err()
+        );
+        assert!(stage.finish().unwrap_err().to_string().contains("poisoned"));
+        fs::remove_dir(&dir).unwrap();
+    }
+}

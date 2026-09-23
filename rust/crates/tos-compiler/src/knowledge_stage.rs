@@ -165,6 +165,16 @@ pub struct StageReceipt {
     pub sqlite_size_bytes: u64,
 }
 
+/// Provisional derived row roots for the full-model seal. `finish` repeats
+/// these scans after its owner cut recheck; this is not source admission.
+#[derive(Clone, Debug)]
+pub(crate) struct CoreRoots {
+    pub nodes: u64,
+    pub relations: u64,
+    pub node_sha256: String,
+    pub relation_sha256: String,
+}
+
 #[derive(Clone, Debug)]
 pub struct SeekRow {
     pub id: String,
@@ -318,6 +328,19 @@ impl<'a> KnowledgeStage<'a> {
         })();
         self.poisoned |= result.is_err();
         result
+    }
+
+    pub(crate) fn core_roots(&mut self) -> Result<CoreRoots> {
+        self.with_connection(WritePhase::Sort, |db| {
+            let (nodes, node_sha256) = output_root(db, "knowledge_nodes")?;
+            let (relations, relation_sha256) = output_root(db, "knowledge_relations")?;
+            Ok(CoreRoots {
+                nodes,
+                relations,
+                node_sha256,
+                relation_sha256,
+            })
+        })
     }
     fn charge(&mut self, payload: &[u8]) -> Result<()> {
         if payload.len() > self.limits.sqlite.max_row_bytes {
