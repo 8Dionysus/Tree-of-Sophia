@@ -10,6 +10,15 @@ use crate::placement::PlacementV1;
 const LEAF_TAG: &[u8] = b"tos-placement-leaf-v1";
 const CATALOG_TAG: &[u8] = b"tos-placement-catalog-v1";
 const MIN_ROW_BYTES: u64 = 4 + 1 + 32 + 8 + PlacementV1::ENCODED_BYTES as u64;
+const LEAF_OVERHEAD_BYTES: u64 = LEAF_TAG.len() as u64 + 16;
+
+fn empty_leaf_digest() -> Digest256 {
+    let mut hasher = Digest256Hasher::new();
+    hasher.update(LEAF_TAG);
+    hasher.update(&0u64.to_le_bytes());
+    hasher.update(&LEAF_OVERHEAD_BYTES.to_le_bytes());
+    hasher.finalize()
+}
 
 /// Raw unsigned byte order. The source/CMD key codec must be injective and
 /// named by a separate digest; storage never interprets a key as a path/type.
@@ -76,6 +85,7 @@ pub struct PlacementPartitionV1 {
     pub rows: u64,
     pub first_key: Option<Vec<u8>>,
     pub last_key: Option<Vec<u8>>,
+    /// Canonical leaf size including tag and count/length trailer.
     pub leaf_bytes: u64,
     pub leaf_digest: Digest256,
 }
@@ -237,7 +247,7 @@ where
     let mut hasher = Digest256Hasher::new();
     hasher.update(LEAF_TAG);
     let mut count = 0u64;
-    let mut bytes = 0u64;
+    let mut bytes = LEAF_OVERHEAD_BYTES;
     let mut first_key = None;
     let mut last_key: Option<Vec<u8>> = None;
     for row in rows {
@@ -269,6 +279,12 @@ where
     }
     hasher.update(&count.to_le_bytes());
     hasher.update(&bytes.to_le_bytes());
+    if bytes > limits.max_leaf_bytes {
+        return Err(SegmentError::new(
+            Code::BudgetExceeded,
+            "placement leaf budget exceeded",
+        ));
+    }
     Ok(PlacementPartitionV1 {
         bounds,
         rows: count,
@@ -330,11 +346,14 @@ pub fn placement_catalog_shape_root(
             || (partition.rows == 0
                 && (partition.first_key.is_some()
                     || partition.last_key.is_some()
-                    || partition.leaf_bytes != 0))
+                    || partition.leaf_bytes != LEAF_OVERHEAD_BYTES
+                    || partition.leaf_digest != empty_leaf_digest()))
             || (partition.rows > 0
                 && (partition.first_key.is_none()
                     || partition.last_key.is_none()
-                    || partition.leaf_bytes < partition.rows.saturating_mul(MIN_ROW_BYTES)))
+                    || partition.leaf_bytes
+                        < LEAF_OVERHEAD_BYTES
+                            .saturating_add(partition.rows.saturating_mul(MIN_ROW_BYTES))))
         {
             return Err(SegmentError::new(
                 Code::InvalidFormat,
@@ -460,6 +479,12 @@ mod tests {
         assert!(parts[1].bounds.contains(b"m"));
         assert!(parts[0].bounds.contains(b"a"));
         assert_eq!(root(&parts[..1]).unwrap_err().code, Code::InvalidFormat);
+        let mut false_empty = parts[1].clone();
+        false_empty.leaf_digest = Digest256::of_bytes(b"invented empty leaf");
+        assert_eq!(
+            root(&[parts[0].clone(), false_empty]).unwrap_err().code,
+            Code::InvalidFormat
+        );
     }
 
     #[test]
