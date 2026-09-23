@@ -15,6 +15,8 @@ use crate::search_v2::{
 };
 use tos_foundation::Digest256;
 
+const OBSERVED_FIXED_BYTES_V1: u64 = 1 + 8 + 32;
+
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct SearchKindBudget {
     pub grams: GramSeekBudget,
@@ -26,6 +28,9 @@ pub(crate) struct SearchKindBudget {
     pub max_verified_chars: u64,
     pub max_verified_bytes: u64,
     pub max_observed_candidates: usize,
+    /// Logical UTF-8 ID/source bytes plus 1 kind, 8 position and 32 digest
+    /// bytes per consulted carrier. This is not an allocator-heap meter.
+    pub max_observed_bytes: u64,
     pub max_selected_result_bytes: usize,
 }
 
@@ -58,6 +63,7 @@ pub(crate) struct PrivateSearchKindPage {
     pub(crate) candidate_charge: CandidateReadCharge,
     pub(crate) verified_chars: u64,
     pub(crate) verified_bytes: u64,
+    pub(crate) observed_bytes: u64,
 }
 
 fn error(code: SearchV2ErrorCode, message: &'static str) -> SearchV2Error {
@@ -91,6 +97,7 @@ where
         || budget.max_candidate_decoded_bytes == 0
         || budget.max_verified_chars == 0
         || budget.max_verified_bytes == 0
+        || budget.max_observed_bytes == 0
     {
         return Err(error(
             SearchV2ErrorCode::BudgetExceeded,
@@ -115,6 +122,7 @@ where
             },
             verified_chars: 0,
             verified_bytes: 0,
+            observed_bytes: 0,
         });
     }
     let mut observed = Vec::new();
@@ -127,6 +135,7 @@ where
     };
     let mut verified_chars = 0u64;
     let mut verified_bytes = 0u64;
+    let mut observed_bytes = 0u64;
     let posting_charge =
         visit_complete_postings(model, kind, &seed, budget.postings, |model, position| {
             if observed.len() >= budget.max_observed_candidates {
@@ -191,6 +200,29 @@ where
                     )
                 })?;
             authority.authorize_current(&candidate)?;
+            let observed_row_bytes = OBSERVED_FIXED_BYTES_V1
+                .checked_add(candidate.id.len() as u64)
+                .and_then(|sum| sum.checked_add(candidate.source_graph.len() as u64))
+                .ok_or_else(|| {
+                    error(
+                        SearchV2ErrorCode::BudgetExceeded,
+                        "observed candidate byte overflow",
+                    )
+                })?;
+            observed_bytes = observed_bytes
+                .checked_add(observed_row_bytes)
+                .ok_or_else(|| {
+                    error(
+                        SearchV2ErrorCode::BudgetExceeded,
+                        "observed candidate byte overflow",
+                    )
+                })?;
+            if observed_bytes > budget.max_observed_bytes {
+                return Err(error(
+                    SearchV2ErrorCode::BudgetExceeded,
+                    "observed candidate byte cap exceeded",
+                ));
+            }
             observed.push(ObservedSearchCandidate {
                 kind,
                 position,
@@ -298,6 +330,7 @@ where
         candidate_charge,
         verified_chars,
         verified_bytes,
+        observed_bytes,
     })
 }
 
@@ -581,6 +614,7 @@ mod tests {
             max_verified_chars: 8192,
             max_verified_bytes: 8192,
             max_observed_candidates: 7,
+            max_observed_bytes: 8192,
             max_selected_result_bytes: 8192,
         }
     }
@@ -619,6 +653,7 @@ mod tests {
         assert_eq!(model.posting_calls, 4);
         assert_eq!(page.candidate_charge.rows, 7);
         assert!(page.verified_chars > 0);
+        assert!(page.observed_bytes > 0);
 
         let mut denied = Authority {
             denied: Some(6),
@@ -653,6 +688,40 @@ mod tests {
         let mut admitted = budget();
         admitted.max_verified_chars =
             model.rows.iter().map(|row| row.document_chars).sum::<u64>() - 1;
+        assert_eq!(
+            execute_private_kind_page(
+                &mut model,
+                &vocabulary,
+                &mut authority,
+                SearchKind::Nodes,
+                &request,
+                None,
+                admitted
+            )
+            .unwrap_err()
+            .code,
+            SearchV2ErrorCode::BudgetExceeded
+        );
+        assert_eq!(model.candidate_calls, 7);
+    }
+
+    #[test]
+    fn one_under_observed_identity_bytes_fails_without_private_result() {
+        let (rows, vocabulary, request) = fixture();
+        let expected: u64 = rows
+            .iter()
+            .map(|row| {
+                OBSERVED_FIXED_BYTES_V1 + row.id.len() as u64 + row.source_graph.len() as u64
+            })
+            .sum();
+        let mut model = Model {
+            rows,
+            posting_calls: 0,
+            candidate_calls: 0,
+        };
+        let mut authority = Authority::default();
+        let mut admitted = budget();
+        admitted.max_observed_bytes = expected - 1;
         assert_eq!(
             execute_private_kind_page(
                 &mut model,
