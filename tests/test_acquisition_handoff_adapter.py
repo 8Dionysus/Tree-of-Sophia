@@ -70,6 +70,10 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
         payload_body = b"adapter fixture payload\n"
         payload_sha = hashlib.sha256(payload_body).hexdigest()
         payload_ref = f"tos.file.sha256.{payload_sha}"
+        inventory_event_ref = (
+            "tos.event.adapter-inventory-"
+            + hashlib.sha256(item_ref.encode()).hexdigest()[:12]
+        )
         old_manifest = json.loads((owner_item_root / "item.manifest.json").read_text())
         old_payload = old_manifest["payload_files"][0]
         for filename, kind in (
@@ -186,7 +190,7 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
                             "name": "build_source_resource_inventories.py",
                             "version": "1",
                         },
-                        "provenance_event_ref": old_manifest["acquisition_event_ref"],
+                        "provenance_event_ref": inventory_event_ref,
                         "inventory_version": 1,
                         "authority_boundary": "Fixture metadata only; no source text is included.",
                     }
@@ -203,6 +207,38 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
             records.append(
                 {"ref": ref, "kind": kind, "sha256": hashlib.sha256(body).hexdigest()}
             )
+        inventory_ref = f"{item_root}/resource-inventory.json"
+        inventory_path = self.metadata / inventory_ref
+        inventory_event = {
+            "schema_version": "tos_provenance_event_v1",
+            "event_id": inventory_event_ref,
+            "event_type": "forensic_inspection",
+            "started_at": "2026-09-22T12:00:00Z",
+            "ended_at": "2026-09-22T12:00:00Z",
+            "agent_refs": ["software:tos-source-item-commands"],
+            "inputs": [],
+            "outputs": [
+                {
+                    "ref": inventory_ref,
+                    "role": "tracked_text_free_resource_inventory",
+                    "sha256": hashlib.sha256(inventory_path.read_bytes()).hexdigest(),
+                }
+            ],
+            "method": {
+                "maker_type": "software",
+                "name": "build_source_resource_inventories.py",
+                "version": "1",
+                "configuration": {},
+            },
+            "status": "completed",
+            "event_version": 1,
+        }
+        provenance_ref = f"{item_root}/provenance.jsonl"
+        provenance_path = self.metadata / provenance_ref
+        with provenance_path.open("ab") as stream:
+            stream.write((json.dumps(inventory_event, sort_keys=True) + "\n").encode())
+        provenance_record = next(record for record in records if record["ref"] == provenance_ref)
+        provenance_record["sha256"] = hashlib.sha256(provenance_path.read_bytes()).hexdigest()
         if extra_manifest:
             extra_ref = f"{item_root}/batch-scope.json"
             extra_body = b'{"scope":"fixture-batch"}\n'
@@ -286,11 +322,17 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
             )
         )
         first_event_ref = first_manifest["acquisition_event_ref"]
+        first_inventory_ref = f"{first_item_root}/resource-inventory.json"
+        first_inventory = json.loads(
+            (self.metadata / first_inventory_ref).read_text(encoding="utf-8")
+        )
+        first_inventory_event_ref = first_inventory["provenance_event_ref"]
         second_item_ref = "tos.item.shared-file-second"
         second_item_root = (
             f"{first_item_root.rsplit('/', 1)[0]}/acquired-note-shared-file-test"
         )
         second_event_ref = "tos.event.acquisition.shared-file-second"
+        second_inventory_event_ref = "tos.event.inventory.shared-file-second"
         second = json.loads(json.dumps(first))
         second["item_ref"] = second_item_ref
         second["item_root_ref"] = second_item_root
@@ -302,6 +344,7 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
                 (first_item_root.encode(), second_item_root.encode()),
                 (first_item_ref.encode(), second_item_ref.encode()),
                 (first_event_ref.encode(), second_event_ref.encode()),
+                (first_inventory_event_ref.encode(), second_inventory_event_ref.encode()),
             ):
                 body = body.replace(before, after)
             destination = self.metadata / new_ref
@@ -314,6 +357,37 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
                     "sha256": hashlib.sha256(body).hexdigest(),
                 }
             )
+        second_inventory_ref = f"{second_item_root}/resource-inventory.json"
+        second_inventory_path = self.metadata / second_inventory_ref
+        second_inventory_sha = hashlib.sha256(second_inventory_path.read_bytes()).hexdigest()
+        second_provenance_ref = f"{second_item_root}/provenance.jsonl"
+        second_provenance_path = self.metadata / second_provenance_ref
+        second_provenance_rows = [
+            json.loads(line)
+            for line in second_provenance_path.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+        inventory_event = next(
+            row
+            for row in second_provenance_rows
+            if row["event_id"] == second_inventory_event_ref
+        )
+        inventory_output = next(
+            row
+            for row in inventory_event["outputs"]
+            if row["ref"] == second_inventory_ref
+        )
+        inventory_output["sha256"] = second_inventory_sha
+        second_provenance_path.write_text(
+            "".join(
+                json.dumps(row, sort_keys=True) + "\n"
+                for row in second_provenance_rows
+            ),
+            encoding="utf-8",
+        )
+        next(row for row in second_records if row["ref"] == second_provenance_ref)["sha256"] = (
+            hashlib.sha256(second_provenance_path.read_bytes()).hexdigest()
+        )
         second["records"] = second_records
         second["rights"]["ref"] = f"{second_item_root}/rights.json"
         second["rights"]["sha256"] = next(

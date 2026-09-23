@@ -128,6 +128,7 @@ class AcquisitionBatchTests(unittest.TestCase):
                 + "\n"
             ).encode()
             payload_sha256 = hashlib.sha256(payload_body).hexdigest()
+            inventory_event_ref = f"tos.event.inventory.fixture-{index}"
             inventory_body = json.dumps(
                 {
                     "$schema": "https://tree-of-sophia.local/ToS/contracts/source-resource-inventory.schema.json",
@@ -163,12 +164,39 @@ class AcquisitionBatchTests(unittest.TestCase):
                         "name": "build_source_resource_inventories.py",
                         "version": "1",
                     },
-                    "provenance_event_ref": event_ref,
+                    "provenance_event_ref": inventory_event_ref,
                     "inventory_version": 1,
                     "authority_boundary": "Fixture metadata only; no source text is included.",
                 },
                 sort_keys=True,
             ).encode() + b"\n"
+            provenance_event = {
+                "schema_version": "tos_provenance_event_v1",
+                "event_id": inventory_event_ref,
+                "event_type": "forensic_inspection",
+                "started_at": "2026-09-21T12:00:00Z",
+                "ended_at": "2026-09-21T12:00:00Z",
+                "agent_refs": ["software:tos-source-item-commands"],
+                "inputs": [],
+                "outputs": [
+                    {
+                        "ref": resource_inventory_ref,
+                        "role": "tracked_text_free_resource_inventory",
+                        "sha256": hashlib.sha256(inventory_body).hexdigest(),
+                    }
+                ],
+                "method": {
+                    "maker_type": "software",
+                    "name": "build_source_resource_inventories.py",
+                    "version": "1",
+                    "configuration": {},
+                },
+                "status": "completed",
+                "event_version": 1,
+            }
+            provenance_body += (
+                json.dumps(provenance_event, sort_keys=True) + "\n"
+            ).encode()
             forensic_report_body = b"Fixture forensic report; no interpretation was accepted.\n"
             fixity_body = f"{payload_sha256}  {payload}\n".encode()
             records = []
@@ -1151,6 +1179,90 @@ class AcquisitionBatchTests(unittest.TestCase):
             )
         self.assertEqual([], fetch_calls)
         self.assertEqual([], list(inventory_output.glob("receipts/handoff-*.json")))
+
+    def test_item_inventory_provenance_is_digest_bound_before_fetch(self) -> None:
+        for mutation in ("missing_event", "wrong_inventory_digest"):
+            with self.subTest(mutation=mutation):
+                fetches, _manifest_sha = self._write_manifest(count=1)
+                manifest = json.loads(self.manifest_path.read_text(encoding="utf-8"))
+                selection = manifest["selection"][0]
+                inventory_record = next(
+                    record
+                    for record in selection["records"]
+                    if record["ref"].endswith("/resource-inventory.json")
+                )
+                inventory_path = self.metadata / inventory_record["ref"]
+                inventory = json.loads(inventory_path.read_text(encoding="utf-8"))
+                provenance_record = next(
+                    record
+                    for record in selection["records"]
+                    if record["kind"] == "provenance"
+                )
+                if mutation == "missing_event":
+                    inventory["provenance_event_ref"] = (
+                        "tos.event.unselected-inventory-fixture"
+                    )
+                else:
+                    provenance_path = self.metadata / provenance_record["ref"]
+                    provenance_rows = [
+                        json.loads(line)
+                        for line in provenance_path.read_text(encoding="utf-8").splitlines()
+                        if line.strip()
+                    ]
+                    inventory_event = next(
+                        row
+                        for row in provenance_rows
+                        if row["event_id"] == inventory["provenance_event_ref"]
+                    )
+                    output = next(
+                        row
+                        for row in inventory_event["outputs"]
+                        if row["ref"] == inventory_record["ref"]
+                    )
+                    output["sha256"] = "0" * 64
+                    provenance_path.write_text(
+                        "".join(
+                            json.dumps(row, sort_keys=True) + "\n"
+                            for row in provenance_rows
+                        ),
+                        encoding="utf-8",
+                    )
+                    provenance_record["sha256"] = hashlib.sha256(
+                        provenance_path.read_bytes()
+                    ).hexdigest()
+                inventory_path.write_text(
+                    json.dumps(inventory, ensure_ascii=False, sort_keys=True) + "\n",
+                    encoding="utf-8",
+                )
+                inventory_record["sha256"] = hashlib.sha256(
+                    inventory_path.read_bytes()
+                ).hexdigest()
+                self.manifest_path.write_text(
+                    json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+                    encoding="utf-8",
+                )
+                manifest_sha = hashlib.sha256(self.manifest_path.read_bytes()).hexdigest()
+                fetch_calls: list[str] = []
+                output_root = self.root / f"inventory-provenance-{mutation}"
+                expected_error = (
+                    "Item resource inventory provenance event is missing or ambiguous"
+                    if mutation == "missing_event"
+                    else "Item resource inventory provenance output is not digest-bound"
+                )
+                with self.assertRaisesRegex(
+                    acquisition.AcquisitionBatchError,
+                    expected_error,
+                ):
+                    acquisition.acquire_batch(
+                        manifest_path=self.manifest_path,
+                        metadata_root=self.metadata,
+                        output_root=output_root,
+                        expected_manifest_sha256=manifest_sha,
+                        fetcher=lambda payload: fetch_calls.append(payload["file_ref"])
+                        or fetches[payload["file_ref"]],
+                    )
+                self.assertEqual([], fetch_calls)
+                self.assertEqual([], list(output_root.glob("receipts/handoff-*.json")))
 
     def test_item_record_must_bind_selected_manifest_before_fetch(self) -> None:
         _fetches, _manifest_sha = self._write_manifest(count=1)

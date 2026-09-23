@@ -948,6 +948,29 @@ def _verify_prepared_item_bindings(context: BatchContext, output: Path) -> None:
             raise AcquisitionBatchError("prepared Item provenance is not valid JSONL") from exc
         if not provenance_rows:
             raise AcquisitionBatchError("prepared Item provenance is empty")
+        inventory_event_ref = inventory_value.get("provenance_event_ref")
+        inventory_events = [
+            event
+            for event in provenance_rows
+            if isinstance(event, dict) and event.get("event_id") == inventory_event_ref
+        ]
+        if not isinstance(inventory_event_ref, str) or len(inventory_events) != 1:
+            raise AcquisitionBatchError(
+                f"Item resource inventory provenance event is missing or ambiguous: {item_ref}"
+            )
+        expected_inventory_output = {
+            "ref": inventory_ref,
+            "role": "tracked_text_free_resource_inventory",
+            "sha256": _sha256_file(inventory_path),
+        }
+        inventory_outputs = inventory_events[0].get("outputs")
+        if (
+            not isinstance(inventory_outputs, list)
+            or expected_inventory_output not in inventory_outputs
+        ):
+            raise AcquisitionBatchError(
+                f"Item resource inventory provenance output is not digest-bound: {item_ref}"
+            )
         acquisition_event_ref = item_manifest.get("acquisition_event_ref")
         selected_events = [
             event
