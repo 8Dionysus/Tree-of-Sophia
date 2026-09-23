@@ -18,6 +18,7 @@ mod knowledge_seal;
 mod knowledge_search;
 mod knowledge_selected;
 mod knowledge_source_claims_prepare;
+mod knowledge_source_navigation_prepare;
 pub mod knowledge_stage;
 mod legacy;
 mod publication;
@@ -54,6 +55,10 @@ pub use knowledge_selected::{
 };
 pub use knowledge_source_claims_prepare::{
     ClaimExternalDependency, ClaimPrepareLimits, ClaimPrepareReceipt, prepare_source_claims,
+};
+pub use knowledge_source_navigation_prepare::{
+    NavigationExternalDependency, NavigationHeaderClaim, NavigationPrepareLimits,
+    NavigationPrepareReceipt, prepare_source_navigation,
 };
 pub use legacy::LegacyPartitionedNavigation;
 pub use publication::{PublicationAuthority, PublishedReceipt, SelectionFence, publish_candidate};
