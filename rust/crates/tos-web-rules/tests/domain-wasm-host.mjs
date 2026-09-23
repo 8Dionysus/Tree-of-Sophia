@@ -95,13 +95,23 @@ assert.equal(proposal({ ...stageRequest, current_revision: currentRevision + 1 }
 const tampered = { ...wire, statement: 'Changed.' };
 assert.equal(proposal({ operation: 'verify', hypothesis_ids: ['hyp:one'], proposal: tampered }).error, 'digest_mismatch');
 let dateCases = 0;
-for (const [date, accepted] of [
+const dateVectors = [
   ['+275760-09-13T00:00:00.000Z', true],
   ['+275760-09-13T00:00:00.001Z', false],
   ['+275760-12-31T00:00:00.000Z', false],
   ['-271821-04-20T00:00:00.000Z', true],
   ['-271821-04-19T23:59:59.999Z', false],
-]) {
+];
+for (const year of [-271821, -100000, -10000, -9999, -400, -1, 0, 1, 4, 100, 400, 1970, 2000, 2024, 9999, 10000, 100000, 275760]) {
+  const yearText = year < 0 ? `-${String(-year).padStart(6, '0')}`
+    : year > 9999 ? `+${String(year).padStart(6, '0')}` : String(year).padStart(4, '0');
+  for (const suffix of ['-02-28T23:59:59.999Z', '-02-29T00:00:00.000Z']) {
+    const date = yearText + suffix;
+    const parsed = new Date(date);
+    dateVectors.push([date, Number.isFinite(parsed.getTime()) && parsed.toISOString() === date]);
+  }
+}
+for (const [date, accepted] of dateVectors) {
   const tsWorkspace = createResearchWorkspace({ sessionId: `date-${date}`, persistence: false });
   tsWorkspace.addHypothesis({ id: 'hyp:one', title: 'Reading', body: 'Local reading.' });
   const tsInput = { id: 'proposal:one', kind: 'interpretation', parentHypothesisId: 'hyp:one', targetId: 'edge:one',
