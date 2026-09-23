@@ -14,7 +14,7 @@ use tos_compiler::{
 use tos_foundation::{JsonLimits, JsonMode, JsonValue, parse_json};
 use tos_query::{
     Budget, Charged, CmpPinnedModel, CurrentPolicy, DisclosureLease, QueryError, QueryErrorCode,
-    RawRecord, SourceDescendRequest, SourcePin, SqliteReadModel, source_descend,
+    RawRecord, ReadModel, SourceDescendRequest, SourcePin, SqliteReadModel, source_descend,
 };
 
 struct FixtureLease;
@@ -213,6 +213,39 @@ fn selected_cmp_model_matches_frozen_python_packet_and_refuses_current_denial() 
         limit: 300,
         at_least_commit_seq: Some(7),
     };
+    let exact = model
+        .exact_visible_node("id.alpha", 1_000_000, 100_000)
+        .unwrap();
+    let exact_bytes = exact.charged.bytes as usize + exact.record.unwrap().raw.len();
+    model
+        .exact_visible_node("id.alpha", exact_bytes, 100_000)
+        .unwrap();
+    assert_eq!(
+        model
+            .exact_visible_node("id.alpha", exact_bytes - 1, 100_000)
+            .unwrap_err()
+            .code,
+        QueryErrorCode::BudgetExceeded
+    );
+    let adjacency = model
+        .visible_outgoing("id.alpha", None, 1, 1_000_000, 100_000)
+        .unwrap();
+    let adjacency_bytes = adjacency.charged.bytes as usize
+        + adjacency
+            .edges
+            .iter()
+            .map(|edge| edge.raw.len())
+            .sum::<usize>();
+    model
+        .visible_outgoing("id.alpha", None, 1, adjacency_bytes, 100_000)
+        .unwrap();
+    assert_eq!(
+        model
+            .visible_outgoing("id.alpha", None, 1, adjacency_bytes - 1, 100_000)
+            .unwrap_err()
+            .code,
+        QueryErrorCode::BudgetExceeded
+    );
     let packet = source_descend(&mut model, &request, budget()).unwrap();
     let actual = parse_json(&packet, JsonMode::PublishedStrict, JsonLimits::default()).unwrap();
     assert!(semantic_eq(actual.root(), field(oracle.root(), "expected")));
