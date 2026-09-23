@@ -1,16 +1,19 @@
 //! Private, disk-indexed full-knowledge staging. Source admission and the
 //! filesystem spill quota are supplied by independent owner/host guards.
 
-use crate::{Error, Limits, Result, SourceBinding, file_digest, sqlite_budget};
+use crate::{
+    file_digest, safe_open, sqlite_budget, stream_digest, Error, Limits, Result, SourceBinding,
+};
 use fs2::FileExt;
-use rusqlite::{Connection, OpenFlags, OptionalExtension, params};
+use rusqlite::{params, Connection, OpenFlags, OptionalExtension};
 use std::{
     collections::{BTreeMap, BTreeSet},
     fs,
     io::{Read, Seek, SeekFrom, Write},
+    os::fd::AsRawFd,
     os::unix::fs::{MetadataExt, OpenOptionsExt, PermissionsExt},
     path::{Path, PathBuf},
-    sync::{Arc, atomic::AtomicU64},
+    sync::{atomic::AtomicU64, Arc},
 };
 use tos_foundation::{Digest256, Digest256Hasher};
 
@@ -32,11 +35,12 @@ pub enum WritePhase {
     Finalize,
 }
 
-/// The host implementation must hold a quota-backed private temp/output
-/// namespace for this stage's entire lifetime, including SQLite's fallback
-/// directories and rollback files. `verify` must reject absent or exhausted
-/// kernel-enforced quotas; a before/after size sample alone cannot cap a
-/// single SQLite statement's spill. There is no permissive implementation.
+/// The host implementation must hold an exclusive quota-backed private
+/// temp/output namespace for this stage's entire lifetime, including SQLite's
+/// fallback directories and rollback files. No other writer may replace a
+/// stage path or write the retained inodes. `verify` must reject absent or
+/// exhausted kernel-enforced quotas; a before/after size sample alone cannot
+/// cap a single SQLite statement's spill. There is no permissive implementation.
 pub trait StageIsolation {
     fn verify(&self, candidate: &Path, limits: StageLimits, phase: WritePhase) -> Result<()>;
 }
@@ -739,6 +743,7 @@ impl<'a> KnowledgeStage<'a> {
             return Err(Error::Invalid("stage relation endpoint absent"));
         }
         self.check(WritePhase::Sort)?;
+        let mut selected_file = None;
         if self.selected_full {
             self.check(WritePhase::Finalize)?;
             preflight_selected_vacuum(self.db(), &self.candidate, self.inode, self.limits)?;
@@ -760,11 +765,14 @@ impl<'a> KnowledgeStage<'a> {
             self.db().execute("VACUUM INTO ?1", [fresh_utf8])?;
             self.check(WritePhase::Finalize)?;
             fs::set_permissions(&fresh, fs::Permissions::from_mode(0o600))?;
+            let pinned = safe_open::open_regular(&fresh, self.limits.sqlite.max_output_bytes)?;
             verify_fresh_selected(
                 &fresh,
+                &pinned,
                 self.limits.sqlite,
                 Arc::clone(self.vm_used.as_ref().expect("stage VM counter")),
             )?;
+            selected_file = Some(pinned);
         }
         self.check(WritePhase::Finalize)?;
         if self
@@ -779,17 +787,33 @@ impl<'a> KnowledgeStage<'a> {
         let db = self.db.take().expect("stage database open");
         db.close().map_err(|(_, e)| Error::Sql(e))?;
         let output_path = self.fresh_selected.as_deref().unwrap_or(&self.candidate);
-        let (sqlite_sha256, sqlite_size_bytes) = file_digest(output_path)?;
+        let (sqlite_sha256, sqlite_size_bytes) = if let Some(pinned) = selected_file.as_ref() {
+            let mut digest_file = pinned.try_clone()?;
+            digest_file.rewind()?;
+            stream_digest(&mut digest_file)?
+        } else {
+            file_digest(output_path)?
+        };
         if sqlite_size_bytes > self.limits.sqlite.max_output_bytes {
             return Err(Error::Budget("stage final output bytes"));
         }
-        fs::File::open(output_path)?.sync_all()?;
+        if let Some(pinned) = selected_file.as_ref() {
+            pinned.sync_all()?;
+        } else {
+            fs::File::open(output_path)?.sync_all()?;
+        }
         if let Some(fresh) = self.fresh_selected.as_ref() {
             let old = fs::symlink_metadata(&self.candidate)?;
             let new = fs::symlink_metadata(fresh)?;
+            let pinned = selected_file
+                .as_ref()
+                .ok_or(Error::Invalid("fresh selected file not retained"))?
+                .metadata()?;
             if !old.file_type().is_file()
                 || (old.dev(), old.ino()) != self.inode
                 || !new.file_type().is_file()
+                || (new.dev(), new.ino()) != (pinned.dev(), pinned.ino())
+                || new.len() != sqlite_size_bytes
                 || old.uid() != new.uid()
             {
                 return Err(Error::Invalid("selected stage inode changed"));
@@ -798,6 +822,13 @@ impl<'a> KnowledgeStage<'a> {
             fs::rename(fresh, &self.candidate)?;
             self.inode = (new.dev(), new.ino());
             self.fresh_selected = None;
+            let installed = fs::symlink_metadata(&self.candidate)?;
+            if !installed.file_type().is_file()
+                || (installed.dev(), installed.ino()) != self.inode
+                || installed.len() != sqlite_size_bytes
+            {
+                return Err(Error::Invalid("selected installed inode changed"));
+            }
         }
         fs::File::open(self.candidate.parent().expect("stage parent"))?.sync_all()?;
         self.remove_lease()?;
@@ -965,9 +996,18 @@ pub(crate) fn selected_table_closure(db: &Connection) -> Result<()> {
     Ok(())
 }
 
-fn verify_fresh_selected(path: &Path, limits: Limits, used: Arc<AtomicU64>) -> Result<()> {
+fn verify_fresh_selected(
+    path: &Path,
+    pinned: &fs::File,
+    limits: Limits,
+    used: Arc<AtomicU64>,
+) -> Result<()> {
     let metadata = fs::symlink_metadata(path)?;
-    if !metadata.file_type().is_file() || metadata.len() > limits.max_output_bytes {
+    let opened = pinned.metadata()?;
+    if !metadata.file_type().is_file()
+        || (metadata.dev(), metadata.ino()) != (opened.dev(), opened.ino())
+        || opened.len() > limits.max_output_bytes
+    {
         return Err(Error::Budget("fresh selected SQLite bytes/type"));
     }
     if sqlite_sidecar_paths(path)
@@ -976,7 +1016,14 @@ fn verify_fresh_selected(path: &Path, limits: Limits, used: Arc<AtomicU64>) -> R
     {
         return Err(Error::Invalid("fresh selected SQLite sidecar"));
     }
-    let db = Connection::open_with_flags(path, OpenFlags::SQLITE_OPEN_READ_ONLY)?;
+    let uri = format!(
+        "file:/proc/self/fd/{}?mode=ro&immutable=1",
+        pinned.as_raw_fd()
+    );
+    let db = Connection::open_with_flags(
+        uri,
+        OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_URI,
+    )?;
     sqlite_budget::install_progress(&db, limits, used);
     db.pragma_update(None, "cache_size", -(limits.sqlite_cache_kib as i64))?;
     db.execute_batch("PRAGMA temp_store=FILE")?;
@@ -1444,13 +1491,11 @@ mod tests {
             Digest256::of_bytes(b"raw").to_hex()
         );
         assert!(page.next_id.is_none());
-        assert!(
-            stage
-                .scan_input("fixture.graph", "fixture/raw", Some("raw.1"), 1)
-                .unwrap()
-                .rows
-                .is_empty()
-        );
+        assert!(stage
+            .scan_input("fixture.graph", "fixture/raw", Some("raw.1"), 1)
+            .unwrap()
+            .rows
+            .is_empty());
         let empty = stage
             .scan_input("fixture.graph", "fixture/empty", None, 1)
             .unwrap();
@@ -1517,16 +1562,14 @@ mod tests {
                 payload: b"raw",
             })
             .unwrap();
-        assert!(
-            stage
-                .ingest_input(InputRow {
-                    source_graph: "fixture.graph",
-                    collection: "fixture/raw",
-                    id: "raw.1",
-                    payload: b"raw"
-                })
-                .is_err()
-        );
+        assert!(stage
+            .ingest_input(InputRow {
+                source_graph: "fixture.graph",
+                collection: "fixture/raw",
+                id: "raw.1",
+                payload: b"raw"
+            })
+            .is_err());
         assert!(stage.finish().is_err());
         assert!(!duplicate.exists());
         fs::remove_dir_all(duplicate.parent().unwrap()).unwrap();
@@ -1555,16 +1598,14 @@ mod tests {
             calls: AtomicUsize::new(0),
             deny: true,
         };
-        assert!(
-            KnowledgeStage::create(
-                &denied,
-                limits(),
-                exact_receipt(RAW_ROOT),
-                &owner,
-                &denied_quota
-            )
-            .is_err()
-        );
+        assert!(KnowledgeStage::create(
+            &denied,
+            limits(),
+            exact_receipt(RAW_ROOT),
+            &owner,
+            &denied_quota
+        )
+        .is_err());
         assert!(!denied.exists());
         fs::remove_dir_all(denied.parent().unwrap()).unwrap();
     }
@@ -1710,13 +1751,11 @@ mod tests {
         )
         .unwrap();
         ingest_fixture(&mut stage);
-        assert!(
-            stage
-                .with_connection::<()>(WritePhase::Catalog, |_| Err(Error::Invalid(
-                    "catalog failure"
-                )))
-                .is_err()
-        );
+        assert!(stage
+            .with_connection::<()>(WritePhase::Catalog, |_| Err(Error::Invalid(
+                "catalog failure"
+            )))
+            .is_err());
         assert!(stage.finish().is_err());
         assert!(!candidate.exists());
         fs::remove_dir_all(candidate.parent().unwrap()).unwrap();
