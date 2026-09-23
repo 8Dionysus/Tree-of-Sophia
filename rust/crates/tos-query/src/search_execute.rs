@@ -18,7 +18,7 @@ use tos_foundation::Digest256;
 const OBSERVED_FIXED_BYTES_V1: u64 = 1 + 8 + 32;
 
 #[derive(Clone, Copy, Debug)]
-pub(crate) struct SearchKindBudget {
+pub struct SearchKindBudget {
     pub grams: GramSeekBudget,
     pub postings: PostingSeekBudget,
     pub candidate: CandidateReadBudget,
@@ -35,7 +35,7 @@ pub(crate) struct SearchKindBudget {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct ObservedSearchCandidate {
+pub struct ObservedSearchCandidate {
     pub kind: SearchKind,
     pub position: u64,
     pub id: String,
@@ -351,6 +351,26 @@ pub(crate) fn advance_private_kind(
         state.advance(kind, Some(last.order.clone()), false)
     } else {
         state.advance(kind, None, true)
+    }
+}
+
+pub(crate) fn exhausted_private_kind() -> PrivateSearchKindPage {
+    PrivateSearchKindPage {
+        hits: Vec::new(),
+        observed: Vec::new(),
+        has_more: false,
+        matching_total: 0,
+        gram_seed: None,
+        gram_charge: GramSeekCharge::default(),
+        posting_charge: GramSeekCharge::default(),
+        candidate_charge: CandidateReadCharge {
+            vm_steps: 0,
+            rows: 0,
+            decoded_bytes: 0,
+        },
+        verified_chars: 0,
+        verified_bytes: 0,
+        observed_bytes: 0,
     }
 }
 

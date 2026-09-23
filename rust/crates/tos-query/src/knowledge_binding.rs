@@ -27,6 +27,7 @@ pub struct BoundCmpKnowledge<'a> {
     vocabulary: &'a QueryVocabulary,
     source_revision: String,
     authority_boundary: String,
+    owner_receipt_id: String,
 }
 
 impl BoundCmpKnowledge<'_> {
@@ -38,6 +39,9 @@ impl BoundCmpKnowledge<'_> {
     }
     pub fn authority_boundary(&self) -> &str {
         &self.authority_boundary
+    }
+    pub fn owner_receipt_id(&self) -> &str {
+        &self.owner_receipt_id
     }
 
     /// Refuse a different pinned selected file before running a query with
@@ -141,5 +145,6 @@ pub fn bind_verified_knowledge<'a>(
         vocabulary,
         source_revision: model.source_revision().to_owned(),
         authority_boundary: selected.authority_boundary.clone(),
+        owner_receipt_id: selected.owner_receipt_id.clone(),
     })
 }

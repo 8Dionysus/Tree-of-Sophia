@@ -7,6 +7,8 @@
 #[cfg(not(target_arch = "wasm32"))]
 mod knowledge_binding;
 #[cfg(not(target_arch = "wasm32"))]
+mod knowledge_packet;
+#[cfg(not(target_arch = "wasm32"))]
 mod knowledge_sqlite;
 pub mod search_candidate;
 mod search_document;
@@ -19,9 +21,16 @@ mod sqlite;
 
 #[cfg(not(target_arch = "wasm32"))]
 pub use knowledge_binding::{BoundCmpKnowledge, bind_verified_knowledge};
+#[cfg(not(target_arch = "wasm32"))]
+pub use knowledge_packet::{
+    DisclosableIndexedSearch, IndexedDisclosureLease, IndexedDisclosureScope,
+    IndexedKnowledgeAuthority, IndexedPageBudget, IndexedWireCursorCodec,
+    execute_indexed_search_page,
+};
 pub use search_document::{
     SearchDocumentBudget, VerifiedSearchDocument, verify_indexed_search_document,
 };
+pub use search_execute::{ObservedSearchCandidate, SearchKindBudget};
 pub use source_descend::{
     AdjacencyPage, Binding, Budget, Charged, DisclosableSourceDescend, DisclosureLease, ExactNode,
     QueryError, QueryErrorCode, RawRecord, ReadModel, SOURCE_DESCEND_D1_METER_V1,
