@@ -367,7 +367,7 @@ impl CorpusReader {
             .max_manifest_bytes
             .min(self.limits.json.max_bytes);
         let mut raw = Vec::new();
-        file.by_ref()
+        Read::by_ref(&mut file)
             .take((cap as u64).saturating_add(1))
             .read_to_end(&mut raw)
             .map_err(|error| StoreError::io("cannot read corpus manifest", error))?;

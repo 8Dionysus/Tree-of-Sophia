@@ -53,7 +53,11 @@ pub struct FoundationError {
 
 impl FoundationError {
     pub fn new(code: FoundationErrorCode, detail: impl Into<String>) -> Self {
-        Self { code, byte_offset: None, detail: detail.into() }
+        Self {
+            code,
+            byte_offset: None,
+            detail: detail.into(),
+        }
     }
 
     pub fn at(mut self, byte_offset: usize) -> Self {
@@ -65,7 +69,12 @@ impl FoundationError {
 impl fmt::Display for FoundationError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.byte_offset {
-            Some(offset) => write!(f, "{} at byte {offset}: {}", self.code.as_str(), self.detail),
+            Some(offset) => write!(
+                f,
+                "{} at byte {offset}: {}",
+                self.code.as_str(),
+                self.detail
+            ),
             None => write!(f, "{}: {}", self.code.as_str(), self.detail),
         }
     }
