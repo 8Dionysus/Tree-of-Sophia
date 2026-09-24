@@ -7537,6 +7537,206 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         fabricated_human_acceptance = _accept_synthetic_sign(copy.deepcopy(packet))
         self.assertTrue(list(validator.iter_errors(fabricated_human_acceptance)))
 
+    def _discover_item_manifest_refs(self, repo_root: Path) -> set[str]:
+        return {
+            path.relative_to(repo_root).as_posix()
+            for path in (repo_root / foundation.SOURCE_ROOT).rglob("item.manifest.json")
+        }
+
+    def _copy_server_plan_fixture(
+        self,
+        repo_root: Path,
+    ) -> tuple[Path, dict[str, object], dict[str, dict[str, object]]]:
+        plan_ref = Path(
+            "ToS/source-witnesses/server-import/plans/"
+            "antonovsky-1913-wikimedia-commons-penza-scan-pdf.server-import.json"
+        )
+        source_plan = REPO_ROOT / plan_ref
+        plan_path = repo_root / plan_ref
+        plan_path.parent.mkdir(parents=True, exist_ok=True)
+        plan_path.write_bytes(source_plan.read_bytes())
+        plan = json.loads(plan_path.read_text(encoding="utf-8"))
+        referenced_paths = {
+            plan["manifest"]["ref"],
+            plan["rights_policy"]["rights_record_ref"],
+        }
+        for ref in referenced_paths:
+            destination = repo_root / ref
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            destination.write_bytes((REPO_ROOT / ref).read_bytes())
+
+        event_refs = set(plan["provenance_event_refs"])
+        events: dict[str, dict[str, object]] = {}
+        provenance_path = REPO_ROOT / "ToS/source-witnesses/server-import/provenance.jsonl"
+        for line in provenance_path.read_text(encoding="utf-8").splitlines():
+            event = json.loads(line)
+            if event.get("event_id") in event_refs:
+                events[event["event_id"]] = event
+        return plan_path, plan, events
+
+    def test_server_plan_coverage_is_optional_for_local_only_items(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            repo_root = Path(temporary)
+            _, _, events = self._copy_server_plan_fixture(repo_root)
+
+            local_manifest_ref = Path(
+                "ToS/source-witnesses/collections/friedrich-nietzsche/"
+                "nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/"
+                "editions/leipzig-c-g-naumann-1906/items/"
+                "internet-archive-google-stanford-djvu-xml/item.manifest.json"
+            )
+            local_source = REPO_ROOT / local_manifest_ref
+            local_manifest_path = repo_root / local_manifest_ref
+            local_manifest_path.parent.mkdir(parents=True, exist_ok=True)
+            local_manifest_path.write_bytes(local_source.read_bytes())
+            local_manifest = json.loads(local_manifest_path.read_text(encoding="utf-8"))
+            local_rights_ref = local_manifest["rights_ref"]
+            local_rights_path = repo_root / local_rights_ref
+            local_rights_path.parent.mkdir(parents=True, exist_ok=True)
+            local_rights_path.write_bytes((REPO_ROOT / local_rights_ref).read_bytes())
+
+            item_validator, _ = foundation._schema_validator(
+                foundation.ITEM_MANIFEST_SCHEMA,
+                REPO_ROOT,
+            )
+            self.assertEqual([], list(item_validator.iter_errors(local_manifest)))
+            self.assertEqual("local_only", local_manifest["visibility"])
+            self.assertFalse(
+                (repo_root / "ToS/source-witnesses/server-import/plans/"
+                 "internet-archive-google-stanford-djvu-xml.server-import.json").exists()
+            )
+
+            server_validator, _ = foundation._schema_validator(
+                foundation.SERVER_IMPORT_SCHEMA,
+                REPO_ROOT,
+            )
+            issues: list[tuple[str, str]] = []
+            foundation._validate_server_import_plans(
+                repo_root,
+                server_validator,
+                events,
+                self._discover_item_manifest_refs(repo_root),
+                issues,
+            )
+            self.assertEqual([], issues)
+
+    def test_present_server_plan_must_reference_a_discovered_item_manifest(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            repo_root = Path(temporary)
+            plan_path, plan, events = self._copy_server_plan_fixture(repo_root)
+            actual_manifest_ref = Path(plan["manifest"]["ref"])
+            detached_manifest_ref = (
+                actual_manifest_ref.parent / "item-metadata.json"
+            )
+            detached_manifest_path = repo_root / detached_manifest_ref
+            detached_manifest_path.write_bytes(
+                (repo_root / actual_manifest_ref).read_bytes()
+            )
+            plan["manifest"]["ref"] = detached_manifest_ref.as_posix()
+            plan_path.write_text(
+                json.dumps(plan, indent=2) + "\n",
+                encoding="utf-8",
+            )
+            self.assertTrue(detached_manifest_path.is_file())
+            self.assertNotIn(
+                detached_manifest_ref.as_posix(),
+                self._discover_item_manifest_refs(repo_root),
+            )
+
+            server_validator, _ = foundation._schema_validator(
+                foundation.SERVER_IMPORT_SCHEMA,
+                REPO_ROOT,
+            )
+            issues: list[tuple[str, str]] = []
+            foundation._validate_server_import_plans(
+                repo_root,
+                server_validator,
+                events,
+                self._discover_item_manifest_refs(repo_root),
+                issues,
+            )
+            messages = [message for _, message in issues]
+            self.assertIn(
+                "server plan manifest ref is not a discovered item manifest: "
+                f"{detached_manifest_ref.as_posix()}",
+                messages,
+            )
+
+    def test_server_plan_validator_rejects_present_manifest_rights_and_provenance_drift(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            repo_root = Path(temporary)
+            plan_path, plan, events = self._copy_server_plan_fixture(repo_root)
+            plan["manifest"]["sha256"] = "0" * 64
+            plan["rights_policy"]["rights_record_sha256"] = "1" * 64
+            plan_path.write_text(json.dumps(plan, indent=2) + "\n", encoding="utf-8")
+            for event in events.values():
+                event["outputs"][0]["sha256"] = "2" * 64
+
+            server_validator, _ = foundation._schema_validator(
+                foundation.SERVER_IMPORT_SCHEMA,
+                REPO_ROOT,
+            )
+            issues: list[tuple[str, str]] = []
+            foundation._validate_server_import_plans(
+                repo_root,
+                server_validator,
+                events,
+                self._discover_item_manifest_refs(repo_root),
+                issues,
+            )
+            messages = [message for _, message in issues]
+            self.assertIn("server plan manifest digest drifted", messages)
+            self.assertIn("server plan rights-record digest drifted", messages)
+            self.assertTrue(any("server-plan provenance output digest drifted:" in message for message in messages))
+            self.assertTrue(any("server-plan provenance input digests drifted:" in message for message in messages))
+
+    def test_orphan_server_plan_fails_when_its_manifest_is_missing(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            repo_root = Path(temporary)
+            plan_path, plan, events = self._copy_server_plan_fixture(repo_root)
+            missing_ref = (
+                "ToS/source-witnesses/works/fixture/items/missing/item.manifest.json"
+            )
+            plan["manifest"]["ref"] = missing_ref
+            plan_path.write_text(json.dumps(plan, indent=2) + "\n", encoding="utf-8")
+
+            server_validator, _ = foundation._schema_validator(
+                foundation.SERVER_IMPORT_SCHEMA,
+                REPO_ROOT,
+            )
+            issues: list[tuple[str, str]] = []
+            foundation._validate_server_import_plans(
+                repo_root,
+                server_validator,
+                events,
+                self._discover_item_manifest_refs(repo_root),
+                issues,
+            )
+            self.assertIn((missing_ref, "file is missing"), issues)
+
+    def test_all_present_server_plans_close_over_exact_source_evidence(self) -> None:
+        issues: list[tuple[str, str]] = []
+        provenance_path = (
+            REPO_ROOT / "ToS/source-witnesses/server-import/provenance.jsonl"
+        )
+        events = {
+            event["event_id"]: event
+            for event in foundation._load_jsonl(provenance_path, REPO_ROOT, issues)
+            if isinstance(event.get("event_id"), str)
+        }
+        server_validator, _ = foundation._schema_validator(
+            foundation.SERVER_IMPORT_SCHEMA,
+            REPO_ROOT,
+        )
+        foundation._validate_server_import_plans(
+            REPO_ROOT,
+            server_validator,
+            events,
+            self._discover_item_manifest_refs(REPO_ROOT),
+            issues,
+        )
+        self.assertEqual([], issues)
+
     def test_discovery_access_and_server_boundaries_fail_closed(self) -> None:
         discovery_validator, _ = foundation._schema_validator(
             foundation.MATERIAL_DISCOVERY_SCHEMA,
@@ -7604,10 +7804,6 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         plan_paths = sorted(
             (REPO_ROOT / "ToS/source-witnesses/server-import/plans").glob("*.json")
         )
-        manifest_paths = sorted(
-            (REPO_ROOT / "ToS/source-witnesses").rglob("item.manifest.json")
-        )
-        self.assertEqual(len(manifest_paths), len(plan_paths))
         for plan_path in plan_paths:
             plan = json.loads(plan_path.read_text(encoding="utf-8"))
             self.assertEqual([], list(server_validator.iter_errors(plan)))
