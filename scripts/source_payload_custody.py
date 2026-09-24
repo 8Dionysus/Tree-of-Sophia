@@ -387,31 +387,200 @@ def entries_from_registry_manifest(
     return entries, missing
 
 
+def _open_directory_path_nofollow(path: Path) -> int:
+    """Open an absolute directory one component at a time without symlinks."""
+
+    if not path.is_absolute():
+        raise CustodyError("custody root must be absolute")
+    directory_flags = (
+        os.O_RDONLY
+        | getattr(os, "O_DIRECTORY", 0)
+        | getattr(os, "O_NOFOLLOW", 0)
+    )
+    try:
+        current_fd = os.open(path.anchor or "/", directory_flags)
+    except OSError as exc:
+        raise CustodyError(f"cannot open custody root without following symlinks: {path}") from exc
+    try:
+        for part in path.parts[1:]:
+            try:
+                next_fd = os.open(part, directory_flags, dir_fd=current_fd)
+            except OSError as exc:
+                raise CustodyError(
+                    f"cannot traverse custody root without following symlinks: {path}"
+                ) from exc
+            os.close(current_fd)
+            current_fd = next_fd
+        return current_fd
+    except BaseException:
+        os.close(current_fd)
+        raise
+
+
+def _open_rooted_payload(root_fd: int, parts: tuple[str, ...], path: Path) -> tuple[int, os.stat_result]:
+    """Open a regular file by descriptor-relative traversal below ``root_fd``."""
+
+    if not parts or any(part in {"", ".", ".."} for part in parts):
+        raise CustodyError(f"payload path is not a safe relative path: {path}")
+    directory_flags = (
+        os.O_RDONLY
+        | getattr(os, "O_DIRECTORY", 0)
+        | getattr(os, "O_NOFOLLOW", 0)
+    )
+    file_flags = (
+        os.O_RDONLY
+        | getattr(os, "O_NOFOLLOW", 0)
+        | getattr(os, "O_NONBLOCK", 0)
+    )
+    parent_fd = os.dup(root_fd)
+    try:
+        for part in parts[:-1]:
+            try:
+                next_fd = os.open(part, directory_flags, dir_fd=parent_fd)
+            except OSError as exc:
+                raise CustodyError(f"symlink or invalid ancestor in custody path: {path}") from exc
+            os.close(parent_fd)
+            parent_fd = next_fd
+        try:
+            fd = os.open(parts[-1], file_flags, dir_fd=parent_fd)
+        except OSError as exc:
+            raise CustodyError(f"cannot open payload under custody root: {path}") from exc
+    finally:
+        os.close(parent_fd)
+    try:
+        info = os.fstat(fd)
+        if not stat.S_ISREG(info.st_mode):
+            raise CustodyError(f"payload is not a regular file: {path}")
+        return fd, info
+    except BaseException:
+        os.close(fd)
+        raise
+
+
+def _verify_rooted_path_identity(
+    root_fd: int,
+    parts: tuple[str, ...],
+    path: Path,
+    expected: os.stat_result,
+) -> None:
+    fd, current = _open_rooted_payload(root_fd, parts, path)
+    try:
+        if current.st_dev != expected.st_dev or current.st_ino != expected.st_ino:
+            raise CustodyError(f"payload pathname changed while hashing: {path}")
+    finally:
+        os.close(fd)
+
+
+def _revalidate_rooted_path(
+    root_path: Path,
+    root_fd: int,
+    root_identity: os.stat_result,
+    parts: tuple[str, ...],
+    path: Path,
+    expected: os.stat_result,
+) -> None:
+    root_check_fd = _open_directory_path_nofollow(root_path)
+    try:
+        root_check = os.fstat(root_check_fd)
+        if (root_check.st_dev, root_check.st_ino) != (
+            root_identity.st_dev,
+            root_identity.st_ino,
+        ):
+            raise CustodyError(f"custody root changed while reading: {root_path}")
+    finally:
+        os.close(root_check_fd)
+    _verify_rooted_path_identity(root_fd, parts, path, expected)
+
+
+def _copy_rooted_payload(source: Path, output: Any, custody_root: Path | str) -> None:
+    """Copy from a held custody root and revalidate its path after reading."""
+
+    root_path = checked_root(custody_root)
+    try:
+        relative = source.relative_to(root_path)
+    except ValueError as exc:
+        raise CustodyError(f"payload path is outside custody root: {source}") from exc
+    parts = tuple(relative.parts)
+    if not parts or any(part in {"", ".", ".."} for part in parts):
+        raise CustodyError(f"payload path is not a safe relative path: {source}")
+    root_fd = _open_directory_path_nofollow(root_path)
+    source_fd: int | None = None
+    try:
+        root_identity = os.fstat(root_fd)
+        source_fd, initial = _open_rooted_payload(root_fd, parts, source)
+        with os.fdopen(source_fd, "rb", closefd=True) as input_stream:
+            source_fd = None
+            size = 0
+            while True:
+                chunk = input_stream.read(_CHUNK_SIZE)
+                if not chunk:
+                    break
+                output.write(chunk)
+                size += len(chunk)
+            final = os.fstat(input_stream.fileno())
+            if size != initial.st_size or final.st_size != initial.st_size:
+                raise CustodyError(f"payload size changed while copying: {source}")
+            _revalidate_rooted_path(
+                root_path, root_fd, root_identity, parts, source, final
+            )
+    finally:
+        if source_fd is not None:
+            os.close(source_fd)
+        os.close(root_fd)
+
+
 def digest_file(
     path: Path,
     *,
     expected_mode: int | None = None,
     expected_owner_uid: int | None = None,
     require_single_link: bool = False,
+    custody_root: Path | str | None = None,
 ) -> FileDigest:
-    """Hash one regular file through an O_NOFOLLOW descriptor.
+    """Hash one regular file through no-follow file and directory descriptors.
 
     Requested mode, owner, and link-count constraints are checked on the same
     opened descriptor before and after reading so custody verification binds
-    the inode whose bytes were hashed.
+    the inode whose bytes were hashed. When ``custody_root`` is supplied, the
+    file is opened and revalidated by descriptor-relative traversal from that
+    held root, so replacing an intermediate directory cannot redirect the
+    post-hash check outside custody.
     """
 
-    flags = (
-        os.O_RDONLY
-        | getattr(os, "O_NOFOLLOW", 0)
-        | getattr(os, "O_NONBLOCK", 0)
-    )
-    try:
-        fd = os.open(path, flags)
-    except OSError as exc:
-        raise CustodyError(f"cannot open payload without following symlink: {path}") from exc
-    try:
+    path = Path(path)
+    root_path: Path | None = None
+    root_fd: int | None = None
+    root_identity: os.stat_result | None = None
+    relative_parts: tuple[str, ...] | None = None
+    if custody_root is not None:
+        root_path = checked_root(custody_root)
+        try:
+            relative = path.relative_to(root_path)
+        except ValueError as exc:
+            raise CustodyError(f"payload path is outside custody root: {path}") from exc
+        relative_parts = tuple(relative.parts)
+        if not relative_parts or any(part in {"", ".", ".."} for part in relative_parts):
+            raise CustodyError(f"payload path is not a safe relative path: {path}")
+        root_fd = _open_directory_path_nofollow(root_path)
+        try:
+            root_identity = os.fstat(root_fd)
+            fd, info = _open_rooted_payload(root_fd, relative_parts, path)
+        except BaseException:
+            os.close(root_fd)
+            root_fd = None
+            raise
+    else:
+        flags = (
+            os.O_RDONLY
+            | getattr(os, "O_NOFOLLOW", 0)
+            | getattr(os, "O_NONBLOCK", 0)
+        )
+        try:
+            fd = os.open(path, flags)
+        except OSError as exc:
+            raise CustodyError(f"cannot open payload without following symlink: {path}") from exc
         info = os.fstat(fd)
+    try:
         if not stat.S_ISREG(info.st_mode):
             raise CustodyError(f"payload is not a regular file: {path}")
         def check_posture(value: os.stat_result, *, after_read: bool) -> None:
@@ -444,22 +613,30 @@ def digest_file(
                 blob.update(chunk)
             final_info = os.fstat(stream.fileno())
             check_posture(final_info, after_read=True)
-            try:
-                path_info = os.stat(path, follow_symlinks=False)
-            except OSError as exc:
-                raise CustodyError(
-                    f"payload pathname is unavailable after hashing: {path}"
-                ) from exc
-            if (
-                not stat.S_ISREG(path_info.st_mode)
-                or path_info.st_dev != final_info.st_dev
-                or path_info.st_ino != final_info.st_ino
-            ):
-                raise CustodyError(f"payload pathname changed while hashing: {path}")
+            if root_fd is not None and root_path is not None and relative_parts is not None:
+                assert root_identity is not None
+                _revalidate_rooted_path(
+                    root_path, root_fd, root_identity, relative_parts, path, final_info
+                )
+            else:
+                try:
+                    path_info = os.stat(path, follow_symlinks=False)
+                except OSError as exc:
+                    raise CustodyError(
+                        f"payload pathname is unavailable after hashing: {path}"
+                    ) from exc
+                if (
+                    not stat.S_ISREG(path_info.st_mode)
+                    or path_info.st_dev != final_info.st_dev
+                    or path_info.st_ino != final_info.st_ino
+                ):
+                    raise CustodyError(f"payload pathname changed while hashing: {path}")
         return FileDigest(size, sha.hexdigest(), blob.hexdigest())
     finally:
         if fd != -1:
             os.close(fd)
+        if root_fd is not None:
+            os.close(root_fd)
 
 
 def _open_payload(path: Path) -> tuple[int, os.stat_result]:
@@ -481,7 +658,7 @@ def verify_entry(entry: PayloadEntry, *, source_path: Path | None = None) -> Fil
     path = source_path or payload_path(entry.source_root, entry.item_root_ref, entry.relative_path)
     if path.is_symlink():
         raise CustodyError(f"source payload is a symlink: {path}")
-    digest = digest_file(path)
+    digest = digest_file(path, custody_root=entry.source_root)
     if digest.byte_size != entry.byte_size:
         raise CustodyError(f"source byte size differs for {entry.destination_ref}")
     if entry.sha256 is not None and digest.sha256 != entry.sha256:
@@ -493,21 +670,39 @@ def verify_entry(entry: PayloadEntry, *, source_path: Path | None = None) -> Fil
     return digest
 
 
-def _same_destination_digest(destination: Path, expected: FileDigest) -> bool:
+def _same_destination_digest(
+    destination: Path,
+    expected: FileDigest,
+    *,
+    custody_root: Path | str | None = None,
+) -> bool:
     try:
-        actual = digest_file(destination)
+        actual = digest_file(destination, custody_root=custody_root)
     except CustodyError:
         return False
     return actual == expected
 
 
-def _publish_no_clobber(source: Path, destination: Path, expected: FileDigest) -> str:
+def _publish_no_clobber(
+    source: Path,
+    destination: Path,
+    expected: FileDigest,
+    *,
+    source_custody_root: Path | str | None = None,
+    destination_custody_root: Path | str | None = None,
+) -> str:
     """Copy source to destination with an exclusive atomic publication."""
 
     if destination.exists() or destination.is_symlink():
         if destination.is_symlink():
             return "conflict"
-        return "already_present" if _same_destination_digest(destination, expected) else "conflict"
+        return (
+            "already_present"
+            if _same_destination_digest(
+                destination, expected, custody_root=destination_custody_root
+            )
+            else "conflict"
+        )
     destination.parent.mkdir(parents=True, exist_ok=True)
     # Validate newly-created ancestors too; mkdir must never reuse a symlink.
     _checked_child(destination.parent.parent, (destination.parent.name,))
@@ -516,27 +711,38 @@ def _publish_no_clobber(source: Path, destination: Path, expected: FileDigest) -
     )
     temporary = Path(temporary_name)
     try:
-        source_fd, _ = _open_payload(source)
         with os.fdopen(fd, "wb", closefd=True) as output:
-            with os.fdopen(source_fd, "rb", closefd=True) as input_stream:
-                while True:
-                    chunk = input_stream.read(_CHUNK_SIZE)
-                    if not chunk:
-                        break
-                    output.write(chunk)
+            if source_custody_root is None:
+                source_fd, _ = _open_payload(source)
+                with os.fdopen(source_fd, "rb", closefd=True) as input_stream:
+                    while True:
+                        chunk = input_stream.read(_CHUNK_SIZE)
+                        if not chunk:
+                            break
+                        output.write(chunk)
+            else:
+                _copy_rooted_payload(source, output, source_custody_root)
             output.flush()
             os.fsync(output.fileno())
             os.fchmod(output.fileno(), 0o444)
         try:
             # link(2) is atomic and fails with EEXIST; it cannot clobber a
             # concurrent destination the way rename/replace can.
-            temporary_digest = digest_file(temporary)
+            temporary_digest = digest_file(
+                temporary, custody_root=destination_custody_root
+            )
             if temporary_digest != expected:
                 raise CustodyError(f"temporary payload readback differs before publish: {destination}")
             os.link(temporary, destination)
         except FileExistsError:
-            return "already_present" if _same_destination_digest(destination, expected) else "conflict"
-        readback = digest_file(destination)
+            return (
+                "already_present"
+                if _same_destination_digest(
+                    destination, expected, custody_root=destination_custody_root
+                )
+                else "conflict"
+            )
+        readback = digest_file(destination, custody_root=destination_custody_root)
         if readback != expected:
             try:
                 if os.stat(destination).st_ino == os.stat(temporary).st_ino:
@@ -566,13 +772,23 @@ def _publish_no_clobber(source: Path, destination: Path, expected: FileDigest) -
             pass
 
 
-def publish_bytes_no_clobber(destination: Path, body: bytes, expected: FileDigest) -> str:
+def publish_bytes_no_clobber(
+    destination: Path,
+    body: bytes,
+    expected: FileDigest,
+    *,
+    custody_root: Path | str | None = None,
+) -> str:
     """Publish already-verified downloaded bytes without replacing a witness."""
 
     if destination.exists() or destination.is_symlink():
         if destination.is_symlink():
             return "conflict"
-        return "already_present" if _same_destination_digest(destination, expected) else "conflict"
+        return (
+            "already_present"
+            if _same_destination_digest(destination, expected, custody_root=custody_root)
+            else "conflict"
+        )
     destination.parent.mkdir(parents=True, exist_ok=True)
     _checked_child(destination.parent.parent, (destination.parent.name,))
     fd, temporary_name = tempfile.mkstemp(
@@ -586,13 +802,17 @@ def publish_bytes_no_clobber(destination: Path, body: bytes, expected: FileDiges
             os.fsync(output.fileno())
             os.fchmod(output.fileno(), 0o444)
         try:
-            temporary_digest = digest_file(temporary)
+            temporary_digest = digest_file(temporary, custody_root=custody_root)
             if temporary_digest != expected:
                 raise CustodyError(f"temporary payload readback differs before publish: {destination}")
             os.link(temporary, destination)
         except FileExistsError:
-            return "already_present" if _same_destination_digest(destination, expected) else "conflict"
-        readback = digest_file(destination)
+            return (
+                "already_present"
+                if _same_destination_digest(destination, expected, custody_root=custody_root)
+                else "conflict"
+            )
+        readback = digest_file(destination, custody_root=custody_root)
         if readback != expected:
             try:
                 if os.stat(destination).st_ino == os.stat(temporary).st_ino:
@@ -741,7 +961,13 @@ def copy_entries(
                 if not ignored or tracked:
                     raise CustodyError("payload path is not ignored or is Git-tracked")
             destination = destination_path(destination_root, entry)
-            status = _publish_no_clobber(payload_path(entry.source_root, entry.item_root_ref, entry.relative_path), destination, digest)
+            status = _publish_no_clobber(
+                payload_path(entry.source_root, entry.item_root_ref, entry.relative_path),
+                destination,
+                digest,
+                source_custody_root=entry.source_root,
+                destination_custody_root=destination_root,
+            )
             rows.append(custody_row(entry, status=status, digest=digest))
         except (CustodyError, OSError) as exc:
             rows.append(custody_row(entry, status="failed", reason=str(exc)))

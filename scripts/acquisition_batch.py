@@ -1728,6 +1728,7 @@ def _verify_destination(
     payload: dict[str, Any],
     *,
     expected_owner_uid: int | None = None,
+    custody_root: Path | None = None,
 ) -> custody.FileDigest:
     try:
         digest = custody.digest_file(
@@ -1735,6 +1736,7 @@ def _verify_destination(
             expected_mode=0o444,
             expected_owner_uid=expected_owner_uid,
             require_single_link=True,
+            custody_root=custody_root,
         )
     except custody.CustodyError as exc:
         raise SourceIntegrityError(str(exc)) from exc
@@ -1886,7 +1888,10 @@ def _fixity_receipt(
                 output / "payload", payload["item_root_ref"], payload["relative_path"]
             )
             digest = _verify_destination(
-                destination, payload, expected_owner_uid=os.geteuid()
+                destination,
+                payload,
+                expected_owner_uid=os.geteuid(),
+                custody_root=output / "payload",
             )
         except (SourceIntegrityError, custody.CustodyError, OSError) as exc:
             row.update({"status": "missing-or-invalid", "error": str(exc)})
@@ -2086,7 +2091,10 @@ def _acquire_batch_unlocked(
                 if destination.is_symlink():
                     raise SourceIntegrityError(f"destination is a symlink: {destination}")
                 _verify_destination(
-                    destination, payload, expected_owner_uid=os.geteuid()
+                    destination,
+                    payload,
+                    expected_owner_uid=os.geteuid(),
+                    custody_root=output / "payload",
                 )
                 row = {**base_row, "attempt": previous_attempts.get(item.custody_key, 0), "status": "already_present", "completed_at": utc_now()}
                 _append_journal(journal_path, row)
@@ -2108,9 +2116,17 @@ def _acquire_batch_unlocked(
                 if len(body) != payload["byte_size"] or _sha256(body) != payload["sha256"]:
                     raise SourceIntegrityError(f"provider bytes differ for {item.file_ref}")
                 expected = _expected_file_digest(payload, body)
-                status = custody.publish_bytes_no_clobber(destination, body, expected)
+                status = custody.publish_bytes_no_clobber(
+                    destination,
+                    body,
+                    expected,
+                    custody_root=output / "payload",
+                )
                 _verify_destination(
-                    destination, payload, expected_owner_uid=os.geteuid()
+                    destination,
+                    payload,
+                    expected_owner_uid=os.geteuid(),
+                    custody_root=output / "payload",
                 )
                 completed = {
                     **base_row,
@@ -2212,7 +2228,10 @@ def verify_local(*, output_root: Path | str, repo_root: Path | str = REPO_ROOT) 
                 output / "payload", payload["item_root_ref"], payload["relative_path"]
             )
             digest = _verify_destination(
-                destination, payload, expected_owner_uid=os.geteuid()
+                destination,
+                payload,
+                expected_owner_uid=os.geteuid(),
+                custody_root=output / "payload",
             )
         except (SourceIntegrityError, custody.CustodyError, OSError) as exc:
             row.update({"status": "missing-or-invalid", "error": str(exc)})

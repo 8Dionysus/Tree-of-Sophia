@@ -620,7 +620,9 @@ def _verify_handoff(
                 expected["item_root_ref"],
                 expected["relative_path"],
             )
-            digest = acquisition._verify_destination(destination, expected)
+            digest = acquisition._verify_destination(
+                destination, expected, custody_root=acquisition_root / "payload"
+            )
         except (acquisition.SourceIntegrityError, custody.CustodyError, OSError) as exc:
             raise HandoffAdapterError(f"payload custody differs: {payload.file_ref}") from exc
         if row.get("git_blob_sha1") != digest.git_blob_sha1:
@@ -839,20 +841,31 @@ def adapt_handoff(
                     payload["item_root_ref"],
                     payload["relative_path"],
                 )
-                source_digest = custody.digest_file(source)
+                source_digest = custody.digest_file(
+                    source, custody_root=root / "payload"
+                )
                 expected = custody.FileDigest(
                     payload["byte_size"],
                     payload["sha256"],
                     payload.get("git_blob_sha1") or source_digest.git_blob_sha1,
                 )
-                status = custody._publish_no_clobber(source, destination, expected)
+                status = custody._publish_no_clobber(
+                    source,
+                    destination,
+                    expected,
+                    source_custody_root=root / "payload",
+                    destination_custody_root=payload_root,
+                )
             except (custody.CustodyError, OSError) as exc:
                 raise HandoffAdapterError(f"cannot materialize payload custody: {payload['file_ref']}") from exc
             if status not in {"copied", "already_present"}:
                 raise HandoffAdapterError(f"payload custody conflict: {payload['file_ref']}")
             try:
                 acquisition._verify_destination(
-                    destination, payload, expected_owner_uid=os.geteuid()
+                    destination,
+                    payload,
+                    expected_owner_uid=os.geteuid(),
+                    custody_root=payload_root,
                 )
             except (acquisition.SourceIntegrityError, custody.CustodyError, OSError) as exc:
                 raise HandoffAdapterError(f"candidate payload fixity differs: {payload['file_ref']}") from exc
