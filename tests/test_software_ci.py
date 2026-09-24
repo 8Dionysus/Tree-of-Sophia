@@ -137,6 +137,32 @@ class SoftwareSelectionTests(unittest.TestCase):
         self.assertEqual(gate_steps[-1]['run'],'python scripts/software_ci.py gate')
         self.assertEqual(gate_steps[-1]['env']['CI_NEEDS'],'${{ toJSON(needs) }}')
 
+    def test_acquisition_custody_tests_are_in_required_software_validation(self):
+        required_tests={
+            'tests/test_acquisition_batch.py',
+            'tests/test_acquisition_handoff_adapter.py',
+        }
+        required_fixtures={
+            'ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/items/acquired-note-utf8-20260910/item.json',
+            'ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/items/acquired-note-utf8-20260910/item.manifest.json',
+            'ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/items/acquired-note-utf8-20260910/rights.json',
+            'ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/items/acquired-note-utf8-20260910/provenance.jsonl',
+        }
+        lanes=json.loads((ROOT/'docs/validation/validation_lanes.json').read_text())
+        test_step=next(
+            step for step in lanes['command_sequences']['release_check']
+            if step.get('label')=='run tests'
+        )
+        self.assertTrue(required_tests <= set(test_step['command']))
+
+        workflow=yaml.safe_load((ROOT/'.github/workflows/repo-validation.yml').read_text())
+        checkout=next(
+            step for step in workflow['jobs']['software']['steps']
+            if 'sparse-checkout' in step.get('with',{})
+        )
+        sparse_paths=set(checkout['with']['sparse-checkout'].splitlines())
+        self.assertTrue({f'/{path}' for path in required_tests | required_fixtures} <= sparse_paths)
+
 
 if __name__ == '__main__':
     unittest.main()

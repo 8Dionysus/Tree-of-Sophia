@@ -6,6 +6,7 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -80,6 +81,31 @@ class SourcePayloadCustodyTests(unittest.TestCase):
             (root / "works").symlink_to(outside, target_is_directory=True)
             with self.assertRaises(custody.CustodyError):
                 custody.payload_path(root, "ToS/source-witnesses/works/fixture", "payload/x")
+
+    def test_digest_rejects_intermediate_symlink_replacement_after_open(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            entry, source, _ = self._fixture(Path(temporary))
+            path = custody.payload_path(
+                source, entry.item_root_ref, entry.relative_path
+            )
+            item_directory = source.joinpath(*Path(entry.item_root_ref).parts[2:])
+            moved_directory = Path(temporary) / "moved-item"
+            real_open = custody.os.open
+            replaced = False
+
+            def replace_ancestor_after_file_open(name, flags, *args, **kwargs):
+                nonlocal replaced
+                fd = real_open(name, flags, *args, **kwargs)
+                if name == "witness.txt" and kwargs.get("dir_fd") is not None and not replaced:
+                    replaced = True
+                    item_directory.rename(moved_directory)
+                    item_directory.symlink_to(moved_directory, target_is_directory=True)
+                return fd
+
+            with mock.patch.object(custody.os, "open", side_effect=replace_ancestor_after_file_open):
+                with self.assertRaisesRegex(custody.CustodyError, "symlink or invalid ancestor"):
+                    custody.digest_file(path, custody_root=source)
+            self.assertTrue(replaced)
 
     def test_registry_manifest_reports_absent_payload_without_inventing_bytes(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
