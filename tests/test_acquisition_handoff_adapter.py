@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+from contextlib import redirect_stderr
 import hashlib
+import io
 import json
 import os
 from pathlib import Path
@@ -611,6 +613,48 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
             payload_source_root=self.candidate / "payload",
         )
         self.assertEqual(receipt, replay)
+
+    def test_staging_creation_failure_is_a_bounded_adapter_cli_error(self) -> None:
+        base_revision, manifest_sha, result = self._produce_adaptable_handoff()
+        validation_context_path = self.root / "validation-context.json"
+        validation_context_path.write_bytes(canonical(self._validation_context()))
+        stderr = io.StringIO()
+        with patch.object(
+            adapter.tempfile,
+            "mkdtemp",
+            side_effect=OSError("staging parent is not writable"),
+        ), redirect_stderr(stderr):
+            status = adapter.main(
+                [
+                    "--acquisition-root",
+                    str(self.acquisition_root),
+                    "--handoff",
+                    result["handoff_ref"],
+                    "--expected-manifest-sha256",
+                    manifest_sha,
+                    "--output-root",
+                    str(self.candidate),
+                    "--accepted-store-root",
+                    str(self.accepted_store),
+                    "--accepted-source-root",
+                    str(self.accepted_source),
+                    "--base-revision",
+                    base_revision,
+                    "--validator-sha256",
+                    self.validator_sha256,
+                    "--validation-context",
+                    str(validation_context_path),
+                    "--repo-root",
+                    str(ROOT),
+                ]
+            )
+
+        self.assertEqual(2, status)
+        self.assertIn("acquisition-handoff-adapter:", stderr.getvalue())
+        self.assertIn("cannot create adapter staging directory", stderr.getvalue())
+        self.assertNotIn("Traceback", stderr.getvalue())
+        self.assertFalse(self.candidate.exists())
+        self.assertEqual([], list(self.root.glob(".candidate.adapter-*")))
 
     def test_adapter_refuses_to_replace_output_created_during_staging(self) -> None:
         fetches, _unused_manifest_sha, _item_root, records = self._write_manifest(

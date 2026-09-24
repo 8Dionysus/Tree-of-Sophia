@@ -792,7 +792,14 @@ def adapt_handoff(
         accepted_manifest=accepted_manifest,
     )
 
-    staging = Path(tempfile.mkdtemp(prefix=f".{output.name}.adapter-", dir=output.parent))
+    try:
+        staging = Path(
+            tempfile.mkdtemp(prefix=f".{output.name}.adapter-", dir=output.parent)
+        )
+    except OSError as exc:
+        raise HandoffAdapterError(
+            f"cannot create adapter staging directory under {output.parent}"
+        ) from exc
     try:
         source_root = staging / "source"
         payload_root = staging / "payload"
