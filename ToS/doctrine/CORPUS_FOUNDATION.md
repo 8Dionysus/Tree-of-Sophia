@@ -45,6 +45,13 @@ ToS uses an LRM-shaped local profile without claiming full IFLA conformance.
 | `collection` | an aggregate publication or container | evidence-bearing membership in the aggregate |
 | `research-corpus` | a persistent research selection | purpose, scope, continuity criterion and membership claims |
 
+One content-addressed File may have exact membership in more than one Item
+when each Item manifest binds the same media type, byte size and SHA-256
+digest. The File identity describes shared bytes. Each Item-to-File membership
+retains its own manifest, acquisition event, payload path, original basename
+and fixity observation; shared bytes do not transfer Item identity, custody,
+rights or source attribution.
+
 Authorship, translation responsibility, edition identity, date, place, and
 container membership are claims with evidence status. A filename can supply a discovery lead; evidence-bearing claims establish
 bibliographic relationships.

@@ -11,6 +11,7 @@ import json
 import os
 import re
 import stat
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 import subprocess
@@ -768,6 +769,226 @@ def build_source_navigation(diagnostics: list[dict[str, str]], *,
     return result
 
 
+def project_source_item_file_memberships(
+    manifests: Iterable[tuple[str, str, dict[str, Any]]],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, str]]]:
+    """Project content identity once and retain every exact Item membership."""
+
+    files: dict[str, dict[str, Any]] = {}
+    diagnostics: list[dict[str, str]] = []
+    manifest_rows = sorted(
+        manifests,
+        key=lambda row: (
+            str(row[0]),
+            str(row[1]),
+            json.dumps(row[2], ensure_ascii=False, sort_keys=True),
+        ),
+    )
+    for item_id, manifest_ref, manifest in manifest_rows:
+        acquisition_event_ref = manifest.get("acquisition_event_ref")
+        rights_ref = manifest.get("rights_ref")
+        if not isinstance(acquisition_event_ref, str) or not acquisition_event_ref:
+            diagnostics.append({
+                "level": "error",
+                "path": manifest_ref,
+                "message": "source-navigation Item manifest has no acquisition event reference",
+            })
+        if not isinstance(rights_ref, str) or not rights_ref:
+            diagnostics.append({
+                "level": "error",
+                "path": manifest_ref,
+                "message": "source-navigation Item manifest has no rights reference",
+            })
+        payload_files = manifest.get("payload_files", [])
+        if not isinstance(payload_files, list):
+            diagnostics.append({
+                "level": "error",
+                "path": manifest_ref,
+                "message": "source-navigation Item manifest payload_files is not an array",
+            })
+            continue
+        for entry in sorted(
+            payload_files,
+            key=lambda value: json.dumps(value, ensure_ascii=False, sort_keys=True),
+        ):
+            if not isinstance(entry, dict):
+                diagnostics.append({
+                    "level": "error",
+                    "path": manifest_ref,
+                    "message": "source-navigation Item manifest payload entry is not an object",
+                })
+                continue
+            file_id = entry.get("file_id")
+            digest = entry.get("sha256")
+            byte_size = entry.get("byte_size")
+            media_type = entry.get("media_type")
+            if not all(isinstance(value, str) and value for value in (
+                item_id, manifest_ref, file_id, digest, media_type
+            )):
+                diagnostics.append({
+                    "level": "error",
+                    "path": manifest_ref,
+                    "message": "source-navigation Item manifest payload entry has incomplete File identity",
+                })
+                continue
+            group = files.setdefault(file_id, {
+                "sha256": digest,
+                "byte_size": byte_size,
+                "media_type": media_type,
+                "source_refs": set(),
+                "memberships": {},
+                "invalid": False,
+            })
+            if file_id != f"tos.file.sha256.{digest}":
+                diagnostics.append({
+                    "level": "error",
+                    "path": manifest_ref,
+                    "message": f"source-navigation File ID {file_id} differs from its payload digest",
+                })
+                group["invalid"] = True
+            if isinstance(byte_size, bool) or not isinstance(byte_size, int) or byte_size < 0:
+                diagnostics.append({
+                    "level": "error",
+                    "path": manifest_ref,
+                    "message": f"source-navigation File {file_id} has invalid byte_size",
+                })
+                group["invalid"] = True
+            for field in ("sha256", "byte_size", "media_type"):
+                if group[field] != entry.get(field):
+                    diagnostics.append({
+                        "level": "error",
+                        "path": manifest_ref,
+                        "message": f"source-navigation File {file_id} has conflicting {field}",
+                    })
+                    group["invalid"] = True
+            group["source_refs"].add(manifest_ref)
+            if (not isinstance(acquisition_event_ref, str) or not acquisition_event_ref
+                    or not isinstance(rights_ref, str) or not rights_ref):
+                group["invalid"] = True
+                continue
+            relative_path = entry.get("relative_path")
+            original_basename = entry.get("original_basename")
+            fixity_verified_at = entry.get("fixity_verified_at")
+            container_member = entry.get("container_member", False)
+            if not all(isinstance(value, str) and value for value in (
+                relative_path, original_basename, fixity_verified_at
+            )) or not isinstance(container_member, bool):
+                diagnostics.append({
+                    "level": "error",
+                    "path": manifest_ref,
+                    "message": f"source-navigation File {file_id} has incomplete Item membership context",
+                })
+                group["invalid"] = True
+                continue
+            membership = group["memberships"].setdefault(item_id, {})
+            context = membership.get(manifest_ref)
+            if context is None:
+                context = {
+                    "acquisition_event_ref": acquisition_event_ref,
+                    "rights_ref": rights_ref,
+                    "payload_entries": [],
+                }
+                membership[manifest_ref] = context
+            elif (context["acquisition_event_ref"] != acquisition_event_ref
+                    or context["rights_ref"] != rights_ref):
+                diagnostics.append({
+                    "level": "error",
+                    "path": manifest_ref,
+                    "message": f"source-navigation Item manifest {manifest_ref} has conflicting acquisition or rights references",
+                })
+                group["invalid"] = True
+            context["payload_entries"].append({
+                "relative_path": relative_path,
+                "original_basename": original_basename,
+                "fixity_verified_at": fixity_verified_at,
+                "container_member": container_member,
+            })
+
+    nodes: list[dict[str, Any]] = []
+    edges: list[dict[str, Any]] = []
+    for file_id, group in sorted(files.items()):
+        if group["invalid"]:
+            continue
+        source_refs = sorted(group["source_refs"])
+        digest = str(group["sha256"])
+        nodes.append({
+            "node_id": file_id,
+            "node_kind": "file",
+            "label": f"SHA-256 {digest[:12]}",
+            # source_ref stays a compatible single handle; source_refs lists
+            # every Item manifest and the Item edges retain each context.
+            "source_ref": source_refs[0],
+            "source_refs": source_refs,
+            "identity_status": "content_addressed",
+            "properties": {
+                "media_type": group["media_type"],
+                "byte_size": group["byte_size"],
+                "sha256": digest,
+            },
+        })
+        for item_id, contexts_by_manifest in sorted(group["memberships"].items()):
+            manifest_contexts = []
+            membership_source_refs = sorted(contexts_by_manifest)
+            for manifest_ref in membership_source_refs:
+                context = contexts_by_manifest[manifest_ref]
+                context["payload_entries"].sort(key=lambda entry: (
+                    str(entry.get("relative_path") or ""),
+                    str(entry.get("original_basename") or ""),
+                    str(entry.get("fixity_verified_at") or ""),
+                    bool(entry.get("container_member", False)),
+                ))
+                manifest_contexts.append({
+                    "manifest_ref": manifest_ref,
+                    "acquisition_event_ref": context["acquisition_event_ref"],
+                    "rights_ref": context["rights_ref"],
+                    "payload_entries": context["payload_entries"],
+                })
+            edges.append({
+                "edge_id": f"source-navigation:file:{item_id}:{file_id}",
+                "from_id": item_id,
+                "predicate_id": "has_file",
+                "to_id": file_id,
+                "edge_kind": "authored_item_manifest",
+                "review_status": "not_applicable",
+                "source_refs": membership_source_refs,
+                "properties": {"item_file_contexts": manifest_contexts},
+            })
+    diagnostics.sort(key=lambda item: (item["path"], item["message"], item["level"]))
+    return nodes, edges, diagnostics
+
+
+def _project_source_navigation_rights(record: dict[str, Any], rights_ref: str) -> list[dict[str, Any]]:
+    """Project rights rows with an explicit aggregate/layer discriminator."""
+
+    assessments = [(record, "aggregate")]
+    assessments.extend(
+        (assessment, "layer")
+        for assessment in record.get("layer_assessments", [])
+        if isinstance(assessment, dict)
+    )
+    projected: list[dict[str, Any]] = []
+    for index, (assessment, assessment_kind) in enumerate(assessments):
+        rights_id = str(assessment.get("layer_id") or record.get("rights_id") or f"{rights_ref}#{index}")
+        projected.append(
+            {
+                "rights_id": rights_id,
+                "assessment_kind": assessment_kind,
+                "scope_refs": sorted(str(ref) for ref in assessment.get("scope_refs", []) if isinstance(ref, str)),
+                "assessment_status": str(assessment.get("assessment_status") or "unknown"),
+                "review_status": str(assessment.get("review_status") or record.get("review_status") or "unknown"),
+                "redistribution_posture": str(assessment.get("redistribution_posture") or record.get("redistribution_posture") or "unknown"),
+                "derivative_posture": str(assessment.get("derivative_posture") or record.get("derivative_posture") or "unknown"),
+                "server_processing_posture": str(assessment.get("server_processing_posture") or record.get("server_processing_posture") or "unknown"),
+                "visibility": str(record.get("visibility") or "unknown"),
+                "license_uri": assessment.get("license_uri") or record.get("license_uri"),
+                "rights_statement_uri": assessment.get("rights_statement_uri") or record.get("rights_statement_uri"),
+                "restrictions": [str(item) for item in assessment.get("restrictions", record.get("restrictions", []))],
+                "source_ref": rights_ref,
+            }
+        )
+    return projected
+
+
 def _build_source_navigation(diagnostics, *, assessed_forms, publication, catalog_snapshot=None, storage=None, read_scope):
     """Join authored topology and source records into a read-only descent graph."""
 
@@ -785,6 +1006,7 @@ def _build_source_navigation(diagnostics, *, assessed_forms, publication, catalo
         source_ref: str,
         identity_status: str = "not_applicable",
         properties: dict[str, Any] | None = None,
+        source_refs: list[str] | None = None,
     ) -> None:
         candidate = {
             "node_id": node_id,
@@ -794,6 +1016,8 @@ def _build_source_navigation(diagnostics, *, assessed_forms, publication, catalo
             "identity_status": identity_status,
             "properties": properties or {},
         }
+        if source_refs is not None:
+            candidate["source_refs"] = sorted(dict.fromkeys(source_refs))
         existing = nodes.get(node_id)
         if existing is not None and existing != candidate:
             diagnostics.append(
@@ -1072,35 +1296,38 @@ def _build_source_navigation(diagnostics, *, assessed_forms, publication, catalo
                     (legacy_links.context(source_line, claim) if claim_ref == LEGACY_OBJECT_LINK_REF else None),
                 )
 
-    for manifest_path in sorted((TOS_ROOT / "source-witnesses").rglob("item.manifest.json")):
-        manifest = load_json(manifest_path)
-        item_id = manifest.get("item_id")
-        if not isinstance(item_id, str) or item_id not in nodes:
-            continue
-        manifest_ref = repo_ref(manifest_path)
-        for file_entry in manifest.get("payload_files", []):
-            if not isinstance(file_entry, dict) or not isinstance(file_entry.get("file_id"), str):
-                continue
-            file_id = str(file_entry["file_id"])
-            add_node(
-                file_id,
-                "file",
-                str(file_entry.get("original_basename") or file_id),
-                manifest_ref,
-                "content_addressed",
-                {
-                    key: file_entry.get(key)
-                    for key in ("media_type", "byte_size", "sha256", "fixity_verified_at")
-                },
-            )
-            add_edge(
-                f"source-navigation:file:{item_id}:{file_id}",
-                item_id,
-                "has_file",
-                file_id,
-                "authored_item_manifest",
-                [manifest_ref],
-            )
+    def item_manifest_rows():
+        for manifest_path in sorted((TOS_ROOT / "source-witnesses").rglob("item.manifest.json")):
+            manifest = load_json(manifest_path)
+            item_id = manifest.get("item_id")
+            if isinstance(item_id, str) and item_id in nodes:
+                yield item_id, repo_ref(manifest_path), manifest
+
+    file_nodes, file_edges, file_diagnostics = project_source_item_file_memberships(
+        item_manifest_rows()
+    )
+    diagnostics.extend(file_diagnostics)
+    for node in file_nodes:
+        add_node(
+            node["node_id"],
+            node["node_kind"],
+            node["label"],
+            node["source_ref"],
+            node["identity_status"],
+            node["properties"],
+            node["source_refs"],
+        )
+    for edge in file_edges:
+        add_edge(
+            edge["edge_id"],
+            edge["from_id"],
+            edge["predicate_id"],
+            edge["to_id"],
+            edge["edge_kind"],
+            edge["source_refs"],
+            edge["review_status"],
+            properties=edge["properties"],
+        )
 
     # Source packet metadata only; no local-content or payload reads.
     packet_paths = sorted({* (TOS_ROOT / 'source-witnesses').rglob('source-text-unit*.json'),
@@ -1125,25 +1352,7 @@ def _build_source_navigation(diagnostics, *, assessed_forms, publication, catalo
         if record.get("visibility") not in {"public", "public_payload", "public_metadata_only"}:
             continue
         rights_ref = repo_ref(rights_path)
-        assessments = [record, *[item for item in record.get("layer_assessments", []) if isinstance(item, dict)]]
-        for index, assessment in enumerate(assessments):
-            rights_id = str(assessment.get("layer_id") or record.get("rights_id") or f"{rights_ref}#{index}")
-            rights.append(
-                {
-                    "rights_id": rights_id,
-                    "scope_refs": sorted(str(ref) for ref in assessment.get("scope_refs", []) if isinstance(ref, str)),
-                    "assessment_status": str(assessment.get("assessment_status") or "unknown"),
-                    "review_status": str(assessment.get("review_status") or record.get("review_status") or "unknown"),
-                    "redistribution_posture": str(assessment.get("redistribution_posture") or record.get("redistribution_posture") or "unknown"),
-                    "derivative_posture": str(assessment.get("derivative_posture") or record.get("derivative_posture") or "unknown"),
-                    "server_processing_posture": str(assessment.get("server_processing_posture") or record.get("server_processing_posture") or "unknown"),
-                    "visibility": str(record.get("visibility") or "unknown"),
-                    "license_uri": assessment.get("license_uri") or record.get("license_uri"),
-                    "rights_statement_uri": assessment.get("rights_statement_uri") or record.get("rights_statement_uri"),
-                    "restrictions": [str(item) for item in assessment.get("restrictions", record.get("restrictions", []))],
-                    "source_ref": rights_ref,
-                }
-            )
+        rights.extend(_project_source_navigation_rights(record, rights_ref))
 
     projected_nodes = ordered_rows(storage, nodes.values(), "node_id")
     if assessed_forms is not None:

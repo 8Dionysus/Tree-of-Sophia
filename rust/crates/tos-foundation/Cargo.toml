@@ -1,0 +1,19 @@
+[package]
+name = "tos-foundation"
+version = "0.0.0"
+publish = false
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[features]
+default = []
+wasm = ["dep:wasm-bindgen"]
+
+[dependencies]
+sha2 = "0.10"
+wasm-bindgen = { version = "0.2", optional = true }
+
+[lib]
+name = "tos_foundation"
+path = "src/lib.rs"

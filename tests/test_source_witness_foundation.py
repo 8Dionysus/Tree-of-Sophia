@@ -7544,7 +7544,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         )
         discovery = _synthetic_discovery_record()
         self.assertEqual([], list(discovery_validator.iter_errors(discovery)))
-        self.assertEqual([], foundation._discovery_decision_issues(discovery))
+        self.assertEqual([], foundation.material_discovery_semantic_issues(discovery))
 
         bypassed = copy.deepcopy(discovery)
         bypassed["technical_access_bypass_used"] = True
@@ -7558,7 +7558,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         missing_selection["selected_result_ids"] = []
         self.assertIn(
             "selected_result_ids do not match results whose decision is select",
-            foundation._discovery_decision_issues(missing_selection),
+            foundation.material_discovery_semantic_issues(missing_selection),
         )
 
         duplicate_result = copy.deepcopy(discovery)
@@ -7567,7 +7567,7 @@ class SourceWitnessFoundationTests(unittest.TestCase):
         )
         self.assertIn(
             "duplicate discovery result_id: tos-discovery-result.synthetic-1",
-            foundation._discovery_decision_issues(duplicate_result),
+            foundation.material_discovery_semantic_issues(duplicate_result),
         )
 
         access_validator, _ = foundation._schema_validator(

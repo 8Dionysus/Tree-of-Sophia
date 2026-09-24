@@ -26,11 +26,15 @@ class SoftwareSelectionTests(unittest.TestCase):
             (['access/deploy/cloudflare-worker/src/index.ts'], 'none', True),
             (['access/web/package-lock.json', 'access/deploy/cloudflare-worker/package.json'], 'browser', True),
             (['docs/RELEASING.md', 'access/src/tos_access/core.py'], 'reader', True),
+            (['rust/crates/tos-foundation/src/lib.rs'], 'none', False),
+            (['tests/conformance/rust/source-profile.json'], 'none', False),
+            (['Cargo.toml', 'Cargo.lock', 'rust-toolchain.toml'], 'none', False),
         ]
         for paths, mode, worker in cases:
             with self.subTest(paths=paths):
                 plan = ci.select(paths)
                 self.assertEqual((plan['software_mode'], plan['worker']), (mode, worker))
+                self.assertEqual(plan['rust'], any(path in ('Cargo.toml', 'Cargo.lock', 'rust-toolchain.toml') or path.startswith(('rust/', 'tests/conformance/rust/')) for path in paths))
 
     def test_shared_unknown_source_and_selection_changes_fail_closed_to_full(self):
         for path in ['access/contracts/query-store.v1.json', 'access/profiles/reader.json',
@@ -43,6 +47,7 @@ class SoftwareSelectionTests(unittest.TestCase):
             with self.subTest(path=path):
                 plan = ci.select([path])
                 self.assertEqual((plan['software_mode'], plan['worker']), ('full', True))
+                self.assertTrue(plan['rust'])
         for paths, full in [([], False), (['README.md'], True)]:
             self.assertEqual(ci.select(paths, full)['software_mode'], 'full')
 
@@ -68,15 +73,16 @@ class SoftwareSelectionTests(unittest.TestCase):
             self.assertEqual(ci.select(paths)['software_mode'], 'reader')
 
     def test_required_gate_rejects_failed_cancelled_missing_and_unexpected_skips(self):
-        for mode, worker in [('none', False), ('browser', False), ('reader', True), ('full', True), ('none', True)]:
-            needs = {'plan': {'result':'success', 'outputs': {'software_mode':mode, 'worker':str(worker).lower()}},
+        for mode, worker, rust in [('none', False, False), ('none', False, True), ('browser', False, False), ('reader', True, False), ('full', True, True), ('none', True, False)]:
+            needs = {'plan': {'result':'success', 'outputs': {'software_mode':mode, 'worker':str(worker).lower(), 'rust':str(rust).lower()}},
                      'software': {'result':'skipped' if mode == 'none' else 'success'},
-                     'worker': {'result':'success' if worker else 'skipped'}}
+                     'worker': {'result':'success' if worker else 'skipped'},
+                     'rust': {'result':'success' if rust else 'skipped'}}
             ci.gate(needs)
             for job in needs:
                 for bad in ['failure', 'cancelled', None]:
                     changed = json.loads(json.dumps(needs)); changed[job]['result'] = bad
-                    with self.subTest(mode=mode, worker=worker, job=job, bad=bad), self.assertRaises(ValueError):
+                    with self.subTest(mode=mode, worker=worker, rust=rust, job=job, bad=bad), self.assertRaises(ValueError):
                         ci.gate(changed)
                 changed = json.loads(json.dumps(needs)); del changed[job]
                 with self.assertRaises(ValueError):
@@ -109,10 +115,11 @@ class SoftwareSelectionTests(unittest.TestCase):
         workflow=yaml.safe_load((ROOT/'.github/workflows/repo-validation.yml').read_text())
         jobs=workflow['jobs']
         self.assertIn('workflow_dispatch',workflow.get('on',workflow.get(True)))
-        self.assertEqual(set(jobs['required_gate']['needs']), {'plan','software','worker'})
+        self.assertEqual(set(jobs['required_gate']['needs']), {'plan','software','worker','rust'})
         self.assertIn('always()',jobs['required_gate']['if'])
         self.assertIn("!= 'none'",jobs['software']['if'])
         self.assertIn("== 'true'",jobs['worker']['if'])
+        self.assertIn("== 'true'",jobs['rust']['if'])
         self.assertEqual(jobs['software']['needs'],'plan')
         steps=jobs['software']['steps']
         full=[s for s in steps if s.get('run')=='python scripts/release_check.py --phase tests']
@@ -121,9 +128,40 @@ class SoftwareSelectionTests(unittest.TestCase):
         reader=[s for s in steps if s.get('run')=='python scripts/validation_lanes.py --run software_reader']
         self.assertEqual(len(reader),1)
         self.assertIn("== 'reader'",reader[0]['if'])
+        command_lab = [s for s in jobs['rust']['steps']
+                       if s.get('run') == 'cargo test -p tos-command --test postgres_lab --locked -- --nocapture']
+        self.assertEqual(len(command_lab), 1)
+        self.assertTrue(command_lab[0]['env']['TOS_CMD_POSTGRES_URL'])
+        self.assertIn('postgres', jobs['rust']['services'])
         gate_steps=jobs['required_gate']['steps']
         self.assertEqual(gate_steps[-1]['run'],'python scripts/software_ci.py gate')
         self.assertEqual(gate_steps[-1]['env']['CI_NEEDS'],'${{ toJSON(needs) }}')
+
+    def test_acquisition_custody_tests_are_in_required_software_validation(self):
+        required_tests={
+            'tests/test_acquisition_batch.py',
+            'tests/test_acquisition_handoff_adapter.py',
+        }
+        required_fixtures={
+            'ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/items/acquired-note-utf8-20260910/item.json',
+            'ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/items/acquired-note-utf8-20260910/item.manifest.json',
+            'ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/items/acquired-note-utf8-20260910/rights.json',
+            'ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/items/acquired-note-utf8-20260910/provenance.jsonl',
+        }
+        lanes=json.loads((ROOT/'docs/validation/validation_lanes.json').read_text())
+        test_step=next(
+            step for step in lanes['command_sequences']['release_check']
+            if step.get('label')=='run tests'
+        )
+        self.assertTrue(required_tests <= set(test_step['command']))
+
+        workflow=yaml.safe_load((ROOT/'.github/workflows/repo-validation.yml').read_text())
+        checkout=next(
+            step for step in workflow['jobs']['software']['steps']
+            if 'sparse-checkout' in step.get('with',{})
+        )
+        sparse_paths=set(checkout['with']['sparse-checkout'].splitlines())
+        self.assertTrue({f'/{path}' for path in required_tests | required_fixtures} <= sparse_paths)
 
 
 if __name__ == '__main__':

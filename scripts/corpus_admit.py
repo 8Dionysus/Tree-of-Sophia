@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 from pathlib import Path
+import sys
 
 from corpus_store import CorpusStore, CorpusStoreError, canonical, hex_digest, read_json, relative_path
 from corpus_source_validation import SourceValidator, is_source_member
@@ -90,9 +91,16 @@ def main(argv=None):
     parser.add_argument('--historical-capture', type=Path, action='append')
     parser.add_argument('--historical-root', type=Path, action='append')
     args = parser.parse_args(argv)
-    result = admit_batch(args.store, args.batch, args.input_root, args.grammar_root,
-                         payload_source_root=args.payload_source_root,
-                         historical_capture=args.historical_capture, historical_root=args.historical_root)
+    try:
+        result = admit_batch(args.store, args.batch, args.input_root, args.grammar_root,
+                             payload_source_root=args.payload_source_root,
+                             historical_capture=args.historical_capture, historical_root=args.historical_root)
+    except CorpusStoreError as error:
+        # Admission rejection is an expected, bounded result. Keep the exact
+        # library message (including its first issue references) while avoiding
+        # an unhandled exception path that may expose large validator locals.
+        print(str(error), file=sys.stderr)
+        return 1
     print(canonical(result).decode(), end='')
     return 0
 
