@@ -287,6 +287,12 @@ pub(crate) fn set(v: &mut JsonValue, k: &str, new: JsonValue) -> SourceCommandRe
 pub(crate) fn same(a: &JsonValue, b: &JsonValue) -> SourceCommandResult<bool> {
     Ok(canonical(a)? == canonical(b)?)
 }
+/// Preserve the maintained Python owner's Unicode 16 `str.strip()` test.
+/// The scalar budget is bounded by the already selected UTF-8 byte length.
+pub(crate) fn nonblank(value: &str) -> bool {
+    tos_foundation::python_strip_unicode16_v1(value, value.len())
+        .is_ok_and(|stripped| !stripped.is_empty())
+}
 pub(crate) fn reference(v: &JsonValue, id: &str, version: &str) -> SourceCommandResult<JsonValue> {
     Ok(object(vec![
         ("id", string(text(v, id)?)),

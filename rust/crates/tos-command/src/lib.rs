@@ -6,10 +6,12 @@
 
 mod durable_adapter;
 mod postgres_adapter;
+pub mod source_claims;
 pub mod source_command;
 pub mod source_forms;
-pub mod source_operation;
 pub mod source_forms_compiler;
+pub mod source_operation;
+pub mod source_revisions;
 
 use std::fmt;
 use tos_foundation::{Digest256, Digest256Hasher};

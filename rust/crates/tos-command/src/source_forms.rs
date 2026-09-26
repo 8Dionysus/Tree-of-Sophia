@@ -67,8 +67,8 @@ pub fn run_form_command(
         ],
     )?;
     if integer(&config, "uid")? != ctx.effective_uid
-        || text(&config, "principal_id")?.trim().is_empty()
-        || text(&config, "authority_ref")?.trim().is_empty()
+        || !nonblank(text(&config, "principal_id")?)
+        || !nonblank(text(&config, "authority_ref")?)
     {
         return Err(Error::Denied("owner local identity differs"));
     }
@@ -657,7 +657,7 @@ pub fn metadata_fields(source: &JsonValue) -> Result<Vec<FormField>> {
         let Some(statement) = qualifiers
             .object_get("statement")
             .and_then(JsonValue::as_str)
-            .filter(|s| !s.trim().is_empty())
+            .filter(|s| nonblank(s))
         else {
             return Ok(fields);
         };
@@ -790,7 +790,7 @@ pub fn metadata_fields(source: &JsonValue) -> Result<Vec<FormField>> {
             if source
                 .object_get(key)
                 .and_then(JsonValue::as_str)
-                .is_none_or(|s| s.trim().is_empty())
+                .is_none_or(|s| !nonblank(s))
             {
                 return Err(Error::Invalid("language declaration has no wording"));
             }
@@ -810,7 +810,7 @@ pub fn metadata_fields(source: &JsonValue) -> Result<Vec<FormField>> {
         if source
             .object_get(key)
             .and_then(JsonValue::as_str)
-            .is_some_and(|s| !s.trim().is_empty())
+            .is_some_and(nonblank)
         {
             let (language, script) = language(source, key)?;
             let mut guards = context.clone();
@@ -844,7 +844,7 @@ pub fn metadata_fields(source: &JsonValue) -> Result<Vec<FormField>> {
             if variant
                 .object_get("value")
                 .and_then(JsonValue::as_str)
-                .is_none_or(|s| s.trim().is_empty())
+                .is_none_or(|s| !nonblank(s))
             {
                 if canonical {
                     return Err(Error::Invalid("canonical variant incomplete"));
@@ -1162,7 +1162,7 @@ fn materialize_one(
         ]));
     }
     let wording = pointer(source, &chosen.pointer)?;
-    if wording.as_str().is_none_or(|s| s.trim().is_empty()) {
+    if wording.as_str().is_none_or(|s| !nonblank(s)) {
         return stopped(
             form,
             subject,
