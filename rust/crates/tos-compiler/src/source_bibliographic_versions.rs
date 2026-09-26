@@ -30,6 +30,7 @@ pub(crate) struct Versions<'a, 'b> {
     input: &'a BibliographicSourceCut<'b>,
     files: BTreeMap<String, Vec<u8>>,
     bytes: usize,
+    catalog_root: String,
 }
 fn path(reference: &str) -> Result<RelativePath> {
     RelativePath::parse(reference).map_err(|_| Error::Invalid("bibliographic cut source path"))
@@ -92,6 +93,7 @@ impl<'a, 'b> Versions<'a, 'b> {
             input,
             files: BTreeMap::new(),
             bytes: 0,
+            catalog_root: receipt.row_root_sha256.clone(),
         };
         // Bind every declared raw input, including selected schemas and native
         // packets, to a member of this exact current source revision.
@@ -271,6 +273,22 @@ impl<'a, 'b> Versions<'a, 'b> {
             "establishes_membership":false,"grants_admission":false});
         encode(&basis, l.max_claim_cohort_bytes)?;
         Ok(basis)
+    }
+    pub(crate) fn verify_catalog_binding(
+        &self,
+        stage: &KnowledgeStage<'_>,
+        receipt: &catalog::SourceCatalogReceipt,
+        l: BibliographicLimits,
+    ) -> Result<()> {
+        if self.catalog_root != receipt.row_root_sha256
+            || stage.exact_receipt().binding.source_cut != self.input.stage_source_cut
+            || self.input.cut.current().revision() != self.input.expected_revision
+        {
+            return Err(Error::Invalid(
+                "navigation version resolver catalog/cut binding",
+            ));
+        }
+        catalog::verify_catalog(stage, receipt, l.catalog)
     }
     /// Ordered exact retained metadata references. A successful result has already
     /// checked the entire selected record chain; it does not assess current use.

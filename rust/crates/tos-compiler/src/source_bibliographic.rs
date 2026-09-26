@@ -29,7 +29,7 @@ pub struct BibliographicLimits {
     pub deadline: std::time::Instant,
 }
 impl BibliographicLimits {
-    fn validate(self) -> Result<()> {
+    pub(crate) fn validate(self) -> Result<()> {
         if std::time::Instant::now() >= self.deadline {
             return Err(Error::Budget("bibliographic deadline"));
         }
@@ -98,7 +98,7 @@ pub trait BibliographicForms {
         ))
     }
 }
-fn forms(
+pub(crate) fn forms(
     stage: &KnowledgeStage<'_>,
     reference: &str,
     source: &Value,
