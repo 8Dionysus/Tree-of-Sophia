@@ -311,7 +311,33 @@ fn read_at(
     cancelled: &AtomicBool,
 ) -> Result<Vec<u8>> {
     check_time(deadline, cancelled)?;
-    let mut file = tos_fd_open::open_regular_at(root, Path::new(path)).map_err(|e| {
+    RelativePath::parse(path)
+        .map_err(|_| error(Code::UnsafePath, "software member path is invalid"))?;
+    // The shared FD opener deliberately accepts one component per call.
+    // Retain each opened directory rather than joining an absolute pathname
+    // or weakening its no-follow rule for nested script refs.
+    let mut directory = root
+        .try_clone()
+        .map_err(|e| StoreError::io("cannot retain software root descriptor", e))?;
+    let mut parts = path.split('/').peekable();
+    while let Some(part) = parts.next() {
+        if parts.peek().is_none() {
+            break;
+        }
+        check_time(deadline, cancelled)?;
+        directory = tos_fd_open::open_directory_at(&directory, Path::new(part)).map_err(|e| {
+            map_open(
+                e,
+                Code::UnsafePath,
+                "cannot securely open software member directory",
+            )
+        })?;
+    }
+    let leaf = path
+        .rsplit('/')
+        .next()
+        .expect("validated relative path is nonempty");
+    let mut file = tos_fd_open::open_regular_at(&directory, Path::new(leaf)).map_err(|e| {
         map_open(
             e,
             Code::UnsafePath,
