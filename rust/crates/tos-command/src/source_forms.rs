@@ -992,6 +992,24 @@ fn stopped(form: &JsonValue, subject: &JsonValue, state: &str, issue: &str) -> R
 pub fn materialize_source_forms(source: &JsonValue, set: &JsonValue) -> Result<Vec<JsonValue>> {
     let subject = metadata_subject(source)?;
     validate_history(set, &subject)?;
+    if source
+        .object_get("schema_version")
+        .and_then(JsonValue::as_str)
+        == Some("tos_canonical_node_v1")
+        && array(set, "forms")?
+            .iter()
+            .chain(array(set, "prior_forms")?)
+            .any(|form| {
+                form.object_get("content")
+                    .and_then(|content| content.object_get("kind"))
+                    .and_then(JsonValue::as_str)
+                    != Some("source-copy")
+            })
+    {
+        return Err(Error::Denied(
+            "canonical current and retained forms permit only source-copy",
+        ));
+    }
     let fields = metadata_fields(source)?;
     let mut output = Vec::new();
     let mut bytes = 0usize;

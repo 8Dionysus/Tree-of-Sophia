@@ -105,9 +105,11 @@ impl CommandContext {
         if self.configuration_raw.len() > 1_048_576 || self.request_raw.len() > 1_048_576 {
             return Err(SourceCommandError::Invalid("command input byte budget"));
         }
-        if self.files.len() > 4096
-            || self.files.iter().map(|f| f.raw.len()).sum::<usize>() > 33_554_432
-        {
+        let total = self
+            .files
+            .iter()
+            .try_fold(0usize, |total, file| total.checked_add(file.raw.len()));
+        if self.files.len() > 4096 || total.is_none_or(|total| total > 33_554_432) {
             return Err(SourceCommandError::Invalid("selected source byte budget"));
         }
         let paths: BTreeSet<_> = self.files.iter().map(|f| &f.path).collect();
