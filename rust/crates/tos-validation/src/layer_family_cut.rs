@@ -64,6 +64,7 @@ impl<S:CutSchemaExecutor> LayerFamilySource for CutLayerFamilySource<'_,S> {
             Ok(LayerPayload::File{byte_size,sha256,sha1,jpeg_dimensions,source_member:self.cut.current().member(&relative).is_some()})
         },other=>Ok(other)}
     }
+    fn cancellation(&self)->&AtomicBool{self.cancelled}
     fn generation(&self)->String{self.cut.current().revision().0.to_hex()}
     fn checkpoint(&self,deadline:Instant)->Result<(),ItemRefusal>{check(deadline,self.cancelled)}
 }

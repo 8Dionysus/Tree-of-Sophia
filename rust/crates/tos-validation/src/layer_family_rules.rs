@@ -4,6 +4,9 @@
 //! text helpers retain their separate strict published profile.
 use std::collections::{BTreeMap, BTreeSet};
 use std::time::Instant;
+use std::sync::atomic::AtomicBool;
+use crate::text_metadata_rules::{self,TextMetadataLimits,TextMetadataReport,TextMetadataState};
+static NO_METADATA_CANCELLATION:AtomicBool=AtomicBool::new(false);
 use serde_json::{Value, json};
 use tos_foundation::{Digest256, RelativePath};
 use crate::{KeyState, PredicateRead};
@@ -19,6 +22,7 @@ pub trait LayerFamilySource {
     fn payload(&mut self,path:&str,max_bytes:usize,deadline:Instant)->Result<LayerPayload,ItemRefusal> {let _=(path,max_bytes,deadline);Ok(LayerPayload::Unavailable)}
     fn exists(&mut self,path:&str,max_bytes:usize,deadline:Instant)->Result<bool,ItemRefusal>{Ok(self.current(path,max_bytes,deadline)?.is_some())}
     fn discovered_item_manifest(&mut self,path:&str,max_bytes:usize,deadline:Instant)->Result<bool,ItemRefusal>{Ok(path.starts_with("ToS/source-witnesses/")&&path.ends_with("/item.manifest.json")&&self.exists(path,max_bytes,deadline)?)}
+    fn cancellation(&self)->&AtomicBool{&NO_METADATA_CANCELLATION}
     fn generation(&self) -> String;
     fn checkpoint(&self, deadline: Instant) -> Result<(), ItemRefusal>;
 }
@@ -41,6 +45,7 @@ pub struct LayerFamilyReport {
     pub checked_predicates: Vec<(String, String)>,
     pub unsupported: Vec<LayerProfileGap>,
     pub text_reports: Vec<TextRuleReport>,
+    pub metadata_reports:Vec<TextMetadataReport>,
     pub metadata_bytes: u64,
 }
 pub struct LayerFamilyRules { limits: ItemLimits, state_bytes: usize, report: LayerFamilyReport, identities: BTreeMap<(String,String),String>, discovery_events:Option<BTreeMap<String,(String,Value,Vec<u8>)>>, boundary_events:Option<BTreeMap<String,(String,Value,Vec<u8>)>>, require_local_payloads:bool }
@@ -126,6 +131,7 @@ impl LayerFamilyRules {
         let schema_valid=self.schema(source,path,&raw,&contract)?;
         if !schema_valid { self.issue(path,"schema",&contract)?; }
         self.checked(path,"Draft2020-12-owner-schema")?;
+        if matches!(profile,text_rules::TEXT_UNIT_PROFILE|text_rules::TEXT_LAYER_PROFILE|text_rules::ANCHOR_V2_PROFILE){self.text_metadata(source,path,&raw,profile)?;}
         match profile {
             "tos_semantic_ladder_packet_v4"=>self.semantic_ladder(path,&v)?,
             "tos_transfer_candidate_structural_crosswalk_v1"=>self.transfer(source,path,&v)?,
@@ -156,6 +162,21 @@ impl LayerFamilyRules {
         // Preserve intervals/reverse facts alongside the helper's named scope.
         self.reserve(format!("{report:?}").len())?;
         self.report.text_reports.push(report); Ok(())
+    }
+    fn text_metadata(&mut self,source:&mut impl LayerFamilySource,path:&str,raw:&[u8],profile:&str)->Result<(),ItemRefusal>{
+        let limits=TextMetadataLimits{max_packet_bytes:self.limits.max_member_bytes.min(2_097_152),max_state_bytes:self.limits.max_state_bytes.checked_sub(self.state_bytes).ok_or(ItemRefusal::Budget)?.min(134_217_728),max_issues:self.limits.max_issues.checked_sub(self.report.issues.len()).ok_or(ItemRefusal::Budget)?.min(8192),deadline:self.limits.deadline};
+        let report=match profile{
+            text_rules::TEXT_UNIT_PROFILE=>text_metadata_rules::inspect_source_text_unit_v1_metadata(raw,path,limits,source.cancellation())?,
+            text_rules::TEXT_LAYER_PROFILE=>text_metadata_rules::inspect_source_text_layer_metadata(raw,path,limits,source.cancellation())?,
+            _=>text_metadata_rules::inspect_source_anchor_v2_metadata(raw,path,limits,source.cancellation())?,
+        };
+        source.checkpoint(self.limits.deadline)?;
+        for issue in &report.issues{self.issue(path,issue.code,&issue.message)?;}
+        for read in &report.reads{self.read(read.clone())?;}
+        if report.state==TextMetadataState::Unsupported{self.gap(path,"text-metadata-numeric-or-profile-unsupported")?;}
+        self.checked(path,&format!("metadata-only/{profile}"))?;
+        self.reserve(format!("{report:?}").len())?;
+        self.report.metadata_reports.push(report);Ok(())
     }
     fn text(&mut self,source:&mut impl LayerFamilySource,path:&str,v:&Value,raw:&[u8],profile:&str,schema_valid:bool)->Result<(),ItemRefusal>{
         let generation=source.generation();

@@ -209,6 +209,7 @@ fn number(value:&Value)->Result<Option<f64>,ItemRefusal>{
     if value.is_boolean(){return Err(ItemRefusal::Unsupported("bool-as-number metadata numeric profile".into()))}
     if let Some(integer)=value.as_i64(){if integer.unsigned_abs()>9_007_199_254_740_992{return Err(ItemRefusal::Unsupported("metadata geometry integer exceeds exact binary64 range".into()))}return Ok(Some(integer as f64));}
     if let Some(number)=value.as_f64(){if number.is_finite()&&value.as_number().is_some_and(|n|n.to_string().contains(['.','e','E'])){return Ok(Some(number))}return Err(ItemRefusal::Unsupported("unsupported metadata geometry numeric representation".into()))}
+    if value.is_number(){return Err(ItemRefusal::Unsupported("metadata geometry number is outside finite binary64".into()))}
     Ok(None)
 }
 fn rank(value:&str)->Option<u8>{match value{"public"=>Some(0),"public_metadata_only"=>Some(1),"controlled"=>Some(2),"local_only"=>Some(3),"restricted"=>Some(4),"unknown"=>Some(5),_=>None}}
