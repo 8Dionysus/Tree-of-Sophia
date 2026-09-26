@@ -161,7 +161,8 @@ impl CutWorkerSchemaExecutor {
     }
 
     pub fn contract_digest(&self, contract: &str) -> Option<Digest256> {
-        self.contracts.get(contract).map(|(_, digest)| *digest)
+        let base=contract.split_once('#').map_or(contract,|(base,_)|base);
+        self.contracts.get(base).map(|(_, digest)| *digest)
     }
 
     pub fn receipts(&self) -> &[CutSchemaReceipt] {
@@ -208,11 +209,22 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
         if raw.len() > SchemaBackendProbe::MAX_INSTANCE_BYTES {
             return Err(ItemRefusal::Budget);
         }
-        let uri = &self
+        // A source owner may execute a named subschema of one already selected
+        // exact resource. The fragment never supplies a new file/resource or
+        // another engine. Preserve the full selector in the worker request and
+        // receipt, while its fixity stays bound to the base resource bytes.
+        let (base,fragment)=match contract.split_once('#') {
+            Some((base,fragment)) if !base.is_empty() && fragment.starts_with('/')
+                && !fragment.contains('#') => (base,Some(fragment)),
+            Some(_)=>return Err(ItemRefusal::Unsupported("invalid source schema fragment selector".into())),
+            None=>(contract,None),
+        };
+        let base_uri = &self
             .contracts
-            .get(contract)
+            .get(base)
             .ok_or_else(|| ItemRefusal::Unsupported(format!("missing source schema {contract}")))?
             .0;
+        let uri=fragment.map_or_else(||base_uri.clone(),|fragment|format!("{base_uri}#{fragment}"));
         let decoded: serde_json::Value = serde_json::from_slice(raw).map_err(|_| {
             ItemRefusal::Unsupported("unsupported native decoded JSON representation".into())
         })?;
@@ -228,7 +240,7 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
             &self.worker,
             &self.resources,
             self.profile,
-            uri,
+            &uri,
             &worker_raw,
             budget,
             cancelled,
