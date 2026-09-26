@@ -39,7 +39,7 @@ pub struct SourceCutBiblioReport {
     pub bytes_read: u64,
 }
 struct Route { reader: String, domain: Vec<String>, range: Vec<String>, layers: Vec<String>, versions: BTreeMap<String,String>, profile: Value }
-struct Rules<'a> { limits: ItemLimits, cancelled: &'a AtomicBool, state: usize, bytes: u64, anchors: BTreeSet<String>, reserved: BTreeSet<String>, shadow: RelationShadow }
+struct Rules<'a> { limits: ItemLimits, cancelled: &'a AtomicBool, state: usize, bytes: u64, anchors: BTreeSet<String>, reserved: BTreeSet<String>, schema_seen: BTreeSet<String>, shadow: RelationShadow }
 impl Rules<'_> {
     fn issue(&mut self, code: &'static str, location: &str) -> Result<(), ItemRefusal> {
         check(self.limits.deadline, self.cancelled)?;
@@ -83,7 +83,8 @@ pub fn inspect_bibliography_from_cut(cut: &CorpusCutReader, records: &SourceCutR
     check(limits.deadline, cancelled)?;
     if schemas.source_revision() != cut.current().revision() { return Err(ItemRefusal::Source("bibliography schema cut mismatch".into())); }
     if records.source_revision != cut.current().revision() { return Err(ItemRefusal::Source("bibliography record cut mismatch".into())); }
-    let mut rules=Rules { limits, cancelled, state:0, bytes:0, anchors:BTreeSet::new(), reserved:records.observations.iter().filter_map(|r|match r {crate::record_rules::RecordObservation::NativeReservation {id,..}=>Some(id.clone()),_=>None}).collect(), shadow:RelationShadow::default() };
+    let mut rules=Rules { limits, cancelled, state:0, bytes:0, anchors:BTreeSet::new(), reserved:records.observations.iter().filter_map(|r|match r {crate::record_rules::RecordObservation::NativeReservation {id,..}=>Some(id.clone()),_=>None}).collect(), schema_seen:BTreeSet::new(), shadow:RelationShadow::default() };
+    reserve(&mut rules.state,rules.reserved.iter().map(|id|id.len()+64).sum(),limits.max_state_bytes)?;
     let mut registries=Vec::new();
     for (path, contract) in [(ENTITY,"ToS/contracts/semantic-entity-type-registry.schema.json"),(RELATION,"ToS/contracts/semantic-relation-type-registry.schema.json")] {
         let raw=current(cut,path,limits,cancelled,&mut rules.bytes)?;
@@ -145,6 +146,11 @@ pub fn inspect_bibliography_from_cut(cut: &CorpusCutReader, records: &SourceCutR
                 reserve(&mut rules.state,line.len()*3+path.len()+128,limits.max_state_bytes)?;
                 claims.push(BiblioClaim { path:path.into(),line:index+1,value,raw_sha256:Digest256::of_bytes(&member.raw).to_hex(),native:path.ends_with("/source-claims.jsonl") });
             } else if let Some(id)=s(&value,"event_id") {
+                let contract=match s(&value,"schema_version") {Some("tos_provenance_event_v1")=>"ToS/contracts/provenance-event.schema.json",Some("tos_provenance_event_v2")=>"ToS/contracts/provenance-event-v2.schema.json",_=>return Err(ItemRefusal::Unsupported(format!("unknown bibliography event profile {path}:{}",index+1)))};
+                schema_read(cut,contract,&mut rules)?;
+                if !schemas.check(&format!("{path}:{}",index+1),line,contract,limits.deadline,cancelled)? {rules.issue("bibliography-event-schema",path)?;}
+                if s(&value,"schema_version")==Some("tos_provenance_event_v2") {for code in crate::provenance_rules::semantic_issues(&value,limits.max_issues,limits.deadline)? {rules.issue(code,path)?;}}
+
                 reserve(&mut rules.state,line.len()*3+id.len()+128,limits.max_state_bytes)?;
                 if events.insert(id.to_owned(),value.clone()).is_some() { rules.issue("duplicate-biblio-event",path)?; }
             }
@@ -177,7 +183,7 @@ pub fn inspect_bibliography_from_cut(cut: &CorpusCutReader, records: &SourceCutR
     inspect_closure(&records.records,&claims,&membership.digest.to_prefixed(),&mut rules)?;
     inspect_batches(&claims,&events,&records.records,&mut rules)?;
     // No complete-source verdict escapes this family. Native compound grants,
-    // retained profile execution and exact legacy batch configurations remain
+    // retained profile execution and exact native publication reconstruction remain
     // separate missing contracts even when the local structural checks pass.
     rules.skip("native-compound-transaction-reconstruction-and-current-parent-lineage")?;
     rules.skip("retained-frozen-profile-source-admission")?;
@@ -188,8 +194,13 @@ pub fn inspect_bibliography_from_cut(cut: &CorpusCutReader, records: &SourceCutR
 fn schema_read(cut:&CorpusCutReader,path:&str,rules:&mut Rules<'_>)->Result<(),ItemRefusal> {
     check(rules.limits.deadline,rules.cancelled)?;
     let relative=RelativePath::parse(path).map_err(|_|ItemRefusal::Unsupported("Claim schema dependency path".into()))?;
-    let Some(member)=cut.current().member(&relative) else { return Err(ItemRefusal::Unsupported(format!("missing Claim schema dependency {path}"))); };
-    rules.read(PredicateRead::SchemaResource { uri:format!("https://tree-of-sophia.local/{path}"),digest:member.sha256.to_prefixed() })
+    if !rules.schema_seen.insert(path.into()) {return Ok(());}
+    reserve(&mut rules.state,path.len()+64,rules.limits.max_state_bytes)?;
+    let raw=current(cut,path,rules.limits,rules.cancelled,&mut rules.bytes)?;
+    let value=crate::published_value(&raw,rules.limits.max_member_bytes).map_err(|error|ItemRefusal::Unsupported(format!("source schema dependency JSON: {error:?}")))?;
+    let uri=s(&value,"$id").ok_or_else(||ItemRefusal::Unsupported("source schema dependency ID".into()))?;
+    let _=relative;
+    rules.read(PredicateRead::SchemaResource {uri:uri.into(),digest:Digest256::of_bytes(&raw).to_prefixed()})
 }
 
 fn merge_shadow(rules: &mut Rules<'_>, shadow:RelationShadow) -> Result<(),ItemRefusal> {
@@ -239,7 +250,7 @@ fn inspect_claim(cut:&CorpusCutReader, claim:&BiblioClaim, routes:&BTreeMap<Stri
                 rules.shadow.checked_profiles.insert(format!("{predicate}@{}",s(row,"schema_version").unwrap_or("")));
                 // Ordinary domain/range checking does not accept the compound
                 // append/revision plan or specialized semantic ownership.
-                rules.skip(&format!("native-compound-or-semantic-evidence:{predicate}"))?;
+                if matches!(predicate,"has_expression"|"embodied_by"|"exemplified_by"|"contains_work"|"translated_by"|"described_by"|"metadata_at"|"downloadable_at"|"rights_statement_at") {rules.skip(&format!("native-compound-owner-evidence:{predicate}"))?;}
             }
             "structured-reference-value-v1" => {
                 let set=&route.profile["object_reference_set"];
@@ -259,7 +270,11 @@ fn inspect_claim(cut:&CorpusCutReader, claim:&BiblioClaim, routes:&BTreeMap<Stri
             "identity-transition-v1"|"identity-transition-v2" => identity_proposal(row,&route.reader,types,kinds,records,rules,&location)?,
             "historical-temporal-v1"|"document-catalogue-temporal-v1" => {
                 if s(&row["object"],"kind")==Some("relative-order") {if let Some(anchor)=s(&row["object"]["relative"],"anchor_ref") {rules.endpoint(anchor,&["tos.entity.historical-situation".into()],types,kinds,records,&location)?;}}
-                rules.skip("historical-temporal-shared-definition-schema-root-and-value-mechanics")?;
+                let (contract,root)=if route.reader=="document-catalogue-temporal-v1" {("ToS/contracts/document-catalogue-claim.schema.json","ToS/contracts/document-catalogue-claim.schema.json#/$defs/documentDate")}else{("ToS/contracts/historical-claim.schema.json","ToS/contracts/historical-claim.schema.json#/$defs/historicalDate")};
+                schema_read(cut,contract,rules)?;
+                let raw=serde_json::to_vec(&row["object"]).map_err(|_|ItemRefusal::Unsupported("historical temporal value".into()))?;
+                if !schemas.check(&location,&raw,root,rules.limits.deadline,rules.cancelled)? {rules.issue("Claim-shared-historical-value",&location)?;}
+                rules.shadow.checked_profiles.insert(format!("{predicate}@{}",s(row,"schema_version").unwrap_or("")));
             }
             "structured-value-v1" => {rules.shadow.checked_profiles.insert(format!("{predicate}@{}",s(row,"schema_version").unwrap_or("")));}
             _ => rules.skip(&format!("source-Claim-reader:{}:{predicate}",route.reader))?,
@@ -462,7 +477,7 @@ fn inspect_closure(records:&BTreeMap<String,BiblioCurrentRecord>,claims:&[Biblio
 mod tests {
     use super::*;
     use std::time::{Duration,Instant};
-    fn rules(cancelled:&AtomicBool)->Rules<'_> { Rules {limits:ItemLimits {max_member_bytes:1_048_576,max_total_bytes:16_777_216,max_state_bytes:8_388_608,max_issues:64,deadline:Instant::now()+Duration::from_secs(5)},cancelled,state:0,bytes:0,anchors:BTreeSet::new(),reserved:BTreeSet::new(),shadow:RelationShadow::default()} }
+    fn rules(cancelled:&AtomicBool)->Rules<'_> { Rules {limits:ItemLimits {max_member_bytes:1_048_576,max_total_bytes:16_777_216,max_state_bytes:8_388_608,max_issues:64,deadline:Instant::now()+Duration::from_secs(5)},cancelled,state:0,bytes:0,anchors:BTreeSet::new(),reserved:BTreeSet::new(),schema_seen:BTreeSet::new(),shadow:RelationShadow::default()} }
     fn record(kind:&str,value:Value)->BiblioCurrentRecord { BiblioCurrentRecord {path:format!("ToS/source-witnesses/{kind}/example/{kind}.json"),kind:kind.into(),value} }
     fn claim(value:Value)->BiblioClaim {BiblioClaim {path:"ToS/source-witnesses/relations/source-claims.jsonl".into(),line:1,value,raw_sha256:"00".repeat(32),native:true} }
     #[test]
