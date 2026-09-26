@@ -107,15 +107,17 @@ fn assessed_parity(left: &Value, right: &Value) -> Result<()> {
         let matches = |forms: &[Value]| {
             forms
                 .iter()
-                .filter(|p| {
+                .enumerate()
+                .filter(|(_, p)| {
                     p.is_object()
                         && p.pointer("/form/id").and_then(Value::as_str) == Some(id.as_str())
                 })
+                .map(|(index, _)| index)
                 .collect::<Vec<_>>()
         };
         let left = matches(first);
         let right = matches(second);
-        if left.len() != 1 || right.len() != 1 || left[0] != right[0] {
+        if left.len() != 1 || right.len() != 1 || first[left[0]] != second[right[0]] {
             return Err(Error::Invalid("semantic assessed snapshot disagreement"));
         }
     }

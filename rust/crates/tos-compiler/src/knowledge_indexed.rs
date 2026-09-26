@@ -189,7 +189,37 @@ pub fn materialize_indexed_sources(
     registry: &KnowledgeRegistry,
     limits: IndexedLimits,
 ) -> Result<IndexedReceipt> {
-    let result = materialize_indexed_sources_inner(stage, vocabulary, registry, limits);
+    let result =
+        materialize_indexed_sources_inner(stage, vocabulary, registry, limits, false, true, true);
+    if result.is_err() {
+        stage.poison();
+    }
+    result
+}
+
+/// Mixed native assembly uses these two complete passes so extension nodes
+/// exist before global endpoint/title closure, and edges follow that closure.
+pub fn materialize_registered_indexed_nodes(
+    stage: &mut KnowledgeStage<'_>,
+    vocabulary: &QueryVocabulary,
+    registry: &KnowledgeRegistry,
+    limits: IndexedLimits,
+) -> Result<IndexedReceipt> {
+    let result =
+        materialize_indexed_sources_inner(stage, vocabulary, registry, limits, true, true, false);
+    if result.is_err() {
+        stage.poison();
+    }
+    result
+}
+pub fn materialize_registered_indexed_relations(
+    stage: &mut KnowledgeStage<'_>,
+    vocabulary: &QueryVocabulary,
+    registry: &KnowledgeRegistry,
+    limits: IndexedLimits,
+) -> Result<IndexedReceipt> {
+    let result =
+        materialize_indexed_sources_inner(stage, vocabulary, registry, limits, true, false, true);
     if result.is_err() {
         stage.poison();
     }
@@ -201,6 +231,9 @@ fn materialize_indexed_sources_inner(
     vocabulary: &QueryVocabulary,
     registry: &KnowledgeRegistry,
     limits: IndexedLimits,
+    mixed: bool,
+    nodes: bool,
+    relations: bool,
 ) -> Result<IndexedReceipt> {
     limits.validate()?;
     let receipt = stage.exact_receipt().clone();
@@ -211,6 +244,9 @@ fn materialize_indexed_sources_inner(
     }
     let mut registered = BTreeSet::new();
     for source in &vocabulary.sources {
+        if mixed && source.adapter_profile != PROFILE {
+            continue;
+        }
         if source.adapter_profile != PROFILE {
             return Err(Error::Invalid(
                 "source adapter not implemented by indexed materializer",
@@ -219,19 +255,45 @@ fn materialize_indexed_sources_inner(
         registered_pair(&receipt, &source.source_graph_id, &source.input_role)?;
         registered.insert(source.source_graph_id.as_str());
     }
-    if receipt.collections.len() != vocabulary.sources.len() * 2
+    if (!mixed && receipt.collections.len() != vocabulary.sources.len() * 2)
         || receipt
             .collections
             .iter()
-            .any(|entry| !registered.contains(entry.source_graph.as_str()))
+            .filter(|entry| registered.contains(entry.source_graph.as_str()))
+            .count()
+            != registered.len() * 2
+        || (!mixed
+            && receipt
+                .collections
+                .iter()
+                .any(|entry| !registered.contains(entry.source_graph.as_str())))
     {
         return Err(Error::Invalid("indexed source coverage incomplete"));
     }
-    let mut ordered = vocabulary.sources.iter().collect::<Vec<_>>();
+    let mut ordered = vocabulary
+        .sources
+        .iter()
+        .filter(|s| registered.contains(s.source_graph_id.as_str()))
+        .collect::<Vec<_>>();
     ordered.sort_by(|a, b| a.source_graph_id.cmp(&b.source_graph_id));
+    let node_base: u64 = stage.with_connection(crate::knowledge_stage::WritePhase::Sort, |db| {
+        Ok(db.query_row(
+            "SELECT coalesce(max(source_order)+1,0) FROM knowledge_nodes",
+            [],
+            |r| r.get(0),
+        )?)
+    })?;
+    let relation_base: u64 =
+        stage.with_connection(crate::knowledge_stage::WritePhase::Sort, |db| {
+            Ok(db.query_row(
+                "SELECT coalesce(max(source_order)+1,0) FROM knowledge_relations",
+                [],
+                |r| r.get(0),
+            )?)
+        })?;
     let mut node_count = 0u64;
     let mut relation_count = 0u64;
-    for source in &ordered {
+    for source in ordered.iter().filter(|_| nodes) {
         let mut after: Option<String> = None;
         loop {
             let page = stage.scan_input(
@@ -244,8 +306,12 @@ fn materialize_indexed_sources_inner(
                 let row = parse_carrier(&raw.payload, limits.max_row_bytes)?;
                 let (native, entity, kind, type_id) =
                     checked_node(&row, &source.source_graph_id, &raw.id, registry)?;
-                let source_order =
-                    i64::try_from(node_count).map_err(|_| Error::Budget("knowledge node order"))?;
+                let source_order = i64::try_from(
+                    node_base
+                        .checked_add(node_count)
+                        .ok_or(Error::Budget("indexed node count"))?,
+                )
+                .map_err(|_| Error::Budget("knowledge node order"))?;
                 stage.insert_node(NodeRow {
                     id: &raw.id,
                     source_graph: &source.source_graph_id,
@@ -264,7 +330,7 @@ fn materialize_indexed_sources_inner(
             }
         }
     }
-    for source in &ordered {
+    for source in ordered.iter().filter(|_| relations) {
         let mut after: Option<String> = None;
         loop {
             let page = stage.scan_input(
@@ -277,8 +343,12 @@ fn materialize_indexed_sources_inner(
                 let row = parse_carrier(&raw.payload, limits.max_row_bytes)?;
                 let (native, from_id, to_id, predicate, relation_type) =
                     checked_relation(&row, &source.source_graph_id, &raw.id, registry)?;
-                let source_order = i64::try_from(relation_count)
-                    .map_err(|_| Error::Budget("knowledge relation order"))?;
+                let source_order = i64::try_from(
+                    relation_base
+                        .checked_add(relation_count)
+                        .ok_or(Error::Budget("indexed relation count"))?,
+                )
+                .map_err(|_| Error::Budget("knowledge relation order"))?;
                 stage.insert_relation(RelationRow {
                     id: &raw.id,
                     source_graph: &source.source_graph_id,

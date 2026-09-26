@@ -5,6 +5,10 @@ pub mod catalog;
 pub mod d1;
 pub mod d1_prepared_pair;
 mod knowledge_base;
+pub mod knowledge_candidates;
+pub mod knowledge_canon_materialize;
+pub mod knowledge_canon_prepare;
+pub mod knowledge_canon_source;
 mod knowledge_catalog_index;
 mod knowledge_full;
 #[cfg(all(not(target_arch = "wasm32"), any(test, feature = "test-fixture")))]
@@ -51,13 +55,17 @@ pub use knowledge_global_titles::{
     CompleteBaseNodes, GlobalTitleLimits, GlobalTitleReceipt, clear_global_titles, endpoint_title,
     order_native_graph_rows, prepare_global_titles, verify_global_titles,
 };
-pub use knowledge_indexed::{IndexedLimits, IndexedReceipt, materialize_indexed_sources};
+pub use knowledge_indexed::{
+    IndexedLimits, IndexedReceipt, materialize_indexed_sources,
+    materialize_registered_indexed_nodes, materialize_registered_indexed_relations,
+};
 pub use knowledge_inherited_views::{
     CompleteRelationSeal, InheritedViewLimits, InheritedViewReceipt, clear_inherited_views,
     endpoint_inherited_views, prepare_global_inherited_views,
 };
 pub use knowledge_native::{
-    NativeProducerLimits, NativeProducerReceipt, materialize_native_sources,
+    NativeFamilyInputs, NativeProducerLimits, NativeProducerReceipt, materialize_native_sources,
+    materialize_native_sources_with_inputs,
 };
 pub use knowledge_native_finalize::{
     NativeFinalizeLimits, NativeFinalizeReceipt, finalize_native_graph_rows,

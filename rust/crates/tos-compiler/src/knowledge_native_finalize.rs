@@ -223,10 +223,14 @@ where
                             }
                         }
                     }
-                    if let Some(compiler) = compiler
-                        .as_ref()
-                        .filter(|_| has_context(&value) || value.get("readable_context").is_some())
-                    {
+                    let precompiled = stage.exact_receipt().collections.iter().any(|entry| {
+                        entry.source_graph == row.source
+                            && entry.adapter_profile == "indexed-node-edge-v1"
+                    });
+                    if let Some(compiler) = compiler.as_ref().filter(|_| {
+                        !precompiled
+                            && (has_context(&value) || value.get("readable_context").is_some())
+                    }) {
                         let native = row
                             .native
                             .as_deref()

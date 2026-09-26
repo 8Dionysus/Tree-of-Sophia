@@ -46,6 +46,7 @@ impl TopologyLimits {
 /// The adapter checks membership, unique dense ordinals and its own root.
 /// Exact selected source-home root material, including its explicit identity.
 /// The producer does not derive the repository identity from a filename.
+#[derive(Clone, Copy)]
 pub struct RepositoryRootInput<'a> {
     pub source_cut: &'a str,
     pub material: &'a [u8],
