@@ -482,17 +482,24 @@ fn default_spaced_json(compact: &[u8], cap: usize) -> Result<Vec<u8>> {
 
 fn insert_pending(stage: &mut KnowledgeStage<'_>, batch: &[Vec<u8>]) -> Result<()> {
     stage.with_connection(WritePhase::Search, |db| {
-        let mut statement =
-            db.prepare_cached("INSERT OR IGNORE INTO search_pending_grams(n,gram) VALUES (?1,?2)")?;
-        for gram in batch {
-            statement.execute(params![GRAM_N, gram])?;
+        // The caller caps each batch at 1024 three-character grams. Commit
+        // once per bounded batch, retaining the stage's durable SQLite policy.
+        let transaction = db.transaction()?;
+        {
+            let mut statement = transaction.prepare_cached(
+                "INSERT OR IGNORE INTO search_pending_grams(n,gram) VALUES (?1,?2)",
+            )?;
+            for gram in batch {
+                statement.execute(params![GRAM_N, gram])?;
+            }
         }
+        transaction.commit()?;
         Ok(())
     })
 }
 
 fn copy_pending_page(
-    db: &Connection,
+    db: &mut Connection,
     kind: &str,
     position: i64,
     after: Option<&[u8]>,
@@ -509,11 +516,19 @@ fn copy_pending_page(
     if grams.is_empty() {
         return Ok(None);
     }
-    let mut insert =
-        db.prepare_cached("INSERT INTO search_grams(kind,n,gram,position) VALUES (?1,?2,?3,?4)")?;
-    for gram in &grams {
-        insert.execute(params![kind, GRAM_N, gram, position])?;
+    // Read only one bounded keyset page before opening its write transaction.
+    // Any statement error rolls back this page; with_connection poisons the
+    // private stage so previously committed pages cannot become a candidate.
+    let transaction = db.transaction()?;
+    {
+        let mut insert = transaction.prepare_cached(
+            "INSERT INTO search_grams(kind,n,gram,position) VALUES (?1,?2,?3,?4)",
+        )?;
+        for gram in &grams {
+            insert.execute(params![kind, GRAM_N, gram, position])?;
+        }
     }
+    transaction.commit()?;
     Ok(grams.pop())
 }
 
@@ -670,7 +685,7 @@ mod tests {
 
     #[test]
     fn gram_copy_is_disk_deduped_and_keyset_paged() {
-        let db = Connection::open_in_memory().unwrap();
+        let mut db = Connection::open_in_memory().unwrap();
         db.execute_batch(SCHEMA).unwrap();
         for gram in [b"aaa".as_slice(), b"bbb", b"aaa", b"ccc"] {
             db.execute(
@@ -679,16 +694,16 @@ mod tests {
             )
             .unwrap();
         }
-        let first = copy_pending_page(&db, "nodes", 7, None, 2)
+        let first = copy_pending_page(&mut db, "nodes", 7, None, 2)
             .unwrap()
             .unwrap();
         assert_eq!(first, b"bbb");
-        let second = copy_pending_page(&db, "nodes", 7, Some(&first), 2)
+        let second = copy_pending_page(&mut db, "nodes", 7, Some(&first), 2)
             .unwrap()
             .unwrap();
         assert_eq!(second, b"ccc");
         assert!(
-            copy_pending_page(&db, "nodes", 7, Some(&second), 2)
+            copy_pending_page(&mut db, "nodes", 7, Some(&second), 2)
                 .unwrap()
                 .is_none()
         );
@@ -696,6 +711,22 @@ mod tests {
             .query_row("SELECT COUNT(*) FROM search_grams", [], |r| r.get(0))
             .unwrap();
         assert_eq!(count, 3);
+        db.execute_batch(
+            "CREATE TRIGGER refuse_second_posting BEFORE INSERT ON search_grams
+             WHEN NEW.position=8 AND NEW.gram=X'626262'
+             BEGIN SELECT RAISE(ABORT,'refuse second posting'); END;",
+        )
+        .unwrap();
+        assert!(copy_pending_page(&mut db, "nodes", 8, None, 2).is_err());
+        assert!(db.is_autocommit());
+        let refused_page_rows: i64 = db
+            .query_row(
+                "SELECT COUNT(*) FROM search_grams WHERE position=8",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(refused_page_rows, 0);
     }
 
     #[test]
