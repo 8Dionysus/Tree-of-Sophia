@@ -1010,13 +1010,27 @@ mod tests {
         )
         .unwrap();
         assert_eq!(witnesses.len(), 1);
+        let mut expected_source = fixture["nodes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|node| node["node_id"].as_str() == Some(claim_id))
+            .unwrap()
+            .clone();
+        let mut expected_layers = expected_source
+            .get("graph_layers")
+            .and_then(Value::as_array)
+            .into_iter()
+            .flatten()
+            .filter_map(Value::as_str)
+            .map(str::to_owned)
+            .collect::<std::collections::BTreeSet<_>>();
+        expected_layers.insert("bibliographic-claim".into());
+        expected_source["graph_layers"] = serde_json::json!(expected_layers);
         assert_eq!(
-            witnesses[0],
-            stage
-                .raw_by_id("source-claims", "nodes", claim_id)
-                .unwrap()
-                .unwrap()
-                .payload
+            serde_json::from_slice::<Value>(&witnesses[0]).unwrap(),
+            expected_source,
+            "ordered witness must retain the complete Python bibliography source transform"
         );
         assert_eq!(
             finalize_source_claims(&mut stage, &prepared, &normalizer, &contexts).unwrap(),

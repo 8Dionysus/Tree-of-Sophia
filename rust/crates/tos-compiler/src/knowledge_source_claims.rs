@@ -66,6 +66,146 @@ pub(crate) fn ordered_claim_node_material(raw: &[u8], max_bytes: usize) -> Resul
     Ok(bytes)
 }
 
+/// Preserve original object member order while applying the exact bounded
+/// bibliographic relation transform already produced by the normalizer.
+/// Only these four declared fields and the two role/form fields may change.
+fn ordered_claim_relation_material(
+    raw: &[u8],
+    material: &Value,
+    max_bytes: usize,
+) -> Result<Vec<u8>> {
+    use tos_foundation::{JsonMode, JsonValue, parse_json};
+    let original = SourceRow::parse(raw, max_bytes)?;
+    let original_object = original
+        .value()
+        .as_object()
+        .ok_or(Error::Invalid("Claim relation source object"))?;
+    let material_object = material
+        .as_object()
+        .ok_or(Error::Invalid("Claim relation material object"))?;
+    for (key, value) in original_object {
+        if !["predicate_id", "source_ref", "graph_layers", "properties"].contains(&key.as_str())
+            && material_object.get(key) != Some(value)
+        {
+            return Err(Error::Invalid("Claim relation undeclared source mutation"));
+        }
+    }
+    if material_object.keys().any(|key| {
+        !original_object.contains_key(key)
+            && !["predicate_id", "source_ref", "graph_layers", "properties"].contains(&key.as_str())
+    }) {
+        return Err(Error::Invalid("Claim relation undeclared source addition"));
+    }
+    let limits = JsonLimits {
+        max_bytes,
+        ..JsonLimits::default()
+    };
+    let mut ordered = parse_json(raw, JsonMode::PublishedStrict, limits)
+        .map_err(|e| Error::Source(e.to_string()))?
+        .into_root();
+    let replace = |target: &mut JsonValue, key: &str, value: &Value| -> Result<()> {
+        let raw = encode(&json!({key:value}), max_bytes)?;
+        let JsonValue::Object(mut addition) = parse_json(&raw, JsonMode::PublishedStrict, limits)
+            .map_err(|e| Error::Source(e.to_string()))?
+            .into_root()
+        else {
+            return Err(Error::Invalid("Claim ordered addition"));
+        };
+        let (name, value) = addition
+            .pop()
+            .ok_or(Error::Invalid("Claim ordered addition field"))?;
+        let JsonValue::Object(fields) = target else {
+            return Err(Error::Invalid("Claim ordered source object"));
+        };
+        if let Some((_, old)) = fields
+            .iter_mut()
+            .find(|(name, _)| name.as_str() == Some(key))
+        {
+            *old = value;
+        } else {
+            fields.push((name, value));
+        }
+        Ok(())
+    };
+    for key in ["predicate_id", "source_ref", "graph_layers"] {
+        replace(
+            &mut ordered,
+            key,
+            material
+                .get(key)
+                .ok_or(Error::Invalid("Claim material transform field"))?,
+        )?;
+    }
+    let props = material
+        .get("properties")
+        .and_then(Value::as_object)
+        .ok_or(Error::Invalid("Claim material properties"))?;
+    let source_props = original
+        .value()
+        .get("properties")
+        .and_then(Value::as_object);
+    let (role, forms) = match material.get("predicate_id").and_then(Value::as_str) {
+        Some("has_normalized_place") => ("spatial_roles", "spatial_literal_forms"),
+        Some("has_normalized_agent") => ("agent_roles", "agent_literal_forms"),
+        _ => ("", ""),
+    };
+    if props
+        .iter()
+        .any(|(k, v)| k != role && k != forms && source_props.and_then(|p| p.get(k)) != Some(v))
+        || source_props.is_some_and(|p| p.keys().any(|k| !props.contains_key(k)))
+    {
+        return Err(Error::Invalid("Claim undeclared property transform"));
+    }
+    if ordered.object_get("properties").is_none()
+        || !ordered
+            .object_get("properties")
+            .is_some_and(|v| matches!(v, JsonValue::Object(_)))
+    {
+        replace(&mut ordered, "properties", &json!({}))?;
+    }
+    let JsonValue::Object(fields) = &mut ordered else {
+        return Err(Error::Invalid("Claim ordered object"));
+    };
+    let target = fields
+        .iter_mut()
+        .find(|(key, _)| key.as_str() == Some("properties"))
+        .map(|(_, v)| v)
+        .ok_or(Error::Invalid("Claim ordered properties"))?;
+    for key in [role, forms] {
+        if !key.is_empty() {
+            if let Some(value) = props.get(key) {
+                replace(target, key, value)?;
+            }
+        }
+    }
+    let mut out = Vec::new();
+    crate::knowledge_readable_context::emit_ordered(&ordered, &mut out, max_bytes)?;
+    if SourceRow::parse(&out, max_bytes)?.value() != material {
+        return Err(Error::Invalid("Claim ordered transform equality"));
+    }
+    Ok(out)
+}
+
+pub(crate) fn claim_relation_material_witness(
+    stage: &mut KnowledgeStage<'_>,
+    graph: &str,
+    id: &str,
+    max_bytes: usize,
+) -> Result<Vec<u8>> {
+    let (native,raw_sha,material,material_sha):(String,Vec<u8>,Vec<u8>,Vec<u8>)=stage.with_connection(WritePhase::Finalize,|db| {
+        db.query_row("SELECT native_id,raw_sha256,CASE WHEN material_len=length(material) AND length(material)<=?3 THEN material ELSE NULL END,material_sha256 FROM knowledge_claim_relation_material WHERE source_graph=?1 AND id=?2",params![graph,id,max_bytes as i64],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?))).map_err(Error::from)
+    })?;
+    let raw = stage
+        .raw_by_id(graph, "edges", &native)?
+        .ok_or(Error::Invalid("Claim material original absent"))?;
+    if raw_sha != Digest256::of_bytes(&raw.payload).as_bytes()
+        || material_sha != Digest256::of_bytes(&material).as_bytes()
+    {
+        return Err(Error::Invalid("Claim material original/root digest"));
+    }
+    Ok(material)
+}
+
 #[derive(Clone, Copy, Debug)]
 pub struct ClaimNormalizeLimits {
     pub max_raw_bytes: usize,
@@ -1185,6 +1325,7 @@ pub fn materialize_source_claim_relations(
         verify_prepared_dependencies(stage, prepared, normalizer.limits)?;
         verify_claim_context_groups(stage, contexts, normalizer.limits)?;
         verify_global_titles(stage, titles, 65536, normalizer.limits.max_work_bytes)?;
+        stage.with_connection(WritePhase::Schema,|db|{db.execute_batch("CREATE TABLE knowledge_claim_relation_material(source_graph TEXT NOT NULL,id TEXT NOT NULL,native_id TEXT NOT NULL,raw_sha256 BLOB NOT NULL,material_len INTEGER NOT NULL,material_sha256 BLOB NOT NULL,material BLOB NOT NULL,PRIMARY KEY(source_graph,id)) WITHOUT ROWID;")?;Ok(())})?;
         let mut after = None;
         let mut count = 0u64;
         let mut root = Digest256Hasher::new();
@@ -1262,6 +1403,15 @@ pub fn materialize_source_claim_relations(
                 )?;
                 let bytes = encode(&output, normalizer.limits.max_output_bytes)?;
                 charge(&mut work, bytes.len(), normalizer.limits.max_work_bytes)?;
+                let material = ordered_claim_relation_material(
+                    &raw.payload,
+                    output
+                        .pointer("/source_record/payload")
+                        .ok_or(Error::Invalid("Claim normalized source payload"))?,
+                    normalizer.limits.max_raw_bytes,
+                )?;
+                charge(&mut work, material.len(), normalizer.limits.max_work_bytes)?;
+                stage.with_connection(WritePhase::Sort,|db|{db.execute("INSERT INTO knowledge_claim_relation_material VALUES (?1,?2,?3,?4,?5,?6,?7)",params![prepared.source_graph,required(&output,"id")?,raw.id,&Digest256::of_bytes(&raw.payload).as_bytes()[..],material.len() as i64,&Digest256::of_bytes(&material).as_bytes()[..],material])?;Ok(())})?;
                 stage.insert_relation(RelationRow {
                     id: required(&output, "id")?,
                     source_graph: &prepared.source_graph,
@@ -1468,7 +1618,7 @@ pub fn clear_source_claim_indices(
                 None => break,
             }
         }
-        stage.with_connection(WritePhase::Finalize,|db|{db.execute_batch("DROP TABLE knowledge_claim_context_groups;DROP TABLE knowledge_claim_edge_bindings;DROP TABLE knowledge_claim_dependencies")?;Ok(())})
+        stage.with_connection(WritePhase::Finalize,|db|{db.execute_batch("DROP TABLE knowledge_claim_context_groups;DROP TABLE knowledge_claim_edge_bindings;DROP TABLE knowledge_claim_dependencies;DROP TABLE IF EXISTS knowledge_claim_relation_material")?;Ok(())})
     })();
     if result.is_err() {
         stage.poison();

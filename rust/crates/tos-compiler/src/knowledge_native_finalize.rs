@@ -237,6 +237,21 @@ where
                                 limits.max_row_bytes,
                             )?;
                         }
+                        if table == "knowledge_relations"
+                            && stage.exact_receipt().collections.iter().any(|entry| {
+                                entry.source_graph == row.source
+                                    && entry.collection == "edges"
+                                    && entry.adapter_profile == "reified-bibliographic-claims-v1"
+                            })
+                        {
+                            owner =
+                                crate::knowledge_source_claims::claim_relation_material_witness(
+                                    stage,
+                                    &row.source,
+                                    &row.id,
+                                    limits.max_row_bytes,
+                                )?;
+                        }
                         let mut keys = BTreeSet::new();
                         if let Some(contexts) = value
                             .pointer("/semantics/assertion_contexts")
