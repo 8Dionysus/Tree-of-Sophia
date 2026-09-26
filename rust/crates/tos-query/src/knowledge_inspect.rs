@@ -99,7 +99,7 @@ impl DisclosableInspect {
     }
 }
 
-struct Reader<'a, 'b, A: ?Sized> {
+pub(crate) struct Reader<'a, 'b, A: ?Sized> {
     model: &'a mut VerifiedKnowledgeModel<'b>,
     authority: &'a mut A,
     budget: InspectBudget,
@@ -109,7 +109,7 @@ struct Reader<'a, 'b, A: ?Sized> {
 }
 impl<A: InspectCurrentAuthority + ?Sized> Reader<'_, '_, A> {
     /// SQL CASE enforces field/payload transfer caps before row allocation.
-    fn items(
+    pub(crate) fn items(
         &mut self,
         kind: SearchKind,
         field: &str,
@@ -320,6 +320,138 @@ pub fn execute_selected_inspect<A: InspectCurrentAuthority + ?Sized>(
             "invalid inspect identifier or relation limit",
         ));
     }
+    let operation = if kind == SearchKind::Nodes {
+        NODE_INSPECT_OPERATION
+    } else {
+        RELATION_INSPECT_OPERATION
+    };
+    execute_selected_carrier_packet(
+        model,
+        bound,
+        authority,
+        operation,
+        INSPECT_INTENDED_USE,
+        budget,
+        |read| {
+            let (field, matches) = read.resolve(kind, identifier)?;
+            let (context, count) = if kind == SearchKind::Nodes {
+                let (total, related) = read.incident(&matches, relation_limit)?;
+                (related, total)
+            } else {
+                let mut ids = BTreeSet::new();
+                for value in &matches {
+                    for field in ["from_id", "to_id"] {
+                        ids.insert(
+                            value
+                                .object_get(field)
+                                .and_then(JsonValue::as_str)
+                                .ok_or_else(|| corrupt("inspect relation endpoint invalid"))?
+                                .to_owned(),
+                        );
+                    }
+                }
+                let mut endpoints = vec![];
+                for id in ids {
+                    let values = read.items(SearchKind::Nodes, "id", &id, 1, true)?;
+                    if values.len() != 1 {
+                        return Err(corrupt("inspect relation endpoint closure incomplete"));
+                    }
+                    endpoints.extend(values);
+                }
+                let count = endpoints.len() as u64;
+                (endpoints, count)
+            };
+            let items: Vec<_> = matches.iter().chain(&context).cloned().collect();
+            let mut refs = BTreeSet::new();
+            for item in &items {
+                if let Some(JsonValue::Array(values)) = item.object_get("source_refs") {
+                    for value in values {
+                        if let Some(value) = value.as_str().filter(|value| !value.is_empty()) {
+                            refs.insert(value.to_owned());
+                        }
+                    }
+                }
+            }
+            let authority_boundary = parse_json(
+                bound.authority_boundary().as_bytes(),
+                JsonMode::PublishedStrict,
+                budget.json,
+            )
+            .map_err(|_| corrupt("inspect authority boundary invalid"))?
+            .root()
+            .clone();
+            let mut fields = vec![
+                (
+                    "schema",
+                    text(if kind == SearchKind::Nodes {
+                        "tos_knowledge_node_packet_v1"
+                    } else {
+                        "tos_knowledge_relation_packet_v1"
+                    }),
+                ),
+                ("source_revision", text(bound.source_revision())),
+                ("requested_id", text(identifier)),
+                (
+                    "ambiguous_native_id",
+                    JsonValue::Bool(field == "native_id" && matches.len() > 1),
+                ),
+                ("matches", JsonValue::Array(matches.clone())),
+                (
+                    "source_refs",
+                    JsonValue::Array(refs.into_iter().map(|value| text(&value)).collect()),
+                ),
+                (
+                    "source_read_targets",
+                    source_read_targets(&items, bound.source_revision(), budget.json),
+                ),
+                ("authority_boundary", authority_boundary),
+            ];
+            if kind == SearchKind::Nodes {
+                fields.extend([
+                    (
+                        "shared_entity_id",
+                        JsonValue::Bool(field == "entity_id" && matches.len() > 1),
+                    ),
+                    (
+                        "counts",
+                        object(vec![
+                            ("matches", number(matches.len() as u64)),
+                            ("related_relations", number(count)),
+                            ("returned_relations", number(context.len() as u64)),
+                        ]),
+                    ),
+                    ("related_relations", JsonValue::Array(context)),
+                ]);
+            } else {
+                fields.extend([
+                    (
+                        "counts",
+                        object(vec![
+                            ("matches", number(matches.len() as u64)),
+                            ("endpoints", number(count)),
+                        ]),
+                    ),
+                    ("endpoints", JsonValue::Array(context)),
+                ]);
+            }
+            Ok(object(fields))
+        },
+    )
+}
+
+// The exact-carrier families share one bounded read and disclosure lifetime.
+pub(crate) fn execute_selected_carrier_packet<A: InspectCurrentAuthority + ?Sized, F>(
+    model: &mut VerifiedKnowledgeModel<'_>,
+    bound: &BoundCmpKnowledge<'_>,
+    authority: &mut A,
+    operation: &str,
+    intended_use: &str,
+    budget: InspectBudget,
+    compute: F,
+) -> Result<DisclosableInspect, SearchV2Error>
+where
+    F: FnOnce(&mut Reader<'_, '_, A>) -> Result<JsonValue, SearchV2Error>,
+{
     if budget.max_open_vm_steps == 0
         || model.open_vm_steps() > budget.max_open_vm_steps
         || budget.max_read_vm_steps == 0
@@ -338,12 +470,7 @@ pub fn execute_selected_inspect<A: InspectCurrentAuthority + ?Sized>(
     bound.check_model(model)?;
     let policy = authority.policy_binding();
     let scope = authority.disclosure_scope();
-    let operation = if kind == SearchKind::Nodes {
-        NODE_INSPECT_OPERATION
-    } else {
-        RELATION_INSPECT_OPERATION
-    };
-    scope.validate_for(bound, &policy, operation, INSPECT_INTENDED_USE)?;
+    scope.validate_for(bound, &policy, operation, intended_use)?;
     authority.check_selected()?;
     let steps = Arc::new(AtomicU64::new(0));
     let observed = Arc::clone(&steps);
@@ -361,115 +488,11 @@ pub fn execute_selected_inspect<A: InspectCurrentAuthority + ?Sized>(
             rows: 0,
             consulted: vec![],
         };
-        let (field, matches) = read.resolve(kind, identifier)?;
-        let (context, count) = if kind == SearchKind::Nodes {
-            let (total, related) = read.incident(&matches, relation_limit)?;
-            (related, total)
-        } else {
-            let mut ids = BTreeSet::new();
-            for value in &matches {
-                for field in ["from_id", "to_id"] {
-                    ids.insert(
-                        value
-                            .object_get(field)
-                            .and_then(JsonValue::as_str)
-                            .ok_or_else(|| corrupt("inspect relation endpoint invalid"))?
-                            .to_owned(),
-                    );
-                }
-            }
-            let mut endpoints = vec![];
-            for id in ids {
-                let values = read.items(SearchKind::Nodes, "id", &id, 1, true)?;
-                if values.len() != 1 {
-                    return Err(corrupt("inspect relation endpoint closure incomplete"));
-                }
-                endpoints.extend(values);
-            }
-            let count = endpoints.len() as u64;
-            (endpoints, count)
-        };
-        let items: Vec<_> = matches.iter().chain(&context).cloned().collect();
-        let mut refs = BTreeSet::new();
-        for item in &items {
-            if let Some(JsonValue::Array(values)) = item.object_get("source_refs") {
-                for value in values {
-                    if let Some(value) = value.as_str().filter(|value| !value.is_empty()) {
-                        refs.insert(value.to_owned());
-                    }
-                }
-            }
-        }
-        let authority_boundary = parse_json(
-            bound.authority_boundary().as_bytes(),
-            JsonMode::PublishedStrict,
-            budget.json,
-        )
-        .map_err(|_| corrupt("inspect authority boundary invalid"))?
-        .root()
-        .clone();
-        let mut fields = vec![
-            (
-                "schema",
-                text(if kind == SearchKind::Nodes {
-                    "tos_knowledge_node_packet_v1"
-                } else {
-                    "tos_knowledge_relation_packet_v1"
-                }),
-            ),
-            ("source_revision", text(bound.source_revision())),
-            ("requested_id", text(identifier)),
-            (
-                "ambiguous_native_id",
-                JsonValue::Bool(field == "native_id" && matches.len() > 1),
-            ),
-            ("matches", JsonValue::Array(matches.clone())),
-            (
-                "source_refs",
-                JsonValue::Array(refs.into_iter().map(|value| text(&value)).collect()),
-            ),
-            (
-                "source_read_targets",
-                source_read_targets(&items, bound.source_revision(), budget.json),
-            ),
-            ("authority_boundary", authority_boundary),
-        ];
-        if kind == SearchKind::Nodes {
-            fields.extend([
-                (
-                    "shared_entity_id",
-                    JsonValue::Bool(field == "entity_id" && matches.len() > 1),
-                ),
-                (
-                    "counts",
-                    object(vec![
-                        ("matches", number(matches.len() as u64)),
-                        ("related_relations", number(count)),
-                        ("returned_relations", number(context.len() as u64)),
-                    ]),
-                ),
-                ("related_relations", JsonValue::Array(context)),
-            ]);
-        } else {
-            fields.extend([
-                (
-                    "counts",
-                    object(vec![
-                        ("matches", number(matches.len() as u64)),
-                        ("endpoints", number(count)),
-                    ]),
-                ),
-                ("endpoints", JsonValue::Array(context)),
-            ]);
-        }
+        let value = compute(&mut read)?;
         let mut limits = budget.json;
         limits.max_bytes = limits.max_bytes.min(budget.max_response_bytes);
-        let body = canonical_bytes_v1(
-            &object(fields),
-            CanonicalProfile::SourceRecordDigestV1,
-            limits,
-        )
-        .map_err(|_| budget_error())?;
+        let body = canonical_bytes_v1(&value, CanonicalProfile::SourceRecordDigestV1, limits)
+            .map_err(|_| budget_error())?;
         read.authority.check_selected()?;
         bound.check_model(read.model)?;
         let mut lease = read.authority.acquire_disclosure(&scope, &read.consulted)?;

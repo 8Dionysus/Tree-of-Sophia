@@ -14,6 +14,8 @@ mod knowledge_inspect;
 mod knowledge_packet;
 #[cfg(not(target_arch = "wasm32"))]
 mod knowledge_sqlite;
+#[cfg(not(target_arch = "wasm32"))]
+mod knowledge_temporal;
 pub mod search_candidate;
 mod search_document;
 mod search_execute;
@@ -23,6 +25,7 @@ mod source_descend;
 mod source_read_projection;
 #[cfg(not(target_arch = "wasm32"))]
 mod sqlite;
+mod temporal_comparison;
 
 #[cfg(not(target_arch = "wasm32"))]
 pub use knowledge_binding::{BoundCmpKnowledge, bind_verified_knowledge};
@@ -43,6 +46,8 @@ pub use knowledge_packet::{
     IndexedKnowledgeAuthority, IndexedPageBudget, IndexedWireCursorCodec,
     execute_indexed_search_page,
 };
+#[cfg(not(target_arch = "wasm32"))]
+pub use knowledge_temporal::execute_selected_temporal;
 pub use search_document::{
     SearchDocumentBudget, VerifiedSearchDocument, verify_indexed_search_document,
 };
@@ -59,4 +64,7 @@ pub use sqlite::{
     AbortProbe, AbortReason, AdapterAdmissionBudget, AdapterAdmissionCharge, CmpPinnedModel,
     CmpSqliteReadModel, CurrentPolicy, DisclosureScope, PinnedLocalModel, SourcePin,
     SqliteReadModel,
+};
+pub use temporal_comparison::{
+    TEMPORAL_INTENDED_USE, TEMPORAL_OPERATION, compare_temporal_operands,
 };

@@ -43,6 +43,18 @@ impl BoundCmpKnowledge<'_> {
     pub fn owner_receipt_id(&self) -> &str {
         &self.owner_receipt_id
     }
+    pub(crate) fn source_for_adapter(&self, adapter: &str) -> Option<&str> {
+        let mut sources = self
+            .vocabulary
+            .sources
+            .iter()
+            .filter(|source| source.adapter_profile == adapter);
+        let source = sources.next()?;
+        if sources.next().is_some() {
+            return None;
+        }
+        Some(&source.source_graph_id)
+    }
 
     /// Refuse a different pinned selected file before running a query with
     /// this semantic binding. The source owner separately checks its pin and
