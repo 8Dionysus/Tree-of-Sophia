@@ -85,19 +85,24 @@ impl CutWorkerSchemaExecutor {
         let mut resources = Vec::new();
         let mut contracts = BTreeMap::new();
         let mut total_bytes = 0usize;
-        // The current stream verifies every selected raw member through EOF.
-        // The schema inventory is derived from current contract membership,
-        // never a snapshot cardinality or hardcoded schema count.
-        let mut stream = cut.stream(revision).map_err(store_error)?;
-        while let Some(member) = stream
-            .next_member(deadline, cancelled)
-            .map_err(store_error)?
-        {
+        // Derive schema membership from the exact anchored manifest and read
+        // only those selected bytes. A narrow retirement must not scan an
+        // unrelated surviving raw source while compiling its schema closure.
+        for metadata in cut.current().members() {
             check(deadline, cancelled)?;
-            let path = member.path.as_str();
+            let path = metadata.path.as_str();
             if !path.starts_with("ToS/contracts/") || !path.ends_with(".schema.json") {
                 continue;
             }
+            let member = cut
+                .read_member(
+                    revision,
+                    &metadata.path,
+                    SchemaBackendProbe::MAX_RESOURCE_BYTES as u64,
+                    deadline,
+                    cancelled,
+                )
+                .map_err(store_error)?;
             total_bytes = total_bytes
                 .checked_add(member.raw.len())
                 .filter(|n| *n <= SchemaBackendProbe::MAX_TOTAL_BYTES)
@@ -123,9 +128,6 @@ impl CutWorkerSchemaExecutor {
                 uri,
                 raw: member.raw,
             });
-        }
-        if stream.coverage().is_none() {
-            return Err(ItemRefusal::Source("incomplete schema source cut".into()));
         }
         let schema_set_digest = SchemaBackendProbe::new(resources.clone(), profile)
             .map_err(|error| {
