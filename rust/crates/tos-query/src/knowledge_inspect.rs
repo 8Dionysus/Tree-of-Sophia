@@ -81,6 +81,11 @@ pub trait InspectDisclosureLease: Send {
     fn recheck(&mut self) -> Result<(), SearchV2Error>;
 }
 pub trait InspectCurrentAuthority {
+    /// Stored-lens discovery consults the exact selected public catalog.
+    /// The acquired disclosure lease must also cover this catalog grant.
+    fn authorize_catalog_current(&mut self, _: Digest256) -> Result<(), SearchV2Error> {
+        Err(error(SearchV2ErrorCode::Unavailable, "selected catalog authorization unavailable"))
+    }
     /// Transport cancellation is independent of source authorization.
     fn abort_probe(&self) -> Option<Arc<dyn crate::AbortProbe>> { None }
     fn policy_binding(&self) -> CurrentPolicyBinding;
@@ -218,6 +223,26 @@ impl<A: InspectCurrentAuthority + ?Sized> Reader<'_, '_, A> {
         parse_json(&payload, JsonMode::PublishedStrict, self.budget.json)
             .map(|doc| doc.into_root())
             .map_err(|_| corrupt("selected header JSON invalid"))
+    }
+    /// A stored spec is source-owned catalog data, never a request-supplied
+    /// replacement. Admission occurs before copying its complete bounded BLOB.
+    pub(crate) fn catalog_packet(&mut self, bound: &BoundCmpKnowledge<'_>) -> Result<JsonValue, SearchV2Error> {
+        self.authority.check_selected()?;
+        self.authority.authorize_catalog_current(bound.selection().catalog_packet_sha256)?;
+        let mut statement = self.model.connection().prepare_cached("SELECT packet_len,CASE WHEN typeof(packet_sha256)='blob' AND length(packet_sha256)=32 THEN packet_sha256 END,CASE WHEN typeof(packet)='blob' AND packet_len BETWEEN 0 AND ?2 AND length(packet)=packet_len THEN packet END FROM catalog_index_meta WHERE descriptor_sha256=?1").map_err(sql_error)?;
+        let mut rows = statement.query(params![bound.selection().vocabulary.descriptor_sha256.to_hex(),self.budget.max_payload_bytes as i64]).map_err(sql_error)?;
+        let row=rows.next().map_err(sql_error)?.ok_or_else(||corrupt("selected catalog absent"))?;
+        let length=row.get::<_,i64>(0).map_err(sql_error)?;
+        if length<0||length as usize>self.budget.max_payload_bytes{return Err(budget_error())}
+        self.rows=self.rows.checked_add(1).ok_or_else(budget_error)?;
+        self.decoded=self.decoded.checked_add(length as u64+40).ok_or_else(budget_error)?;
+        if self.rows>self.budget.max_rows||self.decoded>self.budget.max_decoded_bytes{return Err(budget_error())}
+        let sha=row.get::<_,Option<Vec<u8>>>(1).map_err(sql_error)?.ok_or_else(||corrupt("selected catalog digest width invalid"))?;
+        let payload=row.get::<_,Option<Vec<u8>>>(2).map_err(sql_error)?.ok_or_else(||corrupt("selected catalog length/type invalid"))?;
+        if sha.as_slice()!=bound.selection().catalog_packet_sha256.as_bytes()||Digest256::of_bytes(&payload)!=bound.selection().catalog_packet_sha256{return Err(corrupt("selected catalog digest differs"))}
+        let packet=parse_json(&payload,JsonMode::PublishedStrict,self.budget.json).map_err(|_|corrupt("selected catalog JSON invalid"))?.into_root();
+        if packet.object_get("schema").and_then(JsonValue::as_str)!=Some("tos_knowledge_catalog_v1")||packet.object_get("source_revision").and_then(JsonValue::as_str)!=Some(bound.source_revision()){return Err(corrupt("selected catalog identity differs"))}
+        Ok(packet)
     }
     /// Complete keyset stream in source/id order, including an explicit caller
     /// lookahead. Payload reads still go through authenticated items().
