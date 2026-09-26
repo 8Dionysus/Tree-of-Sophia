@@ -19,6 +19,10 @@ use crate::record_rules::RecordFamily;
 use crate::retirement_rules::{RetirementLimits, RetirementRefusal, inspect_retirements_from_cut};
 use crate::source_cut::{CutExecutionBinding, CutPayloadReader, CutSchemaReceipt,
     CutWorkerSchemaExecutor, inspect_items_from_cut};
+use crate::biblio_rules::{SourceCutBiblioReport, inspect_bibliography_from_cut};
+use crate::record_biblio_cut::{BiblioRecordExecutor, SourceCutRecordReport, inspect_records_from_cut};
+use crate::layer_family_cut::{SourceCutLayerFamilyReport, inspect_layers_from_cut};
+use crate::rights_rules::{SourceRightsReport, inspect_rights_from_cut};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OperationChange {
@@ -403,5 +407,122 @@ pub fn inspect_retirement_operation(
         schema_receipts: schemas.receipts()[receipt_start..].to_vec(),
         executed_rules: vec!["tos.val.source.retirement@1".into()],
         item_family: None,
+    })
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct GeneralOperationLimits {
+    pub operation: OperationLimits,
+    pub family: ItemLimits,
+    /// Conservative logical reservation over simultaneously retained family
+    /// outputs. This is not an allocator/RSS or host isolation certificate.
+    pub max_composed_state_bytes: usize,
+    pub max_composed_read_bytes: u64,
+}
+
+/// Every report is the result of the actual owner function, not supplied
+/// externally as a caller claim. The operation state remains fail-closed while
+/// named profile, current authority and generated artifact gaps are open.
+pub struct GeneralOperationFamilyReport {
+    operation: OperationFamilyReport,
+    pub records: SourceCutRecordReport,
+    pub bibliography: SourceCutBiblioReport,
+    pub layers: SourceCutLayerFamilyReport,
+    pub rights: SourceRightsReport,
+}
+impl GeneralOperationFamilyReport {
+    pub fn operation(&self) -> &OperationFamilyReport { &self.operation }
+}
+
+/// Compose the independently owned families on the same source revision and
+/// actual selected worker. No profile list or permission bool selects rules.
+/// Source catalog parity is owned by the compiler's exact renderer; its
+/// admission/currentness seam remains an explicit missing general rule here.
+pub fn inspect_general_operation(
+    cut: &CorpusCutReader,
+    proposal: &OperationProposal,
+    limits: GeneralOperationLimits,
+    cancelled: &AtomicBool,
+    record_routes: &RecordFamily,
+    record_executor: &mut BiblioRecordExecutor,
+    schemas: &mut CutWorkerSchemaExecutor,
+    payloads: &mut impl CutPayloadReader,
+    require_local_payloads: bool,
+) -> Result<GeneralOperationFamilyReport, OperationRefusal> {
+    // Five families retain separate outputs. Reserve their full logical caps
+    // before starting, rather than claiming each cap as one overall envelope.
+    let state_reservation=limits.family.max_state_bytes.checked_mul(5)
+        .and_then(|n|n.checked_add(limits.operation.max_state_bytes))
+        .ok_or(OperationRefusal::Budget)?;
+    let read_reservation=limits.family.max_total_bytes.checked_mul(5)
+        .and_then(|n|n.checked_add(limits.operation.max_total_bytes))
+        .ok_or(OperationRefusal::Budget)?;
+    if limits.max_composed_state_bytes==0 || limits.max_composed_state_bytes==usize::MAX
+        || limits.max_composed_read_bytes==0 || limits.max_composed_read_bytes==u64::MAX
+        || state_reservation>limits.max_composed_state_bytes
+        || read_reservation>limits.max_composed_read_bytes
+        || limits.family.deadline>limits.operation.deadline {
+        return Err(OperationRefusal::Budget)
+    }
+    worker_matches(cut,schemas)?;
+    let worker=schemas.execution_binding();
+    if record_executor.worker.sha256!=worker.worker_sha256
+        || record_executor.profile!=worker.schema_profile {
+        return Err(OperationRefusal::InvalidProposal("record executor selected another worker profile"))
+    }
+    let registry=RelativePath::parse("ToS/doctrine/semantic-interchange/entity-types.v1.json")
+        .map_err(|_|OperationRefusal::Unsupported("entity registry path".into()))?;
+    let registry_digest=cut.current().member(&registry)
+        .ok_or_else(||OperationRefusal::Unsupported("missing current entity registry".into()))?.sha256;
+    if record_routes.registry_digest()!=registry_digest.to_hex()
+        && record_routes.registry_digest()!=registry_digest.to_prefixed() {
+        return Err(OperationRefusal::InvalidProposal("Item record registry selected another cut"))
+    }
+    let binding=bind_operation_from_cut(cut,proposal,limits.operation,cancelled)?;
+    let receipt_start=schemas.receipts().len();
+    let records=inspect_records_from_cut(cut,limits.family,cancelled,record_executor).map_err(item_error)?;
+    let bibliography=inspect_bibliography_from_cut(cut,&records,limits.family,cancelled,schemas).map_err(item_error)?;
+    let layers=inspect_layers_from_cut(cut,limits.family,cancelled,schemas).map_err(item_error)?;
+    let rights=inspect_rights_from_cut(cut,limits.family,cancelled,schemas).map_err(item_error)?;
+    let item=inspect_items_from_cut(cut,limits.family,require_local_payloads,cancelled,
+        record_routes,schemas,payloads).map_err(item_error)?;
+    if records.current_membership!=binding.candidate_carrier
+        || bibliography.carrier_membership!=binding.candidate_carrier
+        || layers.carrier_membership!=binding.candidate_carrier
+        || rights.carrier_membership!=binding.candidate_carrier
+        || item.carrier_membership!=binding.candidate_carrier {
+        return Err(OperationRefusal::InvalidProposal("composed owner carrier mismatch"))
+    }
+    let mut report_bytes=state_reservation;
+    let mut issues=Vec::new();
+    let mut add_issue=|path:&str,code:&str|->Result<(),OperationRefusal>{
+        report_bytes=report_bytes.checked_add(path.len()+code.len()+96)
+            .filter(|n|*n<=limits.max_composed_state_bytes).ok_or(OperationRefusal::Budget)?;
+        issues.push(OperationIssue{path:path.into(),code:code.into()}); Ok(())
+    };
+    for observation in &records.observations {
+        if let crate::record_rules::RecordObservation::Issue{path,code}=observation {
+            add_issue(path,code)?;
+        }
+    }
+    for issue in &bibliography.shadow.issues {add_issue(&issue.location,issue.code)?;}
+    for issue in &layers.layer_family.issues {add_issue(&issue.path,issue.code)?;}
+    for issue in &rights.issues {add_issue(&issue.path,issue.code)?;}
+    for issue in &item.item_family.issues {add_issue(&issue.path,issue.code)?;}
+    for receipt in &schemas.receipts()[receipt_start..] {
+        report_bytes=report_bytes.checked_add(receipt.path.len()+receipt.contract.len()+256)
+            .filter(|n|*n<=limits.max_composed_state_bytes).ok_or(OperationRefusal::Budget)?;
+    }
+    let state=if issues.is_empty(){OperationFamilyState::MissingRules{
+        rule_ids:crate::audit::REQUIRED_GENERAL_ROWS.iter().map(|rule|(*rule).into()).collect()
+    }}else{OperationFamilyState::Rejected{issues}};
+    check(limits.operation,cancelled)?;
+    Ok(GeneralOperationFamilyReport{
+        operation:OperationFamilyReport{binding,scope:OperationFamilyScope::GeneralSource,state,
+            worker:schemas.execution_binding(),schema_receipts:schemas.receipts()[receipt_start..].to_vec(),
+            executed_rules:vec!["tos.val.record.registry-shape-identity.current@1".into(),
+                "tos.val.claim-bibliography.current@1".into(),"tos.val.layer-family.current@1".into(),
+                "tos.val.rights-record.current@1".into(),"tos.val.item-compound.current@1".into()],
+            item_family:Some(item.item_family)},records,bibliography,layers,rights,
     })
 }
