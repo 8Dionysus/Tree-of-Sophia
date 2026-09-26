@@ -723,6 +723,7 @@ mod tests {
             let dependency = prepare_navigation_relation_dependencies(
                 &mut stage,
                 &prepared,
+                &vocabulary,
                 NavigationRelationLimits {
                     max_edges: 8,
                     max_page_rows: 1,

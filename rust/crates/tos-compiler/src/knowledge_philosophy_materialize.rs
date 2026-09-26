@@ -460,7 +460,7 @@ impl<'a> PhilosophyNormalizer<'a> {
             .unwrap_or(&id);
         let mut value = json!({"id":id,"entity_id":entity,"native_id":native,"source_graph":self.source_graph,"kind_id":kind,"type_id":type_id,
             "type_mapping":{"status":if type_id != self.registry.fallback_entity_type_id() {"mapped"} else {"unmapped"},"source_kind_id":kind,"registry_ref":self.entity_registry_ref},
-            "display":ordinary_philosophy_node_display(&source,kind,labels)?,"epistemic":epistemic(item),"graph_layers":layers(item),"view_ids":strings(item.get("view_ids")),
+            "display":full_philosophy_node_display(&source,kind,labels,entry.get("object_role").and_then(Value::as_str))?,"epistemic":epistemic(item),"graph_layers":layers(item),"view_ids":strings(item.get("view_ids")),
             "source_refs":refs,"source_record":source.source_record(&attributes)?,"attributes":attributes,"semantics":semantics});
         stamp_content_revision(&mut value, self.limits.max_output_bytes)?;
         Ok(self.base(value, raw, prepared, None))
