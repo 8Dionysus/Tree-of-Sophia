@@ -197,8 +197,15 @@ fn strings(value: &JsonValue, field: &str, limits: ReadLimits, part: bool) -> Re
     let mut result = Vec::new();
     for row in rows {
         let text = row.as_str().ok_or_else(|| error(CODE, "software capture selection is not a string"))?;
-        RelativePath::parse(text).map_err(|_| error(CODE, "software capture selection path is invalid"))?;
-        if text.ends_with('/') || (part && text.contains('/'))
+        if part {
+            if text.is_empty() || matches!(text, "." | "..") || text.contains(['/', '\\'])
+                || text.chars().any(|c| (c as u32) < 32 || c == '\u{7f}') {
+                return Err(error(CODE, "software capture excluded component is invalid"));
+            }
+        } else {
+            RelativePath::parse(text).map_err(|_| error(CODE, "software capture selection path is invalid"))?;
+        }
+        if text.ends_with('/')
             || result.last().is_some_and(|previous: &String| previous.as_str() >= text) {
             return Err(error(CODE, "software capture selection is not normalized and unique"));
         }
