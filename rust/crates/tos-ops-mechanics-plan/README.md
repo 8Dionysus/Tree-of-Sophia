@@ -36,17 +36,22 @@ cleanup. A saturated error sink can omit the final diagnostic.
 Execution requires a dedicated single-threaded Linux process without other
 children, available `/proc`, `PR_SET_CHILD_SUBREAPER`, and pidfd syscalls. It
 probes both pidfd open and send-signal (signal0 to itself) before any tool
-starts, and fails closed if those facilities are unavailable. Each tool gets its own
-process group and a parent-death signal. The supervisor becomes a subreaper,
-terminates ordinary and escaped/session-changing descendants by pidfd after
-root exit, timeout, output overflow, or cancellation, and reaps them. Numeric
-PGIDs are signalled only before their root is reaped. Cleanup is bounded;
-a kernel-uninterruptible child produces residual PID evidence and a failure,
-never a successful lane. PID listings stream through an 8KiB buffer under the cleanup deadline;
-there is no descendant-count or listing-size cutoff before cleanup. A
-per-PID failure is retained while cleanup continues over later descendants.
-At deadline, diagnostics include the root identity/reap state and a bounded
-residual sample, rather than treating an incomplete enumeration as empty. This is custody of trusted local tools,
+starts, and fails closed if those facilities are unavailable. Each tool gets
+its own process group and a parent-death signal. The supervisor becomes a subreaper,
+attempts to terminate and reap ordinary and escaped/session-changing
+descendants by pidfd after root exit, timeout, output overflow or cancellation.
+Successful cleanup requires both the root reap and a complete empty direct-child
+scan. Numeric PGIDs are signalled only before their root is reaped. Cleanup is
+bounded: any grace exhaustion, enumeration, permission or reap failure returns
+failure and residual/unknown custody evidence for host handoff. Even ordinary
+interruptible descendants may remain when a large family exceeds the grace;
+kernel-uninterruptible children are one possible residual, not the only one.
+PID listings stream through an 8KiB buffer under the cleanup deadline; there
+is no descendant-count or listing-size cutoff before cleanup. A per-PID
+failure is retained while cleanup continues over later descendants. At deadline,
+diagnostics include the root identity/reap state and a bounded residual sample.
+That sample may be partial or empty after an incomplete scan; it never proves
+that no descendants remain. This is custody of trusted local tools,
 not a hostile-code sandbox. SIGKILL/crash of the supervisor itself, processes
 outside its ancestry, and malicious same-user interference require external
 host supervision. No host services or privileges are configured by this tool.
@@ -60,7 +65,8 @@ A synthetic PID stream covers the prior count/byte cutoff without spawning
 thousands of live processes. No authored ToS meaning is admitted.
 
 `--execute` replaces only the runner mechanism. The discovered tools still
-invoke Python; this does not complete their Rust migration. The compatibility entrypoint `scripts/run_mechanics_local_tests.py` replaces
+invoke Python; this does not complete their Rust migration. The compatibility
+entrypoint `scripts/run_mechanics_local_tests.py` replaces
 itself with the installed executor from `TOS_OPS_MECHANICS_EXECUTOR` or PATH,
 passing `sys.executable` as the Python adapter and the explicit default limits.
 It fails when that native binary is unavailable; it does not compile on demand
