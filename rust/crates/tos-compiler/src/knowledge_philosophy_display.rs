@@ -207,7 +207,7 @@ fn node_display(
     let item = row.value();
     let props = field(item, "properties").and_then(Value::as_object);
     if kind_id.is_empty()
-        || text(field(item, "node_id")).is_none()
+        || (!navigation && text(field(item, "node_id")).is_none())
         || (!navigation && field(item, "display").is_some())
         || (!navigation
             && (props.is_some_and(|p| p.contains_key("variant_labels") || p.contains_key("value"))
