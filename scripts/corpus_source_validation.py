@@ -33,6 +33,23 @@ CATALOG_PREFIX = SOURCE_ROOT + 'catalog/'
 FORBIDDEN_PARTS = {'.git', 'payload', 'owner-local'}
 
 
+class FoundationValidationError(CorpusStoreError):
+    """Preserve every structured foundation issue while keeping the old summary."""
+
+    def __init__(self, issues: list[tuple[str, str]]):
+        self.issues = tuple((str(path), str(message)) for path, message in issues)
+        first = '; '.join(f'{path}: {message}' for path, message in self.issues[:8])
+        super().__init__(f'source admission rejected ({len(self.issues)} issues): {first}')
+
+    @property
+    def issue_count(self) -> int:
+        return len(self.issues)
+
+    @property
+    def issue_rows(self) -> tuple[dict[str, str], ...]:
+        return tuple({'path': path, 'message': message} for path, message in self.issues)
+
+
 def is_source_member(relative: str) -> bool:
     """Keep authored route cards while excluding owned generated read models."""
     from corpus_store import relative_path
@@ -354,8 +371,7 @@ class SourceValidator:
             with source_snapshot_membership(root, members):
                 issues = validate_foundation(root, payload_source_root=self.payload_source_root)
         if issues:
-            first = '; '.join(f'{path}: {message}' for path, message in issues[:8])
-            raise CorpusStoreError(f'source admission rejected ({len(issues)} issues): {first}')
+            raise FoundationValidationError(issues)
         # The output was rendered from this immutable candidate immediately
         # above and foundation validation checked its parity. Reuse those
         # in-memory rows for the transport index; never read an accepted or
