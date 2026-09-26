@@ -6,11 +6,14 @@
 //! the current owner fence before it may replace canonical files.
 
 use std::collections::BTreeSet;
+use std::sync::atomic::AtomicBool;
+use std::time::Instant;
 use tos_foundation::{
     CanonicalProfile, Digest256, JsonEmissionProfile, JsonLimits, JsonMode, JsonNumber,
     JsonNumberKind, JsonString, JsonValue, RelativePath, SourceRevision, canonical_bytes_v1,
     emit_json_profile, parse_json,
 };
+use tos_source_store::{CorpusCutReader, SoftwareCaptureReader, SoftwareComponentSelectionV1};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum SourceCommandError {
@@ -91,6 +94,88 @@ pub struct PreparedCommand {
 }
 
 impl CommandContext {
+    /// Verify selected authored inputs and independently captured software
+    /// inputs without merging their namespaces. This observes exact raw bytes;
+    /// it establishes neither complete inventory nor account/admission authority.
+    pub fn check_from_selected_captures(
+        &self,
+        source: &CorpusCutReader,
+        software: &SoftwareCaptureReader,
+        components: &SoftwareComponentSelectionV1,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()> {
+        self.check()?;
+        if source.current().revision() != self.base_revision
+            || components.capture() != software.selection()
+        {
+            return Err(SourceCommandError::Conflict(
+                "selected command input carriers differ",
+            ));
+        }
+        for input in &self.files {
+            let digest = Digest256::of_bytes(&input.raw);
+            let raw =
+                if input.path.as_str().starts_with("ToS/") {
+                    let member = source.current().member(&input.path).ok_or(
+                        SourceCommandError::Unsupported(
+                            "authored command input absent from selected source cut",
+                        ),
+                    )?;
+                    if member.sha256 != digest || member.size_bytes != input.raw.len() as u64 {
+                        return Err(SourceCommandError::Conflict(
+                            "authored command input binding differs",
+                        ));
+                    }
+                    source
+                        .read_member(
+                            self.base_revision,
+                            &input.path,
+                            8_388_608,
+                            deadline,
+                            cancelled,
+                        )
+                        .map_err(|_| {
+                            SourceCommandError::Unsupported(
+                                "authored command input custody read incomplete",
+                            )
+                        })?
+                        .raw
+                } else {
+                    let member =
+                        components
+                            .member(&input.path)
+                            .ok_or(SourceCommandError::Unsupported(
+                                "software command input absent from selected component subset",
+                            ))?;
+                    if member.sha256 != digest || member.size_bytes != input.raw.len() as u64 {
+                        return Err(SourceCommandError::Conflict(
+                            "software command input binding differs",
+                        ));
+                    }
+                    software
+                        .read_selected_component(
+                            components,
+                            &input.path,
+                            8_388_608,
+                            deadline,
+                            cancelled,
+                        )
+                        .map_err(|_| {
+                            SourceCommandError::Unsupported(
+                                "software command input custody read incomplete",
+                            )
+                        })?
+                };
+            if raw != input.raw {
+                return Err(SourceCommandError::Conflict(
+                    "selected command input bytes differ",
+                ));
+            }
+        }
+        Ok(())
+    }
+
     pub fn file(&self, path: &RelativePath) -> SourceCommandResult<Option<&[u8]>> {
         let mut selected = self.files.iter().filter(|f| f.path == *path);
         let result = selected.next().map(|f| f.raw.as_slice());
