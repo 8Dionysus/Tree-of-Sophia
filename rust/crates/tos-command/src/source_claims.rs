@@ -412,6 +412,48 @@ fn config(
             }
         }
     }
+    if create {
+        if !identifier_tail(text(&c, "provenance_event_id")?, "tos.event.") {
+            return Err(SourceCommandError::Invalid(
+                "delegated provenance event identity",
+            ));
+        }
+        if !identifier_tail(parts[3], "") {
+            return Err(SourceCommandError::Invalid("named source relation package"));
+        }
+        for id in array(&c, "allowed_claim_ids")? {
+            if !identifier_tail(
+                id.as_str()
+                    .ok_or(SourceCommandError::Invalid("delegated Claim identity"))?,
+                "tos.claim.",
+            ) {
+                return Err(SourceCommandError::Invalid("delegated Claim identity"));
+            }
+        }
+        if !["human", "software", "model"].contains(&text(&c, "maker_type")?) {
+            return Err(SourceCommandError::Denied("delegated Claim maker type"));
+        }
+    } else {
+        if !identifier_tail(text(&c, "claim_id")?, "tos.claim.") {
+            return Err(SourceCommandError::Invalid("delegated Claim identity"));
+        }
+        for id in array(&c, "allowed_form_ids")? {
+            let id = id
+                .as_str()
+                .and_then(|id| id.strip_prefix("tos.form."))
+                .ok_or(SourceCommandError::Invalid("delegated form identity"))?;
+            if id.is_empty()
+                || !id.as_bytes()[0].is_ascii_lowercase() && !id.as_bytes()[0].is_ascii_digit()
+                || !id.bytes().all(|byte| {
+                    byte.is_ascii_lowercase()
+                        || byte.is_ascii_digit()
+                        || [b'.', b'_', b'-'].contains(&byte)
+                })
+            {
+                return Err(SourceCommandError::Invalid("delegated form identity"));
+            }
+        }
+    }
     exact_keys(&c, &keys)?;
     bounded_list(&c, "allowed_operations", 1)?;
     for operation in array(&c, "allowed_operations")? {
@@ -2410,4 +2452,17 @@ fn native_record_type(record: &JsonValue) -> SourceCommandResult<&str> {
 fn stripped(value: &str) -> SourceCommandResult<&str> {
     python_strip_unicode16_v1(value, 1_048_576)
         .map_err(|_| SourceCommandError::Invalid("Claim Python Unicode16 strip budget"))
+}
+
+fn identifier_tail(value: &str, prefix: &str) -> bool {
+    let Some(tail) = value.strip_prefix(prefix) else {
+        return false;
+    };
+    !tail.is_empty()
+        && tail.split(['.', '-']).all(|segment| {
+            !segment.is_empty()
+                && segment
+                    .bytes()
+                    .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit())
+        })
 }
