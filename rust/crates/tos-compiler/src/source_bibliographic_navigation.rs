@@ -295,17 +295,30 @@ pub(crate) fn prepare_navigation_record_from_catalog(
         .ok_or(Error::Invalid("navigation catalog record absent"))?;
     let entry = &row["entry"];
     let source = text(entry, "source_record_ref")?;
-    let current = versions.exact_record_refs(stage, id, validator, entities, l)?;
-    let record = current.record.clone();
-    let mut provenance = current.provenance.clone();
-    let p = provenance
-        .as_object_mut()
-        .ok_or(Error::Invalid("navigation history provenance object"))?;
-    p.remove("source");
-    p.remove("transition");
-    let history = json!({"status":"available","reason":"verified-record-references","record_id":id,"current_ref":current.current_ref,
-        "refs":current.refs,"provenance":provenance,"grants_current_use":false,"performs_assessment":false,"writes_to_source":false});
-    let references = array(&history, "refs")?;
+    let record = versions.current_record(stage, id, validator, l)?;
+    let history = if versions.supports_record(stage, id, entities, l)? {
+        let current = versions.exact_record_refs(stage, id, validator, entities, l)?;
+        if current.record != record {
+            return Err(Error::Invalid("navigation current/history source equality"));
+        }
+        let mut provenance = current.provenance.clone();
+        let p = provenance
+            .as_object_mut()
+            .ok_or(Error::Invalid("navigation history provenance object"))?;
+        p.remove("source");
+        p.remove("transition");
+        Some(
+            json!({"status":"available","reason":"verified-record-references","record_id":id,"current_ref":current.current_ref,
+            "refs":current.refs,"provenance":provenance,"grants_current_use":false,"performs_assessment":false,"writes_to_source":false}),
+        )
+    } else {
+        None
+    };
+    let references = if let Some(history) = &history {
+        array(history, "refs")?
+    } else {
+        &[]
+    };
     if references
         .len()
         .checked_mul(2)
@@ -339,7 +352,7 @@ pub(crate) fn prepare_navigation_record_from_catalog(
             entry,
             source_record: &record,
             forms: materialized.as_ref().map(|(r, v)| (r.as_str(), v)),
-            history: Some(&history),
+            history: history.as_ref(),
             versions: &resolved_versions,
             native_composite: source.ends_with("/composite-witness.json"),
         },

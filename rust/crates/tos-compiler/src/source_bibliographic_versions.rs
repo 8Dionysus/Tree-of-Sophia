@@ -290,6 +290,119 @@ impl<'a, 'b> Versions<'a, 'b> {
         }
         catalog::verify_catalog(stage, receipt, l.catalog)
     }
+    /// Checked family and locator dispatch, matching MetadataVersionReader.supports.
+    pub(crate) fn supports_record(
+        &self,
+        stage: &mut KnowledgeStage<'_>,
+        id: &str,
+        entities: &Value,
+        l: BibliographicLimits,
+    ) -> Result<bool> {
+        verify_entities(stage, entities, l)?;
+        let row = catalog::catalog_row(stage, "records", id, l.catalog)?
+            .ok_or(Error::Invalid("metadata supports catalog identity absent"))?;
+        let entry = &row["entry"];
+        let kind = text(entry, "record_type")?;
+        let reference = text(entry, "source_record_ref")?;
+        let native_composite =
+            kind == "composite" && reference.ends_with("/composite-witness.json");
+        let native = kind == "artifact"
+            || kind == "link"
+            || native_composite
+            || [
+                "agent",
+                "place",
+                "organization",
+                "work",
+                "expression",
+                "edition",
+                "collection",
+                "item",
+            ]
+            .contains(&kind);
+        if native {
+            let mappings = array(entities, "types")?
+                .iter()
+                .filter(|e| {
+                    e.get("source_mappings")
+                        .and_then(Value::as_array)
+                        .is_some_and(|ms| {
+                            ms.iter().any(|m| {
+                                m["source_graph"] == "source-navigation"
+                                    && m["source_kind_id"] == kind
+                            })
+                        })
+                })
+                .count();
+            if mappings != 1 {
+                return Err(Error::Invalid(
+                    "metadata supports native owner registry mapping",
+                ));
+            }
+        }
+        let profiles = array(entities, "types")?
+            .iter()
+            .filter(|e| e["source_record_profile"]["record_type"] == kind)
+            .collect::<Vec<_>>();
+        if !native && profiles.is_empty() {
+            return Ok(false);
+        }
+        if profiles.len() > 1 {
+            return Err(Error::Invalid("metadata supports duplicate owner profile"));
+        }
+        let basename = if kind == "artifact" {
+            "artifact-witness.json".into()
+        } else if native_composite {
+            "composite-witness.json".into()
+        } else if native {
+            format!("{kind}.json")
+        } else {
+            text(&profiles[0]["source_record_profile"], "source_basename")?.to_owned()
+        };
+        let parts = reference.split('/').collect::<Vec<_>>();
+        Ok(parts.len() >= 5
+            && !reference.contains(['\\', '\0'])
+            && parts[..2] == ["ToS", "source-witnesses"]
+            && parts.last() == Some(&basename.as_str())
+            && !parts.iter().any(|p| {
+                p.is_empty()
+                    || p.starts_with('.')
+                    || [
+                        "catalog",
+                        "payload",
+                        "private",
+                        "local-content",
+                        "owner-local",
+                    ]
+                    .contains(p)
+            }))
+    }
+    /// Exact current catalog/source equality without asserting metadata history.
+    pub(crate) fn current_record(
+        &mut self,
+        stage: &mut KnowledgeStage<'_>,
+        id: &str,
+        validator: &SourceCatalogValidator<'_>,
+        l: BibliographicLimits,
+    ) -> Result<Value> {
+        let row = catalog::catalog_row(stage, "records", id, l.catalog)?
+            .ok_or(Error::Invalid("navigation current metadata not catalogued"))?;
+        let raw = self.required(text(&row["entry"], "source_record_ref")?, validator, l)?;
+        if Digest256::of_bytes(&raw).to_hex() != text(&row["source"], "raw_sha256")?
+            || raw.len() as u64 != row["source"]["raw_bytes"].as_u64().unwrap_or(u64::MAX)
+        {
+            return Err(Error::Invalid(
+                "navigation current metadata exact source bytes",
+            ));
+        }
+        let record = owned(&raw, l.catalog.max_row_bytes)?;
+        if digest(&record, l.catalog.max_row_bytes)? != text(&row["entry"], "record_sha256")? {
+            return Err(Error::Invalid(
+                "navigation current metadata canonical source binding",
+            ));
+        }
+        Ok(record)
+    }
     /// Ordered exact retained metadata references. A successful result has already
     /// checked the entire selected record chain; it does not assess current use.
     pub(crate) fn exact_record_refs(
@@ -312,24 +425,7 @@ impl<'a, 'b> Versions<'a, 'b> {
         entities: &Value,
         l: BibliographicLimits,
     ) -> Result<Version> {
-        let registry = stage
-            .raw_by_id(
-                catalog::CATALOG_SOURCE,
-                catalog::CONTRACT_FILES,
-                "ToS/doctrine/semantic-interchange/entity-types.v1.json",
-            )?
-            .ok_or(Error::Invalid(
-                "metadata version sealed entity registry absent",
-            ))?;
-        if owned(
-            &registry.payload,
-            l.catalog.max_contract_bytes.min(l.catalog.max_row_bytes),
-        )? != *entities
-        {
-            return Err(Error::Invalid(
-                "metadata version supplied entity registry differs from sealed source",
-            ));
-        }
+        verify_entities(stage, entities, l)?;
         exact_ref(exact, false)?;
         let id = text(exact, "id")?;
         let row = catalog::catalog_row(stage, "records", id, l.catalog)?.ok_or(Error::Invalid(
@@ -1473,6 +1569,31 @@ pub(crate) struct Version {
     pub(crate) version_status: &'static str,
     pub(crate) refs: Vec<Value>,
     pub(crate) current_ref: Value,
+}
+fn verify_entities(
+    stage: &KnowledgeStage<'_>,
+    entities: &Value,
+    l: BibliographicLimits,
+) -> Result<()> {
+    let registry = stage
+        .raw_by_id(
+            catalog::CATALOG_SOURCE,
+            catalog::CONTRACT_FILES,
+            "ToS/doctrine/semantic-interchange/entity-types.v1.json",
+        )?
+        .ok_or(Error::Invalid(
+            "metadata version sealed entity registry absent",
+        ))?;
+    if owned(
+        &registry.payload,
+        l.catalog.max_contract_bytes.min(l.catalog.max_row_bytes),
+    )? != *entities
+    {
+        return Err(Error::Invalid(
+            "metadata version supplied entity registry differs from sealed source",
+        ));
+    }
+    Ok(())
 }
 /// Retained JSON uses the same exact scalar transport as current catalog rows.
 /// Compare owner canonical bytes before any digest-based lineage reconstruction.
