@@ -106,7 +106,7 @@ fn valid_tos_id(value: &str) -> bool {
     }
     !previous_separator
 }
-fn attributes(item: &Value) -> Result<Map<String, Value>> {
+pub(crate) fn attributes(item: &Value) -> Result<Map<String, Value>> {
     let object = item
         .as_object()
         .ok_or(Error::Invalid("navigation native node object"))?;
@@ -138,7 +138,7 @@ fn attributes(item: &Value) -> Result<Map<String, Value>> {
     }
     Ok(attrs)
 }
-fn epistemic(item: &Value) -> Value {
+pub(crate) fn epistemic(item: &Value) -> Value {
     let props = item.get("properties").and_then(Value::as_object);
     let p = |key| props.and_then(|p| p.get(key));
     let authority = text(p("authority_posture"))
@@ -238,7 +238,7 @@ fn assertion_trigger(key: &str) -> bool {
                 | "method_ref"
         )
 }
-fn assertion_context(item: &Value, refs: &[String]) -> Result<Option<Value>> {
+pub(crate) fn assertion_context(item: &Value, refs: &[String]) -> Result<Option<Value>> {
     let props = item.get("properties").and_then(Value::as_object);
     let embedded = props
         .and_then(|props| props.get("source_claim"))
@@ -374,7 +374,7 @@ fn comparison_issues(value: &Map<String, Value>) -> Vec<String> {
     }
     issues
 }
-fn normalized_time(value: Option<&Value>, field: &str) -> Result<Option<Value>> {
+pub(crate) fn normalized_time(value: Option<&Value>, field: &str) -> Result<Option<Value>> {
     normalized_time_inner(value, field, 0)
 }
 fn normalized_time_inner(

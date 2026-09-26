@@ -24,6 +24,7 @@ mod knowledge_scope;
 mod knowledge_seal;
 mod knowledge_search;
 mod knowledge_selected;
+pub mod knowledge_source_claims;
 mod knowledge_source_claims_prepare;
 mod knowledge_source_navigation_node;
 mod knowledge_source_navigation_prepare;
