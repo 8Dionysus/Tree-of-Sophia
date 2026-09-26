@@ -37,6 +37,9 @@ pub struct SoftwareCaptureReader {
     restored_root: File,
     selection: SoftwareCaptureSelectionV1,
     members: BTreeMap<RelativePath, MemberMetadata>,
+    includes: Vec<String>,
+    excludes: Vec<String>,
+    excluded_parts: Vec<String>,
     limits: ReadLimits,
 }
 
@@ -225,6 +228,9 @@ impl SoftwareCaptureReader {
             restored_root: restored,
             selection,
             members,
+            includes,
+            excludes,
+            excluded_parts,
             limits,
         })
     }
@@ -242,6 +248,18 @@ impl SoftwareCaptureReader {
         check_time(deadline, cancelled)?;
         if !path.as_str().starts_with("scripts/") {
             return Ok(None);
+        }
+        if !matches_prefix(path.as_str(), &self.includes)
+            || matches_prefix(path.as_str(), &self.excludes)
+            || path
+                .as_str()
+                .split('/')
+                .any(|part| self.excluded_parts.iter().any(|p| p == part))
+        {
+            return Err(error(
+                CODE,
+                "software companion is outside selected capture scope",
+            ));
         }
         let Some(member) = self.members.get(path) else {
             return Ok(None);
