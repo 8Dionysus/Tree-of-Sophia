@@ -15,14 +15,19 @@ use tos_foundation::{
 };
 
 mod audit;
+pub mod biblio_rules;
 pub mod executor;
 mod global_facts;
 pub mod item_rules;
+pub mod layer_family_cut;
+pub mod layer_family_rules;
 pub mod operation;
 pub mod provenance_rules;
 pub mod record_rules;
+pub mod record_biblio_cut;
 pub mod relation_rules;
 pub mod retirement_rules;
+pub mod rights_rules;
 pub mod source_copy;
 pub mod source_cut;
 pub mod source_forms;
