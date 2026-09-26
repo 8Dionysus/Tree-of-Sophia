@@ -59,6 +59,7 @@ pub use knowledge_philosophy_prepare::{
 };
 pub use knowledge_readable_context::{
     ReadableContextCarrier, ReadableContextCompiler, ReadableContextLimits,
+    ordered_readable_witness,
 };
 pub use knowledge_registry::{KnowledgeRegistry, ResolvedType};
 pub use knowledge_scope::{ScopeLimits, ScopeReceipt, write_source_scope};

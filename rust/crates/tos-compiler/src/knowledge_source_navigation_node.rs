@@ -186,7 +186,7 @@ fn owner_envelope(item: &Value) -> Result<()> {
     }
     Ok(())
 }
-const ASSERTION_FIELDS: &[&str] = &[
+pub(crate) const ASSERTION_FIELDS: &[&str] = &[
     "claim_id",
     "claim_ref",
     "claim_version",

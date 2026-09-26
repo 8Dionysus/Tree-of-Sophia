@@ -183,6 +183,252 @@ fn ordered_keys(root: &JsonValue, pointer: &str) -> Result<Vec<String>> {
     }
 }
 
+fn at_ordered_mut<'a>(root: &'a mut JsonValue, pointer: &str) -> Result<&'a mut JsonValue> {
+    let mut current = root;
+    for part in pointer_parts(pointer)? {
+        current = match current {
+            JsonValue::Object(entries) => entries
+                .iter_mut()
+                .find(|(key, _)| key.as_str() == Some(part.as_str()))
+                .map(|(_, value)| value),
+            JsonValue::Array(items) => part
+                .parse::<usize>()
+                .ok()
+                .and_then(|index| items.get_mut(index)),
+            _ => None,
+        }
+        .ok_or(Error::Invalid("unresolved readable witness pointer"))?;
+    }
+    Ok(current)
+}
+
+fn emit_ordered(value: &JsonValue, out: &mut Vec<u8>, cap: usize) -> Result<()> {
+    match value {
+        JsonValue::Null => out.extend_from_slice(b"null"),
+        JsonValue::Bool(value) => out.extend_from_slice(if *value { b"true" } else { b"false" }),
+        JsonValue::Number(value) => out.extend_from_slice(value.lexeme.as_bytes()),
+        JsonValue::String(value) => serde_json::to_writer(
+            &mut *out,
+            value
+                .as_str()
+                .ok_or(Error::Invalid("readable witness UTF-8"))?,
+        )
+        .map_err(|_| Error::Invalid("readable witness string"))?,
+        JsonValue::Array(items) => {
+            out.push(b'[');
+            for (index, item) in items.iter().enumerate() {
+                if index > 0 {
+                    out.push(b',');
+                }
+                emit_ordered(item, out, cap)?;
+            }
+            out.push(b']');
+        }
+        JsonValue::Object(items) => {
+            out.push(b'{');
+            for (index, (key, item)) in items.iter().enumerate() {
+                if index > 0 {
+                    out.push(b',');
+                }
+                serde_json::to_writer(
+                    &mut *out,
+                    key.as_str()
+                        .ok_or(Error::Invalid("readable witness key UTF-8"))?,
+                )
+                .map_err(|_| Error::Invalid("readable witness key"))?;
+                out.push(b':');
+                emit_ordered(item, out, cap)?;
+            }
+            out.push(b'}');
+        }
+    }
+    if out.len() > cap {
+        return Err(Error::Budget("readable witness bytes"));
+    }
+    Ok(())
+}
+
+fn replace_ordered(
+    target: &mut JsonValue,
+    pointer: &str,
+    source: &JsonValue,
+    cap: usize,
+) -> Result<()> {
+    let existing = at_ordered(target, pointer)?;
+    let limits = json_limits(cap)?;
+    if canonical_bytes_v1(existing, CanonicalProfile::SourceRecordDigestV1, limits)
+        .map_err(|e| Error::Source(e.to_string()))?
+        != canonical_bytes_v1(source, CanonicalProfile::SourceRecordDigestV1, limits)
+            .map_err(|e| Error::Source(e.to_string()))?
+    {
+        return Err(Error::Invalid("readable witness copied source differs"));
+    }
+    *at_ordered_mut(target, pointer)? = source.clone();
+    Ok(())
+}
+
+/// Rehydrate only the finite source-context copies used by the readable
+/// compiler. This preserves original record/qualifier member order after the
+/// normalized carrier passed through sorted serde maps. Every replacement
+/// requires canonical equality; values and revisions cannot be changed here.
+/// Referenced contexts require their actual ordered Claim source witnesses.
+pub fn ordered_readable_witness(
+    normalized_raw: &[u8],
+    owner_raw: &[u8],
+    referenced_sources: &[&[u8]],
+    max_bytes: usize,
+) -> Result<Vec<u8>> {
+    if max_bytes == 0
+        || max_bytes > MAX_INPUT_BYTES
+        || normalized_raw.len() > max_bytes
+        || owner_raw.len() > max_bytes
+        || referenced_sources.len() > MAX_CONTEXTS
+    {
+        return Err(Error::Budget("readable source witness limits"));
+    }
+    let limits = json_limits(max_bytes)?;
+    let parse = |raw: &[u8]| {
+        parse_json(raw, JsonMode::PublishedStrict, limits).map_err(|e| Error::Source(e.to_string()))
+    };
+    let normalized: Value = serde_json::from_slice(normalized_raw)
+        .map_err(|_| Error::Invalid("readable witness normalized JSON"))?;
+    let mut ordered = parse(normalized_raw)?.into_root();
+    let owner = parse(owner_raw)?.into_root();
+    if normalized.pointer("/source_record/payload").is_some() {
+        replace_ordered(&mut ordered, "/source_record/payload", &owner, max_bytes)?;
+    }
+    if let Some(fields) = normalized
+        .pointer("/source_record/field_map")
+        .and_then(Value::as_object)
+    {
+        for (field, pointer) in fields {
+            let Some(key) = field.strip_prefix("attributes.") else {
+                continue;
+            };
+            let pointer = pointer
+                .as_str()
+                .ok_or(Error::Invalid("readable witness field map"))?;
+            let copied = at_ordered(&owner, pointer)?;
+            replace_ordered(
+                &mut ordered,
+                &format!("/attributes/{}", escape(key)),
+                copied,
+                max_bytes,
+            )?;
+        }
+    }
+    let mut sources = vec![owner];
+    let mut work = normalized_raw
+        .len()
+        .checked_add(owner_raw.len())
+        .ok_or(Error::Budget("readable witness source work"))?;
+    for raw in referenced_sources {
+        work = work
+            .checked_add(raw.len())
+            .ok_or(Error::Budget("readable witness source work"))?;
+        if raw.len() > max_bytes || work > max_bytes.saturating_mul(MAX_CONTEXTS + 2) {
+            return Err(Error::Budget("readable witness source work"));
+        }
+        sources.push(parse(raw)?.into_root());
+    }
+    if let Some(contexts) = normalized
+        .pointer("/semantics/assertion_contexts")
+        .and_then(Value::as_array)
+    {
+        for (index, context) in contexts.iter().enumerate() {
+            let root = format!("/semantics/assertion_contexts/{index}");
+            let digest = text(context, "source_record_digest")
+                .ok_or(Error::Invalid("readable witness context digest"))?;
+            // Normalizers can bind an embedded exact record (record-version
+            // view), so inspect that declared source layer as well as its outer.
+            let mut matched = None;
+            for source in &sources {
+                for pointer in [
+                    "",
+                    "/properties/source_claim",
+                    "/properties/record_version_view/record",
+                ] {
+                    let Ok(candidate) = at_ordered(source, pointer) else {
+                        continue;
+                    };
+                    let mut raw = Vec::new();
+                    emit_ordered(candidate, &mut raw, max_bytes)?;
+                    let value: Value = serde_json::from_slice(&raw)
+                        .map_err(|_| Error::Invalid("readable witness context source"))?;
+                    if stable_digest(&value)? == digest {
+                        matched = Some(candidate);
+                        break;
+                    }
+                }
+                if matched.is_some() {
+                    break;
+                }
+            }
+            let source =
+                matched.ok_or(Error::Invalid("readable referenced source order absent"))?;
+            let fields = context
+                .get("fields")
+                .and_then(Value::as_object)
+                .ok_or(Error::Invalid("readable witness assertion fields"))?;
+            for (key, field) in fields {
+                let pointer = text(field, "source_pointer")
+                    .ok_or(Error::Invalid("readable witness assertion pointer"))?;
+                // Embedded record-version pointers refer to the outer owner
+                // even when its context digest is the selected inner record.
+                let copied = at_ordered(source, pointer).or_else(|_| {
+                    at_ordered(
+                        source,
+                        pointer
+                            .strip_prefix("/properties/record_version_view/record")
+                            .or_else(|| pointer.strip_prefix("/properties/source_claim"))
+                            .unwrap_or(pointer),
+                    )
+                })?;
+                replace_ordered(
+                    &mut ordered,
+                    &format!("{root}/fields/{}/value", escape(key)),
+                    copied,
+                    max_bytes,
+                )?;
+            }
+            let mut field_order = Vec::new();
+            if fields.contains_key("record") {
+                field_order.push("record");
+            }
+            for pointer in ["", "/properties", "/properties/source_claim"] {
+                if let Ok(layer) = at_ordered(source, pointer) {
+                    for key in crate::knowledge_source_navigation_node::ASSERTION_FIELDS {
+                        if layer.object_get(key).is_some()
+                            && fields.contains_key(*key)
+                            && !field_order.contains(key)
+                        {
+                            field_order.push(key);
+                        }
+                    }
+                }
+            }
+            if field_order.len() != fields.len() {
+                return Err(Error::Invalid("readable assertion field order coverage"));
+            }
+            if let JsonValue::Object(entries) =
+                at_ordered_mut(&mut ordered, &format!("{root}/fields"))?
+            {
+                entries.sort_by_key(|(key, _)| {
+                    field_order
+                        .iter()
+                        .position(|field| key.as_str() == Some(*field))
+                });
+            }
+        }
+    }
+    let mut result = Vec::new();
+    emit_ordered(&ordered, &mut result, max_bytes)?;
+    if canonical_raw(&result, max_bytes)? != canonical_raw(normalized_raw, max_bytes)? {
+        return Err(Error::Invalid("readable reconstructed carrier differs"));
+    }
+    Ok(result)
+}
+
 fn escape(text: &str) -> String {
     text.replace('~', "~0").replace('/', "~1")
 }
@@ -1285,6 +1531,31 @@ mod tests {
         assert!(compiler.compile(&raw, None).is_err());
         let altered = ORDERED.replace("unreviewed", "reviewed");
         assert!(compiler.compile(&raw, Some(altered.as_bytes())).is_err());
+
+        // Real native normalization copies this ordered owner record into
+        // sorted attributes and the source-record envelope. Reconstruct only
+        // those exact copies before applying the same existing Python oracle.
+        let owner = br#"{"node_id":"n","properties":{"source_claim":{"review_status":"unreviewed","qualifiers":{"negation":false,"calendar":null},"claim_version":1,"claim_id":"tos.claim.test.readable","schema_version":"tos_historical_claim_v1"}}}"#;
+        let owner = crate::knowledge_normalization::SourceRow::parse(owner, 1024 * 1024).unwrap();
+        let mut native: Value = serde_json::from_slice(&raw).unwrap();
+        native["source_record"] = owner
+            .source_record(native["attributes"].as_object().unwrap())
+            .unwrap();
+        let native_raw = serde_json::to_vec(&native).unwrap();
+        let source_raw = br#"{"node_id":"n","properties":{"source_claim":{"review_status":"unreviewed","qualifiers":{"negation":false,"calendar":null},"claim_version":1,"claim_id":"tos.claim.test.readable","schema_version":"tos_historical_claim_v1"}}}"#;
+        let witness = ordered_readable_witness(&native_raw, source_raw, &[], 1024 * 1024).unwrap();
+        let ReadableContextCarrier::Sidecar(rehydrated) =
+            compiler.compile(&native_raw, Some(&witness)).unwrap()
+        else {
+            panic!("native source claim context absent");
+        };
+        assert_eq!(Digest256::of_bytes(&rehydrated).to_hex(), ORACLE_COMPLETE);
+        let different = String::from_utf8(source_raw.to_vec())
+            .unwrap()
+            .replace("unreviewed", "reviewed");
+        assert!(
+            ordered_readable_witness(&native_raw, different.as_bytes(), &[], 1024 * 1024).is_err()
+        );
     }
     #[test]
     fn owner_entry_budget_returns_exact_root_without_partial_context() {
