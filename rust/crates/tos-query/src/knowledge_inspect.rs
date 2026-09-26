@@ -21,8 +21,8 @@ use tos_foundation::{
     canonical_bytes_v1, parse_json,
 };
 
-pub const NODE_INSPECT_OPERATION: &str = "tos.knowledge.node";
-pub const RELATION_INSPECT_OPERATION: &str = "tos.knowledge.relation";
+pub const NODE_INSPECT_OPERATION: &str = "tos.knowledge.node.inspect";
+pub const RELATION_INSPECT_OPERATION: &str = "tos.knowledge.relation.inspect";
 pub const INSPECT_INTENDED_USE: &str = "read_only_public_knowledge_inspect_v1";
 fn error(code: SearchV2ErrorCode, message: &'static str) -> SearchV2Error {
     SearchV2Error { code, message }
@@ -237,7 +237,7 @@ impl<A: InspectCurrentAuthority + ?Sized> Reader<'_, '_, A> {
         }
         if native.is_empty() {
             return Err(error(
-                SearchV2ErrorCode::InvalidRequest,
+                SearchV2ErrorCode::UnknownIdentifier,
                 "unknown ToS knowledge identifier",
             ));
         }

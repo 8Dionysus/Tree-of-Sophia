@@ -337,6 +337,7 @@ fn validate_policy_binding(policy: &CurrentPolicyBinding) -> Result<(), SearchV2
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum SearchV2ErrorCode {
     InvalidRequest,
+    UnknownIdentifier,
     QueryTooLong,
     QueryTooShort,
     SelectionIncomplete,
