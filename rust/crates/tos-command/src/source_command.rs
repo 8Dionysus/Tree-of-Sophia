@@ -22,6 +22,20 @@ pub enum SourceCommandError {
 }
 pub type SourceCommandResult<T> = Result<T, SourceCommandError>;
 
+/// Match the source owner's aware Python `_instant` comparison. The parser
+/// remains with VAL's existing source chronology implementation; this supplies
+/// no clock authority and does not reread a protected configuration.
+pub fn validate_expiry(expires_at: &str, observed_now: &str) -> SourceCommandResult<()> {
+    let order = tos_validation::retirement_rules::observed_instant_order(expires_at, observed_now)
+        .map_err(|_| {
+            SourceCommandError::Invalid("owner instant requires explicit valid timezone")
+        })?;
+    if order != std::cmp::Ordering::Greater {
+        return Err(SourceCommandError::Denied("owner delegation expired"));
+    }
+    Ok(())
+}
+
 /// Exact bytes of an explicitly selected canonical member. No path discovery.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SourceFile {
@@ -116,7 +130,7 @@ impl CommandContext {
             return Err(SourceCommandError::Invalid("duplicate proposed write path"));
         }
         for change in &changes {
-            if self.file(&change.path)?.map(Digest256::of) != change.before {
+            if self.file(&change.path)?.map(Digest256::of_bytes) != change.before {
                 return Err(SourceCommandError::Conflict(
                     "proposed before bytes differ from selected source",
                 ));
@@ -137,9 +151,9 @@ impl CommandContext {
             handler_id: handler.into(),
             operation: text(&request, "operation")?.into(),
             base_revision: self.base_revision,
-            request_canonical_sha256: Digest256::of(&canonical(&request)?),
-            configuration_raw_sha256: Digest256::of(&self.configuration_raw),
-            configuration_canonical_sha256: Digest256::of(&canonical(&config)?),
+            request_canonical_sha256: Digest256::of_bytes(&canonical(&request)?),
+            configuration_raw_sha256: Digest256::of_bytes(&self.configuration_raw),
+            configuration_canonical_sha256: Digest256::of_bytes(&canonical(&config)?),
             response,
             changes,
             reads: self
@@ -147,7 +161,7 @@ impl CommandContext {
                 .iter()
                 .map(|f| SourceDependency {
                     path: f.path.clone(),
-                    raw_sha256: Digest256::of(&f.raw),
+                    raw_sha256: Digest256::of_bytes(&f.raw),
                 })
                 .collect(),
             replayed,
@@ -200,7 +214,7 @@ pub(crate) fn published(value: &JsonValue) -> SourceCommandResult<Vec<u8>> {
     .map_err(|_| SourceCommandError::Invalid("published source bytes"))
 }
 pub(crate) fn record_digest(value: &JsonValue) -> SourceCommandResult<Digest256> {
-    Ok(Digest256::of(&canonical(value)?))
+    Ok(Digest256::of_bytes(&canonical(value)?))
 }
 pub(crate) fn object(entries: Vec<(&str, JsonValue)>) -> JsonValue {
     JsonValue::Object(
