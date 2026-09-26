@@ -691,7 +691,7 @@ pub struct BiblioDeltaInput<'a> {
 pub fn inspect_bibliographic_delta(input:BiblioDeltaInput<'_>,limits:ItemLimits,cancelled:&AtomicBool,schemas:&mut impl CutSchemaExecutor)->Result<RelationShadow,ItemRefusal> {
     let mut rules=Rules {limits,cancelled,state:0,bytes:0,anchors:BTreeSet::new(),reserved:BTreeSet::new(),schema_seen:BTreeSet::new(),shadow:RelationShadow::default()};
     for raw in [input.parent_before_raw,input.parent_after_raw,input.endpoint_raw,input.claim_raw] {
-        check(limits.deadline,cancelled)?;if raw.len()>limits.max_member_bytes{return Err(ItemRefusal::Budget);}account(&mut rules.bytes,raw.len(),limits.max_total_bytes)?;reserve(&mut rules.state,raw.len()*3,limits.max_state_bytes)?;
+        check(limits.deadline,cancelled)?;if raw.len()>limits.max_member_bytes{return Err(ItemRefusal::Budget);}account(&mut rules.bytes,raw.len(),limits.max_total_bytes)?;reserve(&mut rules.state,raw.len().checked_mul(3).ok_or(ItemRefusal::Budget)?,limits.max_state_bytes)?;
     }
     let before=decoded(input.parent_before_raw)?;let after=decoded(input.parent_after_raw)?;let endpoint=decoded(input.endpoint_raw)?;
     let claim=crate::published_value(input.claim_raw,limits.max_member_bytes).map_err(|e|ItemRefusal::Unsupported(format!("strict delta Claim:{e:?}")))?;
