@@ -28,6 +28,7 @@ mod knowledge_philosophy_prepare;
 mod knowledge_readable_context;
 mod knowledge_registry;
 mod knowledge_repository;
+pub mod knowledge_repository_source;
 mod knowledge_scope;
 mod knowledge_seal;
 mod knowledge_search;
