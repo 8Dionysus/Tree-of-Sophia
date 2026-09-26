@@ -1,5 +1,6 @@
 //! One bounded local HTTP route for the first native query family.
 
+use crate::{KnowledgeOperation, KnowledgeRequest, PreparedPacket};
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream, ToSocketAddrs};
 use std::sync::{
@@ -7,6 +8,7 @@ use std::sync::{
     atomic::{AtomicU64, AtomicUsize, Ordering},
 };
 use std::time::{Duration, Instant};
+use tos_foundation::{JsonMode, parse_json};
 use tos_query::{AbortProbe, AbortReason};
 
 use crate::common::{
@@ -245,6 +247,43 @@ fn handle_get_with_probe(
     if path == SEARCH_HTTP_PATH {
         return handle_indexed_search(executor, method, query, profile, abort_probe);
     }
+    if let Ok(operations) = crate::common::registered_operations() {
+        for operation in operations.iter().filter(|op| op.http_method == "GET") {
+            let Some(op) = KnowledgeOperation::from_id(&operation.operation_id) else {
+                continue;
+            };
+            let prefix = operation
+                .http_path
+                .split_once('{')
+                .map(|(prefix, _)| prefix);
+            let encoded = match prefix {
+                Some(prefix) => path.strip_prefix(prefix),
+                None if path == operation.http_path => Some(""),
+                _ => None,
+            };
+            let Some(encoded) = encoded else {
+                continue;
+            };
+            let request = match op {
+                KnowledgeOperation::Catalog => Ok(KnowledgeRequest::Catalog),
+                KnowledgeOperation::Node => {
+                    percent_decode(encoded, false).map(|node_id| KnowledgeRequest::Node {
+                        node_id,
+                        relation_limit: bounded_legacy_int(
+                            query_value(query, "relation_limit").as_deref(),
+                            200,
+                            0,
+                            1000,
+                        ) as usize,
+                    })
+                }
+                KnowledgeOperation::Relation => percent_decode(encoded, false)
+                    .map(|relation_id| KnowledgeRequest::Relation { relation_id }),
+                _ => continue,
+            };
+            return knowledge_response(executor, request, method, profile, abort_probe);
+        }
+    }
     let Some(encoded_id) = path.strip_prefix(HTTP_PREFIX) else {
         return HttpResponse::error_for_method(404, "not found", method);
     };
@@ -286,6 +325,201 @@ fn handle_get_with_probe(
     }
 }
 
+fn packet_response(
+    result: Result<PreparedPacket, AccessError>,
+    method: &str,
+    profile: AccessProfile,
+) -> HttpResponse {
+    let result = result.and_then(|packet| {
+        if packet.body.len() > profile.max_response_bytes {
+            return Err(AccessError::new(
+                AccessErrorCode::BudgetExceeded,
+                "query response budget exceeded",
+            ));
+        }
+        validate_packet(&packet.body, profile.max_response_bytes)?;
+        Ok(packet)
+    });
+    match result {
+        Ok(packet) => HttpResponse {
+            status: 200,
+            body: packet.body,
+            head_only: method == "HEAD",
+            fence: Some(packet.fence),
+        },
+        Err(error) => HttpResponse {
+            status: error.http_status(),
+            body: error_json(&error),
+            head_only: method == "HEAD",
+            fence: None,
+        },
+    }
+}
+fn knowledge_response(
+    executor: &dyn AccessExecutor,
+    request: Result<KnowledgeRequest, AccessError>,
+    method: &str,
+    profile: AccessProfile,
+    probe: Arc<dyn AbortProbe>,
+) -> HttpResponse {
+    packet_response(
+        request.and_then(|request| {
+            if !executor.knowledge_available(request.operation()) {
+                return Err(AccessError::new(
+                    AccessErrorCode::Unavailable,
+                    "selected knowledge operation unavailable",
+                ));
+            }
+            executor.knowledge(request, probe)
+        }),
+        method,
+        profile,
+    )
+}
+/// POST transports a bounded structured read, never an authored write.
+pub fn handle_post(
+    executor: &dyn AccessExecutor,
+    target: &str,
+    body: &[u8],
+    profile: AccessProfile,
+) -> HttpResponse {
+    handle_post_with_probe(executor, target, body, profile, profile.deadline_probe())
+}
+fn handle_post_with_probe(
+    executor: &dyn AccessExecutor,
+    target: &str,
+    body: &[u8],
+    profile: AccessProfile,
+    probe: Arc<dyn AbortProbe>,
+) -> HttpResponse {
+    if target.len() > profile.max_request_bytes || body.len() > profile.max_request_bytes {
+        return HttpResponse::error(413, "query request byte cap exceeded");
+    }
+    let path = target.split_once('?').map(|(p, _)| p).unwrap_or(target);
+    let operation = crate::common::registered_operations()
+        .ok()
+        .and_then(|ops| {
+            ops.iter()
+                .find(|op| op.http_method == "POST" && op.http_path == path)
+        })
+        .and_then(|op| KnowledgeOperation::from_id(&op.operation_id));
+    let Some(operation) = operation else {
+        return HttpResponse::error(404, "not found");
+    };
+    let request = parse_json(body, JsonMode::RequestLastWins, profile.json_limits())
+        .map_err(|_| {
+            AccessError::new(
+                AccessErrorCode::InvalidRequest,
+                "invalid bounded query JSON",
+            )
+        })
+        .and_then(|document| KnowledgeRequest::from_body(operation, document.into_root()));
+    knowledge_response(executor, request, "POST", profile, probe)
+}
+fn post_body(
+    stream: &mut TcpStream,
+    text: &str,
+    profile: AccessProfile,
+) -> Result<Vec<u8>, AccessError> {
+    let mut length = None;
+    let mut content_type = None;
+    for line in text.split("\r\n").skip(1).filter(|line| !line.is_empty()) {
+        let (name, value) = line.split_once(':').ok_or_else(|| {
+            AccessError::new(AccessErrorCode::InvalidRequest, "invalid HTTP header")
+        })?;
+        match name.to_ascii_lowercase().as_str() {
+            "transfer-encoding" => {
+                return Err(AccessError::new(
+                    AccessErrorCode::InvalidRequest,
+                    "transfer encoding unsupported",
+                ));
+            }
+            "content-length" => {
+                if length.is_some() {
+                    return Err(AccessError::new(
+                        AccessErrorCode::InvalidRequest,
+                        "duplicate Content-Length",
+                    ));
+                }
+                let value = value.trim();
+                if value.is_empty() || !value.bytes().all(|b| b.is_ascii_digit()) {
+                    return Err(AccessError::new(
+                        AccessErrorCode::InvalidRequest,
+                        "invalid Content-Length",
+                    ));
+                }
+                length = Some(value.parse::<usize>().map_err(|_| {
+                    AccessError::new(
+                        AccessErrorCode::BudgetExceeded,
+                        "query request byte cap exceeded",
+                    )
+                })?);
+            }
+            "content-type" => {
+                if content_type.is_some() {
+                    return Err(AccessError::new(
+                        AccessErrorCode::InvalidRequest,
+                        "duplicate Content-Type",
+                    ));
+                }
+                content_type = Some(value.trim());
+            }
+            _ => {}
+        }
+    }
+    if !content_type.is_some_and(|v| {
+        v.split(';')
+            .next()
+            .is_some_and(|v| v.trim().eq_ignore_ascii_case("application/json"))
+    }) {
+        return Err(AccessError::new(
+            AccessErrorCode::InvalidRequest,
+            "query requires application/json",
+        ));
+    }
+    let length = length.filter(|n| *n > 0).ok_or_else(|| {
+        AccessError::new(
+            AccessErrorCode::InvalidRequest,
+            "query requires positive Content-Length",
+        )
+    })?;
+    if length > profile.max_request_bytes {
+        return Err(AccessError::new(
+            AccessErrorCode::BudgetExceeded,
+            "query request byte cap exceeded",
+        ));
+    }
+    let deadline = Instant::now() + Duration::from_secs(5);
+    let mut bytes = vec![0; length];
+    let mut at = 0;
+    while at < length {
+        let remaining = deadline.saturating_duration_since(Instant::now());
+        if remaining.is_zero() {
+            return Err(AccessError::new(
+                AccessErrorCode::DeadlineExceeded,
+                "query body read timed out",
+            ));
+        }
+        stream.set_read_timeout(Some(remaining)).map_err(|_| {
+            AccessError::new(
+                AccessErrorCode::Unavailable,
+                "query body socket unavailable",
+            )
+        })?;
+        let n = stream.read(&mut bytes[at..]).map_err(|_| {
+            AccessError::new(AccessErrorCode::InvalidRequest, "incomplete query body")
+        })?;
+        if n == 0 {
+            return Err(AccessError::new(
+                AccessErrorCode::InvalidRequest,
+                "incomplete query body",
+            ));
+        }
+        at += n;
+    }
+    Ok(bytes)
+}
+
 fn read_head(stream: &mut TcpStream) -> std::io::Result<Vec<u8>> {
     let mut head = Vec::new();
     let mut byte = [0u8; 1];
@@ -323,6 +557,7 @@ fn write_response(stream: &mut TcpStream, mut response: HttpResponse) -> std::io
         405 => "Method Not Allowed",
         408 => "Request Timeout",
         409 => "Conflict",
+        410 => "Gone",
         413 => "Content Too Large",
         503 => "Service Unavailable",
         _ => "Error",
@@ -337,7 +572,7 @@ fn write_response(stream: &mut TcpStream, mut response: HttpResponse) -> std::io
     if !response.head_only {
         stream.write_all(&response.body)?;
     }
-    Ok(())
+    stream.flush()
 }
 
 /// Serve exactly one bounded HTTP/1.x request on an already accepted socket.
@@ -356,33 +591,52 @@ pub fn serve_connection(
                 Ok(text) => {
                     let first = text.split("\r\n").next().unwrap_or("");
                     match first.split_whitespace().collect::<Vec<_>>().as_slice() {
-                        [method, target, "HTTP/1.1"] | [method, target, "HTTP/1.0"] => match stream
-                            .try_clone()
-                            .and_then(|client| {
-                                client.set_nonblocking(true)?;
-                                Ok(client)
-                            }) {
-                            Ok(client) => {
-                                let now = Instant::now();
-                                let deadline = profile
-                                    .query_timeout
-                                    .map(|timeout| now.checked_add(timeout).unwrap_or(now));
-                                handle_get_with_probe(
-                                    executor.as_ref(),
-                                    method,
-                                    target,
-                                    profile,
-                                    Arc::new(HttpAbortProbe {
-                                        client,
-                                        deadline,
-                                        checks: AtomicU64::new(0),
-                                    }),
-                                )
+                        [method, target, "HTTP/1.1"] | [method, target, "HTTP/1.0"] => {
+                            let body = if *method == "POST" {
+                                post_body(&mut stream, text, profile)
+                            } else {
+                                Ok(Vec::new())
+                            };
+                            match body {
+                                Err(error) => packet_response(Err(error), method, profile),
+                                Ok(body) => match stream.try_clone().and_then(|client| {
+                                    client.set_nonblocking(true)?;
+                                    Ok(client)
+                                }) {
+                                    Ok(client) => {
+                                        let now = Instant::now();
+                                        let probe = Arc::new(HttpAbortProbe {
+                                            client,
+                                            deadline: profile.query_timeout.map(|timeout| {
+                                                now.checked_add(timeout).unwrap_or(now)
+                                            }),
+                                            checks: AtomicU64::new(0),
+                                        });
+                                        if *method == "POST" {
+                                            handle_post_with_probe(
+                                                executor.as_ref(),
+                                                target,
+                                                &body,
+                                                profile,
+                                                probe,
+                                            )
+                                        } else {
+                                            handle_get_with_probe(
+                                                executor.as_ref(),
+                                                method,
+                                                target,
+                                                profile,
+                                                probe,
+                                            )
+                                        }
+                                    }
+                                    Err(_) => HttpResponse::error(
+                                        503,
+                                        "client cancellation probe unavailable",
+                                    ),
+                                },
                             }
-                            Err(_) => {
-                                HttpResponse::error(503, "client cancellation probe unavailable")
-                            }
-                        },
+                        }
                         _ => HttpResponse::error(400, "invalid HTTP request line"),
                     }
                 }

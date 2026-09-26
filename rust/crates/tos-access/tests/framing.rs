@@ -492,3 +492,202 @@ fn final_withdrawal_sends_no_packet_on_any_wire() {
     assert!(text.contains("\"isError\":true"));
     assert!(!text.contains("would leak"));
 }
+
+struct KnowledgeSynthetic {
+    calls: Mutex<Vec<tos_access::KnowledgeRequest>>,
+    allowed: bool,
+}
+impl AccessExecutor for KnowledgeSynthetic {
+    fn source_descend_available(&self) -> bool {
+        false
+    }
+    fn source_descend(
+        &self,
+        _: Params,
+        _: Arc<dyn AbortProbe>,
+    ) -> Result<PreparedPacket, AccessError> {
+        unreachable!()
+    }
+    fn knowledge_available(&self, _: tos_access::KnowledgeOperation) -> bool {
+        self.allowed
+    }
+    fn knowledge(
+        &self,
+        request: tos_access::KnowledgeRequest,
+        probe: Arc<dyn AbortProbe>,
+    ) -> Result<PreparedPacket, AccessError> {
+        assert!(probe.reason().is_none());
+        self.calls.lock().unwrap().push(request);
+        Ok(PreparedPacket{body:br#"{"source_revision":"fixture","source_refs":[],"authority_note":"synthetic; no rights grant"}"#.to_vec(),fence:Box::new(Fence)})
+    }
+}
+#[test]
+fn selected_knowledge_transport_shapes_use_existing_contracts() {
+    use tos_access::{KnowledgeOperation as O, KnowledgeRequest as R};
+    let executor = KnowledgeSynthetic {
+        calls: Mutex::new(Vec::new()),
+        allowed: true,
+    };
+    for target in [
+        "/api/knowledge/catalog",
+        "/api/knowledge/nodes/fixture%2Fnode?relation_limit=0",
+        "/api/knowledge/relations/fixture%2Frelation",
+    ] {
+        assert_eq!(handle_get(&executor, "HEAD", target, profile()).status, 200);
+    }
+    let calls = executor.calls.lock().unwrap();
+    assert!(matches!(calls[0], R::Catalog));
+    assert!(matches!(&calls[1],R::Node{node_id,relation_limit:0} if node_id=="fixture/node"));
+    assert!(matches!(&calls[2],R::Relation{relation_id} if relation_id=="fixture/relation"));
+    drop(calls);
+    let vectors = [
+        (
+            O::Temporal,
+            "/api/knowledge/temporal/compare",
+            "tos_knowledge_temporal_compare",
+            "request",
+        ),
+        (
+            O::Lens,
+            "/api/knowledge/lenses/compile",
+            "tos_knowledge_lens_compile",
+            "spec",
+        ),
+        (
+            O::Explore,
+            "/api/knowledge/explore",
+            "tos_knowledge_explore",
+            "request",
+        ),
+    ];
+    for (op, path, tool, field) in vectors {
+        assert_eq!(
+            tos_access::http::handle_post(&executor, path, br#"{"selection":"raw"}"#, profile())
+                .status,
+            200
+        );
+        assert_eq!(
+            executor.calls.lock().unwrap().last().unwrap().operation(),
+            op
+        );
+        let frames = format!(
+            "{{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{{\"protocolVersion\":\"2025-11-25\"}}}}\n{{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}}\n{{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{{\"name\":\"{tool}\",\"arguments\":{{\"{field}\":{{\"selection\":\"raw\"}}}}}}}}\n"
+        );
+        let mut out = Vec::new();
+        run_io(Cursor::new(frames), &mut out, &executor, profile()).unwrap();
+        assert!(
+            String::from_utf8(out)
+                .unwrap()
+                .contains("structuredContent")
+        );
+        assert_eq!(
+            executor.calls.lock().unwrap().last().unwrap().operation(),
+            op
+        );
+    }
+    for (args, input) in [
+        (vec!["knowledge", "catalog"], ""),
+        (
+            vec!["knowledge", "node", "fixture/node", "--relation-limit", "0"],
+            "",
+        ),
+        (vec!["knowledge", "relation", "fixture/relation"], ""),
+        (vec!["knowledge", "temporal-compare", "-"], "{}"),
+        (vec!["lens", "compile", "-"], "{}"),
+    ] {
+        let args = args.into_iter().map(str::to_owned).collect::<Vec<_>>();
+        let mut out = Vec::new();
+        let mut err = Vec::new();
+        assert_eq!(
+            cli::run_cli_with_input(
+                &args,
+                &executor,
+                profile(),
+                &mut Cursor::new(input),
+                &mut out,
+                &mut err
+            ),
+            0
+        );
+        assert!(err.is_empty());
+        assert!(out.ends_with(b"\n"));
+    }
+    assert_eq!(
+        tos_access::http::handle_post(&executor, "/api/knowledge/explore", b"[]", profile()).status,
+        400
+    );
+    let unavailable = KnowledgeSynthetic {
+        calls: Mutex::new(Vec::new()),
+        allowed: false,
+    };
+    assert_eq!(
+        handle_get(&unavailable, "HEAD", "/api/knowledge/catalog", profile()).status,
+        503
+    );
+    assert_eq!(
+        tos_access::http::handle_post(&unavailable, "/api/knowledge/explore", b"{}", profile())
+            .status,
+        503
+    );
+    assert!(unavailable.calls.lock().unwrap().is_empty());
+}
+#[test]
+fn post_socket_requires_one_bounded_complete_json_body() {
+    let cases = [
+        (
+            "Content-Type: application/json\r\nContent-Length: 2\r\n",
+            "{}",
+            200,
+        ),
+        (
+            "Content-Type: application/json\r\nContent-Length: 2\r\nContent-Length: 2\r\n",
+            "{}",
+            400,
+        ),
+        (
+            "Content-Type: application/json\r\nContent-Length: 2\r\nTransfer-Encoding: chunked\r\n",
+            "{}",
+            400,
+        ),
+        (
+            "Content-Type: application/json\r\nContent-Length: 3\r\n",
+            "{}",
+            400,
+        ),
+        (
+            "Content-Type: application/json\r\nContent-Length: 65537\r\n",
+            "",
+            413,
+        ),
+    ];
+    for (headers, body, status) in cases {
+        let executor: Arc<dyn AccessExecutor> = Arc::new(KnowledgeSynthetic {
+            calls: Mutex::new(Vec::new()),
+            allowed: true,
+        });
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let address = listener.local_addr().unwrap();
+        let server = std::thread::spawn(move || {
+            let (stream, _) = listener.accept().unwrap();
+            serve_connection(stream, executor, profile());
+        });
+        let mut client = TcpStream::connect(address).unwrap();
+        client
+            .write_all(
+                format!(
+                    "POST /api/knowledge/explore HTTP/1.1\r\nHost: 127.0.0.1\r\n{headers}\r\n{body}"
+                )
+                .as_bytes(),
+            )
+            .unwrap();
+        client.shutdown(Shutdown::Write).unwrap();
+        let mut response = Vec::new();
+        client.read_to_end(&mut response).unwrap();
+        server.join().unwrap();
+        assert!(
+            String::from_utf8(response)
+                .unwrap()
+                .starts_with(&format!("HTTP/1.1 {status} "))
+        );
+    }
+}

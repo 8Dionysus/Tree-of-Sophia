@@ -41,7 +41,7 @@ fn main() {
                 http::serve(&address, Arc::new(NoOwner), profile).map_err(|error| error.to_string())
             }
         }
-        Some(route_name @ ("source" | "knowledge")) => {
+        Some(route_name @ ("source" | "knowledge" | "lens")) => {
             let mut route = vec![route_name.to_owned()];
             route.extend(args);
             let code = cli::run_cli(

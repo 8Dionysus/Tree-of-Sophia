@@ -28,6 +28,9 @@ pub struct RegisteredOperation {
     pub mcp_tool: String,
     pub mcp_description: String,
     pub input_schema: JsonValue,
+    pub http_method: String,
+    pub http_path: String,
+    pub cli_command: Option<String>,
 }
 
 static OPERATIONS: OnceLock<Result<Vec<RegisteredOperation>, AccessError>> = OnceLock::new();
@@ -36,9 +39,9 @@ pub fn registered_operations() -> Result<&'static [RegisteredOperation], AccessE
     OPERATIONS
         .get_or_init(|| {
             let limits = JsonLimits {
-                max_bytes: 16_384,
+                max_bytes: 65_536,
                 max_depth: 16,
-                max_visits: 1024,
+                max_visits: 4096,
                 max_integer_digits: 16,
             };
             let document = parse_json(DESCRIPTOR.as_bytes(), JsonMode::PublishedStrict, limits)
@@ -72,14 +75,16 @@ pub fn registered_operations() -> Result<&'static [RegisteredOperation], AccessE
                         "native operation descriptor list absent",
                     )
                 })?;
-            if items.len() != 2 {
+            if items.is_empty() {
                 return Err(AccessError::new(
                     AccessErrorCode::Unavailable,
                     "native operation descriptor list invalid",
                 ));
             }
             let mut registered = Vec::with_capacity(items.len());
-            for (index, item) in items.iter().enumerate() {
+            let mut seen_ops = std::collections::BTreeSet::new();
+            let mut seen_tools = std::collections::BTreeSet::new();
+            for item in items {
                 let op = item.object_get("operation_id").and_then(JsonValue::as_str);
                 let mcp = item.object_get("mcp");
                 let tool = mcp
@@ -90,25 +95,22 @@ pub fn registered_operations() -> Result<&'static [RegisteredOperation], AccessE
                     .and_then(JsonValue::as_str);
                 let schema = mcp.and_then(|m| m.object_get("input_schema"));
                 let http = item.object_get("http");
-                let (expected_op, expected_tool, expected_path) = if index == 0 {
-                    (OPERATION_ID, MCP_TOOL, "/api/source/navigation/{node_id}")
-                } else {
-                    (
-                        SEARCH_OPERATION_ID,
-                        SEARCH_MCP_TOOL,
-                        "/api/knowledge/search?mode=indexed",
-                    )
-                };
-                if op != Some(expected_op)
-                    || tool != Some(expected_tool)
-                    || http
-                        .and_then(|h| h.object_get("method"))
-                        .and_then(JsonValue::as_str)
-                        != Some("GET")
-                    || http
-                        .and_then(|h| h.object_get("path_template"))
-                        .and_then(JsonValue::as_str)
-                        != Some(expected_path)
+                let method = http
+                    .and_then(|h| h.object_get("method"))
+                    .and_then(JsonValue::as_str);
+                let path = http
+                    .and_then(|h| h.object_get("path_template"))
+                    .and_then(JsonValue::as_str);
+                let known = op.is_some_and(|id| {
+                    id == OPERATION_ID
+                        || id == SEARCH_OPERATION_ID
+                        || crate::knowledge::KnowledgeOperation::from_id(id).is_some()
+                });
+                if !known
+                    || !op.is_some_and(|id| seen_ops.insert(id))
+                    || !tool.is_some_and(|id| !id.is_empty() && seen_tools.insert(id))
+                    || !matches!(method, Some("GET" | "POST"))
+                    || !path.is_some_and(|p| p.starts_with("/api/"))
                     || schema.and_then(JsonValue::as_object).is_none()
                     || description.is_none()
                 {
@@ -122,6 +124,13 @@ pub fn registered_operations() -> Result<&'static [RegisteredOperation], AccessE
                     mcp_tool: tool.unwrap().to_owned(),
                     mcp_description: description.unwrap().to_owned(),
                     input_schema: schema.unwrap().clone(),
+                    http_method: method.unwrap().to_owned(),
+                    http_path: path.unwrap().to_owned(),
+                    cli_command: item
+                        .object_get("cli")
+                        .and_then(|c| c.object_get("command"))
+                        .and_then(JsonValue::as_str)
+                        .map(str::to_owned),
                 });
             }
             Ok(registered)
@@ -147,7 +156,8 @@ pub(crate) fn mcp_tool_list(executor: &dyn AccessExecutor) -> Result<Vec<u8>, Ac
         .filter(|operation| match operation.operation_id.as_str() {
             OPERATION_ID => executor.source_descend_available(),
             SEARCH_OPERATION_ID => executor.knowledge_search_indexed_available(),
-            _ => false,
+            id => crate::knowledge::KnowledgeOperation::from_id(id)
+                .is_some_and(|op| executor.knowledge_available(op)),
         })
         .map(|operation| {
             object(vec![
@@ -184,6 +194,7 @@ pub enum AccessErrorCode {
     InvalidRequest,
     UnknownExactId,
     StaleSelection,
+    CursorExpired,
     PublicationPending,
     BudgetExceeded,
     Cancelled,
@@ -208,6 +219,7 @@ impl AccessError {
         match self.code {
             AccessErrorCode::InvalidRequest => 400,
             AccessErrorCode::UnknownExactId => 404,
+            AccessErrorCode::CursorExpired => 410,
             AccessErrorCode::StaleSelection | AccessErrorCode::PublicationPending => 409,
             AccessErrorCode::BudgetExceeded => 413,
             AccessErrorCode::Cancelled | AccessErrorCode::DeadlineExceeded => 408,
@@ -221,6 +233,7 @@ impl AccessError {
         match self.code {
             AccessErrorCode::InvalidRequest => "invalid_request",
             AccessErrorCode::UnknownExactId => "unknown_exact_id",
+            AccessErrorCode::CursorExpired => "cursor_expired",
             AccessErrorCode::StaleSelection => "stale_selection",
             AccessErrorCode::PublicationPending => "publication_pending",
             AccessErrorCode::BudgetExceeded => "budget_exceeded",
@@ -502,6 +515,19 @@ pub trait AccessExecutor: Send + Sync {
         Err(AccessError::new(
             AccessErrorCode::Unavailable,
             "indexed knowledge search unavailable",
+        ))
+    }
+    fn knowledge_available(&self, _: crate::knowledge::KnowledgeOperation) -> bool {
+        false
+    }
+    fn knowledge(
+        &self,
+        _: crate::knowledge::KnowledgeRequest,
+        _: Arc<dyn AbortProbe>,
+    ) -> Result<PreparedPacket, AccessError> {
+        Err(AccessError::new(
+            AccessErrorCode::Unavailable,
+            "selected knowledge operation unavailable",
         ))
     }
 }

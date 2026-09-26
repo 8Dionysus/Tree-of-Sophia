@@ -115,7 +115,12 @@ impl McpSession {
                 let available = match name {
                     Some(MCP_TOOL) => executor.source_descend_available(),
                     Some(SEARCH_MCP_TOOL) => executor.knowledge_search_indexed_available(),
-                    _ => false,
+                    Some(name) => registered_operations()
+                        .ok()
+                        .and_then(|ops| ops.iter().find(|op| op.mcp_tool == name))
+                        .and_then(|op| crate::KnowledgeOperation::from_id(&op.operation_id))
+                        .is_some_and(|op| executor.knowledge_available(op)),
+                    None => false,
                 };
                 if !known || !available {
                     return Some(rpc_error(&id, -32602, "Unknown tool"));
@@ -123,24 +128,17 @@ impl McpSession {
                 let Some(arguments) = params.and_then(|p| p.object_get("arguments")) else {
                     return Some(rpc_error(&id, -32602, "Tool arguments required"));
                 };
-                let allowed: &[&str] = if name == Some(MCP_TOOL) {
-                    &["node_id", "max_depth", "limit"]
-                } else {
-                    &[
-                        "query",
-                        "sources",
-                        "kind_ids",
-                        "predicate_ids",
-                        "offset",
-                        "limit",
-                        "mode",
-                        "cursor",
-                    ]
-                };
-                if arguments.as_object().is_some_and(|fields| {
-                    fields
-                        .iter()
-                        .any(|(name, _)| !name.as_str().is_some_and(|name| allowed.contains(&name)))
+                let operation = registered_operations()
+                    .ok()
+                    .and_then(|ops| ops.iter().find(|op| Some(op.mcp_tool.as_str()) == name));
+                let allowed = operation
+                    .and_then(|op| op.input_schema.object_get("properties"))
+                    .and_then(JsonValue::as_object);
+                if arguments.as_object().is_none_or(|fields| {
+                    fields.iter().any(|(name, _)| {
+                        !allowed
+                            .is_some_and(|properties| properties.iter().any(|(key, _)| key == name))
+                    })
                 }) {
                     return Some(rpc_error(&id, -32602, "Unknown tool argument"));
                 }
@@ -154,13 +152,24 @@ impl McpSession {
                                 .knowledge_search_indexed(request, self.profile.deadline_probe())
                         })
                     }
-                    _ => unreachable!(),
+                    Some(_) => crate::KnowledgeOperation::from_id(&operation.unwrap().operation_id)
+                        .ok_or_else(|| {
+                            crate::AccessError::new(
+                                crate::AccessErrorCode::Unavailable,
+                                "native operation unavailable",
+                            )
+                        })
+                        .and_then(|op| crate::KnowledgeRequest::from_arguments(op, arguments))
+                        .and_then(|request| {
+                            executor.knowledge(request, self.profile.deadline_probe())
+                        }),
+                    None => unreachable!(),
                 }
                 .and_then(|packet| {
                     if packet.body.len() > self.profile.max_response_bytes {
                         return Err(crate::common::AccessError::new(
                             crate::common::AccessErrorCode::BudgetExceeded,
-                            "source descent response budget exceeded",
+                            "query response budget exceeded",
                         ));
                     }
                     validate_packet(&packet.body, self.profile.max_response_bytes)?;

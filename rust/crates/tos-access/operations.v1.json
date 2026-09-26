@@ -10,23 +10,47 @@
       "execution_version": "tos_source_navigation_read_model_v1",
       "effect": "read-only",
       "availability": "only_with_owner_selected_model_and_current_policy_fence",
-      "http": {"method": "GET", "path_template": "/api/source/navigation/{node_id}"},
+      "http": {
+        "method": "GET",
+        "path_template": "/api/source/navigation/{node_id}"
+      },
       "mcp": {
         "tool": "tos_source_descend",
         "description": "Read a bounded source-navigation descent from an exact node ID",
         "input_schema": {
           "type": "object",
           "properties": {
-            "node_id": {"type": "string", "minLength": 1},
-            "max_depth": {"type": "integer", "minimum": 1, "maximum": 8, "default": 8},
-            "limit": {"type": "integer", "minimum": 1, "maximum": 300, "default": 300}
+            "node_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "max_depth": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 8,
+              "default": 8
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 300,
+              "default": 300
+            }
           },
-          "required": ["node_id"],
+          "required": [
+            "node_id"
+          ],
           "additionalProperties": false
         }
       },
-      "cli": {"command": "source descend"},
-      "request": {"node_id": "opaque exact UTF-8 ID", "max_depth": "1..8; default 8", "limit": "1..300; default 300"},
+      "cli": {
+        "command": "source descend"
+      },
+      "request": {
+        "node_id": "opaque exact UTF-8 ID",
+        "max_depth": "1..8; default 8",
+        "limit": "1..300; default 300"
+      },
       "result": "source_descend packet with exact authority_note"
     },
     {
@@ -34,29 +58,255 @@
       "execution_version": "tos_knowledge_search_indexed_v2",
       "effect": "read-only",
       "availability": "only_with_owner_selected_complete_trigram_index_and_current_query_fence",
-      "http": {"method": "GET", "path_template": "/api/knowledge/search?mode=indexed"},
+      "http": {
+        "method": "GET",
+        "path_template": "/api/knowledge/search?mode=indexed"
+      },
       "mcp": {
         "tool": "tos_knowledge_search",
         "description": "Search selected knowledge carriers through the indexed v2 engine",
         "input_schema": {
           "type": "object",
           "properties": {
-            "query": {"type": "string", "maxLength": 256},
-            "sources": {"type": "array", "maxItems": 256, "items": {"type": "string", "minLength": 1, "maxLength": 256}},
-            "kind_ids": {"type": "array", "maxItems": 256, "items": {"type": "string", "minLength": 1, "maxLength": 256}},
-            "predicate_ids": {"type": "array", "maxItems": 256, "items": {"type": "string", "minLength": 1, "maxLength": 256}},
-            "offset": {"type": "integer", "const": 0, "default": 0},
-            "limit": {"type": "integer", "minimum": 1, "maximum": 100, "default": 40},
-            "mode": {"type": "string", "const": "indexed"},
-            "cursor": {"type": ["string", "null"], "maxLength": 65536}
+            "query": {
+              "type": "string",
+              "maxLength": 256
+            },
+            "sources": {
+              "type": "array",
+              "maxItems": 256,
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            },
+            "kind_ids": {
+              "type": "array",
+              "maxItems": 256,
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            },
+            "predicate_ids": {
+              "type": "array",
+              "maxItems": 256,
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            },
+            "offset": {
+              "type": "integer",
+              "const": 0,
+              "default": 0
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 40
+            },
+            "mode": {
+              "type": "string",
+              "const": "indexed"
+            },
+            "cursor": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "maxLength": 65536
+            }
           },
-          "required": ["mode"],
+          "required": [
+            "mode"
+          ],
           "additionalProperties": false
         }
       },
-      "cli": {"command": "knowledge search QUERY --mode indexed"},
-      "request": {"query": "Unicode text; indexed v2 requires 3..256 normalized code points", "sources": "selected source-owned vocabulary IDs", "kind_ids": "selected source-owned vocabulary IDs", "predicate_ids": "selected source-owned vocabulary IDs", "cursor": "adapter-local continuation", "limit": "1..100; default 40"},
+      "cli": {
+        "command": "knowledge search QUERY --mode indexed"
+      },
+      "request": {
+        "query": "Unicode text; indexed v2 requires 3..256 normalized code points",
+        "sources": "selected source-owned vocabulary IDs",
+        "kind_ids": "selected source-owned vocabulary IDs",
+        "predicate_ids": "selected source-owned vocabulary IDs",
+        "cursor": "adapter-local continuation",
+        "limit": "1..100; default 40"
+      },
       "result": "tos_knowledge_search_indexed_v2 packet; never a source-content grant"
+    },
+    {
+      "operation_id": "tos.knowledge.catalog",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_knowledge_model_and_held_current_authority",
+      "http": {
+        "method": "GET",
+        "path_template": "/api/knowledge/catalog"
+      },
+      "mcp": {
+        "tool": "tos_knowledge_catalog",
+        "description": "vocabulary, safe fields, operators, bounds, display coverage, and stored LensSpecs",
+        "input_schema": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        }
+      },
+      "cli": {
+        "command": "knowledge catalog"
+      }
+    },
+    {
+      "operation_id": "tos.knowledge.node.inspect",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_knowledge_model_and_held_current_authority",
+      "http": {
+        "method": "GET",
+        "path_template": "/api/knowledge/nodes/{node_id}"
+      },
+      "mcp": {
+        "tool": "tos_knowledge_node",
+        "description": "normalized node matches and related human-readable relations",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "node_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "relation_limit": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1000,
+              "default": 200
+            }
+          },
+          "required": [
+            "node_id"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "cli": {
+        "command": "knowledge node"
+      }
+    },
+    {
+      "operation_id": "tos.knowledge.relation.inspect",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_knowledge_model_and_held_current_authority",
+      "http": {
+        "method": "GET",
+        "path_template": "/api/knowledge/relations/{relation_id}"
+      },
+      "mcp": {
+        "tool": "tos_knowledge_relation",
+        "description": "normalized relation matches and display-complete endpoints",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "relation_id": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "relation_id"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "cli": {
+        "command": "knowledge relation"
+      }
+    },
+    {
+      "operation_id": "tos.knowledge.temporal.compare",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_knowledge_model_and_held_current_authority",
+      "http": {
+        "method": "POST",
+        "path_template": "/api/knowledge/temporal/compare"
+      },
+      "mcp": {
+        "tool": "tos_knowledge_temporal_compare",
+        "description": "bounded comparison of two exact Claim date envelopes, with full source context and comparable/undetermined/unsupported posture",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "request": {
+              "type": "object"
+            }
+          },
+          "required": [
+            "request"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "cli": {
+        "command": "knowledge temporal-compare"
+      }
+    },
+    {
+      "operation_id": "tos.lens.compile",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_knowledge_model_and_held_current_authority",
+      "http": {
+        "method": "POST",
+        "path_template": "/api/knowledge/lenses/compile"
+      },
+      "mcp": {
+        "tool": "tos_knowledge_lens_compile",
+        "description": "validated arbitrary tos_lens_spec_v1 executed without changing ToS",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "spec": {
+              "type": "object"
+            }
+          },
+          "required": [
+            "spec"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "cli": {
+        "command": "lens compile"
+      }
+    },
+    {
+      "operation_id": "tos.knowledge.explore",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_knowledge_model_and_held_current_authority",
+      "http": {
+        "method": "POST",
+        "path_template": "/api/knowledge/explore"
+      },
+      "mcp": {
+        "tool": "tos_knowledge_explore",
+        "description": "Continue a bounded read-only knowledge exploration",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "request": {
+              "type": "object"
+            }
+          },
+          "required": [
+            "request"
+          ],
+          "additionalProperties": false
+        }
+      }
     }
   ]
 }

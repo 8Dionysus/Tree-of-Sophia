@@ -1,6 +1,8 @@
 //! Additive one-shot CLI route for the first native query family.
 
-use std::io::Write;
+use crate::{KnowledgeOperation, KnowledgeRequest};
+use std::io::{Read, Write};
+use tos_foundation::{JsonMode, parse_json};
 
 use crate::common::validate_packet;
 use crate::{AccessExecutor, AccessProfile, IndexedSearchParams, Params, PreparedPacket};
@@ -133,6 +135,28 @@ pub fn run_cli(
     stdout: &mut dyn Write,
     stderr: &mut dyn Write,
 ) -> i32 {
+    run_cli_with_input(
+        args,
+        executor,
+        profile,
+        &mut std::io::stdin(),
+        stdout,
+        stderr,
+    )
+}
+
+/// Structured queries use the same bounded parser for files and stdin.
+pub fn run_cli_with_input(
+    args: &[String],
+    executor: &dyn AccessExecutor,
+    profile: AccessProfile,
+    stdin: &mut dyn Read,
+    stdout: &mut dyn Write,
+    stderr: &mut dyn Write,
+) -> i32 {
+    if let Some(code) = run_knowledge(args, executor, profile, stdin, stdout, stderr) {
+        return code;
+    }
     if args.len() >= 2 && args[0] == "knowledge" && args[1] == "search" {
         return run_indexed_search(args, executor, profile, stdout, stderr);
     }
@@ -190,4 +214,115 @@ pub fn run_cli(
         }
     };
     write_packet(packet, profile, stdout, stderr)
+}
+
+fn run_knowledge(
+    args: &[String],
+    executor: &dyn AccessExecutor,
+    profile: AccessProfile,
+    stdin: &mut dyn Read,
+    stdout: &mut dyn Write,
+    stderr: &mut dyn Write,
+) -> Option<i32> {
+    let operations = match crate::common::registered_operations() {
+        Ok(ops) => ops,
+        Err(_) => return None,
+    };
+    let operation = operations.iter().find(|operation| {
+        operation.cli_command.as_ref().is_some_and(|command| {
+            let tokens = command.split_whitespace().collect::<Vec<_>>();
+            crate::KnowledgeOperation::from_id(&operation.operation_id).is_some()
+                && args.len() >= tokens.len()
+                && tokens.iter().zip(args).all(|(a, b)| a == b)
+        })
+    })?;
+    let op = KnowledgeOperation::from_id(&operation.operation_id)?;
+    let result: Result<KnowledgeRequest, crate::AccessError> = (|| match op {
+        KnowledgeOperation::Catalog if args.len() == 2 => Ok(KnowledgeRequest::Catalog),
+        KnowledgeOperation::Node
+            if args.len() == 3 || args.len() == 5 && args[3] == "--relation-limit" =>
+        {
+            let relation_limit = if args.len() == 5 {
+                args[4]
+                    .parse::<usize>()
+                    .ok()
+                    .filter(|n| *n <= 1000)
+                    .ok_or_else(|| {
+                        crate::AccessError::new(
+                            crate::AccessErrorCode::InvalidRequest,
+                            "relation_limit must be in 0..1000",
+                        )
+                    })?
+            } else {
+                200
+            };
+            if args[2].is_empty() || args[2].chars().count() > 4096 {
+                return Err(crate::AccessError::new(
+                    crate::AccessErrorCode::InvalidRequest,
+                    "invalid node identifier",
+                ));
+            }
+            Ok(KnowledgeRequest::Node {
+                node_id: args[2].clone(),
+                relation_limit,
+            })
+        }
+        KnowledgeOperation::Relation
+            if args.len() == 3 && !args[2].is_empty() && args[2].chars().count() <= 4096 =>
+        {
+            Ok(KnowledgeRequest::Relation {
+                relation_id: args[2].clone(),
+            })
+        }
+        KnowledgeOperation::Temporal | KnowledgeOperation::Lens if args.len() == 3 => {
+            let max = profile.max_request_bytes.checked_add(1).ok_or_else(|| {
+                crate::AccessError::new(
+                    crate::AccessErrorCode::BudgetExceeded,
+                    "request byte cap invalid",
+                )
+            })?;
+            let mut raw = Vec::new();
+            let read = if args[2] == "-" {
+                stdin.take(max as u64).read_to_end(&mut raw)
+            } else {
+                std::fs::File::open(&args[2])
+                    .and_then(|file| file.take(max as u64).read_to_end(&mut raw))
+            };
+            read.map_err(|_| {
+                crate::AccessError::new(
+                    crate::AccessErrorCode::InvalidRequest,
+                    "cannot read structured query input",
+                )
+            })?;
+            let document = parse_json(&raw, JsonMode::RequestLastWins, profile.json_limits())
+                .map_err(|_| {
+                    crate::AccessError::new(
+                        crate::AccessErrorCode::InvalidRequest,
+                        "invalid bounded query JSON",
+                    )
+                })?;
+            KnowledgeRequest::from_body(op, document.into_root())
+        }
+        _ => Err(crate::AccessError::new(
+            crate::AccessErrorCode::InvalidRequest,
+            "invalid native knowledge command arguments",
+        )),
+    })();
+    Some(match result {
+        Err(error) => {
+            let _ = writeln!(stderr, "{}: {}", error.code_str(), error.message);
+            2
+        }
+        Ok(request) if !executor.knowledge_available(request.operation()) => {
+            let _ = writeln!(stderr, "selected knowledge operation unavailable");
+            3
+        }
+        Ok(request) => match executor.knowledge(request, profile.deadline_probe()) {
+            Ok(packet) => write_packet(packet, profile, stdout, stderr),
+            Err(error) => {
+                let _ = writeln!(stderr, "{}: {}", error.code_str(), error.message);
+                1
+            }
+        },
+    })
 }
