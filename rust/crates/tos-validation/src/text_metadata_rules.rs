@@ -989,7 +989,7 @@ pub fn inspect_source_anchor_v2_metadata(
         limits,
         cancelled,
         "tos_source_anchor_v2",
-        Metadata::anchor,
+        |metadata, value| metadata.anchor(value),
     )
 }
 pub fn inspect_source_text_layer_metadata(
@@ -1004,7 +1004,7 @@ pub fn inspect_source_text_layer_metadata(
         limits,
         cancelled,
         "tos_source_text_layer_v1",
-        Metadata::layer,
+        |metadata, value| metadata.layer(value),
     )
 }
 pub fn inspect_source_text_unit_v1_metadata(
@@ -1019,7 +1019,7 @@ pub fn inspect_source_text_unit_v1_metadata(
         limits,
         cancelled,
         "tos_source_text_unit_packet_v1",
-        Metadata::unit,
+        |metadata, value| metadata.unit(value),
     )
 }
 #[cfg(test)]
