@@ -793,6 +793,8 @@ pub fn run_claim_command(
                         "allowed_form_field_ids",
                         field(selector, "field_id")?,
                     )?
+                } else if text(selector, "field_id")? != "claim.statement" {
+                    return Err(SourceCommandError::Denied("Claim form field scope"));
                 }
             }
             validate_ground(ctx, &config, record, version, executor, deadline, cancelled)?;
@@ -832,7 +834,7 @@ pub fn run_claim_command(
         grant(&config, "allowed_form_ids", &string(form_id))?;
         if config.object_get("allowed_form_field_ids").is_some() {
             grant(&config, "allowed_form_field_ids", &string(field_id))?
-        } else if !["claim.statement", "claim.supporting_quote"].contains(&field_id) {
+        } else if !["claim.statement"].contains(&field_id) {
             return Err(SourceCommandError::Denied("Claim form field scope"));
         }
         if !selected_forms.insert(form_id) {
