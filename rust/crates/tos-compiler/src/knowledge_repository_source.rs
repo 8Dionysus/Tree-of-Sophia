@@ -61,7 +61,7 @@ pub struct RepositorySourceReceipt {
     pub inventory_members: u64,
     pub inventory_root_sha256: String,
     pub collections: Vec<InputCollectionReceipt>,
-    pub projected_bytes: usize,
+    pub plan_bytes: usize,
 }
 /// No public constructor or mutable output: target receipt roots are derived
 /// before target creation, then compared before any input ingestion.
@@ -466,6 +466,12 @@ pub fn plan_repository_source_inputs(
     if !members.contains_key(HOME) {
         return Err(Error::Invalid("repository inventory source home absent"));
     }
+    if work_bytes
+        .checked_add(output_bytes as u64)
+        .is_none_or(|n| n > limits.max_work_bytes)
+    {
+        return Err(Error::Budget("repository total source and projection work"));
+    }
     rows.sort_by(|a, b| (&a.collection, &a.id).cmp(&(&b.collection, &b.id)));
     let mut collections = Vec::new();
     for collection in ["branches", "manifests", "resources", "source_order"] {
@@ -494,7 +500,7 @@ pub fn plan_repository_source_inputs(
             inventory_members: count,
             inventory_root_sha256: member_root.finalize().to_hex(),
             collections,
-            projected_bytes: output_bytes,
+            plan_bytes: output_bytes,
         },
         rows,
         job_source_cut: job_source_cut.into(),
@@ -538,6 +544,18 @@ pub fn render_repository_source_plan(
             }
         }
         let source = &plan.receipt.collections[0].source_graph;
+        if stage
+            .exact_receipt()
+            .collections
+            .iter()
+            .filter(|row| &row.source_graph == source)
+            .count()
+            != 4
+        {
+            return Err(Error::Invalid(
+                "repository source plan complete target recipe",
+            ));
+        }
         for row in &plan.rows {
             check(deadline, cancelled)?;
             stage.ingest_input(InputRow {
