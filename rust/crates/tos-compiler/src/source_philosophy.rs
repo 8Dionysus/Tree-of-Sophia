@@ -259,7 +259,8 @@ fn custody(
             let page = stage.scan_input(&entry.source_graph, name, after.as_deref(), 1)?;
             for row in page.rows {
                 charge(work, row.payload.len(), l)?;
-                let path = RelativePath::new(&row.id).map_err(|e| Error::Source(e.to_string()))?;
+                let path =
+                    RelativePath::parse(&row.id).map_err(|e| Error::Source(e.to_string()))?;
                 let metadata = cut
                     .current()
                     .member(&path)
@@ -333,7 +334,7 @@ impl SourceRead<'_, '_> {
         if !source_path(path) {
             return Err(Error::Invalid("philosophy exact source recipe path"));
         }
-        let relative = RelativePath::new(path).map_err(|e| Error::Source(e.to_string()))?;
+        let relative = RelativePath::parse(path).map_err(|e| Error::Source(e.to_string()))?;
         let metadata = self
             .cut
             .current()
@@ -924,7 +925,7 @@ pub fn plan_philosophy_source_inputs(
         source_root.update(expected_revision.0.as_bytes());
         for path in &read_members {
             check(deadline, cancelled)?;
-            let relative = RelativePath::new(path).map_err(|e| Error::Source(e.to_string()))?;
+            let relative = RelativePath::parse(path).map_err(|e| Error::Source(e.to_string()))?;
             let metadata = cut
                 .current()
                 .member(&relative)

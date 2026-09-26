@@ -66,7 +66,7 @@ struct Snapshot<'a, F> {
 }
 impl<F: FnMut(&str) -> Result<Vec<u8>>> Snapshot<'_, F> {
     fn raw(&mut self, path: &str) -> Result<Vec<u8>> {
-        RelativePath::new(path).map_err(|e| Error::Source(e.to_string()))?;
+        RelativePath::parse(path).map_err(|e| Error::Source(e.to_string()))?;
         if !path.starts_with("ToS/philosophy/") || path.split('/').any(|s| s == "payload") {
             return Err(Error::Invalid("philosophy exact authored path"));
         }
