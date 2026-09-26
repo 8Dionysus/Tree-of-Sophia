@@ -1,0 +1,212 @@
+//! Bounded source representation and exact maintained projection digests.
+use crate::{Error, Result};
+use serde_json::Value;
+use std::collections::BTreeSet;
+use tos_foundation::{
+    CanonicalProfile, Digest256, JsonLimits, JsonMode, canonical_bytes_v1, parse_json,
+};
+
+pub(crate) fn json_limits(max: usize) -> Result<JsonLimits> {
+    JsonLimits::new(max, 96, 2_000_000, 4096).map_err(|e| Error::Source(e.to_string()))
+}
+pub(crate) fn canonical(raw: &[u8], max: usize) -> Result<Vec<u8>> {
+    let limits = json_limits(max)?;
+    let doc = parse_json(raw, JsonMode::PublishedStrict, limits)
+        .map_err(|e| Error::Source(e.to_string()))?;
+    canonical_bytes_v1(doc.root(), CanonicalProfile::SourceRecordDigestV1, limits)
+        .map_err(|e| Error::Source(e.to_string()))
+}
+pub(crate) fn bytes(v: &Value, max: usize) -> Result<Vec<u8>> {
+    let raw = serde_json::to_vec(v).map_err(|e| Error::Source(e.to_string()))?;
+    if raw.len() > max {
+        return Err(Error::Budget("philosophy JSON bytes"));
+    }
+    canonical(&raw, max)
+}
+pub(crate) fn parse(raw: &[u8], max: usize) -> Result<Value> {
+    let original = canonical(raw, max)?;
+    let v: Value = serde_json::from_slice(&original).map_err(|_| {
+        Error::Source("philosophy source representation unsupported by serde JSON".into())
+    })?;
+    // No widened integer or native UTF-16 source record may silently become a
+    // different portable source body at this explicit representation seam.
+    if bytes(&v, max)? != original {
+        return Err(Error::Source(
+            "philosophy source representation loses canonical material".into(),
+        ));
+    }
+    Ok(v)
+}
+pub(crate) fn object(raw: &[u8], max: usize) -> Result<Value> {
+    let v = parse(raw, max)?;
+    if !v.is_object() {
+        return Err(Error::Invalid("philosophy source object"));
+    }
+    Ok(v)
+}
+pub(crate) fn required<'a>(v: &'a Value, key: &str) -> Result<&'a str> {
+    v.get(key)
+        .and_then(Value::as_str)
+        .filter(|s| !s.is_empty())
+        .ok_or(Error::Invalid("philosophy required string"))
+}
+pub(crate) fn array<'a>(v: &'a Value, key: &str) -> Result<&'a [Value]> {
+    v.get(key)
+        .and_then(Value::as_array)
+        .map(Vec::as_slice)
+        .ok_or(Error::Invalid("philosophy required array"))
+}
+pub(crate) fn strings(v: &Value) -> Result<Vec<String>> {
+    v.as_array()
+        .ok_or(Error::Invalid("philosophy string array"))?
+        .iter()
+        .map(|v| {
+            v.as_str()
+                .filter(|s| !s.is_empty())
+                .map(str::to_owned)
+                .ok_or(Error::Invalid("philosophy string array item"))
+        })
+        .collect()
+}
+pub(crate) fn string_set(v: &Value) -> BTreeSet<String> {
+    v.as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_str)
+        .filter(|s| !s.is_empty())
+        .map(str::to_owned)
+        .collect()
+}
+pub(crate) fn truth(v: &Value) -> bool {
+    match v {
+        Value::Null => false,
+        Value::Bool(b) => *b,
+        Value::Number(n) => n.as_f64() != Some(0.0),
+        Value::String(s) => !s.is_empty(),
+        Value::Array(a) => !a.is_empty(),
+        Value::Object(o) => !o.is_empty(),
+    }
+}
+pub(crate) fn string(v: &Value) -> String {
+    match v {
+        Value::Null => "None".into(),
+        Value::Bool(true) => "True".into(),
+        Value::Bool(false) => "False".into(),
+        Value::String(s) => s.clone(),
+        Value::Number(n) => String::from_utf8(
+            canonical(n.to_string().as_bytes(), 4096).expect("finite portable JSON scalar"),
+        )
+        .expect("portable numeric UTF-8"),
+        _ => v.to_string(),
+    }
+}
+pub(crate) fn fallback(v: &Value, fallback: &str) -> String {
+    if truth(v) { string(v) } else { fallback.into() }
+}
+pub(crate) fn digest(v: &Value, max: usize) -> Result<String> {
+    Ok(Digest256::of_bytes(&bytes(v, max)?).to_hex())
+}
+
+// SHA-1 is used only by the source-owned legacy endpoint/cluster naming grammar,
+// not as transport fixity or admission. This streaming implementation retains
+// that exact mechanical naming formula without a new identity authority.
+pub(crate) fn sha1_hex(value: &str) -> String {
+    let raw = value.as_bytes();
+    let mut state = [
+        0x67452301u32,
+        0xefcdab89,
+        0x98badcfe,
+        0x10325476,
+        0xc3d2e1f0,
+    ];
+    fn block(state: &mut [u32; 5], raw: &[u8]) {
+        let mut w = [0u32; 80];
+        for (i, b) in raw.chunks_exact(4).enumerate() {
+            w[i] = u32::from_be_bytes(b.try_into().expect("word"));
+        }
+        for i in 16..80 {
+            w[i] = (w[i - 3] ^ w[i - 8] ^ w[i - 14] ^ w[i - 16]).rotate_left(1);
+        }
+        let [mut a, mut b, mut c, mut d, mut e] = *state;
+        for (i, word) in w.iter().enumerate() {
+            let (f, k) = match i {
+                0..=19 => ((b & c) | (!b & d), 0x5a827999),
+                20..=39 => (b ^ c ^ d, 0x6ed9eba1),
+                40..=59 => ((b & c) | (b & d) | (c & d), 0x8f1bbcdc),
+                _ => (b ^ c ^ d, 0xca62c1d6),
+            };
+            let t = a
+                .rotate_left(5)
+                .wrapping_add(f)
+                .wrapping_add(e)
+                .wrapping_add(k)
+                .wrapping_add(*word);
+            e = d;
+            d = c;
+            c = b.rotate_left(30);
+            b = a;
+            a = t;
+        }
+        for (s, n) in state.iter_mut().zip([a, b, c, d, e]) {
+            *s = s.wrapping_add(n);
+        }
+    }
+    let mut chunks = raw.chunks_exact(64);
+    for chunk in &mut chunks {
+        block(&mut state, chunk);
+    }
+    let tail = chunks.remainder();
+    let mut padded = [0u8; 128];
+    padded[..tail.len()].copy_from_slice(tail);
+    padded[tail.len()] = 0x80;
+    let length = if tail.len() < 56 { 64 } else { 128 };
+    padded[length - 8..length].copy_from_slice(&((raw.len() as u64) * 8).to_be_bytes());
+    for chunk in padded[..length].chunks_exact(64) {
+        block(&mut state, chunk);
+    }
+    state.iter().map(|n| format!("{n:08x}")).collect()
+}
+
+pub(crate) fn check_run(
+    deadline: std::time::Instant,
+    cancelled: &std::sync::atomic::AtomicBool,
+) -> Result<()> {
+    if cancelled.load(std::sync::atomic::Ordering::Relaxed) {
+        return Err(Error::Invalid("philosophy source cancelled"));
+    }
+    if std::time::Instant::now() >= deadline {
+        return Err(Error::Budget("philosophy source deadline"));
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn source_legacy_names_match_independent_hashlib_vectors() {
+        for (value, expected) in [
+            (String::new(), "da39a3ee5e6b4b0d3255bfef95601890afd80709"),
+            ("abc".to_owned(), "a9993e364706816aba3e25717850c26c9cd0d89d"),
+            ("a".repeat(55), "c1c8bbdc22796e28c0e15163d20899b65621d65a"),
+            ("a".repeat(56), "c2db330f6083854c99d4b5bfb6e8f29f201be699"),
+            ("a".repeat(64), "0098ba824b5c16427bd7a1122a5a442a25ec644d"),
+            (
+                "Источник\0cluster".to_owned(),
+                "fb9fc85ee557cbabb1cd26f1b6aa103f3501ba48",
+            ),
+        ] {
+            assert_eq!(sha1_hex(&value), expected);
+        }
+    }
+    #[test]
+    fn unsupported_source_representation_is_never_rewritten() {
+        assert!(parse(br#"{"value":1844674407370955161601}"#, 4096).is_err());
+        assert!(parse(br#"{"value":"\ud800"}"#, 4096).is_err());
+        assert!(parse(br#"{"value":1,"value":2}"#, 4096).is_err());
+        assert_eq!(
+            parse(br#"{"nested":{"unknown":[true,1]}}"#, 4096).unwrap()["nested"]["unknown"][0],
+            true
+        );
+    }
+}
