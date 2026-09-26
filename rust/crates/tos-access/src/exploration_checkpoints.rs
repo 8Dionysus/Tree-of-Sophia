@@ -7,9 +7,7 @@ use std::{
     sync::{Arc, Mutex},
     time::{Duration, Instant},
 };
-use tos_foundation::{
-    CanonicalProfile, Digest256, JsonLimits, JsonString, JsonValue, canonical_bytes_v1,
-};
+use tos_foundation::{CanonicalProfile, Digest256, JsonString, JsonValue, canonical_bytes_v1};
 use tos_query::{
     knowledge_exploration::{
         ExplorationBudget, ExplorationCheckpoint, ExplorationCheckpoints, ExplorationState,

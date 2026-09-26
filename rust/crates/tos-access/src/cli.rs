@@ -243,6 +243,15 @@ fn run_knowledge(
     let op = KnowledgeOperation::from_id(&operation.operation_id)?;
     let result: Result<KnowledgeRequest, crate::AccessError> = (|| match op {
         KnowledgeOperation::Catalog if args.len() == 2 => Ok(KnowledgeRequest::Catalog),
+        KnowledgeOperation::Contracts if args.len() == 2 => Ok(KnowledgeRequest::Contracts),
+        KnowledgeOperation::StoredLens
+            if args.len() == 3 && !args[2].is_empty() && args[2].chars().count() <= 4096 =>
+        {
+            Ok(KnowledgeRequest::StoredLens {
+                lens_id: args[2].clone(),
+            })
+        }
+        KnowledgeOperation::Focus if args.len() >= 3 => focus_cli_request(args),
         KnowledgeOperation::Node
             if args.len() == 3 || args.len() == 5 && args[3] == "--relation-limit" =>
         {

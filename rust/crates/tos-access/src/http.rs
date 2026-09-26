@@ -2,7 +2,7 @@
 
 use crate::{KnowledgeOperation, KnowledgeRequest, PreparedPacket};
 use std::io::{Read, Write};
-use std::net::{TcpListener, TcpStream, ToSocketAddrs};
+use std::net::{Shutdown, TcpListener, TcpStream, ToSocketAddrs};
 use std::sync::{
     Arc,
     atomic::{AtomicU64, AtomicUsize, Ordering},
@@ -656,7 +656,32 @@ pub fn serve_connection(
         _ => HttpResponse::error(400, "HTTP header incomplete or oversized"),
     };
     if stream.set_nonblocking(false).is_ok() {
-        let _ = write_response(&mut stream, response);
+        let rejected = response.status >= 400;
+        if write_response(&mut stream, response).is_ok() && rejected {
+            // Publish the complete refusal before draining bounded unread
+            // request bytes. Dropping a socket with queued input sends RST on
+            // Linux and can erase an otherwise complete client error response.
+            let _ = stream.shutdown(Shutdown::Write);
+            drain_rejected_request(&mut stream, profile.max_request_bytes);
+        }
+    }
+}
+
+fn drain_rejected_request(stream: &mut TcpStream, max_bytes: usize) {
+    let deadline = Instant::now() + Duration::from_millis(200);
+    let mut remaining = max_bytes;
+    let mut buffer = [0u8; 1024];
+    while remaining > 0 {
+        let time = deadline.saturating_duration_since(Instant::now());
+        if time.is_zero() || stream.set_read_timeout(Some(time)).is_err() {
+            break;
+        }
+        let size = remaining.min(buffer.len());
+        match stream.read(&mut buffer[..size]) {
+            Ok(0) => break,
+            Ok(n) => remaining -= n,
+            Err(_) => break,
+        }
     }
 }
 

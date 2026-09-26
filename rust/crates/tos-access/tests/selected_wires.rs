@@ -385,8 +385,7 @@ mod selected_knowledge {
     use tos_compiler::knowledge_full_fixture::{FullKnowledgeFixture, build_fixture};
     use tos_foundation::Digest256;
     use tos_query::knowledge_exploration::{
-        ExplorationBudget, ExplorationCheckpoint, ExplorationCheckpoints, ExplorationState,
-        PreparedExplorationCheckpoint,
+        ExplorationBudget, ExplorationCheckpoint, ExplorationCheckpoints,
     };
     use tos_query::search_v2::{CurrentPolicyBinding, SearchV2Error};
     use tos_query::{
@@ -762,10 +761,14 @@ mod selected_knowledge {
                 .unwrap();
             let result =
                 parse_json(last, JsonMode::PublishedStrict, JsonLimits::default()).unwrap();
-            let text = result
-                .root()
-                .object_get("result")
-                .unwrap()
+            let rpc_result = result.root().object_get("result").unwrap_or_else(|| {
+                panic!(
+                    "{tool}: selected packet bytes={}, RPC frame={}",
+                    expected.len(),
+                    String::from_utf8_lossy(last)
+                )
+            });
+            let text = rpc_result
                 .object_get("content")
                 .unwrap()
                 .as_array()

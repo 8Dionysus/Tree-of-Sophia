@@ -682,12 +682,45 @@ fn post_socket_requires_one_bounded_complete_json_body() {
             .unwrap();
         client.shutdown(Shutdown::Write).unwrap();
         let mut response = Vec::new();
-        client.read_to_end(&mut response).unwrap();
+        client.read_to_end(&mut response).unwrap_or_else(|error| {
+            panic!(
+                "rejection status {status}, headers {headers:?}: {error}; retained response {}",
+                String::from_utf8_lossy(&response)
+            )
+        });
         server.join().unwrap();
-        assert!(
-            String::from_utf8(response)
-                .unwrap()
-                .starts_with(&format!("HTTP/1.1 {status} "))
+        let split = response
+            .windows(4)
+            .position(|bytes| bytes == b"\r\n\r\n")
+            .expect("complete refusal HTTP header")
+            + 4;
+        let header = std::str::from_utf8(&response[..split]).unwrap();
+        assert!(header.starts_with(&format!("HTTP/1.1 {status} ")));
+        let length = header
+            .split("\r\n")
+            .find_map(|line| line.strip_prefix("Content-Length: "))
+            .unwrap()
+            .parse::<usize>()
+            .unwrap();
+        assert_eq!(
+            response[split..].len(),
+            length,
+            "complete HTTP body on status {status}"
         );
+        let body = tos_foundation::parse_json(
+            &response[split..],
+            tos_foundation::JsonMode::PublishedStrict,
+            profile().json_limits(),
+        )
+        .unwrap();
+        assert!(body.root().as_object().is_some());
+        if status >= 400 {
+            assert!(
+                body.root()
+                    .object_get("error")
+                    .and_then(tos_foundation::JsonValue::as_str)
+                    .is_some()
+            );
+        }
     }
 }
