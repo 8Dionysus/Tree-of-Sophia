@@ -37,7 +37,7 @@ fn path(reference: &str) -> Result<RelativePath> {
 impl<'a, 'b> Versions<'a, 'b> {
     pub(crate) fn new(
         input: &'a BibliographicSourceCut<'b>,
-        stage: &KnowledgeStage<'_>,
+        stage: &mut KnowledgeStage<'_>,
         validator: &SourceCatalogValidator<'_>,
         receipt: &catalog::SourceCatalogReceipt,
         l: BibliographicLimits,
