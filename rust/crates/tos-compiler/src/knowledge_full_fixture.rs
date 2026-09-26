@@ -677,6 +677,7 @@ pub fn build_native_fixture() -> FullKnowledgeFixture {
             finalize: NativeFinalizeLimits {
                 max_rows: 200,
                 max_page_rows: 2,
+                max_page_bytes: 2 * 1048576,
                 max_row_bytes: 1048576,
                 max_view_ids_per_node: 64,
                 max_context_sources: 64,
@@ -685,7 +686,7 @@ pub fn build_native_fixture() -> FullKnowledgeFixture {
         },
     )
     .unwrap();
-    let graph_header = native_fixture_header(&mut stage, &registry);
+    let graph_header = native_fixture_header(&mut stage, &registry, entity_bytes);
     finish_fixture(
         stage,
         path,
@@ -698,7 +699,11 @@ pub fn build_native_fixture() -> FullKnowledgeFixture {
     )
 }
 
-fn native_fixture_header(stage: &mut KnowledgeStage<'_>, registry: &KnowledgeRegistry) -> Value {
+fn native_fixture_header(
+    stage: &mut KnowledgeStage<'_>,
+    registry: &KnowledgeRegistry,
+    entity_bytes: &[u8],
+) -> Value {
     let roots = stage.core_roots().unwrap();
     let (
         sources,
@@ -764,10 +769,32 @@ fn native_fixture_header(stage: &mut KnowledgeStage<'_>, registry: &KnowledgeReg
             ))
         })
         .unwrap();
+    let entity: Value = serde_json::from_slice(entity_bytes).unwrap();
+    let query_properties = entity["property_definitions"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|definition| {
+            let mut packet = serde_json::Map::new();
+            for field in [
+                "property_id",
+                "field",
+                "value_type",
+                "applies_to",
+                "inherited",
+                "operators",
+            ] {
+                if let Some(value) = definition.get(field) {
+                    packet.insert(field.into(), value.clone());
+                }
+            }
+            Value::Object(packet)
+        })
+        .collect::<Vec<_>>();
     json!({"schema":"tos_knowledge_graph_v1","source_revision":"2".repeat(64),
         "normalization_binding":{"schema":"tos_knowledge_graph_normalization_binding_v1","processor_digest":"3".repeat(64),
             "entity_registry_digest":registry.entity_semantic_digest,"relation_registry_digest":registry.relation_semantic_digest,"configuration_digest":"4".repeat(64)},
-        "query_properties":[],"counts":{"nodes":roots.nodes,"relations":roots.relations,"sources":sources,
+        "query_properties":query_properties,"counts":{"nodes":roots.nodes,"relations":roots.relations,"sources":sources,
             "display_coverage":{"node_titles":roots.nodes,"node_summaries":roots.nodes,"node_summary_states":node_states,"nodes_without_source_summary":missing_node_summary,
                 "relation_labels":roots.relations,"relation_statements":roots.relations,"relation_explanations":roots.relations,"relation_explanation_states":relation_states,
                 "relations_without_source_explanation":missing_relation_explanation},

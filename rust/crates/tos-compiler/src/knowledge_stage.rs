@@ -950,6 +950,10 @@ pub(crate) fn selected_table_closure(db: &Connection) -> Result<()> {
             "CREATE INDEX knowledge_nodes_native ON knowledge_nodes(native_id,source_order,id)",
         ),
         (
+            "knowledge_nodes_entity_id",
+            "CREATE INDEX knowledge_nodes_entity_id ON knowledge_nodes(entity_id,id)",
+        ),
+        (
             "knowledge_relations_native",
             "CREATE INDEX knowledge_relations_native ON knowledge_relations(native_id,source_order,id)",
         ),
@@ -1362,6 +1366,7 @@ CREATE INDEX knowledge_nodes_source_order ON knowledge_nodes(source_graph,source
 CREATE INDEX knowledge_nodes_kind ON knowledge_nodes(kind_id,source_order);
 CREATE INDEX knowledge_nodes_entity ON knowledge_nodes(entity_id,source_order,id);
 CREATE INDEX knowledge_nodes_native ON knowledge_nodes(native_id,source_order,id);
+CREATE INDEX knowledge_nodes_entity_id ON knowledge_nodes(entity_id,id);
 CREATE TABLE knowledge_relations(
  id TEXT PRIMARY KEY,source_graph TEXT NOT NULL,native_id TEXT,
  from_id TEXT NOT NULL,to_id TEXT NOT NULL,predicate_id TEXT NOT NULL,

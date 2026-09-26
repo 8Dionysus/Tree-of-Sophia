@@ -1036,14 +1036,19 @@ pub fn verify_claim_context_groups(
     receipt: &ClaimContextReceipt,
     limits: ClaimNormalizeLimits,
 ) -> Result<()> {
-    limits.validate()?;
-    if stage.exact_receipt().binding.source_cut != receipt.source_cut
-        || context_root(stage, limits)? != (receipt.contexts, receipt.root_sha256.clone())
-    {
+    let result = (|| {
+        limits.validate()?;
+        if stage.exact_receipt().binding.source_cut != receipt.source_cut
+            || context_root(stage, limits)? != (receipt.contexts, receipt.root_sha256.clone())
+        {
+            return Err(Error::Invalid("Claim context group root/cut"));
+        }
+        Ok(())
+    })();
+    if result.is_err() {
         stage.poison();
-        return Err(Error::Invalid("Claim context group root/cut"));
     }
-    Ok(())
+    result
 }
 pub fn claim_contexts(
     stage: &mut KnowledgeStage<'_>,

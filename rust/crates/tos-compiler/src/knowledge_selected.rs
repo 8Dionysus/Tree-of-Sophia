@@ -1311,6 +1311,7 @@ pub(crate) fn verify_schema(db: &Connection) -> Result<()> {
         "knowledge_nodes_kind",
         "knowledge_nodes_entity",
         "knowledge_nodes_native",
+        "knowledge_nodes_entity_id",
         "knowledge_relations_native",
         "knowledge_relations_source_order",
         "knowledge_relations_from",

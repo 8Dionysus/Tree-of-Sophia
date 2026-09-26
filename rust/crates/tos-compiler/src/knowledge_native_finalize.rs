@@ -18,6 +18,7 @@ use tos_foundation::Digest256;
 pub struct NativeFinalizeLimits {
     pub max_rows: u64,
     pub max_page_rows: usize,
+    pub max_page_bytes: usize,
     pub max_row_bytes: usize,
     pub max_view_ids_per_node: usize,
     pub max_context_sources: usize,
@@ -101,6 +102,12 @@ where
             || limits.max_page_rows > 1024
             || limits.max_row_bytes == 0
             || limits.max_row_bytes > 8 * 1024 * 1024
+            || limits.max_page_bytes == 0
+            || limits.max_page_bytes > 64 * 1024 * 1024
+            || limits
+                .max_page_rows
+                .checked_mul(limits.max_row_bytes)
+                .is_none_or(|n| n > limits.max_page_bytes)
             || limits.max_view_ids_per_node == 0
             || limits.max_context_sources == 0
             || limits.max_context_sources > 64
@@ -179,6 +186,9 @@ where
                                 );
                             }
                             union.extend(views);
+                            if union.len() > limits.max_view_ids_per_node {
+                                return Err(Error::Budget("native finalized view IDs"));
+                            }
                             let next: Vec<_> = union.into_iter().map(Value::String).collect();
                             if next != *current {
                                 value["view_ids"] = Value::Array(next);
