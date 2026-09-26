@@ -1360,6 +1360,8 @@ name = "tos-command"
 version = "0.0.0"
 dependencies = [
  "postgres",
+ "serde_json",
+ "tos-compiler",
  "tos-foundation",
  "tos-segment-store",
  "tos-source-store",
@@ -1377,7 +1379,9 @@ dependencies = [
  "serde_json",
  "tos-fd-open",
  "tos-foundation",
+ "tos-source-store",
  "tos-validation",
+ "unicode-normalization",
 ]
 
 [[package]]

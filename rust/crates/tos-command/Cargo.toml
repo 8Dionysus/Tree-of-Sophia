@@ -11,6 +11,8 @@ tos-foundation = { path = "../tos-foundation" }
 tos-segment-store = { path = "../tos-segment-store" }
 tos-source-store = { path = "../tos-source-store" }
 tos-validation = { path = "../tos-validation" }
+tos-compiler = { path = "../tos-compiler" }
+serde_json = { version = "1", features = ["arbitrary_precision"] }
 postgres = "0.19"
 
 [lib]
