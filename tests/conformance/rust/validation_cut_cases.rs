@@ -324,7 +324,8 @@ fn actual_cut_worker_and_pinned_software_preserve_provenance_lab_limits() {
     let capture = super::source_cut_cases::captured_software_fixture(
         &root,
         &commit,
-        &["scripts/build_provenance_event_v2_lab.py"],
+        &["scripts/build_provenance_event_v2_lab.py",
+            "rust/crates/tos-validation/src/source_cut.rs"],
     );
     let mut files = selected_item_sources();
     let lab = LAB_MANIFEST.rsplit_once('/').unwrap().0;
@@ -423,6 +424,10 @@ fn actual_cut_worker_and_pinned_software_preserve_provenance_lab_limits() {
     {
         use tos_validation::provenance_rules::ProvenanceSource;
         use tos_validation::source_cut::CutProvenanceSource;
+        let component_path=RelativePath::parse("rust/crates/tos-validation/src/source_cut.rs").unwrap();
+        // Capture membership alone does not enable arbitrary software reads.
+        assert!(software.read_current(&component_path,1_048_576,deadline,&cancelled).unwrap().is_none());
+        let components=software.select_components(&[component_path.clone()]).unwrap();
         let mut source = CutProvenanceSource {
             cut: &cut,
             software: &software,
@@ -438,6 +443,15 @@ fn actual_cut_worker_and_pinned_software_preserve_provenance_lab_limits() {
             ),
             Err(tos_validation::item_rules::ItemRefusal::Unsupported(_))
         ));
+        assert!(matches!(source.current(component_path.as_str(),1_048_576,deadline),
+            Err(tos_validation::item_rules::ItemRefusal::Unsupported(_))));
+        source.components=Some(&components);
+        let raw=source.current(component_path.as_str(),1_048_576,deadline).unwrap().unwrap();
+        assert_eq!(Digest256::of_bytes(&raw),components.member(&component_path).unwrap().sha256);
+        assert_eq!(source.recorded_input(component_path.as_str(),&Digest256::of_bytes(&raw).to_hex(),
+            1_048_576,deadline).unwrap(),Some(raw));
+        assert!(source.recorded_input(component_path.as_str(),&"0".repeat(64),
+            1_048_576,deadline).unwrap().is_none());
     }
     let report = inspect_provenance_lab_from_cut(
         &cut,
