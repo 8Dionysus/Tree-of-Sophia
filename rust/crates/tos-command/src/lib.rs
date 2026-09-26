@@ -6,6 +6,7 @@
 
 mod durable_adapter;
 mod postgres_adapter;
+pub mod source_command;
 
 use std::fmt;
 use tos_foundation::{Digest256, Digest256Hasher};
