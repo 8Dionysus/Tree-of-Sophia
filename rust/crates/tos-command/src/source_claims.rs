@@ -8,7 +8,7 @@ use crate::source_forms::{
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::atomic::AtomicBool;
 use std::time::Instant;
-use tos_foundation::{Digest256, JsonValue, RelativePath};
+use tos_foundation::{Digest256, JsonValue, RelativePath, python_strip_unicode16_v1};
 use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
 
 pub const CLAIM_STREAM: &str = "source-claims.jsonl";
@@ -302,7 +302,10 @@ fn bounded_list(config: &JsonValue, key: &str, max: usize) -> SourceCommandResul
                 }
             }
             _ => {
-                if value.as_str().is_none_or(|s| s.trim().is_empty()) {
+                let scope = value
+                    .as_str()
+                    .ok_or(SourceCommandError::Invalid("bounded Claim scope string"))?;
+                if stripped(scope)?.is_empty() {
                     return Err(SourceCommandError::Invalid("bounded Claim scope string"));
                 }
             }
@@ -329,8 +332,8 @@ fn config(
     let c = parse(&ctx.configuration_raw)?;
     let (handler, create, version) = family(text(&c, "schema_version")?)?;
     if integer(&c, "uid")? != ctx.effective_uid
-        || text(&c, "principal_id")?.trim().is_empty()
-        || text(&c, "authority_ref")?.trim().is_empty()
+        || stripped(text(&c, "principal_id")?)?.is_empty()
+        || stripped(text(&c, "authority_ref")?)?.is_empty()
     {
         return Err(SourceCommandError::Denied("Claim owner account"));
     }
@@ -860,9 +863,8 @@ pub fn run_claim_command(
     {
         grant(&config, "allowed_fields", &JsonValue::String(key.clone()))?
     }
-    if text(&request, "reason")?.trim().is_empty()
-        || text(&request, "reason")?.chars().count() > 4096
-    {
+    let reason = stripped(text(&request, "reason")?)?;
+    if reason.is_empty() || reason.chars().count() > 4096 {
         return Err(SourceCommandError::Invalid(
             "bounded authored correction reason",
         ));
@@ -2396,4 +2398,9 @@ fn native_record_type(record: &JsonValue) -> SourceCommandResult<&str> {
             "native metadata record type adapter",
         )),
     }
+}
+
+fn stripped(value: &str) -> SourceCommandResult<&str> {
+    python_strip_unicode16_v1(value, 1_048_576)
+        .map_err(|_| SourceCommandError::Invalid("Claim Python Unicode16 strip budget"))
 }
