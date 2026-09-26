@@ -1,13 +1,41 @@
-// Exercises source mechanics with the maintained Claim fixture, independent of
-// production admission. The real schema worker remains owned by OPS integration.
-#[path = "../src/source_claims.rs"]
-mod source_claims;
-#[path = "../src/source_command.rs"]
-mod source_command;
-#[path = "../src/source_forms.rs"]
-mod source_forms;
-use source_claims::{advance_claim, replace_claim_row};
-use source_command::{canonical, field, integer, object, parse, string, text};
+// Test public production functions with the maintained Claim fixture.
+use tos_command::source_claims::{advance_claim, replace_claim_row};
+use tos_foundation::{
+    CanonicalProfile, JsonLimits, JsonMode, JsonString, JsonValue, canonical_bytes_v1, parse_json,
+};
+fn parse(raw: &[u8]) -> Option<JsonValue> {
+    parse_json(raw, JsonMode::PublishedStrict, JsonLimits::default())
+        .ok()
+        .map(|doc| doc.into_root())
+}
+fn canonical(value: &JsonValue) -> Option<Vec<u8>> {
+    canonical_bytes_v1(
+        value,
+        CanonicalProfile::SourceCommandInputV1,
+        JsonLimits::default(),
+    )
+    .ok()
+}
+fn object(entries: Vec<(&str, JsonValue)>) -> JsonValue {
+    JsonValue::Object(
+        entries
+            .into_iter()
+            .map(|(key, value)| (JsonString::from_utf8(key), value))
+            .collect(),
+    )
+}
+fn string(value: &str) -> JsonValue {
+    JsonValue::String(JsonString::from_utf8(value))
+}
+fn field<'a>(value: &'a JsonValue, key: &str) -> Option<&'a JsonValue> {
+    value.object_get(key)
+}
+fn text<'a>(value: &'a JsonValue, key: &str) -> Option<&'a str> {
+    field(value, key)?.as_str()
+}
+fn integer(value: &JsonValue, key: &str) -> Option<u64> {
+    field(value, key)?.as_u64()
+}
 
 const SOURCE: &[u8] = include_bytes!("fixtures/source_forms_shadow/claim_v1/source.json");
 

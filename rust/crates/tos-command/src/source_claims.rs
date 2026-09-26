@@ -1098,11 +1098,6 @@ fn validate_ground(
 ) -> SourceCommandResult<()> {
     let (relation, profile) = profile(ctx, text(claim, "predicate")?)?;
     let reader = text(&profile, "reader")?;
-    if reader.starts_with("identity-transition-") {
-        return Err(SourceCommandError::Unsupported(
-            "identity proposal exact metadata/Claim version readers and semantic opt-in adapter",
-        ));
-    }
     if profile
         .object_get("object_reference_set")
         .and_then(|v| v.object_get("basis_adapter"))
@@ -1119,6 +1114,8 @@ fn validate_ground(
         "document-catalogue-temporal-v1",
         "structured-value-v1",
         "structured-reference-value-v1",
+        "identity-transition-v1",
+        "identity-transition-v2",
     ]
     .contains(&reader)
     {
@@ -1176,6 +1173,9 @@ fn validate_ground(
                 cancelled,
             )?
         }
+    }
+    if reader.starts_with("identity-transition-") {
+        return validate_identity_ground(ctx, config, claim, reader, executor, deadline, cancelled);
     }
     let value = field(claim, "object")?;
     let mut endpoints = vec![(
@@ -1799,4 +1799,342 @@ fn has_record_evidence(ctx: &CommandContext, identity: &str) -> SourceCommandRes
         Err(SourceCommandError::Unsupported(_)) => Ok(false),
         Err(error) => Err(error),
     }
+}
+fn exact_ref(value: &JsonValue) -> SourceCommandResult<()> {
+    exact_keys(value, &["id", "version", "digest"])?;
+    if text(value, "id")?.is_empty()
+        || integer(value, "version")? == 0
+        || integer(value, "version")? > 9_007_199_254_740_991
+        || Digest256::from_prefixed(text(value, "digest")?).is_err()
+    {
+        return Err(SourceCommandError::Invalid("exact source reference"));
+    }
+    Ok(())
+}
+fn validate_identity_ground(
+    ctx: &CommandContext,
+    config: &JsonValue,
+    claim: &JsonValue,
+    reader: &str,
+    executor: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<()> {
+    let v2 = reader == "identity-transition-v2";
+    let predicate = if v2 {
+        "subject_identity_transition_proposal"
+    } else {
+        "identity_transition_proposal"
+    };
+    let owner = text(config, "schema_version")?;
+    if !owner.starts_with("tos_local_identity_proposal_")
+        || !owner.ends_with(if v2 { "_v2" } else { "_v1" })
+        || text(claim, "predicate")? != predicate
+    {
+        return Err(SourceCommandError::Denied(
+            "identity proposal requires its separate exact reader grant",
+        ));
+    }
+    let value = field(claim, "object")?;
+    grant(config, "allowed_object_values", value)?;
+    let previous = field(value, "supersedes_proposal")?;
+    let left = array(value, "predecessors")?;
+    let right = array(value, "successors")?;
+    let members = array(value, "members")?;
+    let mappings = array(value, "mapping")?;
+    if left.is_empty()
+        || right.is_empty()
+        || left.len() > 8
+        || right.len() > 8
+        || members.len() < 3
+        || members.len() > 9
+        || mappings.len() < 2
+        || mappings.len() > 8
+    {
+        return Err(SourceCommandError::Invalid(
+            "identity proposal participant capacity",
+        ));
+    }
+    let mut identities = BTreeSet::new();
+    let mut predecessors = BTreeSet::new();
+    let mut successors = BTreeSet::new();
+    for (refs, target) in [(left, &mut predecessors), (right, &mut successors)] {
+        for reference in refs {
+            exact_ref(reference)?;
+            let id = text(reference, "id")?;
+            if !identities.insert(id.to_owned()) || id == text(claim, "claim_id")? {
+                return Err(SourceCommandError::Invalid(
+                    "identity proposal participants must be distinct",
+                ));
+            }
+            target.insert(id.to_owned());
+            grant(config, "allowed_object_refs", &string(id))?;
+        }
+    }
+    if !predecessors.contains(text(claim, "subject_ref")?)
+        || members.len() != identities.len()
+        || members
+            .iter()
+            .filter_map(JsonValue::as_str)
+            .map(str::to_owned)
+            .collect::<BTreeSet<_>>()
+            != identities
+    {
+        return Err(SourceCommandError::Invalid(
+            "proposal complete member set and predecessor subject",
+        ));
+    }
+    match text(value, "operation")? {
+        "merge" if left.len() >= 2 && right.len() == 1 => {}
+        "split" if left.len() == 1 && right.len() >= 2 => {}
+        _ => {
+            return Err(SourceCommandError::Invalid(
+                "proposal must be merge N-to-one or split one-to-N",
+            ));
+        }
+    }
+    let mut actual = BTreeSet::new();
+    for edge in mappings {
+        exact_keys(edge, &["predecessor", "successor"])?;
+        let from = text(edge, "predecessor")?;
+        let to = text(edge, "successor")?;
+        if !predecessors.contains(from)
+            || !successors.contains(to)
+            || !actual.insert((from.to_owned(), to.to_owned()))
+        {
+            return Err(SourceCommandError::Invalid(
+                "identity mapping outside participants or repeated",
+            ));
+        }
+    }
+    if actual.len() != left.len() * right.len() {
+        return Err(SourceCommandError::Invalid(
+            "identity mapping must cover every participant",
+        ));
+    }
+    let entities = json_file(ctx, ENTITIES)?;
+    let types = array(&entities, "types")?;
+    for reference in left.iter().chain(right) {
+        let (record, source) = find_record(ctx, text(reference, "id")?)?;
+        if !same(&metadata_subject(&record)?, reference)? {
+            return Err(SourceCommandError::Unsupported(
+                "identity participant exact historical metadata reader",
+            ));
+        }
+        let kind = text(&record, "record_type")?;
+        let entry = types
+            .iter()
+            .find(|entry| {
+                entry
+                    .object_get("source_mappings")
+                    .and_then(JsonValue::as_array)
+                    .is_some_and(|mappings| {
+                        mappings.iter().any(|mapping| {
+                            mapping
+                                .object_get("source_graph")
+                                .and_then(JsonValue::as_str)
+                                == Some("source-claims")
+                                && mapping
+                                    .object_get("source_kind_id")
+                                    .and_then(JsonValue::as_str)
+                                    == Some(kind)
+                        })
+                    })
+            })
+            .ok_or(SourceCommandError::Invalid(
+                "identity participant source type",
+            ))?;
+        if entry.object_get("abstract") != Some(&JsonValue::Bool(false)) {
+            return Err(SourceCommandError::Invalid(
+                "identity participant must have concrete source type",
+            ));
+        }
+        let role = text(entry, "object_role")?;
+        if role != "identity" && !(v2 && role == "semantic") {
+            return Err(SourceCommandError::Denied(
+                "identity reader participant role",
+            ));
+        }
+        if let Some(profile) = entry.object_get("source_record_profile") {
+            if role == "semantic"
+                && (text(profile, "reader")? != "semantic-metadata-v1"
+                    || text(profile, "identity_proposal_adapter")? != "exact-semantic-metadata-v1"
+                    || text(profile, "record_type")? != kind
+                    || !source.ends_with(&format!("/{}", text(profile, "source_basename")?))
+                    || !source.starts_with("ToS/source-witnesses/")
+                    || source.split('/').any(|s| {
+                        s.starts_with('.')
+                            || [
+                                "catalog",
+                                "payload",
+                                "private",
+                                "local-content",
+                                "owner-local",
+                            ]
+                            .contains(&s)
+                    })
+                    || !["public", "public_metadata_only"].contains(&text(&record, "visibility")?))
+            {
+                return Err(SourceCommandError::Denied(
+                    "semantic identity participant needs exact opted-in source representation",
+                ));
+            }
+            let route = array(profile, "schemas")?
+                .iter()
+                .find(|route| {
+                    route.object_get("schema_version") == record.object_get("schema_version")
+                })
+                .ok_or(SourceCommandError::Unsupported(
+                    "identity participant source schema route",
+                ))?;
+            schema_check(
+                executor,
+                &source,
+                &record,
+                text(route, "schema_ref")?,
+                deadline,
+                cancelled,
+            )?;
+        } else {
+            if role != "identity"
+                || ![
+                    "agent",
+                    "place",
+                    "organization",
+                    "work",
+                    "expression",
+                    "edition",
+                    "collection",
+                    "item",
+                ]
+                .contains(&kind)
+                || !source.ends_with(&format!("/{kind}.json"))
+            {
+                return Err(SourceCommandError::Unsupported(
+                    "identity native participant source adapter",
+                ));
+            }
+            schema_check(
+                executor,
+                &source,
+                &record,
+                "ToS/contracts/corpus-record.schema.json",
+                deadline,
+                cancelled,
+            )?;
+        }
+    }
+    let unresolved = array(value, "unresolved_links")?;
+    if unresolved.len() > 32 {
+        return Err(SourceCommandError::Invalid("unresolved Claim capacity"));
+    }
+    let mut related = Vec::new();
+    for entry in unresolved {
+        related.push(field(entry, "claim")?)
+    }
+    if !previous.is_null() {
+        related.push(previous)
+    }
+    let expected_navigation = if previous.is_null() {
+        JsonValue::Null
+    } else {
+        string(text(previous, "id")?)
+    };
+    if !same(
+        claim
+            .object_get("supersedes_claim_ref")
+            .unwrap_or(&JsonValue::Null),
+        &expected_navigation,
+    )? {
+        return Err(SourceCommandError::Invalid(
+            "proposal predecessor navigation differs",
+        ));
+    }
+    for reference in related {
+        exact_ref(reference)?;
+        grant(config, "allowed_related_claim_refs", reference)?;
+        if text(reference, "id")? == text(claim, "claim_id")? {
+            return Err(SourceCommandError::Invalid(
+                "identity proposal cannot reference itself as retained assertion",
+            ));
+        }
+        let retained = resolve_claim_reference(ctx, reference)?;
+        if same(reference, previous)? {
+            let p = text(&retained, "predicate")?;
+            if p != "identity_transition_proposal"
+                && !(v2 && p == "subject_identity_transition_proposal")
+            {
+                return Err(SourceCommandError::Invalid(
+                    "identity predecessor reader is incompatible",
+                ));
+            }
+            let (_, profile) = profile(ctx, p)?;
+            let route = array(&profile, "schemas")?
+                .iter()
+                .find(|route| {
+                    route.object_get("schema_version") == retained.object_get("schema_version")
+                })
+                .ok_or(SourceCommandError::Invalid(
+                    "identity predecessor schema route",
+                ))?;
+            schema_check(
+                executor,
+                text(config, "source_path")?,
+                &retained,
+                text(route, "schema_ref")?,
+                deadline,
+                cancelled,
+            )?;
+        }
+    }
+    Ok(())
+}
+fn resolve_claim_reference(
+    ctx: &CommandContext,
+    reference: &JsonValue,
+) -> SourceCommandResult<JsonValue> {
+    exact_ref(reference)?;
+    let id = text(reference, "id")?;
+    let mut found = None;
+    for file in &ctx.files {
+        if !file.path.as_str().starts_with("ToS/source-witnesses/")
+            || !file.path.as_str().ends_with("/source-claims.jsonl")
+            || file.path.as_str().contains("/.record-revisions/")
+        {
+            continue;
+        }
+        let records = rows(&file.raw)?;
+        if let Some(record) = records.get(id) {
+            if found.is_some() {
+                return Err(SourceCommandError::Conflict(
+                    "duplicate current Claim owner",
+                ));
+            }
+            found = Some((record.clone(), file.path.clone()));
+        }
+    }
+    let (record, p) = found.ok_or(SourceCommandError::Unsupported(
+        "related Claim owner source not selected",
+    ))?;
+    let mut config = parse(&ctx.configuration_raw)?;
+    set(&mut config, "source_path", string(p.as_str()))?;
+    set(&mut config, "claim_id", string(id))?;
+    let files = package(ctx, &p)?;
+    let history = verify_claim_history(ctx, &config, &p, &files)?;
+    if same(&metadata_subject(&record)?, reference)? {
+        return Ok(record);
+    }
+    for receipt in array(&history, "receipts")? {
+        if same(field(receipt, "previous_source")?, reference)? {
+            let retained = archive(ctx, &config, receipt)?;
+            return rows(&retained[CLAIM_STREAM])?
+                .remove(id)
+                .ok_or(SourceCommandError::Conflict(
+                    "exact related Claim absent in archive",
+                ));
+        }
+    }
+    Err(SourceCommandError::Unsupported(
+        "exact related Claim version not retained in selected owner history",
+    ))
 }
