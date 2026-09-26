@@ -405,6 +405,46 @@ class SourcePayloadImportTests(unittest.TestCase):
         self.assertEqual(first.receipt_path, second.receipt_path)
         self.assertEqual(1, len(self.transport.put_calls))
 
+    def test_import_requires_an_explicit_plan_before_transport_setup(self) -> None:
+        with patch.object(importer, "_build_transport") as build_transport:
+            with self.assertRaises(SystemExit):
+                importer.main(
+                    [
+                        "import",
+                        "--repo-root",
+                        str(self.repo),
+                        "--payload-source-root",
+                        str(self.payload_root),
+                        "--receipt-dir",
+                        str(self.receipt_dir),
+                        "--bucket",
+                        "fixture",
+                        "--scratch-root",
+                        str(self.root / "managed-scratch"),
+                        "--confirm-transfer",
+                    ]
+                )
+        build_transport.assert_not_called()
+        self.assertEqual([], self.transport.put_calls)
+
+    def test_import_does_not_discover_unlisted_payload_files(self) -> None:
+        unlisted_payload = self.payload.with_name("unlisted.txt")
+        unlisted_payload.write_bytes(b"not named by the frozen plan\n")
+
+        outcomes = importer.import_plan(
+            self.context,
+            payload_source_root=self.payload_root,
+            transport=self.transport,
+            receipt_dir=self.receipt_dir,
+            bucket_alias="tos-source-payloads",
+            scratch_root=self.root / "managed-scratch",
+        )
+
+        expected_key = f"blobs/sha256/{self.file_sha[:2]}/{self.file_sha}"
+        self.assertEqual(1, len(outcomes))
+        self.assertEqual([expected_key], self.transport.put_calls)
+        self.assertEqual([self.body], [self.transport.objects[expected_key]])
+
     def test_plan_file_selection_cannot_bypass_extra_manifest_inventory(self) -> None:
         extra = dict(self.context.plan["payload_files"][0])
         extra["file_ref"] = "tos.file.sha256." + "1" * 64
@@ -560,7 +600,15 @@ class SourcePayloadImportTests(unittest.TestCase):
         self._write_json(denied_path, denied)
         denied_context = importer.load_plan(self.repo, denied_path)
         with self.assertRaises(importer.RightsGateError):
-            importer.enforce_transfer_gate(denied_context.plan, context=denied_context)
+            importer.import_plan(
+                denied_context,
+                payload_source_root=self.payload_root,
+                transport=self.transport,
+                receipt_dir=self.receipt_dir,
+                bucket_alias="tos-source-payloads",
+                scratch_root=self.root / "managed-scratch",
+            )
+        self.assertEqual([], self.transport.put_calls)
 
     def test_agent_review_is_not_allowed_by_v1_schema(self) -> None:
         legacy_agent = copy.deepcopy(self.plan)

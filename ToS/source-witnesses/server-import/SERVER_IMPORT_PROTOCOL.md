@@ -20,7 +20,14 @@ ToS item manifest
 
 ## Required input
 
-Every item plan names:
+A server-import plan is not a required companion of every source Item. Local-only
+corpus admission may proceed without creating a speculative import plan. A plan
+is required before an Item is proposed for server transfer or import; without
+an exact plan, the Item remains outside that transfer route and receives no
+transfer authority. Plan absence does not determine the Item's rights or
+publication status.
+
+Every present item plan names:
 
 - stable item and file IDs;
 - tracked item-manifest ref and SHA-256;
