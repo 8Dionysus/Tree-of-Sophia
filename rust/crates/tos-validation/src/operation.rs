@@ -489,7 +489,8 @@ pub fn inspect_general_operation(
     let rights=inspect_rights_from_cut(cut,limits.family,cancelled,schemas).map_err(item_error)?;
     let item=inspect_items_from_cut(cut,limits.family,require_local_payloads,cancelled,
         record_routes,schemas,payloads).map_err(item_error)?;
-    if records.current_membership!=binding.candidate_carrier
+    if source_shapes.carrier_membership!=binding.candidate_carrier
+        || records.current_membership!=binding.candidate_carrier
         || bibliography.carrier_membership!=binding.candidate_carrier
         || layers.carrier_membership!=binding.candidate_carrier
         || rights.carrier_membership!=binding.candidate_carrier
