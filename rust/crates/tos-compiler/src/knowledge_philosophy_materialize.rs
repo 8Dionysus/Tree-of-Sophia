@@ -229,6 +229,11 @@ impl<'a> PhilosophyNormalizer<'a> {
     ) -> Result<Self> {
         limits.validate()?;
         vocabulary.verify_authored_bytes(descriptor_bytes)?;
+        if registry.entity_registry_id != vocabulary.entity_registry_id
+            || registry.relation_registry_id != vocabulary.relation_registry_id
+        {
+            return Err(Error::Invalid("philosophy descriptor registry identity"));
+        }
         if entity_bytes.len() > limits.max_registry_bytes
             || relation_bytes.len() > limits.max_registry_bytes
             || Digest256::of_bytes(entity_bytes).to_hex() != registry.entity_sha256
