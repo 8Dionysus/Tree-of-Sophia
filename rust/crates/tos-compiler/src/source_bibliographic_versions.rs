@@ -312,6 +312,24 @@ impl<'a, 'b> Versions<'a, 'b> {
         entities: &Value,
         l: BibliographicLimits,
     ) -> Result<Version> {
+        let registry = stage
+            .raw_by_id(
+                catalog::CATALOG_SOURCE,
+                catalog::CONTRACT_FILES,
+                "ToS/doctrine/semantic-interchange/entity-types.v1.json",
+            )?
+            .ok_or(Error::Invalid(
+                "metadata version sealed entity registry absent",
+            ))?;
+        if owned(
+            &registry.payload,
+            l.catalog.max_contract_bytes.min(l.catalog.max_row_bytes),
+        )? != *entities
+        {
+            return Err(Error::Invalid(
+                "metadata version supplied entity registry differs from sealed source",
+            ));
+        }
         exact_ref(exact, false)?;
         let id = text(exact, "id")?;
         let row = catalog::catalog_row(stage, "records", id, l.catalog)?.ok_or(Error::Invalid(
