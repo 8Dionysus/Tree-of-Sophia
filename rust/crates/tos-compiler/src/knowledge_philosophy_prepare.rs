@@ -6,7 +6,7 @@
 
 use crate::knowledge_stage::{ExactInputReceipt, KnowledgeStage, SeekRow, WritePhase};
 use crate::{Error, QueryVocabulary, Result, knowledge_normalization::SourceRow};
-use rusqlite::params;
+use rusqlite::{OptionalExtension, params};
 use serde_json::Value;
 use tos_foundation::{Digest256, Digest256Hasher};
 
@@ -541,6 +541,129 @@ pub fn prepare_philosophy(
     result
 }
 
+fn clear_inner(
+    stage: &mut KnowledgeStage<'_>,
+    vocabulary: &QueryVocabulary,
+    prepared: &PhilosophyPrepareReceipt,
+    limits: PhilosophyPrepareLimits,
+    final_nodes: u64,
+    final_node_root: &str,
+    final_relations: u64,
+    final_relation_root: &str,
+) -> Result<()> {
+    limits.validate()?;
+    let selected = select(vocabulary, stage.exact_receipt(), limits)?;
+    if prepared.source_graph != selected.source
+        || prepared.input_role != selected.role
+        || prepared.source_cut != selected.cut
+        || prepared.nodes != selected.expected[0].0
+        || prepared.edges != selected.expected[1].0
+        || prepared.node_input_root_sha256 != selected.expected[0].1
+        || prepared.edge_input_root_sha256 != selected.expected[1].1
+        || prepared.external_dependencies != EXTERNAL_DEPENDENCIES
+        || prepared.final_graph_rows_written
+        || dependency_root(stage)? != prepared.dependency_root_sha256
+    {
+        return Err(Error::Invalid("philosophy cleanup prepared binding"));
+    }
+    let core = stage.core_roots()?;
+    if core.nodes != final_nodes
+        || core.node_sha256 != final_node_root
+        || core.relations != final_relations
+        || core.relation_sha256 != final_relation_root
+    {
+        return Err(Error::Invalid("philosophy cleanup final graph drift"));
+    }
+    stage.with_connection(WritePhase::Finalize,|db| {
+        let tx = db.transaction()?;
+        let source = &selected.source;
+        let count = |sql: &str| -> Result<u64> {
+            let n: i64 = tx.query_row(sql,params![source],|r|r.get(0))?;
+            u64::try_from(n).map_err(|_|Error::Budget("philosophy cleanup count"))
+        };
+        let absent = |sql: &str| -> Result<bool> {
+            let found: Option<i64> = tx.query_row(sql,params![source],|r|r.get(0)).optional()?;
+            Ok(found.is_none())
+        };
+        if count("SELECT count(*) FROM knowledge_philosophy_nodes WHERE ?1 IS NOT NULL")? != prepared.nodes
+            || count("SELECT count(*) FROM knowledge_philosophy_edges WHERE ?1 IS NOT NULL")? != prepared.edges
+            || count("SELECT count(*) FROM knowledge_philosophy_edge_views WHERE ?1 IS NOT NULL")? != prepared.edge_view_bindings
+            || count("SELECT count(*) FROM knowledge_philosophy_unresolved_endpoints WHERE ?1 IS NOT NULL")? != prepared.unresolved_endpoint_refs {
+            return Err(Error::Invalid("philosophy cleanup prepared count drift"));
+        }
+        if !absent("SELECT 1 FROM knowledge_philosophy_nodes p WHERE NOT EXISTS (
+            SELECT 1 FROM knowledge_nodes n WHERE n.id=?1||':'||p.node_id
+            AND n.source_graph=?1 AND n.native_id=p.node_id AND n.kind_id=p.semantic_kind) LIMIT 1")?
+            || !absent("SELECT 1 FROM knowledge_philosophy_edges p WHERE NOT EXISTS (
+            SELECT 1 FROM knowledge_relations r WHERE r.id=?1||':'||p.edge_id
+            AND r.source_graph=?1 AND r.native_id=p.edge_id AND r.predicate_id=p.predicate_id
+            AND r.from_id=p.from_source_graph||':'||p.from_id
+            AND r.to_id=p.to_source_graph||':'||p.to_id) LIMIT 1")? {
+            return Err(Error::Invalid("philosophy cleanup raw graph coverage"));
+        }
+        if count("SELECT count(*) FROM knowledge_relations WHERE source_graph=?1")? != prepared.edges {
+            return Err(Error::Invalid("philosophy cleanup final relation coverage"));
+        }
+        // Foreign-source relations may require placeholders in this source.
+        // Their all-source absence/context authority remains with the assembler.
+        if !absent("SELECT 1 FROM knowledge_nodes n WHERE n.source_graph=?1 AND NOT EXISTS (
+            SELECT 1 FROM knowledge_philosophy_nodes p WHERE p.node_id=n.native_id)
+            AND (n.kind_id!='relation-endpoint' OR n.native_id IS NULL
+                OR n.id!=?1||':'||n.native_id) LIMIT 1")? {
+            return Err(Error::Invalid("philosophy cleanup additional node shape"));
+        }
+        let placeholders = count("SELECT count(*) FROM knowledge_nodes n WHERE n.source_graph=?1
+            AND NOT EXISTS (SELECT 1 FROM knowledge_philosophy_nodes p WHERE p.node_id=n.native_id)")?;
+        if count("SELECT count(*) FROM knowledge_nodes WHERE source_graph=?1")? != prepared.nodes.checked_add(placeholders)
+            .ok_or(Error::Budget("philosophy cleanup final node count"))? {
+            return Err(Error::Invalid("philosophy cleanup final node coverage"));
+        }
+        if !absent("SELECT 1 FROM knowledge_philosophy_edges p WHERE ?1 IS NOT NULL AND (
+            NOT EXISTS (SELECT 1 FROM knowledge_nodes n WHERE n.id=p.from_source_graph||':'||p.from_id)
+            OR NOT EXISTS (SELECT 1 FROM knowledge_nodes n WHERE n.id=p.to_source_graph||':'||p.to_id)) LIMIT 1")? {
+            return Err(Error::Invalid("philosophy cleanup global endpoint closure"));
+        }
+        tx.execute_batch("DROP TABLE knowledge_philosophy_edge_views;
+            DROP TABLE knowledge_philosophy_unresolved_endpoints;
+            DROP TABLE knowledge_philosophy_edges;
+            DROP TABLE knowledge_philosophy_nodes;")?;
+        tx.commit()?;
+        Ok(())
+    })
+}
+
+/// Remove only this source's private preparation indexes after the assembler
+/// supplies complete final graph counts/roots. Actual staged roots, raw native
+/// coverage and global endpoint existence are checked before any table drops.
+/// All-source completeness, placeholder absence authority and final semantics
+/// remain the caller's responsibility; these mechanical roots cannot grant it.
+#[allow(clippy::too_many_arguments)]
+pub fn clear_philosophy_prepare(
+    stage: &mut KnowledgeStage<'_>,
+    vocabulary: &QueryVocabulary,
+    prepared: &PhilosophyPrepareReceipt,
+    limits: PhilosophyPrepareLimits,
+    final_nodes: u64,
+    final_node_root: &str,
+    final_relations: u64,
+    final_relation_root: &str,
+) -> Result<()> {
+    let result = clear_inner(
+        stage,
+        vocabulary,
+        prepared,
+        limits,
+        final_nodes,
+        final_node_root,
+        final_relations,
+        final_relation_root,
+    );
+    if result.is_err() {
+        stage.poison();
+    }
+    result
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -930,7 +1053,46 @@ mod tests {
         // A changed prepared dependency cannot be reused for another pass.
         let mut stale = prepared.clone();
         stale.dependency_root_sha256 = "1".repeat(64);
-        assert!(materialize_philosophy_nodes(&mut stage, &normalizer, &stale).is_err());
+        assert!(
+            clear_inner(
+                &mut stage,
+                &vocabulary,
+                &stale,
+                limits(),
+                core.nodes,
+                &core.node_sha256,
+                core.relations,
+                &core.relation_sha256
+            )
+            .is_err()
+        );
+        clear_philosophy_prepare(
+            &mut stage,
+            &vocabulary,
+            &prepared,
+            limits(),
+            core.nodes,
+            &core.node_sha256,
+            core.relations,
+            &core.relation_sha256,
+        )
+        .unwrap();
+        let cleaned = stage.core_roots().unwrap();
+        assert_eq!(
+            (cleaned.node_sha256, cleaned.relation_sha256),
+            (core.node_sha256, core.relation_sha256)
+        );
+        stage
+            .with_connection(WritePhase::Sort, |db| {
+                let tables: i64 = db.query_row(
+                    "SELECT count(*) FROM sqlite_master WHERE name LIKE 'knowledge_philosophy_%'",
+                    [],
+                    |r| r.get(0),
+                )?;
+                assert_eq!(tables, 0);
+                Ok(())
+            })
+            .unwrap();
         drop(stage);
         fs::remove_dir(candidate.parent().unwrap()).unwrap();
     }

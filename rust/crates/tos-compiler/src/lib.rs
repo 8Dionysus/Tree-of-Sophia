@@ -72,7 +72,7 @@ pub use knowledge_philosophy_materialize::{
 };
 pub use knowledge_philosophy_prepare::{
     PhilosophyExternalDependency, PhilosophyPrepareLimits, PhilosophyPrepareReceipt,
-    prepare_philosophy,
+    prepare_philosophy, clear_philosophy_prepare,
 };
 pub use knowledge_readable_context::{
     ReadableContextCarrier, ReadableContextCompiler, ReadableContextLimits,
