@@ -666,6 +666,12 @@ pub fn run_claim_command(
             raw.extend(canonical(claim)?);
             raw.push(b'\n');
         }
+        let current_claims = selected_claim_ids(ctx)?;
+        if seen.iter().any(|id| current_claims.contains(*id)) {
+            return Err(SourceCommandError::Conflict(
+                "initial Claim identity exists in current selected source",
+            ));
+        }
         for claim in claims {
             for alternative in claim
                 .object_get("alternative_claim_refs")
@@ -675,7 +681,7 @@ pub fn run_claim_command(
                 let id = alternative
                     .as_str()
                     .ok_or(SourceCommandError::Invalid("alternative Claim identity"))?;
-                if !seen.contains(id) && !selected_claim_ids(ctx)?.contains(id) {
+                if !seen.contains(id) && !current_claims.contains(id) {
                     return Err(SourceCommandError::Unsupported(
                         "alternative Claim source not selected",
                     ));
