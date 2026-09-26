@@ -240,7 +240,11 @@ fn normalized_selected_lenses_match_independent_python_and_hold_current_disclosu
     let oracle = parse_json(
         &output.stdout,
         JsonMode::PublishedStrict,
-        JsonLimits::default(),
+        JsonLimits {
+            max_bytes: 64 * 1024 * 1024,
+            max_visits: 10_000_000,
+            ..JsonLimits::default()
+        },
     )
     .unwrap()
     .into_root();
