@@ -666,6 +666,22 @@ pub fn run_claim_command(
             raw.extend(canonical(claim)?);
             raw.push(b'\n');
         }
+        for claim in claims {
+            for alternative in claim
+                .object_get("alternative_claim_refs")
+                .and_then(JsonValue::as_array)
+                .unwrap_or(&[])
+            {
+                let id = alternative
+                    .as_str()
+                    .ok_or(SourceCommandError::Invalid("alternative Claim identity"))?;
+                if !seen.contains(id) && !selected_claim_ids(ctx)?.contains(id) {
+                    return Err(SourceCommandError::Unsupported(
+                        "alternative Claim source not selected",
+                    ));
+                }
+            }
+        }
         if !files.is_empty() {
             return Err(SourceCommandError::Unsupported(
                 "creation replay requires complete retained provenance and predecessor closure",
@@ -1338,25 +1354,41 @@ fn find_record(ctx: &CommandContext, id: &str) -> SourceCommandResult<(JsonValue
 }
 fn ancestry(types: &[JsonValue], id: &str) -> SourceCommandResult<BTreeSet<String>> {
     let mut result = BTreeSet::new();
-    let mut stack = vec![id.to_owned()];
-    while let Some(id) = stack.pop() {
-        if !result.insert(id.clone()) {
+    let mut active = BTreeSet::new();
+    let mut stack = vec![(id.to_owned(), false)];
+    while let Some((id, leaving)) = stack.pop() {
+        if leaving {
+            active.remove(&id);
+            result.insert(id);
             continue;
+        }
+        if active.contains(&id) {
+            return Err(SourceCommandError::Invalid(
+                "cyclic endpoint source type ancestry",
+            ));
+        }
+        if result.contains(&id) {
+            continue;
+        }
+        if result.len() + active.len() > 4096 {
+            return Err(SourceCommandError::Invalid("type ancestry budget"));
         }
         let entry = types
             .iter()
-            .find(|v| v.object_get("type_id").and_then(JsonValue::as_str) == Some(&id))
+            .find(|entry| {
+                entry.object_get("type_id").and_then(JsonValue::as_str) == Some(id.as_str())
+            })
             .ok_or(SourceCommandError::Invalid("unknown endpoint source type"))?;
+        active.insert(id.clone());
+        stack.push((id, true));
         for parent in array(entry, "parent_type_ids")? {
-            stack.push(
+            stack.push((
                 parent
                     .as_str()
                     .ok_or(SourceCommandError::Invalid("type parent identity"))?
                     .into(),
-            );
-        }
-        if result.len() > 4096 {
-            return Err(SourceCommandError::Invalid("type ancestry budget"));
+                false,
+            ));
         }
     }
     Ok(result)
@@ -1636,4 +1668,23 @@ pub fn verify_claim_history(
         ));
     }
     Ok(history)
+}
+
+fn selected_claim_ids(ctx: &CommandContext) -> SourceCommandResult<BTreeSet<String>> {
+    let mut result = BTreeSet::new();
+    for file in &ctx.files {
+        if file.path.as_str().starts_with("ToS/source-witnesses/")
+            && file.path.as_str().ends_with("/source-claims.jsonl")
+            && !file.path.as_str().contains("/.record-revisions/")
+        {
+            for id in rows(&file.raw)?.into_keys() {
+                if !result.insert(id) {
+                    return Err(SourceCommandError::Conflict(
+                        "duplicate current selected Claim identity",
+                    ));
+                }
+            }
+        }
+    }
+    Ok(result)
 }
