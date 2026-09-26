@@ -62,28 +62,75 @@ mod native {
     use std::thread;
     use std::time::Instant;
 
-    const MAX_CHILDREN: usize = 4096;
-
     fn error(message: impl Into<String>) -> io::Error {
         io::Error::other(message.into())
     }
 
-    fn children() -> io::Result<Vec<i32>> {
-        // Dedicated supervisor has one thread. Bounded proc read protects the
-        // cleanup path against an unexpectedly prolific trusted tool.
-        let mut bytes = String::new();
-        File::open(format!("/proc/self/task/{}/children", std::process::id()))?
-            .take(65537)
-            .read_to_string(&mut bytes)?;
-        if bytes.len() > 65536 {
-            return Err(error("descendant custody enumeration exceeded 64 KiB"));
+    // Parse and visit each PID as it arrives; count and proc text size never
+    // prevent an earlier descendant from being killed. Fixed memory and the
+    // caller's one wall deadline bound every scan, including many children.
+    fn visit_pid_list(
+        mut reader: impl Read,
+        deadline: Instant,
+        mut visit: impl FnMut(i32),
+    ) -> io::Result<usize> {
+        let mut buffer = [0u8; 8192];
+        let mut value = 0u32;
+        let mut digits = 0usize;
+        let mut count = 0usize;
+        loop {
+            if Instant::now() >= deadline {
+                return Err(error("descendant enumeration deadline"));
+            }
+            let len = match reader.read(&mut buffer) {
+                Ok(len) => len,
+                Err(err) if err.kind() == io::ErrorKind::Interrupted => continue,
+                Err(err) => return Err(err),
+            };
+            for byte in &buffer[..len] {
+                if Instant::now() >= deadline {
+                    return Err(error("descendant enumeration deadline"));
+                }
+                if byte.is_ascii_digit() {
+                    digits += 1;
+                    value = value
+                        .checked_mul(10)
+                        .and_then(|v| v.checked_add((byte - b'0') as u32))
+                        .filter(|v| digits <= 10 && *v <= i32::MAX as u32)
+                        .ok_or_else(|| error("invalid descendant PID"))?;
+                } else if byte.is_ascii_whitespace() {
+                    if digits != 0 {
+                        if value == 0 {
+                            return Err(error("invalid descendant PID"));
+                        }
+                        visit(value as i32);
+                        count = count.saturating_add(1);
+                        value = 0;
+                        digits = 0;
+                    }
+                } else {
+                    return Err(error("invalid descendant PID"));
+                }
+            }
+            if len == 0 {
+                if digits != 0 {
+                    if value == 0 {
+                        return Err(error("invalid descendant PID"));
+                    }
+                    visit(value as i32);
+                    count = count.saturating_add(1);
+                }
+                return Ok(count);
+            }
         }
-        let pids: Result<Vec<i32>, _> = bytes.split_whitespace().map(str::parse).collect();
-        let pids = pids.map_err(|_| error("invalid descendant PID"))?;
-        if pids.len() > MAX_CHILDREN {
-            return Err(error("descendant custody exceeded 4096 direct children"));
-        }
-        Ok(pids)
+    }
+
+    fn visit_children(deadline: Instant, visit: impl FnMut(i32)) -> io::Result<usize> {
+        visit_pid_list(
+            File::open(format!("/proc/self/task/{}/children", std::process::id()))?,
+            deadline,
+            visit,
+        )
     }
 
     fn pidfd(pid: i32) -> io::Result<File> {
@@ -95,12 +142,12 @@ mod native {
         }
     }
 
-    fn kill(fd: &File) -> io::Result<()> {
+    fn signal(fd: &File, signal: i32) -> io::Result<()> {
         let rc = unsafe {
             libc::syscall(
                 libc::SYS_pidfd_send_signal,
                 fd.as_raw_fd(),
-                libc::SIGKILL,
+                signal,
                 std::ptr::null::<libc::siginfo_t>(),
                 0,
             )
@@ -153,38 +200,68 @@ mod native {
 
         fn cleanup_once(&mut self) -> io::Result<()> {
             let deadline = Instant::now() + self.grace;
-            // Do not signal a numeric PGID after its leader has been reaped.
-            // pidfd is the root identity; adopted children cannot reuse their
-            // PID until this sole parent reaps them.
+            let mut first_error = None;
+            let mut residual_sample = Vec::with_capacity(32);
+            // This process is the sole reaper. Non-reaped root/direct-child
+            // PIDs stay reserved; pidfds hold identities across every signal.
             if !self.reaped {
                 unsafe {
-                    libc::kill(-(self.pid), libc::SIGKILL);
+                    libc::kill(-self.pid, libc::SIGKILL);
                 }
-                kill(&self.identity)?;
+                if let Err(err) = signal(&self.identity, libc::SIGKILL) {
+                    first_error = Some(err);
+                }
             }
             loop {
                 if !self.reaped {
-                    self.poll_exit()?;
-                }
-                for pid in children()? {
-                    if !self.reaped && pid == self.pid {
-                        continue;
+                    if let Err(err) = self.poll_exit() {
+                        if first_error.is_none() {
+                            first_error = Some(err);
+                        }
                     }
-                    let identity = pidfd(pid)?;
-                    kill(&identity)?;
+                }
+                residual_sample.clear();
+                let root_pid = self.pid;
+                let root_reaped = self.reaped;
+                let scanned = visit_children(deadline, |pid| {
+                    if !root_reaped && pid == root_pid {
+                        return;
+                    }
+                    let result = pidfd(pid).and_then(|identity| signal(&identity, libc::SIGKILL));
+                    if let Err(err) = result {
+                        // One unavailable PID cannot prevent cleanup of all
+                        // subsequent descendants in this or later sweeps.
+                        if first_error.is_none() {
+                            first_error = Some(err);
+                        }
+                    }
                     let mut status = 0;
                     let rc = unsafe { libc::waitpid(pid, &mut status, libc::WNOHANG) };
-                    if rc < 0 {
-                        return Err(io::Error::last_os_error());
+                    if rc <= 0 {
+                        if residual_sample.len() < 32 {
+                            residual_sample.push(pid);
+                        }
+                        if rc < 0 && first_error.is_none() {
+                            first_error = Some(io::Error::last_os_error());
+                        }
                     }
-                }
-                let remaining = children()?;
-                if self.reaped && remaining.is_empty() {
-                    return Ok(());
+                });
+                match scanned {
+                    Ok(0) if self.reaped => {
+                        return match first_error {
+                            None => Ok(()),
+                            Some(err) => Err(err),
+                        };
+                    }
+                    Err(err) if first_error.is_none() => first_error = Some(err),
+                    _ => {}
                 }
                 if Instant::now() >= deadline {
                     return Err(error(format!(
-                        "cleanup deadline; residual child PIDs {remaining:?}"
+                        "cleanup deadline; root PID {} reaped={}; residual PID sample (max32) {residual_sample:?}; first error: {}",
+                        self.pid,
+                        self.reaped,
+                        first_error.map_or_else(|| "none".into(), |e| e.to_string()),
                     )));
                 }
                 thread::sleep(Duration::from_millis(1));
@@ -341,7 +418,9 @@ mod native {
         {
             return Err(error("invalid execution limits"));
         }
-        if fs::read_dir("/proc/self/task")?.count() != 1 || !children()?.is_empty() {
+        if fs::read_dir("/proc/self/task")?.count() != 1
+            || visit_children(Instant::now() + limits.cleanup_grace, |_| {})? != 0
+        {
             return Err(error(
                 "executor requires a dedicated single-threaded process without existing children",
             ));
@@ -362,7 +441,9 @@ mod native {
             return Err(io::Error::last_os_error());
         }
         // Probe pidfd before any tool runs. No weaker custody fallback.
-        drop(pidfd(std::process::id() as i32)?);
+        let self_identity = pidfd(std::process::id() as i32)?;
+        signal(&self_identity, 0)?;
+        drop(self_identity);
         let _stdout_mode = Nonblocking::new(1)?;
         let _stderr_mode = Nonblocking::new(2)?;
         let lane_deadline = Instant::now() + limits.lane_wall;
@@ -451,5 +532,29 @@ mod native {
         }
         write(1, format!("[ok] completed mechanics-local unittest, builder, and validator coverage across {} test files\n", plan.test_file_count).as_bytes(), lane_deadline, cancel)?;
         Ok(0)
+    }
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        #[test]
+        fn descendant_stream_visits_beyond_old_count_and_byte_caps() {
+            // Synthetic kernel-list bytes, not a live fork storm. Values cross
+            // both old4096-entry and64KiB refusal boundaries; buffer boundaries
+            // may split a PID. Every earlier PID remains immediately available
+            // to cleanup while later entries are still being read.
+            let input = (10_000_000..10_010_000)
+                .map(|pid| format!("{pid} "))
+                .collect::<String>();
+            let mut visited = Vec::new();
+            let count = visit_pid_list(
+                input.as_bytes(),
+                Instant::now() + Duration::from_secs(1),
+                |pid| visited.push(pid),
+            )
+            .unwrap();
+            assert_eq!(count, 10_000);
+            assert_eq!(visited, (10_000_000..10_010_000).collect::<Vec<_>>());
+        }
     }
 }

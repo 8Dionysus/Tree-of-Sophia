@@ -5,6 +5,7 @@
 fn ordered_runner_stops_and_owns_ordinary_and_escaped_children() {
     use std::fs;
     use std::os::unix::fs::PermissionsExt;
+    use std::os::unix::process::CommandExt;
     use std::process::{Command, Stdio};
     use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
     let root = std::env::temp_dir().join(format!(
@@ -48,7 +49,14 @@ esac
     .unwrap();
     fs::set_permissions(&adapter, fs::Permissions::from_mode(0o700)).unwrap();
     for scenario in [
-        "success", "failure", "timeout", "output", "cancel", "blocked", "daemon",
+        "success",
+        "failure",
+        "timeout",
+        "output",
+        "cancel",
+        "blocked",
+        "daemon",
+        "unavailable",
     ] {
         for path in ["trace", "ordinary.pid", "escaped.pid", "escaped-all"] {
             let _ = fs::remove_file(root.join(path));
@@ -79,6 +87,56 @@ esac
             .env("SCENARIO", scenario)
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
+        if scenario == "unavailable" {
+            // Allow pidfd_open but deny the send syscall in this CLI child
+            // only. Capability rejection must precede any adapter/tool fork.
+            unsafe {
+                command.pre_exec(|| {
+                    let mut filter = [
+                        libc::sock_filter {
+                            code: (libc::BPF_LD | libc::BPF_W | libc::BPF_ABS) as u16,
+                            jt: 0,
+                            jf: 0,
+                            k: 0,
+                        },
+                        libc::sock_filter {
+                            code: (libc::BPF_JMP | libc::BPF_JEQ | libc::BPF_K) as u16,
+                            jt: 0,
+                            jf: 1,
+                            k: libc::SYS_pidfd_send_signal as u32,
+                        },
+                        libc::sock_filter {
+                            code: (libc::BPF_RET | libc::BPF_K) as u16,
+                            jt: 0,
+                            jf: 0,
+                            k: libc::SECCOMP_RET_ERRNO | libc::EPERM as u32,
+                        },
+                        libc::sock_filter {
+                            code: (libc::BPF_RET | libc::BPF_K) as u16,
+                            jt: 0,
+                            jf: 0,
+                            k: libc::SECCOMP_RET_ALLOW,
+                        },
+                    ];
+                    let program = libc::sock_fprog {
+                        len: filter.len() as u16,
+                        filter: filter.as_mut_ptr(),
+                    };
+                    if libc::prctl(libc::PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) != 0
+                        || libc::prctl(
+                            libc::PR_SET_SECCOMP,
+                            libc::SECCOMP_MODE_FILTER,
+                            &program,
+                            0,
+                            0,
+                        ) != 0
+                    {
+                        return Err(std::io::Error::last_os_error());
+                    }
+                    Ok(())
+                });
+            }
+        }
         let start = Instant::now();
         let mut child = command.spawn().unwrap();
         if scenario == "cancel" {
@@ -116,6 +174,17 @@ esac
             "{scenario}: {}",
             String::from_utf8_lossy(&output.stderr)
         );
+        if scenario == "unavailable" {
+            assert!(
+                !root.join("trace").exists(),
+                "unsupported custody host started a tool"
+            );
+            assert!(
+                output.stdout.is_empty(),
+                "capability probe followed command-start output"
+            );
+            continue;
+        }
         let trace = fs::read_to_string(root.join("trace")).unwrap();
         assert_eq!(
             trace.lines().count(),
