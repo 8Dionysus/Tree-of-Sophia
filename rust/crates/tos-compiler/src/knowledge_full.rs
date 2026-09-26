@@ -186,36 +186,49 @@ mod tests {
         let graph: serde_json::Value = serde_json::from_slice(&fixture.graph_input_bytes).unwrap();
         assert_eq!(graph["counts"]["nodes"], 7);
         assert_eq!(graph["counts"]["relations"], 6);
+        let source: serde_json::Value = serde_json::from_slice(include_bytes!(
+            "../../../../access/tests/fixtures/knowledge-contract/temporal-jenseits-date.json"
+        ))
+        .unwrap();
+        let trace = &source["claim_traces"][0];
+        let source_claim = source["nodes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|node| node["node_id"] == trace["claim_node_id"])
+            .unwrap();
+        let source_graph = &fixture
+            .vocabulary
+            .sources
+            .iter()
+            .find(|source| source.adapter_profile == "reified-bibliographic-claims-v1")
+            .unwrap()
+            .source_graph_id;
         let claim = graph["nodes"]
             .as_array()
             .unwrap()
             .iter()
-            .find(|node| node["kind_id"] == "claim")
+            .find(|node| {
+                node["source_graph"] == source_graph.as_str()
+                    && node["native_id"] == trace["claim_node_id"]
+            })
             .unwrap();
-        assert!(
-            claim
-                .pointer("/attributes/source_claim")
-                .unwrap()
-                .is_object()
+        assert_eq!(
+            claim.pointer("/attributes/source_claim"),
+            source_claim.pointer("/properties/source_claim")
         );
-        assert!(
-            claim
-                .pointer("/attributes/claim_trace")
-                .unwrap()
-                .is_object()
+        assert_eq!(claim.pointer("/attributes/claim_trace"), Some(trace));
+        // Frozen maintained Python _normalize_node +
+        // _claim_finalization_value oracle over this historical transport.
+        // Its registry reader is historical-temporal-v1; the two source
+        // fields below belong only to document-catalogue-temporal-v1.
+        let contract = claim.pointer("/semantics/claim").unwrap();
+        assert_eq!(
+            crate::knowledge_normalization::stable_digest(contract).unwrap(),
+            "e1482ee857ecf29770bd002ab31a699ad1ac711549730e8a42eea486eff2f4b9"
         );
-        assert!(
-            claim
-                .pointer("/semantics/claim/source_claim_profile")
-                .unwrap()
-                .is_object()
-        );
-        assert!(
-            claim
-                .pointer("/semantics/claim/source_canonical_json")
-                .unwrap()
-                .is_string()
-        );
+        assert!(contract.get("source_claim_profile").is_none());
+        assert!(contract.get("source_canonical_json").is_none());
         assert_eq!(claim["view_ids"], serde_json::json!(["native-fixture"]));
         assert!(claim.get("readable_context").is_some());
         let mut selected = fixture.open().unwrap();
