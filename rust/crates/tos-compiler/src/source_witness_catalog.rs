@@ -27,6 +27,28 @@ pub const CONTRACT_FILES: &str = "contracts";
 pub const BIBLIOGRAPHIC_FILES: &str = "bibliographic-dependencies";
 pub const NATIVE_IDENTITIES: &str = "native-identity-packets";
 pub const NATIVE_TEXT: &str = "native-text-bindings";
+pub(crate) fn input_role(name: &str) -> Result<(&'static str, &'static str)> {
+    match name {
+        SOURCE_FILES => Ok((
+            "authored-source-files",
+            "tos.source-catalog.source-files.v1",
+        )),
+        CONTRACT_FILES => Ok(("source-contracts", "tos.source-catalog.contracts.v1")),
+        NATIVE_IDENTITIES => Ok((
+            "native-identity-inventory",
+            "tos.source-catalog.native-identities.v1",
+        )),
+        NATIVE_TEXT => Ok((
+            "native-text-dependencies",
+            "tos.source-catalog.native-text.v1",
+        )),
+        BIBLIOGRAPHIC_FILES => Ok((
+            "bibliographic-source-dependencies",
+            "tos.source-catalog.bibliographic-files.v1",
+        )),
+        _ => Err(Error::Invalid("source catalog collection name")),
+    }
+}
 const ENTITY: &str = "ToS/doctrine/semantic-interchange/entity-types.v1.json";
 const RELATION: &str = "ToS/doctrine/semantic-interchange/relation-types.v1.json";
 const ENTITY_SCHEMA: &str = "ToS/contracts/semantic-entity-type-registry.schema.json";
@@ -75,6 +97,40 @@ const LINKS: &[&str] = &[
     "association_claim_refs",
 ];
 
+/// Cold membership uses the maintained producer's exact basenames. Registry
+/// schema, mappings and profile semantics are checked by `contracts` before a
+/// catalog receipt exists; discovering a path here is no profile admission.
+pub(crate) fn source_basenames(entities: &Value) -> Result<BTreeSet<String>> {
+    let mut names: BTreeSet<String> = BASE
+        .iter()
+        .map(|(kind, _)| format!("{kind}.json"))
+        .chain(LEGACY_CLAIMS.iter().map(|name| (*name).to_owned()))
+        .chain(
+            [
+                "artifact-witness.json",
+                "composite-witness.json",
+                "source-claims.jsonl",
+            ]
+            .map(str::to_owned),
+        )
+        .collect();
+    let entries = array(entities, "types")?;
+    if entries.len() > 4096 {
+        return Err(Error::Budget("catalog cold record profiles"));
+    }
+    for entry in entries {
+        if let Some(profile) = entry.get("source_record_profile") {
+            let kind = text(profile, "record_type")?;
+            let basename = text(profile, "source_basename")?;
+            if kind.len() > 4096 || basename != format!("{kind}.json") || basename.contains('/') {
+                return Err(Error::Invalid("catalog cold record basename"));
+            }
+            names.insert(basename.to_owned());
+        }
+    }
+    Ok(names)
+}
+
 #[derive(Clone, Copy, Debug)]
 pub struct SourceCatalogLimits {
     pub max_files: u64,
@@ -85,7 +141,7 @@ pub struct SourceCatalogLimits {
     pub max_output_row_bytes: usize,
 }
 impl SourceCatalogLimits {
-    fn validate(self) -> Result<()> {
+    pub(crate) fn validate(self) -> Result<()> {
         if self.max_files == 0
             || self.max_rows == 0
             || self.max_file_bytes == 0
@@ -199,7 +255,7 @@ fn encode(v: &Value, cap: usize) -> Result<Vec<u8>> {
     let raw = serde_json::to_vec(v).map_err(|_| Error::Invalid("catalog JSON encode"))?;
     canonical(&raw, cap)
 }
-fn source_ref(ref_: &str) -> Result<&str> {
+pub(crate) fn source_ref(ref_: &str) -> Result<&str> {
     let parts = ref_.split('/').collect::<Vec<_>>();
     if ref_.len() > 4096
         || parts.len() < 4
@@ -300,25 +356,7 @@ fn input_root(stage: &KnowledgeStage<'_>, l: SourceCatalogLimits) -> Result<Stri
             .ok_or(Error::Invalid(
                 "source catalog exact collection registration",
             ))?;
-        let (role, profile) = match name {
-            SOURCE_FILES => (
-                "authored-source-files",
-                "tos.source-catalog.source-files.v1",
-            ),
-            CONTRACT_FILES => ("source-contracts", "tos.source-catalog.contracts.v1"),
-            NATIVE_IDENTITIES => (
-                "native-identity-inventory",
-                "tos.source-catalog.native-identities.v1",
-            ),
-            BIBLIOGRAPHIC_FILES => (
-                "bibliographic-source-dependencies",
-                "tos.source-catalog.bibliographic-files.v1",
-            ),
-            _ => (
-                "native-text-dependencies",
-                "tos.source-catalog.native-text.v1",
-            ),
-        };
+        let (role, profile) = input_role(name)?;
         if entry.input_role != role
             || entry.adapter_profile != profile
             || entry.expected_count > l.max_files
@@ -969,9 +1007,14 @@ fn native_inventory(
     l: SourceCatalogLimits,
 ) -> Result<()> {
     let mut after = None;
+    let mut packet_count = 0usize;
     loop {
         let page = stage.scan_input(CATALOG_SOURCE, NATIVE_IDENTITIES, after.as_deref(), 1)?;
         for row in page.rows {
+            packet_count += 1;
+            if packet_count > 1024 {
+                return Err(Error::Budget("catalog native identity inventory packets"));
+            }
             let basename = source_ref(&row.id)?;
             if !basename.starts_with("semantic-annotation") || !basename.ends_with(".json") {
                 return Err(Error::Invalid("catalog native identity inventory locator"));
