@@ -538,7 +538,7 @@ fn refs(files: &BTreeMap<String, Vec<u8>>) -> JsonValue {
                 (
                     tos_foundation::JsonString::from_utf8(name),
                     object(vec![
-                        ("sha256", string(&Digest256::of(raw).to_prefixed())),
+                        ("sha256", string(&Digest256::of_bytes(raw).to_prefixed())),
                         ("bytes", number(raw.len() as u64)),
                     ]),
                 )
@@ -552,7 +552,7 @@ fn revision(files: &BTreeMap<String, Vec<u8>>) -> SourceCommandResult<JsonValue>
 fn form_name(id: &str) -> String {
     format!(
         "source-claims.{}.human-forms.json",
-        Digest256::of(id.as_bytes())
+        Digest256::of_bytes(id.as_bytes())
             .to_prefixed()
             .trim_start_matches("sha256:")
     )
@@ -953,7 +953,7 @@ pub fn run_claim_command(
         let previous_revision = revision(&files)?;
         let archive_path = format!(
             "ToS/source-witnesses/.record-revisions/{}-{}",
-            Digest256::of(id.as_bytes())
+            Digest256::of_bytes(id.as_bytes())
                 .to_prefixed()
                 .trim_start_matches("sha256:"),
             previous_revision
@@ -1034,17 +1034,17 @@ pub fn run_claim_command(
             .0;
         output.push(SourceChange {
             path: p.clone(),
-            before: Some(Digest256::of(stream)),
+            before: Some(Digest256::of_bytes(stream)),
             after: Some(replace_claim_row(stream, &revised)?),
         });
         output.push(SourceChange {
             path: path(&format!("{parent}/{formname}"))?,
-            before: files.get(&formname).map(|r| Digest256::of(r)),
+            before: files.get(&formname).map(|r| Digest256::of_bytes(r)),
             after: Some(published(&payload)?),
         });
         output.push(SourceChange {
             path: path(&format!("{parent}/{CLAIM_HISTORY}"))?,
-            before: files.get(CLAIM_HISTORY).map(|r| Digest256::of(r)),
+            before: files.get(CLAIM_HISTORY).map(|r| Digest256::of_bytes(r)),
             after: Some(published(&retained)?),
         });
         set(&mut response, "receipt", receipt)?;
@@ -1057,12 +1057,12 @@ pub fn run_claim_command(
         vec![
             SourceChange {
                 path: p.clone(),
-                before: Some(Digest256::of(stream)),
+                before: Some(Digest256::of_bytes(stream)),
                 after: Some(replace_claim_row(stream, &revised)?),
             },
             SourceChange {
                 path: path(&format!("{parent}/{formname}"))?,
-                before: files.get(&formname).map(|r| Digest256::of(r)),
+                before: files.get(&formname).map(|r| Digest256::of_bytes(r)),
                 after: Some(published(&payload)?),
             },
         ],
@@ -1408,7 +1408,7 @@ fn archive(
     let rev = text(receipt, "previous_revision")?;
     let expected = format!(
         "ToS/source-witnesses/.record-revisions/{}-{}",
-        Digest256::of(id.as_bytes())
+        Digest256::of_bytes(id.as_bytes())
             .to_prefixed()
             .trim_start_matches("sha256:"),
         rev.strip_prefix("sha256:")
