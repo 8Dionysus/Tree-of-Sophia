@@ -38,7 +38,10 @@ fn section<'a>(text: &'a str, heading: &str) -> Result<Vec<&'a str>> {
     let text = lines(text);
     let start = text
         .iter()
-        .position(|line| line.trim() == format!("## {heading}"))
+        .position(|line| {
+            line.trim_matches(crate::source_philosophy_support::source_space)
+                == format!("## {heading}")
+        })
         .ok_or(Error::Invalid("philosophy view missing section"))?
         + 1;
     Ok(text[start..]
@@ -50,7 +53,7 @@ fn section<'a>(text: &'a str, heading: &str) -> Result<Vec<&'a str>> {
 fn paragraph(lines: &[&str]) -> String {
     lines
         .iter()
-        .map(|s| s.trim())
+        .map(|s| s.trim_matches(crate::source_philosophy_support::source_space))
         .filter(|s| !s.is_empty())
         .collect::<Vec<_>>()
         .join(" ")
@@ -59,7 +62,7 @@ fn bullets(lines: &[&str]) -> Vec<String> {
     let mut out = Vec::new();
     let mut current = Vec::new();
     for line in lines {
-        let s = line.trim();
+        let s = line.trim_matches(crate::source_philosophy_support::source_space);
         if s.is_empty() {
             continue;
         }
@@ -67,7 +70,7 @@ fn bullets(lines: &[&str]) -> Vec<String> {
             if !current.is_empty() {
                 out.push(current.join(" "));
             }
-            current = vec![s.trim()];
+            current = vec![s.trim_matches(crate::source_philosophy_support::source_space)];
         } else if !current.is_empty() {
             current.push(s);
         }
@@ -85,11 +88,15 @@ fn markdown(raw: Vec<u8>) -> Result<String> {
 }
 pub(crate) fn parse_card(raw: Vec<u8>) -> Result<Value> {
     let text = markdown(raw)?;
-    let re = Regex::new(r"(?m)^#\s+(.+)$").map_err(|e| Error::Source(e.to_string()))?;
+    let re =
+        Regex::new(r"(?m)^#[\s\x{1c}-\x{1f}]+(.+)$").map_err(|e| Error::Source(e.to_string()))?;
     let title = re
         .captures(&text)
         .and_then(|c| c.get(1))
-        .map(|m| m.as_str().trim())
+        .map(|m| {
+            m.as_str()
+                .trim_matches(crate::source_philosophy_support::source_space)
+        })
         .ok_or(Error::Invalid("philosophy view H1"))?;
     let future = bullets(&section(&text, "Future Inputs")?);
     if future.is_empty() {
@@ -221,7 +228,7 @@ where
     let layers = lines(&raw)
         .iter()
         .filter_map(|line| re.captures(line))
-        .map(|c| json!({"layer_id":&c[1],"use":c[2].trim(),"source_ref":LAYERS_SOURCE}))
+        .map(|c| json!({"layer_id":&c[1],"use":c[2].trim_matches(crate::source_philosophy_support::source_space),"source_ref":LAYERS_SOURCE}))
         .collect::<Vec<_>>();
     if layers.is_empty() || layers.len() > l.max_material_items {
         return Err(Error::Budget("philosophy graph layers"));

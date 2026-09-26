@@ -130,12 +130,15 @@ impl Multilingual {
         let patterns = DRAFT
             .iter()
             .map(|(p, r)| {
-                regex::RegexBuilder::new(&format!("({p})(?:$|[^0-9A-Za-zА-Яа-яЁё_İıſK])"))
-                    .case_insensitive(true)
-                    .size_limit(1 << 20)
-                    .build()
-                    .map(|p| (p, *r))
-                    .map_err(|e| Error::Source(e.to_string()))
+                regex::RegexBuilder::new(&format!(
+                    "({})(?:$|[^0-9A-Za-zА-Яа-яЁё_İıſK])",
+                    p.replace(r"\s", r"[\s\x{1c}-\x{1f}]")
+                ))
+                .case_insensitive(true)
+                .size_limit(1 << 20)
+                .build()
+                .map(|p| (p, *r))
+                .map_err(|e| Error::Source(e.to_string()))
             })
             .collect::<Result<Vec<_>>>()?;
         Ok(Self {
@@ -164,19 +167,31 @@ impl Multilingual {
         let titles = &self.ledger["label_sets"]["dossier_titles"][identity];
         let title = titles[language].as_str().filter(|s| !s.is_empty())?;
         if context.is_none() {
-            let suffix = clean[identity.len()..].trim();
+            let suffix = clean[identity.len()..]
+                .trim_matches(crate::source_philosophy_support::source_space);
             let reviewed = titles
                 .as_object()
                 .into_iter()
                 .flat_map(|o| o.values())
                 .filter_map(Value::as_str)
-                .any(|v| suffix == format!("— {}", v.trim()));
+                .any(|v| {
+                    suffix
+                        == format!(
+                            "— {}",
+                            v.trim_matches(crate::source_philosophy_support::source_space)
+                        )
+                });
             let prefixed = prefix.is_some()
                 && suffix
                     .chars()
                     .next()
                     .is_some_and(|c| matches!(c, '—' | ':' | '-'))
-                && !suffix.chars().skip(1).collect::<String>().trim().is_empty();
+                && !suffix
+                    .chars()
+                    .skip(1)
+                    .collect::<String>()
+                    .trim_matches(crate::source_philosophy_support::source_space)
+                    .is_empty();
             if !(suffix.is_empty() || prefixed || reviewed) {
                 return None;
             }
@@ -233,7 +248,8 @@ impl Multilingual {
                 return Err(Error::Budget("philosophy translated label"));
             }
         }
-        let separator = Regex::new(r"\s+—\s+").map_err(|e| Error::Source(e.to_string()))?;
+        let separator = Regex::new(r"[\s\x{1c}-\x{1f}]+—[\s\x{1c}-\x{1f}]+")
+            .map_err(|e| Error::Source(e.to_string()))?;
         translated = separator.replace_all(&translated, ": ").into_owned();
         for (word, replacement) in [("и", "and"), ("как", "as")] {
             let chars = translated.char_indices().collect::<Vec<_>>();
@@ -253,12 +269,12 @@ impl Multilingual {
                 }
                 let before = i == 0
                     || matches!(chars[i - 1].1, '/' | '—' | '-')
-                    || chars[i - 1].1.is_whitespace();
+                    || crate::source_philosophy_support::source_space(chars[i - 1].1);
                 let after = end == translated.len()
-                    || translated[end..]
-                        .chars()
-                        .next()
-                        .is_some_and(|c| matches!(c, '/' | '—' | '-') || c.is_whitespace());
+                    || translated[end..].chars().next().is_some_and(|c| {
+                        matches!(c, '/' | '—' | '-')
+                            || crate::source_philosophy_support::source_space(c)
+                    });
                 if before && after {
                     out.push_str(&translated[cursor..*offset]);
                     out.push_str(replacement);
@@ -268,14 +284,18 @@ impl Multilingual {
             out.push_str(&translated[cursor..]);
             translated = out;
         }
-        let out = translated.split_whitespace().collect::<Vec<_>>().join(" ");
+        let out = translated
+            .split(crate::source_philosophy_support::source_space)
+            .filter(|s| !s.is_empty())
+            .collect::<Vec<_>>()
+            .join(" ");
         if out.len() > self.limits.max_label_bytes {
             return Err(Error::Budget("philosophy translated label"));
         }
         Ok(out)
     }
     fn component(&self, text: &str, language: &str) -> Result<(String, &'static str)> {
-        let text = text.trim();
+        let text = text.trim_matches(crate::source_philosophy_support::source_space);
         if let Some(v) = self.exact(text, language) {
             return Ok((v, "reviewed"));
         }
@@ -297,14 +317,16 @@ impl Multilingual {
         if let Some(v) = context.and_then(|id| self.dossier(text, language, Some(id))) {
             return Ok((v, "reviewed"));
         }
-        let text = text.trim();
+        let text = text.trim_matches(crate::source_philosophy_support::source_space);
         if let Some(v) = self.exact(text, language) {
             return Ok((v, "reviewed"));
         }
         if let Some((prefix, tail)) = text.split_once(':') {
             let (p, ps) = self.component(prefix, language)?;
             let (t, ts) = self.component(tail, language)?;
-            if p != prefix.trim() || t != tail.trim() {
+            if p != prefix.trim_matches(crate::source_philosophy_support::source_space)
+                || t != tail.trim_matches(crate::source_philosophy_support::source_space)
+            {
                 return Ok((
                     format!("{p}: {t}"),
                     if ps == "draft" || ts == "draft" {
@@ -334,7 +356,10 @@ impl Multilingual {
                 .map(|k| &properties[*k])
                 .find(|v| truth(v))
                 .and_then(Value::as_str)
-                .filter(|s| !s.trim().is_empty())
+                .filter(|s| {
+                    !s.trim_matches(crate::source_philosophy_support::source_space)
+                        .is_empty()
+                })
                 .map(|s| json!(s))
                 .unwrap_or(Value::Null)
         };
@@ -396,24 +421,20 @@ fn valid_dossier_id(s: &str) -> bool {
     dossier_id(s) == Some(s)
 }
 fn dossier_id(s: &str) -> Option<&str> {
-    let end = if s.starts_with('A') {
-        3
-    } else if s.starts_with("T2-") || s.starts_with("T3-") {
-        5
-    } else {
-        return None;
-    };
-    let part = s.get(..end)?;
-    let digits = if end == 3 { &part[1..] } else { &part[3..] };
-    if !digits.chars().all(|c| c.is_ascii_digit())
-        || s[end..].chars().next().is_some_and(|c| !c.is_whitespace())
-    {
-        return None;
-    }
-    Some(part)
+    static GRAMMAR: std::sync::OnceLock<Regex> = std::sync::OnceLock::new();
+    let grammar = GRAMMAR.get_or_init(|| {
+        Regex::new(r"^(A\d{2}|T[23]-\d{2})(?:[\s\x{1c}-\x{1f}]|$)")
+            .expect("maintained dossier grammar")
+    });
+    let captures = grammar.captures(s)?;
+    let identity = captures.get(1)?;
+    Some(&s[identity.start()..identity.end()])
 }
+
 fn clean_prefix(text: &str) -> (String, bool, Option<&'static str>) {
-    let mut text = text.trim().to_owned();
+    let mut text = text
+        .trim_matches(crate::source_philosophy_support::source_space)
+        .to_owned();
     let docx = text.to_lowercase().ends_with(".docx");
     if docx {
         text.truncate(text.len() - 5);
@@ -427,7 +448,9 @@ fn clean_prefix(text: &str) -> (String, bool, Option<&'static str>) {
     ] {
         if text.starts_with(p) {
             prefix = Some(p);
-            text = text[p.len()..].trim().into();
+            text = text[p.len()..]
+                .trim_matches(crate::source_philosophy_support::source_space)
+                .into();
             break;
         }
     }

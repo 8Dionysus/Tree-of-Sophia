@@ -131,7 +131,10 @@ impl<F: FnMut(&str) -> Result<Vec<u8>>> Snapshot<'_, F> {
                 }
             }
             let content = &raw[start..end];
-            if content.iter().all(u8::is_ascii_whitespace) {
+            if content
+                .iter()
+                .all(|b| matches!(*b, b' ' | b'\t' | b'\n' | b'\r' | 0x0b | 0x0c))
+            {
                 continue;
             }
             self.records = self
@@ -180,6 +183,8 @@ struct Material<'a> {
     multilingual: &'a Multilingual,
     limits: AtlasLimits,
     used: usize,
+    node_ids: BTreeSet<String>,
+    edge_ids: BTreeSet<String>,
     deadline: Instant,
     cancelled: &'a AtomicBool,
 }
@@ -203,6 +208,9 @@ impl Material<'_> {
         Ok(())
     }
     fn node(&mut self, id: &str, kind: &str, label: &str, path: &str, props: Value) -> Result<()> {
+        if !self.node_ids.insert(id.to_owned()) {
+            return Err(Error::Invalid("philosophy atlas duplicate node identity"));
+        }
         let props = clean(props);
         let mut language_props = props.clone();
         language_props["node_type"] = json!(kind);
@@ -220,6 +228,9 @@ impl Material<'_> {
         path: &str,
         props: Value,
     ) -> Result<()> {
+        if !self.edge_ids.insert(id.to_owned()) {
+            return Err(Error::Invalid("philosophy atlas duplicate edge identity"));
+        }
         let v = json!({"edge_id":id,"from_id":from,"predicate_id":predicate,"to_id":to,"source_ref":path,"properties":clean(props)});
         self.charge(&v, false)?;
         self.edges.push(v);
@@ -283,10 +294,16 @@ fn row_fields(row: &Value) -> Value {
 }
 fn qualified(label: &str) -> Option<&str> {
     let (id, tail) = label.split_once('/')?;
-    if id.trim().is_empty() || tail.trim().is_empty() {
+    if id
+        .trim_matches(crate::source_philosophy_support::source_space)
+        .is_empty()
+        || tail
+            .trim_matches(crate::source_philosophy_support::source_space)
+            .is_empty()
+    {
         None
     } else {
-        Some(id.trim())
+        Some(id.trim_matches(crate::source_philosophy_support::source_space))
     }
 }
 fn endpoint(dossier: &str, label: &str) -> String {
@@ -521,6 +538,8 @@ where
         multilingual,
         limits: l,
         used: 0,
+        node_ids: BTreeSet::new(),
+        edge_ids: BTreeSet::new(),
         deadline,
         cancelled,
     };
@@ -974,6 +993,13 @@ where
             path,
             json!({}),
         )?;
+    }
+    for edge in &m.edges {
+        if !m.node_ids.contains(required(edge, "from_id")?)
+            || !m.node_ids.contains(required(edge, "to_id")?)
+        {
+            return Err(Error::Invalid("philosophy atlas exact endpoint closure"));
+        }
     }
     let out = json!({"schema_version":"tos_philosophy_atlas_projection_v1","schema_ref":ATLAS_SCHEMA,"owner_repo":"Tree-of-Sophia","surface_kind":"derived_philosophy_atlas_projection","source_atlas_ref":ATLAS_SOURCE,"content_language_contract":multilingual.content_language_contract()?,"runtime_projection_boundary":{"runtime_owner":"abyss-stack","runtime_scope":["read this projection as a ToS-owned graph input","serve MCP/API resources that point back to ToS surfaces","render UI, graph layout, and local caches downstream"],"tos_authority_scope":["canon remains in ToS canon and source-owned atlas surfaces","source witnesses and atlas rows remain the authored evidence route","runtime graph state returns through an explicit ToS change route"]},"validation_refs":["scripts/build_philosophy_atlas_projection.py","scripts/validate_philosophy_atlas_projection.py","tests/test_philosophy_atlas_projection.py"],"counts":{"master_tables":tables.len(),"master_rows":row_count,"dossiers":dossiers.len(),"dossier_node_rows":if truth(&shape["node_row_count"]){shape["node_row_count"].clone()}else{json!(0)},"dossier_relation_rows":if truth(&shape["relation_row_count"]){shape["relation_row_count"].clone()}else{json!(0)},"candidate_nodes":candidate_nodes.len(),"candidate_relations":candidate_relations.len(),"candidate_endpoint_placeholders":endpoint_nodes.len(),"graph_views":view_refs.len(),"nodes":m.nodes.len(),"edges":m.edges.len(),"diagnostics":diagnostics.len()},"nodes":m.nodes,"edges":m.edges,"diagnostics":diagnostics});
     bytes(&out, l.max_output_bytes)?;

@@ -142,7 +142,10 @@ fn node_layers(n: &Value) -> BTreeSet<String> {
     {
         layers.insert("candidate-relation".into());
     }
-    if !fallback(&p["priority"], "").trim().is_empty() {
+    if !fallback(&p["priority"], "")
+        .trim_matches(crate::source_philosophy_support::source_space)
+        .is_empty()
+    {
         layers.insert("evidence-relation".into());
     }
     layers
@@ -160,7 +163,7 @@ fn edge_layers(e: &Value) -> BTreeSet<String> {
     if p["endpoint_resolution"] == "unresolved"
         || matches!(
             fallback(&p["confidence"], "")
-                .trim()
+                .trim_matches(crate::source_philosophy_support::source_space)
                 .to_lowercase()
                 .as_str(),
             "низкий" | "низкая" | "низкое" | "low"
@@ -255,7 +258,7 @@ fn field(n: &Value, key: &str) -> Option<String> {
         Value::Bool(b) => b.to_string(),
         _ => string(v),
     };
-    let text = text.trim();
+    let text = text.trim_matches(crate::source_philosophy_support::source_space);
     if text.is_empty() {
         None
     } else {
@@ -681,6 +684,9 @@ pub fn build_graph(
         .iter()
         .map(|e| Ok((required(e, "edge_id")?.to_owned(), e)))
         .collect::<Result<BTreeMap<_, _>>>()?;
+    if nmap.len() != atlas_nodes.len() || emap.len() != atlas_edges.len() {
+        return Err(Error::Invalid("philosophy graph duplicate atlas identity"));
+    }
     let mut membership: BTreeMap<String, Membership> = BTreeMap::new();
     let mut edge_membership: BTreeMap<String, Membership> = BTreeMap::new();
     let mut views = Vec::new();
@@ -866,6 +872,24 @@ pub fn build_graph(
     Ok(out)
 }
 fn validate_cross_refs(v: &Value) -> Result<()> {
+    for (name, key) in [
+        ("graph_layers", "layer_id"),
+        ("views", "view_id"),
+        ("nodes", "node_id"),
+        ("edges", "edge_id"),
+        ("clusters", "cluster_id"),
+        ("review_packets", "packet_id"),
+        ("unresolved_review_surfaces", "surface_id"),
+    ] {
+        let mut seen = BTreeSet::new();
+        for item in array(v, name)? {
+            if !seen.insert(required(item, key)?) {
+                return Err(Error::Invalid(
+                    "philosophy graph duplicate material identity",
+                ));
+            }
+        }
+    }
     let layers = array(v, "graph_layers")?
         .iter()
         .map(|l| required(l, "layer_id").map(str::to_owned))

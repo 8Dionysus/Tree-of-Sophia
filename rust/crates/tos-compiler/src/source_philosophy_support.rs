@@ -210,3 +210,8 @@ mod tests {
         );
     }
 }
+
+/// Python str.strip/split/re whitespace includes these four C0 separators.
+pub(crate) fn source_space(c: char) -> bool {
+    c.is_whitespace() || matches!(c, '\u{1c}'..='\u{1f}')
+}
