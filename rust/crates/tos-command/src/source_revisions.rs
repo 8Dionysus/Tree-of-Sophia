@@ -12,7 +12,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::sync::atomic::AtomicBool;
 use std::time::Instant;
 use tos_foundation::{Digest256, JsonString, JsonValue, RelativePath, python_strip_unicode16_v1};
-use tos_source_store::CorpusCutReader;
+use tos_source_store::{CorpusCutReader, SoftwareCaptureReader, SoftwareComponentSelectionV1};
 use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
 
 const HISTORY: &str = "source-revision-history.json";
@@ -1430,6 +1430,11 @@ pub fn prepare_record_revision_with_profile_cut(
         ));
     }
     for selected in &ctx.files {
+        if !selected.path.as_str().starts_with("ToS/") {
+            return Err(SourceCommandError::Unsupported(
+                "profile cut input requires separately selected software capture",
+            ));
+        }
         let member =
             cut.current()
                 .member(&selected.path)
@@ -1444,6 +1449,24 @@ pub fn prepare_record_revision_with_profile_cut(
             ));
         }
     }
+    prepare_record_revision_inner(ctx, publication, Some(cut), worker, deadline, cancelled)
+}
+
+/// Authenticate authored and implementation inputs through their independently
+/// selected carriers. Software components cannot supply source membership or
+/// native identity absence; the complete source cut still owns that inventory.
+/// Protected configuration/account observations remain outside both captures.
+pub fn prepare_record_revision_from_captures(
+    ctx: &CommandContext,
+    publication: Option<&RevisionPublication>,
+    cut: &CorpusCutReader,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<PreparedCommand> {
+    ctx.check_from_selected_captures(cut, software, components, deadline, cancelled)?;
     prepare_record_revision_inner(ctx, publication, Some(cut), worker, deadline, cancelled)
 }
 

@@ -6,8 +6,8 @@ use std::time::{Duration, Instant};
 use tos_command::source_command::{CommandContext, SourceCommandError, SourceFile};
 use tos_command::source_revisions::{
     RetainedRevisionTransaction, RevisionPublication, RevisionTransactionStatus,
-    prepare_record_revision, prepare_record_revision_with_profile_cut,
-    read_record_revision_publication,
+    prepare_record_revision, prepare_record_revision_from_captures,
+    prepare_record_revision_with_profile_cut, read_record_revision_publication,
 };
 use tos_foundation::{
     CanonicalProfile, Digest256, JsonLimits, JsonMode, JsonString, JsonValue, RelativePath,
@@ -165,7 +165,12 @@ fn run_with_cut(
         .collect::<BTreeMap<_, _>>();
     let temporary = tempfile::tempdir().unwrap();
     let root = temporary.path().join("store");
-    let revision = super::validation_cut_cases::write_cut_store(&files, &root);
+    let authored = files
+        .iter()
+        .filter(|(name, _)| !profile_cut || name.starts_with("ToS/"))
+        .map(|(name, raw)| (name.clone(), raw.clone()))
+        .collect::<BTreeMap<_, _>>();
+    let revision = super::validation_cut_cases::write_cut_store(&authored, &root);
     let cancel = AtomicBool::new(false);
     let deadline = Instant::now() + Duration::from_secs(120);
     let cut = open_cut(&root, revision, deadline, &cancel);
@@ -179,10 +184,29 @@ fn run_with_cut(
     bound.recorded_at = ctx.recorded_at.clone();
     bound.effective_uid = ctx.effective_uid;
     if profile_cut {
-        prepare_record_revision_with_profile_cut(
+        assert!(
+            cut.current()
+                .members()
+                .all(|member| member.path.as_str().starts_with("ToS/"))
+        );
+        let (_capture, software, components) = captured_components(&files, deadline, &cancel);
+        assert!(matches!(
+            prepare_record_revision_with_profile_cut(
+                &bound,
+                publication,
+                &cut,
+                &mut worker,
+                deadline,
+                &cancel
+            ),
+            Err(SourceCommandError::Unsupported(_))
+        ));
+        prepare_record_revision_from_captures(
             &bound,
             publication,
             &cut,
+            &software,
+            &components,
             &mut worker,
             deadline,
             &cancel,
@@ -191,6 +215,57 @@ fn run_with_cut(
         prepare_record_revision(&bound, publication, &mut worker, deadline, &cancel)
     }
 }
+fn captured_components(
+    files: &BTreeMap<String, Vec<u8>>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> (
+    super::source_cut_cases::SoftwareCaptureFixture,
+    tos_source_store::SoftwareCaptureReader,
+    tos_source_store::SoftwareComponentSelectionV1,
+) {
+    use tos_source_store::{ReadLimits, SoftwareCaptureReader};
+    let repository = repository().canonicalize().unwrap();
+    let commit_output = std::process::Command::new("git")
+        .arg("-C")
+        .arg(&repository)
+        .args(["rev-parse", "HEAD^{commit}"])
+        .output()
+        .unwrap();
+    assert!(commit_output.status.success());
+    let commit = String::from_utf8(commit_output.stdout)
+        .unwrap()
+        .trim()
+        .to_owned();
+    let software_names = files
+        .keys()
+        .filter(|name| !name.starts_with("ToS/"))
+        .map(String::as_str)
+        .collect::<Vec<_>>();
+    let capture =
+        super::source_cut_cases::captured_software_fixture(&repository, &commit, &software_names);
+    let software = SoftwareCaptureReader::open(
+        &capture.capture,
+        &capture.restored,
+        capture.selection.clone(),
+        ReadLimits {
+            max_manifest_bytes: 1_048_576,
+            max_manifest_entries: 512,
+            max_selected_object_bytes: 2_097_152,
+            json: JsonLimits::default(),
+        },
+        deadline,
+        cancelled,
+    )
+    .unwrap();
+    let paths = software_names
+        .iter()
+        .map(|name| RelativePath::parse(name).unwrap())
+        .collect::<Vec<_>>();
+    let components = software.select_components(&paths).unwrap();
+    (capture, software, components)
+}
+
 fn retain_transport(
     ctx: &mut CommandContext,
     transaction: &RetainedRevisionTransaction,
@@ -667,11 +742,17 @@ fn profile_native_inventory_uses_anchored_membership() {
         .collect::<BTreeMap<_, _>>();
     let temporary = tempfile::tempdir().unwrap();
     let root = temporary.path().join("store");
-    let revision = super::validation_cut_cases::write_cut_store(&files, &root);
+    let authored = files
+        .iter()
+        .filter(|(name, _)| name.starts_with("ToS/"))
+        .map(|(name, raw)| (name.clone(), raw.clone()))
+        .collect::<BTreeMap<_, _>>();
+    let revision = super::validation_cut_cases::write_cut_store(&authored, &root);
     let cancel = AtomicBool::new(false);
     let deadline = Instant::now() + Duration::from_secs(120);
     let cut = open_cut(&root, revision, deadline, &cancel);
     let mut worker = schemas(&cut, deadline, &cancel);
+    let (_capture, software, components) = captured_components(&files, deadline, &cancel);
     let mut bound = cut_context(
         &files,
         ctx.configuration_raw.clone(),
@@ -684,10 +765,12 @@ fn profile_native_inventory_uses_anchored_membership() {
         prepare_record_revision(&bound, None, &mut worker, deadline, &cancel),
         Err(SourceCommandError::Unsupported(_))
     ));
-    let prepared = prepare_record_revision_with_profile_cut(
+    let prepared = prepare_record_revision_from_captures(
         &bound,
         None,
         &cut,
+        &software,
+        &components,
         &mut worker,
         deadline,
         &cancel,
@@ -702,10 +785,12 @@ fn profile_native_inventory_uses_anchored_membership() {
     let mut omitted = bound.clone();
     omitted.files.retain(|f| f.path.as_str() != packet_path);
     assert!(matches!(
-        prepare_record_revision_with_profile_cut(
+        prepare_record_revision_from_captures(
             &omitted,
             None,
             &cut,
+            &software,
+            &components,
             &mut worker,
             deadline,
             &cancel
@@ -721,10 +806,12 @@ fn profile_native_inventory_uses_anchored_membership() {
         .raw
         .push(b' ');
     assert!(matches!(
-        prepare_record_revision_with_profile_cut(
+        prepare_record_revision_from_captures(
             &changed,
             None,
             &cut,
+            &software,
+            &components,
             &mut worker,
             deadline,
             &cancel
@@ -1206,6 +1293,18 @@ fn profile_native_binding_checks_metadata_closure_without_content_read() {
     expression.raw = bytes(&value);
     assert!(matches!(
         run_with_cut(&wrong, None, true),
+        Err(SourceCommandError::Conflict(_))
+    ));
+    let mut changed_software = ctx.clone();
+    changed_software
+        .files
+        .iter_mut()
+        .find(|f| f.path.as_str() == "scripts/native_text_binding.py")
+        .unwrap()
+        .raw
+        .push(b' ');
+    assert!(matches!(
+        run_with_cut(&changed_software, None, true),
         Err(SourceCommandError::Conflict(_))
     ));
 }
