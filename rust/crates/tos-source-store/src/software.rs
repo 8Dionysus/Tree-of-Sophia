@@ -70,6 +70,22 @@ impl SoftwareCaptureReader {
     pub fn selection(&self) -> &SoftwareCaptureSelectionV1 {
         &self.selection
     }
+    /// Complete metadata of the selected capture index, verified through EOF
+    /// during `open`. Completeness is relative to its include/exclude selection;
+    /// this does not establish a whole repository or authored source inventory.
+    /// Inspecting metadata does not select a component or grant a byte read.
+    pub fn members(&self) -> impl Iterator<Item = &MemberMetadata> {
+        self.members.values()
+    }
+    pub fn include_prefixes(&self) -> &[String] {
+        &self.includes
+    }
+    pub fn exclude_prefixes(&self) -> &[String] {
+        &self.excludes
+    }
+    pub fn exclude_path_parts(&self) -> &[String] {
+        &self.excluded_parts
+    }
     /// Bind explicit producer components to exact current capture membership.
     /// The event itself does not choose or issue this selection.
     pub fn select_components(
