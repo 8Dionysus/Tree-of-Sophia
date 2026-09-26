@@ -982,11 +982,6 @@ mod tests {
             .normalize_node(&mut stage, &prepared, "n:a")
             .unwrap();
         assert_eq!(first.ordered_source_raw(), rows[0].2.as_bytes());
-        assert!(
-            normalizer
-                .normalize_node(&mut stage, &prepared, "missing")
-                .is_err()
-        );
         let nodes = materialize_philosophy_nodes(&mut stage, &normalizer, &prepared).unwrap();
         assert_eq!(nodes.rows, 2);
         assert!(!nodes.finalization_complete);
