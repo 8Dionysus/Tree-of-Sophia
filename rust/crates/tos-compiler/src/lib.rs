@@ -17,6 +17,7 @@ pub mod knowledge_normalization;
 mod knowledge_ordered;
 pub mod knowledge_philosophy_display;
 mod knowledge_philosophy_prepare;
+mod knowledge_philosophy_materialize;
 mod knowledge_readable_context;
 mod knowledge_registry;
 mod knowledge_scope;
@@ -57,6 +58,7 @@ pub use knowledge_ordered::{
     NormalizedNodeCandidate, NormalizedRelationCandidate, OrderedCandidateLimits,
     OrderedCandidateReceipt, OrderedKnowledgeSink,
 };
+pub use knowledge_philosophy_materialize::{PhilosophyBase, PhilosophyMaterializeLimits, PhilosophyMaterializeReceipt, PhilosophyNormalizer, PhilosophyRelationGlobalInputs, materialize_philosophy_nodes, materialize_philosophy_relations};
 pub use knowledge_philosophy_prepare::{
     PhilosophyExternalDependency, PhilosophyPrepareLimits, PhilosophyPrepareReceipt,
     prepare_philosophy,

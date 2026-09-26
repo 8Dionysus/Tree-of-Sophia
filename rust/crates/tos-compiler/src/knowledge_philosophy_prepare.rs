@@ -463,7 +463,7 @@ fn walk_edges(
     Ok((walk.complete(&selected.expected[1])?, bindings, unresolved))
 }
 
-fn dependency_root(stage: &mut KnowledgeStage<'_>) -> Result<String> {
+pub(crate) fn dependency_root(stage: &mut KnowledgeStage<'_>) -> Result<String> {
     stage.with_connection(WritePhase::Sort, |db| {
         let mut hash = Digest256Hasher::new();
         hash.update(b"tos-philosophy-prepared-v1\0");
@@ -756,5 +756,168 @@ mod tests {
         let mut small = limits();
         small.max_edge_view_bindings = 2;
         assert!(run(&rows, &rows, small).is_err());
+    }
+    // Existing raw prepared fixture, now taken through the native base producer.
+    // Revision literals freeze CPython _normalize_node/_normalize_relation with
+    // the exact authored registries below, never pre-normalized test carriers.
+    #[test]
+    fn python_oracle_raw_philosophy_materializes_native_graph_bases() {
+        use crate::{
+            KnowledgeRegistry, PhilosophyMaterializeLimits, PhilosophyNormalizer,
+            materialize_philosophy_nodes, materialize_philosophy_relations,
+        };
+        let entity =
+            include_bytes!("../../../../ToS/doctrine/semantic-interchange/entity-types.v1.json");
+        let relation =
+            include_bytes!("../../../../ToS/doctrine/semantic-interchange/relation-types.v1.json");
+        let descriptor = include_bytes!(
+            "../../../../ToS/doctrine/semantic-interchange/query-vocabulary.v1.json"
+        );
+        let vocabulary = QueryVocabulary::parse(
+            descriptor,
+            &[
+                "philosophy-node-edge-v1",
+                "canon-node-relation-v1",
+                "candidate-relation-v1",
+                "source-navigation-node-edge-v1",
+                "reified-bibliographic-claims-v1",
+                "declared-identity-and-source-ref-joins-v1",
+                "repository-topology-v1",
+                "indexed-node-edge-v1",
+            ],
+        )
+        .unwrap();
+        let registry = KnowledgeRegistry::parse(entity, relation).unwrap();
+        let normalizer = PhilosophyNormalizer::new(
+            &registry,
+            entity,
+            relation,
+            &vocabulary,
+            descriptor,
+            PhilosophyMaterializeLimits {
+                max_raw_bytes: 4096,
+                max_output_bytes: 32768,
+                max_registry_bytes: 4 * 1024 * 1024,
+                max_page_rows: 1,
+                max_rows: 16,
+                max_work_bytes: 128 * 1024,
+            },
+        )
+        .unwrap();
+        let rows = fixture();
+        let mut receipt = receipt(&rows);
+        let selected = vocabulary
+            .sources
+            .iter()
+            .find(|s| s.adapter_profile == PROFILE)
+            .unwrap();
+        for input in &mut receipt.collections {
+            input.input_role = selected.input_role.clone();
+        }
+        let owner = Owner;
+        let quota = TestQuota;
+        let candidate = path();
+        let mut stage = KnowledgeStage::create(
+            &candidate,
+            StageLimits {
+                sqlite: Limits::default(),
+                max_temp_bytes: 64 * 1024 * 1024,
+                max_seek_rows: 2,
+                max_seek_bytes: 4096,
+            },
+            receipt,
+            &owner,
+            &quota,
+        )
+        .unwrap();
+        for (collection, id, payload) in &rows {
+            stage
+                .ingest_input(InputRow {
+                    source_graph: "philosophy",
+                    collection,
+                    id,
+                    payload: payload.as_bytes(),
+                })
+                .unwrap();
+        }
+        let prepared = prepare_philosophy(&mut stage, &vocabulary, limits()).unwrap();
+        let first = normalizer
+            .normalize_node(&mut stage, &prepared, "n:a")
+            .unwrap();
+        assert_eq!(first.ordered_source_raw(), rows[0].2.as_bytes());
+        assert!(
+            normalizer
+                .normalize_node(&mut stage, &prepared, "missing")
+                .is_err()
+        );
+        let nodes = materialize_philosophy_nodes(&mut stage, &normalizer, &prepared).unwrap();
+        assert_eq!(nodes.rows, 2);
+        assert!(!nodes.finalization_complete);
+        let title_lookup =
+            |stage: &mut KnowledgeStage<'_>, left: &str, right: &str| -> Result<(Value, Value)> {
+                stage.with_connection(WritePhase::Sort, |db| {
+                    let title = |id: &str| -> Result<Value> {
+                        let raw: Vec<u8> = db.query_row(
+                            "SELECT payload FROM knowledge_nodes WHERE id=?1",
+                            [id],
+                            |r| r.get(0),
+                        )?;
+                        let value: Value = serde_json::from_slice(&raw).unwrap();
+                        Ok(value["display"]["title"].clone())
+                    };
+                    Ok((title(left)?, title(right)?))
+                })
+            };
+        // Fixture lookup is indexed over real native-produced node bases.
+        // Global title root authority and closure belong to the parent assembler.
+        let relations = materialize_philosophy_relations(
+            &mut stage,
+            &normalizer,
+            &prepared,
+            &prepared.source_cut,
+            &"0".repeat(64),
+            title_lookup,
+        )
+        .unwrap();
+        assert_eq!(relations.rows, 1);
+        assert!(!relations.finalization_complete);
+        stage
+            .with_connection(WritePhase::Sort, |db| {
+                for (table, id, revision) in [
+                    (
+                        "knowledge_nodes",
+                        "philosophy:n:a",
+                        "ac80184071a98ef670e03de76f4b4b8539f63b11f8940e5a3ed3e088a7c20c12",
+                    ),
+                    (
+                        "knowledge_nodes",
+                        "philosophy:n:b",
+                        "178e4db477502d0eb0a0a42e07a15470a1c0e28b7847fb8c6fc496fe0dc8ea0b",
+                    ),
+                    (
+                        "knowledge_relations",
+                        "philosophy:e:ab",
+                        "9cb0067d69770b846df40a59e8007ca865c6cde1836590e01a78ea6e4890ec00",
+                    ),
+                ] {
+                    let raw: Vec<u8> = db.query_row(
+                        &format!("SELECT payload FROM {table} WHERE id=?1"),
+                        [id],
+                        |r| r.get(0),
+                    )?;
+                    let value: Value = serde_json::from_slice(&raw).unwrap();
+                    assert_eq!(value["content_revision"], revision);
+                }
+                Ok(())
+            })
+            .unwrap();
+        let core = stage.core_roots().unwrap();
+        assert_eq!((core.nodes, core.relations), (2, 1));
+        // A changed prepared dependency cannot be reused for another pass.
+        let mut stale = prepared.clone();
+        stale.dependency_root_sha256 = "1".repeat(64);
+        assert!(materialize_philosophy_nodes(&mut stage, &normalizer, &stale).is_err());
+        drop(stage);
+        fs::remove_dir(candidate.parent().unwrap()).unwrap();
     }
 }
