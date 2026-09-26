@@ -15,7 +15,10 @@ use tos_foundation::{
 use tos_query::{
     BoundCmpKnowledge, IndexedDisclosureScope, InspectBudget, InspectCurrentAuthority,
     InspectDisclosureLease, InspectedCarrier, ObservedInspectCarrier, bind_verified_knowledge,
-    knowledge_lens::{LENS_INTENDED_USE, LENS_OPERATION, LensBudget, execute_selected_lens},
+    knowledge_lens::{
+        LENS_INTENDED_USE, LENS_OPERATION, LensBudget, execute_selected_lens,
+        lens_continuation_binding,
+    },
     search_v2::{CurrentPolicyBinding, SearchV2Error, SearchV2ErrorCode},
 };
 
@@ -138,6 +141,10 @@ fn canonical(v: &JsonValue) -> Vec<u8> {
 #[test]
 fn normalized_selected_lenses_match_independent_python_and_hold_current_disclosure() {
     let fixture = build_native_fixture();
+    let cold = fixture.open().unwrap();
+    let bound =
+        bind_verified_knowledge(&cold, &fixture.vocabulary, &fixture.descriptor_bytes).unwrap();
+    let publication = lens_continuation_binding(&bound, &Authority::new(&bound).scope);
     let mut child = Command::new("python3")
         .arg(concat!(
             env!("CARGO_MANIFEST_DIR"),
@@ -152,6 +159,8 @@ fn normalized_selected_lenses_match_independent_python_and_hold_current_disclosu
     input.write_all(&fixture.graph_input_bytes).unwrap();
     input.write_all(b",").unwrap();
     input.write_all(&fixture.descriptor_bytes).unwrap();
+    input.write_all(b",").unwrap();
+    input.write_all(&canonical(&publication)).unwrap();
     input.write_all(b"]").unwrap();
     drop(input);
     let output = child.wait_with_output().unwrap();
@@ -163,9 +172,6 @@ fn normalized_selected_lenses_match_independent_python_and_hold_current_disclosu
     )
     .unwrap()
     .into_root();
-    let cold = fixture.open().unwrap();
-    let bound =
-        bind_verified_knowledge(&cold, &fixture.vocabulary, &fixture.descriptor_bytes).unwrap();
     let mut model = cold
         .fork_reader_with_vm_budget(budget().inspect.max_read_vm_steps)
         .unwrap();
@@ -212,6 +218,35 @@ fn normalized_selected_lenses_match_independent_python_and_hold_current_disclosu
             ),
             "{name}: retained disclosure lease must see withdrawal"
         );
+    }
+    // A current owner may issue a new policy for the same immutable bytes.
+    // Old cursors must then restart even though the content fingerprint is equal.
+    let continuation = cases
+        .iter()
+        .find(|c| field(c, "name").as_str() == Some("continuation-1"))
+        .unwrap();
+    for epoch in [true, false] {
+        let mut authority = Authority::new(&bound);
+        if epoch {
+            authority.policy.policy_epoch.push_str("-new");
+            authority.scope.policy_epoch = authority.policy.policy_epoch.clone();
+        } else {
+            authority.policy.withdrawal_generation.push_str("-new");
+            authority.scope.withdrawal_generation = authority.policy.withdrawal_generation.clone();
+        }
+        assert!(matches!(
+            execute_selected_lens(
+                &mut model,
+                &bound,
+                &mut authority,
+                field(continuation, "spec"),
+                budget()
+            ),
+            Err(SearchV2Error {
+                code: SearchV2ErrorCode::StaleSelection,
+                ..
+            })
+        ));
     }
     let spec = field(&cases[0], "spec");
     for small in [

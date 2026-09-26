@@ -13,7 +13,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[5] / 'access' / 'src'))
 from tos_access import knowledge as k
 
-graph, descriptor = json.load(sys.stdin)
+graph, descriptor, publication = json.load(sys.stdin)
 k.KNOWLEDGE_SOURCES = tuple(s['source_graph_id'] for s in descriptor['sources'])
 k._CARRIER_SOURCE_PRIORITY = {s['source_graph_id']: s['representative_priority'] for s in descriptor['sources']}
 k.OVERVIEW_EXCLUDED_PREDICATES = set(descriptor['overview']['excluded_predicate_ids'])
@@ -27,7 +27,7 @@ cases = []
 def case(name, **parts):
     spec = {'schema_version': 'tos_lens_spec_v1', 'lens_id': name, **parts}
     try:
-        packet = k.execute_knowledge_lens(graph, spec)
+        packet = k.execute_knowledge_lens(graph, spec, publication_binding=publication)
     except ValueError as error:
         cases.append({'name': name, 'spec': spec, 'error': 'invalid', 'message': str(error)})
     else:
@@ -101,7 +101,7 @@ while packet['page']['has_more']:
     page += 1
     continuation = copy.deepcopy(paged)
     continuation['pagination']['cursor'] = packet['page']['next_cursor']
-    packet = k.execute_knowledge_lens(graph, continuation)
+    packet = k.execute_knowledge_lens(graph, continuation, publication_binding=publication)
     cases.append({'name': 'continuation-' + str(page), 'spec': continuation, 'packet': packet})
 assert page > 0
 bad_cursor = copy.deepcopy(paged)

@@ -23,6 +23,53 @@ use tos_foundation::{
 };
 pub const LENS_OPERATION: &str = "tos.lens.compile";
 pub const LENS_INTENDED_USE: &str = "read_only_public_knowledge_lens_v1";
+/// Continuation identity for an already authorized selected execution. This
+/// value binds a cursor; it neither issues a scope nor authorizes disclosure.
+#[cfg(not(target_arch = "wasm32"))]
+pub fn lens_continuation_binding(
+    bound: &BoundCmpKnowledge<'_>,
+    scope: &crate::IndexedDisclosureScope,
+) -> JsonValue {
+    object(vec![
+        ("schema", text("tos_selected_lens_continuation_v1")),
+        ("operation_id", text(&scope.operation_id)),
+        ("carrier_layer", text(&scope.carrier_layer)),
+        ("intended_use", text(&scope.intended_use)),
+        (
+            "selected_model_receipt_id",
+            text(&scope.selected_model_receipt_id),
+        ),
+        ("source_cut", text(&scope.source_cut)),
+        // Decimal text preserves every u64 sequence under Python's digest
+        // grammar, whose JSON number branch intentionally uses binary64.
+        (
+            "through_commit_seq",
+            text(&scope.through_commit_seq.to_string()),
+        ),
+        (
+            "source_membership_root",
+            text(&scope.source_membership_root.to_hex()),
+        ),
+        ("descriptor_sha256", text(&scope.descriptor_sha256.to_hex())),
+        (
+            "selected_index_sha256",
+            text(&scope.selected_index_sha256.to_hex()),
+        ),
+        (
+            "catalog_packet_sha256",
+            text(&bound.selection().catalog_packet_sha256.to_hex()),
+        ),
+        (
+            "catalog_index_root_sha256",
+            text(&bound.selection().catalog_index_root_sha256.to_hex()),
+        ),
+        ("policy_issuer_ref", text(&scope.policy_issuer_ref)),
+        ("policy_receipt_id", text(&scope.policy_receipt_id)),
+        ("policy_scope", text(&scope.policy_scope)),
+        ("policy_epoch", text(&scope.policy_epoch)),
+        ("withdrawal_generation", text(&scope.withdrawal_generation)),
+    ])
+}
 #[cfg(not(target_arch = "wasm32"))]
 #[derive(Clone, Copy, Debug)]
 pub struct LensBudget {
@@ -390,6 +437,7 @@ pub fn execute_selected_lens<A: InspectCurrentAuthority + ?Sized>(
         LENS_INTENDED_USE,
         budget_value.inspect,
         |read| {
+            let publication = lens_continuation_binding(bound, read.disclosure_scope());
             let header = read.header()?;
             let vocabulary = LensVocabulary::from_selected(bound, &header)?;
             let public_spec = normalize_lens_spec(value, &vocabulary)?;
@@ -706,7 +754,7 @@ pub fn execute_selected_lens<A: InspectCurrentAuthority + ?Sized>(
                 focus.as_ref(),
                 &inclusion,
                 &traversed,
-                None,
+                Some(&publication),
                 &vocabulary,
             )
         },
