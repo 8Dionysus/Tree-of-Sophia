@@ -62,7 +62,8 @@ claims = [n for n in nodes if n["kind_id"] == "claim" and n["type_id"] == "tos.e
 assert claims, "genuine native Claim fixture required"
 lookup = lambda identifier: [n for n in nodes if n["id"] == identifier]
 temporal = []
-for left, right in [(c, c) for c in claims] + [(nodes[0], claims[0])]:
+nonclaim = next(n for n in nodes if n not in claims)
+for left, right in [(c, c) for c in claims] + [(nonclaim, claims[0])]:
     request = {"schema_version": "tos_temporal_comparison_request_v1",
                "source_revision": graph["source_revision"],
                "left": {"node_id": left["id"], "content_revision": left["content_revision"]},
