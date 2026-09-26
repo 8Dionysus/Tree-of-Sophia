@@ -375,6 +375,14 @@ fn flat_whole_successor_bytes_replay_inspection_and_retained_fixity() {
         "a4086c6079086cbbd41c20bf37a421daa355725ce782c0963a09dfe89a7bd363"
     );
     assert_eq!(prepared.changes.len(), 5); // three current members + blob + manifest
+    let mut python_whitespace = proposal();
+    set(&mut python_whitespace, "reason", text("\u{001c}\u{001f}"));
+    let mut whitespace_ctx = ctx.clone();
+    whitespace_ctx.request_raw = bytes(&python_whitespace);
+    assert!(matches!(
+        run(&whitespace_ctx, None),
+        Err(SourceCommandError::Invalid(_))
+    ));
     apply_proposed(&mut ctx, &prepared.changes);
     let replay = run(&ctx, None).unwrap();
     assert!(replay.replayed);

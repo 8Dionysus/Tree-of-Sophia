@@ -10,7 +10,7 @@ use crate::source_forms;
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::atomic::AtomicBool;
 use std::time::Instant;
-use tos_foundation::{Digest256, JsonString, JsonValue, RelativePath};
+use tos_foundation::{Digest256, JsonString, JsonValue, RelativePath, python_strip_unicode16_v1};
 use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
 
 const HISTORY: &str = "source-revision-history.json";
@@ -140,6 +140,10 @@ fn required<'a>(ctx: &'a CommandContext, name: &str) -> SourceCommandResult<&'a 
             "required exact source contract or retained bytes absent",
         ))
 }
+fn strip(value: &str) -> SourceCommandResult<&str> {
+    python_strip_unicode16_v1(value, 1_048_576)
+        .map_err(|_| SourceCommandError::Invalid("bounded Python string strip"))
+}
 fn split(name: &str) -> SourceCommandResult<(&str, &str)> {
     name.rsplit_once('/').ok_or(SourceCommandError::Invalid(
         "source path has no owner parent",
@@ -250,9 +254,11 @@ fn configuration(ctx: &CommandContext) -> SourceCommandResult<(JsonValue, Revisi
     }
     cmd::exact_keys(&config, &keys)?;
     if cmd::integer(&config, "uid")? != ctx.effective_uid
-        || ["principal_id", "authority_ref"]
-            .iter()
-            .any(|k| cmd::text(&config, k).map_or(true, |s| s.trim().is_empty()))
+        || ["principal_id", "authority_ref"].iter().any(|k| {
+            cmd::text(&config, k)
+                .and_then(strip)
+                .map_or(true, str::is_empty)
+        })
     {
         return Err(SourceCommandError::Denied(
             "current Unix account or owner identity",
@@ -2181,7 +2187,7 @@ fn scope(config: &JsonValue, request: &JsonValue, operation: &str) -> SourceComm
             return Err(SourceCommandError::Invalid("duplicate revision form"));
         }
     }
-    if !(1..=4096).contains(&cmd::text(request, "reason")?.trim().chars().count()) {
+    if !(1..=4096).contains(&strip(cmd::text(request, "reason")?)?.chars().count()) {
         return Err(SourceCommandError::Invalid("authored correction reason"));
     }
     Ok(())
@@ -2626,7 +2632,7 @@ fn public_profile(
             cmd::text(record, "identity_status")?,
             "provisional" | "verified" | "disputed" | "superseded"
         )
-        || cmd::text(record, "preferred_label")?.trim().is_empty()
+        || strip(cmd::text(record, "preferred_label")?)?.is_empty()
         || cmd::integer(record, "record_version")? == 0
     {
         return Err(SourceCommandError::Denied(
