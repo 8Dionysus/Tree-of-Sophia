@@ -122,6 +122,14 @@ class CorpusArchiveTests(unittest.TestCase):
         self.assertIsNone(components.resolve_current('src/a.txt', hashlib.sha256(b'alpha\n').hexdigest()))
         self.assertIsNone(components.resolve_current('src/nested/b.txt', '0' * 64))
         import validate_source_witness_foundation as foundation
+        class UnverifiedComponents(SelectedSoftwareComponents):
+            def __init__(self):
+                pass
+            def _factory_bound(self):
+                return True
+        with self.assertRaises(ValueError):
+            with foundation.selected_provenance_software(UnverifiedComponents()):
+                self.fail('unverified subclass entered selected capture scope')
         self.assertIsNone(foundation._recorded_provenance_input_path(self.repo, 'src/nested/b.txt', digest))
         with foundation.selected_provenance_software(components):
             self.assertEqual(foundation._recorded_provenance_input_path(self.repo, 'src/nested/b.txt', digest), destination / 'src/nested/b.txt')
