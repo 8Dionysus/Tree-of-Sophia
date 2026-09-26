@@ -804,7 +804,21 @@ mod tests {
             },
         )
         .unwrap();
-        let rows = fixture();
+        let mut rows = fixture();
+        let mut alpha: Value = serde_json::from_str(&rows[0].2).unwrap();
+        alpha["properties"] = serde_json::json!({"original_node_type":" concept ",
+            "variant_labels":[{"language":"fr","value":"Alpha source"}],
+            "period":"classical period","packet_id":"fixture-packet",
+            "claim_ref":"tos.claim.fixture","qualifiers":{"negated":false},
+            "confidence":false,"master_confidence":0});
+        rows[0].2 = serde_json::to_string(&alpha).unwrap();
+        rows[1].2 = rows[1]
+            .2
+            .replace("\"node_type\":\"concept\"", "\"node_type\":\"atlas\"");
+        rows[2].2 = rows[2].2.replace(
+            "\"predicate_id\":\"relates\"",
+            "\"predicate_id\":\"influences\"",
+        );
         let mut receipt = receipt(&rows);
         let selected = vocabulary
             .sources
@@ -887,17 +901,17 @@ mod tests {
                     (
                         "knowledge_nodes",
                         "philosophy:n:a",
-                        "ac80184071a98ef670e03de76f4b4b8539f63b11f8940e5a3ed3e088a7c20c12",
+                        "a5b5e815fcc7747c1431e88b5f99879cb0538f9871109b7caf5fbe892fde3f28",
                     ),
                     (
                         "knowledge_nodes",
                         "philosophy:n:b",
-                        "178e4db477502d0eb0a0a42e07a15470a1c0e28b7847fb8c6fc496fe0dc8ea0b",
+                        "dcc54be92aa7b81b3e5f5e3cadca6b1f6d97e2c9fe157752313b7783452eff1b",
                     ),
                     (
                         "knowledge_relations",
                         "philosophy:e:ab",
-                        "9cb0067d69770b846df40a59e8007ca865c6cde1836590e01a78ea6e4890ec00",
+                        "7d0d50e1611c139a325631cd39b34c0487e3df6f64d08e25ee59d3333abdff32",
                     ),
                 ] {
                     let raw: Vec<u8> = db.query_row(

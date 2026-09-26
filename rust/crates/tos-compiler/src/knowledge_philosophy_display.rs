@@ -175,6 +175,18 @@ pub fn ordinary_philosophy_node_display(
     node_display(row, kind_id, effective_type_labels, None, false)
 }
 
+/// Complete source-profile philosophy `_node_display` branch, including
+/// declared variant labels and temporal source wording. Existing display
+/// envelopes remain outside the closed projected-node carrier contract.
+pub fn full_philosophy_node_display(
+    row: &SourceRow,
+    kind_id: &str,
+    effective_type_labels: Option<&Value>,
+    object_role: Option<&str>,
+) -> Result<Value> {
+    node_display(row, kind_id, effective_type_labels, object_role, true)
+}
+
 /// Frozen `_node_display` for the source-navigation owner carrier. The
 /// caller supplies the selected type's object role and effective labels.
 pub fn source_navigation_node_display(

@@ -4,7 +4,7 @@
 
 use crate::knowledge_normalization::{SourceRow, stamp_content_revision};
 use crate::knowledge_philosophy_display::{
-    ordinary_philosophy_node_display, ordinary_philosophy_relation_display,
+    full_philosophy_node_display, ordinary_philosophy_relation_display,
 };
 use crate::knowledge_philosophy_prepare::dependency_root;
 use crate::knowledge_source_navigation_node::{epistemic, normalized_time};
