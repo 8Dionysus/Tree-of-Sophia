@@ -7,6 +7,7 @@ use crate::{
 use std::collections::BTreeSet;
 use tos_foundation::{
     CanonicalProfile, Digest256, JsonLimits, JsonNumberKind, JsonValue, canonical_bytes_v1,
+    python_strip_unicode16_v1,
 };
 pub const TEMPORAL_OPERATION: &str = "tos.knowledge.temporal.compare";
 pub const TEMPORAL_INTENDED_USE: &str = "read_only_public_knowledge_temporal_compare_v1";
@@ -493,8 +494,10 @@ where
         if !reference
             .as_object()
             .is_some_and(|fields| fields.len() == 2)
-            || !get(reference, "node_id")
-                .is_some_and(|id| !id.is_empty() && id.chars().count() <= 1024 && id == id.trim())
+            || !get(reference, "node_id").is_some_and(|id| {
+                !id.is_empty()
+                    && python_strip_unicode16_v1(id, 1024).is_ok_and(|stripped| id == stripped)
+            })
             || !get(reference, "content_revision").is_some_and(bare)
         {
             return Err(err(

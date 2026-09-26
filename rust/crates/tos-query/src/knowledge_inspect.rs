@@ -18,7 +18,7 @@ use std::{
 use tos_compiler::VerifiedKnowledgeModel;
 use tos_foundation::{
     CanonicalProfile, Digest256, JsonLimits, JsonMode, JsonNumber, JsonNumberKind, JsonValue,
-    canonical_bytes_v1, parse_json,
+    canonical_bytes_v1, parse_json, python_strip_unicode16_v1,
 };
 
 pub const NODE_INSPECT_OPERATION: &str = "tos.knowledge.node.inspect";
@@ -309,7 +309,12 @@ pub fn execute_selected_inspect<A: InspectCurrentAuthority + ?Sized>(
     relation_limit: usize,
     budget: InspectBudget,
 ) -> Result<DisclosableInspect, SearchV2Error> {
-    let identifier = identifier.trim();
+    let identifier = python_strip_unicode16_v1(identifier, 4096).map_err(|_| {
+        error(
+            SearchV2ErrorCode::InvalidRequest,
+            "inspect identifier exceeds character cap",
+        )
+    })?;
     if identifier.is_empty()
         || identifier.chars().count() > 4096
         || identifier.len() > budget.max_field_bytes
