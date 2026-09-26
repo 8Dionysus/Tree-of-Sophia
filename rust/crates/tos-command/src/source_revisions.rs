@@ -8,8 +8,10 @@
 use crate::source_command::{self as cmd, *};
 use crate::source_forms;
 use std::collections::{BTreeMap, BTreeSet};
+use std::sync::atomic::AtomicBool;
+use std::time::Instant;
 use tos_foundation::{Digest256, JsonString, JsonValue, RelativePath};
-use tos_validation::{FormatProfile, SchemaBackendProbe, SchemaResource};
+use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
 
 const HISTORY: &str = "source-revision-history.json";
 const PROTOCOL: &str = "tos_selected_source_metadata_v1";
@@ -98,7 +100,7 @@ impl RevisionFamily {
 /// Evidence selected by the publication owner, never supplied by request prose.
 /// Every retained transaction must contain its exact original revision request
 /// and before/after bytes. Recovery reconstructs these bytes independently.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RetainedRevisionTransaction {
     pub transaction_id: String,
     pub status: RevisionTransactionStatus,
@@ -112,7 +114,7 @@ pub enum RevisionTransactionStatus {
     Committed,
     RolledBack,
 }
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct RevisionPublication {
     /// Exact observed cooperating-reader token (None is the legacy baseline).
     pub token: Option<String>,
@@ -603,6 +605,9 @@ fn verify_history(
     Ok(value)
 }
 fn inspect(
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
     ctx: &CommandContext,
     config: &JsonValue,
     family: RevisionFamily,
@@ -615,7 +620,7 @@ fn inspect(
             .get(base)
             .ok_or(SourceCommandError::Invalid("record missing"))?,
     )?;
-    let (profile, schemas) = profile(ctx, config, family, &record)?;
+    let (profile, schemas) = profile(worker, deadline, cancelled, ctx, config, family, &record)?;
     let subject = source_forms::metadata_subject(&record)?;
     let history = verify_history(ctx, config, &files, &record)?;
     Ok(Inspection {
@@ -691,6 +696,9 @@ fn revised(record: &JsonValue, request: &JsonValue) -> SourceCommandResult<JsonV
     Ok(revised)
 }
 fn proposal(
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
     ctx: &CommandContext,
     config: &JsonValue,
     family: RevisionFamily,
@@ -706,7 +714,7 @@ fn proposal(
 )> {
     scope(config, request, scope_operation)?;
     let revised = revised(&inspection.record, request)?;
-    let (_, schemas) = profile(ctx, config, family, &revised)?;
+    let (_, schemas) = profile(worker, deadline, cancelled, ctx, config, family, &revised)?;
     if schemas != inspection.schemas {
         return Err(SourceCommandError::Denied(
             "correction changed source schema selection",
@@ -731,7 +739,7 @@ fn proposal(
         .map(|b| cmd::parse(b))
         .transpose()?;
     if let Some(current) = &current {
-        validate_forms(ctx, current)?;
+        validate_forms(worker, deadline, cancelled, ctx, current)?;
         let selected = cmd::array(request, "forms")?
             .iter()
             .map(|v| cmd::text(v, "form_id"))
@@ -758,7 +766,7 @@ fn proposal(
         })
         .collect::<SourceCommandResult<Vec<_>>>()?;
     let forms = source_forms::apply_form_changes(current.as_ref(), &subject, &changes)?;
-    validate_forms(ctx, &forms)?;
+    validate_forms(worker, deadline, cancelled, ctx, &forms)?;
     let views = source_forms::materialize_source_forms(&revised, &forms)?;
     if views
         .iter()
@@ -786,7 +794,13 @@ fn proposal(
     output.insert(formname, cmd::published(&forms)?);
     Ok((revised, subject, output, views, refs))
 }
-fn validate_forms(ctx: &CommandContext, forms: &JsonValue) -> SourceCommandResult<()> {
+fn validate_forms(
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    ctx: &CommandContext,
+    forms: &JsonValue,
+) -> SourceCommandResult<()> {
     let refs = [
         "ToS/contracts/knowledge-assessment.schema.json",
         "ToS/contracts/human-form.schema.json",
@@ -794,6 +808,9 @@ fn validate_forms(ctx: &CommandContext, forms: &JsonValue) -> SourceCommandResul
     ]
     .map(String::from);
     schema(
+        worker,
+        deadline,
+        cancelled,
         ctx,
         &refs,
         "ToS/contracts/human-form-set.schema.json",
@@ -804,6 +821,9 @@ fn validate_forms(ctx: &CommandContext, forms: &JsonValue) -> SourceCommandResul
     Ok(())
 }
 fn result(
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
     ctx: &CommandContext,
     config: &JsonValue,
     family: RevisionFamily,
@@ -816,7 +836,7 @@ fn result(
     let views = match inspection.files.get(&formname) {
         Some(raw) => {
             let forms = cmd::parse(raw)?;
-            validate_forms(ctx, &forms)?;
+            validate_forms(worker, deadline, cancelled, ctx, &forms)?;
             source_forms::materialize_source_forms(&inspection.record, &forms)?
         }
         None => vec![],
@@ -1009,6 +1029,9 @@ fn receipt(
     Ok(value)
 }
 fn successor(
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
     ctx: &CommandContext,
     config: &JsonValue,
     family: RevisionFamily,
@@ -1022,8 +1045,17 @@ fn successor(
             "source revision history capacity reached",
         ));
     }
-    let (record, subject, mut files, _, refs) =
-        proposal(ctx, config, family, inspection, request, scope_operation)?;
+    let (record, subject, mut files, _, refs) = proposal(
+        worker,
+        deadline,
+        cancelled,
+        ctx,
+        config,
+        family,
+        inspection,
+        request,
+        scope_operation,
+    )?;
     let receipt = receipt(
         config, family, inspection, request, &subject, &refs, instant,
     )?;
@@ -1182,6 +1214,9 @@ fn retained_package(
     Ok(result)
 }
 fn reconstruct_transaction(
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
     ctx: &CommandContext,
     config: &JsonValue,
     family: RevisionFamily,
@@ -1240,7 +1275,7 @@ fn reconstruct_transaction(
             .get(base)
             .ok_or(SourceCommandError::Invalid("retained record missing"))?,
     )?;
-    let (profile, schemas) = profile(ctx, config, family, &record)?;
+    let (profile, schemas) = profile(worker, deadline, cancelled, ctx, config, family, &record)?;
     let subject = source_forms::metadata_subject(&record)?;
     let retained = verify_history(ctx, config, &files, &record)?;
     let before = Inspection {
@@ -1283,6 +1318,9 @@ fn reconstruct_transaction(
         ));
     }
     let (after, reconstructed) = successor(
+        worker,
+        deadline,
+        cancelled,
         ctx,
         config,
         family,
@@ -1310,7 +1348,15 @@ fn reconstruct_transaction(
 pub fn prepare_record_revision(
     ctx: &CommandContext,
     publication: Option<&RevisionPublication>,
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
 ) -> SourceCommandResult<PreparedCommand> {
+    if worker.source_revision() != ctx.base_revision {
+        return Err(SourceCommandError::Conflict(
+            "schema worker and source command cut differ",
+        ));
+    }
     let (config, family) = configuration(ctx)?;
     let request_value = cmd::parse(&ctx.request_raw)?;
     let operation = request(&request_value, family)?;
@@ -1319,6 +1365,16 @@ pub fn prepare_record_revision(
         let publication = publication.ok_or(SourceCommandError::Unsupported(
             "selected publication observation required",
         ))?;
+        let ids = publication
+            .transactions
+            .iter()
+            .map(|t| t.transaction_id.as_str())
+            .collect::<Vec<_>>();
+        if read_record_revision_publication(ctx, &ids)? != *publication {
+            return Err(SourceCommandError::Conflict(
+                "publication observation differs from exact selected owner carriers",
+            ));
+        }
         if let Some(token) = &publication.token {
             digest_text(&cmd::string(token))?;
         }
@@ -1359,6 +1415,9 @@ pub fn prepare_record_revision(
                 ));
             }
             let (original, before, after, receipt) = reconstruct_transaction(
+                worker,
+                deadline,
+                cancelled,
                 ctx,
                 &config,
                 family,
@@ -1401,6 +1460,9 @@ pub fn prepare_record_revision(
             }
             let inspection = if rollback { &before } else { &after };
             let mut response = result(
+                worker,
+                deadline,
+                cancelled,
                 ctx,
                 &config,
                 family,
@@ -1429,8 +1491,19 @@ pub fn prepare_record_revision(
             ));
         }
     }
-    let inspection = inspect(ctx, &config, family)?;
-    let mut response = result(ctx, &config, family, &inspection, publication, None, false)?;
+    let inspection = inspect(worker, deadline, cancelled, ctx, &config, family)?;
+    let mut response = result(
+        worker,
+        deadline,
+        cancelled,
+        ctx,
+        &config,
+        family,
+        &inspection,
+        publication,
+        None,
+        false,
+    )?;
     if operation == "describe" {
         return ctx.plan(family.handler_id(), response, vec![], false);
     }
@@ -1466,6 +1539,9 @@ pub fn prepare_record_revision(
             ));
         }
         let (_, subject, _, views, refs) = proposal(
+            worker,
+            deadline,
+            cancelled,
             ctx,
             &config,
             family,
@@ -1524,8 +1600,16 @@ pub fn prepare_record_revision(
                         "selected history has no committed publication evidence",
                     ));
                 }
-                let (original, _, _, reconstructed) =
-                    reconstruct_transaction(ctx, &config, family, retained, "record.revise")?;
+                let (original, _, _, reconstructed) = reconstruct_transaction(
+                    worker,
+                    deadline,
+                    cancelled,
+                    ctx,
+                    &config,
+                    family,
+                    retained,
+                    "record.revise",
+                )?;
                 if !cmd::same(&original, &request_value)? || &reconstructed != receipt {
                     return Err(SourceCommandError::Conflict(
                         "retained publication differs from correction receipt",
@@ -1533,6 +1617,9 @@ pub fn prepare_record_revision(
                 }
             }
             response = result(
+                worker,
+                deadline,
+                cancelled,
                 ctx,
                 &config,
                 family,
@@ -1566,6 +1653,9 @@ pub fn prepare_record_revision(
         ));
     }
     let (after, receipt) = successor(
+        worker,
+        deadline,
+        cancelled,
         ctx,
         &config,
         family,
@@ -1577,6 +1667,9 @@ pub fn prepare_record_revision(
     let mut changes = retain_archive(ctx, &config, family, &inspection)?;
     changes.extend(source_changes(ctx, &config, &after.files)?);
     response = result(
+        worker,
+        deadline,
+        cancelled,
         ctx,
         &config,
         family,
@@ -1586,6 +1679,363 @@ pub fn prepare_record_revision(
         false,
     )?;
     ctx.plan(family.handler_id(), response, changes, false)
+}
+
+const CONTROL_PATH: &str = "ToS/source-witnesses/.metadata-publication.json";
+fn state(value: &JsonValue) -> SourceCommandResult<()> {
+    cmd::exact_keys(
+        value,
+        &[
+            "schema_version",
+            "generation",
+            "transition_id",
+            "phase",
+            "transaction_id",
+            "manifest_sha256",
+            "outcome",
+            "recovery_authorization",
+            "token",
+        ],
+    )?;
+    let generation = cmd::integer(value, "generation")?;
+    let transition = cmd::text(value, "transition_id")?;
+    let phase = cmd::text(value, "phase")?;
+    if cmd::text(value, "schema_version")? != "tos_source_metadata_publication_v1"
+        || !(1..=9_007_199_254_740_991).contains(&generation)
+        || transition.len() != 32
+        || !transition
+            .bytes()
+            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+        || !matches!(phase, "pending" | "ready")
+        || phase == "pending"
+            && (cmd::field(value, "outcome")? != &JsonValue::Null
+                || cmd::field(value, "recovery_authorization")? != &JsonValue::Null)
+        || phase == "ready" && !matches!(cmd::text(value, "outcome")?, "committed" | "rolled-back")
+    {
+        return Err(SourceCommandError::Invalid(
+            "selected publication state grammar",
+        ));
+    }
+    let recovery = cmd::field(value, "recovery_authorization")?;
+    if recovery != &JsonValue::Null
+        && (recovery.as_object().is_none() || cmd::canonical(recovery)?.len() > 4096)
+    {
+        return Err(SourceCommandError::Invalid("selected recovery binding"));
+    }
+    for field in ["transaction_id", "manifest_sha256", "token"] {
+        digest_text(cmd::field(value, field)?)?;
+    }
+    let fields = value
+        .as_object()
+        .ok_or(SourceCommandError::Invalid("publication state object"))?
+        .iter()
+        .filter(|(key, _)| key.as_str() != Some("token"))
+        .cloned()
+        .collect();
+    if cmd::text(value, "token")? != cmd::record_digest(&JsonValue::Object(fields))?.to_prefixed() {
+        return Err(SourceCommandError::Conflict(
+            "publication control token does not bind exact state",
+        ));
+    }
+    Ok(())
+}
+fn control(ctx: &CommandContext) -> SourceCommandResult<Option<JsonValue>> {
+    let Some(raw) = ctx.file(&path(CONTROL_PATH)?)? else {
+        return Ok(None);
+    };
+    if raw.len() > 8192 {
+        return Err(SourceCommandError::Invalid(
+            "publication control byte budget",
+        ));
+    }
+    let value = cmd::parse(raw)?;
+    state(&value)?;
+    Ok(Some(value))
+}
+/// Read publication observations from explicitly selected owner control,
+/// manifest, completion and immutable blob bytes. IDs select retained carriers;
+/// they grant no admission. An arbitrary status enum cannot pass the command
+/// entrypoint: it is re-derived here and compared with the supplied observation.
+pub fn read_record_revision_publication(
+    ctx: &CommandContext,
+    selected_ids: &[&str],
+) -> SourceCommandResult<RevisionPublication> {
+    ctx.check()?;
+    if selected_ids.len() > 128 {
+        return Err(SourceCommandError::Invalid(
+            "retained publication count budget",
+        ));
+    }
+    let control = control(ctx)?;
+    let mut ids = selected_ids
+        .iter()
+        .map(|id| id.to_string())
+        .collect::<BTreeSet<_>>();
+    if ids.len() != selected_ids.len() {
+        return Err(SourceCommandError::Invalid(
+            "duplicate retained transaction selection",
+        ));
+    }
+    if let Some(control) = &control {
+        if cmd::text(control, "phase")? == "pending" {
+            ids.insert(cmd::text(control, "transaction_id")?.into());
+        }
+    }
+    let mut transactions = Vec::new();
+    for id in ids {
+        digest_text(&cmd::string(&id))?;
+        let directory = format!("ToS/source-witnesses/.metadata-transactions/{}", &id[7..]);
+        let manifest_raw = required(ctx, &format!("{directory}/manifest.json"))?;
+        if manifest_raw.len() > 524_288 {
+            return Err(SourceCommandError::Invalid(
+                "transaction manifest byte budget",
+            ));
+        }
+        let manifest = cmd::parse(manifest_raw)?;
+        cmd::exact_keys(
+            &manifest,
+            &[
+                "schema_version",
+                "transaction_id",
+                "base_publication",
+                "plan",
+                "parents",
+            ],
+        )?;
+        if cmd::text(&manifest, "schema_version")? != "tos_selected_metadata_transaction_v1"
+            || cmd::text(&manifest, "transaction_id")? != id
+        {
+            return Err(SourceCommandError::Unsupported(
+                "retained transaction manifest is not selected record revision grammar",
+            ));
+        }
+        let base = cmd::field(&manifest, "base_publication")?;
+        cmd::exact_keys(base, &["token", "generation"])?;
+        let generation = cmd::integer(base, "generation")?;
+        if generation > 9_007_199_254_740_989
+            || (cmd::field(base, "token")? == &JsonValue::Null) != (generation == 0)
+        {
+            return Err(SourceCommandError::Invalid(
+                "retained publication predecessor",
+            ));
+        }
+        if generation > 0 {
+            digest_text(cmd::field(base, "token")?)?;
+        }
+        let plan = cmd::field(&manifest, "plan")?;
+        cmd::exact_keys(plan, &["authorization", "files", "new_directories"])?;
+        if !cmd::array(plan, "new_directories")?.is_empty() || cmd::array(plan, "files")?.len() != 3
+        {
+            return Err(SourceCommandError::Denied(
+                "record revision transaction selects other paths or directories",
+            ));
+        }
+        let authorization = cmd::field(plan, "authorization")?;
+        if authorization.as_object().is_none() || cmd::canonical(authorization)?.len() > 65_536 {
+            return Err(SourceCommandError::Invalid(
+                "retained transaction authorization budget",
+            ));
+        }
+        let mut before = Vec::new();
+        let mut after = Vec::new();
+        let mut paths = BTreeSet::new();
+        let mut parents = BTreeSet::new();
+        let mut sums = [0u64; 2];
+        let mut changed = false;
+        let mut last = "";
+        for item in cmd::array(plan, "files")? {
+            cmd::exact_keys(item, &["path", "before", "after"])?;
+            let source_path = cmd::text(item, "path")?;
+            path(source_path)?;
+            if !source_path.starts_with("ToS/source-witnesses/")
+                || source_path.split('/').any(|p| {
+                    p.starts_with('.')
+                        || matches!(
+                            p,
+                            "payload" | "private" | "local-content" | "owner-local" | "catalog"
+                        )
+                })
+                || !source_path.ends_with(".json")
+                || source_path.len() > 1024
+                || source_path.split('/').count() > 24
+                || source_path <= last
+                || !paths.insert(source_path)
+            {
+                return Err(SourceCommandError::Denied(
+                    "retained revision canonical selected path grammar",
+                ));
+            }
+            last = source_path;
+            let mut parent = split(source_path)?.0;
+            loop {
+                parents.insert(parent);
+                if parent == "ToS/source-witnesses" {
+                    break;
+                }
+                parent = split(parent)?.0;
+            }
+            changed |= !cmd::same(cmd::field(item, "before")?, cmd::field(item, "after")?)?;
+            if cmd::field(item, "before")? == &JsonValue::Null
+                && cmd::field(item, "after")? == &JsonValue::Null
+            {
+                return Err(SourceCommandError::Invalid(
+                    "retained transaction absent-to-absent member",
+                ));
+            }
+            for (index, side) in ["before", "after"].into_iter().enumerate() {
+                let binding = cmd::field(item, side)?;
+                if binding == &JsonValue::Null {
+                    continue;
+                }
+                cmd::exact_keys(binding, &["sha256", "bytes"])?;
+                let digest = digest_text(cmd::field(binding, "sha256")?)?;
+                let length = cmd::integer(binding, "bytes")?;
+                sums[index] = sums[index]
+                    .checked_add(length)
+                    .ok_or(SourceCommandError::Invalid("retained blob budget overflow"))?;
+                if length > 8_388_608 || sums[index] > 8_388_608 {
+                    return Err(SourceCommandError::Invalid(
+                        "retained selected side byte budget",
+                    ));
+                }
+                let raw = required(ctx, &format!("{directory}/{}.blob", &digest[7..]))?;
+                if raw.len() as u64 != length || Digest256::of_bytes(raw).to_prefixed() != digest {
+                    return Err(SourceCommandError::Conflict(
+                        "retained transaction immutable blob differs",
+                    ));
+                }
+                let file = SourceFile {
+                    path: path(source_path)?,
+                    raw: raw.to_vec(),
+                };
+                if side == "before" {
+                    before.push(file)
+                } else {
+                    after.push(file)
+                }
+            }
+        }
+        if !changed {
+            return Err(SourceCommandError::Invalid(
+                "retained revision transaction has no byte change",
+            ));
+        }
+        let bindings =
+            cmd::field(&manifest, "parents")?
+                .as_object()
+                .ok_or(SourceCommandError::Invalid(
+                    "retained source parent bindings",
+                ))?;
+        if bindings.len() != parents.len()
+            || bindings
+                .iter()
+                .any(|(key, _)| !key.as_str().is_some_and(|key| parents.contains(key)))
+        {
+            return Err(SourceCommandError::Conflict(
+                "retained source parent closure differs",
+            ));
+        }
+        let current = control
+            .as_ref()
+            .filter(|state| cmd::text(state, "transaction_id").ok() == Some(id.as_str()));
+        for (_, binding) in bindings {
+            cmd::exact_keys(binding, &["device", "inode", "mode", "uid"])?;
+            cmd::integer(binding, "device")?;
+            cmd::integer(binding, "inode")?;
+            let mode = cmd::integer(binding, "mode")?;
+            let uid = cmd::integer(binding, "uid")?;
+            if mode & 0o170000 != 0o040000
+                || mode & 0o022 != 0
+                || current.is_some_and(|c| cmd::text(c, "phase").ok() == Some("pending"))
+                    && uid != 0
+                    && uid != ctx.effective_uid
+            {
+                return Err(SourceCommandError::Denied(
+                    "retained protected source parent binding",
+                ));
+            }
+        }
+        let digest = Digest256::of_bytes(manifest_raw).to_prefixed();
+        let completion_raw = ctx.file(&path(&format!("{directory}/completion.json"))?)?;
+        if completion_raw.is_some_and(|raw| raw.len() > 8192) {
+            return Err(SourceCommandError::Invalid(
+                "retained completion byte budget",
+            ));
+        }
+        let completion = completion_raw.map(cmd::parse).transpose()?;
+        let mut terminal = None;
+        if let Some(completion) = &completion {
+            cmd::exact_keys(completion, &["schema_version", "publication"])?;
+            if cmd::text(completion, "schema_version")? != "tos_selected_metadata_completion_v1" {
+                return Err(SourceCommandError::Invalid("retained completion schema"));
+            }
+            let completed = cmd::field(completion, "publication")?;
+            state(completed)?;
+            if cmd::text(completed, "phase")? != "ready"
+                || cmd::text(completed, "transaction_id")? != id
+                || cmd::text(completed, "manifest_sha256")? != digest
+                || cmd::integer(completed, "generation")? != generation + 2
+            {
+                return Err(SourceCommandError::Conflict(
+                    "retained completion does not bind exact manifest",
+                ));
+            }
+            terminal = Some(completed);
+        }
+        let status = if let Some(current) = current {
+            if cmd::text(current, "manifest_sha256")? != digest {
+                return Err(SourceCommandError::Conflict(
+                    "current publication manifest digest differs",
+                ));
+            }
+            if cmd::text(current, "phase")? == "pending" {
+                if cmd::integer(current, "generation")? != generation + 1 || terminal.is_some() {
+                    return Err(SourceCommandError::Conflict(
+                        "pending transaction predecessor or terminal state differs",
+                    ));
+                }
+                RevisionTransactionStatus::Pending
+            } else {
+                if cmd::integer(current, "generation")? != generation + 2
+                    || terminal.is_some_and(|t| t != current)
+                {
+                    return Err(SourceCommandError::Conflict(
+                        "terminal current publication differs from completion",
+                    ));
+                }
+                if cmd::text(current, "outcome")? == "committed" {
+                    RevisionTransactionStatus::Committed
+                } else {
+                    RevisionTransactionStatus::RolledBack
+                }
+            }
+        } else if let Some(terminal) = terminal {
+            if cmd::text(terminal, "outcome")? == "committed" {
+                RevisionTransactionStatus::Committed
+            } else {
+                RevisionTransactionStatus::RolledBack
+            }
+        } else {
+            return Err(SourceCommandError::Unsupported(
+                "unselected orphan transaction has no terminal publication evidence",
+            ));
+        };
+        transactions.push(RetainedRevisionTransaction {
+            transaction_id: id,
+            status,
+            authorization_raw: cmd::canonical(authorization)?,
+            before,
+            after,
+        });
+    }
+    let token = control
+        .as_ref()
+        .map(|c| cmd::text(c, "token").map(String::from))
+        .transpose()?;
+    Ok(RevisionPublication {
+        token,
+        transactions,
+    })
 }
 fn allowed_fields<'a>(
     family: RevisionFamily,
@@ -1805,16 +2255,23 @@ fn archive_path(config: &JsonValue, revision: &str) -> SourceCommandResult<Strin
 }
 
 fn schema(
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
     ctx: &CommandContext,
     refs: &[String],
     root: &str,
     instance: &JsonValue,
 ) -> SourceCommandResult<()> {
-    let mut resources = Vec::new();
+    if worker.source_revision() != ctx.base_revision {
+        return Err(SourceCommandError::Conflict(
+            "schema worker and source command cut differ",
+        ));
+    }
     for name in refs {
         let raw = required(ctx, name)?;
-        let value = cmd::parse(raw)?;
-        let uri = cmd::text(&value, "$id")?;
+        let source = cmd::parse(raw)?;
+        let uri = cmd::text(&source, "$id")?;
         if uri != format!("https://tree-of-sophia.local/{name}")
             && uri != format!("https://treeofsophia.local/{name}")
         {
@@ -1822,25 +2279,34 @@ fn schema(
                 "source schema identity differs",
             ));
         }
-        resources.push(SchemaResource {
-            uri: uri.into(),
-            raw: raw.to_vec(),
-        });
+        if worker.contract_digest(name) != Some(Digest256::of_bytes(raw)) {
+            return Err(SourceCommandError::Conflict(
+                "schema worker resources and selected source bytes differ",
+            ));
+        }
     }
-    let uri = cmd::text(&cmd::parse(required(ctx, root)?)?, "$id")?.to_string();
-    let probe = SchemaBackendProbe::new(resources, FormatProfile::LegacyPythonObserved20260923)
-        .map_err(|_| SourceCommandError::Unsupported("exact schema backend resource closure"))?;
-    match probe.is_valid_raw(&uri, &cmd::canonical(instance)?) {
+    let source_path = cmd::text(&cmd::parse(&ctx.configuration_raw)?, "source_path")?.to_string();
+    match worker.check(
+        &source_path,
+        &cmd::canonical(instance)?,
+        root,
+        deadline,
+        cancelled,
+    ) {
         Ok(true) => Ok(()),
         Ok(false) => Err(SourceCommandError::Invalid(
             "source violates selected schema",
         )),
         Err(_) => Err(SourceCommandError::Unsupported(
-            "exact schema backend evaluation",
+            "exact source schema worker execution unavailable",
         )),
     }
 }
+
 fn profile(
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
     ctx: &CommandContext,
     config: &JsonValue,
     family: RevisionFamily,
@@ -1897,7 +2363,7 @@ fn profile(
             "ToS/contracts/historical-record.schema.json",
         )
     } else if family.profile() {
-        return public_profile(ctx, config, record);
+        return public_profile(worker, deadline, cancelled, ctx, config, record);
     } else {
         let kind = cmd::text(config, "record_type")?;
         let mut allowed = vec!["agent", "place", "organization", "work"];
@@ -1934,7 +2400,9 @@ fn profile(
     if family == RevisionFamily::Historical {
         schemas.push(CORPUS_SCHEMA.into());
     }
-    schema(ctx, &schemas, schema_ref, record)?;
+    schema(
+        worker, deadline, cancelled, ctx, &schemas, schema_ref, record,
+    )?;
     if family == RevisionFamily::Historical
         && !matches!(
             cmd::text(record, "visibility")?,
@@ -1986,13 +2454,24 @@ fn ancestry<'a>(
     Ok(())
 }
 fn public_profile(
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
     ctx: &CommandContext,
     config: &JsonValue,
     record: &JsonValue,
 ) -> SourceCommandResult<(JsonValue, Vec<String>)> {
     let contract = "ToS/contracts/semantic-entity-type-registry.schema.json";
     let registry = cmd::parse(required(ctx, REGISTRY)?)?;
-    schema(ctx, &[contract.into()], contract, &registry)?;
+    schema(
+        worker,
+        deadline,
+        cancelled,
+        ctx,
+        &[contract.into()],
+        contract,
+        &registry,
+    )?;
     let entries = cmd::array(&registry, "types")?;
     let mut entities = BTreeMap::new();
     for entry in entries {
@@ -2199,93 +2678,159 @@ fn public_profile(
     resources.push(root.into());
     let mut seen = BTreeSet::new();
     resources.retain(|r| seen.insert(r.clone()));
-    schema(ctx, &resources, root, record)?;
-    // The Python profile validator also applies the shared Corpus metadata
-    // properties to semantic schemas that do not inherit all those fields.
-    let corpus = cmd::parse(required(ctx, CORPUS_SCHEMA)?)?;
-    let common_uri = "https://tree-of-sophia.local/internal/source-profile-common-metadata";
-    let fields = [
-        "preferred_label",
-        "variant_labels",
-        "field_languages",
-        "identity_status",
-        "source_refs",
-        "external_identifiers",
-        "same_as_posture",
-        "record_version",
-        "notes",
-    ];
-    let properties = fields
-        .iter()
-        .map(|field| {
-            Ok((
-                JsonString::from_utf8(field),
-                cmd::object(vec![(
-                    "$ref",
-                    cmd::string(&format!(
-                        "{}#/properties/{field}",
-                        cmd::text(&corpus, "$id")?
-                    )),
-                )]),
-            ))
-        })
-        .collect::<SourceCommandResult<Vec<_>>>()?;
-    let common = cmd::object(vec![
-        (
-            "$schema",
-            cmd::string("https://json-schema.org/draft/2020-12/schema"),
-        ),
-        ("$id", cmd::string(common_uri)),
-        ("type", cmd::string("object")),
-        (
-            "required",
-            JsonValue::Array(
-                [
-                    "preferred_label",
-                    "identity_status",
-                    "source_refs",
-                    "external_identifiers",
-                    "same_as_posture",
-                    "record_version",
-                ]
-                .into_iter()
-                .map(cmd::string)
-                .collect(),
-            ),
-        ),
-        ("properties", JsonValue::Object(properties)),
-    ]);
-    let mut schemas = resources
-        .iter()
-        .map(|r| {
-            let raw = required(ctx, r)?;
-            let schema = cmd::parse(raw)?;
-            Ok(SchemaResource {
-                uri: cmd::text(&schema, "$id")?.into(),
-                raw: raw.to_vec(),
-            })
-        })
-        .collect::<SourceCommandResult<Vec<_>>>()?;
-    schemas.push(SchemaResource {
-        uri: common_uri.into(),
-        raw: cmd::canonical(&common)?,
-    });
-    let probe = SchemaBackendProbe::new(schemas, FormatProfile::LegacyPythonObserved20260923)
-        .map_err(|_| SourceCommandError::Unsupported("shared profile metadata schema backend"))?;
-    match probe.is_valid_raw(common_uri, &cmd::canonical(record)?) {
-        Ok(true) => {}
-        Ok(false) => {
-            return Err(SourceCommandError::Invalid(
-                "profile shared metadata contract",
-            ));
-        }
-        Err(_) => {
-            return Err(SourceCommandError::Unsupported(
-                "profile shared metadata evaluation",
-            ));
-        }
+    schema(worker, deadline, cancelled, ctx, &resources, root, record)?;
+    // This exact source contract supplies the shared Corpus property checks
+    // through the same disposable worker, without a synthetic schema issuer.
+    let shared = "ToS/contracts/source-metadata-record.schema.json";
+    if !resources.iter().any(|path| path == shared) {
+        return Err(SourceCommandError::Unsupported(
+            "profile shared metadata worker contract absent from exact declared route",
+        ));
     }
+    schema(worker, deadline, cancelled, ctx, &resources, shared, record)?;
     resources.insert(0, contract.into());
     resources.insert(0, REGISTRY.into());
     Ok((profile.clone(), resources))
+}
+
+/// Resolve an exact metadata version through its selected current source home
+/// and complete retained record-revision predecessor closure. This is a read
+/// seam for typed Claim owners, with the same concrete source-cut worker.
+/// Compound parent receipts require their operation-specific verifier and
+/// currently refuse explicitly; transport evidence cannot substitute for it.
+pub fn resolve_record_version(
+    ctx: &CommandContext,
+    exact: &JsonValue,
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<(JsonValue, String)> {
+    ctx.check()?;
+    exact_ref(exact)?;
+    if worker.source_revision() != ctx.base_revision {
+        return Err(SourceCommandError::Conflict(
+            "metadata resolver worker and source cut differ",
+        ));
+    }
+    let mut matches = Vec::new();
+    for file in &ctx.files {
+        let location = file.path.as_str();
+        if !location.starts_with("ToS/source-witnesses/")
+            || !location.ends_with(".json")
+            || location.ends_with(".human-forms.json")
+            || location.ends_with(HISTORY)
+            || location.split('/').any(|part| {
+                part.starts_with('.')
+                    || matches!(
+                        part,
+                        "owner-local" | "catalog" | "payload" | "local-content" | "private"
+                    )
+            })
+        {
+            continue;
+        }
+        let record = cmd::parse(&file.raw)?;
+        if let Ok(subject) = source_forms::metadata_subject(&record) {
+            if cmd::field(&subject, "id")? == cmd::field(exact, "id")? {
+                matches.push((location, record, subject));
+            }
+        }
+    }
+    if matches.len() != 1 {
+        return Err(SourceCommandError::Conflict(
+            "exact metadata identity has no unique selected current owner",
+        ));
+    }
+    let (location, record, subject) = matches
+        .pop()
+        .ok_or(SourceCommandError::Conflict("selected metadata missing"))?;
+    let schema_version = cmd::text(&record, "schema_version")?;
+    let mut descriptor = cmd::object(vec![
+        ("source_path", cmd::string(location)),
+        ("record_id", cmd::field(&subject, "id")?.clone()),
+    ]);
+    let family = match schema_version {
+        "tos_historical_record_v1" => RevisionFamily::Historical,
+        "tos_corpus_record_v1" => {
+            cmd::set(
+                &mut descriptor,
+                "record_type",
+                cmd::field(&record, "record_type")?.clone(),
+            )?;
+            RevisionFamily::CorpusSelectedV3
+        }
+        "tos_artifact_source_witness_v1"
+        | "tos_artifact_source_witness_v2"
+        | "tos_scholarly_composite_witness_v1"
+        | "tos_source_link_v1" => {
+            let kind = if schema_version.starts_with("tos_artifact_") {
+                "artifact"
+            } else if schema_version == "tos_scholarly_composite_witness_v1" {
+                "composite"
+            } else {
+                "link"
+            };
+            cmd::set(&mut descriptor, "record_type", cmd::string(kind))?;
+            cmd::set(
+                &mut descriptor,
+                "record_schema_version",
+                cmd::string(schema_version),
+            )?;
+            RevisionFamily::NativeSelected
+        }
+        _ => {
+            let registry = cmd::parse(required(ctx, REGISTRY)?)?;
+            let entries = cmd::array(&registry, "types")?
+                .iter()
+                .filter(|entry| {
+                    entry
+                        .object_get("source_record_profile")
+                        .and_then(|p| cmd::text(p, "record_type").ok())
+                        == cmd::text(&record, "record_type").ok()
+                })
+                .collect::<Vec<_>>();
+            if entries.len() != 1 {
+                return Err(SourceCommandError::Unsupported(
+                    "exact metadata schema has no unique declared profile",
+                ));
+            }
+            cmd::set(
+                &mut descriptor,
+                "profile_type_id",
+                cmd::field(entries[0], "type_id")?.clone(),
+            )?;
+            RevisionFamily::PublicProfile
+        }
+    };
+    // This descriptor routes a read. It is never evaluated as a protected
+    // configuration or used to manufacture a grant or preparation plan.
+    let mut routed = ctx.clone();
+    routed.configuration_raw = cmd::canonical(&descriptor)?;
+    profile(
+        worker,
+        deadline,
+        cancelled,
+        &routed,
+        &descriptor,
+        family,
+        &record,
+    )?;
+    let files = package(&routed, location, true)?;
+    let retained = verify_history(&routed, &descriptor, &files, &record)?;
+    if &subject == exact {
+        return Ok((record, location.into()));
+    }
+    for receipt in cmd::array(&retained, "receipts")? {
+        if cmd::field(receipt, "previous_source")? == exact {
+            let (archived, _) = read_archive(&routed, &descriptor, receipt)?;
+            let (_, base) = split(location)?;
+            let record = cmd::parse(archived.get(base).ok_or(SourceCommandError::Conflict(
+                "retained metadata record absent",
+            ))?)?;
+            return Ok((record, location.into()));
+        }
+    }
+    Err(SourceCommandError::Conflict(
+        "requested metadata version is not retained in exact owner history",
+    ))
 }
