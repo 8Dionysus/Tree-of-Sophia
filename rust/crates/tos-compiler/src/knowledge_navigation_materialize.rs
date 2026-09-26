@@ -5,20 +5,12 @@
 use crate::knowledge_normalization::SourceRow;
 use crate::knowledge_stage::{KnowledgeStage, NodeRow, RelationRow, SeekRow, WritePhase};
 use crate::{
-    Error, NavigationEndpoint, NavigationNodeNormalizer, NavigationPrepareReceipt,
-    NavigationRelationDependencyReceipt, NavigationRelationGlobalInputs,
+    CompleteBaseNodes, Error, NavigationEndpoint, NavigationNodeNormalizer,
+    NavigationPrepareReceipt, NavigationRelationDependencyReceipt, NavigationRelationGlobalInputs,
     NavigationRelationNormalizer, Result,
 };
 use serde_json::Value;
 use tos_foundation::{Digest256, Digest256Hasher};
-
-/// The independently checked all-source base producer owns these values.
-#[derive(Clone, Debug)]
-pub struct CompleteBaseNodes {
-    pub source_cut: String,
-    pub node_count: u64,
-    pub node_root_sha256: String,
-}
 
 #[derive(Clone, Copy, Debug)]
 pub struct NavigationMaterializeLimits {

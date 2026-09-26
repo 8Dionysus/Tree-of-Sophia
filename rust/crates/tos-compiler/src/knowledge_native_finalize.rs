@@ -201,6 +201,11 @@ where
                         };
                         let mut owner = None;
                         for collection in collections {
+                            if !stage.exact_receipt().collections.iter().any(|entry| {
+                                entry.source_graph == row.source && entry.collection == *collection
+                            }) {
+                                continue;
+                            }
                             if let Some(raw) = stage.raw_by_id(&row.source, collection, native)? {
                                 if owner.is_some() {
                                     return Err(Error::Invalid("ambiguous native context source"));
