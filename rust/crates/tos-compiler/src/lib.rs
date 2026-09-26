@@ -8,6 +8,7 @@ mod knowledge_catalog_index;
 mod knowledge_full;
 #[cfg(all(not(target_arch = "wasm32"), any(test, feature = "test-fixture")))]
 pub mod knowledge_full_fixture;
+mod knowledge_global_titles;
 mod knowledge_indexed;
 mod knowledge_inherited_views;
 mod knowledge_navigation_finalize;
@@ -35,6 +36,10 @@ mod vocabulary;
 pub use knowledge_catalog_index::{CatalogIndexLimits, CatalogIndexReceipt, materialize_catalog};
 pub use knowledge_full::{
     FullKnowledgeLimits, FullKnowledgeReceipt, compile_full_knowledge_components,
+};
+pub use knowledge_global_titles::{
+    CompleteBaseNodes, GlobalTitleLimits, GlobalTitleReceipt, clear_global_titles, endpoint_title,
+    order_native_graph_rows, prepare_global_titles,
 };
 pub use knowledge_indexed::{IndexedLimits, IndexedReceipt, materialize_indexed_sources};
 pub use knowledge_inherited_views::{
