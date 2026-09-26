@@ -8,7 +8,8 @@ use tos_query::search_v2::{CurrentPolicyBinding, SearchKind, SearchV2Error, Sear
 use tos_query::{
     BoundCmpKnowledge, INSPECT_INTENDED_USE, IndexedDisclosureScope, InspectBudget,
     InspectCurrentAuthority, InspectDisclosureLease, InspectedCarrier, NODE_INSPECT_OPERATION,
-    RELATION_INSPECT_OPERATION, bind_verified_knowledge, execute_selected_inspect,
+    ObservedInspectCarrier, RELATION_INSPECT_OPERATION, bind_verified_knowledge,
+    execute_selected_inspect,
 };
 struct Lease;
 impl InspectDisclosureLease for Lease {
@@ -76,7 +77,7 @@ impl InspectCurrentAuthority for Authority {
     fn acquire_disclosure(
         &mut self,
         _: &IndexedDisclosureScope,
-        consulted: &[InspectedCarrier],
+        consulted: &[ObservedInspectCarrier],
     ) -> Result<Box<dyn InspectDisclosureLease>, SearchV2Error> {
         if self.withdrawn {
             return Err(SearchV2Error {

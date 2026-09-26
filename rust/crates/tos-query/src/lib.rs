@@ -11,6 +11,9 @@ mod knowledge_catalog;
 #[cfg(not(target_arch = "wasm32"))]
 mod knowledge_inspect;
 pub mod knowledge_lens_spec;
+pub mod knowledge_lens;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod knowledge_exploration;
 #[cfg(not(target_arch = "wasm32"))]
 mod knowledge_packet;
 pub mod knowledge_presentation;
@@ -39,8 +42,8 @@ pub use knowledge_catalog::{
 #[cfg(not(target_arch = "wasm32"))]
 pub use knowledge_inspect::{
     DisclosableInspect, INSPECT_INTENDED_USE, InspectBudget, InspectCurrentAuthority,
-    InspectDisclosureLease, InspectedCarrier, NODE_INSPECT_OPERATION, RELATION_INSPECT_OPERATION,
-    execute_selected_inspect,
+    InspectDisclosureLease, InspectedCarrier, NODE_INSPECT_OPERATION, ObservedInspectCarrier,
+    RELATION_INSPECT_OPERATION, execute_selected_inspect,
 };
 #[cfg(not(target_arch = "wasm32"))]
 pub use knowledge_packet::{

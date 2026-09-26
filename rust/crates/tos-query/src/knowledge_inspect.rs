@@ -69,6 +69,14 @@ pub struct InspectedCarrier {
     pub payload_sha256: Digest256,
     pub payload: JsonValue,
 }
+#[derive(Clone, Debug)]
+pub struct ObservedInspectCarrier {
+    pub kind: SearchKind,
+    pub id: String,
+    pub source_graph: String,
+    pub position: u64,
+    pub payload_sha256: Digest256,
+}
 pub trait InspectDisclosureLease: Send {
     fn recheck(&mut self) -> Result<(), SearchV2Error>;
 }
@@ -80,7 +88,7 @@ pub trait InspectCurrentAuthority {
     fn acquire_disclosure(
         &mut self,
         scope: &IndexedDisclosureScope,
-        consulted: &[InspectedCarrier],
+        consulted: &[ObservedInspectCarrier],
     ) -> Result<Box<dyn InspectDisclosureLease>, SearchV2Error>;
 }
 pub struct DisclosableInspect {
@@ -105,9 +113,67 @@ pub(crate) struct Reader<'a, 'b, A: ?Sized> {
     budget: InspectBudget,
     decoded: u64,
     rows: u64,
-    consulted: Vec<InspectedCarrier>,
+    consulted: Vec<ObservedInspectCarrier>,
+    scope: &'a IndexedDisclosureScope,
 }
 impl<A: InspectCurrentAuthority + ?Sized> Reader<'_, '_, A> {
+    pub(crate) fn disclosure_scope(&self) -> &IndexedDisclosureScope {
+        self.scope
+    }
+    /// Exact same-cut certified normalized scope counts. Does not walk graph
+    /// rows to rediscover a producer count already bound by cold admission.
+    pub(crate) fn scope_count(
+        &mut self,
+        kind: SearchKind,
+        sources: &[String],
+    ) -> Result<u64, SearchV2Error> {
+        self.authority.check_selected()?;
+        let list = JsonValue::Array(sources.iter().map(|source| text(source)).collect());
+        let encoded = canonical_bytes_v1(
+            &list,
+            CanonicalProfile::SourceRecordDigestV1,
+            self.budget.json,
+        )
+        .map_err(|_| budget_error())?;
+        let encoded =
+            std::str::from_utf8(&encoded).map_err(|_| corrupt("scope sources invalid"))?;
+        let field = if kind == SearchKind::Nodes {
+            "expected_node_count"
+        } else {
+            "expected_relation_count"
+        };
+        let sql = format!(
+            "SELECT {field} FROM source_scope WHERE source_graph IN (SELECT value FROM json_each(?1))"
+        );
+        let mut statement = self
+            .model
+            .connection()
+            .prepare_cached(&sql)
+            .map_err(sql_error)?;
+        let mut rows = statement.query([encoded]).map_err(sql_error)?;
+        let mut total = 0u64;
+        let mut count = 0;
+        while let Some(row) = rows.next().map_err(sql_error)? {
+            let n = row.get::<_, i64>(0).map_err(sql_error)?;
+            if n < 0 {
+                return Err(corrupt("selected source scope count invalid"));
+            }
+            self.rows = self.rows.checked_add(1).ok_or_else(budget_error)?;
+            self.decoded = self.decoded.checked_add(8).ok_or_else(budget_error)?;
+            if self.rows > self.budget.max_rows || self.decoded > self.budget.max_decoded_bytes {
+                return Err(budget_error());
+            }
+            total = total.checked_add(n as u64).ok_or_else(budget_error)?;
+            count += 1;
+        }
+        if count != sources.iter().collect::<BTreeSet<_>>().len() {
+            return Err(error(
+                SearchV2ErrorCode::IndexIncomplete,
+                "selected source scope metadata incomplete",
+            ));
+        }
+        Ok(total)
+    }
     /// Digest-bound selected graph metadata, including exact property grammar.
     pub(crate) fn header(&mut self) -> Result<JsonValue, SearchV2Error> {
         self.authority.check_selected()?;
@@ -418,7 +484,18 @@ impl<A: InspectCurrentAuthority + ?Sized> Reader<'_, '_, A> {
                 payload: value.clone(),
             };
             self.authority.authorize_current(&carrier)?;
-            self.consulted.push(carrier);
+            self.consulted.push(ObservedInspectCarrier {
+                kind: carrier.kind,
+                id: carrier.id,
+                position: carrier.position,
+                payload_sha256: carrier.payload_sha256,
+                source_graph: carrier
+                    .payload
+                    .object_get("source_graph")
+                    .and_then(JsonValue::as_str)
+                    .ok_or_else(|| corrupt("inspect carrier source invalid"))?
+                    .to_owned(),
+            });
             values.push(value);
         }
         Ok(values)
@@ -702,6 +779,7 @@ where
             decoded: 0,
             rows: 0,
             consulted: vec![],
+            scope: &scope,
         };
         let value = compute(&mut read)?;
         let mut limits = budget.json;
