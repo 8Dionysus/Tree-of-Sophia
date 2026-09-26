@@ -167,6 +167,10 @@ impl Deref for DisclosableIndexedSearch {
 }
 
 impl DisclosableIndexedSearch {
+    /// Move authenticated bytes and the disclosure hold into a transport packet.
+    pub fn into_parts(self) -> (Vec<u8>, Box<dyn IndexedDisclosureLease>) {
+        (self.body, self.lease)
+    }
     pub fn recheck(&mut self) -> Result<(), SearchV2Error> {
         self.lease.recheck()
     }

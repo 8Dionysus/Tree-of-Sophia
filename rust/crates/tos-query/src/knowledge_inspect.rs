@@ -102,6 +102,10 @@ impl Deref for DisclosableInspect {
     }
 }
 impl DisclosableInspect {
+    /// Move authenticated bytes and the disclosure hold into a transport packet.
+    pub fn into_parts(self) -> (Vec<u8>, Box<dyn InspectDisclosureLease>) {
+        (self.body, self.lease)
+    }
     pub fn recheck(&mut self) -> Result<(), SearchV2Error> {
         self.lease.recheck()
     }

@@ -135,6 +135,11 @@ impl Deref for DisclosableCatalog {
 }
 
 impl DisclosableCatalog {
+    /// Move the authenticated bytes and held lease into a transport packet.
+    /// The adapter must retain and recheck the lease through the final flush.
+    pub fn into_parts(self) -> (Vec<u8>, Box<dyn CatalogDisclosureLease>) {
+        (self.body, self.lease)
+    }
     pub fn recheck(&mut self) -> Result<(), CatalogError> {
         self.lease.recheck()
     }
