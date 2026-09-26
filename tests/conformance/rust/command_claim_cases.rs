@@ -224,7 +224,10 @@ fn claim_successor_retains_bytes_replays_current_scope_and_refuses_unissued_admi
         .unwrap();
     assert_eq!(write.after.as_ref().unwrap(), &expected_stream);
     let archive = result["receipt"]["archive_path"].as_str().unwrap();
-    let archive_stream = format!("{archive}/source-claims.jsonl");
+    let archive_stream = format!(
+        "{archive}/{}.blob",
+        Digest256::of_bytes(&initial_stream).to_hex()
+    );
     assert_eq!(
         prepared
             .changes
@@ -235,6 +238,21 @@ fn claim_successor_retains_bytes_replays_current_scope_and_refuses_unissued_admi
             .as_ref()
             .unwrap(),
         &initial_stream
+    );
+    let manifest: Value = serde_json::from_slice(
+        prepared
+            .changes
+            .iter()
+            .find(|change| change.path.as_str() == format!("{archive}/manifest.json"))
+            .unwrap()
+            .after
+            .as_ref()
+            .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(
+        manifest["files"],
+        serde_json::json!({"source-claims.jsonl":{"blob":format!("{}.blob",Digest256::of_bytes(&initial_stream).to_hex()),"sha256":Digest256::of_bytes(&initial_stream).to_prefixed(),"bytes":initial_stream.len()}})
     );
     let history_path = format!(
         "{}/claim-revision-history.json",
@@ -296,6 +314,10 @@ fn claim_successor_retains_bytes_replays_current_scope_and_refuses_unissued_admi
     )
     .unwrap();
     assert_eq!(response(&inspected)["record"], initial);
+    assert_eq!(
+        response(&inspected)["files"]["source-claims.jsonl"],
+        serde_json::json!({"archive_path":archive_stream,"sha256":Digest256::of_bytes(&initial_stream).to_prefixed(),"bytes":initial_stream.len()})
+    );
     assert!(inspected.changes.is_empty());
     // A bound candidate and retained receipt do not restore current authority.
     let mut revoked = configuration.clone();

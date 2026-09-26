@@ -889,7 +889,11 @@ pub fn run_claim_command(
                     "inspected_source",
                     field(&request, "source")?.clone(),
                 )?;
-                set(&mut response, "files", refs(&archived))?;
+                set(
+                    &mut response,
+                    "files",
+                    archive_locations(&archived, text(receipt, "archive_path")?),
+                )?;
                 return ctx.plan(&handler, response, vec![], false);
             }
         }
@@ -1132,10 +1136,15 @@ pub fn run_claim_command(
             ("source_path", string(p.as_str())),
             ("source", metadata_subject(record)?),
             ("revision", previous_revision),
-            ("files", refs(&files)),
+            ("files", archive_refs(&files)),
         ]);
         let mut output = Vec::new();
-        for (name, raw) in &files {
+        let mut archived_blobs = BTreeSet::new();
+        for raw in files.values() {
+            let name = blob_name(raw);
+            if !archived_blobs.insert(name.clone()) {
+                continue;
+            }
             let path = path(&format!("{archive_path}/{name}"))?;
             if ctx.file(&path)?.is_some() {
                 return Err(SourceCommandError::Conflict(
@@ -1646,14 +1655,85 @@ fn archive(
             field(&manifest, "source")?,
             field(receipt, "previous_source")?,
         )?
-        || !same(field(&manifest, "revision")?, &revision(&files)?)?
-        || !same(field(&manifest, "files")?, &refs(&files))?
+        || !same(
+            field(&manifest, "revision")?,
+            field(receipt, "previous_revision")?,
+        )?
     {
         return Err(SourceCommandError::Conflict(
             "retained Claim archive bytes differ",
         ));
     }
-    Ok(files)
+    let mut restored = BTreeMap::new();
+    let mut bound_blobs = BTreeSet::new();
+    for (name, binding) in field(&manifest, "files")?
+        .as_object()
+        .ok_or(SourceCommandError::Invalid("archive file bindings"))?
+    {
+        let name = name
+            .as_str()
+            .ok_or(SourceCommandError::Invalid("archive basename"))?;
+        if name.is_empty() || name.contains('/') || [".", ".."].contains(&name) {
+            return Err(SourceCommandError::Invalid("archive basename"));
+        }
+        exact_keys(binding, &["blob", "sha256", "bytes"])?;
+        let blob = text(binding, "blob")?;
+        let raw = files
+            .get(blob)
+            .ok_or(SourceCommandError::Conflict("retained archive blob absent"))?;
+        if blob != blob_name(raw)
+            || text(binding, "sha256")? != Digest256::of_bytes(raw).to_prefixed()
+            || integer(binding, "bytes")? != raw.len() as u64
+        {
+            return Err(SourceCommandError::Conflict(
+                "retained archive blob binding differs",
+            ));
+        }
+        bound_blobs.insert(blob.to_owned());
+        restored.insert(name.to_owned(), raw.clone());
+    }
+    if files.keys().cloned().collect::<BTreeSet<_>>() != bound_blobs
+        || !same(&revision(&restored)?, field(receipt, "previous_revision")?)?
+    {
+        return Err(SourceCommandError::Conflict(
+            "retained archive contains unbound bytes or wrong package revision",
+        ));
+    }
+    Ok(restored)
+}
+
+fn blob_name(raw: &[u8]) -> String {
+    format!("{}.blob", Digest256::of_bytes(raw).to_hex())
+}
+fn archive_refs(files: &BTreeMap<String, Vec<u8>>) -> JsonValue {
+    let mut result = refs(files);
+    if let JsonValue::Object(entries) = &mut result {
+        for (name, binding) in entries {
+            let raw = &files[name.as_str().unwrap()];
+            if let JsonValue::Object(fields) = binding {
+                fields.push((
+                    tos_foundation::JsonString::from_utf8("blob"),
+                    string(&blob_name(raw)),
+                ));
+            }
+        }
+    }
+    result
+}
+fn archive_locations(files: &BTreeMap<String, Vec<u8>>, directory: &str) -> JsonValue {
+    let mut result = refs(files);
+    if let JsonValue::Object(entries) = &mut result {
+        for (name, binding) in entries {
+            let raw = &files[name.as_str().unwrap()];
+            if let JsonValue::Object(fields) = binding {
+                fields.push((
+                    tos_foundation::JsonString::from_utf8("archive_path"),
+                    string(&format!("{directory}/{}", blob_name(raw))),
+                ));
+            }
+        }
+    }
+    result
 }
 /// Validate the complete shared stream sequence before selecting an old version.
 pub fn verify_claim_history(
