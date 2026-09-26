@@ -10,6 +10,45 @@ use crate::common::{
     registered_operations, validate_packet,
 };
 
+const RPC_PREFIX: &[u8] = b"{\"jsonrpc\":\"2.0\",\"id\":";
+const RESULT_PREFIX: &[u8] = b",\"result\":";
+const TEXT_PREFIX: &[u8] = b"{\"content\":[{\"type\":\"text\",\"text\":";
+const STRUCTURED_PREFIX: &[u8] = b"}],\"structuredContent\":";
+
+fn tool_result_frame_len(
+    packet_bytes: usize,
+    escaped_text_bytes: usize,
+    id_bytes: usize,
+) -> Option<usize> {
+    [
+        RPC_PREFIX.len(),
+        id_bytes,
+        RESULT_PREFIX.len(),
+        TEXT_PREFIX.len(),
+        escaped_text_bytes,
+        STRUCTURED_PREFIX.len(),
+        packet_bytes,
+        2, // result and JSON-RPC closing braces
+        1, // newline
+    ]
+    .into_iter()
+    .try_fold(0usize, usize::checked_add)
+}
+
+/// Conservative complete tool-result frame allowance from declared packet and
+/// request caps. JSON quoting can expand each UTF-8 byte to at most six bytes;
+/// both the text copy and a canonicalized string request ID include quotes.
+/// The raw structured copy, fixed envelope and newline are included. Returns
+/// None on arithmetic overflow; this does not select a production allowance.
+pub fn tool_result_frame_byte_bound(
+    max_packet_bytes: usize,
+    max_request_bytes: usize,
+) -> Option<usize> {
+    let escaped_text = max_packet_bytes.checked_mul(6)?.checked_add(2)?;
+    let id = max_request_bytes.checked_mul(6)?.checked_add(2)?;
+    tool_result_frame_len(max_packet_bytes, escaped_text, id)
+}
+
 struct McpSession {
     handshake_accepted: bool,
     initialized: bool,
@@ -176,23 +215,11 @@ impl McpSession {
                                 return Some(rpc_error(&id, -32603, "Query packet is not UTF-8"));
                             }
                         };
-                        const TEXT_PREFIX: &[u8] = b"{\"content\":[{\"type\":\"text\",\"text\":";
-                        const STRUCTURED_PREFIX: &[u8] = b"}],\"structuredContent\":";
-                        let frame_len = [
-                            b"{\"jsonrpc\":\"2.0\",\"id\":".len(),
-                            id.len(),
-                            b",\"result\":".len(),
-                            TEXT_PREFIX.len(),
-                            json_string_len(text).unwrap_or(usize::MAX),
-                            STRUCTURED_PREFIX.len(),
-                            packet.body.len(),
-                            2, // closing braces
-                            1, // newline
-                        ]
-                        .into_iter()
-                        .try_fold(0usize, usize::checked_add);
+                        let frame_len = json_string_len(text).and_then(|escaped| {
+                            tool_result_frame_len(packet.body.len(), escaped, id.len())
+                        });
                         if !frame_len
-                            .is_some_and(|length| length <= self.profile.max_response_bytes)
+                            .is_some_and(|length| length <= self.profile.max_mcp_frame_bytes)
                         {
                             return Some(rpc_error(
                                 &id,
@@ -220,16 +247,16 @@ impl McpSession {
 }
 
 fn rpc_result(id: &[u8], result: &[u8]) -> Vec<u8> {
-    let mut out = b"{\"jsonrpc\":\"2.0\",\"id\":".to_vec();
+    let mut out = RPC_PREFIX.to_vec();
     out.extend_from_slice(id);
-    out.extend_from_slice(b",\"result\":");
+    out.extend_from_slice(RESULT_PREFIX);
     out.extend_from_slice(result);
     out.push(b'}');
     out
 }
 
 fn rpc_error(id: &[u8], code: i32, message: &str) -> Vec<u8> {
-    let mut out = b"{\"jsonrpc\":\"2.0\",\"id\":".to_vec();
+    let mut out = RPC_PREFIX.to_vec();
     out.extend_from_slice(id);
     out.extend_from_slice(b",\"error\":{\"code\":");
     out.extend_from_slice(code.to_string().as_bytes());

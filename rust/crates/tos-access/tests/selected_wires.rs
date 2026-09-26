@@ -709,6 +709,16 @@ mod selected_knowledge {
             ),
         ];
         let profile = AccessProfile::new(65_536, 1_048_576, 65_536);
+        // This fixture admits every packet under its declared cap, including
+        // MCP's escaped text copy, structured copy and bounded request ID.
+        // Production's default equal packet/frame caps remain unchanged.
+        let mcp_profile = profile.with_mcp_frame_budget(
+            tos_access::mcp::tool_result_frame_byte_bound(
+                profile.max_response_bytes,
+                profile.max_request_bytes.min(profile.max_line_bytes),
+            )
+            .expect("declared fixture byte caps fit usize"),
+        );
         for (request, args, path, tool, arguments) in cases {
             let packet = executor.knowledge(request, Arc::new(NeverAbort)).unwrap();
             let expected = packet.body.clone();
@@ -752,15 +762,28 @@ mod selected_knowledge {
                 held: Arc::clone(&executor.held),
                 source_frame: false,
             };
-            run_io(Cursor::new(input), &mut output, executor.as_ref(), profile).unwrap();
+            run_io(
+                Cursor::new(input),
+                &mut output,
+                executor.as_ref(),
+                mcp_profile,
+            )
+            .unwrap();
             let last = output
                 .bytes
                 .split(|b| *b == b'\n')
                 .filter(|frame| !frame.is_empty())
                 .last()
                 .unwrap();
-            let result =
-                parse_json(last, JsonMode::PublishedStrict, JsonLimits::default()).unwrap();
+            let result = parse_json(
+                last,
+                JsonMode::PublishedStrict,
+                JsonLimits {
+                    max_bytes: mcp_profile.max_mcp_frame_bytes,
+                    ..JsonLimits::default()
+                },
+            )
+            .unwrap();
             let rpc_result = result.root().object_get("result").unwrap_or_else(|| {
                 panic!(
                     "{tool}: selected packet bytes={}, RPC frame={}",
@@ -778,6 +801,14 @@ mod selected_knowledge {
                 .as_str()
                 .unwrap();
             assert_eq!(text.as_bytes(), expected);
+            // structuredContent is the unchanged raw packet immediately before
+            // the result and JSON-RPC closing braces, not a reserialization.
+            assert!(last.ends_with(b"}}"));
+            assert_eq!(
+                &last[last.len() - expected.len() - 2..last.len() - 2],
+                expected
+            );
+            assert!(last.len() + 1 <= mcp_profile.max_mcp_frame_bytes);
             assert_eq!(executor.held.load(Ordering::SeqCst), 0);
         }
         let raw = format!(

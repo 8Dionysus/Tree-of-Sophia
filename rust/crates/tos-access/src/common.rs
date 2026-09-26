@@ -456,7 +456,10 @@ impl IndexedSearchParams {
 #[derive(Clone, Copy)]
 pub struct AccessProfile {
     pub max_request_bytes: usize,
+    /// Raw query packet cap, shared by CLI, HTTP and MCP.
     pub max_response_bytes: usize,
+    /// Complete MCP tool-result JSON-RPC frame cap, including its newline.
+    pub max_mcp_frame_bytes: usize,
     pub max_line_bytes: usize,
     /// Caller-selected processing deadline. None does not claim a time cap.
     pub query_timeout: Option<Duration>,
@@ -467,9 +470,15 @@ impl AccessProfile {
         Self {
             max_request_bytes,
             max_response_bytes,
+            max_mcp_frame_bytes: max_response_bytes,
             max_line_bytes,
             query_timeout: None,
         }
+    }
+    /// Select a separate transport allowance without changing packet admission.
+    pub fn with_mcp_frame_budget(mut self, max_bytes: usize) -> Self {
+        self.max_mcp_frame_bytes = max_bytes;
+        self
     }
     pub fn with_query_timeout(mut self, timeout: Duration) -> Self {
         self.query_timeout = Some(timeout);
