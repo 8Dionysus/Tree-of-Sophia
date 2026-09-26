@@ -128,7 +128,7 @@ fn localized_from(value: Option<&Value>, fallback: &str) -> Map<String, Value> {
     }
 }
 
-fn humanize(value: &str) -> String {
+pub(crate) fn humanize(value: &str) -> String {
     let mut result = String::new();
     let mut separated = false;
     for ch in value.chars() {
@@ -430,12 +430,48 @@ pub fn ordinary_philosophy_relation_display(
     right_title: &Value,
     effective_relation_type: &Value,
 ) -> Result<Value> {
+    relation_display(
+        row,
+        predicate_id,
+        left_title,
+        right_title,
+        effective_relation_type,
+        true,
+    )
+}
+
+/// Owner-source relation assembly also accepts Python's empty endpoint fallback.
+/// The ordinary philosophy entry retains its narrower adapter admission.
+pub(crate) fn full_owner_relation_display(
+    row: &SourceRow,
+    predicate_id: &str,
+    left_title: &Value,
+    right_title: &Value,
+    effective_relation_type: &Value,
+) -> Result<Value> {
+    relation_display(
+        row,
+        predicate_id,
+        left_title,
+        right_title,
+        effective_relation_type,
+        false,
+    )
+}
+fn relation_display(
+    row: &SourceRow,
+    predicate_id: &str,
+    left_title: &Value,
+    right_title: &Value,
+    effective_relation_type: &Value,
+    strict: bool,
+) -> Result<Value> {
     let item = row.value();
     let props = field(item, "properties").and_then(Value::as_object);
     if predicate_id.is_empty()
         || text(field(item, "edge_id")).is_none()
-        || text(field(item, "from_id")).is_none()
-        || text(field(item, "to_id")).is_none()
+        || (strict && text(field(item, "from_id")).is_none())
+        || (strict && text(field(item, "to_id")).is_none())
         || field(item, "display").is_some()
         || !left_title.is_object()
         || !right_title.is_object()

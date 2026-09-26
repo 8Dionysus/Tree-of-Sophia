@@ -19,6 +19,7 @@ pub mod knowledge_normalization;
 mod knowledge_ordered;
 pub mod knowledge_philosophy_display;
 mod knowledge_philosophy_materialize;
+mod knowledge_base;
 mod knowledge_philosophy_prepare;
 mod knowledge_readable_context;
 mod knowledge_registry;

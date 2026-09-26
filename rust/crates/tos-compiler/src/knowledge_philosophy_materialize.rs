@@ -2,40 +2,14 @@
 //! Global placeholders, inherited views and readable context remain assembly
 //! obligations; rows emitted here are private bases, never semantic admission.
 
-use crate::knowledge_normalization::{SourceRow, stamp_content_revision};
-use crate::knowledge_philosophy_display::{
-    full_philosophy_node_display, ordinary_philosophy_relation_display,
-};
+use crate::knowledge_base::{BaseNodeOverrides, BaseNormalizationLimits, KnowledgeBaseNormalizer};
+use crate::knowledge_normalization::SourceRow;
 use crate::knowledge_philosophy_prepare::dependency_root;
-use crate::knowledge_source_navigation_node::{epistemic, normalized_time};
-use crate::knowledge_source_navigation_relation::direct_assertion_context;
 use crate::knowledge_stage::{KnowledgeStage, NodeRow, RelationRow, SeekRow, WritePhase};
 use crate::{Error, KnowledgeRegistry, PhilosophyPrepareReceipt, QueryVocabulary, Result};
 use rusqlite::OptionalExtension;
-use serde_json::{Map, Value, json};
-use std::{
-    collections::{BTreeMap, BTreeSet},
-    io::Write,
-};
+use serde_json::Value;
 use tos_foundation::Digest256;
-
-struct CappedBytes {
-    bytes: usize,
-    cap: usize,
-}
-impl Write for CappedBytes {
-    fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
-        self.bytes = self
-            .bytes
-            .checked_add(bytes.len())
-            .filter(|n| *n <= self.cap)
-            .ok_or_else(|| std::io::Error::other("philosophy title byte ceiling"))?;
-        Ok(bytes.len())
-    }
-    fn flush(&mut self) -> std::io::Result<()> {
-        Ok(())
-    }
-}
 
 const PROFILE: &str = "philosophy-node-edge-v1";
 
@@ -98,10 +72,7 @@ impl PhilosophyBase {
 pub struct PhilosophyNormalizer<'a> {
     registry: &'a KnowledgeRegistry,
     source_graph: String,
-    entity_registry_ref: String,
-    relation_registry_ref: String,
-    entities: BTreeMap<String, Value>,
-    relations: BTreeMap<String, Value>,
+    shared: KnowledgeBaseNormalizer<'a>,
     limits: PhilosophyMaterializeLimits,
 }
 
@@ -112,112 +83,6 @@ fn required<'a>(value: &'a Value, field: &str) -> Result<&'a str> {
         .filter(|s| !s.is_empty() && s.len() <= 4096 && !s.contains('\0'))
         .ok_or(Error::Invalid("philosophy normalized field"))
 }
-fn text(value: Option<&Value>) -> Option<&str> {
-    value?.as_str().map(str::trim).filter(|s| !s.is_empty())
-}
-fn strings(value: Option<&Value>) -> Vec<Value> {
-    let mut seen = BTreeSet::new();
-    value
-        .and_then(Value::as_array)
-        .into_iter()
-        .flatten()
-        .filter_map(|v| v.as_str().filter(|s| !s.is_empty()))
-        .filter(|s| seen.insert((*s).to_owned()))
-        .map(|s| Value::String(s.to_owned()))
-        .collect()
-}
-fn truthy(value: Option<&Value>) -> bool {
-    match value {
-        None | Some(Value::Null) | Some(Value::Bool(false)) => false,
-        Some(Value::String(s)) => !s.is_empty(),
-        Some(Value::Number(n)) => n.as_f64().is_some_and(|n| n != 0.),
-        Some(Value::Array(a)) => !a.is_empty(),
-        Some(Value::Object(o)) => !o.is_empty(),
-        _ => true,
-    }
-}
-fn attrs(item: &Value, relation: bool) -> Result<Map<String, Value>> {
-    let mut output = item
-        .get("properties")
-        .and_then(Value::as_object)
-        .cloned()
-        .unwrap_or_default();
-    let excluded = if relation {
-        &[
-            "id",
-            "edge_id",
-            "from_id",
-            "to_id",
-            "predicate_id",
-            "display",
-            "properties",
-            "source_ref",
-            "source_refs",
-            "graph_layers",
-            "view_ids",
-            "from_source_graph",
-            "to_source_graph",
-        ][..]
-    } else {
-        &[
-            "id",
-            "node_id",
-            "label",
-            "canonical_label",
-            "node_type",
-            "node_kind",
-            "resource_kind",
-            "display",
-            "multilingual",
-            "properties",
-            "source_ref",
-            "source_refs",
-            "graph_layers",
-            "view_ids",
-        ][..]
-    };
-    for (key, value) in item
-        .as_object()
-        .ok_or(Error::Invalid("philosophy source object"))?
-    {
-        if !excluded.contains(&key.as_str()) {
-            output.entry(key.clone()).or_insert_with(|| value.clone());
-        }
-    }
-    Ok(output)
-}
-fn layers(item: &Value) -> Vec<Value> {
-    let layers = strings(item.get("graph_layers"));
-    if layers.is_empty() {
-        text(item.get("layer"))
-            .map(|s| vec![json!(s)])
-            .unwrap_or_default()
-    } else {
-        layers
-    }
-}
-fn entries(
-    bytes: &[u8],
-    cap: usize,
-    collection: &str,
-    id_field: &str,
-) -> Result<BTreeMap<String, Value>> {
-    let row = SourceRow::parse(bytes, cap)?;
-    let mut entries = BTreeMap::new();
-    for entry in row
-        .value()
-        .get(collection)
-        .and_then(Value::as_array)
-        .ok_or(Error::Invalid("philosophy registry entries"))?
-    {
-        let id = required(entry, id_field)?.to_owned();
-        if entries.insert(id, entry.clone()).is_some() {
-            return Err(Error::Invalid("duplicate philosophy registry entry"));
-        }
-    }
-    Ok(entries)
-}
-
 impl<'a> PhilosophyNormalizer<'a> {
     pub fn new(
         registry: &'a KnowledgeRegistry,
@@ -249,33 +114,21 @@ impl<'a> PhilosophyNormalizer<'a> {
         if sources.len() != 1 {
             return Err(Error::Invalid("philosophy selected materializer"));
         }
-        let descriptor = SourceRow::parse(descriptor_bytes, 1024 * 1024)?;
-        let refs = descriptor
-            .value()
-            .get("semantic_registry_refs")
-            .ok_or(Error::Invalid("philosophy registry refs"))?;
+        let shared = KnowledgeBaseNormalizer::new(
+            registry,
+            entity_bytes,
+            relation_bytes,
+            vocabulary,
+            descriptor_bytes,
+            BaseNormalizationLimits {
+                max_registry_bytes: limits.max_registry_bytes,
+                max_output_bytes: limits.max_output_bytes,
+            },
+        )?;
         Ok(Self {
             registry,
             source_graph: sources[0].source_graph_id.clone(),
-            entity_registry_ref: required(
-                refs.get("entity")
-                    .ok_or(Error::Invalid("philosophy entity ref"))?,
-                "source_ref",
-            )?
-            .to_owned(),
-            relation_registry_ref: required(
-                refs.get("relation")
-                    .ok_or(Error::Invalid("philosophy relation ref"))?,
-                "source_ref",
-            )?
-            .to_owned(),
-            entities: entries(entity_bytes, limits.max_registry_bytes, "types", "type_id")?,
-            relations: entries(
-                relation_bytes,
-                limits.max_registry_bytes,
-                "relations",
-                "relation_type_id",
-            )?,
+            shared,
             limits,
         })
     }
@@ -367,102 +220,15 @@ impl<'a> PhilosophyNormalizer<'a> {
     ) -> Result<PhilosophyBase> {
         let raw = self.raw(stage, prepared, native, false)?;
         let source = SourceRow::parse(&raw.payload, self.limits.max_raw_bytes)?;
-        let item = source.value();
-        if required(item, "node_id")? != native {
+        if required(source.value(), "node_id")? != native {
             return Err(Error::Invalid("philosophy raw node identity"));
         }
-        let props = item.get("properties").and_then(Value::as_object);
-        let p = |key: &str| props.and_then(|props| props.get(key));
-        let kind = text(p("original_node_type"))
-            .or_else(|| text(item.get("node_type")))
-            .ok_or(Error::Invalid("philosophy semantic kind"))?;
-        let resolved = self.registry.entity(&self.source_graph, kind);
-        let type_id = resolved.type_id;
-        let entry = self
-            .entities
-            .get(type_id)
-            .ok_or(Error::Invalid("philosophy entity type entry"))?;
-        let labels = entry
-            .get("source_mappings")
-            .and_then(Value::as_array)
-            .into_iter()
-            .flatten()
-            .find(|mapping| {
-                mapping.get("source_graph").and_then(Value::as_str) == Some(&self.source_graph)
-                    && mapping.get("source_kind_id").and_then(Value::as_str) == Some(kind)
-                    && truthy(mapping.get("labels"))
-            })
-            .and_then(|mapping| mapping.get("labels"))
-            .or_else(|| entry.get("labels"));
-        let mut ancestors = BTreeSet::new();
-        let mut frontier = vec![type_id.to_owned()];
-        while let Some(id) = frontier.pop() {
-            if ancestors.insert(id.clone()) {
-                let entry = self
-                    .entities
-                    .get(&id)
-                    .ok_or(Error::Invalid("philosophy ancestor entry"))?;
-                frontier.extend(
-                    entry
-                        .get("parent_type_ids")
-                        .and_then(Value::as_array)
-                        .into_iter()
-                        .flatten()
-                        .map(|v| {
-                            v.as_str()
-                                .map(str::to_owned)
-                                .ok_or(Error::Invalid("philosophy parent ID"))
-                        })
-                        .collect::<Result<Vec<_>>>()?,
-                );
-            }
-        }
-        let refs = source.source_refs(&[]);
-        let attributes = attrs(item, false)?;
-        let mut semantics = Map::new();
-        if let Some(multilingual) = item.get("multilingual").and_then(Value::as_object) {
-            semantics.insert(
-                "language_context".into(),
-                Value::Object(
-                    multilingual
-                        .iter()
-                        .filter(|(k, _)| k.as_str() != "label")
-                        .map(|(k, v)| (k.clone(), v.clone()))
-                        .collect(),
-                ),
-            );
-        }
-        if let Some(context) = direct_assertion_context(&source, self.limits.max_output_bytes)? {
-            semantics.insert("assertion_contexts".into(), json!([context]));
-        }
-        if truthy(p("packet_id")) {
-            semantics.insert("annotation".into(),json!({"packet_id":p("packet_id"),"packet_version":p("packet_version"),"content_available":p("content_available"),"publication_posture":p("publication_posture")}));
-            if kind == "annotation-claim" {
-                semantics.insert("claim".into(),json!({"claim_id":p("claim_id"),"claim_version":p("claim_version"),"proposition":p("proposition"),"review_status":p("claim_status"),"contract_ref":"ToS/contracts/semantic-annotation-packet-v2.schema.json"}));
-            }
-        }
-        let period_field = if props.is_some_and(|p| p.contains_key("period")) {
-            "properties.period"
-        } else {
-            "temporal_context"
-        };
-        if let Some(time) = normalized_time(
-            p("period").or_else(|| item.get("temporal_context")),
-            period_field,
-        )? {
-            semantics.insert("time".into(), time);
-        }
-        semantics.insert("type_ancestors".into(), json!(ancestors));
-        let id = format!("{}:{native}", self.source_graph);
-        let entity = [p("record_id"), item.get("record_id"), item.get("node_id")]
-            .into_iter()
-            .find_map(|v| text(v).filter(|s| s.starts_with("tos.")))
-            .unwrap_or(&id);
-        let mut value = json!({"id":id,"entity_id":entity,"native_id":native,"source_graph":self.source_graph,"kind_id":kind,"type_id":type_id,
-            "type_mapping":{"status":if type_id != self.registry.fallback_entity_type_id() {"mapped"} else {"unmapped"},"source_kind_id":kind,"registry_ref":self.entity_registry_ref},
-            "display":full_philosophy_node_display(&source,kind,labels,entry.get("object_role").and_then(Value::as_str))?,"epistemic":epistemic(item),"graph_layers":layers(item),"view_ids":strings(item.get("view_ids")),
-            "source_refs":refs,"source_record":source.source_record(&attributes)?,"attributes":attributes,"semantics":semantics});
-        stamp_content_revision(&mut value, self.limits.max_output_bytes)?;
+        let value = self.shared.normalize_node(
+            &source,
+            &self.source_graph,
+            false,
+            BaseNodeOverrides::default(),
+        )?;
         Ok(self.base(value, raw, prepared, None))
     }
     pub fn relation_endpoints(
@@ -487,91 +253,19 @@ impl<'a> PhilosophyNormalizer<'a> {
         {
             return Err(Error::Invalid("philosophy global title receipt"));
         }
-        // Check bytes before display clones any title supplied by the owner.
-        for title in [global.left_title, global.right_title] {
-            if !title.is_object() {
-                return Err(Error::Invalid("philosophy title object"));
-            }
-            serde_json::to_writer(
-                &mut CappedBytes {
-                    bytes: 0,
-                    cap: self.limits.max_output_bytes,
-                },
-                title,
-            )
-            .map_err(|_| Error::Budget("philosophy title input bytes"))?;
-        }
         let raw = self.raw(stage, prepared, native, true)?;
         let source = SourceRow::parse(&raw.payload, self.limits.max_raw_bytes)?;
-        let item = source.value();
-        if required(item, "edge_id")? != native {
+        if required(source.value(), "edge_id")? != native {
             return Err(Error::Invalid("philosophy raw edge identity"));
         }
-        let (from, to) = endpoints(item, &self.source_graph)?;
-        let predicate = required(item, "predicate_id")?.trim();
-        let resolved = self
-            .registry
-            .relation(&self.source_graph, predicate, "edge");
-        let type_id = resolved.type_id;
-        let mut entry = self
-            .relations
-            .get(type_id)
-            .cloned()
-            .ok_or(Error::Invalid("philosophy relation type entry"))?;
-        let mapping = entry
-            .get("source_mappings")
-            .and_then(Value::as_array)
-            .into_iter()
-            .flatten()
-            .find(|mapping| {
-                mapping.get("source_graph").and_then(Value::as_str) == Some(&self.source_graph)
-                    && mapping.get("source_predicate_id").and_then(Value::as_str) == Some(predicate)
-                    && mapping.get("scope").and_then(Value::as_str) == Some("edge")
-                    && truthy(mapping.get("labels"))
-            })
-            .cloned();
-        if let Some(mapping) = mapping {
-            entry["labels"] = mapping["labels"].clone();
-            entry["definition"] = mapping.get("definition").cloned().unwrap_or(Value::Null);
-            entry["source_mappings"] = json!([mapping]);
-        }
-        let attributes = attrs(item, true)?;
-        let mut semantics = Map::new();
-        if let Some(context) = direct_assertion_context(&source, self.limits.max_output_bytes)? {
-            semantics.insert("assertion_contexts".into(), json!([context]));
-        }
-        for (special, key, roles, forms) in [
-            (
-                "tos.relation.has-normalized-place",
-                "space",
-                "spatial_roles",
-                "spatial_literal_forms",
-            ),
-            (
-                "tos.relation.has-normalized-agent",
-                "responsibility",
-                "agent_roles",
-                "agent_literal_forms",
-            ),
-        ] {
-            if type_id == special {
-                let p = item.get("properties");
-                let sorted = |key| {
-                    strings(p.and_then(|p| p.get(key)))
-                        .into_iter()
-                        .filter_map(|v| v.as_str().map(str::to_owned))
-                        .collect::<BTreeSet<_>>()
-                };
-                semantics.insert(key.into(),json!({"roles":sorted(roles),"literal_forms":sorted(forms),"normalization_status":"source-declared"}));
-            }
-        }
-        let mut value = json!({"id":format!("{}:{native}",self.source_graph),"native_id":native,"source_graph":self.source_graph,
-            "from_id":from,"to_id":to,"predicate_id":predicate,"relation_type_id":type_id,
-            "predicate_mapping":{"status":if resolved.mapped {"mapped"} else {"unmapped"},"source_predicate_id":predicate,"registry_ref":self.relation_registry_ref},
-            "display":ordinary_philosophy_relation_display(&source,predicate,global.left_title,global.right_title,&entry)?,"epistemic":epistemic(item),
-            "graph_layers":layers(item),"view_ids":strings(item.get("view_ids")),"source_refs":source.source_refs(&[]),
-            "source_record":source.source_record(&attributes)?,"attributes":attributes,"semantics":semantics});
-        stamp_content_revision(&mut value, self.limits.max_output_bytes)?;
+        let value = self.shared.normalize_relation(
+            &source,
+            &self.source_graph,
+            None,
+            global.left_title,
+            global.right_title,
+            "derived-export",
+        )?;
         Ok(self.base(
             value,
             raw,
@@ -579,6 +273,10 @@ impl<'a> PhilosophyNormalizer<'a> {
             Some(global.endpoint_title_root_sha256.into()),
         ))
     }
+}
+
+fn text(value: Option<&Value>) -> Option<&str> {
+    value?.as_str().map(str::trim).filter(|s| !s.is_empty())
 }
 fn endpoints(item: &Value, source: &str) -> Result<(String, String)> {
     Ok((

@@ -742,7 +742,7 @@ fn record_ref_digest(value: &Value) -> Result<String> {
         serde_json::to_vec(value).map_err(|_| Error::Invalid("record version reference JSON"))?;
     Ok(Digest256::of_bytes(&raw).to_hex())
 }
-fn native_metadata_identity(record: &Value) -> Result<&str> {
+pub(crate) fn native_metadata_identity(record: &Value) -> Result<&str> {
     let schema = record.get("schema_version").and_then(Value::as_str);
     if schema == Some("tos_canonical_node_v1") {
         let kind = required(record, "node_type")?;
