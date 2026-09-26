@@ -67,7 +67,7 @@ pub struct SourceCutRecordReport {
 
 struct BoundedSink<'a> { rows: Vec<RecordObservation>, bytes: usize, cap: usize, issues: usize, max_issues: usize, deadline: Instant, cancelled: &'a AtomicBool }
 // The protected sink checks cancellation and deadline on each observation.
-impl RecordSink for BoundedSink<'_> {
+impl BoundedSink<'_> {
     fn emit(&mut self, row: RecordObservation) -> Result<(), RecordRuleError> {
         // The caller checks cancellation around each member and join. The sink
         // additionally checks deadline on each output, including long joins.
@@ -80,6 +80,16 @@ impl RecordSink for BoundedSink<'_> {
         let cost = format!("{row:?}").len().checked_add(64).ok_or(RecordRuleError::Budget { code: "biblio_sink" })?;
         self.bytes = self.bytes.checked_add(cost).filter(|n| *n <= self.cap).ok_or(RecordRuleError::Budget { code: "biblio_sink" })?;
         self.rows.push(row); Ok(())
+    }
+}
+
+impl RecordSink for BoundedSink<'_> {
+    fn push(&mut self, row: RecordObservation) -> Result<(), String> {
+        self.emit(row).map_err(|error| match error {
+            RecordRuleError::Budget { .. } => "budget".into(),
+            RecordRuleError::Sink { detail } => detail,
+            other => format!("{other:?}"),
+        })
     }
 }
 
@@ -187,4 +197,4 @@ pub(crate) fn store_error(error: tos_source_store::StoreError) -> ItemRefusal {
     use tos_source_store::StoreErrorCode;
     match error.code { StoreErrorCode::BudgetExceeded => ItemRefusal::Budget, StoreErrorCode::UnsupportedFormat | StoreErrorCode::UnsupportedPlatform => ItemRefusal::Unsupported(error.to_string()), _ => ItemRefusal::Source(error.to_string()) }
 }
-fn record_error(error: RecordRuleError) -> ItemRefusal { match error { RecordRuleError::Budget { .. } => ItemRefusal::Budget, RecordRuleError::Sink { detail } if detail == "deadline" => ItemRefusal::Deadline, RecordRuleError::Sink { detail } if detail == "cancelled" => ItemRefusal::Source("record family cancelled".into()), other => ItemRefusal::Unsupported(format!("{other:?}")) } }
+fn record_error(error: RecordRuleError) -> ItemRefusal { match error { RecordRuleError::Budget { .. } => ItemRefusal::Budget, RecordRuleError::Sink { detail } if detail == "budget" => ItemRefusal::Budget, RecordRuleError::Sink { detail } if detail == "deadline" => ItemRefusal::Deadline, RecordRuleError::Sink { detail } if detail == "cancelled" => ItemRefusal::Source("record family cancelled".into()), other => ItemRefusal::Unsupported(format!("{other:?}")) } }
