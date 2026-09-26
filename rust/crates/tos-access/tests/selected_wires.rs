@@ -374,3 +374,405 @@ fn selected_cmp_packet_survives_all_three_native_wire_adapters() {
     drop(executor);
     fs::remove_dir_all(dir).unwrap();
 }
+
+// Reuse the maintained producer fixture, rather than another transport-only
+// packet, for the new selected knowledge binding. Synthetic policy grants
+// demonstrate custody/fence mechanics only.
+mod selected_knowledge {
+    use super::*;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use tos_access::{KnowledgeOperation as O, KnowledgeRequest as R};
+    use tos_compiler::knowledge_full_fixture::{FullKnowledgeFixture, build_fixture};
+    use tos_foundation::Digest256;
+    use tos_query::knowledge_exploration::{
+        ExplorationBudget, ExplorationCheckpoint, ExplorationCheckpoints, ExplorationState,
+        PreparedExplorationCheckpoint,
+    };
+    use tos_query::search_v2::{CurrentPolicyBinding, SearchV2Error};
+    use tos_query::{
+        BoundCmpKnowledge, CatalogBudget, CatalogCurrentAuthority, CatalogDisclosureLease,
+        CatalogDisclosureScope, CatalogError, IndexedDisclosureScope, InspectBudget,
+        InspectCurrentAuthority, InspectDisclosureLease, InspectedCarrier, ObservedInspectCarrier,
+        bind_verified_knowledge,
+    };
+    struct Lease(Arc<AtomicUsize>);
+    impl Drop for Lease {
+        fn drop(&mut self) {
+            self.0.fetch_sub(1, Ordering::SeqCst);
+        }
+    }
+    impl InspectDisclosureLease for Lease {
+        fn recheck(&mut self) -> Result<(), SearchV2Error> {
+            Ok(())
+        }
+    }
+    impl CatalogDisclosureLease for Lease {
+        fn recheck(&mut self) -> Result<(), CatalogError> {
+            Ok(())
+        }
+    }
+    struct Authority {
+        policy: CurrentPolicyBinding,
+        catalog: CatalogDisclosureScope,
+        inspect: IndexedDisclosureScope,
+        held: Arc<AtomicUsize>,
+    }
+    impl Authority {
+        fn new(bound: &BoundCmpKnowledge<'_>, request: &R, held: Arc<AtomicUsize>) -> Self {
+            let policy = CurrentPolicyBinding {
+                scope: "synthetic-wire".into(),
+                issuer_ref: "synthetic-issuer".into(),
+                authorization_receipt_id: "synthetic-receipt".into(),
+                policy_epoch: "synthetic-epoch".into(),
+                withdrawal_generation: "synthetic-withdrawal".into(),
+            };
+            let selected = bound.selection();
+            let inspect = IndexedDisclosureScope {
+                operation_id: request.operation().id().into(),
+                carrier_layer: "tos_knowledge_public_graph_projection_v1".into(),
+                intended_use: "read_only_public_knowledge_inspect_v1".into(),
+                selected_model_receipt_id: bound.owner_receipt_id().into(),
+                source_cut: selected.source_cut.clone(),
+                through_commit_seq: selected.through_commit_seq,
+                source_membership_root: selected.source_membership_root,
+                descriptor_sha256: selected.vocabulary.descriptor_sha256,
+                selected_index_sha256: selected.index_root_sha256,
+                policy_issuer_ref: policy.issuer_ref.clone(),
+                policy_receipt_id: policy.authorization_receipt_id.clone(),
+                policy_scope: policy.scope.clone(),
+                policy_epoch: policy.policy_epoch.clone(),
+                withdrawal_generation: policy.withdrawal_generation.clone(),
+            };
+            let catalog = CatalogDisclosureScope {
+                operation_id: "tos.knowledge.catalog".into(),
+                carrier_layer: inspect.carrier_layer.clone(),
+                intended_use: "read_only_public_knowledge_catalog_v1".into(),
+                selected_model_receipt_id: inspect.selected_model_receipt_id.clone(),
+                source_cut: inspect.source_cut.clone(),
+                through_commit_seq: inspect.through_commit_seq,
+                source_membership_root: inspect.source_membership_root,
+                descriptor_sha256: inspect.descriptor_sha256,
+                selected_index_sha256: inspect.selected_index_sha256,
+                catalog_packet_sha256: selected.catalog_packet_sha256,
+                policy_issuer_ref: policy.issuer_ref.clone(),
+                policy_receipt_id: policy.authorization_receipt_id.clone(),
+                policy_scope: policy.scope.clone(),
+                policy_epoch: policy.policy_epoch.clone(),
+                withdrawal_generation: policy.withdrawal_generation.clone(),
+            };
+            Self {
+                policy,
+                catalog,
+                inspect,
+                held,
+            }
+        }
+        fn lease(&self) -> Lease {
+            self.held.fetch_add(1, Ordering::SeqCst);
+            Lease(Arc::clone(&self.held))
+        }
+    }
+    impl CatalogCurrentAuthority for Authority {
+        fn policy_binding(&self) -> CurrentPolicyBinding {
+            self.policy.clone()
+        }
+        fn disclosure_scope(&self) -> CatalogDisclosureScope {
+            self.catalog.clone()
+        }
+        fn check_selected(&mut self) -> Result<(), CatalogError> {
+            Ok(())
+        }
+        fn authorize_current(&mut self, sha: Digest256) -> Result<(), CatalogError> {
+            assert_eq!(sha, self.catalog.catalog_packet_sha256);
+            Ok(())
+        }
+        fn acquire_disclosure(
+            &mut self,
+            _: &CatalogDisclosureScope,
+            _: Digest256,
+        ) -> Result<Box<dyn CatalogDisclosureLease>, CatalogError> {
+            Ok(Box::new(self.lease()))
+        }
+    }
+    impl InspectCurrentAuthority for Authority {
+        fn policy_binding(&self) -> CurrentPolicyBinding {
+            self.policy.clone()
+        }
+        fn disclosure_scope(&self) -> IndexedDisclosureScope {
+            self.inspect.clone()
+        }
+        fn check_selected(&mut self) -> Result<(), SearchV2Error> {
+            Ok(())
+        }
+        fn authorize_current(&mut self, _: &InspectedCarrier) -> Result<(), SearchV2Error> {
+            Ok(())
+        }
+        fn acquire_disclosure(
+            &mut self,
+            _: &IndexedDisclosureScope,
+            observed: &[ObservedInspectCarrier],
+        ) -> Result<Box<dyn InspectDisclosureLease>, SearchV2Error> {
+            assert!(!observed.is_empty());
+            Ok(Box::new(self.lease()))
+        }
+    }
+    struct UnusedCheckpoints;
+    impl ExplorationCheckpoints for UnusedCheckpoints {
+        fn load(&mut self, _: &str, _: &str) -> Result<ExplorationCheckpoint, SearchV2Error> {
+            unreachable!()
+        }
+        fn prepare(
+            &mut self,
+            _: Option<&str>,
+            _: &str,
+            _: Option<&ExplorationState>,
+            _: &JsonValue,
+            _: ExplorationBudget,
+        ) -> Result<Box<dyn PreparedExplorationCheckpoint>, SearchV2Error> {
+            unreachable!()
+        }
+    }
+    struct Executor {
+        fixture: FullKnowledgeFixture,
+        held: Arc<AtomicUsize>,
+    }
+    impl AccessExecutor for Executor {
+        fn source_descend_available(&self) -> bool {
+            false
+        }
+        fn source_descend(
+            &self,
+            _: Params,
+            _: Arc<dyn AbortProbe>,
+        ) -> Result<PreparedPacket, AccessError> {
+            unreachable!()
+        }
+        fn knowledge_available(&self, operation: O) -> bool {
+            matches!(operation, O::Catalog | O::Node | O::Relation)
+        }
+        fn knowledge(
+            &self,
+            request: R,
+            probe: Arc<dyn AbortProbe>,
+        ) -> Result<PreparedPacket, AccessError> {
+            let cold = self.fixture.open().unwrap();
+            let bound = bind_verified_knowledge(
+                &cold,
+                &self.fixture.vocabulary,
+                &self.fixture.descriptor_bytes,
+            )
+            .unwrap();
+            let mut model = cold.fork_reader_with_vm_budget(1_000_000).unwrap();
+            let mut catalog = Authority::new(&bound, &request, Arc::clone(&self.held));
+            let mut inspect = Authority::new(&bound, &request, Arc::clone(&self.held));
+            let read = InspectBudget {
+                max_open_vm_steps: 100_000_000,
+                max_read_vm_steps: 1_000_000,
+                max_matches: 64,
+                max_rows: 1000,
+                max_field_bytes: 8192,
+                max_payload_bytes: 1_000_000,
+                max_decoded_bytes: 8_000_000,
+                max_response_bytes: 1_000_000,
+                json: JsonLimits::default(),
+            };
+            let budgets = tos_access::knowledge::SelectedKnowledgeBudgets {
+                catalog: CatalogBudget {
+                    max_open_vm_steps: 100_000_000,
+                    max_read_vm_steps: 1_000_000,
+                    max_packet_bytes: 1_000_000,
+                    max_decoded_bytes: 1_000_032,
+                    json: JsonLimits::default(),
+                },
+                inspect: read,
+                lens: tos_query::knowledge_lens::LensBudget {
+                    inspect: read,
+                    max_candidates: 1000,
+                    max_path_steps: 1000,
+                    max_adjacency_rows: 1000,
+                    block_size: 64,
+                },
+                exploration: ExplorationBudget {
+                    read,
+                    max_work_units: 64,
+                    max_session_nodes: 1000,
+                    max_session_relations: 1000,
+                    max_state_bytes: 1_000_000,
+                    max_checkpoint_bytes: 2_000_000,
+                    max_checkpoints: 8,
+                },
+            };
+            tos_access::knowledge::execute_selected_knowledge(
+                &mut model,
+                &bound,
+                &mut catalog,
+                &mut inspect,
+                &mut UnusedCheckpoints,
+                request,
+                budgets,
+                probe,
+            )
+        }
+    }
+    struct HeldWriter {
+        bytes: Vec<u8>,
+        held: Arc<AtomicUsize>,
+    }
+    impl Write for HeldWriter {
+        fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
+            assert!(self.held.load(Ordering::SeqCst) > 0);
+            self.bytes.extend_from_slice(bytes);
+            Ok(bytes.len())
+        }
+        fn flush(&mut self) -> std::io::Result<()> {
+            assert!(self.held.load(Ordering::SeqCst) > 0);
+            Ok(())
+        }
+    }
+    struct McpHeldWriter {
+        bytes: Vec<u8>,
+        held: Arc<AtomicUsize>,
+        source_frame: bool,
+    }
+    impl Write for McpHeldWriter {
+        fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
+            self.source_frame = bytes
+                .windows(b"structuredContent".len())
+                .any(|w| w == b"structuredContent");
+            if self.source_frame {
+                assert!(self.held.load(Ordering::SeqCst) > 0);
+            }
+            self.bytes.extend_from_slice(bytes);
+            Ok(bytes.len())
+        }
+        fn flush(&mut self) -> std::io::Result<()> {
+            if self.source_frame {
+                assert!(self.held.load(Ordering::SeqCst) > 0);
+            }
+            Ok(())
+        }
+    }
+    struct NeverAbort;
+    impl AbortProbe for NeverAbort {
+        fn reason(&self) -> Option<tos_query::AbortReason> {
+            None
+        }
+    }
+    #[test]
+    fn real_selected_catalog_and_inspect_packets_survive_all_native_wires() {
+        let executor = Arc::new(Executor {
+            fixture: build_fixture(),
+            held: Arc::new(AtomicUsize::new(0)),
+        });
+        let graph = parse_json(
+            &executor.fixture.graph_input_bytes,
+            JsonMode::PublishedStrict,
+            JsonLimits::default(),
+        )
+        .unwrap();
+        let id = |kind: &str| {
+            graph.root().object_get(kind).unwrap().as_array().unwrap()[0]
+                .object_get("id")
+                .unwrap()
+                .as_str()
+                .unwrap()
+                .to_owned()
+        };
+        let cases = [
+            (
+                R::Catalog,
+                vec!["knowledge".into(), "catalog".into()],
+                "/api/knowledge/catalog".to_owned(),
+                "tos_knowledge_catalog",
+                "{}".to_owned(),
+            ),
+            (
+                R::Node {
+                    node_id: id("nodes"),
+                    relation_limit: 200,
+                },
+                vec!["knowledge".into(), "node".into(), id("nodes")],
+                format!("/api/knowledge/nodes/{}", id("nodes")),
+                "tos_knowledge_node",
+                format!("{{\"node_id\":\"{}\"}}", id("nodes")),
+            ),
+            (
+                R::Relation {
+                    relation_id: id("relations"),
+                },
+                vec!["knowledge".into(), "relation".into(), id("relations")],
+                format!("/api/knowledge/relations/{}", id("relations")),
+                "tos_knowledge_relation",
+                format!("{{\"relation_id\":\"{}\"}}", id("relations")),
+            ),
+        ];
+        let profile = AccessProfile::new(65_536, 1_048_576, 65_536);
+        for (request, args, path, tool, arguments) in cases {
+            let packet = executor.knowledge(request, Arc::new(NeverAbort)).unwrap();
+            let expected = packet.body.clone();
+            drop(packet);
+            assert_eq!(executor.held.load(Ordering::SeqCst), 0);
+            let mut writer = HeldWriter {
+                bytes: Vec::new(),
+                held: Arc::clone(&executor.held),
+            };
+            let mut error = Vec::new();
+            assert_eq!(
+                cli::run_cli(&args, executor.as_ref(), profile, &mut writer, &mut error),
+                0
+            );
+            assert!(error.is_empty());
+            assert_eq!(&writer.bytes[..writer.bytes.len() - 1], expected);
+            assert_eq!(executor.held.load(Ordering::SeqCst), 0);
+            let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+            let address = listener.local_addr().unwrap();
+            let owner = Arc::clone(&executor);
+            let server = std::thread::spawn(move || {
+                let (stream, _) = listener.accept().unwrap();
+                serve_connection(stream, owner, profile);
+            });
+            let mut client = TcpStream::connect(address).unwrap();
+            client
+                .write_all(format!("GET {path} HTTP/1.1\r\nHost: localhost\r\n\r\n").as_bytes())
+                .unwrap();
+            let mut response = Vec::new();
+            client.read_to_end(&mut response).unwrap();
+            server.join().unwrap();
+            let marker = response.windows(4).position(|w| w == b"\r\n\r\n").unwrap() + 4;
+            assert_eq!(&response[marker..], expected);
+            assert_eq!(executor.held.load(Ordering::SeqCst), 0);
+            let initialize=b"{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2025-11-25\"}}\n{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}\n";
+            let mut input = initialize.to_vec();
+            input.extend(format!("{{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{{\"name\":\"{tool}\",\"arguments\":{arguments}}}}}\n").as_bytes());
+            // Initialization has no source lease; tool results retain one.
+            let mut output = McpHeldWriter {
+                bytes: Vec::new(),
+                held: Arc::clone(&executor.held),
+                source_frame: false,
+            };
+            run_io(Cursor::new(input), &mut output, executor.as_ref(), profile).unwrap();
+            let last = output
+                .bytes
+                .split(|b| *b == b'\n')
+                .filter(|frame| !frame.is_empty())
+                .last()
+                .unwrap();
+            let result =
+                parse_json(last, JsonMode::PublishedStrict, JsonLimits::default()).unwrap();
+            let text = result
+                .root()
+                .object_get("result")
+                .unwrap()
+                .object_get("content")
+                .unwrap()
+                .as_array()
+                .unwrap()[0]
+                .object_get("text")
+                .unwrap()
+                .as_str()
+                .unwrap();
+            assert_eq!(text.as_bytes(), expected);
+            assert_eq!(executor.held.load(Ordering::SeqCst), 0);
+        }
+    }
+}
