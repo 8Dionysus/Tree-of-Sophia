@@ -4,7 +4,7 @@ use crate::{KnowledgeOperation, KnowledgeRequest};
 use std::io::{Read, Write};
 use tos_foundation::{JsonMode, JsonNumber, JsonNumberKind, JsonString, JsonValue, parse_json};
 
-use crate::common::validate_packet;
+use crate::common::{checked_execute, validate_packet};
 use crate::{AccessExecutor, AccessProfile, IndexedSearchParams, Params, PreparedPacket};
 
 fn write_packet(
@@ -117,7 +117,9 @@ fn run_indexed_search(
         );
         return 3;
     }
-    match executor.knowledge_search_indexed(params, profile.deadline_probe()) {
+    match checked_execute(profile.deadline_probe(), |probe| {
+        executor.knowledge_search_indexed(params, probe)
+    }) {
         Ok(packet) => write_packet(packet, profile, stdout, stderr),
         Err(error) => {
             let _ = writeln!(stderr, "{}: {}", error.code_str(), error.message);
@@ -206,7 +208,9 @@ pub fn run_cli_with_input(
         );
         return 3;
     }
-    let packet = match executor.source_descend(params, profile.deadline_probe()) {
+    let packet = match checked_execute(profile.deadline_probe(), |probe| {
+        executor.source_descend(params, probe)
+    }) {
         Ok(packet) => packet,
         Err(error) => {
             let _ = writeln!(stderr, "{}: {}", error.code_str(), error.message);
@@ -317,7 +321,9 @@ fn run_knowledge(
             let _ = writeln!(stderr, "selected knowledge operation unavailable");
             3
         }
-        Ok(request) => match executor.knowledge(request, profile.deadline_probe()) {
+        Ok(request) => match checked_execute(profile.deadline_probe(), |probe| {
+            executor.knowledge(request, probe)
+        }) {
             Ok(packet) => write_packet(packet, profile, stdout, stderr),
             Err(error) => {
                 let _ = writeln!(stderr, "{}: {}", error.code_str(), error.message);

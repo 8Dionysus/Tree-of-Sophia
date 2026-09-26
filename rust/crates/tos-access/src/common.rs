@@ -554,6 +554,33 @@ pub struct PreparedPacket {
     pub fence: Box<dyn DisclosureFence>,
 }
 
+/// Retain processing cancellation through transport validation and the final
+/// pre-send disclosure check, rather than dropping it when query returns.
+pub(crate) fn checked_execute(
+    probe: Arc<dyn AbortProbe>,
+    execute: impl FnOnce(Arc<dyn AbortProbe>) -> Result<PreparedPacket, AccessError>,
+) -> Result<PreparedPacket, AccessError> {
+    crate::knowledge::check_abort(&probe)?;
+    let mut packet = execute(Arc::clone(&probe))?;
+    crate::knowledge::check_abort(&probe)?;
+    packet.fence = Box::new(AbortFence {
+        inner: packet.fence,
+        probe,
+    });
+    Ok(packet)
+}
+struct AbortFence {
+    inner: Box<dyn DisclosureFence>,
+    probe: Arc<dyn AbortProbe>,
+}
+impl DisclosureFence for AbortFence {
+    fn recheck(&mut self) -> Result<(), AccessError> {
+        crate::knowledge::check_abort(&self.probe)?;
+        self.inner.recheck()?;
+        crate::knowledge::check_abort(&self.probe)
+    }
+}
+
 /// One-shot binding of the common query rule to an owner-selected model.
 /// Disclosure fencing belongs to the source-owner adapter.
 pub struct QuerySession<M: ReadModel> {

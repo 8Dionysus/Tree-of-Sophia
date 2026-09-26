@@ -13,7 +13,7 @@ use tos_query::{AbortProbe, AbortReason};
 
 use crate::common::{
     AccessError, AccessErrorCode, AccessExecutor, AccessProfile, DisclosureFence, HTTP_PREFIX,
-    IndexedSearchParams, Params, SEARCH_HTTP_PATH, error_json, validate_packet,
+    IndexedSearchParams, Params, SEARCH_HTTP_PATH, checked_execute, error_json, validate_packet,
 };
 
 const MAX_HEAD: usize = 8 * 1024;
@@ -194,7 +194,11 @@ fn handle_indexed_search(
         query_value(query, "cursor").filter(|value| !value.is_empty()),
         limit,
     )
-    .and_then(|params| executor.knowledge_search_indexed(params, abort_probe))
+    .and_then(|params| {
+        checked_execute(abort_probe, |probe| {
+            executor.knowledge_search_indexed(params, probe)
+        })
+    })
     .and_then(|packet| {
         if packet.body.len() > profile.max_response_bytes {
             return Err(AccessError::new(
@@ -302,7 +306,9 @@ fn handle_get_with_probe(
                 bounded_legacy_int(query_value(query, "limit").as_deref(), 300, 1, 300) as usize;
             Params::new(node_id, max_depth, limit)
         })
-        .and_then(|params| executor.source_descend(params, abort_probe))
+        .and_then(|params| {
+            checked_execute(abort_probe, |probe| executor.source_descend(params, probe))
+        })
         .and_then(|packet| {
             if packet.body.len() > profile.max_response_bytes {
                 return Err(AccessError::new(
@@ -374,7 +380,7 @@ fn knowledge_response(
                     "selected knowledge operation unavailable",
                 ));
             }
-            executor.knowledge(request, probe)
+            checked_execute(probe, |probe| executor.knowledge(request, probe))
         }),
         method,
         profile,

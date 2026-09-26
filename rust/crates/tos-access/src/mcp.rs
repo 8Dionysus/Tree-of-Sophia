@@ -6,8 +6,8 @@ use tos_foundation::{JsonMode, JsonNumberKind, JsonValue, parse_json};
 
 use crate::common::{
     AccessExecutor, AccessProfile, DisclosureFence, IndexedSearchParams, MCP_TOOL, Params,
-    SEARCH_MCP_TOOL, json_string, json_string_len, mcp_tool_list, registered_operations,
-    validate_packet,
+    SEARCH_MCP_TOOL, checked_execute, json_string, json_string_len, mcp_tool_list,
+    registered_operations, validate_packet,
 };
 
 struct McpSession {
@@ -142,16 +142,11 @@ impl McpSession {
                 }) {
                     return Some(rpc_error(&id, -32602, "Unknown tool argument"));
                 }
-                let result = match name {
-                    Some(MCP_TOOL) => Params::from_json(arguments).and_then(|request| {
-                        executor.source_descend(request, self.profile.deadline_probe())
-                    }),
-                    Some(SEARCH_MCP_TOOL) => {
-                        IndexedSearchParams::from_json(arguments).and_then(|request| {
-                            executor
-                                .knowledge_search_indexed(request, self.profile.deadline_probe())
-                        })
-                    }
+                let result = checked_execute(self.profile.deadline_probe(), |probe| match name {
+                    Some(MCP_TOOL) => Params::from_json(arguments)
+                        .and_then(|request| executor.source_descend(request, probe)),
+                    Some(SEARCH_MCP_TOOL) => IndexedSearchParams::from_json(arguments)
+                        .and_then(|request| executor.knowledge_search_indexed(request, probe)),
                     Some(_) => crate::KnowledgeOperation::from_id(&operation.unwrap().operation_id)
                         .ok_or_else(|| {
                             crate::AccessError::new(
@@ -160,11 +155,9 @@ impl McpSession {
                             )
                         })
                         .and_then(|op| crate::KnowledgeRequest::from_arguments(op, arguments))
-                        .and_then(|request| {
-                            executor.knowledge(request, self.profile.deadline_probe())
-                        }),
+                        .and_then(|request| executor.knowledge(request, probe)),
                     None => unreachable!(),
-                }
+                })
                 .and_then(|packet| {
                     if packet.body.len() > self.profile.max_response_bytes {
                         return Err(crate::common::AccessError::new(
