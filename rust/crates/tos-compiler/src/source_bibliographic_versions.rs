@@ -861,9 +861,10 @@ impl<'a, 'b> Versions<'a, 'b> {
             .filter(|files| !files.is_empty() && files.len() <= 64)
             .ok_or(Error::Invalid("bibliographic Claim archive file bindings"))?;
         let basename = reference.rsplit('/').next().unwrap();
+        let forms_name = format!("{}.human-forms.json", basename.trim_end_matches(".jsonl"));
         let selected_names = [
             basename,
-            "source-claims.human-forms.json",
+            forms_name.as_str(),
             "source-revision-history.json",
         ];
         let mut files = BTreeMap::new();
@@ -940,6 +941,12 @@ impl<'a, 'b> Versions<'a, 'b> {
             "bibliographic native Claim package stream absent",
         ))?;
         let current_records = claim_records(stream, l)?;
+        let captured = historical_path(reference);
+        if captured {
+            for record in current_records.values() {
+                historical_claim_shape(stage, record, validator, l)?;
+            }
+        }
         let id = text(exact, "id")?;
         let current_record = current_records
             .get(id)
@@ -990,6 +997,7 @@ impl<'a, 'b> Versions<'a, 'b> {
         let mut expected: Option<Vec<u8>> = None;
         let mut commands = BTreeSet::new();
         let mut historical = BTreeSet::new();
+        let mut initial_stream = None;
         for receipt in receipts {
             check(validator, l)?;
             claim_receipt(receipt, &mut commands, l)?;
@@ -998,6 +1006,42 @@ impl<'a, 'b> Versions<'a, 'b> {
                 .get(basename)
                 .ok_or(Error::Invalid("bibliographic archived Claim stream absent"))?;
             let previous_records = claim_records(before, l)?;
+            if captured {
+                if initial_stream.is_none() {
+                    initial_stream = Some(before.clone());
+                }
+                for name in HISTORICAL_CAPTURE {
+                    if archived.get(name) != files.get(name) {
+                        return Err(Error::Invalid(
+                            "historical Claim correction changed captured creation bytes",
+                        ));
+                    }
+                }
+                let fields = receipt["request"]["fields"]
+                    .as_object()
+                    .ok_or(Error::Invalid(
+                        "historical Claim retained correction fields",
+                    ))?;
+                if fields.len() != 1
+                    || !fields.contains_key("qualifiers")
+                    || fields["qualifiers"].as_object().is_none_or(|q| {
+                        q.keys().any(|k| {
+                            ![
+                                "statement",
+                                "statement_language",
+                                "statement_script",
+                                "display_fields",
+                            ]
+                            .contains(&k.as_str())
+                        })
+                    })
+                {
+                    return Err(Error::Invalid(
+                        "historical Claim retained correction exceeds descriptive scope",
+                    ));
+                }
+            }
+
             if expected.as_ref().is_some_and(|expected| expected != before)
                 || expected.is_none()
                     && previous_records
@@ -1079,6 +1123,19 @@ impl<'a, 'b> Versions<'a, 'b> {
                 "bibliographic current shared Claim stream not history head",
             ));
         }
+        if captured {
+            verify_historical_capture(
+                reference,
+                files,
+                initial_stream.as_deref().unwrap_or(stream),
+                &current_records,
+                receipts,
+                stage,
+                validator,
+                forms,
+                l,
+            )?;
+        }
         let (record, source, transition, version_status) = chosen.ok_or(Error::Invalid(
             "bibliographic exact membership version/digest not retained",
         ))?;
@@ -1088,6 +1145,11 @@ impl<'a, 'b> Versions<'a, 'b> {
             "source":source,"history":{"source_ref":adjacent(reference,"claim-revision-history.json")?,
                 "sha256":retained.map(|raw|format!("sha256:{}",Digest256::of_bytes(raw).to_hex())),"receipt_count":receipts.len(),"correction_chain_verified":true},
             "transition":transition});
+        let mut provenance = provenance;
+        if captured {
+            provenance["history"]["adapter"] = json!("captured-historical-claim-v1");
+            provenance["history"]["record_history_verified"] = json!(false);
+        }
         Ok(Version {
             record,
             provenance,
@@ -1134,7 +1196,7 @@ impl<'a, 'b> Versions<'a, 'b> {
         if !legacy {
             if parts.len() < 4
                 || parts[5.min(parts.len() - 1)] == "membership-claims.jsonl"
-                || !reference.ends_with("/source-claims.jsonl")
+                || !(reference.ends_with("/source-claims.jsonl") || historical_path(reference))
             {
                 return Err(Error::Invalid(
                     "bibliographic membership source-family route",
@@ -2030,6 +2092,230 @@ fn package_revision(files: &BTreeMap<String, Vec<u8>>, l: BibliographicLimits) -
         "sha256:{}",
         digest(&Value::Object(bindings), l.max_claim_cohort_bytes)?
     ))
+}
+const HISTORICAL_CAPTURE: [&str; 4] = [
+    "source-create-request.json",
+    "source-create-receipt.json",
+    "source-create-environment.json",
+    "source-create-provenance.jsonl",
+];
+fn historical_path(reference: &str) -> bool {
+    let p = reference.split('/').collect::<Vec<_>>();
+    p.len() >= 5
+        && p[..3] == ["ToS", "source-witnesses", "history"]
+        && p.last() == Some(&"historical-claims.jsonl")
+        && p[3..p.len() - 1].iter().all(|part| {
+            !part.is_empty()
+                && part.split(['.', '-']).all(|x| {
+                    !x.is_empty()
+                        && x.bytes()
+                            .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit())
+                })
+        })
+}
+fn historical_claim_shape(
+    stage: &KnowledgeStage<'_>,
+    record: &Value,
+    validator: &SourceCatalogValidator<'_>,
+    l: BibliographicLimits,
+) -> Result<()> {
+    catalog::check_catalog_schema(
+        stage,
+        validator,
+        l.catalog,
+        "ToS/contracts/historical-claim.schema.json",
+        "",
+        &encode(record, l.catalog.max_row_bytes)?,
+    )?;
+    let qualifiers = &record["qualifiers"];
+    if qualifiers["display_fields"]["schema_version"] == "tos_claim_display_fields_v1" {
+        catalog::check_catalog_schema(
+            stage,
+            validator,
+            l.catalog,
+            "ToS/contracts/claim-display-fields.schema.json",
+            "",
+            &encode(qualifiers, l.catalog.max_row_bytes)?,
+        )?;
+    }
+    if qualifiers["statement"].as_str().is_some_and(|s| {
+        !s.trim_matches(crate::source_bibliographic_unicode::is_python_whitespace)
+            .is_empty()
+    }) {
+        let languages = json!({"notes":{"language":qualifiers["statement_language"],"script":qualifiers["statement_script"]}});
+        catalog::check_catalog_schema(
+            stage,
+            validator,
+            l.catalog,
+            "ToS/contracts/corpus-record.schema.json",
+            "#/properties/field_languages",
+            &encode(&languages, l.catalog.max_row_bytes)?,
+        )?;
+    }
+    Ok(())
+}
+/// Captured Claim-only origin, matching verify_claim_capture/creation_lineage.
+/// Record revision history and current correction authority remain separate.
+fn verify_historical_capture(
+    reference: &str,
+    files: &BTreeMap<String, Vec<u8>>,
+    initial: &[u8],
+    current: &BTreeMap<String, Value>,
+    receipts: &[Value],
+    stage: &KnowledgeStage<'_>,
+    validator: &SourceCatalogValidator<'_>,
+    forms: &mut dyn BibliographicForms,
+    l: BibliographicLimits,
+) -> Result<()> {
+    let present = HISTORICAL_CAPTURE
+        .iter()
+        .filter(|n| files.contains_key(**n))
+        .count();
+    if present == 0 || present == 1 && files.contains_key("source-create-receipt.json") {
+        if files.contains_key("claim-revision-history.json") {
+            return Err(Error::Invalid(
+                "historical Claim revisions lack captured creation origin",
+            ));
+        }
+        return Ok(());
+    }
+    if present != HISTORICAL_CAPTURE.len() {
+        return Err(Error::Invalid(
+            "historical Claim creation capture is partial",
+        ));
+    }
+    let request = owned(
+        &files["source-create-request.json"],
+        l.catalog.max_row_bytes,
+    )?;
+    let receipt = owned(
+        &files["source-create-receipt.json"],
+        l.catalog.max_row_bytes,
+    )?;
+    exact_keys(
+        &request,
+        &[
+            "schema_version",
+            "operation",
+            "record",
+            "forms",
+            "claims",
+            "command_id",
+            "expected_configuration",
+            "expected_source",
+            "expected_revision",
+            "expected_dependencies",
+        ],
+    )?;
+    let record_ref = text(&receipt, "source_path")?;
+    let record_type = text(&request["record"], "record_type")?;
+    if request["schema_version"] != "tos_local_source_command_v1"
+        || request["operation"] != "historical.create"
+        || !request["expected_source"].is_null()
+        || !request["expected_revision"].is_null()
+        || record_ref.rsplit_once('/').map(|(p, _)| p) != reference.rsplit_once('/').map(|(p, _)| p)
+        || record_ref.rsplit('/').next() != Some(format!("{record_type}.json").as_str())
+        || receipt["schema_version"] != "tos_local_historical_create_receipt_v1"
+        || receipt["command_id"] != request["command_id"]
+        || receipt["request_digest"]
+            != format!("sha256:{}", digest(&request, l.catalog.max_row_bytes)?)
+        || receipt["owner_configuration"] != request["expected_configuration"]
+        || receipt["dependencies"] != request["expected_dependencies"]
+        || receipt["source"] != record_ref(&request["record"], false, l)?
+        || receipt["grants_admission"] != false
+    {
+        return Err(Error::Invalid(
+            "historical Claim creation capture exact request binding",
+        ));
+    }
+    let originals = array(&request, "claims")?;
+    if originals.len() > 4096 {
+        return Err(Error::Budget("historical Claim origin count"));
+    }
+    let mut identities = BTreeSet::new();
+    let mut original_bytes = Vec::new();
+    for record in originals {
+        check(validator, l)?;
+        let id = text(record, "claim_id")?;
+        if !identities.insert(id.to_owned()) {
+            return Err(Error::Invalid("historical Claim creation repeats identity"));
+        }
+        let raw = encode(record, l.catalog.max_row_bytes)?;
+        let needed = original_bytes
+            .len()
+            .checked_add(raw.len())
+            .and_then(|n| n.checked_add(1))
+            .filter(|n| *n <= 1_048_576)
+            .ok_or(Error::Budget("historical Claim captured original stream"))?;
+        original_bytes.reserve(needed - original_bytes.len());
+        original_bytes.extend_from_slice(&raw);
+        original_bytes.push(b'\n');
+        let name = claim_form_name(reference, id)?;
+        if let Some(raw) = files.get(&name) {
+            let set = owned(raw, l.catalog.max_row_bytes)?;
+            catalog::check_catalog_schema(
+                stage,
+                validator,
+                l.catalog,
+                "ToS/contracts/human-form-set.schema.json",
+                "",
+                raw,
+            )?;
+            if set["subject"]["id"] != id {
+                return Err(Error::Invalid(
+                    "historical Claim current form set foreign subject",
+                ));
+            }
+            let materialized = forms.materialize(
+                current.get(id).ok_or(Error::Invalid(
+                    "historical Claim original absent from current stream",
+                ))?,
+                &set,
+                262144,
+            )?;
+            encode(&json!(materialized), 262144)?;
+        }
+        if files
+            .get(&format!(".{name}.writer.lock"))
+            .is_some_and(|raw| !raw.is_empty())
+        {
+            return Err(Error::Invalid(
+                "historical Claim writer lock contains bytes",
+            ));
+        }
+    }
+    if original_bytes != initial
+        || identities != current.keys().cloned().collect::<BTreeSet<_>>()
+        || receipts.iter().any(|r| {
+            r["source"]["id"]
+                .as_str()
+                .is_none_or(|id| !identities.contains(id))
+        })
+    {
+        return Err(Error::Invalid(
+            "historical Claim lineage differs from captured original identities/stream",
+        ));
+    }
+    for name in [
+        "historical-claims.jsonl",
+        "source-create-request.json",
+        "source-create-environment.json",
+        "source-create-provenance.jsonl",
+    ] {
+        let raw = if name == "historical-claims.jsonl" {
+            initial
+        } else {
+            files[name].as_slice()
+        };
+        if receipt["files"][name]
+            != json!({"sha256":format!("sha256:{}",Digest256::of_bytes(raw).to_hex()),"bytes":raw.len()})
+        {
+            return Err(Error::Invalid(
+                "historical Claim captured byte fixity differs from creation receipt",
+            ));
+        }
+    }
+    Ok(())
 }
 fn claim_records(raw: &[u8], l: BibliographicLimits) -> Result<BTreeMap<String, Value>> {
     if raw.len() > 1_048_576 {
