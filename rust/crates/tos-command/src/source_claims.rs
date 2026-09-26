@@ -1098,15 +1098,6 @@ fn validate_ground(
 ) -> SourceCommandResult<()> {
     let (relation, profile) = profile(ctx, text(claim, "predicate")?)?;
     let reader = text(&profile, "reader")?;
-    if profile
-        .object_get("object_reference_set")
-        .and_then(|v| v.object_get("basis_adapter"))
-        .is_some()
-    {
-        return Err(SourceCommandError::Unsupported(
-            "collection membership exact-version grounding adapter",
-        ));
-    }
     if ![
         "semantic-relation-v1",
         "identity-relation-v1",
@@ -1228,10 +1219,30 @@ fn validate_ground(
                     "required subject member absent",
                 ));
             }
-            if constraint.object_get("structure_adapter").is_some() {
-                return Err(SourceCommandError::Unsupported(
-                    "scoped member ordering graph validator",
-                ));
+            if let Some(adapter) = constraint.object_get("structure_adapter") {
+                if adapter.as_str() != Some("scoped-members-v1") {
+                    return Err(SourceCommandError::Unsupported(
+                        "scoped member structure adapter",
+                    ));
+                }
+                validate_member_order(claim)?;
+                if let Some(adapter) = constraint.object_get("basis_adapter") {
+                    if adapter.as_str() != Some("collection-membership-versions-v1") {
+                        return Err(SourceCommandError::Unsupported(
+                            "collection membership basis adapter",
+                        ));
+                    }
+                    ground_collection_membership(ctx, claim)?;
+                }
+
+                schema_check(
+                    executor,
+                    text(config, "source_path")?,
+                    value,
+                    "ToS/contracts/scoped-member-structure.schema.json",
+                    deadline,
+                    cancelled,
+                )?;
             }
         }
         if value.object_get("kind").and_then(JsonValue::as_str) == Some("relative-order") {
@@ -2137,4 +2148,166 @@ fn resolve_claim_reference(
     Err(SourceCommandError::Unsupported(
         "exact related Claim version not retained in selected owner history",
     ))
+}
+
+fn validate_member_order(claim: &JsonValue) -> SourceCommandResult<()> {
+    let value = field(claim, "object")?;
+    let members = array(value, "members")?
+        .iter()
+        .map(|v| {
+            v.as_str()
+                .ok_or(SourceCommandError::Invalid("member identity"))
+        })
+        .collect::<SourceCommandResult<BTreeSet<_>>>()?;
+    if members.contains(text(claim, "subject_ref")?) {
+        return Err(SourceCommandError::Invalid(
+            "scoped composition cannot contain its subject",
+        ));
+    }
+    let order = field(value, "ordering")?;
+    let edges = array(order, "precedes")?;
+    let mode = text(order, "mode")?;
+    if !["unordered", "partial", "total"].contains(&mode)
+        || mode == "unordered" && !edges.is_empty()
+    {
+        return Err(SourceCommandError::Invalid("scoped member ordering mode"));
+    }
+    let mut outgoing: BTreeMap<&str, BTreeSet<&str>> =
+        members.iter().map(|id| (*id, BTreeSet::new())).collect();
+    let mut indegree: BTreeMap<&str, usize> = members.iter().map(|id| (*id, 0)).collect();
+    for edge in edges {
+        let edge = edge
+            .as_array()
+            .filter(|e| e.len() == 2)
+            .ok_or(SourceCommandError::Invalid("member precedence pair"))?;
+        let from = edge[0]
+            .as_str()
+            .ok_or(SourceCommandError::Invalid("member precedence identity"))?;
+        let to = edge[1]
+            .as_str()
+            .ok_or(SourceCommandError::Invalid("member precedence identity"))?;
+        if !members.contains(from) || !members.contains(to) {
+            return Err(SourceCommandError::Invalid(
+                "precedence endpoint outside scoped members",
+            ));
+        }
+        if !outgoing
+            .get_mut(from)
+            .ok_or(SourceCommandError::Invalid("precedence source"))?
+            .insert(to)
+        {
+            return Err(SourceCommandError::Invalid(
+                "duplicate member precedence pair",
+            ));
+        }
+        *indegree
+            .get_mut(to)
+            .ok_or(SourceCommandError::Invalid("precedence target"))? += 1;
+    }
+    let mut ready = indegree
+        .iter()
+        .filter_map(|(id, count)| (*count == 0).then_some(*id))
+        .collect::<Vec<_>>();
+    let mut visited = 0;
+    while let Some(id) = ready.pop() {
+        if mode == "total" && !ready.is_empty() {
+            return Err(SourceCommandError::Invalid(
+                "total scoped member order leaves members incomparable",
+            ));
+        }
+        visited += 1;
+        for following in &outgoing[id] {
+            let count = indegree
+                .get_mut(following)
+                .ok_or(SourceCommandError::Invalid("precedence target"))?;
+            *count -= 1;
+            if *count == 0 {
+                ready.push(following)
+            }
+        }
+    }
+    if visited != members.len() {
+        return Err(SourceCommandError::Invalid("cyclic scoped member order"));
+    }
+    Ok(())
+}
+
+fn ground_collection_membership(
+    ctx: &CommandContext,
+    claim: &JsonValue,
+) -> SourceCommandResult<()> {
+    let value = field(claim, "object")?;
+    let collection_ref = field(value, "collection_version")?;
+    exact_ref(collection_ref)?;
+    let subject = text(claim, "subject_ref")?;
+    if text(collection_ref, "id")? != subject || !subject.starts_with("tos.collection.") {
+        return Err(SourceCommandError::Invalid(
+            "Collection order exact own Collection version",
+        ));
+    }
+    let (collection, _) = find_record(ctx, subject)?;
+    if text(&collection, "record_type")? != "collection"
+        || !same(&metadata_subject(&collection)?, collection_ref)?
+    {
+        return Err(SourceCommandError::Unsupported(
+            "Collection order exact historical metadata basis reader",
+        ));
+    }
+    let members = array(value, "members")?
+        .iter()
+        .map(|v| {
+            v.as_str()
+                .ok_or(SourceCommandError::Invalid("Collection member identity"))
+        })
+        .collect::<SourceCommandResult<BTreeSet<_>>>()?;
+    let bindings = array(value, "membership_versions")?;
+    if bindings.len() != members.len() {
+        return Err(SourceCommandError::Invalid(
+            "one exact membership binding per Collection member",
+        ));
+    }
+    let mut binding_ids = BTreeSet::new();
+    let mut resolved = BTreeSet::new();
+    let declared = collection
+        .object_get("membership_claim_refs")
+        .and_then(JsonValue::as_array)
+        .unwrap_or(&[]);
+    for reference in bindings {
+        exact_ref(reference)?;
+        let id = text(reference, "id")?;
+        if !binding_ids.insert(id) || !declared.iter().any(|v| v.as_str() == Some(id)) {
+            return Err(SourceCommandError::Invalid(
+                "membership basis is repeated or absent from exact Collection",
+            ));
+        }
+        let member = resolve_claim_reference(ctx, reference)?;
+        let legacy = text(&member, "schema_version")? == "tos_claim_packet_v1"
+            && text(&member, "claim_type")? == "bibliographic";
+        let native = text(&member, "schema_version")? == "tos_source_relation_claim_v1"
+            && text(&member, "claim_type")? == "relation";
+        let object = text(&member, "object")?;
+        let polarity = member
+            .object_get("polarity")
+            .and_then(JsonValue::as_str)
+            .or(if legacy { Some("positive") } else { None });
+        if !(legacy || native)
+            || !["bibliographic_assertion", "scholarly_report"]
+                .contains(&text(&member, "assertion_layer")?)
+            || text(&member, "subject_ref")? != subject
+            || text(&member, "predicate")? != "contains_work"
+            || polarity != Some("positive")
+            || !members.contains(object)
+            || !resolved.insert(object.to_owned())
+        {
+            return Err(SourceCommandError::Invalid(
+                "basis must be distinct positive membership in exact Collection",
+            ));
+        }
+    }
+    if resolved != members.iter().map(|v| (*v).to_owned()).collect() {
+        return Err(SourceCommandError::Invalid(
+            "Collection membership basis does not close scoped member set",
+        ));
+    }
+    Ok(())
 }
