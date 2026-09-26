@@ -1,8 +1,9 @@
 //! Maintained record revision preparation (handlers 22–27).
 //!
 //! Exact selected bytes produce proposed record/form/history and retained
-//! predecessor writes. This module performs no filesystem discovery or
-//! publication. Schema probes and current account observations do not grant
+//! predecessor writes. Native reservation can read exact anchored manifest
+//! members; this module performs no ambient discovery or publication. Schema
+//! probes and current account observations do not grant
 //! admission; `PreparedCommand::commit` remains a production-admission refusal.
 
 use crate::source_command::{self as cmd, *};
@@ -11,6 +12,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::sync::atomic::AtomicBool;
 use std::time::Instant;
 use tos_foundation::{Digest256, JsonString, JsonValue, RelativePath, python_strip_unicode16_v1};
+use tos_source_store::CorpusCutReader;
 use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
 
 const HISTORY: &str = "source-revision-history.json";
@@ -129,6 +131,7 @@ struct Inspection {
     history: JsonValue,
     profile: JsonValue,
     schemas: Vec<String>,
+    native_identity_snapshot: Option<String>,
 }
 
 fn path(value: &str) -> SourceCommandResult<RelativePath> {
@@ -611,6 +614,7 @@ fn verify_history(
     Ok(value)
 }
 fn inspect(
+    cut: Option<&CorpusCutReader>,
     worker: &mut CutWorkerSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
@@ -626,7 +630,9 @@ fn inspect(
             .get(base)
             .ok_or(SourceCommandError::Invalid("record missing"))?,
     )?;
-    let (profile, schemas) = profile(worker, deadline, cancelled, ctx, config, family, &record)?;
+    let (profile, schemas, native_identity_snapshot) = profile(
+        cut, worker, deadline, cancelled, ctx, config, family, &record,
+    )?;
     let subject = source_forms::metadata_subject(&record)?;
     let history = verify_history(ctx, config, &files, &record)?;
     Ok(Inspection {
@@ -636,6 +642,7 @@ fn inspect(
         history,
         profile,
         schemas,
+        native_identity_snapshot,
     })
 }
 fn dependencies(
@@ -679,6 +686,12 @@ fn dependencies(
             JsonValue::Object(contracts),
         ));
     }
+    if let Some(snapshot) = &inspection.native_identity_snapshot {
+        entries.push((
+            JsonString::from_utf8("native_semantic_identity_snapshot"),
+            cmd::string(snapshot),
+        ));
+    }
     let _ = config;
     Ok(cmd::record_digest(&JsonValue::Object(entries))?.to_prefixed())
 }
@@ -702,6 +715,7 @@ fn revised(record: &JsonValue, request: &JsonValue) -> SourceCommandResult<JsonV
     Ok(revised)
 }
 fn proposal(
+    cut: Option<&CorpusCutReader>,
     worker: &mut CutWorkerSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
@@ -720,7 +734,9 @@ fn proposal(
 )> {
     scope(config, request, scope_operation)?;
     let revised = revised(&inspection.record, request)?;
-    let (_, schemas) = profile(worker, deadline, cancelled, ctx, config, family, &revised)?;
+    let (_, schemas, _) = profile(
+        cut, worker, deadline, cancelled, ctx, config, family, &revised,
+    )?;
     if schemas != inspection.schemas {
         return Err(SourceCommandError::Denied(
             "correction changed source schema selection",
@@ -1035,6 +1051,7 @@ fn receipt(
     Ok(value)
 }
 fn successor(
+    cut: Option<&CorpusCutReader>,
     worker: &mut CutWorkerSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
@@ -1052,6 +1069,7 @@ fn successor(
         ));
     }
     let (record, subject, mut files, _, refs) = proposal(
+        cut,
         worker,
         deadline,
         cancelled,
@@ -1091,6 +1109,7 @@ fn successor(
             history,
             profile: inspection.profile.clone(),
             schemas: inspection.schemas.clone(),
+            native_identity_snapshot: inspection.native_identity_snapshot.clone(),
         },
         receipt,
     ))
@@ -1220,6 +1239,7 @@ fn retained_package(
     Ok(result)
 }
 fn reconstruct_transaction(
+    cut: Option<&CorpusCutReader>,
     worker: &mut CutWorkerSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
@@ -1281,7 +1301,9 @@ fn reconstruct_transaction(
             .get(base)
             .ok_or(SourceCommandError::Invalid("retained record missing"))?,
     )?;
-    let (profile, schemas) = profile(worker, deadline, cancelled, ctx, config, family, &record)?;
+    let (profile, schemas, native_identity_snapshot) = profile(
+        cut, worker, deadline, cancelled, ctx, config, family, &record,
+    )?;
     let subject = source_forms::metadata_subject(&record)?;
     let retained = verify_history(ctx, config, &files, &record)?;
     let before = Inspection {
@@ -1291,6 +1313,7 @@ fn reconstruct_transaction(
         history: retained,
         profile,
         schemas,
+        native_identity_snapshot,
     };
     let output = retained_package(&transaction.after, config, true)?;
     let retained_history = history(
@@ -1324,6 +1347,7 @@ fn reconstruct_transaction(
         ));
     }
     let (after, reconstructed) = successor(
+        cut,
         worker,
         deadline,
         cancelled,
@@ -1354,6 +1378,52 @@ fn reconstruct_transaction(
 pub fn prepare_record_revision(
     ctx: &CommandContext,
     publication: Option<&RevisionPublication>,
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<PreparedCommand> {
+    prepare_record_revision_inner(ctx, publication, None, worker, deadline, cancelled)
+}
+
+/// Complete native identity reservation uses the anchored manifest membership.
+/// Every selected native packet must also be present byte-for-byte in `ctx`, so
+/// the proposed plan retains its exact read dependencies.
+pub fn prepare_record_revision_with_profile_cut(
+    ctx: &CommandContext,
+    publication: Option<&RevisionPublication>,
+    cut: &CorpusCutReader,
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<PreparedCommand> {
+    ctx.check()?;
+    if cut.current().revision() != ctx.base_revision {
+        return Err(SourceCommandError::Conflict(
+            "profile cut and command revision differ",
+        ));
+    }
+    for selected in &ctx.files {
+        let member =
+            cut.current()
+                .member(&selected.path)
+                .ok_or(SourceCommandError::Unsupported(
+                    "selected profile input outside anchored cut",
+                ))?;
+        if member.sha256 != Digest256::of_bytes(&selected.raw)
+            || member.size_bytes != selected.raw.len() as u64
+        {
+            return Err(SourceCommandError::Conflict(
+                "selected profile input differs from anchored cut member",
+            ));
+        }
+    }
+    prepare_record_revision_inner(ctx, publication, Some(cut), worker, deadline, cancelled)
+}
+
+fn prepare_record_revision_inner(
+    ctx: &CommandContext,
+    publication: Option<&RevisionPublication>,
+    cut: Option<&CorpusCutReader>,
     worker: &mut CutWorkerSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
@@ -1421,6 +1491,7 @@ pub fn prepare_record_revision(
                 ));
             }
             let (original, before, after, receipt) = reconstruct_transaction(
+                cut,
                 worker,
                 deadline,
                 cancelled,
@@ -1497,7 +1568,7 @@ pub fn prepare_record_revision(
             ));
         }
     }
-    let inspection = inspect(worker, deadline, cancelled, ctx, &config, family)?;
+    let inspection = inspect(cut, worker, deadline, cancelled, ctx, &config, family)?;
     let mut response = result(
         worker,
         deadline,
@@ -1545,6 +1616,7 @@ pub fn prepare_record_revision(
             ));
         }
         let (_, subject, _, views, refs) = proposal(
+            cut,
             worker,
             deadline,
             cancelled,
@@ -1607,6 +1679,7 @@ pub fn prepare_record_revision(
                     ));
                 }
                 let (original, _, _, reconstructed) = reconstruct_transaction(
+                    cut,
                     worker,
                     deadline,
                     cancelled,
@@ -1659,6 +1732,7 @@ pub fn prepare_record_revision(
         ));
     }
     let (after, receipt) = successor(
+        cut,
         worker,
         deadline,
         cancelled,
@@ -2310,6 +2384,7 @@ fn schema(
 }
 
 fn profile(
+    cut: Option<&CorpusCutReader>,
     worker: &mut CutWorkerSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
@@ -2317,7 +2392,7 @@ fn profile(
     config: &JsonValue,
     family: RevisionFamily,
     record: &JsonValue,
-) -> SourceCommandResult<(JsonValue, Vec<String>)> {
+) -> SourceCommandResult<(JsonValue, Vec<String>, Option<String>)> {
     let source_path = cmd::text(config, "source_path")?;
     let (_, base) = split(source_path)?;
     let (kind, id_field, schema_ref) = if family == RevisionFamily::NativeSelected {
@@ -2369,7 +2444,7 @@ fn profile(
             "ToS/contracts/historical-record.schema.json",
         )
     } else if family.profile() {
-        return public_profile(worker, deadline, cancelled, ctx, config, record);
+        return public_profile(cut, worker, deadline, cancelled, ctx, config, record);
     } else {
         let kind = cmd::text(config, "record_type")?;
         let mut allowed = vec!["agent", "place", "organization", "work"];
@@ -2428,7 +2503,7 @@ fn profile(
         ),
         ("source_scope", cmd::string("public_metadata_only")),
     ]);
-    Ok((profile, schemas))
+    Ok((profile, schemas, None))
 }
 
 fn ancestry<'a>(
@@ -2459,14 +2534,145 @@ fn ancestry<'a>(
     visiting.remove(id);
     Ok(())
 }
+/// Match the maintained native inventory discovery against complete anchored
+/// membership. A caller-selected list alone can never prove absence.
+fn native_identity_inventory(
+    cut: Option<&CorpusCutReader>,
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    ctx: &CommandContext,
+    record_id: &str,
+) -> SourceCommandResult<(Option<String>, bool)> {
+    if !["occurrence", "lexeme", "sense", "sign", "concept"]
+        .iter()
+        .any(|kind| record_id.starts_with(&format!("tos.{kind}.")))
+    {
+        return Ok((None, false));
+    }
+    let cut = cut.ok_or(SourceCommandError::Unsupported(
+        "profile native identity reservation needs complete anchored source cut",
+    ))?;
+    if cut.current().revision() != ctx.base_revision {
+        return Err(SourceCommandError::Conflict(
+            "native inventory source cut differs",
+        ));
+    }
+    let mut entries = BTreeMap::new();
+    let mut remaining = 8_388_608usize;
+    let contract = "ToS/contracts/semantic-annotation-packet-v2.schema.json";
+    for member in cut.current().members() {
+        let name = member.path.as_str();
+        if name == "ToS/source-witnesses/owner-local"
+            || name.starts_with("ToS/source-witnesses/owner-local/")
+        {
+            return Err(SourceCommandError::Denied(
+                "reserved owner-local namespace cannot enter public native inventory",
+            ));
+        }
+        let basename = name.rsplit('/').next().unwrap_or(name);
+        if !name.starts_with("ToS/source-witnesses/")
+            || !basename.starts_with("semantic-annotation")
+            || !basename.ends_with(".json")
+            || name
+                .split('/')
+                .any(|part| matches!(part, "payload" | "local-content" | "catalog"))
+        {
+            continue;
+        }
+        if entries.len() >= 1024 || member.size_bytes > remaining.min(1_048_576) as u64 {
+            return Err(SourceCommandError::Invalid(
+                "native identity inventory metadata budget",
+            ));
+        }
+        let observed = cut
+            .read_member(
+                ctx.base_revision,
+                &member.path,
+                remaining.min(1_048_576) as u64,
+                deadline,
+                cancelled,
+            )
+            .map_err(|_| {
+                SourceCommandError::Unsupported("exact native inventory member read unavailable")
+            })?;
+        let raw = required(ctx, name)?;
+        if raw != observed.raw.as_slice() {
+            return Err(SourceCommandError::Conflict(
+                "selected native inventory bytes differ from anchored cut",
+            ));
+        }
+        remaining = remaining
+            .checked_sub(raw.len())
+            .ok_or(SourceCommandError::Invalid("native inventory byte budget"))?;
+        let packet = cmd::parse(raw)?;
+        if cmd::text(&packet, "schema_version")? != "tos_semantic_annotation_packet_v2" {
+            return Err(SourceCommandError::Unsupported(
+                "native identity packet contract",
+            ));
+        }
+        schema(
+            worker,
+            deadline,
+            cancelled,
+            ctx,
+            &[contract.into()],
+            contract,
+            &packet,
+        )?;
+        for entity in cmd::array(&packet, "entities")? {
+            if cmd::text(entity, "entity_id")? == record_id {
+                return Err(SourceCommandError::Denied(
+                    "subject identity belongs to native packet; explicit owner migration required",
+                ));
+            }
+        }
+        entries.insert(
+            name.to_string(),
+            Digest256::of_bytes(raw).to_prefixed()[7..].to_string(),
+        );
+    }
+    let used_schema = !entries.is_empty();
+    let value = JsonValue::Object(
+        entries
+            .into_iter()
+            .map(|(name, digest)| (JsonString::from_utf8(&name), cmd::string(&digest)))
+            .collect(),
+    );
+    // Python inventory json.dumps uses ensure_ascii=True. Canonical keys and
+    // values here are strings, so escape only non-ASCII Unicode code points;
+    // existing quotes/control characters have already been emitted by FND.
+    let compact = cmd::canonical(&value)?;
+    let compact = std::str::from_utf8(&compact)
+        .map_err(|_| SourceCommandError::Invalid("inventory snapshot UTF-8"))?;
+    let mut ascii = String::new();
+    for ch in compact.chars() {
+        if ch.is_ascii() {
+            ascii.push(ch);
+        } else {
+            let mut units = [0u16; 2];
+            for unit in ch.encode_utf16(&mut units).iter() {
+                use std::fmt::Write;
+                write!(&mut ascii, "\\u{unit:04x}")
+                    .map_err(|_| SourceCommandError::Invalid("inventory snapshot emission"))?;
+            }
+        }
+    }
+    Ok((
+        Some(Digest256::of_bytes(ascii.as_bytes()).to_prefixed()),
+        used_schema,
+    ))
+}
+
 fn public_profile(
+    cut: Option<&CorpusCutReader>,
     worker: &mut CutWorkerSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
     ctx: &CommandContext,
     config: &JsonValue,
     record: &JsonValue,
-) -> SourceCommandResult<(JsonValue, Vec<String>)> {
+) -> SourceCommandResult<(JsonValue, Vec<String>, Option<String>)> {
     let contract = "ToS/contracts/semantic-entity-type-registry.schema.json";
     let registry = cmd::parse(required(ctx, REGISTRY)?)?;
     schema(
@@ -2647,22 +2853,22 @@ fn public_profile(
             "retained composite profile path",
         ));
     }
-    if ["occurrence", "lexeme", "sense", "sign", "concept"]
-        .iter()
-        .any(|kind| {
-            cmd::text(record, "record_id").is_ok_and(|id| id.starts_with(&format!("tos.{kind}.")))
-        })
-    {
-        return Err(SourceCommandError::Unsupported(
-            "profile needs complete native semantic identity inventory owner evidence",
-        ));
-    }
+    let (native_identity_snapshot, inventory_schema) = native_identity_inventory(
+        cut,
+        worker,
+        deadline,
+        cancelled,
+        ctx,
+        cmd::text(record, "record_id")?,
+    )?;
     if profile.object_get("native_binding_adapter").is_some() {
         return Err(SourceCommandError::Unsupported(
             "profile needs native text binding owner executor",
         ));
     }
-    if record.object_get("native_text_binding").is_some() {
+    if profile.object_get("native_binding_adapter").is_none()
+        && record.object_get("native_text_binding").is_some()
+    {
         return Err(SourceCommandError::Denied(
             "native text binding has no explicit profile adapter",
         ));
@@ -2694,9 +2900,12 @@ fn public_profile(
         ));
     }
     schema(worker, deadline, cancelled, ctx, &resources, shared, record)?;
+    if inventory_schema {
+        resources.push("ToS/contracts/semantic-annotation-packet-v2.schema.json".into());
+    }
     resources.insert(0, contract.into());
     resources.insert(0, REGISTRY.into());
-    Ok((profile.clone(), resources))
+    Ok((profile.clone(), resources, native_identity_snapshot))
 }
 
 /// Resolve an exact metadata version through its selected current source home
@@ -2813,6 +3022,7 @@ pub fn resolve_record_version(
     let mut routed = ctx.clone();
     routed.configuration_raw = cmd::canonical(&descriptor)?;
     profile(
+        None,
         worker,
         deadline,
         cancelled,

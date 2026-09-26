@@ -6,7 +6,8 @@ use std::time::{Duration, Instant};
 use tos_command::source_command::{CommandContext, SourceCommandError, SourceFile};
 use tos_command::source_revisions::{
     RetainedRevisionTransaction, RevisionPublication, RevisionTransactionStatus,
-    prepare_record_revision, read_record_revision_publication,
+    prepare_record_revision, prepare_record_revision_with_profile_cut,
+    read_record_revision_publication,
 };
 use tos_foundation::{
     CanonicalProfile, Digest256, JsonLimits, JsonMode, JsonString, JsonValue, RelativePath,
@@ -537,5 +538,174 @@ fn current_account_expiry_scope_and_selected_exact_recovery_are_independent() {
     assert!(matches!(
         run(&ctx, Some(&publication)),
         Err(SourceCommandError::Denied(_))
+    ));
+}
+
+// A complete cut, rather than the proposal's selected file list, owns native
+// namespace absence. Reuse the actual worker harness and maintained registry.
+#[test]
+fn profile_native_inventory_uses_anchored_membership() {
+    let mut ctx = context(false);
+    let source_path = "ToS/source-witnesses/research/fixture/lexeme.json";
+    let record = obj(vec![
+        ("schema_version", text("tos_lexical_description_record_v1")),
+        ("record_type", text("lexeme")),
+        ("record_id", text("tos.lexeme.revision.fixture")),
+        ("record_version", parse(b"1")),
+        ("preferred_label", text("Fixture lexeme")),
+        ("identity_status", text("provisional")),
+        (
+            "source_refs",
+            arr(&["ToS/contracts/lexical-description-record.schema.json"]),
+        ),
+        ("external_identifiers", JsonValue::Array(vec![])),
+        ("same_as_posture", text("no_equivalence_claim")),
+        ("visibility", text("public_metadata_only")),
+        (
+            "notes",
+            text("Synthetic description of a lexical referent."),
+        ),
+        (
+            "field_languages",
+            obj(vec![
+                (
+                    "preferred_label",
+                    obj(vec![("language", text("en")), ("script", JsonValue::Null)]),
+                ),
+                (
+                    "notes",
+                    obj(vec![("language", text("en")), ("script", JsonValue::Null)]),
+                ),
+            ]),
+        ),
+        (
+            "semantic_scope",
+            obj(vec![
+                ("scope_note", text("Synthetic fixture.")),
+                (
+                    "identity_criterion",
+                    text("One synthetic lexical referent."),
+                ),
+                ("language", text("en")),
+                ("script", JsonValue::Null),
+            ]),
+        ),
+        (
+            "semantic_content",
+            obj(vec![
+                ("lexical_account", text("Synthetic lexical grouping.")),
+                ("grammatical_account", text("Grammar remains unknown.")),
+                ("language", text("en")),
+                ("script", JsonValue::Null),
+            ]),
+        ),
+    ]);
+    ctx.files.retain(|f| f.path.as_str() != SOURCE_PATH);
+    ctx.files.push(file(source_path, &bytes(&record)));
+    macro_rules! owner {
+        ($path:literal) => {
+            ctx.files
+                .push(file($path, include_bytes!(concat!("../../../", $path))));
+        };
+    }
+    owner!("ToS/doctrine/semantic-interchange/entity-types.v1.json");
+    owner!("ToS/contracts/semantic-entity-type-registry.schema.json");
+    owner!("ToS/contracts/source-metadata-record.schema.json");
+    owner!("ToS/contracts/semantic-description-record.schema.json");
+    owner!("ToS/contracts/lexical-description-record.schema.json");
+    owner!("ToS/contracts/semantic-annotation-packet-v2.schema.json");
+    let mut config = parse(&ctx.configuration_raw);
+    let JsonValue::Object(fields) = &mut config else {
+        panic!("configuration")
+    };
+    fields.retain(|(name, _)| name.as_str() != Some("record_type"));
+    set(
+        &mut config,
+        "schema_version",
+        text("tos_local_profile_revision_owner_v1"),
+    );
+    set(&mut config, "profile_type_id", text("tos.entity.lexeme"));
+    set(&mut config, "source_path", text(source_path));
+    set(
+        &mut config,
+        "record_id",
+        text("tos.lexeme.revision.fixture"),
+    );
+    ctx.configuration_raw = bytes(&config);
+    let packet_path = "ToS/source-witnesses/research/fixture/semantic-annotation.fixture.json";
+    let packet_raw = include_bytes!(
+        "../../fixtures/native-text-binding/semantic-annotation-v2-abc/variant-a-occurrences-only.json"
+    );
+    ctx.files.push(file(packet_path, packet_raw));
+    let files = ctx
+        .files
+        .iter()
+        .map(|f| (f.path.as_str().to_string(), f.raw.clone()))
+        .collect::<BTreeMap<_, _>>();
+    let temporary = tempfile::tempdir().unwrap();
+    let root = temporary.path().join("store");
+    let revision = super::validation_cut_cases::write_cut_store(&files, &root);
+    let cancel = AtomicBool::new(false);
+    let deadline = Instant::now() + Duration::from_secs(120);
+    let cut = open_cut(&root, revision, deadline, &cancel);
+    let mut worker = schemas(&cut, deadline, &cancel);
+    let mut bound = cut_context(
+        &files,
+        ctx.configuration_raw.clone(),
+        ctx.request_raw.clone(),
+        revision,
+    );
+    bound.recorded_at = ctx.recorded_at.clone();
+    bound.effective_uid = ctx.effective_uid;
+    assert!(matches!(
+        prepare_record_revision(&bound, None, &mut worker, deadline, &cancel),
+        Err(SourceCommandError::Unsupported(_))
+    ));
+    let prepared = prepare_record_revision_with_profile_cut(
+        &bound,
+        None,
+        &cut,
+        &mut worker,
+        deadline,
+        &cancel,
+    )
+    .unwrap();
+    assert!(
+        prepared
+            .reads
+            .iter()
+            .any(|input| input.path.as_str() == packet_path)
+    );
+    let mut omitted = bound.clone();
+    omitted.files.retain(|f| f.path.as_str() != packet_path);
+    assert!(matches!(
+        prepare_record_revision_with_profile_cut(
+            &omitted,
+            None,
+            &cut,
+            &mut worker,
+            deadline,
+            &cancel
+        ),
+        Err(SourceCommandError::Unsupported(_))
+    ));
+    let mut changed = bound.clone();
+    changed
+        .files
+        .iter_mut()
+        .find(|f| f.path.as_str() == packet_path)
+        .unwrap()
+        .raw
+        .push(b' ');
+    assert!(matches!(
+        prepare_record_revision_with_profile_cut(
+            &changed,
+            None,
+            &cut,
+            &mut worker,
+            deadline,
+            &cancel
+        ),
+        Err(SourceCommandError::Conflict(_))
     ));
 }
