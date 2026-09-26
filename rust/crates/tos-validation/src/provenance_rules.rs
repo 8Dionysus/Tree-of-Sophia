@@ -12,10 +12,6 @@ use unicode_normalization::UnicodeNormalization;
 use crate::item_rules::{ItemIssue, ItemLimits, ItemRefusal};
 use crate::retirement_rules::{ObservedDateTimeError, observed_datetime_raw_order};
 
-// Conservative logical reservation for parsed JSON, temporary maps/sets and
-// retained lab events. Actual process memory custody remains with the runner.
-const JSON_STATE_FACTOR: usize = 64;
-
 pub const CONTRACT: &str = "ToS/contracts/provenance-event-v2.schema.json";
 pub const LAB_MANIFEST: &str =
     "ToS/research-packets/foundation-laboratory-2026-07/provenance-event-v2-abc/lab.manifest.json";
@@ -123,11 +119,12 @@ impl ProvenanceRules {
             .checked_add(raw.len() as u64)
             .filter(|n| *n <= self.limits.max_total_bytes)
             .ok_or(ItemRefusal::Budget)?;
-        // Reserve transient parsed JSON/string/map state against a finite
-        // logical quota. Persistent IDs/issues are charged separately.
+        // Weighted logical work/state accounting, not an allocation or RSS
+        // envelope. The finite member ceiling and the parent's process quota
+        // are separate gates. Persistent IDs/issues are charged separately.
         if raw
             .len()
-            .checked_mul(JSON_STATE_FACTOR)
+            .checked_mul(8)
             .and_then(|n| n.checked_add(self.state_bytes))
             .is_none_or(|n| n > self.limits.max_state_bytes)
         {
@@ -406,11 +403,7 @@ impl ProvenanceRules {
                 self.issue(path, "synthetic-lab-publication-authority")?;
             }
             // Three events and their mutations occupy bounded transient state.
-            self.reserve(
-                raw.len()
-                    .checked_mul(JSON_STATE_FACTOR)
-                    .ok_or(ItemRefusal::Budget)?,
-            )?;
+            self.reserve(raw.len().saturating_mul(8))?;
             events.insert(id, event);
         }
         if events.len() == 3 && frozen.len() == 3 {

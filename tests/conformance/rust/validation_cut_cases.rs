@@ -315,6 +315,19 @@ fn actual_cut_worker_and_pinned_software_preserve_provenance_lab_limits() {
         &cancelled,
     )
     .unwrap();
+    let unselected = software
+        .read_current(
+            &RelativePath::parse("scripts/validate_source_witness_foundation.py").unwrap(),
+            1_048_576,
+            deadline,
+            &cancelled,
+        )
+        .unwrap_err();
+    assert_eq!(
+        unselected.code,
+        StoreErrorCode::UnsupportedFormat,
+        "an uncaptured software owner path is not proven absent"
+    );
     let worker_path = selected_worker_path();
     assert!(worker_path.is_absolute());
     let digest = Digest256::of_bytes(&fs::read(&worker_path).unwrap());
