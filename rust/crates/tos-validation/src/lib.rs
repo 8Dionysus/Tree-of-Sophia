@@ -33,6 +33,7 @@ pub mod source_cut;
 pub mod source_forms;
 pub mod source_shapes;
 pub mod text_rules;
+pub mod text_metadata_rules;
 
 /// An immutable private prepare view over an exact base plus proposed delta.
 #[derive(Debug, Clone, PartialEq, Eq)]
