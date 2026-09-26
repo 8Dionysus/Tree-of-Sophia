@@ -14,8 +14,11 @@ pub struct LensVocabulary {
     pub shared_entity_grammars: Vec<regex::Regex>,
 }
 impl LensVocabulary {
+    #[cfg(not(target_arch = "wasm32"))]
     pub(crate) fn from_selected(bound: &crate::knowledge_binding::BoundCmpKnowledge<'_>, header:&JsonValue)->Result<Self,SearchV2Error>{
-        let d=bound.descriptor();
+        Self::from_descriptor(bound.descriptor(),header)
+    }
+    pub fn from_descriptor(d:&JsonValue,header:&JsonValue)->Result<Self,SearchV2Error>{
         let sources=array(get(d,"sources"));let mut names=vec![];let mut priorities=BTreeMap::new();
         for source in sources{let id=string(get(source,"source_graph_id"));if id.is_empty(){return Err(corrupt("invalid selected source registration"))}names.push(id.to_owned());priorities.insert(id.to_owned(),uint(get(source,"representative_priority")) as u64);}
         let grammar=array(field(d,"identity.shared_entity_id_grammars"));if grammar.is_empty()||grammar.len()>32{return Err(corrupt("invalid identity grammar count"))}let mut compiled=vec![];
