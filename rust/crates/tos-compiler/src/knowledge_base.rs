@@ -16,17 +16,17 @@ use std::{
 use tos_foundation::Digest256;
 
 #[derive(Clone, Copy, Default)]
-pub(crate) struct BaseNodeOverrides<'a> {
+pub struct BaseNodeOverrides<'a> {
     pub native_id: Option<&'a str>,
     pub identity_id: Option<&'a str>,
     pub kind_id: Option<&'a str>,
 }
 #[derive(Clone, Copy)]
-pub(crate) struct BaseNormalizationLimits {
+pub struct BaseNormalizationLimits {
     pub max_registry_bytes: usize,
     pub max_output_bytes: usize,
 }
-pub(crate) struct KnowledgeBaseNormalizer<'a> {
+pub struct KnowledgeBaseNormalizer<'a> {
     registry: &'a KnowledgeRegistry,
     sources: BTreeSet<String>,
     entity_registry_ref: String,
@@ -186,7 +186,7 @@ fn source_epistemic(item: &Value, default_authority: &str) -> Value {
     value
 }
 impl<'a> KnowledgeBaseNormalizer<'a> {
-    pub(crate) fn new(
+    pub fn new(
         registry: &'a KnowledgeRegistry,
         entity_bytes: &[u8],
         relation_bytes: &[u8],
@@ -244,7 +244,7 @@ impl<'a> KnowledgeBaseNormalizer<'a> {
             limits,
         })
     }
-    pub(crate) fn normalize_node(
+    pub fn normalize_node(
         &self,
         source: &SourceRow,
         source_graph: &str,
@@ -390,7 +390,7 @@ impl<'a> KnowledgeBaseNormalizer<'a> {
         stamp_content_revision(&mut value, self.limits.max_output_bytes)?;
         Ok(value)
     }
-    pub(crate) fn normalize_relation(
+    pub fn normalize_relation(
         &self,
         source: &SourceRow,
         source_graph: &str,

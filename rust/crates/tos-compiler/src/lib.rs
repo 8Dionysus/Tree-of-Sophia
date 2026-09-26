@@ -4,6 +4,7 @@
 pub mod catalog;
 pub mod d1;
 pub mod d1_prepared_pair;
+mod knowledge_base;
 mod knowledge_catalog_index;
 mod knowledge_full;
 #[cfg(all(not(target_arch = "wasm32"), any(test, feature = "test-fixture")))]
@@ -19,10 +20,10 @@ pub mod knowledge_normalization;
 mod knowledge_ordered;
 pub mod knowledge_philosophy_display;
 mod knowledge_philosophy_materialize;
-mod knowledge_base;
 mod knowledge_philosophy_prepare;
 mod knowledge_readable_context;
 mod knowledge_registry;
+mod knowledge_repository;
 mod knowledge_scope;
 mod knowledge_seal;
 mod knowledge_search;
@@ -40,6 +41,7 @@ mod selected;
 pub mod source_witness_catalog;
 mod sqlite_budget;
 mod vocabulary;
+pub use knowledge_base::{BaseNodeOverrides, BaseNormalizationLimits, KnowledgeBaseNormalizer};
 pub use knowledge_catalog_index::{CatalogIndexLimits, CatalogIndexReceipt, materialize_catalog};
 pub use knowledge_full::{
     FullKnowledgeLimits, FullKnowledgeReceipt, compile_full_knowledge_components,
@@ -85,6 +87,11 @@ pub use knowledge_readable_context::{
     ordered_readable_witness,
 };
 pub use knowledge_registry::{KnowledgeRegistry, ResolvedType};
+pub use knowledge_repository::{
+    RepositoryPrepareReceipt, RepositoryRootInput, TopologyLimits, clear_repository_topology,
+    materialize_repository_nodes, materialize_repository_relations, prepare_repository_topology,
+    repository_material_witness, scan_repository_relation_sources,
+};
 pub use knowledge_scope::{ScopeLimits, ScopeReceipt, write_source_scope};
 pub use knowledge_seal::{
     KNOWLEDGE_MODEL_ABI, KnowledgeSealReceipt, SealLimits, seal_knowledge_model,
