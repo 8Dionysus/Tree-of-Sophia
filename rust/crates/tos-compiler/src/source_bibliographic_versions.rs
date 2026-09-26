@@ -997,6 +997,7 @@ impl<'a, 'b> Versions<'a, 'b> {
         let mut expected: Option<Vec<u8>> = None;
         let mut commands = BTreeSet::new();
         let mut historical = BTreeSet::new();
+        let mut refs = Vec::new();
         let mut initial_stream = None;
         for receipt in receipts {
             check(validator, l)?;
@@ -1053,6 +1054,9 @@ impl<'a, 'b> Versions<'a, 'b> {
                 ));
             }
             let before_id = text(&receipt["previous_source"], "id")?;
+            if before_id == id {
+                refs.push(receipt["previous_source"].clone());
+            }
             let previous = previous_records.get(before_id).ok_or(Error::Invalid(
                 "bibliographic corrected Claim predecessor absent",
             ))?;
@@ -1136,6 +1140,7 @@ impl<'a, 'b> Versions<'a, 'b> {
                 l,
             )?;
         }
+        refs.push(current.clone());
         let (record, source, transition, version_status) = chosen.ok_or(Error::Invalid(
             "bibliographic exact membership version/digest not retained",
         ))?;
@@ -1153,10 +1158,56 @@ impl<'a, 'b> Versions<'a, 'b> {
         Ok(Version {
             record,
             provenance,
-            refs: Vec::new(),
+            refs,
             current_ref: current.clone(),
             version_status,
         })
+    }
+    /// Missing/stale envelopes are emitted only after complete current catalog
+    /// absence or a fully verified exact retained Claim reference set. An
+    /// unsupported/corrupt carrier remains an explicit compiler refusal.
+    pub(crate) fn resolve_claim_view(
+        &mut self,
+        stage: &mut KnowledgeStage<'_>,
+        exact: &Value,
+        validator: &SourceCatalogValidator<'_>,
+        forms: &mut dyn BibliographicForms,
+        l: BibliographicLimits,
+    ) -> Result<Value> {
+        exact_ref(exact, true)?;
+        let id = text(exact, "id")?;
+        let base = json!({"status":null,"reason":null,"exact_ref":exact,"version_status":null,"record":null,"record_digest":null,"provenance":null,
+            "grants_current_use":false,"performs_assessment":false,"writes_to_source":false});
+        let Some(row) = catalog::catalog_row(stage, "claims", id, l.catalog)? else {
+            let mut missing = base;
+            missing["status"] = json!("missing");
+            missing["reason"] = json!("claim-not-in-public-catalog");
+            return Ok(missing);
+        };
+        let current = self.resolve_claim(stage, &row["claim_ref"], validator, forms, l)?;
+        if !current.refs.iter().any(|r| r == exact) {
+            let present = current
+                .refs
+                .iter()
+                .any(|r| r["version"] == exact["version"]);
+            let mut unavailable = base;
+            unavailable["status"] = json!(if present { "stale" } else { "missing" });
+            unavailable["reason"] = json!(if present {
+                "exact-version-digest-mismatch"
+            } else {
+                "exact-version-not-retained"
+            });
+            return Ok(unavailable);
+        }
+        let selected = if current.current_ref == *exact {
+            current
+        } else {
+            self.resolve_claim(stage, exact, validator, forms, l)?
+        };
+        Ok(
+            json!({"status":"available","reason":format!("exact-{}-version",selected.version_status),"exact_ref":exact,"version_status":selected.version_status,
+            "record":selected.record,"record_digest":exact["digest"],"provenance":selected.provenance,"grants_current_use":false,"performs_assessment":false,"writes_to_source":false}),
+        )
     }
     pub(crate) fn resolve_claim(
         &mut self,
@@ -1256,7 +1307,7 @@ impl<'a, 'b> Versions<'a, 'b> {
         Ok(Version {
             record,
             provenance,
-            refs: Vec::new(),
+            refs: vec![current.clone()],
             current_ref: current.clone(),
             version_status: "current",
         })

@@ -372,8 +372,9 @@ pub(crate) fn prepare_navigation_record_from_catalog(
             ));
         }
         let reference = &record["promotion_basis"]["candidate"];
-        let value = versions.resolve_claim(stage, reference, validator, forms, l)?;
-        let node = project_record_version(reference, &resolved(reference, value), "claim", l)?;
+        let value = versions.resolve_claim_view(stage, reference, validator, forms, l)?;
+        let available = value["status"] == "available";
+        let node = project_record_version(reference, &value, "claim", l)?;
         let basis = format!("{source}#/promotion_basis/candidate");
         output.edges.push(edge(
             format!("source-navigation:promotion-basis:{id}"),
@@ -383,6 +384,9 @@ pub(crate) fn prepare_navigation_record_from_catalog(
             &[basis.as_str(), text(&node, "source_ref")?],
         )?);
         output.nodes.push(node);
+        if !available {
+            output.diagnostics.push(json!({"level":"warning","path":source,"message":format!("exact Sign promotion basis unavailable: {}/{}",text(&value,"status")?,text(&value,"reason")?)}));
+        }
         output.check(l)?;
     }
     versions.verify_catalog_binding(stage, receipt, l)?;
