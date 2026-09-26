@@ -1,7 +1,7 @@
-//! Bounded discovery for the mechanics-local validation lane.
-//!
-//! This crate emits a command plan; it does not execute commands or decide
-//! whether the selected validation lane is required.
+//! Bounded discovery and dedicated native execution for mechanics-local validation.
+//! Lane selection and the planned tools retain their own authority.
+
+pub mod executor;
 
 use serde::Serialize;
 use std::collections::BTreeSet;
