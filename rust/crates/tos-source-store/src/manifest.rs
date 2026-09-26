@@ -462,7 +462,11 @@ fn optional_revision(value: &JsonValue, field: &str, code: Code) -> Result<Optio
     }
 }
 
-pub(crate) fn array_field<'a>(value: &'a JsonValue, field: &str, code: Code) -> Result<&'a [JsonValue]> {
+pub(crate) fn array_field<'a>(
+    value: &'a JsonValue,
+    field: &str,
+    code: Code,
+) -> Result<&'a [JsonValue]> {
     value
         .object_get(field)
         .and_then(JsonValue::as_array)

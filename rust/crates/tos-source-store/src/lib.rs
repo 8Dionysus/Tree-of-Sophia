@@ -8,8 +8,8 @@ mod error;
 mod limits;
 mod manifest;
 mod object;
-mod software;
 mod secure_open;
+mod software;
 
 pub use cut::{
     CorpusCutReader, CutReadLimits, RetiredSourceMemberV1, SourceMemberStreamV1, SourceMemberV1,
@@ -17,7 +17,9 @@ pub use cut::{
 };
 pub use error::{Result, StoreError, StoreErrorCode};
 pub use limits::ReadLimits;
-pub use software::{SoftwareCaptureReader, SoftwareCaptureSelectionV1, SOFTWARE_COMPANION_PROFILE_V1};
 pub use manifest::{
     CorpusDescriptor, CorpusReader, MemberMetadata, RetirementMetadata, Selector, Snapshot,
+};
+pub use software::{
+    SOFTWARE_COMPANION_PROFILE_V1, SoftwareCaptureReader, SoftwareCaptureSelectionV1,
 };
