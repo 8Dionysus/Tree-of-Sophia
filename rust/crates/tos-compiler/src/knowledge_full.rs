@@ -179,4 +179,49 @@ mod tests {
         );
         selected.check_pin().unwrap();
     }
+
+    #[test]
+    fn native_raw_claim_navigation_produces_complete_selected_graph() {
+        let fixture = crate::knowledge_full_fixture::build_native_fixture();
+        let graph: serde_json::Value = serde_json::from_slice(&fixture.graph_input_bytes).unwrap();
+        assert_eq!(graph["counts"]["nodes"], 7);
+        assert_eq!(graph["counts"]["relations"], 6);
+        let claim = graph["nodes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|node| node["kind_id"] == "claim")
+            .unwrap();
+        assert!(
+            claim
+                .pointer("/attributes/source_claim")
+                .unwrap()
+                .is_object()
+        );
+        assert!(
+            claim
+                .pointer("/attributes/claim_trace")
+                .unwrap()
+                .is_object()
+        );
+        assert!(
+            claim
+                .pointer("/semantics/claim/source_claim_profile")
+                .unwrap()
+                .is_object()
+        );
+        assert!(
+            claim
+                .pointer("/semantics/claim/source_canonical_json")
+                .unwrap()
+                .is_string()
+        );
+        assert_eq!(claim["view_ids"], serde_json::json!(["native-fixture"]));
+        assert!(claim.get("readable_context").is_some());
+        let mut selected = fixture.open().unwrap();
+        assert_eq!(selected.selection().node_count, 7);
+        assert_eq!(selected.selection().relation_count, 6);
+        assert_eq!(selected.selection().model_abi, crate::KNOWLEDGE_MODEL_ABI);
+        selected.check_pin().unwrap();
+    }
 }

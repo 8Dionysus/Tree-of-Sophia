@@ -76,7 +76,7 @@ impl FullKnowledgeFixture {
                 max_work_bytes: 100 * 1024 * 1024,
                 max_row_bytes: 1024 * 1024,
                 max_metadata_bytes: 256 * 1024,
-                max_sources: 2,
+                max_sources: self.vocabulary.sources.len(),
             },
         )
     }
@@ -304,6 +304,29 @@ pub fn build_fixture() -> FullKnowledgeFixture {
         },
         "authority_boundary":{"is_source":false,"is_canon":false,"writes_to_tree":false}
     });
+    finish_fixture(
+        stage,
+        path,
+        registry,
+        entity_bytes,
+        relation_bytes,
+        vocabulary,
+        descriptor_bytes,
+        header,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn finish_fixture(
+    mut stage: KnowledgeStage<'_>,
+    path: PathBuf,
+    registry: KnowledgeRegistry,
+    entity_bytes: &[u8],
+    relation_bytes: &[u8],
+    vocabulary: QueryVocabulary,
+    descriptor_bytes: Vec<u8>,
+    header: Value,
+) -> FullKnowledgeFixture {
     let full = compile_full_knowledge_components(
         &mut stage,
         &header,
@@ -315,9 +338,9 @@ pub fn build_fixture() -> FullKnowledgeFixture {
         &descriptor_bytes,
         FullKnowledgeLimits {
             scope: ScopeLimits {
-                max_sources: 2,
-                max_rows: 5,
-                max_index_work_bytes: 4096,
+                max_sources: vocabulary.sources.len(),
+                max_rows: 1000,
+                max_index_work_bytes: 1024 * 1024,
             },
             catalog: CatalogLimits::default(),
             catalog_index: CatalogIndexLimits::default(),
@@ -337,6 +360,20 @@ pub fn build_fixture() -> FullKnowledgeFixture {
         },
     )
     .unwrap();
+    let (source_scopes,graph)=stage.with_connection(WritePhase::Finalize,|db| {
+        let mut statement=db.prepare("SELECT source_graph,input_role,adapter_profile,expected_node_count,expected_relation_count,lower(hex(node_root_sha256)),lower(hex(relation_root_sha256)) FROM source_scope ORDER BY source_graph")?;
+        let scopes=statement.query_map([],|r|Ok(ExpectedSourceScope {source_graph:r.get(0)?,input_role:r.get(1)?,adapter_profile:r.get(2)?,
+            node_count:r.get(3)?,relation_count:r.get(4)?,node_root_sha256:r.get(5)?,relation_root_sha256:r.get(6)?}))?
+            .collect::<std::result::Result<Vec<_>,_>>()?;
+        let mut graph=header.clone();
+        for (table,key) in [("knowledge_nodes","nodes"),("knowledge_relations","relations")] {
+            let mut statement=db.prepare(&format!("SELECT payload FROM {table} ORDER BY source_order"))?;
+            let raw=statement.query_map([],|r|r.get::<_,Vec<u8>>(0))?.collect::<std::result::Result<Vec<_>,_>>()?;
+            let values=raw.iter().map(|raw|serde_json::from_slice::<Value>(raw).unwrap()).collect::<Vec<_>>();
+            graph[key]=json!(values);
+        }
+        Ok((scopes,graph))
+    }).unwrap();
     let private_inode = fs::metadata(&path).unwrap().ino();
     let output = stage.finish().unwrap();
     assert_ne!(fs::metadata(&path).unwrap().ino(), private_inode);
@@ -371,42 +408,15 @@ pub fn build_fixture() -> FullKnowledgeFixture {
         catalog_index_root_sha256: full.catalog.catalog_index_root_sha256,
         source_scope_root_sha256: full.source_scope.source_scope_root_sha256,
         search_index_root_sha256: full.search.search_index_root_sha256,
-        node_count: 4,
-        relation_count: 1,
+        node_count: output.node_rows,
+        relation_count: output.relation_rows,
         index_generation: "fixture-generation".into(),
         route_map_version: "fixture-routes".into(),
         reader_abi: "fixture-reader".into(),
         authority_boundary: serde_json::to_string(&header["authority_boundary"]).unwrap(),
-        source_scopes: vec![
-            ExpectedSourceScope {
-                source_graph: "eighth".into(),
-                input_role: "source-graph".into(),
-                adapter_profile: "indexed-node-edge-v1".into(),
-                node_count: 4,
-                relation_count: 1,
-                node_root_sha256: node_root,
-                relation_root_sha256: root(relation_id, &relation),
-            },
-            ExpectedSourceScope {
-                source_graph: "zero".into(),
-                input_role: "source-graph".into(),
-                adapter_profile: "indexed-node-edge-v1".into(),
-                node_count: 0,
-                relation_count: 0,
-                node_root_sha256: zero_root.clone(),
-                relation_root_sha256: zero_root,
-            },
-        ],
+        source_scopes,
         complete: true,
     };
-    let mut graph = header.clone();
-    graph["nodes"] = json!([
-        serde_json::from_slice::<Value>(&node).unwrap(),
-        serde_json::from_slice::<Value>(&alpha).unwrap(),
-        serde_json::from_slice::<Value>(&visible).unwrap(),
-        serde_json::from_slice::<Value>(&false_positive).unwrap()
-    ]);
-    graph["relations"] = json!([serde_json::from_slice::<Value>(&relation).unwrap()]);
     FullKnowledgeFixture {
         path,
         expectation,
@@ -415,4 +425,353 @@ pub fn build_fixture() -> FullKnowledgeFixture {
         graph_input_bytes: serde_json::to_vec(&graph).unwrap(),
         custody: FixtureCustody,
     }
+}
+
+/// The same selected fixture route, now starting from maintained public raw
+/// Claim bytes and a bounded navigation owner carrier for its exact subject.
+/// No pre-normalized Claim, time envelope or final row is a test input.
+pub fn build_native_fixture() -> FullKnowledgeFixture {
+    use crate::knowledge_source_claims::ClaimNormalizeLimits;
+    let entity_bytes =
+        include_bytes!("../../../../ToS/doctrine/semantic-interchange/entity-types.v1.json");
+    let relation_bytes =
+        include_bytes!("../../../../ToS/doctrine/semantic-interchange/relation-types.v1.json");
+    let registry = KnowledgeRegistry::parse(entity_bytes, relation_bytes).unwrap();
+    let mut descriptor: Value =
+        serde_json::from_slice(include_bytes!("../tests/fixtures/query-vocabulary.v1.json"))
+            .unwrap();
+    descriptor["sources"]
+        .as_array_mut()
+        .unwrap()
+        .retain(|source| {
+            matches!(
+                source["adapter_profile"].as_str(),
+                Some("source-navigation-node-edge-v1" | "reified-bibliographic-claims-v1")
+            )
+        });
+    let descriptor_bytes = serde_json::to_vec(&descriptor).unwrap();
+    let vocabulary = QueryVocabulary::parse(
+        &descriptor_bytes,
+        &[
+            "source-navigation-node-edge-v1",
+            "reified-bibliographic-claims-v1",
+            "indexed-node-edge-v1",
+        ],
+    )
+    .unwrap();
+    let fixture: Value = serde_json::from_slice(include_bytes!(
+        "../../../../access/tests/fixtures/knowledge-contract/temporal-jenseits-date.json"
+    ))
+    .unwrap();
+    let subject = fixture["nodes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|node| node["node_kind"] == "identity")
+        .unwrap();
+    let claim = fixture["nodes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|node| node["node_kind"] == "claim")
+        .unwrap();
+    let subject_id = subject["properties"]["record_id"].as_str().unwrap();
+    let nav = json!({"node_id":subject_id,"node_kind":"identity","label":subject["properties"]["preferred_label"],
+        "source_ref":subject["source_ref"],"identity_status":subject["properties"]["identity_status"],"properties":subject["properties"]});
+    let nav_edge = json!({"edge_id":"native-claim-subject","from_id":subject_id,"to_id":claim["node_id"],
+        "to_source_graph":"source-claims","predicate_id":"has_claim","edge_kind":"declared-claim-navigation",
+        "review_status":"source-recorded","source_refs":[subject["source_ref"]],"properties":{},"view_ids":["native-fixture"]});
+    let mut rows = Vec::<(String, String, String, Vec<u8>)>::new();
+    for (collection, field) in [
+        ("nodes", "node_id"),
+        ("edges", "edge_id"),
+        ("claim_traces", "claim_ref"),
+    ] {
+        for row in fixture[collection].as_array().unwrap() {
+            rows.push((
+                "source-claims".into(),
+                collection.into(),
+                row[field].as_str().unwrap().into(),
+                serde_json::to_vec(row).unwrap(),
+            ));
+        }
+    }
+    rows.push((
+        "source-navigation".into(),
+        "nodes".into(),
+        subject_id.into(),
+        serde_json::to_vec(&nav).unwrap(),
+    ));
+    rows.push((
+        "source-navigation".into(),
+        "edges".into(),
+        "native-claim-subject".into(),
+        serde_json::to_vec(&nav_edge).unwrap(),
+    ));
+    let mut collections = Vec::new();
+    for source in &vocabulary.sources {
+        let names: &[&str] = if source.adapter_profile == "reified-bibliographic-claims-v1" {
+            &["nodes", "edges", "claim_traces"]
+        } else {
+            &["nodes", "edges"]
+        };
+        for collection in names {
+            let subset = rows
+                .iter()
+                .filter(|row| row.0 == source.source_graph_id && row.1 == *collection)
+                .map(|row| (row.2.as_str(), row.3.as_slice()))
+                .collect::<Vec<_>>();
+            collections.push(InputCollectionReceipt {
+                source_graph: source.source_graph_id.clone(),
+                collection: (*collection).into(),
+                input_role: source.input_role.clone(),
+                adapter_profile: source.adapter_profile.clone(),
+                expected_count: subset.len() as u64,
+                expected_root_sha256: roots(&subset),
+            });
+        }
+    }
+    let exact = ExactInputReceipt {
+        binding: SourceBinding {
+            owner_profile: "fixture-owner".into(),
+            source_cut: "native-fixture-cut".into(),
+            through_commit_seq: 7,
+            membership_root: "0".repeat(64),
+            index_generation: "fixture-generation".into(),
+            route_map_version: "fixture-routes".into(),
+            reader_abi: "fixture-reader".into(),
+            projection_root_sha256: "1".repeat(64),
+            complete: true,
+        },
+        collections,
+    };
+    let path = candidate();
+    let owner = FixtureOwner;
+    let quota = FixtureQuota;
+    let mut stage = KnowledgeStage::create(
+        &path,
+        StageLimits {
+            sqlite: Limits::default(),
+            max_temp_bytes: 64 * 1024 * 1024,
+            max_seek_rows: 2,
+            max_seek_bytes: 1024 * 1024,
+        },
+        exact,
+        &owner,
+        &quota,
+    )
+    .unwrap();
+    for (source, collection, id, payload) in &rows {
+        stage
+            .ingest_input(InputRow {
+                source_graph: source,
+                collection,
+                id,
+                payload,
+            })
+            .unwrap();
+    }
+    let header = json!({"schema_version":"tos_source_navigation_v1","authority_boundary":"derived fixture, source semantics and admission retained upstream",
+        "counts":{"nodes":1,"edges":1,"rights":0}});
+    let raw_json = serde_json::to_vec(&header).unwrap();
+    let navigation_header = NavigationHeaderClaim {
+        expected_sha256: Digest256::of_bytes(&raw_json).to_hex(),
+        raw_json,
+    };
+    materialize_native_sources(
+        &mut stage,
+        &registry,
+        entity_bytes,
+        relation_bytes,
+        &vocabulary,
+        &descriptor_bytes,
+        &navigation_header,
+        NativeProducerLimits {
+            navigation_prepare: NavigationPrepareLimits {
+                max_nodes: 100,
+                max_edges: 100,
+                max_endpoint_refs: 200,
+                max_page_rows: 2,
+                max_row_bytes: 262144,
+                max_header_bytes: 65536,
+                max_work_bytes: 32 * 1024 * 1024,
+            },
+            navigation_nodes: NavigationNodeLimits {
+                max_raw_bytes: 262144,
+                max_output_bytes: 1048576,
+                max_ancestor_cache_bytes: 1048576,
+            },
+            navigation_materialize: NavigationMaterializeLimits {
+                max_nodes: 100,
+                max_edges: 100,
+                max_placeholders: 100,
+                max_page_rows: 2,
+                max_raw_bytes: 262144,
+                max_output_bytes: 1048576,
+                max_page_bytes: 524288,
+                max_work_bytes: 32 * 1024 * 1024,
+            },
+            navigation_dependencies: NavigationRelationLimits {
+                max_edges: 100,
+                max_page_rows: 2,
+                max_raw_bytes: 262144,
+                max_context_bytes: 1048576,
+                max_page_bytes: 524288,
+                max_work_bytes: 32 * 1024 * 1024,
+            },
+            navigation_relations: NavigationRelationNormalizeLimits {
+                max_raw_bytes: 262144,
+                max_output_bytes: 1048576,
+                max_registry_bytes: 4 * 1024 * 1024,
+                max_claim_contexts: 64,
+                max_global_input_bytes: 1048576,
+            },
+            claims_prepare: ClaimPrepareLimits {
+                max_nodes: 100,
+                max_edges: 100,
+                max_claims: 100,
+                max_page_rows: 2,
+                max_row_bytes: 262144,
+                max_work_bytes: 32 * 1024 * 1024,
+            },
+            claims: ClaimNormalizeLimits {
+                max_raw_bytes: 262144,
+                max_output_bytes: 1048576,
+                max_page_rows: 2,
+                max_contexts: 64,
+                max_work_bytes: 64 * 1024 * 1024,
+            },
+            philosophy_prepare: PhilosophyPrepareLimits {
+                max_nodes: 100,
+                max_edges: 100,
+                max_edge_view_bindings: 100,
+                max_page_rows: 2,
+                max_row_bytes: 262144,
+                max_work_bytes: 32 * 1024 * 1024,
+            },
+            philosophy: PhilosophyMaterializeLimits {
+                max_raw_bytes: 262144,
+                max_output_bytes: 1048576,
+                max_registry_bytes: 4 * 1024 * 1024,
+                max_page_rows: 2,
+                max_rows: 100,
+                max_work_bytes: 32 * 1024 * 1024,
+            },
+            titles: GlobalTitleLimits {
+                max_nodes: 100,
+                max_page_rows: 2,
+                max_page_bytes: 2 * 1048576,
+                max_node_bytes: 1048576,
+                max_title_bytes: 65536,
+                max_work_bytes: 32 * 1024 * 1024,
+            },
+            inherited: InheritedViewLimits {
+                max_relations: 100,
+                max_endpoint_evidence_rows: 200,
+                max_view_tokens: 100,
+                max_page_rows: 2,
+                max_page_bytes: 2 * 1048576,
+                max_row_bytes: 1048576,
+                max_work_bytes: 32 * 1024 * 1024,
+            },
+            finalize: NativeFinalizeLimits {
+                max_rows: 200,
+                max_page_rows: 2,
+                max_row_bytes: 1048576,
+                max_view_ids_per_node: 64,
+                max_context_sources: 64,
+                max_work_bytes: 64 * 1024 * 1024,
+            },
+        },
+    )
+    .unwrap();
+    let graph_header = native_fixture_header(&mut stage, &registry);
+    finish_fixture(
+        stage,
+        path,
+        registry,
+        entity_bytes,
+        relation_bytes,
+        vocabulary,
+        descriptor_bytes,
+        graph_header,
+    )
+}
+
+fn native_fixture_header(stage: &mut KnowledgeStage<'_>, registry: &KnowledgeRegistry) -> Value {
+    let roots = stage.core_roots().unwrap();
+    let (
+        sources,
+        node_states,
+        relation_states,
+        mapped_nodes,
+        mapped_relations,
+        missing_node_summary,
+        missing_relation_explanation,
+    ) = stage
+        .with_connection(WritePhase::Finalize, |db| {
+            let mut sources = std::collections::BTreeMap::<String, u64>::new();
+            let mut states = [
+                std::collections::BTreeMap::<String, u64>::new(),
+                std::collections::BTreeMap::<String, u64>::new(),
+            ];
+            let mut mapped = [0u64; 2];
+            let mut missing = [0u64; 2];
+            for (i, table) in ["knowledge_nodes", "knowledge_relations"]
+                .iter()
+                .enumerate()
+            {
+                let mut statement = db.prepare(&format!(
+                    "SELECT source_graph,payload FROM {table} ORDER BY source_order"
+                ))?;
+                let mut rows = statement.query([])?;
+                while let Some(row) = rows.next()? {
+                    let source: String = row.get(0)?;
+                    let raw: Vec<u8> = row.get(1)?;
+                    let value: Value = serde_json::from_slice(&raw).unwrap();
+                    if i == 0 {
+                        *sources.entry(source).or_default() += 1;
+                    }
+                    let state = if i == 0 {
+                        "summary_state"
+                    } else {
+                        "explanation_state"
+                    };
+                    *states[i]
+                        .entry(value["display"][state].as_str().unwrap().into())
+                        .or_default() += 1;
+                    let mapping = if i == 0 {
+                        "type_mapping"
+                    } else {
+                        "predicate_mapping"
+                    };
+                    if value[mapping]["status"] == "mapped" {
+                        mapped[i] += 1;
+                    }
+                    let source = if i == 0 {
+                        "source_summary_available"
+                    } else {
+                        "source_explanation_available"
+                    };
+                    if value["display"]["provenance"][source] == false {
+                        missing[i] += 1;
+                    }
+                }
+            }
+            let [nodes, relations] = states;
+            Ok((
+                sources, nodes, relations, mapped[0], mapped[1], missing[0], missing[1],
+            ))
+        })
+        .unwrap();
+    json!({"schema":"tos_knowledge_graph_v1","source_revision":"2".repeat(64),
+        "normalization_binding":{"schema":"tos_knowledge_graph_normalization_binding_v1","processor_digest":"3".repeat(64),
+            "entity_registry_digest":registry.entity_semantic_digest,"relation_registry_digest":registry.relation_semantic_digest,"configuration_digest":"4".repeat(64)},
+        "query_properties":[],"counts":{"nodes":roots.nodes,"relations":roots.relations,"sources":sources,
+            "display_coverage":{"node_titles":roots.nodes,"node_summaries":roots.nodes,"node_summary_states":node_states,"nodes_without_source_summary":missing_node_summary,
+                "relation_labels":roots.relations,"relation_statements":roots.relations,"relation_explanations":roots.relations,"relation_explanation_states":relation_states,
+                "relations_without_source_explanation":missing_relation_explanation},
+            "semantic_mapping":{"mapped_nodes":mapped_nodes,"unmapped_nodes":roots.nodes-mapped_nodes,"mapped_relations":mapped_relations,
+                "unmapped_relations":roots.relations-mapped_relations,"cross_layer_relations":0}},
+        "authority_boundary":{"is_source":false,"is_canon":false,"writes_to_tree":false}})
 }
