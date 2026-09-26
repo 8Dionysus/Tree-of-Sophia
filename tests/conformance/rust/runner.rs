@@ -810,3 +810,9 @@ fn corpus_reader_refuses_fifo_object() {
 }
 #[path = "source_cut_cases.rs"]
 mod source_cut_cases;
+
+#[path = "validation_cut_cases.rs"]
+mod validation_cut_cases;
+
+#[path = "retirement_cut_cases.rs"]
+mod retirement_cut_cases;

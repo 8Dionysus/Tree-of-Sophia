@@ -380,6 +380,10 @@
         "command": ["cargo", "fmt", "--all", "--check"]
       },
       {
+        "label": "build exact native schema worker for source-cut fixtures",
+        "command": ["cargo", "build", "--locked", "-p", "tos-validation", "--bin", "tos-schema-worker"]
+      },
+      {
         "label": "test Rust workspace",
         "command": ["cargo", "test", "--workspace", "--locked"]
       },
@@ -394,6 +398,10 @@
       {
         "label": "install native exact reader outside checkout",
         "command": ["python", "scripts/verify_rust_reader_install.py"]
+      },
+      {
+        "label": "install native mechanics executor and verify process custody",
+        "command": ["python", "scripts/verify_rust_mechanics_install.py"]
       },
       {
         "label": "verify generated WEB.1 binding in Node WebAssembly host",

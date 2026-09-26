@@ -216,6 +216,13 @@ jobs:
             /ToS/contracts/
             /scripts/validation_lanes.py
             /scripts/verify_rust_reader_install.py
+            /scripts/verify_rust_mechanics_install.py
+            /scripts/run_mechanics_local_tests.py
+            /ToS/doctrine/semantic-interchange/
+            /ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1884-part-3/editions/chemnitz-schmeitzner-1884-part-3/edition.json
+            /ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1884-part-3/editions/chemnitz-schmeitzner-1884-part-3/items/dta-sbb-corrected-tei-p5/
+            !/ToS/source-witnesses/**/payload/
+            /ToS/research-packets/foundation-laboratory-2026-07/DTA_ZARATHUSTRA_PARTS_1_4_LAYERED_RIGHTS_ASSESSMENT.md
             /scripts/verify_rust_web_host.py
             /docs/validation/validation_lanes.json
       - name: Install pinned Rust toolchain and WASM target
