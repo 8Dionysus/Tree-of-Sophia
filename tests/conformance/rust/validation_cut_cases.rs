@@ -348,6 +348,24 @@ fn actual_cut_worker_and_pinned_software_preserve_provenance_lab_limits() {
         &cancelled,
     )
     .unwrap();
+    {
+        use tos_validation::provenance_rules::ProvenanceSource;
+        use tos_validation::source_cut::CutProvenanceSource;
+        let mut source = CutProvenanceSource {
+            cut: &cut,
+            software: &software,
+            schemas: &mut schemas,
+            cancelled: &cancelled,
+        };
+        assert!(matches!(
+            source.current(
+                "scripts/validate_source_witness_foundation.py",
+                1_048_576,
+                deadline
+            ),
+            Err(tos_validation::item_rules::ItemRefusal::Unsupported(_))
+        ));
+    }
     let report = inspect_provenance_lab_from_cut(
         &cut,
         &software,

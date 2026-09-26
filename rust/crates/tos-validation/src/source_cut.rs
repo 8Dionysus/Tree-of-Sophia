@@ -637,6 +637,13 @@ fn check(deadline: Instant, cancelled: &AtomicBool) -> Result<(), ItemRefusal> {
     }
     Ok(())
 }
-fn store_error(error: impl std::fmt::Display) -> ItemRefusal {
-    ItemRefusal::Source(error.to_string())
+fn store_error(error: tos_source_store::StoreError) -> ItemRefusal {
+    use tos_source_store::StoreErrorCode;
+    match error.code {
+        StoreErrorCode::BudgetExceeded => ItemRefusal::Budget,
+        StoreErrorCode::UnsupportedFormat | StoreErrorCode::UnsupportedPlatform => {
+            ItemRefusal::Unsupported(error.to_string())
+        }
+        _ => ItemRefusal::Source(error.to_string()),
+    }
 }
