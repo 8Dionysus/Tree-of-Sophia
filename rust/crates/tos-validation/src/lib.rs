@@ -17,6 +17,7 @@ use tos_foundation::{
 mod audit;
 pub mod executor;
 mod global_facts;
+pub mod item_rules;
 pub mod record_rules;
 pub mod relation_rules;
 pub mod source_copy;
