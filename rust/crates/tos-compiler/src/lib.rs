@@ -37,6 +37,7 @@ mod legacy;
 mod publication;
 mod safe_open;
 mod selected;
+pub mod source_witness_catalog;
 mod sqlite_budget;
 mod vocabulary;
 pub use knowledge_catalog_index::{CatalogIndexLimits, CatalogIndexReceipt, materialize_catalog};
