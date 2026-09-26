@@ -94,10 +94,11 @@ pub fn inspect_rights_from_cut(cut:&CorpusCutReader,limits:ItemLimits,cancelled:
         if !path.starts_with("ToS/source-witnesses/") || !path.ends_with(".json") {continue}
         if member.raw.len()>limits.max_member_bytes {return Err(ItemRefusal::Budget)}
         let selected_path=path.ends_with("/rights.json") || path.starts_with("ToS/source-witnesses/rights/");
-        let value=match serde_json::from_slice::<Value>(&member.raw) {
+        let value=match crate::native_decoded_value(&member.raw,limits.max_member_bytes) {
             Ok(value)=>value,
-            Err(_) if selected_path=>{state.issue(path,"invalid-json",path)?;continue},
-            Err(_)=>continue,
+            Err(ItemRefusal::Source(_)) if selected_path=>{state.issue(path,"invalid-json",path)?;continue},
+            Err(ItemRefusal::Source(_))=>continue,
+            Err(error)=>return Err(error),
         };
         let version=value.get("schema_version").and_then(Value::as_str).unwrap_or("");
         if !selected_path && version!="tos_rights_record_v1" {continue}

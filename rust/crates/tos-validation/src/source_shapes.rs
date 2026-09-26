@@ -28,7 +28,7 @@ impl State {
     fn gap(&mut self,path:&str,code:&str)->Result<(),ItemRefusal>{self.reserve(path.len()+code.len()+64)?;self.gaps.push((path.into(),code.into()));Ok(())}
     fn read(&mut self,read:PredicateRead)->Result<(),ItemRefusal>{let bytes=match &read{PredicateRead::ExactPath{path,digest}=>path.len()+digest.len(),PredicateRead::RefEndpoint{endpoint_type,id,..}=>endpoint_type.len()+id.len(),_=>return Err(ItemRefusal::Unsupported("source-shape read accounting".into()))};self.reserve(bytes+96)?;self.reads.push(read);Ok(())}
 }
-fn check(limits:ItemLimits,cancelled:&AtomicBool)->Result<(),ItemRefusal>{if cancelled.load(Ordering::Relaxed)||Instant::now()>=limits.deadline{Err(ItemRefusal::Deadline)}else if limits.max_member_bytes==0||limits.max_total_bytes==0||limits.max_state_bytes==0||limits.max_issues==0{Err(ItemRefusal::Budget)}else{Ok(())}}
+fn check(limits:ItemLimits,cancelled:&AtomicBool)->Result<(),ItemRefusal>{if cancelled.load(Ordering::Relaxed)||Instant::now()>=limits.deadline{Err(ItemRefusal::Deadline)}else if limits.max_member_bytes==0||limits.max_member_bytes==usize::MAX||limits.max_total_bytes==0||limits.max_total_bytes==u64::MAX||limits.max_state_bytes==0||limits.max_state_bytes==usize::MAX||limits.max_issues==0||limits.max_issues==usize::MAX{Err(ItemRefusal::Budget)}else{Ok(())}}
 
 /// Extract only root instance version constraints, following same-document
 /// root $refs/allOf/anyOf/oneOf. Do not harvest unrelated nested object/Claim
@@ -69,7 +69,7 @@ pub fn inspect_source_shapes_from_cut(cut:&CorpusCutReader,limits:ItemLimits,can
     while let Some(member)=stream.next_member(limits.deadline,cancelled).map_err(store_error)?{
         check(limits,cancelled)?;state.raw(member.raw.len())?;let path=member.path.as_str();
         if !(path.starts_with("ToS/source-witnesses/")||path.starts_with("ToS/research-packets/"))||!path.ends_with(".json"){continue}
-        let value=match serde_json::from_slice::<Value>(&member.raw){Ok(value)=>value,Err(_)=>{state.issue(path,"invalid-json")?;continue}};
+        let value=match crate::native_decoded_value(&member.raw,limits.max_member_bytes){Ok(value)=>value,Err(ItemRefusal::Source(_))=>{state.issue(path,"invalid-json")?;continue},Err(error)=>return Err(error)};
         if !value.is_object(){state.gap(path,"non-object-source-owner-route")?;continue}
         state.read(PredicateRead::ExactPath{path:path.into(),digest:Digest256::of_bytes(&member.raw).to_hex()})?;
         let version=value.get("schema_version").and_then(Value::as_str);

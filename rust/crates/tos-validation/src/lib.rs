@@ -378,6 +378,20 @@ fn published_value(raw: &[u8], max_bytes: usize) -> Result<Value, SchemaProbeErr
     convert(document.root())
 }
 
+/// Native source loaders retain last decoded field semantics, while FND owns
+/// parsing budgets. A Python-admitted WTF-16 scalar gap is Unsupported, never
+/// relabeled as an invalid source instance by serde's narrower representation.
+pub(crate) fn native_decoded_value(raw: &[u8], max_bytes: usize) -> Result<Value, crate::item_rules::ItemRefusal> {
+    use crate::item_rules::ItemRefusal;
+    let limits=JsonLimits::new(max_bytes,64,300_000,4_300).map_err(|_|ItemRefusal::Budget)?;
+    parse_json(raw,JsonMode::RequestLastWins,limits).map_err(|error|{
+        if error.code==FoundationErrorCode::BudgetExceeded {ItemRefusal::Budget}
+        else {ItemRefusal::Source("invalid finite native JSON".into())}
+    })?;
+    serde_json::from_slice(raw).map_err(|_|ItemRefusal::Unsupported(
+        "native JSON representation outside the scalar-string Rust profile".into()))
+}
+
 pub struct SchemaBackendProbe {
     resources: BTreeMap<String, Value>,
     resource_digests: BTreeMap<String, Digest256>,
