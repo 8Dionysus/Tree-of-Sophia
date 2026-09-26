@@ -8,7 +8,7 @@
 use crate::knowledge_normalization::SourceRow;
 use crate::knowledge_stage::{KnowledgeStage, WritePhase};
 use crate::{Error, Result};
-use rusqlite::params;
+use rusqlite::{OptionalExtension, params};
 use serde_json::{Map, Value, json};
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::atomic::AtomicBool;
@@ -23,6 +23,8 @@ use tos_validation::{FormatProfile, SchemaResource};
 pub const CATALOG_SOURCE: &str = "source-witness-catalog";
 pub const SOURCE_FILES: &str = "source-files";
 pub const CONTRACT_FILES: &str = "contracts";
+/// Optional exact source-owned evidence/forms cut for the bibliographic producer.
+pub const BIBLIOGRAPHIC_FILES: &str = "bibliographic-dependencies";
 pub const NATIVE_IDENTITIES: &str = "native-identity-packets";
 pub const NATIVE_TEXT: &str = "native-text-bindings";
 const ENTITY: &str = "ToS/doctrine/semantic-interchange/entity-types.v1.json";
@@ -283,10 +285,14 @@ fn summary(receipt: &SourceCatalogReceipt, l: SourceCatalogLimits) -> Result<Str
 fn input_root(stage: &KnowledgeStage<'_>, l: SourceCatalogLimits) -> Result<String> {
     let receipt = stage.exact_receipt();
     let mut complete = Digest256Hasher::new();
-    if receipt.collections.len() != 4 {
+    if !matches!(receipt.collections.len(), 4 | 5) {
         return Err(Error::Invalid("source catalog input collection closure"));
     }
-    for name in [SOURCE_FILES, CONTRACT_FILES, NATIVE_IDENTITIES, NATIVE_TEXT] {
+    let mut names = vec![SOURCE_FILES, CONTRACT_FILES, NATIVE_IDENTITIES, NATIVE_TEXT];
+    if receipt.collections.len() == 5 {
+        names.push(BIBLIOGRAPHIC_FILES);
+    }
+    for name in names {
         let entry = receipt
             .collections
             .iter()
@@ -303,6 +309,10 @@ fn input_root(stage: &KnowledgeStage<'_>, l: SourceCatalogLimits) -> Result<Stri
             NATIVE_IDENTITIES => (
                 "native-identity-inventory",
                 "tos.source-catalog.native-identities.v1",
+            ),
+            BIBLIOGRAPHIC_FILES => (
+                "bibliographic-source-dependencies",
+                "tos.source-catalog.bibliographic-files.v1",
             ),
             _ => (
                 "native-text-dependencies",
@@ -722,15 +732,19 @@ fn entry_record(
         if let Some((_, p)) = c.records.iter().find(|(k, _)| k == kind) {
             // These source-owned adapters have validation beyond JSON Schema.
             // A schema verdict cannot stand in for their undeclared native port.
-            if p.descriptor.get("native_binding_adapter").is_some()
-                || p.descriptor.get("identity_proposal_adapter").is_some()
-            {
+            if p.descriptor.get("native_binding_adapter").is_some() {
                 return Err(Error::Invalid(
                     "catalog native text/identity owner adapter not connected",
                 ));
             }
             let route = schema_route(p, v)?;
             validator.check(c, route, "", raw)?;
+            validator.check(
+                c,
+                "ToS/contracts/source-metadata-record.schema.json",
+                "",
+                raw,
+            )?;
             schema = Some(route);
             for field in [
                 "preferred_label",
@@ -783,24 +797,9 @@ fn entry_record(
     };
     identity(id, kind)?;
     version(v, "record_version")?;
-    let mut links = Map::new();
-    if !matches!(kind, "artifact" | "composite") || basename == "composite.json" {
-        for name in LINKS {
-            if let Some(value) = v.get(*name) {
-                links.insert((*name).into(), value.clone());
-            }
-        }
-    }
-    let mut entry = json!({"schema_version":"tos_source_witness_catalog_entry_v1", "record_id":id,
-        "record_type":kind,"preferred_label":label,"identity_status":status,
-        "source_record_ref":ref_,"record_sha256":sha,"links":links});
-    if let Some(route) = schema {
-        entry["source_schema_ref"] = json!(route);
-    }
-    if let Some(pointer) = label_pointer {
-        entry["label_source_pointer"] = json!(pointer);
-    }
-    Ok(entry)
+    // Validation above owns admission; this shared renderer owns the bytes.
+    let _ = (label, status, label_pointer, sha);
+    render_catalog_record(v, ref_, schema, l.max_output_row_bytes)
 }
 
 fn entry_claim(
@@ -824,7 +823,16 @@ fn entry_claim(
             .get(text(v, "predicate")?)
             .ok_or(Error::Invalid("catalog source Claim profile missing"))?;
         let reader = text(&p.descriptor, "reader")?;
-        if !matches!(reader, "identity-relation-v1" | "historical-temporal-v1") {
+        if !matches!(
+            reader,
+            "identity-relation-v1"
+                | "historical-temporal-v1"
+                | "document-catalogue-temporal-v1"
+                | "structured-value-v1"
+                | "structured-reference-value-v1"
+                | "identity-transition-v1"
+                | "identity-transition-v2"
+        ) {
             return Err(Error::Invalid(
                 "catalog Claim owner value adapter not connected",
             ));
@@ -833,7 +841,7 @@ fn entry_claim(
             || !array(&p.descriptor, "assertion_layers")?.contains(&v["assertion_layer"])
             || !v["subject_ref"].is_string()
             || (reader == "identity-relation-v1" && !v["object"].is_string())
-            || (reader == "historical-temporal-v1" && !v["object"].is_object())
+            || (reader != "identity-relation-v1" && !v["object"].is_object())
             || v["claim_id"] == v["subject_ref"]
             || v["claim_id"] == v["object"]
         {
@@ -845,13 +853,54 @@ fn entry_claim(
         validator.check(c, route, "", raw)?;
         validator.check(c, "ToS/contracts/source-claim-record.schema.json", "", raw)?;
         extension = Some(route);
-        if reader == "historical-temporal-v1" {
+        if matches!(
+            reader,
+            "historical-temporal-v1" | "document-catalogue-temporal-v1"
+        ) {
             validator.check(
                 c,
-                "ToS/contracts/historical-claim.schema.json",
-                "#/$defs/historicalDate",
+                if reader == "historical-temporal-v1" {
+                    "ToS/contracts/historical-claim.schema.json"
+                } else {
+                    "ToS/contracts/document-catalogue-claim.schema.json"
+                },
+                if reader == "historical-temporal-v1" {
+                    "#/$defs/historicalDate"
+                } else {
+                    "#/$defs/documentDate"
+                },
                 &encode(&v["object"], l.max_row_bytes)?,
             )?;
+        }
+        if matches!(
+            reader,
+            "structured-value-v1"
+                | "structured-reference-value-v1"
+                | "identity-transition-v1"
+                | "identity-transition-v2"
+        ) {
+            validator.check(
+                c,
+                "ToS/contracts/source-structured-value.schema.json",
+                "",
+                &encode(&v["object"], l.max_row_bytes)?,
+            )?;
+            if v["object"]["kind"] != p.descriptor["value_kind"] {
+                return Err(Error::Invalid("catalog declared structured value kind"));
+            }
+            crate::source_bibliographic_values::members(v, &p.descriptor)?;
+            if p.descriptor
+                .pointer("/object_reference_set/structure_adapter")
+                .and_then(Value::as_str)
+                == Some("scoped-members-v1")
+            {
+                validator.check(
+                    c,
+                    "ToS/contracts/scoped-member-structure.schema.json",
+                    "",
+                    &encode(&v["object"], l.max_row_bytes)?,
+                )?;
+            }
         }
     } else if LEGACY_CLAIMS.contains(&basename) && v["schema_version"] == "tos_historical_claim_v1"
     {
@@ -875,43 +924,7 @@ fn entry_claim(
     } else {
         return Err(Error::Invalid("catalog Claim source filename"));
     }
-    let sha = Digest256::of_bytes(&canonical(raw, l.max_row_bytes)?).to_hex();
-    let mut entry = json!({"schema_version":"tos_source_witness_claim_catalog_entry_v1",
-        "source_claim_file_ref":ref_,"source_claim_line":line,"claim_sha256":sha});
-    for field in [
-        "claim_id",
-        "claim_type",
-        "assertion_layer",
-        "subject_ref",
-        "predicate",
-        "object",
-        "evidence_refs",
-        "maker",
-        "provenance_event_ref",
-        "epistemic_status",
-        "review_status",
-        "visibility",
-        "claim_version",
-    ] {
-        entry[field] = v.get(field).cloned().unwrap_or(Value::Null);
-    }
-    entry["review_refs"] = json!(
-        v.get("reviews")
-            .and_then(Value::as_array)
-            .into_iter()
-            .flatten()
-            .filter_map(|review| review.as_object()?.get("review_id")?.as_str())
-            .collect::<Vec<_>>()
-    );
-    for field in ["supersedes_claim_ref", "qualifiers"] {
-        if let Some(value) = v.get(field) {
-            entry[field] = value.clone();
-        }
-    }
-    if let Some(route) = extension {
-        entry["source_schema_ref"] = json!(route);
-    }
-    Ok(entry)
+    render_catalog_claim(v, ref_, line, extension, l.max_output_row_bytes)
 }
 
 fn insert(
@@ -1427,4 +1440,182 @@ pub fn clear_source_witness_catalog(
         stage.poison();
     }
     result
+}
+
+/// Recheck the privately sealed preparation before any downstream source read.
+pub(crate) fn verify_catalog(
+    stage: &mut KnowledgeStage<'_>,
+    receipt: &SourceCatalogReceipt,
+    l: SourceCatalogLimits,
+) -> Result<()> {
+    l.validate()?;
+    if summary(receipt, l)? != receipt.summary_sha256
+        || input_root(stage, l)? != receipt.input_root
+        || binding_value(&stage.exact_receipt().binding) != binding_value(&receipt.input_binding)
+        || row_root(stage, l)? != (receipt.row_count, receipt.row_root_sha256.clone())
+    {
+        return Err(Error::Invalid("bibliographic catalog exact seal"));
+    }
+    Ok(())
+}
+
+/// Indexed, capped retained catalog seek. Never deserialize an unchecked BLOB.
+pub(crate) fn catalog_row(
+    stage: &mut KnowledgeStage<'_>,
+    category: &str,
+    id: &str,
+    l: SourceCatalogLimits,
+) -> Result<Option<Value>> {
+    stage.with_connection(WritePhase::Catalog, |db| {
+        let row = db.query_row("SELECT CASE WHEN length(payload)<=?3 AND payload_len=length(payload) THEN payload ELSE NULL END,payload_sha256
+            FROM source_catalog_rows WHERE category=?1 AND id=?2", params![category,id,l.max_output_row_bytes as i64],
+            |r| Ok((r.get::<_,Option<Vec<u8>>>(0)?,r.get::<_,Vec<u8>>(1)?))).optional()?;
+        row.map(|(raw, sha)| {
+            let raw = raw.ok_or(Error::Budget("bibliographic catalog retained row"))?;
+            if Digest256::of_bytes(&raw).as_bytes().as_slice() != sha { return Err(Error::Invalid("bibliographic catalog row digest")); }
+            Ok(SourceRow::parse(&raw,l.max_output_row_bytes)?.value().clone())
+        }).transpose()
+    })
+}
+
+/// One indexed key at a time, retaining memory independent of source population.
+pub(crate) fn catalog_next(
+    stage: &mut KnowledgeStage<'_>,
+    category: &str,
+    after: Option<&str>,
+) -> Result<Option<String>> {
+    stage.with_connection(WritePhase::Catalog, |db| {
+        let row = db.query_row("SELECT CASE WHEN length(CAST(id AS BLOB))<=8192 THEN id ELSE NULL END FROM source_catalog_rows
+            WHERE category=?1 AND (?2 IS NULL OR id>?2) ORDER BY id LIMIT 1",params![category,after], |r|r.get::<_,Option<String>>(0)).optional()?;
+        row.map(|id| id.ok_or(Error::Budget("bibliographic catalog key"))).transpose()
+    })
+}
+
+pub(crate) fn check_catalog_schema(
+    stage: &KnowledgeStage<'_>,
+    validator: &SourceCatalogValidator<'_>,
+    l: SourceCatalogLimits,
+    schema: &str,
+    fragment: &str,
+    raw: &[u8],
+) -> Result<()> {
+    let c = contracts(stage, validator, l)?;
+    validator.check(&c, schema, fragment, raw)
+}
+
+/// Pure catalog projection after the caller has verified exact owner grammar,
+/// source path, visibility, identity inventory and profile binding. A renderer
+/// neither resolves native attachments nor admits a source. `source_schema_ref`
+/// is supplied only by an exact adaptive/native schema route, never inferred.
+pub fn render_catalog_record(
+    source: &Value,
+    reference: &str,
+    source_schema_ref: Option<&str>,
+    max_row_bytes: usize,
+) -> Result<Value> {
+    source_ref(reference)?;
+    let (id, kind, label, status, pointer) = if reference.ends_with("/artifact-witness.json") {
+        (
+            text(source, "artifact_id")?,
+            "artifact",
+            source
+                .pointer("/custody/inventory_numbers/0")
+                .cloned()
+                .ok_or(Error::Invalid("catalog artifact label"))?,
+            Value::Null,
+            Some("/custody/inventory_numbers/0"),
+        )
+    } else if reference.ends_with("/composite-witness.json") {
+        (
+            text(source, "composite_id")?,
+            "composite",
+            source["preferred_label"].clone(),
+            source["identity_status"].clone(),
+            None,
+        )
+    } else {
+        (
+            text(source, "record_id")?,
+            text(source, "record_type")?,
+            source.get("preferred_label").cloned().unwrap_or(json!("")),
+            source.get("identity_status").cloned().unwrap_or(json!("")),
+            None,
+        )
+    };
+    let mut links = Map::new();
+    if pointer.is_none() && !reference.ends_with("/composite-witness.json") {
+        for field in LINKS {
+            if let Some(value) = source.get(*field) {
+                links.insert((*field).into(), value.clone());
+            }
+        }
+    }
+    let mut entry = json!({"schema_version":"tos_source_witness_catalog_entry_v1","record_id":id,"record_type":kind,"preferred_label":label,"identity_status":status,"source_record_ref":reference,"record_sha256":Digest256::of_bytes(&encode(source,max_row_bytes)?).to_hex(),"links":links});
+    if let Some(schema) = source_schema_ref {
+        entry["source_schema_ref"] = json!(schema);
+    }
+    if let Some(pointer) = pointer {
+        entry["label_source_pointer"] = json!(pointer);
+    }
+    encode(&entry, max_row_bytes)?;
+    Ok(entry)
+}
+
+/// Exact borrowed source Claim renderer. Source schema/profile/line closure is
+/// the caller's responsibility; no absent source field acquires a value here.
+pub fn render_catalog_claim(
+    source: &Value,
+    reference: &str,
+    line: u64,
+    source_schema_ref: Option<&str>,
+    max_row_bytes: usize,
+) -> Result<Value> {
+    source_ref(reference)?;
+    if line == 0 {
+        return Err(Error::Invalid("catalog Claim physical line"));
+    }
+    let mut entry = json!({"schema_version":"tos_source_witness_claim_catalog_entry_v1","source_claim_file_ref":reference,"source_claim_line":line,"claim_sha256":Digest256::of_bytes(&encode(source,max_row_bytes)?).to_hex()});
+    for field in [
+        "claim_id",
+        "claim_type",
+        "assertion_layer",
+        "subject_ref",
+        "predicate",
+        "object",
+        "evidence_refs",
+        "maker",
+        "provenance_event_ref",
+        "epistemic_status",
+        "review_status",
+        "visibility",
+        "claim_version",
+    ] {
+        entry[field] = source.get(field).cloned().unwrap_or(Value::Null);
+    }
+    entry["review_refs"] = json!(
+        source
+            .get("reviews")
+            .and_then(Value::as_array)
+            .into_iter()
+            .flatten()
+            .filter_map(|review| review.get("review_id")?.as_str())
+            .collect::<Vec<_>>()
+    );
+    for field in ["supersedes_claim_ref", "qualifiers"] {
+        if let Some(value) = source.get(field) {
+            entry[field] = value.clone();
+        }
+    }
+    let schema = source_schema_ref.or_else(|| {
+        if source["schema_version"] == "tos_historical_claim_v1" {
+            Some("ToS/contracts/historical-claim.schema.json")
+        } else {
+            None
+        }
+    });
+    if let Some(schema) = schema {
+        entry["source_schema_ref"] = json!(schema);
+    }
+    encode(&entry, max_row_bytes)?;
+    Ok(entry)
 }
