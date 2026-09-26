@@ -21,6 +21,8 @@ pub const CATALOG_INTENDED_USE: &str = "read_only_public_knowledge_catalog_v1";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum CatalogErrorCode {
+    Cancelled,
+    DeadlineExceeded,
     BudgetExceeded,
     StaleSelection,
     CorruptSelectedCarrier,
@@ -111,6 +113,7 @@ pub trait CatalogDisclosureLease: Send {
 /// The ToS publication owner supplies current authorization for the exact
 /// selected public catalog carrier. A synthetic implementation is test-only.
 pub trait CatalogCurrentAuthority {
+    fn abort_probe(&self) -> Option<Arc<dyn crate::AbortProbe>> { None }
     fn policy_binding(&self) -> CurrentPolicyBinding;
     fn disclosure_scope(&self) -> CatalogDisclosureScope;
     fn check_selected(&mut self) -> Result<(), CatalogError>;
@@ -188,6 +191,13 @@ pub fn execute_selected_catalog<A: CatalogCurrentAuthority + ?Sized>(
         )
     })?;
     let policy = authority.policy_binding();
+    let abort = authority.abort_probe();
+    let check_abort = || match abort.as_ref().and_then(|probe| probe.reason()) {
+        Some(crate::AbortReason::Cancelled) => Err(error(CatalogErrorCode::Cancelled, "catalog query cancelled")),
+        Some(crate::AbortReason::DeadlineExceeded) => Err(error(CatalogErrorCode::DeadlineExceeded, "catalog query deadline exceeded")),
+        None => Ok(()),
+    };
+    check_abort()?;
     let scope = authority.disclosure_scope();
     scope.validate(bound, &policy)?;
     authority.check_selected()?;
@@ -196,9 +206,10 @@ pub fn execute_selected_catalog<A: CatalogCurrentAuthority + ?Sized>(
     let count = Arc::new(AtomicU64::new(0));
     let observed = Arc::clone(&count);
     let cap = budget.max_read_vm_steps;
+    let vm_abort = abort.clone();
     connection.progress_handler(
         1,
-        Some(move || observed.fetch_add(1, Ordering::Relaxed) >= cap),
+        Some(move || vm_abort.as_ref().is_some_and(|probe| probe.reason().is_some()) || observed.fetch_add(1, Ordering::Relaxed) >= cap),
     );
     let selected = (|| {
         let mut statement = connection.prepare_cached(
@@ -226,6 +237,7 @@ pub fn execute_selected_catalog<A: CatalogCurrentAuthority + ?Sized>(
             .map_err(sql_error)
     })();
     connection.progress_handler(0, None::<fn() -> bool>);
+    check_abort()?;
     if count.load(Ordering::Relaxed) > budget.max_read_vm_steps {
         return Err(error(
             CatalogErrorCode::BudgetExceeded,
@@ -298,5 +310,6 @@ pub fn execute_selected_catalog<A: CatalogCurrentAuthority + ?Sized>(
     let mut lease =
         authority.acquire_disclosure(&scope, bound.selection().catalog_packet_sha256)?;
     lease.recheck()?;
+    check_abort()?;
     Ok(DisclosableCatalog { body, lease })
 }

@@ -81,6 +81,8 @@ pub trait InspectDisclosureLease: Send {
     fn recheck(&mut self) -> Result<(), SearchV2Error>;
 }
 pub trait InspectCurrentAuthority {
+    /// Transport cancellation is independent of source authorization.
+    fn abort_probe(&self) -> Option<Arc<dyn crate::AbortProbe>> { None }
     fn policy_binding(&self) -> CurrentPolicyBinding;
     fn disclosure_scope(&self) -> IndexedDisclosureScope;
     fn check_selected(&mut self) -> Result<(), SearchV2Error>;
@@ -765,15 +767,23 @@ where
     }
     bound.check_model(model)?;
     let policy = authority.policy_binding();
+    let abort = authority.abort_probe();
+    let check_abort = || match abort.as_ref().and_then(|probe| probe.reason()) {
+        Some(crate::AbortReason::Cancelled) => Err(SearchV2Error { code: SearchV2ErrorCode::Cancelled, message: "selected knowledge query cancelled" }),
+        Some(crate::AbortReason::DeadlineExceeded) => Err(SearchV2Error { code: SearchV2ErrorCode::DeadlineExceeded, message: "selected knowledge query deadline exceeded" }),
+        None => Ok(()),
+    };
+    check_abort()?;
     let scope = authority.disclosure_scope();
     scope.validate_for(bound, &policy, operation, intended_use)?;
     authority.check_selected()?;
     let steps = Arc::new(AtomicU64::new(0));
     let observed = Arc::clone(&steps);
     let cap = budget.max_read_vm_steps;
+    let vm_abort = abort.clone();
     model.connection().progress_handler(
         1,
-        Some(move || observed.fetch_add(1, Ordering::Relaxed) >= cap),
+        Some(move || vm_abort.as_ref().is_some_and(|probe| probe.reason().is_some()) || observed.fetch_add(1, Ordering::Relaxed) >= cap),
     );
     let result = (|| {
         let mut read = Reader {
@@ -786,6 +796,7 @@ where
             scope: &scope,
         };
         let value = compute(&mut read)?;
+        check_abort()?;
         let mut limits = budget.json;
         limits.max_bytes = limits.max_bytes.min(budget.max_response_bytes);
         let body = canonical_bytes_v1(&value, CanonicalProfile::SourceRecordDigestV1, limits)
@@ -794,9 +805,11 @@ where
         bound.check_model(read.model)?;
         let mut lease = read.authority.acquire_disclosure(&scope, &read.consulted)?;
         lease.recheck()?;
+        check_abort()?;
         Ok(DisclosableInspect { body, lease })
     })();
     model.connection().progress_handler(0, None::<fn() -> bool>);
+    check_abort()?;
     if steps.load(Ordering::Relaxed) > budget.max_read_vm_steps {
         return Err(budget_error());
     }
