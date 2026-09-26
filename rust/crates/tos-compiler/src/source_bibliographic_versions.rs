@@ -2258,14 +2258,15 @@ fn verify_historical_capture(
             "expected_dependencies",
         ],
     )?;
-    let record_ref = text(&receipt, "source_path")?;
+    let record_source_path = text(&receipt, "source_path")?;
     let record_type = text(&request["record"], "record_type")?;
     if request["schema_version"] != "tos_local_source_command_v1"
         || request["operation"] != "historical.create"
         || !request["expected_source"].is_null()
         || !request["expected_revision"].is_null()
-        || record_ref.rsplit_once('/').map(|(p, _)| p) != reference.rsplit_once('/').map(|(p, _)| p)
-        || record_ref.rsplit('/').next() != Some(format!("{record_type}.json").as_str())
+        || record_source_path.rsplit_once('/').map(|(p, _)| p)
+            != reference.rsplit_once('/').map(|(p, _)| p)
+        || record_source_path.rsplit('/').next() != Some(format!("{record_type}.json").as_str())
         || receipt["schema_version"] != "tos_local_historical_create_receipt_v1"
         || receipt["command_id"] != request["command_id"]
         || receipt["request_digest"]

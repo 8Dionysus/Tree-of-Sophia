@@ -6,13 +6,11 @@ use crate::source_philosophy_atlas::{
     self, ATLAS_SCHEMA, AtlasLimits, NODE_SOURCES, RELATION_SOURCES,
 };
 use crate::source_philosophy_graph::{
-    self, CLUSTER_CONTRACT, GRAPH_REF, GRAPH_SCHEMA, GraphLimits, REVIEW_CONTRACT,
+    self, CLUSTER_CONTRACT, GRAPH_REF, GRAPH_SCHEMA, GraphLimits, REVIEW_CONTRACT, VIEWS_REF,
 };
 use crate::source_philosophy_multilingual::{LABEL_LEDGER, Multilingual, MultilingualLimits};
 use crate::source_philosophy_support::{array, bytes, object, required, strings};
-use crate::source_philosophy_views::{
-    self, ATLAS_REF, VIEW_CONTRACT, VIEWS_REF, VIEWS_SCHEMA, ViewLimits,
-};
+use crate::source_philosophy_views::{self, ATLAS_REF, VIEW_CONTRACT, VIEWS_SCHEMA, ViewLimits};
 use crate::{Error, QueryVocabulary, Result, SourceBinding};
 use rusqlite::params;
 use serde_json::{Value, json};

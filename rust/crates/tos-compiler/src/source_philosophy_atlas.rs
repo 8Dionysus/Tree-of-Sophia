@@ -580,7 +580,7 @@ where
                 "atlas",
                 "Philosophy Atlas",
                 ATLAS_SOURCE,
-                atlas_context,
+                atlas_context.clone(),
             )?;
         }
     }
