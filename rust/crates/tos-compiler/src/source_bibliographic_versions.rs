@@ -1159,7 +1159,7 @@ fn record_ref(record: &Value, claim: bool, l: BibliographicLimits) -> Result<Val
     Ok(reference)
 }
 fn legacy_catalog(
-    stage: &KnowledgeStage<'_>,
+    stage: &mut KnowledgeStage<'_>,
     category: &str,
     kind: Option<&str>,
     id: &str,

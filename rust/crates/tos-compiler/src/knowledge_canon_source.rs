@@ -470,7 +470,7 @@ where
             .ok_or(Error::Invalid("canon source path"))?
             .0
     );
-    let relative = RelativePath::new(&form_path).map_err(|e| Error::Source(e.to_string()))?;
+    let relative = RelativePath::parse(&form_path).map_err(|e| Error::Source(e.to_string()))?;
     if cut.current().member(&relative).is_none() {
         return Ok(None);
     }
@@ -1026,7 +1026,8 @@ fn source_custody(
                 {
                     return Err(Error::Invalid("canon source custody recipe path"));
                 }
-                let path = RelativePath::new(&row.id).map_err(|e| Error::Source(e.to_string()))?;
+                let path =
+                    RelativePath::parse(&row.id).map_err(|e| Error::Source(e.to_string()))?;
                 let metadata = cut
                     .current()
                     .member(&path)
