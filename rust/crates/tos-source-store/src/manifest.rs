@@ -422,7 +422,7 @@ fn canonical_error(error: FoundationError) -> StoreError {
     StoreError::new(code, "invalid canonical corpus JSON")
 }
 
-fn exact_keys(value: &JsonValue, expected: &[&str], code: Code) -> Result<()> {
+pub(crate) fn exact_keys(value: &JsonValue, expected: &[&str], code: Code) -> Result<()> {
     let entries = value
         .as_object()
         .ok_or_else(|| StoreError::new(code, "expected corpus JSON object"))?;
@@ -439,14 +439,14 @@ fn exact_keys(value: &JsonValue, expected: &[&str], code: Code) -> Result<()> {
     Ok(())
 }
 
-fn string_field<'a>(value: &'a JsonValue, field: &str, code: Code) -> Result<&'a str> {
+pub(crate) fn string_field<'a>(value: &'a JsonValue, field: &str, code: Code) -> Result<&'a str> {
     value
         .object_get(field)
         .and_then(JsonValue::as_str)
         .ok_or_else(|| StoreError::new(code, "corpus string field is missing or invalid"))
 }
 
-fn digest_field(value: &JsonValue, field: &str, code: Code) -> Result<Digest256> {
+pub(crate) fn digest_field(value: &JsonValue, field: &str, code: Code) -> Result<Digest256> {
     Digest256::from_hex(string_field(value, field, code)?)
         .map_err(|_| StoreError::new(code, "corpus digest field is invalid"))
 }
@@ -462,21 +462,21 @@ fn optional_revision(value: &JsonValue, field: &str, code: Code) -> Result<Optio
     }
 }
 
-fn array_field<'a>(value: &'a JsonValue, field: &str, code: Code) -> Result<&'a [JsonValue]> {
+pub(crate) fn array_field<'a>(value: &'a JsonValue, field: &str, code: Code) -> Result<&'a [JsonValue]> {
     value
         .object_get(field)
         .and_then(JsonValue::as_array)
         .ok_or_else(|| StoreError::new(code, "corpus array field is missing or invalid"))
 }
 
-fn uint_field(value: &JsonValue, field: &str, code: Code) -> Result<u64> {
+pub(crate) fn uint_field(value: &JsonValue, field: &str, code: Code) -> Result<u64> {
     value
         .object_get(field)
         .and_then(JsonValue::as_u64)
         .ok_or_else(|| StoreError::new(code, "corpus unsigned integer field is missing or invalid"))
 }
 
-fn mode_field(value: &JsonValue, field: &str, code: Code) -> Result<u32> {
+pub(crate) fn mode_field(value: &JsonValue, field: &str, code: Code) -> Result<u32> {
     match uint_field(value, field, code)? {
         0o644 => Ok(0o644),
         0o755 => Ok(0o755),
@@ -484,7 +484,7 @@ fn mode_field(value: &JsonValue, field: &str, code: Code) -> Result<u32> {
     }
 }
 
-fn path_field(value: &JsonValue, field: &str, code: Code) -> Result<RelativePath> {
+pub(crate) fn path_field(value: &JsonValue, field: &str, code: Code) -> Result<RelativePath> {
     RelativePath::parse(string_field(value, field, code)?)
         .map_err(|_| StoreError::new(code, "corpus member path is invalid"))
 }

@@ -80,7 +80,7 @@ fn open_regular(parent: &File, name: &str) -> Result<File> {
     })
 }
 
-fn map_open(error: OpenError, unsafe_code: StoreErrorCode, detail: &'static str) -> StoreError {
+pub(crate) fn map_open(error: OpenError, unsafe_code: StoreErrorCode, detail: &'static str) -> StoreError {
     match error.code {
         OpenErrorCode::InvalidPath | OpenErrorCode::UnsafePath => {
             StoreError::new(unsafe_code, detail)
