@@ -197,8 +197,7 @@ impl ProvenanceRules {
         if !source.schema(path, raw, CONTRACT, &digest, self.limits.deadline)? {
             self.issue(path, "provenance-v2-schema")?;
         }
-        let event: Value = serde_json::from_slice(raw)
-            .map_err(|_| ItemRefusal::Source(format!("invalid event JSON: {path}")))?;
+        let event = crate::native_decoded_value(raw,self.limits.max_member_bytes)?;
         if !event.is_object() {
             self.issue(path, "provenance-object-required")?;
             return Ok(event);
