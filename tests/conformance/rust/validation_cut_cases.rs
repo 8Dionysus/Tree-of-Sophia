@@ -426,6 +426,7 @@ fn actual_cut_worker_and_pinned_software_preserve_provenance_lab_limits() {
         let mut source = CutProvenanceSource {
             cut: &cut,
             software: &software,
+            components: None,
             schemas: &mut schemas,
             cancelled: &cancelled,
         };

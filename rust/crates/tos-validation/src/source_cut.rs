@@ -9,7 +9,8 @@ use std::time::Instant;
 
 use tos_foundation::{Digest256, RelativePath, SourceRevision};
 use tos_source_store::{
-    CorpusCutReader, SoftwareCaptureReader, SoftwareCaptureSelectionV1, SourceMembershipV1,
+    CorpusCutReader, SoftwareCaptureReader, SoftwareCaptureSelectionV1,
+    SoftwareComponentSelectionV1, SourceMembershipV1,
 };
 
 use crate::executor::{
@@ -292,6 +293,9 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
 pub struct CutProvenanceSource<'a> {
     pub cut: &'a CorpusCutReader,
     pub software: &'a SoftwareCaptureReader,
+    /// Exact bounded producer components from the already selected capture.
+    /// This selection proves byte membership only, never producer authority.
+    pub components: Option<&'a SoftwareComponentSelectionV1>,
     pub schemas: &'a mut CutWorkerSchemaExecutor,
     pub cancelled: &'a AtomicBool,
 }
@@ -306,6 +310,17 @@ impl ProvenanceSource for CutProvenanceSource<'_> {
         check(deadline, self.cancelled)?;
         let relative = RelativePath::parse(path)
             .map_err(|_| ItemRefusal::Unsupported("provenance source path".into()))?;
+        if self.components.is_some_and(|components|components.capture()!=self.software.selection()) {
+            return Err(ItemRefusal::Unsupported("provenance component capture differs".into()));
+        }
+        // Authored source locators retain their corpus owner even if a
+        // software capture happens to contain a file at the same locator.
+        if !path.starts_with("ToS/") {
+            if let Some(components)=self.components.filter(|selection|selection.member(&relative).is_some()) {
+                return self.software.read_selected_component(components,&relative,
+                    max_bytes as u64,deadline,self.cancelled).map(Some).map_err(store_error);
+            }
+        }
         if path.starts_with("scripts/") {
             return self
                 .software
@@ -347,6 +362,14 @@ impl ProvenanceSource for CutProvenanceSource<'_> {
         };
         if Digest256::of_bytes(&current) == expected {
             return Ok(Some(current));
+        }
+        let relative=RelativePath::parse(path)
+            .map_err(|_|ItemRefusal::Unsupported("provenance component path".into()))?;
+        if !path.starts_with("ToS/")
+            && self.components.is_some_and(|selection|selection.member(&relative).is_some()) {
+            // A native producer-run component is current-only. Its exact
+            // selected digest cannot be replaced by an archived input.
+            return Ok(None);
         }
         let archive = if let Some(stem) = path
             .strip_prefix("scripts/")
@@ -429,6 +452,7 @@ pub fn inspect_provenance_lab_from_cut(
     let mut source = CutProvenanceSource {
         cut,
         software,
+        components: None,
         schemas,
         cancelled,
     };
