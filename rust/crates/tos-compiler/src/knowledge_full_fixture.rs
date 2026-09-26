@@ -313,6 +313,7 @@ pub fn build_fixture() -> FullKnowledgeFixture {
         vocabulary,
         descriptor_bytes,
         header,
+        &[],
     )
 }
 
@@ -326,6 +327,7 @@ fn finish_fixture(
     vocabulary: QueryVocabulary,
     descriptor_bytes: Vec<u8>,
     header: Value,
+    saved_lenses: &[Value],
 ) -> FullKnowledgeFixture {
     let full = compile_full_knowledge_components(
         &mut stage,
@@ -333,7 +335,7 @@ fn finish_fixture(
         &registry,
         entity_bytes,
         relation_bytes,
-        &[],
+        saved_lenses,
         &vocabulary,
         &descriptor_bytes,
         FullKnowledgeLimits {
@@ -687,6 +689,18 @@ pub fn build_native_fixture() -> FullKnowledgeFixture {
     )
     .unwrap();
     let graph_header = native_fixture_header(&mut stage, &registry, entity_bytes);
+    // One versioned LensSpec travels through the real catalog producer. Its
+    // source scope comes from this fixture's selected owner descriptor.
+    // Query tests retrieve and execute the stored packet, rather than a
+    // consumer-side substitute with a hard-coded maintained source list.
+    let saved_lenses = [json!({
+        "schema_version":"tos_lens_spec_v1",
+        "lens_id":"synthetic-indexed",
+        "sources":vocabulary.registered_source_ids,
+        "explain":true,
+        "composition":{"endpoint_policy":"independent","group_by":["source_graph"]},
+        "limits":{"nodes":200,"relations":400,"groups":100}
+    })];
     finish_fixture(
         stage,
         path,
@@ -696,6 +710,7 @@ pub fn build_native_fixture() -> FullKnowledgeFixture {
         vocabulary,
         descriptor_bytes,
         graph_header,
+        &saved_lenses,
     )
 }
 
