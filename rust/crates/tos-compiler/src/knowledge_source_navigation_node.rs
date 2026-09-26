@@ -1426,6 +1426,30 @@ impl<'a> NavigationNodeNormalizer<'a> {
         {
             return Err(Error::Invalid("navigation placeholder edge binding"));
         }
+        self.normalize_relation_endpoint(
+            raw_edge,
+            &prepared.source_cut,
+            &prepared.edge_input_root_sha256,
+            endpoint,
+        )
+    }
+
+    /// Shared missing-endpoint kernel after the assembler has established
+    /// global absence and exact raw collection membership. The edge keeps
+    /// its own selected source graph and separately sealed collection root.
+    pub(crate) fn normalize_relation_endpoint(
+        &mut self,
+        raw_edge: &SeekRow,
+        source_cut: &str,
+        edge_input_root: &str,
+        endpoint: NavigationEndpoint,
+    ) -> Result<NavigationPlaceholderBase> {
+        if source_cut.is_empty()
+            || raw_edge.source_order.is_some()
+            || Digest256::from_hex(edge_input_root).is_err()
+        {
+            return Err(Error::Invalid("native placeholder input binding"));
+        }
         if raw_edge.payload.len() > self.limits.max_raw_bytes {
             return Err(Error::Budget("navigation placeholder edge bytes"));
         }
@@ -1443,7 +1467,7 @@ impl<'a> NavigationNodeNormalizer<'a> {
         };
         let native = text(item.get(endpoint_key))
             .ok_or(Error::Invalid("navigation placeholder endpoint"))?;
-        let source_graph = text(item.get(source_key)).unwrap_or(&prepared.source_graph);
+        let source_graph = text(item.get(source_key)).unwrap_or(&raw_edge.source_graph);
         let refs = edge.source_refs(&[]);
         let synthetic = json!({"node_id":native,"node_type":"relation-endpoint",
             "source_refs":refs,"authority_layer":item.get("authority_layer")});
@@ -1494,10 +1518,10 @@ impl<'a> NavigationNodeNormalizer<'a> {
             value,
             native_id: native.to_owned(),
             source_graph: source_graph.to_owned(),
-            source_cut: prepared.source_cut.clone(),
+            source_cut: source_cut.to_owned(),
             edge_id: raw_edge.id.clone(),
             edge_payload_sha256: raw_edge.payload_sha256.clone(),
-            edge_input_root_sha256: prepared.edge_input_root_sha256.clone(),
+            edge_input_root_sha256: edge_input_root.to_owned(),
             ordered_edge_raw: raw_edge.payload.clone(),
             endpoint,
         })

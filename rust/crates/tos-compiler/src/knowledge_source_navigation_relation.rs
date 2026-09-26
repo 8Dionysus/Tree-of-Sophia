@@ -121,15 +121,14 @@ pub struct NavigationRelationDependencyReceipt {
     pub dependency_root_sha256: String,
     pub final_relation_rows_written: bool,
 }
-/// Intentionally opaque until the all-source title/Claim assembler can prove
-/// every relation was consumed against its exact dependency roots. There is
-/// no production constructor in this prepared-phase module.
+/// Only the native assembler can construct completion after consuming every
+/// raw edge against complete global title and Claim dependency roots.
 pub struct NavigationRelationCompletionProof {
-    source_cut: String,
-    relation_dependency_root_sha256: String,
-    endpoint_title_root_sha256: String,
-    claim_group_root_sha256: String,
-    consumed_edges: u64,
+    pub(crate) source_cut: String,
+    pub(crate) relation_dependency_root_sha256: String,
+    pub(crate) endpoint_title_root_sha256: String,
+    pub(crate) claim_group_root_sha256: String,
+    pub(crate) consumed_edges: u64,
 }
 
 #[derive(Clone, Copy, Debug)]

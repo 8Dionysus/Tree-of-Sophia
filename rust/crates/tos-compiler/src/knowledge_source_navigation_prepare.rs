@@ -544,19 +544,19 @@ pub fn prepare_source_navigation(
 /// global missing-endpoint root have an independently checked producer.
 /// A caller cannot turn a self-asserted `complete` flag into cleanup authority.
 pub struct NavigationJoinClosure {
-    source_graph: String,
-    source_cut: String,
-    prepared_dependency_root_sha256: String,
-    raw_node_count: u64,
-    raw_node_input_root_sha256: String,
-    raw_edge_count: u64,
-    raw_edge_input_root_sha256: String,
-    placeholder_count: u64,
-    placeholder_absence_root_sha256: String,
-    core_node_count: u64,
-    core_node_root_sha256: String,
-    core_relation_count: u64,
-    core_relation_root_sha256: String,
+    pub(crate) source_graph: String,
+    pub(crate) source_cut: String,
+    pub(crate) prepared_dependency_root_sha256: String,
+    pub(crate) raw_node_count: u64,
+    pub(crate) raw_node_input_root_sha256: String,
+    pub(crate) raw_edge_count: u64,
+    pub(crate) raw_edge_input_root_sha256: String,
+    pub(crate) placeholder_count: u64,
+    pub(crate) placeholder_absence_root_sha256: String,
+    pub(crate) core_node_count: u64,
+    pub(crate) core_node_root_sha256: String,
+    pub(crate) core_relation_count: u64,
+    pub(crate) core_relation_root_sha256: String,
 }
 
 fn clear_inner(
@@ -693,10 +693,9 @@ fn clear_inner(
     })
 }
 
-/// Cleanup only after an independently verified all-source join can supply
-/// `NavigationJoinClosure`. Until that producer exists this API is not
-/// callable from a public client; selected-table closure therefore remains
-/// an explicit blocker, rather than silently discarding private indexes.
+/// Cleanup only after the native all-source assembler supplies its consumed
+/// roots and exact placeholder closure. Public clients cannot construct this
+/// closure or silently discard private indexes.
 pub fn clear_source_navigation_prepare(
     stage: &mut KnowledgeStage<'_>,
     vocabulary: &QueryVocabulary,
