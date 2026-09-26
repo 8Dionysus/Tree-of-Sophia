@@ -28,9 +28,16 @@ pub struct BoundCmpKnowledge<'a> {
     source_revision: String,
     authority_boundary: String,
     owner_receipt_id: String,
+    descriptor: tos_foundation::JsonValue,
 }
 
 impl BoundCmpKnowledge<'_> {
+    pub(crate) fn vocabulary(&self) -> &QueryVocabulary {
+        self.vocabulary
+    }
+    pub(crate) fn descriptor(&self) -> &tos_foundation::JsonValue {
+        &self.descriptor
+    }
     pub fn selection(&self) -> &SearchSelectionBinding {
         &self.selection
     }
@@ -167,5 +174,12 @@ pub fn bind_verified_knowledge<'a>(
         source_revision: model.source_revision().to_owned(),
         authority_boundary: selected.authority_boundary.clone(),
         owner_receipt_id: selected.owner_receipt_id.clone(),
+        descriptor: tos_foundation::parse_json(
+            authored_descriptor,
+            tos_foundation::JsonMode::PublishedStrict,
+            tos_foundation::JsonLimits::default(),
+        )
+        .map_err(|_| stale("authored query vocabulary JSON invalid"))?
+        .into_root(),
     })
 }

@@ -108,6 +108,163 @@ pub(crate) struct Reader<'a, 'b, A: ?Sized> {
     consulted: Vec<InspectedCarrier>,
 }
 impl<A: InspectCurrentAuthority + ?Sized> Reader<'_, '_, A> {
+    /// Digest-bound selected graph metadata, including exact property grammar.
+    pub(crate) fn header(&mut self) -> Result<JsonValue, SearchV2Error> {
+        self.authority.check_selected()?;
+        let mut statement=self.model.connection().prepare_cached("SELECT packet_len,CASE WHEN typeof(packet_sha256)='blob' AND length(packet_sha256)=32 THEN packet_sha256 END,CASE WHEN typeof(packet)='blob' AND packet_len BETWEEN 0 AND ?1 AND length(packet)=packet_len THEN packet END FROM graph_header WHERE singleton=1").map_err(sql_error)?;
+        let mut rows = statement
+            .query([self.budget.max_payload_bytes as i64])
+            .map_err(sql_error)?;
+        let row = rows
+            .next()
+            .map_err(sql_error)?
+            .ok_or_else(|| corrupt("selected header absent"))?;
+        let length = row.get::<_, i64>(0).map_err(sql_error)?;
+        if length < 0 || length as usize > self.budget.max_payload_bytes {
+            return Err(budget_error());
+        }
+        self.rows = self.rows.checked_add(1).ok_or_else(budget_error)?;
+        self.decoded = self
+            .decoded
+            .checked_add(length as u64 + 40)
+            .ok_or_else(budget_error)?;
+        if self.rows > self.budget.max_rows || self.decoded > self.budget.max_decoded_bytes {
+            return Err(budget_error());
+        }
+        // Aggregate admission precedes copying the header BLOB out of SQLite.
+        let sha = row
+            .get::<_, Option<Vec<u8>>>(1)
+            .map_err(sql_error)?
+            .ok_or_else(|| corrupt("selected header digest width invalid"))?;
+        let payload = row
+            .get::<_, Option<Vec<u8>>>(2)
+            .map_err(sql_error)?
+            .ok_or_else(|| corrupt("selected header length/type invalid"))?;
+        if Digest256::of_bytes(&payload).as_bytes() != sha.as_slice() {
+            return Err(corrupt("selected header digest differs"));
+        }
+        parse_json(&payload, JsonMode::PublishedStrict, self.budget.json)
+            .map(|doc| doc.into_root())
+            .map_err(|_| corrupt("selected header JSON invalid"))
+    }
+    /// Complete keyset stream in source/id order, including an explicit caller
+    /// lookahead. Payload reads still go through authenticated items().
+    pub(crate) fn candidate_ids(
+        &mut self,
+        kind: SearchKind,
+        sources: &[String],
+        after: Option<(&str, &str)>,
+        limit: usize,
+    ) -> Result<Vec<(String, String)>, SearchV2Error> {
+        if limit == 0 || limit > self.budget.max_rows as usize || limit > i64::MAX as usize {
+            return Err(budget_error());
+        }
+        self.authority.check_selected()?;
+        let list = JsonValue::Array(sources.iter().map(|source| text(source)).collect());
+        let encoded = canonical_bytes_v1(
+            &list,
+            CanonicalProfile::SourceRecordDigestV1,
+            self.budget.json,
+        )
+        .map_err(|_| budget_error())?;
+        let encoded =
+            std::str::from_utf8(&encoded).map_err(|_| corrupt("candidate sources invalid"))?;
+        let (table, index) = if kind == SearchKind::Nodes {
+            (
+                "knowledge_node_candidates",
+                "knowledge_node_candidates_order",
+            )
+        } else {
+            (
+                "knowledge_relation_candidates",
+                "knowledge_relation_candidates_order",
+            )
+        };
+        let (source, id) = after.unwrap_or(("", ""));
+        let sql = format!(
+            "SELECT CASE WHEN length(CAST(source_graph AS BLOB))<=?5 THEN source_graph END,CASE WHEN length(CAST(id AS BLOB))<=?5 THEN id END FROM {table} INDEXED BY {index} WHERE source_graph IN (SELECT value FROM json_each(?1)) AND (source_graph,id)>(?2,?3) ORDER BY source_graph,id LIMIT ?4"
+        );
+        let mut statement = self
+            .model
+            .connection()
+            .prepare_cached(&sql)
+            .map_err(sql_error)?;
+        let mut rows = statement
+            .query(params![
+                encoded,
+                source,
+                id,
+                limit as i64,
+                self.budget.max_field_bytes as i64
+            ])
+            .map_err(sql_error)?;
+        let mut result = vec![];
+        while let Some(row) = rows.next().map_err(sql_error)? {
+            let source = row
+                .get::<_, Option<String>>(0)
+                .map_err(sql_error)?
+                .ok_or_else(budget_error)?;
+            let id = row
+                .get::<_, Option<String>>(1)
+                .map_err(sql_error)?
+                .ok_or_else(budget_error)?;
+            // Disjoint field borrows permit charging before storing the row.
+            self.rows = self.rows.checked_add(1).ok_or_else(budget_error)?;
+            self.decoded = self
+                .decoded
+                .checked_add((source.len() + id.len()) as u64)
+                .ok_or_else(budget_error)?;
+            if self.rows > self.budget.max_rows || self.decoded > self.budget.max_decoded_bytes {
+                return Err(budget_error());
+            }
+            result.push((source, id));
+        }
+        Ok(result)
+    }
+    /// Two bounded directed keysets merged by exact raw relation ID. The end
+    /// is meaningful because CMP cold admission certified both complete rows.
+    pub(crate) fn incident_ids(
+        &mut self,
+        node: &str,
+        after: &str,
+        limit: usize,
+    ) -> Result<Vec<String>, SearchV2Error> {
+        if limit == 0 || limit > self.budget.max_rows as usize || limit > i64::MAX as usize {
+            return Err(budget_error());
+        }
+        self.authority.check_selected()?;
+        let sql = "SELECT CASE WHEN length(CAST(id AS BLOB))<=?4 THEN id END FROM (SELECT id FROM (SELECT id FROM knowledge_relations INDEXED BY knowledge_relations_from_id WHERE from_id=?1 AND id>?2 ORDER BY id LIMIT ?3) UNION SELECT id FROM (SELECT id FROM knowledge_relations INDEXED BY knowledge_relations_to_id WHERE to_id=?1 AND id>?2 ORDER BY id LIMIT ?3)) ORDER BY id LIMIT ?3";
+        let mut statement = self
+            .model
+            .connection()
+            .prepare_cached(sql)
+            .map_err(sql_error)?;
+        let mut rows = statement
+            .query(params![
+                node,
+                after,
+                limit as i64,
+                self.budget.max_field_bytes as i64
+            ])
+            .map_err(sql_error)?;
+        let mut result = vec![];
+        while let Some(row) = rows.next().map_err(sql_error)? {
+            let id = row
+                .get::<_, Option<String>>(0)
+                .map_err(sql_error)?
+                .ok_or_else(budget_error)?;
+            self.rows = self.rows.checked_add(1).ok_or_else(budget_error)?;
+            self.decoded = self
+                .decoded
+                .checked_add(id.len() as u64)
+                .ok_or_else(budget_error)?;
+            if self.rows > self.budget.max_rows || self.decoded > self.budget.max_decoded_bytes {
+                return Err(budget_error());
+            }
+            result.push(id);
+        }
+        Ok(result)
+    }
     /// SQL CASE enforces field/payload transfer caps before row allocation.
     pub(crate) fn items(
         &mut self,
