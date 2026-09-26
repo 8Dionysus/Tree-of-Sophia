@@ -52,4 +52,7 @@ and async driver with a maintained selected-packet oracle carrier, plus
 cancellation, withdrawal, exact absence and terminal duplicate refusal. That
 fixture intentionally yields unsupported temporal comparison, preserving the
 fact that an unmapped node is not a temporal Claim. Full temporal source-role
-parity and actual workerd delivery require their own owner fixture evidence.
+parity requires its owner fixture evidence. `tests/domain-worker-host.mjs`
+uses the same driver and generated binding in local workerd for unsupported
+carrier retention, cooperative cancellation, withdrawal and exact absence.
+Writing these harness cases does not establish their execution or public use.
