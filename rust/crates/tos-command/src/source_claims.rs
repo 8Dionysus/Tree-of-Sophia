@@ -489,7 +489,7 @@ fn claim_scope(
         if create {
             grant(config, "allowed_object_refs", value)?
         }
-    } else if create || (2..=6).contains(&version) {
+    } else if create || (4..=6).contains(&version) {
         grant(config, "allowed_object_values", value)?
     } else if create {
         return Err(SourceCommandError::Denied("typed value scope"));
@@ -761,6 +761,9 @@ pub fn run_claim_command(
                 grant(&config, "allowed_evidence_refs", value)?
             }
         }
+    }
+    if let Some(value) = fields.object_get("object") {
+        grant(&config, "allowed_object_values", value)?;
     }
     let layer = if version == 7 {
         let v = field(&request, "layer_transition")?;
@@ -1458,6 +1461,27 @@ pub fn verify_claim_history(
             ],
         )?;
         let request = field(receipt, "request")?;
+        grammar(
+            request,
+            false,
+            request.object_get("layer_transition").is_some(),
+        )?;
+        let mut changed = field(request, "fields")?
+            .as_object()
+            .ok_or(SourceCommandError::Invalid("retained Claim field patch"))?
+            .iter()
+            .map(|(key, _)| key.as_str().unwrap_or("").to_owned())
+            .collect::<Vec<_>>();
+        changed.sort();
+        if !same(
+            field(receipt, "changed_fields")?,
+            &JsonValue::Array(changed.iter().map(|s| string(s)).collect()),
+        )? {
+            return Err(SourceCommandError::Conflict(
+                "retained changed fields differ",
+            ));
+        }
+
         if !commands.insert(text(receipt, "command_id")?)
             || text(request, "operation")? != "claim.revise"
             || text(receipt, "request_digest")? != record_digest(request)?.to_prefixed()
@@ -1523,6 +1547,33 @@ pub fn verify_claim_history(
         // Full forms continuity requires re-rendering every retained selector.
         let name = form_name(id);
         let prior = retained.get(&name).map(|r| parse(r)).transpose()?;
+        let selectors = array(request, "forms")?;
+        if selectors.is_empty() || selectors.len() > 32 {
+            return Err(SourceCommandError::Invalid("retained Claim form capacity"));
+        }
+        let mut selected_forms = BTreeSet::new();
+        let mut statement = false;
+        for selection in selectors {
+            exact_keys(selection, &["form_id", "field_id"])?;
+            if !selected_forms.insert(text(selection, "form_id")?) {
+                return Err(SourceCommandError::Conflict("repeated retained Claim form"));
+            }
+            statement |= text(selection, "field_id")? == "claim.statement";
+        }
+        if !statement {
+            return Err(SourceCommandError::Conflict(
+                "retained Claim correction omitted statement",
+            ));
+        }
+        if let Some(prior) = &prior {
+            for form in array(prior, "forms")? {
+                if !selected_forms.contains(text(form, "form_id")?) {
+                    return Err(SourceCommandError::Conflict(
+                        "retained Claim correction omitted prior form",
+                    ));
+                }
+            }
+        }
         let changes = array(request, "forms")?
             .iter()
             .map(|s| {
