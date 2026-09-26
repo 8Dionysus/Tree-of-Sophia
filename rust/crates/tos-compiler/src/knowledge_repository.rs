@@ -857,12 +857,15 @@ pub fn repository_material_witness(
     stage: &mut KnowledgeStage<'_>,
     receipt: &RepositoryPrepareReceipt,
     relation: bool,
-    native: &str,
+    normalized_id: &str,
     limits: TopologyLimits,
 ) -> Result<Vec<u8>> {
     verify(stage, receipt, limits)?;
+    let key = normalized_id
+        .strip_prefix(&format!("{}:", receipt.source_graph))
+        .ok_or(Error::Invalid("repository witness normalized identity"))?;
     stage.with_connection(WritePhase::Sort,|db| {
-        let (raw,sha):(Vec<u8>,Vec<u8>)=db.query_row("SELECT CASE WHEN material_len=length(material) AND length(material)<=?3 THEN material ELSE NULL END,material_sha256 FROM knowledge_repository_material WHERE relation=?1 AND native=?2",params![relation as i64,native,limits.max_row_bytes as i64],|r|Ok((r.get(0)?,r.get(1)?)))?;
+        let (raw,sha):(Vec<u8>,Vec<u8>)=db.query_row("SELECT CASE WHEN material_len=length(material) AND length(material)<=?3 THEN material ELSE NULL END,material_sha256 FROM knowledge_repository_material WHERE relation=?1 AND material_key=?2",params![relation as i64,key,limits.max_row_bytes as i64],|r|Ok((r.get(0)?,r.get(1)?)))?;
         if sha!=Digest256::of_bytes(&raw).as_bytes(){return Err(Error::Invalid("repository material witness SHA"));}Ok(raw)
     })
 }

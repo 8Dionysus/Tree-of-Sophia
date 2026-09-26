@@ -28,6 +28,7 @@ mod knowledge_scope;
 mod knowledge_seal;
 mod knowledge_search;
 mod knowledge_selected;
+mod knowledge_semantic_join;
 pub mod knowledge_source_claims;
 mod knowledge_source_claims_prepare;
 mod knowledge_source_navigation_node;
@@ -60,6 +61,7 @@ pub use knowledge_native::{
 };
 pub use knowledge_native_finalize::{
     NativeFinalizeLimits, NativeFinalizeReceipt, finalize_native_graph_rows,
+    finalize_native_graph_rows_with_witnesses,
 };
 pub use knowledge_navigation_finalize::{
     NavigationFinalizeLimits, NavigationInheritedReceipt, apply_navigation_inherited_views,
@@ -100,6 +102,10 @@ pub use knowledge_search::{SearchBuildLimits, SearchIndexReceipt, build_search_i
 pub use knowledge_selected::{
     ColdOpenLimits, ExpectedSourceScope, ImmutableKnowledgeCustody, KnowledgeSelectedExpectation,
     VerifiedKnowledgeModel, open_selected_knowledge_model,
+};
+pub use knowledge_semantic_join::{
+    SemanticJoinReceipt, clear_semantic_joins, materialize_semantic_relations,
+    prepare_semantic_joins,
 };
 pub use knowledge_source_claims_prepare::{
     ClaimExternalDependency, ClaimPrepareLimits, ClaimPrepareReceipt, prepare_source_claims,

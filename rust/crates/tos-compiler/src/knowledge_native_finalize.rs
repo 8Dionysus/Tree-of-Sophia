@@ -91,10 +91,37 @@ pub fn finalize_native_graph_rows<F>(
     entity_registry_bytes: &[u8],
     inherited: &InheritedViewReceipt,
     limits: NativeFinalizeLimits,
-    mut claim_sources: F,
+    claim_sources: F,
 ) -> Result<NativeFinalizeReceipt>
 where
     F: FnMut(&mut KnowledgeStage<'_>, &str, &str) -> Result<Vec<Vec<u8>>>,
+{
+    finalize_native_graph_rows_with_witnesses(
+        stage,
+        registry,
+        entity_registry_bytes,
+        inherited,
+        limits,
+        claim_sources,
+        |_, _, _, _, _| Ok(None),
+    )
+}
+
+/// Maintained synthesized families return their exact prepared source witness
+/// by normalized identity. A raw lookup by native ID cannot identify canon
+/// pack edges, node-local assertions or repository identity overrides.
+pub fn finalize_native_graph_rows_with_witnesses<F, G>(
+    stage: &mut KnowledgeStage<'_>,
+    registry: &KnowledgeRegistry,
+    entity_registry_bytes: &[u8],
+    inherited: &InheritedViewReceipt,
+    limits: NativeFinalizeLimits,
+    mut claim_sources: F,
+    mut source_material: G,
+) -> Result<NativeFinalizeReceipt>
+where
+    F: FnMut(&mut KnowledgeStage<'_>, &str, &str) -> Result<Vec<Vec<u8>>>,
+    G: FnMut(&mut KnowledgeStage<'_>, bool, &str, &str, &str) -> Result<Option<Vec<u8>>>,
 {
     let result = (|| {
         if limits.max_rows == 0
@@ -209,8 +236,15 @@ where
                         } else {
                             &["edges", "relations"]
                         };
-                        let mut owner = None;
-                        for collection in collections {
+                        let mut owner = source_material(
+                            stage,
+                            table == "knowledge_relations",
+                            &row.source,
+                            &row.id,
+                            native,
+                        )?;
+                        let needs_raw = owner.is_none();
+                        for collection in collections.iter().filter(|_| needs_raw) {
                             if !stage.exact_receipt().collections.iter().any(|entry| {
                                 entry.source_graph == row.source && entry.collection == *collection
                             }) {
