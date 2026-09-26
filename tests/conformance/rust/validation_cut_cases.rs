@@ -217,10 +217,22 @@ fn actual_cut_worker_and_item_companions_preserve_metadata_only_outcome() {
     assert!(!schemas.receipts().is_empty());
     for receipt in schemas.receipts() {
         assert_eq!(receipt.source_revision, revision);
-        assert_eq!(
-            receipt.source_raw_sha256,
-            Digest256::of_bytes(&files[&receipt.path])
-        );
+        let selected_raw = if let Some(raw) = files.get(&receipt.path) {
+            raw.as_slice()
+        } else {
+            let (path, ordinal) = receipt
+                .path
+                .rsplit_once(':')
+                .expect("only a selected JSONL row may have a logical receipt path");
+            assert_eq!(path, format!("{ITEM}/provenance.jsonl"));
+            let ordinal: usize = ordinal.parse().unwrap();
+            assert!(ordinal > 0);
+            files[path]
+                .split(|byte| *byte == b'\n')
+                .nth(ordinal - 1)
+                .expect("receipt must identify an existing selected provenance row")
+        };
+        assert_eq!(receipt.source_raw_sha256, Digest256::of_bytes(selected_raw));
         assert_eq!(receipt.execution.worker_sha256, worker_digest);
         assert_eq!(
             receipt.execution.instance_sha256,
