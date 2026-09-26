@@ -9,6 +9,8 @@ mod knowledge_binding;
 #[cfg(not(target_arch = "wasm32"))]
 mod knowledge_catalog;
 #[cfg(not(target_arch = "wasm32"))]
+mod knowledge_inspect;
+#[cfg(not(target_arch = "wasm32"))]
 mod knowledge_packet;
 #[cfg(not(target_arch = "wasm32"))]
 mod knowledge_sqlite;
@@ -18,6 +20,7 @@ mod search_execute;
 pub mod search_index;
 pub mod search_v2;
 mod source_descend;
+mod source_read_projection;
 #[cfg(not(target_arch = "wasm32"))]
 mod sqlite;
 
@@ -27,6 +30,12 @@ pub use knowledge_binding::{BoundCmpKnowledge, bind_verified_knowledge};
 pub use knowledge_catalog::{
     CatalogBudget, CatalogCurrentAuthority, CatalogDisclosureLease, CatalogDisclosureScope,
     CatalogError, CatalogErrorCode, DisclosableCatalog, execute_selected_catalog,
+};
+#[cfg(not(target_arch = "wasm32"))]
+pub use knowledge_inspect::{
+    DisclosableInspect, INSPECT_INTENDED_USE, InspectBudget, InspectCurrentAuthority,
+    InspectDisclosureLease, InspectedCarrier, NODE_INSPECT_OPERATION, RELATION_INSPECT_OPERATION,
+    execute_selected_inspect,
 };
 #[cfg(not(target_arch = "wasm32"))]
 pub use knowledge_packet::{

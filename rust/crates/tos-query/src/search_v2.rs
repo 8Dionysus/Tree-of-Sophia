@@ -12,6 +12,7 @@ use tos_foundation::{Digest256, python_lower_unicode16_v1, python_strip_unicode1
 
 pub const INDEXED_SEARCH_V2_OPERATION: &str = "tos_knowledge_search_indexed_v2";
 pub const SEARCH_READ_MODEL_ABI_V1: &str = "tos_knowledge_read_model_v1";
+pub const SEARCH_READ_MODEL_ABI_V2: &str = "tos_knowledge_read_model_v2";
 pub const QUERY_PRIMITIVE_PROFILE: &str = "tos-query-primitives-v1";
 pub const SEARCH_UNICODE_PROFILE: &str = "tos-python-native-unicode-v1";
 pub const SEARCH_QUERY_MAX_CODE_POINTS: usize = 256;
@@ -283,7 +284,9 @@ fn validate_selection<V: SelectedQueryVocabulary + ?Sized>(
             "selected knowledge search model uses an unsupported primitive profile",
         ));
     }
-    if selection.model_abi != SEARCH_READ_MODEL_ABI_V1 {
+    if selection.model_abi != SEARCH_READ_MODEL_ABI_V1
+        && selection.model_abi != SEARCH_READ_MODEL_ABI_V2
+    {
         return Err(SearchV2Error::new(
             SearchV2ErrorCode::UnsupportedModel,
             "selected knowledge search model ABI is unsupported",

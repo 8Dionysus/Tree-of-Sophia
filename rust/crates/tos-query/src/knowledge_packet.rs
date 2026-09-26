@@ -50,14 +50,16 @@ pub struct IndexedDisclosureScope {
 }
 
 impl IndexedDisclosureScope {
-    fn validate(
+    pub(crate) fn validate_for(
         &self,
         bound: &BoundCmpKnowledge<'_>,
         policy: &CurrentPolicyBinding,
+        operation_id: &str,
+        intended_use: &str,
     ) -> Result<(), SearchV2Error> {
-        if self.operation_id != INDEXED_SEARCH_OPERATION_ID
+        if self.operation_id != operation_id
             || self.carrier_layer != INDEXED_SEARCH_CARRIER_LAYER
-            || self.intended_use != INDEXED_SEARCH_INTENDED_USE
+            || self.intended_use != intended_use
             || self.selected_model_receipt_id != bound.owner_receipt_id()
             || self.source_cut != bound.selection().source_cut
             || self.through_commit_seq != bound.selection().through_commit_seq
@@ -374,7 +376,12 @@ pub fn execute_indexed_search_page<A: IndexedKnowledgeAuthority + ?Sized>(
     bound.check_model(model)?;
     let policy = authority.policy_binding();
     let scope = authority.disclosure_scope();
-    scope.validate(bound, &policy)?;
+    scope.validate_for(
+        bound,
+        &policy,
+        INDEXED_SEARCH_OPERATION_ID,
+        INDEXED_SEARCH_INTENDED_USE,
+    )?;
     let normalized = request.normalize(bound.selection(), bound)?;
     let state = match cursor_in {
         Some(token) => cursor_codec.decode(token)?,

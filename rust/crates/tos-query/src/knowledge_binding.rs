@@ -1,13 +1,12 @@
 //! Bind a cold-verified CMP knowledge model to its exact authored vocabulary.
 //! This establishes query semantics, not current policy or disclosure rights.
 
-use tos_compiler::{QueryVocabulary, VerifiedKnowledgeModel};
+use tos_compiler::{KNOWLEDGE_MODEL_ABI, QueryVocabulary, VerifiedKnowledgeModel};
 use tos_foundation::Digest256;
 
 use crate::search_v2::{
-    QUERY_PRIMITIVE_PROFILE, QueryVocabularyBinding, SEARCH_READ_MODEL_ABI_V1,
-    SEARCH_UNICODE_PROFILE, SearchSelectionBinding, SearchV2Error, SearchV2ErrorCode,
-    SelectedQueryVocabulary,
+    QUERY_PRIMITIVE_PROFILE, QueryVocabularyBinding, SEARCH_UNICODE_PROFILE,
+    SearchSelectionBinding, SearchV2Error, SearchV2ErrorCode, SelectedQueryVocabulary,
 };
 
 fn stale(message: &'static str) -> SearchV2Error {
@@ -90,7 +89,7 @@ pub fn bind_verified_knowledge<'a>(
         .map_err(|_| stale("selected knowledge pin changed"))?;
     let selected = model.selection();
     if !selected.complete
-        || selected.model_abi != SEARCH_READ_MODEL_ABI_V1
+        || selected.model_abi != KNOWLEDGE_MODEL_ABI
         || selected.semantic_primitive_profile != QUERY_PRIMITIVE_PROFILE
         || selected.semantic_primitive_profile != vocabulary.semantic_primitive_profile
         || model.search_index_profile() != SEARCH_UNICODE_PROFILE
