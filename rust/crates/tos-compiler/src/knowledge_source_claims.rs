@@ -1157,7 +1157,17 @@ pub fn claim_context_sources(
         if raw.payload.len() > limits.max_raw_bytes {
             return Err(Error::Budget("Claim context witness bytes"));
         }
-        result.push(raw.payload);
+        let material = if stage.exact_receipt().collections.iter().any(|entry| {
+            entry.source_graph == graph
+                && entry.collection == "nodes"
+                && entry.adapter_profile == PROFILE
+        }) {
+            ordered_claim_node_material(&raw.payload, limits.max_raw_bytes)?
+        } else {
+            raw.payload
+        };
+        charge(&mut work, material.len(), limits.max_work_bytes)?;
+        result.push(material);
     }
     Ok(result)
 }

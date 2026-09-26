@@ -223,5 +223,8 @@ mod tests {
         assert_eq!(selected.selection().relation_count, 6);
         assert_eq!(selected.selection().model_abi, crate::KNOWLEDGE_MODEL_ABI);
         selected.check_pin().unwrap();
+        if let Some(path) = std::env::var_os("TOS_CMP_NATIVE_GRAPH_EXPORT") {
+            std::fs::write(path, &fixture.graph_input_bytes).unwrap();
+        }
     }
 }
