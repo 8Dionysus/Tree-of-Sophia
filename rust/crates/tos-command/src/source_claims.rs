@@ -762,11 +762,29 @@ fn complete_authored_inputs(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<Vec<SourceFile>> {
+    ctx.check()?;
     if cut.current().revision() != ctx.base_revision {
         return Err(SourceCommandError::Conflict(
             "Claim inventory cut differs from command base",
         ));
     }
+    const MAX_COMPLETE_BYTES: u64 = 33_554_432;
+    let software_inputs = ctx
+        .files
+        .iter()
+        .filter(|input| !input.path.as_str().starts_with("ToS/"))
+        .collect::<Vec<_>>();
+    let software_bytes = software_inputs
+        .iter()
+        .try_fold(0u64, |total, input| {
+            total.checked_add(input.raw.len() as u64)
+        })
+        .filter(|total| *total <= MAX_COMPLETE_BYTES)
+        .ok_or(SourceCommandError::Unsupported(
+            "Claim selected software exceeds complete input byte budget",
+        ))?;
+    let mut descriptor_bytes = software_bytes;
+    let mut actual_bytes = software_bytes;
     let mut files = Vec::new();
     for descriptor in cut.current().members() {
         if !descriptor.path.as_str().starts_with("ToS/") {
@@ -805,20 +823,44 @@ fn complete_authored_inputs(
             }
             continue;
         }
-        if files.len() >= 4096 {
+        if files
+            .len()
+            .checked_add(software_inputs.len())
+            .is_none_or(|count| count >= 4096)
+        {
             return Err(SourceCommandError::Unsupported(
                 "Claim complete inventory exceeds command member budget",
             ));
         }
+        let next_descriptor_bytes = descriptor_bytes
+            .checked_add(descriptor.size_bytes)
+            .filter(|total| *total <= MAX_COMPLETE_BYTES)
+            .ok_or(SourceCommandError::Unsupported(
+                "Claim complete inventory exceeds aggregate descriptor byte budget",
+            ))?;
         let member = cut
             .read_member(
                 ctx.base_revision,
                 &descriptor.path,
-                8_388_608,
+                8_388_608u64.min(MAX_COMPLETE_BYTES - actual_bytes),
                 deadline,
                 cancelled,
             )
             .map_err(|_| SourceCommandError::Conflict("Claim inventory member read refused"))?;
+        let raw_bytes = member.raw.len() as u64;
+        let next_actual_bytes = actual_bytes
+            .checked_add(raw_bytes)
+            .filter(|total| *total <= MAX_COMPLETE_BYTES)
+            .ok_or(SourceCommandError::Unsupported(
+                "Claim complete inventory exceeds aggregate raw byte budget",
+            ))?;
+        if raw_bytes != descriptor.size_bytes {
+            return Err(SourceCommandError::Conflict(
+                "Claim inventory raw size differs from descriptor",
+            ));
+        }
+        descriptor_bytes = next_descriptor_bytes;
+        actual_bytes = next_actual_bytes;
         files.push(SourceFile {
             path: member.path,
             raw: member.raw,
