@@ -82,12 +82,23 @@ impl Snapshot {
     pub(crate) fn member_after(&self, path: Option<&RelativePath>) -> Option<&MemberMetadata> {
         use std::ops::Bound::{Excluded, Unbounded};
         match path {
-            Some(path) => self.files.range((Excluded(path), Unbounded)).next().map(|(_, m)| m),
+            Some(path) => self
+                .files
+                .range((Excluded(path), Unbounded))
+                .next()
+                .map(|(_, m)| m),
             None => self.files.values().next(),
         }
     }
-    pub(crate) fn ids_for_path<'a>(&'a self, path: &'a RelativePath) -> impl Iterator<Item = &'a str> {
-        self.identities_by_path.get(path).into_iter().flatten().map(String::as_str)
+    pub(crate) fn ids_for_path<'a>(
+        &'a self,
+        path: &'a RelativePath,
+    ) -> impl Iterator<Item = &'a str> {
+        self.identities_by_path
+            .get(path)
+            .into_iter()
+            .flatten()
+            .map(String::as_str)
     }
     pub fn revision(&self) -> SourceRevision {
         self.revision
@@ -240,7 +251,10 @@ impl CorpusReader {
         let identities = parse_identities(&value, &files, &mut remaining_entries)?;
         let mut identities_by_path = BTreeMap::<RelativePath, Vec<String>>::new();
         for (id, path) in &identities {
-            identities_by_path.entry(path.clone()).or_default().push(id.clone());
+            identities_by_path
+                .entry(path.clone())
+                .or_default()
+                .push(id.clone());
         }
         let dependencies = parse_dependencies(&value, &files, &mut remaining_entries)?;
         let retirements = validate_retirements(&value, &mut remaining_entries)?;
