@@ -51,6 +51,29 @@ worktree. Pass that same root to `verify-local` and to the foundation validator
 with `--require-local-payloads`. Existing retained files can be copied and
 independently verified with `scripts/source_payload_custody.py`; a verified
 copy preserves its source and never overwrites conflicting destination bytes.
+
+For a growing provider queue, use the versioned batch route in
+`scripts/acquisition_batch.py` with the
+`ToS/contracts/acquisition-batch.schema.json` manifest. It copies only the
+explicitly selected reviewed records into a new handoff, writes one
+batch-level provenance delta bound to the exact base revision, and acquires
+payloads into an explicit local custody root. It does not read or copy a
+complete relation topology and never creates a per-target `topology-before`
+preimage. Each payload retains a credential-free provider URL (no userinfo,
+query string, or fragment), provider revision, source ID,
+ToS Item/File identity, expected bytes, SHA-256, optional Git blob digest, and
+rights record binding. A content-addressed File ID may recur under separate
+Items, with one destination per File ID within each Item. Custody and fixity
+remain distinct for each Item/File destination; the provenance delta lists
+that File ID once. The acquisition journal isolates
+source failures and allows restart; `receipts/handoff-*.json` reports `admission_status` as
+`not-admitted` even when all bytes have been verified. The independent fixity
+receipt is a separate handoff input for the corpus-intake owner. The
+route-owned `scripts/acquisition_handoff_adapter.py` verifies one selected
+handoff against the accepted-store pointer and accepted source bytes, then
+emits the existing `tos_corpus_batch_v1` input shape for `corpus_admit` without
+performing admission; it remains separate from the legacy seven-package
+converter.
 The separate frozen-plan import route in
 `ToS/source-witnesses/server-import/SERVER_IMPORT_PROTOCOL.md` binds those bytes
 to the exact Item, File and rights revision before private R2 transfer. Adding

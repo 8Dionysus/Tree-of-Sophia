@@ -12,6 +12,11 @@ bounded immutable segments, crash-recoverable pin journals and receipt-bound
 selected reads. Its independent conformance target checks exact synthetic
 segment bytes. A custody receipt grants neither source admission nor rights.
 
+`tos-validation` provides typed candidate validation interfaces and an offline,
+locally supplied Draft 2020-12 schema probe. Its observed legacy format profile
+is comparison evidence; its prospective four-format profile is not an admitted
+source rule.
+
 OPS owns the root workspace, lockfile, toolchain, CI selection and package
 route. FND owns `tos-foundation`; STO owns `tos-source-store`; ASS owns
 conformance vectors and runner. Other owners add crates through an
@@ -24,7 +29,8 @@ Run the named `rust_workspace` lane from
 when the pinned toolchain, rustfmt and WASM target are available. Set
 `CARGO_TARGET_DIR` to an owner-approved build-cache path outside the
 checkout. Passing this lane proves only the checked Rust contracts, WASM
-compilation, native reader installation and generated WEB.1 codec execution in
-Node WebAssembly against tiny synthetic vectors. The WEB.1 route requires the
-matching `wasm-bindgen` CLI 0.2.128 and Node. It does not prove a released
-public adapter, browser/Worker bundle integration or production-scale runtime.
+compilation, validation-backend WASM feasibility, native reader installation
+and generated WEB.1 codec execution in Node WebAssembly against tiny synthetic
+vectors. The WEB.1 route requires the matching `wasm-bindgen` CLI 0.2.128 and
+Node. It does not prove a released public adapter, browser/Worker bundle
+integration or production-scale runtime.

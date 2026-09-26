@@ -43,6 +43,7 @@ from build_source_witness_catalog import (
     render_outputs,
 )
 from source_record_profiles import SourceRecordProfiles, SourceClaimProfiles, SourceProfileError, OWNER_LOCAL_HOME
+from material_discovery_semantics import material_discovery_semantic_issues
 from source_bibliographic_topology import BibliographicTopologyError, validate_current_topology
 from source_metadata_snapshot import PublicationSnapshot
 from source_payload_custody import CustodyError, checked_root, payload_path
@@ -5487,48 +5488,6 @@ def _critical_edition_local_structural_context_issues(
                 "critical-edition local section start anchor is absent or ambiguous in the visual sample plan"
             )
 
-    return issues
-
-
-def _discovery_decision_issues(payload: object) -> list[str]:
-    if not isinstance(payload, dict):
-        return ["discovery record is not an object"]
-
-    issues: list[str] = []
-    result_ids: set[str] = set()
-    expected_selected: set[str] = set()
-    expected_rejected: set[str] = set()
-    for channel in payload.get("channels", []):
-        if not isinstance(channel, dict):
-            continue
-        for result in channel.get("results", []):
-            if not isinstance(result, dict):
-                continue
-            result_id = result.get("result_id")
-            if not isinstance(result_id, str):
-                continue
-            if result_id in result_ids:
-                issues.append(f"duplicate discovery result_id: {result_id}")
-            result_ids.add(result_id)
-            if result.get("decision") == "select":
-                expected_selected.add(result_id)
-            elif result.get("decision") == "reject":
-                expected_rejected.add(result_id)
-
-    selected = {
-        item for item in payload.get("selected_result_ids", []) if isinstance(item, str)
-    }
-    rejected = {
-        item for item in payload.get("rejected_result_ids", []) if isinstance(item, str)
-    }
-    if selected != expected_selected:
-        issues.append(
-            "selected_result_ids do not match results whose decision is select"
-        )
-    if rejected != expected_rejected:
-        issues.append(
-            "rejected_result_ids do not match results whose decision is reject"
-        )
     return issues
 
 
@@ -13241,55 +13200,8 @@ def _validate_foundation(
         location = _relative(path, repo_root)
         discovery_records_by_ref[location] = payload
         _validate_payload(payload, material_discovery_validator, location, issues)
-        for message in _discovery_decision_issues(payload):
+        for message in material_discovery_semantic_issues(payload):
             issues.append((location, message))
-        channels = [item for item in payload.get("channels", []) if isinstance(item, dict)]
-        channel_ids = [item.get("channel_id") for item in channels]
-        sequences = [item.get("sequence") for item in channels]
-        if len(channel_ids) != len(set(channel_ids)):
-            issues.append((location, "discovery channel IDs are not unique"))
-        if len(sequences) != len(set(sequences)):
-            issues.append((location, "discovery channel sequence values are not unique"))
-        general_web_sequences = [
-            item.get("sequence")
-            for item in channels
-            if item.get("channel_type") == "general-web-search"
-        ]
-        if general_web_sequences and max(sequences, default=0) != max(general_web_sequences):
-            issues.append((location, "general web search is not the final discovery channel"))
-        result_ids: set[str] = set()
-        for channel in channels:
-            ranks = [
-                result.get("rank")
-                for result in channel.get("results", [])
-                if isinstance(result, dict)
-            ]
-            if ranks != list(range(1, len(ranks) + 1)):
-                issues.append(
-                    (
-                        location,
-                        f"discovery result order for {channel.get('channel_id')} is not contiguous from rank 1",
-                    )
-                )
-            result_ids.update(
-                result.get("result_id")
-                for result in channel.get("results", [])
-                if isinstance(result, dict) and isinstance(result.get("result_id"), str)
-            )
-        selected = set(payload.get("selected_result_ids", []))
-        rejected = set(payload.get("rejected_result_ids", []))
-        if selected & rejected:
-            issues.append((location, "discovery result is both selected and rejected"))
-        unresolved_results = (selected | rejected) - result_ids
-        if unresolved_results:
-            issues.append((location, f"discovery decision references unknown results: {sorted(unresolved_results)}"))
-        comparison_ids = {
-            item.get("channel_id")
-            for item in payload.get("channel_comparison", [])
-            if isinstance(item, dict)
-        }
-        if comparison_ids != set(channel_ids):
-            issues.append((location, "discovery channel comparison does not cover the exact channel set"))
 
     discovery_provenance_path = repo_root / SOURCE_ROOT / "discovery/provenance.jsonl"
     discovery_events: dict[str, tuple[dict[str, Any], str]] = {}
