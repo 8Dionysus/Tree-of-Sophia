@@ -582,10 +582,16 @@ pub fn execute_selected_lens<A: InspectCurrentAuthority + ?Sized>(
                 for (i, rule) in array(sort_rules).iter().enumerate() {
                     let av = &array(get(a, "_sort"))[i];
                     let bv = &array(get(b, "_sort"))[i];
-                    let mut ord =
-                        lower(&py_string(if is_truthy(av) { av } else { &text("") })).cmp(&lower(
-                            &py_string(if is_truthy(bv) { bv } else { &text("") }),
-                        ));
+                    let mut ord = lower(&if is_truthy(av) {
+                        py_string(av)
+                    } else {
+                        String::new()
+                    })
+                    .cmp(&lower(&if is_truthy(bv) {
+                        py_string(bv)
+                    } else {
+                        String::new()
+                    }));
                     if string(get(rule, "direction")) == "desc" {
                         ord = ord.reverse()
                     }

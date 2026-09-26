@@ -1110,12 +1110,20 @@ pub(crate) fn matches_filter(item: &JsonValue, rule: &JsonValue) -> bool {
             } else if expected.as_array().is_some() {
                 false
             } else {
-                lower(&py_string(if truthy(actual) { actual } else { &text("") }))
-                    .contains(&lower(&py_string(expected)))
+                lower(&if truthy(actual) {
+                    py_string(actual)
+                } else {
+                    String::new()
+                })
+                .contains(&lower(&py_string(expected)))
             }
         }
-        "prefix" => lower(&py_string(if truthy(actual) { actual } else { &text("") }))
-            .starts_with(&lower(&py_string(expected))),
+        "prefix" => lower(&if truthy(actual) {
+            py_string(actual)
+        } else {
+            String::new()
+        })
+        .starts_with(&lower(&py_string(expected))),
         _ => {
             if let (Some(a), Some(b)) = (numeric(actual), numeric(expected)) {
                 match op {
