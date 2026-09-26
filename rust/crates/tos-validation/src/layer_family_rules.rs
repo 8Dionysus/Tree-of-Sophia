@@ -16,8 +16,18 @@ pub trait LayerFamilySource {
     /// mutable checkout, path search, unselected revision or network lookup.
     fn recorded(&mut self, path: &str, digest: &str, max_bytes: usize, deadline: Instant) -> Result<Option<Vec<u8>>, ItemRefusal>;
     fn schema(&mut self, path: &str, raw: &[u8], contract: &str, deadline: Instant) -> Result<bool, ItemRefusal>;
+    fn payload(&mut self,path:&str,max_bytes:usize,deadline:Instant)->Result<LayerPayload,ItemRefusal> {let _=(path,max_bytes,deadline);Ok(LayerPayload::Unavailable)}
+    fn exists(&mut self,path:&str,max_bytes:usize,deadline:Instant)->Result<bool,ItemRefusal>{Ok(self.current(path,max_bytes,deadline)?.is_some())}
+    fn discovered_item_manifest(&mut self,path:&str,max_bytes:usize,deadline:Instant)->Result<bool,ItemRefusal>{Ok(path.starts_with("ToS/source-witnesses/")&&path.ends_with("/item.manifest.json")&&self.exists(path,max_bytes,deadline)?)}
     fn generation(&self) -> String;
     fn checkpoint(&self, deadline: Instant) -> Result<(), ItemRefusal>;
+}
+/// Observation supplied only by the explicitly selected immutable payload
+/// custody owner. A declaration in the representation is not such evidence.
+#[derive(Debug,Clone,PartialEq,Eq)]
+pub enum LayerPayload {
+    Unavailable,
+    File {byte_size:u64,sha256:String,source_member:bool,sha1:Option<String>,jpeg_dimensions:Option<(u64,u64)>},
 }
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LayerFamilyIssue { pub path: String, pub code: &'static str, pub subject: String }
@@ -33,9 +43,10 @@ pub struct LayerFamilyReport {
     pub text_reports: Vec<TextRuleReport>,
     pub metadata_bytes: u64,
 }
-pub struct LayerFamilyRules { limits: ItemLimits, state_bytes: usize, report: LayerFamilyReport, identities: BTreeMap<(String,String),String> }
+pub struct LayerFamilyRules { limits: ItemLimits, state_bytes: usize, report: LayerFamilyReport, identities: BTreeMap<(String,String),String>, discovery_events:Option<BTreeMap<String,(String,Value,Vec<u8>)>>, boundary_events:Option<BTreeMap<String,(String,Value,Vec<u8>)>>, require_local_payloads:bool }
 impl LayerFamilyRules {
-    pub fn new(limits: ItemLimits) -> Self { Self { limits, state_bytes: 0, report: LayerFamilyReport::default(), identities: BTreeMap::new() } }
+    pub fn new(limits: ItemLimits) -> Self { Self { limits, state_bytes: 0, report: LayerFamilyReport::default(), identities: BTreeMap::new(),discovery_events:None,boundary_events:None,require_local_payloads:false } }
+    pub fn require_local_payloads(&mut self,required:bool){self.require_local_payloads=required;}
     fn reserve(&mut self, n: usize) -> Result<(), ItemRefusal> {
         if Instant::now() >= self.limits.deadline { return Err(ItemRefusal::Deadline); }
         self.state_bytes = self.state_bytes.checked_add(n).filter(|n| *n <= self.limits.max_state_bytes).ok_or(ItemRefusal::Budget)?; Ok(())
@@ -48,7 +59,8 @@ impl LayerFamilyRules {
     fn read(&mut self, read: PredicateRead) -> Result<(), ItemRefusal> { self.reserve(format!("{read:?}").len()+96)?; self.report.reads.push(read); Ok(()) }
     fn gap(&mut self, path: &str, profile: &str) -> Result<(), ItemRefusal> { self.reserve(path.len()+profile.len()+64)?; self.report.unsupported.push(LayerProfileGap { path:path.into(), profile:profile.into() }); Ok(()) }
     fn checked(&mut self, path: &str, predicate: &str) -> Result<(), ItemRefusal> { self.reserve(path.len()+predicate.len()+64)?; self.report.checked_predicates.push((path.into(),predicate.into())); Ok(()) }
-    fn bytes(&mut self, source: &mut impl LayerFamilySource, path: &str, digest: Option<&str>) -> Result<Option<Vec<u8>>,ItemRefusal> {
+    fn bytes(&mut self,source:&mut impl LayerFamilySource,path:&str,digest:Option<&str>)->Result<Option<Vec<u8>>,ItemRefusal>{self.lookup(source,path,digest,true)}
+    fn lookup(&mut self, source: &mut impl LayerFamilySource, path: &str, digest: Option<&str>,required:bool) -> Result<Option<Vec<u8>>,ItemRefusal> {
         source.checkpoint(self.limits.deadline)?; safe(path)?;
         let raw = match digest { Some(d) => source.recorded(path,d,self.limits.max_member_bytes,self.limits.deadline)?, None => source.current(path,self.limits.max_member_bytes,self.limits.deadline)? };
         source.checkpoint(self.limits.deadline)?;
@@ -61,7 +73,7 @@ impl LayerFamilyRules {
             self.read(PredicateRead::ExactBytes { locator: match digest { Some(d)=>format!("retained-or-current:{path}@{d}"),None=>path.into() }, digest:Digest256::of_bytes(raw).to_hex() })?;
         } else {
             self.read(PredicateRead::AbsentKey { namespace:format!("source-layer/{}",source.generation()), key:match digest { Some(d)=>format!("{path}@{d}"),None=>path.into() } })?;
-            self.issue(path,"missing-exact-input",digest.unwrap_or("current"))?;
+            if required{self.issue(path,"missing-exact-input",digest.unwrap_or("current"))?;}
         }
         Ok(raw)
     }
@@ -96,6 +108,9 @@ impl LayerFamilyRules {
         if path.ends_with("/artifact-witness.json") || path.ends_with("/composite-witness.json") || (path.ends_with("/representation.json") && (path.starts_with("ToS/source-witnesses/artifacts/") || path.starts_with("ToS/source-witnesses/scholarly-composites/"))) {
             return self.witness(source,path,&v,&raw);
         }
+        if path.starts_with("ToS/source-witnesses/server-import/plans/")&&path.strip_prefix("ToS/source-witnesses/server-import/plans/").is_some_and(|name|!name.contains('/')){
+            return self.server_plan(source,path,&v,&raw);
+        }
         let profile=s(&v,"schema_version");
         let contract=match profile {
             text_rules::TEXT_UNIT_PROFILE=>"source-text-unit-packet-v1.schema.json",
@@ -116,8 +131,8 @@ impl LayerFamilyRules {
             "tos_transfer_candidate_structural_crosswalk_v1"=>self.transfer(source,path,&v)?,
             text_rules::TEXT_UNIT_PROFILE|text_rules::TEXT_LAYER_PROFILE=>self.text(source,path,&v,&raw,profile,schema_valid)?,
             text_rules::ANCHOR_V2_PROFILE=>self.gap(path,"anchor-target-and-method-explicit-binding-required")?,
-            "tos_semantic_annotation_packet_v2"=>{ self.packet_closure(path,&v,false)?; self.gap(path,"semantic-annotation-v2-review-competence-proposition-and-graph-owner-predicates")?; },
-            "tos_translation_alignment_packet_v1"=>{ self.packet_closure(path,&v,true)?; self.gap(path,"translation-alignment-v1-side-cardinality-review-lineage-and-projection-owner-predicates")?; },
+            "tos_semantic_annotation_packet_v2"=>self.semantic_annotation(path,&v)?,
+            "tos_translation_alignment_packet_v1"=>self.translation_alignment(path,&v)?,
             _=>{}
         }
         source.checkpoint(self.limits.deadline)
@@ -180,16 +195,177 @@ impl LayerFamilyRules {
             self.absorb_text(path,report)?;
         } Ok(())
     }
-    fn packet_closure(&mut self,path:&str,v:&Value,translation:bool)->Result<(),ItemRefusal>{
-        let specs=if translation {vec![("alignments","alignment_id"),("reviews","review_id"),("projections","projection_id")]}else{vec![("entities","entity_id"),("claims","claim_id"),("relations","relation_id"),("reviews","review_id")]};
-        let mut indices=BTreeMap::new();
-        for (field,key) in specs { let mut ids=BTreeSet::new(); for row in rows(v,field) { let id=s(row,key); if !ids.insert(id.to_owned()) {self.issue(path,"duplicate-packet-identity",id)?;} } indices.insert(field,ids); }
-        for (field,refs,target) in if translation {vec![("alignments","review_refs","reviews"),("alignments","competing_alignment_refs","alignments"),("reviews","reviewed_alignment_refs","alignments"),("projections","source_alignment_refs","alignments")]}else{vec![("entities","admission_review_refs","reviews"),("claims","review_refs","reviews"),("claims","competing_claim_refs","claims"),("relations","review_refs","reviews")]} {
-            for row in rows(v,field) {for id in strs(row,refs) {self.endpoint(path,refs,id,indices[target].contains(id))?;}}
+    fn local_index<'a>(&mut self,path:&str,items:&'a [Value],key:&str,label:&str)->Result<BTreeMap<&'a str,&'a Value>,ItemRefusal>{
+        let mut result=BTreeMap::new();
+        for row in items.iter().filter(|r|r.is_object()){
+            self.reserve(0)?;
+            if let Some(id)=row[key].as_str(){
+                self.reserve(id.len()+48)?;
+                if result.insert(id,row).is_some(){self.issue(path,"duplicate-local-identity",format!("{label}:{id}"))?;}
+                self.read(PredicateRead::UniqueKey{namespace:format!("packet/{path}/{label}"),key:id.into(),owner:path.into()})?;
+            }
+        }
+        Ok(result)
+    }
+    fn local_refs(&mut self,path:&str,refs:Vec<&str>,index:&BTreeMap<&str,&Value>,label:&str)->Result<(),ItemRefusal>{
+        for id in refs{self.endpoint(path,label,id,index.contains_key(id))?;}Ok(())
+    }
+    fn semantic_annotation(&mut self,path:&str,v:&Value)->Result<(),ItemRefusal>{
+        let entities=self.local_index(path,rows(v,"entities"),"entity_id","entity")?;
+        let claims=self.local_index(path,rows(v,"claims"),"claim_id","claim")?;
+        let relations=self.local_index(path,rows(v,"relations"),"relation_id","relation")?;
+        let reviews=self.local_index(path,rows(v,"reviews"),"review_id","review")?;
+        let anchors=self.local_index(path,rows(&v["source_scope"],"source_anchors"),"anchor_ref","anchor")?;
+        if !v["annotation_id"].is_null() && v["annotation_id"]==v["supersedes_annotation_ref"]{self.issue(path,"annotation-self-supersession",s(v,"annotation_id"))?;}
+        for entity in rows(v,"entities").iter().filter(|r|r.is_object()){
+            self.reserve(0)?;let id=s(entity,"entity_id");let kind=s(entity,"entity_kind");let status=s(entity,"admission_status");
+            let prefix=match kind{"occurrence"=>Some("tos.occurrence."),"lexeme"=>Some("tos.lexeme.sid-"),"lexical_sense"=>Some("tos.sense.sid-"),"sign"=>Some("tos.sign.sid-"),"concept"=>Some("tos.concept.sid-"),_=>None};
+            if prefix.is_some_and(|p|!id.starts_with(p)){self.issue(path,"entity-kind-namespace-drift",id)?;}
+            if entity["entity_id"]==entity["supersedes_entity_ref"]{self.issue(path,"entity-self-supersession",id)?;}
+            let basis=&entity["identity_basis"];
+            self.local_refs(path,strs(basis,"anchor_refs"),&anchors,"entity-anchor")?;
+            self.local_refs(path,strs(basis,"claim_refs"),&claims,"entity-claim")?;
+            self.local_refs(path,strs(basis,"parent_entity_refs"),&entities,"entity-parent")?;
+            let review_refs=strs(entity,"admission_review_refs");self.local_refs(path,review_refs.clone(),&reviews,"entity-review")?;
+            if decided(status)&&review_refs.is_empty(){self.issue(path,"decided-entity-review-absent",id)?;}
+            if accepted(status)&&matches!(kind,"sign"|"concept"){
+                let review_kind=if kind=="sign"{"sign_promotion"}else{"interpretive"};
+                let selected:Vec<_>=review_refs.iter().filter_map(|id|reviews.get(id).copied()).filter(|r|s(r,"review_kind")==review_kind&&accepting(s(r,"decision"))).collect();
+                if selected.is_empty(){self.issue(path,"accepted-entity-review-kind-absent",id)?;}
+                for review in selected{
+                    if kind=="sign"{
+                        let baseline=&review["unassisted_baseline"];
+                        if baseline["required"]!=true||s(baseline,"status")!="frozen"||baseline["frozen_before_model_suggestions"]!=true||!baseline["evidence_ref"].is_string(){self.issue(path,"sign-baseline-not-frozen",s(review,"review_id"))?;}
+                    }
+                    let competence:BTreeMap<_,_>=rows(review,"competence").iter().filter(|r|r.is_object()).map(|r|(s(r,"scope"),s(r,"status"))).collect();
+                    for scope in if kind=="sign"{vec!["source_reading","semantic_interpretation"]}else{vec!["semantic_interpretation"]}{if !competence.get(scope).is_some_and(|state|competent(state)){self.issue(path,"entity-review-competence-absent",format!("{}/{scope}",s(review,"review_id")))?;}}
+                }
+            }
+        }
+        for claim in rows(v,"claims").iter().filter(|r|r.is_object()){
+            self.reserve(0)?;let id=s(claim,"claim_id");let status=s(claim,"claim_status");
+            if claim["claim_id"]==claim["supersedes_claim_ref"]{self.issue(path,"semantic-claim-self-supersession",id)?;}
+            let prop=&claim["proposition"];self.local_refs(path,vec![s(prop,"subject_ref")],&entities,"claim-subject")?;
+            let object=&prop["object"];if s(object,"kind")=="entity_ref"{self.local_refs(path,vec![s(object,"entity_ref")],&entities,"claim-object")?;}else if s(object,"kind")=="entity_set"{self.local_refs(path,strs(object,"entity_refs"),&entities,"claim-object")?;}
+            self.local_refs(path,strs(claim,"target_anchor_refs"),&anchors,"claim-anchor")?;
+            for evidence in rows(claim,"evidence").iter().filter(|r|r.is_object()){self.local_refs(path,strs(evidence,"anchor_refs"),&anchors,"evidence-anchor")?;}
+            self.local_refs(path,strs(claim,"competing_claim_refs"),&claims,"competing-claim")?;
+            let review_refs=strs(claim,"review_refs");self.local_refs(path,review_refs.clone(),&reviews,"claim-review")?;
+            for other in strs(claim,"competing_claim_refs"){
+                if other==id{self.issue(path,"semantic-claim-self-competition",id)?;}else if claims.get(other).is_some_and(|c|!strs(c,"competing_claim_refs").contains(&id)){self.issue(path,"semantic-claim-competition-not-reciprocal",format!("{id}->{other}"))?;}
+            }
+            if decided(status)&&review_refs.is_empty(){self.issue(path,"decided-semantic-claim-review-absent",id)?;}
+            if accepted(status){
+                if !review_refs.iter().filter_map(|id|reviews.get(id)).any(|r|accepting(s(r,"decision"))){self.issue(path,"accepted-semantic-claim-review-absent",id)?;}
+                if s(&claim["maker"],"maker_kind")=="synthetic_fixture"{self.issue(path,"accepted-synthetic-semantic-claim",id)?;}
+            }
+            if s(v,"content_posture")!="public_synthetic_contract_exercise"&&s(&claim["maker"],"maker_kind")=="synthetic_fixture"{self.issue(path,"semantic-synthetic-maker-outside-lab",id)?;}
+        }
+        for relation in rows(v,"relations").iter().filter(|r|r.is_object()){
+            self.reserve(0)?;let id=s(relation,"relation_id");let subject=s(relation,"subject_ref");let object=s(relation,"object_ref");let claim_ref=s(relation,"claim_ref");
+            self.local_refs(path,vec![subject,object],&entities,"relation-endpoint")?;self.local_refs(path,vec![claim_ref],&claims,"relation-claim")?;
+            self.local_refs(path,strs(relation,"target_anchor_refs"),&anchors,"relation-anchor")?;
+            let review_refs=strs(relation,"review_refs");self.local_refs(path,review_refs.clone(),&reviews,"relation-review")?;
+            if relation["subject_ref"]==relation["object_ref"]{self.issue(path,"semantic-relation-collapsed-endpoints",id)?;}
+            let claim=claims.get(claim_ref);
+            if let Some(claim)=claim{let prop=&claim["proposition"];let obj=&prop["object"];if s(claim,"claim_type")!="relation"||prop["subject_ref"]!=relation["subject_ref"]||prop["predicate"]!=relation["relation_type"]||!obj.is_object()||s(obj,"kind")!="entity_ref"||obj["entity_ref"]!=relation["object_ref"]{self.issue(path,"relation-supporting-proposition-drift",id)?;}}
+            if accepted(s(relation,"relation_status")){
+                if claim.is_none_or(|c|!accepted(s(c,"claim_status"))){self.issue(path,"accepted-relation-supporting-claim-not-accepted",id)?;}
+                if !review_refs.iter().filter_map(|id|reviews.get(id)).any(|r|accepting(s(r,"decision"))){self.issue(path,"accepted-semantic-relation-review-absent",id)?;}
+            }
+        }
+        let graph=&v["graph_projection"];self.local_refs(path,strs(graph,"node_refs"),&entities,"graph-node")?;
+        for edge in rows(graph,"edges").iter().filter(|r|r.is_object()){
+            self.reserve(0)?;let relation_ref=s(edge,"relation_ref");let claim_ref=s(edge,"claim_ref");
+            self.local_refs(path,vec![relation_ref],&relations,"graph-relation")?;self.local_refs(path,vec![claim_ref],&claims,"graph-claim")?;
+            self.local_refs(path,vec![s(edge,"subject_ref"),s(edge,"object_ref")],&entities,"graph-endpoint")?;self.local_refs(path,strs(edge,"source_return_anchor_refs"),&anchors,"graph-source-return-anchor")?;
+            if relations.get(relation_ref).is_none_or(|r|!accepted(s(r,"relation_status"))){self.issue(path,"graph-semantic-relation-not-accepted",relation_ref)?;}
+            if claims.get(claim_ref).is_none_or(|r|!accepted(s(r,"claim_status"))){self.issue(path,"graph-semantic-claim-not-accepted",claim_ref)?;}
+            if let Some(relation)=relations.get(relation_ref){if relation["claim_ref"]!=edge["claim_ref"]||relation["subject_ref"]!=edge["subject_ref"]||relation["object_ref"]!=edge["object_ref"]{self.issue(path,"graph-semantic-relation-binding-drift",relation_ref)?;}}
+        }
+        let rights=&v["rights_and_visibility"];if rights["publication_authorized"]==true&&(rights["private_source_used"]==true||matches!(s(rights,"source_content_visibility"),"local_only"|"restricted"|"unknown")){self.issue(path,"semantic-publication-boundary-widened",path)?;}
+        self.checked(path,"_semantic_annotation_v2_issues/v2")
+    }
+    fn translation_side<'a>(&mut self,path:&str,side:&'a Value,label:&str)->Result<BTreeMap<&'a str,&'a Value>,ItemRefusal>{
+        let anchors=self.local_index(path,rows(side,"anchors"),"anchor_ref",label)?;let mut ordinals=BTreeSet::new();
+        for anchor in rows(side,"anchors").iter().filter(|r|r.is_object()){
+            self.reserve(0)?;
+            if anchor["ordinal"].is_number(){let ordinal=integer_i64(&anchor["ordinal"])?;if !ordinals.insert(ordinal){self.issue(path,"alignment-duplicate-anchor-ordinal",label)?;}}
+            if anchor["text_layer_ref"]!=side["text_layer_ref"]{self.issue(path,"alignment-anchor-layer-escape",s(anchor,"anchor_ref"))?;}
+            if anchor["text_layer_sha256"]!=side["text_layer_sha256"]{self.issue(path,"alignment-anchor-layer-digest-drift",s(anchor,"anchor_ref"))?;}
+            let selector=&anchor["selector"];if selector["start"].is_number()&&selector["end"].is_number()&&integer_i64(&selector["start"])? >= integer_i64(&selector["end"])?{self.issue(path,"alignment-anchor-selector-reversed",s(anchor,"anchor_ref"))?;}
+        }Ok(anchors)
+    }
+    fn translation_alignment(&mut self,path:&str,v:&Value)->Result<(),ItemRefusal>{
+        let alignments=self.local_index(path,rows(v,"alignments"),"alignment_id","alignment")?;
+        let claims=self.local_index(path,rows(v,"alignments"),"claim_id","alignment-claim")?;
+        let reviews=self.local_index(path,rows(v,"reviews"),"review_id","alignment-review")?;
+        self.local_index(path,rows(v,"projections"),"projection_id","alignment-projection")?;
+        let source=&v["source_side"];let target=&v["target_side"];
+        let source_anchors=self.translation_side(path,source,"source-anchor")?;let target_anchors=self.translation_side(path,target,"target-anchor")?;
+        for id in source_anchors.keys().filter(|id|target_anchors.contains_key(**id)){self.issue(path,"alignment-shared-side-anchor-identity",*id)?;}
+        if v["packet_id"]==v["supersedes_packet_ref"]{self.issue(path,"alignment-packet-self-supersession",s(v,"packet_id"))?;}
+        if source.is_object()&&target.is_object()&&source["expression_ref"]==target["expression_ref"]{self.issue(path,"alignment-identical-expressions",path)?;}
+        for (side,label) in [(source,"source"),(target,"target")]{for key in ["segmentation","tokenization"]{let binding=&side[key];if binding.is_object()&&s(binding,"state")!="frozen"{self.issue(path,"alignment-analysis-not-frozen",label)?;}}}
+        let required:BTreeSet<_>=["source_language_reading","target_language_reading","translation_analysis"].into_iter().collect();
+        for review in rows(v,"reviews").iter().filter(|r|r.is_object()){
+            self.reserve(0)?;let id=s(review,"review_id");let refs=strs(review,"reviewed_alignment_refs");self.local_refs(path,refs.clone(),&alignments,"reviewed-alignment")?;
+            let scopes:Vec<_>=rows(review,"competence").iter().filter(|r|r.is_object()).map(|r|s(r,"scope")).collect();let scope_set:BTreeSet<_>=scopes.iter().copied().collect();
+            if scopes.len()!=scope_set.len()||scope_set!=required{self.issue(path,"alignment-review-competence-scope-drift",id)?;}
+            for alignment in refs{if alignments.get(alignment).is_some_and(|a|!strs(a,"review_refs").contains(&id)){self.issue(path,"review-alignment-not-reciprocal",format!("{id}->{alignment}"))?;}}
+        }
+        for alignment in rows(v,"alignments").iter().filter(|r|r.is_object()){
+            self.reserve(0)?;let id=s(alignment,"alignment_id");let claim_id=s(alignment,"claim_id");
+            if alignment["alignment_id"]==alignment["supersedes_alignment_ref"]{self.issue(path,"alignment-self-supersession",id)?;}
+            if alignment["claim_id"]==alignment["supersedes_claim_ref"]{self.issue(path,"alignment-claim-self-supersession",claim_id)?;}
+            let source_refs=strs(alignment,"ordered_source_anchor_refs");let target_refs=strs(alignment,"ordered_target_anchor_refs");
+            self.local_refs(path,source_refs.clone(),&source_anchors,"alignment-source-anchor")?;self.local_refs(path,target_refs.clone(),&target_anchors,"alignment-target-anchor")?;
+            let n=source_refs.len();let m=target_refs.len();let shape=s(alignment,"correspondence_shape");
+            let cardinality=match shape{"one_to_one"=>n==1&&m==1,"one_to_many"=>n==1&&m>1,"many_to_one"=>n>1&&m==1,"many_to_many"=>n>1&&m>1,"source_omission"=>n>0&&m==0,"target_addition"=>n==0&&m>0,"unresolved"=>n+m>0,_=>true};
+            if !cardinality{self.issue(path,"alignment-shape-cardinality-drift",id)?;}
+            if matches!(shape,"source_omission"|"target_addition")&&!matches!(s(alignment,"order_posture"),"not_applicable"|"unresolved"){self.issue(path,"alignment-unaligned-order-posture",id)?;}
+            let techniques=strs(alignment,"translation_techniques");if techniques.contains(&"unresolved")&&techniques.len()>1{self.issue(path,"alignment-mixed-unresolved-techniques",id)?;}
+            let competitors=strs(alignment,"competing_alignment_refs");self.local_refs(path,competitors.clone(),&alignments,"competing-alignment")?;
+            let review_refs=strs(alignment,"review_refs");self.local_refs(path,review_refs.clone(),&reviews,"alignment-review")?;
+            for review in &review_refs{if reviews.get(review).is_some_and(|r|!strs(r,"reviewed_alignment_refs").contains(&id)){self.issue(path,"alignment-review-not-reciprocal",format!("{id}->{review}"))?;}}
+            for other in competitors{if other==id{self.issue(path,"alignment-self-competition",id)?;}else if alignments.get(other).is_some_and(|a|!strs(a,"competing_alignment_refs").contains(&id)){self.issue(path,"alignment-competition-not-reciprocal",format!("{id}->{other}"))?;}}
+            let status=s(alignment,"status");let maker=s(&alignment["maker"],"maker_kind");
+            if decided(status)&&review_refs.is_empty(){self.issue(path,"decided-alignment-review-absent",id)?;}
+            if accepted(status){
+                if matches!(maker,"software"|"model"|"mixed"|"imported_source"|"synthetic_fixture"){self.issue(path,"alignment-direct-machine-acceptance",id)?;}
+                let decision=if status=="accepted"{"accept"}else{"accept_with_limits"};
+                let selected:Vec<_>=review_refs.iter().filter_map(|id|reviews.get(id).copied()).filter(|r|s(r,"decision")==decision).collect();
+                if selected.is_empty(){self.issue(path,"accepted-alignment-matching-decision-absent",id)?;}
+                for review in selected{let competence:BTreeMap<_,_>=rows(review,"competence").iter().filter(|r|r.is_object()).map(|r|(s(r,"scope"),s(r,"status"))).collect();for scope in &required{if !competence.get(scope).is_some_and(|status|competent(status)){self.issue(path,"accepted-alignment-review-competence-absent",format!("{}/{scope}",s(review,"review_id")))?;}}}
+            }
+            if s(v,"content_posture")!="public_synthetic_contract_exercise"&&maker=="synthetic_fixture"{self.issue(path,"alignment-synthetic-maker-outside-lab",id)?;}
+            let mut evidence_source=BTreeSet::new();let mut evidence_target=BTreeSet::new();
+            for evidence in rows(alignment,"evidence").iter().filter(|r|r.is_object()){
+                let src=strs(evidence,"source_anchor_refs");let dst=strs(evidence,"target_anchor_refs");
+                self.local_refs(path,src.clone(),&source_anchors,"alignment-evidence-source")?;self.local_refs(path,dst.clone(),&target_anchors,"alignment-evidence-target")?;evidence_source.extend(src);evidence_target.extend(dst);
+            }
+            if source_refs.iter().any(|id|!evidence_source.contains(id)){self.issue(path,"alignment-source-evidence-incomplete",id)?;}
+            if target_refs.iter().any(|id|!evidence_target.contains(id)){self.issue(path,"alignment-target-evidence-incomplete",id)?;}
+        }
+        for (key,ref_key,index) in [("alignment_id","supersedes_alignment_ref",&alignments),("claim_id","supersedes_claim_ref",&claims)]{
+            for row in rows(v,"alignments").iter().filter(|r|r.is_object()){
+                let mut seen=BTreeSet::from([s(row,key)]);let mut cursor=row[ref_key].as_str();
+                while let Some(id)=cursor{self.reserve(0)?;if !seen.insert(id){self.issue(path,"alignment-lineage-cycle",id)?;break;}let Some(prior)=index.get(id)else{self.issue(path,"alignment-lineage-predecessor-unresolved",id)?;break;};cursor=prior[ref_key].as_str();}
+            }
         }
         let rights=&v["rights_and_visibility"];
-        if rights["publication_authorized"]==true && (rights["private_source_used"]==true || (!translation && matches!(s(rights,"source_content_visibility"),"local_only"|"restricted"|"unknown"))) {self.issue(path,"publication-boundary-widened",path)?;}
-        self.checked(path,"packet-identity-review-competition-ref-closure-and-private-publication-ceiling")
+        if rights.is_object(){
+            for (side,field) in [(source,"source_visibility"),(target,"target_visibility")]{if side.is_object()&&rights[field]!=side["visibility"]{self.issue(path,"alignment-side-visibility-drift",field)?;}}
+            let ranks:Option<Vec<_>>=["source_visibility","target_visibility","packet_visibility"].iter().map(|key|visibility_rank(s(rights,key))).collect();
+            if let Some(ranks)=ranks{if visibility_rank(s(rights,"effective_visibility"))!=ranks.into_iter().max(){self.issue(path,"alignment-effective-visibility-drift",path)?;}}
+            if rights["publication_authorized"]==true&&(s(rights,"effective_visibility")!="public"||rights["private_source_used"]==true||!source.is_object()||!target.is_object()||source["publication_authorized"]!=true||target["publication_authorized"]!=true){self.issue(path,"alignment-publication-boundary-widened",path)?;}
+        }
+        for projection in rows(v,"projections").iter().filter(|r|r.is_object()){
+            let id=s(projection,"projection_id");let refs=strs(projection,"source_alignment_refs");self.local_refs(path,refs.clone(),&alignments,"projected-alignment")?;
+            for alignment in refs{if alignments.get(alignment).is_some_and(|a|!accepted(s(a,"status"))){self.issue(path,"projection-alignment-not-accepted",format!("{id}->{alignment}"))?;}}
+            if let (Some(packet),Some(projected))=(visibility_rank(s(rights,"effective_visibility")),visibility_rank(s(projection,"effective_visibility"))){if projected<packet{self.issue(path,"alignment-projection-visibility-widened",id)?;}}
+        }
+        self.checked(path,"_translation_alignment_v1_issues/v1")
     }
     fn semantic_ladder(&mut self,path:&str,v:&Value)->Result<(),ItemRefusal>{
         let stages:BTreeMap<_,_>=rows(v,"stages").iter().filter_map(|row|row["stage"].as_str().map(|id|(id,row))).collect();
@@ -290,6 +466,7 @@ impl LayerFamilyRules {
         let representation=path.ends_with("/representation.json");
         let id_key=if composite {"composite_id"}else{"artifact_id"};
         let kind=if composite {"scholarly-composite"}else{"artifact"};
+        if !representation&&!composite&&!matches!(s(v,"schema_version"),"tos_artifact_source_witness_v1"|"tos_artifact_source_witness_v2"){self.gap(path,"unknown-artifact-source-witness-profile")?;return Ok(());}
         let contract=if representation {if composite {"scholarly-composite-file-representation.schema.json"}else{"artifact-visual-representation.schema.json"}}else if composite {"scholarly-composite-witness.schema.json"}else if s(v,"schema_version")=="tos_artifact_source_witness_v2" {"artifact-source-witness-v2.schema.json"}else{"artifact-source-witness.schema.json"};
         let contract=format!("ToS/contracts/{contract}");
         if !self.schema(source,path,raw,&contract)?{self.issue(path,"schema",&contract)?;}
@@ -325,11 +502,202 @@ impl LayerFamilyRules {
         if let Some((discovery,_))=self.object(source,discovery_path,Some("ToS/contracts/material-discovery-record.schema.json"))?{
             if !strs(&discovery["target"],"known_tos_refs").contains(&s(v,id_key)){self.issue(path,"witness-discovery-target-omits-id",discovery_path)?;}
             if !representation && s(&discovery["target"],"target_kind")!=kind {self.issue(path,"witness-discovery-target-kind-drift",discovery_path)?;}
-            self.gap(path,"validated-discovery-and-provenance-event-output-closure")?;
+            self.discovery(path,&discovery)?;
         }
-        if representation {self.gap(path,if composite{"composite-representation-payload-custody-fixity-and-provenance-digests"}else{"artifact-representation-payload-sha1-jpeg-tracking-and-provenance-digests"})?;}
-        else if !composite {self.gap(path,"native-artifact-retained-creation-or-legacy-planting-provenance")?;}
+        let payload_path=if representation{self.representation_payload(source,path,v,composite)?}else{None};
+        if !composite&&!representation&&s(v,"schema_version")=="tos_artifact_source_witness_v2"{
+            self.gap(path,"native-artifact-retained-creation-software-and-event-verification")?;
+        }else{
+            let mut required=BTreeSet::from([path.to_owned(),rights_path.to_owned()]);
+            if representation{if let Some(payload)=&payload_path{required.insert(payload.clone());}}
+            else{required.insert(discovery_path.into());required.insert(s(v,"research_ref").into());required.extend(strs(v,"philosophy_planting_refs").into_iter().map(str::to_owned));}
+            self.witness_event(source,path,s(v,"provenance_event_ref"),&required,representation,payload_path.as_deref())?;
+        }
         self.checked(path,"witness-identity-source-refs-metadata-ceiling-and-bound-rights-discovery-posture")
+    }
+    fn discovery(&mut self,path:&str,v:&Value)->Result<(),ItemRefusal>{
+        let mut ids=BTreeSet::new();let mut selected=BTreeSet::new();let mut rejected=BTreeSet::new();let mut channels=BTreeSet::new();let mut sequences=BTreeSet::new();let mut max_sequence=None;let mut max_general=None;
+        for channel in rows(v,"channels").iter().filter(|r|r.is_object()){
+            self.reserve(0)?;
+            if !channels.insert(s(channel,"channel_id")){self.issue(path,"discovery-duplicate-channel-id",s(channel,"channel_id"))?;}
+            let sequence=integer_i64(&channel["sequence"])?;
+            if !sequences.insert(sequence){self.issue(path,"discovery-duplicate-channel-sequence",s(channel,"channel_id"))?;}
+            max_sequence=Some(max_sequence.map_or(sequence,|prior:i64|prior.max(sequence)));
+            if s(channel,"channel_type")=="general-web-search"{max_general=Some(max_general.map_or(sequence,|prior:i64|prior.max(sequence)));}
+            for (index,result) in rows(channel,"results").iter().filter(|r|r.is_object()).enumerate(){
+                if result["rank"]!=json!(index+1){self.issue(path,"discovery-noncontiguous-result-rank",s(channel,"channel_id"))?;}
+                if let Some(id)=result["result_id"].as_str(){
+                    if !ids.insert(id){self.issue(path,"discovery-duplicate-result-id",id)?;}
+                    match s(result,"decision"){"select"=>{selected.insert(id);},"reject"=>{rejected.insert(id);},_=>{}}
+                }
+            }
+        }
+        if max_general.is_some()&&max_general!=max_sequence{self.issue(path,"discovery-general-web-not-final",path)?;}
+        let declared_selected=set(v,"selected_result_ids");let declared_rejected=set(v,"rejected_result_ids");
+        if selected!=declared_selected{self.issue(path,"discovery-selected-result-drift",path)?;}
+        if rejected!=declared_rejected{self.issue(path,"discovery-rejected-result-drift",path)?;}
+        if !declared_selected.is_disjoint(&declared_rejected){self.issue(path,"discovery-selected-rejected-overlap",path)?;}
+        for id in declared_selected.union(&declared_rejected){if !ids.contains(id){self.issue(path,"discovery-unresolved-decision-result",*id)?;}}
+        let comparison:BTreeSet<_>=rows(v,"channel_comparison").iter().filter(|r|r.is_object()).map(|r|s(r,"channel_id")).collect();
+        if comparison!=channels{self.issue(path,"discovery-channel-comparison-closure-drift",path)?;}
+        self.checked(path,"discovery-decision-channel-sequence-rank-and-comparison-closure")
+    }
+    fn source_refs(&mut self,source:&mut impl LayerFamilySource,path:&str,v:&Value)->Result<(),ItemRefusal>{
+        let mut refs=Vec::new();
+        for field in ["source_refs","source_record_refs","receipt_refs"]{refs.extend(rows(v,field));}
+        for field in ["rights_ref","provenance_ref","forensic_report_ref","resource_inventory_ref","generated_from_manifest_ref","item_manifest_ref"]{if let Some(target)=v.get(field){refs.push(target);}}
+        for target in refs{
+            if let Some(target)=target.as_str(){if target.starts_with("ToS/"){
+                safe(target)?;let present=source.exists(target,self.limits.max_member_bytes,self.limits.deadline)?;
+                self.endpoint(path,"current-source-reference",target,present)?;
+                self.read(PredicateRead::Prefix{namespace:"current-source-member-or-directory".into(),prefix:target.into(),generation:source.generation()})?;
+            }}
+            else{self.issue(path,"invalid-source-reference",path)?;}
+        }Ok(())
+    }
+    fn load_discovery_events(&mut self,source:&mut impl LayerFamilySource)->Result<(),ItemRefusal>{
+        if self.discovery_events.is_some(){return Ok(())}
+        let path="ToS/source-witnesses/discovery/provenance.jsonl";
+        let Some(raw)=self.bytes(source,path,None)?else{return Ok(())};
+        let text=std::str::from_utf8(&raw).map_err(|_|ItemRefusal::Unsupported("discovery provenance UTF-8".into()))?;
+        let mut events=BTreeMap::new();
+        for (index,line) in text.lines().enumerate(){
+            source.checkpoint(self.limits.deadline)?;if line.trim().is_empty(){continue;}
+            let location=format!("{path}:{}",index+1);
+            let Ok(event)=serde_json::from_str::<Value>(line)else{self.issue(&location,"invalid-provenance-jsonl",path)?;continue;};
+            if !event.is_object(){self.issue(&location,"provenance-object-required",path)?;continue;}
+            let Some(id)=event["event_id"].as_str()else{self.issue(&location,"provenance-event-id-absent",path)?;continue;};
+            self.reserve(line.len().checked_mul(8).ok_or(ItemRefusal::Budget)?.checked_add(id.len()+location.len()+128).ok_or(ItemRefusal::Budget)?)?;
+            let id=id.to_owned();
+            self.read(PredicateRead::UniqueKey{namespace:"discovery-provenance/event_id".into(),key:id.clone(),owner:location.clone()})?;
+            if events.insert(id.clone(),(location,event,line.as_bytes().to_vec())).is_some(){self.issue(path,"duplicate-discovery-event-id",id)?;}
+        }
+        self.discovery_events=Some(events);Ok(())
+    }
+    fn witness_event(&mut self,source:&mut impl LayerFamilySource,path:&str,id:&str,required:&BTreeSet<String>,digests:bool,payload_path:Option<&str>)->Result<(),ItemRefusal>{
+        self.load_discovery_events(source)?;
+        let entry=self.discovery_events.as_ref().and_then(|events|events.get(id)).cloned();
+        self.endpoint(path,"discovery-provenance-event",id,entry.is_some())?;
+        let Some((location,event,raw))=entry else{return Ok(())};
+        self.reserve(raw.len().checked_mul(8).ok_or(ItemRefusal::Budget)?)?;
+        if !self.schema(source,&location,&raw,"ToS/contracts/provenance-event.schema.json")?{self.issue(&location,"schema","provenance-event")?;}
+        self.source_refs(source,&location,&event)?;
+        self.read(PredicateRead::ExactBytes{locator:location.clone(),digest:Digest256::of_bytes(&raw).to_hex()})?;
+        let outputs:BTreeMap<_,_>=rows(&event,"outputs").iter().filter(|r|r.is_object()).filter_map(|r|r["ref"].as_str().map(|id|(id,r))).collect();
+        for target in required{
+            source.checkpoint(self.limits.deadline)?;
+            let Some(output)=outputs.get(target.as_str())else{self.issue(&location,"witness-provenance-output-absent",target)?;continue;};
+            if !digests||!target.starts_with("ToS/"){continue;}
+            if Some(target.as_str())==payload_path{
+                match source.payload(target,self.limits.max_member_bytes,self.limits.deadline)?{
+                    LayerPayload::Unavailable=>{self.gap(path,"payload-output-digest-unavailable-in-selected-custody")?;},
+                    LayerPayload::File{sha256,..}=>{if s(output,"sha256")!=sha256{self.issue(&location,"provenance-payload-output-digest-drift",target)?;}self.read(PredicateRead::ExactBytes{locator:format!("payload:{target}"),digest:sha256})?;}
+                }
+            }else if let Some(raw)=self.bytes(source,target,None)?{if s(output,"sha256")!=Digest256::of_bytes(&raw).to_hex(){self.issue(&location,"provenance-metadata-output-digest-drift",target)?;}}
+        }
+        self.checked(path,"witness-discovery-provenance-exact-output-closure-and-available-output-digests")
+    }
+    fn representation_payload(&mut self,source:&mut impl LayerFamilySource,path:&str,v:&Value,composite:bool)->Result<Option<String>,ItemRefusal>{
+        let payload=&v["payload"];let relative=s(payload,"relative_path");let parent=path.rsplit_once('/').map(|(parent,_)|parent).unwrap_or("");
+        let payload_path=format!("{parent}/{relative}");
+        if safe(&payload_path).is_err()||relative.is_empty(){self.issue(path,"representation-unsafe-payload-path",relative)?;return Ok(None);}
+        if composite{
+            let owner=parent.strip_prefix("ToS/source-witnesses/scholarly-composites/").unwrap_or("");let parts:Vec<_>=owner.split('/').collect();
+            let filename=relative.strip_prefix("payload/").unwrap_or("");
+            if parts.len()!=5||parts[3]!="representations"||filename.is_empty()||matches!(filename,"."|"..")||filename.contains('/')||filename.contains('\\')||filename.contains('\0'){self.issue(path,"composite-payload-not-direct-owned-file",relative)?;return Ok(None);}
+            let expected=match s(payload,"materialization_status"){"not_materialized"=>"unmaterialized_payload","materialized"=>"local_gitignored_payload",_=>""};
+            if expected.is_empty()||s(payload,"storage_posture")!=expected||payload["git_tracked"]!=false{self.issue(path,"composite-payload-declared-posture-drift",relative)?;}
+        }
+        if s(v,"file_id")!=format!("tos.file.sha256.{}",s(payload,"sha256")){self.issue(path,"representation-file-id-not-content-addressed",s(v,"file_id"))?;}
+        let observation=source.payload(&payload_path,self.limits.max_member_bytes,self.limits.deadline)?;
+        match observation{
+            LayerPayload::Unavailable=>{
+                if !composite||self.require_local_payloads{self.issue(path,"representation-payload-unavailable",&payload_path)?;}
+                self.gap(path,"representation-local-fixity-unavailable-in-selected-custody")?;
+            }
+            LayerPayload::File{byte_size,sha256,source_member,sha1,jpeg_dimensions}=>{
+                self.read(PredicateRead::ExactBytes{locator:format!("payload:{payload_path}"),digest:sha256.clone()})?;
+                if byte_size>self.limits.max_member_bytes as u64{return Err(ItemRefusal::Budget);}
+                if payload["byte_size"]!=json!(byte_size){self.issue(path,"representation-payload-size-drift",&payload_path)?;}
+                if s(payload,"sha256")!=sha256{self.issue(path,"representation-payload-sha256-drift",&payload_path)?;}
+                if composite{
+                    if source_member{self.issue(path,"local-composite-payload-in-source-membership",&payload_path)?;}
+                    if s(payload,"materialization_status")!="materialized"{self.issue(path,"present-composite-payload-not-declared-materialized",&payload_path)?;}
+                }else{
+                    if !source_member{self.issue(path,"public-artifact-payload-outside-source-membership",&payload_path)?;}
+                    if let Some(sha1)=sha1{if s(payload,"source_sha1")!=sha1{self.issue(path,"artifact-payload-sha1-drift",&payload_path)?;}}else{self.gap(path,"artifact-source-sha1-observation-unavailable")?;}
+                    if let Some((width,height))=jpeg_dimensions{if payload["width_pixels"]!=json!(width)||payload["height_pixels"]!=json!(height){self.issue(path,"artifact-jpeg-dimensions-drift",&payload_path)?;}}else{self.gap(path,"artifact-jpeg-dimensions-observation-unavailable")?;}
+                }
+            }
+        }
+        self.checked(path,"representation-owned-payload-path-and-declared-custody-available-fixity")?;
+        Ok(Some(payload_path))
+    }
+    fn load_boundary_events(&mut self,source:&mut impl LayerFamilySource)->Result<(),ItemRefusal>{
+        if self.boundary_events.is_some(){return Ok(())}
+        let mut events=BTreeMap::new();
+        for path in ["ToS/source-witnesses/access-requests/provenance.jsonl","ToS/source-witnesses/server-import/provenance.jsonl"]{
+            // This family's caller supplies the current boundary-event universe.
+            // Missing unrelated streams introduce no requirement for new plans.
+            let Some(raw)=self.lookup(source,path,None,false)?else{continue};
+            let text=std::str::from_utf8(&raw).map_err(|_|ItemRefusal::Unsupported("boundary event UTF-8".into()))?;
+            for (index,line) in text.lines().enumerate(){
+                source.checkpoint(self.limits.deadline)?;if line.trim().is_empty(){continue;}
+                let location=format!("{path}:{}",index+1);
+                let Ok(event)=serde_json::from_str::<Value>(line)else{self.issue(&location,"invalid-boundary-event-jsonl",path)?;continue;};
+                if !event.is_object(){self.issue(&location,"boundary-event-object-required",path)?;continue;}
+                let Some(id)=event["event_id"].as_str()else{self.issue(&location,"boundary-event-id-absent",path)?;continue;};
+                self.reserve(line.len().checked_mul(8).ok_or(ItemRefusal::Budget)?.checked_add(id.len()+location.len()+128).ok_or(ItemRefusal::Budget)?)?;
+                let id=id.to_owned();
+                self.read(PredicateRead::UniqueKey{namespace:"boundary-provenance/event_id".into(),key:id.clone(),owner:location.clone()})?;
+                if events.insert(id.clone(),(location,event,line.as_bytes().to_vec())).is_some(){self.issue(path,"duplicate-boundary-event-id",id)?;}
+            }
+        }
+        self.boundary_events=Some(events);Ok(())
+    }
+    fn server_plan(&mut self,source:&mut impl LayerFamilySource,path:&str,v:&Value,raw:&[u8])->Result<(),ItemRefusal>{
+        // Source owner 2941d174: every present plan targets an actually
+        // discovered manifest; local-only manifests need no server plan.
+        let contract="ToS/contracts/server-import-contract.schema.json";
+        if !self.schema(source,path,raw,contract)?{self.issue(path,"schema",contract)?;}
+        let evidence=&v["manifest"];
+        if let Some(manifest_path)=evidence["ref"].as_str(){
+            let present=source.discovered_item_manifest(manifest_path,self.limits.max_member_bytes,self.limits.deadline)?;
+            self.endpoint(path,"discovered-item-manifest",manifest_path,present)?;
+            self.read(PredicateRead::Prefix{namespace:"source-foundation/discovered-item-manifests".into(),prefix:"ToS/source-witnesses/".into(),generation:source.generation()})?;
+            if let Some((manifest,bytes))=self.object(source,manifest_path,None)?{
+                if s(evidence,"sha256")!=Digest256::of_bytes(&bytes).to_hex(){self.issue(path,"server-plan-manifest-digest-drift",manifest_path)?;}
+                if manifest["item_id"]!=v["item_ref"]{self.issue(path,"server-plan-item-id-drift",manifest_path)?;}
+                let expected:Vec<_>=rows(&manifest,"payload_files").iter().filter(|r|r.is_object()).map(|entry|json!({"file_ref":entry["file_id"],"relative_path":entry["relative_path"],"byte_size":entry["byte_size"],"sha256":entry["sha256"],"verified":true})).collect();
+                if v["payload_files"]!=json!(expected){self.issue(path,"server-plan-payload-inventory-drift",manifest_path)?;}
+                let policy=&v["rights_policy"];
+                if policy["rights_record_ref"]!=manifest["rights_ref"]{self.issue(path,"server-plan-rights-ref-drift",manifest_path)?;}
+                else if let Some(rights_path)=policy["rights_record_ref"].as_str(){
+                    if let Some(bytes)=self.bytes(source,rights_path,None)?{if s(policy,"rights_record_sha256")!=Digest256::of_bytes(&bytes).to_hex(){self.issue(path,"server-plan-rights-digest-drift",rights_path)?;}}
+                }
+            }
+        }
+        if !rows(v,"provenance_event_refs").is_empty(){self.load_boundary_events(source)?;}
+        for id in strs(v,"provenance_event_refs"){
+            source.checkpoint(self.limits.deadline)?;
+            let entry=self.boundary_events.as_ref().and_then(|events|events.get(id)).cloned();
+            self.endpoint(path,"server-plan-boundary-event",id,entry.is_some())?;
+            let Some((location,event,event_raw))=entry else{continue};
+            self.reserve(event_raw.len().checked_mul(8).ok_or(ItemRefusal::Budget)?)?;
+            self.read(PredicateRead::ExactBytes{locator:location.clone(),digest:Digest256::of_bytes(&event_raw).to_hex()})?;
+            if !self.schema(source,&location,&event_raw,"ToS/contracts/provenance-event.schema.json")?{self.issue(&location,"schema","provenance-event")?;}
+            self.source_refs(source,&location,&event)?;
+            let version=match v.get("contract_version"){Some(value)=>integer_i64(value)?,None=>1};
+            if version<2{continue;}
+            let actual_outputs:BTreeSet<_>=rows(&event,"outputs").iter().filter(|r|r.is_object()).map(|entry|(s(entry,"ref"),s(entry,"sha256"))).collect();
+            let digest=Digest256::of_bytes(raw).to_hex();
+            if !actual_outputs.contains(&(path,digest.as_str())){self.issue(path,"server-plan-provenance-output-digest-drift",id)?;}
+            let rights=&v["rights_policy"];
+            let expected=BTreeSet::from([(s(evidence,"ref"),s(evidence,"sha256")),(s(rights,"rights_record_ref"),s(rights,"rights_record_sha256"))]);
+            let actual:BTreeSet<_>=rows(&event,"inputs").iter().filter(|r|r.is_object()).map(|entry|(s(entry,"ref"),s(entry,"sha256"))).collect();
+            if !expected.is_subset(&actual){self.issue(path,"server-plan-provenance-input-digest-drift",id)?;}
+        }
+        self.checked(path,"_validate_server_import_plans/2941d174-present-plan-exact-evidence-only")
     }
     fn public_metadata_ceiling(&mut self,path:&str,v:&Value)->Result<(),ItemRefusal>{
         let mut stack=vec![v];
@@ -351,6 +719,13 @@ fn rows<'a>(v:&'a Value,key:&str)->&'a [Value]{v.get(key).and_then(Value::as_arr
 fn strs<'a>(v:&'a Value,key:&str)->Vec<&'a str>{rows(v,key).iter().filter_map(Value::as_str).collect()}
 fn set<'a>(v:&'a Value,key:&str)->BTreeSet<&'a str>{strs(v,key).into_iter().collect()}
 fn safe(path:&str)->Result<(),ItemRefusal>{RelativePath::parse(path).map(|_|()).map_err(|_|ItemRefusal::Unsupported("unsafe source-layer path".into()))}
+
+fn accepted(status:&str)->bool{matches!(status,"accepted"|"accepted_with_limits")}
+fn decided(status:&str)->bool{accepted(status)||matches!(status,"rejected"|"superseded")}
+fn accepting(decision:&str)->bool{matches!(decision,"accept"|"accept_with_limits")}
+fn competent(status:&str)->bool{matches!(status,"self_attested"|"evidence_attested")}
+fn visibility_rank(status:&str)->Option<u8>{match status{"public"=>Some(0),"public_metadata_only"=>Some(1),"controlled"=>Some(2),"local_only"=>Some(3),"restricted"=>Some(4),"unknown"=>Some(5),_=>None}}
+fn integer_i64(value:&Value)->Result<i64,ItemRefusal>{value.as_i64().ok_or_else(||ItemRefusal::Unsupported("integer exceeds bounded native comparison profile".into()))}
 
 #[cfg(test)]
 mod tests {
@@ -401,4 +776,32 @@ mod tests {
         let value=json!({"candidate_ref":"candidate","accepted_sign_ref":"sign","stages":[{"stage":"exact_form","body":{"occurrence_refs":["occurrence"]}},{"stage":"stable_sign_candidate","status":"proposed","body":{"candidate_ref":"candidate","occurrence_refs":["other"]}},{"stage":"relations_between_signs","body":{"sign_refs":["sign","other-sign"],"relation_records":[{"relation_ref":"relation","claim_ref":"claim","subject_sign_ref":"sign","object_sign_ref":"other-sign"}]}},{"stage":"graph_projection","status":"projected","body":{"relation_refs":["wrong"],"claim_refs":["claim"],"projection_ref":"projection"}}],"result":{"relation_refs":["relation"],"claim_refs":["claim"],"graph_projection_refs":["projection"]}});
         let mut rules=LayerFamilyRules::new(limits());rules.semantic_ladder("fixture",&value).unwrap();let report=rules.finish();assert!(report.issues.iter().any(|i|i.code=="candidate-occurrence-evidence-unresolved"));assert!(report.issues.iter().any(|i|i.code=="graph-relation-unresolved"));
     }
+    fn owner_fixture(relative:&str)->Value{let root=std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../..");serde_json::from_slice(&std::fs::read(root.join(relative)).unwrap()).unwrap()}
+    #[test]
+    fn ordinary_semantic_and_alignment_proposals_cannot_promote_machine_results(){
+        let root="ToS/research-packets/foundation-laboratory-2026-07";
+        for name in ["variant-a-occurrences-only.json","variant-b-competing-sign-proposals.json"]{
+            let value=owner_fixture(&format!("{root}/semantic-annotation-v2-abc/{name}"));let mut rules=LayerFamilyRules::new(limits());rules.semantic_annotation(name,&value).unwrap();assert!(rules.report.issues.is_empty(),"{:?}",rules.report.issues);
+        }
+        let value=owner_fixture(&format!("{root}/semantic-annotation-v2-abc/variant-c-invalid-model-promotion.json"));let mut rules=LayerFamilyRules::new(limits());rules.semantic_annotation("invalid semantic promotion",&value).unwrap();assert!(rules.report.issues.iter().any(|i|matches!(i.code,"accepted-entity-review-kind-absent"|"accepted-semantic-claim-review-absent"|"graph-semantic-claim-not-accepted")));
+        for name in ["variant-a-one-to-one-proposal.json","variant-b-competing-mappings.json"]{
+            let value=owner_fixture(&format!("{root}/translation-alignment-v1-abc/{name}"));let mut rules=LayerFamilyRules::new(limits());rules.translation_alignment(name,&value).unwrap();assert!(rules.report.issues.is_empty(),"{:?}",rules.report.issues);
+        }
+        let value=owner_fixture(&format!("{root}/translation-alignment-v1-abc/variant-c-invalid-acceptance.json"));let mut rules=LayerFamilyRules::new(limits());rules.translation_alignment("invalid alignment acceptance",&value).unwrap();assert!(rules.report.issues.iter().any(|i|i.code=="alignment-direct-machine-acceptance"));
+    }
+    fn server_fixture(manifest_path:&str)->(Value,Fixture){
+        let mut fixture=Fixture{files:BTreeMap::new(),schemas:Vec::new(),lie:false};
+        let rights="ToS/source-witnesses/test/item/rights.json";let rights_raw=b"{}".to_vec();let manifest=json!({"item_id":"item","rights_ref":rights,"payload_files":[{"file_id":"file","relative_path":"payload/file.xml","byte_size":1,"sha256":"0".repeat(64)}]});let manifest_raw=serde_json::to_vec(&manifest).unwrap();
+        let plan=json!({"manifest":{"ref":manifest_path,"sha256":Digest256::of_bytes(&manifest_raw).to_hex()},"item_ref":"item","rights_policy":{"rights_record_ref":rights,"rights_record_sha256":Digest256::of_bytes(&rights_raw).to_hex()},"payload_files":[{"file_ref":"file","relative_path":"payload/file.xml","byte_size":1,"sha256":"0".repeat(64),"verified":true}],"provenance_event_refs":[],"contract_version":2});
+        fixture.files.insert(manifest_path.into(),manifest_raw);fixture.files.insert(rights.into(),rights_raw);fixture.files.insert("ToS/contracts/server-import-contract.schema.json".into(),b"{}".to_vec());(plan,fixture)
+    }
+    #[test]
+    fn present_server_plans_require_discovered_manifest_and_exact_inventory_without_universal_plan_coverage(){
+        let manifest="ToS/source-witnesses/test/item/item.manifest.json";let(plan,mut fixture)=server_fixture(manifest);let path="ToS/source-witnesses/server-import/plans/test.json";let raw=serde_json::to_vec(&plan).unwrap();let mut rules=LayerFamilyRules::new(limits());rules.server_plan(&mut fixture,path,&plan,&raw).unwrap();assert!(rules.report.issues.is_empty());
+        let(manipulated,mut fixture)=server_fixture("ToS/source-witnesses/test/item/not-a-manifest.json");let raw=serde_json::to_vec(&manipulated).unwrap();let mut rules=LayerFamilyRules::new(limits());rules.server_plan(&mut fixture,path,&manipulated,&raw).unwrap();assert!(rules.report.issues.iter().any(|i|i.code=="unresolved-local-reference"&&i.subject.contains("discovered-item-manifest")));
+        let(mut plan,mut fixture)=server_fixture(manifest);plan["payload_files"][0]["verified"]=json!(false);let raw=serde_json::to_vec(&plan).unwrap();let mut rules=LayerFamilyRules::new(limits());rules.server_plan(&mut fixture,path,&plan,&raw).unwrap();assert!(rules.report.issues.iter().any(|i|i.code=="server-plan-payload-inventory-drift"));
+        // A second local-only Item with no plan contributes no missing-plan issue.
+        let(plan,mut fixture)=server_fixture(manifest);fixture.files.insert("ToS/source-witnesses/test/local-only/item.manifest.json".into(),b"{}".to_vec());let mut rules=LayerFamilyRules::new(limits());rules.server_plan(&mut fixture,path,&plan,&serde_json::to_vec(&plan).unwrap()).unwrap();assert!(rules.report.issues.is_empty());
+    }
+
 }
