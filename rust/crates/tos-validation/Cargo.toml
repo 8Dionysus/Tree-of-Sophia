@@ -10,6 +10,7 @@ description = "Owner-declared ToS validation contracts and bounded schema backen
 jsonschema = { version = "=0.53.0", default-features = false, features = ["arbitrary-precision"] }
 serde_json = { version = "1", features = ["arbitrary_precision"] }
 tos-foundation = { path = "../tos-foundation" }
+tos-source-store = { path = "../tos-source-store" }
 
 [target.'cfg(all(target_os = "linux", target_pointer_width = "64"))'.dependencies]
 libc = "0.2"

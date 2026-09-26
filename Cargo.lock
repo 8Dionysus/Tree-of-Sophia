@@ -1408,6 +1408,7 @@ dependencies = [
 name = "tos-ops-mechanics-plan"
 version = "0.1.0"
 dependencies = [
+ "libc",
  "serde",
  "serde_json",
 ]
@@ -1456,6 +1457,7 @@ dependencies = [
  "libc",
  "serde_json",
  "tos-foundation",
+ "tos-source-store",
 ]
 
 [[package]]

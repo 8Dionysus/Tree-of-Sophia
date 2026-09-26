@@ -808,3 +808,5 @@ fn corpus_reader_refuses_fifo_object() {
         "child test filter did not execute the FIFO probe"
     );
 }
+#[path = "source_cut_cases.rs"]
+mod source_cut_cases;
