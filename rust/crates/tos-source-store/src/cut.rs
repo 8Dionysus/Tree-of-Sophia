@@ -11,7 +11,10 @@ use std::time::Instant;
 
 use tos_foundation::{Digest256, Digest256Hasher, RelativePath, SourceRevision};
 
-use crate::{CorpusDescriptor, CorpusReader, Result, Snapshot, StoreError, StoreErrorCode};
+use crate::{
+    CorpusDescriptor, CorpusReader, Result, RetirementMetadata, Snapshot, StoreError,
+    StoreErrorCode,
+};
 
 #[derive(Clone, Copy, Debug)]
 pub struct CutReadLimits {
@@ -28,6 +31,14 @@ pub struct SourceMemberV1 {
     pub revision: SourceRevision,
     /// Exact manifest index claims; the source rule must verify their meaning.
     pub stable_ids: Vec<String>,
+}
+
+#[derive(Debug)]
+pub struct RetiredSourceMemberV1 {
+    pub revision: SourceRevision,
+    pub metadata: RetirementMetadata,
+    pub raw: Vec<u8>,
+    pub event_raw: Vec<u8>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -106,6 +117,31 @@ impl CorpusReader {
                     return Err(refusal("source cut exceeds declared budget"));
                 }
             }
+            for retired in snapshot.retirements() {
+                if !is_source_member(retired.path.as_str())
+                    || !is_source_member(retired.event_ref.as_str())
+                {
+                    return Err(StoreError::new(
+                        StoreErrorCode::InvalidRetirementIndex,
+                        "retirement is outside source carrier",
+                    ));
+                }
+                // Reserve a finite worst case for the unknown v1 retired
+                // object length before exposing any retirement bytes.
+                members = members
+                    .checked_add(2)
+                    .ok_or_else(|| refusal("retirement member count overflow"))?;
+                bytes = bytes
+                    .checked_add(limits.max_member_bytes)
+                    .and_then(|n| n.checked_add(retired.event_size_bytes))
+                    .ok_or_else(|| refusal("retirement byte count overflow"))?;
+                if members > limits.max_members
+                    || bytes > limits.max_total_bytes
+                    || retired.event_size_bytes > limits.max_member_bytes
+                {
+                    return Err(refusal("retirement cut exceeds declared budget"));
+                }
+            }
             next = snapshot.base_revision();
             snapshots.push(snapshot);
         }
@@ -126,6 +162,62 @@ impl CorpusCutReader {
     /// identities; they never contribute current ID ownership by inference.
     pub fn revisions(&self) -> impl Iterator<Item = &Snapshot> {
         self.snapshots.iter()
+    }
+    /// Exact retirement-ledger member and its separate event carrier. These
+    /// bytes are retained evidence, never members of the current ID universe.
+    pub fn read_retirement(
+        &self,
+        revision: SourceRevision,
+        index: usize,
+        max_bytes: u64,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<RetiredSourceMemberV1> {
+        check_time(deadline, cancelled)?;
+        let snapshot = self
+            .snapshots
+            .iter()
+            .find(|s| s.revision() == revision)
+            .ok_or_else(|| {
+                StoreError::new(
+                    StoreErrorCode::MissingRevision,
+                    "revision is outside opened source cut",
+                )
+            })?;
+        let metadata = snapshot.retirements().get(index).ok_or_else(|| {
+            StoreError::new(
+                StoreErrorCode::MissingMember,
+                "retirement is outside exact source revision",
+            )
+        })?;
+        let cap = max_bytes.min(self.limits.max_member_bytes);
+        let mut source = TimedStage {
+            raw: Vec::new(),
+            deadline,
+            cancelled,
+        };
+        self.reader
+            .read_retirement_object(snapshot, metadata.sha256, None, cap, &mut source)?;
+        check_time(deadline, cancelled)?;
+        let mut event = TimedStage {
+            raw: Vec::new(),
+            deadline,
+            cancelled,
+        };
+        self.reader.read_retirement_object(
+            snapshot,
+            metadata.event_sha256,
+            Some(metadata.event_size_bytes),
+            cap,
+            &mut event,
+        )?;
+        check_time(deadline, cancelled)?;
+        Ok(RetiredSourceMemberV1 {
+            revision,
+            metadata: metadata.clone(),
+            raw: source.raw,
+            event_raw: event.raw,
+        })
     }
     /// Random exact companion lookup under the same anchored cut. The rule
     /// executor owns its aggregate lookup budget; every individual read remains

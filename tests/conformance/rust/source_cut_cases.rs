@@ -126,9 +126,67 @@ fn source_cut_preserves_current_retained_and_complete_eof() {
         .member(&alpha)
         .unwrap()
         .sha256;
+    // The owning v1 retirement ledger separately retains a source CAS object
+    // and an event CAS object; neither need remain a current file member.
+    let beta = RelativePath::parse("ToS/source-witnesses/fixture/records/beta.txt").unwrap();
+    let event = cut.current().member(&beta).unwrap();
+    let mut manifest: Value = serde_json::from_slice(
+        &fs::read(
+            root.join("revisions")
+                .join(current.0.to_hex())
+                .join("snapshot.json"),
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    manifest["retirements"] = serde_json::json!([{
+        "path": "ToS/source-witnesses/fixture/retired-alpha.txt",
+        "sha256": old_digest.to_hex(),
+        "event_ref": "ToS/source-witnesses/fixture/retirement-event.json",
+        "event_sha256": event.sha256.to_hex(), "event_size_bytes": event.size_bytes
+    }]);
+    manifest.as_object_mut().unwrap().remove("revision");
+    let retired_revision = SourceRevision(Digest256::of_bytes(&canonical_json(&manifest)));
+    manifest["revision"] = Value::String(retired_revision.0.to_hex());
+    let retirement_dir = root.join("revisions").join(retired_revision.0.to_hex());
+    fs::create_dir(&retirement_dir).unwrap();
+    fs::write(
+        retirement_dir.join("snapshot.json"),
+        canonical_json(&manifest),
+    )
+    .unwrap();
+    let mut retired_budget = budget;
+    retired_budget.max_members = 5;
+    retired_budget.max_total_bytes = 73;
+    let retired_cut = reader
+        .open_source_cut(retired_revision, retired_budget, deadline(), &cancel)
+        .unwrap();
+    let retired_bytes = retired_cut
+        .read_retirement(retired_revision, 0, 20, deadline(), &cancel)
+        .unwrap();
+    assert_eq!(retired_bytes.metadata.sha256, old_digest);
+    assert_eq!(Digest256::of_bytes(&retired_bytes.raw), old_digest);
+    assert_eq!(Digest256::of_bytes(&retired_bytes.event_raw), event.sha256);
+    assert_eq!(retired_bytes.raw.len(), 5);
+    assert_eq!(retired_bytes.event_raw.len(), 20);
+    assert!(
+        retired_cut
+            .read_retirement(retired_revision, 0, 4, deadline(), &cancel)
+            .is_err()
+    );
+    assert!(
+        retired_cut
+            .read_retirement(retired_revision, 1, 20, deadline(), &cancel)
+            .is_err()
+    );
     fs::write(root.join("objects").join(old_digest.to_hex()), b"wrong").unwrap();
     let mut old_stream = cut.stream(retained).unwrap();
     assert!(old_stream.next_member(deadline(), &cancel).is_err());
+    assert!(
+        retired_cut
+            .read_retirement(retired_revision, 0, 20, deadline(), &cancel)
+            .is_err()
+    );
     assert!(old_stream.coverage().is_none());
     assert!(old_stream.next_member(deadline(), &cancel).is_err());
     assert!(

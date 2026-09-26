@@ -11,8 +11,8 @@ mod object;
 mod secure_open;
 
 pub use cut::{
-    CorpusCutReader, CutReadLimits, SourceMemberStreamV1, SourceMemberV1, SourceMembershipV1,
-    SourcePresenceV1,
+    CorpusCutReader, CutReadLimits, RetiredSourceMemberV1, SourceMemberStreamV1, SourceMemberV1,
+    SourceMembershipV1, SourcePresenceV1,
 };
 pub use error::{Result, StoreError, StoreErrorCode};
 pub use limits::ReadLimits;

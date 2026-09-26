@@ -134,6 +134,23 @@ impl Snapshot {
 }
 
 impl CorpusReader {
+    pub(crate) fn read_retirement_object(
+        &self,
+        snapshot: &Snapshot,
+        sha256: Digest256,
+        expected_size: Option<u64>,
+        max_bytes: u64,
+        sink: &mut impl Write,
+    ) -> Result<u64> {
+        self.check_snapshot(snapshot)?;
+        crate::object::verify_digest_object(
+            &self.root,
+            sha256,
+            expected_size,
+            max_bytes.min(self.limits.max_selected_object_bytes),
+            sink,
+        )
+    }
     pub fn open_existing(root: &Path, limits: ReadLimits) -> Result<Self> {
         let limits = limits.validate()?;
         Ok(Self {
