@@ -48,6 +48,7 @@ pub mod source_bibliographic;
 mod source_bibliographic_native_text;
 mod source_bibliographic_navigation;
 mod source_bibliographic_render;
+mod source_bibliographic_source;
 mod source_bibliographic_unicode;
 mod source_bibliographic_values;
 mod source_bibliographic_versions;
@@ -150,6 +151,10 @@ pub use publication::{PublicationAuthority, PublishedReceipt, SelectionFence, pu
 pub use selected::{
     ImmutableModelCustody, SelectedExpectation, VerifiedSelectedModel, VerifiedSelection,
     open_selected_model,
+};
+pub use source_bibliographic_source::{
+    SourceBibliographicCandidate, SourceCatalogInputLimits, SourceCatalogInputPlan,
+    plan_source_catalog_inputs, render_source_bibliographic_plan,
 };
 pub use vocabulary::{QueryVocabulary, RegisteredSource, VocabularyBinding};
 

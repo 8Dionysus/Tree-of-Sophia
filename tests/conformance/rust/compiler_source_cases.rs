@@ -55,8 +55,7 @@ fn git(root: &Path, args: &[&str]) -> Vec<u8> {
     );
     out.stdout
 }
-fn sources() -> (BTreeMap<String, Vec<u8>>, BTreeMap<String, Vec<u8>>) {
-    let repository = super::validation_cut_cases::repository();
+fn schema_sources(repository: &Path) -> BTreeMap<String, Vec<u8>> {
     let mut authored = BTreeMap::new();
     for entry in fs::read_dir(repository.join("ToS/contracts")).unwrap() {
         let entry = entry.unwrap();
@@ -68,6 +67,11 @@ fn sources() -> (BTreeMap<String, Vec<u8>>, BTreeMap<String, Vec<u8>>) {
             );
         }
     }
+    authored
+}
+fn sources() -> (BTreeMap<String, Vec<u8>>, BTreeMap<String, Vec<u8>>) {
+    let repository = super::validation_cut_cases::repository();
+    let mut authored = schema_sources(&repository);
     let home = fs::read(repository.join("ToS/source_home.manifest.json")).unwrap();
     let home_value: Value = serde_json::from_slice(&home).unwrap();
     authored.insert("ToS/source_home.manifest.json".into(), home);
@@ -402,4 +406,266 @@ print(json.dumps(result,ensure_ascii=False,sort_keys=True,separators=(',',':')))
         .sum::<u64>();
     assert_eq!(prepared.nodes, rows + 1);
     assert!(prepared.relations > 0);
+}
+
+#[derive(Default)]
+struct CatalogOutput {
+    files: BTreeMap<String, Vec<u8>>,
+    current: Option<String>,
+    manifest: Value,
+}
+impl tos_compiler::source_witness_catalog::SourceCatalogSink for CatalogOutput {
+    fn begin_file(&mut self, source: &str) -> tos_compiler::Result<()> {
+        assert!(self.current.is_none());
+        assert!(self.files.insert(source.into(), Vec::new()).is_none());
+        self.current = Some(source.into());
+        Ok(())
+    }
+    fn file_bytes(&mut self, raw: &[u8]) -> tos_compiler::Result<()> {
+        let output = self.files.get_mut(self.current.as_ref().unwrap()).unwrap();
+        assert!(output.len() + raw.len() <= 2 * 1024 * 1024);
+        output.extend_from_slice(raw);
+        Ok(())
+    }
+    fn end_file(&mut self, source: &str, sha256: &str) -> tos_compiler::Result<()> {
+        assert_eq!(self.current.take().as_deref(), Some(source));
+        assert_eq!(Digest256::of_bytes(&self.files[source]).to_hex(), sha256);
+        Ok(())
+    }
+    fn addressed_row(&mut self, _: &str, _: &[u8]) -> tos_compiler::Result<()> {
+        Ok(())
+    }
+    fn manifest(&mut self, value: &Value) -> tos_compiler::Result<()> {
+        self.manifest = value.clone();
+        Ok(())
+    }
+}
+#[derive(Default)]
+struct BibliographicOutput(BTreeMap<String, Vec<Value>>);
+impl tos_compiler::source_bibliographic::BibliographicSink for BibliographicOutput {
+    fn row(&mut self, collection: &str, _: &str, raw: &[u8]) -> tos_compiler::Result<()> {
+        assert!(raw.len() <= 1024 * 1024);
+        let rows = self.0.entry(collection.into()).or_default();
+        assert!(rows.len() < 1024);
+        rows.push(serde_json::from_slice(raw).unwrap());
+        Ok(())
+    }
+}
+
+#[test]
+fn actual_selected_catalog_and_native_forms_match_maintained_python() {
+    use tos_compiler::source_bibliographic::{BibliographicLimits, render_bibliographic_graph};
+    use tos_compiler::source_witness_catalog::{
+        SourceCatalogLimits, SourceCatalogValidator, render_source_witness_catalog,
+    };
+    use tos_compiler::{
+        SourceCatalogInputLimits, plan_source_catalog_inputs, render_source_bibliographic_plan,
+    };
+    let repository = super::validation_cut_cases::repository()
+        .canonicalize()
+        .unwrap();
+    let mut files = schema_sources(&repository);
+    // The declared source carrier contains schemas and two genuine maintained
+    // fixture records; repository branch inputs are outside this family scope.
+    for name in ["entity-types.v1.json", "relation-types.v1.json"] {
+        let path = format!("ToS/doctrine/semantic-interchange/{name}");
+        files.insert(path.clone(), fs::read(repository.join(path)).unwrap());
+    }
+    let fixture_root = repository.join("access/tests/fixtures/knowledge-contract");
+    let record = "ToS/source-witnesses/semantic-descriptions/crosscutting-concept-freedom/crosscutting-concept.json";
+    let forms = "ToS/source-witnesses/semantic-descriptions/crosscutting-concept-freedom/crosscutting-concept.human-forms.json";
+    for path in [record, forms] {
+        files.insert(path.into(), fs::read(fixture_root.join(path)).unwrap());
+    }
+    assert!(files.len() <= 512);
+    assert!(files.values().map(Vec::len).sum::<usize>() <= 16 * 1024 * 1024);
+    let fixture = tempfile::tempdir().unwrap();
+    let store = fixture.path().join("source-store");
+    let revision = super::validation_cut_cases::write_cut_store(&files, &store);
+    let cancelled = AtomicBool::new(false);
+    let deadline = Instant::now() + Duration::from_secs(60);
+    let read_limits = ReadLimits {
+        max_manifest_bytes: 2 * 1024 * 1024,
+        max_manifest_entries: 512,
+        max_selected_object_bytes: 2 * 1024 * 1024,
+        json: JsonLimits::default(),
+    };
+    let reader = CorpusReader::open_existing(&store, read_limits).unwrap();
+    let cut = reader
+        .open_source_cut(
+            revision,
+            tos_source_store::CutReadLimits {
+                max_revisions: 1,
+                max_members: 512,
+                max_total_bytes: 16 * 1024 * 1024,
+                max_member_bytes: 2 * 1024 * 1024,
+            },
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+    let membership = cut.stream(revision).unwrap().expectation();
+    let binding = SourceBinding {
+        owner_profile: "private-selected-fixture".into(),
+        source_cut: "selected-fixture-bibliographic-source".into(),
+        through_commit_seq: 0,
+        membership_root: membership.digest.to_hex(),
+        index_generation: revision.0.to_hex(),
+        route_map_version: "fixture-v1".into(),
+        reader_abi: "fixture-v1".into(),
+        projection_root_sha256: Digest256::of_bytes(b"independent-catalog-plan").to_hex(),
+        complete: true,
+    };
+    let limits = BibliographicLimits {
+        catalog: SourceCatalogLimits {
+            max_files: 512,
+            max_rows: 4096,
+            max_file_bytes: 2 * 1024 * 1024,
+            max_row_bytes: 1024 * 1024,
+            max_contract_bytes: 16 * 1024 * 1024,
+            max_output_row_bytes: 1024 * 1024,
+        },
+        max_claim_cohort_rows: 16,
+        max_claim_cohort_bytes: 16 * 1024 * 1024,
+        max_output_rows: 4096,
+        max_output_bytes: 16 * 1024 * 1024,
+        deadline,
+    };
+    let plan = plan_source_catalog_inputs(
+        &cut,
+        revision,
+        membership,
+        &binding,
+        SourceCatalogInputLimits {
+            max_manifest_members: 512,
+            max_selected_members: 512,
+            max_plan_bytes: 16 * 1024 * 1024,
+            max_work_bytes: 64 * 1024 * 1024,
+        },
+        limits,
+        &cancelled,
+    )
+    .unwrap();
+    let mut receipt = plan.input_receipt();
+    assert_eq!(receipt.collections.len(), 5);
+    receipt.binding.projection_root_sha256 =
+        Digest256::of_bytes(b"independent-catalog-target").to_hex();
+    let owner = FixtureOwner;
+    let isolation = FixtureIsolation;
+    let mut stage = KnowledgeStage::create(
+        &fixture.path().join("bibliographic-candidate.sqlite"),
+        StageLimits {
+            sqlite: Limits {
+                max_rows: 8192,
+                max_row_bytes: 2 * 1024 * 1024,
+                max_output_bytes: 64 * 1024 * 1024,
+                max_work_bytes: 128 * 1024 * 1024,
+                sqlite_cache_kib: 512,
+                max_sql_vm_steps: 20_000_000,
+            },
+            max_temp_bytes: 64 * 1024 * 1024,
+            max_seek_rows: 128,
+            max_seek_bytes: 16 * 1024 * 1024,
+        },
+        receipt,
+        &owner,
+        &isolation,
+    )
+    .unwrap();
+    let worker_path = super::validation_cut_cases::selected_worker_path();
+    let worker = ExactWorkerIdentity {
+        sha256: Digest256::of_bytes(&fs::read(&worker_path).unwrap()),
+        absolute_path: worker_path,
+    };
+    let validator = SourceCatalogValidator {
+        worker: &worker,
+        budget: ExecutorBudget::laboratory(),
+        cancelled: &cancelled,
+    };
+    let candidate = render_source_bibliographic_plan(
+        &plan,
+        &cut,
+        revision,
+        membership,
+        &mut stage,
+        &validator,
+        &mut tos_command::source_forms_compiler::NativeBibliographicForms,
+        limits,
+        512,
+        16 * 1024 * 1024,
+    )
+    .unwrap();
+    let mut actual_catalog = CatalogOutput::default();
+    render_source_witness_catalog(
+        &mut stage,
+        &candidate.catalog,
+        limits.catalog,
+        &mut actual_catalog,
+    )
+    .unwrap();
+    let mut actual_graph = BibliographicOutput::default();
+    render_bibliographic_graph(
+        &mut stage,
+        &candidate.catalog,
+        &candidate.bibliographic,
+        limits,
+        &mut actual_graph,
+    )
+    .unwrap();
+    // Python may write only private generated companions for its full oracle.
+    // The original cut and native stage already bind the independent source.
+    let oracle_root = fixture.path().join("maintained-oracle");
+    for (path, raw) in &files {
+        let target = oracle_root.join(path);
+        fs::create_dir_all(target.parent().unwrap()).unwrap();
+        fs::write(target, raw).unwrap();
+    }
+    let python = r#"
+import json,pathlib,sys
+sys.path.insert(0,str(pathlib.Path(sys.argv[1])/'scripts'))
+import build_source_witness_catalog as catalog
+import source_witness_bibliographic_graph_common as graph
+root=pathlib.Path(sys.argv[2]);outputs=catalog.render_outputs(root)
+for path,text in outputs.items():
+    target=root/path;target.parent.mkdir(parents=True,exist_ok=True);target.write_text(text,encoding='utf-8')
+payload=graph.build_payload(root)
+manifest=json.loads(outputs[catalog.MANIFEST_PATH])
+files={str(path):text for path,text in outputs.items() if path!=catalog.MANIFEST_PATH}
+print(json.dumps({'files':files,'manifest':manifest,'graph':{key:payload[key] for key in ('nodes','edges','claim_traces')}},ensure_ascii=False,sort_keys=True,separators=(',',':')))
+"#;
+    let output = Command::new("python3")
+        .args(["-c", python])
+        .arg(&repository)
+        .arg(&oracle_root)
+        .env_remove("PYTHONPATH")
+        .env_remove("PYTHONHOME")
+        .env("PYTHONDONTWRITEBYTECODE", "1")
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "maintained catalog/bibliographic oracle: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let expected: Value = serde_json::from_slice(&output.stdout).unwrap();
+    let actual_files: BTreeMap<String, String> = actual_catalog
+        .files
+        .into_iter()
+        .map(|(path, raw)| (path, String::from_utf8(raw).unwrap()))
+        .collect();
+    assert_eq!(
+        serde_json::to_value(actual_files).unwrap(),
+        expected["files"]
+    );
+    assert_eq!(actual_catalog.manifest, expected["manifest"]);
+    for collection in ["nodes", "edges", "claim_traces"] {
+        let rows = actual_graph.0.remove(collection).unwrap_or_default();
+        assert_eq!(
+            serde_json::to_value(rows).unwrap(),
+            expected["graph"][collection]
+        );
+    }
+    assert_eq!(candidate.catalog.record_count, 1);
+    assert_eq!(candidate.bibliographic.node_count, 1);
+    assert_eq!(candidate.bibliographic.edge_count, 0);
 }
