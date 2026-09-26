@@ -29,6 +29,26 @@ pub struct SoftwareCaptureSelectionV1 {
     pub capture_manifest_sha256: Digest256,
 }
 
+/// A bounded component subset of one already selected, sealed software
+/// capture. Component paths are run inputs, never namespace or code authority.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SoftwareComponentSelectionV1 {
+    capture: SoftwareCaptureSelectionV1,
+    members: BTreeMap<RelativePath, MemberMetadata>,
+}
+
+impl SoftwareComponentSelectionV1 {
+    pub fn capture(&self) -> &SoftwareCaptureSelectionV1 {
+        &self.capture
+    }
+    pub fn member(&self, path: &RelativePath) -> Option<&MemberMetadata> {
+        self.members.get(path)
+    }
+    pub fn members(&self) -> impl Iterator<Item = &MemberMetadata> {
+        self.members.values()
+    }
+}
+
 /// Separate selected software namespace. The exact selected capture and its
 /// restored regular files provide byte evidence only, never runtime/code
 /// authority, source semantic acceptance or a current-use rights lease.
@@ -49,6 +69,84 @@ impl SoftwareCaptureReader {
     }
     pub fn selection(&self) -> &SoftwareCaptureSelectionV1 {
         &self.selection
+    }
+    /// Bind explicit producer components to exact current capture membership.
+    /// The event itself does not choose or issue this selection.
+    pub fn select_components(
+        &self,
+        paths: &[RelativePath],
+    ) -> Result<SoftwareComponentSelectionV1> {
+        if paths.is_empty() || paths.len() > 128 || paths.len() > self.limits.max_manifest_entries {
+            return Err(error(
+                Code::BudgetExceeded,
+                "software component subset count exceeds budget",
+            ));
+        }
+        let mut members = BTreeMap::new();
+        let mut total = 0u64;
+        for path in paths {
+            let member = self.members.get(path).ok_or_else(|| {
+                error(
+                    Code::MissingMember,
+                    "software component is absent from selected capture",
+                )
+            })?;
+            total = total.checked_add(member.size_bytes).ok_or_else(|| {
+                error(
+                    Code::BudgetExceeded,
+                    "software component byte count overflow",
+                )
+            })?;
+            if total > self.limits.max_selected_object_bytes {
+                return Err(error(
+                    Code::BudgetExceeded,
+                    "software component subset exceeds byte budget",
+                ));
+            }
+            if members.insert(path.clone(), member.clone()).is_some() {
+                return Err(error(
+                    Code::InvalidSelector,
+                    "software component subset repeats a member",
+                ));
+            }
+        }
+        Ok(SoftwareComponentSelectionV1 {
+            capture: self.selection.clone(),
+            members,
+        })
+    }
+
+    /// Read a current component only from its exact selected capture. No
+    /// archived input, ambient worktree or claimed executable is substituted.
+    pub fn read_selected_component(
+        &self,
+        components: &SoftwareComponentSelectionV1,
+        path: &RelativePath,
+        max_bytes: u64,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<Vec<u8>> {
+        check_time(deadline, cancelled)?;
+        if components.capture != self.selection {
+            return Err(error(
+                Code::DescriptorMismatch,
+                "software component capture selection differs",
+            ));
+        }
+        let member = components.member(path).ok_or_else(|| {
+            error(
+                Code::InvalidSelector,
+                "software component was not explicitly selected",
+            )
+        })?;
+        if self.members.get(path) != Some(member) {
+            return Err(error(
+                Code::DescriptorMismatch,
+                "software component membership differs",
+            ));
+        }
+        self.read_companion(path, max_bytes, deadline, cancelled)?
+            .ok_or_else(|| error(Code::MissingMember, "selected software component is absent"))
     }
     pub fn open(
         capture_root: &Path,
@@ -249,6 +347,17 @@ impl SoftwareCaptureReader {
         if !path.as_str().starts_with("scripts/") {
             return Ok(None);
         }
+        self.read_companion(path, max_bytes, deadline, cancelled)
+    }
+
+    fn read_companion(
+        &self,
+        path: &RelativePath,
+        max_bytes: u64,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<Option<Vec<u8>>> {
+        check_time(deadline, cancelled)?;
         if !matches_prefix(path.as_str(), &self.includes)
             || matches_prefix(path.as_str(), &self.excludes)
             || path

@@ -22,4 +22,5 @@ pub use manifest::{
 };
 pub use software::{
     SOFTWARE_COMPANION_PROFILE_V1, SoftwareCaptureReader, SoftwareCaptureSelectionV1,
+    SoftwareComponentSelectionV1,
 };
