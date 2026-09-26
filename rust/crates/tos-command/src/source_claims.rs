@@ -283,6 +283,15 @@ fn config(
     ctx: &CommandContext,
 ) -> SourceCommandResult<(JsonValue, RelativePath, String, bool, u8)> {
     ctx.check()?;
+    if ctx.files.iter().any(|file| {
+        file.path
+            .as_str()
+            .starts_with("ToS/source-witnesses/owner-local/")
+    }) {
+        return Err(SourceCommandError::Unsupported(
+            "reserved owner-local namespace cannot enter public Claim source cut",
+        ));
+    }
     let c = parse(&ctx.configuration_raw)?;
     let (handler, create, version) = family(text(&c, "schema_version")?)?;
     if integer(&c, "uid")? != ctx.effective_uid
@@ -525,7 +534,7 @@ fn package(
             }
         }
     }
-    if files.len() > 64 || files.values().map(Vec::len).sum::<usize>() > 33_554_432 {
+    if files.len() > 64 || files.values().map(Vec::len).sum::<usize>() > 8_388_608 {
         return Err(SourceCommandError::Invalid("Claim package budget"));
     }
     Ok(files)
@@ -1102,6 +1111,16 @@ fn validate_ground(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<()> {
+    if !["public", "public_metadata_only"].contains(&text(claim, "visibility")?)
+        || text(claim, "claim_type")? != "relation"
+        || text(claim, "claim_id")? == text(claim, "subject_ref")?
+        || claim.object_get("object").and_then(JsonValue::as_str)
+            == claim.object_get("claim_id").and_then(JsonValue::as_str)
+    {
+        return Err(SourceCommandError::Denied(
+            "public Claim identity and visibility profile",
+        ));
+    }
     let (relation, profile) = profile(ctx, text(claim, "predicate")?)?;
     let reader = text(&profile, "reader")?;
     if ![
