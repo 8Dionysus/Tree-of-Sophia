@@ -10,9 +10,9 @@ use tos_validation::executor::{ExactWorkerIdentity, ExecutorBudget};
 use tos_validation::item_rules::ItemLimits;
 use tos_validation::record_rules::{RecordFamily, RecordSchema};
 use tos_validation::source_cut::{CutWorkerLimits, CutWorkerSchemaExecutor, MetadataOnlyPayloads};
-use tos_validation::operation::{OperationChange, OperationFamilyScope, OperationFamilyState,
+use tos_validation::operation::{GeneralOperationLimits, OperationChange, OperationFamilyScope, OperationFamilyState,
     OperationLimits, OperationProposal, OperationRefusal, bind_operation_from_cut,
-    inspect_item_operation};
+    inspect_general_operation, inspect_item_operation};
 
 const REGISTRY: &str = "ToS/doctrine/semantic-interchange/entity-types.v1.json";
 const ENTITY_SCHEMA: &str = "ToS/contracts/semantic-entity-type-registry.schema.json";
@@ -491,4 +491,76 @@ fn actual_cut_worker_and_pinned_software_preserve_provenance_lab_limits() {
             .count(),
         6
     );
+}
+
+#[test]
+fn actual_general_operation_keeps_selected_family_coverage_below_source_admission() {
+    use tos_validation::record_biblio_cut::BiblioRecordExecutor;
+    let mut before = selected_item_sources();
+    let owner = repository();
+    let relation = "ToS/doctrine/semantic-interchange/relation-types.v1.json";
+    before.insert(relation.into(),fs::read(owner.join(relation)).unwrap());
+    // Existing maintained owner examples; this deliberately selected fixture
+    // has no accepted full-source membership or complete bibliographic graph.
+    // Source omissions must remain observable in the composed result.
+    let ladder="ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/initial-sign-packet.v5.json";
+    let crosswalk="ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/alignments/structure/naumann-1886-polilov-mysl-1996/transfer-candidate-page-crosswalk.v1.json";
+    for path in [ladder,crosswalk] {before.insert(path.into(),fs::read(owner.join(path)).unwrap());}
+    let packet:Value=serde_json::from_slice(&before[crosswalk]).unwrap();
+    for input in packet["inputs"].as_object().unwrap().values() {
+        let path=required(input,"ref"); let raw=fs::read(owner.join(path)).unwrap();
+        assert_eq!(Digest256::of_bytes(&raw).to_hex(),required(input,"sha256"));
+        before.insert(path.into(),raw);
+    }
+    let temporary=tempfile::tempdir().unwrap(); let root=temporary.path().join("store");
+    let base=write_cut_store(&before,&root);
+    let mut files=before.clone(); let changed_path=format!("{ITEM}/forensic-report.md");
+    files.get_mut(&changed_path).unwrap().push(b'\n');
+    let revision=write_cut_store_on_base(&files,&root,Some(base));
+    let cancelled=AtomicBool::new(false); let deadline=Instant::now()+Duration::from_secs(120);
+    let read=ReadLimits{max_manifest_bytes:1_048_576,max_manifest_entries:1024,
+        max_selected_object_bytes:2_097_152,json:JsonLimits::default()};
+    let reader=CorpusReader::open_existing(&root,read).unwrap();
+    let cut=reader.open_source_cut(revision,CutReadLimits{max_revisions:4,max_members:2048,
+        max_total_bytes:32_000_000,max_member_bytes:2_097_152},deadline,&cancelled).unwrap();
+    let worker_path=selected_worker_path(); let worker=ExactWorkerIdentity{
+        sha256:Digest256::of_bytes(&fs::read(&worker_path).unwrap()),absolute_path:worker_path};
+    let mut schemas=CutWorkerSchemaExecutor::from_cut(&cut,FormatProfile::LegacyPythonObserved20260923,
+        worker.clone(),ExecutorBudget::laboratory(),CutWorkerLimits{max_receipts:256,
+        max_receipt_bytes:262_144},deadline,&cancelled).unwrap();
+    let mut record_executor=BiblioRecordExecutor::new(worker,ExecutorBudget::laboratory(),
+        FormatProfile::LegacyPythonObserved20260923,256);
+    let request_raw=br#"{"operation":"fixture-general-metadata"}"#.to_vec();
+    let configuration_raw=br#"{"owner":"private-fixture","scope":"general-mechanics"}"#.to_vec();
+    let canonical_digest=|raw:&[u8]|Digest256::of_bytes(&tos_foundation::canonical_raw_bytes_v1(raw,
+        tos_foundation::CanonicalProfile::SourceCommandInputV1,JsonLimits::default()).unwrap());
+    let proposal=OperationProposal{handler_id:"fixture-general-handler".into(),operation:"fixture-general-metadata".into(),
+        base_revision:base,candidate_revision:revision,request_canonical_sha256:canonical_digest(&request_raw),request_raw,
+        configuration_path:RelativePath::parse("protected/owner-operation.json").unwrap(),
+        configuration_raw_sha256:Digest256::of_bytes(&configuration_raw),
+        configuration_canonical_sha256:canonical_digest(&configuration_raw),configuration_raw,
+        changes:vec![OperationChange{path:RelativePath::parse(&changed_path).unwrap(),
+            before:Some(Digest256::of_bytes(&before[&changed_path])),after:Some(Digest256::of_bytes(&files[&changed_path]))}]};
+    let report=inspect_general_operation(&cut,&proposal,GeneralOperationLimits{
+        operation:OperationLimits{max_member_bytes:2_097_152,max_total_bytes:32_000_000,
+            max_state_bytes:4_194_304,max_reads:4096,max_changes:128,deadline},
+        family:ItemLimits{max_member_bytes:2_097_152,max_total_bytes:64_000_000,
+            max_state_bytes:16_777_216,max_issues:256,deadline},
+        max_composed_state_bytes:100_663_296,max_composed_read_bytes:400_000_000},
+        &cancelled,&record_routes(&files),&mut record_executor,&mut schemas,
+        &mut MetadataOnlyPayloads,false).unwrap();
+    assert_eq!(report.operation().scope(),OperationFamilyScope::GeneralSource);
+    assert!(matches!(report.operation().state(),OperationFamilyState::Rejected{..}
+        |OperationFamilyState::MissingRules{..}));
+    assert!(!report.operation().general_source_missing_rules().is_empty());
+    assert_eq!(report.records.current_membership,report.operation().binding().candidate_carrier());
+    assert_eq!(report.records.retained_memberships.len(),1);
+    assert!(report.rights.rights_record_count>0);
+    assert!(!report.rights.missing_authority.is_empty());
+    assert!(report.layers.layer_family.checked_predicates.iter().any(|(path,predicate)|
+        path==ladder && predicate=="_semantic_ladder_identity_issues/v4"));
+    assert!(report.layers.layer_family.checked_predicates.iter().any(|(path,predicate)|
+        path==crosswalk && predicate.starts_with("_transfer_candidate_crosswalk_issues/v1")));
+    assert!(!report.operation().schema_receipts().is_empty());
+    assert!(report.operation().schema_receipts().iter().all(|receipt|receipt.source_revision==revision));
 }
