@@ -12,6 +12,9 @@ pub enum KnowledgeOperation {
     Temporal,
     Lens,
     Explore,
+    Focus,
+    StoredLens,
+    Contracts,
 }
 impl KnowledgeOperation {
     pub fn from_id(id: &str) -> Option<Self> {
@@ -22,6 +25,9 @@ impl KnowledgeOperation {
             "tos.knowledge.temporal.compare" => Self::Temporal,
             "tos.lens.compile" => Self::Lens,
             "tos.knowledge.explore" => Self::Explore,
+            "tos.knowledge.focus" => Self::Focus,
+            "tos.lens.open" => Self::StoredLens,
+            "tos.knowledge.contracts" => Self::Contracts,
             _ => return None,
         })
     }
@@ -33,6 +39,9 @@ impl KnowledgeOperation {
             Self::Temporal => "tos.knowledge.temporal.compare",
             Self::Lens => "tos.lens.compile",
             Self::Explore => "tos.knowledge.explore",
+            Self::Focus => "tos.knowledge.focus",
+            Self::StoredLens => "tos.lens.open",
+            Self::Contracts => "tos.knowledge.contracts",
         }
     }
 }
@@ -49,6 +58,11 @@ pub enum KnowledgeRequest {
     Temporal(JsonValue),
     Lens(JsonValue),
     Explore(JsonValue),
+    Focus(tos_query::knowledge_focus::KnowledgeFocusRequest),
+    StoredLens {
+        lens_id: String,
+    },
+    Contracts,
 }
 impl KnowledgeRequest {
     pub fn operation(&self) -> KnowledgeOperation {
@@ -59,6 +73,9 @@ impl KnowledgeRequest {
             Self::Temporal(_) => KnowledgeOperation::Temporal,
             Self::Lens(_) => KnowledgeOperation::Lens,
             Self::Explore(_) => KnowledgeOperation::Explore,
+            Self::Focus(_) => KnowledgeOperation::Focus,
+            Self::StoredLens { .. } => KnowledgeOperation::StoredLens,
+            Self::Contracts => KnowledgeOperation::Contracts,
         }
     }
     pub fn from_arguments(
@@ -69,7 +86,18 @@ impl KnowledgeRequest {
             .as_object()
             .ok_or_else(|| invalid("tool arguments must be an object"))?;
         let allowed: &[&str] = match operation {
-            KnowledgeOperation::Catalog => &[],
+            KnowledgeOperation::Catalog | KnowledgeOperation::Contracts => &[],
+            KnowledgeOperation::Focus => &[
+                "node_id",
+                "sources",
+                "depth",
+                "direction",
+                "predicate_ids",
+                "node_limit",
+                "relation_limit",
+                "profile",
+            ],
+            KnowledgeOperation::StoredLens => &["lens_id"],
             KnowledgeOperation::Node => &["node_id", "relation_limit"],
             KnowledgeOperation::Relation => &["relation_id"],
             KnowledgeOperation::Lens => &["spec"],
@@ -90,6 +118,11 @@ impl KnowledgeRequest {
         };
         Ok(match operation {
             KnowledgeOperation::Catalog => Self::Catalog,
+            KnowledgeOperation::Contracts => Self::Contracts,
+            KnowledgeOperation::Focus => Self::Focus(focus_from_arguments(args)?),
+            KnowledgeOperation::StoredLens => Self::StoredLens {
+                lens_id: id("lens_id")?,
+            },
             KnowledgeOperation::Node => {
                 let limit =
                     match args.object_get("relation_limit") {
@@ -272,6 +305,30 @@ pub fn execute_selected_knowledge(
         probe: inspect_probe,
     };
     let packet = match request {
+        KnowledgeRequest::Contracts => {
+            return Err(AccessError::new(
+                AccessErrorCode::Unavailable,
+                "selected registry carriers and contracts authority unavailable",
+            ));
+        }
+        KnowledgeRequest::Focus(request) => {
+            from_inspect(tos_query::knowledge_lens::execute_selected_focus(
+                model,
+                bound,
+                &mut inspect,
+                &request,
+                budgets.lens,
+            )?)
+        }
+        KnowledgeRequest::StoredLens { lens_id } => {
+            from_inspect(tos_query::knowledge_lens::execute_selected_stored_lens(
+                model,
+                bound,
+                &mut inspect,
+                &lens_id,
+                budgets.lens,
+            )?)
+        }
         KnowledgeRequest::Catalog => from_catalog(tos_query::execute_selected_catalog(
             model,
             bound,
@@ -379,6 +436,12 @@ impl tos_query::InspectCurrentAuthority for InspectProbe<'_> {
     fn check_selected(&mut self) -> Result<(), tos_query::search_v2::SearchV2Error> {
         self.inner.check_selected()
     }
+    fn authorize_catalog_current(
+        &mut self,
+        hash: tos_foundation::Digest256,
+    ) -> Result<(), tos_query::search_v2::SearchV2Error> {
+        self.inner.authorize_catalog_current(hash)
+    }
     fn authorize_current(
         &mut self,
         carrier: &tos_query::InspectedCarrier,
@@ -412,4 +475,72 @@ fn combined_probe(
         Some(owner) => Arc::new(CombinedProbe { transport, owner }),
         None => transport,
     }
+}
+
+pub(crate) fn focus_from_arguments(
+    args: &JsonValue,
+) -> Result<tos_query::knowledge_focus::KnowledgeFocusRequest, AccessError> {
+    use tos_query::knowledge_focus::{FocusDirection, FocusProfile, KnowledgeFocusRequest};
+    let id = args
+        .object_get("node_id")
+        .and_then(JsonValue::as_str)
+        .filter(|id| !id.is_empty() && id.chars().count() <= 4096)
+        .ok_or_else(|| invalid("focus node_id must be a nonempty bounded string"))?;
+    let mut request = KnowledgeFocusRequest::new(id);
+    let strings = |key: &str| -> Result<Option<Vec<String>>, AccessError> {
+        match args.object_get(key) {
+            None | Some(JsonValue::Null) => Ok(None),
+            Some(value) => {
+                let values = value
+                    .as_array()
+                    .filter(|values| values.len() <= 256)
+                    .ok_or_else(|| invalid("focus filter must be a bounded array"))?;
+                Ok(Some(
+                    values
+                        .iter()
+                        .map(|value| {
+                            value
+                                .as_str()
+                                .filter(|value| value.chars().count() <= 1024)
+                                .map(str::to_owned)
+                                .ok_or_else(|| invalid("focus filter must contain bounded strings"))
+                        })
+                        .collect::<Result<_, _>>()?,
+                ))
+            }
+        }
+    };
+    let count = |key: &str, default: usize, min: u64, max: u64| -> Result<usize, AccessError> {
+        match args.object_get(key) {
+            None => Ok(default),
+            Some(value) => value
+                .as_u64()
+                .filter(|n| *n >= min && *n <= max)
+                .map(|n| n as usize)
+                .ok_or_else(|| invalid("focus count out of range")),
+        }
+    };
+    request.sources = strings("sources")?;
+    request.predicate_ids = strings("predicate_ids")?.unwrap_or_default();
+    request.depth = count("depth", 1, 0, 5)?;
+    request.node_limit = count("node_limit", 200, 1, 1000)?;
+    request.relation_limit = count("relation_limit", 400, 0, 2000)?;
+    request.direction = match args.object_get("direction") {
+        None => FocusDirection::Either,
+        Some(value) => match value.as_str() {
+            Some("outgoing") => FocusDirection::Outgoing,
+            Some("incoming") => FocusDirection::Incoming,
+            Some("either") => FocusDirection::Either,
+            _ => return Err(invalid("invalid focus direction")),
+        },
+    };
+    request.profile = match args.object_get("profile") {
+        None => FocusProfile::Overview,
+        Some(value) => match value.as_str() {
+            Some("all") => FocusProfile::All,
+            Some("overview") => FocusProfile::Overview,
+            _ => return Err(invalid("invalid focus profile")),
+        },
+    };
+    Ok(request)
 }

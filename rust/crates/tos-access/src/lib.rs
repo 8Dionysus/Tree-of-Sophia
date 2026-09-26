@@ -5,6 +5,7 @@
 //! current-rights fence must be installed by the source owner first.
 
 pub mod cli;
+pub mod exploration_checkpoints;
 pub mod knowledge;
 pub use knowledge::{KnowledgeOperation, KnowledgeRequest};
 mod common;

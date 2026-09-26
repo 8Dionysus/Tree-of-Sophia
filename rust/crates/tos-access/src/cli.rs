@@ -2,7 +2,7 @@
 
 use crate::{KnowledgeOperation, KnowledgeRequest};
 use std::io::{Read, Write};
-use tos_foundation::{JsonMode, parse_json};
+use tos_foundation::{JsonMode, JsonNumber, JsonNumberKind, JsonString, JsonValue, parse_json};
 
 use crate::common::validate_packet;
 use crate::{AccessExecutor, AccessProfile, IndexedSearchParams, Params, PreparedPacket};
@@ -325,4 +325,67 @@ fn run_knowledge(
             }
         },
     })
+}
+
+fn focus_cli_request(args: &[String]) -> Result<KnowledgeRequest, crate::AccessError> {
+    let invalid =
+        |message| crate::AccessError::new(crate::AccessErrorCode::InvalidRequest, message);
+    let text = |s: &str| JsonValue::String(JsonString::from_utf8(s));
+    let mut fields = vec![(JsonString::from_utf8("node_id"), text(&args[2]))];
+    let mut sources = Vec::new();
+    let mut predicates = Vec::new();
+    let mut at = 3;
+    while at < args.len() {
+        let option = args[at].as_str();
+        if option == "--sources" {
+            at += 1;
+            while at < args.len() && !args[at].starts_with("--") {
+                sources.push(text(&args[at]));
+                at += 1;
+            }
+            continue;
+        }
+        let value = args
+            .get(at + 1)
+            .ok_or_else(|| invalid("focus option requires a value"))?;
+        let key = match option {
+            "--depth" => "depth",
+            "--direction" => "direction",
+            "--node-limit" => "node_limit",
+            "--relation-limit" => "relation_limit",
+            "--profile" => "profile",
+            "--predicate" => {
+                predicates.push(text(value));
+                at += 2;
+                continue;
+            }
+            _ => return Err(invalid("unsupported focus option")),
+        };
+        let value = if matches!(key, "depth" | "node_limit" | "relation_limit") {
+            let n = value
+                .parse::<u64>()
+                .map_err(|_| invalid("focus count must be a nonnegative integer"))?;
+            JsonValue::Number(JsonNumber {
+                kind: JsonNumberKind::Int,
+                lexeme: n.to_string(),
+            })
+        } else {
+            text(value)
+        };
+        if let Some((_, old)) = fields
+            .iter_mut()
+            .find(|(name, _)| name.as_str() == Some(key))
+        {
+            *old = value
+        } else {
+            fields.push((JsonString::from_utf8(key), value));
+        }
+        at += 2;
+    }
+    fields.push((JsonString::from_utf8("sources"), JsonValue::Array(sources)));
+    fields.push((
+        JsonString::from_utf8("predicate_ids"),
+        JsonValue::Array(predicates),
+    ));
+    crate::knowledge::focus_from_arguments(&JsonValue::Object(fields)).map(KnowledgeRequest::Focus)
 }

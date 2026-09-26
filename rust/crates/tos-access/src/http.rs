@@ -8,7 +8,7 @@ use std::sync::{
     atomic::{AtomicU64, AtomicUsize, Ordering},
 };
 use std::time::{Duration, Instant};
-use tos_foundation::{JsonMode, parse_json};
+use tos_foundation::{JsonMode, JsonNumber, JsonNumberKind, JsonString, JsonValue, parse_json};
 use tos_query::{AbortProbe, AbortReason};
 
 use crate::common::{
@@ -266,6 +266,10 @@ fn handle_get_with_probe(
             };
             let request = match op {
                 KnowledgeOperation::Catalog => Ok(KnowledgeRequest::Catalog),
+                KnowledgeOperation::Contracts => Ok(KnowledgeRequest::Contracts),
+                KnowledgeOperation::StoredLens => percent_decode(encoded, false)
+                    .map(|lens_id| KnowledgeRequest::StoredLens { lens_id }),
+                KnowledgeOperation::Focus => focus_http_request(encoded, query),
                 KnowledgeOperation::Node => {
                     percent_decode(encoded, false).map(|node_id| KnowledgeRequest::Node {
                         node_id,
@@ -681,4 +685,77 @@ pub fn serve(
         });
     }
     Ok(())
+}
+
+fn focus_http_request(encoded: &str, query: &str) -> Result<KnowledgeRequest, AccessError> {
+    let text = |s: &str| JsonValue::String(JsonString::from_utf8(s));
+    let count = |n: i64| {
+        JsonValue::Number(JsonNumber {
+            kind: JsonNumberKind::Int,
+            lexeme: n.to_string(),
+        })
+    };
+    let fields = vec![
+        ("node_id", text(&percent_decode(encoded, false)?)),
+        (
+            "sources",
+            JsonValue::Array(
+                query_list(query, "sources")
+                    .iter()
+                    .map(|s| text(s))
+                    .collect(),
+            ),
+        ),
+        (
+            "predicate_ids",
+            JsonValue::Array(
+                query_list(query, "predicates")
+                    .iter()
+                    .map(|s| text(s))
+                    .collect(),
+            ),
+        ),
+        (
+            "depth",
+            count(bounded_legacy_int(
+                query_value(query, "depth").as_deref(),
+                1,
+                0,
+                5,
+            )),
+        ),
+        (
+            "node_limit",
+            count(bounded_legacy_int(
+                query_value(query, "node_limit").as_deref(),
+                200,
+                1,
+                1000,
+            )),
+        ),
+        (
+            "relation_limit",
+            count(bounded_legacy_int(
+                query_value(query, "relation_limit").as_deref(),
+                400,
+                0,
+                2000,
+            )),
+        ),
+        (
+            "direction",
+            text(&query_value(query, "direction").unwrap_or_else(|| "either".into())),
+        ),
+        (
+            "profile",
+            text(&query_value(query, "profile").unwrap_or_else(|| "overview".into())),
+        ),
+    ];
+    let args = JsonValue::Object(
+        fields
+            .into_iter()
+            .map(|(key, value)| (JsonString::from_utf8(key), value))
+            .collect(),
+    );
+    crate::knowledge::focus_from_arguments(&args).map(KnowledgeRequest::Focus)
 }

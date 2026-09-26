@@ -307,6 +307,139 @@
           "additionalProperties": false
         }
       }
+    },
+    {
+      "operation_id": "tos.knowledge.focus",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_knowledge_model_and_held_current_authority",
+      "http": {
+        "method": "GET",
+        "path_template": "/api/knowledge/focus/{node_id}"
+      },
+      "mcp": {
+        "tool": "tos_knowledge_focus",
+        "description": "a bounded radial LensResult centered on an exact normalized ID, stable entity ID, or one unambiguous native ID",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "node_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "sources": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string"
+              }
+            },
+            "depth": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 5,
+              "default": 1
+            },
+            "direction": {
+              "type": "string",
+              "enum": [
+                "outgoing",
+                "incoming",
+                "either"
+              ],
+              "default": "either"
+            },
+            "predicate_ids": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string"
+              }
+            },
+            "node_limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000,
+              "default": 200
+            },
+            "relation_limit": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2000,
+              "default": 400
+            },
+            "profile": {
+              "type": "string",
+              "enum": [
+                "all",
+                "overview"
+              ],
+              "default": "overview"
+            }
+          },
+          "required": [
+            "node_id"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "cli": {
+        "command": "knowledge focus"
+      }
+    },
+    {
+      "operation_id": "tos.lens.open",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_knowledge_model_and_held_current_authority",
+      "http": {
+        "method": "GET",
+        "path_template": "/api/knowledge/lenses/{lens_id}"
+      },
+      "mcp": {
+        "tool": "tos_knowledge_lens_open",
+        "description": "stored LensSpec executed through the generic engine",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "lens_id": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "lens_id"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "cli": {
+        "command": "lens open"
+      }
+    },
+    {
+      "operation_id": "tos.knowledge.contracts",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_knowledge_model_and_held_current_authority",
+      "http": {
+        "method": "GET",
+        "path_template": "/api/knowledge/contracts"
+      },
+      "mcp": {
+        "tool": "tos_knowledge_contracts",
+        "description": "the versioned knowledge operation map plus graph, LensSpec, and LensResult JSON Schemas",
+        "input_schema": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        }
+      },
+      "cli": {
+        "command": "knowledge contracts"
+      }
     }
   ]
 }

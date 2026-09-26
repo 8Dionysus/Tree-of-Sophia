@@ -430,7 +430,12 @@ mod selected_knowledge {
             let inspect = IndexedDisclosureScope {
                 operation_id: request.operation().id().into(),
                 carrier_layer: "tos_knowledge_public_graph_projection_v1".into(),
-                intended_use: "read_only_public_knowledge_inspect_v1".into(),
+                intended_use: if request.operation() == O::Explore {
+                    "read_only_public_knowledge_exploration_v1"
+                } else {
+                    "read_only_public_knowledge_inspect_v1"
+                }
+                .into(),
                 selected_model_receipt_id: bound.owner_receipt_id().into(),
                 source_cut: selected.source_cut.clone(),
                 through_commit_seq: selected.through_commit_seq,
@@ -516,25 +521,10 @@ mod selected_knowledge {
             Ok(Box::new(self.lease()))
         }
     }
-    struct UnusedCheckpoints;
-    impl ExplorationCheckpoints for UnusedCheckpoints {
-        fn load(&mut self, _: &str, _: &str) -> Result<ExplorationCheckpoint, SearchV2Error> {
-            unreachable!()
-        }
-        fn prepare(
-            &mut self,
-            _: Option<&str>,
-            _: &str,
-            _: Option<&ExplorationState>,
-            _: &JsonValue,
-            _: ExplorationBudget,
-        ) -> Result<Box<dyn PreparedExplorationCheckpoint>, SearchV2Error> {
-            unreachable!()
-        }
-    }
     struct Executor {
         fixture: FullKnowledgeFixture,
         held: Arc<AtomicUsize>,
+        checkpoints: Mutex<tos_access::exploration_checkpoints::ProcessExplorationCheckpoints>,
     }
     impl AccessExecutor for Executor {
         fn source_descend_available(&self) -> bool {
@@ -548,7 +538,7 @@ mod selected_knowledge {
             unreachable!()
         }
         fn knowledge_available(&self, operation: O) -> bool {
-            matches!(operation, O::Catalog | O::Node | O::Relation)
+            matches!(operation, O::Catalog | O::Node | O::Relation | O::Explore)
         }
         fn knowledge(
             &self,
@@ -565,53 +555,56 @@ mod selected_knowledge {
             let mut model = cold.fork_reader_with_vm_budget(1_000_000).unwrap();
             let mut catalog = Authority::new(&bound, &request, Arc::clone(&self.held));
             let mut inspect = Authority::new(&bound, &request, Arc::clone(&self.held));
-            let read = InspectBudget {
-                max_open_vm_steps: 100_000_000,
-                max_read_vm_steps: 1_000_000,
-                max_matches: 64,
-                max_rows: 1000,
-                max_field_bytes: 8192,
-                max_payload_bytes: 1_000_000,
-                max_decoded_bytes: 8_000_000,
-                max_response_bytes: 1_000_000,
-                json: JsonLimits::default(),
-            };
-            let budgets = tos_access::knowledge::SelectedKnowledgeBudgets {
-                catalog: CatalogBudget {
-                    max_open_vm_steps: 100_000_000,
-                    max_read_vm_steps: 1_000_000,
-                    max_packet_bytes: 1_000_000,
-                    max_decoded_bytes: 1_000_032,
-                    json: JsonLimits::default(),
-                },
-                inspect: read,
-                lens: tos_query::knowledge_lens::LensBudget {
-                    inspect: read,
-                    max_candidates: 1000,
-                    max_path_steps: 1000,
-                    max_adjacency_rows: 1000,
-                    block_size: 64,
-                },
-                exploration: ExplorationBudget {
-                    read,
-                    max_work_units: 64,
-                    max_session_nodes: 1000,
-                    max_session_relations: 1000,
-                    max_state_bytes: 1_000_000,
-                    max_checkpoint_bytes: 2_000_000,
-                    max_checkpoints: 8,
-                },
-            };
+            let budgets = budgets();
             tos_access::knowledge::execute_selected_knowledge(
                 &mut model,
                 &bound,
                 &mut catalog,
                 &mut inspect,
-                &mut UnusedCheckpoints,
+                &mut *self.checkpoints.lock().unwrap(),
                 request,
                 budgets,
                 probe,
             )
+        }
+    }
+    fn budgets() -> tos_access::knowledge::SelectedKnowledgeBudgets {
+        let read = InspectBudget {
+            max_open_vm_steps: 100_000_000,
+            max_read_vm_steps: 1_000_000,
+            max_matches: 64,
+            max_rows: 1000,
+            max_field_bytes: 8192,
+            max_payload_bytes: 1_000_000,
+            max_decoded_bytes: 8_000_000,
+            max_response_bytes: 1_000_000,
+            json: JsonLimits::default(),
+        };
+        tos_access::knowledge::SelectedKnowledgeBudgets {
+            catalog: CatalogBudget {
+                max_open_vm_steps: 100_000_000,
+                max_read_vm_steps: 1_000_000,
+                max_packet_bytes: 1_000_000,
+                max_decoded_bytes: 1_000_032,
+                json: JsonLimits::default(),
+            },
+            inspect: read,
+            lens: tos_query::knowledge_lens::LensBudget {
+                inspect: read,
+                max_candidates: 1000,
+                max_path_steps: 1000,
+                max_adjacency_rows: 1000,
+                block_size: 64,
+            },
+            exploration: ExplorationBudget {
+                read,
+                max_work_units: 1,
+                max_session_nodes: 1000,
+                max_session_relations: 1000,
+                max_state_bytes: 1_000_000,
+                max_checkpoint_bytes: 2_000_000,
+                max_checkpoints: 8,
+            },
         }
     }
     struct HeldWriter {
@@ -663,6 +656,16 @@ mod selected_knowledge {
         let executor = Arc::new(Executor {
             fixture: build_fixture(),
             held: Arc::new(AtomicUsize::new(0)),
+            checkpoints: Mutex::new(
+                tos_access::exploration_checkpoints::ProcessExplorationCheckpoints::new(
+                    tos_access::exploration_checkpoints::CheckpointLimits {
+                        ttl: Duration::from_secs(60),
+                        max_entries: 16,
+                        max_encoded_bytes: 2_000_000,
+                    },
+                )
+                .unwrap(),
+            ),
         });
         let graph = parse_json(
             &executor.fixture.graph_input_bytes,
@@ -774,5 +777,108 @@ mod selected_knowledge {
             assert_eq!(text.as_bytes(), expected);
             assert_eq!(executor.held.load(Ordering::SeqCst), 0);
         }
+        let raw = format!(
+            "{{\"focus_node_id\":\"{}\",\"page_nodes\":1,\"page_relations\":1,\"max_depth\":2}}",
+            id("nodes")
+        );
+        let request = parse_json(
+            raw.as_bytes(),
+            JsonMode::PublishedStrict,
+            JsonLimits::default(),
+        )
+        .unwrap()
+        .into_root();
+        let first = executor
+            .knowledge(R::Explore(request), Arc::new(NeverAbort))
+            .unwrap();
+        let first = parse_json(
+            &first.body,
+            JsonMode::PublishedStrict,
+            JsonLimits::default(),
+        )
+        .unwrap()
+        .into_root();
+        let cursor = first
+            .object_get("page")
+            .unwrap()
+            .object_get("next_cursor")
+            .unwrap()
+            .as_str()
+            .expect("bounded query pauses before complete traversal");
+        let revision = first
+            .object_get("snapshot_revision")
+            .unwrap()
+            .as_str()
+            .unwrap();
+        let mut store = executor.checkpoints.lock().unwrap();
+        let ExplorationCheckpoint::State(state) = store.load(cursor, revision).unwrap() else {
+            panic!("new successor state")
+        };
+        let staged = store
+            .prepare(
+                Some(cursor),
+                revision,
+                Some(&state),
+                &first,
+                budgets().exploration,
+            )
+            .unwrap();
+        assert!(matches!(
+            store.load(cursor, revision),
+            Err(SearchV2Error {
+                code: tos_query::search_v2::SearchV2ErrorCode::Unavailable,
+                ..
+            })
+        ));
+        drop(staged);
+        assert!(matches!(
+            store.load(cursor, revision),
+            Ok(ExplorationCheckpoint::State(_))
+        ));
+        let mut small = budgets().exploration;
+        small.max_checkpoint_bytes = 1;
+        assert!(matches!(
+            store.prepare(Some(cursor), revision, Some(&state), &first, small),
+            Err(SearchV2Error {
+                code: tos_query::search_v2::SearchV2ErrorCode::BudgetExceeded,
+                ..
+            })
+        ));
+        assert!(matches!(
+            store.load(cursor, revision),
+            Ok(ExplorationCheckpoint::State(_))
+        ));
+        assert!(matches!(
+            store.load(cursor, "changed-selection"),
+            Err(SearchV2Error {
+                code: tos_query::search_v2::SearchV2ErrorCode::StaleContinuation,
+                ..
+            })
+        ));
+        assert!(matches!(
+            store.load("unknown-cursor", revision),
+            Err(SearchV2Error {
+                code: tos_query::search_v2::SearchV2ErrorCode::CursorExpired,
+                ..
+            })
+        ));
+        drop(store);
+        let continuation = parse_json(
+            format!("{{\"cursor\":\"{cursor}\"}}").as_bytes(),
+            JsonMode::PublishedStrict,
+            JsonLimits::default(),
+        )
+        .unwrap()
+        .into_root();
+        let page = executor
+            .knowledge(R::Explore(continuation.clone()), Arc::new(NeverAbort))
+            .unwrap();
+        let replay = executor
+            .knowledge(R::Explore(continuation), Arc::new(NeverAbort))
+            .unwrap();
+        assert_eq!(
+            page.body, replay.body,
+            "repeating a consumed cursor returns its exact admitted page"
+        );
     }
 }
