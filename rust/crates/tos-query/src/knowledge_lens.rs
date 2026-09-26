@@ -134,13 +134,13 @@ impl<A: InspectCurrentAuthority + ?Sized> Plan<'_, '_, '_, A> {
                 &self.sources,
                 after
                     .as_ref()
-                    .map(|(s, id): &(String, String)| (s.as_str(), id.as_str())),
+                    .map(|(s, position, _): &(String, i64, String)| (s.as_str(), *position)),
                 self.budget.block_size,
             )?;
             if rows.is_empty() {
                 break;
             }
-            for (source, id) in &rows {
+            for (source, _, id) in &rows {
                 self.candidate()?;
                 let value = self
                     .item(kind, id)?

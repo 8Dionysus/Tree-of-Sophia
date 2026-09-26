@@ -244,15 +244,17 @@ impl<A: InspectCurrentAuthority + ?Sized> Reader<'_, '_, A> {
         if packet.object_get("schema").and_then(JsonValue::as_str)!=Some("tos_knowledge_catalog_v1")||packet.object_get("source_revision").and_then(JsonValue::as_str)!=Some(bound.source_revision()){return Err(corrupt("selected catalog identity differs"))}
         Ok(packet)
     }
-    /// Complete keyset stream in source/id order, including an explicit caller
-    /// lookahead. Payload reads still go through authenticated items().
+    /// Complete retained carrier keysets in source/encounter order. Candidate
+    /// staging tables are deliberately absent from cold-admitted runtime files;
+    /// final lens selection applies its declared sorts after this bounded scan.
+    /// Payload reads still go through authenticated items().
     pub(crate) fn candidate_ids(
         &mut self,
         kind: SearchKind,
         sources: &[String],
-        after: Option<(&str, &str)>,
+        after: Option<(&str, i64)>,
         limit: usize,
-    ) -> Result<Vec<(String, String)>, SearchV2Error> {
+    ) -> Result<Vec<(String, i64, String)>, SearchV2Error> {
         if limit == 0 || limit > self.budget.max_rows as usize || limit > i64::MAX as usize {
             return Err(budget_error());
         }
@@ -268,18 +270,18 @@ impl<A: InspectCurrentAuthority + ?Sized> Reader<'_, '_, A> {
             std::str::from_utf8(&encoded).map_err(|_| corrupt("candidate sources invalid"))?;
         let (table, index) = if kind == SearchKind::Nodes {
             (
-                "knowledge_node_candidates",
-                "knowledge_node_candidates_order",
+                "knowledge_nodes",
+                "knowledge_nodes_source_order",
             )
         } else {
             (
-                "knowledge_relation_candidates",
-                "knowledge_relation_candidates_order",
+                "knowledge_relations",
+                "knowledge_relations_source_order",
             )
         };
-        let (source, id) = after.unwrap_or(("", ""));
+        let (source, position) = after.unwrap_or(("", -1));
         let sql = format!(
-            "SELECT CASE WHEN length(CAST(source_graph AS BLOB))<=?5 THEN source_graph END,CASE WHEN length(CAST(id AS BLOB))<=?5 THEN id END FROM {table} INDEXED BY {index} WHERE source_graph IN (SELECT value FROM json_each(?1)) AND (source_graph,id)>(?2,?3) ORDER BY source_graph,id LIMIT ?4"
+            "SELECT CASE WHEN length(CAST(source_graph AS BLOB))<=?5 THEN source_graph END,source_order,CASE WHEN length(CAST(id AS BLOB))<=?5 THEN id END FROM {table} INDEXED BY {index} WHERE source_graph IN (SELECT value FROM json_each(?1)) AND (source_graph,source_order)>(?2,?3) ORDER BY source_graph,source_order LIMIT ?4"
         );
         let mut statement = self
             .model
@@ -290,7 +292,7 @@ impl<A: InspectCurrentAuthority + ?Sized> Reader<'_, '_, A> {
             .query(params![
                 encoded,
                 source,
-                id,
+                position,
                 limit as i64,
                 self.budget.max_field_bytes as i64
             ])
@@ -301,20 +303,22 @@ impl<A: InspectCurrentAuthority + ?Sized> Reader<'_, '_, A> {
                 .get::<_, Option<String>>(0)
                 .map_err(sql_error)?
                 .ok_or_else(budget_error)?;
+            let position = row.get::<_, i64>(1).map_err(sql_error)?;
+            if position < 0 { return Err(corrupt("candidate source order invalid")); }
             let id = row
-                .get::<_, Option<String>>(1)
+                .get::<_, Option<String>>(2)
                 .map_err(sql_error)?
                 .ok_or_else(budget_error)?;
             // Disjoint field borrows permit charging before storing the row.
             self.rows = self.rows.checked_add(1).ok_or_else(budget_error)?;
             self.decoded = self
                 .decoded
-                .checked_add((source.len() + id.len()) as u64)
+                .checked_add((source.len() + id.len() + 8) as u64)
                 .ok_or_else(budget_error)?;
             if self.rows > self.budget.max_rows || self.decoded > self.budget.max_decoded_bytes {
                 return Err(budget_error());
             }
-            result.push((source, id));
+            result.push((source, position, id));
         }
         Ok(result)
     }
