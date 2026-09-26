@@ -16,7 +16,7 @@ use tos_source_store::{CorpusCutReader, SourceMembershipV1};
 use crate::PredicateRead;
 use crate::item_rules::{ItemFamilyReport, ItemLimits, ItemRefusal};
 use crate::record_rules::RecordFamily;
-use crate::retirement_rules::{RetirementLimits, RetirementRefusal, inspect_retirements_from_cut};
+use crate::retirement_rules::{RetirementFamilyReport, RetirementLimits, RetirementRefusal, inspect_retirements_from_cut};
 use crate::source_cut::{CutExecutionBinding, CutPayloadReader, CutSchemaReceipt,
     CutWorkerSchemaExecutor, inspect_items_from_cut};
 use crate::biblio_rules::{SourceCutBiblioReport, inspect_bibliography_from_cut};
@@ -431,6 +431,7 @@ pub struct GeneralOperationFamilyReport {
     pub layers: SourceCutLayerFamilyReport,
     pub rights: SourceRightsReport,
     pub source_shapes: SourceShapeReport,
+    pub retirement: RetirementFamilyReport,
 }
 impl GeneralOperationFamilyReport {
     pub fn operation(&self) -> &OperationFamilyReport { &self.operation }
@@ -451,12 +452,12 @@ pub fn inspect_general_operation(
     payloads: &mut impl CutPayloadReader,
     require_local_payloads: bool,
 ) -> Result<GeneralOperationFamilyReport, OperationRefusal> {
-    // Six families retain separate outputs. Reserve their full logical caps
+    // Seven families retain separate outputs. Reserve their full logical caps
     // before starting, rather than claiming each cap as one overall envelope.
-    let state_reservation=limits.family.max_state_bytes.checked_mul(6)
+    let state_reservation=limits.family.max_state_bytes.checked_mul(7)
         .and_then(|n|n.checked_add(limits.operation.max_state_bytes))
         .ok_or(OperationRefusal::Budget)?;
-    let read_reservation=limits.family.max_total_bytes.checked_mul(6)
+    let read_reservation=limits.family.max_total_bytes.checked_mul(7)
         .and_then(|n|n.checked_add(limits.operation.max_total_bytes))
         .ok_or(OperationRefusal::Budget)?;
     if limits.max_composed_state_bytes==0 || limits.max_composed_state_bytes==usize::MAX
@@ -489,12 +490,23 @@ pub fn inspect_general_operation(
     let rights=inspect_rights_from_cut(cut,limits.family,cancelled,schemas).map_err(item_error)?;
     let item=inspect_items_from_cut(cut,limits.family,require_local_payloads,cancelled,
         record_routes,schemas,payloads).map_err(item_error)?;
+    let retirement=inspect_retirements_from_cut(cut,RetirementLimits {
+        max_member_bytes:limits.family.max_member_bytes,max_total_bytes:limits.family.max_total_bytes,
+        max_state_bytes:limits.family.max_state_bytes,max_entries:limits.family.max_issues,
+        deadline:limits.family.deadline,
+    },cancelled,schemas).map_err(|error|match error {
+        RetirementRefusal::Budget=>OperationRefusal::Budget,
+        RetirementRefusal::Deadline=>OperationRefusal::Deadline,
+        RetirementRefusal::Source(reason)=>OperationRefusal::Source(reason),
+        RetirementRefusal::Unsupported(reason)=>OperationRefusal::Unsupported(reason),
+    })?;
     if source_shapes.carrier_membership!=binding.candidate_carrier
         || records.current_membership!=binding.candidate_carrier
         || bibliography.carrier_membership!=binding.candidate_carrier
         || layers.carrier_membership!=binding.candidate_carrier
         || rights.carrier_membership!=binding.candidate_carrier
-        || item.carrier_membership!=binding.candidate_carrier {
+        || item.carrier_membership!=binding.candidate_carrier
+        || retirement.revision!=binding.candidate_revision {
         return Err(OperationRefusal::InvalidProposal("composed owner carrier mismatch"))
     }
     let mut report_bytes=state_reservation;
@@ -528,7 +540,8 @@ pub fn inspect_general_operation(
             executed_rules:vec!["tos.val.record.registry-shape-identity.current@1".into(),
                 "tos.val.source.instance-schema-ref.current@1".into(),
                 "tos.val.claim-bibliography.current@1".into(),"tos.val.layer-family.current@1".into(),
-                "tos.val.rights-record.current@1".into(),"tos.val.item-compound.current@1".into()],
-            item_family:Some(item.item_family)},records,bibliography,layers,rights,source_shapes,
+                "tos.val.rights-record.current@1".into(),"tos.val.item-compound.current@1".into(),
+                "tos.val.source.retirement@1".into()],
+            item_family:Some(item.item_family)},records,bibliography,layers,rights,source_shapes,retirement,
     })
 }

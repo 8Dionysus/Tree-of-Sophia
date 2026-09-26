@@ -557,6 +557,10 @@ fn actual_general_operation_keeps_selected_family_coverage_below_source_admissio
     assert_eq!(report.records.retained_memberships.len(),1);
     assert_eq!(report.source_shapes.carrier_membership,report.operation().binding().candidate_carrier());
     assert!(report.source_shapes.checked_instances>0);
+    assert_eq!(report.retirement.revision,revision);
+    assert_eq!(report.retirement.base_revision,Some(base));
+    assert!(!report.retirement.source_admission_complete);
+    assert!(report.retirement.membership_transition.is_none());
     assert!(report.rights.rights_record_count>0);
     assert!(!report.rights.missing_authority.is_empty());
     assert!(report.layers.layer_family.checked_predicates.iter().any(|(path,predicate)|
