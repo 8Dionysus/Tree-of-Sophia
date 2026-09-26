@@ -76,12 +76,19 @@ fn sources() -> (BTreeMap<String, Vec<u8>>, BTreeMap<String, Vec<u8>>) {
         authored.insert(surface.into(), fs::read(repository.join(surface)).unwrap());
     }
     let mut captured = authored.clone();
-    // Genuine maintained weak companion, deliberately outside source cut.
-    let companion = "ToS/source-witnesses/catalog/catalog.manifest.json";
-    captured.insert(
-        companion.into(),
-        fs::read(repository.join(companion)).unwrap(),
-    );
+    // Genuine maintained compatibility mirror remains weaker than canon.
+    // A separate original manifest also exercises the captured-component
+    // manifest read path; neither is a member of the declared source cut.
+    for companion in [
+        "ToS/public-compatibility/source_node.example.json",
+        "ToS/philosophy/philosophy.manifest.json",
+    ] {
+        assert!(!authored.contains_key(companion));
+        captured.insert(
+            companion.into(),
+            fs::read(repository.join(companion)).unwrap(),
+        );
+    }
     captured.insert(
         "scripts/corpus_archive.py".into(),
         fs::read(repository.join("scripts/corpus_archive.py")).unwrap(),
