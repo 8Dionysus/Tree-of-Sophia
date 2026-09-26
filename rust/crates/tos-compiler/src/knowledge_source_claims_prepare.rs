@@ -653,6 +653,8 @@ mod tests {
             semantic_primitive_profile: "fixture".into(),
             shared_entity_id_grammars: vec![],
             overview_route_ids: vec![],
+            identity_policy: serde_json::json!({}),
+            overview_policy: serde_json::json!({}),
         }
     }
     fn fixture() -> Vec<FixtureRow> {

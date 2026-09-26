@@ -1315,6 +1315,8 @@ pub(crate) fn verify_schema(db: &Connection) -> Result<()> {
         "knowledge_relations_source_order",
         "knowledge_relations_from",
         "knowledge_relations_to",
+        "knowledge_relations_from_id",
+        "knowledge_relations_to_id",
         "knowledge_relations_predicate",
         "search_document_filter",
     ] {

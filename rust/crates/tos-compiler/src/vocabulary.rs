@@ -35,6 +35,10 @@ pub struct QueryVocabulary {
     pub semantic_primitive_profile: String,
     pub shared_entity_id_grammars: Vec<String>,
     pub overview_route_ids: Vec<String>,
+    /// Closed, validated authored packets retained for query interpretation.
+    /// Consumers must use this selected policy instead of engine defaults.
+    pub identity_policy: Value,
+    pub overview_policy: Value,
 }
 
 /// Derived selection envelope: all roots and cut evidence are outside the
@@ -397,6 +401,8 @@ impl QueryVocabulary {
             semantic_primitive_profile,
             shared_entity_id_grammars,
             overview_route_ids,
+            identity_policy: identity.clone(),
+            overview_policy: overview.clone(),
         })
     }
 

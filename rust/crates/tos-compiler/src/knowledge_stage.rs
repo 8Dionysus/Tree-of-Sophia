@@ -966,6 +966,14 @@ pub(crate) fn selected_table_closure(db: &Connection) -> Result<()> {
             "CREATE INDEX knowledge_relations_to ON knowledge_relations(to_id,source_order,id)",
         ),
         (
+            "knowledge_relations_from_id",
+            "CREATE INDEX knowledge_relations_from_id ON knowledge_relations(from_id,id)",
+        ),
+        (
+            "knowledge_relations_to_id",
+            "CREATE INDEX knowledge_relations_to_id ON knowledge_relations(to_id,id)",
+        ),
+        (
             "knowledge_relations_predicate",
             "CREATE INDEX knowledge_relations_predicate ON knowledge_relations(predicate_id,source_order)",
         ),
@@ -1363,6 +1371,8 @@ CREATE INDEX knowledge_relations_source_order ON knowledge_relations(source_grap
 CREATE INDEX knowledge_relations_native ON knowledge_relations(native_id,source_order,id);
 CREATE INDEX knowledge_relations_from ON knowledge_relations(from_id,source_order,id);
 CREATE INDEX knowledge_relations_to ON knowledge_relations(to_id,source_order,id);
+CREATE INDEX knowledge_relations_from_id ON knowledge_relations(from_id,id);
+CREATE INDEX knowledge_relations_to_id ON knowledge_relations(to_id,id);
 CREATE INDEX knowledge_relations_predicate ON knowledge_relations(predicate_id,source_order);
 "#;
 
