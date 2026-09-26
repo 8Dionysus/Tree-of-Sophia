@@ -1,5 +1,6 @@
 //! Source retirement operation and exact membership-only transition.
-//! This is the frozen Python row 14 mechanical rule, not source acceptance.
+//! This implements the frozen Python row 14 mechanical route, not source acceptance.
+//! Chronology uses the frozen Python datetime grammar and integer microseconds.
 //! Stored base IDs/dependencies are carried claims: retained bytes, a review
 //! binding, and this result grant no rights, canon, publication or currentness.
 
@@ -241,7 +242,15 @@ pub fn inspect_retirements_from_cut(
                 "retirement event does not declare the source retirement operation",
             ));
         }
-        if timestamp(text(&event["ended_at"])?)? < timestamp(text(&event["started_at"])?)? {
+        if observed_datetime_order(text(&event["started_at"])?, text(&event["ended_at"])?).map_err(
+            |error| match error {
+                ObservedDateTimeError::Budget => RetirementRefusal::Budget,
+                ObservedDateTimeError::Invalid => {
+                    source("retirement date-time is invalid or mixes naive and aware values")
+                }
+            },
+        )? == std::cmp::Ordering::Greater
+        {
             return Err(source("retirement event ends before it starts"));
         }
         let config = event["method"]["configuration"]
@@ -493,114 +502,275 @@ fn text(value: &Value) -> Result<&str, RetirementRefusal> {
 fn object(raw: &[u8], cap: usize) -> Result<Value, RetirementRefusal> {
     let value = crate::published_value(raw, cap).map_err(|e| match e {
         crate::SchemaProbeError::BudgetExceeded => RetirementRefusal::Budget,
+        crate::SchemaProbeError::InvalidPublishedJson(
+            tos_foundation::FoundationErrorCode::InvalidUnicodeScalar,
+        )
+        | crate::SchemaProbeError::IncompatibleJsonRepresentation => RetirementRefusal::Unsupported(
+            "Python retirement JSON admits a representation outside the scalar-string Rust profile"
+                .into(),
+        ),
         _ => source("retirement input is not strict finite JSON"),
     })?;
     if !value.is_object() {
         return Err(source("retirement input must be JSON object"));
     }
+    // The source _json additionally json.dumps(..., allow_nan=False) after
+    // Python loads floats. FND retains exact decimal lexemes; a JSON exponent
+    // must not evade that finite-float check by staying arbitrary precision.
+    finite_python_numbers(&value)?;
     Ok(value)
 }
 
-// Compare UTC seconds plus exact fractional digits. No lexical ordering of
-// offset timestamps and no float rounding. Leap seconds are outside Python's
-// datetime profile and refuse; schema format acceptance alone is insufficient.
-fn timestamp(s: &str) -> Result<(i64, String), RetirementRefusal> {
-    let b = s.as_bytes();
-    let bad = || {
-        RetirementRefusal::Unsupported(
-            "retirement date-time is outside supported Python datetime profile".into(),
-        )
-    };
-    if b.len() < 20
-        || b[4] != b'-'
-        || b[7] != b'-'
-        || !matches!(b[10], b'T' | b't')
-        || b[13] != b':'
-        || b[16] != b':'
-    {
-        return Err(bad());
-    }
-    let number = |a: usize, z: usize| -> Result<i64, RetirementRefusal> {
-        let v = b.get(a..z).ok_or_else(bad)?;
-        if !v.iter().all(u8::is_ascii_digit) {
-            return Err(bad());
+fn finite_python_numbers(value: &Value) -> Result<(), RetirementRefusal> {
+    match value {
+        Value::Number(number) => {
+            let lexeme = number.to_string();
+            if lexeme.contains(['.', 'e', 'E']) && !lexeme.parse::<f64>().is_ok_and(f64::is_finite)
+            {
+                return Err(source("retirement input is not finite Python JSON"));
+            }
         }
-        Ok(v.iter().fold(0, |n, c| n * 10 + i64::from(c - b'0')))
+        Value::Array(values) => {
+            for value in values {
+                finite_python_numbers(value)?;
+            }
+        }
+        Value::Object(values) => {
+            for value in values.values() {
+                finite_python_numbers(value)?;
+            }
+        }
+        _ => {}
+    }
+    Ok(())
+}
+
+/// Frozen Python 3.14 `datetime.fromisoformat(s.replace('Z', '+00:00'))`
+/// comparison. Calendar/basic/ISO-week dates, date-only values, a single
+/// Unicode separator, reduced clock precision and normalized offset fields
+/// retain their observed source behavior. Fractions truncate to microseconds.
+/// A mixed naive/aware comparison is invalid, as Python's TypeError is invalid
+/// source for this operation. This helper grants no clock/current authority.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum ObservedDateTimeError {
+    Invalid,
+    Budget,
+}
+
+pub(crate) fn observed_datetime_order(
+    start: &str,
+    end: &str,
+) -> Result<std::cmp::Ordering, ObservedDateTimeError> {
+    observed_datetime_compare(start, end, true)
+}
+
+/// Provenance uses direct Python fromisoformat, preserving Z as a possible
+/// single date/time separator. Retirement alone applies the global replacement.
+pub(crate) fn observed_datetime_raw_order(
+    start: &str,
+    end: &str,
+) -> Result<std::cmp::Ordering, ObservedDateTimeError> {
+    observed_datetime_compare(start, end, false)
+}
+
+fn observed_datetime_compare(
+    start: &str,
+    end: &str,
+    replace_z: bool,
+) -> Result<std::cmp::Ordering, ObservedDateTimeError> {
+    let start = observed_datetime(start, replace_z)?;
+    let end = observed_datetime(end, replace_z)?;
+    if start.1 != end.1 {
+        return Err(ObservedDateTimeError::Invalid);
+    }
+    Ok(start.0.cmp(&end.0))
+}
+
+fn observed_datetime(s: &str, replace_z: bool) -> Result<(i64, bool), ObservedDateTimeError> {
+    use ObservedDateTimeError::Invalid;
+    if s.len() > MAX_EVENT_BYTES {
+        return Err(ObservedDateTimeError::Budget);
+    }
+    // This global replacement is source behavior, including the surprising
+    // date-only "...Z" -> naive midnight case. Expansion is bounded by six
+    // times the independently capped event input, and no float is allocated.
+    let normalized = if replace_z && s.contains('Z') {
+        std::borrow::Cow::Owned(s.replace('Z', "+00:00"))
+    } else {
+        std::borrow::Cow::Borrowed(s)
     };
-    let y = number(0, 4)?;
-    let m = number(5, 7)?;
-    let d = number(8, 10)?;
-    let h = number(11, 13)?;
-    let min = number(14, 16)?;
-    let sec = number(17, 19)?;
-    let leap = y % 4 == 0 && (y % 100 != 0 || y % 400 == 0);
-    let month_days = match m {
+    let s = normalized.as_ref();
+    let b = s.as_bytes();
+    let year = digits(b, 0, 4)?;
+    if !(1..=9999).contains(&year) {
+        return Err(Invalid);
+    }
+    let (date_len, days) = if b.get(4) == Some(&b'-') && b.get(5) == Some(&b'W') {
+        let week = digits(b, 6, 8)?;
+        if b.get(8) == Some(&b'-') {
+            (10, week_days(year, week, digits(b, 9, 10)?)?)
+        } else {
+            (8, week_days(year, week, 1)?)
+        }
+    } else if b.get(4) == Some(&b'W') {
+        let week = digits(b, 5, 7)?;
+        // CPython resolves the basic week/day versus numeric separator
+        // ambiguity by the next character. Preserve its actual choice.
+        let has_day = b.get(7).is_some_and(u8::is_ascii_digit)
+            && (b.len() == 8 || !b.get(8).is_some_and(u8::is_ascii_digit));
+        if has_day {
+            (8, week_days(year, week, digits(b, 7, 8)?)?)
+        } else {
+            (7, week_days(year, week, 1)?)
+        }
+    } else if b.get(4) == Some(&b'-') {
+        if b.get(7) != Some(&b'-') {
+            return Err(Invalid);
+        }
+        (
+            10,
+            calendar_days(year, digits(b, 5, 7)?, digits(b, 8, 10)?)?,
+        )
+    } else {
+        (8, calendar_days(year, digits(b, 4, 6)?, digits(b, 6, 8)?)?)
+    };
+    if b.len() == date_len {
+        return Ok((days * 86_400_000_000, false));
+    }
+    // A separator is exactly one Unicode code point, including numeric and
+    // non-ASCII separators. Date bytes have already been checked as ASCII.
+    let rest = s.get(date_len..).ok_or(Invalid)?;
+    let separator = rest.chars().next().ok_or(Invalid)?;
+    let time = rest.get(separator.len_utf8()..).ok_or(Invalid)?;
+    if time.is_empty() {
+        return Err(Invalid);
+    }
+    let tz_start = time.bytes().position(|c| matches!(c, b'+' | b'-' | b'Z'));
+    let (clock, timezone) = match tz_start {
+        Some(i) => (&time[..i], Some(&time[i..])),
+        None => (time, None),
+    };
+    let (h, m, sec, micros) = clock_fields(clock)?;
+    if h > 23 || m > 59 || sec > 59 {
+        return Err(Invalid);
+    }
+    let local = days * 86_400_000_000 + (h * 3600 + m * 60 + sec) * 1_000_000 + micros;
+    let Some(zone) = timezone else {
+        return Ok((local, false));
+    };
+    if zone == "Z" {
+        return Ok((local, true));
+    }
+    let sign = match zone.as_bytes().first() {
+        Some(b'+') => 1,
+        Some(b'-') => -1,
+        _ => return Err(Invalid),
+    };
+    let (h, m, sec, micros) = clock_fields(&zone[1..])?;
+    // Unlike wall-clock fields, Python normalizes timezone minute/second
+    // values up to 99, then requires the total offset to be below one day.
+    let offset = (h * 3600 + m * 60 + sec) * 1_000_000 + micros;
+    if offset >= 86_400_000_000 {
+        return Err(Invalid);
+    }
+    Ok((local - sign * offset, true))
+}
+
+fn digits(b: &[u8], start: usize, end: usize) -> Result<i64, ObservedDateTimeError> {
+    let raw = b.get(start..end).ok_or(ObservedDateTimeError::Invalid)?;
+    if !raw.iter().all(u8::is_ascii_digit) {
+        return Err(ObservedDateTimeError::Invalid);
+    }
+    Ok(raw.iter().fold(0, |n, c| n * 10 + i64::from(c - b'0')))
+}
+fn leap(year: i64) -> bool {
+    year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)
+}
+fn year_days(year: i64) -> i64 {
+    let y = year - 1;
+    y * 365 + y / 4 - y / 100 + y / 400
+}
+fn calendar_days(y: i64, month: i64, day: i64) -> Result<i64, ObservedDateTimeError> {
+    use ObservedDateTimeError::Invalid;
+    let days_in = |m| match m {
         2 => {
-            if leap {
+            if leap(y) {
                 29
             } else {
                 28
             }
         }
         4 | 6 | 9 | 11 => 30,
-        1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
-        _ => return Err(bad()),
+        _ => 31,
     };
-    if y == 0 || d == 0 || d > month_days || h > 23 || min > 59 || sec > 59 {
-        return Err(bad());
+    if !(1..=12).contains(&month) || day < 1 || day > days_in(month) {
+        return Err(Invalid);
     }
-    let mut i = 19;
-    let mut fraction = String::new();
-    if b.get(i) == Some(&b'.') {
-        i += 1;
-        let start = i;
-        while b.get(i).is_some_and(u8::is_ascii_digit) {
-            i += 1;
+    let mut days = year_days(y) + day - 1;
+    for m in 1..month {
+        days += days_in(m);
+    }
+    Ok(days)
+}
+fn week_days(y: i64, week: i64, day: i64) -> Result<i64, ObservedDateTimeError> {
+    use ObservedDateTimeError::Invalid;
+    let jan4 = year_days(y) + 3;
+    let monday = jan4 - jan4 % 7; // Year 1 January 1 was a Monday.
+    let next_jan4 = year_days(y + 1) + 3;
+    let next_monday = next_jan4 - next_jan4 % 7;
+    if !(1..=7).contains(&day) || week < 1 || week > (next_monday - monday) / 7 {
+        return Err(Invalid);
+    }
+    let days = monday + (week - 1) * 7 + day - 1;
+    if days < 0 || days >= year_days(10000) {
+        return Err(Invalid);
+    }
+    Ok(days)
+}
+fn clock_fields(s: &str) -> Result<(i64, i64, i64, i64), ObservedDateTimeError> {
+    use ObservedDateTimeError::Invalid;
+    let b = s.as_bytes();
+    let colon = b.get(2) == Some(&b':');
+    let mut pos = 0;
+    let mut fields = [0; 3];
+    let mut count = 0;
+    for (i, field) in fields.iter_mut().enumerate() {
+        *field = digits(b, pos, pos + 2)?;
+        pos += 2;
+        count += 1;
+        if pos == b.len() {
+            break;
         }
-        if i == start {
-            return Err(bad());
+        if matches!(b.get(pos), Some(b'.' | b',')) {
+            break;
         }
-        fraction = s[start..i].trim_end_matches('0').to_owned();
-    }
-    // Python datetime truncates finer-than-microsecond fractions.
-    if fraction.len() > 6 {
-        fraction.truncate(6);
-        fraction = fraction.trim_end_matches('0').to_owned();
-    }
-    // Right padding gives fixed-width exact comparison even for .1 versus .09.
-    while fraction.len() < 6 {
-        fraction.push('0');
-    }
-    let offset = match b.get(i) {
-        Some(b'Z') if i + 1 == b.len() => 0,
-        Some(sign @ (b'+' | b'-')) if i + 6 == b.len() && b[i + 3] == b':' => {
-            let hh = number(i + 1, i + 3)?;
-            let mm = number(i + 4, i + 6)?;
-            if hh > 23 || mm > 59 {
-                return Err(bad());
+        if i == 2 {
+            return Err(Invalid);
+        }
+        if colon {
+            if b.get(pos) != Some(&b':') {
+                return Err(Invalid);
             }
-            (hh * 3600 + mm * 60) * if *sign == b'+' { 1 } else { -1 }
+            pos += 1;
         }
-        _ => return Err(bad()),
-    };
-    // Gregorian days relative to year 1; only ordering, not an epoch, matters.
-    let prior = y - 1;
-    let mut days = prior * 365 + prior / 4 - prior / 100 + prior / 400;
-    for month in 1..m {
-        days += match month {
-            2 => {
-                if leap {
-                    29
-                } else {
-                    28
-                }
-            }
-            4 | 6 | 9 | 11 => 30,
-            _ => 31,
-        };
     }
-    days += d - 1;
-    Ok((days * 86400 + h * 3600 + min * 60 + sec - offset, fraction))
+    let mut micros = 0;
+    if pos != b.len() {
+        // Python 3.14 only permits fractional *seconds*, not fractional
+        // hour/minute forms. The fraction must contain ASCII digits.
+        if count != 3 || !matches!(b.get(pos), Some(b'.' | b',')) {
+            return Err(Invalid);
+        }
+        pos += 1;
+        let fraction = b.get(pos..).ok_or(Invalid)?;
+        if fraction.is_empty() || !fraction.iter().all(u8::is_ascii_digit) {
+            return Err(Invalid);
+        }
+        for i in 0..6 {
+            micros = micros * 10 + fraction.get(i).map_or(0, |c| i64::from(c - b'0'));
+        }
+    }
+    Ok((fields[0], fields[1], fields[2], micros))
 }
 
 #[cfg(test)]
@@ -625,6 +795,9 @@ mod tests {
             .is_err()
         );
         assert!(object(br#"{"number":NaN}"#, MAX_EVENT_BYTES).is_err());
+        assert!(object(br#"{"number":1e999}"#, MAX_EVENT_BYTES).is_err());
+        assert!(object(br#"{"number":1.7976931348623159e308}"#, MAX_EVENT_BYTES).is_err());
+        assert!(object(br#"{"number":1e-9999}"#, MAX_EVENT_BYTES).is_ok());
         assert!(object(b"[]", MAX_EVENT_BYTES).is_err());
         assert!(matches!(
             object(b"{\"a\":1}", 2),
@@ -633,26 +806,67 @@ mod tests {
     }
 
     #[test]
-    fn chronological_order_uses_python_microseconds_and_utc_offsets() {
-        // Python datetime.fromisoformat comparisons, independently computed.
+    fn chronological_order_matches_frozen_python_datetime_behavior_table() {
+        use std::cmp::Ordering::{Equal, Less};
+        // Direct Python 3.14 fromisoformat comparisons, not RFC3339 assumptions.
+        for (a, b, expected) in [
+            ("2026-09-14T01:00:00+01:00", "2026-09-14T00:00:00Z", Equal),
+            ("2026-09-13T23:59:59Z", "2026-09-14T00:00:00Z", Less),
+            ("2026-09-14T00:00:00.09Z", "2026-09-14T00:00:00.1Z", Less),
+            (
+                "2026-09-14T00:00:00.1234569Z",
+                "2026-09-14T00:00:00.123456Z",
+                Equal,
+            ),
+            ("20260914", "2026-09-14T00:00:00", Equal),
+            ("2026-09-14Z", "2026-09-14T00:00:00", Equal),
+            ("2026-09-14Z+01", "2026-09-14T00:00:00+01:00", Equal),
+            ("2026-W39-1", "2026-09-21", Equal),
+            ("2026W391X12", "2026-09-21T12", Equal),
+            ("2026W39112", "2026-09-21T12", Equal),
+            ("2026-W39T00", "2026-09-21", Equal),
+            ("20260914𝄞12", "2026-09-14X12:00", Equal),
+            ("2026-09-14T12:34:56,5", "2026-09-14T123456.500000", Equal),
+            ("2026-09-14T12+0199", "2026-09-14T09:21Z", Equal),
+            (
+                "2026-09-14T12:00:00+00:00:99",
+                "2026-09-14T11:58:21Z",
+                Equal,
+            ),
+            (
+                "2026-09-14T12:00:00+00:00:00.1",
+                "2026-09-14T11:59:59.9Z",
+                Equal,
+            ),
+            (
+                "2026-09-14T12:00:00+000000,5",
+                "2026-09-14T11:59:59.5Z",
+                Equal,
+            ),
+        ] {
+            assert_eq!(observed_datetime_order(a, b), Ok(expected), "{a} / {b}");
+        }
+        for invalid in [
+            "2026-02-29T00:00:00Z",
+            "2026-09-14T00:00:60Z",
+            "2026-09-14T00:00:00z",
+            "2026-09-14T12.5",
+            "2026-09-14T1230.5",
+            "2026-09-14T12:3456",
+            "2026-09-14T1234:56",
+            "2026-09-14T12+24:00",
+            "2026W398",
+            "2026-W391",
+            "2026-09-14Z12",
+        ] {
+            assert!(observed_datetime(invalid, true).is_err(), "{invalid}");
+        }
+        assert!(observed_datetime_order("2026-09-14", "2026-09-14T00:00:00Z").is_err());
         assert_eq!(
-            timestamp("2026-09-14T01:00:00+01:00").unwrap(),
-            timestamp("2026-09-14T00:00:00Z").unwrap()
+            observed_datetime_raw_order("2026-09-14Z12", "2026-09-14T12"),
+            Ok(Equal)
         );
-        assert!(
-            timestamp("2026-09-13T23:59:59Z").unwrap() < timestamp("2026-09-14T00:00:00Z").unwrap()
-        );
-        assert!(
-            timestamp("2026-09-14T00:00:00.09Z").unwrap()
-                < timestamp("2026-09-14T00:00:00.1Z").unwrap()
-        );
-        assert_eq!(
-            timestamp("2026-09-14T00:00:00.1234569Z").unwrap(),
-            timestamp("2026-09-14T00:00:00.123456Z").unwrap()
-        );
-        assert!(timestamp("2024-02-29T00:00:00Z").is_ok());
-        assert!(timestamp("2026-02-29T00:00:00Z").is_err());
-        assert!(timestamp("2026-09-14T00:00:60Z").is_err());
-        assert!(timestamp("2026-09-14T00:00:00z").is_err());
+        assert!(observed_datetime_raw_order("2026-09-14Z", "2026-09-14").is_err());
+        assert!(observed_datetime_raw_order("2026-09-14Z+01", "2026-09-14T00:00:00+01").is_err());
     }
 }

@@ -10,6 +10,11 @@ use tos_foundation::{Digest256, RelativePath};
 use unicode_normalization::UnicodeNormalization;
 
 use crate::item_rules::{ItemIssue, ItemLimits, ItemRefusal};
+use crate::retirement_rules::{ObservedDateTimeError, observed_datetime_raw_order};
+
+// Conservative logical reservation for parsed JSON, temporary maps/sets and
+// retained lab events. Actual process memory custody remains with the runner.
+const JSON_STATE_FACTOR: usize = 64;
 
 pub const CONTRACT: &str = "ToS/contracts/provenance-event-v2.schema.json";
 pub const LAB_MANIFEST: &str =
@@ -18,10 +23,14 @@ pub const LAB_MANIFEST: &str =
 /// Reads use a single pinned current namespace, with no ambient checkout or
 /// payload fallback. `recorded_input` resolves the exact original ref+digest
 /// through the owner's current/retained original-path or named archive route;
-/// its result must not become the current schema used by `schema`.
+/// its result must not become the current schema used by `schema`. Named
+/// schema archives must retain the original schema `$id`; a digest match in
+/// an arbitrary retained revision is not the owner's archive resolution law.
 /// The schema executor consumes only the exact supplied current schema digest.
 /// Reader and worker implementations enforce cancellation and the deadline
-/// during I/O, not merely before returning. None may grant publication rights.
+/// during I/O, not merely before returning. This trait cannot interrupt an
+/// arbitrary blocking implementation; actual adapters need cooperative reads
+/// and process custody for worker deadlines. None may grant publication rights.
 pub trait ProvenanceSource {
     fn current(
         &mut self,
@@ -59,7 +68,7 @@ pub struct ProvenanceReport {
 pub struct ProvenanceRules {
     limits: ItemLimits,
     issues: Vec<ItemIssue>,
-    event_ids: BTreeSet<String>,
+    event_owners: BTreeMap<String, (String, String)>,
     negative_controls: BTreeMap<String, bool>,
     metadata_bytes: u64,
     state_bytes: usize,
@@ -71,7 +80,7 @@ impl ProvenanceRules {
         Self {
             limits,
             issues: Vec::new(),
-            event_ids: BTreeSet::new(),
+            event_owners: BTreeMap::new(),
             negative_controls: BTreeMap::new(),
             metadata_bytes: 0,
             state_bytes: 0,
@@ -118,7 +127,7 @@ impl ProvenanceRules {
         // logical quota. Persistent IDs/issues are charged separately.
         if raw
             .len()
-            .checked_mul(8)
+            .checked_mul(JSON_STATE_FACTOR)
             .and_then(|n| n.checked_add(self.state_bytes))
             .is_none_or(|n| n > self.limits.max_state_bytes)
         {
@@ -198,11 +207,16 @@ impl ProvenanceRules {
             return Ok(event);
         }
         if let Some(id) = event["event_id"].as_str() {
-            if self.event_ids.contains(id) {
+            let owner = (path.to_owned(), Digest256::of_bytes(raw).to_hex());
+            if self
+                .event_owners
+                .get(id)
+                .is_some_and(|existing| existing != &owner)
+            {
                 self.issue(path, "duplicate-provenance-v2-event-id")?;
-            } else {
-                self.reserve(id.len())?;
-                self.event_ids.insert(id.into());
+            } else if !self.event_owners.contains_key(id) {
+                self.reserve(id.len() + owner.0.len() + owner.1.len())?;
+                self.event_owners.insert(id.into(), owner);
             }
         }
         for code in semantic_issues(&event, self.limits.max_issues, self.limits.deadline)? {
@@ -392,7 +406,11 @@ impl ProvenanceRules {
                 self.issue(path, "synthetic-lab-publication-authority")?;
             }
             // Three events and their mutations occupy bounded transient state.
-            self.reserve(raw.len().saturating_mul(8))?;
+            self.reserve(
+                raw.len()
+                    .checked_mul(JSON_STATE_FACTOR)
+                    .ok_or(ItemRefusal::Budget)?,
+            )?;
             events.insert(id, event);
         }
         if events.len() == 3 && frozen.len() == 3 {
@@ -574,7 +592,7 @@ impl ProvenanceRules {
     pub fn finish(self) -> ProvenanceReport {
         ProvenanceReport {
             issues: self.issues,
-            event_ids: self.event_ids,
+            event_ids: self.event_owners.into_keys().collect(),
             negative_controls: self.negative_controls,
             metadata_bytes: self.metadata_bytes,
             current_contract_sha256: self.contract_digest,
@@ -587,9 +605,9 @@ fn array(value: &Value) -> impl Iterator<Item = &Value> {
     value.as_array().into_iter().flatten()
 }
 
-/// Exact cross-field message vocabulary from the source Python owner. Invalid
-/// timestamps are defects; forms valid under Python but outside the observed
-/// timestamp subset refuse this execution rather than change source semantics.
+/// Exact cross-field message vocabulary from the source Python owner. The
+/// shared chronology parser follows direct Python fromisoformat here; unlike
+/// retirement, this source family does not first replace every literal Z.
 pub fn semantic_issues(
     event: &Value,
     max_issues: usize,
@@ -614,13 +632,13 @@ pub fn semantic_issues(
         activity["started_at"].as_str(),
         activity["ended_at"].as_str(),
     ) {
-        (Some(start), Some(end)) => match (observed_iso(start)?, observed_iso(end)?) {
-            (Some((start, sa)), Some((end, ea))) if sa == ea => {
-                if end < start {
-                    push("provenance activity ends before it starts")?;
-                }
+        (Some(start), Some(end)) => match observed_datetime_raw_order(start, end) {
+            Ok(std::cmp::Ordering::Greater) => push("provenance activity ends before it starts")?,
+            Ok(_) => {}
+            Err(ObservedDateTimeError::Invalid) => {
+                push("provenance activity timestamps are not comparable")?
             }
-            _ => push("provenance activity timestamps are not comparable")?,
+            Err(ObservedDateTimeError::Budget) => return Err(ItemRefusal::Budget),
         },
         _ => push("provenance activity timestamps are not comparable")?,
     }
@@ -795,114 +813,6 @@ fn truthy(v: &Value) -> bool {
     }
 }
 
-/// Observed calendar ISO profile: YYYY-MM-DD[T|space]HH:MM:SS[.fraction]
-/// [Z|+/-HH:MM]. Naive-naive comparison is accepted, naive-aware is invalid.
-/// Other Python fromisoformat shapes are unsupported, never declared invalid.
-fn observed_iso(s: &str) -> Result<Option<(i128, bool)>, ItemRefusal> {
-    let unsupported = || {
-        ItemRefusal::Unsupported(
-            "Python fromisoformat shape outside observed calendar ISO profile".into(),
-        )
-    };
-    let b = s.as_bytes();
-    if b.len() < 19
-        || !s.is_ascii()
-        || b[4] != b'-'
-        || b[7] != b'-'
-        || !matches!(b[10], b'T' | b' ')
-        || b[13] != b':'
-        || b[16] != b':'
-    {
-        return Err(unsupported());
-    }
-    let parse = |start, end| {
-        s.get(start..end)
-            .filter(|v| v.bytes().all(|b| b.is_ascii_digit()))
-            .and_then(|v| v.parse::<i128>().ok())
-    };
-    let (Some(year), Some(month), Some(day), Some(hour), Some(minute), Some(second)) = (
-        parse(0, 4),
-        parse(5, 7),
-        parse(8, 10),
-        parse(11, 13),
-        parse(14, 16),
-        parse(17, 19),
-    ) else {
-        return Ok(None);
-    };
-    let leap = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
-    let days = [
-        31,
-        if leap { 29 } else { 28 },
-        31,
-        30,
-        31,
-        30,
-        31,
-        31,
-        30,
-        31,
-        30,
-        31,
-    ];
-    if !(1..=9999).contains(&year)
-        || !(1..=12).contains(&month)
-        || day < 1
-        || day > days[(month - 1) as usize]
-        || hour > 23
-        || minute > 59
-        || second > 59
-    {
-        return Ok(None);
-    }
-    let mut offset = 19;
-    let mut micros = 0;
-    if b.get(offset).is_some_and(|v| *v == b'.' || *v == b',') {
-        offset += 1;
-        let start = offset;
-        while b.get(offset).is_some_and(u8::is_ascii_digit) {
-            offset += 1;
-        }
-        if offset == start {
-            return Ok(None);
-        }
-        let used = (offset - start).min(6);
-        micros =
-            s[start..start + used].parse::<i128>().unwrap_or(0) * 10i128.pow((6 - used) as u32);
-    }
-    let mut tz = 0;
-    let aware = offset < b.len();
-    if aware {
-        if b[offset] == b'Z' && offset + 1 == b.len() {
-        } else if matches!(b[offset], b'+' | b'-') && b.len() == offset + 6 && b[offset + 3] == b':'
-        {
-            let (Some(h), Some(m)) = (parse(offset + 1, offset + 3), parse(offset + 4, offset + 6))
-            else {
-                return Ok(None);
-            };
-            if h > 23 || h * 3600 + m * 60 >= 86400 {
-                return Ok(None);
-            }
-            if m > 59 {
-                return Err(unsupported());
-            }
-            tz = (h * 3600 + m * 60) * if b[offset] == b'-' { -1 } else { 1 };
-        } else {
-            return Err(unsupported());
-        }
-    }
-    let y = year - 1;
-    let prior_days = 365 * y + y / 4 - y / 100
-        + y / 400
-        + days.iter().take((month - 1) as usize).sum::<i128>()
-        + day
-        - 1;
-    Ok(Some((
-        ((prior_days * 86400 + hour * 3600 + minute * 60 + second - tz) * 1_000_000) + micros,
-        aware,
-    )))
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1040,6 +950,11 @@ mod tests {
         let mut source = LabFixture::new();
         let mut good = rules();
         good.inspect_lab(&mut source).unwrap();
+        let manifest: Value = serde_json::from_slice(&source.members[LAB_MANIFEST]).unwrap();
+        let a_path = manifest["variants"][0]["event_ref"].as_str().unwrap();
+        let a_raw = source.members[a_path].clone();
+        // General and named routes can inspect the same exact immutable record.
+        good.inspect_event(&mut source, a_path, &a_raw).unwrap();
         let report = good.finish();
         assert!(report.issues.is_empty(), "{:?}", report.issues);
         assert_eq!(report.event_ids.len(), 3);
@@ -1047,7 +962,24 @@ mod tests {
         assert!(report.negative_controls.values().all(|v| *v));
         assert!(!report.source_admission_complete);
 
-        let manifest: Value = serde_json::from_slice(&source.members[LAB_MANIFEST]).unwrap();
+        let mut collision = rules();
+        collision
+            .inspect_event(&mut source, a_path, &a_raw)
+            .unwrap();
+        collision
+            .inspect_event(
+                &mut source,
+                "ToS/research-packets/duplicate-current-owner.event.v2.json",
+                &a_raw,
+            )
+            .unwrap();
+        assert!(
+            collision
+                .finish()
+                .issues
+                .iter()
+                .any(|issue| issue.code == "duplicate-provenance-v2-event-id")
+        );
         let b = manifest["variants"][1]["output_ref"]
             .as_str()
             .unwrap()
@@ -1065,17 +997,25 @@ mod tests {
 
         let deadline = Instant::now() + Duration::from_secs(1);
         assert_eq!(
-            observed_iso("2026-08-11T00:00:00.123456789+01:00").unwrap(),
-            observed_iso("2026-08-10T23:00:00.123456Z").unwrap()
-        );
-        assert!(
-            semantic_issues(
-                &json!({"activity":{"started_at":"2026W331T000000", "ended_at":"2026W331T000001"}}),
-                128,
-                deadline
+            observed_datetime_raw_order(
+                "2026-08-11T00:00:00.123456789+01:00",
+                "2026-08-10T23:00:00.123456Z"
             )
-            .is_err()
+            .unwrap(),
+            std::cmp::Ordering::Equal
         );
-        assert!(observed_iso("2026-09-14T00:00:00+01:99").is_err());
+        let mut broad = serde_json::from_slice::<Value>(&a_raw).unwrap();
+        broad["activity"]["started_at"] = json!("2026W331T000000");
+        broad["activity"]["ended_at"] = json!("2026W331T000001");
+        assert!(semantic_issues(&broad, 128, deadline).unwrap().is_empty());
+        broad["activity"]["started_at"] = json!("2026-09-14T00:00:00+01:99");
+        broad["activity"]["ended_at"] = broad["activity"]["started_at"].clone();
+        assert!(semantic_issues(&broad, 128, deadline).unwrap().is_empty());
+        broad["activity"]["started_at"] = json!("2026-09-14Z");
+        assert!(
+            semantic_issues(&broad, 128, deadline)
+                .unwrap()
+                .contains(&"provenance activity timestamps are not comparable")
+        );
     }
 }
