@@ -43,7 +43,7 @@ pub use knowledge_full::{
 };
 pub use knowledge_global_titles::{
     CompleteBaseNodes, GlobalTitleLimits, GlobalTitleReceipt, clear_global_titles, endpoint_title,
-    order_native_graph_rows, prepare_global_titles,
+    order_native_graph_rows, prepare_global_titles, verify_global_titles,
 };
 pub use knowledge_indexed::{IndexedLimits, IndexedReceipt, materialize_indexed_sources};
 pub use knowledge_inherited_views::{
@@ -57,10 +57,9 @@ pub use knowledge_navigation_finalize::{
     NavigationFinalizeLimits, NavigationInheritedReceipt, apply_navigation_inherited_views,
 };
 pub use knowledge_navigation_materialize::{
-    NavigationMaterializeLimits, NavigationNodeMaterializeReceipt,
-    NavigationPlaceholderReceipt, NavigationRelationMaterializeReceipt,
-    materialize_navigation_nodes, materialize_navigation_placeholders,
-    materialize_navigation_relations,
+    NavigationMaterializeLimits, NavigationNodeMaterializeReceipt, NavigationPlaceholderReceipt,
+    NavigationRelationMaterializeReceipt, materialize_navigation_nodes,
+    materialize_navigation_placeholders, materialize_navigation_relations,
 };
 pub use knowledge_ordered::{
     NormalizedNodeCandidate, NormalizedRelationCandidate, OrderedCandidateLimits,

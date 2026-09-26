@@ -284,6 +284,91 @@ pub fn endpoint_title(
         .ok_or(Error::Invalid("global title JSON"))
 }
 
+/// Recheck the private complete title carrier before another source relation
+/// family consumes it. Claim finalization may have changed node payloads;
+/// this receipt intentionally binds the earlier complete base-node generation.
+pub fn verify_global_titles(
+    stage: &mut KnowledgeStage<'_>,
+    receipt: &GlobalTitleReceipt,
+    max_title_bytes: usize,
+    max_work_bytes: u64,
+) -> Result<()> {
+    let result = (|| {
+        if receipt.source_cut != stage.exact_receipt().binding.source_cut
+            || receipt.title_count != receipt.base_node_count
+            || max_title_bytes == 0
+            || max_title_bytes > 64 * 1024
+            || max_work_bytes == 0
+        {
+            return Err(Error::Invalid("global title verification binding"));
+        }
+        let base = Digest256::from_hex(&receipt.base_node_root_sha256)
+            .map_err(|_| Error::Invalid("global title verification base root"))?;
+        stage.with_connection(WritePhase::Sort, |db| {
+            let mut root = Digest256Hasher::new();
+            root.update(b"tos-global-titles-v1\0");
+            root.update(&(receipt.source_cut.len() as u64).to_be_bytes());
+            root.update(receipt.source_cut.as_bytes());
+            root.update(base.as_bytes());
+            let mut count = 0u64;
+            let mut work = 0u64;
+            let mut statement = db.prepare(
+                "SELECT t.node_id,t.title_len,t.title_sha256,
+                CASE WHEN typeof(t.title_json)='blob' AND t.title_len=length(t.title_json)
+                AND length(t.title_json)<=?1 THEN t.title_json ELSE NULL END
+                FROM knowledge_global_titles t JOIN knowledge_nodes n ON n.id=t.node_id
+                ORDER BY n.source_graph,n.id",
+            )?;
+            let mut rows = statement.query([max_title_bytes as i64])?;
+            while let Some(row) = rows.next()? {
+                let id: String = row.get(0)?;
+                let length: i64 = row.get(1)?;
+                let sha: Vec<u8> = row.get(2)?;
+                let bytes = row
+                    .get::<_, Option<Vec<u8>>>(3)?
+                    .ok_or(Error::Budget("global title verify bytes"))?;
+                if length < 0
+                    || length as usize != bytes.len()
+                    || sha.len() != 32
+                    || Digest256::of_bytes(&bytes).as_bytes().as_slice() != sha
+                {
+                    return Err(Error::Invalid("global title verify digest"));
+                }
+                count = count
+                    .checked_add(1)
+                    .ok_or(Error::Budget("global title verify rows"))?;
+                work = work
+                    .checked_add(bytes.len() as u64)
+                    .ok_or(Error::Budget("global title verify work"))?;
+                if count > receipt.title_count || work > max_work_bytes {
+                    return Err(Error::Budget("global title verify scan"));
+                }
+                root_item(
+                    &mut root,
+                    &id,
+                    &sha.try_into()
+                        .map_err(|_| Error::Invalid("global title verify digest"))?,
+                );
+            }
+            let all: u64 =
+                db.query_row("SELECT count(*) FROM knowledge_global_titles", [], |r| {
+                    r.get(0)
+                })?;
+            if count != receipt.title_count
+                || all != count
+                || root.finalize().to_hex() != receipt.title_root_sha256
+            {
+                return Err(Error::Invalid("global title verify complete root"));
+            }
+            Ok(())
+        })
+    })();
+    if result.is_err() {
+        stage.poison();
+    }
+    result
+}
+
 /// Each family appends unique private rows. Sort them only after the complete
 /// node or relation pass, before root-dependent joins or selected sealing.
 /// The disk-backed mapping avoids copying payloads or retaining all IDs in RAM.

@@ -943,7 +943,15 @@ pub(crate) fn selected_table_closure(db: &Connection) -> Result<()> {
         ),
         (
             "knowledge_nodes_entity",
-            "CREATE INDEX knowledge_nodes_entity ON knowledge_nodes(entity_id,source_order)",
+            "CREATE INDEX knowledge_nodes_entity ON knowledge_nodes(entity_id,source_order,id)",
+        ),
+        (
+            "knowledge_nodes_native",
+            "CREATE INDEX knowledge_nodes_native ON knowledge_nodes(native_id,source_order,id)",
+        ),
+        (
+            "knowledge_relations_native",
+            "CREATE INDEX knowledge_relations_native ON knowledge_relations(native_id,source_order,id)",
         ),
         (
             "knowledge_relations_source_order",
@@ -1344,13 +1352,15 @@ CREATE TABLE knowledge_nodes(
  payload_len INTEGER NOT NULL,payload_sha256 BLOB NOT NULL,payload BLOB NOT NULL) WITHOUT ROWID;
 CREATE INDEX knowledge_nodes_source_order ON knowledge_nodes(source_graph,source_order,id);
 CREATE INDEX knowledge_nodes_kind ON knowledge_nodes(kind_id,source_order);
-CREATE INDEX knowledge_nodes_entity ON knowledge_nodes(entity_id,source_order);
+CREATE INDEX knowledge_nodes_entity ON knowledge_nodes(entity_id,source_order,id);
+CREATE INDEX knowledge_nodes_native ON knowledge_nodes(native_id,source_order,id);
 CREATE TABLE knowledge_relations(
  id TEXT PRIMARY KEY,source_graph TEXT NOT NULL,native_id TEXT,
  from_id TEXT NOT NULL,to_id TEXT NOT NULL,predicate_id TEXT NOT NULL,
  relation_type_id TEXT NOT NULL,source_order INTEGER NOT NULL UNIQUE,
  payload_len INTEGER NOT NULL,payload_sha256 BLOB NOT NULL,payload BLOB NOT NULL) WITHOUT ROWID;
 CREATE INDEX knowledge_relations_source_order ON knowledge_relations(source_graph,source_order,id);
+CREATE INDEX knowledge_relations_native ON knowledge_relations(native_id,source_order,id);
 CREATE INDEX knowledge_relations_from ON knowledge_relations(from_id,source_order,id);
 CREATE INDEX knowledge_relations_to ON knowledge_relations(to_id,source_order,id);
 CREATE INDEX knowledge_relations_predicate ON knowledge_relations(predicate_id,source_order);

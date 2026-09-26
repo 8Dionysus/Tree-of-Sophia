@@ -19,7 +19,7 @@ use tos_foundation::{
     canonical_bytes_v1, parse_json,
 };
 
-pub const KNOWLEDGE_MODEL_ABI: &str = "tos_knowledge_read_model_v1";
+pub use crate::knowledge_seal::KNOWLEDGE_MODEL_ABI;
 // Query vocabulary's semantic primitive profile is distinct from the
 // search-index Unicode normalization profile.
 pub const KNOWLEDGE_QUERY_PRIMITIVE_PROFILE: &str = "tos-query-primitives-v1";
@@ -1310,6 +1310,8 @@ pub(crate) fn verify_schema(db: &Connection) -> Result<()> {
         "knowledge_nodes_source_order",
         "knowledge_nodes_kind",
         "knowledge_nodes_entity",
+        "knowledge_nodes_native",
+        "knowledge_relations_native",
         "knowledge_relations_source_order",
         "knowledge_relations_from",
         "knowledge_relations_to",
