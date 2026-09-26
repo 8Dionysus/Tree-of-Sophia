@@ -20,6 +20,7 @@ mod global_facts;
 pub mod item_rules;
 pub mod record_rules;
 pub mod relation_rules;
+pub mod retirement_rules;
 pub mod source_copy;
 pub mod source_cut;
 pub mod source_forms;
