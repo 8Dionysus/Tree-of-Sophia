@@ -14,7 +14,7 @@ use tos_foundation::{CanonicalProfile, Digest256, Digest256Hasher, JsonLimits, J
 use tos_source_store::{CorpusCutReader, SourceMembershipV1};
 
 use crate::PredicateRead;
-use crate::item_rules::{ItemLimits, ItemRefusal};
+use crate::item_rules::{ItemFamilyReport, ItemLimits, ItemRefusal};
 use crate::record_rules::RecordFamily;
 use crate::retirement_rules::{RetirementLimits, RetirementRefusal, inspect_retirements_from_cut};
 use crate::source_cut::{CutExecutionBinding, CutPayloadReader, CutSchemaReceipt,
@@ -302,6 +302,7 @@ pub struct OperationFamilyReport {
     worker: CutExecutionBinding,
     schema_receipts: Vec<CutSchemaReceipt>,
     executed_rules: Vec<String>,
+    item_family: Option<ItemFamilyReport>,
 }
 
 impl OperationFamilyReport {
@@ -311,6 +312,7 @@ impl OperationFamilyReport {
     pub fn worker(&self) -> &CutExecutionBinding { &self.worker }
     pub fn schema_receipts(&self) -> &[CutSchemaReceipt] { &self.schema_receipts }
     pub fn executed_rules(&self) -> &[String] { &self.executed_rules }
+    pub fn item_family(&self) -> Option<&ItemFamilyReport> { self.item_family.as_ref() }
     pub fn general_source_missing_rules(&self) -> Vec<String> {
         // Local family results cannot satisfy any entire general row merely
         // because a positive fixture or a worker instance was green.
@@ -356,8 +358,8 @@ pub fn inspect_item_operation(
     if result.carrier_membership != binding.candidate_carrier {
         return Err(OperationRefusal::InvalidProposal("family carrier differs from proposal"));
     }
-    let issues = result.item_family.issues.into_iter().map(|issue| OperationIssue {
-        path: issue.path, code: issue.code.into(),
+    let issues = result.item_family.issues.iter().map(|issue| OperationIssue {
+        path: issue.path.clone(), code: issue.code.into(),
     }).collect::<Vec<_>>();
     check(operation_limits, cancelled)?;
     Ok(OperationFamilyReport { binding, scope: OperationFamilyScope::ItemCompanions,
@@ -366,6 +368,7 @@ pub fn inspect_item_operation(
         worker: schemas.execution_binding(),
         schema_receipts: schemas.receipts()[receipt_start..].to_vec(),
         executed_rules: vec!["tos.val.item-compound.current@1".into()],
+        item_family: Some(result.item_family),
     })
 }
 
@@ -399,5 +402,6 @@ pub fn inspect_retirement_operation(
         state, worker: schemas.execution_binding(),
         schema_receipts: schemas.receipts()[receipt_start..].to_vec(),
         executed_rules: vec!["tos.val.source.retirement@1".into()],
+        item_family: None,
     })
 }

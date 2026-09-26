@@ -9,9 +9,10 @@ use tos_validation::FormatProfile;
 use tos_validation::executor::{ExactWorkerIdentity, ExecutorBudget};
 use tos_validation::item_rules::ItemLimits;
 use tos_validation::record_rules::{RecordFamily, RecordSchema};
-use tos_validation::source_cut::{
-    CutWorkerLimits, CutWorkerSchemaExecutor, MetadataOnlyPayloads, inspect_items_from_cut,
-};
+use tos_validation::source_cut::{CutWorkerLimits, CutWorkerSchemaExecutor, MetadataOnlyPayloads};
+use tos_validation::operation::{OperationChange, OperationFamilyScope, OperationFamilyState,
+    OperationLimits, OperationProposal, OperationRefusal, bind_operation_from_cut,
+    inspect_item_operation};
 
 const REGISTRY: &str = "ToS/doctrine/semantic-interchange/entity-types.v1.json";
 const ENTITY_SCHEMA: &str = "ToS/contracts/semantic-entity-type-registry.schema.json";
@@ -60,6 +61,11 @@ fn selected_item_sources() -> BTreeMap<String, Vec<u8>> {
 // The corpus carrier is disposable transport. These actual source bytes and
 // empty routing claims do not certify source enumeration or semantic identity.
 pub(super) fn write_cut_store(files: &BTreeMap<String, Vec<u8>>, root: &Path) -> SourceRevision {
+    write_cut_store_on_base(files, root, None)
+}
+
+fn write_cut_store_on_base(files: &BTreeMap<String, Vec<u8>>, root: &Path,
+    base: Option<SourceRevision>) -> SourceRevision {
     fs::create_dir_all(root.join("objects")).unwrap();
     fs::create_dir_all(root.join("revisions")).unwrap();
     let members: Vec<_> = files
@@ -71,7 +77,7 @@ pub(super) fn write_cut_store(files: &BTreeMap<String, Vec<u8>>, root: &Path) ->
         })
         .collect();
     let mut manifest = serde_json::json!({"schema_version":"tos_corpus_snapshot_v1",
-        "base_revision":null,"files":members,"identities":{},"dependencies":{},
+        "base_revision":base.map(|revision| revision.0.to_hex()),"files":members,"identities":{},"dependencies":{},
         "retirements":[],"validator_sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"});
     let revision = SourceRevision(Digest256::of_bytes(&canonical_json(&manifest)));
     manifest["revision"] = Value::String(revision.0.to_hex());
@@ -144,10 +150,14 @@ pub(super) fn selected_worker_path() -> PathBuf {
 
 #[test]
 fn actual_cut_worker_and_item_companions_preserve_metadata_only_outcome() {
-    let files = selected_item_sources();
+    let before = selected_item_sources();
     let temporary = tempfile::tempdir().unwrap();
     let root = temporary.path().join("store");
-    let revision = write_cut_store(&files, &root);
+    let base = write_cut_store(&before, &root);
+    let mut files = before.clone();
+    let changed_path = format!("{ITEM}/forensic-report.md");
+    files.get_mut(&changed_path).unwrap().push(b'\n');
+    let revision = write_cut_store_on_base(&files, &root, Some(base));
     let cancelled = AtomicBool::new(false);
     let deadline = Instant::now() + Duration::from_secs(60);
     let limits = ReadLimits {
@@ -162,8 +172,8 @@ fn actual_cut_worker_and_item_companions_preserve_metadata_only_outcome() {
             revision,
             CutReadLimits {
                 max_revisions: 4,
-                max_members: 512,
-                max_total_bytes: 8_388_608,
+                max_members: 1024,
+                max_total_bytes: 16_777_216,
                 max_member_bytes: 2_097_152,
             },
             deadline,
@@ -190,8 +200,50 @@ fn actual_cut_worker_and_item_companions_preserve_metadata_only_outcome() {
         &cancelled,
     )
     .unwrap();
-    let report = inspect_items_from_cut(
+    let request_raw = br#"{"operation":"fixture-item-metadata"}"#.to_vec();
+    let configuration_raw = br#"{"owner":"private-fixture","scope":"item-companions"}"#.to_vec();
+    let canonical_digest = |raw: &[u8]| {
+        Digest256::of_bytes(&tos_foundation::canonical_raw_bytes_v1(raw,
+            tos_foundation::CanonicalProfile::SourceCommandInputV1,
+            JsonLimits::default()).unwrap())
+    };
+    let proposal = OperationProposal {
+        handler_id: "fixture-item-handler".into(), operation: "fixture-item-metadata".into(),
+        base_revision: base, candidate_revision: revision,
+        request_canonical_sha256: canonical_digest(&request_raw), request_raw,
+        // This protected namespace is deliberately absent from authored members.
+        configuration_path: RelativePath::parse("protected/owner-operation.json").unwrap(),
+        configuration_raw_sha256: Digest256::of_bytes(&configuration_raw),
+        configuration_canonical_sha256: canonical_digest(&configuration_raw), configuration_raw,
+        changes: vec![OperationChange { path: RelativePath::parse(&changed_path).unwrap(),
+            before: Some(Digest256::of_bytes(&before[&changed_path])),
+            after: Some(Digest256::of_bytes(&files[&changed_path])) }],
+    };
+    let operation_limits = OperationLimits { max_member_bytes: 2_097_152,
+        max_total_bytes: 16_777_216, max_state_bytes: 4_194_304,
+        max_reads: 2048, max_changes: 128, deadline };
+    // Reuse the selected carrier; no schema worker runs for these rejected
+    // exact-proposal controls. Each protects a distinct command boundary.
+    let mut control = proposal.clone();
+    control.changes.clear();
+    assert!(matches!(bind_operation_from_cut(&cut,&control,operation_limits,&cancelled),
+        Err(OperationRefusal::InvalidProposal("undeclared source change"))));
+    control = proposal.clone();
+    control.changes[0].before = None;
+    assert!(matches!(bind_operation_from_cut(&cut,&control,operation_limits,&cancelled),
+        Err(OperationRefusal::InvalidProposal("source change digest mismatch"))));
+    control = proposal.clone();
+    control.configuration_raw.push(b' ');
+    assert!(matches!(bind_operation_from_cut(&cut,&control,operation_limits,&cancelled),
+        Err(OperationRefusal::InvalidProposal("request or configuration digest mismatch"))));
+    control = proposal.clone();
+    control.changes.push(control.changes[0].clone());
+    assert!(matches!(bind_operation_from_cut(&cut,&control,operation_limits,&cancelled),
+        Err(OperationRefusal::InvalidProposal("duplicate or empty change"))));
+    let report = inspect_item_operation(
         &cut,
+        &proposal,
+        operation_limits,
         ItemLimits {
             max_member_bytes: 1_048_576,
             max_total_bytes: 16_777_216,
@@ -207,13 +259,21 @@ fn actual_cut_worker_and_item_companions_preserve_metadata_only_outcome() {
     )
     .unwrap();
     assert!(
-        report.item_family.issues.is_empty(),
+        report.item_family().unwrap().issues.is_empty(),
         "{:?}",
-        report.item_family.issues
+        report.item_family().unwrap().issues
     );
-    assert_eq!(report.item_family.unavailable_payloads, 1);
-    assert!(!report.item_family.source_admission_complete);
-    assert_eq!(report.carrier_membership.count, files.len() as u64);
+    assert_eq!(report.item_family().unwrap().unavailable_payloads, 1);
+    assert!(!report.item_family().unwrap().source_admission_complete);
+    assert_eq!(report.binding().candidate_carrier().count, files.len() as u64);
+    assert_eq!(report.scope(), OperationFamilyScope::ItemCompanions);
+    assert_eq!(report.state(), &OperationFamilyState::MechanicsComplete);
+    assert!(!report.general_source_missing_rules().is_empty());
+    assert_eq!(report.binding().base_revision(), base);
+    assert_eq!(report.binding().configuration().raw_sha256,
+        proposal.configuration_raw_sha256);
+    assert_eq!(report.worker().source_revision, revision);
+    assert_eq!(report.schema_receipts().len(), schemas.receipts().len());
     assert!(!schemas.receipts().is_empty());
     for receipt in schemas.receipts() {
         assert_eq!(receipt.source_revision, revision);
