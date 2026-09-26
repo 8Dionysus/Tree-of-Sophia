@@ -9,6 +9,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::sync::atomic::AtomicBool;
 use std::time::Instant;
 use tos_foundation::{Digest256, JsonValue, RelativePath, python_strip_unicode16_v1};
+use tos_source_store::{CorpusCutReader, SoftwareCaptureReader, SoftwareComponentSelectionV1};
 use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
 
 pub const CLAIM_STREAM: &str = "source-claims.jsonl";
@@ -68,7 +69,7 @@ fn rows(raw: &[u8]) -> SourceCommandResult<BTreeMap<String, JsonValue>> {
     }
     let mut records = BTreeMap::new();
     for line in raw.split(|b| *b == b'\n') {
-        if line.iter().all(u8::is_ascii_whitespace) {
+        if python_bytes_blank(line) {
             continue;
         }
         let record = parse(line)?;
@@ -86,7 +87,7 @@ pub fn replace_claim_row(raw: &[u8], revised: &JsonValue) -> SourceCommandResult
     let mut found = false;
     let mut output = Vec::new();
     for line in raw.split_inclusive(|b| *b == b'\n') {
-        if !line.iter().all(u8::is_ascii_whitespace) && text(&parse(line)?, "claim_id")? == id {
+        if !python_bytes_blank(line) && text(&parse(line)?, "claim_id")? == id {
             if found {
                 return Err(SourceCommandError::Conflict("repeated selected Claim"));
             }
@@ -697,6 +698,165 @@ pub fn run_claim_command(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<PreparedCommand> {
+    run_claim_command_inner(ctx, None, executor, deadline, cancelled)
+}
+
+/// Authenticate the complete current member universe before inventory-based
+/// absence, form allocation or maintained dependency fingerprint decisions.
+/// Named Python sources are frozen rule inputs, never a runtime identity.
+pub fn run_claim_command_from_cut(
+    ctx: &CommandContext,
+    cut: &CorpusCutReader,
+    executor: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<PreparedCommand> {
+    if ctx
+        .files
+        .iter()
+        .any(|input| !input.path.as_str().starts_with("ToS/"))
+    {
+        return Err(SourceCommandError::Unsupported(
+            "Claim software rule inputs require separately selected software capture",
+        ));
+    }
+    let files = complete_authored_inputs(ctx, cut, deadline, cancelled)?;
+    let complete = CommandContext {
+        files,
+        ..ctx.clone()
+    };
+    complete.check()?;
+    run_claim_command_inner(&complete, Some(ctx), executor, deadline, cancelled)
+}
+
+/// Software rule-contract bytes are custody-checked through their separate
+/// selected component capture; they never become authored source members.
+pub fn run_claim_command_from_captures(
+    ctx: &CommandContext,
+    cut: &CorpusCutReader,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    executor: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<PreparedCommand> {
+    ctx.check_from_selected_captures(cut, software, components, deadline, cancelled)?;
+    let mut files = complete_authored_inputs(ctx, cut, deadline, cancelled)?;
+    files.extend(
+        ctx.files
+            .iter()
+            .filter(|input| !input.path.as_str().starts_with("ToS/"))
+            .cloned(),
+    );
+    let complete = CommandContext {
+        files,
+        ..ctx.clone()
+    };
+    complete.check()?;
+    run_claim_command_inner(&complete, Some(ctx), executor, deadline, cancelled)
+}
+
+fn complete_authored_inputs(
+    ctx: &CommandContext,
+    cut: &CorpusCutReader,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<Vec<SourceFile>> {
+    if cut.current().revision() != ctx.base_revision {
+        return Err(SourceCommandError::Conflict(
+            "Claim inventory cut differs from command base",
+        ));
+    }
+    let mut files = Vec::new();
+    for descriptor in cut.current().members() {
+        if !descriptor.path.as_str().starts_with("ToS/") {
+            return Err(SourceCommandError::Unsupported(
+                "software or other namespace cannot masquerade as authored Claim cut member",
+            ));
+        }
+        let components = descriptor.path.as_str().split('/').collect::<Vec<_>>();
+        if descriptor
+            .path
+            .as_str()
+            .starts_with("ToS/source-witnesses/owner-local/")
+        {
+            return Err(SourceCommandError::Denied(
+                "reserved owner-local namespace in complete Claim inventory",
+            ));
+        }
+        // Membership is authenticated by the source-cut descriptor. Its public
+        // metadata inventory must never open private payload or local-content.
+        if components
+            .iter()
+            .any(|part| ["payload", "local-content"].contains(part))
+        {
+            let basename = descriptor.path.as_str().rsplit('/').next().unwrap_or("");
+            if NATIVE_CATALOG_KINDS
+                .iter()
+                .any(|kind| basename == format!("{kind}.json"))
+                || basename == CLAIM_STREAM
+                || LEGACY_CLAIM_STREAMS.contains(&basename)
+                || ["artifact-witness.json", "composite-witness.json"].contains(&basename)
+                || basename.starts_with("semantic-annotation") && basename.ends_with(".json")
+            {
+                return Err(SourceCommandError::Unsupported(
+                    "private metadata carrier cannot enter maintained public catalog fingerprint",
+                ));
+            }
+            continue;
+        }
+        if files.len() >= 4096 {
+            return Err(SourceCommandError::Unsupported(
+                "Claim complete inventory exceeds command member budget",
+            ));
+        }
+        let member = cut
+            .read_member(
+                ctx.base_revision,
+                &descriptor.path,
+                8_388_608,
+                deadline,
+                cancelled,
+            )
+            .map_err(|_| SourceCommandError::Conflict("Claim inventory member read refused"))?;
+        files.push(SourceFile {
+            path: member.path,
+            raw: member.raw,
+        });
+    }
+    for selected in ctx
+        .files
+        .iter()
+        .filter(|input| input.path.as_str().starts_with("ToS/"))
+    {
+        if files
+            .iter()
+            .find(|file| file.path == selected.path)
+            .map(|file| &file.raw)
+            != Some(&selected.raw)
+        {
+            return Err(SourceCommandError::Conflict(
+                "selected Claim input differs from complete cut",
+            ));
+        }
+    }
+    Ok(files)
+}
+
+fn run_claim_command_inner(
+    ctx: &CommandContext,
+    selected_context: Option<&CommandContext>,
+    executor: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<PreparedCommand> {
+    // Planning must bind the complete read closure as well as caller inputs.
+    // A partial caller context cannot be used to bind this proposal afterward.
+    if selected_context.is_some_and(|selected| selected.files.len() != ctx.files.len()) {
+        return Err(SourceCommandError::Unsupported(
+            "Claim proposal requires complete cut members in command context",
+        ));
+    }
     let (config, p, handler, create, version) = config(ctx)?;
     if executor.source_revision() != ctx.base_revision {
         return Err(SourceCommandError::Conflict(
@@ -707,6 +867,11 @@ pub fn run_claim_command(
     let request = parse(&ctx.request_raw)?;
     grammar(&request, create, version == 7)?;
     let operation = text(&request, "operation")?;
+    if !["describe", "inspect-version"].contains(&operation) && selected_context.is_none() {
+        return Err(SourceCommandError::Unsupported(
+            "maintained Claim grounding requires authenticated complete source cut inventory",
+        ));
+    }
     let digest = record_digest(&config)?.to_prefixed();
     for (source, contract) in [
         (
@@ -830,9 +995,14 @@ pub fn run_claim_command(
                 "creation replay requires complete retained provenance and predecessor closure",
             ));
         }
-        let dependencies = dependencies(ctx)?;
-        set(&mut response, "expected_dependencies", dependencies.clone())?;
-        set(&mut response, "source_bindings", bindings(ctx)?)?;
+        let grounding =
+            maintained_grounding(ctx, &config, claims, None, executor, deadline, cancelled)?;
+        set(
+            &mut response,
+            "expected_dependencies",
+            grounding.dependencies.clone(),
+        )?;
+        set(&mut response, "source_bindings", grounding.bindings)?;
         set(
             &mut response,
             "prepared_files",
@@ -1068,8 +1238,21 @@ pub fn run_claim_command(
         "prepared_materializations",
         JsonValue::Array(views),
     )?;
-    set(&mut response, "expected_dependencies", dependencies(ctx)?)?;
-    set(&mut response, "source_bindings", bindings(ctx)?)?;
+    let grounding = maintained_grounding(
+        ctx,
+        &config,
+        std::slice::from_ref(&revised),
+        Some(forms),
+        executor,
+        deadline,
+        cancelled,
+    )?;
+    set(
+        &mut response,
+        "expected_dependencies",
+        grounding.dependencies.clone(),
+    )?;
+    set(&mut response, "source_bindings", grounding.bindings.clone())?;
     if operation == "claim.revise" {
         if !same(field(&request, "expected_configuration")?, &string(&digest))?
             || !same(
@@ -1079,9 +1262,9 @@ pub fn run_claim_command(
             || !same(field(&request, "expected_revision")?, &revision(&files)?)?
             || !same(
                 field(&request, "expected_dependencies")?,
-                &dependencies(ctx)?,
+                &grounding.dependencies,
             )?
-            || !same(field(&request, "expected_inputs")?, &bindings(ctx)?)?
+            || !same(field(&request, "expected_inputs")?, &grounding.bindings)?
         {
             return Err(SourceCommandError::Conflict(
                 "Claim prepared source/dependencies are stale",
@@ -1124,8 +1307,8 @@ pub fn run_claim_command(
             ("source", metadata_subject(&revised)?),
             ("previous_revision", previous_revision.clone()),
             ("archive_path", string(&archive_path)),
-            ("dependencies", dependencies(ctx)?),
-            ("source_bindings", bindings(ctx)?),
+            ("dependencies", grounding.dependencies),
+            ("source_bindings", grounding.bindings),
             ("changed_fields", changed_fields),
             ("forms", JsonValue::Array(formrefs)),
             ("grants_admission", JsonValue::Bool(false)),
@@ -1214,23 +1397,1051 @@ pub fn run_claim_command(
         false,
     )
 }
-fn dependencies(ctx: &CommandContext) -> SourceCommandResult<JsonValue> {
-    // Rust command input closure; deliberately a separate digest contract from
-    // Python's directory-scanning legacy snapshot. Includes exact raw bindings.
-    Ok(string(&record_digest(&bindings(ctx)?)?.to_prefixed()))
+/// Fixed maintained rule-contract inputs, not executed producers or issuers.
+pub const CLAIM_GROUNDING_RULE_INPUTS: &[&str] = &[
+    "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_claim_commands.py",
+    "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py",
+    "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_command_contracts.py",
+    "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/assessment_journal.py",
+    "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/knowledge_assessment.py",
+    "scripts/source_record_profiles.py",
+    "scripts/source_identity_proposals.py",
+    "scripts/source_document_catalogue.py",
+    "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/metadata_version_reader.py",
+    "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/claim_version_reader.py",
+    "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_historical_claims.py",
+    "scripts/native_text_binding.py",
+    "scripts/source_owner_context.py",
+    "scripts/build_source_witness_catalog.py",
+    "scripts/source_witness_bibliographic_graph_common.py",
+];
+pub const CLAIM_REVISION_RULE_INPUTS: &[&str] = &[
+    "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/claim_revisions.py",
+    "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_revisions.py",
+    "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_historical_claims.py",
+    "scripts/source_witness_human_forms.py",
+    "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/human_forms.py",
+    "ToS/contracts/human-form.schema.json",
+    "ToS/contracts/human-form-set.schema.json",
+    "ToS/contracts/human-form-template.schema.json",
+];
+const NATIVE_CATALOG_KINDS: &[&str] = &[
+    "agent",
+    "place",
+    "organization",
+    "work",
+    "expression",
+    "edition",
+    "collection",
+    "item",
+    "link",
+];
+const CATALOG_LINK_FIELDS: &[&str] = &[
+    "work_ref",
+    "expression_claim_refs",
+    "responsibility_claim_refs",
+    "chronology_claim_refs",
+    "embodiment_claim_refs",
+    "derivation_claim_refs",
+    "embodies_expression_refs",
+    "publication_claim_refs",
+    "provision_activity_claim_refs",
+    "exemplar_claim_refs",
+    "collection_ref",
+    "membership_claim_refs",
+    "item_manifest_ref",
+    "association_claim_refs",
+];
+const LEGACY_CLAIM_STREAMS: &[&str] = &[
+    "membership-claims.jsonl",
+    "responsibility-claims.jsonl",
+    "publication-claims.jsonl",
+    "provision-activity-claims.jsonl",
+    "work-chronology-claims.jsonl",
+    "work-expression-claims.jsonl",
+    "expression-edition-claims.jsonl",
+    "edition-item-claims.jsonl",
+    "expression-derivation-claims.jsonl",
+    "object-link-claims.jsonl",
+    "historical-claims.jsonl",
+];
+struct ClaimGrounding {
+    dependencies: JsonValue,
+    bindings: JsonValue,
 }
-fn bindings(ctx: &CommandContext) -> SourceCommandResult<JsonValue> {
-    let mut files = BTreeMap::new();
-    for f in &ctx.files {
-        files.insert(f.path.as_str().to_owned(), f.raw.clone());
+fn raw_digests(
+    ctx: &CommandContext,
+    refs: &[&str],
+    prefixed: bool,
+) -> SourceCommandResult<JsonValue> {
+    let mut result = object(vec![]);
+    for name in refs {
+        let raw = ctx
+            .file(&path(name)?)?
+            .ok_or(SourceCommandError::Unsupported(
+                "fixed maintained Claim rule input absent from selected authored/software carrier",
+            ))?;
+        let digest = Digest256::of_bytes(raw);
+        set(
+            &mut result,
+            name,
+            string(&if prefixed {
+                digest.to_prefixed()
+            } else {
+                digest.to_hex()
+            }),
+        )?;
     }
-    Ok(object(vec![
+    Ok(result)
+}
+fn include_schema(
+    ctx: &CommandContext,
+    inputs: &mut JsonValue,
+    name: &str,
+) -> SourceCommandResult<()> {
+    set(
+        inputs,
+        name,
+        string(&Digest256::of_bytes(selected(ctx, name)?).to_hex()),
+    )
+}
+fn include_route(
+    ctx: &CommandContext,
+    inputs: &mut JsonValue,
+    route: &JsonValue,
+    extras: &[&str],
+) -> SourceCommandResult<()> {
+    for name in extras {
+        include_schema(ctx, inputs, name)?;
+    }
+    for name in array(route, "schema_dependencies")? {
+        include_schema(
+            ctx,
+            inputs,
+            name.as_str()
+                .ok_or(SourceCommandError::Invalid("schema dependency"))?,
+        )?;
+    }
+    include_schema(ctx, inputs, text(route, "schema_ref")?)
+}
+fn claim_profile_inputs(
+    ctx: &CommandContext,
+    claim: &JsonValue,
+    inputs: &mut JsonValue,
+) -> SourceCommandResult<&'static str> {
+    let (_, descriptor) = profile(ctx, text(claim, "predicate")?)?;
+    let reader = text(&descriptor, "reader")?;
+    if reader.starts_with("identity-transition-")
+        || descriptor
+            .object_get("object_reference_set")
+            .and_then(|v| v.object_get("basis_adapter"))
+            .is_some()
+    {
+        return Err(SourceCommandError::Unsupported(
+            "maintained exact retained identity/order provenance bindings adapter",
+        ));
+    }
+    let route = array(&descriptor, "schemas")?
+        .iter()
+        .find(|v| v.object_get("schema_version") == claim.object_get("schema_version"))
+        .ok_or(SourceCommandError::Unsupported(
+            "Claim schema fingerprint route",
+        ))?;
+    include_route(
+        ctx,
+        inputs,
+        route,
+        &[
+            "ToS/contracts/claim-packet.schema.json",
+            "ToS/contracts/knowledge-assessment.schema.json",
+            "ToS/contracts/source-claim-record.schema.json",
+        ],
+    )?;
+    let temporal = ["historical-temporal-v1", "document-catalogue-temporal-v1"].contains(&reader);
+    let structured = ["structured-value-v1", "structured-reference-value-v1"].contains(&reader);
+    if temporal {
+        include_schema(ctx, inputs, "ToS/contracts/historical-claim.schema.json")?;
+    }
+    if structured {
+        for name in [
+            "ToS/contracts/corpus-record.schema.json",
+            "ToS/contracts/source-structured-value.schema.json",
+        ] {
+            include_schema(ctx, inputs, name)?;
+        }
+    }
+    if descriptor
+        .object_get("object_reference_set")
+        .and_then(|v| v.object_get("structure_adapter"))
+        .and_then(JsonValue::as_str)
+        == Some("scoped-members-v1")
+    {
+        include_schema(
+            ctx,
+            inputs,
+            "ToS/contracts/scoped-member-structure.schema.json",
+        )?;
+    }
+    if claim
+        .object_get("qualifiers")
+        .and_then(|v| v.object_get("display_fields"))
+        .and_then(|v| v.object_get("schema_version"))
+        .and_then(JsonValue::as_str)
+        == Some("tos_claim_display_fields_v1")
+    {
+        for name in [
+            "ToS/contracts/corpus-record.schema.json",
+            "ToS/contracts/claim-display-fields.schema.json",
+        ] {
+            include_schema(ctx, inputs, name)?;
+        }
+    }
+    Ok(if temporal {
+        "temporal"
+    } else if structured {
+        "structured"
+    } else {
+        "identity"
+    })
+}
+fn catalogue_record(
+    record: &JsonValue,
+    location: &str,
+    schema: Option<&str>,
+) -> SourceCommandResult<JsonValue> {
+    let mut result = object(vec![
         (
             "schema_version",
-            string("tos_rust_claim_selected_inputs_v1"),
+            string("tos_source_witness_catalog_entry_v1"),
         ),
-        ("selected_files", refs(&files)),
-    ]))
+        ("record_id", field(record, "record_id")?.clone()),
+        ("record_type", field(record, "record_type")?.clone()),
+        (
+            "preferred_label",
+            record
+                .object_get("preferred_label")
+                .cloned()
+                .unwrap_or_else(|| string("")),
+        ),
+        (
+            "identity_status",
+            record
+                .object_get("identity_status")
+                .cloned()
+                .unwrap_or_else(|| string("")),
+        ),
+        ("source_record_ref", string(location)),
+        ("record_sha256", string(&record_digest(record)?.to_hex())),
+    ]);
+    if let Some(schema) = schema {
+        set(&mut result, "source_schema_ref", string(schema))?;
+    }
+    let mut links = object(vec![]);
+    for key in CATALOG_LINK_FIELDS {
+        if let Some(value) = record.object_get(key) {
+            set(&mut links, key, value.clone())?;
+        }
+    }
+    set(&mut result, "links", links)?;
+    Ok(result)
+}
+fn catalogue_claim(
+    ctx: &CommandContext,
+    claim: &JsonValue,
+    location: &str,
+    line: usize,
+    profiled: bool,
+) -> SourceCommandResult<JsonValue> {
+    let mut result = object(vec![
+        (
+            "schema_version",
+            string("tos_source_witness_claim_catalog_entry_v1"),
+        ),
+        ("source_claim_file_ref", string(location)),
+        ("source_claim_line", number(line as u64)),
+        ("claim_sha256", string(&record_digest(claim)?.to_hex())),
+    ]);
+    for key in [
+        "claim_id",
+        "claim_type",
+        "assertion_layer",
+        "subject_ref",
+        "predicate",
+        "object",
+        "evidence_refs",
+        "maker",
+        "provenance_event_ref",
+        "epistemic_status",
+        "review_status",
+        "visibility",
+        "claim_version",
+    ] {
+        set(
+            &mut result,
+            key,
+            claim.object_get(key).cloned().unwrap_or(JsonValue::Null),
+        )?;
+    }
+    let reviews = claim
+        .object_get("reviews")
+        .map(|value| {
+            value
+                .as_array()
+                .ok_or(SourceCommandError::Invalid("catalog Claim reviews array"))
+        })
+        .transpose()?
+        .unwrap_or(&[])
+        .iter()
+        .filter_map(|v| v.object_get("review_id"))
+        .filter(|v| v.as_str().is_some())
+        .cloned()
+        .collect();
+    set(&mut result, "review_refs", JsonValue::Array(reviews))?;
+    for key in ["supersedes_claim_ref", "qualifiers"] {
+        if let Some(v) = claim.object_get(key) {
+            set(&mut result, key, v.clone())?;
+        }
+    }
+    if text(claim, "schema_version")? == "tos_historical_claim_v1" {
+        set(
+            &mut result,
+            "source_schema_ref",
+            string("ToS/contracts/historical-claim.schema.json"),
+        )?;
+    }
+    if profiled {
+        let (_, descriptor) = profile(ctx, text(claim, "predicate")?)?;
+        let route = array(&descriptor, "schemas")?
+            .iter()
+            .find(|v| v.object_get("schema_version") == claim.object_get("schema_version"))
+            .ok_or(SourceCommandError::Unsupported(
+                "Claim catalogue schema route",
+            ))?;
+        set(
+            &mut result,
+            "source_schema_ref",
+            field(route, "schema_ref")?.clone(),
+        )?;
+    }
+    Ok(result)
+}
+
+fn maintained_grounding(
+    ctx: &CommandContext,
+    config: &JsonValue,
+    claims: &[JsonValue],
+    forms: Option<&[JsonValue]>,
+    executor: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<ClaimGrounding> {
+    let entities = json_file(ctx, ENTITIES)?;
+    let types = array(&entities, "types")?;
+    let mut kinds: BTreeMap<String, String> = NATIVE_CATALOG_KINDS
+        .iter()
+        .map(|kind| ((*kind).into(), format!("{kind}.json")))
+        .collect();
+    for entity in types {
+        if let Some(profile) = entity.object_get("source_record_profile") {
+            kinds.insert(
+                text(profile, "record_type")?.into(),
+                text(profile, "source_basename")?.into(),
+            );
+        }
+    }
+    let registry_refs = [
+        ENTITIES,
+        "ToS/contracts/semantic-entity-type-registry.schema.json",
+    ];
+    let claim_registry_refs = [
+        ENTITIES,
+        "ToS/contracts/semantic-entity-type-registry.schema.json",
+        RELATIONS,
+        "ToS/contracts/semantic-relation-type-registry.schema.json",
+    ];
+    let mut record_inputs = raw_digests(ctx, &registry_refs, false)?;
+    let mut prior_profile_inputs = raw_digests(ctx, &claim_registry_refs, false)?;
+    let mut new_profile_inputs = raw_digests(ctx, &claim_registry_refs, false)?;
+    let mut records: BTreeMap<String, Vec<JsonValue>> = NATIVE_CATALOG_KINDS
+        .iter()
+        .map(|kind| ((*kind).into(), Vec::new()))
+        .collect();
+    let mut objects = BTreeMap::new();
+    let mut source_records = BTreeMap::new();
+    let mut prior = BTreeMap::new();
+    let mut events = object(vec![]);
+    let mut anchors = object(vec![]);
+    let mut inventory = ctx.files.iter().collect::<Vec<_>>();
+    inventory.sort_by(|left, right| left.path.as_str().cmp(right.path.as_str()));
+    let mut has_profiled_claim = false;
+    for file in &inventory {
+        let location = file.path.as_str();
+        if !location.starts_with("ToS/source-witnesses/")
+            || location.split('/').any(|part| {
+                ["catalog", "payload", "local-content", ".record-revisions"].contains(&part)
+            })
+        {
+            continue;
+        }
+        let basename = location.rsplit('/').next().unwrap_or("");
+        if basename.starts_with("semantic-annotation") && basename.ends_with(".json") {
+            return Err(SourceCommandError::Unsupported(
+                "maintained native semantic identity snapshot adapter",
+            ));
+        }
+        if ["artifact-witness.json", "composite-witness.json"].contains(&basename) {
+            return Err(SourceCommandError::Unsupported(
+                "maintained native artifact/composite catalog fingerprint adapter",
+            ));
+        }
+        if let Some((kind, _)) = kinds.iter().find(|(_, name)| name.as_str() == basename) {
+            let record = parse(&file.raw)?;
+            if text(&record, "record_type")? != kind {
+                return Err(SourceCommandError::Conflict(
+                    "catalog record kind differs from basename",
+                ));
+            }
+            let id = text(&record, "record_id")?.to_owned();
+            if id.is_empty() {
+                return Err(SourceCommandError::Invalid("catalog metadata identity"));
+            }
+            let descriptor = types.iter().find_map(|entity| {
+                entity
+                    .object_get("source_record_profile")
+                    .filter(|profile| {
+                        profile
+                            .object_get("record_type")
+                            .and_then(JsonValue::as_str)
+                            == Some(kind.as_str())
+                    })
+            });
+            let schema = if let Some(descriptor) = descriptor {
+                if descriptor.object_get("native_binding_adapter").is_some()
+                    || record.object_get("native_text_binding").is_some()
+                {
+                    return Err(SourceCommandError::Unsupported(
+                        "maintained native text binding snapshot adapter",
+                    ));
+                }
+                let route = array(descriptor, "schemas")?
+                    .iter()
+                    .find(|v| v.object_get("schema_version") == record.object_get("schema_version"))
+                    .ok_or(SourceCommandError::Unsupported(
+                        "catalog metadata schema route",
+                    ))?;
+                include_route(
+                    ctx,
+                    &mut record_inputs,
+                    route,
+                    &["ToS/contracts/corpus-record.schema.json"],
+                )?;
+                let exact = metadata_subject(&record)?;
+                let (verified, locator) = crate::source_revisions::resolve_record_version(
+                    ctx, &exact, executor, deadline, cancelled,
+                )?;
+                if !same(&verified, &record)? || locator != location {
+                    return Err(SourceCommandError::Conflict(
+                        "catalog profile source owner drift",
+                    ));
+                }
+                Some(text(route, "schema_ref")?)
+            } else {
+                None
+            };
+            let entry = catalogue_record(&record, location, schema)?;
+            if objects.insert(id.clone(), entry.clone()).is_some() {
+                return Err(SourceCommandError::Conflict(
+                    "complete catalog has duplicate metadata identity",
+                ));
+            }
+            source_records.insert(id, record);
+            records.entry(kind.clone()).or_default().push(entry);
+        }
+        if basename == CLAIM_STREAM || LEGACY_CLAIM_STREAMS.contains(&basename) {
+            let profiled = basename == CLAIM_STREAM;
+            has_profiled_claim |= profiled;
+            if !profiled
+                && std::str::from_utf8(&file.raw)
+                    .map_err(|_| SourceCommandError::Invalid("legacy Claim carrier UTF-8"))?
+                    .chars()
+                    .any(|character| {
+                        matches!(
+                            character,
+                            '\u{b}' | '\u{c}' | '\u{1c}'
+                                ..='\u{1e}' | '\u{85}' | '\u{2028}' | '\u{2029}'
+                        )
+                    })
+            {
+                return Err(SourceCommandError::Unsupported(
+                    "legacy Claim Unicode splitlines carrier adapter",
+                ));
+            }
+            // The source JSONL carrier preserves physical line numbers even
+            // when a line contains only source-authorized whitespace.
+            for (index, raw) in file.raw.split(|byte| *byte == b'\n').enumerate() {
+                let raw_text = std::str::from_utf8(raw)
+                    .map_err(|_| SourceCommandError::Invalid("catalog Claim UTF-8"))?;
+                if if profiled {
+                    python_bytes_blank(raw)
+                } else {
+                    stripped(raw_text)?.is_empty()
+                } {
+                    continue;
+                }
+                let claim = parse(raw)?;
+                if !["public", "public_metadata_only"].contains(&text(&claim, "visibility")?) {
+                    return Err(SourceCommandError::Denied("catalog Claim visibility"));
+                }
+                if profiled {
+                    claim_profile_inputs(ctx, &claim, &mut prior_profile_inputs)?;
+                    let (_, descriptor) = profile(ctx, text(&claim, "predicate")?)?;
+                    let route = array(&descriptor, "schemas")?
+                        .iter()
+                        .find(|v| {
+                            v.object_get("schema_version") == claim.object_get("schema_version")
+                        })
+                        .ok_or(SourceCommandError::Unsupported(
+                            "existing Claim schema route",
+                        ))?;
+                    schema_check(
+                        executor,
+                        location,
+                        &claim,
+                        text(route, "schema_ref")?,
+                        deadline,
+                        cancelled,
+                    )?;
+                    schema_check(
+                        executor,
+                        location,
+                        &claim,
+                        "ToS/contracts/source-claim-record.schema.json",
+                        deadline,
+                        cancelled,
+                    )?;
+                }
+                let id = text(&claim, "claim_id")?.to_owned();
+                if id.is_empty() {
+                    return Err(SourceCommandError::Invalid("catalog Claim identity"));
+                }
+                if prior
+                    .insert(
+                        id,
+                        catalogue_claim(ctx, &claim, location, index + 1, profiled)?,
+                    )
+                    .is_some()
+                {
+                    return Err(SourceCommandError::Conflict(
+                        "complete catalog has duplicate Claim identity",
+                    ));
+                }
+            }
+        }
+        if basename.ends_with(".jsonl")
+            && (basename.contains("provenance") || basename.contains("anchor"))
+        {
+            let key = if basename.contains("provenance") {
+                "event_id"
+            } else {
+                "anchor_id"
+            };
+            let indexed = if key == "event_id" {
+                &mut events
+            } else {
+                &mut anchors
+            };
+            for (index, raw) in file.raw.split(|byte| *byte == b'\n').enumerate() {
+                if stripped(
+                    std::str::from_utf8(raw)
+                        .map_err(|_| SourceCommandError::Invalid("evidence index UTF-8"))?,
+                )?
+                .is_empty()
+                {
+                    continue;
+                }
+                let payload = parse(raw)?;
+                let Some(id) = payload.object_get(key) else {
+                    continue;
+                };
+                if id == &JsonValue::Null {
+                    continue;
+                }
+                let id = id
+                    .as_str()
+                    .filter(|id| !id.is_empty())
+                    .ok_or(SourceCommandError::Invalid("indexed evidence identity"))?;
+                if indexed.object_get(id).is_some() {
+                    return Err(SourceCommandError::Conflict(
+                        "duplicate complete evidence index identity",
+                    ));
+                }
+                set(
+                    indexed,
+                    id,
+                    object(vec![
+                        ("payload", payload.clone()),
+                        ("source_ref", string(location)),
+                        ("source_line", number((index + 1) as u64)),
+                        ("source_sha256", string(&record_digest(&payload)?.to_hex())),
+                    ]),
+                )?;
+            }
+        }
+    }
+    if !has_profiled_claim {
+        prior_profile_inputs = object(vec![]);
+    }
+    for entries in records.values_mut() {
+        entries.sort_by(|left, right| {
+            text(left, "record_id")
+                .unwrap_or("")
+                .cmp(text(right, "record_id").unwrap_or(""))
+        });
+    }
+    let mut record_catalog = object(vec![]);
+    for (kind, entries) in &records {
+        set(&mut record_catalog, kind, JsonValue::Array(entries.clone()))?;
+    }
+    let mut bindings = object(vec![
+        ("objects", object(vec![])),
+        ("evidence", object(vec![])),
+    ]);
+    let mut bound_objects = object(vec![]);
+    let mut bound_evidence = object(vec![]);
+    let mut values = object(vec![]);
+    let mut evidence = Vec::new();
+    for claim in claims {
+        if forms.is_none()
+            && (objects.contains_key(text(claim, "claim_id")?)
+                || prior.contains_key(text(claim, "claim_id")?))
+        {
+            return Err(SourceCommandError::Conflict(
+                "initial Claim identity exists in complete metadata universe",
+            ));
+        }
+        if forms.is_none()
+            && events
+                .object_get(text(config, "provenance_event_id")?)
+                .is_some()
+        {
+            return Err(SourceCommandError::Conflict(
+                "initial serialization event identity exists in complete evidence universe",
+            ));
+        }
+        let reader_kind = claim_profile_inputs(ctx, claim, &mut new_profile_inputs)?;
+        let (relation, descriptor) = profile(ctx, text(claim, "predicate")?)?;
+        let mut identities = BTreeSet::from([text(claim, "subject_ref")?.to_owned()]);
+        if reader_kind == "identity" {
+            identities.insert(text(claim, "object")?.to_owned());
+        }
+        if reader_kind == "temporal" && text(field(claim, "object")?, "kind")? == "relative-order" {
+            identities.insert(
+                text(field(field(claim, "object")?, "relative")?, "anchor_ref")?.to_owned(),
+            );
+        }
+        if text(&descriptor, "reader")? == "structured-reference-value-v1" {
+            for id in array(field(claim, "object")?, "members")? {
+                identities.insert(
+                    id.as_str()
+                        .ok_or(SourceCommandError::Invalid("value member identity"))?
+                        .into(),
+                );
+            }
+        }
+        for id in identities {
+            let entry = objects.get(&id).ok_or(SourceCommandError::Conflict(
+                "declared object missing from complete catalog",
+            ))?;
+            let raw = selected(ctx, text(entry, "source_record_ref")?)?;
+            let record = &source_records[&id];
+            set(
+                &mut bound_objects,
+                &id,
+                object(vec![
+                    ("source_ref", field(entry, "source_record_ref")?.clone()),
+                    (
+                        "source_sha256",
+                        string(&Digest256::of_bytes(raw).to_prefixed()),
+                    ),
+                    (
+                        "canonical_record_sha256",
+                        string(&format!("sha256:{}", text(entry, "record_sha256")?)),
+                    ),
+                    (
+                        "schema_version",
+                        record
+                            .object_get("schema_version")
+                            .cloned()
+                            .unwrap_or(JsonValue::Null),
+                    ),
+                    (
+                        "record_version",
+                        record
+                            .object_get("record_version")
+                            .cloned()
+                            .unwrap_or(JsonValue::Null),
+                    ),
+                ]),
+            )?;
+        }
+        if reader_kind != "identity" {
+            let value = field(claim, "object")?;
+            set(
+                &mut values,
+                text(claim, "claim_id")?,
+                object(vec![
+                    ("value", value.clone()),
+                    ("sha256", string(&record_digest(value)?.to_prefixed())),
+                    ("type_ids", field(&relation, "range_type_ids")?.clone()),
+                ]),
+            )?;
+        }
+        for key in ["evidence_refs", "counterevidence_refs"] {
+            for reference in claim
+                .object_get(key)
+                .and_then(JsonValue::as_array)
+                .unwrap_or(&[])
+            {
+                let reference = reference
+                    .as_str()
+                    .ok_or(SourceCommandError::Invalid("evidence reference"))?;
+                let node = maintained_evidence(ctx, reference, &objects, &anchors, &events)?;
+                set(
+                    &mut bound_evidence,
+                    reference,
+                    object(vec![
+                        ("source_ref", field(&node, "source_ref")?.clone()),
+                        (
+                            "source_sha256",
+                            string(&format!("sha256:{}", text(&node, "source_sha256")?)),
+                        ),
+                        (
+                            "source_line",
+                            node.object_get("source_line")
+                                .cloned()
+                                .unwrap_or(JsonValue::Null),
+                        ),
+                        (
+                            "evidence_kind",
+                            field(field(&node, "properties")?, "evidence_kind")?.clone(),
+                        ),
+                    ]),
+                )?;
+                evidence.push(node);
+            }
+        }
+    }
+    set(&mut bindings, "objects", bound_objects)?;
+    set(&mut bindings, "evidence", bound_evidence)?;
+    if !values.as_object().unwrap().is_empty() {
+        set(&mut bindings, "values", values)?;
+    }
+    let mut form_inputs = object(vec![]);
+    if let Some(selected_forms) = forms {
+        let selected_ids = selected_forms
+            .iter()
+            .map(|selection| text(selection, "form_id"))
+            .collect::<SourceCommandResult<BTreeSet<_>>>()?;
+        let mut paths = BTreeSet::new();
+        for entry in objects.values() {
+            let location = text(entry, "source_record_ref")?;
+            paths.insert(format!(
+                "{}.human-forms.json",
+                location
+                    .strip_suffix(".json")
+                    .ok_or(SourceCommandError::Invalid("metadata form source basename"))?
+            ));
+        }
+        for entry in prior.values() {
+            let location = text(entry, "source_claim_file_ref")?;
+            if location.ends_with(&format!("/{CLAIM_STREAM}"))
+                || location.ends_with("/historical-claims.jsonl")
+            {
+                paths.insert(format!(
+                    "{}/{}.{}.human-forms.json",
+                    location.rsplit_once('/').unwrap().0,
+                    location
+                        .rsplit('/')
+                        .next()
+                        .unwrap()
+                        .strip_suffix(".jsonl")
+                        .unwrap(),
+                    Digest256::of_bytes(text(entry, "claim_id")?.as_bytes()).to_hex()
+                ));
+            }
+        }
+        let own = format!(
+            "{}/{}",
+            text(config, "source_path")?.rsplit_once('/').unwrap().0,
+            form_name(text(config, "claim_id")?)
+        );
+        for locator in paths {
+            if locator == own {
+                continue;
+            }
+            let Some(raw) = ctx.file(&path(&locator)?)? else {
+                continue;
+            };
+            let set_value = parse(raw)?;
+            schema_check(
+                executor,
+                &locator,
+                &set_value,
+                "ToS/contracts/human-form-set.schema.json",
+                deadline,
+                cancelled,
+            )?;
+            apply_form_changes(Some(&set_value), field(&set_value, "subject")?, &[])?;
+            for section in ["forms", "prior_forms"] {
+                for form in array(&set_value, section)? {
+                    if selected_ids.contains(text(form, "form_id")?) {
+                        return Err(SourceCommandError::Conflict(
+                            "complete current or prior form identity already allocated",
+                        ));
+                    }
+                }
+            }
+            set(
+                &mut form_inputs,
+                &locator,
+                string(&Digest256::of_bytes(raw).to_prefixed()),
+            )?;
+        }
+    }
+    let source_contracts = JsonValue::Object(
+        record_inputs
+            .as_object()
+            .unwrap()
+            .iter()
+            .map(|(key, value)| {
+                (
+                    key.clone(),
+                    string(&format!("sha256:{}", value.as_str().unwrap())),
+                )
+            })
+            .collect(),
+    );
+    let grounding = object(vec![
+        ("records", record_catalog),
+        ("claims", JsonValue::Array(prior.into_values().collect())),
+        (
+            "source_profiles",
+            object(vec![
+                ("source_contracts", source_contracts),
+                // collect_records always inspects the native semantic ID
+                // inventory. Even its verified empty map has a fingerprint.
+                (
+                    "native_semantic_identity_snapshot",
+                    string(&Digest256::of_bytes(b"{}").to_prefixed()),
+                ),
+            ]),
+        ),
+        ("existing_claim_profiles", prior_profile_inputs),
+        ("new_claim_profiles", new_profile_inputs),
+        ("events", events),
+        ("anchors", anchors),
+        ("evidence", JsonValue::Array(evidence)),
+        ("selected_source_bindings", bindings.clone()),
+        ("forms", form_inputs),
+        (
+            "provenance_contract",
+            string(
+                &Digest256::of_bytes(selected(
+                    ctx,
+                    "ToS/contracts/provenance-event-v2.schema.json",
+                )?)
+                .to_prefixed(),
+            ),
+        ),
+        (
+            "implementation",
+            raw_digests(ctx, CLAIM_GROUNDING_RULE_INPUTS, true)?,
+        ),
+    ]);
+    let mut dependencies = string(&record_digest(&grounding)?.to_prefixed());
+    if forms.is_some() {
+        dependencies = string(
+            &record_digest(&object(vec![
+                ("grounding", dependencies),
+                (
+                    "implementation",
+                    raw_digests(ctx, CLAIM_REVISION_RULE_INPUTS, true)?,
+                ),
+            ]))?
+            .to_prefixed(),
+        );
+    }
+    Ok(ClaimGrounding {
+        dependencies,
+        bindings,
+    })
+}
+
+fn bounded_navigation(value: &str, limit: usize) -> String {
+    if value.chars().count() <= limit {
+        value.into()
+    } else {
+        format!("{}…", value.chars().take(limit - 1).collect::<String>())
+    }
+}
+fn python_bytes_blank(raw: &[u8]) -> bool {
+    raw.iter()
+        .all(|byte| matches!(*byte, b' ' | b'\t' | b'\n' | b'\r' | 0x0b | 0x0c))
+}
+fn maintained_evidence(
+    ctx: &CommandContext,
+    reference: &str,
+    objects: &BTreeMap<String, JsonValue>,
+    anchors: &JsonValue,
+    events: &JsonValue,
+) -> SourceCommandResult<JsonValue> {
+    let (kind, location, digest, line, label, mut properties) = if reference.starts_with("ToS/") {
+        (
+            "repo_path",
+            reference.to_owned(),
+            Digest256::of_bytes(selected(ctx, reference)?).to_hex(),
+            None,
+            None,
+            object(vec![]),
+        )
+    } else if let Some(indexed) = anchors.object_get(reference) {
+        let anchor = field(indexed, "payload")?;
+        let mut properties = anchor.clone();
+        for (key, value) in [
+            (
+                "anchor_status",
+                anchor
+                    .object_get("status")
+                    .cloned()
+                    .unwrap_or(JsonValue::Null),
+            ),
+            (
+                "item_ref",
+                anchor
+                    .object_get("item_id")
+                    .cloned()
+                    .unwrap_or(JsonValue::Null),
+            ),
+            (
+                "file_ref",
+                anchor
+                    .object_get("file_id")
+                    .cloned()
+                    .unwrap_or(JsonValue::Null),
+            ),
+            ("source_anchor", anchor.clone()),
+        ] {
+            set(&mut properties, key, value)?;
+        }
+        (
+            "anchor",
+            text(indexed, "source_ref")?.into(),
+            text(indexed, "source_sha256")?.into(),
+            Some(integer(indexed, "source_line")?),
+            None,
+            properties,
+        )
+    } else if let Some(entry) = objects.get(reference) {
+        (
+            "identity",
+            text(entry, "source_record_ref")?.into(),
+            text(entry, "record_sha256")?.into(),
+            None,
+            entry
+                .object_get("preferred_label")
+                .and_then(JsonValue::as_str),
+            object(vec![(
+                "identity_node_id",
+                string(&format!("identity:{reference}")),
+            )]),
+        )
+    } else if let Some(indexed) = events.object_get(reference) {
+        (
+            "provenance_event",
+            text(indexed, "source_ref")?.into(),
+            text(indexed, "source_sha256")?.into(),
+            Some(integer(indexed, "source_line")?),
+            None,
+            object(vec![(
+                "provenance_event_node_id",
+                string(&format!("provenance_event:{reference}")),
+            )]),
+        )
+    } else {
+        return Err(SourceCommandError::Unsupported(
+            "maintained external citation evidence binding adapter",
+        ));
+    };
+    set(&mut properties, "evidence_ref", string(reference))?;
+    set(&mut properties, "evidence_kind", string(kind))?;
+    set(&mut properties, "resolved", JsonValue::Bool(true))?;
+    let supplied = label.is_some_and(|label| {
+        !stripped(label).unwrap_or("").is_empty() && label.chars().count() <= 240
+    });
+    let (title, origin) = if supplied {
+        (label.unwrap().to_owned(), "source-metadata-label")
+    } else if kind == "repo_path" {
+        (
+            bounded_navigation(reference.rsplit('/').next().unwrap(), 240),
+            "repository-filename-fallback",
+        )
+    } else {
+        (
+            bounded_navigation(
+                &format!(
+                    "{} · {}{}",
+                    kind.replace('_', " "),
+                    location.rsplit('/').next().unwrap(),
+                    line.map(|v| format!(":{v}")).unwrap_or_default()
+                ),
+                240,
+            ),
+            "source-slot-fallback",
+        )
+    };
+    let name = kind.replace('_', " ");
+    let capitalized = format!("{}{}", name[..1].to_ascii_uppercase(), &name[1..]);
+    let summary = bounded_navigation(
+        &format!(
+            "{capitalized} evidence reference: {reference}. Return to {location}{}.",
+            line.map(|v| format!(":{v}")).unwrap_or_default()
+        ),
+        1024,
+    );
+    let display = object(vec![
+        ("title", object(vec![("default", string(&title))])),
+        ("summary", object(vec![("default", string(&summary))])),
+        ("summary_state", string("metadata-synthesis")),
+        (
+            "provenance",
+            object(vec![
+                ("title", string(origin)),
+                ("summary", string("evidence-reference-navigation")),
+                ("source_title_available", JsonValue::Bool(supplied)),
+                ("source_summary_available", JsonValue::Bool(false)),
+                ("human_form_authority", string("none")),
+                ("source_ref", string(&location)),
+            ]),
+        ),
+    ]);
+    let mut result = object(vec![
+        (
+            "node_id",
+            string(&format!(
+                "evidence:sha256:{}",
+                Digest256::of_bytes(reference.as_bytes()).to_hex()
+            )),
+        ),
+        ("node_kind", string("evidence")),
+        ("source_ref", string(&location)),
+        ("source_sha256", string(&digest)),
+        ("display", display),
+        ("properties", properties),
+    ]);
+    if let Some(line) = line {
+        set(&mut result, "source_line", number(line))?;
+    }
+    Ok(result)
 }
 fn validate_ground(
     ctx: &CommandContext,
@@ -1709,6 +2920,7 @@ fn archive_refs(files: &BTreeMap<String, Vec<u8>>) -> JsonValue {
     let mut result = refs(files);
     if let JsonValue::Object(entries) = &mut result {
         for (name, binding) in entries {
+            // Keys originate from the same verified finite package map.
             let raw = &files[name.as_str().unwrap()];
             if let JsonValue::Object(fields) = binding {
                 fields.push((
@@ -1973,9 +3185,15 @@ pub fn verify_claim_history(
 fn selected_claim_ids(ctx: &CommandContext) -> SourceCommandResult<BTreeSet<String>> {
     let mut result = BTreeSet::new();
     for file in &ctx.files {
+        let basename = file.path.as_str().rsplit('/').next().unwrap_or("");
         if file.path.as_str().starts_with("ToS/source-witnesses/")
-            && file.path.as_str().ends_with("/source-claims.jsonl")
+            && (basename == CLAIM_STREAM || LEGACY_CLAIM_STREAMS.contains(&basename))
             && !file.path.as_str().contains("/.record-revisions/")
+            && !file
+                .path
+                .as_str()
+                .split('/')
+                .any(|part| ["catalog", "payload", "local-content"].contains(&part))
         {
             for id in rows(&file.raw)?.into_keys() {
                 if !result.insert(id) {

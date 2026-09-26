@@ -7,11 +7,111 @@ use super::*;
 use std::collections::BTreeMap;
 use std::sync::atomic::AtomicBool;
 use std::time::{Duration, Instant};
-use tos_command::source_claims::run_claim_command;
+use tos_command::source_claims::{
+    CLAIM_GROUNDING_RULE_INPUTS, CLAIM_REVISION_RULE_INPUTS, run_claim_command,
+    run_claim_command_from_captures,
+};
 use tos_command::source_command::{PreparedCommand, SourceCommandError};
 use tos_command::source_forms::metadata_subject;
 use tos_command::source_operation::{SourceOperationError, bind_selected_candidate};
+use tos_source_store::{CorpusCutReader, SoftwareCaptureReader, SoftwareComponentSelectionV1};
 use tos_validation::operation::OperationLimits;
+
+fn selected_context(
+    files: &BTreeMap<String, Vec<u8>>,
+    software: &BTreeMap<String, Vec<u8>>,
+    configuration: &Value,
+    request: &Value,
+    base: SourceRevision,
+) -> tos_command::source_command::CommandContext {
+    let mut inputs = files.clone();
+    for (name, raw) in software {
+        assert!(inputs.insert(name.clone(), raw.clone()).is_none());
+    }
+    context(
+        &inputs,
+        serde_json::to_vec(configuration).unwrap(),
+        serde_json::to_vec(request).unwrap(),
+        base,
+    )
+}
+fn checked_command(
+    ctx: &tos_command::source_command::CommandContext,
+    cut: &CorpusCutReader,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    worker: &mut tos_validation::source_cut::CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancel: &AtomicBool,
+) -> Result<PreparedCommand, SourceCommandError> {
+    run_claim_command_from_captures(ctx, cut, software, components, worker, deadline, cancel)
+}
+
+// Independent maintained owner oracle. Its output is bounded, ephemeral and
+// compared as data; this Python process is never a production serialization
+// producer, authority issuer or native admission substitute.
+fn maintained_oracle(
+    files: &BTreeMap<String, Vec<u8>>,
+    configuration: &Value,
+    request: &Value,
+    repository: &Path,
+) -> Value {
+    use std::process::{Command, Stdio};
+    let temporary = tempfile::tempdir().unwrap();
+    let root = temporary.path().join("source");
+    let mut total = 0usize;
+    for (name, raw) in files {
+        total += raw.len();
+        assert!(total <= 8_388_608);
+        let path = root.join(name);
+        fs::create_dir_all(path.parent().unwrap()).unwrap();
+        fs::write(path, raw).unwrap();
+    }
+    let mut config = configuration.clone();
+    config["source_root"] = Value::String(root.to_str().unwrap().into());
+    let config_path = temporary.path().join("owner.json");
+    let request_path = temporary.path().join("request.json");
+    fs::write(&config_path, serde_json::to_vec(&config).unwrap()).unwrap();
+    fs::write(&request_path, serde_json::to_vec(request).unwrap()).unwrap();
+    let stdout_path = temporary.path().join("oracle.stdout");
+    let stderr_path = temporary.path().join("oracle.stderr");
+    let script = "import json,sys\nfrom pathlib import Path\nr=Path(sys.argv[1]);sys.path[:0]=[str(r/'mechanics/growth-cycle/parts/branch-growth-cycle/scripts'),str(r/'scripts')]\nimport claim_revisions as c\nconfig=json.loads(Path(sys.argv[2]).read_text());request=json.loads(Path(sys.argv[3]).read_text());path=Path(config['source_root'])/config['source_path']\nfiles={p.name:p.read_bytes() for p in path.parent.iterdir() if p.is_file()};record=c._claims(files[path.name])[config['claim_id']]\n_,_,_,_,dependencies,bindings=c._proposal(config,path,files,record,request)\nprint(json.dumps({'expected_dependencies':dependencies,'source_bindings':bindings},ensure_ascii=False,sort_keys=True,separators=(',',':')))\n";
+    let mut child = Command::new("python3")
+        .args(["-c", script])
+        .arg(repository)
+        .arg(&config_path)
+        .arg(&request_path)
+        .env_remove("PYTHONPATH")
+        .env_remove("PYTHONHOME")
+        .env("PYTHONDONTWRITEBYTECODE", "1")
+        .stdout(Stdio::from(fs::File::create(&stdout_path).unwrap()))
+        .stderr(Stdio::from(fs::File::create(&stderr_path).unwrap()))
+        .spawn()
+        .unwrap();
+    let deadline = Instant::now() + Duration::from_secs(30);
+    let status = loop {
+        if let Some(status) = child.try_wait().unwrap() {
+            break status;
+        }
+        if Instant::now() >= deadline
+            || fs::metadata(&stdout_path).unwrap().len() > 1_048_576
+            || fs::metadata(&stderr_path).unwrap().len() > 1_048_576
+        {
+            child.kill().unwrap();
+            child.wait().unwrap();
+            panic!("bounded maintained Claim oracle refused");
+        }
+        std::thread::sleep(Duration::from_millis(10));
+    };
+    assert!(fs::metadata(&stdout_path).unwrap().len() <= 1_048_576);
+    assert!(fs::metadata(&stderr_path).unwrap().len() <= 1_048_576);
+    assert!(
+        status.success(),
+        "{}",
+        String::from_utf8_lossy(&fs::read(stderr_path).unwrap())
+    );
+    serde_json::from_slice(&fs::read(stdout_path).unwrap()).unwrap()
+}
 
 fn source_value(value: &Value) -> JsonValue {
     parse_json(
@@ -158,6 +258,67 @@ fn claim_successor_retains_bytes_replays_current_scope_and_refuses_unissued_admi
     let base = super::validation_cut_cases::write_cut_store(&files, &root);
     let cut = open_cut(&root, base, deadline, &cancel);
     let mut worker = schemas(&cut, deadline, &cancel);
+    let repository = super::validation_cut_cases::repository()
+        .canonicalize()
+        .unwrap();
+    let commit_output = std::process::Command::new("git")
+        .arg("-C")
+        .arg(&repository)
+        .args(["rev-parse", "HEAD^{commit}"])
+        .output()
+        .unwrap();
+    assert!(commit_output.status.success());
+    assert!(commit_output.stdout.len() <= 41);
+    let commit = String::from_utf8(commit_output.stdout)
+        .unwrap()
+        .trim()
+        .to_owned();
+    let rule_names: std::collections::BTreeSet<&str> = CLAIM_GROUNDING_RULE_INPUTS
+        .iter()
+        .chain(CLAIM_REVISION_RULE_INPUTS)
+        .copied()
+        .filter(|name| !name.starts_with("ToS/"))
+        .collect();
+    let capture = super::source_cut_cases::captured_software_fixture(
+        &repository,
+        &commit,
+        &rule_names.iter().copied().collect::<Vec<_>>(),
+    );
+    let software = SoftwareCaptureReader::open(
+        &capture.capture,
+        &capture.restored,
+        capture.selection.clone(),
+        ReadLimits {
+            max_manifest_bytes: 1_048_576,
+            max_manifest_entries: 128,
+            max_selected_object_bytes: 8_388_608,
+            json: JsonLimits::default(),
+        },
+        deadline,
+        &cancel,
+    )
+    .unwrap();
+    let components = software
+        .select_components(
+            &rule_names
+                .iter()
+                .map(|name| RelativePath::parse(name).unwrap())
+                .collect::<Vec<_>>(),
+        )
+        .unwrap();
+    let mut software_files = BTreeMap::new();
+    for name in rule_names {
+        let path = RelativePath::parse(name).unwrap();
+        let raw = software
+            .read_selected_component(&components, &path, 1_048_576, deadline, &cancel)
+            .unwrap();
+        assert_eq!(
+            raw,
+            fs::read(repository.join(name)).unwrap(),
+            "oracle rule bytes differ from selected capture"
+        );
+        software_files.insert(name.into(), raw);
+    }
     let ids = configuration["allowed_form_ids"].as_array().unwrap();
     let selections: Vec<Value> = ids
         .iter()
@@ -174,14 +335,53 @@ fn claim_successor_retains_bytes_replays_current_scope_and_refuses_unissued_admi
         initial["qualifiers"]["statement"].as_str().unwrap()
     );
     let proposal = serde_json::json!({"schema_version":"tos_local_source_command_v1","operation":"prepare-revise","fields":{"qualifiers":{"statement":wording}},"forms":selections,"reason":"Synthetic source-copy Claim successor conformance; no assessment."});
-    let preview_ctx = context(
-        &files,
-        serde_json::to_vec(&configuration).unwrap(),
-        serde_json::to_vec(&proposal).unwrap(),
-        base,
+    let preview_ctx = selected_context(&files, &software_files, &configuration, &proposal, base);
+    assert!(
+        matches!(
+            run_claim_command(&preview_ctx, &mut worker, deadline, &cancel),
+            Err(SourceCommandError::Unsupported(_))
+        ),
+        "a selected byte list cannot establish complete Claim inventory"
     );
-    let preview = run_claim_command(&preview_ctx, &mut worker, deadline, &cancel).unwrap();
+    let mut partial = preview_ctx.clone();
+    partial
+        .files
+        .retain(|input| !input.path.as_str().ends_with("/letter.json"));
+    assert!(
+        matches!(
+            checked_command(
+                &partial,
+                &cut,
+                &software,
+                &components,
+                &mut worker,
+                deadline,
+                &cancel
+            ),
+            Err(SourceCommandError::Unsupported(_))
+        ),
+        "complete current inventory cannot be inferred from omitted selected metadata"
+    );
+    let preview = checked_command(
+        &preview_ctx,
+        &cut,
+        &software,
+        &components,
+        &mut worker,
+        deadline,
+        &cancel,
+    )
+    .unwrap();
     let preview_response = response(&preview);
+    let oracle = maintained_oracle(&files, &configuration, &proposal, &repository);
+    assert_eq!(
+        preview_response["expected_dependencies"], oracle["expected_dependencies"],
+        "maintained dependency fingerprint"
+    );
+    assert_eq!(
+        preview_response["source_bindings"], oracle["source_bindings"],
+        "maintained declared source bindings"
+    );
     let mut request = proposal.clone();
     request["operation"] = Value::String("claim.revise".into());
     request["command_id"] = Value::String("conformance:claim-successor".into());
@@ -194,13 +394,17 @@ fn claim_successor_retains_bytes_replays_current_scope_and_refuses_unissued_admi
     ] {
         request[request_key] = preview_response[response_key].clone();
     }
-    let ctx = context(
-        &files,
-        serde_json::to_vec(&configuration).unwrap(),
-        serde_json::to_vec(&request).unwrap(),
-        base,
-    );
-    let prepared = run_claim_command(&ctx, &mut worker, deadline, &cancel).unwrap();
+    let ctx = selected_context(&files, &software_files, &configuration, &request, base);
+    let prepared = checked_command(
+        &ctx,
+        &cut,
+        &software,
+        &components,
+        &mut worker,
+        deadline,
+        &cancel,
+    )
+    .unwrap();
     let result = response(&prepared);
     assert!(!prepared.replayed);
     assert_eq!(result["receipt"]["previous_source"], source_ref(&initial));
@@ -290,24 +494,26 @@ fn claim_successor_retains_bytes_replays_current_scope_and_refuses_unissued_admi
         Err(SourceOperationError::MissingFullSourceAdmission)
     ));
     let mut worker = schemas(&candidate_cut, deadline, &cancel);
-    let replay_ctx = context(
-        &files,
-        serde_json::to_vec(&configuration).unwrap(),
-        serde_json::to_vec(&request).unwrap(),
-        candidate,
-    );
-    let replay = run_claim_command(&replay_ctx, &mut worker, deadline, &cancel).unwrap();
+    let replay_ctx = selected_context(&files, &software_files, &configuration, &request, candidate);
+    let replay = checked_command(
+        &replay_ctx,
+        &candidate_cut,
+        &software,
+        &components,
+        &mut worker,
+        deadline,
+        &cancel,
+    )
+    .unwrap();
     assert!(replay.replayed);
     assert!(replay.changes.is_empty());
     assert_eq!(response(&replay)["receipt"], result["receipt"]);
     let inspect = serde_json::json!({"schema_version":"tos_local_source_command_v1","operation":"inspect-version","source":source_ref(&initial)});
-    let inspected = run_claim_command(
-        &context(
-            &files,
-            serde_json::to_vec(&configuration).unwrap(),
-            serde_json::to_vec(&inspect).unwrap(),
-            candidate,
-        ),
+    let inspected = checked_command(
+        &selected_context(&files, &software_files, &configuration, &inspect, candidate),
+        &candidate_cut,
+        &software,
+        &components,
         &mut worker,
         deadline,
         &cancel,
@@ -322,26 +528,27 @@ fn claim_successor_retains_bytes_replays_current_scope_and_refuses_unissued_admi
     // A bound candidate and retained receipt do not restore current authority.
     let mut revoked = configuration.clone();
     revoked["allowed_operations"] = serde_json::json!([]);
-    let revoked_ctx = context(
-        &files,
-        serde_json::to_vec(&revoked).unwrap(),
-        serde_json::to_vec(&request).unwrap(),
-        candidate,
-    );
+    let revoked_ctx = selected_context(&files, &software_files, &revoked, &request, candidate);
     assert!(matches!(
-        run_claim_command(&revoked_ctx, &mut worker, deadline, &cancel),
+        checked_command(
+            &revoked_ctx,
+            &candidate_cut,
+            &software,
+            &components,
+            &mut worker,
+            deadline,
+            &cancel
+        ),
         Err(SourceCommandError::Denied(_))
     ));
     let mut reused = request.clone();
     reused["reason"] = Value::String("Different request sharing retained command identity.".into());
     assert!(matches!(
-        run_claim_command(
-            &context(
-                &files,
-                serde_json::to_vec(&configuration).unwrap(),
-                serde_json::to_vec(&reused).unwrap(),
-                candidate
-            ),
+        checked_command(
+            &selected_context(&files, &software_files, &configuration, &reused, candidate),
+            &candidate_cut,
+            &software,
+            &components,
             &mut worker,
             deadline,
             &cancel
@@ -350,15 +557,22 @@ fn claim_successor_retains_bytes_replays_current_scope_and_refuses_unissued_admi
     ));
     let mut corrupted = files.clone();
     corrupted.insert(archive_stream, b"{}\n".to_vec());
+    let corrupt_revision = successor(&corrupted, &root, candidate);
+    let corrupt_cut = open_cut(&root, corrupt_revision, deadline, &cancel);
+    let mut corrupt_worker = schemas(&corrupt_cut, deadline, &cancel);
     assert!(matches!(
-        run_claim_command(
-            &context(
+        checked_command(
+            &selected_context(
                 &corrupted,
-                serde_json::to_vec(&configuration).unwrap(),
-                serde_json::to_vec(&inspect).unwrap(),
-                candidate
+                &software_files,
+                &configuration,
+                &inspect,
+                corrupt_revision
             ),
-            &mut worker,
+            &corrupt_cut,
+            &software,
+            &components,
+            &mut corrupt_worker,
             deadline,
             &cancel
         ),
