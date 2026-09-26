@@ -17,7 +17,7 @@ const REGISTRY: &str = "ToS/doctrine/semantic-interchange/entity-types.v1.json";
 const ENTITY_SCHEMA: &str = "ToS/contracts/semantic-entity-type-registry.schema.json";
 const ITEM: &str = "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1884-part-3/editions/chemnitz-schmeitzner-1884-part-3/items/dta-sbb-corrected-tei-p5";
 
-fn repository() -> PathBuf {
+pub(super) fn repository() -> PathBuf {
     fixtures().join("../../..")
 }
 
@@ -59,7 +59,7 @@ fn selected_item_sources() -> BTreeMap<String, Vec<u8>> {
 
 // The corpus carrier is disposable transport. These actual source bytes and
 // empty routing claims do not certify source enumeration or semantic identity.
-fn write_cut_store(files: &BTreeMap<String, Vec<u8>>, root: &Path) -> SourceRevision {
+pub(super) fn write_cut_store(files: &BTreeMap<String, Vec<u8>>, root: &Path) -> SourceRevision {
     fs::create_dir_all(root.join("objects")).unwrap();
     fs::create_dir_all(root.join("revisions")).unwrap();
     let members: Vec<_> = files
@@ -117,6 +117,30 @@ fn record_routes(files: &BTreeMap<String, Vec<u8>>) -> RecordFamily {
     .unwrap()
 }
 
+// Only explicitly selected executable or Cargo target custody; no default
+// target/path search and no silent skip in a workspace validation lane.
+pub(super) fn selected_worker_path() -> PathBuf {
+    let path = if let Some(path) = std::env::var_os("TOS_SCHEMA_WORKER_PATH") {
+        PathBuf::from(path)
+    } else {
+        let target = PathBuf::from(
+            std::env::var_os("CARGO_TARGET_DIR")
+                .expect("OPS must supply TOS_SCHEMA_WORKER_PATH or absolute CARGO_TARGET_DIR"),
+        );
+        assert!(
+            target.is_absolute(),
+            "selected Cargo target must be absolute"
+        );
+        target.join("debug/tos-schema-worker")
+    };
+    assert!(path.is_absolute(), "selected worker path must be absolute");
+    assert!(
+        path.is_file(),
+        "selected worker must be built before conformance"
+    );
+    path
+}
+
 #[test]
 fn actual_cut_worker_and_item_companions_preserve_metadata_only_outcome() {
     let files = selected_item_sources();
@@ -146,10 +170,7 @@ fn actual_cut_worker_and_item_companions_preserve_metadata_only_outcome() {
         )
         .unwrap();
     // OPS supplies the separately built exact worker; absence is a failure.
-    let worker_path = PathBuf::from(
-        std::env::var_os("TOS_SCHEMA_WORKER_PATH")
-            .expect("OPS must provide the compiled schema worker path"),
-    );
+    let worker_path = selected_worker_path();
     assert!(worker_path.is_absolute());
     let worker_digest = Digest256::of_bytes(&fs::read(&worker_path).unwrap());
     let mut schemas = CutWorkerSchemaExecutor::from_cut(
@@ -206,4 +227,144 @@ fn actual_cut_worker_and_item_companions_preserve_metadata_only_outcome() {
         );
         assert!(receipt.valid);
     }
+}
+
+#[test]
+fn actual_cut_worker_and_pinned_software_preserve_provenance_lab_limits() {
+    use tos_source_store::SoftwareCaptureReader;
+    use tos_validation::provenance_rules::LAB_MANIFEST;
+    use tos_validation::source_cut::inspect_provenance_lab_from_cut;
+    let root = repository().canonicalize().unwrap();
+    let commit_output = std::process::Command::new("git")
+        .arg("-C")
+        .arg(&root)
+        .args(["rev-parse", "HEAD^{commit}"])
+        .output()
+        .unwrap();
+    assert!(commit_output.status.success());
+    let commit = String::from_utf8(commit_output.stdout)
+        .unwrap()
+        .trim()
+        .to_owned();
+    assert_eq!(commit.len(), 40);
+    assert!(commit.bytes().all(|byte| byte.is_ascii_hexdigit()));
+    let capture = super::source_cut_cases::captured_software_fixture(
+        &root,
+        &commit,
+        &["scripts/build_provenance_event_v2_lab.py"],
+    );
+    let mut files = selected_item_sources();
+    let lab = LAB_MANIFEST.rsplit_once('/').unwrap().0;
+    for entry in fs::read_dir(root.join(lab)).unwrap() {
+        let entry = entry.unwrap();
+        if entry.file_type().unwrap().is_file() {
+            files.insert(
+                format!("{lab}/{}", entry.file_name().to_str().unwrap()),
+                fs::read(entry.path()).unwrap(),
+            );
+        }
+    }
+    let manifest: Value = serde_json::from_slice(&files[LAB_MANIFEST]).unwrap();
+    // Owner-defined archived paths preserve original recorded inputs while
+    // the separately pinned software capture remains the current builder.
+    for field in ["contract", "builder"] {
+        let digest = required(&manifest[field], "sha256");
+        let archive = if field == "contract" {
+            format!("ToS/contracts/history/{digest}.json")
+        } else {
+            format!(
+                "ToS/research-packets/retained-builder-inputs/build_provenance_event_v2_lab/{digest}.py"
+            )
+        };
+        let path = root.join(&archive);
+        if path.is_file() {
+            files.insert(archive, fs::read(path).unwrap());
+        }
+    }
+    let temporary = tempfile::tempdir().unwrap();
+    let store = temporary.path().join("store");
+    let revision = write_cut_store(&files, &store);
+    let cancelled = AtomicBool::new(false);
+    let deadline = Instant::now() + Duration::from_secs(60);
+    let read = ReadLimits {
+        max_manifest_bytes: 1_048_576,
+        max_manifest_entries: 512,
+        max_selected_object_bytes: 2_097_152,
+        json: JsonLimits::default(),
+    };
+    let reader = CorpusReader::open_existing(&store, read).unwrap();
+    let cut = reader
+        .open_source_cut(
+            revision,
+            CutReadLimits {
+                max_revisions: 4,
+                max_members: 512,
+                max_total_bytes: 8_388_608,
+                max_member_bytes: 2_097_152,
+            },
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+    let software = SoftwareCaptureReader::open(
+        &capture.capture,
+        &capture.restored,
+        capture.selection.clone(),
+        read,
+        deadline,
+        &cancelled,
+    )
+    .unwrap();
+    let worker_path = selected_worker_path();
+    assert!(worker_path.is_absolute());
+    let digest = Digest256::of_bytes(&fs::read(&worker_path).unwrap());
+    let mut schemas = CutWorkerSchemaExecutor::from_cut(
+        &cut,
+        FormatProfile::LegacyPythonObserved20260923,
+        ExactWorkerIdentity {
+            absolute_path: worker_path,
+            sha256: digest,
+        },
+        ExecutorBudget::laboratory(),
+        CutWorkerLimits {
+            max_receipts: 128,
+            max_receipt_bytes: 131_072,
+        },
+        deadline,
+        &cancelled,
+    )
+    .unwrap();
+    let report = inspect_provenance_lab_from_cut(
+        &cut,
+        &software,
+        ItemLimits {
+            max_member_bytes: 1_048_576,
+            max_total_bytes: 16_777_216,
+            max_state_bytes: 8_388_608,
+            max_issues: 128,
+            deadline,
+        },
+        &cancelled,
+        &mut schemas,
+    )
+    .unwrap();
+    assert_eq!(report.source_revision, revision);
+    assert_eq!(report.software_selection, capture.selection);
+    assert!(
+        report.provenance_family.issues.is_empty(),
+        "{:?}",
+        report.provenance_family.issues
+    );
+    assert!(!report.provenance_family.source_admission_complete);
+    assert!(
+        report
+            .provenance_family
+            .negative_controls
+            .values()
+            .all(|passed| *passed)
+    );
+    assert!(!schemas.receipts().is_empty());
+    assert!(schemas.receipts().iter().all(|receipt| receipt.valid
+        && receipt.execution.worker_sha256 == digest
+        && receipt.source_revision == revision));
 }
