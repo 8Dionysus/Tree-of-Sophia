@@ -53,7 +53,9 @@ esac
         for path in ["trace", "ordinary.pid", "escaped.pid", "escaped-all"] {
             let _ = fs::remove_file(root.join(path));
         }
-        let mut command = Command::new(env!("CARGO_BIN_EXE_tos-ops-mechanics-plan"));
+        let executable = std::env::var_os("TOS_MECHANICS_TEST_EXECUTABLE")
+            .unwrap_or_else(|| env!("CARGO_BIN_EXE_tos-ops-mechanics-plan").into());
+        let mut command = Command::new(executable);
         command
             .args([
                 "--repo-root",

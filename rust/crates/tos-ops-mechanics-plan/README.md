@@ -54,5 +54,17 @@ stop behavior, output/cancellation deadlines, ordinary/escaped descendants,
 and successful daemon cleanup. No authored ToS meaning is admitted.
 
 `--execute` replaces only the runner mechanism. The discovered tools still
-invoke Python; this does not complete their Rust migration. The active lane
-and Python consumer remain unchanged pending OPS integration and cutover.
+invoke Python; this does not complete their Rust migration. The compatibility entrypoint `scripts/run_mechanics_local_tests.py` replaces
+itself with the installed executor from `TOS_OPS_MECHANICS_EXECUTOR` or PATH,
+passing `sys.executable` as the Python adapter and the explicit default limits.
+It fails when that native binary is unavailable; it does not compile on demand
+or fall back to the old Python runner. The named lane can retain its existing
+entrypoint command. OPS owns installation and CI availability before cutover.
+The former discovery oracle remains at the pre-executor source commit.
+
+Install with `cargo install --locked --offline --path
+rust/crates/tos-ops-mechanics-plan --root <admitted isolated install root>`
+from the integrated workspace. The existing native fixture may target that
+installed executable via `TOS_MECHANICS_TEST_EXECUTABLE`; without the variable
+it targets Cargo's built CLI. This compares the installed candidate using the
+same lifecycle/ordering risks, without another test framework.
