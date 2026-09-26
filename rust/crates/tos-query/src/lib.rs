@@ -10,8 +10,10 @@ mod knowledge_binding;
 mod knowledge_catalog;
 #[cfg(not(target_arch = "wasm32"))]
 mod knowledge_inspect;
+pub mod knowledge_lens_spec;
 #[cfg(not(target_arch = "wasm32"))]
 mod knowledge_packet;
+pub mod knowledge_presentation;
 #[cfg(not(target_arch = "wasm32"))]
 mod knowledge_sqlite;
 #[cfg(not(target_arch = "wasm32"))]

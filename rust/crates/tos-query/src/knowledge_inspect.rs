@@ -265,6 +265,59 @@ impl<A: InspectCurrentAuthority + ?Sized> Reader<'_, '_, A> {
         }
         Ok(result)
     }
+    pub(crate) fn identity_ids(
+        &mut self,
+        entity: &str,
+        sources: &[String],
+        after: &str,
+        limit: usize,
+    ) -> Result<Vec<String>, SearchV2Error> {
+        if limit == 0 || limit > self.budget.max_rows as usize || limit > i64::MAX as usize {
+            return Err(budget_error());
+        }
+        self.authority.check_selected()?;
+        let list = JsonValue::Array(sources.iter().map(|source| text(source)).collect());
+        let encoded = canonical_bytes_v1(
+            &list,
+            CanonicalProfile::SourceRecordDigestV1,
+            self.budget.json,
+        )
+        .map_err(|_| budget_error())?;
+        let encoded =
+            std::str::from_utf8(&encoded).map_err(|_| corrupt("identity sources invalid"))?;
+        let sql = "SELECT CASE WHEN length(CAST(id AS BLOB))<=?5 THEN id END FROM knowledge_nodes INDEXED BY knowledge_nodes_entity_id WHERE entity_id=?1 AND id>?2 AND source_graph IN (SELECT value FROM json_each(?3)) ORDER BY id LIMIT ?4";
+        let mut statement = self
+            .model
+            .connection()
+            .prepare_cached(sql)
+            .map_err(sql_error)?;
+        let mut rows = statement
+            .query(params![
+                entity,
+                after,
+                encoded,
+                limit as i64,
+                self.budget.max_field_bytes as i64
+            ])
+            .map_err(sql_error)?;
+        let mut result = vec![];
+        while let Some(row) = rows.next().map_err(sql_error)? {
+            let id = row
+                .get::<_, Option<String>>(0)
+                .map_err(sql_error)?
+                .ok_or_else(budget_error)?;
+            self.rows = self.rows.checked_add(1).ok_or_else(budget_error)?;
+            self.decoded = self
+                .decoded
+                .checked_add(id.len() as u64)
+                .ok_or_else(budget_error)?;
+            if self.rows > self.budget.max_rows || self.decoded > self.budget.max_decoded_bytes {
+                return Err(budget_error());
+            }
+            result.push(id);
+        }
+        Ok(result)
+    }
     /// SQL CASE enforces field/payload transfer caps before row allocation.
     pub(crate) fn items(
         &mut self,
