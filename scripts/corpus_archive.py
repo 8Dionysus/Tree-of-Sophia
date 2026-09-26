@@ -883,6 +883,9 @@ def restore_capture(capture_root: Path, destination: Path) -> dict[str, Any]:
     return receipt
 
 
+_SOFTWARE_COMPONENT_SELECTION_TOKEN = object()
+
+
 class SelectedSoftwareComponents:
     """Exact current components from one selected capture, never authority.
 
@@ -890,10 +893,25 @@ class SelectedSoftwareComponents:
     contracts remain owned here; no native path namespace is implicitly allowed.
     """
 
-    def __init__(self, root: Path, capture: tuple[str, str, str], members: dict):
-        self._root = root
-        self.capture = capture
-        self._members = MappingProxyType(dict(members))
+    __slots__ = ('_root', '_capture', '_members', '_selection_token')
+
+    def __init__(self, root: Path, capture: tuple[str, str, str], members: dict, *, _token=None):
+        if _token is not _SOFTWARE_COMPONENT_SELECTION_TOKEN:
+            raise TypeError('use select_software_components to verify the capture context')
+        object.__setattr__(self, '_root', root)
+        object.__setattr__(self, '_capture', capture)
+        object.__setattr__(self, '_members', MappingProxyType(dict(members)))
+        object.__setattr__(self, '_selection_token', _token)
+
+    def __setattr__(self, name, value):
+        raise AttributeError('selected software capture context is immutable')
+
+    @property
+    def capture(self) -> tuple[str, str, str]:
+        return self._capture
+
+    def _factory_bound(self) -> bool:
+        return getattr(self, '_selection_token', None) is _SOFTWARE_COMPONENT_SELECTION_TOKEN
 
     def contains(self, ref: str) -> bool:
         return ref in self._members
@@ -980,7 +998,8 @@ def select_software_components(
     }:
         raise _error("software restore receipt differs from selected capture")
     result = SelectedSoftwareComponents(restored_root,
-        (source_git_commit, source_git_tree, capture_manifest_sha256), selected)
+        (source_git_commit, source_git_tree, capture_manifest_sha256), selected,
+        _token=_SOFTWARE_COMPONENT_SELECTION_TOKEN)
     if any(result.resolve_current(ref, digest) is None for ref, (digest, _) in selected.items()):
         raise _error("selected software component current bytes differ")
     return result

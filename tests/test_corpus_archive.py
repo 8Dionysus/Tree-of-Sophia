@@ -17,6 +17,7 @@ if str(SCRIPTS) not in sys.path:
 
 from corpus_archive import (  # noqa: E402
     CorpusArchiveError,
+    SelectedSoftwareComponents,
     capture_git,
     restore_capture,
     select_software_components,
@@ -113,6 +114,10 @@ class CorpusArchiveTests(unittest.TestCase):
             capture_manifest_sha256=hashlib.sha256((capture / 'capture.json').read_bytes()).hexdigest(),
             component_paths=['src/nested/b.txt'])
         digest = hashlib.sha256(b'beta\n').hexdigest()
+        with self.assertRaises(TypeError):
+            SelectedSoftwareComponents(destination, components.capture, {'src/nested/b.txt': (digest, 5)})
+        with self.assertRaises(AttributeError):
+            components.capture = ('0' * 40, '0' * 40, '0' * 64)
         self.assertEqual(components.resolve_current('src/nested/b.txt', digest), destination / 'src/nested/b.txt')
         self.assertIsNone(components.resolve_current('src/a.txt', hashlib.sha256(b'alpha\n').hexdigest()))
         self.assertIsNone(components.resolve_current('src/nested/b.txt', '0' * 64))

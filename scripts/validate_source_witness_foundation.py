@@ -513,7 +513,7 @@ _PROVENANCE_SOFTWARE = ContextVar('tos_selected_provenance_software', default=No
 @contextmanager
 def selected_provenance_software(components: SelectedSoftwareComponents):
     """Use selected capture byte evidence; this grants no producer authority."""
-    if not isinstance(components, SelectedSoftwareComponents):
+    if not isinstance(components, SelectedSoftwareComponents) or not components._factory_bound():
         raise ValueError('selected software capture context required')
     token = _PROVENANCE_SOFTWARE.set(components)
     try:
