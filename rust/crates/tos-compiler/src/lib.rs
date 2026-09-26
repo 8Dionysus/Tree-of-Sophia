@@ -13,6 +13,7 @@ mod knowledge_indexed;
 mod knowledge_inherited_views;
 mod knowledge_native_finalize;
 mod knowledge_navigation_finalize;
+mod knowledge_navigation_materialize;
 pub mod knowledge_normalization;
 mod knowledge_ordered;
 pub mod knowledge_philosophy_display;
@@ -54,6 +55,12 @@ pub use knowledge_native_finalize::{
 };
 pub use knowledge_navigation_finalize::{
     NavigationFinalizeLimits, NavigationInheritedReceipt, apply_navigation_inherited_views,
+};
+pub use knowledge_navigation_materialize::{
+    CompleteBaseNodes, NavigationMaterializeLimits, NavigationNodeMaterializeReceipt,
+    NavigationPlaceholderReceipt, NavigationRelationMaterializeReceipt,
+    materialize_navigation_nodes, materialize_navigation_placeholders,
+    materialize_navigation_relations,
 };
 pub use knowledge_ordered::{
     NormalizedNodeCandidate, NormalizedRelationCandidate, OrderedCandidateLimits,

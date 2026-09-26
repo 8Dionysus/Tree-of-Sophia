@@ -1444,9 +1444,6 @@ impl<'a> NavigationNodeNormalizer<'a> {
         let native = text(item.get(endpoint_key))
             .ok_or(Error::Invalid("navigation placeholder endpoint"))?;
         let source_graph = text(item.get(source_key)).unwrap_or(&prepared.source_graph);
-        if source_graph != self.source_graph_id {
-            return Err(Error::Invalid("foreign navigation placeholder owner"));
-        }
         let refs = edge.source_refs(&[]);
         let synthetic = json!({"node_id":native,"node_type":"relation-endpoint",
             "source_refs":refs,"authority_layer":item.get("authority_layer")});
