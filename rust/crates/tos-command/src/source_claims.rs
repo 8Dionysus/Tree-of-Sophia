@@ -273,6 +273,40 @@ fn bounded_list(config: &JsonValue, key: &str, max: usize) -> SourceCommandResul
     }
     let mut seen = BTreeSet::new();
     for value in entries {
+        match key {
+            "allowed_object_values" => {
+                if value.as_object().is_none() {
+                    return Err(SourceCommandError::Invalid("exact value scope object"));
+                }
+            }
+            "allowed_related_claim_refs" => {
+                exact_ref(value)?;
+                if !text(value, "id")?.starts_with("tos.claim.") {
+                    return Err(SourceCommandError::Invalid("related Claim scope identity"));
+                }
+            }
+            "allowed_layer_transitions" => {
+                exact_keys(value, &["from", "to"])?;
+                let left = text(value, "from")?;
+                let right = text(value, "to")?;
+                if left == right
+                    || ![left, right].iter().all(|name| {
+                        name.len() <= 64
+                            && name.as_bytes().first().is_some_and(u8::is_ascii_lowercase)
+                            && name.bytes().all(|byte| {
+                                byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'_'
+                            })
+                    })
+                {
+                    return Err(SourceCommandError::Invalid("exact layer transition names"));
+                }
+            }
+            _ => {
+                if value.as_str().is_none_or(|s| s.trim().is_empty()) {
+                    return Err(SourceCommandError::Invalid("bounded Claim scope string"));
+                }
+            }
+        }
         if !seen.insert(canonical(value)?) {
             return Err(SourceCommandError::Invalid("repeated Claim scope value"));
         }
@@ -377,6 +411,49 @@ fn config(
     }
     exact_keys(&c, &keys)?;
     bounded_list(&c, "allowed_operations", 1)?;
+    for operation in array(&c, "allowed_operations")? {
+        if operation.as_str()
+            != Some(if create {
+                "claims.create"
+            } else {
+                "claim.revise"
+            })
+        {
+            return Err(SourceCommandError::Invalid(
+                "delegated Claim operation name",
+            ));
+        }
+    }
+    if let Some(fields) = c.object_get("allowed_form_field_ids") {
+        let fields = fields
+            .as_array()
+            .ok_or(SourceCommandError::Invalid("Claim form field scope"))?;
+        if fields.is_empty() || fields.len() > 4 {
+            return Err(SourceCommandError::Invalid(
+                "Claim form field scope capacity",
+            ));
+        }
+        let mut seen = BTreeSet::new();
+        for field in fields {
+            let id = field
+                .as_str()
+                .ok_or(SourceCommandError::Invalid("Claim form field identity"))?;
+            if ![
+                "claim.statement",
+                "claim.name",
+                "claim.caption",
+                "claim.hover",
+            ]
+            .contains(&id)
+                || !seen.insert(id)
+            {
+                return Err(SourceCommandError::Invalid(
+                    "exact known Claim form field scope",
+                ));
+            }
+        }
+    }
+
     bounded_list(&c, "allowed_evidence_refs", 128)?;
     if create || (2..=6).contains(&version) {
         bounded_list(&c, "allowed_object_refs", 128)?
@@ -1257,7 +1334,7 @@ fn validate_ground(
                             "collection membership basis adapter",
                         ));
                     }
-                    ground_collection_membership(ctx, claim)?;
+                    ground_collection_membership(ctx, claim, executor, deadline, cancelled)?;
                 }
 
                 schema_check(
@@ -1305,7 +1382,7 @@ fn validate_ground(
     let types = array(&entities, "types")?;
     for (id, allowed_types) in endpoints {
         let (record, _loc) = find_record(ctx, &id)?;
-        let record_type = text(&record, "record_type")?;
+        let record_type = native_record_type(&record)?;
         let entity = types
             .iter()
             .find(|entry| {
@@ -1346,36 +1423,15 @@ fn validate_ground(
                 cancelled,
             )?;
         } else {
-            let basename = _loc
-                .rsplit('/')
-                .next()
-                .ok_or(SourceCommandError::Invalid("native source basename"))?;
-            if ![
-                "agent",
-                "place",
-                "organization",
-                "work",
-                "expression",
-                "edition",
-                "collection",
-                "item",
-            ]
-            .contains(&record_type)
-                || basename != format!("{record_type}.json")
-                || text(&record, "schema_version")? != "tos_corpus_record_v1"
-            {
-                return Err(SourceCommandError::Unsupported(
-                    "native endpoint source carrier adapter",
+            let reference = metadata_subject(&record)?;
+            let (verified, source) = crate::source_revisions::resolve_record_version(
+                ctx, &reference, executor, deadline, cancelled,
+            )?;
+            if !same(&record, &verified)? || source != _loc {
+                return Err(SourceCommandError::Conflict(
+                    "native endpoint current owner changed",
                 ));
             }
-            schema_check(
-                executor,
-                &_loc,
-                &record,
-                "ToS/contracts/corpus-record.schema.json",
-                deadline,
-                cancelled,
-            )?;
         }
         let ancestry = ancestry(types, text(entity, "type_id")?)?;
         if !allowed_types
@@ -1441,7 +1497,17 @@ fn find_record(ctx: &CommandContext, id: &str) -> SourceCommandResult<(JsonValue
                 Ok(v) => v,
                 Err(_) => continue,
             };
-            if record.object_get("record_id").and_then(JsonValue::as_str) == Some(id) {
+            let id_field = match record
+                .object_get("schema_version")
+                .and_then(JsonValue::as_str)
+            {
+                Some("tos_artifact_source_witness_v1" | "tos_artifact_source_witness_v2") => {
+                    "artifact_id"
+                }
+                Some("tos_scholarly_composite_witness_v1") => "composite_id",
+                _ => "record_id",
+            };
+            if record.object_get(id_field).and_then(JsonValue::as_str) == Some(id) {
                 if found.is_some() {
                     return Err(SourceCommandError::Conflict(
                         "duplicate selected source record identity",
@@ -1951,13 +2017,10 @@ fn validate_identity_ground(
     let entities = json_file(ctx, ENTITIES)?;
     let types = array(&entities, "types")?;
     for reference in left.iter().chain(right) {
-        let (record, source) = find_record(ctx, text(reference, "id")?)?;
-        if !same(&metadata_subject(&record)?, reference)? {
-            return Err(SourceCommandError::Unsupported(
-                "identity participant exact historical metadata reader",
-            ));
-        }
-        let kind = text(&record, "record_type")?;
+        let (record, source) = crate::source_revisions::resolve_record_version(
+            ctx, reference, executor, deadline, cancelled,
+        )?;
+        let kind = native_record_type(&record)?;
         let entry = types
             .iter()
             .find(|entry| {
@@ -2032,32 +2095,13 @@ fn validate_identity_ground(
                 cancelled,
             )?;
         } else {
-            if role != "identity"
-                || ![
-                    "agent",
-                    "place",
-                    "organization",
-                    "work",
-                    "expression",
-                    "edition",
-                    "collection",
-                    "item",
-                ]
-                .contains(&kind)
-                || !source.ends_with(&format!("/{kind}.json"))
-            {
-                return Err(SourceCommandError::Unsupported(
-                    "identity native participant source adapter",
+            if role != "identity" {
+                return Err(SourceCommandError::Denied(
+                    "native identity participant role",
                 ));
             }
-            schema_check(
-                executor,
-                &source,
-                &record,
-                "ToS/contracts/corpus-record.schema.json",
-                deadline,
-                cancelled,
-            )?;
+            // The exact metadata owner resolver above validates each actual
+            // native carrier schema and retained history; no copied descriptor.
         }
     }
     let unresolved = array(value, "unresolved_links")?;
@@ -2270,12 +2314,16 @@ fn ground_collection_membership(
             "Collection order exact own Collection version",
         ));
     }
-    let (collection, _) = find_record(ctx, subject)?;
-    if text(&collection, "record_type")? != "collection"
-        || !same(&metadata_subject(&collection)?, collection_ref)?
-    {
-        return Err(SourceCommandError::Unsupported(
-            "Collection order exact historical metadata basis reader",
+    let (collection, _) = crate::source_revisions::resolve_record_version(
+        ctx,
+        collection_ref,
+        executor,
+        deadline,
+        cancelled,
+    )?;
+    if text(&collection, "record_type")? != "collection" {
+        return Err(SourceCommandError::Invalid(
+            "Collection order basis record type",
         ));
     }
     let members = array(value, "members")?
@@ -2335,4 +2383,17 @@ fn ground_collection_membership(
         ));
     }
     Ok(())
+}
+
+fn native_record_type(record: &JsonValue) -> SourceCommandResult<&str> {
+    if let Some(kind) = record.object_get("record_type").and_then(JsonValue::as_str) {
+        return Ok(kind);
+    }
+    match text(record, "schema_version")? {
+        "tos_artifact_source_witness_v1" | "tos_artifact_source_witness_v2" => Ok("artifact"),
+        "tos_scholarly_composite_witness_v1" => Ok("composite"),
+        _ => Err(SourceCommandError::Unsupported(
+            "native metadata record type adapter",
+        )),
+    }
 }
