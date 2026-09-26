@@ -202,13 +202,13 @@ fn set<'a>(v:&'a Value,key:&str)->BTreeSet<&'a str>{strs(v,key).into_iter().coll
 fn int(value:&Value)->Result<Option<i64>,ItemRefusal>{
     if value.is_boolean(){return Err(ItemRefusal::Unsupported("bool-as-int metadata numeric profile".into()))}
     if let Some(v)=value.as_i64(){return Ok(Some(v))}
-    if value.is_number()&&!value.as_number().is_some_and(|n|n.is_f64()){return Err(ItemRefusal::Unsupported("metadata integer exceeds bounded signed integer profile".into()))}
+    if let Some(number)=value.as_number(){let lexical=number.to_string();if !lexical.contains(['.','e','E']){return Err(ItemRefusal::Unsupported("metadata integer exceeds bounded signed integer profile".into()))}}
     Ok(None)
 }
 fn number(value:&Value)->Result<Option<f64>,ItemRefusal>{
     if value.is_boolean(){return Err(ItemRefusal::Unsupported("bool-as-number metadata numeric profile".into()))}
     if let Some(integer)=value.as_i64(){if integer.unsigned_abs()>9_007_199_254_740_992{return Err(ItemRefusal::Unsupported("metadata geometry integer exceeds exact binary64 range".into()))}return Ok(Some(integer as f64));}
-    if let Some(number)=value.as_f64(){if number.is_finite()&&value.as_number().is_some_and(|n|n.is_f64()){return Ok(Some(number))}return Err(ItemRefusal::Unsupported("unsupported metadata geometry numeric representation".into()))}
+    if let Some(number)=value.as_f64(){if number.is_finite()&&value.as_number().is_some_and(|n|n.to_string().contains(['.','e','E'])){return Ok(Some(number))}return Err(ItemRefusal::Unsupported("unsupported metadata geometry numeric representation".into()))}
     Ok(None)
 }
 fn rank(value:&str)->Option<u8>{match value{"public"=>Some(0),"public_metadata_only"=>Some(1),"controlled"=>Some(2),"local_only"=>Some(3),"restricted"=>Some(4),"unknown"=>Some(5),_=>None}}
@@ -257,7 +257,7 @@ mod tests{
         let raw=fixture("source-text-layer-abc/variant-b.layer.json");
         let raw=changed(&raw,|v|v["derivation"]["change_payload"]["operations"][0]["output_sha256"]=Value::String("0".repeat(64)));
         let report=inspect_source_text_layer_metadata(&raw,"changed.layer.json",limits(),&cancelled).unwrap();assert!(report.issues.iter().any(|i|i.message.ends_with("output text digest drifted")));
-        let raw=fixture("source-anchor-v2-abc/variant-b.anchor.json");
+        let raw=fixture("source-anchor-v2-abc/variant-a.anchor.json");
         let raw=changed(&raw,|v|v["publication_boundary"]["source_text_in_record"]=Value::Bool(false));
         let report=inspect_source_anchor_v2_metadata(&raw,"changed.anchor.json",limits(),&cancelled).unwrap();assert!(report.issues.iter().any(|i|i.message=="text quote contradicts source_text_in_record=false"));
     }
