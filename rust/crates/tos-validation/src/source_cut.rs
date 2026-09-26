@@ -7,13 +7,18 @@ use std::collections::BTreeMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Instant;
 
-use tos_foundation::RelativePath;
+use tos_foundation::{Digest256, RelativePath, SourceRevision};
 use tos_source_store::{CorpusCutReader, SourceMembershipV1};
 
+use crate::executor::{
+    BoundedSchemaExecutor, ExactWorkerIdentity, ExecutionIdentity, ExecutorBudget, ExecutorFailure,
+    ExecutorOutcome,
+};
 use crate::item_rules::{
     ItemFamilyReport, ItemLimits, ItemPayload, ItemRefusal, ItemRules, ItemSource,
 };
 use crate::record_rules::RecordFamily;
+use crate::{FormatProfile, SchemaBackendProbe, SchemaResource, published_value};
 
 /// Exact owner schema executor, with separately enforced process custody.
 /// An unknown profile/resource or incomplete execution must refuse.
@@ -26,6 +31,221 @@ pub trait CutSchemaExecutor {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> Result<bool, ItemRefusal>;
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct CutWorkerLimits {
+    pub max_receipts: usize,
+    pub max_receipt_bytes: usize,
+}
+
+#[derive(Debug, Clone)]
+pub struct CutSchemaReceipt {
+    pub path: String,
+    pub contract: String,
+    pub source_revision: SourceRevision,
+    pub source_raw_sha256: Digest256,
+    /// Native source loaders use decoded JSON. The strict transport worker
+    /// evaluates this separately bound serialization, preserving last decoded
+    /// field semantics without pretending it is the original source bytes.
+    pub decoded_instance_sha256: Digest256,
+    pub execution: ExecutionIdentity,
+    pub valid: bool,
+}
+
+/// Real disposable schema execution over resources read from the exact source
+/// cut. This is a family execution receipt, not a trusted-source admission
+/// ticket. Dedicated-worker descendant custody and host I/O interruption are
+/// additional owner gates; the current executor guarantees parent liveness.
+pub struct CutWorkerSchemaExecutor {
+    revision: SourceRevision,
+    resources: Vec<SchemaResource>,
+    contracts: BTreeMap<String, (String, Digest256)>,
+    schema_set_digest: Digest256,
+    profile: FormatProfile,
+    worker: ExactWorkerIdentity,
+    budget: ExecutorBudget,
+    limits: CutWorkerLimits,
+    receipt_bytes: usize,
+    receipts: Vec<CutSchemaReceipt>,
+}
+
+impl CutWorkerSchemaExecutor {
+    pub fn from_cut(
+        cut: &CorpusCutReader,
+        profile: FormatProfile,
+        worker: ExactWorkerIdentity,
+        budget: ExecutorBudget,
+        limits: CutWorkerLimits,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<Self, ItemRefusal> {
+        check(deadline, cancelled)?;
+        let revision = cut.current().revision();
+        let mut resources = Vec::new();
+        let mut contracts = BTreeMap::new();
+        let mut total_bytes = 0usize;
+        // The current stream verifies every selected raw member through EOF.
+        // The schema inventory is derived from current contract membership,
+        // never a snapshot cardinality or hardcoded schema count.
+        let mut stream = cut.stream(revision).map_err(store_error)?;
+        while let Some(member) = stream
+            .next_member(deadline, cancelled)
+            .map_err(store_error)?
+        {
+            check(deadline, cancelled)?;
+            let path = member.path.as_str();
+            if !path.starts_with("ToS/contracts/") || !path.ends_with(".schema.json") {
+                continue;
+            }
+            total_bytes = total_bytes
+                .checked_add(member.raw.len())
+                .filter(|n| *n <= SchemaBackendProbe::MAX_TOTAL_BYTES)
+                .ok_or(ItemRefusal::Budget)?;
+            if resources.len() >= SchemaBackendProbe::MAX_RESOURCES
+                || member.raw.len() > SchemaBackendProbe::MAX_RESOURCE_BYTES
+            {
+                return Err(ItemRefusal::Budget);
+            }
+            let value = published_value(&member.raw, SchemaBackendProbe::MAX_RESOURCE_BYTES)
+                .map_err(|error| {
+                    ItemRefusal::Unsupported(format!("schema resource {path}: {error:?}"))
+                })?;
+            let uri = value["$id"]
+                .as_str()
+                .ok_or_else(|| ItemRefusal::Unsupported("schema resource ID".into()))?
+                .to_owned();
+            contracts.insert(
+                path.to_owned(),
+                (uri.clone(), Digest256::of_bytes(&member.raw)),
+            );
+            resources.push(SchemaResource {
+                uri,
+                raw: member.raw,
+            });
+        }
+        if stream.coverage().is_none() {
+            return Err(ItemRefusal::Source("incomplete schema source cut".into()));
+        }
+        let schema_set_digest = SchemaBackendProbe::new(resources.clone(), profile)
+            .map_err(|error| {
+                ItemRefusal::Unsupported(format!("schema resource closure: {error:?}"))
+            })?
+            .schema_set_digest();
+        check(deadline, cancelled)?;
+        Ok(Self {
+            revision,
+            resources,
+            contracts,
+            schema_set_digest,
+            profile,
+            worker,
+            budget,
+            limits,
+            receipt_bytes: 0,
+            receipts: Vec::new(),
+        })
+    }
+
+    pub fn contract_digest(&self, contract: &str) -> Option<Digest256> {
+        self.contracts.get(contract).map(|(_, digest)| *digest)
+    }
+
+    pub fn receipts(&self) -> &[CutSchemaReceipt] {
+        &self.receipts
+    }
+}
+
+impl CutSchemaExecutor for CutWorkerSchemaExecutor {
+    fn check(
+        &mut self,
+        path: &str,
+        raw: &[u8],
+        contract: &str,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<bool, ItemRefusal> {
+        check(deadline, cancelled)?;
+        if self.receipts.len() >= self.limits.max_receipts {
+            return Err(ItemRefusal::Budget);
+        }
+        let receipt_bytes = path
+            .len()
+            .checked_add(contract.len())
+            .and_then(|n| n.checked_add(192))
+            .ok_or(ItemRefusal::Budget)?;
+        let next_bytes = self
+            .receipt_bytes
+            .checked_add(receipt_bytes)
+            .filter(|n| *n <= self.limits.max_receipt_bytes)
+            .ok_or(ItemRefusal::Budget)?;
+        if raw.len() > SchemaBackendProbe::MAX_INSTANCE_BYTES {
+            return Err(ItemRefusal::Budget);
+        }
+        let uri = &self
+            .contracts
+            .get(contract)
+            .ok_or_else(|| ItemRefusal::Unsupported(format!("missing source schema {contract}")))?
+            .0;
+        let decoded: serde_json::Value = serde_json::from_slice(raw).map_err(|_| {
+            ItemRefusal::Unsupported("unsupported native decoded JSON representation".into())
+        })?;
+        let worker_raw = serde_json::to_vec(&decoded)
+            .map_err(|_| ItemRefusal::Unsupported("native decoded JSON serialization".into()))?;
+        let decoded_digest = Digest256::of_bytes(&worker_raw);
+        let mut budget = self.budget;
+        let remaining = deadline
+            .checked_duration_since(Instant::now())
+            .ok_or(ItemRefusal::Deadline)?;
+        budget.execution_wall = budget.execution_wall.min(remaining);
+        let result = BoundedSchemaExecutor::evaluate_cancellable(
+            &self.worker,
+            &self.resources,
+            self.profile,
+            uri,
+            &worker_raw,
+            budget,
+            cancelled,
+        );
+        check(deadline, cancelled)?;
+        let (execution, valid) = match result {
+            ExecutorOutcome::SchemaValid(identity) => (identity, true),
+            ExecutorOutcome::SchemaInvalid(identity) => (identity, false),
+            ExecutorOutcome::Indeterminate {
+                reason: ExecutorFailure::Timeout,
+                ..
+            } => return Err(ItemRefusal::Deadline),
+            ExecutorOutcome::Indeterminate {
+                reason: ExecutorFailure::Cancelled,
+                ..
+            } => return Err(ItemRefusal::Source("schema execution cancelled".into())),
+            other => {
+                return Err(ItemRefusal::Unsupported(format!(
+                    "schema execution incomplete: {other:?}"
+                )));
+            }
+        };
+        if execution.worker_sha256 != self.worker.sha256
+            || execution.instance_sha256 != decoded_digest
+            || execution.schema_set_sha256 != self.schema_set_digest
+            || execution.profile != self.profile
+        {
+            return Err(ItemRefusal::Source(
+                "schema execution identity mismatch".into(),
+            ));
+        }
+        self.receipt_bytes = next_bytes;
+        self.receipts.push(CutSchemaReceipt {
+            path: path.into(),
+            contract: contract.into(),
+            source_revision: self.revision,
+            source_raw_sha256: Digest256::of_bytes(raw),
+            decoded_instance_sha256: decoded_digest,
+            execution,
+            valid,
+        });
+        Ok(valid)
+    }
 }
 
 /// Payload custody is outside source metadata membership. No ambient host

@@ -6,6 +6,7 @@
 //! after verification cannot change the worker image.
 
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
 use tos_foundation::Digest256;
@@ -72,6 +73,7 @@ pub enum ExecutorFailure {
     ResourceLimitUnknown,
     Spawn,
     Timeout,
+    Cancelled,
     CpuLimit,
     CrashSignal(i32),
     CrashExit(i32),
@@ -291,11 +293,58 @@ impl BoundedSchemaExecutor {
     ) -> ExecutorOutcome {
         #[cfg(all(target_os = "linux", target_pointer_width = "64"))]
         {
-            native::evaluate(worker, resources, profile, root_uri, raw_instance, budget)
+            native::evaluate(
+                worker,
+                resources,
+                profile,
+                root_uri,
+                raw_instance,
+                budget,
+                None,
+            )
         }
         #[cfg(not(all(target_os = "linux", target_pointer_width = "64")))]
         {
             let _ = (worker, resources, profile, root_uri, raw_instance, budget);
+            unknown(ExecutorFailure::UnsupportedHost, None)
+        }
+    }
+
+    /// Cooperative cancellation checked before and after image verification
+    /// and at every nonblocking parent poll. It cannot interrupt a blocked
+    /// host filesystem read; cleanup retains the explicit grace budget.
+    pub fn evaluate_cancellable(
+        worker: &ExactWorkerIdentity,
+        resources: &[SchemaResource],
+        profile: FormatProfile,
+        root_uri: &str,
+        raw_instance: &[u8],
+        budget: ExecutorBudget,
+        cancelled: &AtomicBool,
+    ) -> ExecutorOutcome {
+        #[cfg(all(target_os = "linux", target_pointer_width = "64"))]
+        {
+            native::evaluate(
+                worker,
+                resources,
+                profile,
+                root_uri,
+                raw_instance,
+                budget,
+                Some(cancelled),
+            )
+        }
+        #[cfg(not(all(target_os = "linux", target_pointer_width = "64")))]
+        {
+            let _ = (
+                worker,
+                resources,
+                profile,
+                root_uri,
+                raw_instance,
+                budget,
+                cancelled,
+            );
             unknown(ExecutorFailure::UnsupportedHost, None)
         }
     }
@@ -1294,7 +1343,11 @@ mod native {
         root_uri: &str,
         raw_instance: &[u8],
         budget: ExecutorBudget,
+        cancelled: Option<&AtomicBool>,
     ) -> ExecutorOutcome {
+        if cancelled.is_some_and(|flag| flag.load(Ordering::Relaxed)) {
+            return unknown(ExecutorFailure::Cancelled, None);
+        }
         if budget.execution_wall.is_zero()
             || budget.cleanup_grace > Duration::from_secs(1)
             || budget.cpu_seconds == 0
@@ -1321,6 +1374,9 @@ mod native {
             Ok(image) => image,
             Err(reason) => return unknown(reason, Some(identity)),
         };
+        if cancelled.is_some_and(|flag| flag.load(Ordering::Relaxed)) {
+            return unknown(ExecutorFailure::Cancelled, Some(identity));
+        }
         if start.elapsed() >= budget.execution_wall {
             return unknown(ExecutorFailure::Timeout, Some(identity));
         }
@@ -1328,7 +1384,7 @@ mod native {
             c"tos-schema-worker".as_ptr() as *mut libc::c_char,
             std::ptr::null_mut(),
         ];
-        run_image(image, request, identity, budget, start, &argv)
+        run_image(image, request, identity, budget, start, &argv, cancelled)
     }
 
     fn run_image(
@@ -1338,6 +1394,7 @@ mod native {
         budget: ExecutorBudget,
         start: Instant,
         argv: &[*mut libc::c_char],
+        cancelled: Option<&AtomicBool>,
     ) -> ExecutorOutcome {
         let (input_parent, input_child) = match socket_pair() {
             Ok(pair) => pair,
@@ -1383,6 +1440,10 @@ mod native {
         let mut status = None;
         let mut failure = None;
         while !output_eof || written != request.len() || status.is_none() {
+            if cancelled.is_some_and(|flag| flag.load(Ordering::Relaxed)) {
+                failure = Some(ExecutorFailure::Cancelled);
+                break;
+            }
             if start.elapsed() >= budget.execution_wall {
                 failure = Some(ExecutorFailure::Timeout);
                 break;
@@ -2206,6 +2267,7 @@ mod native {
                 budget,
                 start,
                 &argv,
+                None,
             );
             assert!(matches!(
                 result,
@@ -2215,6 +2277,34 @@ mod native {
                 }
             ));
             assert!(start.elapsed() < Duration::from_millis(600));
+            // The same durable non-reading-worker boundary must honor live
+            // cancellation before its much longer execution timeout expires.
+            let cancelled = AtomicBool::new(false);
+            let result = std::thread::scope(|scope| {
+                scope.spawn(|| {
+                    std::thread::sleep(Duration::from_millis(20));
+                    cancelled.store(true, Ordering::Relaxed);
+                });
+                run_image(
+                    fixture_image("/usr/bin/sleep"),
+                    vec![b'x'; 2 * 1024 * 1024],
+                    fixture_identity(),
+                    ExecutorBudget {
+                        execution_wall: Duration::from_secs(2),
+                        ..budget
+                    },
+                    Instant::now(),
+                    &argv,
+                    Some(&cancelled),
+                )
+            });
+            assert!(matches!(
+                result,
+                ExecutorOutcome::Indeterminate {
+                    reason: ExecutorFailure::Cancelled,
+                    ..
+                }
+            ));
         }
 
         #[test]
@@ -2257,6 +2347,7 @@ mod native {
                 budget,
                 start,
                 &argv,
+                None,
             );
             let child_pid: i32 = std::fs::read_to_string(&pid_file)
                 .unwrap()
