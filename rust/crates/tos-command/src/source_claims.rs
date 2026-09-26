@@ -567,6 +567,12 @@ pub fn run_claim_command(
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<PreparedCommand> {
     let (config, p, handler, create, version) = config(ctx)?;
+    if executor.source_revision() != ctx.base_revision {
+        return Err(SourceCommandError::Conflict(
+            "Claim schema worker cut differs from command base",
+        ));
+    }
+
     let request = parse(&ctx.request_raw)?;
     grammar(&request, create, version == 7)?;
     let operation = text(&request, "operation")?;
