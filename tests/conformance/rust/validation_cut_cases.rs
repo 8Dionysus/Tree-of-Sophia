@@ -86,7 +86,8 @@ fn record_routes(files: &BTreeMap<String, Vec<u8>>) -> RecordFamily {
     let mut closure: BTreeSet<String> = [
         "ToS/contracts/corpus-record.schema.json",
         "ToS/contracts/source-link.schema.json",
-        "ToS/contracts/artifact-v2.schema.json",
+        "ToS/contracts/artifact-source-witness.schema.json",
+        "ToS/contracts/artifact-source-witness-v2.schema.json",
     ]
     .into_iter()
     .map(String::from)
@@ -377,7 +378,27 @@ fn actual_cut_worker_and_pinned_software_preserve_provenance_lab_limits() {
             .all(|passed| *passed)
     );
     assert!(!schemas.receipts().is_empty());
-    assert!(schemas.receipts().iter().all(|receipt| receipt.valid
-        && receipt.execution.worker_sha256 == digest
-        && receipt.source_revision == revision));
+    assert!(
+        schemas
+            .receipts()
+            .iter()
+            .all(|receipt| receipt.execution.worker_sha256 == digest
+                && receipt.source_revision == revision)
+    );
+    assert_eq!(
+        schemas
+            .receipts()
+            .iter()
+            .filter(|receipt| receipt.valid)
+            .count(),
+        3
+    );
+    assert_eq!(
+        schemas
+            .receipts()
+            .iter()
+            .filter(|receipt| !receipt.valid)
+            .count(),
+        6
+    );
 }
