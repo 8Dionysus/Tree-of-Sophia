@@ -36,6 +36,12 @@ pub fn validate_expiry(expires_at: &str, observed_now: &str) -> SourceCommandRes
     Ok(())
 }
 
+pub fn validate_instant(value: &str) -> SourceCommandResult<()> {
+    tos_validation::retirement_rules::observed_instant_order(value, value)
+        .map(|_| ())
+        .map_err(|_| SourceCommandError::Invalid("instant requires explicit valid timezone"))
+}
+
 /// Exact bytes of an explicitly selected canonical member. No path discovery.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SourceFile {

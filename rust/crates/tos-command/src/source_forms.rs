@@ -3,7 +3,604 @@
 //! these functions neither consult fixtures nor mutate canonical source files.
 use crate::source_command::{self, SourceCommandError as Error, SourceCommandResult as Result, *};
 use std::collections::{HashMap, HashSet};
+use std::sync::atomic::AtomicBool;
+use std::time::Instant;
 use tos_foundation::{Digest256, JsonString, JsonValue};
+use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
+
+fn schema_check(
+    worker: &mut CutWorkerSchemaExecutor,
+    path: &str,
+    raw: &[u8],
+    contract: &str,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> Result<()> {
+    if !worker
+        .check(path, raw, contract, deadline, cancelled)
+        .map_err(|_| Error::Unsupported("exact source schema worker unavailable"))?
+    {
+        return Err(Error::Invalid("exact source schema rejected bytes"));
+    }
+    Ok(())
+}
+
+/// Execute maintained owner/request/form semantics over an exact selected cut.
+/// The returned canonical file bytes are proposals; `PreparedCommand::commit`
+/// explicitly refuses until complete source admission and owner fencing exist.
+pub fn run_form_command(
+    ctx: &CommandContext,
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> Result<PreparedCommand> {
+    ctx.check()?;
+    if worker.source_revision() != ctx.base_revision {
+        return Err(Error::Conflict(
+            "schema worker and command source cut differ",
+        ));
+    }
+    let config = parse(&ctx.configuration_raw)?;
+    let request = parse(&ctx.request_raw)?;
+    let owner = text(&config, "schema_version")?;
+    let canonical = owner == "tos_local_canonical_form_owner_v1";
+    if !matches!(
+        owner,
+        "tos_local_source_command_owner_v1" | "tos_local_canonical_form_owner_v1"
+    ) {
+        return Err(Error::Unsupported(
+            "Claim/profile owner form closure requires its exact source adapter",
+        ));
+    }
+    exact_keys(
+        &config,
+        &[
+            "schema_version",
+            "uid",
+            "principal_id",
+            "source_root",
+            "source_path",
+            "authority_ref",
+            "allowed_form_ids",
+            "allowed_operations",
+            "expires_at",
+        ],
+    )?;
+    if integer(&config, "uid")? != ctx.effective_uid
+        || text(&config, "principal_id")?.trim().is_empty()
+        || text(&config, "authority_ref")?.trim().is_empty()
+    {
+        return Err(Error::Denied("owner local identity differs"));
+    }
+    validate_expiry(text(&config, "expires_at")?, &ctx.recorded_at)?;
+    if !text(&config, "source_root")?.starts_with('/') {
+        return Err(Error::Denied("owner source root must be absolute"));
+    }
+    let source_path = tos_foundation::RelativePath::parse(text(&config, "source_path")?)
+        .map_err(|_| Error::Denied("unsafe owner source path"))?;
+    let path = source_path.as_str();
+    let parts = path.split('/').collect::<Vec<_>>();
+    if canonical {
+        if parts.len() < 4 || !path.starts_with("ToS/canon/") || parts.last() != Some(&"node.json")
+        {
+            return Err(Error::Denied("canonical owner path"));
+        }
+    } else if !path.starts_with("ToS/source-witnesses/")
+        || path.starts_with("ToS/source-witnesses/owner-local/")
+        || !path.ends_with(".json")
+        || path.ends_with(".human-forms.json")
+        || parts
+            .iter()
+            .any(|part| matches!(*part, "payload" | "local-content" | "catalog"))
+    {
+        return Err(Error::Denied("source owner path"));
+    }
+    for (key, operations) in [("allowed_operations", true), ("allowed_form_ids", false)] {
+        let values = array(&config, key)?;
+        let mut seen = HashSet::new();
+        if values.len() > 32 {
+            return Err(Error::Invalid("owner scope budget"));
+        }
+        for value in values {
+            let value = value.as_str().ok_or(Error::Invalid("owner scope text"))?;
+            if !seen.insert(value)
+                || if operations {
+                    !matches!(value, "form.create" | "form.revise")
+                } else {
+                    !form_id(value)
+                }
+            {
+                return Err(Error::Invalid("owner operation or identity scope"));
+            }
+        }
+    }
+    let source_raw = ctx
+        .file(&source_path)?
+        .ok_or(Error::Invalid("explicit source absent"))?;
+    let source = parse(source_raw)?;
+    let version = text(&source, "schema_version")?;
+    let schema = match version {
+        "tos_canonical_node_v1" if canonical => "ToS/contracts/tos-node-contract.schema.json",
+        "tos_artifact_source_witness_v1" if !canonical => {
+            "ToS/contracts/artifact-source-witness.schema.json"
+        }
+        "tos_artifact_source_witness_v2" if !canonical => {
+            "ToS/contracts/artifact-source-witness-v2.schema.json"
+        }
+        "tos_scholarly_composite_witness_v1" if !canonical => {
+            "ToS/contracts/scholarly-composite-witness.schema.json"
+        }
+        "tos_corpus_record_v1" if !canonical => "ToS/contracts/corpus-record.schema.json",
+        "tos_historical_record_v1" if !canonical => "ToS/contracts/historical-record.schema.json",
+        _ => {
+            return Err(Error::Unsupported(
+                "source profile needs complete registry/native binding adapter",
+            ));
+        }
+    };
+    schema_check(worker, path, source_raw, schema, deadline, cancelled)?;
+    let subject = metadata_subject(&source)?;
+    if canonical {
+        let kind = text(&source, "node_type")?;
+        let id = text(&source, "node_id")?;
+        let slug = id
+            .rsplit('.')
+            .next()
+            .ok_or(Error::Invalid("canonical ID"))?;
+        let directory = parts[parts.len() - 2];
+        if parts[2] != kind
+            || !id.starts_with(&format!("tos.{kind}."))
+            || !(directory == slug
+                || kind == "source" && directory.starts_with(&format!("{slug}-")))
+        {
+            return Err(Error::Denied("canonical source type/path/identity differ"));
+        }
+    }
+    if version == "tos_historical_record_v1"
+        && !matches!(
+            source.object_get("visibility").and_then(JsonValue::as_str),
+            Some("public" | "public_metadata_only")
+        )
+    {
+        return Err(Error::Denied("historical metadata visibility"));
+    }
+    let stem = path
+        .strip_suffix(".json")
+        .ok_or(Error::Invalid("source filename"))?;
+    let target = tos_foundation::RelativePath::parse(&format!("{stem}.human-forms.json"))
+        .map_err(|_| Error::Invalid("adjacent forms path"))?;
+    let old_raw = ctx.file(&target)?;
+    let old = old_raw.map(parse).transpose()?;
+    if let Some(raw) = old_raw {
+        schema_check(
+            worker,
+            target.as_str(),
+            raw,
+            "ToS/contracts/human-form-set.schema.json",
+            deadline,
+            cancelled,
+        )?;
+        validate_history(old.as_ref().ok_or(Error::Invalid("form set"))?, &subject)?;
+    }
+    if canonical
+        && old.as_ref().is_some_and(|set| {
+            array(set, "forms")
+                .unwrap_or(&[])
+                .iter()
+                .chain(array(set, "prior_forms").unwrap_or(&[]))
+                .any(|form| {
+                    form.object_get("content")
+                        .and_then(|c| c.object_get("kind"))
+                        .and_then(JsonValue::as_str)
+                        != Some("source-copy")
+                })
+        })
+    {
+        return Err(Error::Denied("canonical history permits only source-copy"));
+    }
+    let bound_contracts = matches!(
+        version,
+        "tos_canonical_node_v1"
+            | "tos_artifact_source_witness_v1"
+            | "tos_artifact_source_witness_v2"
+            | "tos_scholarly_composite_witness_v1"
+    );
+    let contracts = if bound_contracts {
+        let schema_path = tos_foundation::RelativePath::parse(schema)
+            .map_err(|_| Error::Invalid("schema path"))?;
+        let raw = ctx
+            .file(&schema_path)?
+            .ok_or(Error::Invalid("exact selected source schema missing"))?;
+        Some(object(vec![(
+            schema,
+            string(&Digest256::of_bytes(raw).to_prefixed()),
+        )]))
+    } else {
+        None
+    };
+    let configuration = record_digest(&if let Some(contracts) = &contracts {
+        object(vec![
+            ("configuration", config.clone()),
+            ("source_contracts", contracts.clone()),
+        ])
+    } else {
+        config.clone()
+    })?
+    .to_prefixed();
+    let revision = old_raw
+        .map(|raw| string(&Digest256::of_bytes(raw).to_prefixed()))
+        .unwrap_or(JsonValue::Null);
+    if text(&request, "schema_version")? != "tos_local_source_command_v1" {
+        return Err(Error::Invalid("source command request schema"));
+    }
+    let operation = text(&request, "operation")?;
+    if operation == "describe" {
+        exact_keys(&request, &["schema_version", "operation"])?;
+        return ctx.plan(
+            if canonical {
+                "canonical-node-forms"
+            } else {
+                "public-source-forms"
+            },
+            form_response(
+                &source,
+                old.as_ref(),
+                &config,
+                &subject,
+                &target,
+                &configuration,
+                &revision,
+                contracts.as_ref(),
+                JsonValue::Null,
+                false,
+            )?,
+            vec![],
+            false,
+        );
+    }
+    if operation == "prepare" {
+        exact_keys(
+            &request,
+            &["schema_version", "operation", "form_id", "field_id"],
+        )?;
+        let id = text(&request, "form_id")?;
+        if !array(&config, "allowed_form_ids")?
+            .iter()
+            .any(|value| value.as_str() == Some(id))
+        {
+            return Err(Error::Denied("prepared form outside scope"));
+        }
+        let change = prepare_form_change(
+            &source,
+            old.as_ref(),
+            text(&config, "principal_id")?,
+            id,
+            text(&request, "field_id")?,
+        )?;
+        check_changes(&config, std::slice::from_ref(&change), canonical)?;
+        let proposed = apply_form_changes(old.as_ref(), &subject, std::slice::from_ref(&change))?;
+        schema_check(
+            worker,
+            target.as_str(),
+            &published(&proposed)?,
+            "ToS/contracts/human-form-set.schema.json",
+            deadline,
+            cancelled,
+        )?;
+        let views = materialize_source_forms(&source, &proposed)?;
+        let preview = views
+            .into_iter()
+            .find(|view| {
+                view.object_get("form")
+                    .and_then(|f| f.object_get("id"))
+                    .and_then(JsonValue::as_str)
+                    == Some(id)
+            })
+            .ok_or(Error::Invalid("prepared materialization absent"))?;
+        if text(&preview, "state")? != "ready" {
+            return Err(Error::Invalid("prepared exact source-copy is not ready"));
+        }
+        let mut response = form_response(
+            &source,
+            old.as_ref(),
+            &config,
+            &subject,
+            &target,
+            &configuration,
+            &revision,
+            contracts.as_ref(),
+            JsonValue::Null,
+            false,
+        )?;
+        source_command::set(&mut response, "prepared_change", change)?;
+        source_command::set(&mut response, "prepared_materialization", preview)?;
+        return ctx.plan(
+            if canonical {
+                "canonical-node-forms"
+            } else {
+                "public-source-forms"
+            },
+            response,
+            vec![],
+            false,
+        );
+    }
+    if operation != "apply" {
+        return Err(Error::Invalid("unknown form command operation"));
+    }
+    exact_keys(
+        &request,
+        &[
+            "schema_version",
+            "operation",
+            "command_id",
+            "expected_source",
+            "expected_revision",
+            "expected_configuration",
+            "changes",
+        ],
+    )?;
+    let command_id = text(&request, "command_id")?;
+    if command_id.is_empty() || command_id.chars().count() > 256 {
+        return Err(Error::Invalid("command ID length"));
+    }
+    let changes = array(&request, "changes")?;
+    check_changes(&config, changes, canonical)?;
+    let request_digest = Digest256::of_bytes(&canonical_bytes(&request)?).to_prefixed();
+    if let Some(receipt) = old
+        .as_ref()
+        .and_then(|set| set.object_get("growth_history"))
+        .and_then(JsonValue::as_array)
+        .and_then(|history| {
+            history.iter().find(|receipt| {
+                receipt.object_get("command_id").and_then(JsonValue::as_str) == Some(command_id)
+            })
+        })
+    {
+        if text(receipt, "request_digest")? != request_digest {
+            return Err(Error::Conflict("command identity reused"));
+        }
+        return ctx.plan(
+            if canonical {
+                "canonical-node-forms"
+            } else {
+                "public-source-forms"
+            },
+            form_response(
+                &source,
+                old.as_ref(),
+                &config,
+                &subject,
+                &target,
+                &configuration,
+                &revision,
+                contracts.as_ref(),
+                receipt.clone(),
+                true,
+            )?,
+            vec![],
+            true,
+        );
+    }
+    if !same(field(&request, "expected_source")?, &subject)?
+        || !same(field(&request, "expected_revision")?, &revision)?
+        || text(&request, "expected_configuration")? != configuration
+    {
+        return Err(Error::Conflict(
+            "expected source/configuration/revision stale",
+        ));
+    }
+    let mut successor = apply_form_changes(old.as_ref(), &subject, changes)?;
+    let views = materialize_source_forms(&source, &successor)?;
+    for change in changes {
+        let form = field(change, "form")?;
+        if text(field(form, "content")?, "kind")? == "source-copy"
+            && views
+                .iter()
+                .find(|view| {
+                    view.object_get("form")
+                        .and_then(|v| v.object_get("id"))
+                        .and_then(JsonValue::as_str)
+                        == form.object_get("form_id").and_then(JsonValue::as_str)
+                })
+                .is_none_or(|view| {
+                    view.object_get("state").and_then(JsonValue::as_str) != Some("ready")
+                })
+        {
+            return Err(Error::Invalid("source-copy does not satisfy source reader"));
+        }
+    }
+    let mut receipt = object(vec![
+        ("command_id", string(command_id)),
+        ("request_digest", string(&request_digest)),
+        ("principal_id", field(&config, "principal_id")?.clone()),
+        ("authority_ref", field(&config, "authority_ref")?.clone()),
+        ("owner_configuration", string(&configuration)),
+        ("recorded_at", string(&ctx.recorded_at)),
+        ("source", subject.clone()),
+        ("previous_revision", revision),
+        (
+            "results",
+            JsonValue::Array(
+                changes
+                    .iter()
+                    .map(|change| form_reference(field(change, "form")?))
+                    .collect::<Result<Vec<_>>>()?,
+            ),
+        ),
+    ]);
+    if let Some(contracts) = &contracts {
+        source_command::set(&mut receipt, "source_contracts", contracts.clone())?;
+    }
+    let mut history = successor
+        .object_get("growth_history")
+        .and_then(JsonValue::as_array)
+        .unwrap_or(&[])
+        .to_vec();
+    history.push(receipt.clone());
+    source_command::set(&mut successor, "growth_history", JsonValue::Array(history))?;
+    validate_history(&successor, &subject)?;
+    let encoded = published(&successor)?;
+    if encoded.len() > 2_097_152 {
+        return Err(Error::Invalid("form set publication byte budget"));
+    }
+    schema_check(
+        worker,
+        target.as_str(),
+        &encoded,
+        "ToS/contracts/human-form-set.schema.json",
+        deadline,
+        cancelled,
+    )?;
+    let response = form_response(
+        &source,
+        Some(&successor),
+        &config,
+        &subject,
+        &target,
+        &configuration,
+        &string(&Digest256::of_bytes(&encoded).to_prefixed()),
+        contracts.as_ref(),
+        receipt,
+        false,
+    )?;
+    ctx.plan(
+        if canonical {
+            "canonical-node-forms"
+        } else {
+            "public-source-forms"
+        },
+        response,
+        vec![SourceChange {
+            path: target,
+            before: old_raw.map(Digest256::of_bytes),
+            after: Some(encoded),
+        }],
+        false,
+    )
+}
+fn canonical_bytes(value: &JsonValue) -> Result<Vec<u8>> {
+    source_command::canonical(value)
+}
+fn form_id(value: &str) -> bool {
+    let Some(rest) = value.strip_prefix("tos.form.") else {
+        return false;
+    };
+    rest.as_bytes()
+        .first()
+        .is_some_and(u8::is_ascii_alphanumeric)
+        && rest.bytes().all(|ch| {
+            ch.is_ascii_lowercase() || ch.is_ascii_digit() || matches!(ch, b'.' | b'_' | b'-')
+        })
+}
+fn check_changes(config: &JsonValue, changes: &[JsonValue], canonical: bool) -> Result<()> {
+    if changes.is_empty() || changes.len() > 32 {
+        return Err(Error::Invalid("form batch size"));
+    }
+    let mut ids = HashSet::new();
+    for change in changes {
+        exact_keys(change, &["operation", "expected_form", "form"])?;
+        let form = field(change, "form")?;
+        let id = text(form, "form_id")?;
+        if !ids.insert(id) {
+            return Err(Error::Invalid("duplicate batch form ID"));
+        }
+        if !array(config, "allowed_form_ids")?
+            .iter()
+            .any(|value| value.as_str() == Some(id))
+            || !array(config, "allowed_operations")?.iter().any(|value| {
+                value.as_str() == change.object_get("operation").and_then(JsonValue::as_str)
+            })
+            || text(form, "creator_id")? != text(config, "principal_id")?
+        {
+            return Err(Error::Denied("form change outside current delegation"));
+        }
+        if canonical && text(field(form, "content")?, "kind")? != "source-copy" {
+            return Err(Error::Denied("canonical form must copy source"));
+        }
+    }
+    Ok(())
+}
+#[allow(clippy::too_many_arguments)]
+fn form_response(
+    source: &JsonValue,
+    payload: Option<&JsonValue>,
+    config: &JsonValue,
+    subject: &JsonValue,
+    target: &tos_foundation::RelativePath,
+    configuration: &str,
+    revision: &JsonValue,
+    contracts: Option<&JsonValue>,
+    receipt: JsonValue,
+    replayed: bool,
+) -> Result<JsonValue> {
+    let forms = payload
+        .map(|set| array(set, "forms"))
+        .transpose()?
+        .unwrap_or(&[]);
+    let mut response = object(vec![
+        (
+            "schema_version",
+            string("tos_local_source_command_result_v1"),
+        ),
+        ("authentication", string("local-unix-account")),
+        ("owner_configuration", string(configuration)),
+        ("source", subject.clone()),
+        ("source_path", field(config, "source_path")?.clone()),
+        ("target_path", string(target.as_str())),
+        ("revision", revision.clone()),
+        (
+            "supported_operations",
+            JsonValue::Array(vec![string("form.create"), string("form.revise")]),
+        ),
+        (
+            "allowed_operations",
+            field(config, "allowed_operations")?.clone(),
+        ),
+        (
+            "command_operations",
+            JsonValue::Array(vec![string("describe"), string("prepare"), string("apply")]),
+        ),
+        (
+            "source_fields",
+            JsonValue::Array(
+                metadata_fields(source)?
+                    .iter()
+                    .map(FormField::public)
+                    .collect(),
+            ),
+        ),
+        (
+            "allowed_form_ids",
+            field(config, "allowed_form_ids")?.clone(),
+        ),
+        (
+            "forms",
+            JsonValue::Array(
+                forms
+                    .iter()
+                    .map(form_reference)
+                    .collect::<Result<Vec<_>>>()?,
+            ),
+        ),
+        (
+            "materializations",
+            JsonValue::Array(
+                payload
+                    .map(|set| materialize_source_forms(source, set))
+                    .transpose()?
+                    .unwrap_or_default(),
+            ),
+        ),
+        ("receipt", receipt),
+        ("replayed", JsonValue::Bool(replayed)),
+        ("grants_admission", JsonValue::Bool(false)),
+    ]);
+    if let Some(contracts) = contracts {
+        source_command::set(&mut response, "source_contracts", contracts.clone())?;
+    }
+    Ok(response)
+}
 
 fn record_reference(id: &str, version: u64, body: &JsonValue) -> Result<JsonValue> {
     Ok(object(vec![
