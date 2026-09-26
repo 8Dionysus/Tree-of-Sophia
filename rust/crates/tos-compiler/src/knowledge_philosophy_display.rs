@@ -176,8 +176,7 @@ pub fn ordinary_philosophy_node_display(
 }
 
 /// Complete source-profile philosophy `_node_display` branch, including
-/// declared variant labels and temporal source wording. Existing display
-/// envelopes remain outside the closed projected-node carrier contract.
+/// declared variant labels, temporal source wording and retained owner display.
 pub fn full_philosophy_node_display(
     row: &SourceRow,
     kind_id: &str,
@@ -209,7 +208,7 @@ fn node_display(
     let props = field(item, "properties").and_then(Value::as_object);
     if kind_id.is_empty()
         || text(field(item, "node_id")).is_none()
-        || field(item, "display").is_some()
+        || (!navigation && field(item, "display").is_some())
         || (!navigation
             && (props.is_some_and(|p| p.contains_key("variant_labels") || p.contains_key("value"))
                 || kind_id == "claim"
@@ -219,6 +218,8 @@ fn node_display(
         return Err(Error::Invalid("unsupported philosophy display variant"));
     }
     let prop = |key: &str| -> Option<&Value> { props.and_then(|p| p.get(key)) };
+    let existing = field(item, "display").and_then(Value::as_object);
+    let existing_field = |key: &str| existing.and_then(|m| m.get(key));
     let time_wording = if navigation
         && (kind_id == "temporal-assertion"
             || (text(field(item, "node_kind")).as_deref() == Some("literal")
@@ -254,7 +255,7 @@ fn node_display(
             )
         });
     let multilingual_labels = field(item, "multilingual").and_then(|m| field(m, "label"));
-    let mut title = localized_from(None, &label);
+    let mut title = localized_from(existing_field("title"), &label);
     if let (Some(language), Some(wording)) = (
         time_wording.and_then(|wording| text(field(wording, "language"))),
         time_text.as_ref(),
@@ -282,7 +283,8 @@ fn node_display(
             }
         }
     }
-    if explicit.is_none() && path_label.is_none() {
+    if display_text(existing_field("title")).is_none() && explicit.is_none() && path_label.is_none()
+    {
         let other = Value::Object(
             title
                 .iter()
@@ -299,13 +301,15 @@ fn node_display(
     let kind_fallback = registry_labels
         .and_then(|m| text(m.get("default")))
         .unwrap_or_else(|| humanize(kind_id));
-    let mut kind_label = localized_from(None, &kind_fallback);
+    let mut kind_label = localized_from(existing_field("kind_label"), &kind_fallback);
     for (language, wording) in form_items(effective_type_labels) {
         if kind_label.get(&language).is_none_or(Value::is_null) {
             kind_label.insert(language, wording);
         }
     }
+    let existing_summary = display_text(existing_field("summary")).map(Value::String);
     let authored_summary = first_text(&[
+        existing_summary.as_ref(),
         field(item, "distilled_thesis"),
         field(item, "summary"),
         field(item, "description"),
@@ -319,20 +323,25 @@ fn node_display(
         prop("comment"),
         time_wording.and_then(|wording| field(wording, "text")),
     ]);
-    let summary_state = if authored_summary.is_some() {
-        "source-derived"
-    } else {
-        "metadata-synthesis"
-    };
+    let summary_state = text(existing_field("summary_state")).unwrap_or_else(|| {
+        if authored_summary.is_some() {
+            "source-derived"
+        } else {
+            "metadata-synthesis"
+        }
+        .into()
+    });
     let summary_default = authored_summary
         .clone()
         .unwrap_or_else(|| MISSING_SUMMARY_RU.into());
-    let mut summary = localized_from(None, &summary_default);
+    let mut summary = localized_from(existing_field("summary"), &summary_default);
+    summary.insert("default".into(), Value::String(summary_default.clone()));
     if authored_summary.is_none() {
         summary.insert("ru".into(), Value::String(MISSING_SUMMARY_RU.into()));
         summary.insert("en".into(), Value::String(MISSING_SUMMARY_EN.into()));
     }
-    let source_title_available = explicit.is_some()
+    let source_title_available = display_text(existing_field("title")).is_some()
+        || explicit.is_some()
         || text(field(item, "title")).is_some()
         || text(field(item, "name")).is_some()
         || display_text(Some(&Value::Object(
@@ -343,9 +352,11 @@ fn node_display(
                 .collect(),
         )))
         .is_some();
-    let mut provenance = Map::new();
-    provenance.insert(
-        "title".into(),
+    let mut provenance = existing_field("provenance")
+        .and_then(Value::as_object)
+        .cloned()
+        .unwrap_or_default();
+    provenance.entry("title").or_insert_with(|| {
         Value::String(
             if explicit.is_some() {
                 "projected-label"
@@ -355,17 +366,17 @@ fn node_display(
                 "identifier-fallback"
             }
             .into(),
-        ),
-    );
-    provenance.insert("summary".into(), Value::String(summary_state.into()));
-    provenance.insert(
-        "source_title_available".into(),
-        Value::Bool(source_title_available),
-    );
-    provenance.insert(
-        "source_summary_available".into(),
-        Value::Bool(authored_summary.is_some()),
-    );
+        )
+    });
+    provenance
+        .entry("summary")
+        .or_insert_with(|| Value::String(summary_state.clone()));
+    provenance
+        .entry("source_title_available")
+        .or_insert(Value::Bool(source_title_available));
+    provenance
+        .entry("source_summary_available")
+        .or_insert(Value::Bool(authored_summary.is_some()));
     if navigation && kind_id == "claim" {
         if let Some(descriptor) = prop("navigation_descriptor").and_then(Value::as_object) {
             let mut copy = Map::new();
