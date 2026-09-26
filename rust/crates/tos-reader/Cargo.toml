@@ -1,0 +1,16 @@
+[package]
+name = "tos-reader"
+version = "0.1.0"
+publish = false
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+tempfile = "3"
+tos-foundation = { path = "../tos-foundation" }
+tos-source-store = { path = "../tos-source-store" }
+
+[[bin]]
+name = "tos-reader"
+path = "src/main.rs"

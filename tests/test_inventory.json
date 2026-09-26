@@ -2581,6 +2581,36 @@
       "focused_target": "tests/test_zarathustra_concept_workbench_v1.py",
       "failure_route": "Fix the frozen workbench plan, source/work scope, exact occurrence layer, context compiler, request expansion, concept query route, candidate relation ceiling, or private boundary before changing test expectations.",
       "disposition": "keep"
+    },
+    {
+      "path": "tests/test_acquisition_batch.py",
+      "home": "tests",
+      "home_scope": "root",
+      "family": "validator_behavior",
+      "validation_lane": "release",
+      "owner_surface": "mechanics/source-witnessing/parts/witness-route/docs/ACQUISITION_BATCH_ROUTE.md",
+      "protects": "immutable selection binding, selected Item metadata and rights closure before transfer, one destination per File ID within an Item, bounded provider failure isolation, no-clobber payload custody per Item/File/destination including shared content-addressed Files across Items, independent fixity, resumable per-binding journal behavior, and refusal to recover over existing evidence; not corpus admission or publication",
+      "coverage_authority": "tests/AGENTS.md root test collection (including unittest cases)",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "tests/test_acquisition_batch.py",
+      "failure_route": "Fix the selection-bound acquisition route or custody contract before changing these expectations.",
+      "disposition": "keep"
+    },
+    {
+      "path": "tests/test_acquisition_handoff_adapter.py",
+      "home": "tests",
+      "home_scope": "root",
+      "family": "validator_behavior",
+      "validation_lane": "release",
+      "owner_surface": "mechanics/source-witnessing/parts/witness-route/docs/ACQUISITION_BATCH_ROUTE.md",
+      "protects": "caller-held manifest digest binding, selected Item provenance and rights closure, tuple-keyed handoff custody and fixity for shared File IDs across Items, accepted-source comparison, candidate conversion boundary, and rejection of coherent untrusted replacement; not corpus admission or publication",
+      "coverage_authority": "tests/AGENTS.md root test collection (including unittest cases)",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "tests/test_acquisition_handoff_adapter.py",
+      "failure_route": "Fix the shared handoff verifier or bounded adapter contract before changing these expectations.",
+      "disposition": "keep"
     }
   ]
 }

@@ -27,7 +27,7 @@ def changed_paths(root: Path, base: str) -> list[str]:
 
 
 def select(paths: list[str], force_full: bool = False) -> dict:
-    mode, worker = 'none', False
+    mode, worker, rust = 'none', False, False
     for path in paths:
         p = PurePosixPath(path)
         if p.is_absolute() or '..' in p.parts or '\n' in path:
@@ -36,7 +36,9 @@ def select(paths: list[str], force_full: bool = False) -> dict:
         if (p.suffix == '.md' and p.name != 'AGENTS.md'
                 and (len(p.parts) == 1 or path.startswith(DOC_ROOTS))):
             continue
-        if path.startswith('access/deploy/cloudflare-worker/'):
+        if path in ('Cargo.toml', 'Cargo.lock', 'rust-toolchain.toml') or path.startswith(('rust/', 'tests/conformance/rust/')):
+            rust = True
+        elif path.startswith('access/deploy/cloudflare-worker/'):
             worker = True
         elif path.startswith(('access/web/', 'access/e2e/')):
             mode = max(mode, 'browser', key=MODES.index)
@@ -45,10 +47,10 @@ def select(paths: list[str], force_full: bool = False) -> dict:
             # Worker fixtures exercise parity with the shared Python reader.
             worker = True
         else:
-            mode, worker = 'full', True
+            mode, worker, rust = 'full', True, True
     if force_full or not paths:
-        mode, worker = 'full', True
-    return {'schema_version': 1, 'software_mode': mode, 'worker': worker,
+        mode, worker, rust = 'full', True, True
+    return {'schema_version': 2, 'software_mode': mode, 'worker': worker, 'rust': rust,
             'changed_paths': paths, 'forced_full': force_full or not paths}
 
 
@@ -99,10 +101,10 @@ def gate(needs: dict) -> None:
     if needs.get('plan', {}).get('result') != 'success':
         raise ValueError('check selection or documentation validation did not succeed')
     outputs = needs['plan'].get('outputs', {})
-    mode, worker = outputs.get('software_mode'), outputs.get('worker')
-    if mode not in MODES or worker not in ('true', 'false'):
+    mode, worker, rust = outputs.get('software_mode'), outputs.get('worker'), outputs.get('rust')
+    if mode not in MODES or worker not in ('true', 'false') or rust not in ('true', 'false'):
         raise ValueError('missing or invalid check selection')
-    for job, required in [('software', mode != 'none'), ('worker', worker == 'true')]:
+    for job, required in [('software', mode != 'none'), ('worker', worker == 'true'), ('rust', rust == 'true')]:
         expected = 'success' if required else 'skipped'
         if needs.get(job, {}).get('result') != expected:
             raise ValueError(f'{job}: expected {expected}, got {needs.get(job)}')
@@ -131,6 +133,7 @@ def main() -> int:
         with open(output, 'a', encoding='utf-8') as stream:
             stream.write(f"software_mode={result['software_mode']}\n")
             stream.write(f"worker={str(result['worker']).lower()}\n")
+            stream.write(f"rust={str(result['rust']).lower()}\n")
     return 0
 
 

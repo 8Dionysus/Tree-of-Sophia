@@ -62,6 +62,9 @@ The current repository move is:
 - keep graph-workbench material pre-canon until review promotes relation packs;
 - keep generated graph, KAG, and public exports downstream of authored ToS
   surfaces;
+- carry the maintained executable foundation toward Rust under
+  [TOS-D-0069](docs/decisions/TOS-D-0069-rust-execution-foundation.md), with
+  source authority, exact historical bytes and release boundaries retained;
 - keep the public site continuously available through the repository-driven
   Cloudflare edge profile, while native MCP and downloadable access remain
   installable from ToS itself and AbyssOS capabilities stay optional;

@@ -1,0 +1,31 @@
+{
+  "custody_domain_hex": "6c61622d637573746f64792d41",
+  "custody_domain_sha256": "112c6ed39c6882515defd806d19a0f6361b2b2094e5cc6161dfc90c297344ede",
+  "format": "tos_segment_v1_candidate",
+  "frames": [
+    {
+      "frame_header_offset": 48,
+      "index": 0,
+      "length": 4,
+      "payload_hex": "41c3a90a",
+      "sha256": "6da52b0aeb87c36b8b897f991a0c21570222565e3ac7f7708f8204353f1bb91f"
+    },
+    {
+      "frame_header_offset": 92,
+      "index": 1,
+      "length": 4,
+      "payload_hex": "00414243",
+      "sha256": "6a4da1bb3bb069c3d6d2844916b46c10e19bc74e10c058d0b60a117654cef122"
+    }
+  ],
+  "logical_alias_observation": {
+    "public_ref": "synthetic-public-A",
+    "restricted_ref": "synthetic-restricted-A",
+    "rights_decision_owner": "source_adapter",
+    "same_frame_header_offset": 48
+  },
+  "segment_sha256": "53eaeadc217442cc5d45cb1ed151ad248238c56a61e27990e9dcc04122422e91",
+  "segment_size": 144,
+  "source_contract": "evidence/sto/STO2-format-candidate.md",
+  "trailer_offset": 136
+}

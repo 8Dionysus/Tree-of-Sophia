@@ -1,0 +1,13 @@
+[package]
+name = "tos-segment-store"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[features]
+default = []
+
+[dependencies]
+getrandom = "=0.4.3"
+rustix = { version = "=1.1.5", features = ["fs"] }
+tos-foundation = { path = "../tos-foundation" }

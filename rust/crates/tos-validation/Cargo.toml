@@ -1,0 +1,12 @@
+[package]
+name = "tos-validation"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.98.1"
+license = "Apache-2.0"
+description = "Owner-declared ToS validation contracts and bounded schema backend probe"
+
+[dependencies]
+jsonschema = { version = "=0.53.0", default-features = false, features = ["arbitrary-precision"] }
+serde_json = { version = "1", features = ["arbitrary_precision"] }
+tos-foundation = { path = "../tos-foundation" }
