@@ -52,11 +52,13 @@ pub fn run(root: &Path, plan: &Plan, limits: Limits, cancel: &AtomicI32) -> io::
 #[cfg(target_os = "linux")]
 mod native {
     use super::*;
+    use std::ffi::CString;
     use std::fs::{self, File};
     use std::io::Read;
     use std::os::fd::{AsRawFd, FromRawFd};
-    use std::os::unix::process::CommandExt;
-    use std::process::{Child, Command, Stdio};
+    use std::os::unix::ffi::OsStrExt;
+    use std::os::unix::process::ExitStatusExt;
+    use std::process::ExitStatus;
     use std::thread;
     use std::time::Instant;
 
@@ -115,7 +117,7 @@ mod native {
     }
 
     struct Custody {
-        child: Child,
+        pid: i32,
         identity: File,
         reaped: bool,
         cleaned: bool,
@@ -123,6 +125,24 @@ mod native {
     }
 
     impl Custody {
+        fn poll_exit(&mut self) -> io::Result<Option<ExitStatus>> {
+            if self.reaped {
+                return Ok(None);
+            }
+            let mut raw = 0;
+            let rc = unsafe { libc::waitpid(self.pid, &mut raw, libc::WNOHANG) };
+            if rc == self.pid {
+                self.reaped = true;
+                Ok(Some(ExitStatus::from_raw(raw)))
+            } else if rc == 0 {
+                Ok(None)
+            } else if io::Error::last_os_error().kind() == io::ErrorKind::Interrupted {
+                Ok(None)
+            } else {
+                Err(io::Error::last_os_error())
+            }
+        }
+
         fn cleanup(&mut self) -> io::Result<()> {
             if self.cleaned {
                 return Ok(());
@@ -138,16 +158,16 @@ mod native {
             // PID until this sole parent reaps them.
             if !self.reaped {
                 unsafe {
-                    libc::kill(-(self.child.id() as i32), libc::SIGKILL);
+                    libc::kill(-(self.pid), libc::SIGKILL);
                 }
                 kill(&self.identity)?;
             }
             loop {
-                if !self.reaped && self.child.try_wait()?.is_some() {
-                    self.reaped = true;
+                if !self.reaped {
+                    self.poll_exit()?;
                 }
                 for pid in children()? {
-                    if !self.reaped && pid == self.child.id() as i32 {
+                    if !self.reaped && pid == self.pid {
                         continue;
                     }
                     let identity = pidfd(pid)?;
@@ -176,6 +196,75 @@ mod native {
         fn drop(&mut self) {
             let _ = self.cleanup();
         }
+    }
+
+    fn pipe() -> io::Result<(File, File)> {
+        let mut fds = [-1; 2];
+        if unsafe { libc::pipe2(fds.as_mut_ptr(), libc::O_CLOEXEC) } != 0 {
+            return Err(io::Error::last_os_error());
+        }
+        Ok(unsafe { (File::from_raw_fd(fds[0]), File::from_raw_fd(fds[1])) })
+    }
+
+    fn spawn(root: &Path, argv: &[String], grace: Duration) -> io::Result<(Custody, File, File)> {
+        let root = CString::new(root.as_os_str().as_bytes()).map_err(|_| error("NUL root"))?;
+        let args: Result<Vec<CString>, _> =
+            argv.iter().map(|a| CString::new(a.as_bytes())).collect();
+        let args = args.map_err(|_| error("NUL argv"))?;
+        let mut pointers: Vec<*const libc::c_char> = args.iter().map(|a| a.as_ptr()).collect();
+        pointers.push(std::ptr::null());
+        let (stdout, out_child) = pipe()?;
+        let (stderr, err_child) = pipe()?;
+        let parent = std::process::id() as i32;
+        let pid = unsafe { libc::fork() };
+        if pid < 0 {
+            return Err(io::Error::last_os_error());
+        }
+        if pid == 0 {
+            // Only preallocated memory and async-signal-safe syscalls. No
+            // synchronous exec-error-pipe handshake can delay the supervisor.
+            unsafe {
+                if libc::setpgid(0, 0) != 0
+                    || libc::prctl(libc::PR_SET_PDEATHSIG, libc::SIGKILL, 0, 0, 0) != 0
+                    || libc::getppid() != parent
+                    || libc::chdir(root.as_ptr()) != 0
+                    || libc::dup2(out_child.as_raw_fd(), 1) < 0
+                    || libc::dup2(err_child.as_raw_fd(), 2) < 0
+                    || libc::close_range(3, u32::MAX, 4) != 0
+                {
+                    libc::_exit(126);
+                }
+                libc::execvp(pointers[0], pointers.as_ptr());
+                libc::_exit(127);
+            }
+        }
+        drop(out_child);
+        drop(err_child);
+        let identity = match pidfd(pid) {
+            Ok(fd) => fd,
+            Err(err) => {
+                // A non-reaped PID remains reserved. Kill fail-closed; report
+                // the exact residual identity instead of claiming cleanup.
+                unsafe {
+                    libc::kill(-pid, libc::SIGKILL);
+                    libc::kill(pid, libc::SIGKILL);
+                }
+                return Err(error(format!(
+                    "pidfd custody unavailable; residual PID {pid}: {err}"
+                )));
+            }
+        };
+        Ok((
+            Custody {
+                pid,
+                identity,
+                reaped: false,
+                cleaned: false,
+                grace,
+            },
+            stdout,
+            stderr,
+        ))
     }
 
     struct Nonblocking {
@@ -285,49 +374,7 @@ mod native {
                 deadline,
                 cancel,
             )?;
-            let mut process = Command::new(&command.argv[0]);
-            process
-                .args(&command.argv[1..])
-                .current_dir(root)
-                .stdout(Stdio::piped())
-                .stderr(Stdio::piped());
-            let parent = std::process::id() as i32;
-            unsafe {
-                process.pre_exec(move || {
-                    if libc::setpgid(0, 0) != 0
-                        || libc::prctl(libc::PR_SET_PDEATHSIG, libc::SIGKILL, 0, 0, 0) != 0
-                        || libc::getppid() != parent
-                    {
-                        return Err(io::Error::last_os_error());
-                    }
-                    Ok(())
-                });
-            }
-            let child = process.spawn()?;
-            let identity = match pidfd(child.id() as i32) {
-                Ok(fd) => fd,
-                Err(err) => {
-                    // Root has not been reaped, so this numeric identity is
-                    // still reserved. Fail closed and leave bounded PID evidence.
-                    unsafe {
-                        libc::kill(-(child.id() as i32), libc::SIGKILL);
-                        libc::kill(child.id() as i32, libc::SIGKILL);
-                    }
-                    return Err(error(format!(
-                        "pidfd custody unavailable for PID {}: {err}",
-                        child.id()
-                    )));
-                }
-            };
-            let mut custody = Custody {
-                child,
-                identity,
-                reaped: false,
-                cleaned: false,
-                grace: limits.cleanup_grace,
-            };
-            let stdout = custody.child.stdout.take().unwrap();
-            let stderr = custody.child.stderr.take().unwrap();
+            let (mut custody, stdout, stderr) = spawn(root, &command.argv, limits.cleanup_grace)?;
             let _out_mode = Nonblocking::new(stdout.as_raw_fd())?;
             let _err_mode = Nonblocking::new(stderr.as_raw_fd())?;
             let mut eof = [false, false];
@@ -340,7 +387,7 @@ mod native {
                         return Err(error("execution wall deadline"));
                     }
                     if status.is_none() {
-                        status = custody.child.try_wait()?;
+                        status = custody.poll_exit()?;
                         if status.is_some() {
                             custody.reaped = true;
                             // A successful daemonizing tool may still have
