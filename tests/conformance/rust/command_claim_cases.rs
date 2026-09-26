@@ -474,6 +474,9 @@ fn claim_successor_retains_bytes_replays_current_scope_and_refuses_unissued_admi
     let bound = bind_selected_candidate(
         &ctx,
         prepared,
+        &cut,
+        &software,
+        &components,
         &candidate_cut,
         RelativePath::parse("protected-owner/claim-command.json").unwrap(),
         OperationLimits {

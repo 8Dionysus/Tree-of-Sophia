@@ -6,9 +6,9 @@ use std::collections::BTreeMap;
 use std::sync::atomic::AtomicBool;
 use std::time::{Duration, Instant};
 use tos_command::source_command::{CommandContext, SourceCommandError, SourceFile};
-use tos_command::source_forms::run_form_command;
+use tos_command::source_forms::run_form_command_from_captures;
 use tos_command::source_operation::{SourceOperationError, bind_selected_candidate};
-use tos_source_store::{CorpusCutReader, CutReadLimits};
+use tos_source_store::{CorpusCutReader, CutReadLimits, SoftwareCaptureReader};
 use tos_validation::FormatProfile;
 use tos_validation::executor::{ExactWorkerIdentity, ExecutorBudget};
 use tos_validation::operation::OperationLimits;
@@ -159,6 +159,35 @@ pub(super) fn successor(
 
 #[test]
 fn maintained_forms_propose_exact_bytes_bind_real_cut_and_refuse_unissued_admission() {
+    let repository = super::validation_cut_cases::repository()
+        .canonicalize()
+        .unwrap();
+    let commit_output = std::process::Command::new("git")
+        .arg("-C")
+        .arg(&repository)
+        .args(["rev-parse", "HEAD^{commit}"])
+        .output()
+        .unwrap();
+    assert!(commit_output.status.success());
+    assert!(commit_output.stdout.len() <= 41);
+    let commit = String::from_utf8(commit_output.stdout).unwrap();
+    let component_path =
+        RelativePath::parse("rust/crates/tos-command/src/source_forms.rs").unwrap();
+    // One explicit captured rule-input file is byte evidence only: this does
+    // not claim running executable identity or complete producer provenance.
+    let capture = super::source_cut_cases::captured_software_fixture(
+        &repository,
+        commit.trim(),
+        &[component_path.as_str()],
+    );
+    let other_capture = super::source_cut_cases::captured_software_fixture(
+        &repository,
+        commit.trim(),
+        &[
+            component_path.as_str(),
+            "rust/crates/tos-command/src/source_command.rs",
+        ],
+    );
     for profile in ["", "artifact-v1", "artifact-v2", "composite-v1"] {
         let (mut files, config, target) = fixture_files(profile);
         let packet = super::validation_cut_cases::repository()
@@ -168,12 +197,45 @@ fn maintained_forms_propose_exact_bytes_bind_real_cut_and_refuse_unissued_admiss
         let root = temporary.path().join("store");
         let base = super::validation_cut_cases::write_cut_store(&files, &root);
         let cancel = AtomicBool::new(false);
-        let deadline = Instant::now() + Duration::from_secs(120);
+        let deadline = Instant::now() + Duration::from_secs(180);
+        let software = SoftwareCaptureReader::open(
+            &capture.capture,
+            &capture.restored,
+            capture.selection.clone(),
+            ReadLimits {
+                max_manifest_bytes: 1_048_576,
+                max_manifest_entries: 128,
+                max_selected_object_bytes: 8_388_608,
+                json: JsonLimits::default(),
+            },
+            deadline,
+            &cancel,
+        )
+        .unwrap();
+        let components = software
+            .select_components(&[component_path.clone()])
+            .unwrap();
+        let software_raw = software
+            .read_selected_component(&components, &component_path, 8_388_608, deadline, &cancel)
+            .unwrap();
         let cut = open_cut(&root, base, deadline, &cancel);
         let mut worker = schemas(&cut, deadline, &cancel);
         let request = fs::read(packet.join("apply.request.json")).unwrap();
-        let ctx = context(&files, config.clone(), request.clone(), base);
-        let prepared = run_form_command(&ctx, &mut worker, deadline, &cancel).unwrap();
+        let mut ctx = context(&files, config.clone(), request.clone(), base);
+        ctx.files.push(SourceFile {
+            path: component_path.clone(),
+            raw: software_raw.clone(),
+        });
+        let prepared = run_form_command_from_captures(
+            &ctx,
+            &cut,
+            &software,
+            &components,
+            &mut worker,
+            deadline,
+            &cancel,
+        )
+        .unwrap();
         assert_eq!(prepared.changes.len(), 1, "{profile}");
         let raw = prepared.changes[0].after.as_ref().unwrap();
         assert_eq!(
@@ -188,9 +250,149 @@ fn maintained_forms_propose_exact_bytes_bind_real_cut_and_refuse_unissued_admiss
         files.insert(target, raw.clone());
         let candidate = successor(&files, &root, base);
         let candidate_cut = open_cut(&root, candidate, deadline, &cancel);
+        if profile.is_empty() {
+            // Mutate an unchanged dependency and re-derive the public proposal
+            // from the same substituted context. Self-equivalence cannot pass
+            // the independently selected base's real byte/fixity checks.
+            for selected_path in [
+                "ToS/contracts/human-form.schema.json",
+                component_path.as_str(),
+            ] {
+                let mut substituted = ctx.clone();
+                substituted
+                    .files
+                    .iter_mut()
+                    .find(|input| input.path.as_str() == selected_path)
+                    .unwrap()
+                    .raw
+                    .push(b' ');
+                let substituted_proposal = substituted
+                    .plan(
+                        &prepared.handler_id,
+                        prepared.response.clone(),
+                        prepared.changes.clone(),
+                        prepared.replayed,
+                    )
+                    .unwrap();
+                assert!(matches!(
+                    bind_selected_candidate(
+                        &substituted,
+                        substituted_proposal,
+                        &cut,
+                        &software,
+                        &components,
+                        &candidate_cut,
+                        RelativePath::parse("protected-owner/form-command.json").unwrap(),
+                        OperationLimits {
+                            max_member_bytes: 8_388_608,
+                            max_total_bytes: 33_554_432,
+                            max_state_bytes: 33_554_432,
+                            max_reads: 8192,
+                            max_changes: 64,
+                            deadline
+                        },
+                        &cancel,
+                    ),
+                    Err(SourceOperationError::Command(SourceCommandError::Conflict(
+                        _
+                    )))
+                ));
+                assert!(matches!(
+                    run_form_command_from_captures(
+                        &substituted,
+                        &cut,
+                        &software,
+                        &components,
+                        &mut worker,
+                        deadline,
+                        &cancel
+                    ),
+                    Err(SourceCommandError::Conflict(_))
+                ));
+            }
+            let other_software = SoftwareCaptureReader::open(
+                &other_capture.capture,
+                &other_capture.restored,
+                other_capture.selection.clone(),
+                ReadLimits {
+                    max_manifest_bytes: 1_048_576,
+                    max_manifest_entries: 128,
+                    max_selected_object_bytes: 8_388_608,
+                    json: JsonLimits::default(),
+                },
+                deadline,
+                &cancel,
+            )
+            .unwrap();
+            let other_components = other_software
+                .select_components(&[component_path.clone()])
+                .unwrap();
+            assert!(matches!(
+                run_form_command_from_captures(
+                    &ctx,
+                    &cut,
+                    &software,
+                    &other_components,
+                    &mut worker,
+                    deadline,
+                    &cancel,
+                ),
+                Err(SourceCommandError::Conflict(_))
+            ));
+            assert!(matches!(
+                bind_selected_candidate(
+                    &ctx,
+                    prepared.clone(),
+                    &cut,
+                    &software,
+                    &other_components,
+                    &candidate_cut,
+                    RelativePath::parse("protected-owner/form-command.json").unwrap(),
+                    OperationLimits {
+                        max_member_bytes: 8_388_608,
+                        max_total_bytes: 33_554_432,
+                        max_state_bytes: 33_554_432,
+                        max_reads: 8192,
+                        max_changes: 64,
+                        deadline
+                    },
+                    &cancel,
+                ),
+                Err(SourceOperationError::Command(SourceCommandError::Conflict(
+                    _
+                )))
+            ));
+            assert!(
+                run_form_command_from_captures(
+                    &ctx,
+                    &cut,
+                    &software,
+                    &components,
+                    &mut worker,
+                    Instant::now(),
+                    &cancel,
+                )
+                .is_err()
+            );
+            assert!(
+                run_form_command_from_captures(
+                    &ctx,
+                    &cut,
+                    &software,
+                    &components,
+                    &mut worker,
+                    deadline,
+                    &AtomicBool::new(true),
+                )
+                .is_err()
+            );
+        }
         let bound = bind_selected_candidate(
             &ctx,
             prepared,
+            &cut,
+            &software,
+            &components,
             &candidate_cut,
             RelativePath::parse("protected-owner/form-command.json").unwrap(),
             OperationLimits {
@@ -210,22 +412,47 @@ fn maintained_forms_propose_exact_bytes_bind_real_cut_and_refuse_unissued_admiss
             bound.commit(),
             Err(SourceOperationError::MissingFullSourceAdmission)
         ));
-        let replay_ctx = context(&files, config.clone(), request.clone(), candidate);
+        let mut replay_ctx = context(&files, config.clone(), request.clone(), candidate);
+        replay_ctx.files.push(SourceFile {
+            path: component_path.clone(),
+            raw: software_raw.clone(),
+        });
         let mut worker = schemas(&candidate_cut, deadline, &cancel);
-        let replay = run_form_command(&replay_ctx, &mut worker, deadline, &cancel).unwrap();
+        let replay = run_form_command_from_captures(
+            &replay_ctx,
+            &candidate_cut,
+            &software,
+            &components,
+            &mut worker,
+            deadline,
+            &cancel,
+        )
+        .unwrap();
         assert!(replay.replayed);
         assert!(replay.changes.is_empty());
         // Current revocation must apply before historical receipt replay.
         let mut revoked: Value = serde_json::from_slice(&config).unwrap();
         revoked["allowed_operations"] = serde_json::json!([]);
-        let revoked_ctx = context(
+        let mut revoked_ctx = context(
             &files,
             serde_json::to_vec(&revoked).unwrap(),
             request,
             candidate,
         );
+        revoked_ctx.files.push(SourceFile {
+            path: component_path.clone(),
+            raw: software_raw.clone(),
+        });
         assert!(matches!(
-            run_form_command(&revoked_ctx, &mut worker, deadline, &cancel),
+            run_form_command_from_captures(
+                &revoked_ctx,
+                &candidate_cut,
+                &software,
+                &components,
+                &mut worker,
+                deadline,
+                &cancel
+            ),
             Err(SourceCommandError::Denied(_))
         ));
     }

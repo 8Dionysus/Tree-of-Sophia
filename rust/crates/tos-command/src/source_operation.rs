@@ -9,7 +9,7 @@ use crate::source_command::{
 };
 use std::sync::atomic::AtomicBool;
 use tos_foundation::{Digest256, RelativePath};
-use tos_source_store::CorpusCutReader;
+use tos_source_store::{CorpusCutReader, SoftwareCaptureReader, SoftwareComponentSelectionV1};
 use tos_validation::operation::{
     BoundOperation, OperationChange, OperationLimits, OperationProposal, OperationRefusal,
     bind_operation_from_cut,
@@ -22,8 +22,9 @@ pub enum SourceOperationError {
     MissingFullSourceAdmission,
 }
 
-/// Private constructor: binds the exact command-produced raw delta to VAL's
-/// complete candidate carrier traversal. This still has no production issuer.
+/// Private constructor: authenticates every proposal read against independently
+/// selected base source/software carriers, then binds the exact raw delta to
+/// VAL's complete candidate traversal. This still has no production issuer.
 pub struct BoundSourceCommand {
     command: PreparedCommand,
     binding: BoundOperation,
@@ -46,11 +47,17 @@ impl BoundSourceCommand {
 pub fn bind_selected_candidate(
     context: &CommandContext,
     command: PreparedCommand,
+    base: &CorpusCutReader,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
     candidate: &CorpusCutReader,
     protected_configuration_locator: RelativePath,
     limits: OperationLimits,
     cancelled: &AtomicBool,
 ) -> Result<BoundSourceCommand, SourceOperationError> {
+    context
+        .check_from_selected_captures(base, software, components, limits.deadline, cancelled)
+        .map_err(SourceOperationError::Command)?;
     let checked: SourceCommandResult<_> = context.plan(
         &command.handler_id,
         command.response.clone(),

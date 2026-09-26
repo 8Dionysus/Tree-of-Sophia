@@ -6,6 +6,7 @@ use std::collections::{HashMap, HashSet};
 use std::sync::atomic::AtomicBool;
 use std::time::Instant;
 use tos_foundation::{Digest256, JsonString, JsonValue};
+use tos_source_store::{CorpusCutReader, SoftwareCaptureReader, SoftwareComponentSelectionV1};
 use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
 
 fn schema_check(
@@ -25,7 +26,25 @@ fn schema_check(
     Ok(())
 }
 
-/// Execute maintained owner/request/form semantics over an exact selected cut.
+/// Authenticate all selected reads before executing the existing form proposal
+/// engine. Source and software remain separate; configuration is an independent
+/// protected observation, and current owner semantics are checked by the engine.
+pub fn run_form_command_from_captures(
+    ctx: &CommandContext,
+    source: &CorpusCutReader,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> Result<PreparedCommand> {
+    ctx.check_from_selected_captures(source, software, components, deadline, cancelled)?;
+    run_form_command(ctx, worker, deadline, cancelled)
+}
+
+/// Execute maintained owner/request/form proposal semantics over caller bytes.
+/// Selected-read custody requires `run_form_command_from_captures` or the
+/// independent carrier checks at candidate binding.
 /// The returned canonical file bytes are proposals; `PreparedCommand::commit`
 /// explicitly refuses until complete source admission and owner fencing exist.
 pub fn run_form_command(
