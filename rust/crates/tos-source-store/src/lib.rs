@@ -4,12 +4,15 @@
 //! publication and current-use authority remain with their owners.
 
 mod error;
+mod cut;
 mod limits;
 mod manifest;
 mod object;
 mod secure_open;
 
 pub use error::{Result, StoreError, StoreErrorCode};
+pub use cut::{CorpusCutReader, CutReadLimits, SourceMemberV1, SourceMemberStreamV1,
+    SourceMembershipV1, SourcePresenceV1};
 pub use limits::ReadLimits;
 pub use manifest::{
     CorpusDescriptor, CorpusReader, MemberMetadata, RetirementMetadata, Selector, Snapshot,
