@@ -8,7 +8,9 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Instant;
 
 use tos_foundation::{Digest256, RelativePath, SourceRevision};
-use tos_source_store::{CorpusCutReader, SourceMembershipV1};
+use tos_source_store::{
+    CorpusCutReader, SoftwareCaptureReader, SoftwareCaptureSelectionV1, SourceMembershipV1,
+};
 
 use crate::executor::{
     BoundedSchemaExecutor, ExactWorkerIdentity, ExecutionIdentity, ExecutorBudget, ExecutorFailure,
@@ -17,6 +19,7 @@ use crate::executor::{
 use crate::item_rules::{
     ItemFamilyReport, ItemLimits, ItemPayload, ItemRefusal, ItemRules, ItemSource,
 };
+use crate::provenance_rules::{ProvenanceReport, ProvenanceRules, ProvenanceSource};
 use crate::record_rules::RecordFamily;
 use crate::{FormatProfile, SchemaBackendProbe, SchemaResource, published_value};
 
@@ -156,6 +159,10 @@ impl CutWorkerSchemaExecutor {
     pub fn receipts(&self) -> &[CutSchemaReceipt] {
         &self.receipts
     }
+
+    pub fn source_revision(&self) -> SourceRevision {
+        self.revision
+    }
 }
 
 impl CutSchemaExecutor for CutWorkerSchemaExecutor {
@@ -248,6 +255,169 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
         });
         Ok(valid)
     }
+}
+
+/// Actual source+software adapter to the existing provenance owner's current
+/// and named archived-input rules. No retained revision is substituted for a
+/// currently missing builder/schema, and no old schema gains current authority.
+pub struct CutProvenanceSource<'a> {
+    pub cut: &'a CorpusCutReader,
+    pub software: &'a SoftwareCaptureReader,
+    pub schemas: &'a mut CutWorkerSchemaExecutor,
+    pub cancelled: &'a AtomicBool,
+}
+
+impl ProvenanceSource for CutProvenanceSource<'_> {
+    fn current(
+        &mut self,
+        path: &str,
+        max_bytes: usize,
+        deadline: Instant,
+    ) -> Result<Option<Vec<u8>>, ItemRefusal> {
+        check(deadline, self.cancelled)?;
+        let relative = RelativePath::parse(path)
+            .map_err(|_| ItemRefusal::Unsupported("provenance source path".into()))?;
+        if path.starts_with("scripts/") {
+            return self
+                .software
+                .read_current(&relative, max_bytes as u64, deadline, self.cancelled)
+                .map_err(store_error);
+        }
+        if !path.starts_with("ToS/") {
+            return Err(ItemRefusal::Unsupported("provenance source owner".into()));
+        }
+        if self.cut.current().member(&relative).is_none() {
+            return Ok(None);
+        }
+        self.cut
+            .read_member(
+                self.cut.current().revision(),
+                &relative,
+                max_bytes as u64,
+                deadline,
+                self.cancelled,
+            )
+            .map(|member| Some(member.raw))
+            .map_err(store_error)
+    }
+
+    fn recorded_input(
+        &mut self,
+        path: &str,
+        digest: &str,
+        max_bytes: usize,
+        deadline: Instant,
+    ) -> Result<Option<Vec<u8>>, ItemRefusal> {
+        let Ok(expected) = Digest256::from_hex(digest) else {
+            return Ok(None);
+        };
+        // The existing owner requires the current path to remain a file before
+        // an exact original builder or schema capture may be consulted.
+        let Some(current) = self.current(path, max_bytes, deadline)? else {
+            return Ok(None);
+        };
+        if Digest256::of_bytes(&current) == expected {
+            return Ok(Some(current));
+        }
+        let archive = if let Some(stem) = path
+            .strip_prefix("scripts/")
+            .and_then(|name| name.strip_suffix(".py"))
+        {
+            if !owner_basename(stem, b'_') {
+                return Ok(None);
+            }
+            format!("ToS/research-packets/retained-builder-inputs/{stem}/{digest}.py")
+        } else if let Some(stem) = path
+            .strip_prefix("ToS/contracts/")
+            .and_then(|name| name.strip_suffix(".schema.json"))
+        {
+            if !owner_basename(stem, b'-') {
+                return Ok(None);
+            }
+            format!("ToS/contracts/history/{digest}.json")
+        } else {
+            return Ok(None);
+        };
+        let Some(raw) = self.current(&archive, max_bytes.min(1_048_576), deadline)? else {
+            return Ok(None);
+        };
+        if Digest256::of_bytes(&raw) != expected {
+            return Ok(None);
+        }
+        if path.starts_with("ToS/contracts/") {
+            let value: serde_json::Value = serde_json::from_slice(&raw).map_err(|_| {
+                ItemRefusal::Unsupported("recorded schema JSON representation".into())
+            })?;
+            if !value.is_object() || value["$id"] != format!("https://tree-of-sophia.local/{path}")
+            {
+                return Ok(None);
+            }
+        }
+        Ok(Some(raw))
+    }
+
+    fn schema(
+        &mut self,
+        path: &str,
+        raw: &[u8],
+        contract: &str,
+        contract_digest: &str,
+        deadline: Instant,
+    ) -> Result<bool, ItemRefusal> {
+        check(deadline, self.cancelled)?;
+        if self.schemas.source_revision() != self.cut.current().revision() {
+            return Err(ItemRefusal::Source(
+                "provenance schema executor belongs to another source cut".into(),
+            ));
+        }
+        let expected = Digest256::from_hex(contract_digest)
+            .map_err(|_| ItemRefusal::Unsupported("provenance contract digest".into()))?;
+        if self.schemas.contract_digest(contract) != Some(expected) {
+            return Err(ItemRefusal::Source(
+                "provenance current contract differs from pinned worker resources".into(),
+            ));
+        }
+        self.schemas
+            .check(path, raw, contract, deadline, self.cancelled)
+    }
+}
+
+#[derive(Debug)]
+pub struct SourceCutProvenanceReport {
+    pub source_revision: SourceRevision,
+    pub software_selection: SoftwareCaptureSelectionV1,
+    pub provenance_family: ProvenanceReport,
+}
+
+pub fn inspect_provenance_lab_from_cut(
+    cut: &CorpusCutReader,
+    software: &SoftwareCaptureReader,
+    limits: ItemLimits,
+    cancelled: &AtomicBool,
+    schemas: &mut CutWorkerSchemaExecutor,
+) -> Result<SourceCutProvenanceReport, ItemRefusal> {
+    check(limits.deadline, cancelled)?;
+    let mut source = CutProvenanceSource {
+        cut,
+        software,
+        schemas,
+        cancelled,
+    };
+    let mut rules = ProvenanceRules::new(limits);
+    rules.inspect_lab(&mut source)?;
+    check(limits.deadline, cancelled)?;
+    Ok(SourceCutProvenanceReport {
+        source_revision: cut.current().revision(),
+        software_selection: software.selection().clone(),
+        provenance_family: rules.finish(),
+    })
+}
+
+fn owner_basename(name: &str, punctuation: u8) -> bool {
+    name.as_bytes().first().is_some_and(u8::is_ascii_lowercase)
+        && name
+            .bytes()
+            .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == punctuation)
 }
 
 /// Payload custody is outside source metadata membership. No ambient host
