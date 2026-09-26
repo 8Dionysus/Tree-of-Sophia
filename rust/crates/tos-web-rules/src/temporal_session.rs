@@ -1,7 +1,9 @@
 //! Private replay continuation over the shared temporal core. No selection,
 //! carrier integrity, visibility, or disclosure authority is established here.
 use std::collections::BTreeMap;
-use tos_foundation::{JsonLimits, JsonMode, JsonValue, emit_value_preserved_json, parse_json};
+use tos_foundation::{
+    CanonicalProfile, JsonLimits, JsonMode, JsonValue, canonical_bytes_v1, parse_json,
+};
 use tos_query::{
     compare_temporal_operands,
     search_v2::{SearchV2Error, SearchV2ErrorCode},
@@ -181,8 +183,9 @@ impl TemporalSession {
             return Ok(TemporalSessionStep::Need(id));
         }
         let packet = result?;
-        let bytes = emit_value_preserved_json(
+        let bytes = canonical_bytes_v1(
             &packet,
+            CanonicalProfile::SourceRecordDigestV1,
             JsonLimits {
                 max_bytes: self.budget.max_output_bytes,
                 ..self.budget.json

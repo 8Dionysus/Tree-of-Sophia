@@ -8,7 +8,7 @@ import { createWebMCPAdapter } from '../../../../access/web/src/webmcp.ts';
 import { createResearchWorkspace } from '../../../../access/web/src/research-workspace.ts';
 import { deliverSelectedTemporal } from '../../../../access/deploy/cloudflare-worker/src/selected-temporal-runtime.ts';
 
-const [bindingPath, wasmPath] = process.argv.slice(2);
+const [bindingPath, wasmPath, temporalCapturePath] = process.argv.slice(2);
 if (!bindingPath || !wasmPath) throw new Error('usage: node --experimental-strip-types domain-wasm-host.mjs BINDING.mjs MODULE_bg.wasm');
 const binding = await import(pathToFileURL(bindingPath).href);
 const wasmBytes = await readFile(wasmPath);
@@ -172,8 +172,26 @@ try {
   const terminal=replay.advance();try{assert.equal(terminal.error_code(),'NonMonotoneProgress');}finally{terminal.free();}
 }finally{replay.free();}
 
+let genuineTemporalCases=0;
+if(temporalCapturePath){
+  const capture=JSON.parse(await readFile(temporalCapturePath,'utf8'));
+  const carriers=new Map(capture.carriers.map(row=>[row.id,encoder.encode(row.raw)]));
+  assert.equal(carriers.size,capture.carriers.length,'native capture exact IDs must be unique');
+  for(const testCase of capture.temporal){
+    const nativeSelected={...selected,sourceRevision:capture.source_revision,claimSourceGraph:capture.claim_source_graph,
+      async readExactNode(id){return carriers.get(id)??null;}};
+    const actual=await deliverSelectedTemporal(binding,nativeSelected,encoder.encode(testCase.request),async bytes=>{
+      assert.equal(held,true);return decoder.decode(bytes);
+    });
+    assert.equal(actual,testCase.packet,'actual native selected and WASM packet bytes differ');
+    genuineTemporalCases++;
+  }
+  assert.ok(genuineTemporalCases>0,'native capture contains no temporal cases');
+}
+
 const after = process.memoryUsage();
 console.log(JSON.stringify({ status: 'pass', host: `Node ${process.version} WebAssembly`, ts_page_cases: tsCases,
-  refusal_cases: 5, ts_workspace_cases: 2, temporal_bridge_cases:5, date_edge_cases: dateCases, js_bytes: (await stat(bindingPath)).size,
+  refusal_cases: 5, ts_workspace_cases: 2, temporal_bridge_cases:5, genuine_temporal_cases:genuineTemporalCases,
+  date_edge_cases: dateCases, js_bytes: (await stat(bindingPath)).size,
   wasm_bytes: (await stat(wasmPath)).size, startup_ms: Number(startupMs.toFixed(3)),
   rss_before_bytes: before.rss, rss_after_bytes: after.rss, heap_used_after_bytes: after.heapUsed }));

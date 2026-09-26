@@ -11,7 +11,8 @@ These private bindings are not source selection, rights, review or canon.
 The Rust core validates the original request, selects exact Claim/value/subject
 lookups and computes the result. The host never parses carrier JSON or derives
 semantic lookup IDs. Published carriers use the FND strict codec; original
-numeric kinds and retained source fields survive result emission.
+numeric kinds and retained source fields survive result emission. Final bytes
+use the native selected finalizer's `SourceRecordDigestV1` canonical profile.
 
 The caller supplies its selected source revision, the source graph registered
 for the bibliographic Claim adapter, raw request bytes and positive admission
@@ -52,7 +53,16 @@ and async driver with a maintained selected-packet oracle carrier, plus
 cancellation, withdrawal, exact absence and terminal duplicate refusal. That
 fixture intentionally yields unsupported temporal comparison, preserving the
 fact that an unmapped node is not a temporal Claim. Full temporal source-role
-parity requires its owner fixture evidence. `tests/domain-worker-host.mjs`
+parity uses an optional native capture. `tests/domain-worker-host.mjs`
 uses the same driver and generated binding in local workerd for unsupported
 carrier retention, cooperative cancellation, withdrawal and exact absence.
 Writing these harness cases does not establish their execution or public use.
+
+The Node domain harness accepts a third argument and the workerd domain harness
+a fifth argument: an absolute path to `temporal_transport.json` captured by the
+existing QRY selected native test. The capture contains selected source revision
+and Claim source graph, `{id, raw}` full carrier strings and `{request, packet}`
+strings from actual native temporal execution. Host code preserves those raw
+strings and asserts identical final packet bytes; it neither rebuilds Claims nor
+round-trips carrier bodies through JS objects. The harness reports
+`genuine_temporal_cases: 0` when no capture was supplied.

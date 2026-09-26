@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-const [miniflarePackage, bindingPath, wasmPath, wranglerPath] = process.argv.slice(2);
+const [miniflarePackage, bindingPath, wasmPath, wranglerPath, temporalCapturePath] = process.argv.slice(2);
 if (!miniflarePackage || !bindingPath || !wasmPath || !wranglerPath) throw new Error('usage: node domain-worker-host.mjs WORKER_PACKAGE.json BINDING.mjs MODULE_bg.wasm WRANGLER.jsonc');
 const require = createRequire(pathToFileURL(miniflarePackage).href);
 const { Miniflare, convertV4MiniflareOptions } = require('miniflare');
@@ -32,6 +32,7 @@ export default { async fetch(request) {
     const fixture=JSON.parse(new TextDecoder().decode(raw)),encoder=new TextEncoder(),abort=new AbortController();let held=false;
     const selected={sourceRevision:fixture.revision,claimSourceGraph:fixture.profile,admission:encoder.encode(fixture.admission),
       async checkSelected(){},async readExactNode(id){
+        if(fixture.carriers){const row=fixture.carriers.find(row=>row.id===id);return row?encoder.encode(row.raw):null;}
         if(id!==fixture.id)throw Error('fixture exact identity differs');
         if(fixture.cancel)abort.abort();
         return fixture.absent?null:encoder.encode(fixture.carrier);
@@ -129,7 +130,22 @@ try {
   assert.equal((await call('/temporal',{...temporalFixture,cancel:true})).error,'AbortError');
   assert.equal((await call('/temporal',{...temporalFixture,withdrawn:true})).message,'withdrawn');
   assert.equal((await call('/temporal',{...temporalFixture,absent:true})).error,'UnknownIdentifier');
-  console.log(JSON.stringify({ status: 'pass', host: 'local Miniflare/workerd WebAssembly', compatibility_date: compatibilityDate, cases: 9, temporal_bridge_cases:4 }));
+  let genuineTemporalCases=0;
+  if(temporalCapturePath){
+    const capture=JSON.parse(await readFile(temporalCapturePath,'utf8'));
+    assert.equal(new Set(capture.carriers.map(row=>row.id)).size,capture.carriers.length);
+    for(const testCase of capture.temporal){
+      const response=await mf.dispatchFetch('http://local.test/temporal',{method:'POST',body:JSON.stringify({
+        revision:capture.source_revision,profile:capture.claim_source_graph,admission:temporalFixture.admission,
+        request:testCase.request,carriers:capture.carriers})});
+      assert.equal(response.status,200);
+      assert.equal(await response.text(),testCase.packet,'actual native selected and workerd/WASM packet bytes differ');
+      genuineTemporalCases++;
+    }
+    assert.ok(genuineTemporalCases>0,'native capture contains no temporal cases');
+  }
+  console.log(JSON.stringify({ status: 'pass', host: 'local Miniflare/workerd WebAssembly', compatibility_date: compatibilityDate,
+    cases: 9, temporal_bridge_cases:4,genuine_temporal_cases:genuineTemporalCases }));
 } finally {
   if (mf) await mf.dispose();
   process.chdir(originalCwd);
