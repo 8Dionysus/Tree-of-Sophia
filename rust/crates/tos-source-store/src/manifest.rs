@@ -76,8 +76,15 @@ pub struct CorpusDescriptor {
 }
 
 impl Snapshot {
-    pub(crate) fn members(&self) -> impl Iterator<Item = &MemberMetadata> {
+    /// Path-ordered exact manifest descriptors, without reading unrelated
+    /// bytes. This is carrier membership, not source or rights acceptance.
+    pub fn members(&self) -> impl Iterator<Item = &MemberMetadata> {
         self.files.values()
+    }
+    /// Exact stored identity-index claims. Their source meaning and current
+    /// owner uniqueness must be independently checked by the source rules.
+    pub fn indexed_identities(&self) -> impl Iterator<Item = (&str, &RelativePath)> {
+        self.identities.iter().map(|(id, path)| (id.as_str(), path))
     }
     pub(crate) fn member_after(&self, path: Option<&RelativePath>) -> Option<&MemberMetadata> {
         use std::ops::Bound::{Excluded, Unbounded};
