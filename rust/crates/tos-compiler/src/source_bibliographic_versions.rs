@@ -276,7 +276,7 @@ impl<'a, 'b> Versions<'a, 'b> {
     }
     pub(crate) fn verify_catalog_binding(
         &self,
-        stage: &KnowledgeStage<'_>,
+        stage: &mut KnowledgeStage<'_>,
         receipt: &catalog::SourceCatalogReceipt,
         l: BibliographicLimits,
     ) -> Result<()> {
