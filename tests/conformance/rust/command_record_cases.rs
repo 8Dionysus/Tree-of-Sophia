@@ -225,7 +225,9 @@ fn captured_components(
     tos_source_store::SoftwareComponentSelectionV1,
 ) {
     use tos_source_store::{ReadLimits, SoftwareCaptureReader};
-    let repository = repository().canonicalize().unwrap();
+    let repository = super::validation_cut_cases::repository()
+        .canonicalize()
+        .unwrap();
     let commit_output = std::process::Command::new("git")
         .arg("-C")
         .arg(&repository)
