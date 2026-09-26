@@ -223,8 +223,20 @@ where
                                 owner = Some(raw.payload);
                             }
                         }
-                        let owner =
+                        let mut owner =
                             owner.ok_or(Error::Invalid("native ordered source witness absent"))?;
+                        if table == "knowledge_nodes"
+                            && stage.exact_receipt().collections.iter().any(|entry| {
+                                entry.source_graph == row.source
+                                    && entry.collection == "nodes"
+                                    && entry.adapter_profile == "reified-bibliographic-claims-v1"
+                            })
+                        {
+                            owner = crate::knowledge_source_claims::ordered_claim_node_material(
+                                &owner,
+                                limits.max_row_bytes,
+                            )?;
+                        }
                         let mut keys = BTreeSet::new();
                         if let Some(contexts) = value
                             .pointer("/semantics/assertion_contexts")

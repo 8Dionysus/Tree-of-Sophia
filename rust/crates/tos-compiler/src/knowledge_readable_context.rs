@@ -202,7 +202,7 @@ fn at_ordered_mut<'a>(root: &'a mut JsonValue, pointer: &str) -> Result<&'a mut 
     Ok(current)
 }
 
-fn emit_ordered(value: &JsonValue, out: &mut Vec<u8>, cap: usize) -> Result<()> {
+pub(crate) fn emit_ordered(value: &JsonValue, out: &mut Vec<u8>, cap: usize) -> Result<()> {
     match value {
         JsonValue::Null => out.extend_from_slice(b"null"),
         JsonValue::Bool(value) => out.extend_from_slice(if *value { b"true" } else { b"false" }),

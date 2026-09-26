@@ -22,6 +22,50 @@ use tos_foundation::{
 
 const PROFILE: &str = "reified-bibliographic-claims-v1";
 
+/// Exact Python bibliography materialization adds its graph layer before
+/// normalization. Preserve the original member order for readable copies;
+/// this is a derived source carrier, not a replacement owner record.
+pub(crate) fn ordered_claim_node_material(raw: &[u8], max_bytes: usize) -> Result<Vec<u8>> {
+    use tos_foundation::{JsonMode, JsonValue, parse_json};
+    let owner = SourceRow::parse(raw, max_bytes)?;
+    let mut layers = unique(owner.value().get("graph_layers"));
+    layers.push("bibliographic-claim".into());
+    layers.sort();
+    layers.dedup();
+    let limits = JsonLimits {
+        max_bytes,
+        ..JsonLimits::default()
+    };
+    let mut ordered = parse_json(raw, JsonMode::PublishedStrict, limits)
+        .map_err(|e| Error::Source(e.to_string()))?
+        .into_root();
+    let addition = serde_json::to_vec(&json!({"graph_layers": layers}))
+        .map_err(|_| Error::Invalid("Claim layer material"))?;
+    let JsonValue::Object(mut addition) = parse_json(&addition, JsonMode::PublishedStrict, limits)
+        .map_err(|e| Error::Source(e.to_string()))?
+        .into_root()
+    else {
+        return Err(Error::Invalid("Claim layer material object"));
+    };
+    let (key, value) = addition
+        .pop()
+        .ok_or(Error::Invalid("Claim layer material field"))?;
+    let JsonValue::Object(fields) = &mut ordered else {
+        return Err(Error::Invalid("Claim owner object"));
+    };
+    if let Some((_, existing)) = fields
+        .iter_mut()
+        .find(|(key, _)| key.as_str() == Some("graph_layers"))
+    {
+        *existing = value;
+    } else {
+        fields.push((key, value));
+    }
+    let mut bytes = Vec::new();
+    crate::knowledge_readable_context::emit_ordered(&ordered, &mut bytes, max_bytes)?;
+    Ok(bytes)
+}
+
 #[derive(Clone, Copy, Debug)]
 pub struct ClaimNormalizeLimits {
     pub max_raw_bytes: usize,
