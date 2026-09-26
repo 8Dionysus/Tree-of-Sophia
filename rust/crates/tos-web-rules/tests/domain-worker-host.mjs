@@ -22,7 +22,7 @@ const temporalDriver = (await transform(await readFile(new URL('../../../../acce
   {loader:'ts',format:'esm',target:'es2022'})).code;
 const entry = `
 import { initSync, compact_knowledge_search_page_wasm_v1, workspace_proposal_digest_wasm_v1, workspace_transition_wasm_v1, TemporalReplaySession } from './tos_web_rules.mjs';
-import { deliverSelectedTemporal } from './selected-temporal-runtime.mjs';
+import { captureSelectedTemporal } from './selected-temporal-runtime.mjs';
 import rulesModule from './tos_web_rules_bg.wasm';
 let ready = false;
 export default { async fetch(request) {
@@ -39,9 +39,16 @@ export default { async fetch(request) {
       },async withCurrentDisclosure(deliver){if(fixture.withdrawn)throw Error('withdrawn');
         held=true;try{return await deliver();}finally{held=false;}}
     };
-    try{return await deliverSelectedTemporal({TemporalReplaySession},selected,encoder.encode(fixture.request),async bytes=>{
-      if(!held)throw Error('disclosure lease absent');return new Response(bytes,{headers:{'content-type':'application/json'}});
-    },abort.signal);}catch(error){return Response.json({error:error.code??error.name,message:error.message});}
+    try{
+      const captured=await captureSelectedTemporal({TemporalReplaySession},selected,encoder.encode(fixture.request),async bytes=>{
+        if(!held)throw Error('capture lease absent');
+        return fixture.return_response?new Response(bytes):bytes;
+      },abort.signal);
+      if(held)throw Error('private capture lease did not release');
+      // Test-only transport after capture; no lease is held over platform body
+      // consumption, and this fixture is not public delivery acceptance.
+      return new Response(captured,{headers:{'content-type':'application/json'}});
+    }catch(error){return Response.json({error:error.code??error.name,message:error.message});}
   }
   if (new URL(request.url).pathname === '/envelope') {
     const result = compact_knowledge_search_page_wasm_v1(raw);
@@ -130,6 +137,7 @@ try {
   assert.equal((await call('/temporal',{...temporalFixture,cancel:true})).error,'AbortError');
   assert.equal((await call('/temporal',{...temporalFixture,withdrawn:true})).message,'withdrawn');
   assert.equal((await call('/temporal',{...temporalFixture,absent:true})).error,'UnknownIdentifier');
+  assert.equal((await call('/temporal',{...temporalFixture,return_response:true})).error,'response_delivery_lifecycle_unavailable');
   let genuineTemporalCases=0;
   if(temporalCapturePath){
     const capture=JSON.parse(await readFile(temporalCapturePath,'utf8'));
@@ -145,7 +153,7 @@ try {
     assert.ok(genuineTemporalCases>0,'native capture contains no temporal cases');
   }
   console.log(JSON.stringify({ status: 'pass', host: 'local Miniflare/workerd WebAssembly', compatibility_date: compatibilityDate,
-    cases: 9, temporal_bridge_cases:4,genuine_temporal_cases:genuineTemporalCases }));
+    cases: 9, temporal_bridge_cases:5,genuine_temporal_cases:genuineTemporalCases,temporal_public_delivery:false }));
 } finally {
   if (mf) await mf.dispose();
   process.chdir(originalCwd);

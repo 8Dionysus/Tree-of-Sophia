@@ -1,6 +1,7 @@
 /** Request-local transport over the Rust temporal continuation. This module
  * selects no publication and issues no authority. It is deliberately unbound
  * until a source owner supplies verified selected reads and a current lease.
+ * It supports private byte capture only, not Worker response-body delivery.
  */
 export interface TemporalReplayStep {
   need(): string | undefined;
@@ -29,9 +30,11 @@ export interface SelectedTemporalAccess {
   readExactNode(id: string, signal?: AbortSignal): Promise<Uint8Array | null>;
   /** The owner binds tos.knowledge.temporal.compare and its intended use,
    * selected model receipt and every consulted carrier, holds its current
-   * disclosure lease through delivery, rechecks selection/current policy and
-   * releases the lease when the callback settles. */
-  withCurrentDisclosure<T>(deliver: () => Promise<T>): Promise<T>;
+   * disclosure lease through private capture, rechecks selection/current policy
+   * and releases the lease when the callback settles. This does not bind later
+   * Worker body consumption/enqueue; public delivery needs an owner primitive
+   * covering that actual lifecycle. */
+  withCurrentDisclosure<T>(capture: () => Promise<T>): Promise<T>;
 }
 
 export class SelectedTemporalError extends Error {
@@ -40,12 +43,13 @@ export class SelectedTemporalError extends Error {
 
 function checkAbort(signal?: AbortSignal): void { signal?.throwIfAborted(); }
 
-/** The callback consumes complete packet bytes while the disclosure lease is
- * held. Returning a Response here buffers those exact bytes; a streaming host
- * must finish its delivery within the callback instead of returning a stream.
+/** Private capture occurs while the current lease is held. Captured bytes or
+ * values are not accepted for public delivery. A Response is refused because
+ * its construction does not await platform body consumption. Worker response
+ * lifetime/final enqueue and lease release remain an unimplemented owner gate.
  */
-export async function deliverSelectedTemporal<T>(runtime: TemporalReplayModule, selected: SelectedTemporalAccess,
-  request: Uint8Array, deliver: (bytes: Uint8Array) => Promise<T>, signal?: AbortSignal): Promise<T> {
+export async function captureSelectedTemporal<T>(runtime: TemporalReplayModule, selected: SelectedTemporalAccess,
+  request: Uint8Array, capture: (bytes: Uint8Array) => Promise<T>, signal?: AbortSignal): Promise<T> {
   checkAbort(signal);
   await selected.checkSelected();
   checkAbort(signal);
@@ -76,7 +80,9 @@ export async function deliverSelectedTemporal<T>(runtime: TemporalReplayModule, 
         checkAbort(signal);
         await selected.checkSelected();
         checkAbort(signal);
-        return await deliver(bytes);
+        const captured = await capture(bytes);
+        if (captured instanceof Response) throw new SelectedTemporalError('response_delivery_lifecycle_unavailable');
+        return captured;
       });
     }
   } finally { session.free(); }

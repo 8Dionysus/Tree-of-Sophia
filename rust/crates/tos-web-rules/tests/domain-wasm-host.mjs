@@ -6,7 +6,7 @@ import { pathToFileURL } from 'node:url';
 import { createPageCommandRegistry } from '../../../../access/web/src/page-commands.ts';
 import { createWebMCPAdapter } from '../../../../access/web/src/webmcp.ts';
 import { createResearchWorkspace } from '../../../../access/web/src/research-workspace.ts';
-import { deliverSelectedTemporal } from '../../../../access/deploy/cloudflare-worker/src/selected-temporal-runtime.ts';
+import { captureSelectedTemporal } from '../../../../access/deploy/cloudflare-worker/src/selected-temporal-runtime.ts';
 
 const [bindingPath, wasmPath, temporalCapturePath] = process.argv.slice(2);
 if (!bindingPath || !wasmPath) throw new Error('usage: node --experimental-strip-types domain-wasm-host.mjs BINDING.mjs MODULE_bg.wasm');
@@ -145,7 +145,7 @@ const selected = {sourceRevision:inspectCase.packet.source_revision,claimSourceG
   admission:temporalAdmission,async checkSelected(){},async readExactNode(id){assert.equal(id,carrier.id);return encoder.encode(JSON.stringify(carrier));},
   async withCurrentDisclosure(deliver){held=true;try{return await deliver();}finally{held=false;}}};
 let held=false, delivered=false;
-const temporal = await deliverSelectedTemporal(binding,selected,temporalRequest,async bytes=>{
+const temporal = await captureSelectedTemporal(binding,selected,temporalRequest,async bytes=>{
   assert.equal(held,true);delivered=true;return JSON.parse(decoder.decode(bytes));
 });
 assert.equal(delivered,true);
@@ -154,14 +154,17 @@ assert.equal(temporal.comparison.status,'unsupported');
 assert.deepEqual(temporal.left.claim,carrier);
 assert.deepEqual(temporal.right.claim,carrier);
 const abort=new AbortController();delivered=false;
-await assert.rejects(deliverSelectedTemporal(binding,{...selected,async readExactNode(id){
+await assert.rejects(captureSelectedTemporal(binding,{...selected,async readExactNode(id){
   const value=await selected.readExactNode(id);abort.abort();return value;
 }},temporalRequest,async()=>{delivered=true;},abort.signal),e=>e.name==='AbortError');
 assert.equal(delivered,false);
-await assert.rejects(deliverSelectedTemporal(binding,{...selected,async withCurrentDisclosure(){throw Error('withdrawn');}},
+await assert.rejects(captureSelectedTemporal(binding,selected,temporalRequest,async bytes=>new Response(bytes)),
+  e=>e.code==='response_delivery_lifecycle_unavailable');
+assert.equal(held,false);
+await assert.rejects(captureSelectedTemporal(binding,{...selected,async withCurrentDisclosure(){throw Error('withdrawn');}},
   temporalRequest,async()=>{delivered=true;}),/withdrawn/);
 assert.equal(delivered,false);
-await assert.rejects(deliverSelectedTemporal(binding,{...selected,async readExactNode(){return null;}},
+await assert.rejects(captureSelectedTemporal(binding,{...selected,async readExactNode(){return null;}},
   temporalRequest,async()=>{delivered=true;}),e=>e.code==='UnknownIdentifier');
 assert.equal(delivered,false);
 const replay=new binding.TemporalReplaySession(selected.sourceRevision,selected.claimSourceGraph,temporalRequest,temporalAdmission);
@@ -180,7 +183,7 @@ if(temporalCapturePath){
   for(const testCase of capture.temporal){
     const nativeSelected={...selected,sourceRevision:capture.source_revision,claimSourceGraph:capture.claim_source_graph,
       async readExactNode(id){return carriers.get(id)??null;}};
-    const actual=await deliverSelectedTemporal(binding,nativeSelected,encoder.encode(testCase.request),async bytes=>{
+    const actual=await captureSelectedTemporal(binding,nativeSelected,encoder.encode(testCase.request),async bytes=>{
       assert.equal(held,true);return decoder.decode(bytes);
     });
     assert.equal(actual,testCase.packet,'actual native selected and WASM packet bytes differ');
@@ -191,7 +194,8 @@ if(temporalCapturePath){
 
 const after = process.memoryUsage();
 console.log(JSON.stringify({ status: 'pass', host: `Node ${process.version} WebAssembly`, ts_page_cases: tsCases,
-  refusal_cases: 5, ts_workspace_cases: 2, temporal_bridge_cases:5, genuine_temporal_cases:genuineTemporalCases,
+  refusal_cases: 5, ts_workspace_cases: 2, temporal_bridge_cases:6, genuine_temporal_cases:genuineTemporalCases,
+  temporal_public_delivery:false,
   date_edge_cases: dateCases, js_bytes: (await stat(bindingPath)).size,
   wasm_bytes: (await stat(wasmPath)).size, startup_ms: Number(startupMs.toFixed(3)),
   rss_before_bytes: before.rss, rss_after_bytes: after.rss, heap_used_after_bytes: after.heapUsed }));

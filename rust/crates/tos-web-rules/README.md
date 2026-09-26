@@ -36,8 +36,13 @@ must verify membership, digest, exact uniqueness, visibility, physical admission
 and the unchanged model/policy scope around every read. Its disclosure callback
 must bind `tos.knowledge.temporal.compare`,
 `read_only_public_knowledge_temporal_compare_v1`, the selected model receipt and
-every consulted carrier, and hold/recheck the current lease through complete
-byte delivery. Cancellation is cooperative around platform awaits; the platform
+every consulted carrier, and hold/recheck the current lease through private
+capture. `captureSelectedTemporal` refuses a callback's returned `Response`:
+response construction finishes before Worker platform body consumption/enqueue.
+Captured values are not public-delivery admission. A real Worker body lifecycle
+primitive holding/rechecking the owner lease through final enqueue and releasing
+it on completion/cancellation remains absent.
+Cancellation is cooperative around platform awaits; the platform
 reader owns cancellation within its I/O. Replay needs and finished bytes grant
 no disclosure authority by themselves.
 
@@ -55,7 +60,10 @@ fixture intentionally yields unsupported temporal comparison, preserving the
 fact that an unmapped node is not a temporal Claim. Full temporal source-role
 parity uses an optional native capture. `tests/domain-worker-host.mjs`
 uses the same driver and generated binding in local workerd for unsupported
-carrier retention, cooperative cancellation, withdrawal and exact absence.
+carrier retention, cooperative cancellation, withdrawal, exact absence and
+returned-Response refusal. Its test-only `Response` is constructed after private
+capture and lease release. This tests packet transport through workerd, without
+claiming the lease holds through actual Worker body delivery.
 Writing these harness cases does not establish their execution or public use.
 
 The Node domain harness accepts a third argument and the workerd domain harness
@@ -63,6 +71,7 @@ a fifth argument: an absolute path to `temporal_transport.json` captured by the
 existing QRY selected native test. The capture contains selected source revision
 and Claim source graph, `{id, raw}` full carrier strings and `{request, packet}`
 strings from actual native temporal execution. Host code preserves those raw
-strings and asserts identical final packet bytes; it neither rebuilds Claims nor
+strings and asserts identical privately captured packet bytes; it neither rebuilds Claims nor
 round-trips carrier bodies through JS objects. The harness reports
-`genuine_temporal_cases: 0` when no capture was supplied.
+`genuine_temporal_cases: 0` when no capture was supplied, and
+`temporal_public_delivery: false` regardless of fixture parity.
