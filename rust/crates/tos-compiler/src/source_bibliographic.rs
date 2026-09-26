@@ -137,7 +137,9 @@ fn owned_ref(reference: &str) -> Result<()> {
         || reference
             .split('/')
             .any(|p| p.is_empty() || p.starts_with('.'))
-        || reference.split('/').any(|p| p == "payload")
+        || reference
+            .split('/')
+            .any(|p| matches!(p, "payload" | "local-content" | "owner-local" | "private"))
     {
         return Err(Error::Invalid("bibliographic metadata locator"));
     }
@@ -417,7 +419,9 @@ fn evidence(
                 .filter(|s| {
                     !s.trim().is_empty()
                         && s.chars().count() <= 240
-                        && !s.chars().any(char::is_control)
+                        && !s
+                            .chars()
+                            .any(crate::source_bibliographic_unicode::is_category_c)
                 })
         } else {
             None
@@ -458,64 +462,7 @@ fn evidence(
     }
     // External addresses are preserved as citing-Claim declarations, never fetched.
     let address = reference;
-    if address.is_empty()
-        || address.chars().count() > 4096
-        || address.chars().any(|c| c.is_control() || c.is_whitespace())
-        || address.contains('\\')
-    {
-        return Err(Error::Invalid("bibliographic unsafe external citation"));
-    }
-    if !address.is_ascii() {
-        return Err(Error::Invalid(
-            "bibliographic Unicode URL category/normalization adapter not connected",
-        ));
-    }
-    let (scheme, rest) = address
-        .split_once("://")
-        .ok_or(Error::Invalid("bibliographic external HTTP citation"))?;
-    if !matches!(scheme.to_ascii_lowercase().as_str(), "http" | "https") {
-        return Err(Error::Invalid("bibliographic external HTTP scheme"));
-    }
-    let authority = rest.split(['/', '?', '#']).next().unwrap_or("");
-    if authority.is_empty() || authority.contains('@') {
-        return Err(Error::Invalid(
-            "bibliographic credential-free HTTP authority",
-        ));
-    }
-    let port = if let Some(rest) = authority.strip_prefix('[') {
-        let (host, remainder) = rest
-            .split_once(']')
-            .ok_or(Error::Invalid("bibliographic bracketed host"))?;
-        if host.parse::<std::net::Ipv6Addr>().is_err() {
-            return Err(Error::Invalid("bibliographic IPv6 host"));
-        }
-        if remainder.is_empty() {
-            None
-        } else {
-            Some(
-                remainder
-                    .strip_prefix(':')
-                    .ok_or(Error::Invalid("bibliographic host suffix"))?,
-            )
-        }
-    } else {
-        if authority.contains(['[', ']']) {
-            return Err(Error::Invalid("bibliographic unbalanced host brackets"));
-        }
-        if let Some((host, port)) = authority.split_once(':') {
-            if host.is_empty() {
-                return Err(Error::Invalid("bibliographic HTTP hostname absent"));
-            }
-            Some(port)
-        } else {
-            None
-        }
-    };
-    if let Some(port) = port.filter(|s| !s.is_empty()) {
-        if !port.bytes().all(|b| b.is_ascii_digit()) || port.parse::<u16>().is_err() {
-            return Err(Error::Invalid("bibliographic HTTP port"));
-        }
-    }
+    crate::source_bibliographic_unicode::validate_external_citation_address(address)?;
     let occurrence = String::from_utf8(encode(
         &json!([claim["claim_id"], address]),
         l.catalog.max_output_row_bytes,

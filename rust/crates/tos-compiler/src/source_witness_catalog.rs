@@ -673,6 +673,7 @@ fn schema_route<'a>(p: &'a Profile, source: &Value) -> Result<&'a str> {
 }
 
 fn entry_record(
+    stage: &KnowledgeStage<'_>,
     raw: &[u8],
     ref_: &str,
     c: &Contracts,
@@ -730,12 +731,20 @@ fn entry_record(
         let id = text(v, "record_id")?;
         public(v)?;
         if let Some((_, p)) = c.records.iter().find(|(k, _)| k == kind) {
-            // These source-owned adapters have validation beyond JSON Schema.
-            // A schema verdict cannot stand in for their undeclared native port.
-            if p.descriptor.get("native_binding_adapter").is_some() {
-                return Err(Error::Invalid(
-                    "catalog native text/identity owner adapter not connected",
-                ));
+            if let Some(adapter) = p.descriptor.get("native_binding_adapter") {
+                if adapter != "source-text-unit-v1" {
+                    return Err(Error::Invalid(
+                        "catalog unknown native text binding adapter",
+                    ));
+                }
+                crate::source_bibliographic_native_text::resolve_native_text_binding(
+                    stage,
+                    &v["native_text_binding"],
+                    validator,
+                    l,
+                )?;
+            } else if v.get("native_text_binding").is_some() {
+                return Err(Error::Invalid("catalog undeclared native text binding"));
             }
             let route = schema_route(p, v)?;
             validator.check(c, route, "", raw)?;
@@ -798,8 +807,12 @@ fn entry_record(
     identity(id, kind)?;
     version(v, "record_version")?;
     // Validation above owns admission; this shared renderer owns the bytes.
-    let _ = (label, status, label_pointer, sha);
-    render_catalog_record(v, ref_, schema, l.max_output_row_bytes)
+    let _ = (label, status, label_pointer);
+    let entry = render_catalog_record(v, ref_, schema, l.max_output_row_bytes)?;
+    if entry["record_sha256"] != sha {
+        return Err(Error::Invalid("catalog exact numeric source transport"));
+    }
+    Ok(entry)
 }
 
 fn entry_claim(
@@ -924,7 +937,11 @@ fn entry_claim(
     } else {
         return Err(Error::Invalid("catalog Claim source filename"));
     }
-    render_catalog_claim(v, ref_, line, extension, l.max_output_row_bytes)
+    let entry = render_catalog_claim(v, ref_, line, extension, l.max_output_row_bytes)?;
+    if entry["claim_sha256"] != Digest256::of_bytes(&canonical(raw, l.max_row_bytes)?).to_hex() {
+        return Err(Error::Invalid("catalog exact numeric Claim transport"));
+    }
+    Ok(entry)
 }
 
 fn insert(
@@ -988,18 +1005,9 @@ fn native_inventory(
             break;
         }
     }
-    // The maintained resolver validates declared versions and content-status
-    // metadata. Do not substitute a schema-only check or read private payloads.
-    if stage
-        .exact_receipt()
-        .collections
-        .iter()
-        .any(|e| e.collection == NATIVE_TEXT && e.expected_count != 0)
-    {
-        return Err(Error::Invalid(
-            "catalog native text owner resolver not connected",
-        ));
-    }
+    // Native text closure is validated from each exact declared description,
+    // metadata only; unused sealed dependencies acquire no graph/rights role.
+
     Ok(())
 }
 
@@ -1116,7 +1124,7 @@ fn source_files(
                     .checked_add(1)
                     .filter(|n| *n <= l.max_rows)
                     .ok_or(Error::Budget("catalog source rows"))?;
-                let entry = entry_record(&file.payload, &file.id, c, validator, l)?;
+                let entry = entry_record(stage, &file.payload, &file.id, c, validator, l)?;
                 let id = text(&entry, "record_id")?;
                 let kind = text(&entry, "record_type")?;
                 let reserved = stage.with_connection(WritePhase::Catalog, |db| {
