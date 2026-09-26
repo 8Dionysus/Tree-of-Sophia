@@ -816,3 +816,6 @@ mod validation_cut_cases;
 
 #[path = "retirement_cut_cases.rs"]
 mod retirement_cut_cases;
+
+#[path = "command_form_cases.rs"]
+mod command_form_cases;

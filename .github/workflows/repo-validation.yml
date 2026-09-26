@@ -229,6 +229,10 @@ jobs:
             /ToS/research-packets/retained-builder-inputs/build_provenance_event_v2_lab/
             /scripts/verify_rust_web_host.py
             /docs/validation/validation_lanes.json
+      - name: Setup Python for Unicode 16 differential oracles
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+        with:
+          python-version: "3.14"
       - name: Install pinned Rust toolchain and WASM target
         run: |
           rustup toolchain install 1.98.1 --profile minimal --component rustfmt --target wasm32-unknown-unknown
