@@ -1265,7 +1265,10 @@ fn prepared_change(
     } else {
         "form.create"
     };
-    let predecessor = old.map(form_ref).transpose()?.unwrap_or(JsonValue::Null);
+    let predecessor = old
+        .map(form_reference)
+        .transpose()?
+        .unwrap_or(JsonValue::Null);
     let mut bindings = vec![(
         JsonString::from_utf8("wording"),
         binding(subject, &field.pointer),

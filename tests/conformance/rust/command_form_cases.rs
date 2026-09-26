@@ -58,7 +58,7 @@ fn fixture_files(profile: &str) -> (BTreeMap<String, Vec<u8>>, Vec<u8>, String) 
     );
     (files, config, target)
 }
-fn open_cut(
+pub(super) fn open_cut(
     root: &Path,
     revision: SourceRevision,
     deadline: Instant,
@@ -87,7 +87,7 @@ fn open_cut(
     )
     .unwrap()
 }
-fn schemas(
+pub(super) fn schemas(
     cut: &CorpusCutReader,
     deadline: Instant,
     cancel: &AtomicBool,
@@ -111,7 +111,7 @@ fn schemas(
     )
     .unwrap()
 }
-fn context(
+pub(super) fn context(
     files: &BTreeMap<String, Vec<u8>>,
     configuration_raw: Vec<u8>,
     request_raw: Vec<u8>,
@@ -132,7 +132,7 @@ fn context(
             .collect(),
     }
 }
-fn successor(
+pub(super) fn successor(
     files: &BTreeMap<String, Vec<u8>>,
     root: &Path,
     base: SourceRevision,
