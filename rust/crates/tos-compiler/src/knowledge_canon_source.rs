@@ -1,10 +1,11 @@
 //! Authored canon/candidate source-cut front edge for the existing raw adapters.
 //! It reads only manifest-selected current members, never an ambient checkout.
-//! Raw output roots are witnesses checked against independent job receipts;
-//! neither source membership nor schema execution grants canon admission.
+//! Cold planning freezes raw output witnesses in a genuine source-file custody
+//! stage before final-stage creation. Rendering and compatibility preparation
+//! compare independent target receipts; neither operation grants canon admission.
 use crate::knowledge_canon_prepare::{CANDIDATE_PROFILE, CANON_PROFILE, framed, required, text};
-use crate::knowledge_stage::{InputRow, KnowledgeStage, WritePhase};
-use crate::{Error, QueryVocabulary, Result};
+use crate::knowledge_stage::{InputCollectionReceipt, InputRow, KnowledgeStage, WritePhase};
+use crate::{Error, QueryVocabulary, Result, SourceBinding};
 use rusqlite::params;
 use serde_json::{Value, json};
 use std::collections::BTreeSet;
@@ -19,6 +20,13 @@ use tos_validation::source_cut::CutSchemaExecutor;
 
 const NODE_SCHEMA: &str = "ToS/contracts/tos-node-contract.schema.json";
 const FORM_SET_SCHEMA: &str = "ToS/contracts/human-form-set.schema.json";
+/// Exact raw-file custody recipe for this source family, independent from the
+/// catalog producer's source-witness namespace and the derived native inputs.
+pub const CANON_SOURCE_CUSTODY: &str = "canon-source-custody";
+pub const CANON_SOURCE_FILES_ROLE: &str = "authored-canon-candidate-files";
+pub const CANON_SOURCE_FILES_PROFILE: &str = "tos.canon-source.source-files.v1";
+pub const CANON_SOURCE_CONTRACTS_ROLE: &str = "canon-source-contracts";
+pub const CANON_SOURCE_CONTRACTS_PROFILE: &str = "tos.canon-source.contracts.v1";
 #[derive(Clone, Copy, Debug)]
 pub struct CanonSourceLimits {
     pub max_manifest_members: u64,
@@ -155,8 +163,9 @@ fn encode(v: &JsonValue, max: usize) -> Result<Vec<u8>> {
         .map_err(|e| Error::Source(e.to_string()))
 }
 fn decoded(v: &JsonValue, max: usize) -> Result<Value> {
-    serde_json::from_slice(&encode(v, max)?)
-        .map_err(|_| Error::Invalid("canon decoded source JSON"))
+    serde_json::from_slice(&encode(v, max)?).map_err(|_| {
+        Error::Source("canon source representation cannot be decoded as serde JSON".into())
+    })
 }
 fn encode_value(v: &Value, max: usize) -> Result<Vec<u8>> {
     let raw = serde_json::to_vec(v).map_err(|_| Error::Invalid("canon projected JSON"))?;
@@ -523,7 +532,7 @@ where
             || packet["form"] != expected
             || packet["subject"] != subject
             || packet["performs_semantic_assessment"] != false
-            || !packet["admission"].is_null()
+            || !packet.get("admission").is_some_and(Value::is_null)
         {
             return Err(Error::Invalid("canon source form output binding"));
         }
@@ -610,7 +619,7 @@ where
     }
     Ok((id, encode(&projected, l.max_raw_row_bytes)?))
 }
-fn inner<F>(
+fn derive<F>(
     stage: &mut KnowledgeStage<'_>,
     cut: &CorpusCutReader,
     expected_revision: SourceRevision,
@@ -621,6 +630,7 @@ fn inner<F>(
     deadline: Instant,
     cancelled: &AtomicBool,
     materialize: &mut F,
+    initial_work_bytes: u64,
 ) -> Result<CanonSourceReceipt>
 where
     F: FnMut(&Value, &Value, usize) -> Result<Vec<Value>>,
@@ -653,7 +663,7 @@ where
     }
     stage.with_connection(WritePhase::Schema,|db|{db.execute_batch("CREATE TABLE knowledge_canon_source_rows(source_graph TEXT NOT NULL,collection TEXT NOT NULL,id TEXT NOT NULL,payload BLOB NOT NULL,payload_sha256 BLOB NOT NULL CHECK(length(payload_sha256)=32),PRIMARY KEY(source_graph,collection,id)) WITHOUT ROWID;")?;Ok(())})?;
     let mut work = Work {
-        bytes: 0,
+        bytes: initial_work_bytes,
         selected: 0,
         source_root: Digest256Hasher::new(),
     };
@@ -839,63 +849,24 @@ where
         } else {
             &["relation_packs", "relation_edges"]
         };
-        let registered = stage
-            .exact_receipt()
-            .collections
-            .iter()
-            .filter(|r| r.source_graph == selected.source_graph_id)
-            .cloned()
-            .collect::<Vec<_>>();
-        if registered.len() != names.len() {
-            return Err(Error::Invalid("canon source raw collection coverage"));
-        }
         for &collection in names {
-            let expected = registered
-                .iter()
-                .filter(|r| r.collection == collection)
-                .collect::<Vec<_>>();
-            if expected.len() != 1
-                || expected[0].input_role != selected.input_role
-                || expected[0].adapter_profile != selected.adapter_profile
-            {
-                return Err(Error::Invalid("canon source independent raw registration"));
-            }
-            let mut after = None;
-            let mut count = 0u64;
-            let mut root = Digest256Hasher::new();
-            loop {
-                check(deadline, cancelled)?;
-                let batch:Vec<(String,Vec<u8>,Vec<u8>)>=stage.with_connection(WritePhase::Sort,|db|{
-                    let mut query=db.prepare("SELECT id,CASE WHEN length(payload)<=?4 THEN payload ELSE NULL END,payload_sha256 FROM knowledge_canon_source_rows WHERE source_graph=?1 AND collection=?2 AND (?3 IS NULL OR id>?3) ORDER BY id LIMIT ?5")?;
-                    let rows=query.query_map(params![selected.source_graph_id,collection,after,l.max_raw_row_bytes as i64,l.max_page_rows as i64],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?)))?;rows.collect::<std::result::Result<Vec<_>,_>>().map_err(Error::from)
-                })?;
-                if batch.is_empty() {
-                    break;
-                }
-                for (id, raw, sha) in batch {
-                    check(deadline, cancelled)?;
-                    if sha.as_slice() != Digest256::of_bytes(&raw).as_bytes() {
-                        return Err(Error::Invalid("canon source disk row digest"));
-                    }
-                    count = count
-                        .checked_add(1)
-                        .ok_or(Error::Budget("canon source raw rows"))?;
-                    framed(&mut root, &id);
-                    root.update(&sha);
-                    work.charge(raw.len(), l)?;
-                    stage.ingest_input(InputRow {
-                        source_graph: &selected.source_graph_id,
-                        collection,
-                        id: &id,
-                        payload: &raw,
-                    })?;
-                    after = Some(id);
-                }
-            }
-            let digest = root.finalize().to_hex();
-            if count != expected[0].expected_count || digest != expected[0].expected_root_sha256 {
-                return Err(Error::Invalid("canon source independent raw root/count"));
-            }
+            let key = CanonSourceCollection {
+                source_graph: selected.source_graph_id.clone(),
+                input_role: selected.input_role.clone(),
+                adapter_profile: selected.adapter_profile.clone(),
+                collection: collection.into(),
+                count: 0,
+                root_sha256: String::new(),
+            };
+            let (count, digest) = visit_rows(
+                stage,
+                &key,
+                l,
+                deadline,
+                cancelled,
+                &mut work.bytes,
+                |_, _, _| Ok(()),
+            )?;
             collections.push(CanonSourceCollection {
                 source_graph: selected.source_graph_id.clone(),
                 input_role: selected.input_role.clone(),
@@ -906,10 +877,6 @@ where
             });
         }
     }
-    stage.with_connection(WritePhase::Finalize, |db| {
-        db.execute_batch("DROP TABLE knowledge_canon_source_rows")?;
-        Ok(())
-    })?;
     check(deadline, cancelled)?;
     Ok(CanonSourceReceipt {
         source_revision: revision.0.to_hex(),
@@ -926,6 +893,446 @@ where
         current_members_only: true,
         final_graph_rows_written: false,
     })
+}
+/// A mechanical handoff frozen after full selected source derivation. The
+/// private fields prevent a caller from substituting roots or custody binding.
+/// The planner owns the SQL rows until render succeeds or the stage is dropped.
+#[derive(Clone, Debug)]
+pub struct CanonSourcePlan {
+    receipt: CanonSourceReceipt,
+    planner_binding: Value,
+    source_inputs: Vec<InputCollectionReceipt>,
+    selected_revision: SourceRevision,
+    selected_membership: SourceMembershipV1,
+}
+impl CanonSourcePlan {
+    pub fn receipt(&self) -> &CanonSourceReceipt {
+        &self.receipt
+    }
+}
+fn binding_snapshot(b: &SourceBinding) -> Value {
+    json!({"owner_profile":b.owner_profile,"source_cut":b.source_cut,
+        "through_commit_seq":b.through_commit_seq,"membership_root":b.membership_root,
+        "index_generation":b.index_generation,"route_map_version":b.route_map_version,
+        "reader_abi":b.reader_abi,"projection_root_sha256":b.projection_root_sha256,
+        "complete":b.complete})
+}
+fn collection_snapshot(c: &InputCollectionReceipt) -> Value {
+    json!({"source_graph":c.source_graph,"collection":c.collection,
+        "input_role":c.input_role,"adapter_profile":c.adapter_profile,
+        "count":c.expected_count,"root":c.expected_root_sha256})
+}
+fn charge_bytes(work: &mut u64, n: usize, l: CanonSourceLimits) -> Result<()> {
+    *work = work
+        .checked_add(n as u64)
+        .ok_or(Error::Budget("canon source work"))?;
+    if *work > l.max_work_bytes {
+        return Err(Error::Budget("canon source work"));
+    }
+    Ok(())
+}
+fn selected_cut(
+    cut: &CorpusCutReader,
+    revision: SourceRevision,
+    membership: SourceMembershipV1,
+    l: CanonSourceLimits,
+) -> Result<()> {
+    if cut.current().revision() != revision
+        || cut
+            .stream(revision)
+            .map_err(|e| Error::Source(e.to_string()))?
+            .expectation()
+            != membership
+    {
+        return Err(Error::Invalid("canon independent selected source cut"));
+    }
+    if membership.count > l.max_manifest_members {
+        return Err(Error::Budget("canon source manifest members"));
+    }
+    Ok(())
+}
+// A real selected-source custody stage has independent raw-file receipts. Its
+// membership_root may cover a different owner universe; per-file manifest
+// equality and explicit current membership expectation perform this binding.
+fn custody_source_path(path: &str) -> bool {
+    (path.starts_with("ToS/canon/")
+        && (path.ends_with("/node.json") || path.ends_with("/node.human-forms.json")))
+        || ((path.starts_with("ToS/canon/") || path.starts_with("ToS/candidate-intake/"))
+            && path.ends_with("/edges.csv")
+            && !path.split('/').any(|p| p == "payload"))
+}
+fn source_custody(
+    stage: &KnowledgeStage<'_>,
+    cut: &CorpusCutReader,
+    l: CanonSourceLimits,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    work: &mut u64,
+) -> Result<Vec<InputCollectionReceipt>> {
+    if stage
+        .exact_receipt()
+        .collections
+        .iter()
+        .filter(|c| c.source_graph == CANON_SOURCE_CUSTODY)
+        .count()
+        != 2
+    {
+        return Err(Error::Invalid("canon source custody collection closure"));
+    }
+    let mut inputs = Vec::new();
+    for (name, role, profile) in [
+        (
+            "source-files",
+            CANON_SOURCE_FILES_ROLE,
+            CANON_SOURCE_FILES_PROFILE,
+        ),
+        (
+            "contracts",
+            CANON_SOURCE_CONTRACTS_ROLE,
+            CANON_SOURCE_CONTRACTS_PROFILE,
+        ),
+    ] {
+        let entries = stage
+            .exact_receipt()
+            .collections
+            .iter()
+            .filter(|c| {
+                c.source_graph == CANON_SOURCE_CUSTODY
+                    && c.collection == name
+                    && c.input_role == role
+                    && c.adapter_profile == profile
+            })
+            .collect::<Vec<_>>();
+        if entries.len() != 1 {
+            return Err(Error::Invalid("canon source custody registration"));
+        }
+        let entry = entries[0];
+        if entry.expected_count > l.max_manifest_members {
+            return Err(Error::Budget("canon custody file count"));
+        }
+        let mut count = 0u64;
+        let mut root = Digest256Hasher::new();
+        let mut after = None;
+        loop {
+            check(deadline, cancelled)?;
+            let page = stage.scan_input(&entry.source_graph, name, after.as_deref(), 1)?;
+            for row in page.rows {
+                if row.payload.len() > l.max_source_bytes {
+                    return Err(Error::Budget("canon custody file bytes"));
+                }
+                charge_bytes(work, row.payload.len(), l)?;
+                if (name == "source-files" && !custody_source_path(&row.id))
+                    || (name == "contracts" && row.id != NODE_SCHEMA && row.id != FORM_SET_SCHEMA)
+                {
+                    return Err(Error::Invalid("canon source custody recipe path"));
+                }
+                let path = RelativePath::new(&row.id).map_err(|e| Error::Source(e.to_string()))?;
+                let metadata = cut
+                    .current()
+                    .member(&path)
+                    .ok_or(Error::Invalid("canon custody file outside current cut"))?;
+                let digest = Digest256::of_bytes(&row.payload);
+                if metadata.size_bytes != row.payload.len() as u64 || metadata.sha256 != digest {
+                    return Err(Error::Invalid("canon custody current file digest/size"));
+                }
+                count = count
+                    .checked_add(1)
+                    .ok_or(Error::Budget("canon custody file count"))?;
+                if count > l.max_manifest_members {
+                    return Err(Error::Budget("canon custody file count"));
+                }
+                framed(&mut root, &row.id);
+                root.update(digest.as_bytes());
+            }
+            after = page.next_id;
+            if after.is_none() {
+                break;
+            }
+        }
+        if count != entry.expected_count || root.finalize().to_hex() != entry.expected_root_sha256 {
+            return Err(Error::Invalid("canon independent custody root/count"));
+        }
+        inputs.push(entry.clone());
+    }
+    let mut seen = 0u64;
+    for metadata in cut.current().members() {
+        check(deadline, cancelled)?;
+        seen = seen
+            .checked_add(1)
+            .ok_or(Error::Budget("canon manifest EOF"))?;
+        if seen > l.max_manifest_members {
+            return Err(Error::Budget("canon manifest EOF"));
+        }
+        let path = metadata.path.as_str();
+        let source = custody_source_path(path);
+        let contract = path == NODE_SCHEMA || path == FORM_SET_SCHEMA;
+        if source || contract {
+            let entry = &inputs[usize::from(contract)];
+            let row = stage
+                .raw_by_id(&entry.source_graph, &entry.collection, path)?
+                .ok_or(Error::Invalid(
+                    "canon required current custody file missing",
+                ))?;
+            charge_bytes(work, row.payload.len(), l)?;
+        }
+    }
+    let expected = cut
+        .stream(cut.current().revision())
+        .map_err(|e| Error::Source(e.to_string()))?
+        .expectation();
+    if seen != expected.count {
+        return Err(Error::Invalid("canon custody manifest EOF"));
+    }
+    for path in [NODE_SCHEMA, FORM_SET_SCHEMA] {
+        check(deadline, cancelled)?;
+        let row = stage
+            .raw_by_id(&inputs[1].source_graph, &inputs[1].collection, path)?
+            .ok_or(Error::Invalid("canon selected schema custody missing"))?;
+        charge_bytes(work, row.payload.len(), l)?;
+    }
+    Ok(inputs)
+}
+fn visit_rows<F>(
+    stage: &mut KnowledgeStage<'_>,
+    collection: &CanonSourceCollection,
+    l: CanonSourceLimits,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    work: &mut u64,
+    mut sink: F,
+) -> Result<(u64, String)>
+where
+    F: FnMut(&mut KnowledgeStage<'_>, &str, &[u8]) -> Result<()>,
+{
+    let mut after: Option<String> = None;
+    let mut count = 0u64;
+    let mut root = Digest256Hasher::new();
+    loop {
+        check(deadline, cancelled)?;
+        let batch: Vec<(String,Vec<u8>,Vec<u8>)> = stage.with_connection(WritePhase::Sort, |db| {
+            let mut query = db.prepare("SELECT id,CASE WHEN length(payload)<=?4 THEN payload ELSE NULL END,payload_sha256 FROM knowledge_canon_source_rows WHERE source_graph=?1 AND collection=?2 AND (?3 IS NULL OR id>?3) ORDER BY id LIMIT ?5")?;
+            let rows = query.query_map(params![collection.source_graph,collection.collection,after,
+                l.max_raw_row_bytes as i64,l.max_page_rows as i64], |r|Ok((r.get(0)?,r.get(1)?,r.get(2)?)))?;
+            rows.collect::<std::result::Result<Vec<_>,_>>().map_err(Error::from)
+        })?;
+        if batch.is_empty() {
+            break;
+        }
+        for (id, raw, sha) in batch {
+            check(deadline, cancelled)?;
+            if sha.as_slice() != Digest256::of_bytes(&raw).as_bytes() {
+                return Err(Error::Invalid("canon source disk row digest"));
+            }
+            count = count
+                .checked_add(1)
+                .ok_or(Error::Budget("canon source raw rows"))?;
+            let cap = match collection.collection.as_str() {
+                "nodes" => l.max_nodes,
+                "relation_packs" => l.max_packs,
+                "relation_edges" => l.max_edges,
+                _ => return Err(Error::Invalid("canon plan collection")),
+            };
+            if count > cap {
+                return Err(Error::Budget("canon source raw rows"));
+            }
+            framed(&mut root, &id);
+            root.update(&sha);
+            charge_bytes(work, raw.len(), l)?;
+            sink(stage, &id, &raw)?;
+            after = Some(id);
+        }
+    }
+    Ok((count, root.finalize().to_hex()))
+}
+fn match_target(stage: &KnowledgeStage<'_>, receipt: &CanonSourceReceipt) -> Result<()> {
+    for c in &receipt.collections {
+        let entries = stage
+            .exact_receipt()
+            .collections
+            .iter()
+            .filter(|r| r.source_graph == c.source_graph && r.collection == c.collection)
+            .collect::<Vec<_>>();
+        if entries.len() != 1
+            || entries[0].input_role != c.input_role
+            || entries[0].adapter_profile != c.adapter_profile
+            || entries[0].expected_count != c.count
+            || entries[0].expected_root_sha256 != c.root_sha256
+        {
+            return Err(Error::Invalid(
+                "canon source independent raw registration/root/count",
+            ));
+        }
+    }
+    for graph in receipt
+        .collections
+        .iter()
+        .map(|c| &c.source_graph)
+        .collect::<BTreeSet<_>>()
+    {
+        if stage
+            .exact_receipt()
+            .collections
+            .iter()
+            .filter(|c| &c.source_graph == graph)
+            .count()
+            != receipt
+                .collections
+                .iter()
+                .filter(|c| &c.source_graph == graph)
+                .count()
+        {
+            return Err(Error::Invalid("canon source raw collection coverage"));
+        }
+    }
+    Ok(())
+}
+fn clear_plan(stage: &mut KnowledgeStage<'_>) -> Result<()> {
+    stage.with_connection(WritePhase::Finalize, |db| {
+        db.execute_batch("DROP TABLE knowledge_canon_source_rows")?;
+        Ok(())
+    })
+}
+/// Derive exact native raw collections before creating the final stage. The
+/// supplied planner must hold the exact CANON_SOURCE_CUSTODY raw-file recipe;
+/// output counts/roots are derived mechanical witnesses, never admission.
+pub fn plan_canon_source_inputs<F>(
+    planner: &mut KnowledgeStage<'_>,
+    cut: &CorpusCutReader,
+    expected_revision: SourceRevision,
+    expected_membership: SourceMembershipV1,
+    vocabulary: &QueryVocabulary,
+    executor: &mut impl CutSchemaExecutor,
+    limits: CanonSourceLimits,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    mut materialize_forms: F,
+) -> Result<CanonSourcePlan>
+where
+    F: FnMut(&Value, &Value, usize) -> Result<Vec<Value>>,
+{
+    let result = (|| {
+        limits.validate()?;
+        check(deadline, cancelled)?;
+        selected_cut(cut, expected_revision, expected_membership, limits)?;
+        let mut work = 0;
+        let source_inputs = source_custody(planner, cut, limits, deadline, cancelled, &mut work)?;
+        let receipt = derive(
+            planner,
+            cut,
+            expected_revision,
+            expected_membership,
+            vocabulary,
+            executor,
+            limits,
+            deadline,
+            cancelled,
+            &mut materialize_forms,
+            work,
+        )?;
+        Ok(CanonSourcePlan {
+            receipt,
+            planner_binding: binding_snapshot(&planner.exact_receipt().binding),
+            source_inputs,
+            selected_revision: expected_revision,
+            selected_membership: expected_membership,
+        })
+    })();
+    if result.is_err() {
+        planner.poison();
+    }
+    result
+}
+/// Transfer a frozen plan into an independently created native stage. All
+/// custody and raw roots are checked before any target row is ingested. The
+/// current cut is explicit; a retained cut cannot stand in for current custody.
+pub fn render_canon_source_plan(
+    planner: &mut KnowledgeStage<'_>,
+    plan: &CanonSourcePlan,
+    cut: &CorpusCutReader,
+    expected_revision: SourceRevision,
+    expected_membership: SourceMembershipV1,
+    target: &mut KnowledgeStage<'_>,
+    limits: CanonSourceLimits,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> Result<CanonSourceReceipt> {
+    let result = (|| {
+        limits.validate()?;
+        check(deadline, cancelled)?;
+        selected_cut(cut, expected_revision, expected_membership, limits)?;
+        if plan.selected_revision != expected_revision
+            || plan.selected_membership != expected_membership
+            || binding_snapshot(&planner.exact_receipt().binding) != plan.planner_binding
+            || plan.receipt.source_revision != expected_revision.0.to_hex()
+            || plan.receipt.manifest_members != expected_membership.count
+            || plan.receipt.manifest_membership_root_sha256 != expected_membership.digest.to_hex()
+        {
+            return Err(Error::Invalid("canon frozen source plan binding"));
+        }
+        let mut target_binding = binding_snapshot(&target.exact_receipt().binding);
+        // Each stage's projection digest binds its own independent raw input
+        // transport. All source-owner identity/currentness fields must agree.
+        target_binding["projection_root_sha256"] =
+            plan.planner_binding["projection_root_sha256"].clone();
+        if target_binding != plan.planner_binding {
+            return Err(Error::Invalid("canon target source binding"));
+        }
+        match_target(target, &plan.receipt)?;
+        let mut work = plan.receipt.work_bytes;
+        let inputs = source_custody(planner, cut, limits, deadline, cancelled, &mut work)?;
+        if inputs.len() != plan.source_inputs.len()
+            || inputs
+                .iter()
+                .zip(&plan.source_inputs)
+                .any(|(a, b)| collection_snapshot(a) != collection_snapshot(b))
+        {
+            return Err(Error::Invalid("canon frozen source custody receipts"));
+        }
+        for c in &plan.receipt.collections {
+            let (count, root) = visit_rows(
+                planner,
+                c,
+                limits,
+                deadline,
+                cancelled,
+                &mut work,
+                |_, _, _| Ok(()),
+            )?;
+            if count != c.count || root != c.root_sha256 {
+                return Err(Error::Invalid("canon frozen raw plan root/count"));
+            }
+        }
+        for c in &plan.receipt.collections {
+            let (count, root) = visit_rows(
+                planner,
+                c,
+                limits,
+                deadline,
+                cancelled,
+                &mut work,
+                |_, id, raw| {
+                    target.ingest_input(InputRow {
+                        source_graph: &c.source_graph,
+                        collection: &c.collection,
+                        id,
+                        payload: raw,
+                    })
+                },
+            )?;
+            if count != c.count || root != c.root_sha256 {
+                return Err(Error::Invalid("canon rendered raw plan root/count"));
+            }
+        }
+        clear_plan(planner)?;
+        let mut receipt = plan.receipt.clone();
+        receipt.work_bytes = work;
+        Ok(receipt)
+    })();
+    if result.is_err() {
+        planner.poison();
+        target.poison();
+    }
+    result
 }
 /// Actual native CMD adapter injects only its pure source-copy materializer.
 /// `CutWorkerSchemaExecutor::from_cut` and all source/member/resource custody
@@ -946,18 +1353,47 @@ pub fn prepare_canon_source_inputs<F>(
 where
     F: FnMut(&Value, &Value, usize) -> Result<Vec<Value>>,
 {
-    let result = inner(
-        stage,
-        cut,
-        expected_revision,
-        expected_membership,
-        vocabulary,
-        executor,
-        limits,
-        deadline,
-        cancelled,
-        &mut materialize_forms,
-    );
+    let result = (|| {
+        let mut receipt = derive(
+            stage,
+            cut,
+            expected_revision,
+            expected_membership,
+            vocabulary,
+            executor,
+            limits,
+            deadline,
+            cancelled,
+            &mut materialize_forms,
+            0,
+        )?;
+        match_target(stage, &receipt)?;
+        let mut work = receipt.work_bytes;
+        for collection in &receipt.collections {
+            let (count, root) = visit_rows(
+                stage,
+                collection,
+                limits,
+                deadline,
+                cancelled,
+                &mut work,
+                |stage, id, raw| {
+                    stage.ingest_input(InputRow {
+                        source_graph: &collection.source_graph,
+                        collection: &collection.collection,
+                        id,
+                        payload: raw,
+                    })
+                },
+            )?;
+            if count != collection.count || root != collection.root_sha256 {
+                return Err(Error::Invalid("canon rendered raw plan root/count"));
+            }
+        }
+        clear_plan(stage)?;
+        receipt.work_bytes = work;
+        Ok(receipt)
+    })();
     if result.is_err() {
         stage.poison();
     }
