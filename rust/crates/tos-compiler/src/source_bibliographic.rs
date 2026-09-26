@@ -4,6 +4,7 @@
 use crate::knowledge_normalization::SourceRow;
 use crate::knowledge_stage::{KnowledgeStage, WritePhase};
 use crate::source_bibliographic_render::{self as render, array, digest, encode, node_id, text};
+pub use crate::source_bibliographic_versions::BibliographicSourceCut;
 use crate::source_witness_catalog::{
     self as catalog, BIBLIOGRAPHIC_FILES, CATALOG_SOURCE, CONTRACT_FILES, SOURCE_FILES,
     SourceCatalogLimits, SourceCatalogReceipt, SourceCatalogValidator,
@@ -56,6 +57,7 @@ pub struct BibliographicReceipt {
     pub row_root_sha256: String,
     pub source_catalog_root_sha256: String,
     pub source_reference_closure_verified: bool,
+    pub selected_version_source: Option<Value>,
     summary_sha256: String,
 }
 /// Sorted exact raw rows accepted by reified-bibliographic-claims-v1. Any
@@ -73,6 +75,28 @@ pub trait BibliographicForms {
         set: &Value,
         max_output_bytes: usize,
     ) -> Result<Vec<Value>>;
+    /// Reconstruct only the retained source-form calculation. The producer
+    /// verifies selectors, source/set/schema/archive closure and receipt refs.
+    /// The maintained engine supplies no history, admission or write grant.
+    fn reconstruct_revision_forms(
+        &mut self,
+        revised_source: &Value,
+        prior_set: Option<&Value>,
+        principal: &str,
+        selections: &Value,
+        max_output_bytes: usize,
+    ) -> Result<Value> {
+        let _ = (
+            revised_source,
+            prior_set,
+            principal,
+            selections,
+            max_output_bytes,
+        );
+        Err(Error::Invalid(
+            "bibliographic retained source-form reconstruction adapter absent",
+        ))
+    }
 }
 fn forms(
     stage: &KnowledgeStage<'_>,
@@ -183,7 +207,7 @@ fn json_file(stage: &KnowledgeStage<'_>, reference: &str, l: BibliographicLimits
         .value()
         .clone())
 }
-fn slot(
+pub(crate) fn slot(
     stage: &mut KnowledgeStage<'_>,
     kind: &str,
     id: &str,
@@ -578,6 +602,7 @@ fn claim_cohort(
     registry: &Value,
     materializer: &mut dyn BibliographicForms,
     l: BibliographicLimits,
+    versions: Option<&mut crate::source_bibliographic_versions::Versions<'_, '_>>,
 ) -> Result<render::Cohort> {
     let row = catalog::catalog_row(stage, "claims", id, l.catalog)?
         .ok_or(Error::Invalid("bibliographic retained Claim row missing"))?;
@@ -722,6 +747,7 @@ fn claim_cohort(
     } else {
         None
     };
+    let mut collection_order_basis = None;
     let mut members = Vec::new();
     if let Some(profile) = profile {
         if profile
@@ -729,9 +755,9 @@ fn claim_cohort(
             .and_then(Value::as_str)
             == Some("collection-membership-versions-v1")
         {
-            return Err(Error::Invalid(
-                "bibliographic exact-version Collection membership resolver not connected",
-            ));
+            collection_order_basis = Some(versions.ok_or(Error::Invalid(
+                "bibliographic exact-version Collection order requires independently selected source cut",
+            ))?.ground(stage, &claim, validator, entities, materializer, l)?);
         }
         for reference in crate::source_bibliographic_values::members(&claim, profile)? {
             let node = identity(stage, reference, validator, materializer, l)?
@@ -946,7 +972,7 @@ fn claim_cohort(
             normalized,
             descriptor,
             forms: bound_forms,
-            collection_order_basis: None,
+            collection_order_basis,
             legacy_context,
         },
         l.catalog.max_output_row_bytes,
@@ -991,7 +1017,7 @@ fn root(stage: &mut KnowledgeStage<'_>, l: BibliographicLimits) -> Result<(u64, 
 }
 fn summary(receipt: &BibliographicReceipt, l: BibliographicLimits) -> Result<String> {
     digest(
-        &json!({"nodes":receipt.node_count,"edges":receipt.edge_count,"claims":receipt.claim_count,"root":receipt.row_root_sha256,"catalog":receipt.source_catalog_root_sha256,"closure":receipt.source_reference_closure_verified}),
+        &json!({"nodes":receipt.node_count,"edges":receipt.edge_count,"claims":receipt.claim_count,"root":receipt.row_root_sha256,"catalog":receipt.source_catalog_root_sha256,"closure":receipt.source_reference_closure_verified,"selected_version_source":receipt.selected_version_source}),
         l.catalog.max_output_row_bytes,
     )
 }
@@ -1004,6 +1030,36 @@ pub fn prepare_bibliographic_graph(
     validator: &SourceCatalogValidator<'_>,
     materializer: &mut dyn BibliographicForms,
     l: BibliographicLimits,
+) -> Result<BibliographicReceipt> {
+    prepare_impl(stage, catalog_receipt, validator, materializer, l, None)
+}
+/// Resolve exact-version Collection order from one independently selected
+/// immutable source cut. The cut proves current membership/absence; it grants
+/// no permission to use or publish retained historical bytes.
+pub fn prepare_bibliographic_graph_from_cut(
+    stage: &mut KnowledgeStage<'_>,
+    catalog_receipt: &SourceCatalogReceipt,
+    validator: &SourceCatalogValidator<'_>,
+    materializer: &mut dyn BibliographicForms,
+    l: BibliographicLimits,
+    source: &crate::source_bibliographic_versions::BibliographicSourceCut<'_>,
+) -> Result<BibliographicReceipt> {
+    prepare_impl(
+        stage,
+        catalog_receipt,
+        validator,
+        materializer,
+        l,
+        Some(source),
+    )
+}
+fn prepare_impl(
+    stage: &mut KnowledgeStage<'_>,
+    catalog_receipt: &SourceCatalogReceipt,
+    validator: &SourceCatalogValidator<'_>,
+    materializer: &mut dyn BibliographicForms,
+    l: BibliographicLimits,
+    source: Option<&crate::source_bibliographic_versions::BibliographicSourceCut<'_>>,
 ) -> Result<BibliographicReceipt> {
     let result = (|| {
         l.validate()?;
@@ -1018,6 +1074,11 @@ pub fn prepare_bibliographic_graph(
                 "bibliographic exact dependency collection required",
             ));
         }
+        let mut versions = source
+            .map(|source| {
+                crate::source_bibliographic_versions::Versions::new(source, stage, validator, l)
+            })
+            .transpose()?;
         let entities = json_file(stage, ENTITY, l)?;
         let registry = json_file(stage, RELATION, l)?;
         stage.with_connection(WritePhase::Schema,|db|{db.execute_batch("CREATE TABLE source_bibliographic_rows(collection TEXT NOT NULL,id TEXT NOT NULL,payload_len INTEGER NOT NULL,payload_sha256 BLOB NOT NULL,payload BLOB NOT NULL,PRIMARY KEY(collection,id)) WITHOUT ROWID;
@@ -1049,6 +1110,7 @@ INSERT INTO source_bibliographic_totals VALUES(1,0,0);")?;Ok(())})?;
                 &registry,
                 materializer,
                 l,
+                versions.as_mut(),
             )?;
             for (collection, definition, field, rows) in [
                 ("nodes", "node", "node_id", cohort.nodes),
@@ -1099,6 +1161,7 @@ INSERT INTO source_bibliographic_totals VALUES(1,0,0);")?;Ok(())})?;
             row_root_sha256,
             source_catalog_root_sha256: catalog_receipt.row_root_sha256.clone(),
             source_reference_closure_verified: true,
+            selected_version_source: versions.as_ref().map(|versions| versions.binding()),
             summary_sha256: String::new(),
         };
         receipt.summary_sha256 = summary(&receipt, l)?;
