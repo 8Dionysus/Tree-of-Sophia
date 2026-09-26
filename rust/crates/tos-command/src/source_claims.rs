@@ -3695,6 +3695,9 @@ fn validate_member_order(claim: &JsonValue) -> SourceCommandResult<()> {
 fn ground_collection_membership(
     ctx: &CommandContext,
     claim: &JsonValue,
+    executor: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
 ) -> SourceCommandResult<()> {
     let value = field(claim, "object")?;
     let collection_ref = field(value, "collection_version")?;
