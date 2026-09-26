@@ -11,6 +11,7 @@ pub mod knowledge_full_fixture;
 mod knowledge_global_titles;
 mod knowledge_indexed;
 mod knowledge_inherited_views;
+mod knowledge_native_finalize;
 mod knowledge_navigation_finalize;
 pub mod knowledge_normalization;
 mod knowledge_ordered;
@@ -45,6 +46,9 @@ pub use knowledge_indexed::{IndexedLimits, IndexedReceipt, materialize_indexed_s
 pub use knowledge_inherited_views::{
     CompleteRelationSeal, InheritedViewLimits, InheritedViewReceipt, clear_inherited_views,
     endpoint_inherited_views, prepare_global_inherited_views,
+};
+pub use knowledge_native_finalize::{
+    NativeFinalizeLimits, NativeFinalizeReceipt, finalize_native_graph_rows,
 };
 pub use knowledge_navigation_finalize::{
     NavigationFinalizeLimits, NavigationInheritedReceipt, apply_navigation_inherited_views,
