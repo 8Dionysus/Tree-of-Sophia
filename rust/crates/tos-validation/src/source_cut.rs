@@ -162,7 +162,7 @@ impl CutWorkerSchemaExecutor {
     }
 
     pub fn contract_digest(&self, contract: &str) -> Option<Digest256> {
-        let base=contract.split_once('#').map_or(contract,|(base,_)|base);
+        let base = contract.split_once('#').map_or(contract, |(base, _)| base);
         self.contracts.get(base).map(|(_, digest)| *digest)
     }
 
@@ -214,18 +214,28 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
         // exact resource. The fragment never supplies a new file/resource or
         // another engine. Preserve the full selector in the worker request and
         // receipt, while its fixity stays bound to the base resource bytes.
-        let (base,fragment)=match contract.split_once('#') {
-            Some((base,fragment)) if !base.is_empty() && fragment.starts_with('/')
-                && !fragment.contains('#') => (base,Some(fragment)),
-            Some(_)=>return Err(ItemRefusal::Unsupported("invalid source schema fragment selector".into())),
-            None=>(contract,None),
+        let (base, fragment) = match contract.split_once('#') {
+            Some((base, fragment))
+                if !base.is_empty() && fragment.starts_with('/') && !fragment.contains('#') =>
+            {
+                (base, Some(fragment))
+            }
+            Some(_) => {
+                return Err(ItemRefusal::Unsupported(
+                    "invalid source schema fragment selector".into(),
+                ));
+            }
+            None => (contract, None),
         };
         let base_uri = &self
             .contracts
             .get(base)
             .ok_or_else(|| ItemRefusal::Unsupported(format!("missing source schema {contract}")))?
             .0;
-        let uri=fragment.map_or_else(||base_uri.clone(),|fragment|format!("{base_uri}#{fragment}"));
+        let uri = fragment.map_or_else(
+            || base_uri.clone(),
+            |fragment| format!("{base_uri}#{fragment}"),
+        );
         let decoded: serde_json::Value = serde_json::from_slice(raw).map_err(|_| {
             ItemRefusal::Unsupported("unsupported native decoded JSON representation".into())
         })?;
@@ -310,15 +320,32 @@ impl ProvenanceSource for CutProvenanceSource<'_> {
         check(deadline, self.cancelled)?;
         let relative = RelativePath::parse(path)
             .map_err(|_| ItemRefusal::Unsupported("provenance source path".into()))?;
-        if self.components.is_some_and(|components|components.capture()!=self.software.selection()) {
-            return Err(ItemRefusal::Unsupported("provenance component capture differs".into()));
+        if self
+            .components
+            .is_some_and(|components| components.capture() != self.software.selection())
+        {
+            return Err(ItemRefusal::Unsupported(
+                "provenance component capture differs".into(),
+            ));
         }
         // Authored source locators retain their corpus owner even if a
         // software capture happens to contain a file at the same locator.
         if !path.starts_with("ToS/") {
-            if let Some(components)=self.components.filter(|selection|selection.member(&relative).is_some()) {
-                return self.software.read_selected_component(components,&relative,
-                    max_bytes as u64,deadline,self.cancelled).map(Some).map_err(store_error);
+            if let Some(components) = self
+                .components
+                .filter(|selection| selection.member(&relative).is_some())
+            {
+                return self
+                    .software
+                    .read_selected_component(
+                        components,
+                        &relative,
+                        max_bytes as u64,
+                        deadline,
+                        self.cancelled,
+                    )
+                    .map(Some)
+                    .map_err(store_error);
             }
         }
         if path.starts_with("scripts/") {
@@ -363,10 +390,13 @@ impl ProvenanceSource for CutProvenanceSource<'_> {
         if Digest256::of_bytes(&current) == expected {
             return Ok(Some(current));
         }
-        let relative=RelativePath::parse(path)
-            .map_err(|_|ItemRefusal::Unsupported("provenance component path".into()))?;
+        let relative = RelativePath::parse(path)
+            .map_err(|_| ItemRefusal::Unsupported("provenance component path".into()))?;
         if !path.starts_with("ToS/")
-            && self.components.is_some_and(|selection|selection.member(&relative).is_some()) {
+            && self
+                .components
+                .is_some_and(|selection| selection.member(&relative).is_some())
+        {
             // A native producer-run component is current-only. Its exact
             // selected digest cannot be replaced by an archived input.
             return Ok(None);

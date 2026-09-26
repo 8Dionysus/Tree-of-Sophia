@@ -197,7 +197,7 @@ impl ProvenanceRules {
         if !source.schema(path, raw, CONTRACT, &digest, self.limits.deadline)? {
             self.issue(path, "provenance-v2-schema")?;
         }
-        let event = crate::native_decoded_value(raw,self.limits.max_member_bytes)?;
+        let event = crate::native_decoded_value(raw, self.limits.max_member_bytes)?;
         if !event.is_object() {
             self.issue(path, "provenance-object-required")?;
             return Ok(event);
