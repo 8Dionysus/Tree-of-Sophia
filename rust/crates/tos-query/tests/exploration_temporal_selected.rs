@@ -1,0 +1,65 @@
+#![cfg(not(target_arch = "wasm32"))]
+//! Native producer → exact selected read → independent maintained Python rules.
+use std::{collections::BTreeMap, io::Write, process::{Command, Stdio}, sync::{Arc, Mutex, atomic::{AtomicUsize, Ordering}}};
+use tos_compiler::knowledge_full_fixture::build_native_fixture;
+use tos_foundation::{CanonicalProfile, Digest256, JsonLimits, JsonMode, JsonString, JsonValue, canonical_bytes_v1, parse_json};
+use tos_query::{AbortProbe, AbortReason, BoundCmpKnowledge, IndexedDisclosureScope, InspectBudget, InspectCurrentAuthority, InspectDisclosureLease, InspectedCarrier, ObservedInspectCarrier, bind_verified_knowledge, execute_selected_temporal};
+use tos_query::knowledge_exploration::{EXPLORATION_OPERATION,EXPLORATION_INTENDED_USE, ExplorationBudget, ExplorationCheckpoints, ExplorationCheckpoint, ExplorationState, PreparedExplorationCheckpoint, execute_selected_exploration};
+use tos_query::search_v2::{CurrentPolicyBinding, SearchV2Error, SearchV2ErrorCode};
+fn get<'a>(v:&'a JsonValue,key:&str)->&'a JsonValue {v.object_get(key).unwrap()}
+fn text(s:&str)->JsonValue {JsonValue::String(JsonString::from_utf8(s))}
+fn set(v:&mut JsonValue,key:&str,value:JsonValue) {let JsonValue::Object(o)=v else {panic!("object")}; if let Some((_,v))=o.iter_mut().find(|(k,_)|k.as_str()==Some(key)){*v=value}else{o.push((JsonString::from_utf8(key),value))}}
+fn parse(bytes:&[u8])->JsonValue {parse_json(bytes,JsonMode::PublishedStrict,JsonLimits::default()).unwrap().into_root()}
+fn canonical(v:&JsonValue)->Vec<u8>{canonical_bytes_v1(v,CanonicalProfile::SourceRecordDigestV1,JsonLimits::default()).unwrap()}
+fn err(code:SearchV2ErrorCode)->SearchV2Error {SearchV2Error{code,message:"synthetic checkpoint admission"}}
+struct Probe {calls:AtomicUsize, after:usize, reason:AbortReason}
+impl AbortProbe for Probe {fn reason(&self)->Option<AbortReason>{(self.calls.fetch_add(1,Ordering::Relaxed)>=self.after).then_some(self.reason)}}
+struct Lease;
+impl InspectDisclosureLease for Lease {fn recheck(&mut self)->Result<(),SearchV2Error>{Ok(())}}
+struct Authority {scope:IndexedDisclosureScope,policy:CurrentPolicyBinding,withdrawn:bool,probe:Option<Arc<dyn AbortProbe>>}
+impl Authority {fn new(bound:&BoundCmpKnowledge<'_>,operation:&str,intended:&str)->Self {
+let policy=CurrentPolicyBinding{scope:"synthetic-query".into(),issuer_ref:"synthetic-issuer".into(),authorization_receipt_id:"synthetic-receipt".into(),policy_epoch:"synthetic-epoch".into(),withdrawal_generation:"synthetic-generation".into()};
+Self{scope:IndexedDisclosureScope{operation_id:operation.into(),carrier_layer:"tos_knowledge_public_graph_projection_v1".into(),intended_use:intended.into(),selected_model_receipt_id:bound.owner_receipt_id().into(),source_cut:bound.selection().source_cut.clone(),through_commit_seq:bound.selection().through_commit_seq,source_membership_root:bound.selection().source_membership_root,descriptor_sha256:bound.selection().vocabulary.descriptor_sha256,selected_index_sha256:bound.selection().index_root_sha256,policy_issuer_ref:policy.issuer_ref.clone(),policy_receipt_id:policy.authorization_receipt_id.clone(),policy_scope:policy.scope.clone(),policy_epoch:policy.policy_epoch.clone(),withdrawal_generation:policy.withdrawal_generation.clone()},policy,withdrawn:false,probe:None}
+}}
+impl InspectCurrentAuthority for Authority {
+fn abort_probe(&self)->Option<Arc<dyn AbortProbe>>{self.probe.clone()}
+fn policy_binding(&self)->CurrentPolicyBinding{self.policy.clone()}
+fn disclosure_scope(&self)->IndexedDisclosureScope{self.scope.clone()}
+fn check_selected(&mut self)->Result<(),SearchV2Error>{Ok(())}
+fn authorize_current(&mut self,_:&InspectedCarrier)->Result<(),SearchV2Error>{Ok(())}
+fn acquire_disclosure(&mut self,_:&IndexedDisclosureScope,_:&[ObservedInspectCarrier])->Result<Box<dyn InspectDisclosureLease>,SearchV2Error>{if self.withdrawn{Err(err(SearchV2ErrorCode::StalePolicy))}else{Ok(Box::new(Lease))}}
+}
+fn read_budget()->InspectBudget {InspectBudget{max_open_vm_steps:100_000_000,max_read_vm_steps:1_000_000,max_matches:64,max_rows:1000,max_field_bytes:16384,max_payload_bytes:1_000_000,max_decoded_bytes:8_000_000,max_response_bytes:1_000_000,json:JsonLimits::default()}}
+fn exploration_budget(work:usize)->ExplorationBudget {ExplorationBudget{read:read_budget(),max_work_units:work,max_session_nodes:10000,max_session_relations:20000,max_state_bytes:1_000_000,max_checkpoint_bytes:2_000_000,max_checkpoints:128}}
+#[derive(Clone)]
+enum Stored {State(ExplorationState),Replay(JsonValue,Digest256)}
+#[derive(Default)]
+struct Store {rows:BTreeMap<String,(String,Stored)>,ordinal:usize,refuse:bool,commits:usize}
+#[derive(Default)]
+struct Checkpoints(Arc<Mutex<Store>>);
+struct Staged {store:Arc<Mutex<Store>>,input:Option<String>,revision:String,next:Option<String>,state:Option<ExplorationState>,packet:JsonValue}
+impl PreparedExplorationCheckpoint for Staged {
+fn next_cursor(&self)->Option<&str>{self.next.as_deref()}
+fn commit(&mut self)->Result<(),SearchV2Error>{let mut store=self.store.lock().unwrap();if store.refuse{return Err(err(SearchV2ErrorCode::BudgetExceeded))}if let Some(input)=&self.input{store.rows.insert(input.clone(),(self.revision.clone(),Stored::Replay(self.packet.clone(),Digest256::of_bytes(&canonical(&self.packet)))));}if let Some(next)=&self.next{store.rows.insert(next.clone(),(self.revision.clone(),Stored::State(self.state.clone().unwrap())));}store.commits+=1;Ok(())}
+}
+impl ExplorationCheckpoints for Checkpoints {
+fn load(&mut self,cursor:&str,revision:&str)->Result<ExplorationCheckpoint,SearchV2Error>{let store=self.0.lock().unwrap();let (bound,row)=store.rows.get(cursor).ok_or(err(SearchV2ErrorCode::CursorExpired))?;if bound!=revision{return Err(err(SearchV2ErrorCode::StaleContinuation))}Ok(match row{Stored::State(v)=>ExplorationCheckpoint::State(v.clone()),Stored::Replay(packet,sha)=>ExplorationCheckpoint::Replay{packet:packet.clone(),packet_sha256:*sha}})}
+fn prepare(&mut self,input:Option<&str>,revision:&str,successor:Option<&ExplorationState>,packet:&JsonValue,budget:ExplorationBudget)->Result<Box<dyn PreparedExplorationCheckpoint>,SearchV2Error>{let mut store=self.0.lock().unwrap();if store.refuse{return Err(err(SearchV2ErrorCode::BudgetExceeded))}let mut bytes=canonical(packet).len();if let Some(state)=successor{bytes+=state.encoded_state(budget.read.json)?.len();}if bytes>budget.max_checkpoint_bytes{return Err(err(SearchV2ErrorCode::BudgetExceeded))}store.ordinal+=1;let next=successor.map(|_|format!("{:064x}",store.ordinal));let mut packet=packet.clone();let mut page=get(&packet,"page").clone();set(&mut page,"next_cursor",next.as_deref().map_or(JsonValue::Null,text));set(&mut packet,"page",page);Ok(Box::new(Staged{store:self.0.clone(),input:input.map(str::to_owned),revision:revision.into(),next,state:successor.cloned(),packet}))}
+}
+fn comparable(mut packet:JsonValue)->JsonValue{let JsonValue::Object(o)=&mut packet else {panic!("packet")};o.retain(|(k,_)|k.as_str()!=Some("snapshot_revision"));let mut page=get(&packet,"page").clone();set(&mut page,"next_cursor",JsonValue::Null);set(&mut packet,"page",page);packet}
+fn cursor_request(cursor:&str)->JsonValue {JsonValue::Object(vec![(JsonString::from_utf8("cursor"),text(cursor))])}
+#[test]
+fn genuine_selected_temporal_and_exploration_match_python_and_preserve_checkpoint_admission() {
+let fixture=build_native_fixture();let mut child=Command::new("python3").arg(concat!(env!("CARGO_MANIFEST_DIR"),"/tests/fixtures/native_exploration_temporal_oracle.py")).stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::piped()).spawn().unwrap();child.stdin.take().unwrap().write_all(&fixture.graph_input_bytes).unwrap();let output=child.wait_with_output().unwrap();assert!(output.status.success(),"{}",String::from_utf8_lossy(&output.stderr));let oracle=parse(&output.stdout);assert_eq!(get(&oracle,"input_sha256").as_str(),Some(Digest256::of_bytes(&fixture.graph_input_bytes).to_hex().as_str()));
+let cold=fixture.open().unwrap();let bound=bind_verified_knowledge(&cold,&fixture.vocabulary,&fixture.descriptor_bytes).unwrap();let mut model=cold.fork_reader_with_vm_budget(1_000_000).unwrap();
+for case in get(&oracle,"temporal").as_array().unwrap(){let mut authority=Authority::new(&bound,tos_query::TEMPORAL_OPERATION,tos_query::TEMPORAL_INTENDED_USE);let mut packet=execute_selected_temporal(&mut model,&bound,&mut authority,get(case,"request"),read_budget()).unwrap();packet.recheck().unwrap();assert_eq!(canonical(&parse(&packet)),canonical(get(case,"packet")));}
+for case in get(&oracle,"exploration").as_array().unwrap(){let work=get(case,"work").as_u64().unwrap() as usize;let budget=exploration_budget(work);let mut checkpoints=Checkpoints::default();let mut request=get(case,"request").clone();let mut replay_request=None;let pages=get(case,"pages").as_array().unwrap();for (index,expected)in pages.iter().enumerate(){let mut authority=Authority::new(&bound,EXPLORATION_OPERATION,EXPLORATION_INTENDED_USE);let mut packet=execute_selected_exploration(&mut model,&bound,&mut authority,&mut checkpoints,&request,budget).unwrap();packet.recheck().unwrap();let packet=parse(&packet);assert_eq!(canonical(&comparable(packet.clone())),canonical(expected),"exploration case {:?}, page {index}",get(case,"request"));let next=get(get(&packet,"page"),"next_cursor").as_str();if index==0{replay_request=next.map(cursor_request);}if let Some(next)=next{request=cursor_request(next)}else{assert_eq!(index+1,pages.len())}}
+// Replayed input is reauthorized and has an identical emitted packet.
+if pages.len()>1{let request=replay_request.unwrap();let before=checkpoints.0.lock().unwrap().commits;let mut authority=Authority::new(&bound,EXPLORATION_OPERATION,EXPLORATION_INTENDED_USE);let result=execute_selected_exploration(&mut model,&bound,&mut authority,&mut checkpoints,&request,budget).unwrap();assert_eq!(canonical(&comparable(parse(&result))),canonical(&pages[1]));assert_eq!(checkpoints.0.lock().unwrap().commits,before);authority.withdrawn=true;assert!(matches!(execute_selected_exploration(&mut model,&bound,&mut authority,&mut checkpoints,&request,budget),Err(SearchV2Error{code:SearchV2ErrorCode::StalePolicy,..})));}}
+// A staged page refused at disclosure/capacity/cancellation never advances cursor.
+let case=&get(&oracle,"exploration").as_array().unwrap()[0];let budget=exploration_budget(2);let mut checkpoints=Checkpoints::default();let mut authority=Authority::new(&bound,EXPLORATION_OPERATION,EXPLORATION_INTENDED_USE);let first=execute_selected_exploration(&mut model,&bound,&mut authority,&mut checkpoints,get(case,"request"),budget).unwrap();let first=parse(&first);let request=cursor_request(get(get(&first,"page"),"next_cursor").as_str().unwrap());let before=checkpoints.0.lock().unwrap().commits;
+checkpoints.0.lock().unwrap().refuse=true;assert!(matches!(execute_selected_exploration(&mut model,&bound,&mut authority,&mut checkpoints,&request,budget),Err(SearchV2Error{code:SearchV2ErrorCode::BudgetExceeded,..})));checkpoints.0.lock().unwrap().refuse=false;
+authority.withdrawn=true;assert!(matches!(execute_selected_exploration(&mut model,&bound,&mut authority,&mut checkpoints,&request,budget),Err(SearchV2Error{code:SearchV2ErrorCode::StalePolicy,..})));authority.withdrawn=false;
+for reason in [AbortReason::Cancelled,AbortReason::DeadlineExceeded]{authority.probe=Some(Arc::new(Probe{calls:AtomicUsize::new(0),after:8,reason}));let result=execute_selected_exploration(&mut model,&bound,&mut authority,&mut checkpoints,&request,budget);assert!(matches!(result,Err(SearchV2Error{code:SearchV2ErrorCode::Cancelled|SearchV2ErrorCode::DeadlineExceeded,..})));}authority.probe=None;
+assert_eq!(checkpoints.0.lock().unwrap().commits,before);execute_selected_exploration(&mut model,&bound,&mut authority,&mut checkpoints,&request,budget).unwrap();
+}
