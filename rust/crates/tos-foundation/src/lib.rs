@@ -29,7 +29,10 @@ pub use json::{
 };
 pub use logical_ref::LogicalRecordRefV1;
 pub use path::RelativePath;
-pub use unicode::{UnicodeProfile, python_lower_unicode16_v1, python_strip_unicode16_v1};
+pub use unicode::{
+    UnicodeProfile, python_casefold_unicode16_v1, python_lower_unicode16_v1,
+    python_strip_unicode16_v1,
+};
 
 /// Minimal transport-independent observation for a native/WASM executable parity harness.
 /// Full source/runtime compatibility needs the independent owner fixture corpus.

@@ -3,7 +3,8 @@ use tos_foundation::{
     Digest256, Digest256Hasher, FoundationErrorCode, JsonEmissionProfile, JsonLimits, JsonMode,
     JsonNumber, JsonNumberKind, JsonString, JsonValue, LogicalRecordRefV1, OperationDescriptor,
     OperationEffect, RelativePath, StableId, UnicodeProfile, canonical_bytes_v1, emit_json_profile,
-    emit_preserved_json, parse_json, python_lower_unicode16_v1, python_strip_unicode16_v1,
+    emit_preserved_json, parse_json, python_casefold_unicode16_v1, python_lower_unicode16_v1,
+    python_strip_unicode16_v1,
 };
 
 #[test]
@@ -442,4 +443,43 @@ fn unicode16_lower_and_strip_are_versioned_and_bounded() {
         python_strip_unicode16_v1("ΣΟΣ", 2).unwrap_err().code,
         FoundationErrorCode::BudgetExceeded
     );
+}
+
+#[test]
+fn unicode16_full_casefold_matches_python_default_and_bounds() {
+    let fold = |input| python_casefold_unicode16_v1(input, 256, 768, 3072).unwrap();
+    // Independent default-full mappings from Unicode 16 CaseFolding.txt C + F.
+    assert_eq!(fold("ẞ Straße ﬃ İ I ı"), "ss strasse ffi i\u{307} i ı");
+    assert_eq!(fold("ΣΟΣ Σοσ Σος ς"), "σοσ σοσ σοσ σ");
+    assert_eq!(fold("µ K ſ 𐐀"), "μ k s 𐐨");
+    // Cherokee folds to uppercase; a lowercase shortcut is observably wrong.
+    assert_eq!(fold("Ꭰ ꭰ"), "Ꭰ Ꭰ");
+    // Unicode 16 additions, independent of older host Unicode tables.
+    assert_eq!(
+        fold("\u{1c89}\u{a7cb}\u{10d50}"),
+        "\u{1c8a}\u{264}\u{10d70}"
+    );
+    assert_eq!(fold("é e\u{301} 🙂"), "é e\u{301} 🙂");
+    assert_eq!(fold(&fold("ẞ Σος ﬃ ꭰ")), fold("ẞ Σος ﬃ ꭰ"));
+    assert_eq!(python_casefold_unicode16_v1("", 0, 0, 0).unwrap(), "");
+    assert_eq!(python_casefold_unicode16_v1("ß", 1, 2, 2).unwrap(), "ss");
+    assert_eq!(
+        python_casefold_unicode16_v1("İ", 1, 2, 3).unwrap(),
+        "i\u{307}"
+    );
+    for (text, input, points, bytes) in [
+        ("ß", 0, 2, 2),
+        ("ß", 1, 1, 2),
+        ("ß", 1, 2, 1),
+        ("İ", 1, 2, 2),
+        ("🙂", 1, 1, 3),
+        ("aaß", 3, 3, 4),
+    ] {
+        assert_eq!(
+            python_casefold_unicode16_v1(text, input, points, bytes)
+                .unwrap_err()
+                .code,
+            FoundationErrorCode::BudgetExceeded
+        );
+    }
 }

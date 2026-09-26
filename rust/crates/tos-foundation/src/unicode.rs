@@ -96,6 +96,45 @@ pub fn python_lower_unicode16_v1(
     Ok(output)
 }
 
+/// Unicode 16 default full case folding (CaseFolding C + F; excludes Turkic T),
+/// matching Python 3.14 `str.casefold()`. Unlike lowercase, this is context-free
+/// and may expand one scalar into several. It does not normalize text or use
+/// host Unicode tables. Budgets count input/output scalars and output UTF-8 bytes.
+/// The caller owns cancellation between bounded invocations, as with lowercase.
+pub fn python_casefold_unicode16_v1(
+    input: &str,
+    max_input_code_points: usize,
+    max_output_code_points: usize,
+    max_output_bytes: usize,
+) -> Result<String> {
+    check_input(input, max_input_code_points)?;
+    let mut output = String::with_capacity(input.len().min(max_output_bytes));
+    let mut output_points = 0usize;
+    for ch in input.chars() {
+        let mapped = CASEFOLD
+            .binary_search_by_key(&(ch as u32), |(key, _)| *key)
+            .ok()
+            .map(|position| CASEFOLD[position].1);
+        let (new_points, new_bytes) = match mapped {
+            Some(text) => (text.chars().count(), text.len()),
+            None => (1, ch.len_utf8()),
+        };
+        output_points = output_points
+            .checked_add(new_points)
+            .ok_or_else(|| budget_error("Unicode output code-point budget exceeded"))?;
+        if output_points > max_output_code_points
+            || new_bytes > max_output_bytes.saturating_sub(output.len())
+        {
+            return Err(budget_error("Unicode output budget exceeded"));
+        }
+        match mapped {
+            Some(text) => output.push_str(text),
+            None => output.push(ch),
+        }
+    }
+    Ok(output)
+}
+
 fn check_input(input: &str, max_code_points: usize) -> Result<()> {
     if input.chars().count() > max_code_points {
         return Err(budget_error("Unicode input code-point budget exceeded"));
