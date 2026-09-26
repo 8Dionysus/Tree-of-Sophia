@@ -19,6 +19,7 @@ import subprocess
 import sys
 import tarfile
 from typing import Any, BinaryIO, Callable, Iterator
+from types import MappingProxyType
 
 
 CHUNK_SIZE = 1024 * 1024
@@ -880,6 +881,109 @@ def restore_capture(capture_root: Path, destination: Path) -> dict[str, Any]:
     }
     _write_exclusive(destination / "restore-receipt.json", _canonical_bytes(receipt), label="restore receipt")
     return receipt
+
+
+class SelectedSoftwareComponents:
+    """Exact current components from one selected capture, never authority.
+
+    Construct with ``select_software_components``. The capture/member/restore
+    contracts remain owned here; no native path namespace is implicitly allowed.
+    """
+
+    def __init__(self, root: Path, capture: tuple[str, str, str], members: dict):
+        self._root = root
+        self.capture = capture
+        self._members = MappingProxyType(dict(members))
+
+    def contains(self, ref: str) -> bool:
+        return ref in self._members
+
+    def resolve_current(self, ref: str, digest: str) -> Path | None:
+        binding = self._members.get(ref)
+        if binding is None or binding[0] != digest:
+            return None
+        path = self._root / ref
+        try:
+            _ensure_directory(self._root, label="selected software root")
+            for parent in PurePosixPath(ref).parents:
+                if parent != PurePosixPath('.'):
+                    _ensure_directory(self._root / str(parent), label="software component parent")
+            metadata = _ensure_regular(path, label="software component")
+            if metadata.st_size != binding[1] or _sha256_file(path) != digest:
+                return None
+            return path
+        except (OSError, CorpusArchiveError):
+            return None
+
+
+def select_software_components(
+    capture_root: Path, restored_root: Path, *, source_git_commit: str,
+    source_git_tree: str, capture_manifest_sha256: str,
+    component_paths: list[str], max_selected_bytes: int = 8_388_608,
+) -> SelectedSoftwareComponents:
+    """Select bounded components using the existing exact transport descriptor.
+
+    Archive-wide fixity belongs to capture/restore. Here the selected manifest,
+    complete canonical member index, restore receipt and current component bytes
+    are verified. Requested components come from the owner caller, not an event.
+    """
+    capture_root, restored_root = Path(capture_root), Path(restored_root)
+    if (not _is_hex(source_git_commit, _HEX40, label="selected commit")
+            or not _is_hex(source_git_tree, _HEX40, label="selected tree")
+            or not _is_hex(capture_manifest_sha256, _HEX64, label="selected capture")):
+        raise _error("invalid selected software capture identity")
+    if (not isinstance(component_paths, list) or not 1 <= len(component_paths) <= 128
+            or any(not isinstance(ref, str) for ref in component_paths)
+            or len(set(component_paths)) != len(component_paths)
+            or type(max_selected_bytes) is not int or not 1 <= max_selected_bytes <= 8_388_608):
+        raise _error("invalid software component selection budget")
+    requested = {_validate_relative_path(ref, label="software component") for ref in component_paths}
+    manifest_path = capture_root / "capture.json"
+    if _ensure_regular(manifest_path, label="software capture manifest").st_size > 1_048_576:
+        raise _error("software capture manifest exceeds budget")
+    manifest = _read_capture_manifest(capture_root)
+    if (_sha256_file(manifest_path) != capture_manifest_sha256
+            or manifest['source_git_commit'] != source_git_commit
+            or manifest['source_git_tree'] != source_git_tree):
+        raise _error("software capture selection differs")
+    index = capture_root / "members.jsonl"
+    if (_ensure_regular(index, label="software member index").st_size > 33_554_432
+            or manifest['member_count'] > 65_536
+            or _sha256_file(index) != manifest['members_sha256']):
+        raise _error("software member index selection or budget differs")
+    selected, count, total, selected_total = {}, 0, 0, 0
+    for member in _iter_members(index, manifest['include_prefixes'],
+                                exclude_prefixes=manifest.get('exclude_prefixes'),
+                                exclude_path_parts=manifest.get('exclude_path_parts')):
+        count += 1
+        total += member['size_bytes']
+        if count > 65_536:
+            raise _error("software member index count exceeds budget")
+        if member['path'] in requested:
+            selected_total += member['size_bytes']
+            if selected_total > max_selected_bytes:
+                raise _error("software components exceed selected byte budget")
+            selected[member['path']] = (member['sha256'], member['size_bytes'])
+    if (count != manifest['member_count'] or total != manifest['source_bytes']
+            or selected.keys() != requested):
+        raise _error("software capture membership or requested components differ")
+    _ensure_directory(restored_root, label="selected software root")
+    receipt_path = restored_root / "restore-receipt.json"
+    if _ensure_regular(receipt_path, label="software restore receipt").st_size > 1_048_576:
+        raise _error("software restore receipt exceeds budget")
+    raw = receipt_path.read_bytes()
+    receipt = _strict_object(raw, label="software restore receipt")
+    if raw != _canonical_bytes(receipt) or receipt != {
+        'schema_version': 'tos_corpus_restore_receipt_v1',
+        'source_git_commit': source_git_commit, 'member_count': count,
+        'source_bytes': total, 'manifest_sha256': capture_manifest_sha256,
+    }:
+        raise _error("software restore receipt differs from selected capture")
+    result = SelectedSoftwareComponents(restored_root,
+        (source_git_commit, source_git_tree, capture_manifest_sha256), selected)
+    if any(result.resolve_current(ref, digest) is None for ref, (digest, _) in selected.items()):
+        raise _error("selected software component current bytes differ")
+    return result
 
 
 def _cli_parser() -> argparse.ArgumentParser:

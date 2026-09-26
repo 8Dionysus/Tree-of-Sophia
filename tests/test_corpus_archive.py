@@ -19,6 +19,7 @@ from corpus_archive import (  # noqa: E402
     CorpusArchiveError,
     capture_git,
     restore_capture,
+    select_software_components,
     verify_capture,
 )
 
@@ -106,6 +107,25 @@ class CorpusArchiveTests(unittest.TestCase):
         self.assertEqual((destination / "src/run.sh").stat().st_mode & 0o777, 0o755)
         self.assertEqual((destination / "src/a.txt").stat().st_mode & 0o777, 0o644)
         self.assertTrue((destination / "restore-receipt.json").is_file())
+        components = select_software_components(capture, destination,
+            source_git_commit=manifest['source_git_commit'],
+            source_git_tree=manifest['source_git_tree'],
+            capture_manifest_sha256=hashlib.sha256((capture / 'capture.json').read_bytes()).hexdigest(),
+            component_paths=['src/nested/b.txt'])
+        digest = hashlib.sha256(b'beta\n').hexdigest()
+        self.assertEqual(components.resolve_current('src/nested/b.txt', digest), destination / 'src/nested/b.txt')
+        self.assertIsNone(components.resolve_current('src/a.txt', hashlib.sha256(b'alpha\n').hexdigest()))
+        self.assertIsNone(components.resolve_current('src/nested/b.txt', '0' * 64))
+        import validate_source_witness_foundation as foundation
+        self.assertIsNone(foundation._recorded_provenance_input_path(self.repo, 'src/nested/b.txt', digest))
+        with foundation.selected_provenance_software(components):
+            self.assertEqual(foundation._recorded_provenance_input_path(self.repo, 'src/nested/b.txt', digest), destination / 'src/nested/b.txt')
+            self.assertIsNone(foundation._recorded_provenance_input_path(self.repo, 'src/nested/b.txt', '0' * 64))
+            current = destination / 'src/nested/b.txt'
+            current.unlink()
+            current.symlink_to(self.repo / 'src/nested/b.txt')
+            self.assertIsNone(foundation._recorded_provenance_input_path(self.repo, 'src/nested/b.txt', digest))
+        self.assertIsNone(foundation._recorded_provenance_input_path(self.repo, 'src/nested/b.txt', digest))
 
     def test_capture_is_deterministic_and_prefix_boundary_is_exact(self) -> None:
         first = self._capture("first", prefixes=["src/"])
