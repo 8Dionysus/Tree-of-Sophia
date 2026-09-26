@@ -60,6 +60,14 @@ pub struct CutSchemaReceipt {
 /// cut. This is a family execution receipt, not a trusted-source admission
 /// ticket. Dedicated-worker descendant custody and host I/O interruption are
 /// additional owner gates; the current executor guarantees parent liveness.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CutExecutionBinding {
+    pub source_revision: SourceRevision,
+    pub schema_profile: FormatProfile,
+    pub schema_set_sha256: Digest256,
+    pub worker_sha256: Digest256,
+}
+
 pub struct CutWorkerSchemaExecutor {
     revision: SourceRevision,
     resources: Vec<SchemaResource>,
@@ -162,6 +170,15 @@ impl CutWorkerSchemaExecutor {
 
     pub fn source_revision(&self) -> SourceRevision {
         self.revision
+    }
+
+    pub fn execution_binding(&self) -> CutExecutionBinding {
+        CutExecutionBinding {
+            source_revision: self.revision,
+            schema_profile: self.profile,
+            schema_set_sha256: self.schema_set_digest,
+            worker_sha256: self.worker.sha256,
+        }
     }
 }
 

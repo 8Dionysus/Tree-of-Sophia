@@ -14,6 +14,11 @@ use tos_foundation::{CanonicalProfile, Digest256, Digest256Hasher, JsonLimits, J
 use tos_source_store::{CorpusCutReader, SourceMembershipV1};
 
 use crate::PredicateRead;
+use crate::item_rules::{ItemLimits, ItemRefusal};
+use crate::record_rules::RecordFamily;
+use crate::retirement_rules::{RetirementLimits, RetirementRefusal, inspect_retirements_from_cut};
+use crate::source_cut::{CutExecutionBinding, CutPayloadReader, CutSchemaReceipt,
+    CutWorkerSchemaExecutor, inspect_items_from_cut};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OperationChange {
@@ -261,4 +266,138 @@ fn push_read(reads: &mut Vec<PredicateRead>, state: &mut usize, read: PredicateR
         .ok_or(OperationRefusal::Budget)?;
     reads.push(read);
     Ok(())
+}
+
+/// The scope states exactly which executable mechanics ran. It is weaker
+/// than the command owner's full-source transition and admission requirements.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum OperationFamilyScope {
+    ItemCompanions,
+    RetirementNarrow,
+    GeneralSource,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct OperationIssue {
+    pub path: String,
+    pub code: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum OperationFamilyState {
+    MissingRules { rule_ids: Vec<String> },
+    Rejected { issues: Vec<OperationIssue> },
+    /// Complete only in the explicitly named local family scope. This grants
+    /// no general source acceptance, permission, semantic review or publication.
+    MechanicsComplete,
+}
+
+/// Private construction prevents a handler from asserting a successful rule
+/// invocation. Accessors expose replay evidence, not an attestation constructor.
+#[derive(Debug, Clone)]
+pub struct OperationFamilyReport {
+    binding: BoundOperation,
+    scope: OperationFamilyScope,
+    state: OperationFamilyState,
+    worker: CutExecutionBinding,
+    schema_receipts: Vec<CutSchemaReceipt>,
+    executed_rules: Vec<String>,
+}
+
+impl OperationFamilyReport {
+    pub fn binding(&self) -> &BoundOperation { &self.binding }
+    pub fn scope(&self) -> OperationFamilyScope { self.scope }
+    pub fn state(&self) -> &OperationFamilyState { &self.state }
+    pub fn worker(&self) -> &CutExecutionBinding { &self.worker }
+    pub fn schema_receipts(&self) -> &[CutSchemaReceipt] { &self.schema_receipts }
+    pub fn executed_rules(&self) -> &[String] { &self.executed_rules }
+    pub fn general_source_missing_rules(&self) -> Vec<String> {
+        // Local family results cannot satisfy any entire general row merely
+        // because a positive fixture or a worker instance was green.
+        crate::audit::REQUIRED_GENERAL_ROWS.iter().map(|rule| (*rule).into()).collect()
+    }
+}
+
+fn worker_matches(cut: &CorpusCutReader, schemas: &CutWorkerSchemaExecutor)
+    -> Result<(), OperationRefusal> {
+    if schemas.source_revision() != cut.current().revision() {
+        Err(OperationRefusal::InvalidProposal("worker selected another source cut"))
+    } else { Ok(()) }
+}
+
+fn item_error(error: ItemRefusal) -> OperationRefusal {
+    match error {
+        ItemRefusal::Budget => OperationRefusal::Budget,
+        ItemRefusal::Deadline => OperationRefusal::Deadline,
+        ItemRefusal::Source(reason) => OperationRefusal::Source(reason),
+        ItemRefusal::Unsupported(reason) => OperationRefusal::Unsupported(reason),
+    }
+}
+
+/// Actual proposal -> selected raw bytes -> bounded worker -> Item compound
+/// report. The operation owner's remaining general rules and current rights
+/// fences are exposed separately, never implicitly satisfied by this function.
+pub fn inspect_item_operation(
+    cut: &CorpusCutReader,
+    proposal: &OperationProposal,
+    operation_limits: OperationLimits,
+    item_limits: ItemLimits,
+    require_local_payloads: bool,
+    cancelled: &AtomicBool,
+    record_routes: &RecordFamily,
+    schemas: &mut CutWorkerSchemaExecutor,
+    payloads: &mut impl CutPayloadReader,
+) -> Result<OperationFamilyReport, OperationRefusal> {
+    worker_matches(cut, schemas)?;
+    let binding = bind_operation_from_cut(cut, proposal, operation_limits, cancelled)?;
+    let receipt_start = schemas.receipts().len();
+    let result = inspect_items_from_cut(cut, item_limits, require_local_payloads,
+        cancelled, record_routes, schemas, payloads).map_err(item_error)?;
+    if result.carrier_membership != binding.candidate_carrier {
+        return Err(OperationRefusal::InvalidProposal("family carrier differs from proposal"));
+    }
+    let issues = result.item_family.issues.into_iter().map(|issue| OperationIssue {
+        path: issue.path, code: issue.code.into(),
+    }).collect::<Vec<_>>();
+    check(operation_limits, cancelled)?;
+    Ok(OperationFamilyReport { binding, scope: OperationFamilyScope::ItemCompanions,
+        state: if issues.is_empty() { OperationFamilyState::MechanicsComplete }
+            else { OperationFamilyState::Rejected { issues } },
+        worker: schemas.execution_binding(),
+        schema_receipts: schemas.receipts()[receipt_start..].to_vec(),
+        executed_rules: vec!["tos.val.item-compound.current@1".into()],
+    })
+}
+
+/// The exact narrow retirement route preserves the owner's fallback to full
+/// validation. A wider edit becomes MissingRules; no caller flag can opt out.
+pub fn inspect_retirement_operation(
+    cut: &CorpusCutReader,
+    proposal: &OperationProposal,
+    operation_limits: OperationLimits,
+    retirement_limits: RetirementLimits,
+    cancelled: &AtomicBool,
+    schemas: &mut CutWorkerSchemaExecutor,
+) -> Result<OperationFamilyReport, OperationRefusal> {
+    worker_matches(cut, schemas)?;
+    let binding = bind_operation_from_cut(cut, proposal, operation_limits, cancelled)?;
+    let receipt_start = schemas.receipts().len();
+    let result = inspect_retirements_from_cut(cut, retirement_limits, cancelled, schemas)
+        .map_err(|error| match error {
+            RetirementRefusal::Budget => OperationRefusal::Budget,
+            RetirementRefusal::Deadline => OperationRefusal::Deadline,
+            RetirementRefusal::Source(reason) => OperationRefusal::Source(reason),
+            RetirementRefusal::Unsupported(reason) => OperationRefusal::Unsupported(reason),
+        })?;
+    let state = if result.membership_transition.is_some() {
+        OperationFamilyState::MechanicsComplete
+    } else { OperationFamilyState::MissingRules {
+        rule_ids: crate::audit::REQUIRED_GENERAL_ROWS.iter().map(|rule| (*rule).into()).collect(),
+    }};
+    check(operation_limits, cancelled)?;
+    Ok(OperationFamilyReport { binding, scope: OperationFamilyScope::RetirementNarrow,
+        state, worker: schemas.execution_binding(),
+        schema_receipts: schemas.receipts()[receipt_start..].to_vec(),
+        executed_rules: vec!["tos.val.source.retirement@1".into()],
+    })
 }

@@ -552,9 +552,26 @@ fn finite_python_numbers(value: &Value) -> Result<(), RetirementRefusal> {
 /// A mixed naive/aware comparison is invalid, as Python's TypeError is invalid
 /// source for this operation. This helper grants no clock/current authority.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum ObservedDateTimeError {
+pub enum ObservedDateTimeError {
     Invalid,
     Budget,
+}
+
+/// Source knowledge-assessment `_instant`: aware inputs only, then UTC
+/// normalization. Naive values are invalid even when both operands are naive;
+/// UTC normalization outside Python's supported years is also invalid.
+/// This compares observations and supplies no trusted clock or current grant.
+pub fn observed_instant_order(
+    start: &str,
+    end: &str,
+) -> Result<std::cmp::Ordering, ObservedDateTimeError> {
+    let start = observed_datetime(start, true)?;
+    let end = observed_datetime(end, true)?;
+    let upper = year_days(10000) * 86_400_000_000;
+    if !start.1 || !end.1 || !(0..upper).contains(&start.0) || !(0..upper).contains(&end.0) {
+        return Err(ObservedDateTimeError::Invalid);
+    }
+    Ok(start.0.cmp(&end.0))
 }
 
 pub(crate) fn observed_datetime_order(
@@ -862,6 +879,9 @@ mod tests {
             assert!(observed_datetime(invalid, true).is_err(), "{invalid}");
         }
         assert!(observed_datetime_order("2026-09-14", "2026-09-14T00:00:00Z").is_err());
+        assert!(observed_instant_order("2026-09-14", "2026-09-15").is_err());
+        assert_eq!(observed_instant_order("2026-09-14T01:00:00+01:00", "2026-09-14T00:00:00Z"), Ok(std::cmp::Ordering::Equal));
+        assert!(observed_instant_order("0001-01-01T00:00:00+01:00", "0001-01-01T00:00:00Z").is_err());
         assert_eq!(
             observed_datetime_raw_order("2026-09-14Z12", "2026-09-14T12"),
             Ok(Equal)
