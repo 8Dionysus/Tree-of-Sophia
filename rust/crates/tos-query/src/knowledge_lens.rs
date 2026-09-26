@@ -23,6 +23,10 @@ use tos_foundation::{
 };
 pub const LENS_OPERATION: &str = "tos.lens.compile";
 pub const LENS_INTENDED_USE: &str = "read_only_public_knowledge_lens_v1";
+pub const FOCUS_OPERATION: &str = "tos.knowledge.focus";
+pub const FOCUS_INTENDED_USE: &str = "read_only_public_knowledge_focus_v1";
+pub const STORED_LENS_OPERATION: &str = "tos.lens.open";
+pub const STORED_LENS_INTENDED_USE: &str = "read_only_public_stored_lens_v1";
 /// Continuation identity for an already authorized selected execution. This
 /// value binds a cursor; it neither issues a scope nor authorizes disclosure.
 #[cfg(not(target_arch = "wasm32"))]
@@ -420,6 +424,64 @@ pub fn execute_selected_lens<A: InspectCurrentAuthority + ?Sized>(
     value: &JsonValue,
     budget_value: LensBudget,
 ) -> Result<DisclosableInspect, SearchV2Error> {
+    execute_selected_lens_request(
+        model,
+        bound,
+        authority,
+        LensRequest::Compile(value),
+        budget_value,
+    )
+}
+#[cfg(not(target_arch = "wasm32"))]
+pub fn execute_selected_focus<A: InspectCurrentAuthority + ?Sized>(
+    model: &mut VerifiedKnowledgeModel<'_>,
+    bound: &BoundCmpKnowledge<'_>,
+    authority: &mut A,
+    request: &crate::knowledge_focus::KnowledgeFocusRequest,
+    budget_value: LensBudget,
+) -> Result<DisclosableInspect, SearchV2Error> {
+    execute_selected_lens_request(
+        model,
+        bound,
+        authority,
+        LensRequest::Focus(request),
+        budget_value,
+    )
+}
+#[cfg(not(target_arch = "wasm32"))]
+pub fn execute_selected_stored_lens<A: InspectCurrentAuthority + ?Sized>(
+    model: &mut VerifiedKnowledgeModel<'_>,
+    bound: &BoundCmpKnowledge<'_>,
+    authority: &mut A,
+    lens_id: &str,
+    budget_value: LensBudget,
+) -> Result<DisclosableInspect, SearchV2Error> {
+    if lens_id.is_empty() || lens_id.len() > 128 {
+        return Err(invalid("invalid stored lens identifier"));
+    }
+    execute_selected_lens_request(
+        model,
+        bound,
+        authority,
+        LensRequest::Stored(lens_id),
+        budget_value,
+    )
+}
+#[cfg(not(target_arch = "wasm32"))]
+#[derive(Clone, Copy)]
+enum LensRequest<'a> {
+    Compile(&'a JsonValue),
+    Focus(&'a crate::knowledge_focus::KnowledgeFocusRequest),
+    Stored(&'a str),
+}
+#[cfg(not(target_arch = "wasm32"))]
+fn execute_selected_lens_request<A: InspectCurrentAuthority + ?Sized>(
+    model: &mut VerifiedKnowledgeModel<'_>,
+    bound: &BoundCmpKnowledge<'_>,
+    authority: &mut A,
+    request: LensRequest<'_>,
+    budget_value: LensBudget,
+) -> Result<DisclosableInspect, SearchV2Error> {
     if budget_value.max_candidates == 0
         || budget_value.max_candidates >= i64::MAX as usize
         || budget_value.max_path_steps == 0
@@ -429,18 +491,47 @@ pub fn execute_selected_lens<A: InspectCurrentAuthority + ?Sized>(
     {
         return Err(budget());
     }
+    let (operation, intended_use) = match request {
+        LensRequest::Compile(_) => (LENS_OPERATION, LENS_INTENDED_USE),
+        LensRequest::Focus(_) => (FOCUS_OPERATION, FOCUS_INTENDED_USE),
+        LensRequest::Stored(_) => (STORED_LENS_OPERATION, STORED_LENS_INTENDED_USE),
+    };
     execute_selected_carrier_packet(
         model,
         bound,
         authority,
-        LENS_OPERATION,
-        LENS_INTENDED_USE,
+        operation,
+        intended_use,
         budget_value.inspect,
         |read| {
             let publication = lens_continuation_binding(bound, read.disclosure_scope());
             let header = read.header()?;
             let vocabulary = LensVocabulary::from_selected(bound, &header)?;
-            let public_spec = normalize_lens_spec(value, &vocabulary)?;
+            let value = match request {
+                LensRequest::Compile(value) => value.clone(),
+                LensRequest::Focus(request) => {
+                    crate::knowledge_focus::focus_lens_spec(request, &vocabulary)?
+                }
+                LensRequest::Stored(identifier) => {
+                    let catalog = read.catalog_packet(bound)?;
+                    let matches: Vec<_> = array(get(&catalog, "lenses"))
+                        .iter()
+                        .filter(|spec| string(get(spec, "lens_id")) == identifier)
+                        .collect();
+                    if matches.len() > 1 {
+                        return Err(corrupt("ambiguous selected stored lens identifier"));
+                    }
+                    matches
+                        .into_iter()
+                        .next()
+                        .cloned()
+                        .ok_or_else(|| SearchV2Error {
+                            code: SearchV2ErrorCode::UnknownIdentifier,
+                            message: "unknown selected stored lens",
+                        })?
+                }
+            };
+            let public_spec = normalize_lens_spec(&value, &vocabulary)?;
             let spec = bind_properties(&public_spec, &vocabulary)?;
             let sources = array(get(&spec, "sources"))
                 .iter()

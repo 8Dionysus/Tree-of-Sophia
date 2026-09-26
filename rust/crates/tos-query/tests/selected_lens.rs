@@ -15,9 +15,11 @@ use tos_foundation::{
 use tos_query::{
     BoundCmpKnowledge, IndexedDisclosureScope, InspectBudget, InspectCurrentAuthority,
     InspectDisclosureLease, InspectedCarrier, ObservedInspectCarrier, bind_verified_knowledge,
+    knowledge_focus::{FocusDirection, FocusProfile, KnowledgeFocusRequest},
     knowledge_lens::{
-        LENS_INTENDED_USE, LENS_OPERATION, LensBudget, execute_selected_lens,
-        lens_continuation_binding,
+        FOCUS_INTENDED_USE, FOCUS_OPERATION, LENS_INTENDED_USE, LENS_OPERATION, LensBudget,
+        STORED_LENS_INTENDED_USE, STORED_LENS_OPERATION, execute_selected_focus,
+        execute_selected_lens, execute_selected_stored_lens, lens_continuation_binding,
     },
     search_v2::{CurrentPolicyBinding, SearchV2Error, SearchV2ErrorCode},
 };
@@ -43,6 +45,8 @@ struct Authority {
     policy: CurrentPolicyBinding,
     withdrawn: Arc<AtomicBool>,
     consulted: Vec<String>,
+    catalog_denied: bool,
+    catalog_consulted: usize,
 }
 impl Authority {
     fn new(bound: &BoundCmpKnowledge<'_>) -> Self {
@@ -73,6 +77,8 @@ impl Authority {
             policy,
             withdrawn: Arc::new(AtomicBool::new(false)),
             consulted: vec![],
+            catalog_denied: false,
+            catalog_consulted: 0,
         }
     }
 }
@@ -95,12 +101,29 @@ impl InspectCurrentAuthority for Authority {
         self.consulted.push(carrier.id.clone());
         Ok(())
     }
+    fn authorize_catalog_current(
+        &mut self,
+        _: tos_foundation::Digest256,
+    ) -> Result<(), SearchV2Error> {
+        self.check_selected()?;
+        if self.catalog_denied {
+            return Err(SearchV2Error {
+                code: SearchV2ErrorCode::PolicyBindingUnavailable,
+                message: "synthetic catalog denial",
+            });
+        }
+        self.catalog_consulted += 1;
+        Ok(())
+    }
     fn acquire_disclosure(
         &mut self,
         _: &IndexedDisclosureScope,
         consulted: &[ObservedInspectCarrier],
     ) -> Result<Box<dyn InspectDisclosureLease>, SearchV2Error> {
         self.check_selected()?;
+        if self.scope.operation_id == STORED_LENS_OPERATION {
+            assert_eq!(self.catalog_consulted, 1);
+        }
         assert_eq!(
             consulted.iter().map(|r| &r.id).collect::<Vec<_>>(),
             self.consulted.iter().collect::<Vec<_>>()
@@ -138,6 +161,43 @@ fn canonical(v: &JsonValue) -> Vec<u8> {
     )
     .unwrap()
 }
+fn focus_request(value: &JsonValue) -> KnowledgeFocusRequest {
+    let mut request = KnowledgeFocusRequest::new(field(value, "node_id").as_str().unwrap());
+    if let Some(v) = value.object_get("sources") {
+        request.sources = Some(
+            v.as_array()
+                .unwrap()
+                .iter()
+                .map(|s| s.as_str().unwrap().to_owned())
+                .collect(),
+        );
+    }
+    for (key, slot) in [
+        ("depth", &mut request.depth),
+        ("node_limit", &mut request.node_limit),
+        ("relation_limit", &mut request.relation_limit),
+    ] {
+        if let Some(v) = value.object_get(key) {
+            *slot = v.as_u64().unwrap() as usize;
+        }
+    }
+    if let Some(v) = value.object_get("direction") {
+        request.direction = match v.as_str().unwrap() {
+            "incoming" => FocusDirection::Incoming,
+            "outgoing" => FocusDirection::Outgoing,
+            "either" => FocusDirection::Either,
+            _ => panic!("direction"),
+        };
+    }
+    if let Some(v) = value.object_get("profile") {
+        request.profile = match v.as_str().unwrap() {
+            "all" => FocusProfile::All,
+            "overview" => FocusProfile::Overview,
+            _ => panic!("profile"),
+        };
+    }
+    request
+}
 #[test]
 fn normalized_selected_lenses_match_independent_python_and_hold_current_disclosure() {
     let fixture = build_native_fixture();
@@ -145,6 +205,16 @@ fn normalized_selected_lenses_match_independent_python_and_hold_current_disclosu
     let bound =
         bind_verified_knowledge(&cold, &fixture.vocabulary, &fixture.descriptor_bytes).unwrap();
     let publication = lens_continuation_binding(&bound, &Authority::new(&bound).scope);
+    let catalog: Vec<u8> = cold
+        .connection()
+        .query_row("SELECT packet FROM catalog_index_meta", [], |row| {
+            row.get(0)
+        })
+        .unwrap();
+    assert_eq!(
+        tos_foundation::Digest256::of_bytes(&catalog),
+        bound.selection().catalog_packet_sha256
+    );
     let mut child = Command::new("python3")
         .arg(concat!(
             env!("CARGO_MANIFEST_DIR"),
@@ -161,6 +231,8 @@ fn normalized_selected_lenses_match_independent_python_and_hold_current_disclosu
     input.write_all(&fixture.descriptor_bytes).unwrap();
     input.write_all(b",").unwrap();
     input.write_all(&canonical(&publication)).unwrap();
+    input.write_all(b",").unwrap();
+    input.write_all(&catalog).unwrap();
     input.write_all(b"]").unwrap();
     drop(input);
     let output = child.wait_with_output().unwrap();
@@ -180,15 +252,45 @@ fn normalized_selected_lenses_match_independent_python_and_hold_current_disclosu
     for case in cases {
         let name = field(case, "name").as_str().unwrap();
         let mut authority = Authority::new(&bound);
-        let result = execute_selected_lens(
-            &mut model,
-            &bound,
-            &mut authority,
-            field(case, "spec"),
-            budget(),
-        );
+        let operation = case
+            .object_get("operation")
+            .and_then(JsonValue::as_str)
+            .unwrap_or("compile");
+        let result = if operation == "focus" {
+            authority.scope.operation_id = FOCUS_OPERATION.into();
+            authority.scope.intended_use = FOCUS_INTENDED_USE.into();
+            execute_selected_focus(
+                &mut model,
+                &bound,
+                &mut authority,
+                &focus_request(field(case, "request")),
+                budget(),
+            )
+        } else if operation == "stored" {
+            authority.scope.operation_id = STORED_LENS_OPERATION.into();
+            authority.scope.intended_use = STORED_LENS_INTENDED_USE.into();
+            let result = execute_selected_stored_lens(
+                &mut model,
+                &bound,
+                &mut authority,
+                field(case, "identifier").as_str().unwrap(),
+                budget(),
+            );
+            assert_eq!(authority.catalog_consulted, 1);
+            result
+        } else {
+            execute_selected_lens(
+                &mut model,
+                &bound,
+                &mut authority,
+                field(case, "spec"),
+                budget(),
+            )
+        };
         if let Some(error) = case.object_get("error") {
-            let expected = if error.as_str() == Some("stale") {
+            let expected = if error.as_str() == Some("unknown") {
+                SearchV2ErrorCode::UnknownIdentifier
+            } else if error.as_str() == Some("stale") {
                 SearchV2ErrorCode::StaleSelection
             } else {
                 SearchV2ErrorCode::InvalidRequest
@@ -219,6 +321,40 @@ fn normalized_selected_lenses_match_independent_python_and_hold_current_disclosu
             "{name}: retained disclosure lease must see withdrawal"
         );
     }
+    let mut wrong_scope = Authority::new(&bound);
+    let focus = KnowledgeFocusRequest::new(
+        field(field(&cases[0], "packet"), "nodes")
+            .as_array()
+            .unwrap()[0]
+            .object_get("id")
+            .unwrap()
+            .as_str()
+            .unwrap(),
+    );
+    assert!(matches!(
+        execute_selected_focus(&mut model, &bound, &mut wrong_scope, &focus, budget()),
+        Err(SearchV2Error {
+            code: SearchV2ErrorCode::PolicyBindingUnavailable,
+            ..
+        })
+    ));
+    let mut denied_catalog = Authority::new(&bound);
+    denied_catalog.scope.operation_id = STORED_LENS_OPERATION.into();
+    denied_catalog.scope.intended_use = STORED_LENS_INTENDED_USE.into();
+    denied_catalog.catalog_denied = true;
+    assert!(matches!(
+        execute_selected_stored_lens(
+            &mut model,
+            &bound,
+            &mut denied_catalog,
+            "fixture-absent-lens",
+            budget()
+        ),
+        Err(SearchV2Error {
+            code: SearchV2ErrorCode::PolicyBindingUnavailable,
+            ..
+        })
+    ));
     // A current owner may issue a new policy for the same immutable bytes.
     // Old cursors must then restart even though the content fingerprint is equal.
     let continuation = cases

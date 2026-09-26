@@ -13,7 +13,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[5] / 'access' / 'src'))
 from tos_access import knowledge as k
 
-graph, descriptor, publication = json.load(sys.stdin)
+graph, descriptor, publication, catalog = json.load(sys.stdin)
 k.KNOWLEDGE_SOURCES = tuple(s['source_graph_id'] for s in descriptor['sources'])
 k._CARRIER_SOURCE_PRIORITY = {s['source_graph_id']: s['representative_priority'] for s in descriptor['sources']}
 k.OVERVIEW_EXCLUDED_PREDICATES = set(descriptor['overview']['excluded_predicate_ids'])
@@ -119,5 +119,21 @@ case('path-null-direction', path_query=[{'path_id': 'bad', 'steps': [{'direction
 case('path-space-direction', path_query=[{'path_id': 'bad', 'steps': [{'direction': ' outgoing '}]}])
 case('path-null-quantifier', path_query=[{'path_id': 'bad', 'quantifier': None, 'steps': [{}]}])
 case('registered-space-selector', node_query={'filters': [{'property_id': ' tos.property.fixture ', 'op': 'exists', 'value': True}]})
+for identifier_name, identifier in [('exact', first['id']), ('entity', first['entity_id'])]:
+    for direction in ('incoming', 'outgoing', 'either'):
+        request = {'node_id': identifier, 'direction': direction, 'depth': 2, 'node_limit': 4, 'relation_limit': 3}
+        spec = k.focus_lens_spec(**request)
+        cases.append({'name': 'focus-operation-' + identifier_name + '-' + direction,
+                      'operation': 'focus', 'request': request, 'spec': spec,
+                      'packet': k.execute_knowledge_lens(graph, spec)})
+request = {'node_id': first['id'], 'sources': [], 'profile': 'all'}
+spec = k.focus_lens_spec(**request)
+cases.append({'name': 'focus-operation-default-sources', 'operation': 'focus', 'request': request,
+              'spec': spec, 'packet': k.execute_knowledge_lens(graph, spec)})
+for spec in catalog.get('lenses', []):
+    cases.append({'name': 'stored-' + spec['lens_id'], 'operation': 'stored', 'identifier': spec['lens_id'],
+                  'spec': spec, 'packet': k.execute_knowledge_lens(graph, spec)})
+cases.append({'name': 'stored-unknown', 'operation': 'stored', 'identifier': 'fixture-absent-lens',
+              'spec': {}, 'error': 'unknown'})
 json.dump({'cases': cases, 'oracle': 'tos_access.knowledge.execute_knowledge_lens',
            'python_source_sha256': hashlib.sha256(Path(k.__file__).read_bytes()).hexdigest()}, sys.stdout, ensure_ascii=False)
