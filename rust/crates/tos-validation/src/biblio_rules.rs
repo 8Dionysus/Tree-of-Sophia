@@ -14,6 +14,7 @@ use crate::{KeyState, PredicateRead, ValidationFact};
 
 const ENTITY: &str = "ToS/doctrine/semantic-interchange/entity-types.v1.json";
 const RELATION: &str = "ToS/doctrine/semantic-interchange/relation-types.v1.json";
+const LEGACY_BASE: &str = "ToS/contracts/claim-packet.schema.json";
 const BASE: &str = "ToS/contracts/source-claim-record.schema.json";
 const LEGACY_TOPOLOGY: [&str;3] = ["work-expression-claims.jsonl", "expression-edition-claims.jsonl", "edition-item-claims.jsonl"];
 const TOPOLOGY_EVENT: &str = "tos.event.annotation.source-witness-bibliographic-topology.2026-07-31";
@@ -85,6 +86,7 @@ pub fn inspect_bibliography_from_cut(cut: &CorpusCutReader, records: &SourceCutR
     if records.source_revision != cut.current().revision() { return Err(ItemRefusal::Source("bibliography record cut mismatch".into())); }
     let mut rules=Rules { limits, cancelled, state:0, bytes:0, anchors:BTreeSet::new(), reserved:records.observations.iter().filter_map(|r|match r {crate::record_rules::RecordObservation::NativeReservation {id,..}=>Some(id.clone()),_=>None}).collect(), schema_seen:BTreeSet::new(), shadow:RelationShadow::default() };
     reserve(&mut rules.state,rules.reserved.iter().map(|id|id.len()+64).sum(),limits.max_state_bytes)?;
+    schema_read(cut,BASE,&mut rules)?;
     let mut registries=Vec::new();
     for (path, contract) in [(ENTITY,"ToS/contracts/semantic-entity-type-registry.schema.json"),(RELATION,"ToS/contracts/semantic-relation-type-registry.schema.json")] {
         let raw=current(cut,path,limits,cancelled,&mut rules.bytes)?;
@@ -282,22 +284,23 @@ fn inspect_claim(cut:&CorpusCutReader, claim:&BiblioClaim, routes:&BTreeMap<Stri
         if matches!(predicate,"contains_work"|"translated_by") { qualified(row,predicate,rules,&location)?; }
     } else {
         let (contract,subject_kind,object_kinds,expected,role)=match basename {
-            "membership-claims.jsonl" => (BASE,"collection",vec!["work"],Some("contains_work"),None),
-            "responsibility-claims.jsonl" => (BASE,"",vec!["agent"],None,None),
-            "publication-claims.jsonl" => (BASE,"edition",vec![],None,Some("unreviewed-evidence-bearing-publication-claims")),
-            "provision-activity-claims.jsonl" => (BASE,"edition",vec![],Some("provision_activity"),Some("unreviewed-evidence-bearing-provision-activity-claims")),
-            "work-chronology-claims.jsonl" => (BASE,"work",vec![],Some("first_publication_chronology"),Some("unreviewed-evidence-bearing-work-chronology-claims")),
-            "work-expression-claims.jsonl" => (BASE,"work",vec!["expression"],Some("has_expression"),Some("unreviewed-work-expression-topology-claims")),
-            "expression-edition-claims.jsonl" => (BASE,"expression",vec!["edition"],Some("embodied_by"),Some("unreviewed-expression-edition-topology-claims")),
-            "edition-item-claims.jsonl" => (BASE,"edition",vec!["item"],Some("exemplified_by"),Some("unreviewed-edition-item-topology-claims")),
-            "expression-derivation-claims.jsonl" => (BASE,"expression",vec!["expression"],Some("is_derivative_of"),Some("unreviewed-source-reported-expression-derivation-claims")),
+            "membership-claims.jsonl" => (LEGACY_BASE,"collection",vec!["work"],Some("contains_work"),None),
+            "responsibility-claims.jsonl" => (LEGACY_BASE,"",vec!["agent"],None,None),
+            "publication-claims.jsonl" => (LEGACY_BASE,"edition",vec![],None,Some("unreviewed-evidence-bearing-publication-claims")),
+            "provision-activity-claims.jsonl" => (LEGACY_BASE,"edition",vec![],Some("provision_activity"),Some("unreviewed-evidence-bearing-provision-activity-claims")),
+            "work-chronology-claims.jsonl" => (LEGACY_BASE,"work",vec![],Some("first_publication_chronology"),Some("unreviewed-evidence-bearing-work-chronology-claims")),
+            "work-expression-claims.jsonl" => (LEGACY_BASE,"work",vec!["expression"],Some("has_expression"),Some("unreviewed-work-expression-topology-claims")),
+            "expression-edition-claims.jsonl" => (LEGACY_BASE,"expression",vec!["edition"],Some("embodied_by"),Some("unreviewed-expression-edition-topology-claims")),
+            "edition-item-claims.jsonl" => (LEGACY_BASE,"edition",vec!["item"],Some("exemplified_by"),Some("unreviewed-edition-item-topology-claims")),
+            "expression-derivation-claims.jsonl" => (LEGACY_BASE,"expression",vec!["expression"],Some("is_derivative_of"),Some("unreviewed-source-reported-expression-derivation-claims")),
+            "historical-claims.jsonl" => ("ToS/contracts/historical-claim.schema.json","",vec![],None,None),
             "object-link-claims.jsonl" => ("ToS/contracts/object-link-claim.schema.json","",vec!["link"],None,None),
             _ => { rules.skip(&format!("non-bibliographic-legacy-stream:{basename}"))?; return Ok(()); }
         };
         schema_read(cut,contract,rules)?;
         if !schemas.check(&location,&bytes,contract,rules.limits.deadline,rules.cancelled)? { rules.issue("legacy-Claim-schema",&location)?; return Ok(()); }
         if expected.is_some_and(|p|p!=predicate) { rules.issue("legacy-Claim-predicate",&location)?; }
-        if !matches!(basename,"object-link-claims.jsonl"|"expression-derivation-claims.jsonl") && s(row,"claim_type")!=Some("bibliographic") { rules.issue("legacy-Claim-type",&location)?; }
+        if !matches!(basename,"object-link-claims.jsonl"|"expression-derivation-claims.jsonl"|"historical-claims.jsonl") && s(row,"claim_type")!=Some("bibliographic") { rules.issue("legacy-Claim-type",&location)?; }
         let mut subject_kind=subject_kind;
         if basename=="responsibility-claims.jsonl" { subject_kind=match predicate { "authored_by"|"contributed_by"=>"work", "translated_by"=>"expression", "edited_by"|"afterword_by"|"designed_by"=>"edition", _=> { rules.issue("legacy-responsibility-predicate",&location)?; "" } }; }
         if let Some(subject)=s(row,"subject_ref") { require_kind(subject,&[subject_kind],records,rules,&location)?; } else { rules.issue("legacy-Claim-subject",&location)?; }
@@ -312,6 +315,12 @@ fn inspect_claim(cut:&CorpusCutReader, claim:&BiblioClaim, routes:&BTreeMap<Stri
         if matches!(basename,"publication-claims.jsonl"|"provision-activity-claims.jsonl") {
             let sibling=format!("{}/edition.json",claim.path.rsplit_once('/').unwrap().0);
             if !s(row,"subject_ref").and_then(|id|records.get(id)).is_some_and(|r|r.path==sibling) { rules.issue("legacy-edition-sibling-owner",&location)?; }
+        }
+        if basename=="historical-claims.jsonl" {
+            let Some(route)=routes.get(predicate) else {rules.issue("legacy-historical-predicate",&location)?;return Ok(());};
+            if let Some(subject)=s(row,"subject_ref") {rules.endpoint(subject,&route.domain,types,kinds,records,&location)?;}
+            if predicate=="historical_dating" {if let Some(anchor)=s(&row["object"]["relative"],"anchor_ref") {rules.endpoint(anchor,&["tos.entity.historical-situation".into()],types,kinds,records,&location)?;}}
+            else if let Some(object)=s(row,"object") {rules.endpoint(object,&route.range,types,kinds,records,&location)?;} else {rules.issue("legacy-historical-object",&location)?;}
         }
         if basename=="expression-derivation-claims.jsonl" {
             let raw=serde_json::to_vec(&row["qualifiers"]).map_err(|_|ItemRefusal::Unsupported("derivation qualifiers".into()))?;
@@ -331,7 +340,7 @@ fn inspect_claim(cut:&CorpusCutReader, claim:&BiblioClaim, routes:&BTreeMap<Stri
             let matching=s(row,"provenance_event_ref").and_then(|id|events.get(id)).and_then(|event|event["outputs"].as_array()).into_iter().flatten().filter_map(|output|s(output,"role")).find(|role|matches!(*role,"unreviewed-translation-responsibility-claims"|"unreviewed-evidence-bearing-responsibility-claims"));
             if let Some(role)=matching { bind_event(cut,claim,role,events,rules,&location)?; } else { rules.issue("responsibility-event-output-role",&location)?; }
         }
-        if let Some(role)=role { bind_event(cut,claim,role,events,rules,&location)?; } else if !matches!(basename,"responsibility-claims.jsonl"|"membership-claims.jsonl"|"object-link-claims.jsonl") { rules.skip(&format!("legacy-batch-provenance-profile:{basename}"))?; } else if !s(row,"provenance_event_ref").is_some_and(|id|events.contains_key(id)) { rules.issue("legacy-event-unresolved",&location)?; }
+        if let Some(role)=role { bind_event(cut,claim,role,events,rules,&location)?; } else if !matches!(basename,"responsibility-claims.jsonl"|"membership-claims.jsonl"|"object-link-claims.jsonl"|"historical-claims.jsonl") { rules.skip(&format!("legacy-batch-provenance-profile:{basename}"))?; } else if !s(row,"provenance_event_ref").is_some_and(|id|events.contains_key(id)) { rules.issue("legacy-event-unresolved",&location)?; }
         rules.shadow.checked_profiles.insert(format!("legacy-bibliography:{basename}"));
     }
     // Existence remains distinct from digest-bound original input resolution.
@@ -557,7 +566,7 @@ fn inspect_batches(claims:&[BiblioClaim],events:&BTreeMap<String,Value>,records:
     let chronology:Vec<_>=claims.iter().filter(|c|!c.native && c.path.ends_with("/work-chronology-claims.jsonl")).collect();
     if !chronology.is_empty() {
         let path="ToS/source-witnesses/chronology/friedrich-nietzsche/first-publication/work-chronology-claims.jsonl";
-        let mut inputs=BTreeSet::from([BASE.into(),"ToS/contracts/first-publication-chronology.schema.json".into()]);
+        let mut inputs=BTreeSet::from([LEGACY_BASE.into(),"ToS/contracts/first-publication-chronology.schema.json".into()]);
         for claim in &chronology {
             check(rules.limits.deadline,rules.cancelled)?;
             if claim.path!=path || s(&claim.value,"provenance_event_ref")!=Some(CHRONOLOGY_EVENT) || s(&claim.value,"assertion_layer")!=Some("scholarly_report") { rules.issue("chronology-owned-route-and-event",&claim.path)?; }
@@ -578,7 +587,7 @@ fn inspect_batches(claims:&[BiblioClaim],events:&BTreeMap<String,Value>,records:
     if !derivations.is_empty() {
         let path="ToS/source-witnesses/relations/expression-derivation/expression-derivation-claims.jsonl";
         let mut edges:BTreeMap<String,BTreeSet<String>>=BTreeMap::new(); let mut pairs=BTreeSet::new();let mut endpoints=BTreeSet::new();
-        let mut inputs=BTreeSet::from([BASE.into(),"ToS/contracts/expression-derivation.schema.json".into()]);
+        let mut inputs=BTreeSet::from([LEGACY_BASE.into(),"ToS/contracts/expression-derivation.schema.json".into()]);
         for claim in &derivations {
             check(rules.limits.deadline,rules.cancelled)?;
             let row=&claim.value;
