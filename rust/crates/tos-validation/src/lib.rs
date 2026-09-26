@@ -31,6 +31,7 @@ pub mod rights_rules;
 pub mod source_copy;
 pub mod source_cut;
 pub mod source_forms;
+pub mod source_shapes;
 pub mod text_rules;
 
 /// An immutable private prepare view over an exact base plus proposed delta.

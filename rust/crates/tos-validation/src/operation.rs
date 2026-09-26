@@ -23,6 +23,7 @@ use crate::biblio_rules::{SourceCutBiblioReport, inspect_bibliography_from_cut};
 use crate::record_biblio_cut::{BiblioRecordExecutor, SourceCutRecordReport, inspect_records_from_cut};
 use crate::layer_family_cut::{SourceCutLayerFamilyReport, inspect_layers_from_cut};
 use crate::rights_rules::{SourceRightsReport, inspect_rights_from_cut};
+use crate::source_shapes::{SourceShapeReport, inspect_source_shapes_from_cut};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OperationChange {
@@ -429,6 +430,7 @@ pub struct GeneralOperationFamilyReport {
     pub bibliography: SourceCutBiblioReport,
     pub layers: SourceCutLayerFamilyReport,
     pub rights: SourceRightsReport,
+    pub source_shapes: SourceShapeReport,
 }
 impl GeneralOperationFamilyReport {
     pub fn operation(&self) -> &OperationFamilyReport { &self.operation }
@@ -449,12 +451,12 @@ pub fn inspect_general_operation(
     payloads: &mut impl CutPayloadReader,
     require_local_payloads: bool,
 ) -> Result<GeneralOperationFamilyReport, OperationRefusal> {
-    // Five families retain separate outputs. Reserve their full logical caps
+    // Six families retain separate outputs. Reserve their full logical caps
     // before starting, rather than claiming each cap as one overall envelope.
-    let state_reservation=limits.family.max_state_bytes.checked_mul(5)
+    let state_reservation=limits.family.max_state_bytes.checked_mul(6)
         .and_then(|n|n.checked_add(limits.operation.max_state_bytes))
         .ok_or(OperationRefusal::Budget)?;
-    let read_reservation=limits.family.max_total_bytes.checked_mul(5)
+    let read_reservation=limits.family.max_total_bytes.checked_mul(6)
         .and_then(|n|n.checked_add(limits.operation.max_total_bytes))
         .ok_or(OperationRefusal::Budget)?;
     if limits.max_composed_state_bytes==0 || limits.max_composed_state_bytes==usize::MAX
@@ -480,6 +482,7 @@ pub fn inspect_general_operation(
     }
     let binding=bind_operation_from_cut(cut,proposal,limits.operation,cancelled)?;
     let receipt_start=schemas.receipts().len();
+    let source_shapes=inspect_source_shapes_from_cut(cut,limits.family,cancelled,schemas).map_err(item_error)?;
     let records=inspect_records_from_cut(cut,limits.family,cancelled,record_executor).map_err(item_error)?;
     let bibliography=inspect_bibliography_from_cut(cut,&records,limits.family,cancelled,schemas).map_err(item_error)?;
     let layers=inspect_layers_from_cut(cut,limits.family,cancelled,schemas).map_err(item_error)?;
@@ -500,6 +503,7 @@ pub fn inspect_general_operation(
             .filter(|n|*n<=limits.max_composed_state_bytes).ok_or(OperationRefusal::Budget)?;
         issues.push(OperationIssue{path:path.into(),code:code.into()}); Ok(())
     };
+    for (path,code) in &source_shapes.issues {add_issue(path,code)?;}
     for observation in &records.observations {
         if let crate::record_rules::RecordObservation::Issue{path,code}=observation {
             add_issue(path,code)?;
@@ -521,8 +525,9 @@ pub fn inspect_general_operation(
         operation:OperationFamilyReport{binding,scope:OperationFamilyScope::GeneralSource,state,
             worker:schemas.execution_binding(),schema_receipts:schemas.receipts()[receipt_start..].to_vec(),
             executed_rules:vec!["tos.val.record.registry-shape-identity.current@1".into(),
+                "tos.val.source.instance-schema-ref.current@1".into(),
                 "tos.val.claim-bibliography.current@1".into(),"tos.val.layer-family.current@1".into(),
                 "tos.val.rights-record.current@1".into(),"tos.val.item-compound.current@1".into()],
-            item_family:Some(item.item_family)},records,bibliography,layers,rights,
+            item_family:Some(item.item_family)},records,bibliography,layers,rights,source_shapes,
     })
 }
