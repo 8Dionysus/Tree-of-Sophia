@@ -220,7 +220,12 @@ fn inspect(raw:&[u8],path:&str,limits:TextMetadataLimits,cancelled:&AtomicBool,p
     let mut metadata=Metadata{path,limits,cancelled,state_bytes:0,report:TextMetadataReport{profile,scope:"owner-metadata-predicates-only",packet_digest:Digest256::of_bytes(raw).to_hex(),state:TextMetadataState::CheckedMetadata,issues:Vec::new(),reads:Vec::new()}};
     metadata.reserve(raw.len().checked_mul(8).ok_or(ItemRefusal::Budget)?)?;
     metadata.read(PredicateRead::ExactPath{path:path.into(),digest:metadata.report.packet_digest.clone()})?;
-    let value:Value=match serde_json::from_slice(raw){Ok(value)=>value,Err(_)=>{metadata.issue("invalid native decoded JSON")?;return Ok(metadata.report)}};
+    let value=match crate::native_decoded_value(raw,limits.max_packet_bytes){
+        Ok(value)=>value,
+        Err(ItemRefusal::Source(reason))=>{metadata.issue(reason)?;return Ok(metadata.report)},
+        Err(ItemRefusal::Unsupported(reason))=>{metadata.report.state=TextMetadataState::Unsupported;metadata.issue(reason)?;return Ok(metadata.report)},
+        Err(reason)=>return Err(reason),
+    };
     if !value.is_object(){metadata.issue("metadata packet is not an object")?;return Ok(metadata.report)}
     if s(&value,"schema_version")!=profile{metadata.report.state=TextMetadataState::Unsupported;metadata.issue(format!("unsupported metadata profile: {}",s(&value,"schema_version")))?;return Ok(metadata.report)}
     match run(&mut metadata,&value){Ok(())=>{},Err(ItemRefusal::Unsupported(reason))=>{metadata.report.state=TextMetadataState::Unsupported;metadata.issue(reason)?;},Err(reason)=>return Err(reason)}
@@ -263,8 +268,12 @@ mod tests{
         let report=inspect_source_anchor_v2_metadata(&raw,"changed.anchor.json",limits(),&cancelled).unwrap();assert!(report.issues.iter().any(|i|i.message=="text quote contradicts source_text_in_record=false"));
     }
     #[test]
-    fn bool_numeric_unsafe_large_integers_budgets_and_cancellation_refuse(){
+    fn native_representation_numeric_budgets_and_cancellation_refuse(){
         let cancelled=AtomicBool::new(false);let raw=fixture("source-text-unit-v1-abc/variant-a-source-layout-observation.json");
+        let unrepresentable=br#"{"schema_version":"tos_source_anchor_v2","extension":"\ud800"}"#;
+        let report=inspect_source_anchor_v2_metadata(unrepresentable,"unrepresentable.json",limits(),&cancelled).unwrap();assert_eq!(report.state,TextMetadataState::Unsupported);assert_eq!(report.packet_digest,Digest256::of_bytes(unrepresentable).to_hex());assert_eq!(report.issues.len(),1);
+        let malformed=br#"{"schema_version":"tos_source_anchor_v2",}"#;
+        let report=inspect_source_anchor_v2_metadata(malformed,"malformed.json",limits(),&cancelled).unwrap();assert_eq!(report.state,TextMetadataState::InvalidInput);assert_eq!(report.issues.len(),1);
         let boolean=changed(&raw,|v|v["anchors"][0]["ordinal"]=Value::Bool(true));let report=inspect_source_text_unit_v1_metadata(&boolean,"boolean.json",limits(),&cancelled).unwrap();assert_eq!(report.state,TextMetadataState::Unsupported);
         let huge=changed(&raw,|v|v["anchors"][0]["ordinal"]=Value::from(u64::MAX));let report=inspect_source_text_unit_v1_metadata(&huge,"huge.json",limits(),&cancelled).unwrap();assert_eq!(report.state,TextMetadataState::Unsupported);
         let mut budget=limits();budget.max_state_bytes=1;assert_eq!(inspect_source_text_unit_v1_metadata(&raw,"budget.json",budget,&cancelled),Err(ItemRefusal::Budget));
