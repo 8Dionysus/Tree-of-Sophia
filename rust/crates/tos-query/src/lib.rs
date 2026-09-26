@@ -11,6 +11,7 @@ mod knowledge_catalog;
 #[cfg(not(target_arch = "wasm32"))]
 mod knowledge_inspect;
 pub mod knowledge_lens_spec;
+pub mod knowledge_contracts;
 pub mod knowledge_lens;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod knowledge_exploration;
