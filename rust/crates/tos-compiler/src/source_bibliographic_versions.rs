@@ -1,4 +1,4 @@
-//! Exact Collection ordering basis from the existing immutable source carrier.
+//! Exact metadata/Claim versions and Collection ordering from the immutable source carrier.
 //! Positive staged rows are byte-bound to this independently selected cut;
 //! only its complete manifest can establish absence of an adjacent history.
 use crate::knowledge_normalization::SourceRow;
@@ -9,7 +9,10 @@ use crate::source_witness_catalog::{self as catalog, SourceCatalogValidator};
 use crate::{Error, Result};
 use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};
-use tos_foundation::{Digest256, Digest256Hasher, RelativePath, SourceRevision};
+use tos_foundation::{
+    CanonicalProfile, Digest256, Digest256Hasher, JsonLimits, RelativePath, SourceRevision,
+    canonical_raw_bytes_v1,
+};
 use tos_source_store::{CorpusCutReader, SourceMembershipV1};
 
 /// The caller selects the revision/membership independently of the cut reader.
@@ -36,8 +39,10 @@ impl<'a, 'b> Versions<'a, 'b> {
         input: &'a BibliographicSourceCut<'b>,
         stage: &KnowledgeStage<'_>,
         validator: &SourceCatalogValidator<'_>,
+        receipt: &catalog::SourceCatalogReceipt,
         l: BibliographicLimits,
     ) -> Result<Self> {
+        catalog::verify_catalog(stage, receipt, l.catalog)?;
         if input.cut.current().revision() != input.expected_revision
             || stage.exact_receipt().binding.source_cut != input.stage_source_cut
             || input.max_read_files == 0
@@ -202,7 +207,7 @@ impl<'a, 'b> Versions<'a, 'b> {
     ) -> Result<Value> {
         let value = &claim["object"];
         let collection =
-            self.collection(stage, &value["collection_version"], validator, entities, l)?;
+            self.resolve_record(stage, &value["collection_version"], validator, entities, l)?;
         if collection.record["record_type"] != "collection"
             || collection.record["record_id"] != claim["subject_ref"]
         {
@@ -217,7 +222,7 @@ impl<'a, 'b> Versions<'a, 'b> {
         let mut inputs = BTreeMap::new();
         bind_files(&collection.provenance, &mut inputs)?;
         for reference in array(value, "membership_versions")? {
-            let resolved = self.membership(stage, reference, validator, forms, l)?;
+            let resolved = self.resolve_claim(stage, reference, validator, forms, l)?;
             let record = &resolved.record;
             let legacy = record["schema_version"] == "tos_claim_packet_v1"
                 && record["claim_type"] == "bibliographic";
@@ -267,7 +272,21 @@ impl<'a, 'b> Versions<'a, 'b> {
         encode(&basis, l.max_claim_cohort_bytes)?;
         Ok(basis)
     }
-    fn collection(
+    /// Ordered exact retained metadata references. A successful result has already
+    /// checked the entire selected record chain; it does not assess current use.
+    pub(crate) fn exact_record_refs(
+        &mut self,
+        stage: &mut KnowledgeStage<'_>,
+        id: &str,
+        validator: &SourceCatalogValidator<'_>,
+        entities: &Value,
+        l: BibliographicLimits,
+    ) -> Result<Version> {
+        let row = catalog::catalog_row(stage, "records", id, l.catalog)?
+            .ok_or(Error::Invalid("metadata version identity not catalogued"))?;
+        self.resolve_record(stage, &row["source"]["record_ref"], validator, entities, l)
+    }
+    pub(crate) fn resolve_record(
         &mut self,
         stage: &mut KnowledgeStage<'_>,
         exact: &Value,
@@ -278,41 +297,26 @@ impl<'a, 'b> Versions<'a, 'b> {
         exact_ref(exact, false)?;
         let id = text(exact, "id")?;
         let row = catalog::catalog_row(stage, "records", id, l.catalog)?.ok_or(Error::Invalid(
-            "bibliographic exact Collection not catalogued",
+            "bibliographic exact metadata identity not catalogued",
         ))?;
         let entry = &row["entry"];
         let reference = text(entry, "source_record_ref")?;
-        if !reference.ends_with("/collection.json") || entry["record_type"] != "collection" {
-            return Err(Error::Invalid(
-                "bibliographic Collection version metadata route",
-            ));
-        }
         let raw = self.required(reference, validator, l)?;
-        let record = SourceRow::parse(&raw, l.catalog.max_row_bytes)?
-            .value()
-            .clone();
-        let current = record_ref(&record, false, l)?;
-        if record["record_type"] != "collection"
-            || record.get("visibility").is_some()
-            || record["schema_version"] != "tos_corpus_record_v1"
-            || entry["record_sha256"]
-                != current["digest"]
-                    .as_str()
-                    .unwrap_or("")
-                    .trim_start_matches("sha256:")
-        {
+        let record = owned(&raw, l.catalog.max_row_bytes)?;
+        let route = RecordRoute::derive(entry, &record, entities)?;
+        let current = metadata_ref(&record, &route, l)?;
+        route.validate_record(&record, &current, &record["schema_version"])?;
+        if entry["record_sha256"] != text(&current, "digest")?.trim_start_matches("sha256:") {
             return Err(Error::Invalid(
-                "bibliographic public current Collection descriptor",
+                "bibliographic metadata version current catalog binding",
             ));
         }
-        let schema = "ToS/contracts/corpus-record.schema.json";
+        let schema = route.schema.as_str();
         catalog::check_catalog_schema(stage, validator, l.catalog, schema, "", &raw)?;
         let history_ref = adjacent(reference, "source-revision-history.json")?;
         let history_raw = self.optional(&history_ref, validator, l)?;
         let history = if let Some(raw) = &history_raw {
-            SourceRow::parse(raw, l.catalog.max_row_bytes)?
-                .value()
-                .clone()
+            owned(raw, l.catalog.max_row_bytes)?
         } else {
             json!({"schema_version":"tos_source_revision_history_v1","record_id":id,"receipts":[]})
         };
@@ -338,6 +342,7 @@ impl<'a, 'b> Versions<'a, 'b> {
             "archive_blob_ref":null,"archive_manifest_ref":null,"archive_manifest_sha256":null,"package_revision":null});
         let mut transition = Value::Null;
         let mut found = current == *exact;
+        let mut refs = Vec::new();
         for (index, receipt) in receipts.iter().enumerate() {
             check(validator, l)?;
             metadata_receipt(
@@ -346,20 +351,31 @@ impl<'a, 'b> Versions<'a, 'b> {
                 current.get("id").unwrap(),
                 head.as_ref(),
                 &mut commands,
+                &route,
                 l,
             )?;
-            let (previous, source) =
-                self.archive_record(reference, receipt, validator, stage, l)?;
+            refs.push(receipt["previous_source"].clone());
+            let (previous, source) = self.archive_record(
+                reference,
+                receipt,
+                validator,
+                stage,
+                &route,
+                &record["schema_version"],
+                l,
+            )?;
             if index == 0 {
                 baseline = receipt["previous_source"].clone();
             }
             let fields = receipt["request"]["fields"]
                 .as_object()
                 .ok_or(Error::Invalid("bibliographic retained metadata patch"))?;
-            let allowed = if receipt["request"]["operation"] == "collection.work.attach" {
-                &["membership_claim_refs"][..]
+            let allowed = if let Some(compound) =
+                compound_profile(receipt["request"]["operation"].as_str().unwrap_or(""))
+            {
+                vec![compound.field]
             } else {
-                &["preferred_label", "notes", "field_languages", "source_refs"][..]
+                route.revision_fields()
             };
             if fields.is_empty() || fields.keys().any(|key| !allowed.contains(&key.as_str())) {
                 return Err(Error::Invalid(
@@ -377,7 +393,10 @@ impl<'a, 'b> Versions<'a, 'b> {
                 "record_version".into(),
                 receipt["source"]["version"].clone(),
             );
-            if record_ref(&Value::Object(revised), false, l)? != receipt["source"] {
+            let revised = Value::Object(revised);
+            route.validate_descriptive_delta(&previous, &revised)?;
+            route.validate_record(&revised, &receipt["source"], &record["schema_version"])?;
+            if metadata_ref(&revised, &route, l)? != receipt["source"] {
                 return Err(Error::Invalid(
                     "bibliographic Collection successor reconstruction",
                 ));
@@ -395,6 +414,7 @@ impl<'a, 'b> Versions<'a, 'b> {
             }
             head = Some(receipt["source"].clone());
         }
+        refs.push(current.clone());
         if head.is_some_and(|head| head != current) {
             return Err(Error::Invalid(
                 "bibliographic Collection current metadata is not retained history head",
@@ -405,31 +425,11 @@ impl<'a, 'b> Versions<'a, 'b> {
                 "bibliographic Collection exact version/digest not retained",
             ));
         }
-        let type_id = array(entities, "types")?
-            .iter()
-            .filter(|entity| {
-                entity["source_mappings"]
-                    .as_array()
-                    .is_some_and(|mappings| {
-                        mappings.iter().any(|m| {
-                            m["source_graph"] == "source-navigation"
-                                && m["source_kind_id"] == "collection"
-                        })
-                    })
-            })
-            .map(|entity| text(entity, "type_id"))
-            .collect::<Result<Vec<_>>>()?;
-        if type_id.len() != 1 {
-            return Err(Error::Invalid("bibliographic Collection registry mapping"));
-        }
-        let catalog = legacy_catalog(stage, "records", Some("collection"), id, l)?;
+        let catalog = legacy_catalog(stage, "records", Some(&route.kind), id, l)?;
         let provenance = json!({"verification_scope":"selected-record-chain","all_package_bytes_verified":false,
-            "catalog":{"source_ref":"ToS/source-witnesses/catalog/collections.jsonl","line":catalog.0,
+            "catalog":{"source_ref":format!("ToS/source-witnesses/catalog/{}",route.catalog_filename),"line":catalog.0,
                 "sha256":catalog.1,"source_record_ref":reference,"current_record_ref":current},
-            "descriptor":{"adapter":"native-corpus","record_type":"collection","profile_type_id":type_id[0],
-                "source_schema_ref":schema,"source_schema_version":record["schema_version"],
-                "source_scope":"public_metadata_only","record_kind":"subject","identity_field":"record_id",
-                "source_basename":"collection.json","schema_version":record["schema_version"],"schema_ref":schema,"type_id":type_id[0]},
+            "descriptor":route.descriptor(&record["schema_version"]),
             "history":{"source_ref":history_raw.as_ref().map(|_|history_ref),
                 "sha256":history_raw.as_ref().map(|raw|format!("sha256:{}",Digest256::of_bytes(raw).to_hex())),"receipt_count":receipts.len(),
                 "retained_record_chain_verified":true,"retained_baseline_ref":baseline},
@@ -437,6 +437,8 @@ impl<'a, 'b> Versions<'a, 'b> {
         Ok(Version {
             record: selected_record,
             provenance,
+            refs,
+            current_ref: current.clone(),
             version_status: if current == *exact {
                 "current"
             } else {
@@ -450,6 +452,8 @@ impl<'a, 'b> Versions<'a, 'b> {
         receipt: &Value,
         validator: &SourceCatalogValidator<'_>,
         stage: &KnowledgeStage<'_>,
+        route: &RecordRoute,
+        schema_version: &Value,
         l: BibliographicLimits,
     ) -> Result<(Value, Value)> {
         let previous = &receipt["previous_source"];
@@ -468,9 +472,7 @@ impl<'a, 'b> Versions<'a, 'b> {
         }
         let manifest_ref = format!("{archive}/manifest.json");
         let manifest_raw = self.required(&manifest_ref, validator, l)?;
-        let manifest = SourceRow::parse(&manifest_raw, l.catalog.max_row_bytes)?
-            .value()
-            .clone();
+        let manifest = owned(&manifest_raw, l.catalog.max_row_bytes)?;
         let selected = manifest["schema_version"] == "tos_source_package_archive_v2";
         let mut keys = vec![
             "schema_version",
@@ -502,9 +504,10 @@ impl<'a, 'b> Versions<'a, 'b> {
             return Err(Error::Budget("bibliographic metadata archive member count"));
         }
         let basename = reference.rsplit('/').next().unwrap();
+        let forms_name = format!("{}.human-forms.json", basename.trim_end_matches(".json"));
         let selected_names = [
             basename,
-            "collection.human-forms.json",
+            forms_name.as_str(),
             "source-revision-history.json",
         ];
         let mut package = serde_json::Map::new();
@@ -560,22 +563,10 @@ impl<'a, 'b> Versions<'a, 'b> {
                 "bibliographic archived Collection record raw binding",
             ));
         }
-        let record = SourceRow::parse(&raw, l.catalog.max_row_bytes)?
-            .value()
-            .clone();
-        catalog::check_catalog_schema(
-            stage,
-            validator,
-            l.catalog,
-            "ToS/contracts/corpus-record.schema.json",
-            "",
-            &raw,
-        )?;
-        if record["record_type"] != "collection"
-            || record["schema_version"] != "tos_corpus_record_v1"
-            || record.get("visibility").is_some()
-            || record_ref(&record, false, l)? != *previous
-        {
+        let record = owned(&raw, l.catalog.max_row_bytes)?;
+        catalog::check_catalog_schema(stage, validator, l.catalog, &route.schema, "", &raw)?;
+        route.validate_record(&record, previous, schema_version)?;
+        if metadata_ref(&record, route, l)? != *previous {
             return Err(Error::Invalid(
                 "bibliographic retained Collection exact record/profile",
             ));
@@ -708,9 +699,7 @@ impl<'a, 'b> Versions<'a, 'b> {
         let manifest_raw = blobs.remove("manifest.json").ok_or(Error::Invalid(
             "bibliographic Claim archive manifest absent",
         ))?;
-        let manifest = SourceRow::parse(&manifest_raw, l.catalog.max_row_bytes)?
-            .value()
-            .clone();
+        let manifest = owned(&manifest_raw, l.catalog.max_row_bytes)?;
         let selected = manifest["schema_version"] == "tos_source_package_archive_v2";
         let mut keys = vec![
             "schema_version",
@@ -830,9 +819,7 @@ impl<'a, 'b> Versions<'a, 'b> {
         }
         let retained = files.get("claim-revision-history.json");
         let history = if let Some(raw) = retained {
-            SourceRow::parse(raw, l.catalog.max_row_bytes)?
-                .value()
-                .clone()
+            owned(raw, l.catalog.max_row_bytes)?
         } else {
             json!({"schema_version":"tos_claim_revision_history_v1","source_path":reference,"receipts":[]})
         };
@@ -912,16 +899,12 @@ impl<'a, 'b> Versions<'a, 'b> {
             let formname = claim_form_name(reference, before_id)?;
             let prior = archived
                 .get(&formname)
-                .map(|raw| {
-                    SourceRow::parse(raw, l.catalog.max_row_bytes).map(|row| row.value().clone())
-                })
+                .map(|raw| owned(raw, l.catalog.max_row_bytes))
                 .transpose()?;
             let current_forms = files.get(&formname).ok_or(Error::Invalid(
                 "bibliographic corrected Claim current form set absent",
             ))?;
-            let current_forms = SourceRow::parse(current_forms, l.catalog.max_row_bytes)?
-                .value()
-                .clone();
+            let current_forms = owned(current_forms, l.catalog.max_row_bytes)?;
             let current_source = current_records.get(before_id).ok_or(Error::Invalid(
                 "bibliographic corrected sibling absent from current stream",
             ))?;
@@ -976,10 +959,12 @@ impl<'a, 'b> Versions<'a, 'b> {
         Ok(Version {
             record,
             provenance,
+            refs: Vec::new(),
+            current_ref: current.clone(),
             version_status,
         })
     }
-    fn membership(
+    pub(crate) fn resolve_claim(
         &mut self,
         stage: &mut KnowledgeStage<'_>,
         exact: &Value,
@@ -1045,9 +1030,7 @@ impl<'a, 'b> Versions<'a, 'b> {
             .filter(|row| !row.iter().all(u8::is_ascii_whitespace))
         {
             check(validator, l)?;
-            let sibling = SourceRow::parse(bytes, l.catalog.max_row_bytes)?
-                .value()
-                .clone();
+            let sibling = owned(bytes, l.catalog.max_row_bytes)?;
             exact_ref(&record_ref(&sibling, true, l)?, true)?;
             if !siblings.insert(text(&sibling, "claim_id")?.to_owned())
                 || !matches!(
@@ -1079,14 +1062,399 @@ impl<'a, 'b> Versions<'a, 'b> {
         Ok(Version {
             record,
             provenance,
+            refs: Vec::new(),
+            current_ref: current.clone(),
             version_status: "current",
         })
     }
 }
-struct Version {
-    record: Value,
-    provenance: Value,
-    version_status: &'static str,
+/// Owner descriptors selected from the already sealed registry and catalog.
+/// This is the maintained MetadataVersionReader dispatch, not an admission API.
+struct RecordRoute {
+    kind: String,
+    adapter: &'static str,
+    identity: &'static str,
+    basename: String,
+    catalog_filename: String,
+    type_id: String,
+    schema: String,
+}
+impl RecordRoute {
+    fn derive(entry: &Value, record: &Value, entities: &Value) -> Result<Self> {
+        let kind = text(entry, "record_type")?;
+        let reference = text(entry, "source_record_ref")?;
+        let native_witness = kind == "artifact"
+            || kind == "composite" && reference.ends_with("/composite-witness.json");
+        let native_corpus = [
+            "agent",
+            "place",
+            "organization",
+            "work",
+            "expression",
+            "edition",
+            "collection",
+            "item",
+        ]
+        .contains(&kind);
+        let types = array(entities, "types")?;
+        let matches = types
+            .iter()
+            .filter(|e| {
+                e.get("source_mappings")
+                    .and_then(Value::as_array)
+                    .is_some_and(|ms| {
+                        ms.iter().any(|m| {
+                            m["source_graph"] == "source-navigation" && m["source_kind_id"] == kind
+                        })
+                    })
+            })
+            .collect::<Vec<_>>();
+        if matches.len() != 1 {
+            return Err(Error::Invalid(
+                "bibliographic metadata owner registry mapping",
+            ));
+        }
+        let owner = matches[0];
+        let type_id = text(owner, "type_id")?.to_owned();
+        let (adapter, identity, basename, filename, schema) = if native_witness {
+            let (identity, basename, filename) = if kind == "artifact" {
+                ("artifact_id", "artifact-witness.json", "artifacts.jsonl")
+            } else {
+                ("composite_id", "composite-witness.json", "composites.jsonl")
+            };
+            let schema = match (kind, record["schema_version"].as_str()) {
+                ("artifact", Some("tos_artifact_source_witness_v1")) => {
+                    "ToS/contracts/artifact-source-witness.schema.json"
+                }
+                ("artifact", Some("tos_artifact_source_witness_v2")) => {
+                    "ToS/contracts/artifact-source-witness-v2.schema.json"
+                }
+                ("composite", Some("tos_scholarly_composite_witness_v1")) => {
+                    "ToS/contracts/scholarly-composite-witness.schema.json"
+                }
+                _ => {
+                    return Err(Error::Invalid(
+                        "bibliographic native witness exact schema descriptor",
+                    ));
+                }
+            };
+            if entry["source_schema_ref"] != schema {
+                return Err(Error::Invalid(
+                    "bibliographic native witness catalog schema binding",
+                ));
+            }
+            (
+                "native-witness",
+                identity,
+                basename.to_owned(),
+                filename.to_owned(),
+                schema.to_owned(),
+            )
+        } else if kind == "link" {
+            (
+                "native-link",
+                "record_id",
+                "link.json".into(),
+                "links.jsonl".into(),
+                "ToS/contracts/source-link.schema.json".into(),
+            )
+        } else if native_corpus {
+            let filename = match kind {
+                "agent" => "agents.jsonl",
+                "place" => "places.jsonl",
+                "organization" => "organizations.jsonl",
+                "work" => "works.jsonl",
+                "expression" => "expressions.jsonl",
+                "edition" => "editions.jsonl",
+                "collection" => "collections.jsonl",
+                "item" => "items.jsonl",
+                _ => unreachable!(),
+            };
+            (
+                "native-corpus",
+                "record_id",
+                format!("{kind}.json"),
+                filename.into(),
+                "ToS/contracts/corpus-record.schema.json".into(),
+            )
+        } else {
+            let profile = &owner["source_record_profile"];
+            if profile["record_type"] != kind || profile["id_prefix"] != format!("tos.{kind}.") {
+                return Err(Error::Invalid(
+                    "bibliographic declared metadata owner profile",
+                ));
+            }
+            let schemas = array(profile, "schemas")?
+                .iter()
+                .filter(|s| s["schema_version"] == record["schema_version"])
+                .collect::<Vec<_>>();
+            if schemas.len() != 1 {
+                return Err(Error::Invalid(
+                    "bibliographic metadata selected schema profile",
+                ));
+            }
+            let schema = text(schemas[0], "schema_ref")?;
+            if entry["source_schema_ref"] != schema {
+                return Err(Error::Invalid(
+                    "bibliographic metadata catalog schema binding",
+                ));
+            }
+            (
+                "declared-profile",
+                "record_id",
+                text(profile, "source_basename")?.into(),
+                text(profile, "catalog_filename")?.into(),
+                schema.into(),
+            )
+        };
+        let parts = reference.split('/').collect::<Vec<_>>();
+        if parts.len() < 5
+            || reference.contains(['\\', '\0'])
+            || parts[..2] != ["ToS", "source-witnesses"]
+            || parts.last() != Some(&basename.as_str())
+            || parts.iter().any(|p| {
+                p.is_empty()
+                    || *p == ".."
+                    || p.starts_with('.')
+                    || [
+                        "catalog",
+                        "owner-local",
+                        "payload",
+                        "local-content",
+                        "private",
+                    ]
+                    .contains(p)
+            })
+            || adapter == "native-link" && parts[2] != "links"
+            || adapter == "native-witness"
+                && parts[2]
+                    != if kind == "artifact" {
+                        "artifacts"
+                    } else {
+                        "scholarly-composites"
+                    }
+            || adapter == "declared-profile"
+                && kind == "composite"
+                && (parts.len() < 7 || parts[2] != "scholarly-composites")
+        {
+            return Err(Error::Invalid(
+                "bibliographic metadata exact owner source home",
+            ));
+        }
+        Ok(Self {
+            kind: kind.into(),
+            adapter,
+            identity,
+            basename,
+            catalog_filename: filename,
+            type_id,
+            schema,
+        })
+    }
+    fn validate_record(
+        &self,
+        record: &Value,
+        reference: &Value,
+        schema_version: &Value,
+    ) -> Result<()> {
+        if record[self.identity] != reference["id"]
+            || !text(reference, "id")?.starts_with(&format!("tos.{}.", self.kind))
+            || record["schema_version"] != *schema_version
+            || !schema_version.is_string()
+            || self.adapter != "native-witness" && record["record_type"] != self.kind
+        {
+            return Err(Error::Invalid(
+                "bibliographic metadata descriptor changed within history",
+            ));
+        }
+        let public = |v: &Value| matches!(v.as_str(), Some("public" | "public_metadata_only"));
+        let valid = match self.adapter {
+            "native-corpus" => {
+                record["schema_version"] == "tos_corpus_record_v1"
+                    && record.get("visibility").is_none()
+            }
+            "native-link" => {
+                record["schema_version"] == "tos_source_link_v1"
+                    && record.get("visibility").is_none()
+            }
+            "native-witness" => public(&record["authority"]["visibility"]),
+            _ => public(&record["visibility"]),
+        };
+        if !valid {
+            return Err(Error::Invalid(
+                "bibliographic metadata public owner profile",
+            ));
+        }
+        Ok(())
+    }
+    fn revision_fields(&self) -> Vec<&'static str> {
+        match self.adapter {
+            "native-corpus" => vec!["preferred_label", "notes", "field_languages", "source_refs"],
+            "declared-profile" => vec![
+                "preferred_label",
+                "variant_labels",
+                "notes",
+                "field_languages",
+                "source_refs",
+                "extensions",
+                "semantic_content",
+                "semantic_scope",
+            ],
+            _ => match self.kind.as_str() {
+                "artifact" => vec![
+                    "path_identity",
+                    "physical_description",
+                    "find_context",
+                    "bibliography",
+                ],
+                "composite" => vec!["preferred_label", "editorial_object"],
+                "link" => vec![
+                    "preferred_label",
+                    "variant_labels",
+                    "notes",
+                    "source_refs",
+                    "provider_label",
+                ],
+                _ => Vec::new(),
+            },
+        }
+    }
+    fn validate_descriptive_delta(&self, previous: &Value, revised: &Value) -> Result<()> {
+        if self.adapter == "native-witness"
+            && self.kind == "artifact"
+            && ["basis", "provider_independent"]
+                .iter()
+                .any(|k| previous["path_identity"][*k] != revised["path_identity"][*k])
+        {
+            return Err(Error::Invalid(
+                "bibliographic artifact physical identity path changed",
+            ));
+        }
+        Ok(())
+    }
+    fn descriptor(&self, schema_version: &Value) -> Value {
+        json!({"adapter":self.adapter,"record_type":self.kind,"profile_type_id":self.type_id,"source_schema_ref":self.schema,
+            "source_schema_version":schema_version,"source_scope":"public_metadata_only","record_kind":"subject","identity_field":self.identity,
+            "source_basename":self.basename,"schema_version":schema_version,"schema_ref":self.schema,"type_id":self.type_id})
+    }
+}
+fn metadata_ref(record: &Value, route: &RecordRoute, l: BibliographicLimits) -> Result<Value> {
+    let reference = json!({"id":record[route.identity],"version":record["record_version"],"digest":format!("sha256:{}",digest(record,l.catalog.max_row_bytes)?)});
+    exact_ref(&reference, false)?;
+    Ok(reference)
+}
+struct CompoundProfile {
+    parent: &'static str,
+    field: &'static str,
+    child: &'static str,
+    predicate: &'static str,
+    schema: &'static str,
+    extra: &'static [&'static str],
+}
+fn compound_profile(operation: &str) -> Option<CompoundProfile> {
+    let (parent, field, child, predicate, schema, extra) = match operation {
+        "collection.work.attach" => (
+            "collection",
+            "membership_claim_refs",
+            "work",
+            "contains_work",
+            "tos_local_collection_membership_command_v1",
+            &["work", "claim", "forms", "claim_forms", "reason"][..],
+        ),
+        "work.expression.create" => (
+            "work",
+            "expression_claim_refs",
+            "record",
+            "has_expression",
+            "tos_local_work_expression_command_v1",
+            &[
+                "record",
+                "claim",
+                "forms",
+                "expression_forms",
+                "claim_forms",
+                "reason",
+            ][..],
+        ),
+        "expression.responsibility.attach" => (
+            "expression",
+            "responsibility_claim_refs",
+            "agent",
+            "translated_by",
+            "tos_local_expression_responsibility_command_v1",
+            &["agent", "claim", "forms", "claim_forms", "reason"][..],
+        ),
+        "expression.edition.create" => (
+            "expression",
+            "embodiment_claim_refs",
+            "record",
+            "embodied_by",
+            "tos_local_expression_edition_command_v1",
+            &[
+                "record",
+                "claim",
+                "forms",
+                "edition_forms",
+                "claim_forms",
+                "reason",
+            ][..],
+        ),
+        "item.adopt" => (
+            "edition",
+            "exemplar_claim_refs",
+            "record",
+            "exemplified_by",
+            "tos_local_item_adoption_command_v1",
+            &[
+                "record",
+                "claim",
+                "forms",
+                "item_forms",
+                "claim_forms",
+                "reason",
+                "rights",
+                "item_kind",
+                "inventory",
+                "inventory_limitation",
+                "fixity_verified_at",
+            ][..],
+        ),
+        _ => return None,
+    };
+    Some(CompoundProfile {
+        parent,
+        field,
+        child,
+        predicate,
+        schema,
+        extra,
+    })
+}
+
+pub(crate) struct Version {
+    pub(crate) record: Value,
+    pub(crate) provenance: Value,
+    pub(crate) version_status: &'static str,
+    pub(crate) refs: Vec<Value>,
+    pub(crate) current_ref: Value,
+}
+/// Retained JSON uses the same exact scalar transport as current catalog rows.
+/// Compare owner canonical bytes before any digest-based lineage reconstruction.
+fn owned(raw: &[u8], cap: usize) -> Result<Value> {
+    let value = SourceRow::parse(raw, cap)?.value().clone();
+    let original = canonical_raw_bytes_v1(
+        raw,
+        CanonicalProfile::SourceRecordDigestV1,
+        JsonLimits::new(cap, 96, 1_000_000, 4096)
+            .map_err(|_| Error::Budget("bibliographic retained scalar limits"))?,
+    )
+    .map_err(|e| Error::Source(e.to_string()))?;
+    if original != encode(&value, cap)? {
+        return Err(Error::Invalid(
+            "bibliographic retained exact scalar transport",
+        ));
+    }
+    Ok(value)
 }
 fn check(validator: &SourceCatalogValidator<'_>, l: BibliographicLimits) -> Result<()> {
     if std::time::Instant::now() >= l.deadline
@@ -1119,20 +1487,29 @@ fn exact_ref(reference: &Value, claim: bool) -> Result<()> {
     let sha = text(reference, "digest")?
         .strip_prefix("sha256:")
         .ok_or(Error::Invalid("bibliographic exact version digest"))?;
-    let expected = if claim {
-        "tos.claim."
-    } else {
-        "tos.collection."
-    };
-    if value.len() != 3
-        || !id.starts_with(expected)
-        || id[expected.len()..].is_empty()
-        || id[expected.len()..].split(['.', '-']).any(|part| {
-            part.is_empty()
-                || !part
-                    .bytes()
+    let parts = id
+        .strip_prefix("tos.")
+        .unwrap_or("")
+        .splitn(2, '.')
+        .collect::<Vec<_>>();
+    let identity_valid = parts.len() == 2
+        && !parts[0].is_empty()
+        && parts[0]
+            .bytes()
+            .next()
+            .is_some_and(|c| c.is_ascii_lowercase())
+        && parts[0]
+            .bytes()
+            .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == b'-')
+        && (parts[0] == "claim") == claim
+        && !parts[1].is_empty()
+        && parts[1].split(['.', '-']).all(|p| {
+            !p.is_empty()
+                && p.bytes()
                     .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit())
-        })
+        });
+    if value.len() != 3
+        || !identity_valid
         || reference["version"]
             .as_u64()
             .is_none_or(|n| !(1..=9_007_199_254_740_991).contains(&n))
@@ -1282,6 +1659,7 @@ fn metadata_receipt(
     id: &Value,
     head: Option<&Value>,
     commands: &mut BTreeSet<String>,
+    route: &RecordRoute,
     l: BibliographicLimits,
 ) -> Result<()> {
     let selected = receipt.get("publication").is_some();
@@ -1308,32 +1686,32 @@ fn metadata_receipt(
     }
     exact_keys(receipt, &keys)?;
     let request = &receipt["request"];
-    let compound = request["operation"] == "collection.work.attach";
-    if compound {
-        exact_keys(
-            request,
-            &[
-                "work",
-                "claim",
-                "forms",
-                "claim_forms",
-                "reason",
-                "schema_version",
-                "operation",
-                "command_id",
-                "fields",
-                "expected_configuration",
-                "expected_source",
-                "expected_revision",
-                "expected_dependencies",
-                "expected_publication",
-            ],
-        )?;
-        if request["schema_version"] != "tos_local_collection_membership_command_v1" || !selected {
+    let operation = text(request, "operation")?;
+    let compound = compound_profile(operation);
+    if let Some(profile) = compound {
+        let mut request_keys = vec![
+            "schema_version",
+            "operation",
+            "command_id",
+            "fields",
+            "expected_configuration",
+            "expected_source",
+            "expected_revision",
+            "expected_dependencies",
+            "expected_publication",
+        ];
+        request_keys.extend_from_slice(profile.extra);
+        exact_keys(request, &request_keys)?;
+        if request["schema_version"] != profile.schema
+            || route.adapter != "native-corpus"
+            || route.kind != profile.parent
+            || !selected
+        {
             return Err(Error::Invalid(
-                "bibliographic Collection compound retained request profile",
+                "bibliographic compound retained metadata parent profile",
             ));
         }
+        encode(request, 1_048_576)?;
         for key in [
             "expected_configuration",
             "expected_revision",
@@ -1348,29 +1726,40 @@ fn metadata_receipt(
         let reason = text(request, "reason")?;
         if !(1..=256).contains(&command.chars().count())
             || !(1..=4096).contains(&reason.trim().chars().count())
-            || request["claim"]["predicate"] != "contains_work"
+            || request["claim"]["predicate"] != profile.predicate
             || request["claim"]["subject_ref"] != *id
-            || request["claim"]["object"] != request["work"]["record_id"]
+            || request["claim"]["object"] != request[profile.child]["record_id"]
         {
             return Err(Error::Invalid(
-                "bibliographic Collection compound request exact endpoints",
+                "bibliographic compound retained exact endpoints",
             ));
         }
-        exact_keys(&request["fields"], &["membership_claim_refs"])?;
-        if array(&request["fields"], "membership_claim_refs")?.last()
-            != Some(&request["claim"]["claim_id"])
+        exact_keys(&request["fields"], &[profile.field])?;
+        if array(&request["fields"], profile.field)?.last() != Some(&request["claim"]["claim_id"])
+            || operation == "work.expression.create" && request["record"]["work_ref"] != *id
+            || operation == "expression.edition.create"
+                && request["record"]["embodies_expression_refs"] != json!([id])
         {
             return Err(Error::Invalid(
-                "bibliographic Collection compound membership append",
+                "bibliographic compound retained parent field append",
             ));
         }
-        let transaction = json!({"operation":"collection.work.attach","command_id":request["command_id"],
-            "owner_configuration":request["expected_configuration"],"request_digest":format!("sha256:{}",digest(request,l.catalog.max_row_bytes)?)});
+        if operation == "item.adopt" {
+            let at = text(request, "fixity_verified_at")?;
+            tos_validation::retirement_rules::observed_instant_order(at, at)
+                .map_err(|_| Error::Invalid("bibliographic retained Item fixity instant"))?;
+            if request["inventory"].is_null() != !request["inventory_limitation"].is_null() {
+                return Err(Error::Invalid(
+                    "bibliographic retained Item inventory completeness",
+                ));
+            }
+        }
+        let transaction = json!({"operation":operation,"command_id":request["command_id"],"owner_configuration":request["expected_configuration"],"request_digest":format!("sha256:{}",digest(request,l.catalog.max_row_bytes)?)});
         if receipt["publication"]["transaction_id"]
             != format!("sha256:{}", digest(&transaction, l.catalog.max_row_bytes)?)
         {
             return Err(Error::Invalid(
-                "bibliographic Collection compound transaction binding",
+                "bibliographic compound retained transaction binding",
             ));
         }
     } else {
@@ -1403,14 +1792,18 @@ fn metadata_receipt(
             &receipt["publication"],
             &["protocol", "transaction_id", "selected_files"],
         )?;
+        let mut selected_files = vec![
+            route.basename.clone(),
+            format!(
+                "{}.human-forms.json",
+                route.basename.trim_end_matches(".json")
+            ),
+            "source-revision-history.json".into(),
+        ];
+        selected_files.sort();
         if history["schema_version"] != "tos_source_revision_history_v2"
             || receipt["publication"]["protocol"] != "tos_selected_source_metadata_v1"
-            || receipt["publication"]["selected_files"]
-                != json!([
-                    "collection.human-forms.json",
-                    "collection.json",
-                    "source-revision-history.json"
-                ])
+            || receipt["publication"]["selected_files"] != json!(selected_files)
             || !receipt["publication"]["transaction_id"].is_string()
         {
             return Err(Error::Invalid(
@@ -1495,9 +1888,7 @@ fn claim_records(raw: &[u8], l: BibliographicLimits) -> Result<BTreeMap<String, 
         if std::time::Instant::now() >= l.deadline {
             return Err(Error::Budget("bibliographic Claim version parse deadline"));
         }
-        let record = SourceRow::parse(bytes, l.catalog.max_row_bytes)?
-            .value()
-            .clone();
+        let record = owned(bytes, l.catalog.max_row_bytes)?;
         exact_ref(&record_ref(&record, true, l)?, true)?;
         if record["claim_type"] != "relation"
             || !matches!(

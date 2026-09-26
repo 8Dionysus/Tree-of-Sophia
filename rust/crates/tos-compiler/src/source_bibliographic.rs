@@ -1076,7 +1076,13 @@ fn prepare_impl(
         }
         let mut versions = source
             .map(|source| {
-                crate::source_bibliographic_versions::Versions::new(source, stage, validator, l)
+                crate::source_bibliographic_versions::Versions::new(
+                    source,
+                    stage,
+                    validator,
+                    catalog_receipt,
+                    l,
+                )
             })
             .transpose()?;
         let entities = json_file(stage, ENTITY, l)?;
