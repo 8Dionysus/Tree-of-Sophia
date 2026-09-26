@@ -79,6 +79,14 @@ pub struct RecordSchema<'a> {
     pub raw: &'a [u8],
 }
 
+/// Source-route classification for a complete current carrier traversal.
+/// Schema/identity/authority validation remains mandatory and separate.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CurrentRecordCarrier {
+    pub id: String,
+    pub kind: String,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RecordRuleError {
     Unsupported { code: &'static str, detail: String },
@@ -753,6 +761,86 @@ impl RecordFamily {
 
     pub fn registry_digest(&self) -> &str {
         &self.registry_sha256
+    }
+
+    /// Reuse this family's exact declared/native routing for current endpoint
+    /// lookup. Other JSON members and native semantic packet history do not
+    /// become current standalone owners merely because they contain an ID.
+    pub fn classify_current_member(
+        &self,
+        path: &str,
+        raw: &[u8],
+    ) -> Result<Option<CurrentRecordCarrier>, RecordRuleError> {
+        if !path.starts_with(SOURCE_HOME) || !path.ends_with(".json") {
+            return Ok(None);
+        }
+        let basename = path.rsplit('/').next().unwrap_or("");
+        if let Some(profile) = self
+            .profiles
+            .values()
+            .find(|profile| profile.basename == basename)
+        {
+            if !valid_record_path(path, profile) {
+                return Err(unsupported("record_path", path));
+            }
+            let value = parse_object(raw, MAX_RECORD_BYTES, "record_json")?;
+            let version = field_str(&value, "schema_version", "record_schema_version")?;
+            if !profile.routes.contains_key(version) {
+                return Err(unsupported("unsupported_record_schema_version", path));
+            }
+            if value["record_type"].as_str() != Some(profile.kind.as_str()) {
+                return Err(unsupported("record_type", path));
+            }
+            let id = field_str(&value, "record_id", "record_id")?;
+            if !valid_record_id(id, &profile.id_prefix) {
+                return Err(unsupported("record_id", path));
+            }
+            return Ok(Some(CurrentRecordCarrier {
+                id: id.into(),
+                kind: profile.kind.clone(),
+            }));
+        }
+        // Native baseline traversal selects known basenames throughout the
+        // source home. Its decoded-field loader is legacy ordinary JSON.
+        if ![
+            "agent.json",
+            "place.json",
+            "organization.json",
+            "work.json",
+            "expression.json",
+            "edition.json",
+            "collection.json",
+            "item.json",
+            "link.json",
+            "artifact-witness.json",
+            "composite-witness.json",
+        ]
+        .contains(&basename)
+        {
+            return Ok(None);
+        }
+        if raw.len() > MAX_RECORD_BYTES {
+            return Err(RecordRuleError::Budget {
+                code: "native_record_byte_budget",
+            });
+        }
+        let value: Value =
+            serde_json::from_slice(raw).map_err(|_| unsupported("native_record_json", path))?;
+        let carrier = native_carrier(path, &value)?;
+        if value["schema_version"].as_str() != Some(carrier.schema_version) {
+            return Err(unsupported("native_schema_version", path));
+        }
+        let id = field_str(&value, carrier.id_field, "native_record_id")?;
+        if !valid_record_id(id, &format!("tos.{}.", carrier.kind)) {
+            return Err(unsupported("native_record_id", path));
+        }
+        if carrier.id_field == "record_id" && value["record_type"].as_str() != Some(carrier.kind) {
+            return Err(unsupported("native_record_type", path));
+        }
+        Ok(Some(CurrentRecordCarrier {
+            id: id.into(),
+            kind: carrier.kind.into(),
+        }))
     }
 
     pub fn registry_version(&self) -> &str {
@@ -1597,44 +1685,44 @@ fn native_carrier(path: &str, record: &Value) -> Result<NativeCarrier, RecordRul
         return Err(unsupported("native_owner_path", path));
     }
     let carrier = match (parts[2], basename) {
-        ("agents", "agent.json") => (
+        (_, "agent.json") => (
             "agent",
             CORPUS_CONTRACT,
             "tos_corpus_record_v1",
             "record_id",
         ),
-        ("places", "place.json") => (
+        (_, "place.json") => (
             "place",
             CORPUS_CONTRACT,
             "tos_corpus_record_v1",
             "record_id",
         ),
-        ("organizations", "organization.json") => (
+        (_, "organization.json") => (
             "organization",
             CORPUS_CONTRACT,
             "tos_corpus_record_v1",
             "record_id",
         ),
-        ("works", "work.json") => ("work", CORPUS_CONTRACT, "tos_corpus_record_v1", "record_id"),
-        ("expressions", "expression.json") => (
+        (_, "work.json") => ("work", CORPUS_CONTRACT, "tos_corpus_record_v1", "record_id"),
+        (_, "expression.json") => (
             "expression",
             CORPUS_CONTRACT,
             "tos_corpus_record_v1",
             "record_id",
         ),
-        ("editions", "edition.json") => (
+        (_, "edition.json") => (
             "edition",
             CORPUS_CONTRACT,
             "tos_corpus_record_v1",
             "record_id",
         ),
-        ("collections", "collection.json") => (
+        (_, "collection.json") => (
             "collection",
             CORPUS_CONTRACT,
             "tos_corpus_record_v1",
             "record_id",
         ),
-        ("items", "item.json") => ("item", CORPUS_CONTRACT, "tos_corpus_record_v1", "record_id"),
+        (_, "item.json") => ("item", CORPUS_CONTRACT, "tos_corpus_record_v1", "record_id"),
         ("links", "link.json") => (
             "link",
             "ToS/contracts/source-link.schema.json",
@@ -2220,6 +2308,34 @@ mod tests {
             .unwrap();
         assert!(events.0.iter().any(|event| matches!(event,
             RecordObservation::IdOwner { id, .. } if id.starts_with("tos.artifact."))));
+        const NESTED: &str = "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1884-part-3/editions/chemnitz-schmeitzner-1884-part-3";
+        for (path, kind) in [
+            (format!("{NESTED}/edition.json"), "edition"),
+            (
+                format!("{NESTED}/items/dta-sbb-corrected-tei-p5/item.json"),
+                "item",
+            ),
+        ] {
+            let raw = source(&path);
+            let carrier = rule.classify_current_member(&path, &raw).unwrap().unwrap();
+            assert_eq!(carrier.kind, kind);
+            assert!(carrier.id.starts_with(&format!("tos.{kind}.")));
+            assert!(rule.native_schema_plan(&path, &raw).is_ok());
+            let mut malformed: Value = serde_json::from_slice(&raw).unwrap();
+            malformed["record_type"] = json!("work");
+            assert!(
+                rule.classify_current_member(&path, &serde_json::to_vec(&malformed).unwrap())
+                    .is_err()
+            );
+        }
+        assert!(
+            rule.classify_current_member(
+                "ToS/contracts/corpus-record.schema.json",
+                &source(CORPUS_CONTRACT)
+            )
+            .unwrap()
+            .is_none()
+        );
     }
 
     #[test]
