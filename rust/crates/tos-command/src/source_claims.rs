@@ -1663,6 +1663,13 @@ pub fn verify_claim_history(
                 "request",
             ],
         )?;
+        let recorded_at = text(receipt, "recorded_at")?;
+        tos_validation::retirement_rules::observed_instant_order(recorded_at, recorded_at)
+            .map_err(|_| {
+                SourceCommandError::Invalid(
+                    "retained Claim receipt instant requires explicit valid timezone",
+                )
+            })?;
         let request = field(receipt, "request")?;
         grammar(
             request,
