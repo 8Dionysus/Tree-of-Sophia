@@ -3518,6 +3518,19 @@ fn public_profile(
     });
     resources.insert(0, contract.into());
     resources.insert(0, REGISTRY.into());
+    if resources.len() > 128
+        || resources
+            .iter()
+            .map(|name| required(ctx, name).map(<[u8]>::len))
+            .collect::<SourceCommandResult<Vec<_>>>()?
+            .into_iter()
+            .sum::<usize>()
+            > 8_388_608
+    {
+        return Err(SourceCommandError::Invalid(
+            "source profile contract snapshot budget",
+        ));
+    }
     Ok((
         profile.clone(),
         resources,
