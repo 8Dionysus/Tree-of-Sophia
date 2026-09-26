@@ -410,13 +410,18 @@ pub fn run_form_command(
             return Err(Error::Invalid("source-copy does not satisfy source reader"));
         }
     }
-    let mut receipt = object(vec![
+    let mut receipt_entries = vec![
         ("command_id", string(command_id)),
         ("request_digest", string(&request_digest)),
         ("principal_id", field(&config, "principal_id")?.clone()),
         ("authority_ref", field(&config, "authority_ref")?.clone()),
         ("owner_configuration", string(&configuration)),
         ("recorded_at", string(&ctx.recorded_at)),
+    ];
+    if let Some(contracts) = &contracts {
+        receipt_entries.push(("source_contracts", contracts.clone()));
+    }
+    receipt_entries.extend([
         ("source", subject.clone()),
         ("previous_revision", revision),
         (
@@ -429,9 +434,7 @@ pub fn run_form_command(
             ),
         ),
     ]);
-    if let Some(contracts) = &contracts {
-        source_command::set(&mut receipt, "source_contracts", contracts.clone())?;
-    }
+    let receipt = object(receipt_entries);
     let mut history = successor
         .object_get("growth_history")
         .and_then(JsonValue::as_array)
@@ -1357,6 +1360,7 @@ fn validate_history(set: &JsonValue, subject: &JsonValue) -> Result<()> {
             .as_array()
             .ok_or(Error::Invalid("growth history must be array"))?
         {
+            validate_instant(text(receipt, "recorded_at")?)?;
             if !command_ids.insert(text(receipt, "command_id")?.to_owned())
                 || text(field(receipt, "source")?, "id")? != text(subject, "id")?
             {
