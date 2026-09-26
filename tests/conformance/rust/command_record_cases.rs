@@ -151,6 +151,13 @@ fn run(
     ctx: &CommandContext,
     publication: Option<&RevisionPublication>,
 ) -> Result<tos_command::source_command::PreparedCommand, SourceCommandError> {
+    run_with_cut(ctx, publication, false)
+}
+fn run_with_cut(
+    ctx: &CommandContext,
+    publication: Option<&RevisionPublication>,
+    profile_cut: bool,
+) -> Result<tos_command::source_command::PreparedCommand, SourceCommandError> {
     let files = ctx
         .files
         .iter()
@@ -171,7 +178,18 @@ fn run(
     );
     bound.recorded_at = ctx.recorded_at.clone();
     bound.effective_uid = ctx.effective_uid;
-    prepare_record_revision(&bound, publication, &mut worker, deadline, &cancel)
+    if profile_cut {
+        prepare_record_revision_with_profile_cut(
+            &bound,
+            publication,
+            &cut,
+            &mut worker,
+            deadline,
+            &cancel,
+        )
+    } else {
+        prepare_record_revision(&bound, publication, &mut worker, deadline, &cancel)
+    }
 }
 fn retain_transport(
     ctx: &mut CommandContext,
@@ -543,8 +561,7 @@ fn current_account_expiry_scope_and_selected_exact_recovery_are_independent() {
 
 // A complete cut, rather than the proposal's selected file list, owns native
 // namespace absence. Reuse the actual worker harness and maintained registry.
-#[test]
-fn profile_native_inventory_uses_anchored_membership() {
+fn profile_context() -> CommandContext {
     let mut ctx = context(false);
     let source_path = "ToS/source-witnesses/research/fixture/lexeme.json";
     let record = obj(vec![
@@ -632,6 +649,12 @@ fn profile_native_inventory_uses_anchored_membership() {
         text("tos.lexeme.revision.fixture"),
     );
     ctx.configuration_raw = bytes(&config);
+    ctx
+}
+
+#[test]
+fn profile_native_inventory_uses_anchored_membership() {
+    let mut ctx = profile_context();
     let packet_path = "ToS/source-witnesses/research/fixture/semantic-annotation.fixture.json";
     let packet_raw = include_bytes!(
         "../../fixtures/native-text-binding/semantic-annotation-v2-abc/variant-a-occurrences-only.json"
@@ -706,6 +729,483 @@ fn profile_native_inventory_uses_anchored_membership() {
             deadline,
             &cancel
         ),
+        Err(SourceCommandError::Conflict(_))
+    ));
+}
+
+fn nested(value: &mut JsonValue, keys: &[&str], replacement: JsonValue) {
+    if keys.len() == 1 {
+        set(value, keys[0], replacement);
+        return;
+    }
+    let JsonValue::Object(fields) = value else {
+        panic!("nested fixture object")
+    };
+    let (_, child) = fields
+        .iter_mut()
+        .find(|(key, _)| key.as_str() == Some(keys[0]))
+        .unwrap();
+    nested(child, &keys[1..], replacement);
+}
+
+// Rebind the existing public laboratory skeletons to one synthetic source home.
+// Neither the original payload nor the text representation is included in this
+// metadata-only cut. The fixture's recorded rights gate has no real authority.
+fn native_profile_context() -> CommandContext {
+    let mut ctx = profile_context();
+    let home = "ToS/source-witnesses/research/fixture";
+    let packet_path = format!("{home}/source-text-unit.fixture.json");
+    let layer_path = format!("{home}/source-text-layer.fixture.json");
+    let anchor_path = format!("{home}/source-anchor-v2.fixture.json");
+    let manifest_path = format!("{home}/item.manifest.json");
+    let rights_path = format!("{home}/rights.json");
+    let policy_path = format!("{home}/policy.json");
+    let authority_path = format!("{home}/authority.json");
+    let content_path = format!("{home}/public-synthetic-content.txt");
+    let notice = "Synthetic fixture only; no linguistic or rights judgment.";
+    let support = bytes(&obj(vec![("notice", text(notice))]));
+    ctx.files.push(file(&policy_path, &support));
+    ctx.files.push(file(&authority_path, &support));
+    let support_digest = Digest256::of_bytes(&support).to_hex();
+    let mut packet = parse(include_bytes!(
+        "../../fixtures/native-text-binding/source-text-unit-v1-abc/variant-a-source-layout-observation.json"
+    ));
+    let mut layer = parse(include_bytes!(
+        "../../fixtures/native-text-binding/source-text-layer-abc/variant-a.layer.json"
+    ));
+    let anchor = parse(include_bytes!(
+        "../../fixtures/native-text-binding/source-anchor-v2-abc/variant-b.anchor.json"
+    ));
+    let source_binding = layer.object_get("source_binding").unwrap().clone();
+    let content_sha = packet
+        .object_get("source_layer")
+        .unwrap()
+        .object_get("text_layer_sha256")
+        .unwrap()
+        .clone();
+    let content_sha_text = content_sha.as_str().unwrap();
+    let mut scope_fields = vec![];
+    let mut source_records = vec![];
+    for kind in ["work", "expression", "edition", "item"] {
+        let key = format!("{kind}_ref");
+        let id = source_binding.object_get(&key).unwrap().clone();
+        scope_fields.push((JsonString::from_utf8(&key), id.clone()));
+        let record_path = format!("{home}/{kind}.json");
+        source_records.push((JsonString::from_utf8(kind), text(&record_path)));
+        let mut record = obj(vec![
+            ("schema_version", text("tos_corpus_record_v1")),
+            ("record_type", text(kind)),
+            ("record_id", id),
+            ("preferred_label", text(notice)),
+            ("identity_status", text("provisional")),
+            ("source_refs", arr(&[&policy_path])),
+            ("external_identifiers", JsonValue::Array(vec![])),
+            ("same_as_posture", text("no_equivalence_claim")),
+            ("record_version", parse(b"1")),
+            ("notes", text(notice)),
+        ]);
+        match kind {
+            "work" => set(
+                &mut record,
+                "expression_claim_refs",
+                JsonValue::Array(vec![]),
+            ),
+            "expression" => {
+                set(
+                    &mut record,
+                    "work_ref",
+                    source_binding.object_get("work_ref").unwrap().clone(),
+                );
+                set(&mut record, "language", text("und"));
+                set(&mut record, "expression_role", text("source_language"));
+                set(
+                    &mut record,
+                    "responsibility_claim_refs",
+                    JsonValue::Array(vec![]),
+                );
+                set(
+                    &mut record,
+                    "embodiment_claim_refs",
+                    JsonValue::Array(vec![]),
+                );
+            }
+            "edition" => {
+                set(
+                    &mut record,
+                    "embodies_expression_refs",
+                    JsonValue::Array(vec![
+                        source_binding.object_get("expression_ref").unwrap().clone(),
+                    ]),
+                );
+                set(
+                    &mut record,
+                    "publication_claim_refs",
+                    JsonValue::Array(vec![]),
+                );
+                set(&mut record, "exemplar_claim_refs", JsonValue::Array(vec![]));
+            }
+            "item" => set(&mut record, "item_manifest_ref", text(&manifest_path)),
+            _ => unreachable!(),
+        }
+        ctx.files.push(file(&record_path, &bytes(&record)));
+    }
+    let original_id = source_binding
+        .object_get("source_file_ref")
+        .unwrap()
+        .clone();
+    let original_sha = source_binding
+        .object_get("source_file_sha256")
+        .unwrap()
+        .clone();
+    scope_fields.push((JsonString::from_utf8("file_ref"), original_id.clone()));
+    scope_fields.push((JsonString::from_utf8("file_sha256"), original_sha.clone()));
+    set(&mut packet, "source_scope", JsonValue::Object(scope_fields));
+    set(&mut packet, "content_posture", text("source_bound"));
+    nested(
+        &mut packet,
+        &["source_layer", "text_layer_ref"],
+        text(&layer_path),
+    );
+    let anchors = packet
+        .object_get("anchors")
+        .unwrap()
+        .as_array()
+        .unwrap()
+        .to_vec();
+    let mut rebound = vec![];
+    let mut end = 0;
+    for mut row in anchors {
+        end = end.max(
+            row.object_get("selector")
+                .unwrap()
+                .object_get("end")
+                .unwrap()
+                .as_u64()
+                .unwrap(),
+        );
+        set(&mut row, "text_layer_ref", text(&layer_path));
+        nested(
+            &mut row,
+            &["source_return", "locator_ref"],
+            text(&content_path),
+        );
+        rebound.push(row);
+    }
+    set(&mut packet, "anchors", JsonValue::Array(rebound));
+    nested(
+        &mut packet,
+        &["rights_and_visibility", "rights_record_refs"],
+        arr(&[&rights_path]),
+    );
+    nested(
+        &mut layer,
+        &["representation", "content_file_id"],
+        text(&format!("tos.file.sha256.{content_sha_text}")),
+    );
+    nested(
+        &mut layer,
+        &["representation", "content_sha256"],
+        content_sha.clone(),
+    );
+    nested(
+        &mut layer,
+        &["representation", "content_ref"],
+        text(&content_path),
+    );
+    nested(
+        &mut layer,
+        &["representation", "language"],
+        packet
+            .object_get("source_layer")
+            .unwrap()
+            .object_get("language")
+            .unwrap()
+            .clone(),
+    );
+    nested(
+        &mut layer,
+        &["representation", "text_scope"],
+        obj(vec![
+            ("start", parse(b"0")),
+            ("end", parse(end.to_string().as_bytes())),
+            ("position_unit", text("unicode_code_point")),
+            ("interval", text("half_open")),
+        ]),
+    );
+    nested(
+        &mut layer,
+        &["representation", "publication_authorized"],
+        JsonValue::Bool(true),
+    );
+    nested(
+        &mut layer,
+        &["representation", "publication_authority_refs"],
+        JsonValue::Array(vec![obj(vec![
+            ("ref", text(&authority_path)),
+            ("sha256", text(&support_digest)),
+        ])]),
+    );
+    nested(
+        &mut layer,
+        &["editorial_policy", "policy_ref"],
+        text(&policy_path),
+    );
+    nested(
+        &mut layer,
+        &["editorial_policy", "policy_sha256"],
+        text(&support_digest),
+    );
+    nested(
+        &mut layer,
+        &["derivation", "maker", "configuration_ref"],
+        text(&policy_path),
+    );
+    nested(
+        &mut layer,
+        &["derivation", "maker", "configuration_digest"],
+        text(&support_digest),
+    );
+    let anchor_raw = bytes(&anchor);
+    nested(
+        &mut layer,
+        &["source_binding", "anchors"],
+        JsonValue::Array(vec![obj(vec![
+            ("anchor_id", anchor.object_get("anchor_id").unwrap().clone()),
+            ("anchor_record_ref", text(&anchor_path)),
+            (
+                "anchor_record_sha256",
+                text(&Digest256::of_bytes(&anchor_raw).to_hex()),
+            ),
+        ])]),
+    );
+    ctx.files.push(file(&anchor_path, &anchor_raw));
+    let rights = obj(vec![
+        ("schema_version", text("tos_rights_record_v1")),
+        ("rights_id", text("tos.rights.revision.fixture")),
+        (
+            "scope_refs",
+            JsonValue::Array(vec![
+                source_binding.object_get("item_ref").unwrap().clone(),
+                original_id.clone(),
+            ]),
+        ),
+        ("assessment_status", text("licensed")),
+        ("jurisdictions_reviewed", JsonValue::Array(vec![])),
+        ("source_refs", arr(&[&policy_path])),
+        ("permissions", JsonValue::Array(vec![])),
+        ("restrictions", arr(&[notice])),
+        ("visibility", text("public_payload")),
+        ("redistribution_posture", text("authorized")),
+        ("derivative_posture", text("allowed")),
+        (
+            "assessed_by",
+            obj(vec![
+                ("maker_type", text("model")),
+                ("agent_ref", text("model:synthetic-fixture")),
+            ]),
+        ),
+        ("assessed_at", text("2026-09-08T00:00:00Z")),
+        ("rationale", text(notice)),
+        ("review_status", text("unreviewed")),
+        ("record_version", parse(b"1")),
+    ]);
+    let rights_raw = bytes(&rights);
+    nested(
+        &mut layer,
+        &["representation", "rights_record_refs"],
+        JsonValue::Array(vec![obj(vec![
+            ("ref", text(&rights_path)),
+            ("sha256", text(&Digest256::of_bytes(&rights_raw).to_hex())),
+        ])]),
+    );
+    ctx.files.push(file(&rights_path, &rights_raw));
+    let manifest = obj(vec![
+        ("schema_version", text("tos_source_item_manifest_v1")),
+        (
+            "item_id",
+            source_binding.object_get("item_ref").unwrap().clone(),
+        ),
+        ("item_kind", text("born_digital")),
+        (
+            "embodiment_ref",
+            source_binding.object_get("edition_ref").unwrap().clone(),
+        ),
+        ("storage_posture", text("local_gitignored_payload")),
+        (
+            "payload_files",
+            JsonValue::Array(vec![obj(vec![
+                ("file_id", original_id),
+                ("relative_path", text("payload/synthetic-original.txt")),
+                ("original_basename", text("synthetic-original.txt")),
+                ("media_type", text("text/plain")),
+                ("byte_size", parse(b"1")),
+                ("sha256", original_sha),
+                ("fixity_verified_at", text("2026-09-08T00:00:00Z")),
+            ])]),
+        ),
+        ("acquisition_event_ref", text("tos.event.revision.fixture")),
+        ("rights_ref", text(&rights_path)),
+        ("provenance_ref", text(&policy_path)),
+        ("forensic_report_ref", text(&policy_path)),
+        ("resource_inventory_ref", text(&policy_path)),
+        ("visibility", text("public_payload")),
+        ("manifest_version", parse(b"1")),
+    ]);
+    ctx.files.push(file(&manifest_path, &bytes(&manifest)));
+    let layer_raw = bytes(&layer);
+    let packet_raw = bytes(&packet);
+    let unit = &packet.object_get("units").unwrap().as_array().unwrap()[0];
+    let segment = &packet
+        .object_get("segmentations")
+        .unwrap()
+        .as_array()
+        .unwrap()[0];
+    let binding = obj(vec![
+        ("schema_version", text("tos_native_text_unit_binding_v1")),
+        ("packet_ref", text(&packet_path)),
+        (
+            "packet_sha256",
+            text(&Digest256::of_bytes(&packet_raw).to_hex()),
+        ),
+        ("packet_id", packet.object_get("packet_id").unwrap().clone()),
+        (
+            "packet_version",
+            packet.object_get("packet_version").unwrap().clone(),
+        ),
+        ("unit_id", unit.object_get("unit_id").unwrap().clone()),
+        (
+            "unit_version",
+            unit.object_get("unit_version").unwrap().clone(),
+        ),
+        (
+            "ordered_anchor_refs",
+            unit.object_get("ordered_anchor_refs").unwrap().clone(),
+        ),
+        (
+            "segmentation_id",
+            segment.object_get("segmentation_id").unwrap().clone(),
+        ),
+        (
+            "segmentation_version",
+            segment.object_get("segmentation_version").unwrap().clone(),
+        ),
+        (
+            "text_layer",
+            obj(vec![
+                ("record_ref", text(&layer_path)),
+                (
+                    "record_sha256",
+                    text(&Digest256::of_bytes(&layer_raw).to_hex()),
+                ),
+                ("layer_id", layer.object_get("layer_id").unwrap().clone()),
+                (
+                    "layer_version",
+                    layer.object_get("layer_version").unwrap().clone(),
+                ),
+            ]),
+        ),
+        ("source_record_refs", JsonValue::Object(source_records)),
+    ]);
+    ctx.files.push(file(&packet_path, &packet_raw));
+    ctx.files.push(file(&layer_path, &layer_raw));
+    let old = ctx
+        .files
+        .iter()
+        .find(|f| f.path.as_str().ends_with("/lexeme.json"))
+        .unwrap();
+    let mut record = parse(&old.raw);
+    set(
+        &mut record,
+        "schema_version",
+        text("tos_occurrence_description_record_v1"),
+    );
+    set(&mut record, "record_type", text("occurrence"));
+    set(
+        &mut record,
+        "record_id",
+        text("tos.occurrence.revision.fixture"),
+    );
+    set(
+        &mut record,
+        "semantic_content",
+        obj(vec![
+            ("occurrence_account", text(notice)),
+            ("context_account", text(notice)),
+            ("language", text("en")),
+            ("script", JsonValue::Null),
+        ]),
+    );
+    set(&mut record, "native_text_binding", binding);
+    ctx.files
+        .retain(|f| !f.path.as_str().ends_with("/lexeme.json"));
+    ctx.files
+        .push(file(&format!("{home}/occurrence.json"), &bytes(&record)));
+    let mut config = parse(&ctx.configuration_raw);
+    set(
+        &mut config,
+        "source_path",
+        text(&format!("{home}/occurrence.json")),
+    );
+    set(
+        &mut config,
+        "record_id",
+        text("tos.occurrence.revision.fixture"),
+    );
+    set(
+        &mut config,
+        "profile_type_id",
+        text("tos.entity.occurrence"),
+    );
+    ctx.configuration_raw = bytes(&config);
+    macro_rules! owner {
+        ($path:literal) => {
+            ctx.files
+                .push(file($path, include_bytes!(concat!("../../../", $path))));
+        };
+    }
+    owner!("ToS/contracts/native-text-unit-binding.schema.json");
+    owner!("ToS/contracts/occurrence-description-record.schema.json");
+    owner!("ToS/contracts/source-text-unit-packet-v1.schema.json");
+    owner!("ToS/contracts/source-text-layer.schema.json");
+    owner!("ToS/contracts/source-anchor-v2.schema.json");
+    owner!("ToS/contracts/rights-record.schema.json");
+    owner!("ToS/contracts/source-item-manifest.schema.json");
+    ctx
+}
+
+#[test]
+fn profile_native_binding_checks_metadata_closure_without_content_read() {
+    let ctx = native_profile_context();
+    assert!(
+        !ctx.files
+            .iter()
+            .any(|f| f.path.as_str().ends_with(".txt") || f.path.as_str().contains("/payload/"))
+    );
+    let prepared = run_with_cut(&ctx, None, true).unwrap();
+    assert_eq!(prepared.handler_id, "public-profile-revision");
+    assert_eq!(
+        prepared.commit(),
+        Err(SourceCommandError::MissingProductionAdmission)
+    );
+    let mut missing = ctx.clone();
+    missing
+        .files
+        .retain(|f| !f.path.as_str().ends_with("/rights.json"));
+    assert!(matches!(
+        run_with_cut(&missing, None, true),
+        Err(SourceCommandError::Unsupported(_))
+    ));
+    let mut wrong = ctx.clone();
+    let expression = wrong
+        .files
+        .iter_mut()
+        .find(|f| f.path.as_str().ends_with("/expression.json"))
+        .unwrap();
+    let mut value = parse(&expression.raw);
+    set(&mut value, "work_ref", text("tos.work.revision.another"));
+    expression.raw = bytes(&value);
+    assert!(matches!(
+        run_with_cut(&wrong, None, true),
         Err(SourceCommandError::Conflict(_))
     ));
 }

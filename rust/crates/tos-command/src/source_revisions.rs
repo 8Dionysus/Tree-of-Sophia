@@ -132,6 +132,7 @@ struct Inspection {
     profile: JsonValue,
     schemas: Vec<String>,
     native_identity_snapshot: Option<String>,
+    native_text_snapshot: Option<String>,
 }
 
 fn path(value: &str) -> SourceCommandResult<RelativePath> {
@@ -630,7 +631,7 @@ fn inspect(
             .get(base)
             .ok_or(SourceCommandError::Invalid("record missing"))?,
     )?;
-    let (profile, schemas, native_identity_snapshot) = profile(
+    let (profile, schemas, native_identity_snapshot, native_text_snapshot) = profile(
         cut, worker, deadline, cancelled, ctx, config, family, &record,
     )?;
     let subject = source_forms::metadata_subject(&record)?;
@@ -643,6 +644,7 @@ fn inspect(
         profile,
         schemas,
         native_identity_snapshot,
+        native_text_snapshot,
     })
 }
 fn dependencies(
@@ -692,6 +694,29 @@ fn dependencies(
             cmd::string(snapshot),
         ));
     }
+    if let Some(snapshot) = &inspection.native_text_snapshot {
+        entries.push((
+            JsonString::from_utf8("native_text_binding_snapshot"),
+            cmd::string(snapshot),
+        ));
+        entries.push((
+            JsonString::from_utf8("native_binding_implementation"),
+            JsonValue::Object(
+                [
+                    "scripts/native_text_binding.py",
+                    "scripts/source_owner_context.py",
+                ]
+                .iter()
+                .map(|name| {
+                    Ok((
+                        JsonString::from_utf8(name),
+                        cmd::string(&Digest256::of_bytes(required(ctx, name)?).to_prefixed()),
+                    ))
+                })
+                .collect::<SourceCommandResult<Vec<_>>>()?,
+            ),
+        ));
+    }
     let _ = config;
     Ok(cmd::record_digest(&JsonValue::Object(entries))?.to_prefixed())
 }
@@ -734,7 +759,7 @@ fn proposal(
 )> {
     scope(config, request, scope_operation)?;
     let revised = revised(&inspection.record, request)?;
-    let (_, schemas, _) = profile(
+    let (_, schemas, _, _) = profile(
         cut, worker, deadline, cancelled, ctx, config, family, &revised,
     )?;
     if schemas != inspection.schemas {
@@ -1110,6 +1135,7 @@ fn successor(
             profile: inspection.profile.clone(),
             schemas: inspection.schemas.clone(),
             native_identity_snapshot: inspection.native_identity_snapshot.clone(),
+            native_text_snapshot: inspection.native_text_snapshot.clone(),
         },
         receipt,
     ))
@@ -1301,7 +1327,7 @@ fn reconstruct_transaction(
             .get(base)
             .ok_or(SourceCommandError::Invalid("retained record missing"))?,
     )?;
-    let (profile, schemas, native_identity_snapshot) = profile(
+    let (profile, schemas, native_identity_snapshot, native_text_snapshot) = profile(
         cut, worker, deadline, cancelled, ctx, config, family, &record,
     )?;
     let subject = source_forms::metadata_subject(&record)?;
@@ -1314,6 +1340,7 @@ fn reconstruct_transaction(
         profile,
         schemas,
         native_identity_snapshot,
+        native_text_snapshot,
     };
     let output = retained_package(&transaction.after, config, true)?;
     let retained_history = history(
@@ -2392,7 +2419,7 @@ fn profile(
     config: &JsonValue,
     family: RevisionFamily,
     record: &JsonValue,
-) -> SourceCommandResult<(JsonValue, Vec<String>, Option<String>)> {
+) -> SourceCommandResult<(JsonValue, Vec<String>, Option<String>, Option<String>)> {
     let source_path = cmd::text(config, "source_path")?;
     let (_, base) = split(source_path)?;
     let (kind, id_field, schema_ref) = if family == RevisionFamily::NativeSelected {
@@ -2503,7 +2530,7 @@ fn profile(
         ),
         ("source_scope", cmd::string("public_metadata_only")),
     ]);
-    Ok((profile, schemas, None))
+    Ok((profile, schemas, None, None))
 }
 
 fn ancestry<'a>(
@@ -2639,12 +2666,345 @@ fn native_identity_inventory(
             .map(|(name, digest)| (JsonString::from_utf8(&name), cmd::string(&digest)))
             .collect(),
     );
-    // Python inventory json.dumps uses ensure_ascii=True. Canonical keys and
-    // values here are strings, so escape only non-ASCII Unicode code points;
-    // existing quotes/control characters have already been emitted by FND.
-    let compact = cmd::canonical(&value)?;
+    // Python inventory json.dumps uses ensure_ascii=True, like binding snapshots.
+    Ok((Some(python_ascii_digest(&value)?), used_schema))
+}
+
+struct NativeBindingReader<'a> {
+    ctx: &'a CommandContext,
+    cut: &'a CorpusCutReader,
+    worker: &'a mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &'a AtomicBool,
+    inputs: BTreeMap<String, String>,
+    contracts: BTreeSet<String>,
+    remaining: usize,
+}
+impl NativeBindingReader<'_> {
+    fn route(name: &str, support: bool, contract: bool, content: bool) -> SourceCommandResult<()> {
+        path(name)?;
+        let home = if contract {
+            "ToS/contracts/"
+        } else if support {
+            "ToS/"
+        } else {
+            "ToS/source-witnesses/"
+        };
+        if !name.starts_with(home)
+            || name.starts_with("ToS/source-witnesses/owner-local/")
+            || name.split('/').any(|part| {
+                part == "catalog" || !content && matches!(part, "payload" | "local-content")
+            })
+        {
+            return Err(SourceCommandError::Denied(
+                "native binding reference leaves declared public owner home",
+            ));
+        }
+        Ok(())
+    }
+    fn read(
+        &mut self,
+        name: &str,
+        expected: Option<&str>,
+        support: bool,
+        contract: bool,
+    ) -> SourceCommandResult<Vec<u8>> {
+        Self::route(name, support, contract, false)?;
+        let raw = required(self.ctx, name)?;
+        let digest = Digest256::of_bytes(raw).to_hex();
+        if expected.is_some_and(|expected| expected != digest) {
+            return Err(SourceCommandError::Conflict(
+                "native binding exact input digest differs",
+            ));
+        }
+        if !self.inputs.contains_key(name) {
+            if self.inputs.len() >= 128 || raw.len() > self.remaining.min(1_048_576) {
+                return Err(SourceCommandError::Invalid(
+                    "native binding metadata dependency budget",
+                ));
+            }
+            let member = self
+                .cut
+                .read_member(
+                    self.ctx.base_revision,
+                    &path(name)?,
+                    self.remaining.min(1_048_576) as u64,
+                    self.deadline,
+                    self.cancelled,
+                )
+                .map_err(|_| {
+                    SourceCommandError::Unsupported(
+                        "native binding exact source member unavailable",
+                    )
+                })?;
+            if raw != member.raw.as_slice() {
+                return Err(SourceCommandError::Conflict(
+                    "native binding selected input differs from cut",
+                ));
+            }
+            self.remaining -= raw.len();
+            self.inputs.insert(name.into(), digest);
+        }
+        if contract {
+            self.contracts.insert(name.into());
+        }
+        Ok(raw.to_vec())
+    }
+    fn record(
+        &mut self,
+        name: &str,
+        expected: Option<&str>,
+    ) -> SourceCommandResult<(JsonValue, Vec<u8>)> {
+        let raw = self.read(name, expected, false, false)?;
+        let value = cmd::parse(&raw)?;
+        if value.as_object().is_none() {
+            return Err(SourceCommandError::Invalid(
+                "native binding metadata object",
+            ));
+        }
+        Ok((value, raw))
+    }
+    fn validate(&mut self, value: &JsonValue, basename: &str) -> SourceCommandResult<()> {
+        let name = format!("ToS/contracts/{basename}");
+        let grammar = cmd::parse(&self.read(&name, None, false, true)?)?;
+        if cmd::text(&grammar, "$id")? != format!("https://tree-of-sophia.local/{name}") {
+            return Err(SourceCommandError::Invalid(
+                "native schema identity differs from owner path",
+            ));
+        }
+        native_schema_refs(&grammar, 0)?;
+        schema(
+            self.worker,
+            self.deadline,
+            self.cancelled,
+            self.ctx,
+            &[name.clone()],
+            &name,
+            value,
+        )
+    }
+    fn metadata(&self, raw: &[u8], name: &str, kind: &str) -> SourceCommandResult<()> {
+        use tos_validation::text_metadata_rules::{
+            self as rules, TextMetadataLimits, TextMetadataState,
+        };
+        let limits = TextMetadataLimits {
+            max_packet_bytes: 1_048_576,
+            max_state_bytes: 8_388_608,
+            max_issues: 128,
+            deadline: self.deadline,
+        };
+        let report = match kind {
+            "unit" => {
+                rules::inspect_source_text_unit_v1_metadata(raw, name, limits, self.cancelled)
+            }
+            "layer" => rules::inspect_source_text_layer_metadata(raw, name, limits, self.cancelled),
+            "anchor" => rules::inspect_source_anchor_v2_metadata(raw, name, limits, self.cancelled),
+            _ => {
+                return Err(SourceCommandError::Unsupported(
+                    "native metadata predicate route",
+                ));
+            }
+        }
+        .map_err(|_| {
+            SourceCommandError::Unsupported("native metadata owner predicate execution unavailable")
+        })?;
+        if report.packet_digest != Digest256::of_bytes(raw).to_hex()
+            || report.scope != "owner-metadata-predicates-only"
+        {
+            return Err(SourceCommandError::Conflict(
+                "native metadata predicate input binding differs",
+            ));
+        }
+        match report.state {
+            TextMetadataState::CheckedMetadata if report.issues.is_empty() => Ok(()),
+            TextMetadataState::Unsupported => Err(SourceCommandError::Unsupported(
+                "native metadata owner predicates need unsupported scalar representation",
+            )),
+            _ => Err(SourceCommandError::Invalid(
+                "native metadata violates owner predicates",
+            )),
+        }
+    }
+    fn layer_dependencies(
+        &mut self,
+        layer: &JsonValue,
+        raw: &[u8],
+        name: &str,
+        visiting: &mut BTreeSet<String>,
+    ) -> SourceCommandResult<()> {
+        let id = cmd::text(layer, "layer_id")?;
+        if visiting.len() >= 16 || !visiting.insert(id.into()) {
+            return Err(SourceCommandError::Invalid(
+                "native text layer lineage cycle or depth",
+            ));
+        }
+        self.metadata(raw, name, "layer")?;
+        let policy = cmd::field(layer, "editorial_policy")?;
+        self.read(
+            cmd::text(policy, "policy_ref")?,
+            Some(cmd::text(policy, "policy_sha256")?),
+            true,
+            false,
+        )?;
+        let derivation = cmd::field(layer, "derivation")?;
+        let maker = cmd::field(derivation, "maker")?;
+        if let Some(configuration) = maker
+            .object_get("configuration_ref")
+            .filter(|v| **v != JsonValue::Null)
+        {
+            self.read(
+                configuration.as_str().ok_or(SourceCommandError::Invalid(
+                    "native maker configuration path",
+                ))?,
+                Some(cmd::text(maker, "configuration_digest")?),
+                true,
+                false,
+            )?;
+        }
+        for target in cmd::array(derivation, "input_layers")? {
+            let name = cmd::text(target, "record_ref")?;
+            let (previous, raw) = self.record(name, Some(cmd::text(target, "record_sha256")?))?;
+            self.validate(&previous, "source-text-layer.schema.json")?;
+            if cmd::field(&previous, "layer_id")? != cmd::field(target, "layer_id")?
+                || cmd::field(cmd::field(&previous, "representation")?, "content_sha256")?
+                    != cmd::field(target, "content_sha256")?
+            {
+                return Err(SourceCommandError::Conflict(
+                    "native predecessor layer identity or content differs",
+                ));
+            }
+            self.layer_dependencies(&previous, &raw, name, visiting)?;
+        }
+        visiting.remove(id);
+        Ok(())
+    }
+    fn source_scope(
+        &mut self,
+        binding: &JsonValue,
+        packet: &JsonValue,
+        layer: &JsonValue,
+    ) -> SourceCommandResult<JsonValue> {
+        let scope = cmd::field(packet, "source_scope")?;
+        let layer_scope = cmd::field(layer, "source_binding")?;
+        let refs = cmd::field(binding, "source_record_refs")?;
+        let mut records = BTreeMap::new();
+        for kind in ["work", "expression", "edition", "item"] {
+            let name = cmd::text(refs, kind)?;
+            if name.rsplit('/').next() != Some(format!("{kind}.json").as_str()) {
+                return Err(SourceCommandError::Denied(
+                    "native source scope metadata kind locator",
+                ));
+            }
+            let (record, _) = self.record(name, None)?;
+            self.validate(&record, "corpus-record.schema.json")?;
+            let key = format!("{kind}_ref");
+            if cmd::text(&record, "record_type")? != kind
+                || cmd::field(&record, "record_id")? != cmd::field(scope, &key)?
+                || cmd::field(layer_scope, &key)? != cmd::field(scope, &key)?
+            {
+                return Err(SourceCommandError::Conflict(
+                    "native source scope identity differs",
+                ));
+            }
+            records.insert(kind, record);
+        }
+        if cmd::field(&records["expression"], "work_ref")? != cmd::field(scope, "work_ref")?
+            || !cmd::array(&records["edition"], "embodies_expression_refs")?
+                .contains(cmd::field(scope, "expression_ref")?)
+        {
+            return Err(SourceCommandError::Conflict(
+                "native source scope bibliographic topology differs",
+            ));
+        }
+        let name = cmd::text(&records["item"], "item_manifest_ref")?;
+        if split(name)?.0 != split(cmd::text(refs, "item")?)?.0
+            || split(name)?.1 != "item.manifest.json"
+        {
+            return Err(SourceCommandError::Denied(
+                "native item manifest leaves exact item",
+            ));
+        }
+        let (manifest, _) = self.record(name, None)?;
+        self.validate(&manifest, "source-item-manifest.schema.json")?;
+        if cmd::field(&manifest, "item_id")? != cmd::field(scope, "item_ref")?
+            || cmd::field(&manifest, "embodiment_ref")? != cmd::field(scope, "edition_ref")?
+            || cmd::field(layer_scope, "source_file_ref")? != cmd::field(scope, "file_ref")?
+            || cmd::field(layer_scope, "source_file_sha256")? != cmd::field(scope, "file_sha256")?
+        {
+            return Err(SourceCommandError::Conflict(
+                "native item or source file binding differs",
+            ));
+        }
+        let matches = cmd::array(&manifest, "payload_files")?
+            .iter()
+            .filter(|row| row.object_get("file_id") == scope.object_get("file_ref"))
+            .collect::<Vec<_>>();
+        if matches.len() != 1
+            || cmd::field(matches[0], "sha256")? != cmd::field(scope, "file_sha256")?
+        {
+            return Err(SourceCommandError::Conflict(
+                "native source file not unique in exact item manifest",
+            ));
+        }
+        Ok(manifest)
+    }
+    fn snapshot(self) -> SourceCommandResult<(String, Vec<String>)> {
+        let value = JsonValue::Array(
+            self.inputs
+                .into_iter()
+                .map(|(name, digest)| {
+                    JsonValue::Array(vec![
+                        cmd::string(&name),
+                        cmd::string("metadata"),
+                        cmd::string(&digest),
+                    ])
+                })
+                .collect(),
+        );
+        Ok((
+            python_ascii_digest(&value)?,
+            self.contracts.into_iter().collect(),
+        ))
+    }
+}
+
+// The maintained native resolver has no external-resource retrieval route for
+// these self-contained contracts. A worker's wider resource inventory must not
+// silently make an undeclared native grammar dependency usable.
+fn native_schema_refs(value: &JsonValue, depth: usize) -> SourceCommandResult<()> {
+    if depth > 128 {
+        return Err(SourceCommandError::Invalid("native schema depth budget"));
+    }
+    match value {
+        JsonValue::Object(fields) => {
+            for (name, child) in fields {
+                if [Some("$ref"), Some("$dynamicRef"), Some("$recursiveRef")]
+                    .contains(&name.as_str())
+                    && !child
+                        .as_str()
+                        .is_some_and(|reference| reference.starts_with('#'))
+                {
+                    return Err(SourceCommandError::Unsupported(
+                        "native binding schema selects undeclared resource",
+                    ));
+                }
+                native_schema_refs(child, depth + 1)?;
+            }
+        }
+        JsonValue::Array(values) => {
+            for child in values {
+                native_schema_refs(child, depth + 1)?;
+            }
+        }
+        _ => (),
+    }
+    Ok(())
+}
+
+fn python_ascii_digest(value: &JsonValue) -> SourceCommandResult<String> {
+    let compact = cmd::canonical(value)?;
     let compact = std::str::from_utf8(&compact)
-        .map_err(|_| SourceCommandError::Invalid("inventory snapshot UTF-8"))?;
+        .map_err(|_| SourceCommandError::Invalid("native snapshot UTF-8"))?;
     let mut ascii = String::new();
     for ch in compact.chars() {
         if ch.is_ascii() {
@@ -2654,14 +3014,252 @@ fn native_identity_inventory(
             for unit in ch.encode_utf16(&mut units).iter() {
                 use std::fmt::Write;
                 write!(&mut ascii, "\\u{unit:04x}")
-                    .map_err(|_| SourceCommandError::Invalid("inventory snapshot emission"))?;
+                    .map_err(|_| SourceCommandError::Invalid("native snapshot emission"))?;
             }
         }
     }
-    Ok((
-        Some(Digest256::of_bytes(ascii.as_bytes()).to_prefixed()),
-        used_schema,
-    ))
+    Ok(Digest256::of_bytes(ascii.as_bytes()).to_prefixed())
+}
+
+/// Exact maintained metadata-only adapter. Public gate means recorded posture,
+/// not verified content, an authenticated producer, rights judgment or admission.
+fn native_text_binding(
+    cut: Option<&CorpusCutReader>,
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    ctx: &CommandContext,
+    binding: &JsonValue,
+) -> SourceCommandResult<(String, Vec<String>)> {
+    let cut = cut.ok_or(SourceCommandError::Unsupported(
+        "native text binding requires anchored source cut",
+    ))?;
+    if cut.current().revision() != ctx.base_revision {
+        return Err(SourceCommandError::Conflict("native binding cut differs"));
+    }
+    let mut reader = NativeBindingReader {
+        ctx,
+        cut,
+        worker,
+        deadline,
+        cancelled,
+        inputs: BTreeMap::new(),
+        contracts: BTreeSet::new(),
+        remaining: 8_388_608,
+    };
+    reader.validate(binding, "native-text-unit-binding.schema.json")?;
+    let packet_path = cmd::text(binding, "packet_ref")?;
+    let (packet, packet_raw) =
+        reader.record(packet_path, Some(cmd::text(binding, "packet_sha256")?))?;
+    reader.validate(&packet, "source-text-unit-packet-v1.schema.json")?;
+    if cmd::text(&packet, "content_posture")? != "source_bound"
+        || cmd::field(&packet, "packet_id")? != cmd::field(binding, "packet_id")?
+        || cmd::field(&packet, "packet_version")? != cmd::field(binding, "packet_version")?
+    {
+        return Err(SourceCommandError::Conflict(
+            "native packet identity version or posture differs",
+        ));
+    }
+    let layer_binding = cmd::field(binding, "text_layer")?;
+    let packet_layer = cmd::field(&packet, "source_layer")?;
+    let layer_path = cmd::text(layer_binding, "record_ref")?;
+    if cmd::text(packet_layer, "text_layer_ref")? != layer_path {
+        return Err(SourceCommandError::Conflict(
+            "native packet addresses another text layer",
+        ));
+    }
+    let (layer, layer_raw) =
+        reader.record(layer_path, Some(cmd::text(layer_binding, "record_sha256")?))?;
+    reader.validate(&layer, "source-text-layer.schema.json")?;
+    if cmd::field(&layer, "layer_id")? != cmd::field(layer_binding, "layer_id")?
+        || cmd::field(&layer, "layer_version")? != cmd::field(layer_binding, "layer_version")?
+    {
+        return Err(SourceCommandError::Conflict(
+            "native text layer identity or version differs",
+        ));
+    }
+    reader.metadata(&packet_raw, packet_path, "unit")?;
+    reader.layer_dependencies(&layer, &layer_raw, layer_path, &mut BTreeSet::new())?;
+    let manifest = reader.source_scope(binding, &packet, &layer)?;
+    let rep = cmd::field(&layer, "representation")?;
+    let normalization = cmd::text(rep, "character_normalization")?;
+    let unicode_form = if normalization == "none" {
+        "source_preserved"
+    } else {
+        normalization
+    };
+    if cmd::field(packet_layer, "text_layer_sha256")? != cmd::field(rep, "content_sha256")?
+        || cmd::field(packet_layer, "language")? != cmd::field(rep, "language")?
+        || cmd::text(packet_layer, "unicode_form")? != unicode_form
+        || cmd::field(packet_layer, "visibility")? != cmd::field(rep, "content_visibility")?
+        || cmd::field(packet_layer, "publication_authorized")?
+            != cmd::field(rep, "publication_authorized")?
+        || !["text/plain", "text/plain; charset=utf-8"].contains(&cmd::text(rep, "media_type")?)
+    {
+        return Err(SourceCommandError::Conflict(
+            "native packet and UTF-8 layer declarations differ",
+        ));
+    }
+    let scope = cmd::field(rep, "text_scope")?;
+    for anchor in cmd::array(&packet, "anchors")? {
+        let selector = cmd::field(anchor, "selector")?;
+        if cmd::field(cmd::field(anchor, "source_return")?, "locator_ref")?
+            != cmd::field(rep, "content_ref")?
+            || !(cmd::integer(scope, "start")? <= cmd::integer(selector, "start")?
+                && cmd::integer(selector, "start")? <= cmd::integer(selector, "end")?
+                && cmd::integer(selector, "end")? <= cmd::integer(scope, "end")?)
+        {
+            return Err(SourceCommandError::Conflict(
+                "native unit anchor leaves exact representation scope",
+            ));
+        }
+    }
+    let source_scope = cmd::field(&packet, "source_scope")?;
+    for target in cmd::array(cmd::field(&layer, "source_binding")?, "anchors")? {
+        let name = cmd::text(target, "anchor_record_ref")?;
+        let (anchor, raw) =
+            reader.record(name, Some(cmd::text(target, "anchor_record_sha256")?))?;
+        reader.validate(&anchor, "source-anchor-v2.schema.json")?;
+        reader.metadata(&raw, name, "anchor")?;
+        let anchor_target = cmd::field(&anchor, "target")?;
+        if cmd::field(&anchor, "anchor_id")? != cmd::field(target, "anchor_id")?
+            || cmd::field(anchor_target, "item_id")? != cmd::field(source_scope, "item_ref")?
+            || cmd::field(anchor_target, "file_id")? != cmd::field(source_scope, "file_ref")?
+            || cmd::field(anchor_target, "file_sha256")? != cmd::field(source_scope, "file_sha256")?
+        {
+            return Err(SourceCommandError::Conflict(
+                "native text layer source anchor binding differs",
+            ));
+        }
+    }
+    let rights = cmd::field(&packet, "rights_and_visibility")?;
+    let rights_refs = texts(rights, "rights_record_refs", 128)?
+        .into_iter()
+        .collect::<BTreeSet<_>>();
+    let declared = cmd::array(rep, "rights_record_refs")?
+        .iter()
+        .map(|row| cmd::text(row, "ref").map(String::from))
+        .collect::<SourceCommandResult<BTreeSet<_>>>()?;
+    if declared.is_empty()
+        || rights_refs != declared
+        || !declared.contains(cmd::text(&manifest, "rights_ref")?)
+    {
+        return Err(SourceCommandError::Conflict(
+            "native packet layer and item rights closure differs",
+        ));
+    }
+    let exact_scope = [
+        cmd::text(&layer, "layer_id")?,
+        cmd::text(rep, "content_file_id")?,
+    ]
+    .into_iter()
+    .collect::<BTreeSet<_>>();
+    let mut relevant = exact_scope.clone();
+    for (key, value) in source_scope
+        .as_object()
+        .ok_or(SourceCommandError::Invalid("native source scope"))?
+    {
+        if key.as_str().is_some_and(|name| name.ends_with("_ref")) {
+            relevant.insert(
+                value
+                    .as_str()
+                    .ok_or(SourceCommandError::Invalid("native source scope reference"))?,
+            );
+        }
+    }
+    let mut rights_records = Vec::new();
+    for target in cmd::array(rep, "rights_record_refs")? {
+        let name = cmd::text(target, "ref")?;
+        let (record, _) = reader.record(name, Some(cmd::text(target, "sha256")?))?;
+        reader.validate(&record, "rights-record.schema.json")?;
+        let scope = texts(&record, "scope_refs", 4096)?
+            .into_iter()
+            .collect::<BTreeSet<_>>();
+        if !relevant.iter().any(|id| scope.contains(*id))
+            || name == cmd::text(&manifest, "rights_ref")?
+                && ![
+                    cmd::text(source_scope, "item_ref")?,
+                    cmd::text(source_scope, "file_ref")?,
+                ]
+                .iter()
+                .all(|id| scope.contains(*id))
+        {
+            return Err(SourceCommandError::Denied(
+                "native rights record lacks exact relevant source scope",
+            ));
+        }
+        rights_records.push((record, scope));
+    }
+    for target in cmd::array(rep, "publication_authority_refs")? {
+        reader.read(
+            cmd::text(target, "ref")?,
+            Some(cmd::text(target, "sha256")?),
+            true,
+            false,
+        )?;
+    }
+    let units = cmd::array(&packet, "units")?
+        .iter()
+        .filter(|row| row.object_get("unit_id") == binding.object_get("unit_id"))
+        .collect::<Vec<_>>();
+    let segments = cmd::array(&packet, "segmentations")?
+        .iter()
+        .filter(|row| row.object_get("segmentation_id") == binding.object_get("segmentation_id"))
+        .collect::<Vec<_>>();
+    if units.len() != 1 || segments.len() != 1 {
+        return Err(SourceCommandError::Conflict(
+            "native unit or segmentation is not unique",
+        ));
+    }
+    let unit = units[0];
+    let segment = segments[0];
+    if cmd::field(unit, "unit_version")? != cmd::field(binding, "unit_version")?
+        || cmd::field(unit, "ordered_anchor_refs")? != cmd::field(binding, "ordered_anchor_refs")?
+        || cmd::text(unit, "surface_posture")? != "source_bearing"
+        || cmd::field(segment, "segmentation_version")?
+            != cmd::field(binding, "segmentation_version")?
+        || !cmd::array(segment, "ordered_unit_refs")?.contains(cmd::field(unit, "unit_id")?)
+    {
+        return Err(SourceCommandError::Conflict(
+            "native unit membership version or ordered anchors differs",
+        ));
+    }
+    if cmd::text(rep, "content_visibility")? != "public"
+        || cmd::field(rep, "publication_authorized")? != &JsonValue::Bool(true)
+        || cmd::text(rights, "packet_visibility")? != "public"
+        || cmd::text(rights, "effective_visibility")? != "public"
+        || cmd::field(rights, "publication_authorized")? != &JsonValue::Bool(true)
+        || cmd::field(rights, "private_source_used")? != &JsonValue::Bool(false)
+    {
+        return Err(SourceCommandError::Denied(
+            "public profile native binding has no declared public content gate",
+        ));
+    }
+    let narrower = rights_records
+        .iter()
+        .any(|(_, scope)| exact_scope.iter().any(|id| scope.contains(*id)));
+    for (record, scope) in &rights_records {
+        if narrower && !exact_scope.iter().any(|id| scope.contains(*id)) {
+            continue;
+        }
+        if !["public_domain_reviewed", "licensed", "permission_granted"]
+            .contains(&cmd::text(record, "assessment_status")?)
+            || cmd::text(record, "visibility")? != "public_payload"
+            || !["authorized", "authorized_with_conditions"]
+                .contains(&cmd::text(record, "redistribution_posture")?)
+            || !["allowed", "allowed_with_conditions"]
+                .contains(&cmd::text(record, "derivative_posture")?)
+            || ["legal_review_requested", "superseded"]
+                .contains(&cmd::text(record, "review_status")?)
+        {
+            return Err(SourceCommandError::Denied(
+                "native public content declaration conflicts with recorded rights gate",
+            ));
+        }
+    }
+    // Validate navigation without opening, executing, hashing or projecting text.
+    NativeBindingReader::route(cmd::text(rep, "content_ref")?, false, false, true)?;
+    reader.snapshot()
 }
 
 fn public_profile(
@@ -2672,7 +3270,7 @@ fn public_profile(
     ctx: &CommandContext,
     config: &JsonValue,
     record: &JsonValue,
-) -> SourceCommandResult<(JsonValue, Vec<String>, Option<String>)> {
+) -> SourceCommandResult<(JsonValue, Vec<String>, Option<String>, Option<String>)> {
     let contract = "ToS/contracts/semantic-entity-type-registry.schema.json";
     let registry = cmd::parse(required(ctx, REGISTRY)?)?;
     schema(
@@ -2861,11 +3459,18 @@ fn public_profile(
         ctx,
         cmd::text(record, "record_id")?,
     )?;
-    if profile.object_get("native_binding_adapter").is_some() {
-        return Err(SourceCommandError::Unsupported(
-            "profile needs native text binding owner executor",
-        ));
-    }
+    let native_text = if profile.object_get("native_binding_adapter").is_some() {
+        Some(native_text_binding(
+            cut,
+            worker,
+            deadline,
+            cancelled,
+            ctx,
+            cmd::field(record, "native_text_binding")?,
+        )?)
+    } else {
+        None
+    };
     if profile.object_get("native_binding_adapter").is_none()
         && record.object_get("native_text_binding").is_some()
     {
@@ -2903,9 +3508,22 @@ fn public_profile(
     if inventory_schema {
         resources.push("ToS/contracts/semantic-annotation-packet-v2.schema.json".into());
     }
+    let native_text_snapshot = native_text.map(|(snapshot, contracts)| {
+        for name in contracts {
+            if !resources.contains(&name) {
+                resources.push(name);
+            }
+        }
+        snapshot
+    });
     resources.insert(0, contract.into());
     resources.insert(0, REGISTRY.into());
-    Ok((profile.clone(), resources, native_identity_snapshot))
+    Ok((
+        profile.clone(),
+        resources,
+        native_identity_snapshot,
+        native_text_snapshot,
+    ))
 }
 
 /// Resolve an exact metadata version through its selected current source home
