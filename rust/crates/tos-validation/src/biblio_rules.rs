@@ -669,3 +669,78 @@ fn identity_proposal(claim:&Value,reader:&str,types:&BTreeMap<String,Value>,kind
     }
     rules.skip("identity-proposal-exact-version-reader-lineage-and-related-Claim-resolution")?;Ok(())
 }
+
+pub const BIBLIOGRAPHIC_DELTA_RULE_ID:&str="tos-source-bibliographic-compound-delta";
+pub const BIBLIOGRAPHIC_DELTA_RULE_VERSION:&str="1";
+/// The owning command binds these bytes to the selected immutable base and
+/// candidate cut. Paths are source locators; these values carry no permission,
+/// committed transport status or semantic admission.
+pub struct BiblioDeltaInput<'a> {
+    pub parent_path:&'a str,
+    pub endpoint_path:&'a str,
+    pub claim_path:&'a str,
+    pub parent_before_raw:&'a [u8],
+    pub parent_after_raw:&'a [u8],
+    pub endpoint_raw:&'a [u8],
+    pub claim_raw:&'a [u8],
+}
+/// Execute exact owner append/delta laws used by native topology, Collection
+/// membership and Expression responsibility commands. This is source mechanics
+/// over pinned candidate bytes; whole-plan/forms/dependency reconstruction,
+/// initial absence, current lineage, grants and commit remain separate gates.
+pub fn inspect_bibliographic_delta(input:BiblioDeltaInput<'_>,limits:ItemLimits,cancelled:&AtomicBool,schemas:&mut impl CutSchemaExecutor)->Result<RelationShadow,ItemRefusal> {
+    let mut rules=Rules {limits,cancelled,state:0,bytes:0,anchors:BTreeSet::new(),reserved:BTreeSet::new(),schema_seen:BTreeSet::new(),shadow:RelationShadow::default()};
+    for raw in [input.parent_before_raw,input.parent_after_raw,input.endpoint_raw,input.claim_raw] {
+        check(limits.deadline,cancelled)?;if raw.len()>limits.max_member_bytes{return Err(ItemRefusal::Budget);}account(&mut rules.bytes,raw.len(),limits.max_total_bytes)?;reserve(&mut rules.state,raw.len()*3,limits.max_state_bytes)?;
+    }
+    let before=decoded(input.parent_before_raw)?;let after=decoded(input.parent_after_raw)?;let endpoint=decoded(input.endpoint_raw)?;
+    let claim=crate::published_value(input.claim_raw,limits.max_member_bytes).map_err(|e|ItemRefusal::Unsupported(format!("strict delta Claim:{e:?}")))?;
+    let predicate=s(&claim,"predicate").ok_or_else(||ItemRefusal::Unsupported("bibliographic delta predicate".into()))?;
+    let (parent_kind,endpoint_kind,field,child_dir)=match predicate {
+        "has_expression"=>("work","expression","expression_claim_refs",Some("expressions")),
+        "embodied_by"=>("expression","edition","embodiment_claim_refs",Some("editions")),
+        "exemplified_by"=>("edition","item","exemplar_claim_refs",Some("items")),
+        "contains_work"=>("collection","work","membership_claim_refs",None),
+        "translated_by"=>("expression","agent","responsibility_claim_refs",None),
+        _=>return Err(ItemRefusal::Unsupported(format!("bibliographic delta profile:{predicate}"))),
+    };
+    for (path,raw,contract) in [(input.parent_path,input.parent_after_raw,"ToS/contracts/corpus-record.schema.json"),(input.endpoint_path,input.endpoint_raw,"ToS/contracts/corpus-record.schema.json"),(input.claim_path,input.claim_raw,"ToS/contracts/source-relation-claim.schema.json")] {
+        check(limits.deadline,cancelled)?;
+        if !schemas.check(path,raw,contract,limits.deadline,cancelled)? {rules.issue("bibliographic-delta-schema",path)?;}
+        rules.read(PredicateRead::ExactPath {path:path.into(),digest:Digest256::of_bytes(raw).to_prefixed()})?;
+    }
+    rules.read(PredicateRead::ExactBytes {locator:format!("before:{}",input.parent_path),digest:Digest256::of_bytes(input.parent_before_raw).to_prefixed()})?;
+    let parent_id=s(&before,"record_id");let endpoint_id=s(&endpoint,"record_id");let claim_id=s(&claim,"claim_id");
+    if s(&before,"record_type")!=Some(parent_kind)||s(&after,"record_type")!=Some(parent_kind)||parent_id.is_none()||s(&after,"record_id")!=parent_id||s(&endpoint,"record_type")!=Some(endpoint_kind)||endpoint_id.is_none() {rules.issue("delta-preserved-typed-identities",input.parent_path)?;}
+    if !before["record_version"].as_u64().filter(|v|*v>0).and_then(|v|v.checked_add(1)).is_some_and(|v|after["record_version"].as_u64()==Some(v)) {rules.issue("delta-one-successor-version",input.parent_path)?;}
+    let refs=strings(&before,field);let unique:BTreeSet<_>=refs.iter().collect();let mut expected=refs.clone();if let Some(id)=claim_id {expected.push(id.into());}
+    if !before[field].is_array()||before[field].as_array().unwrap().len()!=refs.len()||refs.len()!=unique.len()||claim_id.is_none()||claim_id.is_some_and(|id|refs.iter().any(|v|v==id))||after[field]!=json!(expected) {rules.issue("delta-exact-new-Claim-append",input.parent_path)?;}
+    let mut preserved_before=before.clone();let mut preserved_after=after.clone();
+    for value in [&mut preserved_before,&mut preserved_after] {let Some(object)=value.as_object_mut() else {rules.issue("delta-parent-object",input.parent_path)?;return Ok(rules.shadow);};object.remove("record_version");object.remove(field);}
+    if preserved_before!=preserved_after {rules.issue("delta-descriptive-fields-preserved",input.parent_path)?;}
+    if s(&claim,"schema_version")!=Some("tos_source_relation_claim_v1")||s(&claim,"claim_type")!=Some("relation")||s(&claim,"subject_ref")!=parent_id||s(&claim,"object")!=endpoint_id||claim["claim_version"]!=1||s(&claim,"review_status")!=Some("unreviewed")||claim.get("assessment_refs").is_some_and(|v|*v!=json!([]))||claim.get("supersedes_claim_ref").is_some_and(|v|!v.is_null())||s(&claim,"visibility")!=Some("public_metadata_only") {rules.issue("delta-unreviewed-new-typed-Claim",input.claim_path)?;}
+    if let Some(directory)=child_dir {
+        if s(&claim,"assertion_layer")!=Some("bibliographic_assertion")||s(&claim,"epistemic_status")!=Some("observed")||s(&claim,"polarity")!=Some("positive")||claim.get("confidence").is_some_and(|v|!v.is_null()) {rules.issue("delta-topology-initial-Claim-posture",input.claim_path)?;}
+        if endpoint["record_version"]!=1||s(&endpoint,"identity_status")!=Some("provisional")||s(&endpoint,"same_as_posture")!=Some("no_equivalence_claim")||endpoint.get("supersedes_ref").is_some_and(|v|!v.is_null()) {rules.issue("delta-new-provisional-endpoint",input.endpoint_path)?;}
+        let parent_relative=RelativePath::parse(input.parent_path).map_err(|_|ItemRefusal::Unsupported("delta parent path".into()))?;let endpoint_relative=RelativePath::parse(input.endpoint_path).map_err(|_|ItemRefusal::Unsupported("delta child path".into()))?;
+        let parent_home=parent_relative.as_str().rsplit_once('/').map(|v|v.0).unwrap_or("");let child_home=endpoint_relative.as_str().rsplit_once('/').map(|v|v.0).unwrap_or("");let expected_home=format!("{parent_home}/{directory}/");
+        let child_segment=child_home.strip_prefix(&expected_home).filter(|v|!v.is_empty()&&!v.contains('/'));
+        let segment_valid=child_segment.is_some_and(|v|v.bytes().all(|b|b.is_ascii_lowercase()||b.is_ascii_digit()||matches!(b,b'.'|b'-')) && !v.starts_with('.') && !v.starts_with('-') && !v.ends_with('.') && !v.ends_with('-') && !v.as_bytes().windows(2).any(|p|matches!(p[0],b'.'|b'-')&&matches!(p[1],b'.'|b'-')));
+        if !input.parent_path.ends_with(&format!("/{parent_kind}.json"))||!input.endpoint_path.ends_with(&format!("/{endpoint_kind}.json"))||!segment_valid||!input.parent_path.starts_with("ToS/source-witnesses/")||matches!(parent_kind,"work"|"expression")&&!input.parent_path.starts_with("ToS/source-witnesses/works/")||parent_kind=="expression"&&!parent_home.rsplit_once('/').is_some_and(|(p,_)|p.ends_with("/expressions"))||parent_kind=="edition"&&!input.parent_path.split('/').any(|p|p=="editions") {rules.issue("delta-canonical-new-child-home",input.endpoint_path)?;}
+        let evidence=strings(&claim,"evidence_refs");if evidence.len()!=2||evidence.iter().map(String::as_str).collect::<BTreeSet<_>>()!=BTreeSet::from([input.parent_path,input.endpoint_path]) {rules.issue("delta-exact-endpoint-evidence",input.claim_path)?;}
+        let common=["schema_version","record_type","record_id","record_version","preferred_label","field_languages","variant_labels","identity_status","source_refs","external_identifiers","same_as_posture","notes","supersedes_ref"];
+        let allowed_extra:&[&str]=match endpoint_kind {"edition"=>&["embodies_expression_refs","edition_statement","publication_claim_refs","provision_activity_claim_refs","exemplar_claim_refs","responsibility_claim_refs"],"item"=>&["item_manifest_ref"],_=>&[]};
+        if matches!(endpoint_kind,"edition"|"item") && endpoint.as_object().is_some_and(|object|object.keys().any(|key|!common.contains(&key.as_str())&&!allowed_extra.contains(&key.as_str()))) {rules.issue("delta-child-scope-fields",input.endpoint_path)?;}
+        let empty_fields:&[&str]=match endpoint_kind {"expression"=>&["responsibility_claim_refs","embodiment_claim_refs","derivation_claim_refs"],"edition"=>&["publication_claim_refs","exemplar_claim_refs","provision_activity_claim_refs","responsibility_claim_refs"],_=>&[]};
+        for empty in empty_fields {if endpoint.get(*empty).is_some_and(|v|*v!=json!([]))||matches!(*empty,"responsibility_claim_refs"|"embodiment_claim_refs"|"publication_claim_refs"|"exemplar_claim_refs")&&endpoint.get(*empty).is_none() {rules.issue("delta-no-inferred-endpoint-Claims",input.endpoint_path)?;}}
+        if endpoint_kind=="expression" && s(&endpoint,"work_ref")!=parent_id||endpoint_kind=="edition" && endpoint["embodies_expression_refs"]!=json!([parent_id])||endpoint_kind=="item" && s(&endpoint,"item_manifest_ref")!=Some(&format!("{child_home}/item.manifest.json")) {rules.issue("delta-exact-child-parent-or-manifest",input.endpoint_path)?;}
+        for field in ["variant_labels","external_identifiers"] {if !endpoint[field].as_array().is_some_and(|a|a.iter().all(|v|v.is_object()&&if endpoint_kind=="expression" {s(v,"status")!=Some("verified")}else{s(v,"status")==Some("unverified")})) {rules.issue("delta-unverified-child-labels-and-identifiers",input.endpoint_path)?;}}
+    } else {
+        if !matches!(s(&claim,"assertion_layer"),Some("bibliographic_assertion"|"scholarly_report")) {rules.issue("delta-qualified-attachment-layer",input.claim_path)?;}
+        qualified(&claim,predicate,&mut rules,input.claim_path)?;
+        let evidence=strings(&claim,"evidence_refs");if evidence.is_empty()||evidence.iter().collect::<BTreeSet<_>>().len()!=evidence.len() {rules.issue("delta-explicit-attribution-evidence",input.claim_path)?;}
+    }
+    rules.shadow.checked_profiles.insert(format!("{BIBLIOGRAPHIC_DELTA_RULE_ID}@{BIBLIOGRAPHIC_DELTA_RULE_VERSION}:{predicate}"));
+    rules.skip("whole-compound-plan-forms-dependency-byte-custody-current-lineage-and-permission-fence")?;
+    check(limits.deadline,cancelled)?;Ok(rules.shadow)
+}
