@@ -819,3 +819,9 @@ mod retirement_cut_cases;
 
 #[path = "command_form_cases.rs"]
 mod command_form_cases;
+
+#[path = "command_record_cases.rs"]
+mod command_record_cases;
+
+#[path = "command_claim_cases.rs"]
+mod command_claim_cases;
