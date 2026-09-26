@@ -9,13 +9,11 @@ license.workspace = true
 [dependencies]
 tos-foundation = { path = "../tos-foundation" }
 tos-query = { path = "../tos-query" }
+tos-compiler = { path = "../tos-compiler" }
 
 [lib]
 name = "tos_access"
 path = "src/lib.rs"
-
-[dev-dependencies]
-tos-compiler = { path = "../tos-compiler" }
 
 [[bin]]
 name = "tos-access"
