@@ -48,6 +48,7 @@ mod source_bibliographic_native_text;
 mod source_bibliographic_render;
 mod source_bibliographic_unicode;
 mod source_bibliographic_values;
+mod source_bibliographic_versions;
 pub mod source_witness_catalog;
 mod sqlite_budget;
 mod vocabulary;
