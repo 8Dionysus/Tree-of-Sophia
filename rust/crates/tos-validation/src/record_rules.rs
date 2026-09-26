@@ -1562,9 +1562,12 @@ fn schema_uri(path: &str, schema: &Value) -> Result<String, RecordRuleError> {
         .get("$id")
         .and_then(Value::as_str)
         .ok_or_else(|| unsupported("schema_id", path))?;
-    if uri != format!("https://tree-of-sophia.local/{path}")
-        && uri != format!("https://treeofsophia.local/{path}")
-    {
+    // Preserve the exact authored resource identity. Contract paths locate
+    // pinned bytes; maintained schema IDs also use public/legacy URI homes.
+    // The existing selected backend owns URI resolution and schema validity.
+    // Retain its HTTPS, fragment-free resource profile without inventing a
+    // filesystem-path-to-ID convention or a URI host allowlist here.
+    if !uri.starts_with("https://") || uri.contains('#') {
         return Err(unsupported("schema_id", path));
     }
     Ok(uri.to_owned())
