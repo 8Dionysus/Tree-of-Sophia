@@ -1236,7 +1236,9 @@ fn validate_ground(
         }
         if value.object_get("kind").and_then(JsonValue::as_str) == Some("relative-order") {
             let anchor = field(field(value, "relative")?, "anchor_ref")?;
-            grant(config, "allowed_object_refs", anchor)?;
+            if config.object_get("allowed_object_refs").is_some() {
+                grant(config, "allowed_object_refs", anchor)?;
+            }
             endpoints.push((
                 anchor
                     .as_str()
@@ -1245,43 +1247,100 @@ fn validate_ground(
                 JsonValue::Array(vec![string("tos.entity.historical-situation")]),
             ));
         }
-        if reader == "document-catalogue-temporal-v1" || reader == "historical-temporal-v1" {
-            return Err(SourceCommandError::Unsupported(
-                "exact temporal value definition and catalogue attribution grounding adapter",
-            ));
+        if reader == "document-catalogue-temporal-v1" {
+            let attribution = field(field(claim, "qualifiers")?, "catalogue_attribution")?;
+            if text(attribution, "field_role")? != "assigned-date"
+                || !allowed(claim, "evidence_refs", field(attribution, "evidence_ref")?)?
+                || !same(
+                    field(attribution, "source_wording")?,
+                    field(value, "source_wording")?,
+                )?
+            {
+                return Err(SourceCommandError::Invalid(
+                    "Document catalogue date must bind exact field role, evidence and wording",
+                ));
+            }
         }
+        // Both actual selected Claim contracts transitively evaluate the
+        // temporal/documentDate definition through their declared $ref. No
+        // synthetic fragment schema or alternate value grammar is introduced.
     }
     let entities = json_file(ctx, ENTITIES)?;
     let types = array(&entities, "types")?;
     for (id, allowed_types) in endpoints {
-        let (record, _) = find_record(ctx, &id)?;
+        let (record, _loc) = find_record(ctx, &id)?;
         let record_type = text(&record, "record_type")?;
         let entity = types
             .iter()
             .find(|entry| {
                 entry
-                    .object_get("source_record_profile")
-                    .and_then(|p| p.object_get("record_type"))
-                    .and_then(JsonValue::as_str)
-                    == Some(record_type)
+                    .object_get("source_mappings")
+                    .and_then(JsonValue::as_array)
+                    .is_some_and(|mappings| {
+                        mappings.iter().any(|mapping| {
+                            mapping
+                                .object_get("source_graph")
+                                .and_then(JsonValue::as_str)
+                                == Some("source-claims")
+                                && mapping
+                                    .object_get("source_kind_id")
+                                    .and_then(JsonValue::as_str)
+                                    == Some(record_type)
+                        })
+                    })
             })
             .ok_or(SourceCommandError::Unsupported(
-                "endpoint native source metadata type adapter",
+                "endpoint registry source-kind mapping",
             ))?;
-        let route = array(field(entity, "source_record_profile")?, "schemas")?
-            .iter()
-            .find(|r| r.object_get("schema_version") == record.object_get("schema_version"))
-            .ok_or(SourceCommandError::Unsupported(
-                "endpoint source schema route",
-            ))?;
-        schema_check(
-            executor,
-            text(config, "source_path")?,
-            &record,
-            text(route, "schema_ref")?,
-            deadline,
-            cancelled,
-        )?;
+        if let Some(profile) = entity.object_get("source_record_profile") {
+            let route = array(profile, "schemas")?
+                .iter()
+                .find(|route| {
+                    route.object_get("schema_version") == record.object_get("schema_version")
+                })
+                .ok_or(SourceCommandError::Unsupported(
+                    "endpoint source schema route",
+                ))?;
+            schema_check(
+                executor,
+                &_loc,
+                &record,
+                text(route, "schema_ref")?,
+                deadline,
+                cancelled,
+            )?;
+        } else {
+            let basename = _loc
+                .rsplit('/')
+                .next()
+                .ok_or(SourceCommandError::Invalid("native source basename"))?;
+            if ![
+                "agent",
+                "place",
+                "organization",
+                "work",
+                "expression",
+                "edition",
+                "collection",
+                "item",
+            ]
+            .contains(&record_type)
+                || basename != format!("{record_type}.json")
+                || text(&record, "schema_version")? != "tos_corpus_record_v1"
+            {
+                return Err(SourceCommandError::Unsupported(
+                    "native endpoint source carrier adapter",
+                ));
+            }
+            schema_check(
+                executor,
+                &_loc,
+                &record,
+                "ToS/contracts/corpus-record.schema.json",
+                deadline,
+                cancelled,
+            )?;
+        }
         let ancestry = ancestry(types, text(entity, "type_id")?)?;
         if !allowed_types
             .as_array()
@@ -1315,9 +1374,11 @@ fn validate_ground(
                     }
                     selected(ctx, r)?;
                 } else {
-                    return Err(SourceCommandError::Unsupported(
-                        "provenance/anchor/external citation evidence adapter",
-                    ));
+                    if !has_record_evidence(ctx, r)? && !indexed_evidence(ctx, r)? {
+                        return Err(SourceCommandError::Unsupported(
+                            "evidence identity, anchor or provenance source not selected",
+                        ));
+                    }
                 }
             }
         }
@@ -1693,4 +1754,49 @@ fn selected_claim_ids(ctx: &CommandContext) -> SourceCommandResult<BTreeSet<Stri
         }
     }
     Ok(result)
+}
+
+fn indexed_evidence(ctx: &CommandContext, identity: &str) -> SourceCommandResult<bool> {
+    let mut count = 0usize;
+    for file in &ctx.files {
+        let p = file.path.as_str();
+        let basename = p.rsplit('/').next().unwrap_or("");
+        if !p.starts_with("ToS/source-witnesses/")
+            || p.contains("/.record-revisions/")
+            || p.contains("/catalog/")
+            || !basename.ends_with(".jsonl")
+        {
+            continue;
+        }
+        let key = if basename.contains("anchor") {
+            "anchor_id"
+        } else if basename.contains("provenance") {
+            "event_id"
+        } else {
+            continue;
+        };
+        for line in file.raw.split(|b| *b == b'\n') {
+            if line.iter().all(u8::is_ascii_whitespace) {
+                continue;
+            }
+            let row = parse(line)?;
+            if row.object_get(key).and_then(JsonValue::as_str) == Some(identity) {
+                count += 1;
+            }
+        }
+    }
+    if count > 1 {
+        return Err(SourceCommandError::Conflict(
+            "duplicate selected evidence identity",
+        ));
+    }
+    Ok(count == 1)
+}
+
+fn has_record_evidence(ctx: &CommandContext, identity: &str) -> SourceCommandResult<bool> {
+    match find_record(ctx, identity) {
+        Ok(_) => Ok(true),
+        Err(SourceCommandError::Unsupported(_)) => Ok(false),
+        Err(error) => Err(error),
+    }
 }
