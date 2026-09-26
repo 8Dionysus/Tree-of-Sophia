@@ -88,9 +88,17 @@ impl LayerFamilyRules {
         source.schema(path,raw,contract,self.limits.deadline)
     }
     pub fn record_gap(&mut self,path:&str,profile:&str)->Result<(),ItemRefusal>{self.gap(path,profile)}
+    fn decoded(&mut self,path:&str,raw:&[u8],invalid_code:&'static str)->Result<Option<Value>,ItemRefusal>{
+        match crate::native_decoded_value(raw,self.limits.max_member_bytes){
+            Ok(value)=>Ok(Some(value)),
+            Err(ItemRefusal::Source(reason))=>{self.issue(path,invalid_code,&reason)?;Ok(None)},
+            Err(ItemRefusal::Unsupported(reason))=>{self.gap(path,&reason)?;Ok(None)},
+            Err(reason)=>Err(reason),
+        }
+    }
     fn object(&mut self, source: &mut impl LayerFamilySource, path: &str, contract: Option<&str>) -> Result<Option<(Value,Vec<u8>)>,ItemRefusal> {
         let Some(raw)=self.bytes(source,path,None)? else { return Ok(None) };
-        let Ok(value)=serde_json::from_slice::<Value>(&raw) else { self.issue(path,"invalid-json",path)?; return Ok(None) };
+        let Some(value)=self.decoded(path,&raw,"invalid-json")? else{return Ok(None)};
         if !value.is_object() { self.issue(path,"object-required",path)?; return Ok(None); }
         if let Some(contract)=contract {
             if !self.schema(source,path,&raw,contract)? { self.issue(path,"schema",contract)?; }
@@ -194,7 +202,7 @@ impl LayerFamilyRules {
             for input in rows(&v["derivation"],"input_layers") {
                 let locator=s(input,"record_ref"); let digest=s(input,"record_sha256");
                 if let Some(bytes)=self.bytes(source,locator,Some(digest))? {
-                    if let Ok(predecessor)=serde_json::from_slice::<Value>(&bytes) {
+                    if let Some(predecessor)=self.decoded(locator,&bytes,"invalid-layer-predecessor")? {
                         bindings.insert(s(&predecessor["representation"],"content_ref").into(),s(&predecessor["representation"],"content_sha256").into());
                     }
                     bindings.insert(locator.into(),digest.into());
@@ -439,7 +447,7 @@ impl LayerFamilyRules {
             let binding=&v["inputs"][name]; let locator=s(binding,"ref"); let digest=s(binding,"sha256");
             let Some(raw)=self.bytes(source,locator,Some(digest))? else {return Ok(())};
             if !["transfer_plan","target_numbered_unit_map","shared_label_correspondence"].contains(&name){continue;}
-            let Ok(input)=serde_json::from_slice::<Value>(&raw) else {self.issue(path,"invalid-crosswalk-input",name)?;return Ok(())};
+            let Some(input)=self.decoded(locator,&raw,"invalid-crosswalk-input")? else{return Ok(())};
             if !input.is_object() {self.issue(path,"crosswalk-input-object-required",name)?;return Ok(())}
             inputs.insert(name,input);
         }
@@ -787,6 +795,10 @@ mod tests {
     }
     #[test]
     fn retained_adapter_lies_and_state_deadlines_refuse(){
+        let path="ToS/research-packets/test/native.json";
+        let mut fixture=Fixture{files:BTreeMap::from([(path.into(),br#"{"schema_version":"tos_source_anchor_v2","extension":"\ud800"}"#.to_vec())]),schemas:Vec::new(),lie:false};
+        let mut rules=LayerFamilyRules::new(limits());rules.inspect(&mut fixture,path).unwrap();let report=rules.finish();assert!(report.issues.is_empty());assert_eq!(report.unsupported.len(),1);assert!(report.checked_predicates.is_empty());
+        fixture.files.insert(path.into(),br#"{"schema_version":"tos_source_anchor_v2",}"#.to_vec());let mut rules=LayerFamilyRules::new(limits());rules.inspect(&mut fixture,path).unwrap();let report=rules.finish();assert!(report.unsupported.is_empty());assert_eq!(report.issues[0].code,"invalid-json");
         let(v,mut fixture)=crosswalk();fixture.lie=true;let path=v["inputs"]["transfer_plan"]["ref"].as_str().unwrap();fixture.files.insert(path.into(),b"{}".to_vec());let packet="ToS/research-packets/test/crosswalk.json";fixture.files.insert(packet.into(),serde_json::to_vec(&v).unwrap());
         let mut rules=LayerFamilyRules::new(limits());assert!(matches!(rules.inspect(&mut fixture,packet),Err(ItemRefusal::Source(_))));
         let mut budget=limits();budget.max_state_bytes=1;let mut rules=LayerFamilyRules::new(budget);assert_eq!(rules.inspect(&mut fixture,packet),Err(ItemRefusal::Budget));

@@ -103,7 +103,14 @@ pub fn inspect_layers_with_payloads_from_cut(cut:&CorpusCutReader,limits:ItemLim
         if member.raw.len()>limits.max_member_bytes || member.raw.len().checked_mul(8).is_none_or(|n| n>limits.max_state_bytes.saturating_sub(index_bytes)){return Err(ItemRefusal::Budget)}
         // Ordinary family loaders use Python decoded-field JSON. A malformed
         // selected path must remain visible rather than vanish in filtering.
-        let selected=(path.starts_with("ToS/source-witnesses/server-import/plans/")&&path.strip_prefix("ToS/source-witnesses/server-import/plans/").is_some_and(|name|!name.contains('/')))||path.ends_with("/artifact-witness.json")||path.ends_with("/composite-witness.json")||((path.starts_with("ToS/source-witnesses/artifacts/")||path.starts_with("ToS/source-witnesses/scholarly-composites/"))&&path.ends_with("/representation.json"))||serde_json::from_slice::<serde_json::Value>(&member.raw).ok().is_some_and(|v|matches!(v["schema_version"].as_str(),Some("tos_source_text_unit_packet_v1"|"tos_source_text_layer_v1"|"tos_source_anchor_v2"|"tos_semantic_annotation_packet_v2"|"tos_translation_alignment_packet_v1"|"tos_semantic_ladder_packet_v4"|"tos_transfer_candidate_structural_crosswalk_v1")));
+        let selected_path=(path.starts_with("ToS/source-witnesses/server-import/plans/")&&path.strip_prefix("ToS/source-witnesses/server-import/plans/").is_some_and(|name|!name.contains('/')))||path.ends_with("/artifact-witness.json")||path.ends_with("/composite-witness.json")||((path.starts_with("ToS/source-witnesses/artifacts/")||path.starts_with("ToS/source-witnesses/scholarly-composites/"))&&path.ends_with("/representation.json"));
+        // Refuse an unrepresentable decoded value rather than silently lose a
+        // code-owned schema_version route. Known paths are decoded by rules.
+        let selected=selected_path||match crate::native_decoded_value(&member.raw,limits.max_member_bytes){
+            Ok(v)=>matches!(v["schema_version"].as_str(),Some("tos_source_text_unit_packet_v1"|"tos_source_text_layer_v1"|"tos_source_anchor_v2"|"tos_semantic_annotation_packet_v2"|"tos_translation_alignment_packet_v1"|"tos_semantic_ladder_packet_v4"|"tos_transfer_candidate_structural_crosswalk_v1")),
+            Err(ItemRefusal::Source(_))=>false,
+            Err(reason)=>return Err(reason),
+        };
         if selected{
             index_bytes=index_bytes.checked_add(path.len()+64).filter(|n|*n<=limits.max_state_bytes).ok_or(ItemRefusal::Budget)?;
             paths.push(path.to_owned());
