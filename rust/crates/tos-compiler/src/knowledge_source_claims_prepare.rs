@@ -822,6 +822,281 @@ mod tests {
         assert_eq!(prepared.dependency_root_sha256, ROOT_PREPARED_EMPTY);
     }
     #[test]
+    fn public_temporal_snapshot_normalizes_genuine_claim_and_context() {
+        use crate::knowledge_normalization::stable_digest;
+        use crate::knowledge_source_claims::{
+            ClaimNormalizeLimits, ClaimNormalizer, claim_context_sources, claim_contexts,
+            finalize_source_claims, materialize_source_claim_nodes, prepare_claim_context_groups,
+        };
+        let fixture: Value = serde_json::from_slice(include_bytes!(
+            "../../../../access/tests/fixtures/knowledge-contract/temporal-jenseits-date.json"
+        ))
+        .unwrap();
+        let descriptor = include_bytes!("../tests/fixtures/query-vocabulary.v1.json");
+        let entity =
+            include_bytes!("../../../../ToS/doctrine/semantic-interchange/entity-types.v1.json");
+        let relation =
+            include_bytes!("../../../../ToS/doctrine/semantic-interchange/relation-types.v1.json");
+        let vocabulary = QueryVocabulary::parse(
+            descriptor,
+            &[
+                "philosophy-node-edge-v1",
+                "canon-node-relation-v1",
+                "candidate-relation-v1",
+                "source-navigation-node-edge-v1",
+                PROFILE,
+                "declared-identity-and-source-ref-joins-v1",
+                "repository-topology-v1",
+                "indexed-node-edge-v1",
+            ],
+        )
+        .unwrap();
+        let registry = crate::KnowledgeRegistry::parse(entity, relation).unwrap();
+        let rows: Vec<(String, String, Vec<u8>)> = COLLECTIONS
+            .iter()
+            .flat_map(|collection| {
+                let key = match *collection {
+                    "nodes" => "node_id",
+                    "edges" => "edge_id",
+                    _ => "claim_ref",
+                };
+                fixture[*collection]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .map(move |value| {
+                        (
+                            (*collection).to_owned(),
+                            value[key].as_str().unwrap().to_owned(),
+                            serde_json::to_vec(value).unwrap(),
+                        )
+                    })
+            })
+            .collect();
+        let mut exact = receipt(&[]);
+        exact.collections = COLLECTIONS
+            .iter()
+            .map(|collection| {
+                let mut selected = rows
+                    .iter()
+                    .filter(|(name, _, _)| name == collection)
+                    .collect::<Vec<_>>();
+                selected.sort_by_key(|(_, id, _)| id);
+                let mut hash = Digest256Hasher::new();
+                for (_, id, bytes) in &selected {
+                    root_item(&mut hash, id, Digest256::of_bytes(bytes).as_bytes());
+                }
+                InputCollectionReceipt {
+                    source_graph: "source-claims".into(),
+                    collection: (*collection).into(),
+                    input_role: "bibliographic-claims".into(),
+                    adapter_profile: PROFILE.into(),
+                    expected_count: selected.len() as u64,
+                    expected_root_sha256: hash.finalize().to_hex(),
+                }
+            })
+            .collect();
+        let owner = Owner;
+        let quota = TestQuota;
+        let candidate = path("native-temporal");
+        let mut stage = KnowledgeStage::create(
+            &candidate,
+            StageLimits {
+                sqlite: Limits::default(),
+                max_temp_bytes: 64 * 1024 * 1024,
+                max_seek_rows: 2,
+                max_seek_bytes: 128 * 1024,
+            },
+            exact,
+            &owner,
+            &quota,
+        )
+        .unwrap();
+        for (collection, id, payload) in &rows {
+            stage
+                .ingest_input(InputRow {
+                    source_graph: "source-claims",
+                    collection,
+                    id,
+                    payload,
+                })
+                .unwrap();
+        }
+        let prepared = prepare_source_claims(
+            &mut stage,
+            &vocabulary,
+            ClaimPrepareLimits {
+                max_nodes: 16,
+                max_edges: 16,
+                max_claims: 4,
+                max_page_rows: 2,
+                max_row_bytes: 65536,
+                max_work_bytes: 2 * 1024 * 1024,
+            },
+        )
+        .unwrap();
+        let normalize_limits = ClaimNormalizeLimits {
+            max_raw_bytes: 65536,
+            max_output_bytes: 262144,
+            max_page_rows: 2,
+            max_contexts: 16,
+            max_work_bytes: 8 * 1024 * 1024,
+        };
+        let normalizer = ClaimNormalizer::new(
+            &registry,
+            entity,
+            relation,
+            &vocabulary,
+            descriptor,
+            normalize_limits,
+        )
+        .unwrap();
+        assert_eq!(
+            materialize_source_claim_nodes(&mut stage, &prepared, &normalizer).unwrap(),
+            6
+        );
+        let mut normalized = std::collections::BTreeMap::<String, Value>::new();
+        for (_, id, _) in rows
+            .iter()
+            .filter(|(collection, _, _)| collection == "nodes")
+        {
+            let bytes: Vec<u8> = stage
+                .with_connection(WritePhase::Sort, |db| {
+                    Ok(db.query_row(
+                        "SELECT payload FROM knowledge_nodes WHERE native_id=?1",
+                        [id],
+                        |r| r.get(0),
+                    )?)
+                })
+                .unwrap();
+            normalized.insert(id.clone(), serde_json::from_slice(&bytes).unwrap());
+        }
+        // Frozen bounded Python _normalize_node oracle over the exact public
+        // transport snapshot. Its historical navigation descriptor is retained;
+        // this does not make a new source/registry admission decision.
+        let trace = &fixture["claim_traces"][0];
+        let claim_id = trace["claim_node_id"].as_str().unwrap();
+        let object_id = trace["object_node_id"].as_str().unwrap();
+        assert_eq!(
+            stable_digest(&normalized[claim_id]).unwrap(),
+            "a9bdecfdca1fde7c266997bae2fe460f9570d1e8e05f8c0e736f3cd236b423e9"
+        );
+        assert_eq!(
+            stable_digest(&normalized[object_id]).unwrap(),
+            "fffff9d21a3aaf598a163532ed5d2405db7f379fe1146a5e9d4c59201c03b1ba"
+        );
+        let contexts = prepare_claim_context_groups(&mut stage, normalize_limits).unwrap();
+        let reference = trace["claim_ref"].as_str().unwrap();
+        let group = claim_contexts(
+            &mut stage,
+            &contexts,
+            "source-claims",
+            reference,
+            normalize_limits,
+        )
+        .unwrap();
+        assert_eq!(
+            stable_digest(&serde_json::json!(group)).unwrap(),
+            "40cc3e37630f6a2bc69db68c6b133a64fdba0b360309124c24222ae678dfc28a"
+        );
+        let witnesses = claim_context_sources(
+            &mut stage,
+            &contexts,
+            "source-claims",
+            reference,
+            normalize_limits,
+        )
+        .unwrap();
+        assert_eq!(witnesses.len(), 1);
+        assert_eq!(
+            witnesses[0],
+            stage
+                .raw_by_id("source-claims", "nodes", claim_id)
+                .unwrap()
+                .unwrap()
+                .payload
+        );
+        assert_eq!(
+            finalize_source_claims(&mut stage, &prepared, &normalizer, &contexts).unwrap(),
+            1
+        );
+        let final_bytes: Vec<u8> = stage
+            .with_connection(WritePhase::Sort, |db| {
+                Ok(db.query_row(
+                    "SELECT payload FROM knowledge_nodes WHERE native_id=?1",
+                    [claim_id],
+                    |r| r.get(0),
+                )?)
+            })
+            .unwrap();
+        let final_claim: Value = serde_json::from_slice(&final_bytes).unwrap();
+        assert_eq!(
+            stable_digest(&final_claim["semantics"]["claim"]).unwrap(),
+            "e1482ee857ecf29770bd002ab31a699ad1ac711549730e8a42eea486eff2f4b9"
+        );
+        assert_ne!(normalized[object_id]["entity_id"], final_claim["entity_id"]);
+        let expected = [
+            (
+                "generated_by",
+                "344919ee0e0a9bb31740d07bea36659a9db597bf3a6edfd8457b82d939050949",
+            ),
+            (
+                "has_object",
+                "c9eff963f5eefb80fd23304628e06ea19d782dc57502cd0705dcc1ae1b18ec68",
+            ),
+            (
+                "has_subject",
+                "3f5537c3a5e74a52126ebd3096912f867f775fafa991708f0c6c6e0109c6e64c",
+            ),
+            (
+                "made_by",
+                "d72b3933118ae2764ae12d0a612083251976a41a0d8f7b11f570339553aea019",
+            ),
+            (
+                "supported_by",
+                "b97252cba8a02c07213c3b58e1801116e8fa54095d9f75392f01cb7b7890a403",
+            ),
+        ];
+        for edge in fixture["edges"].as_array().unwrap() {
+            let raw = stage
+                .raw_by_id("source-claims", "edges", edge["edge_id"].as_str().unwrap())
+                .unwrap()
+                .unwrap();
+            let target_id = edge["to_id"].as_str().unwrap();
+            let target = fixture["nodes"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|n| n["node_id"] == target_id)
+                .unwrap();
+            let object = fixture["nodes"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|n| n["node_id"] == object_id)
+                .unwrap();
+            let output = normalizer
+                .normalize_base_relation(
+                    &raw,
+                    &prepared,
+                    object,
+                    target,
+                    &normalized[edge["from_id"].as_str().unwrap()]["display"]["title"],
+                    &normalized[target_id]["display"]["title"],
+                    &group,
+                )
+                .unwrap();
+            let digest = expected
+                .iter()
+                .find(|(kind, _)| *kind == edge["edge_kind"].as_str().unwrap())
+                .unwrap()
+                .1;
+            assert_eq!(stable_digest(&output).unwrap(), digest);
+        }
+        drop(stage);
+        fs::remove_dir(candidate.parent().unwrap()).unwrap();
+    }
+    #[test]
     fn missing_duplicate_and_ref_mismatch_refuse() {
         let mut missing = fixture();
         missing.retain(|(_, id, _)| *id != "identity:tos.subject.one");

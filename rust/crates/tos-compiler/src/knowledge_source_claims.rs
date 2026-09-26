@@ -2,6 +2,7 @@
 //!
 //! Prepared bibliographic rows remain the authority for associations. This
 //! module writes private base rows and Claim semantics, never admits them.
+use crate::knowledge_global_titles::{GlobalTitleReceipt, endpoint_title, verify_global_titles};
 use crate::knowledge_normalization::{SourceRow, stable_digest, stamp_content_revision};
 use crate::knowledge_philosophy_display::{
     ordinary_philosophy_relation_display, source_navigation_node_display,
@@ -15,7 +16,9 @@ use crate::{Error, KnowledgeRegistry, QueryVocabulary, Result};
 use rusqlite::{OptionalExtension, params};
 use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};
-use tos_foundation::{Digest256, Digest256Hasher};
+use tos_foundation::{
+    CanonicalProfile, Digest256, Digest256Hasher, JsonLimits, canonical_raw_bytes_v1,
+};
 
 const PROFILE: &str = "reified-bibliographic-claims-v1";
 
@@ -88,11 +91,28 @@ fn root_item(hash: &mut Digest256Hasher, id: &str, digest: &[u8]) {
     hash.update(digest);
 }
 fn encode(value: &Value, cap: usize) -> Result<Vec<u8>> {
-    let raw = serde_json::to_vec(value).map_err(|_| Error::Invalid("Claim JSON encode"))?;
-    if raw.len() > cap {
-        return Err(Error::Budget("Claim output bytes"));
+    struct Writer {
+        bytes: Vec<u8>,
+        cap: usize,
     }
-    Ok(raw)
+    impl std::io::Write for Writer {
+        fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
+            if bytes.len() > self.cap.saturating_sub(self.bytes.len()) {
+                return Err(std::io::Error::other("Claim output byte ceiling"));
+            }
+            self.bytes.extend_from_slice(bytes);
+            Ok(bytes.len())
+        }
+        fn flush(&mut self) -> std::io::Result<()> {
+            Ok(())
+        }
+    }
+    let mut writer = Writer {
+        bytes: Vec::new(),
+        cap,
+    };
+    serde_json::to_writer(&mut writer, value).map_err(|_| Error::Budget("Claim output bytes"))?;
+    Ok(writer.bytes)
 }
 
 pub struct ClaimNormalizer<'a> {
@@ -117,6 +137,11 @@ impl<'a> ClaimNormalizer<'a> {
     ) -> Result<Self> {
         limits.validate()?;
         vocabulary.verify_authored_bytes(descriptor_bytes)?;
+        if registry.entity_registry_id != vocabulary.entity_registry_id
+            || registry.relation_registry_id != vocabulary.relation_registry_id
+        {
+            return Err(Error::Invalid("Claim descriptor registry identity"));
+        }
         let selected = vocabulary
             .sources
             .iter()
@@ -428,10 +453,17 @@ impl<'a> ClaimNormalizer<'a> {
             );
         }
         if text(profile.get("reader")) == Some("document-catalogue-temporal-v1") {
-            let raw = encode(
+            let source_bytes = encode(
                 &claim["attributes"]["source_claim"],
                 self.limits.max_output_bytes,
             )?;
+            let raw = canonical_raw_bytes_v1(
+                &source_bytes,
+                CanonicalProfile::SourceRecordDigestV1,
+                JsonLimits::new(self.limits.max_output_bytes, 96, 1_000_000, 4096)
+                    .map_err(|_| Error::Budget("Claim canonical limits"))?,
+            )
+            .map_err(|error| Error::Source(error.to_string()))?;
             contract.insert("source_claim_profile".into(), profile);
             contract.insert(
                 "source_canonical_json".into(),
@@ -636,17 +668,19 @@ impl<'a> ClaimNormalizer<'a> {
 }
 
 fn node(stage: &mut KnowledgeStage<'_>, id: &str, cap: usize) -> Result<Value> {
-    let bytes: Vec<u8> = stage.with_connection(WritePhase::Sort, |db| {
-        db.query_row(
-            "SELECT payload FROM knowledge_nodes WHERE id=?1 AND payload_len<=?2",
-            params![id, cap],
-            |r| r.get(0),
-        )
-        .optional()?
-        .ok_or(Error::Invalid("Claim normalized endpoint absent/oversize"))
-    })?;
-    Ok(SourceRow::parse(&bytes, cap)?.value().clone())
+    let (bytes,sha):(Vec<u8>,Vec<u8>)=stage.with_connection(WritePhase::Sort,|db|{
+        db.query_row("SELECT CASE WHEN typeof(payload)='blob' AND payload_len=length(payload) AND length(payload)<=?2 THEN payload ELSE NULL END,CASE WHEN typeof(payload_sha256)='blob' AND length(payload_sha256)=32 THEN payload_sha256 ELSE NULL END FROM knowledge_nodes WHERE id=?1",params![id,cap],|r|Ok((r.get(0)?,r.get(1)?)))
+            .optional()?.ok_or(Error::Invalid("Claim normalized endpoint absent/oversize"))})?;
+    if Digest256::of_bytes(&bytes).as_bytes().as_slice() != sha {
+        return Err(Error::Invalid("Claim normalized endpoint SHA"));
+    }
+    let source = SourceRow::parse(&bytes, cap)?;
+    if required(source.value(), "id")? != id {
+        return Err(Error::Invalid("Claim normalized endpoint ID"));
+    }
+    Ok(source.value().clone())
 }
+
 fn update_node(stage: &mut KnowledgeStage<'_>, value: &Value, cap: usize) -> Result<()> {
     let bytes = encode(value, cap)?;
     let sha = Digest256::of_bytes(&bytes);
@@ -669,8 +703,96 @@ fn update_node(stage: &mut KnowledgeStage<'_>, value: &Value, cap: usize) -> Res
 fn verify_stage(stage: &KnowledgeStage<'_>, prepared: &ClaimPrepareReceipt) -> Result<()> {
     if prepared.final_graph_rows_written
         || stage.exact_receipt().binding.source_cut != prepared.source_cut
+        || Digest256::from_hex(&prepared.dependency_root_sha256).is_err()
     {
         return Err(Error::Invalid("Claim stage prepared cut"));
+    }
+    for (collection, count, root) in [
+        ("nodes", prepared.nodes, &prepared.node_input_root_sha256),
+        ("edges", prepared.edges, &prepared.edge_input_root_sha256),
+        (
+            "claim_traces",
+            prepared.claim_traces,
+            &prepared.trace_input_root_sha256,
+        ),
+    ] {
+        let entries = stage
+            .exact_receipt()
+            .collections
+            .iter()
+            .filter(|r| r.source_graph == prepared.source_graph && r.collection == collection)
+            .collect::<Vec<_>>();
+        if entries.len() != 1
+            || entries[0].expected_count != count
+            || entries[0].expected_root_sha256 != *root
+            || entries[0].adapter_profile != PROFILE
+            || entries[0].input_role != prepared.input_role
+        {
+            return Err(Error::Invalid("Claim exact prepared collections"));
+        }
+    }
+    Ok(())
+}
+
+fn verify_prepared_dependencies(
+    stage: &mut KnowledgeStage<'_>,
+    prepared: &ClaimPrepareReceipt,
+    limits: ClaimNormalizeLimits,
+) -> Result<()> {
+    verify_stage(stage, prepared)?;
+    let mut after = None;
+    let mut work = 0;
+    let mut traces = 0;
+    loop {
+        let page = stage.scan_input(
+            &prepared.source_graph,
+            "claim_traces",
+            after.as_deref(),
+            limits.max_page_rows,
+        )?;
+        for raw in page.rows {
+            charge(&mut work, raw.payload.len(), limits.max_work_bytes)?;
+            let source = SourceRow::parse(&raw.payload, limits.max_raw_bytes)?;
+            let t = source.value();
+            let indexed:(String,String,String,String,Vec<u8>,Vec<u8>)=stage.with_connection(WritePhase::Sort,|db|Ok(db.query_row("SELECT CASE WHEN length(CAST(claim_node_id AS BLOB))<=4096 THEN claim_node_id ELSE NULL END,CASE WHEN length(CAST(subject_node_id AS BLOB))<=4096 THEN subject_node_id ELSE NULL END,CASE WHEN length(CAST(object_node_id AS BLOB))<=4096 THEN object_node_id ELSE NULL END,CASE WHEN length(CAST(predicate_id AS BLOB))<=4096 THEN predicate_id ELSE NULL END,CASE WHEN length(source_claim_sha256)=32 THEN source_claim_sha256 ELSE NULL END,CASE WHEN length(trace_sha256)=32 THEN trace_sha256 ELSE NULL END FROM knowledge_claim_dependencies WHERE claim_ref=?1",[&raw.id],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?,r.get(4)?,r.get(5)?)))?))?;
+            let claim_sha = Digest256::from_hex(required(t, "claim_sha256")?)
+                .map_err(|_| Error::Invalid("Claim source digest"))?;
+            if indexed.0 != required(t, "claim_node_id")?
+                || indexed.1 != required(t, "subject_node_id")?
+                || indexed.2 != required(t, "object_node_id")?
+                || indexed.3 != required(t, "predicate")?
+                || indexed.4 != claim_sha.as_bytes().as_slice()
+                || indexed.5 != Digest256::of_bytes(&raw.payload).as_bytes().as_slice()
+            {
+                return Err(Error::Invalid("Claim prepared trace dependency"));
+            }
+            traces += 1;
+        }
+        match page.next_id {
+            Some(next) => after = Some(next),
+            None => break,
+        }
+    }
+    let (indexed_traces, indexed_edges): (u64, u64) =
+        stage.with_connection(WritePhase::Sort, |db| {
+            Ok((
+                db.query_row(
+                    "SELECT count(*) FROM knowledge_claim_dependencies",
+                    [],
+                    |r| r.get(0),
+                )?,
+                db.query_row(
+                    "SELECT count(*) FROM knowledge_claim_edge_bindings WHERE listed_by_trace=1",
+                    [],
+                    |r| r.get(0),
+                )?,
+            ))
+        })?;
+    if traces != prepared.claim_traces
+        || indexed_traces != traces
+        || indexed_edges != prepared.edges
+    {
+        return Err(Error::Invalid("Claim prepared index count"));
     }
     Ok(())
 }
@@ -711,10 +833,17 @@ fn dossier(
             .and_then(|r| r.get("artifact_id")),
     ] {
         if let Some(id) = text(candidate) {
-            let payload:Option<Vec<u8>>=stage.with_connection(WritePhase::Sort,|db|Ok(db.query_row("SELECT payload FROM knowledge_nodes WHERE source_graph=?1 AND native_id=?2 AND payload_len<=?3",params![normalizer.navigation_graph,id,normalizer.limits.max_output_bytes],|r|r.get(0)).optional()?))?;
-            if let Some(payload) = payload {
-                let node = SourceRow::parse(&payload, normalizer.limits.max_output_bytes)?;
-                if text(node.value().get("source_dossier_ref")) == Some(id) {
+            let normalized_id = format!("{}:{id}", normalizer.navigation_graph);
+            let exists = stage.with_connection(WritePhase::Sort, |db| {
+                Ok(db.query_row(
+                    "SELECT EXISTS(SELECT 1 FROM knowledge_nodes WHERE id=?1)",
+                    [&normalized_id],
+                    |r| r.get::<_, bool>(0),
+                )?)
+            })?;
+            if exists {
+                let candidate = node(stage, &normalized_id, normalizer.limits.max_output_bytes)?;
+                if text(candidate.get("source_dossier_ref")) == Some(id) {
                     return Ok(Some(id.to_owned()));
                 }
             }
@@ -731,7 +860,7 @@ pub fn materialize_source_claim_nodes(
     normalizer: &ClaimNormalizer<'_>,
 ) -> Result<u64> {
     let result = (|| {
-        verify_stage(stage, prepared)?;
+        verify_prepared_dependencies(stage, prepared, normalizer.limits)?;
         let mut after = None;
         let mut count = 0u64;
         let mut work = 0;
@@ -809,12 +938,21 @@ pub struct ClaimContextReceipt {
     pub contexts: u64,
     pub root_sha256: String,
 }
-fn context_root(stage: &mut KnowledgeStage<'_>) -> Result<(u64, String)> {
+fn context_root(
+    stage: &mut KnowledgeStage<'_>,
+    limits: ClaimNormalizeLimits,
+) -> Result<(u64, String)> {
     stage.with_connection(WritePhase::Sort,|db|{
-    let mut hash=Digest256Hasher::new();hash.update(b"tos-claim-context-groups-v1\0");let mut count=0;
-    let mut query=db.prepare("SELECT source_graph,claim_ref,context_sha256,owner_native_id,owner_sha256 FROM knowledge_claim_context_groups ORDER BY source_graph,claim_ref,encounter")?;
-    let mut rows=query.query([])?;while let Some(row)=rows.next()?{let graph:String=row.get(0)?;let reference:String=row.get(1)?;let sha:Vec<u8>=row.get(2)?;
-        if sha.len()!=32{return Err(Error::Invalid("Claim context digest"));}root_item(&mut hash,&graph,&[]);root_item(&mut hash,&reference,&sha);let owner:String=row.get(3)?;let owner_sha:Vec<u8>=row.get(4)?;root_item(&mut hash,&owner,&owner_sha);count+=1;}Ok((count,hash.finalize().to_hex()))})
+    let mut hash=Digest256Hasher::new();hash.update(b"tos-claim-context-groups-v1\0");let mut count=0;let mut work=0;
+    let mut query=db.prepare("SELECT CASE WHEN typeof(source_graph)='text' AND length(CAST(source_graph AS BLOB))<=4096 THEN source_graph ELSE NULL END, CASE WHEN typeof(claim_ref)='text' AND length(CAST(claim_ref AS BLOB))<=4096 THEN claim_ref ELSE NULL END,CASE WHEN typeof(context_sha256)='blob' AND length(context_sha256)=32 THEN context_sha256 ELSE NULL END,CASE WHEN typeof(owner_native_id)='text' AND length(CAST(owner_native_id AS BLOB))<=4096 THEN owner_native_id ELSE NULL END,CASE WHEN typeof(owner_sha256)='blob' AND length(owner_sha256)=32 THEN owner_sha256 ELSE NULL END,CASE WHEN typeof(context_json)='blob' AND length(context_json)<=?1 THEN context_json ELSE NULL END FROM knowledge_claim_context_groups ORDER BY source_graph,claim_ref,encounter")?;
+    let mut rows=query.query([limits.max_output_bytes])?;while let Some(row)=rows.next()?{
+        let graph:String=row.get(0)?;let reference:String=row.get(1)?;let sha:Vec<u8>=row.get(2)?;
+        let owner:String=row.get(3)?;let owner_sha:Vec<u8>=row.get(4)?;let bytes:Vec<u8>=row.get(5)?;
+        charge(&mut work,bytes.len()+graph.len()+reference.len()+owner.len(),limits.max_work_bytes)?;
+        let context=SourceRow::parse(&bytes,limits.max_output_bytes)?;
+        if Digest256::from_hex(&stable_digest(context.value())?).map_err(|_|Error::Invalid("Claim context digest"))?.as_bytes().as_slice()!=sha {return Err(Error::Invalid("Claim context JSON digest"));}
+        root_item(&mut hash,&graph,&[]);root_item(&mut hash,&reference,&sha);root_item(&mut hash,&owner,&owner_sha);count+=1;}
+    Ok((count,hash.finalize().to_hex()))})
 }
 
 /// Build once after all source base-node passes, before relation materialization.
@@ -829,8 +967,16 @@ pub fn prepare_claim_context_groups(
         let mut after = -1i64;
         let mut work = 0;
         loop {
-            let rows:Vec<(i64,String,String,Vec<u8>)>=stage.with_connection(WritePhase::Sort,|db|{let mut query=db.prepare("SELECT source_order,source_graph,native_id,payload FROM knowledge_nodes WHERE source_order>?1 AND kind_id IN ('claim','annotation-claim') ORDER BY source_order LIMIT ?2")?;
-                let mapped=query.query_map(params![after,limits.max_page_rows],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?)))?;Ok(mapped.collect::<std::result::Result<_,_>>()?)})?;
+            let rows:Vec<(i64,String,String,Vec<u8>)>=stage.with_connection(WritePhase::Sort,|db|{
+                let mut query=db.prepare("SELECT source_order,CASE WHEN typeof(source_graph)='text' AND length(CAST(source_graph AS BLOB))<=4096 THEN source_graph ELSE NULL END,CASE WHEN typeof(native_id)='text' AND length(CAST(native_id AS BLOB))<=4096 THEN native_id ELSE NULL END,CASE WHEN typeof(payload)='blob' AND payload_len=length(payload) AND length(payload)<=?3 THEN payload ELSE NULL END,CASE WHEN typeof(payload_sha256)='blob' AND length(payload_sha256)=32 THEN payload_sha256 ELSE NULL END,CASE WHEN typeof(id)='text' AND length(CAST(id AS BLOB))<=4096 THEN id ELSE NULL END,kind_id FROM knowledge_nodes WHERE source_order>?1 AND kind_id IN ('claim','annotation-claim') ORDER BY source_order LIMIT ?2")?;
+                let mut selected=query.query(params![after,limits.max_page_rows,limits.max_output_bytes])?;let mut result=Vec::new();let mut page_work=0;
+                while let Some(r)=selected.next()?{
+                    let order:i64=r.get(0)?;let graph:String=r.get(1)?;let native:String=r.get(2)?;let bytes:Vec<u8>=r.get(3)?;let sha:Vec<u8>=r.get(4)?;let id:String=r.get(5)?;let kind:String=r.get(6)?;
+                    charge(&mut page_work,bytes.len(),limits.max_work_bytes.saturating_sub(work))?;
+                    if order<0 || order<=after || Digest256::of_bytes(&bytes).as_bytes().as_slice()!=sha {return Err(Error::Invalid("Claim group base row SHA/order"));}
+                    let source=SourceRow::parse(&bytes,limits.max_output_bytes)?;
+                    if required(source.value(),"id")?!=id||required(source.value(),"native_id")?!=native||required(source.value(),"source_graph")?!=graph||required(source.value(),"kind_id")?!=kind{return Err(Error::Invalid("Claim group base row binding"));}
+                    result.push((order,graph,native,bytes));}Ok(result)})?;
             if rows.is_empty() {
                 break;
             }
@@ -873,7 +1019,7 @@ pub fn prepare_claim_context_groups(
                 }
             }
         }
-        let (contexts, root_sha256) = context_root(stage)?;
+        let (contexts, root_sha256) = context_root(stage, limits)?;
         Ok(ClaimContextReceipt {
             source_cut: stage.exact_receipt().binding.source_cut.clone(),
             contexts,
@@ -888,9 +1034,11 @@ pub fn prepare_claim_context_groups(
 pub fn verify_claim_context_groups(
     stage: &mut KnowledgeStage<'_>,
     receipt: &ClaimContextReceipt,
+    limits: ClaimNormalizeLimits,
 ) -> Result<()> {
+    limits.validate()?;
     if stage.exact_receipt().binding.source_cut != receipt.source_cut
-        || context_root(stage)? != (receipt.contexts, receipt.root_sha256.clone())
+        || context_root(stage, limits)? != (receipt.contexts, receipt.root_sha256.clone())
     {
         stage.poison();
         return Err(Error::Invalid("Claim context group root/cut"));
@@ -904,20 +1052,22 @@ pub fn claim_contexts(
     reference: &str,
     limits: ClaimNormalizeLimits,
 ) -> Result<Vec<Value>> {
+    limits.validate()?;
     if stage.exact_receipt().binding.source_cut != receipt.source_cut
         || Digest256::from_hex(&receipt.root_sha256).is_err()
     {
         return Err(Error::Invalid("Claim context lookup receipt"));
     }
-    let rows:Vec<Vec<u8>>=stage.with_connection(WritePhase::Sort,|db|{let mut q=db.prepare("SELECT context_json FROM knowledge_claim_context_groups WHERE source_graph=?1 AND claim_ref=?2 ORDER BY encounter LIMIT ?3")?;
-        let mapped=q.query_map(params![graph,reference,limits.max_contexts+1],|r|r.get(0))?;Ok(mapped.collect::<std::result::Result<_,_>>()?)})?;
-    if rows.len() > limits.max_contexts {
-        return Err(Error::Budget("Claim group contexts"));
-    }
-    let mut work = 0;
+    let rows:Vec<Vec<u8>>=stage.with_connection(WritePhase::Sort,|db|{
+        let mut q=db.prepare("SELECT CASE WHEN typeof(context_json)='blob' AND length(context_json)<=?4 THEN context_json ELSE NULL END, CASE WHEN typeof(context_sha256)='blob' AND length(context_sha256)=32 THEN context_sha256 ELSE NULL END FROM knowledge_claim_context_groups WHERE source_graph=?1 AND claim_ref=?2 ORDER BY encounter LIMIT ?3")?;
+        let mut selected=q.query(params![graph,reference,limits.max_contexts+1,limits.max_output_bytes])?;let mut result=Vec::new();let mut work=0;
+        while let Some(row)=selected.next()?{if result.len()>=limits.max_contexts{return Err(Error::Budget("Claim group contexts"));}
+            let raw:Vec<u8>=row.get(0)?;let sha:Vec<u8>=row.get(1)?;charge(&mut work,raw.len(),limits.max_output_bytes as u64)?;
+            let source=SourceRow::parse(&raw,limits.max_output_bytes)?;
+            if Digest256::from_hex(&stable_digest(source.value())?).map_err(|_|Error::Invalid("Claim context digest"))?.as_bytes().as_slice()!=sha{return Err(Error::Invalid("Claim group JSON digest"));}result.push(raw);}
+        Ok(result)})?;
     rows.into_iter()
         .map(|raw| {
-            charge(&mut work, raw.len(), limits.max_output_bytes as u64)?;
             Ok(SourceRow::parse(&raw, limits.max_output_bytes)?
                 .value()
                 .clone())
@@ -934,12 +1084,13 @@ pub fn claim_context_sources(
     reference: &str,
     limits: ClaimNormalizeLimits,
 ) -> Result<Vec<Vec<u8>>> {
+    limits.validate()?;
     if stage.exact_receipt().binding.source_cut != receipt.source_cut
         || Digest256::from_hex(&receipt.root_sha256).is_err()
     {
         return Err(Error::Invalid("Claim context witness receipt"));
     }
-    let owners:Vec<(String,Vec<u8>)>=stage.with_connection(WritePhase::Sort,|db|{let mut q=db.prepare("SELECT owner_native_id,owner_sha256 FROM knowledge_claim_context_groups WHERE source_graph=?1 AND claim_ref=?2 ORDER BY encounter LIMIT ?3")?;
+    let owners:Vec<(String,Vec<u8>)>=stage.with_connection(WritePhase::Sort,|db|{let mut q=db.prepare("SELECT CASE WHEN typeof(owner_native_id)='text' AND length(CAST(owner_native_id AS BLOB))<=4096 THEN owner_native_id ELSE NULL END,CASE WHEN typeof(owner_sha256)='blob' AND length(owner_sha256)=32 THEN owner_sha256 ELSE NULL END FROM knowledge_claim_context_groups WHERE source_graph=?1 AND claim_ref=?2 ORDER BY encounter LIMIT ?3")?;
         let rows=q.query_map(params![graph,reference,limits.max_contexts+1],|r|Ok((r.get(0)?,r.get(1)?)))?;Ok(rows.collect::<std::result::Result<_,_>>()?)})?;
     if owners.len() > limits.max_contexts {
         return Err(Error::Budget("Claim context witnesses"));
@@ -969,14 +1120,12 @@ pub fn materialize_source_claim_relations(
     prepared: &ClaimPrepareReceipt,
     normalizer: &ClaimNormalizer<'_>,
     contexts: &ClaimContextReceipt,
-    endpoint_title_root_sha256: &str,
+    titles: &GlobalTitleReceipt,
 ) -> Result<u64> {
     let result = (|| {
-        verify_stage(stage, prepared)?;
-        verify_claim_context_groups(stage, contexts)?;
-        if Digest256::from_hex(endpoint_title_root_sha256).is_err() {
-            return Err(Error::Invalid("Claim relation title root"));
-        }
+        verify_prepared_dependencies(stage, prepared, normalizer.limits)?;
+        verify_claim_context_groups(stage, contexts, normalizer.limits)?;
+        verify_global_titles(stage, titles, 65536, normalizer.limits.max_work_bytes)?;
         let mut after = None;
         let mut count = 0u64;
         let mut root = Digest256Hasher::new();
@@ -1024,15 +1173,17 @@ pub fn materialize_source_claim_relations(
                 let from_graph =
                     text(item.get("from_source_graph")).unwrap_or(&prepared.source_graph);
                 let to_graph = text(item.get("to_source_graph")).unwrap_or(&prepared.source_graph);
-                let left = node(
+                let left = endpoint_title(
                     stage,
+                    titles,
                     &format!("{from_graph}:{}", required(item, "from_id")?),
-                    normalizer.limits.max_output_bytes,
+                    65536,
                 )?;
-                let right = node(
+                let right = endpoint_title(
                     stage,
+                    titles,
                     &format!("{to_graph}:{}", required(item, "to_id")?),
-                    normalizer.limits.max_output_bytes,
+                    65536,
                 )?;
                 let group = claim_contexts(
                     stage,
@@ -1046,8 +1197,8 @@ pub fn materialize_source_claim_relations(
                     prepared,
                     object.value(),
                     target.value(),
-                    &left["display"]["title"],
-                    &right["display"]["title"],
+                    &left,
+                    &right,
                     &group,
                 )?;
                 let bytes = encode(&output, normalizer.limits.max_output_bytes)?;
@@ -1093,8 +1244,8 @@ pub fn finalize_source_claims(
     contexts: &ClaimContextReceipt,
 ) -> Result<u64> {
     let result = (|| {
-        verify_stage(stage, prepared)?;
-        verify_claim_context_groups(stage, contexts)?;
+        verify_prepared_dependencies(stage, prepared, normalizer.limits)?;
+        verify_claim_context_groups(stage, contexts, normalizer.limits)?;
         let mut after = None;
         let mut count = 0;
         let mut root = Digest256Hasher::new();
@@ -1181,6 +1332,84 @@ pub fn finalize_source_claims(
             return Err(Error::Invalid("Claim finalization trace cut"));
         }
         Ok(count)
+    })();
+    if result.is_err() {
+        stage.poison();
+    }
+    result
+}
+
+/// Retire private dependencies after relation, inherited-view and readable
+/// consumers finish. Counts and exact trace contracts prevent an unfinished
+/// Claim pass from being mistaken for a complete selected model.
+pub fn clear_source_claim_indices(
+    stage: &mut KnowledgeStage<'_>,
+    prepared: &ClaimPrepareReceipt,
+    contexts: &ClaimContextReceipt,
+    limits: ClaimNormalizeLimits,
+) -> Result<()> {
+    let result = (|| {
+        limits.validate()?;
+        verify_prepared_dependencies(stage, prepared, limits)?;
+        verify_claim_context_groups(stage, contexts, limits)?;
+        let (nodes, edges): (u64, u64) = stage.with_connection(WritePhase::Finalize, |db| {
+            Ok((
+                db.query_row(
+                    "SELECT count(*) FROM knowledge_nodes WHERE source_graph=?1",
+                    [&prepared.source_graph],
+                    |r| r.get(0),
+                )?,
+                db.query_row(
+                    "SELECT count(*) FROM knowledge_relations WHERE source_graph=?1",
+                    [&prepared.source_graph],
+                    |r| r.get(0),
+                )?,
+            ))
+        })?;
+        if nodes != prepared.nodes || edges != prepared.edges {
+            return Err(Error::Invalid("Claim cleanup incomplete normalized cut"));
+        }
+        let mut after = None;
+        let mut work = 0;
+        loop {
+            let page = stage.scan_input(
+                &prepared.source_graph,
+                "claim_traces",
+                after.as_deref(),
+                limits.max_page_rows,
+            )?;
+            for raw in page.rows {
+                charge(&mut work, raw.payload.len(), limits.max_work_bytes)?;
+                let trace = SourceRow::parse(&raw.payload, limits.max_raw_bytes)?;
+                let carrier = node(
+                    stage,
+                    &format!(
+                        "{}:{}",
+                        prepared.source_graph,
+                        required(trace.value(), "claim_node_id")?
+                    ),
+                    limits.max_output_bytes,
+                )?;
+                charge(
+                    &mut work,
+                    encode(&carrier, limits.max_output_bytes)?.len(),
+                    limits.max_work_bytes,
+                )?;
+                if carrier
+                    .pointer("/semantics/claim/claim_id")
+                    .and_then(Value::as_str)
+                    != Some(raw.id.as_str())
+                    || carrier.pointer("/attributes/claim_trace") != Some(trace.value())
+                {
+                    return Err(Error::Invalid("Claim cleanup incomplete final trace"));
+                }
+            }
+            match page.next_id {
+                Some(next) => after = Some(next),
+                None => break,
+            }
+        }
+        stage.with_connection(WritePhase::Finalize,|db|{db.execute_batch("DROP TABLE knowledge_claim_context_groups;DROP TABLE knowledge_claim_edge_bindings;DROP TABLE knowledge_claim_dependencies")?;Ok(())})
     })();
     if result.is_err() {
         stage.poison();
