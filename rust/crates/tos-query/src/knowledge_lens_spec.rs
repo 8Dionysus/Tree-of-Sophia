@@ -145,8 +145,13 @@ pub(crate) fn field<'a>(v: &'a JsonValue, path: &str) -> &'a JsonValue {
     path.split('.').fold(v, |v, k| get(v, k))
 }
 pub(crate) fn lower(s: &str) -> String {
-    tos_foundation::python_lower_unicode16_v1(s, s.chars().count(), s.len().saturating_mul(3))
-        .expect("admitted Unicode lower bounds")
+    tos_foundation::python_lower_unicode16_v1(
+        s,
+        s.chars().count(),
+        s.chars().count().saturating_mul(3),
+        s.len().saturating_mul(3),
+    )
+    .expect("admitted Unicode lower bounds")
 }
 pub(crate) fn strip(s: &str) -> &str {
     tos_foundation::python_strip_unicode16_v1(s, s.chars().count())
@@ -283,7 +288,19 @@ fn bounded(
             .map(|n| n.trunc()),
         JsonValue::String(_) if !strict_int => v
             .as_str()
-            .and_then(|s| s.parse::<i64>().ok())
+            .and_then(|s| {
+                let s = strip(s);
+                let digits = s.strip_prefix(['+', '-']).unwrap_or(s);
+                if digits.is_empty()
+                    || !digits.as_bytes()[0].is_ascii_digit()
+                    || !digits.as_bytes()[digits.len() - 1].is_ascii_digit()
+                    || digits.as_bytes().windows(2).any(|p| p == b"__")
+                    || !digits.bytes().all(|c| c.is_ascii_digit() || c == b'_')
+                {
+                    return None;
+                }
+                s.replace('_', "").parse::<i64>().ok()
+            })
             .map(|n| n as f64),
         _ => None,
     }
@@ -303,7 +320,10 @@ fn strings(v: &JsonValue, max: usize, unique: bool) -> Result<JsonValue, SearchV
         .ok_or_else(|| invalid("invalid lens string array"))?;
     let mut out = vec![];
     for item in a {
-        let s = trimmed(item).ok_or_else(|| invalid("invalid lens string array member"))?;
+        let s = item
+            .as_str()
+            .filter(|s| !s.is_empty())
+            .ok_or_else(|| invalid("invalid lens string array member"))?;
         if unique && out.iter().any(|v| v == &text(s)) {
             return Err(invalid("duplicate lens string array member"));
         }
@@ -358,7 +378,11 @@ fn localized(v: &JsonValue, fallback: &str) -> Result<JsonValue, SearchV2Error> 
         let chosen = ["ru", "en", "original"]
             .iter()
             .find_map(|k| trimmed(get(v, k)))
-            .or_else(|| o.iter().find_map(|(_, v)| trimmed(v)));
+            .or_else(|| {
+                let mut forms: Vec<_> = o.iter().collect();
+                forms.sort_by(|(a, _), (b, _)| a.as_str().cmp(&b.as_str()));
+                forms.into_iter().find_map(|(_, v)| trimmed(v))
+            });
         if let Some(s) = chosen {
             set(&mut out, "default", text(s));
         }
@@ -367,12 +391,15 @@ fn localized(v: &JsonValue, fallback: &str) -> Result<JsonValue, SearchV2Error> 
 }
 fn group(v: &JsonValue, node: bool) -> Result<JsonValue, SearchV2Error> {
     strict(v, &["enabled", "match", "filters"])?;
+    if v.object_get("match").is_some() && !matches!(string(get(v, "match")), "all" | "any") {
+        return Err(invalid("invalid filter match"));
+    }
     let enabled = get(v, "enabled");
-    if !matches!(enabled, JsonValue::Null | JsonValue::Bool(_)) {
+    if v.object_get("enabled").is_some() && !matches!(enabled, JsonValue::Bool(_)) {
         return Err(invalid("query enabled must be boolean"));
     }
     let filters = get(v, "filters");
-    let filters = if matches!(filters, JsonValue::Null) {
+    let filters = if v.object_get("filters").is_none() {
         &[][..]
     } else {
         filters
@@ -394,6 +421,9 @@ fn group(v: &JsonValue, node: bool) -> Result<JsonValue, SearchV2Error> {
             "field"
         };
         let selected = trimmed(get(f, key)).ok_or_else(|| invalid("empty filter selector"))?;
+        if key == "property_id" && get(f, key).as_str() != Some(selected) {
+            return Err(invalid("invalid registered property selector"));
+        }
         if key == "property_id" {
             let body = selected.strip_prefix("tos.property.").unwrap_or("");
             if !node
@@ -522,7 +552,7 @@ pub fn normalize_lens_spec(
     let id = trimmed(get(v, "lens_id"))
         .filter(|s| identifier(s))
         .ok_or_else(|| invalid("invalid lens id"))?;
-    let sources = if matches!(get(v, "sources"), JsonValue::Null) {
+    let sources = if v.object_get("sources").is_none() {
         JsonValue::Array(vocabulary.sources.iter().map(|s| text(s)).collect())
     } else {
         strings(get(v, "sources"), vocabulary.sources.len(), true)?
@@ -631,8 +661,16 @@ pub fn normalize_lens_spec(
     if !matches!(lang, "auto" | "original") && !language(lang) {
         return Err(invalid("invalid lens language"));
     }
+    if v.object_get("detail").is_some() && !matches!(string(get(v, "detail")), "full" | "compact") {
+        return Err(invalid("invalid lens detail"));
+    }
+    if traversal.object_get("profile").is_some()
+        && !matches!(string(get(traversal, "profile")), "all" | "overview")
+    {
+        return Err(invalid("invalid traversal profile"));
+    }
     let explain = get(v, "explain");
-    if !matches!(explain, JsonValue::Null | JsonValue::Bool(_)) {
+    if v.object_get("explain").is_some() && !matches!(explain, JsonValue::Bool(_)) {
         return Err(invalid("invalid lens explain"));
     }
     let paths = get(v, "path_query");
@@ -661,8 +699,21 @@ pub fn normalize_lens_spec(
             .filter(|a| (1..=4).contains(&a.len()))
             .ok_or_else(|| invalid("invalid path steps"))?;
         let mut steps_out = vec![];
+        if path.object_get("quantifier").is_some()
+            && !matches!(string(get(path, "quantifier")), "exists" | "not_exists")
+        {
+            return Err(invalid("invalid path quantifier"));
+        }
         for step in steps {
             strict(step, &["direction", "node_query", "relation_query"])?;
+            if step.object_get("direction").is_some()
+                && !matches!(
+                    string(get(step, "direction")),
+                    "incoming" | "outgoing" | "either"
+                )
+            {
+                return Err(invalid("invalid path direction"));
+            }
             steps_out.push(object(vec![
                 (
                     "direction",
@@ -690,6 +741,13 @@ pub fn normalize_lens_spec(
         JsonValue::Null
     } else {
         strict(pagination, &["nodes", "relations", "cursor"])?;
+        for k in ["nodes", "relations"] {
+            if pagination.object_get(k).is_some()
+                && !matches!(get(pagination,k),JsonValue::Number(n) if n.kind==JsonNumberKind::Int)
+            {
+                return Err(invalid("invalid page size"));
+            }
+        }
         let cursor = get(pagination, "cursor");
         if !matches!(cursor, JsonValue::Null)
             && cursor.as_str().is_none_or(|s| {
@@ -714,17 +772,20 @@ pub fn normalize_lens_spec(
             ("cursor", cursor.clone()),
         ])
     };
-    let title = id.replace(['-', '_', ':', '.'], " ");
-    let title = title
-        .split_whitespace()
-        .map(|s| {
-            let mut c = s.chars();
-            c.next()
-                .map(|c| c.to_uppercase().collect::<String>() + c.as_str())
-                .unwrap_or_default()
-        })
-        .collect::<Vec<_>>()
-        .join(" ");
+    let mut title = String::new();
+    let mut previous_space = false;
+    for c in id.chars() {
+        if matches!(c, '-' | '_' | '.') {
+            if !previous_space {
+                title.push(' ')
+            }
+            previous_space = true;
+        } else {
+            title.push(c);
+            previous_space = false;
+        }
+    }
+    let title = strip(&title).to_owned();
     Ok(object(vec![
         ("schema_version", text("tos_lens_spec_v1")),
         ("lens_id", text(id)),
