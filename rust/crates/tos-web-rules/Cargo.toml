@@ -12,6 +12,7 @@ wasm = ["dep:wasm-bindgen", "tos-foundation/wasm"]
 
 [dependencies]
 tos-foundation = { path = "../tos-foundation" }
+tos-query = { path = "../tos-query" }
 wasm-bindgen = { version = "0.2.128", optional = true }
 
 [lib]

@@ -8,6 +8,7 @@ license.workspace = true
 
 [dependencies]
 tos-foundation = { path = "../tos-foundation" }
+regex = "1.13.1"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 rusqlite = { version = "0.37", features = ["bundled", "hooks"] }

@@ -1362,6 +1362,8 @@ dependencies = [
  "postgres",
  "tos-foundation",
  "tos-segment-store",
+ "tos-source-store",
+ "tos-validation",
 ]
 
 [[package]]
@@ -1419,6 +1421,7 @@ dependencies = [
 name = "tos-query"
 version = "0.0.0"
 dependencies = [
+ "regex",
  "rusqlite",
  "tos-compiler",
  "tos-foundation",
@@ -1476,6 +1479,7 @@ name = "tos-web-rules"
 version = "0.0.0"
 dependencies = [
  "tos-foundation",
+ "tos-query",
  "wasm-bindgen",
 ]
 

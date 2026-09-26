@@ -15,6 +15,9 @@ tos-compiler = { path = "../tos-compiler" }
 name = "tos_access"
 path = "src/lib.rs"
 
+[dev-dependencies]
+tos-compiler = { path = "../tos-compiler", features = ["test-fixture"] }
+
 [[bin]]
 name = "tos-access"
 path = "src/main.rs"

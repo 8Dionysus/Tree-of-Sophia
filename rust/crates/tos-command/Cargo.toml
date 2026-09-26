@@ -9,6 +9,8 @@ license.workspace = true
 [dependencies]
 tos-foundation = { path = "../tos-foundation" }
 tos-segment-store = { path = "../tos-segment-store" }
+tos-source-store = { path = "../tos-source-store" }
+tos-validation = { path = "../tos-validation" }
 postgres = "0.19"
 
 [lib]

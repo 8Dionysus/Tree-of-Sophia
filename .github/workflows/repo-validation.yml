@@ -214,6 +214,7 @@ jobs:
             /rust/
             /tests/conformance/rust/
             /access/tests/fixtures/knowledge-contract/temporal-jenseits-date.json
+            /access/src/
             /ToS/contracts/
             /scripts/validation_lanes.py
             /scripts/verify_rust_reader_install.py
@@ -224,6 +225,8 @@ jobs:
             /ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1884-part-3/editions/chemnitz-schmeitzner-1884-part-3/items/dta-sbb-corrected-tei-p5/
             !/ToS/source-witnesses/**/payload/
             /ToS/research-packets/foundation-laboratory-2026-07/DTA_ZARATHUSTRA_PARTS_1_4_LAYERED_RIGHTS_ASSESSMENT.md
+            /ToS/research-packets/foundation-laboratory-2026-07/provenance-event-v2-abc/
+            /ToS/research-packets/retained-builder-inputs/build_provenance_event_v2_lab/
             /scripts/verify_rust_web_host.py
             /docs/validation/validation_lanes.json
       - name: Install pinned Rust toolchain and WASM target
