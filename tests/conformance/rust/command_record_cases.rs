@@ -679,7 +679,7 @@ fn run_with_cut(
         &cancel,
     )
 }
-fn captured_components(
+pub(super) fn captured_components(
     files: &BTreeMap<String, Vec<u8>>,
     deadline: Instant,
     cancelled: &AtomicBool,

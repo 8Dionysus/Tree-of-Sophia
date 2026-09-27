@@ -699,7 +699,7 @@ pub fn run_claim_command(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<PreparedCommand> {
-    run_claim_command_inner(ctx, None, executor, deadline, cancelled)
+    run_claim_command_inner(ctx, None, false, executor, deadline, cancelled)
 }
 
 /// Authenticate the complete current member universe before inventory-based
@@ -727,7 +727,7 @@ pub fn run_claim_command_from_cut(
         ..ctx.clone()
     };
     complete.check()?;
-    run_claim_command_inner(&complete, Some(ctx), executor, deadline, cancelled)
+    run_claim_command_inner(&complete, Some(ctx), false, executor, deadline, cancelled)
 }
 
 /// Software rule-contract bytes are custody-checked through their separate
@@ -741,6 +741,19 @@ pub fn run_claim_command_from_captures(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<PreparedCommand> {
+    let complete =
+        selected_claim_context_from_captures(ctx, cut, software, components, deadline, cancelled)?;
+    run_claim_command_inner(&complete, Some(ctx), false, executor, deadline, cancelled)
+}
+
+fn selected_claim_context_from_captures(
+    ctx: &CommandContext,
+    cut: &CorpusCutReader,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<CommandContext> {
     ctx.check_from_selected_captures(cut, software, components, deadline, cancelled)?;
     let mut files = complete_authored_inputs(ctx, cut, deadline, cancelled)?;
     files.extend(
@@ -754,7 +767,606 @@ pub fn run_claim_command_from_captures(
         ..ctx.clone()
     };
     complete.check()?;
-    run_claim_command_inner(&complete, Some(ctx), executor, deadline, cancelled)
+    Ok(complete)
+}
+
+/// A complete, native-observed Claim creation package. Its selected context is
+/// retained for custody checks, not as a grant to the canonical source writer.
+pub struct SerializedClaimCreation {
+    context: CommandContext,
+    command: PreparedCommand,
+    home: RelativePath,
+    files: BTreeMap<String, Vec<u8>>,
+    components: SoftwareComponentSelectionV1,
+}
+
+impl SerializedClaimCreation {
+    pub fn command(&self) -> &PreparedCommand {
+        &self.command
+    }
+    pub fn home(&self) -> &RelativePath {
+        &self.home
+    }
+    pub fn files(&self) -> &BTreeMap<String, Vec<u8>> {
+        &self.files
+    }
+    pub(crate) fn context(&self) -> &CommandContext {
+        &self.context
+    }
+    pub(crate) fn components(&self) -> &SoftwareComponentSelectionV1 {
+        &self.components
+    }
+}
+
+/// Complete Claim planning, native capture, provenance execution and the
+/// maintained five-file receipt. Publication remains a separate held action.
+pub fn serialize_claim_creation_from_captures(
+    ctx: &CommandContext,
+    cut: &CorpusCutReader,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<SerializedClaimCreation> {
+    claim_creation_from_captures(
+        ctx, cut, software, components, worker, None, deadline, cancelled,
+    )
+}
+
+/// Rebuild an original Claim creation from its retained package and the
+/// independently selected original source/software captures. The receipt is
+/// compared byte-for-byte; neither its timestamp nor its authority is minted.
+pub fn restore_claim_creation_from_captures(
+    ctx: &CommandContext,
+    original_cut: &CorpusCutReader,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    worker: &mut CutWorkerSchemaExecutor,
+    retained: &BTreeMap<String, Vec<u8>>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<SerializedClaimCreation> {
+    claim_creation_from_captures(
+        ctx,
+        original_cut,
+        software,
+        components,
+        worker,
+        Some(retained),
+        deadline,
+        cancelled,
+    )
+}
+
+fn claim_creation_from_captures(
+    ctx: &CommandContext,
+    cut: &CorpusCutReader,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    worker: &mut CutWorkerSchemaExecutor,
+    retained: Option<&BTreeMap<String, Vec<u8>>>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<SerializedClaimCreation> {
+    let complete =
+        selected_claim_context_from_captures(ctx, cut, software, components, deadline, cancelled)?;
+    let request = parse(&complete.request_raw)?;
+    if text(&request, "operation")? != "claims.create" {
+        return Err(SourceCommandError::Unsupported(
+            "native Claim serialization requires claims.create",
+        ));
+    }
+    let preview = run_claim_command_inner(&complete, Some(ctx), true, worker, deadline, cancelled)?;
+    if preview.changes.len() != 1 || preview.changes[0].before.is_some() {
+        return Err(SourceCommandError::Conflict(
+            "initial Claim serialization proposal closure",
+        ));
+    }
+    let config = parse(&complete.configuration_raw)?;
+    let home = path(
+        preview.changes[0]
+            .path
+            .as_str()
+            .rsplit_once('/')
+            .ok_or(SourceCommandError::Invalid("Claim creation home"))?
+            .0,
+    )?;
+    let stream = preview.changes[0]
+        .after
+        .as_ref()
+        .ok_or(SourceCommandError::Conflict("initial Claim stream absent"))?;
+    let mut files = BTreeMap::from([(CLAIM_STREAM.to_owned(), stream.clone())]);
+    if let Some(original) = retained {
+        crate::source_serialization::restore_creation_capture(
+            &request,
+            text(&config, "provenance_event_id")?,
+            home.as_str(),
+            &mut files,
+            original,
+            software,
+            components,
+            deadline,
+            cancelled,
+        )?;
+    } else {
+        crate::source_serialization::capture_claim_creation(
+            &request,
+            text(&config, "provenance_event_id")?,
+            home.as_str(),
+            &mut files,
+            software,
+            components,
+            deadline,
+            cancelled,
+        )?;
+    }
+    check_claim_capture(&complete, &home, &files, worker, deadline, cancelled)?;
+    let recorded_at = if let Some(original) = retained {
+        let raw =
+            original
+                .get("source-create-receipt.json")
+                .ok_or(SourceCommandError::Conflict(
+                    "retained Claim creation receipt absent",
+                ))?;
+        let receipt = parse(raw)?;
+        let instant = text(&receipt, "recorded_at")?;
+        validate_instant(instant)?;
+        instant.to_owned()
+    } else {
+        crate::source_serialization::instant()?
+    };
+    let receipt =
+        claim_creation_receipt(&config, &request, &preview.response, &files, &recorded_at)?;
+    let mut receipt_raw = canonical(&receipt)?;
+    receipt_raw.push(b'\n');
+    files.insert("source-create-receipt.json".into(), receipt_raw);
+    if files.len() != 5
+        || files.values().any(|raw| raw.len() > 8_388_608)
+        || files
+            .values()
+            .try_fold(0usize, |n, raw| n.checked_add(raw.len()))
+            .is_none_or(|total| total > 33_554_432)
+    {
+        return Err(SourceCommandError::Invalid(
+            "Claim creation package byte closure",
+        ));
+    }
+    if retained.is_some_and(|original| original != &files) {
+        return Err(SourceCommandError::Conflict(
+            "retained Claim creation package differs from original request",
+        ));
+    }
+    let mut result = preview.response.clone();
+    for key in ["expected_dependencies", "source_bindings", "prepared_files"] {
+        if let JsonValue::Object(members) = &mut result {
+            members.retain(|(name, _)| name.as_str() != Some(key));
+        }
+    }
+    set(&mut result, "target_exists", JsonValue::Bool(true))?;
+    set(&mut result, "receipt", receipt)?;
+    set(&mut result, "replayed", JsonValue::Bool(retained.is_some()))?;
+    let changes = if retained.is_none() {
+        files
+            .iter()
+            .map(|(name, raw)| {
+                Ok(SourceChange {
+                    path: path(&format!("{}/{name}", home.as_str()))?,
+                    before: None,
+                    after: Some(raw.clone()),
+                })
+            })
+            .collect::<SourceCommandResult<Vec<_>>>()?
+    } else {
+        vec![]
+    };
+    let command = complete.plan(&preview.handler_id, result, changes, retained.is_some())?;
+    Ok(SerializedClaimCreation {
+        context: complete,
+        command,
+        home,
+        files,
+        components: components.clone(),
+    })
+}
+
+fn claim_creation_receipt(
+    config: &JsonValue,
+    request: &JsonValue,
+    preview: &JsonValue,
+    files: &BTreeMap<String, Vec<u8>>,
+    recorded_at: &str,
+) -> SourceCommandResult<JsonValue> {
+    let claims = array(request, "claims")?
+        .iter()
+        .map(metadata_subject)
+        .collect::<SourceCommandResult<Vec<_>>>()?;
+    Ok(object(vec![
+        (
+            "schema_version",
+            string("tos_local_claim_create_receipt_v1"),
+        ),
+        ("command_id", field(request, "command_id")?.clone()),
+        (
+            "request_digest",
+            string(&record_digest(request)?.to_prefixed()),
+        ),
+        ("principal_id", field(config, "principal_id")?.clone()),
+        ("authority_ref", field(config, "authority_ref")?.clone()),
+        (
+            "owner_configuration",
+            field(request, "expected_configuration")?.clone(),
+        ),
+        ("recorded_at", string(recorded_at)),
+        ("source_path", field(config, "source_path")?.clone()),
+        (
+            "dependencies",
+            field(preview, "expected_dependencies")?.clone(),
+        ),
+        (
+            "source_bindings",
+            field(preview, "source_bindings")?.clone(),
+        ),
+        ("claims", JsonValue::Array(claims)),
+        ("files", refs(files)),
+        ("grants_admission", JsonValue::Bool(false)),
+    ]))
+}
+
+fn check_claim_capture(
+    ctx: &CommandContext,
+    home: &RelativePath,
+    files: &BTreeMap<String, Vec<u8>>,
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<()> {
+    let raw = files
+        .get("source-create-provenance.jsonl")
+        .ok_or(SourceCommandError::Conflict("native Claim event absent"))?;
+    let event = parse(raw)?;
+    if text(field(field(&event, "method")?, "procedure")?, "name")? != "native-claim-serialization"
+    {
+        return Err(SourceCommandError::Conflict(
+            "retained Claim event procedure differs",
+        ));
+    }
+    crate::source_revisions::schema(
+        worker,
+        deadline,
+        cancelled,
+        ctx,
+        &["ToS/contracts/provenance-event-v2.schema.json".into()],
+        "ToS/contracts/provenance-event-v2.schema.json",
+        &event,
+    )?;
+    let decoded: serde_json::Value = serde_json::from_slice(raw)
+        .map_err(|_| SourceCommandError::Invalid("native Claim event JSON"))?;
+    if !tos_validation::provenance_rules::semantic_issues(&decoded, 128, deadline)
+        .map_err(|_| SourceCommandError::Invalid("native Claim event semantics"))?
+        .is_empty()
+    {
+        return Err(SourceCommandError::Invalid("native Claim event semantics"));
+    }
+    let entities = field(&event, "entities")?;
+    let mut observed = BTreeSet::new();
+    for group in ["inputs", "outputs", "byproducts"] {
+        for entity in array(entities, group)? {
+            let name = text(entity, "entity_ref")?
+                .strip_prefix(&format!("{}/", home.as_str()))
+                .ok_or(SourceCommandError::Conflict("native Claim entity home"))?;
+            let bytes = files
+                .get(name)
+                .ok_or(SourceCommandError::Conflict("native Claim entity absent"))?;
+            if !observed.insert(name.to_owned())
+                || integer(entity, "size_bytes")? != bytes.len() as u64
+                || text(entity, "sha256")? != Digest256::of_bytes(bytes).to_hex()
+                || field(entity, "fixity_verified")? != &JsonValue::Bool(false)
+            {
+                return Err(SourceCommandError::Conflict("native Claim entity bytes"));
+            }
+        }
+    }
+    if observed
+        != files
+            .keys()
+            .filter(|name| name.as_str() != "source-create-provenance.jsonl")
+            .cloned()
+            .collect()
+    {
+        return Err(SourceCommandError::Conflict(
+            "native Claim event output closure",
+        ));
+    }
+    Ok(())
+}
+
+/// The actual isolated Claim create/retry entry. A retry reconstructs from
+/// retained bytes and the original selected cut; it never reuses an in-memory
+/// event as a write grant. The schema child is finalized before filesystem
+/// locking or publication on both paths.
+pub fn execute_isolated_claim_creation_from_captures(
+    filesystem: &crate::source_creation_store::CreationFilesystem,
+    ctx: &CommandContext,
+    original_cut: &CorpusCutReader,
+    current_cut: &CorpusCutReader,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    worker: &mut CutWorkerSchemaExecutor,
+    mut current_worker: Option<&mut CutWorkerSchemaExecutor>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<(
+    SerializedClaimCreation,
+    crate::source_creation_store::CreationPublication,
+    JsonValue,
+)> {
+    let (_, source_path, _, create, _) = config(ctx)?;
+    if !create {
+        return Err(SourceCommandError::Unsupported(
+            "isolated Claim creation requires a creation delegation",
+        ));
+    }
+    let home = path(
+        source_path
+            .as_str()
+            .rsplit_once('/')
+            .ok_or(SourceCommandError::Invalid("Claim creation source parent"))?
+            .0,
+    )?;
+    let retained = filesystem.read_claim_retained(ctx, &home, deadline, cancelled)?;
+    let mut current = None;
+    let serialized = if let Some(retained) = &retained {
+        let current_context = CommandContext {
+            base_revision: current_cut.current().revision(),
+            files: vec![],
+            ..ctx.clone()
+        };
+        ctx.check_from_selected_captures(original_cut, software, components, deadline, cancelled)?;
+        let mut current_files =
+            complete_authored_inputs(&current_context, current_cut, deadline, cancelled)?;
+        current_files.extend(
+            ctx.files
+                .iter()
+                .filter(|file| !file.path.as_str().starts_with("ToS/"))
+                .cloned(),
+        );
+        let current_context = CommandContext {
+            files: current_files,
+            ..current_context
+        };
+        if reference_replay_required(&current_context, &parse(&ctx.request_raw)?)? {
+            let current_worker =
+                current_worker
+                    .as_deref_mut()
+                    .ok_or(SourceCommandError::Unsupported(
+                        "reference Claim replay requires selected current schema worker",
+                    ))?;
+            if current_worker.source_revision() != current_context.base_revision {
+                return Err(SourceCommandError::Conflict(
+                    "reference Claim replay worker cut differs",
+                ));
+            }
+            reference_replay_snapshot(
+                &current_context,
+                &parse(&ctx.configuration_raw)?,
+                &parse(&ctx.request_raw)?,
+                current_worker,
+                deadline,
+                cancelled,
+            )?;
+            crate::source_creation_store::finish_creation_worker(
+                current_worker,
+                deadline,
+                cancelled,
+            )?;
+        }
+        let original = retained_claim_creation_files(
+            &current_context,
+            &parse(&ctx.configuration_raw)?,
+            &parse(&ctx.request_raw)?,
+            &source_path,
+            retained,
+        )?;
+        current = Some(current_context);
+        restore_claim_creation_from_captures(
+            ctx,
+            original_cut,
+            software,
+            components,
+            worker,
+            &original,
+            deadline,
+            cancelled,
+        )?
+    } else {
+        serialize_claim_creation_from_captures(
+            ctx,
+            original_cut,
+            software,
+            components,
+            worker,
+            deadline,
+            cancelled,
+        )?
+    };
+    crate::source_creation_store::finish_creation_worker(worker, deadline, cancelled)?;
+    let publication = if retained.is_some() {
+        filesystem.replay_claim_isolated(
+            &serialized,
+            original_cut,
+            current.as_ref().ok_or(SourceCommandError::Conflict(
+                "Claim replay current cut absent",
+            ))?,
+            current_cut,
+            software,
+            components,
+            deadline,
+            cancelled,
+        )?
+    } else {
+        filesystem.publish_claim_isolated(
+            &serialized,
+            original_cut,
+            software,
+            components,
+            deadline,
+            cancelled,
+        )?
+    };
+    let response = serialized.command().response.clone();
+    Ok((serialized, publication, response))
+}
+
+fn reference_replay_required(
+    current: &CommandContext,
+    request: &JsonValue,
+) -> SourceCommandResult<bool> {
+    for claim in array(request, "claims")? {
+        let (_, descriptor) = profile(current, text(claim, "predicate")?)?;
+        if text(&descriptor, "reader")? == "structured-reference-value-v1" {
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
+
+fn reference_replay_snapshot(
+    current: &CommandContext,
+    config: &JsonValue,
+    request: &JsonValue,
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<Digest256> {
+    let mut dependencies = Vec::new();
+    for claim in array(request, "claims")? {
+        let (_, descriptor) = profile(current, text(claim, "predicate")?)?;
+        if text(&descriptor, "reader")? == "structured-reference-value-v1" {
+            let (_, create, version) = family(text(config, "schema_version")?)?;
+            if !create {
+                return Err(SourceCommandError::Denied("reference replay owner family"));
+            }
+            claim_scope(config, claim, true, version)?;
+            validate_ground(current, config, claim, version, worker, deadline, cancelled)?;
+            dependencies.push(
+                maintained_grounding(
+                    current,
+                    config,
+                    std::slice::from_ref(claim),
+                    None,
+                    true,
+                    worker,
+                    deadline,
+                    cancelled,
+                )?
+                .dependencies,
+            );
+        }
+    }
+    Ok(record_digest(&JsonValue::Array(dependencies))?)
+}
+
+fn retained_claim_creation_files(
+    current: &CommandContext,
+    config: &JsonValue,
+    request: &JsonValue,
+    source_path: &RelativePath,
+    direct: &BTreeMap<String, Vec<u8>>,
+) -> SourceCommandResult<BTreeMap<String, Vec<u8>>> {
+    let home = source_path
+        .as_str()
+        .rsplit_once('/')
+        .ok_or(SourceCommandError::Invalid("Claim retained home"))?
+        .0;
+    let required = BTreeSet::from([
+        CLAIM_STREAM.to_owned(),
+        "source-create-request.json".to_owned(),
+        "source-create-environment.json".to_owned(),
+        "source-create-provenance.jsonl".to_owned(),
+        "source-create-receipt.json".to_owned(),
+    ]);
+    if !required.iter().all(|name| direct.contains_key(name)) {
+        return Err(SourceCommandError::Conflict(
+            "Claim original package incomplete",
+        ));
+    }
+    let mut form_targets = BTreeMap::new();
+    for claim in array(request, "claims")? {
+        form_targets.insert(
+            form_name(text(claim, "claim_id")?),
+            text(claim, "claim_id")?,
+        );
+    }
+    let mut allowed = required.clone();
+    allowed.insert(CLAIM_HISTORY.into());
+    for name in form_targets.keys() {
+        allowed.insert(name.clone());
+        allowed.insert(format!(".{name}.writer.lock"));
+    }
+    if direct.keys().any(|name| !allowed.contains(name)) {
+        return Err(SourceCommandError::Conflict(
+            "Claim package contains unrelated member",
+        ));
+    }
+    for (name, raw) in direct {
+        if name.ends_with(".writer.lock") {
+            if !raw.is_empty() {
+                return Err(SourceCommandError::Conflict(
+                    "Claim form lock contains data",
+                ));
+            }
+            continue;
+        }
+        let selected = current.file(&path(&format!("{home}/{name}"))?)?;
+        if selected != Some(raw.as_slice()) {
+            return Err(SourceCommandError::Conflict(
+                "Claim current package differs from selected cut",
+            ));
+        }
+    }
+    let current_claims = rows(&direct[CLAIM_STREAM])?;
+    for (name, id) in form_targets {
+        if let Some(raw) = direct.get(&name) {
+            let form = parse(raw)?;
+            let subject = metadata_subject(
+                current_claims
+                    .get(id)
+                    .ok_or(SourceCommandError::Conflict("Claim form subject missing"))?,
+            )?;
+            tos_validation::source_forms::source_copy_kernel::validate_history(&form, &subject)
+                .map_err(crate::source_forms::form_error)?;
+        }
+    }
+    let history = verify_claim_history(current, config, source_path, direct)?;
+    let archived_or_current = if let Some(first) = array(&history, "receipts")?.first() {
+        archive(current, config, first)?
+    } else {
+        direct.clone()
+    };
+    let original = required
+        .iter()
+        .map(|name| {
+            Ok((
+                name.clone(),
+                archived_or_current
+                    .get(name)
+                    .ok_or(SourceCommandError::Conflict(
+                        "archived creation member absent",
+                    ))?
+                    .clone(),
+            ))
+        })
+        .collect::<SourceCommandResult<BTreeMap<_, _>>>()?;
+    if required
+        .iter()
+        .any(|name| name.as_str() != CLAIM_STREAM && direct[name] != original[name])
+    {
+        return Err(SourceCommandError::Conflict(
+            "Claim correction rewrote immutable creation evidence",
+        ));
+    }
+    Ok(original)
 }
 
 pub(crate) fn complete_authored_inputs(
@@ -890,6 +1502,7 @@ pub(crate) fn complete_authored_inputs(
 fn run_claim_command_inner(
     ctx: &CommandContext,
     selected_context: Option<&CommandContext>,
+    serialize_creation: bool,
     executor: &mut CutWorkerSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
@@ -960,6 +1573,27 @@ fn run_claim_command_inner(
     if create {
         set(
             &mut response,
+            "supported_operations",
+            JsonValue::Array(vec![string("claims.create")]),
+        )?;
+        set(
+            &mut response,
+            "command_operations",
+            JsonValue::Array(
+                ["describe", "prepare-create", "claims.create"]
+                    .into_iter()
+                    .map(string)
+                    .collect(),
+            ),
+        )?;
+        set(&mut response, "expected_revision", JsonValue::Null)?;
+        set(
+            &mut response,
+            "creation_provenance_event_id",
+            field(&config, "provenance_event_id")?.clone(),
+        )?;
+        set(
+            &mut response,
             "target_exists",
             JsonValue::Bool(!files.is_empty()),
         )?;
@@ -1000,6 +1634,9 @@ fn run_claim_command_inner(
                     .object_get("assessment_refs")
                     .and_then(JsonValue::as_array)
                     .is_some_and(|a| !a.is_empty())
+                || claim
+                    .object_get("supersedes_claim_ref")
+                    .is_some_and(|value| value != &JsonValue::Null)
             {
                 return Err(SourceCommandError::Denied(
                     "initial Claim cannot revise or assess",
@@ -1039,8 +1676,9 @@ fn run_claim_command_inner(
                 "creation replay requires complete retained provenance and predecessor closure",
             ));
         }
-        let grounding =
-            maintained_grounding(ctx, &config, claims, None, executor, deadline, cancelled)?;
+        let grounding = maintained_grounding(
+            ctx, &config, claims, None, false, executor, deadline, cancelled,
+        )?;
         set(
             &mut response,
             "expected_dependencies",
@@ -1053,9 +1691,26 @@ fn run_claim_command_inner(
             refs(&BTreeMap::from([(CLAIM_STREAM.into(), raw.clone())])),
         )?;
         if operation == "claims.create" {
-            return Err(SourceCommandError::Unsupported(
-                "Claim creation serialization provenance event/environment capture is not yet ported",
-            ));
+            if text(&request, "expected_configuration")? != digest
+                || field(&request, "expected_revision")? != &JsonValue::Null
+                || !same(
+                    field(&request, "expected_dependencies")?,
+                    field(&response, "expected_dependencies")?,
+                )?
+                || !same(
+                    field(&request, "expected_inputs")?,
+                    field(&response, "source_bindings")?,
+                )?
+            {
+                return Err(SourceCommandError::Conflict(
+                    "prepared Claim creation delegation or source snapshot changed",
+                ));
+            }
+            if !serialize_creation {
+                return Err(SourceCommandError::Unsupported(
+                    "Claim creation requires native serialization capture",
+                ));
+            }
         }
         return ctx.plan(
             &handler,
@@ -1287,6 +1942,7 @@ fn run_claim_command_inner(
         &config,
         std::slice::from_ref(&revised),
         Some(forms),
+        true,
         executor,
         deadline,
         cancelled,
@@ -2685,6 +3341,7 @@ fn maintained_grounding(
     config: &JsonValue,
     claims: &[JsonValue],
     forms: Option<&[JsonValue]>,
+    allow_existing: bool,
     executor: &mut CutWorkerSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
@@ -2720,6 +3377,7 @@ fn maintained_grounding(
     let mut evidence = Vec::new();
     for claim in claims {
         if forms.is_none()
+            && !allow_existing
             && (objects.contains_key(text(claim, "claim_id")?)
                 || prior.contains_key(text(claim, "claim_id")?))
         {
@@ -2728,6 +3386,7 @@ fn maintained_grounding(
             ));
         }
         if forms.is_none()
+            && !allow_existing
             && events
                 .object_get(text(config, "provenance_event_id")?)
                 .is_some()

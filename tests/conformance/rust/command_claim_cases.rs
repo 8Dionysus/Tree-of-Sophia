@@ -8,7 +8,8 @@ use std::collections::BTreeMap;
 use std::sync::atomic::AtomicBool;
 use std::time::{Duration, Instant};
 use tos_command::source_claims::{
-    CLAIM_GROUNDING_RULE_INPUTS, CLAIM_REVISION_RULE_INPUTS, run_claim_command,
+    CLAIM_GROUNDING_RULE_INPUTS, CLAIM_REVISION_RULE_INPUTS,
+    execute_isolated_claim_creation_from_captures, run_claim_command,
     run_claim_command_from_captures,
 };
 use tos_command::source_command::{PreparedCommand, SourceCommandError};
@@ -581,4 +582,278 @@ fn claim_successor_retains_bytes_replays_current_scope_and_refuses_unissued_admi
         ),
         Err(SourceCommandError::Conflict(_))
     ));
+}
+
+#[test]
+fn initial_claim_creation_publishes_five_native_files_and_cold_replays() {
+    use std::os::unix::fs::{MetadataExt, PermissionsExt};
+    use tos_command::source_creation_store::{CreationFilesystem, IsolatedCreationRoot};
+    let repository = super::validation_cut_cases::repository()
+        .canonicalize()
+        .unwrap();
+    let (mut files, mut claim, _, source_path) = claim_fixture();
+    claim["claim_version"] = Value::from(1);
+    let mut software_names = CLAIM_GROUNDING_RULE_INPUTS
+        .iter()
+        .copied()
+        .filter(|name| !name.starts_with("ToS/"))
+        .collect::<Vec<_>>();
+    software_names.extend([
+        "rust/crates/tos-command/src/source_claims.rs",
+        "rust/crates/tos-command/src/source_serialization.rs",
+    ]);
+    software_names.sort_unstable();
+    software_names.dedup();
+    for name in software_names {
+        files.insert(name.into(), fs::read(repository.join(name)).unwrap());
+    }
+    let cancellation = AtomicBool::new(false);
+    let deadline = Instant::now() + Duration::from_secs(240);
+    let (_capture, software, components) =
+        super::command_record_cases::captured_components(&files, deadline, &cancellation);
+    let temporary = tempfile::tempdir().unwrap();
+    let authored = files
+        .iter()
+        .filter(|(name, _)| name.starts_with("ToS/"))
+        .map(|(name, raw)| (name.clone(), raw.clone()))
+        .collect::<BTreeMap<_, _>>();
+    let store = temporary.path().join("selected-store");
+    let base = super::validation_cut_cases::write_cut_store(&authored, &store);
+    let cut = open_cut(&store, base, deadline, &cancellation);
+    let isolated = IsolatedCreationRoot::create(temporary.path(), deadline, &cancellation).unwrap();
+    for (name, raw) in &files {
+        let target = isolated.path().join(name);
+        fs::create_dir_all(target.parent().unwrap()).unwrap();
+        fs::write(&target, raw).unwrap();
+        fs::set_permissions(&target, fs::Permissions::from_mode(0o644)).unwrap();
+    }
+    fs::create_dir_all(
+        isolated
+            .path()
+            .join(&source_path)
+            .parent()
+            .unwrap()
+            .parent()
+            .unwrap(),
+    )
+    .unwrap();
+    let uid = fs::metadata(isolated.path()).unwrap().uid();
+    let configuration = serde_json::json!({
+        "schema_version":"tos_local_claim_create_owner_v1", "uid":uid,
+        "principal_id":claim["maker"]["agent_ref"], "maker_type":claim["maker"]["maker_type"],
+        "source_root":isolated.path(), "source_path":source_path,
+        "authority_ref":"synthetic-test-only:claim-creation-not-assessment",
+        "expires_at":"2099-01-01T00:00:00Z", "provenance_event_id":claim["provenance_event_ref"],
+        "allowed_operations":["claims.create"], "allowed_claim_ids":[claim["claim_id"]],
+        "allowed_subject_refs":[claim["subject_ref"]], "allowed_object_refs":[claim["object"]],
+        "allowed_predicates":[claim["predicate"]], "allowed_evidence_refs":claim["evidence_refs"]
+    });
+    let config_raw = source_bytes(&source_value(&configuration));
+    let owner = isolated.path().join("owner.json");
+    fs::write(&owner, &config_raw).unwrap();
+    fs::set_permissions(&owner, fs::Permissions::from_mode(0o600)).unwrap();
+    let filesystem =
+        CreationFilesystem::select_isolated(&isolated, &owner, deadline, &cancellation).unwrap();
+    let preview_request = serde_json::json!({
+        "schema_version":"tos_local_source_command_v1", "operation":"prepare-create",
+        "claims":[claim.clone()]
+    });
+    let mut context = selected_context(
+        &authored,
+        &files
+            .iter()
+            .filter(|(name, _)| !name.starts_with("ToS/"))
+            .map(|(name, raw)| (name.clone(), raw.clone()))
+            .collect(),
+        &configuration,
+        &preview_request,
+        base,
+    );
+    context.effective_uid = u64::from(uid);
+    let mut worker = schemas(&cut, deadline, &cancellation);
+    let preview = checked_command(
+        &context,
+        &cut,
+        &software,
+        &components,
+        &mut worker,
+        deadline,
+        &cancellation,
+    )
+    .unwrap();
+    let expected = response(&preview);
+    assert_eq!(
+        expected["prepared_files"]["source-claims.jsonl"]["sha256"],
+        serde_json::json!(
+            Digest256::of_bytes(&[source_bytes(&source_value(&claim)), b"\n".to_vec()].concat())
+                .to_prefixed()
+        )
+    );
+    let script = "import json,sys;from pathlib import Path;r=Path(sys.argv[1]);sys.path[:0]=[str(r/'mechanics/growth-cycle/parts/branch-growth-cycle/scripts'),str(r/'scripts')];import source_commands as c;owner=Path(sys.argv[2]);request=json.load(sys.stdin);v=c.run_local_command(owner,request);print(json.dumps({'dependencies':v['expected_dependencies'],'bindings':v['source_bindings'],'files':v['prepared_files']},ensure_ascii=False,separators=(',',':')))";
+    let oracle_stdout = temporary.path().join("claim-create-oracle.stdout");
+    let oracle_stderr = temporary.path().join("claim-create-oracle.stderr");
+    let mut oracle = std::process::Command::new("python3")
+        .args(["-c", script])
+        .arg(&repository)
+        .arg(&owner)
+        .env_remove("PYTHONPATH")
+        .env_remove("PYTHONHOME")
+        .env("PYTHONDONTWRITEBYTECODE", "1")
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::from(
+            fs::File::create(&oracle_stdout).unwrap(),
+        ))
+        .stderr(std::process::Stdio::from(
+            fs::File::create(&oracle_stderr).unwrap(),
+        ))
+        .spawn()
+        .unwrap();
+    use std::io::Write;
+    oracle
+        .stdin
+        .take()
+        .unwrap()
+        .write_all(&serde_json::to_vec(&preview_request).unwrap())
+        .unwrap();
+    let oracle_status = loop {
+        if let Some(status) = oracle.try_wait().unwrap() {
+            break status;
+        }
+        if Instant::now() >= deadline
+            || fs::metadata(&oracle_stdout).unwrap().len() > 1_048_576
+            || fs::metadata(&oracle_stderr).unwrap().len() > 1_048_576
+        {
+            oracle.kill().unwrap();
+            oracle.wait().unwrap();
+            panic!("bounded maintained Claim creation oracle refused");
+        }
+        std::thread::sleep(Duration::from_millis(10));
+    };
+    assert!(
+        oracle_status.success(),
+        "{}",
+        String::from_utf8_lossy(&fs::read(&oracle_stderr).unwrap())
+    );
+    assert!(fs::metadata(&oracle_stdout).unwrap().len() <= 1_048_576);
+    assert!(fs::metadata(&oracle_stderr).unwrap().len() <= 1_048_576);
+    let oracle: Value = serde_json::from_slice(&fs::read(&oracle_stdout).unwrap()).unwrap();
+    assert_eq!(expected["expected_dependencies"], oracle["dependencies"]);
+    assert_eq!(expected["source_bindings"], oracle["bindings"]);
+    assert_eq!(expected["prepared_files"], oracle["files"]);
+    let mut request = preview_request;
+    request["operation"] = Value::String("claims.create".into());
+    request["command_id"] = Value::String("synthetic:claim-creation-first".into());
+    request["expected_configuration"] = expected["owner_configuration"].clone();
+    request["expected_revision"] = Value::Null;
+    request["expected_dependencies"] = expected["expected_dependencies"].clone();
+    request["expected_inputs"] = expected["source_bindings"].clone();
+    context.request_raw = serde_json::to_vec(&request).unwrap();
+    let (created, publication, result) = execute_isolated_claim_creation_from_captures(
+        &filesystem,
+        &context,
+        &cut,
+        &cut,
+        &software,
+        &components,
+        &mut worker,
+        None,
+        deadline,
+        &cancellation,
+    )
+    .unwrap();
+    assert!(!publication.replayed);
+    assert_eq!(created.files().len(), 5);
+    assert_eq!(
+        created.command().commit(),
+        Err(SourceCommandError::MissingProductionAdmission)
+    );
+    for (name, raw) in created.files() {
+        assert_eq!(
+            fs::read(isolated.path().join(created.home().as_str()).join(name)).unwrap(),
+            *raw
+        );
+    }
+    let result = serde_json::from_slice::<Value>(&source_bytes(&result)).unwrap();
+    assert_eq!(
+        result["receipt"]["schema_version"],
+        "tos_local_claim_create_receipt_v1"
+    );
+    assert_eq!(result["receipt"]["grants_admission"], false);
+    let mut current_files = authored.clone();
+    for (name, raw) in created.files() {
+        current_files.insert(format!("{}/{name}", created.home().as_str()), raw.clone());
+    }
+    let current = successor(&current_files, &store, base);
+    let current_cut = open_cut(&store, current, deadline, &cancellation);
+    drop(created);
+    let mut replay_worker = schemas(&cut, deadline, &cancellation);
+    let (restored, replayed, replay_result) = execute_isolated_claim_creation_from_captures(
+        &filesystem,
+        &context,
+        &cut,
+        &current_cut,
+        &software,
+        &components,
+        &mut replay_worker,
+        None,
+        deadline,
+        &cancellation,
+    )
+    .unwrap();
+    assert!(replayed.replayed);
+    assert!(restored.command().changes.is_empty());
+    assert_eq!(replay_result, restored.command().response);
+    assert_eq!(
+        restored.files()["source-create-receipt.json"],
+        fs::read(
+            isolated
+                .path()
+                .join(restored.home().as_str())
+                .join("source-create-receipt.json")
+        )
+        .unwrap()
+    );
+    let evidence_path = isolated
+        .path()
+        .join(claim["evidence_refs"][0].as_str().unwrap());
+    let evidence_original = fs::read(&evidence_path).unwrap();
+    fs::write(&evidence_path, b"Changed after the selected Claim cut.\n").unwrap();
+    let mut stale_source_worker = schemas(&cut, deadline, &cancellation);
+    assert!(matches!(
+        execute_isolated_claim_creation_from_captures(
+            &filesystem,
+            &context,
+            &cut,
+            &current_cut,
+            &software,
+            &components,
+            &mut stale_source_worker,
+            None,
+            deadline,
+            &cancellation,
+        ),
+        Err(SourceCommandError::Conflict(_))
+    ));
+    fs::write(&evidence_path, evidence_original).unwrap();
+    let prior = fs::read(&owner).unwrap();
+    let mut revoked = configuration;
+    revoked["allowed_operations"] = serde_json::json!([]);
+    fs::write(&owner, source_bytes(&source_value(&revoked))).unwrap();
+    let mut revoked_worker = schemas(&cut, deadline, &cancellation);
+    assert!(matches!(
+        execute_isolated_claim_creation_from_captures(
+            &filesystem,
+            &context,
+            &cut,
+            &current_cut,
+            &software,
+            &components,
+            &mut revoked_worker,
+            None,
+            deadline,
+            &cancellation,
+        ),
+        Err(SourceCommandError::Conflict(_) | SourceCommandError::Denied(_))
+    ));
+    fs::write(&owner, prior).unwrap();
 }

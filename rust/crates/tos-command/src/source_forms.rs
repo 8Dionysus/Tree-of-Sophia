@@ -977,7 +977,7 @@ fn form_response(
 // These adapters preserve the command error contract and all caller custody.
 use tos_validation::source_forms::source_copy_kernel as forms_kernel;
 pub use tos_validation::source_forms::source_copy_kernel::FormField;
-fn form_error(error: forms_kernel::FormMechanicsError) -> Error {
+pub(crate) fn form_error(error: forms_kernel::FormMechanicsError) -> Error {
     match error {
         forms_kernel::FormMechanicsError::Invalid(text) => Error::Invalid(text),
         forms_kernel::FormMechanicsError::Conflict(text) => Error::Conflict(text),

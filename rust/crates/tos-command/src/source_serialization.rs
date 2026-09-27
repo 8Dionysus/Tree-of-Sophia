@@ -175,6 +175,53 @@ pub(crate) fn capture_creation(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<()> {
+    capture_creation_with_procedure(
+        request,
+        event_id,
+        home,
+        files,
+        software,
+        components,
+        "native-source-metadata-serialization",
+        deadline,
+        cancelled,
+    )
+}
+
+pub(crate) fn capture_claim_creation(
+    request: &JsonValue,
+    event_id: &str,
+    home: &str,
+    files: &mut BTreeMap<String, Vec<u8>>,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<()> {
+    capture_creation_with_procedure(
+        request,
+        event_id,
+        home,
+        files,
+        software,
+        components,
+        "native-claim-serialization",
+        deadline,
+        cancelled,
+    )
+}
+
+fn capture_creation_with_procedure(
+    request: &JsonValue,
+    event_id: &str,
+    home: &str,
+    files: &mut BTreeMap<String, Vec<u8>>,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    procedure_name: &str,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<()> {
     active(deadline, cancelled)?;
     if components.capture() != software.selection() || components.members().count() == 0 {
         return Err(SourceCommandError::Conflict(
@@ -237,7 +284,7 @@ pub(crate) fn capture_creation(
         "entities":{"inputs":[entity(home,"source-create-request.json",&request_raw,"caller-supplied-metadata-request")],"outputs":outputs,"byproducts":[entity(home,"source-create-environment.json",&environment_raw,"runtime-description")]},
         "derivations":derivations,
         "responsibility":[{"agent_ref":"software:tos-native-source-commands","agent_kind":"software","role":"executor","responsibility_posture":"performed","evidence_binding":null,"human_evidence_status":"not_applicable"}],
-        "method":{"procedure":{"name":"native-source-metadata-serialization","version":"1","purpose":"Serialize supplied source metadata and source-copy forms without judging their content."},"command_capture":{"disclosure":"withheld_digest_only","argv":null,"argv_sha256":argv_digest,"withholding_reason":"Observed process argv may contain private paths; exact library request is captured separately and process argv does not authenticate its invocation."},"configuration_binding":binding("source-create-request.json",&request_raw),"software_components":selected,"model_invocations":[],"environment":method_environment},
+        "method":{"procedure":{"name":procedure_name,"version":"1","purpose":"Serialize supplied source metadata and source-copy forms without judging their content."},"command_capture":{"disclosure":"withheld_digest_only","argv":null,"argv_sha256":argv_digest,"withholding_reason":"Observed process argv may contain private paths; exact library request is captured separately and process argv does not authenticate its invocation."},"configuration_binding":binding("source-create-request.json",&request_raw),"software_components":selected,"model_invocations":[],"environment":method_environment},
         "manual_changes":{"status":"none_declared","change_receipts":[],"statement":"No manual editing inside this serialization operation; caller authorship is outside its scope."},
         "measurements":[{"metric":"wall_duration_ms","status":"measured","value":started.elapsed().as_secs_f64()*1000.0,"unit":"ms","method":"Rust monotonic Instant from capture through executable/source observation and buffer binding; excludes commit.","evidence_binding":null}],
         "evidence_authentication":{"capture_posture":"tool_captured","signature_status":"unsigned","signature_bindings":[],"verification_status":"unverified","producer_control_boundary":"The same unsigned executing process serializes and observes; hashes do not authenticate execution truth."},

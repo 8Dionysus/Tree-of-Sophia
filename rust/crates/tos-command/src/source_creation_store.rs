@@ -2,6 +2,7 @@
 //! mechanics in an independently selected owner filesystem, not source admission.
 //! The corpus lock name and rename-no-replace protocol interoperate with Python.
 
+use crate::source_claims::SerializedClaimCreation;
 use crate::source_command::{self as cmd, SourceCommandError, SourceCommandResult};
 use crate::source_creation::{CreationPackage, SerializedCreation};
 use rustix::fs::{AtFlags, FlockOperation, Mode, OFlags, RenameFlags};
@@ -334,6 +335,14 @@ impl CreationFilesystem {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<()> {
+        self.current_context(package.prepared().context(), deadline, cancelled)
+    }
+    fn current_context(
+        &self,
+        context: &cmd::CommandContext,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()> {
         active(deadline, cancelled)?;
         if rustix::process::geteuid().as_raw() != self.uid
             || rustix::process::getuid().as_raw() != self.uid
@@ -358,9 +367,7 @@ impl CreationFilesystem {
             ));
         }
         let bytes = raw(&mut fd, 1_048_576, deadline, cancelled)?;
-        if bytes != self.configuration_raw
-            || bytes != package.prepared().context().configuration_raw
-        {
+        if bytes != self.configuration_raw || bytes != context.configuration_raw {
             return Err(SourceCommandError::Conflict(
                 "creation delegation changed before publication",
             ));
@@ -370,7 +377,7 @@ impl CreationFilesystem {
             cmd::text(&config, "expires_at")?,
             &crate::source_serialization::instant()?,
         )?;
-        if package.prepared().context().effective_uid != u64::from(self.uid) {
+        if context.effective_uid != u64::from(self.uid) {
             return Err(SourceCommandError::Denied(
                 "creation prepared account differs",
             ));
@@ -445,6 +452,252 @@ impl CreationFilesystem {
             ));
         }
         Ok(fd)
+    }
+
+    /// The Claim owner uses the same held corpus lock, secure directory
+    /// staging and NOREPLACE publication as the source creation families.
+    /// The package is privately built from a complete selected Claim cut.
+    pub fn publish_claim_isolated(
+        &self,
+        package: &SerializedClaimCreation,
+        cut: &CorpusCutReader,
+        software: &SoftwareCaptureReader,
+        components: &SoftwareComponentSelectionV1,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<CreationPublication> {
+        if components != package.components() || software.selection() != components.capture() {
+            return Err(SourceCommandError::Conflict(
+                "Claim selected producer differs",
+            ));
+        }
+        self.current_context(package.context(), deadline, cancelled)?;
+        package
+            .context()
+            .check_from_selected_captures(cut, software, components, deadline, cancelled)?;
+        let tos = walk(&self.root, "ToS", self.uid)?;
+        let witness = walk(&self.root, "ToS/source-witnesses", self.uid)?;
+        let _lock = self.lock(&witness, deadline, cancelled)?;
+        self.current_context(package.context(), deadline, cancelled)?;
+        self.reselect_context(
+            package.context(),
+            package.home(),
+            package.files(),
+            cut,
+            None,
+            false,
+            deadline,
+            cancelled,
+        )?;
+        self.reselect_components(software, components, deadline, cancelled)?;
+        let (parent_path, target_name) = package
+            .home()
+            .as_str()
+            .rsplit_once('/')
+            .ok_or(SourceCommandError::Invalid("Claim target parent"))?;
+        let parent = walk(&self.root, parent_path, self.uid)?;
+        let parent_identity = inode(&owned(&parent, self.uid, true)?);
+        let mut stage = PendingCreation::create(&tos, self.uid, deadline, cancelled)?;
+        let preparation = (|| {
+            for (name, bytes) in package.files() {
+                stage.write(name, bytes, deadline, cancelled)?;
+            }
+            stage
+                .directory
+                .sync_all()
+                .map_err(|_| SourceCommandError::Invalid("Claim staging directory fsync"))?;
+            self.current_context(package.context(), deadline, cancelled)?;
+            self.reselect_context(
+                package.context(),
+                package.home(),
+                package.files(),
+                cut,
+                Some(&stage.name),
+                false,
+                deadline,
+                cancelled,
+            )?;
+            self.reselect_components(software, components, deadline, cancelled)?;
+            let current_parent = walk(&self.root, parent_path, self.uid)?;
+            if inode(&owned(&current_parent, self.uid, true)?) != parent_identity {
+                return Err(SourceCommandError::Conflict("Claim target parent changed"));
+            }
+            rustix::fs::renameat_with(
+                &tos,
+                stage.name.as_str(),
+                &parent,
+                target_name,
+                RenameFlags::NOREPLACE,
+            )
+            .map_err(|error| {
+                if error == Errno::EXIST {
+                    SourceCommandError::Conflict("Claim creation target occupied")
+                } else {
+                    SourceCommandError::Invalid("Claim creation atomic publication")
+                }
+            })?;
+            stage.published = true;
+            Ok(())
+        })();
+        if let Err(error) = preparation {
+            stage.rollback()?;
+            return Err(error);
+        }
+        let durable = parent.sync_all().is_ok() && tos.sync_all().is_ok();
+        Ok(CreationPublication {
+            home: package.home().clone(),
+            receipt_sha256: Digest256::of_bytes(&package.files()["source-create-receipt.json"]),
+            durability: if durable {
+                CreationDurability::DirectoriesSynced
+            } else {
+                CreationDurability::PublishedSyncIncomplete
+            },
+            replayed: false,
+        })
+    }
+
+    /// Cold exact replay: the caller must first reconstruct this package from
+    /// retained bytes and the original selected cut. The current filesystem is
+    /// independently reselected under the same corpus lock before success.
+    pub fn replay_claim_isolated(
+        &self,
+        package: &SerializedClaimCreation,
+        original_cut: &CorpusCutReader,
+        current_context: &cmd::CommandContext,
+        current_cut: &CorpusCutReader,
+        software: &SoftwareCaptureReader,
+        components: &SoftwareComponentSelectionV1,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<CreationPublication> {
+        if !package.command().replayed
+            || components != package.components()
+            || software.selection() != components.capture()
+        {
+            return Err(SourceCommandError::Conflict(
+                "Claim retained replay basis differs",
+            ));
+        }
+        self.current_context(package.context(), deadline, cancelled)?;
+        if current_context.base_revision != current_cut.current().revision() {
+            return Err(SourceCommandError::Conflict("Claim current cut differs"));
+        }
+        package.context().check_from_selected_captures(
+            original_cut,
+            software,
+            components,
+            deadline,
+            cancelled,
+        )?;
+        let witness = walk(&self.root, "ToS/source-witnesses", self.uid)?;
+        let _lock = self.lock(&witness, deadline, cancelled)?;
+        self.current_context(package.context(), deadline, cancelled)?;
+        self.reselect_context(
+            current_context,
+            package.home(),
+            &BTreeMap::new(),
+            current_cut,
+            None,
+            false,
+            deadline,
+            cancelled,
+        )?;
+        self.reselect_components(software, components, deadline, cancelled)?;
+        let directory = walk(&self.root, package.home().as_str(), self.uid)?;
+        let parent_path = package
+            .home()
+            .as_str()
+            .rsplit_once('/')
+            .ok_or(SourceCommandError::Invalid("Claim replay parent"))?
+            .0;
+        let parent = walk(&self.root, parent_path, self.uid)?;
+        let tos = walk(&self.root, "ToS", self.uid)?;
+        let durable =
+            directory.sync_all().is_ok() && parent.sync_all().is_ok() && tos.sync_all().is_ok();
+        Ok(CreationPublication {
+            home: package.home().clone(),
+            receipt_sha256: Digest256::of_bytes(&package.files()["source-create-receipt.json"]),
+            durability: if durable {
+                CreationDurability::DirectoriesSynced
+            } else {
+                CreationDurability::PublishedSyncIncomplete
+            },
+            replayed: true,
+        })
+    }
+
+    /// A cold bounded read of the current Claim package. The Claim owner
+    /// validates original/revised closure before it becomes a replay.
+    pub fn read_claim_retained(
+        &self,
+        context: &cmd::CommandContext,
+        home: &RelativePath,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<Option<BTreeMap<String, Vec<u8>>>> {
+        self.current_context(context, deadline, cancelled)?;
+        let (parent_path, name) = home
+            .as_str()
+            .rsplit_once('/')
+            .ok_or(SourceCommandError::Invalid("Claim retained parent"))?;
+        let parent = walk(&self.root, parent_path, self.uid)?;
+        match rustix::fs::statat(&parent, name, AtFlags::SYMLINK_NOFOLLOW) {
+            Err(Errno::NOENT) => return Ok(None),
+            Err(_) => return Err(SourceCommandError::Denied("Claim retained target unsafe")),
+            Ok(_) => {}
+        }
+        let directory = walk(&self.root, home.as_str(), self.uid)?;
+        let entries = std::fs::read_dir(format!("/proc/self/fd/{}", directory.as_raw_fd()))
+            .map_err(|_| SourceCommandError::Invalid("Claim retained directory listing"))?;
+        let mut names = BTreeSet::new();
+        for entry in entries {
+            active(deadline, cancelled)?;
+            let name = entry
+                .map_err(|_| SourceCommandError::Invalid("Claim retained entry"))?
+                .file_name()
+                .into_string()
+                .map_err(|_| SourceCommandError::Invalid("Claim retained name"))?;
+            if !names.insert(name) || names.len() > 64 {
+                return Err(SourceCommandError::Invalid("Claim retained entry budget"));
+            }
+        }
+        let required = BTreeSet::from([
+            "source-claims.jsonl".to_owned(),
+            "source-create-request.json".to_owned(),
+            "source-create-environment.json".to_owned(),
+            "source-create-provenance.jsonl".to_owned(),
+            "source-create-receipt.json".to_owned(),
+        ]);
+        if !required.is_subset(&names) {
+            return Err(SourceCommandError::Conflict(
+                "Claim retained package incomplete",
+            ));
+        }
+        let mut files = BTreeMap::new();
+        let mut total = 0usize;
+        for name in names {
+            let mut file = tos_fd_open::open_regular_at(&directory, Path::new(&name))
+                .map_err(|_| SourceCommandError::Denied("Claim retained member unsafe"))?;
+            let expected_mode = if name.ends_with(".writer.lock") {
+                0o600
+            } else {
+                0o644
+            };
+            if owned(&file, self.uid, false)?.mode() & 0o777 != expected_mode {
+                return Err(SourceCommandError::Conflict(
+                    "Claim retained member mode differs",
+                ));
+            }
+            let bytes = raw(&mut file, 8_388_608, deadline, cancelled)?;
+            total = total
+                .checked_add(bytes.len())
+                .ok_or(SourceCommandError::Invalid("Claim retained byte overflow"))?;
+            if total > MAX_BYTES {
+                return Err(SourceCommandError::Invalid("Claim retained byte budget"));
+            }
+            files.insert(name, bytes);
+        }
+        Ok(Some(files))
     }
 
     /// Publish only a privately constructed, genuinely serialized handler
@@ -854,7 +1107,29 @@ impl CreationFilesystem {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<()> {
-        if cut.current().revision() != package.prepared.context().base_revision {
+        self.reselect_context(
+            package.prepared.context(),
+            package.prepared.home(),
+            package.prepared.files(),
+            cut,
+            staging,
+            published,
+            deadline,
+            cancelled,
+        )
+    }
+    fn reselect_context(
+        &self,
+        context: &cmd::CommandContext,
+        home: &RelativePath,
+        package_files: &BTreeMap<String, Vec<u8>>,
+        cut: &CorpusCutReader,
+        staging: Option<&str>,
+        published: bool,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()> {
+        if cut.current().revision() != context.base_revision {
             return Err(SourceCommandError::Conflict("creation base cut changed"));
         }
         let mut observed = BTreeMap::new();
@@ -878,8 +1153,8 @@ impl CreationFilesystem {
             .map(|m| (m.path.as_str().to_owned(), (m.sha256, m.size_bytes, m.mode)))
             .collect();
         if published {
-            for (name, bytes) in package.prepared.files() {
-                let path = format!("{}/{name}", package.prepared.home().as_str());
+            for (name, bytes) in package_files {
+                let path = format!("{}/{name}", home.as_str());
                 if selected
                     .insert(
                         path,
@@ -900,7 +1175,7 @@ impl CreationFilesystem {
         }
         // Software inputs are selected separately and also reselected from the
         // actual owner tree. A restored capture alone cannot substitute them.
-        for input in &package.prepared.context().files {
+        for input in &context.files {
             active(deadline, cancelled)?;
             if input.path.as_str().starts_with("ToS/") {
                 continue;
@@ -1089,6 +1364,19 @@ pub fn execute_isolated_creation_from_captures(
         context, cut, software, components, worker, deadline, cancelled,
     )?;
     let serialized = prepared.serialize(software, components, worker, deadline, cancelled)?;
+    finish_creation_worker(worker, deadline, cancelled)?;
+    active(deadline, cancelled)?;
+    let publication =
+        filesystem.publish_isolated(&serialized, cut, software, components, deadline, cancelled)?;
+    let response = serialized.published_result(publication.replayed)?;
+    Ok((serialized, publication, response))
+}
+
+pub(crate) fn finish_creation_worker(
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<()> {
     worker
         .finish(deadline, cancelled)
         .map_err(|error| match error {
@@ -1105,12 +1393,7 @@ pub fn execute_isolated_creation_from_captures(
                 SourceCommandError::Denied("creation schema operation cancelled")
             }
             _ => SourceCommandError::Unsupported("creation schema operation incomplete"),
-        })?;
-    active(deadline, cancelled)?;
-    let publication =
-        filesystem.publish_isolated(&serialized, cut, software, components, deadline, cancelled)?;
-    let response = serialized.published_result(publication.replayed)?;
-    Ok((serialized, publication, response))
+        })
 }
 
 pub(crate) struct PendingCreation<'a> {
