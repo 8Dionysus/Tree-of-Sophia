@@ -314,6 +314,34 @@ impl<'a> WorkExpression<'a> {
                 .ok_or(ItemRefusal::Budget)?,
         )
     }
+    fn carrier_json_cost(&self, path: &str, raw: &[u8]) -> Result<usize, ItemRefusal> {
+        if !path.ends_with(".jsonl") {
+            return self.json_cost(raw);
+        }
+        // Retained JSONL is a sequence of JSON values, not one JSON document.
+        // This counts storage only; exact reconstructed carrier bytes remain
+        // independently checked below, including blank lines and separators.
+        let available = self
+            .limits
+            .max_state_bytes
+            .checked_sub(self.state)
+            .ok_or(ItemRefusal::Budget)?;
+        let mut cost = 0usize;
+        for line in raw.split(|b| *b == b'\n' || *b == b'\r') {
+            check(self.limits.deadline, self.cancelled)?;
+            if line.iter().all(u8::is_ascii_whitespace) {
+                continue;
+            }
+            let amount = json_storage_cost(
+                line,
+                self.limits.deadline,
+                self.cancelled,
+                available.checked_sub(cost).ok_or(ItemRefusal::Budget)?,
+            )?;
+            cost = cost.checked_add(amount).ok_or(ItemRefusal::Budget)?;
+        }
+        Ok(cost)
+    }
     pub(crate) fn retained_state_bytes(&self) -> usize {
         self.state
     }
@@ -1976,9 +2004,9 @@ impl WorkExpression<'_> {
             return Err(bad("current source snapshot is pending owner recovery"));
         }
         let mut scratch = self.json_cost(&canonical(&tx.manifest)?)?;
-        for (before, after) in tx.files.values() {
+        for (path, (before, after)) in &tx.files {
             for raw in before.iter().chain(after.iter()) {
-                let decoded = self.json_cost(raw)?;
+                let decoded = self.carrier_json_cost(path, raw)?;
                 scratch = scratch
                     .checked_add(raw.len())
                     .and_then(|n| n.checked_add(decoded))
