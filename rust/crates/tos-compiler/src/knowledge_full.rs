@@ -101,6 +101,9 @@ fn compile_inner(
         &registry.relation_sha256,
         limits.max_registry_bytes,
     )?;
+    // All native normalization, readable joins and original capture precede
+    // this full-component transition. These components use final core rows.
+    stage.close_inputs_for_full_components()?;
     let source_scope = write_source_scope(stage, vocabulary, limits.scope)?;
     let packet: CatalogReceipt = stage.with_connection(WritePhase::Catalog, |db| {
         compile_catalog(

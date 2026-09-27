@@ -212,6 +212,7 @@ pub struct KnowledgeStage<'a> {
     poisoned: bool,
     keep: bool,
     selected_full: bool,
+    closed_input_rows: Option<u64>,
     fresh_selected: Option<PathBuf>,
 }
 
@@ -321,6 +322,7 @@ impl<'a> KnowledgeStage<'a> {
             poisoned: false,
             keep: false,
             selected_full: false,
+            closed_input_rows: None,
             fresh_selected: None,
         };
         let lease = stage.lease.as_mut().expect("stage lease open");
@@ -411,6 +413,51 @@ impl<'a> KnowledgeStage<'a> {
         })
     }
 
+    fn require_open_inputs(&self) -> Result<()> {
+        if self.poisoned {
+            return Err(Error::Invalid("stage poisoned by prior failure"));
+        }
+        if self.closed_input_rows.is_some() {
+            return Err(Error::Invalid("stage original input already closed"));
+        }
+        Ok(())
+    }
+
+    fn verified_input_rows(&self) -> Result<u64> {
+        self.check(WritePhase::Sort)?;
+        let mut input_rows = 0u64;
+        for entry in &self.receipt.collections {
+            let (count, root) = input_root(self.db(), entry)?;
+            self.check(WritePhase::Sort)?;
+            if count != entry.expected_count || root != entry.expected_root_sha256 {
+                return Err(Error::Invalid("input collection count/root mismatch"));
+            }
+            input_rows = input_rows
+                .checked_add(count)
+                .ok_or(Error::Budget("input rows"))?;
+        }
+        Ok(input_rows)
+    }
+
+    /// End the actual normalization/original-capture phase. Only the private
+    /// verified count is retained; roots remain in the immutable exact receipt.
+    /// Full-component writers cannot re-open ingestion after this transition.
+    pub(crate) fn close_inputs_for_full_components(&mut self) -> Result<()> {
+        let result = (|| {
+            self.require_open_inputs()?;
+            self.owner.recheck_sealed_cut(&self.receipt)?;
+            let rows = self.verified_input_rows()?;
+            self.with_connection(WritePhase::Finalize, |db| {
+                db.execute_batch("PRAGMA secure_delete=ON; DROP TABLE raw_records")?;
+                Ok(())
+            })?;
+            self.closed_input_rows = Some(rows);
+            Ok(())
+        })();
+        self.poisoned |= result.is_err();
+        result
+    }
+
     pub(crate) fn core_roots(&mut self) -> Result<CoreRoots> {
         self.with_connection(WritePhase::Sort, |db| {
             let (nodes, node_sha256) = output_root(db, "knowledge_nodes")?;
@@ -471,9 +518,7 @@ impl<'a> KnowledgeStage<'a> {
     /// Failure poisons the private stage and rolls back the current chunk.
     pub fn ingest_input_batch(&mut self, rows: &[InputRow<'_>]) -> Result<()> {
         let result = (|| {
-            if self.poisoned {
-                return Err(Error::Invalid("stage poisoned by prior failure"));
-            }
+            self.require_open_inputs()?;
             if rows.is_empty() || rows.len() > self.limits.max_seek_rows {
                 return Err(Error::Budget("stage input chunk rows"));
             }
@@ -516,6 +561,7 @@ impl<'a> KnowledgeStage<'a> {
         result
     }
     fn ingest_input_inner(&mut self, row: InputRow<'_>) -> Result<()> {
+        self.require_open_inputs()?;
         if !self.registered(row.source_graph, row.collection) {
             return Err(Error::Invalid("unregistered input collection"));
         }
@@ -631,6 +677,7 @@ impl<'a> KnowledgeStage<'a> {
         collection: &str,
         id: &str,
     ) -> Result<Option<SeekRow>> {
+        self.require_open_inputs()?;
         if !self.registered(source_graph, collection) {
             return Err(Error::Invalid("unregistered input collection"));
         }
@@ -664,6 +711,7 @@ impl<'a> KnowledgeStage<'a> {
         after_id: Option<&str>,
         max_rows: usize,
     ) -> Result<ScanPage> {
+        self.require_open_inputs()?;
         if !self.registered(source_graph, collection) {
             return Err(Error::Invalid("unregistered input collection"));
         }
@@ -813,18 +861,10 @@ impl<'a> KnowledgeStage<'a> {
             return Err(Error::Invalid("stage poisoned by prior failed row"));
         }
         self.owner.recheck_sealed_cut(&self.receipt)?;
-        self.check(WritePhase::Sort)?;
-        let mut input_rows = 0u64;
-        for entry in &self.receipt.collections {
-            let (count, root) = input_root(self.db(), entry)?;
-            self.check(WritePhase::Sort)?;
-            if count != entry.expected_count || root != entry.expected_root_sha256 {
-                return Err(Error::Invalid("input collection count/root mismatch"));
-            }
-            input_rows = input_rows
-                .checked_add(count)
-                .ok_or(Error::Budget("input rows"))?;
-        }
+        let input_rows = match self.closed_input_rows {
+            Some(rows) => rows,
+            None => self.verified_input_rows()?,
+        };
         let (node_rows, node_root) = output_root(self.db(), "knowledge_nodes")?;
         self.check(WritePhase::Sort)?;
         let (relation_rows, relation_root) = output_root(self.db(), "knowledge_relations")?;
@@ -855,8 +895,10 @@ impl<'a> KnowledgeStage<'a> {
             // root checks. VACUUM INTO then creates a different SQLite inode
             // containing the allowlisted logical tables; the private stage
             // inode is never the selected artifact.
-            self.db()
-                .execute_batch("PRAGMA secure_delete=ON; DROP TABLE raw_records")?;
+            if self.closed_input_rows.is_none() {
+                self.db()
+                    .execute_batch("PRAGMA secure_delete=ON; DROP TABLE raw_records")?;
+            }
             selected_table_closure(self.db())?;
             self.check(WritePhase::Finalize)?;
             let fresh = fresh_selected_path(&self.candidate);
@@ -1782,6 +1824,28 @@ mod tests {
             1
         );
         assert_eq!(ids, ["rel.1"]);
+        stage.close_inputs_for_full_components().unwrap();
+        assert!(
+            stage
+                .raw_by_id("fixture.graph", "fixture/raw", "raw.1")
+                .is_err()
+        );
+        assert!(
+            stage
+                .scan_input("fixture.graph", "fixture/raw", None, 1)
+                .is_err()
+        );
+        assert_eq!(
+            stage
+                .db()
+                .query_row(
+                    "SELECT count(*) FROM sqlite_schema WHERE name='raw_records'",
+                    [],
+                    |row| row.get::<_, u64>(0)
+                )
+                .unwrap(),
+            0
+        );
         let receipt = stage.finish().unwrap();
         assert_eq!(
             (
@@ -1794,7 +1858,7 @@ mod tests {
         );
         assert_eq!(receipt.source_cut, "sealed-cut-7");
         assert!(candidate.is_file());
-        assert_eq!(owner.checks.load(Ordering::SeqCst), 3);
+        assert_eq!(owner.checks.load(Ordering::SeqCst), 4);
         assert!(quota.calls.load(Ordering::SeqCst) >= 6);
         fs::remove_dir_all(candidate.parent().unwrap()).unwrap();
     }
@@ -1809,9 +1873,10 @@ mod tests {
             deny: false,
         };
         let omitted = stage_path("omitted");
-        let stage =
+        let mut stage =
             KnowledgeStage::create(&omitted, limits(), exact_receipt(RAW_ROOT), &owner, &quota)
                 .unwrap();
+        assert!(stage.close_inputs_for_full_components().is_err());
         assert!(stage.finish().is_err());
         assert!(!omitted.exists());
         fs::remove_dir_all(omitted.parent().unwrap()).unwrap();
