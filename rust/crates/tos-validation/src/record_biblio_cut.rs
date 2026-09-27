@@ -635,6 +635,9 @@ pub(crate) fn store_error(error: tos_source_store::StoreError) -> ItemRefusal {
 }
 
 pub(crate) fn decoded_wire_size(value:&serde_json::Value,limit:usize)->Result<usize,ItemRefusal> {
+    serialized_wire_size(limit,|writer|serde_json::to_writer(writer,value))
+}
+pub(crate) fn serialized_wire_size(limit:usize,write:impl FnOnce(&mut dyn std::io::Write)->serde_json::Result<()>)->Result<usize,ItemRefusal> {
     struct Counter {bytes:usize,limit:usize,exhausted:bool}
     impl std::io::Write for Counter {
         fn write(&mut self,bytes:&[u8])->std::io::Result<usize> {
@@ -645,7 +648,7 @@ pub(crate) fn decoded_wire_size(value:&serde_json::Value,limit:usize)->Result<us
         fn flush(&mut self)->std::io::Result<()> {Ok(())}
     }
     let mut counter=Counter{bytes:0,limit,exhausted:false};
-    let outcome=serde_json::to_writer(&mut counter,value);
+    let outcome=write(&mut counter);
     if counter.exhausted {return Err(ItemRefusal::BudgetCheck{check:"decoded JSON serialization bytes",used:None,limit:Some(limit as u64)});}
     outcome.map_err(|_|ItemRefusal::Unsupported("decoded JSON serialization".into()))?;
     Ok(counter.bytes)

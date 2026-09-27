@@ -9,7 +9,7 @@ use tos_foundation::{Digest256, RelativePath, SourceRevision};
 use tos_source_store::{CorpusCutReader, SourceMembershipV1};
 use crate::item_rules::{ItemLimits, ItemRefusal};
 use crate::record_biblio_cut::{BiblioCurrentRecord, SourceCutRecordReport, account, check, current, reserve, store_error};
-use crate::relation_rules::{RelationIssue, RelationShadow, inspect_current_topology};
+use crate::relation_rules::{RelationIssue, RelationShadow, inspect_current_topology_bounded};
 use crate::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
 use crate::{KeyState, PredicateRead, ValidationFact};
 
@@ -50,10 +50,11 @@ impl Rules<'_> {
         reserve(&mut self.state, location.len()+std::mem::size_of::<RelationIssue>(), self.limits.max_state_bytes)?;
         self.shadow.issues.push(RelationIssue { code, location: location.into() }); Ok(())
     }
-    fn read(&mut self, row: PredicateRead) -> Result<(), ItemRefusal> {
+    fn read(&mut self, payload:usize, make:impl FnOnce()->PredicateRead) -> Result<(), ItemRefusal> {
         check(self.limits.deadline, self.cancelled)?;
-        reserve(&mut self.state, crate::record_biblio_cut::predicate_state(&row)?, self.limits.max_state_bytes)?;
-        self.shadow.reads.push(row); Ok(())
+        let cost=std::mem::size_of::<PredicateRead>().checked_add(payload).ok_or(ItemRefusal::Budget)?;
+        reserve(&mut self.state,cost,self.limits.max_state_bytes)?;
+        self.shadow.reads.push(make()); Ok(())
     }
     fn skip(&mut self, reason: &str) -> Result<(), ItemRefusal> {
         if !self.shadow.skipped_profiles.contains(reason) {reserve(&mut self.state, reason.len()+std::mem::size_of::<String>(), self.limits.max_state_bytes)?;}
@@ -62,18 +63,43 @@ impl Rules<'_> {
     fn checked(&mut self,profile:&str)->Result<(),ItemRefusal> {
         if !self.shadow.checked_profiles.contains(profile) {reserve(&mut self.state,profile.len()+std::mem::size_of::<String>(),self.limits.max_state_bytes)?;self.shadow.checked_profiles.insert(profile.into());}Ok(())
     }
+    fn checked_parts(&mut self,parts:&[&str])->Result<(),ItemRefusal> {
+        let amount=parts.iter().try_fold(std::mem::size_of::<String>(),|n,part|n.checked_add(part.len()).ok_or(ItemRefusal::Budget))?;
+        reserve(&mut self.state,amount,self.limits.max_state_bytes)?;
+        let profile=parts.concat();
+        if !self.shadow.checked_profiles.insert(profile) {self.state-=amount;}Ok(())
+    }
+    fn skip_parts(&mut self,parts:&[&str])->Result<(),ItemRefusal> {
+        let amount=parts.iter().try_fold(std::mem::size_of::<String>(),|n,part|n.checked_add(part.len()).ok_or(ItemRefusal::Budget))?;
+        reserve(&mut self.state,amount,self.limits.max_state_bytes)?;
+        let profile=parts.concat();self.shadow.unsupported=true;
+        if !self.shadow.skipped_profiles.insert(profile) {self.state-=amount;}Ok(())
+    }
+    fn issue_parts(&mut self,code:&'static str,parts:&[&str])->Result<(),ItemRefusal> {
+        check(self.limits.deadline,self.cancelled)?;
+        if self.shadow.issues.len()>=self.limits.max_issues {return Err(ItemRefusal::BudgetCheck {check:"bibliography issue count",used:(self.shadow.issues.len() as u64).checked_add(1),limit:Some(self.limits.max_issues as u64)});}
+        let cost=parts.iter().try_fold(std::mem::size_of::<RelationIssue>(),|n,part|n.checked_add(part.len()).ok_or(ItemRefusal::Budget))?;
+        reserve(&mut self.state,cost,self.limits.max_state_bytes)?;
+        self.shadow.issues.push(RelationIssue {code,location:parts.concat()});Ok(())
+    }
     fn endpoint(&mut self, id: &str, allowed: &[String], types: &BTreeMap<&str,&Value>, kinds: &BTreeMap<&str,&str>, records: &BTreeMap<String,BiblioCurrentRecord>, location: &str) -> Result<(),ItemRefusal> {
         if self.reserved.contains(id) && !records.contains_key(id) {
-            self.read(PredicateRead::RefEndpoint { endpoint_type:allowed.join("|"),id:id.into(),observed:KeyState::Reserved })?;
+            self.read(allowed.iter().map(String::len).sum::<usize>()+allowed.len().saturating_sub(1)+id.len(),||PredicateRead::RefEndpoint { endpoint_type:allowed.join("|"),id:id.into(),observed:KeyState::Reserved })?;
             self.skip("native-semantic-packet-endpoint-version-owner")?; return Ok(());
         }
         let actual = records.get(id).and_then(|r| kinds.get(r.kind.as_str()));
-        self.read(PredicateRead::RefEndpoint { endpoint_type: allowed.join("|"), id: id.into(), observed: if actual.is_some() { KeyState::Present } else { KeyState::Absent } })?;
+        self.read(allowed.iter().map(String::len).sum::<usize>()+allowed.len().saturating_sub(1)+id.len(),||PredicateRead::RefEndpoint { endpoint_type: allowed.join("|"), id: id.into(), observed: if actual.is_some() { KeyState::Present } else { KeyState::Absent } })?;
         reserve_check(self.state,self.ancestry_state,self.limits.max_state_bytes)?;
         if !actual.is_some_and(|actual| ancestor(types, actual, allowed)) { self.issue("claim-endpoint-kind-or-missing", location)?; } Ok(())
     }
 }
 fn strings(row: &Value, field: &str) -> Vec<String> { row.get(field).and_then(Value::as_array).map(|a| a.iter().filter_map(Value::as_str).map(str::to_owned).collect()).unwrap_or_default() }
+fn string_iter<'a>(row:&'a Value,field:&str)->impl Iterator<Item=&'a str>+Clone {
+    row.get(field).and_then(Value::as_array).into_iter().flatten().filter_map(Value::as_str)
+}
+fn string_vec_state(row:&Value,field:&str)->Result<usize,ItemRefusal> {
+    string_iter(row,field).try_fold(std::mem::size_of::<Vec<String>>(),|total,value|total.checked_add(std::mem::size_of::<String>()).and_then(|n|n.checked_add(value.len())).ok_or(ItemRefusal::Budget))
+}
 fn s<'a>(row: &'a Value, field: &str) -> Option<&'a str> { row.get(field).and_then(Value::as_str) }
 fn ancestor(types: &BTreeMap<&str,&Value>, actual: &str, allowed: &[String]) -> bool {
     let mut pending=vec![actual]; let mut visited=BTreeSet::new();
@@ -92,9 +118,6 @@ fn strict_decoded(raw:&[u8],rules:&Rules<'_>)->Result<(Value,usize),ItemRefusal>
 fn legacy_decoded(raw:&[u8],rules:&Rules<'_>)->Result<(Value,usize),ItemRefusal> {
     crate::record_biblio_cut::bounded_legacy_decoded_state(raw,rules.limits.max_member_bytes,rules.limits.max_state_bytes.checked_sub(rules.state).ok_or(ItemRefusal::Budget)?,rules.limits.deadline,rules.cancelled)
 }
-fn fact_state(fact:&ValidationFact)->Result<usize,ItemRefusal> {
-    std::mem::size_of::<ValidationFact>().checked_add(fact.namespace.len()).and_then(|n|n.checked_add(fact.key.len())).and_then(|n|n.checked_add(fact.value_digest.len())).ok_or(ItemRefusal::Budget)
-}
 fn owned(path: &str) -> bool { path.starts_with("ToS/source-witnesses/") && !path.split('/').any(|p| matches!(p,"catalog"|"owner-local"|"payload"|"local-content")) }
 fn claim_stream(path: &str) -> bool { owned(path) && path.ends_with("-claims.jsonl") }
 
@@ -104,10 +127,12 @@ pub fn inspect_bibliography_from_cut(cut: &CorpusCutReader, records: &SourceCutR
     check(limits.deadline, cancelled)?;
     if schemas.source_revision() != cut.current().revision() { return Err(ItemRefusal::Source("bibliography schema cut mismatch".into())); }
     if records.source_revision != cut.current().revision() { return Err(ItemRefusal::Source("bibliography record cut mismatch".into())); }
-    let mut rules=Rules { limits, cancelled, state:std::mem::size_of::<Rules<'_>>(), ancestry_state:0, bytes:0, anchors:BTreeSet::new(), reserved:records.observations.iter().filter_map(|r|match r {crate::record_rules::RecordObservation::NativeReservation {id,..}=>Some(id.clone()),_=>None}).collect(), schema_seen:BTreeSet::new(), shadow:RelationShadow::default() };
-    reserve(&mut rules.state,rules.reserved.iter().map(|id|id.len()+std::mem::size_of::<String>()).sum(),limits.max_state_bytes)?;
+    let mut rules=Rules { limits, cancelled, state:std::mem::size_of::<Rules<'_>>(), ancestry_state:0, bytes:0, anchors:BTreeSet::new(), reserved:BTreeSet::new(), schema_seen:BTreeSet::new(), shadow:RelationShadow::default() };
+    for id in records.observations.iter().filter_map(|r|match r {crate::record_rules::RecordObservation::NativeReservation {id,..}=>Some(id),_=>None}) {
+        if !rules.reserved.contains(id) {reserve(&mut rules.state,std::mem::size_of::<String>()+id.len(),limits.max_state_bytes)?;rules.reserved.insert(id.clone());}
+    }
     schema_read(cut,BASE,&mut rules)?;
-    let mut registries=Vec::new();
+    let mut registries=Vec::new();reserve(&mut rules.state,std::mem::size_of_val(&registries),limits.max_state_bytes)?;
     for (path, contract) in [(ENTITY,"ToS/contracts/semantic-entity-type-registry.schema.json"),(RELATION,"ToS/contracts/semantic-relation-type-registry.schema.json")] {
         let raw=current(cut,path,limits,cancelled,&mut rules.bytes)?;
         reserve(&mut rules.state,raw.len()+std::mem::size_of::<Vec<u8>>(),limits.max_state_bytes)?;
@@ -115,12 +140,13 @@ pub fn inspect_bibliography_from_cut(cut: &CorpusCutReader, records: &SourceCutR
         schema_read(cut,contract,&mut rules)?;
         let (value,value_state)=strict_decoded(&raw,&rules)?;
         reserve(&mut rules.state,value_state,limits.max_state_bytes)?;
-        rules.read(PredicateRead::Registry { uri:path.into(), version:value["registry_version"].to_string(), digest:Digest256::of_bytes(&raw).to_prefixed() })?;
+        rules.read(path.len()+crate::record_biblio_cut::decoded_wire_size(&value["registry_version"],rules.limits.max_state_bytes.checked_sub(rules.state).ok_or(ItemRefusal::Budget)?)?+("sha256:".len()+std::mem::size_of::<Digest256>()*2),||PredicateRead::Registry { uri:path.into(), version:value["registry_version"].to_string(), digest:Digest256::of_bytes(&raw).to_prefixed() })?;
         registries.push(value);
         rules.state-=raw.len()+std::mem::size_of::<Vec<u8>>();
         drop(raw);
     }
     let mut types=BTreeMap::new(); let mut kinds=BTreeMap::new(); let mut routes=BTreeMap::new();
+    reserve(&mut rules.state,std::mem::size_of_val(&types)+std::mem::size_of_val(&kinds)+std::mem::size_of_val(&routes),limits.max_state_bytes)?;
     for entry in registries[0]["types"].as_array().ok_or_else(|| ItemRefusal::Unsupported("entity registry types".into()))? {
         check(limits.deadline,cancelled)?;
         let id=s(entry,"type_id").ok_or_else(|| ItemRefusal::Unsupported("entity type ID".into()))?;
@@ -143,18 +169,19 @@ pub fn inspect_bibliography_from_cut(cut: &CorpusCutReader, records: &SourceCutR
             reserve(&mut rules.state,std::mem::size_of::<(&str,&str)>(),limits.max_state_bytes)?;
             if versions.insert(version,path).is_some() { return Err(ItemRefusal::Unsupported("duplicate Claim schema route".into())); }
             schema_read(cut,path,&mut rules)?;
-            for dependency in strings(schema,"schema_dependencies") { schema_read(cut,&dependency,&mut rules)?; }
+            for dependency in string_iter(schema,"schema_dependencies") { schema_read(cut,&dependency,&mut rules)?; }
             reserve(&mut rules.state,predicate.len()+1+version.len()+std::mem::size_of::<String>(),limits.max_state_bytes)?;
             rules.shadow.declared_profiles.insert(format!("{predicate}@{version}"));
         }
-        let domain=strings(entry,"domain_type_ids");let range=strings(entry,"range_type_ids");let layers=strings(profile,"assertion_layers");
-        let payload=domain.iter().chain(&range).chain(&layers).try_fold(0usize,|n,s|n.checked_add(std::mem::size_of::<String>()+s.len())).ok_or(ItemRefusal::Budget)?;
+        let payload=string_iter(entry,"domain_type_ids").chain(string_iter(entry,"range_type_ids")).chain(string_iter(profile,"assertion_layers")).try_fold(0usize,|n,s|n.checked_add(std::mem::size_of::<String>()+s.len()).ok_or(ItemRefusal::Budget))?;
         reserve(&mut rules.state,std::mem::size_of::<(&str,Route<'_>)>()+payload,limits.max_state_bytes)?;
+        let domain=strings(entry,"domain_type_ids");let range=strings(entry,"range_type_ids");let layers=strings(profile,"assertion_layers");
         if routes.insert(predicate,Route { reader,domain,range,layers,versions,profile }).is_some() { return Err(ItemRefusal::Unsupported("duplicate Claim predicate owner".into())); }
     }
     let links=types.values().try_fold(0usize,|n,row|n.checked_add(row["parent_type_ids"].as_array().map_or(0,Vec::len))).ok_or(ItemRefusal::Budget)?;
     rules.ancestry_state=types.len().checked_mul(std::mem::size_of::<&str>()).and_then(|n|n.checked_add(links.checked_add(1)?.checked_mul(std::mem::size_of::<&str>())?)).ok_or(ItemRefusal::Budget)?;
     let mut claims=Vec::new(); let mut events=BTreeMap::new(); let mut item_editions=BTreeMap::new(); let mut stream=cut.stream(cut.current().revision()).map_err(store_error)?;
+    reserve(&mut rules.state,std::mem::size_of_val(&claims)+std::mem::size_of_val(&events)+std::mem::size_of_val(&item_editions)+std::mem::size_of_val(&stream),limits.max_state_bytes)?;
     while let Some(member)=stream.next_member(limits.deadline,cancelled).map_err(store_error)? {
         check(limits.deadline,cancelled)?; account(&mut rules.bytes,member.raw.len(),limits.max_total_bytes)?;
         if member.raw.len()>limits.max_member_bytes { return Err(ItemRefusal::BudgetCheck {check:"bibliography member bytes",used:Some(member.raw.len() as u64),limit:Some(limits.max_member_bytes as u64)}); }
@@ -172,7 +199,7 @@ pub fn inspect_bibliography_from_cut(cut: &CorpusCutReader, records: &SourceCutR
             drop(value);rules.limits.max_state_bytes=ceiling;
         }
         if !path.ends_with(".jsonl") { rules.state-=member_state;continue; }
-        rules.read(PredicateRead::ExactPath { path:path.into(),digest:Digest256::of_bytes(&member.raw).to_prefixed() })?;
+        rules.read(path.len()+("sha256:".len()+std::mem::size_of::<Digest256>()*2),||PredicateRead::ExactPath { path:path.into(),digest:Digest256::of_bytes(&member.raw).to_prefixed() })?;
         for (index,line) in member.raw.split(|b| *b==b'\n').enumerate() {
             check(limits.deadline,cancelled)?;
             if line.iter().all(u8::is_ascii_whitespace) { continue; }
@@ -187,10 +214,21 @@ pub fn inspect_bibliography_from_cut(cut: &CorpusCutReader, records: &SourceCutR
                 let contract=match s(&value,"schema_version") {Some("tos_provenance_event_v1")=>"ToS/contracts/provenance-event.schema.json",Some("tos_provenance_event_v2")=>"ToS/contracts/provenance-event-v2.schema.json",_=>return Err(ItemRefusal::Unsupported(format!("unknown bibliography event profile {path}:{}",index+1)))};
                 schema_read(cut,contract,&mut rules)?;
                 if !schemas.check(&format!("{path}:{}",index+1),line,contract,limits.deadline,cancelled)? {rules.issue("bibliography-event-schema",path)?;}
-                if s(&value,"schema_version")==Some("tos_provenance_event_v2") {for code in crate::provenance_rules::semantic_issues(&value,limits.max_issues,limits.deadline)? {rules.issue(code,path)?;}}
+                if s(&value,"schema_version")==Some("tos_provenance_event_v2") {
+                    let available=rules.limits.max_state_bytes.checked_sub(rules.state).ok_or(ItemRefusal::Budget)?;
+                    let workspace=crate::provenance_rules::semantic_workspace(&value,limits.max_issues,available)?;
+                    reserve_check(rules.state,workspace,rules.limits.max_state_bytes)?;
+                    let messages=crate::provenance_rules::semantic_issues(&value,limits.max_issues,limits.deadline)?;
+                    // Internal borrowed indexes/argv frame have dropped. Only
+                    // this returned code buffer overlaps newly retained issues.
+                    let message_state=std::mem::size_of::<Vec<&'static str>>()+messages.len()*std::mem::size_of::<&'static str>();
+                    let ceiling=rules.limits.max_state_bytes;rules.limits.max_state_bytes=ceiling.checked_sub(message_state).ok_or(ItemRefusal::Budget)?;
+                    let result=(||->Result<(),ItemRefusal>{for code in messages {rules.issue(code,path)?;}Ok(())})();
+                    rules.limits.max_state_bytes=ceiling;result?;
+                }
 
-                let id=id.to_owned();
                 reserve(&mut rules.state,id.len()+std::mem::size_of::<(String,Value)>()-std::mem::size_of::<Value>(),limits.max_state_bytes)?;
+                let id=id.to_owned();
                 let replaced=events.contains_key(&id);let key_cost=id.len()+std::mem::size_of::<(String,Value)>();
                 if let Some(previous)=events.insert(id,value) {debug_assert!(replaced); rules.state-=crate::record_biblio_cut::decoded_state(&previous)?-std::mem::size_of::<Value>()+key_cost;rules.issue("duplicate-biblio-event",path)?; }
             } else {drop(value);rules.state-=value_state;}
@@ -200,17 +238,21 @@ pub fn inspect_bibliography_from_cut(cut: &CorpusCutReader, records: &SourceCutR
     let membership=stream.coverage().ok_or_else(|| ItemRefusal::Source("bibliography EOF missing".into()))?;
     if membership!=records.current_membership { return Err(ItemRefusal::Source("bibliography membership mismatch".into())); }
     rules.shadow.observed_endpoints=records.records.len(); rules.shadow.observed_claims=claims.len();
-    rules.read(PredicateRead::Prefix { namespace:"source-current-Claim-files".into(),prefix:"ToS/source-witnesses/".into(),generation:membership.digest.to_prefixed() })?;
-    let mut identities=BTreeSet::new(); let mut topology=Vec::new();let mut topology_state=0usize;
+    rules.read("source-current-Claim-files".len()+"ToS/source-witnesses/".len()+("sha256:".len()+std::mem::size_of::<Digest256>()*2),||PredicateRead::Prefix { namespace:"source-current-Claim-files".into(),prefix:"ToS/source-witnesses/".into(),generation:membership.digest.to_prefixed() })?;
+    let mut identities=BTreeSet::new(); let mut topology=Vec::new();let mut topology_state=std::mem::size_of::<Vec<Value>>();
+    reserve(&mut rules.state,std::mem::size_of_val(&identities)+topology_state,limits.max_state_bytes)?;
     // Only the consumed Work->Expression, Expression->Edition and Edition->Item owners are reconstructed here. One
     // invocation shares the exact read/index budget across all its Claims.
     let mut verified_native=BTreeSet::new();let mut native_compounds=Vec::new();
+    reserve(&mut rules.state,std::mem::size_of_val(&verified_native)+std::mem::size_of_val(&native_compounds),limits.max_state_bytes)?;
     if claims.iter().any(|claim|claim.native && matches!(s(&claim.value,"predicate"),Some("has_expression"|"embodied_by"|"exemplified_by"))) {
         let mut compound_limits=limits;
         compound_limits.max_state_bytes=limits.max_state_bytes.checked_sub(rules.state).ok_or(ItemRefusal::Budget)?;
         compound_limits.max_total_bytes=limits.max_total_bytes.checked_sub(rules.bytes).ok_or(ItemRefusal::Budget)?;
         let mut compounds=crate::native_compound::NativeCompoundReader::new(cut,compound_limits,cancelled)?;
         for claim in claims.iter().filter(|c|c.native && matches!(s(&c.value,"predicate"),Some("has_expression"|"embodied_by"|"exemplified_by"))) {
+            let location_state=std::mem::size_of::<String>()+claim.path.len()+1+if claim.line==0 {1}else{claim.line.ilog10() as usize+1};
+            reserve(&mut rules.state,location_state,rules.limits.max_state_bytes)?;
             let location=format!("{}:{}",claim.path,claim.line);
             compounds.set_remaining_state(limits.max_state_bytes.checked_sub(rules.state).ok_or(ItemRefusal::Budget)?)?;
             let inspected=compounds.verify(&claim.path,&claim.value,schemas);
@@ -227,13 +269,14 @@ pub fn inspect_bibliography_from_cut(cut: &CorpusCutReader, records: &SourceCutR
                         crate::native_compound::NativeTransportState::RolledBack=>rules.issue(match s(&claim.value,"predicate") {Some("has_expression")=>"native-work-expression-transaction-rolled-back",Some("embodied_by")=>"native-expression-edition-transaction-rolled-back",_=>"native-edition-item-transaction-rolled-back"},&location)?,
                         crate::native_compound::NativeTransportState::Orphan=>rules.issue(match s(&claim.value,"predicate") {Some("has_expression")=>"native-work-expression-transaction-orphan",Some("embodied_by")=>"native-expression-edition-transaction-orphan",_=>"native-edition-item-transaction-orphan"},&location)?,
                     }
-                    rules.read(PredicateRead::ExactBytes {locator:format!("transaction:{}",observation.transaction_id),digest:observation.manifest_sha256.clone()})?;
+                    rules.read("transaction:".len()+observation.transaction_id.len()+observation.manifest_sha256.len(),||PredicateRead::ExactBytes {locator:format!("transaction:{}",observation.transaction_id),digest:observation.manifest_sha256.clone()})?;
                     native_compounds.push(observation);
                 },
                 Err(ItemRefusal::Source(_))=>rules.issue(match s(&claim.value,"predicate") {Some("has_expression")=>"native-work-expression-compound-evidence",Some("embodied_by")=>"native-expression-edition-compound-evidence",_=>"native-edition-item-compound-evidence"},&location)?,
-                Err(ItemRefusal::Unsupported(reason))=>rules.skip(&format!("native-bibliographic-compound:{reason}"))?,
+                Err(ItemRefusal::Unsupported(reason))=>rules.skip_parts(&["native-bibliographic-compound:",&reason])?,
                 Err(error)=>return Err(error),
             }
+            drop(location);rules.state-=location_state;
         }
         let (bytes,mut reads)=compounds.finish();
         account(&mut rules.bytes,usize::try_from(bytes).map_err(|_|ItemRefusal::Budget)?,limits.max_total_bytes)?;
@@ -254,7 +297,7 @@ pub fn inspect_bibliography_from_cut(cut: &CorpusCutReader, records: &SourceCutR
         if let Some(id)=s(&claim.value,"claim_id") {
             if !identities.contains(id) {reserve(&mut rules.state,id.len()+std::mem::size_of::<String>(),limits.max_state_bytes)?;}
             if !identities.insert(id.to_owned()) { rules.issue("duplicate-claim-id",&format!("{}:{}",claim.path,claim.line))?; }
-            rules.read(PredicateRead::UniqueKey { namespace:"source-claim-id".into(),key:id.into(),owner:format!("{}:{}",claim.path,claim.line) })?;
+            rules.read("source-claim-id".len()+id.len()+claim.path.len()+1+if claim.line==0 {1}else{claim.line.ilog10() as usize+1},||PredicateRead::UniqueKey { namespace:"source-claim-id".into(),key:id.into(),owner:format!("{}:{}",claim.path,claim.line) })?;
         }
         if matches!(s(&claim.value,"predicate"),Some("has_expression"|"embodied_by"|"exemplified_by")) { let cost=crate::record_biblio_cut::decoded_state(&claim.value)?;reserve(&mut rules.state,cost,limits.max_state_bytes)?;topology_state=topology_state.checked_add(cost).ok_or(ItemRefusal::Budget)?;topology.push(claim.value.clone()); }
     }
@@ -263,13 +306,21 @@ pub fn inspect_bibliography_from_cut(cut: &CorpusCutReader, records: &SourceCutR
     // Native compounds must be verified before this owner API may claim a
     // verified union. A mixed union therefore refuses topology completeness.
     if records.records.len()>65_536 || topology.len()>65_536 { return Err(ItemRefusal::Budget); }
-    let mut values=Vec::new();let mut values_state=0usize;
+    let mut values=Vec::new();let mut values_state=std::mem::size_of::<Vec<Value>>();reserve(&mut rules.state,values_state,limits.max_state_bytes)?;
     for record in records.records.values() {let cost=crate::record_biblio_cut::decoded_state(&record.value)?;reserve(&mut rules.state,cost,limits.max_state_bytes)?;values_state=values_state.checked_add(cost).ok_or(ItemRefusal::Budget)?;values.push(record.value.clone());}
     let native_topology=claims.iter().any(|claim|claim.native && matches!(s(&claim.value,"predicate"),Some("has_expression"|"embodied_by"|"exemplified_by")) && !s(&claim.value,"claim_id").is_some_and(|id|verified_native.contains(id)));
-    let topology_report=inspect_current_topology(&values,&topology,&item_editions,!native_topology,&membership.digest.to_prefixed());
-    drop(values);drop(topology);rules.state-=values_state+topology_state;
+    let mut topology_limits=rules.limits;
+    topology_limits.max_state_bytes=rules.limits.max_state_bytes.checked_sub(rules.state).ok_or(ItemRefusal::Budget)?;
+    let generation_state=std::mem::size_of::<String>()+"sha256:".len()+std::mem::size_of::<Digest256>()*2;
+    topology_limits.max_state_bytes=topology_limits.max_state_bytes.checked_sub(generation_state).ok_or(ItemRefusal::Budget)?;
+    let generation=membership.digest.to_prefixed();
+    // Keep both input clones and the owner's live indexes/report in the same
+    // family ceiling. The generation payload remains live through the call.
+    let (topology_report,report_state)=inspect_current_topology_bounded(&values,&topology,&item_editions,!native_topology,&generation,topology_limits,cancelled)?;
+    reserve(&mut rules.state,report_state,rules.limits.max_state_bytes)?;
+    drop(generation);drop(values);drop(topology);rules.state-=values_state+topology_state;
     check(limits.deadline,cancelled)?;
-    merge_shadow(&mut rules,topology_report)?;
+    merge_shadow(&mut rules,topology_report,report_state)?;
     inspect_closure(&records.records,&claims,&membership.digest.to_prefixed(),&mut rules)?;
     inspect_batches(&claims,&events,&records.records,&mut rules)?;
     // No complete-source verdict escapes this family. Other native compounds
@@ -283,32 +334,65 @@ pub fn inspect_bibliography_from_cut(cut: &CorpusCutReader, records: &SourceCutR
 fn schema_read(cut:&CorpusCutReader,path:&str,rules:&mut Rules<'_>)->Result<(),ItemRefusal> {
     check(rules.limits.deadline,rules.cancelled)?;
     let relative=RelativePath::parse(path).map_err(|_|ItemRefusal::Unsupported("Claim schema dependency path".into()))?;
-    if !rules.schema_seen.insert(path.into()) {return Ok(());}
+    if rules.schema_seen.contains(path) {return Ok(());}
     reserve(&mut rules.state,path.len()+std::mem::size_of::<String>(),rules.limits.max_state_bytes)?;
+    rules.schema_seen.insert(path.into());
     let raw=current(cut,path,rules.limits,rules.cancelled,&mut rules.bytes)?;
     let temporary=raw.len()+std::mem::size_of::<Vec<u8>>()+path.len()+std::mem::size_of::<RelativePath>();
     reserve(&mut rules.state,temporary,rules.limits.max_state_bytes)?;
     let (value,value_state)=strict_decoded(&raw,rules)?;
     reserve(&mut rules.state,value_state,rules.limits.max_state_bytes)?;
     let uri=s(&value,"$id").ok_or_else(||ItemRefusal::Unsupported("source schema dependency ID".into()))?;
-    let result=rules.read(PredicateRead::SchemaResource {uri:uri.into(),digest:Digest256::of_bytes(&raw).to_prefixed()});
+    let result=rules.read(uri.len()+("sha256:".len()+std::mem::size_of::<Digest256>()*2),||PredicateRead::SchemaResource {uri:uri.into(),digest:Digest256::of_bytes(&raw).to_prefixed()});
     drop(value);drop(raw);drop(relative);rules.state-=temporary+value_state;result
 }
 
-fn merge_shadow(rules: &mut Rules<'_>, shadow:RelationShadow) -> Result<(),ItemRefusal> {
-    if shadow.issue_sink_truncated { return Err(ItemRefusal::Budget); }
-    for issue in shadow.issues { rules.issue(issue.code,&issue.location)?; }
-    for read in shadow.reads { rules.read(read)?; }
-    for fact in shadow.facts { reserve(&mut rules.state,fact_state(&fact)?,rules.limits.max_state_bytes)?; rules.shadow.facts.push(fact); }
-    for profile in shadow.skipped_profiles { rules.skip(&profile)?; }
-    rules.shadow.checked_profiles.extend(shadow.checked_profiles); rules.shadow.unsupported |= shadow.unsupported; Ok(())
+fn merge_shadow(rules:&mut Rules<'_>,mut shadow:RelationShadow,report_state:usize)->Result<(),ItemRefusal> {
+    if shadow.issue_sink_truncated {return Err(ItemRefusal::Budget);}
+    // report_state is already charged while the owner returns it. Move strings,
+    // not clones. Each old Vec's slots coexist with destination slots until its
+    // iterator drops, so reserve that precise slot overlap before transferring.
+    let count=rules.shadow.issues.len().checked_add(shadow.issues.len()).ok_or(ItemRefusal::Budget)?;
+    if count>rules.limits.max_issues {return Err(ItemRefusal::BudgetCheck {check:"bibliography issue count",used:Some(count as u64),limit:Some(rules.limits.max_issues as u64)});}
+    let overlap=shadow.issues.len().checked_mul(std::mem::size_of::<RelationIssue>()).and_then(|n|n.checked_add(shadow.reads.len().checked_mul(std::mem::size_of::<PredicateRead>())?)).and_then(|n|n.checked_add(shadow.facts.len().checked_mul(std::mem::size_of::<ValidationFact>())?)).ok_or(ItemRefusal::Budget)?;
+    reserve_check(rules.state,overlap,rules.limits.max_state_bytes)?;
+    rules.shadow.issues.append(&mut shadow.issues);
+    rules.shadow.reads.append(&mut shadow.reads);
+    rules.shadow.facts.append(&mut shadow.facts);
+    let mut released=std::mem::size_of::<RelationShadow>();
+    for profile in shadow.declared_profiles {released=released.checked_add(std::mem::size_of::<String>()+profile.len()).ok_or(ItemRefusal::Budget)?;}
+    for profile in shadow.skipped_profiles {
+        if rules.shadow.skipped_profiles.contains(&profile) {released=released.checked_add(std::mem::size_of::<String>()+profile.len()).ok_or(ItemRefusal::Budget)?;}else{rules.shadow.skipped_profiles.insert(profile);}
+    }
+    for profile in shadow.checked_profiles {
+        if rules.shadow.checked_profiles.contains(&profile) {released=released.checked_add(std::mem::size_of::<String>()+profile.len()).ok_or(ItemRefusal::Budget)?;}else{rules.shadow.checked_profiles.insert(profile);}
+    }
+    rules.shadow.unsupported|=shadow.unsupported;
+    drop(shadow.issues);drop(shadow.reads);drop(shadow.facts);
+    if released>report_state {return Err(ItemRefusal::Source("topology report state transfer".into()));}
+    rules.state=rules.state.checked_sub(released).ok_or(ItemRefusal::Budget)?;Ok(())
+}
+
+// Secondary worker buffers are live alongside the full Claim frame. Count the
+// actual serde encoding before allocation, keep its slots/payload charged while
+// the worker consumes it, and release it before subsequent semantic scratch.
+fn schema_value(value:&Value,location:&str,contract:&str,schemas:&mut impl CutSchemaExecutor,rules:&mut Rules<'_>)->Result<bool,ItemRefusal> {
+    let header=std::mem::size_of::<Vec<u8>>();
+    let available=rules.limits.max_state_bytes.checked_sub(rules.state).and_then(|n|n.checked_sub(header)).ok_or(ItemRefusal::Budget)?;
+    let bytes=crate::record_biblio_cut::decoded_wire_size(value,available)?;
+    let temporary=bytes.checked_add(header).ok_or(ItemRefusal::Budget)?;
+    reserve(&mut rules.state,temporary,rules.limits.max_state_bytes)?;
+    let raw=serde_json::to_vec(value).map_err(|_|ItemRefusal::Unsupported("Claim secondary worker serialization".into()))?;
+    let result=schemas.check(location,&raw,contract,rules.limits.deadline,rules.cancelled);
+    drop(raw);rules.state-=temporary;result
 }
 
 fn inspect_claim(cut:&CorpusCutReader, claim:&BiblioClaim, routes:&BTreeMap<&str,Route<'_>>, types:&BTreeMap<&str,&Value>, kinds:&BTreeMap<&str,&str>, records:&BTreeMap<String,BiblioCurrentRecord>, events:&BTreeMap<String,Value>, schemas:&mut impl CutSchemaExecutor, rules:&mut Rules<'_>) -> Result<(),ItemRefusal> {
     let raw_cost=crate::record_biblio_cut::decoded_wire_size(&claim.value,rules.limits.max_state_bytes.checked_sub(rules.state).ok_or(ItemRefusal::Budget)?)?;
-    let bytes=serde_json::to_vec(&claim.value).map_err(|_|ItemRefusal::Unsupported("Claim worker serialization".into()))?;
-    let temporary=raw_cost+std::mem::size_of::<Vec<u8>>();
+    let location_state=std::mem::size_of::<String>()+claim.path.len()+1+if claim.line==0 {1}else{claim.line.ilog10() as usize+1};
+    let temporary=raw_cost.checked_add(std::mem::size_of::<Vec<u8>>()).and_then(|n|n.checked_add(location_state)).ok_or(ItemRefusal::Budget)?;
     reserve_check(rules.state,temporary,rules.limits.max_state_bytes)?;
+    let bytes=serde_json::to_vec(&claim.value).map_err(|_|ItemRefusal::Unsupported("Claim worker serialization".into()))?;
     let ceiling=rules.limits.max_state_bytes;rules.limits.max_state_bytes=ceiling.checked_sub(temporary).ok_or(ItemRefusal::Budget)?;
     let result=inspect_claim_inner(cut,claim,routes,types,kinds,records,events,schemas,rules,&bytes);
     drop(bytes);rules.limits.max_state_bytes=ceiling;result
@@ -326,33 +410,35 @@ fn inspect_claim_inner(cut:&CorpusCutReader, claim:&BiblioClaim, routes:&BTreeMa
         if !s(row,"assertion_layer").is_some_and(|layer|route.layers.iter().any(|v|v==layer)) { rules.issue("claim-assertion-layer",&location)?; }
         if let Some(subject)=s(row,"subject_ref") { rules.endpoint(subject,&route.domain,types,kinds,records,&location)?; } else { rules.issue("claim-subject",&location)?; }
         if matches!(route.reader,"structured-reference-value-v1"|"structured-value-v1"|"identity-transition-v1"|"identity-transition-v2") {
-            let raw=serde_json::to_vec(&row["object"]).map_err(|_|ItemRefusal::Unsupported("structured value".into()))?;
-            if !schemas.check(&location,&raw,"ToS/contracts/source-structured-value.schema.json",rules.limits.deadline,rules.cancelled)? || s(&row["object"],"kind")!=s(&route.profile,"value_kind") {rules.issue("Claim-shared-structured-value",&location)?;}
+            if !schema_value(&row["object"],&location,"ToS/contracts/source-structured-value.schema.json",schemas,rules)? || s(&row["object"],"kind")!=s(&route.profile,"value_kind") {rules.issue("Claim-shared-structured-value",&location)?;}
         }
         if s(&route.profile["object_reference_set"],"structure_adapter")==Some("scoped-members-v1") {
-            let raw=serde_json::to_vec(&row["object"]).map_err(|_|ItemRefusal::Unsupported("member structure".into()))?;
-            if !schemas.check(&location,&raw,"ToS/contracts/scoped-member-structure.schema.json",rules.limits.deadline,rules.cancelled)? {rules.issue("Claim-shared-member-structure",&location)?;}
+            if !schema_value(&row["object"],&location,"ToS/contracts/scoped-member-structure.schema.json",schemas,rules)? {rules.issue("Claim-shared-member-structure",&location)?;}
             member_structure(row,rules,&location)?;
         }
         if let Some(display)=row.get("qualifiers").and_then(|q|q.get("display_fields")) {if s(display,"schema_version")==Some("tos_claim_display_fields_v1") {
-            let raw=serde_json::to_vec(&row["qualifiers"]).map_err(|_|ItemRefusal::Unsupported("Claim display fields".into()))?;
-            if !schemas.check(&location,&raw,"ToS/contracts/claim-display-fields.schema.json",rules.limits.deadline,rules.cancelled)? {rules.issue("Claim-display-fields-schema",&location)?;}
+            if !schema_value(&row["qualifiers"],&location,"ToS/contracts/claim-display-fields.schema.json",schemas,rules)? {rules.issue("Claim-display-fields-schema",&location)?;}
         }}
         if matches!(predicate,"document_catalogue_date"|"document_catalogue_origin"|"document_catalogue_destination") {
             let attribution=&row["qualifiers"]["catalogue_attribution"];
             let field=match predicate {"document_catalogue_date"=>"assigned-date","document_catalogue_origin"=>"origin",_=>"destination"};
-            if s(attribution,"field_role")!=Some(field)||!s(attribution,"evidence_ref").is_some_and(|v|strings(row,"evidence_refs").iter().any(|r|r==v))||predicate=="document_catalogue_date" && attribution.get("source_wording")!=row["object"].get("source_wording") {rules.issue("document-catalogue-attribution",&location)?;}
+            if s(attribution,"field_role")!=Some(field)||!s(attribution,"evidence_ref").is_some_and(|v|string_iter(row,"evidence_refs").any(|r|r==v))||predicate=="document_catalogue_date" && attribution.get("source_wording")!=row["object"].get("source_wording") {rules.issue("document-catalogue-attribution",&location)?;}
         }
         match route.reader {
             "identity-relation-v1"|"semantic-relation-v1" => {
                 if let Some(object)=s(row,"object") { rules.endpoint(object,&route.range,types,kinds,records,&location)?; } else { rules.issue("claim-object-kind",&location)?; }
-                rules.checked(&format!("{predicate}@{}",s(row,"schema_version").unwrap_or("")))?;
+                rules.checked_parts(&[predicate,"@",s(row,"schema_version").unwrap_or("")])?;
                 // Ordinary domain/range checking does not accept the compound
                 // append/revision plan or specialized semantic ownership.
-                if matches!(predicate,"contains_work"|"translated_by"|"described_by"|"metadata_at"|"downloadable_at"|"rights_statement_at") {rules.skip(&format!("native-compound-owner-evidence:{predicate}"))?;}
+                if matches!(predicate,"contains_work"|"translated_by"|"described_by"|"metadata_at"|"downloadable_at"|"rights_statement_at") {rules.skip_parts(&["native-compound-owner-evidence:",predicate])?;}
             }
             "structured-reference-value-v1" => {
                 let set=&route.profile["object_reference_set"];
+                let member_count=string_iter(&row["object"],"members").count();
+                let scratch=string_vec_state(&row["object"],"members")?.checked_add(string_vec_state(set,"member_type_ids")?).and_then(|n|n.checked_add(std::mem::size_of::<BTreeSet<&String>>() + member_count*std::mem::size_of::<&String>())).ok_or(ItemRefusal::Budget)?;
+                reserve_check(rules.state,scratch,rules.limits.max_state_bytes)?;
+                let ceiling=rules.limits.max_state_bytes;rules.limits.max_state_bytes=ceiling.checked_sub(scratch).ok_or(ItemRefusal::Budget)?;
+                let result=(||->Result<(),ItemRefusal>{
                 let members=strings(&row["object"],"members");
                 let allowed=strings(set,"member_type_ids");
                 let mut seen=BTreeSet::new();
@@ -364,35 +450,35 @@ fn inspect_claim_inner(cut:&CorpusCutReader, claim:&BiblioClaim, routes:&BTreeMa
                     rules.endpoint(member,&allowed,types,kinds,records,&location)?;
                 }
                 if set["subject_is_member"]==true && !s(row,"subject_ref").is_some_and(|v|members.iter().any(|m|m==v)) { rules.issue("claim-subject-not-member",&location)?; }
-                rules.skip(&format!("structured-reader-owner-evidence:{predicate}"))?;
+                rules.skip_parts(&["structured-reader-owner-evidence:",predicate])?;
+                Ok(())})();rules.limits.max_state_bytes=ceiling;result?;
             }
             "identity-transition-v1"|"identity-transition-v2" => identity_proposal(row,route.reader,types,kinds,records,rules,&location)?,
             "historical-temporal-v1"|"document-catalogue-temporal-v1" => {
                 if s(&row["object"],"kind")==Some("relative-order") {if let Some(anchor)=s(&row["object"]["relative"],"anchor_ref") {rules.endpoint(anchor,&["tos.entity.historical-situation".into()],types,kinds,records,&location)?;}}
                 let (contract,root)=if route.reader=="document-catalogue-temporal-v1" {("ToS/contracts/document-catalogue-claim.schema.json","ToS/contracts/document-catalogue-claim.schema.json#/$defs/documentDate")}else{("ToS/contracts/historical-claim.schema.json","ToS/contracts/historical-claim.schema.json#/$defs/historicalDate")};
                 schema_read(cut,contract,rules)?;
-                let raw=serde_json::to_vec(&row["object"]).map_err(|_|ItemRefusal::Unsupported("historical temporal value".into()))?;
-                if !schemas.check(&location,&raw,root,rules.limits.deadline,rules.cancelled)? {rules.issue("Claim-shared-historical-value",&location)?;}
-                rules.checked(&format!("{predicate}@{}",s(row,"schema_version").unwrap_or("")))?;
+                if !schema_value(&row["object"],&location,root,schemas,rules)? {rules.issue("Claim-shared-historical-value",&location)?;}
+                rules.checked_parts(&[predicate,"@",s(row,"schema_version").unwrap_or("")])?;
             }
-            "structured-value-v1" => {rules.checked(&format!("{predicate}@{}",s(row,"schema_version").unwrap_or("")))?;}
-            _ => rules.skip(&format!("source-Claim-reader:{}:{predicate}",route.reader))?,
+            "structured-value-v1" => {rules.checked_parts(&[predicate,"@",s(row,"schema_version").unwrap_or("")])?;}
+            _ => rules.skip_parts(&["source-Claim-reader:",route.reader,":",predicate])?,
         }
         if matches!(predicate,"contains_work"|"translated_by") { qualified(row,predicate,rules,&location)?; }
     } else {
         let (contract,subject_kind,object_kinds,expected,role)=match basename {
-            "membership-claims.jsonl" => (LEGACY_BASE,"collection",vec!["work"],Some("contains_work"),None),
-            "responsibility-claims.jsonl" => (LEGACY_BASE,"",vec!["agent"],None,None),
-            "publication-claims.jsonl" => (LEGACY_BASE,"edition",vec![],None,Some("unreviewed-evidence-bearing-publication-claims")),
-            "provision-activity-claims.jsonl" => (LEGACY_BASE,"edition",vec![],Some("provision_activity"),Some("unreviewed-evidence-bearing-provision-activity-claims")),
-            "work-chronology-claims.jsonl" => (LEGACY_BASE,"work",vec![],Some("first_publication_chronology"),Some("unreviewed-evidence-bearing-work-chronology-claims")),
-            "work-expression-claims.jsonl" => (LEGACY_BASE,"work",vec!["expression"],Some("has_expression"),Some("unreviewed-work-expression-topology-claims")),
-            "expression-edition-claims.jsonl" => (LEGACY_BASE,"expression",vec!["edition"],Some("embodied_by"),Some("unreviewed-expression-edition-topology-claims")),
-            "edition-item-claims.jsonl" => (LEGACY_BASE,"edition",vec!["item"],Some("exemplified_by"),Some("unreviewed-edition-item-topology-claims")),
-            "expression-derivation-claims.jsonl" => (LEGACY_BASE,"expression",vec!["expression"],Some("is_derivative_of"),Some("unreviewed-source-reported-expression-derivation-claims")),
-            "historical-claims.jsonl" => ("ToS/contracts/historical-claim.schema.json","",vec![],None,None),
-            "object-link-claims.jsonl" => ("ToS/contracts/object-link-claim.schema.json","",vec!["link"],None,None),
-            _ => { rules.skip(&format!("non-bibliographic-legacy-stream:{basename}"))?; return Ok(()); }
+            "membership-claims.jsonl" => (LEGACY_BASE,"collection",&["work"][..],Some("contains_work"),None),
+            "responsibility-claims.jsonl" => (LEGACY_BASE,"",&["agent"][..],None,None),
+            "publication-claims.jsonl" => (LEGACY_BASE,"edition",&[][..],None,Some("unreviewed-evidence-bearing-publication-claims")),
+            "provision-activity-claims.jsonl" => (LEGACY_BASE,"edition",&[][..],Some("provision_activity"),Some("unreviewed-evidence-bearing-provision-activity-claims")),
+            "work-chronology-claims.jsonl" => (LEGACY_BASE,"work",&[][..],Some("first_publication_chronology"),Some("unreviewed-evidence-bearing-work-chronology-claims")),
+            "work-expression-claims.jsonl" => (LEGACY_BASE,"work",&["expression"][..],Some("has_expression"),Some("unreviewed-work-expression-topology-claims")),
+            "expression-edition-claims.jsonl" => (LEGACY_BASE,"expression",&["edition"][..],Some("embodied_by"),Some("unreviewed-expression-edition-topology-claims")),
+            "edition-item-claims.jsonl" => (LEGACY_BASE,"edition",&["item"][..],Some("exemplified_by"),Some("unreviewed-edition-item-topology-claims")),
+            "expression-derivation-claims.jsonl" => (LEGACY_BASE,"expression",&["expression"][..],Some("is_derivative_of"),Some("unreviewed-source-reported-expression-derivation-claims")),
+            "historical-claims.jsonl" => ("ToS/contracts/historical-claim.schema.json","",&[][..],None,None),
+            "object-link-claims.jsonl" => ("ToS/contracts/object-link-claim.schema.json","",&["link"][..],None,None),
+            _ => { rules.skip_parts(&["non-bibliographic-legacy-stream:",basename])?; return Ok(()); }
         };
         schema_read(cut,contract,rules)?;
         if !schemas.check(&location,&bytes,contract,rules.limits.deadline,rules.cancelled)? { rules.issue("legacy-Claim-schema",&location)?; return Ok(()); }
@@ -403,15 +489,21 @@ fn inspect_claim_inner(cut:&CorpusCutReader, claim:&BiblioClaim, routes:&BTreeMa
         if let Some(subject)=s(row,"subject_ref") { require_kind(subject,&[subject_kind],records,rules,&location)?; } else { rules.issue("legacy-Claim-subject",&location)?; }
         if !object_kinds.is_empty() { if let Some(object)=s(row,"object") { require_kind(object,&object_kinds,records,rules,&location)?; } else { rules.issue("legacy-Claim-object",&location)?; } }
         if LEGACY_TOPOLOGY.contains(&basename) {
-            if s(row,"assertion_layer")!=Some("bibliographic_assertion") || row["maker"]!=json!({"maker_type":"model","agent_ref":"model:codex"}) || s(row,"provenance_event_ref")!=Some("tos.event.annotation.source-witness-bibliographic-topology.2026-07-31") || s(row,"epistemic_status")!=Some("observed") || s(row,"review_status")!=Some("unreviewed") || row["reviews"]!=json!([]) || s(row,"visibility")!=Some("public_metadata_only") { rules.issue("legacy-topology-bounded-posture",&location)?; }
-            let mut expected_evidence=BTreeSet::new();
-            for field in ["subject_ref","object"] { if let Some(record)=s(row,field).and_then(|id|records.get(id)) { expected_evidence.insert(record.path.clone()); if record.kind=="item" { if let Some(path)=s(&record.value,"item_manifest_ref") { expected_evidence.insert(path.into()); } } } }
-            if strings(row,"evidence_refs").into_iter().collect::<BTreeSet<_>>()!=expected_evidence { rules.issue("legacy-topology-exact-endpoint-evidence",&location)?; }
+            if s(row,"assertion_layer")!=Some("bibliographic_assertion") || !model_maker(&row["maker"]) || s(row,"provenance_event_ref")!=Some("tos.event.annotation.source-witness-bibliographic-topology.2026-07-31") || s(row,"epistemic_status")!=Some("observed") || s(row,"review_status")!=Some("unreviewed") || !empty_array(&row["reviews"]) || s(row,"visibility")!=Some("public_metadata_only") { rules.issue("legacy-topology-bounded-posture",&location)?; }
+            // Two endpoint paths and their optional Item manifests, plus the
+            // supplied evidence set; all strings are borrowed from retained rows.
+            let endpoint_paths=["subject_ref","object"].into_iter().filter_map(|field|s(row,field).and_then(|id|records.get(id))).flat_map(|record|std::iter::once(record.path.as_str()).chain((record.kind=="item").then(||s(&record.value,"item_manifest_ref")).flatten()));
+            let scratch=std::mem::size_of::<BTreeSet<&str>>().checked_mul(2).and_then(|n|n.checked_add((endpoint_paths.clone().count()+string_iter(row,"evidence_refs").count())*std::mem::size_of::<&str>())).ok_or(ItemRefusal::Budget)?;
+            reserve_check(rules.state,scratch,rules.limits.max_state_bytes)?;
+            let ceiling=rules.limits.max_state_bytes;rules.limits.max_state_bytes=ceiling.checked_sub(scratch).ok_or(ItemRefusal::Budget)?;
+            let expected_evidence:BTreeSet<_>=endpoint_paths.collect();let supplied:BTreeSet<_>=string_iter(row,"evidence_refs").collect();
+            let result=if supplied!=expected_evidence {rules.issue("legacy-topology-exact-endpoint-evidence",&location)}else{Ok(())};
+            drop(expected_evidence);drop(supplied);rules.limits.max_state_bytes=ceiling;result?;
         }
-        if LEGACY_TOPOLOGY.contains(&basename) && claim.path!=format!("ToS/source-witnesses/relations/{}/{basename}",basename.strip_suffix("-claims.jsonl").unwrap()) { rules.issue("legacy-topology-owned-path",&location)?; }
+        if LEGACY_TOPOLOGY.contains(&basename) && claim.path.strip_prefix("ToS/source-witnesses/relations/").and_then(|p|p.split_once('/'))!=Some((basename.strip_suffix("-claims.jsonl").unwrap(),basename)) { rules.issue("legacy-topology-owned-path",&location)?; }
         if matches!(basename,"publication-claims.jsonl"|"provision-activity-claims.jsonl") {
-            let sibling=format!("{}/edition.json",claim.path.rsplit_once('/').unwrap().0);
-            if !s(row,"subject_ref").and_then(|id|records.get(id)).is_some_and(|r|r.path==sibling) { rules.issue("legacy-edition-sibling-owner",&location)?; }
+            let home=claim.path.rsplit_once('/').unwrap().0;
+            if !s(row,"subject_ref").and_then(|id|records.get(id)).is_some_and(|r|r.path.rsplit_once('/')==Some((home,"edition.json"))) { rules.issue("legacy-edition-sibling-owner",&location)?; }
         }
         if basename=="historical-claims.jsonl" {
             let Some(route)=routes.get(predicate) else {rules.issue("legacy-historical-predicate",&location)?;return Ok(());};
@@ -420,46 +512,46 @@ fn inspect_claim_inner(cut:&CorpusCutReader, claim:&BiblioClaim, routes:&BTreeMa
             else if let Some(object)=s(row,"object") {rules.endpoint(object,&route.range,types,kinds,records,&location)?;} else {rules.issue("legacy-historical-object",&location)?;}
         }
         if basename=="expression-derivation-claims.jsonl" {
-            let raw=serde_json::to_vec(&row["qualifiers"]).map_err(|_|ItemRefusal::Unsupported("derivation qualifiers".into()))?;
-            if !schemas.check(&location,&raw,"ToS/contracts/expression-derivation.schema.json",rules.limits.deadline,rules.cancelled)? {rules.issue("derivation-qualifier-schema",&location)?;}
+            if !schema_value(&row["qualifiers"],&location,"ToS/contracts/expression-derivation.schema.json",schemas,rules)? {rules.issue("derivation-qualifier-schema",&location)?;}
         }
         if basename=="provision-activity-claims.jsonl" {
-            let object=&row["object"]; let raw=serde_json::to_vec(object).map_err(|_|ItemRefusal::Unsupported("provision object".into()))?;
-            if !schemas.check(&location,&raw,"ToS/contracts/provision-activity.schema.json",rules.limits.deadline,rules.cancelled)? { rules.issue("provision-object-schema",&location)?; }
+            let object=&row["object"];
+            if !schema_value(object,&location,"ToS/contracts/provision-activity.schema.json",schemas,rules)? { rules.issue("provision-object-schema",&location)?; }
             provision(object,records,rules,&location)?;
         }
         if basename=="work-chronology-claims.jsonl" {
-            let object=&row["object"]; let raw=serde_json::to_vec(object).map_err(|_|ItemRefusal::Unsupported("chronology object".into()))?;
-            if !schemas.check(&location,&raw,"ToS/contracts/first-publication-chronology.schema.json",rules.limits.deadline,rules.cancelled)? { rules.issue("chronology-object-schema",&location)?; }
+            let object=&row["object"];
+            if !schema_value(object,&location,"ToS/contracts/first-publication-chronology.schema.json",schemas,rules)? { rules.issue("chronology-object-schema",&location)?; }
             chronology(row,records,rules,&location)?;
         }
         if basename=="responsibility-claims.jsonl" {
             let matching=s(row,"provenance_event_ref").and_then(|id|events.get(id)).and_then(|event|event["outputs"].as_array()).into_iter().flatten().filter_map(|output|s(output,"role")).find(|role|matches!(*role,"unreviewed-translation-responsibility-claims"|"unreviewed-evidence-bearing-responsibility-claims"));
             if let Some(role)=matching { bind_event(cut,claim,role,events,rules,&location)?; } else { rules.issue("responsibility-event-output-role",&location)?; }
         }
-        if let Some(role)=role { bind_event(cut,claim,role,events,rules,&location)?; } else if !matches!(basename,"responsibility-claims.jsonl"|"membership-claims.jsonl"|"object-link-claims.jsonl"|"historical-claims.jsonl") { rules.skip(&format!("legacy-batch-provenance-profile:{basename}"))?; } else if !s(row,"provenance_event_ref").is_some_and(|id|events.contains_key(id)) { rules.issue("legacy-event-unresolved",&location)?; }
-        rules.checked(&format!("legacy-bibliography:{basename}"))?;
+        if let Some(role)=role { bind_event(cut,claim,role,events,rules,&location)?; } else if !matches!(basename,"responsibility-claims.jsonl"|"membership-claims.jsonl"|"object-link-claims.jsonl"|"historical-claims.jsonl") { rules.skip_parts(&["legacy-batch-provenance-profile:",basename])?; } else if !s(row,"provenance_event_ref").is_some_and(|id|events.contains_key(id)) { rules.issue("legacy-event-unresolved",&location)?; }
+        rules.checked_parts(&["legacy-bibliography:",basename])?;
     }
     // Existence remains distinct from digest-bound original input resolution.
-    for field in ["evidence_refs","counterevidence_refs"] { for reference in strings(row,field) {
+    for field in ["evidence_refs","counterevidence_refs"] { for reference in string_iter(row,field) {
         check(rules.limits.deadline,rules.cancelled)?;
         if reference.starts_with("tos.anchor.") {
-            if !rules.anchors.contains(&reference) { rules.skip("boundary-and-versioned-anchor-owner-resolution")?; }
+            if !rules.anchors.contains(reference) { rules.skip("boundary-and-versioned-anchor-owner-resolution")?; }
             continue;
         }
         if !reference.starts_with("ToS/") { continue; }
         let path=RelativePath::parse(&reference).map_err(|_|ItemRefusal::Unsupported("Claim evidence path".into()))?;
         let present=cut.current().member(&path).is_some();
-        rules.read(PredicateRead::IdentityKey { namespace:"source-current-path".into(),key:reference.clone(),observed:if present {KeyState::Present} else {KeyState::Absent} })?;
+        rules.read("source-current-path".len()+reference.len(),||PredicateRead::IdentityKey { namespace:"source-current-path".into(),key:reference.to_owned(),observed:if present {KeyState::Present} else {KeyState::Absent} })?;
         if !present { rules.issue("Claim-evidence-current-file-missing",&location)?; }
     } }
-    let fact=ValidationFact { namespace:"source-Claim-value".into(),key:s(row,"claim_id").unwrap_or(&location).into(),value_digest:Digest256::of_bytes(&bytes).to_prefixed() };
-    reserve(&mut rules.state,fact_state(&fact)?,rules.limits.max_state_bytes)?;
+    let fact_key=s(row,"claim_id").unwrap_or(&location);
+    reserve(&mut rules.state,std::mem::size_of::<ValidationFact>()+"source-Claim-value".len()+fact_key.len()+"sha256:".len()+std::mem::size_of::<Digest256>()*2,rules.limits.max_state_bytes)?;
+    let fact=ValidationFact { namespace:"source-Claim-value".into(),key:fact_key.into(),value_digest:Digest256::of_bytes(&bytes).to_prefixed() };
     rules.shadow.facts.push(fact); Ok(())
 }
 fn require_kind(id:&str, kinds:&[&str], records:&BTreeMap<String,BiblioCurrentRecord>, rules:&mut Rules<'_>, location:&str)->Result<(),ItemRefusal> {
     let target=records.get(id);
-    rules.read(PredicateRead::RefEndpoint { endpoint_type:kinds.join("|"),id:id.into(),observed:if target.is_some(){KeyState::Present}else{KeyState::Absent} })?;
+    rules.read(kinds.iter().map(|v|v.len()).sum::<usize>()+kinds.len().saturating_sub(1)+id.len(),||PredicateRead::RefEndpoint { endpoint_type:kinds.join("|"),id:id.into(),observed:if target.is_some(){KeyState::Present}else{KeyState::Absent} })?;
     if !target.is_some_and(|r|kinds.contains(&r.kind.as_str()) || kinds.contains(&"") && r.kind!="link") { rules.issue("bibliography-endpoint-kind-or-missing",location)?; } Ok(())
 }
 fn qualified(row:&Value,predicate:&str,rules:&mut Rules<'_>,location:&str)->Result<(),ItemRefusal> {
@@ -468,8 +560,7 @@ fn qualified(row:&Value,predicate:&str,rules:&mut Rules<'_>,location:&str)->Resu
 }
 fn bind_event(cut:&CorpusCutReader, claim:&BiblioClaim, role:&str, events:&BTreeMap<String,Value>, rules:&mut Rules<'_>, location:&str)->Result<(),ItemRefusal> {
     let Some(event)=s(&claim.value,"provenance_event_ref").and_then(|id|events.get(id)) else { rules.issue("bibliography-provenance-event-missing",location)?; return Ok(()); };
-    let expected=json!({"ref":claim.path,"role":role,"sha256":claim.raw_sha256});
-    if !event["outputs"].as_array().is_some_and(|rows|rows.contains(&expected)) { rules.issue("bibliography-provenance-output-binding",location)?; }
+    if !event["outputs"].as_array().is_some_and(|rows|rows.iter().any(|row|output_binding(row,&claim.path,role,&claim.raw_sha256))) { rules.issue("bibliography-provenance-output-binding",location)?; }
     for input in event["inputs"].as_array().into_iter().flatten() {
         check(rules.limits.deadline,rules.cancelled)?;
         let (Some(path),Some(digest))=(s(input,"ref"),s(input,"sha256")) else { continue; };
@@ -484,9 +575,14 @@ fn bind_event(cut:&CorpusCutReader, claim:&BiblioClaim, role:&str, events:&BTree
             if snapshot.revision()!=cut.current().revision() && !(owned(path)&&path.ends_with(".json")) { continue; }
             let Some(member)=snapshot.member(&relative) else { continue; };
             if member.sha256!=expected { continue; }
+            let raw_state=usize::try_from(member.size_bytes).map_err(|_|ItemRefusal::Budget)?.checked_add(std::mem::size_of::<tos_source_store::SourceMemberV1>()+path.len()).ok_or(ItemRefusal::Budget)?;
+            reserve(&mut rules.state,raw_state,rules.limits.max_state_bytes)?;
             let raw=cut.read_member(snapshot.revision(),&relative,rules.limits.max_member_bytes as u64,rules.limits.deadline,rules.cancelled).map_err(store_error)?;
+            let identity_state=raw.stable_ids.iter().try_fold(0usize,|n,id|n.checked_add(std::mem::size_of::<String>()).and_then(|n|n.checked_add(id.len())).ok_or(ItemRefusal::Budget))?;
+            reserve(&mut rules.state,identity_state,rules.limits.max_state_bytes)?;
             account(&mut rules.bytes,raw.raw.len(),rules.limits.max_total_bytes)?;
-            rules.read(PredicateRead::ExactBytes { locator:format!("{}:{path}",snapshot.revision().0.to_hex()),digest:expected.to_prefixed() })?;
+            rules.read(std::mem::size_of::<Digest256>()*2+1+path.len()+("sha256:".len()+std::mem::size_of::<Digest256>()*2),||PredicateRead::ExactBytes { locator:format!("{}:{path}",snapshot.revision().0.to_hex()),digest:expected.to_prefixed() })?;
+            drop(raw);rules.state-=raw_state+identity_state;
             resolved=true; break;
         }
         if !resolved { rules.issue("bibliography-recorded-input-unresolved",location)?; }
@@ -495,7 +591,7 @@ fn bind_event(cut:&CorpusCutReader, claim:&BiblioClaim, role:&str, events:&BTree
 }
 fn provision(object:&Value,records:&BTreeMap<String,BiblioCurrentRecord>,rules:&mut Rules<'_>,location:&str)->Result<(),ItemRefusal> {
     let (places,agents):(&[&str],&[&str])=match s(object,"provision_kind") {Some("publication")=>(&["publication_place"],&["publisher"]),Some("production")=>(&["production_place"],&["producer"]),Some("distribution")=>(&["distribution_place"],&["distributor"]),Some("manufacture")=>(&["manufacture_place"],&["manufacturer","printer"]),_=>(&[],&[])};
-    for (field,allowed,normalized,kinds) in [("places",places,"normalized_place_ref",vec!["place"]),("agents",agents,"normalized_agent_ref",vec!["agent","organization"])] {
+    for (field,allowed,normalized,kinds) in [("places",places,"normalized_place_ref",&["place"][..]),("agents",agents,"normalized_agent_ref",&["agent","organization"][..])] {
         for row in object[field].as_array().into_iter().flatten() {
             check(rules.limits.deadline,rules.cancelled)?;
             if !allowed.is_empty() && !s(row,"role").is_some_and(|v|allowed.contains(&v)) { rules.issue("provision-role-incompatible",location)?; }
@@ -511,18 +607,19 @@ fn chronology(claim:&Value,records:&BTreeMap<String,BiblioCurrentRecord>,rules:&
     let (start,end)=(s(interval,"start"),s(interval,"end"));
     if start.zip(end).is_some_and(|(a,b)|a>b) { rules.issue("chronology-interval-reversed",location)?; }
     let stages=object["stages"].as_array().map(Vec::as_slice).unwrap_or(&[]);
-    let dates:Vec<_>=stages.iter().filter_map(|v|s(v,"date")).collect();
-    if dates.windows(2).any(|p|p[0]>p[1]) { rules.issue("chronology-stage-order",location)?; }
+    let mut first=None;let mut last=None;let mut reversed=false;
+    for date in stages.iter().filter_map(|v|s(v,"date")) {check(rules.limits.deadline,rules.cancelled)?;if last.is_some_and(|previous|previous>date) {reversed=true;}if first.is_none() {first=Some(date);}last=Some(date);}
+    if reversed {rules.issue("chronology-stage-order",location)?;}
     match s(object,"sequence_posture") { Some("single_event") if stages.len()!=1 || s(interval,"boundary_meaning")!=Some("single_stage") =>rules.issue("chronology-single-stage",location)?, Some("staged_sequence") if stages.len()<2 || s(interval,"boundary_meaning")!=Some("earliest_stage_to_sequence_completion")=>rules.issue("chronology-staged-sequence",location)?,_=>{} }
-    if dates.first().zip(start).is_some_and(|(date,start)|!date.starts_with(start)) || dates.last().zip(end).is_some_and(|(date,end)|!date.starts_with(end)) { rules.issue("chronology-boundary-stage",location)?; }
+    if first.zip(start).is_some_and(|(date,start)|!date.starts_with(start)) || last.zip(end).is_some_and(|(date,end)|!date.starts_with(end)) { rules.issue("chronology-boundary-stage",location)?; }
     for stage in stages {
         check(rules.limits.deadline,rules.cancelled)?;
         if let Some(id)=s(stage,"edition_ref") {
             require_kind(id,&["edition"],records,rules,location)?;
-            if let Some(edition)=records.get(id) { if !strings(&edition.value,"embodies_expression_refs").iter().any(|id|records.get(id).is_some_and(|expression|s(&expression.value,"work_ref")==s(claim,"subject_ref"))) { rules.issue("chronology-stage-edition-other-work",location)?; } }
+            if let Some(edition)=records.get(id) { if !string_iter(&edition.value,"embodies_expression_refs").any(|id|records.get(id).is_some_and(|expression|s(&expression.value,"work_ref")==s(claim,"subject_ref"))) { rules.issue("chronology-stage-edition-other-work",location)?; } }
         }
     }
-    if claim["maker"]!=json!({"maker_type":"model","agent_ref":"model:codex"}) || s(claim,"epistemic_status")!=Some("reported") || s(claim,"review_status")!=Some("unreviewed") || claim["reviews"]!=json!([]) || s(claim,"visibility")!=Some("public_metadata_only") { rules.issue("chronology-bounded-posture",location)?; }
+    if !model_maker(&claim["maker"]) || s(claim,"epistemic_status")!=Some("reported") || s(claim,"review_status")!=Some("unreviewed") || !empty_array(&claim["reviews"]) || s(claim,"visibility")!=Some("public_metadata_only") { rules.issue("chronology-bounded-posture",location)?; }
     Ok(())
 }
 
@@ -556,38 +653,47 @@ fn inspect_closure(records:&BTreeMap<String,BiblioCurrentRecord>,claims:&[Biblio
         if !refs.contains(id) {let cost=std::mem::size_of::<&str>();reserve(&mut rules.state,cost,rules.limits.max_state_bytes)?;indexes=indexes.checked_add(cost).ok_or(ItemRefusal::Budget)?;refs.insert(id);}
         if field=="chronology_claim_refs" && !chronology_subjects.contains(subject) {let cost=std::mem::size_of::<&str>();reserve(&mut rules.state,cost,rules.limits.max_state_bytes)?;indexes=indexes.checked_add(cost).ok_or(ItemRefusal::Budget)?;chronology_subjects.insert(subject);}
     }
-    let nietzsche:BTreeSet<_>=records.iter().filter(|(_,r)|r.kind=="work" && r.path.starts_with("ToS/source-witnesses/works/friedrich-nietzsche/")).map(|(id,_)|id.as_str()).collect();
-    let nietzsche_state=std::mem::size_of_val(&nietzsche)+nietzsche.len()*std::mem::size_of::<&str>();
+    let nietzsche_rows=records.iter().filter(|(_,r)|r.kind=="work" && r.path.starts_with("ToS/source-witnesses/works/friedrich-nietzsche/"));
+    let nietzsche_state=std::mem::size_of::<BTreeSet<&str>>()+nietzsche_rows.clone().count()*std::mem::size_of::<&str>();
     reserve(&mut rules.state,nietzsche_state,rules.limits.max_state_bytes)?;indexes=indexes.checked_add(nietzsche_state).ok_or(ItemRefusal::Budget)?;
+    let nietzsche:BTreeSet<_>=nietzsche_rows.map(|(id,_)|id.as_str()).collect();
     if chronology_subjects!=nietzsche { rules.issue("Nietzsche-chronology-subject-closure","ToS/source-witnesses/chronology/friedrich-nietzsche/first-publication")?; }
     for (id,record) in records {
         check(rules.limits.deadline,rules.cancelled)?;
         let fields:&[&str]=match record.kind.as_str() {"collection"=>&["membership_claim_refs"],"work"=>&["responsibility_claim_refs"],"expression"=>&["responsibility_claim_refs","derivation_claim_refs"],"edition"=>&["responsibility_claim_refs","publication_claim_refs","provision_activity_claim_refs"],"link"=>&["association_claim_refs"],_=>&[]};
         for field in fields.iter().copied().chain((nietzsche.contains(id.as_str())).then_some("chronology_claim_refs")) {
-            let refs:Vec<_>=record.value[field].as_array().into_iter().flatten().filter_map(Value::as_str).collect();let actual:BTreeSet<_>=refs.iter().copied().collect();
-            let scratch=std::mem::size_of_val(&refs)+std::mem::size_of_val(&actual)+refs.len()*std::mem::size_of::<&str>()+actual.len()*std::mem::size_of::<&str>();
+            let refs_count=string_iter(&record.value,field).count();
+            let scratch=std::mem::size_of::<Vec<&str>>()+std::mem::size_of::<BTreeSet<&str>>()+refs_count*std::mem::size_of::<&str>()+refs_count*std::mem::size_of::<&str>();
             reserve_check(rules.state,scratch,rules.limits.max_state_bytes)?;let ceiling=rules.limits.max_state_bytes;rules.limits.max_state_bytes=ceiling.checked_sub(scratch).ok_or(ItemRefusal::Budget)?;
+            let refs:Vec<_>=string_iter(&record.value,field).collect();let actual:BTreeSet<_>=refs.iter().copied().collect();
             let expected=union.get(&(id.as_str(),field));
             let empty=BTreeSet::new();let expected=expected.unwrap_or(&empty);
-            if actual.len()!=refs.len() || &actual!=expected { rules.issue("bibliography-exact-reverse-closure",&format!("{}#{field}",record.path))?; }
-            rules.read(PredicateRead::ReverseRefs {target:id.clone(),relation:format!("bibliography:{field}"),generation:generation.into()})?;
-            rules.read(PredicateRead::Range {namespace:"bibliography-current-Claim-field".into(),lower:format!("{field}:{id}"),upper:format!("{field}:{id}"),generation:generation.into()})?;
+            if actual.len()!=refs.len() || &actual!=expected { rules.issue_parts("bibliography-exact-reverse-closure",&[&record.path,"#",field])?; }
+            rules.read(id.len()+"bibliography:".len()+field.len()+generation.len(),||PredicateRead::ReverseRefs {target:id.clone(),relation:format!("bibliography:{field}"),generation:generation.into()})?;
+            rules.read("bibliography-current-Claim-field".len()+(field.len()+1+id.len())*2+generation.len(),||PredicateRead::Range {namespace:"bibliography-current-Claim-field".into(),lower:format!("{field}:{id}"),upper:format!("{field}:{id}"),generation:generation.into()})?;
             if field=="chronology_claim_refs" && expected.len()!=1 { rules.issue("Nietzsche-one-chronology",&record.path)?; }
             if field=="association_claim_refs" {
                 for reference in expected { if let Some(claim)=by_id.get(*reference) { if claim.value.get("provenance_event_ref")!=record.value.get("provenance_event_ref") { rules.issue("Link-Claim-provenance-mismatch",&record.path)?; } } }
             }
             if field=="responsibility_claim_refs" && nietzsche.contains(id.as_str()) {
-                let authors:Vec<_>=actual.iter().filter_map(|id|by_id.get(*id)).filter(|c|s(&c.value,"predicate")==Some("authored_by")).collect();
-                if authors.len()!=1 || s(&authors[0].value,"object")!=Some("tos.agent.friedrich-nietzsche") { rules.issue("Nietzsche-explicit-authorship",&record.path)?; }
+                let mut authors=actual.iter().filter_map(|id|by_id.get(*id)).filter(|c|s(&c.value,"predicate")==Some("authored_by"));
+                let author=authors.next();
+                if author.is_none() || authors.next().is_some() || s(&author.unwrap().value,"object")!=Some("tos.agent.friedrich-nietzsche") { rules.issue("Nietzsche-explicit-authorship",&record.path)?; }
             }
-            let payload=json!({"declared":actual,"observed":expected});let payload_state=crate::record_biblio_cut::decoded_state(&payload)?;
+            // These sets already hold borrowed identities. Serialize the same
+            // two JSON fields directly, without cloning them into another Value.
+            let payload_state=std::mem::size_of::<BTreeMap<&str,&BTreeSet<&str>>>()+std::mem::size_of::<(&str,&BTreeSet<&str>)>()*2;
             reserve_check(rules.state,payload_state,rules.limits.max_state_bytes)?;
-            crate::record_biblio_cut::decoded_wire_size(&payload,rules.limits.max_state_bytes.checked_sub(rules.state).and_then(|n|n.checked_sub(payload_state)).ok_or(ItemRefusal::Budget)?)?;
+            let payload=BTreeMap::from([("declared",&actual),("observed",expected)]);
+            let available=rules.limits.max_state_bytes.checked_sub(rules.state).and_then(|n|n.checked_sub(payload_state)).and_then(|n|n.checked_sub(std::mem::size_of::<Vec<u8>>())).ok_or(ItemRefusal::Budget)?;
+            let raw_size=crate::record_biblio_cut::serialized_wire_size(available,|writer|serde_json::to_writer(writer,&payload))?;
+            let raw_state=raw_size+std::mem::size_of::<Vec<u8>>();
+            reserve(&mut rules.state,payload_state+raw_state,rules.limits.max_state_bytes)?;
             let raw=serde_json::to_vec(&payload).map_err(|_|ItemRefusal::Unsupported("closure fact representation".into()))?;
-            let fact=ValidationFact {namespace:"bibliography-subject-closure".into(),key:format!("{field}:{id}"),value_digest:Digest256::of_bytes(&raw).to_prefixed()};
-            reserve_check(rules.state,payload_state+raw.len()+std::mem::size_of::<Vec<u8>>()+fact_state(&fact)?,rules.limits.max_state_bytes)?;
-            reserve(&mut rules.state,fact_state(&fact)?,rules.limits.max_state_bytes)?;rules.shadow.facts.push(fact);
-            drop(payload);drop(raw);drop(actual);drop(refs);rules.limits.max_state_bytes=ceiling;
+            reserve(&mut rules.state,std::mem::size_of::<ValidationFact>()+"bibliography-subject-closure".len()+field.len()+1+id.len()+"sha256:".len()+std::mem::size_of::<Digest256>()*2,rules.limits.max_state_bytes)?;
+            let fact=ValidationFact {namespace:"bibliography-subject-closure".into(),key:format!("{field}:{id}"),value_digest:Digest256::of_bytes(&raw).to_prefixed()};rules.shadow.facts.push(fact);
+            drop(payload);drop(raw);rules.state-=payload_state+raw_state;
+            drop(actual);drop(refs);rules.limits.max_state_bytes=ceiling;
         }
     }
     drop(union);drop(by_id);drop(chronology_subjects);drop(nietzsche);rules.state-=indexes;
@@ -634,7 +740,7 @@ mod tests {
         let mut partial=structure.clone();partial["object"]["ordering"]["precedes"]=json!([]);let mut bad=rules(&cancelled);member_structure(&partial,&mut bad,"order").unwrap();assert!(bad.shadow.issues.iter().any(|i|i.code=="structure-total-incomparable"));
         let reference=|id:&str|json!({"id":id,"version":1,"digest":format!("sha256:{}","00".repeat(32))});
         let proposal=json!({"claim_id":"tos.claim.p","subject_ref":"tos.work.a","supersedes_claim_ref":null,"object":{"operation":"merge","members":["tos.work.a","tos.work.b","tos.work.c"],"predecessors":[reference("tos.work.a"),reference("tos.work.b")],"successors":[reference("tos.work.c")],"mapping":[{"predecessor":"tos.work.a","successor":"tos.work.c"},{"predecessor":"tos.work.b","successor":"tos.work.c"}],"supersedes_proposal":null,"unresolved_links":[]}});
-        let records=["a","b","c"].into_iter().map(|suffix|(format!("tos.work.{suffix}"),record("work",json!({"record_id":format!("tos.work.{suffix}")})))).collect();let kinds=BTreeMap::from([("work".into(),"tos.entity.work".into())]);let types=BTreeMap::from([("tos.entity.work".into(),json!({"abstract":false,"object_role":"identity"}))]);
+        let records=["a","b","c"].into_iter().map(|suffix|(format!("tos.work.{suffix}"),record("work",json!({"record_id":format!("tos.work.{suffix}")})))).collect();let kinds=BTreeMap::from([("work".into(),"tos.entity.work".into())]);let type_record=json!({"abstract":false,"object_role":"identity"});let types=BTreeMap::from([("tos.entity.work",&type_record)]);
         let mut good=rules(&cancelled);identity_proposal(&proposal,"identity-transition-v1",&types,&kinds,&records,&mut good,"proposal").unwrap();assert!(good.shadow.issues.is_empty());assert!(good.shadow.unsupported);
         let mut incomplete=proposal.clone();incomplete["object"]["mapping"].as_array_mut().unwrap().pop();let mut bad=rules(&cancelled);identity_proposal(&incomplete,"identity-transition-v1",&types,&kinds,&records,&mut bad,"proposal").unwrap();assert!(bad.shadow.issues.iter().any(|i|i.code=="proposal-complete-mapping"));
     }
@@ -651,96 +757,161 @@ mod tests {
     #[test]
     fn cancellation_and_state_budgets_refuse_without_success_projection() {
         let cancelled=AtomicBool::new(true);let mut r=rules(&cancelled);assert!(matches!(r.issue("example","x"),Err(ItemRefusal::Source(_))));
-        let cancelled=AtomicBool::new(false);let mut r=rules(&cancelled);r.limits.max_state_bytes=1;assert!(matches!(r.read(PredicateRead::AbsentKey {namespace:"test".into(),key:"x".into()}),Err(ItemRefusal::BudgetCheck {..})));
+        let cancelled=AtomicBool::new(false);let mut r=rules(&cancelled);r.limits.max_state_bytes=1;assert!(matches!(r.read("test".len()+"x".len(),||PredicateRead::AbsentKey {namespace:"test".into(),key:"x".into()}),Err(ItemRefusal::BudgetCheck {..})));
         let mut r=rules(&cancelled);r.limits.max_issues=0;assert_eq!(r.issue("example","x"),Err(ItemRefusal::BudgetCheck {check:"bibliography issue count",used:Some(1),limit:Some(0)}));
     }
 }
 
 fn event_posture(event:&Value,method:&str,rules:&mut Rules<'_>,location:&str)->Result<(),ItemRefusal> {
-    if s(event,"event_type")!=Some("annotation") || event["agent_refs"]!=json!(["model:codex"]) || s(&event["method"],"maker_type")!=Some("model") || s(&event["method"],"name")!=Some(method) || s(&event["method"],"version")!=Some("1") || s(event,"status")!=Some("completed_with_warnings") { rules.issue("bibliography-batch-posture",location)?; } Ok(())
+    if s(event,"event_type")!=Some("annotation") || !event["agent_refs"].as_array().is_some_and(|rows|rows.len()==1&&rows[0].as_str()==Some("model:codex")) || s(&event["method"],"maker_type")!=Some("model") || s(&event["method"],"name")!=Some(method) || s(&event["method"],"version")!=Some("1") || s(event,"status")!=Some("completed_with_warnings") { rules.issue("bibliography-batch-posture",location)?; } Ok(())
 }
-fn exact_batch_inputs(event:&Value,expected:BTreeSet<String>,rules:&mut Rules<'_>,location:&str)->Result<(),ItemRefusal> {
+fn model_maker(value:&Value)->bool {value.as_object().is_some_and(|row|row.len()==2&&s(value,"maker_type")==Some("model")&&s(value,"agent_ref")==Some("model:codex"))}
+fn empty_array(value:&Value)->bool {value.as_array().is_some_and(Vec::is_empty)}
+fn output_binding(row:&Value,path:&str,role:&str,digest:&str)->bool {
+    row.as_object().is_some_and(|object|object.len()==3&&s(row,"ref")==Some(path)&&s(row,"role")==Some(role)&&s(row,"sha256")==Some(digest))
+}
+fn singleton_output(event:&Value,path:&str,role:&str,digest:&str)->bool {
+    event["outputs"].as_array().is_some_and(|rows|rows.len()==1&&output_binding(&rows[0],path,role,digest))
+}
+enum BatchConfigValue {Count(u64),Flag(bool)}
+fn batch_configuration(config:&Value,expected:&[(&str,BatchConfigValue)],rules:&Rules<'_>)->Result<bool,ItemRefusal> {
+    let Some(object)=config.as_object() else{return Ok(false);};
+    if object.len()!=expected.len() {return Ok(false);}
+    // The borrowed field table is source law. Only one actual scalar Value is
+    // constructed at a time, with its exact decimal lexeme priced beforehand.
+    let table=std::mem::size_of_val(expected);
+    for (key,value) in expected {
+        check(rules.limits.deadline,rules.cancelled)?;
+        let payload=match value {BatchConfigValue::Count(n)=>if *n==0 {1}else{n.ilog10() as usize+1},BatchConfigValue::Flag(_)=>0};
+        reserve_check(rules.state,table+std::mem::size_of::<Value>()+payload,rules.limits.max_state_bytes)?;
+        let value=match value {BatchConfigValue::Count(n)=>Value::from(*n),BatchConfigValue::Flag(v)=>Value::Bool(*v)};
+        if object.get(*key)!=Some(&value) {return Ok(false);}
+    }
+    Ok(true)
+}
+fn exact_batch_inputs(event:&Value,expected:BTreeSet<&str>,rules:&mut Rules<'_>,location:&str)->Result<(),ItemRefusal> {
     let rows=event["inputs"].as_array().map(Vec::as_slice).unwrap_or(&[]);
-    let actual:BTreeSet<_>=rows.iter().filter_map(|r|s(r,"ref")).map(str::to_owned).collect();
-    if actual!=expected || rows.len()!=actual.len() { rules.issue("bibliography-batch-exact-input-set",location)?; } Ok(())
+    let scratch=std::mem::size_of::<BTreeSet<&str>>()+rows.len()*std::mem::size_of::<&str>();
+    reserve_check(rules.state,scratch,rules.limits.max_state_bytes)?;
+    let ceiling=rules.limits.max_state_bytes;rules.limits.max_state_bytes=ceiling.checked_sub(scratch).ok_or(ItemRefusal::Budget)?;
+    let actual:BTreeSet<_>=rows.iter().filter_map(|r|s(r,"ref")).collect();
+    let result=if actual!=expected || rows.len()!=actual.len() {rules.issue("bibliography-batch-exact-input-set",location)}else{Ok(())};
+    drop(actual);drop(expected);rules.limits.max_state_bytes=ceiling;result
 }
+
 fn inspect_batches(claims:&[BiblioClaim],events:&BTreeMap<String,Value>,records:&BTreeMap<String,BiblioCurrentRecord>,rules:&mut Rules<'_>)->Result<(),ItemRefusal> {
-    let topology:Vec<_>=claims.iter().filter(|c|!c.native && LEGACY_TOPOLOGY.iter().any(|basename|c.path.ends_with(basename))).collect();
-    if !topology.is_empty() {
+    let topology=claims.iter().filter(|c|!c.native && LEGACY_TOPOLOGY.iter().any(|basename|c.path.ends_with(basename)));
+    if topology.clone().next().is_some() {
         let location="ToS/source-witnesses/relations/provenance.jsonl";
         if let Some(event)=events.get(TOPOLOGY_EVENT) {
             event_posture(event,"declared-bibliographic-topology-materialization",rules,location)?;
-            let count=|predicate:&str|topology.iter().filter(|c|s(&c.value,"predicate")==Some(predicate)).count();
-            let expected=json!({"work_expression_claims_materialized":count("has_expression"),"expression_edition_claims_materialized":count("embodied_by"),"edition_item_claims_materialized":count("exemplified_by"),"topology_claims_reviewed":0,"source_text_admitted":false,"human_review_performed":false,"textual_equivalence_claims_created":0,"semantic_claims_created":0,"canon_promotion_performed":false});
-            if event["method"]["configuration"]!=expected { rules.issue("topology-exact-legacy-batch-configuration",location)?; }
+            let count=|predicate:&str|topology.clone().filter(|c|s(&c.value,"predicate")==Some(predicate)).count();
+            let expected=[("work_expression_claims_materialized",BatchConfigValue::Count(count("has_expression") as u64)),("expression_edition_claims_materialized",BatchConfigValue::Count(count("embodied_by") as u64)),("edition_item_claims_materialized",BatchConfigValue::Count(count("exemplified_by") as u64)),("topology_claims_reviewed",BatchConfigValue::Count(0)),("source_text_admitted",BatchConfigValue::Flag(false)),("human_review_performed",BatchConfigValue::Flag(false)),("textual_equivalence_claims_created",BatchConfigValue::Count(0)),("semantic_claims_created",BatchConfigValue::Count(0)),("canon_promotion_performed",BatchConfigValue::Flag(false))];
+            if !batch_configuration(&event["method"]["configuration"],&expected,rules)? { rules.issue("topology-exact-legacy-batch-configuration",location)?; }
         } else { rules.issue("topology-owned-batch-event-missing",location)?; }
     }
-    let chronology:Vec<_>=claims.iter().filter(|c|!c.native && c.path.ends_with("/work-chronology-claims.jsonl")).collect();
-    if !chronology.is_empty() {
+    let chronology_rows=claims.iter().filter(|c|!c.native && c.path.ends_with("/work-chronology-claims.jsonl"));
+    let chronology_count=chronology_rows.clone().count();
+    if chronology_count!=0 {
+        let input_slots=chronology_rows.clone().try_fold(2usize,|n,row|n.checked_add(string_iter(&row.value,"evidence_refs").count()).ok_or(ItemRefusal::Budget))?;
+        let scratch=std::mem::size_of::<Vec<&BiblioClaim>>()+chronology_count*std::mem::size_of::<&BiblioClaim>()+std::mem::size_of::<BTreeSet<&str>>()+input_slots*std::mem::size_of::<&str>();
+        reserve_check(rules.state,scratch,rules.limits.max_state_bytes)?;
+        let ceiling=rules.limits.max_state_bytes;rules.limits.max_state_bytes=ceiling.checked_sub(scratch).ok_or(ItemRefusal::Budget)?;
+        let result=(||->Result<(),ItemRefusal>{
+        let chronology:Vec<_>=chronology_rows.collect();
         let path="ToS/source-witnesses/chronology/friedrich-nietzsche/first-publication/work-chronology-claims.jsonl";
-        let mut inputs=BTreeSet::from([LEGACY_BASE.into(),"ToS/contracts/first-publication-chronology.schema.json".into()]);
+        let mut inputs=BTreeSet::from([LEGACY_BASE,"ToS/contracts/first-publication-chronology.schema.json"]);
         for claim in &chronology {
             check(rules.limits.deadline,rules.cancelled)?;
             if claim.path!=path || s(&claim.value,"provenance_event_ref")!=Some(CHRONOLOGY_EVENT) || s(&claim.value,"assertion_layer")!=Some("scholarly_report") { rules.issue("chronology-owned-route-and-event",&claim.path)?; }
-            let evidence=strings(&claim.value,"evidence_refs");
-            if !evidence.iter().any(|v|v.contains("authorial-witness-route")) || !evidence.iter().any(|v|v.contains("AUTHORIAL_WITNESS_ROUTE.md")) || evidence.iter().any(|v|!v.starts_with("ToS/")) { rules.issue("chronology-documentary-evidence-set",&claim.path)?; }
+            let evidence=string_iter(&claim.value,"evidence_refs");
+            if !evidence.clone().any(|v|v.contains("authorial-witness-route")) || !evidence.clone().any(|v|v.contains("AUTHORIAL_WITNESS_ROUTE.md")) || evidence.clone().any(|v|!v.starts_with("ToS/")) { rules.issue("chronology-documentary-evidence-set",&claim.path)?; }
             inputs.extend(evidence);
         }
         if let Some(event)=events.get(CHRONOLOGY_EVENT) {
             event_posture(event,"faceted-first-publication-chronology-materialization",rules,path)?;
-            let output=json!([{"ref":path,"role":"unreviewed-evidence-bearing-work-chronology-claims","sha256":chronology[0].raw_sha256}]);
-            if event["outputs"]!=output { rules.issue("chronology-exact-batch-output",path)?; }
+            if !singleton_output(event,path,"unreviewed-evidence-bearing-work-chronology-claims",&chronology[0].raw_sha256) { rules.issue("chronology-exact-batch-output",path)?; }
             exact_batch_inputs(event,inputs,rules,path)?;
-            let expected=json!({"works_materialized":7,"chronology_claims_materialized":7,"staged_sequence_claims":1,"single_event_claims":6,"chronology_claims_reviewed":0,"composition_claims_created":0,"source_text_admitted":false,"human_review_performed":false,"semantic_claims_created":0,"canon_promotion_performed":false});
-            if event["method"]["configuration"]!=expected { rules.issue("chronology-owned-fixed-configuration",path)?; }
+            let expected=[("works_materialized",BatchConfigValue::Count(7)),("chronology_claims_materialized",BatchConfigValue::Count(7)),("staged_sequence_claims",BatchConfigValue::Count(1)),("single_event_claims",BatchConfigValue::Count(6)),("chronology_claims_reviewed",BatchConfigValue::Count(0)),("composition_claims_created",BatchConfigValue::Count(0)),("source_text_admitted",BatchConfigValue::Flag(false)),("human_review_performed",BatchConfigValue::Flag(false)),("semantic_claims_created",BatchConfigValue::Count(0)),("canon_promotion_performed",BatchConfigValue::Flag(false))];
+            if !batch_configuration(&event["method"]["configuration"],&expected,rules)? { rules.issue("chronology-owned-fixed-configuration",path)?; }
         } else { rules.issue("chronology-owned-batch-event-missing",path)?; }
+        Ok(())})();rules.limits.max_state_bytes=ceiling;result?;
     }
-    let derivations:Vec<_>=claims.iter().filter(|c|!c.native && c.path.ends_with("/expression-derivation-claims.jsonl")).collect();
-    if !derivations.is_empty() {
+    let derivation_rows=claims.iter().filter(|c|!c.native && c.path.ends_with("/expression-derivation-claims.jsonl"));
+    let edge_slots=derivation_rows.clone().count();
+    if edge_slots!=0 {
+        let endpoint_slots=edge_slots.checked_mul(2).ok_or(ItemRefusal::Budget)?;
+        let input_slots=derivation_rows.clone().try_fold(2usize,|n,row|n.checked_add(string_iter(&row.value,"evidence_refs").filter(|v|v.starts_with("ToS/")).count()).ok_or(ItemRefusal::Budget))?.checked_add(endpoint_slots).ok_or(ItemRefusal::Budget)?;
+        let scratch=std::mem::size_of::<Vec<&BiblioClaim>>()+edge_slots*std::mem::size_of::<&BiblioClaim>()
+            +std::mem::size_of::<BTreeMap<&str,BTreeSet<&str>>>()+edge_slots*std::mem::size_of::<(&str,BTreeSet<&str>)>()+edge_slots*std::mem::size_of::<&str>()
+            +std::mem::size_of::<BTreeSet<(&str,&str)>>()+edge_slots*std::mem::size_of::<(&str,&str)>()
+            +std::mem::size_of::<BTreeSet<&str>>()+endpoint_slots*std::mem::size_of::<&str>()
+            +std::mem::size_of::<BTreeSet<&str>>()+input_slots*std::mem::size_of::<&str>()
+            +std::mem::size_of::<BTreeMap<&str,usize>>()+endpoint_slots*std::mem::size_of::<(&str,usize)>()
+            +std::mem::size_of::<Vec<&str>>()+endpoint_slots*std::mem::size_of::<&str>();
+        reserve_check(rules.state,scratch,rules.limits.max_state_bytes)?;
+        let ceiling=rules.limits.max_state_bytes;rules.limits.max_state_bytes=ceiling.checked_sub(scratch).ok_or(ItemRefusal::Budget)?;
+        let result=(||->Result<(),ItemRefusal>{
+        let derivations:Vec<_>=derivation_rows.collect();
         let path="ToS/source-witnesses/relations/expression-derivation/expression-derivation-claims.jsonl";
-        let mut edges:BTreeMap<String,BTreeSet<String>>=BTreeMap::new(); let mut pairs=BTreeSet::new();let mut endpoints=BTreeSet::new();
-        let mut inputs=BTreeSet::from([LEGACY_BASE.into(),"ToS/contracts/expression-derivation.schema.json".into()]);
+        let mut edges:BTreeMap<&str,BTreeSet<&str>>=BTreeMap::new(); let mut pairs=BTreeSet::new();let mut endpoints=BTreeSet::new();
+        let mut inputs=BTreeSet::from([LEGACY_BASE,"ToS/contracts/expression-derivation.schema.json"]);
         for claim in &derivations {
             check(rules.limits.deadline,rules.cancelled)?;
             let row=&claim.value;
-            if claim.path!=path || s(row,"claim_type")!=Some("relation") || s(row,"assertion_layer")!=Some("bibliographic_assertion") || s(row,"provenance_event_ref")!=Some(DERIVATION_EVENT) || row["maker"]!=json!({"maker_type":"model","agent_ref":"model:codex"}) || s(row,"epistemic_status")!=Some("reported") || s(row,"review_status")!=Some("unreviewed") || row["reviews"]!=json!([]) || s(row,"visibility")!=Some("public_metadata_only") { rules.issue("derivation-owned-bounded-posture",path)?; }
+            if claim.path!=path || s(row,"claim_type")!=Some("relation") || s(row,"assertion_layer")!=Some("bibliographic_assertion") || s(row,"provenance_event_ref")!=Some(DERIVATION_EVENT) || !model_maker(&row["maker"]) || s(row,"epistemic_status")!=Some("reported") || s(row,"review_status")!=Some("unreviewed") || !empty_array(&row["reviews"]) || s(row,"visibility")!=Some("public_metadata_only") { rules.issue("derivation-owned-bounded-posture",path)?; }
             if let (Some(subject),Some(object))=(s(row,"subject_ref"),s(row,"object")) {
                 if subject==object { rules.issue("derivation-irreflexive",path)?; }
                 if records.get(subject).zip(records.get(object)).is_some_and(|(a,b)|a.value.get("work_ref")!=b.value.get("work_ref")) { rules.issue("derivation-same-work",path)?; }
-                if !pairs.insert((subject.to_owned(),object.to_owned())) { rules.issue("derivation-duplicate-pair",path)?; }
-                reserve(&mut rules.state,std::mem::size_of::<(String,String)>()+subject.len()+object.len()+std::mem::size_of::<(String,BTreeSet<String>)>()+subject.len()+std::mem::size_of::<String>()+object.len()+2*std::mem::size_of::<String>()+subject.len()+object.len(),rules.limits.max_state_bytes)?;
-                edges.entry(subject.into()).or_default().insert(object.into());endpoints.insert(subject.to_owned());endpoints.insert(object.to_owned());
+                if !pairs.insert((subject,object)) { rules.issue("derivation-duplicate-pair",path)?; }
+                edges.entry(subject).or_default().insert(object);endpoints.insert(subject);endpoints.insert(object);
             }
-            let evidence=strings(row,"evidence_refs");
-            if !evidence.iter().any(|v|v.starts_with("tos.anchor.")) { rules.issue("derivation-source-anchor-return",path)?; }
-            inputs.extend(evidence.into_iter().filter(|v|v.starts_with("ToS/")));
+            let evidence=string_iter(row,"evidence_refs");
+            if !evidence.clone().any(|v|v.starts_with("tos.anchor.")) { rules.issue("derivation-source-anchor-return",path)?; }
+            inputs.extend(evidence.filter(|v|v.starts_with("ToS/")));
         }
-        for id in &endpoints { if let Some(record)=records.get(id) {inputs.insert(record.path.clone());} }
+        for id in &endpoints { if let Some(record)=records.get(*id) {inputs.insert(record.path.as_str());} }
         // Kahn traversal preserves cycle detection without a recursive stack.
-        let mut indegree:BTreeMap<String,usize>=endpoints.iter().map(|id|(id.clone(),0)).collect();
-        for targets in edges.values() {for target in targets {*indegree.entry(target.clone()).or_default()+=1;}}
-        let mut queue:Vec<String>=indegree.iter().filter(|(_,degree)|**degree==0).map(|(id,_)|id.clone()).collect();let mut visited=0;
-        while let Some(id)=queue.pop() {check(rules.limits.deadline,rules.cancelled)?;visited+=1;for target in edges.get(&id).into_iter().flatten() {let degree=indegree.get_mut(target).unwrap();*degree-=1;if *degree==0 {queue.push(target.clone());}}}
+        let mut indegree:BTreeMap<&str,usize>=endpoints.iter().map(|id|(*id,0)).collect();
+        for targets in edges.values() {for target in targets {*indegree.entry(*target).or_default()+=1;}}
+        let mut queue:Vec<&str>=indegree.iter().filter(|(_,degree)|**degree==0).map(|(id,_)|*id).collect();let mut visited=0;
+        while let Some(id)=queue.pop() {check(rules.limits.deadline,rules.cancelled)?;visited+=1;for target in edges.get(&id).into_iter().flatten() {let degree=indegree.get_mut(target).unwrap();*degree-=1;if *degree==0 {queue.push(*target);}}}
         if visited!=endpoints.len() {rules.issue("derivation-cycle",path)?;}
         if let Some(event)=events.get(DERIVATION_EVENT) {
             event_posture(event,"source-reported-expression-derivation-materialization",rules,path)?;
-            let output=json!([{"ref":path,"role":"unreviewed-source-reported-expression-derivation-claims","sha256":derivations[0].raw_sha256}]);
-            if event["outputs"]!=output {rules.issue("derivation-exact-batch-output",path)?;}
+            if !singleton_output(event,path,"unreviewed-source-reported-expression-derivation-claims",&derivations[0].raw_sha256) {rules.issue("derivation-exact-batch-output",path)?;}
             exact_batch_inputs(event,inputs,rules,path)?;
-            let expected=json!({"expression_identities_materialized":endpoints.len(),"derivation_claims_materialized":derivations.len(),"revision_claims_materialized":derivations.iter().filter(|c|s(&c.value["qualifiers"],"derivation_kind")==Some("revision")).count(),"claims_collated":derivations.iter().filter(|c|s(&c.value["qualifiers"],"collation_status")!=Some("not_collated")).count(),"claims_reviewed":derivations.iter().filter(|c|s(&c.value,"review_status")!=Some("unreviewed")).count(),"unsupported_1911_to_1907_edge_created":false,"unsupported_2007_to_1911_edge_created":false,"source_text_admitted":false,"human_review_performed":false,"equivalence_claims_created":0,"semantic_claims_created":0,"canon_promotion_performed":false});
-            if event["method"]["configuration"]!=expected {rules.issue("derivation-exact-batch-configuration",path)?;}
+            let expected=[("expression_identities_materialized",BatchConfigValue::Count(endpoints.len() as u64)),("derivation_claims_materialized",BatchConfigValue::Count(derivations.len() as u64)),("revision_claims_materialized",BatchConfigValue::Count(derivations.iter().filter(|c|s(&c.value["qualifiers"],"derivation_kind")==Some("revision")).count() as u64)),("claims_collated",BatchConfigValue::Count(derivations.iter().filter(|c|s(&c.value["qualifiers"],"collation_status")!=Some("not_collated")).count() as u64)),("claims_reviewed",BatchConfigValue::Count(derivations.iter().filter(|c|s(&c.value,"review_status")!=Some("unreviewed")).count() as u64)),("unsupported_1911_to_1907_edge_created",BatchConfigValue::Flag(false)),("unsupported_2007_to_1911_edge_created",BatchConfigValue::Flag(false)),("source_text_admitted",BatchConfigValue::Flag(false)),("human_review_performed",BatchConfigValue::Flag(false)),("equivalence_claims_created",BatchConfigValue::Count(0)),("semantic_claims_created",BatchConfigValue::Count(0)),("canon_promotion_performed",BatchConfigValue::Flag(false))];
+            if !batch_configuration(&event["method"]["configuration"],&expected,rules)? {rules.issue("derivation-exact-batch-configuration",path)?;}
         } else {rules.issue("derivation-owned-batch-event-missing",path)?;}
+        Ok(())})();rules.limits.max_state_bytes=ceiling;result?;
     }
     Ok(())
 }
 
 fn member_structure(claim:&Value,rules:&mut Rules<'_>,location:&str)->Result<(),ItemRefusal> {
-    let value=&claim["object"];let members:BTreeSet<_>=strings(value,"members").into_iter().collect();
+    let value=&claim["object"];
+    let members=string_iter(value,"members").count();
+    let edges=value["ordering"]["precedes"].as_array().map_or(0,Vec::len);
+    let bindings=value["membership_versions"].as_array().map_or(0,Vec::len);
+    let scratch=std::mem::size_of::<BTreeSet<&str>>() // members
+        +std::mem::size_of::<BTreeMap<&str,BTreeSet<&str>>>() // outgoing
+        +std::mem::size_of::<BTreeMap<&str,usize>>() // degree
+        +std::mem::size_of::<Vec<&str>>() // ready, each member at most once
+        +std::mem::size_of::<BTreeSet<&str>>() // exact membership IDs
+        +members*(std::mem::size_of::<&str>()+std::mem::size_of::<(&str,BTreeSet<&str>)>()+std::mem::size_of::<(&str,usize)>()+std::mem::size_of::<&str>())
+        +edges*std::mem::size_of::<&str>()+bindings*std::mem::size_of::<&str>();
+    reserve_check(rules.state,scratch,rules.limits.max_state_bytes)?;
+    let ceiling=rules.limits.max_state_bytes;rules.limits.max_state_bytes=ceiling.checked_sub(scratch).ok_or(ItemRefusal::Budget)?;
+    let result=member_structure_inner(claim,rules,location);rules.limits.max_state_bytes=ceiling;result
+}
+fn member_structure_inner(claim:&Value,rules:&mut Rules<'_>,location:&str)->Result<(),ItemRefusal> {
+    let value=&claim["object"];let members:BTreeSet<_>=string_iter(value,"members").collect();
     if s(claim,"subject_ref").is_some_and(|v|members.contains(v)) {rules.issue("structure-subject-member",location)?;}
     let mode=s(&value["ordering"],"mode");let edges=value["ordering"]["precedes"].as_array().map(Vec::as_slice).unwrap_or(&[]);
     if members.len()>128 || edges.len()>8128 {return Err(ItemRefusal::Budget);}
     if mode==Some("unordered") && !edges.is_empty() {rules.issue("structure-unordered-precedence",location)?;}
-    let mut outgoing:BTreeMap<String,BTreeSet<String>>=members.iter().map(|m|(m.clone(),BTreeSet::new())).collect();let mut degree:BTreeMap<String,usize>=members.iter().map(|m|(m.clone(),0)).collect();
+    let mut outgoing:BTreeMap<&str,BTreeSet<&str>>=members.iter().map(|m|(*m,BTreeSet::new())).collect();let mut degree:BTreeMap<&str,usize>=members.iter().map(|m|(*m,0)).collect();
     for edge in edges {
         check(rules.limits.deadline,rules.cancelled)?;
         let pair=edge.as_array().filter(|p|p.len()==2).and_then(|p|p[0].as_str().zip(p[1].as_str()));
@@ -748,8 +919,8 @@ fn member_structure(claim:&Value,rules:&mut Rules<'_>,location:&str)->Result<(),
         if !members.contains(before)||!members.contains(after) {rules.issue("structure-precedence-outside-members",location)?;continue;}
         if !outgoing.get_mut(before).unwrap().insert(after.into()) {rules.issue("structure-duplicate-precedence",location)?;continue;}*degree.get_mut(after).unwrap()+=1;
     }
-    let mut ready:Vec<_>=degree.iter().filter(|(_,n)|**n==0).map(|(m,_)|m.clone()).collect();let mut visited=0;
-    while let Some(member)=ready.pop() {check(rules.limits.deadline,rules.cancelled)?;if mode==Some("total") && !ready.is_empty() {rules.issue("structure-total-incomparable",location)?;}visited+=1;for after in outgoing.get(&member).into_iter().flatten() {let n=degree.get_mut(after).unwrap();*n-=1;if *n==0 {ready.push(after.clone());}}}
+    let mut ready:Vec<_>=degree.iter().filter(|(_,n)|**n==0).map(|(m,_)|*m).collect();let mut visited=0;
+    while let Some(member)=ready.pop() {check(rules.limits.deadline,rules.cancelled)?;if mode==Some("total") && !ready.is_empty() {rules.issue("structure-total-incomparable",location)?;}visited+=1;for after in outgoing.get(&member).into_iter().flatten() {let n=degree.get_mut(after).unwrap();*n-=1;if *n==0 {ready.push(*after);}}}
     if visited!=members.len() {rules.issue("structure-cycle",location)?;}
     if s(value,"kind")==Some("collection-member-order") {
         let collection=&value["collection_version"];let bindings=value["membership_versions"].as_array().map(Vec::as_slice).unwrap_or(&[]);let ids:BTreeSet<_>=bindings.iter().filter_map(|r|s(r,"id")).collect();
@@ -761,10 +932,22 @@ fn exact_ref(value:&Value,claim:bool)->bool {
     object.len()==3 && s(value,"id").is_some_and(|id|id.starts_with(if claim {"tos.claim."}else{"tos."})) && value["version"].as_u64().is_some_and(|v|v>0&&v<=9_007_199_254_740_991) && s(value,"digest").and_then(|d|d.strip_prefix("sha256:")).is_some_and(|d|Digest256::from_hex(d).is_ok())
 }
 fn identity_proposal(claim:&Value,reader:&str,types:&BTreeMap<&str,&Value>,kinds:&BTreeMap<&str,&str>,records:&BTreeMap<String,BiblioCurrentRecord>,rules:&mut Rules<'_>,location:&str)->Result<(),ItemRefusal> {
+    let value=&claim["object"];let left=value["predecessors"].as_array().map_or(0,Vec::len);let right=value["successors"].as_array().map_or(0,Vec::len);let mappings=value["mapping"].as_array().map_or(0,Vec::len);let members=string_iter(value,"members").count();
+    if left==0||right==0||left>8||right>8||mappings>8 {rules.issue("proposal-bounded-participant-shape",location)?;return Ok(());}
+    let scratch=std::mem::size_of::<Vec<&str>>()*(1+1) // IDs + members
+        +std::mem::size_of::<BTreeSet<&str>>()*(1+1) // distinct IDs + member comparison
+        +(left+right)*std::mem::size_of::<&str>()*(1+1)+members*std::mem::size_of::<&str>()*(1+1)
+        +std::mem::size_of::<BTreeSet<(&str,&str)>>()*(1+1) // expected + actual mapping set
+        +std::mem::size_of::<Vec<(&str,&str)>>()+ (left*right+mappings+mappings)*std::mem::size_of::<(&str,&str)>();
+    reserve_check(rules.state,scratch,rules.limits.max_state_bytes)?;
+    let ceiling=rules.limits.max_state_bytes;rules.limits.max_state_bytes=ceiling.checked_sub(scratch).ok_or(ItemRefusal::Budget)?;
+    let result=identity_proposal_inner(claim,reader,types,kinds,records,rules,location);rules.limits.max_state_bytes=ceiling;result
+}
+fn identity_proposal_inner(claim:&Value,reader:&str,types:&BTreeMap<&str,&Value>,kinds:&BTreeMap<&str,&str>,records:&BTreeMap<String,BiblioCurrentRecord>,rules:&mut Rules<'_>,location:&str)->Result<(),ItemRefusal> {
     let value=&claim["object"];let left=value["predecessors"].as_array().map(Vec::as_slice).unwrap_or(&[]);let right=value["successors"].as_array().map(Vec::as_slice).unwrap_or(&[]);let mappings=value["mapping"].as_array().map(Vec::as_slice).unwrap_or(&[]);
     if left.is_empty()||right.is_empty()||left.len()>8||right.len()>8||mappings.len()>8 {rules.issue("proposal-bounded-participant-shape",location)?;return Ok(());}
-    let ids:Vec<_>=left.iter().chain(right).filter_map(|r|s(r,"id")).collect();let distinct:BTreeSet<_>=ids.iter().copied().collect();let members=strings(value,"members");
-    if left.iter().chain(right).any(|r|!exact_ref(r,false)) || distinct.len()!=ids.len() || members.len()!=ids.len() || members.iter().map(String::as_str).collect::<BTreeSet<_>>()!=distinct || !s(claim,"subject_ref").is_some_and(|subject|left.iter().any(|r|s(r,"id")==Some(subject))) || s(claim,"claim_id").is_some_and(|id|distinct.contains(id)) {rules.issue("proposal-participant-union",location)?;}
+    let ids:Vec<_>=left.iter().chain(right).filter_map(|r|s(r,"id")).collect();let distinct:BTreeSet<_>=ids.iter().copied().collect();let members:Vec<_>=string_iter(value,"members").collect();
+    if left.iter().chain(right).any(|r|!exact_ref(r,false)) || distinct.len()!=ids.len() || members.len()!=ids.len() || members.iter().copied().collect::<BTreeSet<_>>()!=distinct || !s(claim,"subject_ref").is_some_and(|subject|left.iter().any(|r|s(r,"id")==Some(subject))) || s(claim,"claim_id").is_some_and(|id|distinct.contains(id)) {rules.issue("proposal-participant-union",location)?;}
     if !matches!((s(value,"operation"),left.len(),right.len()),(Some("merge"),2..=8,1)|(Some("split"),1,2..=8)) {rules.issue("proposal-merge-split-topology",location)?;}
     let expected:BTreeSet<_>=left.iter().filter_map(|r|s(r,"id")).flat_map(|old|right.iter().filter_map(|r|s(r,"id")).map(move|new|(old,new))).collect();let actual:Vec<_>=mappings.iter().filter_map(|m|s(m,"predecessor").zip(s(m,"successor"))).collect();
     if actual.len()!=expected.len()||actual.iter().copied().collect::<BTreeSet<_>>()!=expected {rules.issue("proposal-complete-mapping",location)?;}
@@ -777,7 +960,7 @@ fn identity_proposal(claim:&Value,reader:&str,types:&BTreeMap<&str,&Value>,kinds
         let entry=records.get(id).and_then(|r|kinds.get(r.kind.as_str())).and_then(|kind|types.get(kind));
         let eligible=entry.is_some_and(|entry|entry["abstract"]==false && (s(entry,"object_role")==Some("identity") || reader=="identity-transition-v2" && s(entry,"object_role")==Some("semantic") && s(&entry["source_record_profile"],"reader")==Some("semantic-metadata-v1") && s(&entry["source_record_profile"],"identity_proposal_adapter")==Some("exact-semantic-metadata-v1")));
         if !eligible {rules.issue("proposal-concrete-eligible-endpoint",location)?;}
-        rules.read(PredicateRead::RefEndpoint {endpoint_type:"identity-proposal-participant".into(),id:id.into(),observed:if entry.is_some(){KeyState::Present}else{KeyState::Absent}})?;
+        rules.read("identity-proposal-participant".len()+id.len(),||PredicateRead::RefEndpoint {endpoint_type:"identity-proposal-participant".into(),id:id.into(),observed:if entry.is_some(){KeyState::Present}else{KeyState::Absent}})?;
     }
     rules.skip("identity-proposal-exact-version-reader-lineage-and-related-Claim-resolution")?;Ok(())
 }
@@ -821,14 +1004,20 @@ pub fn inspect_bibliographic_delta(input:BiblioDeltaInput<'_>,limits:ItemLimits,
     for (path,raw,contract) in [(input.parent_path,input.parent_after_raw,"ToS/contracts/corpus-record.schema.json"),(input.endpoint_path,input.endpoint_raw,"ToS/contracts/corpus-record.schema.json"),(input.claim_path,input.claim_raw,"ToS/contracts/source-relation-claim.schema.json")] {
         check(limits.deadline,cancelled)?;
         if !schemas.check(path,raw,contract,limits.deadline,cancelled)? {rules.issue("bibliographic-delta-schema",path)?;}
-        rules.read(PredicateRead::ExactPath {path:path.into(),digest:Digest256::of_bytes(raw).to_prefixed()})?;
+        rules.read(path.len()+("sha256:".len()+std::mem::size_of::<Digest256>()*2),||PredicateRead::ExactPath {path:path.into(),digest:Digest256::of_bytes(raw).to_prefixed()})?;
     }
-    rules.read(PredicateRead::ExactBytes {locator:format!("before:{}",input.parent_path),digest:Digest256::of_bytes(input.parent_before_raw).to_prefixed()})?;
+    rules.read("before:".len()+input.parent_path.len()+("sha256:".len()+std::mem::size_of::<Digest256>()*2),||PredicateRead::ExactBytes {locator:format!("before:{}",input.parent_path),digest:Digest256::of_bytes(input.parent_before_raw).to_prefixed()})?;
     let parent_id=s(&before,"record_id");let endpoint_id=s(&endpoint,"record_id");let claim_id=s(&claim,"claim_id");
     if s(&before,"record_type")!=Some(parent_kind)||s(&after,"record_type")!=Some(parent_kind)||parent_id.is_none()||s(&after,"record_id")!=parent_id||s(&endpoint,"record_type")!=Some(endpoint_kind)||endpoint_id.is_none() {rules.issue("delta-preserved-typed-identities",input.parent_path)?;}
     if !before["record_version"].as_u64().filter(|v|*v>0).and_then(|v|v.checked_add(1)).is_some_and(|v|after["record_version"].as_u64()==Some(v)) {rules.issue("delta-one-successor-version",input.parent_path)?;}
-    let refs=strings(&before,field);let unique:BTreeSet<_>=refs.iter().collect();let mut expected=refs.clone();if let Some(id)=claim_id {expected.push(id.into());}
-    if !before[field].is_array()||before[field].as_array().unwrap().len()!=refs.len()||refs.len()!=unique.len()||claim_id.is_none()||claim_id.is_some_and(|id|refs.iter().any(|v|v==id))||after[field]!=json!(expected) {rules.issue("delta-exact-new-Claim-append",input.parent_path)?;}
+    let ref_count=string_iter(&before,field).count();
+    let scratch=std::mem::size_of::<Vec<&str>>()+std::mem::size_of::<BTreeSet<&str>>()+ref_count*std::mem::size_of::<&str>()+ref_count*std::mem::size_of::<&str>();
+    reserve_check(rules.state,scratch,rules.limits.max_state_bytes)?;
+    let ceiling=rules.limits.max_state_bytes;rules.limits.max_state_bytes=ceiling.checked_sub(scratch).ok_or(ItemRefusal::Budget)?;
+    let refs:Vec<_>=string_iter(&before,field).collect();let unique:BTreeSet<_>=refs.iter().copied().collect();
+    let exact_append=after[field].as_array().is_some_and(|values|values.len()==refs.len()+usize::from(claim_id.is_some())&&values.iter().take(refs.len()).zip(&refs).all(|(value,id)|value.as_str()==Some(*id))&&claim_id.is_none_or(|id|values.last().and_then(Value::as_str)==Some(id)));
+    let result=if !before[field].is_array()||before[field].as_array().unwrap().len()!=refs.len()||refs.len()!=unique.len()||claim_id.is_none()||claim_id.is_some_and(|id|refs.contains(&id))||!exact_append {rules.issue("delta-exact-new-Claim-append",input.parent_path)}else{Ok(())};
+    drop(unique);drop(refs);rules.limits.max_state_bytes=ceiling;result?;
     let (Some(before_fields),Some(after_fields))=(before.as_object(),after.as_object()) else {rules.issue("delta-parent-object",input.parent_path)?;return Ok(rules.shadow);};
     if before_fields.iter().filter(|(key,_)|key.as_str()!="record_version"&&key.as_str()!=field).any(|(key,value)|after_fields.get(key)!=Some(value)) || after_fields.keys().filter(|key|key.as_str()!="record_version"&&key.as_str()!=field).any(|key|!before_fields.contains_key(key)) {rules.issue("delta-descriptive-fields-preserved",input.parent_path)?;}
     if s(&claim,"schema_version")!=Some("tos_source_relation_claim_v1")||s(&claim,"claim_type")!=Some("relation")||s(&claim,"subject_ref")!=parent_id||s(&claim,"object")!=endpoint_id||claim["claim_version"]!=1||s(&claim,"review_status")!=Some("unreviewed")||claim.get("assessment_refs").is_some_and(|v|*v!=json!([]))||claim.get("supersedes_claim_ref").is_some_and(|v|!v.is_null())||s(&claim,"visibility")!=Some("public_metadata_only") {rules.issue("delta-unreviewed-new-typed-Claim",input.claim_path)?;}
@@ -840,7 +1029,14 @@ pub fn inspect_bibliographic_delta(input:BiblioDeltaInput<'_>,limits:ItemLimits,
         let child_segment=child_home.strip_prefix(&expected_home).filter(|v|!v.is_empty()&&!v.contains('/'));
         let segment_valid=child_segment.is_some_and(|v|v.bytes().all(|b|b.is_ascii_lowercase()||b.is_ascii_digit()||matches!(b,b'.'|b'-')) && !v.starts_with('.') && !v.starts_with('-') && !v.ends_with('.') && !v.ends_with('-') && !v.as_bytes().windows(2).any(|p|matches!(p[0],b'.'|b'-')&&matches!(p[1],b'.'|b'-')));
         if !input.parent_path.ends_with(&format!("/{parent_kind}.json"))||!input.endpoint_path.ends_with(&format!("/{endpoint_kind}.json"))||!segment_valid||!input.parent_path.starts_with("ToS/source-witnesses/")||matches!(parent_kind,"work"|"expression")&&!input.parent_path.starts_with("ToS/source-witnesses/works/")||parent_kind=="expression"&&!parent_home.rsplit_once('/').is_some_and(|(p,_)|p.ends_with("/expressions"))||parent_kind=="edition"&&!input.parent_path.split('/').any(|p|p=="editions") {rules.issue("delta-canonical-new-child-home",input.endpoint_path)?;}
-        let evidence=strings(&claim,"evidence_refs");if evidence.len()!=2||evidence.iter().map(String::as_str).collect::<BTreeSet<_>>()!=BTreeSet::from([input.parent_path,input.endpoint_path]) {rules.issue("delta-exact-endpoint-evidence",input.claim_path)?;}
+        let evidence=string_iter(&claim,"evidence_refs");
+        let mut unique=BTreeSet::new();let count=evidence.clone().count();
+        let scratch=std::mem::size_of_val(&unique)+count*std::mem::size_of::<&str>();
+        reserve_check(rules.state,scratch,rules.limits.max_state_bytes)?;
+        let ceiling=rules.limits.max_state_bytes;rules.limits.max_state_bytes=ceiling.checked_sub(scratch).ok_or(ItemRefusal::Budget)?;
+        unique.extend(evidence);
+        let result=if count!=2||unique.len()!=2||!unique.contains(input.parent_path)||!unique.contains(input.endpoint_path) {rules.issue("delta-exact-endpoint-evidence",input.claim_path)}else{Ok(())};
+        drop(unique);rules.limits.max_state_bytes=ceiling;result?;
         let common=["schema_version","record_type","record_id","record_version","preferred_label","field_languages","variant_labels","identity_status","source_refs","external_identifiers","same_as_posture","notes","supersedes_ref"];
         let allowed_extra:&[&str]=match endpoint_kind {"edition"=>&["embodies_expression_refs","edition_statement","publication_claim_refs","provision_activity_claim_refs","exemplar_claim_refs","responsibility_claim_refs"],"item"=>&["item_manifest_ref"],_=>&[]};
         if matches!(endpoint_kind,"edition"|"item") && endpoint.as_object().is_some_and(|object|object.keys().any(|key|!common.contains(&key.as_str())&&!allowed_extra.contains(&key.as_str()))) {rules.issue("delta-child-scope-fields",input.endpoint_path)?;}
@@ -851,9 +1047,15 @@ pub fn inspect_bibliographic_delta(input:BiblioDeltaInput<'_>,limits:ItemLimits,
     } else {
         if !matches!(s(&claim,"assertion_layer"),Some("bibliographic_assertion"|"scholarly_report")) {rules.issue("delta-qualified-attachment-layer",input.claim_path)?;}
         qualified(&claim,predicate,&mut rules,input.claim_path)?;
-        let evidence=strings(&claim,"evidence_refs");if evidence.is_empty()||evidence.iter().collect::<BTreeSet<_>>().len()!=evidence.len() {rules.issue("delta-explicit-attribution-evidence",input.claim_path)?;}
+        let evidence=string_iter(&claim,"evidence_refs");let count=evidence.clone().count();
+        let scratch=std::mem::size_of::<BTreeSet<&str>>()+count*std::mem::size_of::<&str>();
+        reserve_check(rules.state,scratch,rules.limits.max_state_bytes)?;
+        let ceiling=rules.limits.max_state_bytes;rules.limits.max_state_bytes=ceiling.checked_sub(scratch).ok_or(ItemRefusal::Budget)?;
+        let unique:BTreeSet<_>=evidence.collect();
+        let result=if count==0||unique.len()!=count {rules.issue("delta-explicit-attribution-evidence",input.claim_path)}else{Ok(())};
+        drop(unique);rules.limits.max_state_bytes=ceiling;result?;
     }
-    rules.checked(&format!("{BIBLIOGRAPHIC_DELTA_RULE_ID}@{BIBLIOGRAPHIC_DELTA_RULE_VERSION}:{predicate}"))?;
+    rules.checked_parts(&[BIBLIOGRAPHIC_DELTA_RULE_ID,"@",BIBLIOGRAPHIC_DELTA_RULE_VERSION,":",predicate])?;
     rules.skip("whole-compound-plan-forms-dependency-byte-custody-current-lineage-and-permission-fence")?;
     check(limits.deadline,cancelled)?;Ok(rules.shadow)
 }
