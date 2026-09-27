@@ -1,7 +1,10 @@
 //! Bounded source representation and exact maintained projection digests.
 use crate::{Error, Result};
 use serde_json::Value;
-use std::collections::BTreeSet;
+use std::{
+    collections::BTreeSet,
+    io::{self, Write},
+};
 use tos_foundation::{
     CanonicalProfile, Digest256, JsonLimits, JsonMode, canonical_bytes_v1, parse_json,
 };
@@ -16,12 +19,36 @@ pub(crate) fn canonical(raw: &[u8], max: usize) -> Result<Vec<u8>> {
     canonical_bytes_v1(doc.root(), CanonicalProfile::SourceRecordDigestV1, limits)
         .map_err(|e| Error::Source(e.to_string()))
 }
-pub(crate) fn bytes(v: &Value, max: usize) -> Result<Vec<u8>> {
-    let raw = serde_json::to_vec(v).map_err(|e| Error::Source(e.to_string()))?;
-    if raw.len() > max {
-        return Err(Error::Budget("philosophy JSON bytes"));
+struct InstanceWriter {
+    raw: Vec<u8>,
+    max: usize,
+}
+impl Write for InstanceWriter {
+    fn write(&mut self, value: &[u8]) -> io::Result<usize> {
+        if self
+            .raw
+            .len()
+            .checked_add(value.len())
+            .is_none_or(|n| n > self.max)
+        {
+            return Err(io::Error::other("philosophy JSON bytes"));
+        }
+        self.raw.extend_from_slice(value);
+        Ok(value.len())
     }
-    canonical(&raw, max)
+    fn flush(&mut self) -> io::Result<()> {
+        Ok(())
+    }
+}
+pub(crate) fn bytes(v: &Value, max: usize) -> Result<Vec<u8>> {
+    // Preserve the same serde/FND serialization law while refusing during
+    // emission, before a late whole-field instance allocates beyond its cap.
+    let mut writer = InstanceWriter {
+        raw: Vec::new(),
+        max,
+    };
+    serde_json::to_writer(&mut writer, v).map_err(|_| Error::Budget("philosophy JSON bytes"))?;
+    canonical(&writer.raw, max)
 }
 pub(crate) fn parse(raw: &[u8], max: usize) -> Result<Value> {
     let original = canonical(raw, max)?;
