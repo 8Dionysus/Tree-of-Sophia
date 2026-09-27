@@ -32,7 +32,7 @@ pub struct SearchBuildLimits {
     /// Counts payload reads, serialized/lowercased documents, rank fields and
     /// every attempted gram write (including duplicates).
     pub max_work_bytes: u64,
-    /// Limits one dedup/copy SQL callback and its Rust batch.
+    /// Limits one direct posting SQL statement and its Rust batch.
     pub gram_batch_rows: usize,
 }
 
@@ -178,10 +178,6 @@ fn build_inner(
                     + doc.native_id_lower.len(),
                 limits,
             )?;
-            receipt.document_chars = receipt
-                .document_chars
-                .checked_add(doc.chars as u64)
-                .ok_or(Error::Budget("search document characters"))?;
             stage.with_connection_checks(WritePhase::Search, |db, check| {
                 write_document(db, check, &row, &doc, kind, limits, &mut receipt)
             })?;
@@ -208,7 +204,6 @@ fn build_inner(
     stage.with_connection(WritePhase::Search, |db| {
         db.execute("INSERT INTO search_gram_stats(kind,n,gram,postings) SELECT kind,n,gram,COUNT(*) FROM search_grams GROUP BY kind,n,gram", [])?;
         db.execute("CREATE INDEX search_document_filter ON search_documents(kind,source_graph,kind_id,predicate_id,position)", [])?;
-        db.execute("DROP TABLE search_pending_grams", [])?;
         Ok(())
     })?;
     let (postings, distinct, root) =
@@ -219,18 +214,6 @@ fn build_inner(
     receipt.distinct_grams = distinct;
     receipt.search_index_root_sha256 = root;
     Ok(receipt)
-}
-
-fn increment_documents(receipt: &mut SearchIndexReceipt, kind: &str) -> Result<()> {
-    let target = if kind == "nodes" {
-        &mut receipt.node_documents
-    } else {
-        &mut receipt.relation_documents
-    };
-    *target = target
-        .checked_add(1)
-        .ok_or(Error::Budget("search document rows"))?;
-    Ok(())
 }
 
 fn fetch_next(db: &Connection, table: &str, after: i64, cap: usize) -> Result<Option<SourceRow>> {
@@ -438,8 +421,8 @@ fn write_document(
             doc.id_lower,doc.native_id_lower,doc.identity_values,doc.visible_values,
             doc.chars as i64,doc.digest.as_bytes().as_slice()],
     )?;
-    transaction.execute("DELETE FROM search_pending_grams", [])?;
     check()?;
+    let mut document_postings = 0u64;
     let mut iterator = doc.text.chars();
     if let (Some(mut a), Some(mut b)) = (iterator.next(), iterator.next()) {
         let mut batch: Vec<Vec<u8>> = Vec::with_capacity(limits.gram_batch_rows);
@@ -452,7 +435,19 @@ fn write_document(
             batch.push(gram.into_bytes());
             if batch.len() == limits.gram_batch_rows {
                 check()?;
-                insert_pending_batch(&transaction, &batch)?;
+                document_postings = document_postings
+                    .checked_add(insert_posting_batch(
+                        &transaction,
+                        kind,
+                        row.position,
+                        &batch,
+                    )?)
+                    .ok_or(Error::Budget("search postings"))?;
+                receipt
+                    .postings
+                    .checked_add(document_postings)
+                    .filter(|n| *n <= limits.max_postings)
+                    .ok_or(Error::Budget("search postings"))?;
                 check()?;
                 batch.clear();
             }
@@ -461,118 +456,86 @@ fn write_document(
         }
         if !batch.is_empty() {
             check()?;
-            insert_pending_batch(&transaction, &batch)?;
+            document_postings = document_postings
+                .checked_add(insert_posting_batch(
+                    &transaction,
+                    kind,
+                    row.position,
+                    &batch,
+                )?)
+                .ok_or(Error::Budget("search postings"))?;
+            receipt
+                .postings
+                .checked_add(document_postings)
+                .filter(|n| *n <= limits.max_postings)
+                .ok_or(Error::Budget("search postings"))?;
             check()?;
         }
     }
-    check()?;
-    let document_postings: u64 =
-        transaction.query_row("SELECT COUNT(*) FROM search_pending_grams", [], |r| {
-            r.get(0)
-        })?;
-    check()?;
-    receipt.postings = receipt
+    let next_postings = receipt
         .postings
         .checked_add(document_postings)
         .filter(|n| *n <= limits.max_postings)
         .ok_or(Error::Budget("search postings"))?;
-    let mut last_gram: Option<Vec<u8>> = None;
-    loop {
-        check()?;
-        let next = copy_pending_page(
-            &transaction,
-            kind,
-            row.position,
-            last_gram.as_deref(),
-            limits.gram_batch_rows,
-        )?;
-        check()?;
-        let Some(next) = next else {
-            break;
-        };
-        last_gram = Some(next);
+    let next_documents = if kind == "nodes" {
+        receipt.node_documents
+    } else {
+        receipt.relation_documents
     }
-    increment_documents(receipt, kind)?;
+    .checked_add(1)
+    .ok_or(Error::Budget("search document rows"))?;
+    let next_chars = receipt
+        .document_chars
+        .checked_add(doc.chars as u64)
+        .ok_or(Error::Budget("search document characters"))?;
     // A late guard refusal must happen while rollback still covers the source
-    // document row, pending reset and all copied posting pages together.
+    // document row and every directly inserted posting batch.
     check()?;
     transaction.commit()?;
+    receipt.postings = next_postings;
+    receipt.document_chars = next_chars;
+    if kind == "nodes" {
+        receipt.node_documents = next_documents;
+    } else {
+        receipt.relation_documents = next_documents;
+    }
     Ok(())
 }
 
-fn insert_pending_batch(db: &Transaction<'_>, batch: &[Vec<u8>]) -> Result<()> {
+fn insert_posting_batch(
+    db: &Transaction<'_>,
+    kind: &str,
+    position: i64,
+    batch: &[Vec<u8>],
+) -> Result<u64> {
     if batch.len() > MAX_GRAM_BATCH_ROWS {
         return Err(Error::Budget("search gram batch rows"));
     }
     // Attempted grams were already charged, including duplicates. Avoid
     // spending SQL VM instructions on duplicate keys within this bounded
-    // batch; the existing PK still deduplicates across all document batches.
+    // batch; the final PK deduplicates across all batches of this document.
     let mut unique = batch.iter().map(Vec::as_slice).collect::<Vec<_>>();
     unique.sort_unstable();
     unique.dedup();
     if unique.is_empty() {
-        return Ok(());
+        return Ok(0);
     }
     // One bounded statement avoids restarting a VM program for every gram.
-    // Only placeholders and the fixed format gram size enter the SQL text;
-    // every borrowed gram remains a bound blob and the PK owns cross-batch dedup.
+    // Only placeholders and the fixed gram size enter the SQL text; each gram
+    // remains a bound borrowed blob and the final PK owns cross-batch dedup.
     let sql = format!(
-        "INSERT OR IGNORE INTO search_pending_grams(n,gram) VALUES {}",
-        vec![format!("({GRAM_N},?)"); unique.len()].join(",")
+        "INSERT OR IGNORE INTO search_grams(kind,n,gram,position) VALUES {}",
+        (0..unique.len())
+            .map(|index| format!("(?1,{GRAM_N},?{},?2)", index + 3))
+            .collect::<Vec<_>>()
+            .join(",")
     );
-    db.execute(&sql, params_from_iter(unique))?;
-    Ok(())
-}
-
-fn copy_pending_page(
-    db: &Transaction<'_>,
-    kind: &str,
-    position: i64,
-    after: Option<&[u8]>,
-    rows_cap: usize,
-) -> Result<Option<Vec<u8>>> {
-    if rows_cap == 0 || rows_cap > MAX_GRAM_BATCH_ROWS {
-        return Err(Error::Budget("search gram page rows"));
-    }
-    // Keep continuation as a direct (n,gram) primary-key seek. A nullable
-    // disjunction can revisit the whole n-prefix on every bounded page.
-    let sql = if after.is_some() {
-        "SELECT gram FROM search_pending_grams WHERE n=?1 AND gram>?2 ORDER BY gram LIMIT ?3"
-    } else {
-        "SELECT gram FROM search_pending_grams WHERE n=?1 ORDER BY gram LIMIT ?2"
-    };
-    let mut statement = db.prepare(sql)?;
-    let mut rows = if let Some(after) = after {
-        statement.query(params![GRAM_N, after, rows_cap as i64])?
-    } else {
-        statement.query(params![GRAM_N, rows_cap as i64])?
-    };
-    let mut grams = Vec::with_capacity(rows_cap);
-    while let Some(row) = rows.next()? {
-        grams.push(row.get::<_, Vec<u8>>(0)?);
-    }
-    drop(rows);
-    drop(statement);
-    if grams.is_empty() {
-        return Ok(None);
-    }
-    // The document transaction owns this bounded page. Any later statement
-    // or guard refusal rolls back the whole document, including earlier pages.
-    let copied = if let Some(after) = after {
-        db.execute(
-            "INSERT INTO search_grams(kind,n,gram,position) SELECT ?1,n,gram,?2 FROM search_pending_grams WHERE n=?3 AND gram>?4 ORDER BY gram LIMIT ?5",
-            params![kind, position, GRAM_N, after, rows_cap as i64],
-        )?
-    } else {
-        db.execute(
-            "INSERT INTO search_grams(kind,n,gram,position) SELECT ?1,n,gram,?2 FROM search_pending_grams WHERE n=?3 ORDER BY gram LIMIT ?4",
-            params![kind, position, GRAM_N, rows_cap as i64],
-        )?
-    };
-    if copied != grams.len() {
-        return Err(Error::Invalid("search gram page copy coverage"));
-    }
-    Ok(grams.pop())
+    let mut parameters: Vec<&dyn rusqlite::ToSql> = Vec::with_capacity(unique.len() + 2);
+    parameters.push(&kind);
+    parameters.push(&position);
+    parameters.extend(unique.iter().map(|gram| *gram as &dyn rusqlite::ToSql));
+    let inserted = db.execute(&sql, params_from_iter(parameters))?;
+    u64::try_from(inserted).map_err(|_| Error::Budget("search postings"))
 }
 
 fn hash_field(hash: &mut Digest256Hasher, field: &[u8]) {
@@ -676,8 +639,6 @@ CREATE TABLE search_grams(
 CREATE TABLE search_gram_stats(
  kind TEXT NOT NULL,n INTEGER NOT NULL,gram BLOB NOT NULL,postings INTEGER NOT NULL,
  PRIMARY KEY(kind,n,gram)) WITHOUT ROWID;
-CREATE TEMP TABLE search_pending_grams(
- n INTEGER NOT NULL,gram BLOB NOT NULL,PRIMARY KEY(n,gram)) WITHOUT ROWID;
 "#;
 
 #[cfg(test)]
@@ -727,56 +688,25 @@ mod tests {
     }
 
     #[test]
-    fn gram_copy_is_disk_deduped_and_keyset_paged() {
+    fn direct_posting_batches_dedup_and_rollback_late_failure() {
         let mut db = Connection::open_in_memory().unwrap();
         db.execute_batch(SCHEMA).unwrap();
-        let pending = [
-            b"aaa".to_vec(),
-            b"bbb".to_vec(),
-            b"aaa".to_vec(),
-            b"ccc".to_vec(),
-        ];
-        let transaction = db.transaction().unwrap();
-        insert_pending_batch(&transaction, &pending).unwrap();
-        // The SQL primary key still owns dedup across separate batches.
-        insert_pending_batch(&transaction, &pending[..1]).unwrap();
-        let first = copy_pending_page(&transaction, "nodes", 7, None, 2)
-            .unwrap()
-            .unwrap();
-        assert_eq!(first, b"bbb");
-        let second = copy_pending_page(&transaction, "nodes", 7, Some(&first), 2)
-            .unwrap()
-            .unwrap();
-        assert_eq!(second, b"ccc");
-        assert!(
-            copy_pending_page(&transaction, "nodes", 7, Some(&second), 2)
-                .unwrap()
-                .is_none()
-        );
-        let count: i64 = transaction
-            .query_row("SELECT COUNT(*) FROM search_grams", [], |r| r.get(0))
-            .unwrap();
-        assert_eq!(count, 3);
-        transaction.commit().unwrap();
-        db.execute_batch(
-            "CREATE TRIGGER refuse_second_posting BEFORE INSERT ON search_grams
-             WHEN NEW.position=8 AND NEW.gram=X'626262'
-             BEGIN SELECT RAISE(ABORT,'refuse second posting'); END;",
-        )
-        .unwrap();
-        let payload =
-            br#"{"id":"n","source_graph":"g","kind_id":"k","display":{"title":"aaabbbccc"}}"#;
-        let row = SourceRow {
-            position: 8,
-            id: "n".into(),
-            source_graph: "g".into(),
-            native_id: None,
-            term_id: "k".into(),
-            payload_len: payload.len() as i64,
-            payload_sha256: Digest256::of_bytes(payload).as_bytes().to_vec(),
-            payload: Some(payload.to_vec()),
+        let make_row = |position, id: &str| {
+            let payload = format!(
+                r#"{{"id":"{id}","source_graph":"g","kind_id":"k","display":{{"title":"aaaaaaaaabbbccc"}}}}"#
+            )
+            .into_bytes();
+            SourceRow {
+                position,
+                id: id.into(),
+                source_graph: "g".into(),
+                native_id: None,
+                term_id: "k".into(),
+                payload_len: payload.len() as i64,
+                payload_sha256: Digest256::of_bytes(&payload).as_bytes().to_vec(),
+                payload: Some(payload),
+            }
         };
-        let doc = document(&row, "nodes", payload, limits()).unwrap();
         let mut receipt = SearchIndexReceipt {
             profile: SEARCH_PROFILE,
             node_documents: 0,
@@ -787,9 +717,19 @@ mod tests {
             work_bytes: 0,
             search_index_root_sha256: String::new(),
         };
-        // The real document writer inserts earlier pages before reaching bbb;
-        // a later posting failure now rolls back its document and every page.
-        assert!(
+        let mut expected_total = 0u64;
+        for (position, id) in [(7, "n7"), (8, "n8")] {
+            let row = make_row(position, id);
+            let doc = document(&row, "nodes", row.payload.as_deref().unwrap(), limits()).unwrap();
+            let expected = doc
+                .text
+                .chars()
+                .collect::<Vec<_>>()
+                .windows(3)
+                .map(|window| window.iter().collect::<String>().into_bytes())
+                .collect::<std::collections::BTreeSet<_>>();
+            assert!(doc.text.matches("aaa").count() > limits().gram_batch_rows);
+            assert!(expected.len() > limits().gram_batch_rows);
             write_document(
                 &mut db,
                 &|| Ok(()),
@@ -797,33 +737,137 @@ mod tests {
                 &doc,
                 "nodes",
                 limits(),
+                &mut receipt,
+            )
+            .unwrap();
+            let actual = db
+                .prepare("SELECT gram FROM search_grams WHERE kind='nodes' AND position=?1 ORDER BY gram")
+                .unwrap()
+                .query_map([position], |r| r.get::<_, Vec<u8>>(0))
+                .unwrap()
+                .collect::<std::result::Result<Vec<_>, _>>()
+                .unwrap();
+            assert_eq!(actual, expected.into_iter().collect::<Vec<_>>());
+            expected_total += actual.len() as u64;
+        }
+        assert_eq!(receipt.postings, expected_total);
+        assert_eq!(receipt.node_documents, 2);
+        let committed_chars = receipt.document_chars;
+        let repeated: i64 = db
+            .query_row(
+                "SELECT COUNT(*) FROM search_grams WHERE gram=X'616161'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(repeated, 2);
+
+        // A posting cap reached after earlier bounded statements rolls back
+        // the entire new document without changing the committed receipt.
+        let capped = make_row(9, "n9");
+        let capped_doc = document(
+            &capped,
+            "nodes",
+            capped.payload.as_deref().unwrap(),
+            limits(),
+        )
+        .unwrap();
+        let mut tight = limits();
+        tight.max_postings = receipt.postings + 3;
+        assert!(matches!(
+            write_document(
+                &mut db,
+                &|| Ok(()),
+                &capped,
+                &capped_doc,
+                "nodes",
+                tight,
+                &mut receipt
+            ),
+            Err(Error::Budget("search postings"))
+        ));
+        db.execute_batch(
+            "CREATE TRIGGER refuse_late_posting BEFORE INSERT ON search_grams
+             WHEN NEW.position=10 AND NEW.gram=X'626262'
+             BEGIN SELECT RAISE(ABORT,'refuse late posting'); END;",
+        )
+        .unwrap();
+        let refused = make_row(10, "n10");
+        let refused_doc = document(
+            &refused,
+            "nodes",
+            refused.payload.as_deref().unwrap(),
+            limits(),
+        )
+        .unwrap();
+        assert!(
+            write_document(
+                &mut db,
+                &|| Ok(()),
+                &refused,
+                &refused_doc,
+                "nodes",
+                limits(),
                 &mut receipt
             )
             .is_err()
         );
+        let guarded = make_row(11, "n11");
+        let guarded_doc = document(
+            &guarded,
+            "nodes",
+            guarded.payload.as_deref().unwrap(),
+            limits(),
+        )
+        .unwrap();
+        let checks = std::cell::Cell::new(0);
+        assert!(matches!(
+            write_document(
+                &mut db,
+                &|| {
+                    checks.set(checks.get() + 1);
+                    if checks.get() == 5 {
+                        Err(Error::Invalid("fixture late guard"))
+                    } else {
+                        Ok(())
+                    }
+                },
+                &guarded,
+                &guarded_doc,
+                "nodes",
+                limits(),
+                &mut receipt
+            ),
+            Err(Error::Invalid("fixture late guard"))
+        ));
         assert!(db.is_autocommit());
-        let refused_page_rows: i64 = db
+        let failed_postings: i64 = db
             .query_row(
-                "SELECT COUNT(*) FROM search_grams WHERE position=8",
+                "SELECT COUNT(*) FROM search_grams WHERE position IN (9,10,11)",
                 [],
                 |r| r.get(0),
             )
             .unwrap();
-        assert_eq!(refused_page_rows, 0);
-        let refused_documents: i64 = db
+        assert_eq!(failed_postings, 0);
+        let failed_documents: i64 = db
             .query_row(
-                "SELECT COUNT(*) FROM search_documents WHERE position=8",
+                "SELECT COUNT(*) FROM search_documents WHERE position IN (9,10,11)",
                 [],
                 |r| r.get(0),
             )
             .unwrap();
-        assert_eq!(refused_documents, 0);
-        let pending_count: i64 = db
-            .query_row("SELECT COUNT(*) FROM search_pending_grams", [], |r| {
-                r.get(0)
-            })
+        assert_eq!(failed_documents, 0);
+        let committed: i64 = db
+            .query_row("SELECT COUNT(*) FROM search_documents", [], |r| r.get(0))
             .unwrap();
-        assert_eq!(pending_count, 3);
+        assert_eq!(committed, 2);
+        let committed_postings: i64 = db
+            .query_row("SELECT COUNT(*) FROM search_grams", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(committed_postings as u64, expected_total);
+        assert_eq!(receipt.postings, expected_total);
+        assert_eq!(receipt.node_documents, 2);
+        assert_eq!(receipt.document_chars, committed_chars);
     }
 
     #[test]
