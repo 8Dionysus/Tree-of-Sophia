@@ -1095,6 +1095,7 @@ cases={
  'snapshot':core.philosophy_snapshot(),
  'unresolved':core.philosophy_unresolved(view),
 }
+
 json.dump({'left':left,'right':right,'edge':edge,'view':view,'cases':cases},sys.stdout,ensure_ascii=False,allow_nan=False)
 "#;
     let mut child = Command::new("python3")
@@ -1268,5 +1269,132 @@ json.dump({'left':left,'right':right,'edge':edge,'view':view,'cases':cases},sys.
     assert_eq!(
         held.recheck().unwrap_err().code,
         SearchV2ErrorCode::StalePolicy
+    );
+}
+
+#[test]
+fn released_public_source_gap_packets_match_maintained_python_without_source_grants() {
+    use tos_query::source_gap::{
+        PublicSourceGapRecord, SourceGapBudget, SourceGapRequest, compute_source_gap_packet,
+    };
+    struct Probe(Option<tos_query::AbortReason>);
+    impl tos_query::AbortProbe for Probe {
+        fn reason(&self) -> Option<tos_query::AbortReason> {
+            self.0
+        }
+    }
+    // The existing declaration selects public records. No test/provider IDs or
+    // source payload paths are substituted for the owner's current allowlist.
+    let script = r#"
+import json,sys,tempfile
+from pathlib import Path
+root=Path(sys.argv[1]);sys.path.insert(0,str(root/'access/src'))
+from tos_access.core import ToSAccessCore,SOURCE_GAP_LEDGER_RELATIVE_PATH
+declaration=json.loads((root/'access/contracts/runtime-data.v1.json').read_text())
+prefix=SOURCE_GAP_LEDGER_RELATIVE_PATH.as_posix()+'/'
+paths=sorted(s['source_path'] for s in declaration['subjects'] if s['source_path'].startswith(prefix) and s['source_path'].endswith('.access-request.json') and {'query-core','http-reader'} <= set(s['consumer_roles']))
+assert paths
+records=[{'source_ref':p,'raw':(root/p).read_text(encoding='utf-8')} for p in paths]
+first=json.loads(records[0]['raw'])
+queries=['',first['material']['title'],first['request_id'],'\u2003'+first['material']['responsibility']+'\u2003','\x00absent\x00']
+with tempfile.TemporaryDirectory() as d:
+ target=Path(d)
+ for r in records:
+  path=target/r['source_ref'];path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(r['raw'].encode('utf-8'))
+ core=ToSAccessCore.discover(tos_root=target)
+ cases=[{'query':q,'limit':limit,'packet':core.source_gap_search(q,limit=limit)} for q,limit in [(queries[0],1),*[(q,100) for q in queries]]]
+json.dump({'records':records,'cases':cases},sys.stdout,ensure_ascii=False,allow_nan=False)
+"#;
+    let output = Command::new("python3")
+        .arg("-c")
+        .arg(script)
+        .arg(concat!(env!("CARGO_MANIFEST_DIR"), "/../../.."))
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let oracle = parse_json(
+        &output.stdout,
+        JsonMode::PublishedStrict,
+        budget().inspect.json,
+    )
+    .unwrap()
+    .into_root();
+    let records = field(&oracle, "records")
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|v| PublicSourceGapRecord {
+            source_ref: field(v, "source_ref").as_str().unwrap(),
+            raw: field(v, "raw").as_str().unwrap().as_bytes(),
+        })
+        .collect::<Vec<_>>();
+    let caps = SourceGapBudget {
+        json: budget().inspect.json,
+        max_work_steps: budget().inspect.max_read_vm_steps,
+        max_response_bytes: budget().inspect.max_response_bytes,
+    };
+    for case in field(&oracle, "cases").as_array().unwrap() {
+        let request = SourceGapRequest {
+            query: field(case, "query").as_str().unwrap().into(),
+            limit: usize::try_from(field(case, "limit").as_u64().unwrap()).unwrap(),
+        };
+        let body = compute_source_gap_packet(&records, &request, caps, &Probe(None)).unwrap();
+        assert_eq!(body, canonical(field(case, "packet")));
+    }
+    let request = SourceGapRequest {
+        query: String::new(),
+        limit: 100,
+    };
+    assert_eq!(
+        compute_source_gap_packet(
+            &records,
+            &request,
+            caps,
+            &Probe(Some(tos_query::AbortReason::Cancelled))
+        )
+        .unwrap_err()
+        .code,
+        SearchV2ErrorCode::Cancelled
+    );
+    let mut tiny = caps;
+    tiny.max_work_steps = 1;
+    assert_eq!(
+        compute_source_gap_packet(&records, &request, tiny, &Probe(None))
+            .unwrap_err()
+            .code,
+        SearchV2ErrorCode::BudgetExceeded
+    );
+    let original = field(&oracle, "records").as_array().unwrap()[0]
+        .object_get("raw")
+        .unwrap()
+        .as_str()
+        .unwrap();
+    let mut unsafe_record = parse_json(original.as_bytes(), JsonMode::PublishedStrict, caps.json)
+        .unwrap()
+        .into_root();
+    let fields = if let JsonValue::Object(fields) = &mut unsafe_record {
+        fields
+    } else {
+        unreachable!()
+    };
+    let flag = fields
+        .iter_mut()
+        .find(|(k, _)| k.as_str() == Some("personal_or_confidential_data_committed"))
+        .unwrap();
+    flag.1 = JsonValue::Bool(true);
+    let raw = canonical(&unsafe_record);
+    let unsafe_members = [PublicSourceGapRecord {
+        source_ref: records[0].source_ref,
+        raw: &raw,
+    }];
+    assert_eq!(
+        compute_source_gap_packet(&unsafe_members, &request, caps, &Probe(None))
+            .unwrap_err()
+            .code,
+        SearchV2ErrorCode::CorruptSelectedCarrier
     );
 }

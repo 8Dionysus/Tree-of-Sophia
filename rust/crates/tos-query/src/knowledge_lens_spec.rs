@@ -1039,7 +1039,7 @@ fn py_repr(v: &JsonValue) -> String {
         py_string(v)
     }
 }
-fn truthy(v: &JsonValue) -> bool {
+pub(crate) fn truthy(v: &JsonValue) -> bool {
     match v {
         JsonValue::Null => false,
         JsonValue::Bool(v) => *v,
