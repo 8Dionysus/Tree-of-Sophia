@@ -1835,7 +1835,7 @@ fn prepare_record_revision_inner(
 }
 
 const CONTROL_PATH: &str = "ToS/source-witnesses/.metadata-publication.json";
-fn state(value: &JsonValue) -> SourceCommandResult<()> {
+pub(crate) fn state(value: &JsonValue) -> SourceCommandResult<()> {
     cmd::exact_keys(
         value,
         &[
@@ -3047,7 +3047,7 @@ fn native_schema_refs(value: &JsonValue, depth: usize) -> SourceCommandResult<()
     Ok(())
 }
 
-fn python_ascii_digest(value: &JsonValue) -> SourceCommandResult<String> {
+pub(crate) fn python_ascii_digest(value: &JsonValue) -> SourceCommandResult<String> {
     let compact = cmd::canonical(value)?;
     let compact = std::str::from_utf8(&compact)
         .map_err(|_| SourceCommandError::Invalid("native snapshot UTF-8"))?;

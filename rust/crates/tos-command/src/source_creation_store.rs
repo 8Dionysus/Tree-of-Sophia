@@ -164,6 +164,35 @@ pub struct CreationFilesystem {
     uid: u32,
 }
 
+/// The existing owner corpus mutex, held across a managed durable creation.
+/// This observes current protected configuration; it grants no source admission
+/// and says nothing about the managed cohort's index completeness.
+pub(crate) struct CreationOwnerFence<'a> {
+    filesystem: &'a CreationFilesystem,
+    package: &'a SerializedCreation,
+    witness: File,
+    lock: File,
+}
+impl CreationOwnerFence<'_> {
+    pub(crate) fn verify_current(
+        &self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()> {
+        self.filesystem.current(self.package, deadline, cancelled)?;
+        let current = tos_fd_open::open_regular_at(&self.witness, Path::new(CORPUS_LOCK))
+            .map_err(|_| SourceCommandError::Conflict("creation corpus lock path changed"))?;
+        if inode(&owned(&self.lock, self.filesystem.uid, false)?)
+            != inode(&owned(&current, self.filesystem.uid, false)?)
+        {
+            return Err(SourceCommandError::Conflict(
+                "creation locked inode detached",
+            ));
+        }
+        Ok(())
+    }
+}
+
 /// Bounded execution authority is an actually newly created private directory,
 /// not a caller-supplied Boolean or an arbitrary existing canonical root. Its
 /// opaque identity is retained through fixture seeding and publication.
@@ -269,7 +298,7 @@ impl CreationFilesystem {
             uid,
         })
     }
-    fn current(
+    pub(crate) fn current(
         &self,
         package: &SerializedCreation,
         deadline: Instant,
@@ -316,6 +345,27 @@ impl CreationFilesystem {
             ));
         }
         Ok(())
+    }
+
+    /// Acquire before STO/PG commit locks and retain until the actual outcome.
+    /// The consumer rechecks this fence at its final atomic write edge.
+    pub(crate) fn hold_current_owner<'a>(
+        &'a self,
+        package: &'a SerializedCreation,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<CreationOwnerFence<'a>> {
+        self.current(package, deadline, cancelled)?;
+        let witness = walk(&self.root, "ToS/source-witnesses", self.uid)?;
+        let lock = self.lock(&witness, deadline, cancelled)?;
+        let fence = CreationOwnerFence {
+            filesystem: self,
+            package,
+            witness,
+            lock,
+        };
+        fence.verify_current(deadline, cancelled)?;
+        Ok(fence)
     }
 
     /// Real maintained corpus mutex; separate open descriptions also conflict
@@ -379,12 +429,65 @@ impl CreationFilesystem {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<CreationPublication> {
+        self.publish(
+            package, cut, software, components, deadline, cancelled, None,
+        )
+    }
+
+    pub fn publish_sign_isolated(
+        &self,
+        package: &SerializedCreation,
+        cut: &CorpusCutReader,
+        software: &SoftwareCaptureReader,
+        components: &SoftwareComponentSelectionV1,
+        local_worker: &mut tos_validation::source_cut::CutWorkerSchemaExecutor,
+        assessment_worker: &mut tos_validation::source_cut::CutWorkerSchemaExecutor,
+        limits: tos_validation::assessment::AssessmentLimits,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<CreationPublication> {
+        self.current(package, limits.deadline, cancelled)?;
+        let mut read = crate::source_sign::SignPromotionRead::select(
+            &self.configuration_path,
+            package.prepared.context(),
+            cut,
+            limits.deadline,
+            cancelled,
+        )?;
+        read.prepare_sources(package.prepared.context(), local_worker, limits, cancelled)?;
+        self.publish(
+            package,
+            cut,
+            software,
+            components,
+            limits.deadline,
+            cancelled,
+            Some((&mut read, local_worker, assessment_worker, limits)),
+        )
+    }
+
+    fn publish(
+        &self,
+        package: &SerializedCreation,
+        cut: &CorpusCutReader,
+        software: &SoftwareCaptureReader,
+        components: &SoftwareComponentSelectionV1,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        sign: Option<(
+            &mut crate::source_sign::SignPromotionRead<'_>,
+            &mut tos_validation::source_cut::CutWorkerSchemaExecutor,
+            &mut tos_validation::source_cut::CutWorkerSchemaExecutor,
+            tos_validation::assessment::AssessmentLimits,
+        )>,
+    ) -> SourceCommandResult<CreationPublication> {
         if components != package.prepared.components() {
             return Err(SourceCommandError::Conflict(
                 "creation sealed software subset differs",
             ));
         }
-        if package.prepared.family() == crate::source_creation::CreationFamily::Sign {
+        if (package.prepared.family() == crate::source_creation::CreationFamily::Sign)
+            != sign.is_some()
+        {
             return Err(SourceCommandError::Unsupported(
                 "Sign publication requires held current assessment journal fences",
             ));
@@ -417,32 +520,60 @@ impl CreationFilesystem {
                 .directory
                 .sync_all()
                 .map_err(|_| SourceCommandError::Invalid("creation staging directory fsync"))?;
-            self.current(package, deadline, cancelled)?;
-            self.reselect(package, cut, Some(&stage.name), false, deadline, cancelled)?;
-            self.reselect_components(software, components, deadline, cancelled)?;
-            let current_parent = walk(&self.root, parent_path, self.uid)?;
-            if inode(&owned(&current_parent, self.uid, true)?) != parent_identity {
-                return Err(SourceCommandError::Conflict(
-                    "creation target parent changed",
-                ));
-            }
-            // NOREPLACE treats files, directories and symlinks as occupied.
-            rustix::fs::renameat_with(
-                &tos,
-                stage.name.as_str(),
-                &parent,
-                target_name,
-                RenameFlags::NOREPLACE,
-            )
-            .map_err(|error| {
-                if error == Errno::EXIST {
-                    SourceCommandError::Conflict("creation target is already occupied")
-                } else {
-                    SourceCommandError::Invalid("creation atomic no-replace publication")
+            let mut publish = |guard: Option<&mut dyn FnMut() -> SourceCommandResult<()>>| {
+                self.current(package, deadline, cancelled)?;
+                self.reselect(package, cut, Some(&stage.name), false, deadline, cancelled)?;
+                self.reselect_components(software, components, deadline, cancelled)?;
+                if let Some(guard) = guard {
+                    guard()?;
                 }
-            })?;
-            stage.published = true;
-            Ok(())
+                let current_parent = walk(&self.root, parent_path, self.uid)?;
+                if inode(&owned(&current_parent, self.uid, true)?) != parent_identity {
+                    return Err(SourceCommandError::Conflict(
+                        "creation target parent changed",
+                    ));
+                }
+                // NOREPLACE treats files, directories and symlinks as occupied.
+                rustix::fs::renameat_with(
+                    &tos,
+                    stage.name.as_str(),
+                    &parent,
+                    target_name,
+                    RenameFlags::NOREPLACE,
+                )
+                .map_err(|error| {
+                    if error == Errno::EXIST {
+                        SourceCommandError::Conflict("creation target is already occupied")
+                    } else {
+                        SourceCommandError::Invalid("creation atomic no-replace publication")
+                    }
+                })?;
+                stage.published = true;
+                Ok(())
+            };
+            if let Some((read, local, assessment, limits)) = sign {
+                read.with_current_basis(
+                    package.prepared.context(),
+                    local,
+                    assessment,
+                    limits,
+                    cancelled,
+                    |basis, guard| {
+                        let request = cmd::parse(&package.prepared.context().request_raw)?;
+                        if !cmd::same(
+                            cmd::field(cmd::field(&request, "record")?, "promotion_basis")?,
+                            basis,
+                        )? {
+                            return Err(SourceCommandError::Conflict(
+                                "Sign promotion basis changed before publication",
+                            ));
+                        }
+                        publish(Some(guard))
+                    },
+                )
+            } else {
+                publish(None)
+            }
         })();
         if let Err(error) = preparation {
             stage.rollback()?;
@@ -483,12 +614,71 @@ impl CreationFilesystem {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<CreationPublication> {
+        self.replay(
+            package,
+            original_base,
+            software,
+            components,
+            deadline,
+            cancelled,
+            None,
+        )
+    }
+
+    pub fn replay_sign_isolated(
+        &self,
+        package: &SerializedCreation,
+        original_base: &CorpusCutReader,
+        software: &SoftwareCaptureReader,
+        components: &SoftwareComponentSelectionV1,
+        local_worker: &mut tos_validation::source_cut::CutWorkerSchemaExecutor,
+        assessment_worker: &mut tos_validation::source_cut::CutWorkerSchemaExecutor,
+        limits: tos_validation::assessment::AssessmentLimits,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<CreationPublication> {
+        self.current(package, limits.deadline, cancelled)?;
+        let mut read = crate::source_sign::SignPromotionRead::select(
+            &self.configuration_path,
+            package.prepared.context(),
+            original_base,
+            limits.deadline,
+            cancelled,
+        )?;
+        read.prepare_sources(package.prepared.context(), local_worker, limits, cancelled)?;
+        self.replay(
+            package,
+            original_base,
+            software,
+            components,
+            limits.deadline,
+            cancelled,
+            Some((&mut read, local_worker, assessment_worker, limits)),
+        )
+    }
+
+    fn replay(
+        &self,
+        package: &SerializedCreation,
+        original_base: &CorpusCutReader,
+        software: &SoftwareCaptureReader,
+        components: &SoftwareComponentSelectionV1,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        sign: Option<(
+            &mut crate::source_sign::SignPromotionRead<'_>,
+            &mut tos_validation::source_cut::CutWorkerSchemaExecutor,
+            &mut tos_validation::source_cut::CutWorkerSchemaExecutor,
+            tos_validation::assessment::AssessmentLimits,
+        )>,
+    ) -> SourceCommandResult<CreationPublication> {
         if components != package.prepared.components() {
             return Err(SourceCommandError::Conflict(
                 "creation sealed software subset differs",
             ));
         }
-        if package.prepared.family() == crate::source_creation::CreationFamily::Sign {
+        if (package.prepared.family() == crate::source_creation::CreationFamily::Sign)
+            != sign.is_some()
+        {
             return Err(SourceCommandError::Unsupported(
                 "Sign replay requires current assessment journal fences",
             ));
@@ -509,41 +699,69 @@ impl CreationFilesystem {
         let witness = walk(&self.root, "ToS/source-witnesses", self.uid)?;
         let _lock = self.lock(&witness, deadline, cancelled)?;
         self.current(package, deadline, cancelled)?;
-        self.reselect(package, original_base, None, true, deadline, cancelled)?;
-        self.reselect_components(software, components, deadline, cancelled)?;
-        let directory = walk(&self.root, package.prepared.home().as_str(), self.uid)?;
-        let parent_path = package
-            .prepared
-            .home()
-            .as_str()
-            .rsplit_once('/')
-            .ok_or(SourceCommandError::Invalid("creation replay parent"))?
-            .0;
-        let parent = walk(&self.root, parent_path, self.uid)?;
-        // Repeating fsync can resolve a prior post-rename durability ambiguity.
-        let tos = walk(&self.root, "ToS", self.uid)?;
-        let directory_synced = directory.sync_all().is_ok();
-        let parent_synced = parent.sync_all().is_ok();
-        let staging_parent_synced = tos.sync_all().is_ok();
-        let durable = directory_synced && parent_synced && staging_parent_synced;
-        Ok(CreationPublication {
-            home: package.prepared.home().clone(),
-            receipt_sha256: Digest256::of_bytes(
-                package
-                    .prepared
-                    .files()
-                    .get("source-create-receipt.json")
-                    .ok_or(SourceCommandError::Invalid(
-                        "creation replay receipt absent",
-                    ))?,
-            ),
-            durability: if durable {
-                CreationDurability::DirectoriesSynced
-            } else {
-                CreationDurability::PublishedSyncIncomplete
-            },
-            replayed: true,
-        })
+        let replay = |guard: Option<&mut dyn FnMut() -> SourceCommandResult<()>>| {
+            self.reselect(package, original_base, None, true, deadline, cancelled)?;
+            self.reselect_components(software, components, deadline, cancelled)?;
+            if let Some(guard) = guard {
+                guard()?;
+            }
+            let directory = walk(&self.root, package.prepared.home().as_str(), self.uid)?;
+            let parent_path = package
+                .prepared
+                .home()
+                .as_str()
+                .rsplit_once('/')
+                .ok_or(SourceCommandError::Invalid("creation replay parent"))?
+                .0;
+            let parent = walk(&self.root, parent_path, self.uid)?;
+            // Repeating fsync can resolve a prior post-rename durability ambiguity.
+            let tos = walk(&self.root, "ToS", self.uid)?;
+            let directory_synced = directory.sync_all().is_ok();
+            let parent_synced = parent.sync_all().is_ok();
+            let staging_parent_synced = tos.sync_all().is_ok();
+            let durable = directory_synced && parent_synced && staging_parent_synced;
+            Ok(CreationPublication {
+                home: package.prepared.home().clone(),
+                receipt_sha256: Digest256::of_bytes(
+                    package
+                        .prepared
+                        .files()
+                        .get("source-create-receipt.json")
+                        .ok_or(SourceCommandError::Invalid(
+                            "creation replay receipt absent",
+                        ))?,
+                ),
+                durability: if durable {
+                    CreationDurability::DirectoriesSynced
+                } else {
+                    CreationDurability::PublishedSyncIncomplete
+                },
+                replayed: true,
+            })
+        };
+        if let Some((read, local, assessment, limits)) = sign {
+            read.with_current_basis(
+                package.prepared.context(),
+                local,
+                assessment,
+                limits,
+                cancelled,
+                |basis, guard| {
+                    let request = cmd::parse(&package.prepared.context().request_raw)?;
+                    if !cmd::same(
+                        cmd::field(cmd::field(&request, "record")?, "promotion_basis")?,
+                        basis,
+                    )? {
+                        return Err(SourceCommandError::Conflict(
+                            "Sign current promotion basis differs on replay",
+                        ));
+                    }
+                    replay(Some(guard))
+                },
+            )
+        } else {
+            replay(None)
+        }
     }
 
     fn reselect_components(
@@ -719,7 +937,10 @@ fn scan(
         {
             continue;
         }
-        if !tos_source_store::is_authored_source_path_v1(&path) {
+        // Directory traversal and file membership are different: weak output
+        // parents can contain authored Markdown. Use the existing cut owner's
+        // shared component exclusions without reading its excluded payloads.
+        if !tos_source_store::has_authored_source_descendants_v1(&path) {
             continue;
         }
         // Secure open rejects symlinks, devices/FIFOs and replaced components.
@@ -755,6 +976,9 @@ fn scan(
                 ));
             }
         } else {
+            if !tos_source_store::is_authored_source_path_v1(&path) {
+                continue;
+            }
             let mut file = tos_fd_open::open_regular_at(directory, Path::new(&name))
                 .map_err(|_| SourceCommandError::Denied("creation current member unsafe"))?;
             let metadata = owned(&file, uid, false)?;

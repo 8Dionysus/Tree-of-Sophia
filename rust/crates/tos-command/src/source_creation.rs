@@ -783,6 +783,13 @@ fn initial(
                 "profile requires explicit Sign promotion gate",
             ));
         }
+        if family == CreationFamily::Sign
+            && cmd::text(&profile, "creation_gate")? != "sign-promotion-v1"
+        {
+            return Err(SourceCommandError::Denied(
+                "Sign requires exact declared creation gate",
+            ));
+        }
         // Metadata-only revision validation cannot substitute for creation's
         // mandatory exact public representation read. Filled by the same
         // native resolver's content path, not an admission boolean.
@@ -1043,6 +1050,80 @@ pub fn prepare_source_creation_from_captures(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<PreparedCreation> {
+    prepare_creation(
+        context, cut, software, components, worker, deadline, cancelled, None,
+    )
+}
+
+/// Sign has a distinct current owner read, using the actual protected journal
+/// and native content inputs rather than a caller-issued promotion verdict.
+pub fn prepare_sign_promotion_from_captures(
+    configuration_path: &std::path::Path,
+    context: &CommandContext,
+    cut: &CorpusCutReader,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    local_worker: &mut CutWorkerSchemaExecutor,
+    assessment_worker: &mut CutWorkerSchemaExecutor,
+    limits: tos_validation::assessment::AssessmentLimits,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<PreparedCreation> {
+    context.check_from_selected_captures(cut, software, components, limits.deadline, cancelled)?;
+    let (family, config, home) = configuration(context)?;
+    if family != CreationFamily::Sign || !contains(&config, "allowed_operations", "sign.promote")? {
+        return Err(SourceCommandError::Denied(
+            "current Sign operation not delegated",
+        ));
+    }
+    let request = cmd::parse(&context.request_raw)?;
+    if !matches!(
+        cmd::text(&request, "operation")?,
+        "prepare-create" | "sign.promote"
+    ) {
+        return Err(SourceCommandError::Invalid("Sign preparation operation"));
+    }
+    if cut.current().members().any(|member| {
+        member.path.as_str() == home.as_str()
+            || member
+                .path
+                .as_str()
+                .starts_with(&format!("{}/", home.as_str()))
+    }) {
+        return Err(SourceCommandError::Conflict(
+            "Sign source home already occupied",
+        ));
+    }
+    let mut selected = crate::source_sign::SignPromotionRead::select(
+        configuration_path,
+        context,
+        cut,
+        limits.deadline,
+        cancelled,
+    )?;
+    let basis =
+        selected.current_basis(context, local_worker, assessment_worker, limits, cancelled)?;
+    prepare_creation(
+        context,
+        cut,
+        software,
+        components,
+        local_worker,
+        limits.deadline,
+        cancelled,
+        Some(&basis),
+    )
+}
+
+fn prepare_creation(
+    context: &CommandContext,
+    cut: &CorpusCutReader,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    promotion: Option<&JsonValue>,
+) -> SourceCommandResult<PreparedCreation> {
     context.check_from_selected_captures(cut, software, components, deadline, cancelled)?;
     let mut ctx = context.clone();
     let software_files = ctx
@@ -1086,6 +1167,27 @@ pub fn prepare_source_creation_from_captures(
         ));
     }
     let record = cmd::field(&request, "record")?;
+    if family == CreationFamily::Sign {
+        let basis = promotion.ok_or(SourceCommandError::Unsupported(
+            "Sign requires actual protected current assessment reader",
+        ))?;
+        if cmd::text(&config, "profile_type_id")? != "tos.entity.sign"
+            || !revisions::valid_id(
+                cmd::text(&config, "promotion_candidate_id")?,
+                "tos.claim.",
+                false,
+            )
+            || !cmd::same(cmd::field(record, "promotion_basis")?, basis)?
+        {
+            return Err(SourceCommandError::Conflict(
+                "Sign description must retain exact current promotion basis",
+            ));
+        }
+    } else if promotion.is_some() {
+        return Err(SourceCommandError::Denied(
+            "Sign reader cannot delegate another creation family",
+        ));
+    }
     let profile_resources = initial(
         &ctx, cut, worker, &config, family, record, deadline, cancelled,
     )?;
@@ -1107,9 +1209,23 @@ pub fn prepare_source_creation_from_captures(
         ));
     }
     if family == CreationFamily::Sign {
-        return Err(SourceCommandError::Unsupported(
-            "Sign current owner journal reader and revision fence pending",
-        ));
+        for file in &ctx.files {
+            if file.path.as_str().starts_with("ToS/source-witnesses/")
+                && file.path.as_str().ends_with("/sign.json")
+            {
+                let prior = cmd::parse(&file.raw)?;
+                if prior
+                    .object_get("promotion_basis")
+                    .and_then(|b| b.object_get("candidate"))
+                    .and_then(|r| r.object_get("id"))
+                    == config.object_get("promotion_candidate_id")
+                {
+                    return Err(SourceCommandError::Conflict(
+                        "Sign candidate already issued in selected source cohort",
+                    ));
+                }
+            }
+        }
     }
     if family != CreationFamily::HistoricalV1
         && inventory
