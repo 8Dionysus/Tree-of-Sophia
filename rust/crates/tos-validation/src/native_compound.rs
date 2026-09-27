@@ -199,7 +199,7 @@ fn object_link_scope(scope: &Value, request: &Value, authority: &Value) -> Resul
             "link_role",
         ]
         .iter()
-        .any(|k| text(q, k).is_err_or(|s| s.trim().is_empty()))
+        .any(|k| text(q, k).map_or(true, |s| s.trim().is_empty()))
     {
         return Err(bad("object-Link qualified no-rights statement"));
     }
@@ -2684,14 +2684,14 @@ impl NativeCompoundReader<'_> {
                 if transaction.status != "committed"
                     || prior.as_ref() != archived.get(name)
                     || next.as_ref().is_none_or(|bytes| {
-                        self.decoded(bytes).is_err_or(|value| {
+                        self.decoded(bytes).map_or(true, |value| {
                             self.reference_matches(
                                 &value,
                                 identity,
                                 "record_version",
                                 &receipt["source"],
                             )
-                            .is_err_or(|valid| !valid)
+                            .map_or(true, |valid| !valid)
                         })
                     })
                 {
@@ -2850,7 +2850,7 @@ impl NativeCompoundReader<'_> {
                 || prior.as_ref() != Some(old_raw)
                 || after
                     .as_ref()
-                    .is_none_or(|raw| self.decoded(raw).is_err_or(|value| value != successor))
+                    .is_none_or(|raw| self.decoded(raw).map_or(true, |value| value != successor))
             {
                 return Err(bad("object-Link exact committed correction"));
             }
@@ -5973,7 +5973,7 @@ impl NativeCompoundReader<'_> {
                 "link_role",
             ]
             .iter()
-            .any(|key| text(&claim["qualifiers"], key).is_err_or(|s| s.trim().is_empty()))
+            .any(|key| text(&claim["qualifiers"], key).map_or(true, |s| s.trim().is_empty()))
         {
             return Err(bad("object-Link current qualified association closure"));
         }
