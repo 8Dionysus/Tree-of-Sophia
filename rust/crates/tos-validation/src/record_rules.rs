@@ -2695,6 +2695,9 @@ pub struct SourceClaimLocalReport {
     pub decoded_input_sha256: Digest256,
     pub execution_binding: crate::source_cut::CutExecutionBinding,
     pub dependency_digests: BTreeMap<String, Digest256>,
+    /// Maintained input_digests insertion order: successful first reads only.
+    /// Each path appears exactly once and owns its digest in the map above.
+    pub dependency_order: Vec<String>,
     pub issues: Vec<crate::relation_rules::RelationIssue>,
     pub schema_receipts: Vec<crate::source_cut::CutSchemaReceipt>,
 }
@@ -2750,9 +2753,13 @@ pub fn validate_source_claim_from_cut(
         source_input_sha256: Digest256::of_bytes(selected_claim_raw),
         decoded_input_sha256: Digest256::of_bytes(&decoded),
         execution_binding: binding,
+<<<<<<< HEAD
         dependency_digests: BTreeMap::new(),
         issues: Vec::new(),
         schema_receipts: Vec::new(),
+=======
+        dependency_digests: BTreeMap::new(), dependency_order: Vec::new(), issues: Vec::new(), schema_receipts: Vec::new(),
+>>>>>>> 7383b6378c (Preserve local Claim dependency first-read order)
     };
     let mut bytes = selected_claim_raw.len() as u64;
     let mut inputs = BTreeMap::<String, (Value, Vec<u8>)>::new();
@@ -2822,6 +2829,7 @@ pub fn validate_source_claim_from_cut(
     local_claim_checkpoint(limits, cancelled)?;
     // Only this invocation's concrete executed receipts are exposed.
     let receipts = &worker.receipts()[first_receipt..];
+<<<<<<< HEAD
     let receipt_bytes = receipts
         .iter()
         .try_fold(0usize, |n, r| {
@@ -2834,6 +2842,11 @@ pub fn validate_source_claim_from_cut(
     {
         return Err(ItemRefusal::Budget);
     }
+=======
+    let receipt_bytes = receipts.iter().try_fold(0usize, |n,r| n.checked_add(r.path.len()+r.contract.len()+256)).ok_or(ItemRefusal::Budget)?;
+    let order_bytes=report.dependency_order.iter().try_fold(0usize, |sum,path|sum.checked_add(path.len()+2*std::mem::size_of::<String>())).ok_or(ItemRefusal::Budget)?;
+    if receipt_bytes.checked_add(order_bytes).and_then(|n|n.checked_add((bytes as usize).checked_mul(4)?)).is_none_or(|n|n>limits.max_state_bytes/2) {return Err(ItemRefusal::Budget);}
+>>>>>>> 7383b6378c (Preserve local Claim dependency first-read order)
     report.schema_receipts = receipts.to_vec();
     Ok(report)
 }
@@ -2909,6 +2922,7 @@ fn local_claim_input(
         .ok_or(ItemRefusal::Budget)?;
     // Half the state quota retains decoded inputs and receipts; the other
     // half is reserved for constructor routes and their cloned descriptors.
+<<<<<<< HEAD
     if bytes
         .checked_mul(4)
         .is_none_or(|n| n > (limits.max_state_bytes / 2) as u64)
@@ -2927,6 +2941,15 @@ fn local_claim_input(
         .insert(path.into(), Digest256::of_bytes(&member.raw));
     inputs.insert(path.into(), (value, member.raw));
     Ok(())
+=======
+    let order_bytes=report.dependency_order.iter().try_fold(path.len()+2*std::mem::size_of::<String>(), |sum,path|sum.checked_add(path.len()+2*std::mem::size_of::<String>())).ok_or(ItemRefusal::Budget)?;
+    if bytes.checked_mul(4).and_then(|n|n.checked_add(order_bytes as u64)).is_none_or(|n| n>(limits.max_state_bytes/2) as u64) {return Err(ItemRefusal::Budget);}
+    let value=published_value(&member.raw,limits.max_member_bytes.min(MAX_RECORD_BYTES)).map_err(|e|ItemRefusal::Unsupported(format!("local Claim dependency {path}: {e:?}")))?;
+    if !value.is_object() {return Err(ItemRefusal::Unsupported(format!("local Claim dependency must be an object: {path}")));}
+    report.dependency_digests.insert(path.into(),Digest256::of_bytes(&member.raw));
+    inputs.insert(path.into(),(value,member.raw));
+    report.dependency_order.push(path.into()); Ok(())
+>>>>>>> 7383b6378c (Preserve local Claim dependency first-read order)
 }
 
 // Inspect schema locations only; arbitrary const/enum/example values remain
