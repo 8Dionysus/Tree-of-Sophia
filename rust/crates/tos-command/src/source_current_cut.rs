@@ -2,7 +2,7 @@
 //! This is not canonical source admission or automatic export on each commit.
 
 use crate::durable_adapter::source_cohort::ManagedSourceCohort;
-use crate::durable_adapter::{DurableError, DurablePgCoordinator};
+use crate::durable_adapter::{DurableError, DurablePgCoordinator, VerifiedSelectedGeneration};
 use crate::source_command::{
     self as cmd, CommandContext, SourceCommandError as Error, SourceCommandResult as Result,
 };
@@ -27,25 +27,70 @@ use tos_source_store::{
 };
 use tos_validation::source_cut::CutWorkerSchemaExecutor;
 
-/// Constructed only by an actual cold/current owner selection and verified v1
-/// export. The bootstrap revision and current managed generation stay distinct.
-pub struct ManagedCurrentSourceCut {
+/// A verified controlled source generation, never a v1 SourceRevision.
+/// Installed current/history roots bind custody membership; the managed
+/// cohort separately binds the actual Agent identity/home predicate law.
+/// Undemonstrated owner rules still require their explicit complete audit.
+pub struct ManagedCurrentSourceGeneration {
     store_id: [u8; 16],
     cohort: ManagedSourceCohort,
+    selected: VerifiedSelectedGeneration,
+}
+impl ManagedCurrentSourceGeneration {
+    pub fn digest(&self) -> Digest256 {
+        self.selected.digest()
+    }
+    pub fn commit_seq(&self) -> u64 {
+        self.selected.cut().through_commit_seq()
+    }
+    pub fn agent_definition_digest(&self) -> Digest256 {
+        self.cohort.definition_digest()
+    }
+    pub fn epoch(&self) -> u64 {
+        self.cohort.epoch()
+    }
+    pub fn cohort(&self) -> &ManagedSourceCohort {
+        &self.cohort
+    }
+    pub fn read_current_member(
+        &self,
+        coordinator: &mut DurablePgCoordinator,
+        store: &SegmentStore,
+        path: &RelativePath,
+        max_bytes: u64,
+        deadline: Instant,
+        cancel: &AtomicBool,
+    ) -> Result<crate::durable_adapter::source_cohort::ManagedCurrentMember> {
+        active(deadline, cancel)?;
+        if store.store_id() != self.store_id {
+            return Err(Error::Conflict("managed generation byte store differs"));
+        }
+        coordinator
+            .read_generation_source_member(store, self, path, max_bytes, deadline, cancel)
+            .map_err(durable)
+    }
+}
+
+/// V1 compatibility export of a separately selected durable generation.
+/// Its manifest retains genuine v1 parent/history and complete fixity law.
+pub struct ManagedCurrentSourceCut {
+    generation: ManagedCurrentSourceGeneration,
     cut: CorpusCutReader,
-    selected_digest: Digest256,
     membership: SourceMembershipV1,
     files: BTreeMap<String, Vec<u8>>,
 }
 impl ManagedCurrentSourceCut {
+    pub fn generation(&self) -> &ManagedCurrentSourceGeneration {
+        &self.generation
+    }
     pub fn cut(&self) -> &CorpusCutReader {
         &self.cut
     }
     pub(crate) fn cohort(&self) -> &ManagedSourceCohort {
-        &self.cohort
+        self.generation.cohort()
     }
     pub(crate) fn selected_digest(&self) -> Digest256 {
-        self.selected_digest
+        self.generation.digest()
     }
     pub(crate) fn membership(&self) -> SourceMembershipV1 {
         self.membership
@@ -53,6 +98,50 @@ impl ManagedCurrentSourceCut {
     pub(crate) fn files(&self) -> &BTreeMap<String, Vec<u8>> {
         &self.files
     }
+}
+
+/// Explicit cold selection of existing durable roots without a v1 export.
+/// The present owner still performs a complete source/index/custody audit;
+/// this removes the mandatory filesystem export, not that audit's O(N) cost.
+pub fn select_current_source_generation(
+    coordinator: &mut DurablePgCoordinator,
+    store: &SegmentStore,
+    domain: &str,
+    original: &CorpusCutReader,
+    initial_revision: SourceRevision,
+    initial_membership: SourceMembershipV1,
+    bootstrap_context: &CommandContext,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancel: &AtomicBool,
+) -> Result<ManagedCurrentSourceGeneration> {
+    let reopened = coordinator
+        .cold_reopen_source_cohort(
+            store,
+            domain,
+            original,
+            initial_revision,
+            initial_membership,
+            bootstrap_context,
+            software,
+            components,
+            worker,
+            deadline,
+            cancel,
+        )
+        .map_err(durable)?;
+    if reopened.selected.cut().through_commit_seq() != reopened.cohort.generation() {
+        return Err(Error::Conflict(
+            "managed generation and source cohort differ",
+        ));
+    }
+    Ok(ManagedCurrentSourceGeneration {
+        store_id: store.store_id(),
+        cohort: reopened.cohort,
+        selected: reopened.selected,
+    })
 }
 
 fn durable(error: DurableError) -> Error {
@@ -488,11 +577,11 @@ pub fn select_current_source_cut(
         }
     }
     let parent_cut = if let Some(parent) = parent {
-        if parent.store_id != store.store_id()
-            || parent.cohort.domain() != domain
-            || parent.cohort.initial_revision() != initial_revision
-            || parent.cohort.initial_membership() != initial_membership
-            || parent.cohort.generation() > reopened.cohort.generation()
+        if parent.generation.store_id != store.store_id()
+            || parent.cohort().domain() != domain
+            || parent.cohort().initial_revision() != initial_revision
+            || parent.cohort().initial_membership() != initial_membership
+            || parent.cohort().generation() > reopened.cohort.generation()
         {
             return Err(Error::Conflict("current source retained parent differs"));
         }
@@ -612,11 +701,18 @@ pub fn select_current_source_cut(
     verify_export_chain(
         isolated, &export, &objects, &revisions, uid, deadline, cancel,
     )?;
+    if reopened.selected.cut().through_commit_seq() != reopened.cohort.generation() {
+        return Err(Error::Conflict(
+            "managed generation and source cohort differ",
+        ));
+    }
     Ok(ManagedCurrentSourceCut {
-        store_id: store.store_id(),
-        cohort: reopened.cohort,
+        generation: ManagedCurrentSourceGeneration {
+            store_id: store.store_id(),
+            cohort: reopened.cohort,
+            selected: reopened.selected,
+        },
         cut,
-        selected_digest: reopened.selected.digest(),
         membership: reopened.current_membership,
         files: reopened.files,
     })
