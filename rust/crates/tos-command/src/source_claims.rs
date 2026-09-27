@@ -9,7 +9,7 @@ use crate::source_sign_native::{NativeReadKind, NativeReadScope, SignNativeRead}
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::atomic::AtomicBool;
 use std::time::Instant;
-use tos_foundation::{Digest256, JsonValue, RelativePath, python_strip_unicode16_v1};
+use tos_foundation::{Digest256, JsonString, JsonValue, RelativePath, python_strip_unicode16_v1};
 use tos_source_store::{CorpusCutReader, SoftwareCaptureReader, SoftwareComponentSelectionV1};
 use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
 
@@ -2040,6 +2040,82 @@ fn complete_agent_inventory(
     Ok(inventory)
 }
 
+#[derive(Default)]
+struct AgentInventoryMember<'a> {
+    records: BTreeMap<&'a str, Vec<&'a JsonValue>>,
+    events: Vec<(&'a JsonString, &'a JsonValue)>,
+    anchors: Vec<(&'a JsonString, &'a JsonValue)>,
+}
+
+/// Operation-local borrowed grouping of the already extracted inventory.
+/// No body is parsed again or copied to a second inventory.
+pub(crate) struct AgentInventoryMembers<'a> {
+    files: BTreeMap<&'a str, &'a SourceFile>,
+    members: BTreeMap<&'a str, AgentInventoryMember<'a>>,
+    base_profiles: JsonValue,
+}
+pub(crate) fn agent_inventory_members<'a>(
+    ctx: &'a CommandContext,
+    inventory: &'a MaintainedInventory,
+) -> SourceCommandResult<AgentInventoryMembers<'a>> {
+    ctx.check()?;
+    let mut grouped = AgentInventoryMembers {
+        files: ctx
+            .files
+            .iter()
+            .map(|file| (file.path.as_str(), file))
+            .collect(),
+        members: BTreeMap::new(),
+        base_profiles: raw_digests(
+            ctx,
+            &[
+                ENTITIES,
+                "ToS/contracts/semantic-entity-type-registry.schema.json",
+            ],
+            false,
+        )?,
+    };
+    for (kind, entries) in inventory
+        .records
+        .as_object()
+        .ok_or(SourceCommandError::Invalid("Agent inventory record map"))?
+    {
+        let kind = kind
+            .as_str()
+            .ok_or(SourceCommandError::Invalid("Agent inventory kind"))?;
+        for entry in entries
+            .as_array()
+            .ok_or(SourceCommandError::Invalid("Agent catalogue array"))?
+        {
+            grouped
+                .members
+                .entry(text(entry, "source_record_ref")?)
+                .or_default()
+                .records
+                .entry(kind)
+                .or_default()
+                .push(entry);
+        }
+    }
+    for (entries, anchors) in [(&inventory.events, false), (&inventory.anchors, true)] {
+        for (key, entry) in entries
+            .as_object()
+            .ok_or(SourceCommandError::Invalid("Agent evidence map"))?
+        {
+            let member = grouped
+                .members
+                .entry(text(entry, "source_ref")?)
+                .or_default();
+            if anchors {
+                member.anchors.push((key, entry));
+            } else {
+                member.events.push((key, entry));
+            }
+        }
+    }
+    Ok(grouped)
+}
+
 /// One actual member's maintained inventory contribution. The same extractor
 /// serves full inventory and this controlled Agent projection; no source body
 /// or permission is retained in the projection.
@@ -2047,6 +2123,7 @@ pub(crate) fn agent_inventory_contribution(
     ctx: &CommandContext,
     file: &SourceFile,
     inventory: &MaintainedInventory,
+    grouped: &AgentInventoryMembers<'_>,
     executor: &mut CutWorkerSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
@@ -2057,7 +2134,12 @@ pub(crate) fn agent_inventory_contribution(
         ));
     }
     let location = file.path.as_str();
-    if ctx.file(&file.path)? != Some(file.raw.as_slice()) {
+    if grouped
+        .files
+        .get(location)
+        .copied()
+        .is_none_or(|selected| !std::ptr::eq(selected, file))
+    {
         return Err(SourceCommandError::Conflict(
             "Agent contribution differs from selected bytes",
         ));
@@ -2086,37 +2168,36 @@ pub(crate) fn agent_inventory_contribution(
             "Agent projection requires Claim/native owner",
         ));
     }
+    let member = grouped.members.get(location);
     let mut records = object(vec![]);
-    for (kind, entries) in inventory
-        .records
-        .as_object()
-        .ok_or(SourceCommandError::Invalid("Agent inventory record map"))?
-    {
+    for kind in NATIVE_CATALOG_KINDS {
         set(
             &mut records,
-            kind.as_str()
-                .ok_or(SourceCommandError::Invalid("Agent inventory kind"))?,
+            kind,
             JsonValue::Array(
-                entries
-                    .as_array()
-                    .ok_or(SourceCommandError::Invalid("Agent catalogue array"))?
-                    .iter()
-                    .filter(|entry| text(entry, "source_record_ref").ok() == Some(location))
-                    .cloned()
+                member
+                    .and_then(|member| member.records.get(kind))
+                    .into_iter()
+                    .flatten()
+                    .map(|entry| (**entry).clone())
                     .collect(),
             ),
         )?;
     }
-    let evidence = |entries: &JsonValue| -> SourceCommandResult<JsonValue> {
-        Ok(JsonValue::Object(
-            entries
-                .as_object()
-                .ok_or(SourceCommandError::Invalid("Agent evidence map"))?
-                .iter()
-                .filter(|(_, entry)| text(entry, "source_ref").ok() == Some(location))
-                .cloned()
+    let evidence = |anchors: bool| -> JsonValue {
+        JsonValue::Object(
+            member
+                .into_iter()
+                .flat_map(|member| {
+                    if anchors {
+                        member.anchors.iter()
+                    } else {
+                        member.events.iter()
+                    }
+                })
+                .map(|(key, entry)| ((**key).clone(), (**entry).clone()))
                 .collect(),
-        ))
+        )
     };
     let form = if location.starts_with("ToS/source-witnesses/")
         && basename.ends_with(".human-forms.json")
@@ -2127,14 +2208,7 @@ pub(crate) fn agent_inventory_contribution(
             "{}.json",
             location.strip_suffix(".human-forms.json").unwrap()
         );
-        if parent.ends_with("/agent.json")
-            && ctx
-                .file(
-                    &RelativePath::parse(&parent)
-                        .map_err(|_| SourceCommandError::Invalid("Agent form parent path"))?,
-                )?
-                .is_some()
-        {
+        if parent.ends_with("/agent.json") && grouped.files.contains_key(parent.as_str()) {
             crate::source_revisions::schema(
                 executor,
                 deadline,
@@ -2180,20 +2254,14 @@ pub(crate) fn agent_inventory_contribution(
         ("records", records),
         (
             "source_profiles",
-            match inventory.record_member_inputs.get(location) {
-                Some(inputs) => inputs.clone(),
-                None => raw_digests(
-                    ctx,
-                    &[
-                        ENTITIES,
-                        "ToS/contracts/semantic-entity-type-registry.schema.json",
-                    ],
-                    false,
-                )?,
-            },
+            inventory
+                .record_member_inputs
+                .get(location)
+                .cloned()
+                .unwrap_or_else(|| grouped.base_profiles.clone()),
         ),
-        ("events", evidence(&inventory.events)?),
-        ("anchors", evidence(&inventory.anchors)?),
+        ("events", evidence(false)),
+        ("anchors", evidence(true)),
         ("form", form),
     ]))
 }

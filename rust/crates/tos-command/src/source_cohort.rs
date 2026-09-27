@@ -463,20 +463,29 @@ fn inventory_projections(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> DurableResult<ProjectionRows> {
+    inventory_projections_for(ctx, None, worker, deadline, cancelled)
+}
+fn inventory_projections_for(
+    ctx: &CommandContext,
+    paths: Option<&BTreeSet<&str>>,
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> DurableResult<ProjectionRows> {
     let inventory = source_claims::maintained_agent_inventory_from_managed(
         ctx, true, worker, deadline, cancelled,
     )
     .map_err(source_error)?;
+    let grouped = source_claims::agent_inventory_members(ctx, &inventory).map_err(source_error)?;
     let mut projections = ProjectionRows::new();
     let mut projection_bytes = 0usize;
-    for file in ctx
-        .files
-        .iter()
-        .filter(|file| file.path.as_str().starts_with("ToS/"))
-    {
+    for file in ctx.files.iter().filter(|file| {
+        file.path.as_str().starts_with("ToS/")
+            && paths.is_none_or(|paths| paths.contains(file.path.as_str()))
+    }) {
         active(deadline, cancelled)?;
         let contribution = source_claims::agent_inventory_contribution(
-            ctx, file, &inventory, worker, deadline, cancelled,
+            ctx, file, &inventory, &grouped, worker, deadline, cancelled,
         )
         .map_err(source_error)?;
         let raw = cmd::canonical(&contribution).map_err(source_error)?;
@@ -533,10 +542,18 @@ fn creation_projections(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> DurableResult<ProjectionRows> {
-    let mut projections =
-        inventory_projections(&scoped_context(package), worker, deadline, cancelled)?;
-    projections
-        .retain(|path, _| path.starts_with(&format!("{}/", package.prepared().home().as_str())));
+    let paths = package
+        .changes()
+        .iter()
+        .map(|change| change.path.as_str())
+        .collect::<BTreeSet<_>>();
+    let projections = inventory_projections_for(
+        &scoped_context(package),
+        Some(&paths),
+        worker,
+        deadline,
+        cancelled,
+    )?;
     if projections
         .keys()
         .map(String::as_str)
