@@ -38,13 +38,18 @@ integration or production-scale runtime.
 
 PostgreSQL integration targets require the explicit `postgres-lab` feature and
 a dedicated ephemeral database. The ordinary workspace lane excludes these
-targets; it does not establish PostgreSQL execution. CI runs the durable target
-with its PostgreSQL service:
+targets; it does not establish PostgreSQL execution. CI runs both existing
+targets with its PostgreSQL service:
 
 ```sh
 : "${TOS_CMD_POSTGRES_URL:?dedicated PostgreSQL connection is required}"
-cargo test -p tos-command --features postgres-lab --test postgres_durable_lab --locked -- --nocapture
+cargo test -p tos-command --features postgres-lab --test postgres_lab --test postgres_durable_lab --locked -- --nocapture
 ```
 
 Ignored restore and child-process probes retain their separate prerequisites and
 are not selected by this command.
+
+`postgres_lab` retains CMD1 protocol-only generation and phantom checks until
+their transfer to the durable coordinator. Their success does not establish
+durable affected-key registration or invalidation coverage; the durable
+coordinator currently retains its full-base conflict fence.
