@@ -39,14 +39,22 @@ impl StageIsolation for FixtureIsolation {
         Ok(())
     }
 }
-struct NativeSelectedIsolation {
+struct NativeSelectedIsolation<'a> {
     started: Instant,
+    deadline: Instant,
+    cancelled: &'a AtomicBool,
     enabled: AtomicBool,
     catalog_seen: AtomicBool,
     search_seen: AtomicBool,
 }
-impl StageIsolation for NativeSelectedIsolation {
+impl StageIsolation for NativeSelectedIsolation<'_> {
     fn verify(&self, _: &Path, _: StageLimits, phase: WritePhase) -> tos_compiler::Result<()> {
+        if self.cancelled.load(Ordering::Relaxed) {
+            return Err(tos_compiler::Error::Budget("native corpus cancelled"));
+        }
+        if Instant::now() >= self.deadline {
+            return Err(tos_compiler::Error::Budget("native corpus whole deadline"));
+        }
         if self.enabled.load(Ordering::Relaxed) {
             let seen = match phase {
                 WritePhase::Catalog => Some(&self.catalog_seen),
@@ -1452,6 +1460,8 @@ sys.stdout.write(owner.render_payload(payload))
     let search_postings = search_work_bytes / 3;
     let selected_isolation = NativeSelectedIsolation {
         started,
+        deadline,
+        cancelled: &cancelled,
         enabled: AtomicBool::new(false),
         catalog_seen: AtomicBool::new(false),
         search_seen: AtomicBool::new(false),
