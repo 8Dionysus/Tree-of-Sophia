@@ -63,6 +63,9 @@ export class PublishedLensD1Transport {
     const conditions:string[]=[],conditionArgs:unknown[]=[];
     for(const group of groups) {
       conditions.push('('+group.terms.map(term=>{
+        // An empty declared exact set compiles to the predecessor's constant
+        // false SQL predicate; it has no addressed values or bound parameter.
+        if(!term.values.length)return '0';
         conditionArgs.push(compact(term.values));return `${alias}.${term.field} IN (SELECT value FROM json_each(?))`;
       }).join(group.all?' AND ':' OR ')+')');
     }
