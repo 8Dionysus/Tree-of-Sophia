@@ -14,6 +14,340 @@ use tos_foundation::{
     SourceRevision, canonical_bytes_v1, parse_json,
 };
 
+#[test]
+fn sign_uses_current_native_content_assessment_and_replays_its_original_package() {
+    use std::os::unix::fs::{MetadataExt, PermissionsExt};
+    use std::process::Command;
+    use tos_command::source_creation::prepare_sign_promotion_from_captures;
+    use tos_command::source_creation_store::{
+        CreationDurability, CreationFilesystem, IsolatedCreationRoot,
+    };
+    use tos_validation::assessment::AssessmentLimits;
+    use tos_validation::executor::BatchBudget;
+
+    let repository = super::validation_cut_cases::repository()
+        .canonicalize()
+        .unwrap();
+    let temporary = tempfile::tempdir().unwrap();
+    let cancellation = AtomicBool::new(false);
+    let deadline = Instant::now() + Duration::from_secs(240);
+    let isolated = IsolatedCreationRoot::create(temporary.path(), deadline, &cancellation).unwrap();
+    // The normal maintained synthetic factory authors the judgments and the
+    // separately delegated issuance grant. Relocation happens before its
+    // public rebind, review append and Sign describe; no ready report is fed
+    // to Rust. Original authority dates expire on 2026-10-01. An expired
+    // current evaluation must FAIL this positive case, never skip it.
+    let factory = r#"
+import json,sys,shutil
+from pathlib import Path
+from unittest.mock import patch
+repo,root=map(Path,sys.argv[1:])
+sys.path[:0]=[str(repo/'mechanics/growth-cycle/tests'),str(repo/'tests'),str(repo/'scripts'),str(repo/'mechanics/growth-cycle/parts/branch-growth-cycle/scripts')]
+from test_occurrence_assessment_guard import OccurrenceAssessmentGuardTests
+from test_native_text_assessment import NativeAssessmentFixture
+import source_commands as commands
+original=NativeAssessmentFixture.__init__
+def selected(self,test,**kwargs):
+    original(self,test,**kwargs)
+    shutil.copytree(self.root,root,dirs_exist_ok=True)
+    self.root=self.native.root=root
+    self.owner=root/'assessment-owner.json'
+    self.config['source_root']=str(root)
+    self.config['journal_directory']=str(root/'assessment-journal')
+    (root/'assessment-journal').mkdir(mode=0o700)
+    self.save()
+test=OccurrenceAssessmentGuardTests(methodName='runTest')
+try:
+    with patch.object(NativeAssessmentFixture,'__init__',selected):
+        f,owner,config,request=test.sign_command_fixture()
+    preview={key:value for key,value in request.items() if key not in {'command_id','expected_configuration','expected_source','expected_revision','expected_dependencies'}}
+    preview['operation']='prepare-create'
+    configured,_,_=commands._configuration(owner)
+    _,outputs,_=commands._prepare_creation(configured,preview)
+    response=commands.run_local_command(owner,preview)
+    authored={p.relative_to(root).as_posix():p.read_bytes().hex() for p in sorted((root/'ToS').rglob('*')) if p.is_file() and p.relative_to(root).as_posix()!=f.native.content_ref and not {'payload','local-content'}.intersection(p.relative_to(root).parts)}
+    head=root/'assessment-journal'/__import__('hashlib').sha256(f.identifier.encode()).hexdigest()/'head'
+    print(json.dumps({'owner':str(owner),'assessment_owner':str(f.owner),'config_raw':owner.read_bytes().hex(),'request':request,'preview_request':preview,'preview':response,'outputs':{name:raw.hex() for name,raw in outputs.items()},'authored':authored,'content':f.native.content_ref,'scope_source':f.occurrence_path,'head':str(head),'original_payload':f.native.original_ref},ensure_ascii=False,allow_nan=False))
+finally:
+    test.doCleanups()
+"#;
+    let mut oracle = Command::new("python3");
+    for (key, _) in std::env::vars_os() {
+        if key.to_string_lossy().starts_with("GIT_") || key == "PYTHONPATH" || key == "PYTHONHOME" {
+            oracle.env_remove(key);
+        }
+    }
+    let output = oracle
+        .args(["-c", factory])
+        .arg(&repository)
+        .arg(isolated.path())
+        .env("PYTHONDONTWRITEBYTECODE", "1")
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "maintained Sign factory: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let oracle: Value = serde_json::from_slice(&output.stdout).unwrap();
+    let authored = oracle["authored"]
+        .as_object()
+        .unwrap()
+        .iter()
+        .map(|(name, raw)| (name.clone(), decode_hex(raw.as_str().unwrap())))
+        .collect::<BTreeMap<_, _>>();
+    assert!(
+        !isolated
+            .path()
+            .join(required(&oracle, "original_payload"))
+            .exists()
+    );
+    assert!(authored.keys().all(|name| {
+        !name
+            .split('/')
+            .any(|part| matches!(part, "local-content" | "payload"))
+    }));
+    assert!(!authored.contains_key(required(&oracle, "content")));
+    let mut files = authored.clone();
+    // Rule implementation and native serialization observations are selected
+    // through a separate exact software capture, never the authored cut.
+    for name in [
+        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py",
+        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_command_contracts.py",
+        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_historical_claims.py",
+        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/human_forms.py",
+        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/knowledge_assessment.py",
+        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/assessment_journal.py",
+        "scripts/source_witness_human_forms.py",
+        "scripts/build_source_witness_catalog.py",
+        "scripts/source_record_profiles.py",
+        "scripts/native_text_binding.py",
+        "scripts/source_owner_context.py",
+        "scripts/source_witness_bibliographic_graph_common.py",
+        "rust/crates/tos-command/src/source_creation.rs",
+        "rust/crates/tos-command/src/source_creation_store.rs",
+        "rust/crates/tos-command/src/source_serialization.rs",
+        "rust/crates/tos-command/src/source_sign.rs",
+        "rust/crates/tos-command/src/source_sign_native.rs",
+    ] {
+        let raw = fs::read(repository.join(name)).unwrap();
+        let target = isolated.path().join(name);
+        fs::create_dir_all(target.parent().unwrap()).unwrap();
+        fs::write(target, &raw).unwrap();
+        files.insert(name.into(), raw);
+    }
+    let (_capture, software, components) = captured_components(&files, deadline, &cancellation);
+    let store = temporary.path().join("sign-cut");
+    let revision = super::validation_cut_cases::write_cut_store(&authored, &store);
+    let cut = open_cut(&store, revision, deadline, &cancellation);
+    let owner = Path::new(required(&oracle, "owner"));
+    let config_raw = decode_hex(required(&oracle, "config_raw"));
+    let mut context = cut_context(
+        &files,
+        config_raw.clone(),
+        canonical_json(&oracle["preview_request"]),
+        revision,
+    );
+    context.effective_uid = u64::from(fs::metadata(isolated.path()).unwrap().uid());
+    context.recorded_at = "2026-09-26T12:00:00Z".into();
+    let limits = AssessmentLimits {
+        max_input_bytes: 8_388_608,
+        max_work: 4_194_304,
+        batch: BatchBudget::laboratory(),
+        deadline,
+    };
+    let mut local_worker = schemas(&cut, deadline, &cancellation);
+    let mut assessment_worker = schemas(&cut, deadline, &cancellation);
+    let prepared = prepare_sign_promotion_from_captures(
+        owner,
+        &context,
+        &cut,
+        &software,
+        &components,
+        &mut local_worker,
+        &mut assessment_worker,
+        limits,
+        &cancellation,
+    )
+    .unwrap();
+    let preview = prepared.preview().unwrap();
+    assert_eq!(
+        bytes(&preview),
+        canonical_json(&oracle["preview"]),
+        "entire maintained Sign preparation including current full basis"
+    );
+    for (name, raw) in prepared.files() {
+        assert_eq!(
+            *raw,
+            decode_hex(oracle["outputs"][name].as_str().unwrap()),
+            "original Sign buffer {name}"
+        );
+    }
+    // The request retains the Python author's exact basis/configuration and
+    // dependency values; Rust must independently reconstruct them again.
+    context.request_raw = canonical_json(&oracle["request"]);
+    let mut local_worker = schemas(&cut, deadline, &cancellation);
+    let mut assessment_worker = schemas(&cut, deadline, &cancellation);
+    let prepared = prepare_sign_promotion_from_captures(
+        owner,
+        &context,
+        &cut,
+        &software,
+        &components,
+        &mut local_worker,
+        &mut assessment_worker,
+        limits,
+        &cancellation,
+    )
+    .unwrap();
+    let serialized = prepared
+        .serialize(
+            &software,
+            &components,
+            &mut local_worker,
+            deadline,
+            &cancellation,
+        )
+        .unwrap();
+    assert!(matches!(
+        serialized.command().commit(),
+        Err(SourceCommandError::MissingProductionAdmission)
+    ));
+    let filesystem =
+        CreationFilesystem::select_isolated(&isolated, owner, deadline, &cancellation).unwrap();
+    // Every change is made to this finite test root, then restored. The same
+    // package must refuse current content/config/head/source-scope drift.
+    for target in [
+        isolated.path().join(required(&oracle, "content")),
+        PathBuf::from(required(&oracle, "assessment_owner")),
+        PathBuf::from(required(&oracle, "head")),
+        isolated.path().join(required(&oracle, "scope_source")),
+        owner.to_path_buf(),
+    ] {
+        let original = fs::read(&target).unwrap();
+        let changed = if target == Path::new(required(&oracle, "assessment_owner")) {
+            let mut config: Value = serde_json::from_slice(&original).unwrap();
+            let candidate = oracle["request"]["record"]["promotion_basis"]["candidate"]["id"]
+                .as_str()
+                .unwrap();
+            config["subjects"][candidate]["requested_use"] = serde_json::json!("research");
+            canonical_json(&config)
+        } else if target == owner {
+            let mut config: Value = serde_json::from_slice(&original).unwrap();
+            config["allowed_operations"] = serde_json::json!([]);
+            canonical_json(&config)
+        } else if target == Path::new(required(&oracle, "head")) {
+            b"not-a-journal-revision\n".to_vec()
+        } else if target == isolated.path().join(required(&oracle, "scope_source")) {
+            let mut occurrence: Value = serde_json::from_slice(&original).unwrap();
+            occurrence["native_text_binding"]["source_record_refs"]["work"] =
+                serde_json::json!("ToS/source-witnesses/works/unselected/work.json");
+            canonical_json(&occurrence)
+        } else {
+            let mut changed = original.clone();
+            changed.push(b'\n');
+            changed
+        };
+        fs::write(&target, changed).unwrap();
+        let mut local = schemas(&cut, deadline, &cancellation);
+        let mut assessment = schemas(&cut, deadline, &cancellation);
+        assert!(
+            filesystem
+                .publish_sign_isolated(
+                    &serialized,
+                    &cut,
+                    &software,
+                    &components,
+                    &mut local,
+                    &mut assessment,
+                    limits,
+                    &cancellation
+                )
+                .is_err(),
+            "changed selected input {}",
+            target.display()
+        );
+        fs::write(&target, original).unwrap();
+        // Owner configurations retain their original private mode.
+        if target == owner || target == Path::new(required(&oracle, "assessment_owner")) {
+            fs::set_permissions(&target, fs::Permissions::from_mode(0o600)).unwrap();
+        }
+    }
+    let native_before = fs::read(isolated.path().join(required(&oracle, "content"))).unwrap();
+    let mut local_worker = schemas(&cut, deadline, &cancellation);
+    let mut assessment_worker = schemas(&cut, deadline, &cancellation);
+    let published = filesystem
+        .publish_sign_isolated(
+            &serialized,
+            &cut,
+            &software,
+            &components,
+            &mut local_worker,
+            &mut assessment_worker,
+            limits,
+            &cancellation,
+        )
+        .unwrap();
+    assert!(!published.replayed);
+    assert_eq!(published.durability, CreationDurability::DirectoriesSynced);
+    let home = isolated.path().join(published.home.as_str());
+    assert_eq!(
+        fs::read(home.join("sign.json")).unwrap(),
+        decode_hex(oracle["outputs"]["sign.json"].as_str().unwrap())
+    );
+    assert_eq!(
+        fs::read(isolated.path().join(required(&oracle, "content"))).unwrap(),
+        native_before
+    );
+    let content_path = isolated.path().join(required(&oracle, "content"));
+    let mut changed_content = native_before.clone();
+    changed_content.push(b'\n');
+    fs::write(&content_path, changed_content).unwrap();
+    let mut local_worker = schemas(&cut, deadline, &cancellation);
+    let mut assessment_worker = schemas(&cut, deadline, &cancellation);
+    assert!(
+        filesystem
+            .replay_sign_isolated(
+                &serialized,
+                &cut,
+                &software,
+                &components,
+                &mut local_worker,
+                &mut assessment_worker,
+                limits,
+                &cancellation
+            )
+            .is_err(),
+        "replay cannot inherit earlier content verification"
+    );
+    fs::write(&content_path, &native_before).unwrap();
+    let mut local_worker = schemas(&cut, deadline, &cancellation);
+    let mut assessment_worker = schemas(&cut, deadline, &cancellation);
+    let replay = filesystem
+        .replay_sign_isolated(
+            &serialized,
+            &cut,
+            &software,
+            &components,
+            &mut local_worker,
+            &mut assessment_worker,
+            limits,
+            &cancellation,
+        )
+        .unwrap();
+    assert!(replay.replayed);
+    assert_eq!(replay.receipt_sha256, published.receipt_sha256);
+    let form_set: Value =
+        serde_json::from_slice(&fs::read(home.join("sign.human-forms.json")).unwrap()).unwrap();
+    assert!(form_set["forms"].as_array().unwrap().iter().all(|form| {
+        form["bindings"]
+            .as_object()
+            .unwrap()
+            .values()
+            .any(|binding| binding["pointer"] == "/promotion_basis")
+    }));
+}
+
 const SOURCE: &[u8] = include_bytes!(
     "../../../rust/crates/tos-command/tests/fixtures/source_forms_shadow/source.initial.json"
 );
