@@ -19,7 +19,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Instant;
 use tos_foundation::{Digest256, Digest256Hasher, RelativePath, SourceRevision};
 use tos_source_store::{CorpusCutReader, MemberMetadata, SourceMembershipV1};
-use tos_validation::source_cut::CutSchemaExecutor;
+use tos_validation::executor::BatchBudget;
+use tos_validation::source_cut::{CutSchemaCheck, CutSchemaExecutor};
 pub const PHILOSOPHY_SOURCE_CUSTODY: &str = "philosophy-source-custody";
 pub const PHILOSOPHY_MEMBERS_ROLE: &str = "authored-philosophy-current-members";
 pub const PHILOSOPHY_MEMBERS_PROFILE: &str = "tos.philosophy-source.current-members.v1";
@@ -46,6 +47,7 @@ pub struct PhilosophySourceLimits {
     pub views: ViewLimits,
     pub graph: GraphLimits,
     pub multilingual: MultilingualLimits,
+    pub schema_batch: BatchBudget,
 }
 impl Default for PhilosophySourceLimits {
     fn default() -> Self {
@@ -61,6 +63,7 @@ impl Default for PhilosophySourceLimits {
             views: ViewLimits::default(),
             graph: GraphLimits::default(),
             multilingual: MultilingualLimits::default(),
+            schema_batch: BatchBudget::laboratory(),
         }
     }
 }
@@ -81,6 +84,10 @@ impl PhilosophySourceLimits {
                 .checked_mul(self.max_raw_row_bytes)
                 .is_none_or(|n| n > self.max_page_bytes)
             || self.max_work_bytes == 0
+            || self.schema_batch.max_units == 0
+            || self.schema_batch.max_units > 64
+            || self.schema_batch.max_total_raw_bytes == 0
+            || self.schema_batch.max_total_raw_bytes > 32 * 1024 * 1024
         {
             return Err(Error::Budget("philosophy source limits"));
         }
@@ -373,20 +380,28 @@ impl SourceRead<'_, '_> {
         Ok(member.raw)
     }
 }
-fn execute_schema(
+fn execute_schema_batch(
     executor: &mut impl CutSchemaExecutor,
-    path: &str,
-    raw: &[u8],
-    contract: &str,
+    checks: &mut Vec<CutSchemaCheck>,
+    budget: BatchBudget,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> Result<()> {
-    if !executor
-        .check(path, raw, contract, deadline, cancelled)
-        .map_err(|e| Error::Source(format!("philosophy selected schema: {e:?}")))?
-    {
+    if checks.is_empty() {
+        return Ok(());
+    }
+    check(deadline, cancelled)?;
+    let results = executor
+        .check_batch(checks, budget, deadline, cancelled)
+        .map_err(|e| Error::Source(format!("philosophy selected schema batch: {e:?}")))?;
+    check(deadline, cancelled)?;
+    if results.len() != checks.len() {
+        return Err(Error::Invalid("philosophy generated schema batch coverage"));
+    }
+    if results.iter().any(|valid| !valid) {
         return Err(Error::Invalid("philosophy generated schema instance"));
     }
+    checks.clear();
     Ok(())
 }
 // Exact current schemas have a flat top-level object and independent array
@@ -444,6 +459,30 @@ fn validate_projection(
     {
         return Err(Error::Invalid("philosophy projection exact header closure"));
     }
+    let mut checks = Vec::with_capacity(l.schema_batch.max_units);
+    let mut pending_bytes = 0usize;
+    let mut submit = |path: String, raw: Vec<u8>, contract: String| -> Result<()> {
+        if raw.len() > l.schema_batch.max_total_raw_bytes {
+            return Err(Error::Budget("philosophy schema batch instance"));
+        }
+        if checks.len() == l.schema_batch.max_units
+            || pending_bytes
+                .checked_add(raw.len())
+                .is_none_or(|n| n > l.schema_batch.max_total_raw_bytes)
+        {
+            execute_schema_batch(executor, &mut checks, l.schema_batch, deadline, cancelled)?;
+            pending_bytes = 0;
+        }
+        pending_bytes = pending_bytes
+            .checked_add(raw.len())
+            .ok_or(Error::Budget("philosophy schema batch bytes"))?;
+        checks.push(CutSchemaCheck {
+            path,
+            raw,
+            contract,
+        });
+        Ok(())
+    };
     for (key, instance) in actual {
         check(deadline, cancelled)?;
         let selector = format!(
@@ -490,29 +529,20 @@ fn validate_projection(
                 check(deadline, cancelled)?;
                 let raw = bytes(item, l.max_raw_row_bytes)?;
                 charge(work, raw.len(), l)?;
-                execute_schema(
-                    executor,
-                    &format!("{path}#/{key}/{index}"),
-                    &raw,
-                    &format!("{selector}/items"),
-                    deadline,
-                    cancelled,
+                submit(
+                    format!("{path}#/{key}/{index}"),
+                    raw,
+                    format!("{selector}/items"),
                 )?;
             }
         } else {
             let raw = bytes(instance, 1 << 20)?;
             charge(work, raw.len(), l)?;
-            execute_schema(
-                executor,
-                &format!("{path}#/{key}"),
-                &raw,
-                &selector,
-                deadline,
-                cancelled,
-            )?;
+            submit(format!("{path}#/{key}"), raw, selector)?;
         }
     }
-    Ok(())
+    drop(submit);
+    execute_schema_batch(executor, &mut checks, l.schema_batch, deadline, cancelled)
 }
 fn insert(
     stage: &mut KnowledgeStage<'_>,
