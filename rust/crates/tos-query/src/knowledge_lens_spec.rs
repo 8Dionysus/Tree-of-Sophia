@@ -1318,6 +1318,18 @@ pub(crate) fn try_matches_group(
                 .any(|t| types.contains(&t))
         });
         let actual = field(item, string(get(rule, "field")));
+        // Python's list `in` rule constructs both sets eagerly. Nested lists
+        // and objects cannot be hashed, even when an earlier scalar matches.
+        if applicable
+            && string(get(rule, "op")) == "in"
+            && actual.as_array().is_some_and(|values| {
+                values
+                    .iter()
+                    .any(|value| matches!(value, JsonValue::Array(_) | JsonValue::Object(_)))
+            })
+        {
+            return Err(invalid("lens set membership contains an unhashable value"));
+        }
         if applicable
             && !(definition.is_some() && matches!(actual, JsonValue::Null))
             && matches!(string(get(rule, "op")), "gt" | "gte" | "lt" | "lte")

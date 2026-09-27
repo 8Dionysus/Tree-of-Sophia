@@ -828,7 +828,7 @@ pub fn paginate_lens(
     let relations = array(get(&result, "relations"));
     if let Some(cursor) = get(&options, "cursor").as_str() {
         let bytes = b64_decode(cursor)?;
-        let token = parse_json(&bytes, JsonMode::PublishedStrict, JsonLimits::default())
+        let token = parse_json(&bytes, JsonMode::RequestLastWins, JsonLimits::default())
             .map_err(|_| invalid("invalid lens cursor"))?
             .into_root();
         if token.as_object().is_none_or(|o| {
