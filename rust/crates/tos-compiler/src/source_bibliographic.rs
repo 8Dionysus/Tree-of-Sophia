@@ -1145,7 +1145,7 @@ INSERT INTO source_bibliographic_totals VALUES(1,0,0);")?;Ok(())})?;
         // Every edge endpoint, including alternatives, closes over emitted nodes.
         stage.with_connection(WritePhase::Catalog,|db|{
             let mut statement=db.prepare("SELECT CASE WHEN length(payload)<=?1 AND payload_len=length(payload) THEN payload ELSE NULL END FROM source_bibliographic_rows WHERE collection='edges' ORDER BY id")?;
-            let mut rows=statement.query([])?;
+            let mut rows=statement.query([l.catalog.max_output_row_bytes as i64])?;
             while let Some(row)=rows.next()?{
                 let raw:Vec<u8>=row.get(0)?;if raw.len()>l.catalog.max_output_row_bytes{return Err(Error::Budget("bibliographic edge closure bytes"))}
                 let v=SourceRow::parse(&raw,l.catalog.max_output_row_bytes)?;
