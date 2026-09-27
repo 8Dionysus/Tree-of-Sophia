@@ -2776,9 +2776,39 @@ with tempfile.TemporaryDirectory() as d:
             let response = handle_get(&executor, "GET", &target, profile);
             let mut bytes = vec![];
             tos_access::http::write_response(&mut bytes, response).unwrap();
-            assert!(!bytes.starts_with(b"HTTP/1.1 200 "));
+            let marker = bytes.windows(4).position(|w| w == b"\r\n\r\n").unwrap() + 4;
+            let header = std::str::from_utf8(&bytes[..marker]).unwrap();
             assert!(
-                String::from_utf8_lossy(http_packet(&bytes)).contains(if change == 1 {
+                header.starts_with(if change == 1 {
+                    "HTTP/1.1 409 "
+                } else {
+                    "HTTP/1.1 408 "
+                }),
+                "{header}"
+            );
+            let length = header
+                .lines()
+                .find_map(|line| line.strip_prefix("Content-Length: "))
+                .unwrap()
+                .parse::<usize>()
+                .unwrap();
+            assert_eq!(
+                bytes.len() - marker,
+                length,
+                "complete bounded refusal body"
+            );
+            let refusal = parse_json(
+                &bytes[marker..],
+                JsonMode::PublishedStrict,
+                JsonLimits::default(),
+            )
+            .unwrap();
+            assert_eq!(
+                refusal
+                    .root()
+                    .object_get("code")
+                    .and_then(JsonValue::as_str),
+                Some(if change == 1 {
                     "stale_selection"
                 } else {
                     "cancelled"
