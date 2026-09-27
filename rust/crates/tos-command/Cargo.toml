@@ -23,6 +23,9 @@ tos-fd-open = { path = "../tos-fd-open" }
 rustix = { version = "=1.1.5", features = ["fs", "process"] }
 unicode-normalization = "=0.1.24"
 
+[dev-dependencies]
+tos-compiler = { path = "../tos-compiler", features = ["test-fixture"] }
+
 [lib]
 name = "tos_command"
 path = "src/lib.rs"
