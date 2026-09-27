@@ -6,11 +6,11 @@ dist/
 /access/web/node_modules/
 /access/deploy/cloudflare-tunnel/site.env
 /access/deploy/cloudflare-tunnel/*.token
-/access/deploy/cloudflare-worker/node_modules/
+/access/deploy/cloudflare-worker/node_modules
 /access/deploy/cloudflare-worker/.wrangler/
 /access/deploy/cloudflare-worker/.dev.vars*
 /access/deploy/cloudflare-worker/runtime/
-/access/deploy/cloudflare-worker/generated/
+/access/deploy/cloudflare-worker/generated
 
 # Runtime locks of the native canonical HumanForms writer are not corpus data.
 # Source nodes, adjacent form sets, their histories and reviews remain tracked.
