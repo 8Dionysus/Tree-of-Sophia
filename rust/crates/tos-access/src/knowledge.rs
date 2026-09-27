@@ -354,7 +354,7 @@ pub fn execute_selected_knowledge(
                     max_work_steps: budgets.inspect.max_read_vm_steps,
                     block_size: 128,
                 },
-            ))?
+            )?)
         }
         KnowledgeRequest::Contracts => {
             return Err(AccessError::new(
