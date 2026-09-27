@@ -917,6 +917,7 @@ fn exploration_software_contracts_survive_unselected_data_and_all_native_wires()
         .split(|b| *b == b'\n')
         .filter(|frame| !frame.is_empty())
         .collect::<Vec<_>>();
+    assert_eq!(frames.len(), 3, "one complete JSON value per MCP line");
     let last = parse_json(
         frames.last().unwrap(),
         JsonMode::PublishedStrict,
@@ -939,7 +940,7 @@ fn exploration_software_contracts_survive_unselected_data_and_all_native_wires()
     assert_eq!(
         canonical_bytes_v1(
             result.object_get("structuredContent").unwrap(),
-            CanonicalProfile::CorpusSnapshotV1,
+            CanonicalProfile::SourceRecordDigestV1,
             JsonLimits::default()
         )
         .unwrap(),

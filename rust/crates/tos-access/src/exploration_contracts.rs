@@ -184,7 +184,7 @@ pub fn execute(
     }
     let body = canonical_bytes_v1(
         &JsonValue::Object(fields),
-        CanonicalProfile::CorpusSnapshotV1,
+        CanonicalProfile::SourceRecordDigestV1,
         limits,
     )
     .map_err(|_| {
