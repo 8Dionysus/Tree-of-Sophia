@@ -266,7 +266,7 @@ impl PreparedCreation {
                         "native event package entity absent",
                     ))?;
                     if !observed.insert(name.to_owned())
-                        || cmd::integer(entity, "byte_size")? != bytes.len() as u64
+                        || cmd::integer(entity, "size_bytes")? != bytes.len() as u64
                         || cmd::text(entity, "sha256")? != Digest256::of_bytes(bytes).to_hex()
                         || cmd::field(entity, "fixity_verified")? != &JsonValue::Bool(false)
                     {

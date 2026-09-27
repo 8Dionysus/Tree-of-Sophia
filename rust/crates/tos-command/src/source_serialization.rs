@@ -205,13 +205,15 @@ pub(crate) fn capture_creation(
     let mut method_environment = environment;
     method_environment["environment_profile_binding"] =
         binding("source-create-environment.json", &environment_raw);
+    // The observed ELF digest is runtime metadata, not a repository-file
+    // responsibility binding or an authenticated source-to-image relation.
     let event = json!({
         "$schema":"https://tree-of-sophia.local/ToS/contracts/provenance-event-v2.schema.json","schema_version":"tos_provenance_event_v2","event_id":event_id,"event_version":1,"supersedes_event_ref":null,
         "record_binding":{"manifest_ref":format!("{home}/source-create-receipt.json"),"digest_algorithm":"sha256","digest_scope":"exact_event_record_bytes"},
         "activity":{"event_type":"annotation","started_at":started_at,"ended_at":instant()?,"status":"completed_with_warnings","terminal_reason":null,"exit_code":0,"warnings":["Completed in-process buffer serialization; atomic publication occurs afterward.","Selected source bytes are not build or execution authentication; stored-byte fixity is not attested."]},
         "entities":{"inputs":[entity(home,"source-create-request.json",&request_raw,"caller-supplied-metadata-request")],"outputs":outputs,"byproducts":[entity(home,"source-create-environment.json",&environment_raw,"runtime-description")]},
         "derivations":derivations,
-        "responsibility":[{"agent_ref":"software:tos-native-source-commands","agent_kind":"software","role":"executor","responsibility_posture":"performed","evidence_binding":{"ref":"runtime:tos-native-executable","sha256":runtime},"human_evidence_status":"not_applicable"}],
+        "responsibility":[{"agent_ref":"software:tos-native-source-commands","agent_kind":"software","role":"executor","responsibility_posture":"performed","evidence_binding":null,"human_evidence_status":"not_applicable"}],
         "method":{"procedure":{"name":"native-source-metadata-serialization","version":"1","purpose":"Serialize supplied source metadata and source-copy forms without judging their content."},"command_capture":{"disclosure":"withheld_digest_only","argv":null,"argv_sha256":argv_digest,"withholding_reason":"Observed process argv may contain private paths; exact library request is captured separately and process argv does not authenticate its invocation."},"configuration_binding":binding("source-create-request.json",&request_raw),"software_components":selected,"model_invocations":[],"environment":method_environment},
         "manual_changes":{"status":"none_declared","change_receipts":[],"statement":"No manual editing inside this serialization operation; caller authorship is outside its scope."},
         "measurements":[{"metric":"wall_duration_ms","status":"measured","value":started.elapsed().as_secs_f64()*1000.0,"unit":"ms","method":"Rust monotonic Instant from capture through executable/source observation and buffer binding; excludes commit.","evidence_binding":null}],
@@ -229,5 +231,5 @@ pub(crate) fn capture_creation(
 }
 
 fn entity(home: &str, name: &str, raw: &[u8], role: &str) -> Value {
-    json!({"entity_ref":format!("{home}/{name}"),"entity_role":role,"media_type":"application/json","byte_size":raw.len(),"sha256":Digest256::of_bytes(raw).to_hex(),"availability":"owner_local","content_disclosure":"public_metadata_only","fixity_verified":false,"fixity_verified_at":null})
+    json!({"entity_ref":format!("{home}/{name}"),"role":role,"media_type":if name.ends_with(".jsonl"){"application/x-ndjson"}else{"application/json"},"size_bytes":raw.len(),"sha256":Digest256::of_bytes(raw).to_hex(),"availability":"owner_local","content_disclosure":"public_metadata_only","fixity_verified":false,"fixity_verified_at":null})
 }
