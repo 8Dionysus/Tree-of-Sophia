@@ -803,8 +803,10 @@ pub(crate) fn complete_authored_inputs(
                 "reserved owner-local namespace in complete Claim inventory",
             ));
         }
-        // Membership is authenticated by the source-cut descriptor. Its public
-        // metadata inventory must never open private payload or local-content.
+        // This is the complete authenticated authored input, not the public
+        // metadata inventory. Keep eligible content bytes in the command read
+        // closure; maintained_inventory_inner excludes them from its catalog.
+        // Native content still requires its separate binding and rights checks.
         if components
             .iter()
             .any(|part| ["payload", "local-content"].contains(part))
@@ -822,7 +824,6 @@ pub(crate) fn complete_authored_inputs(
                     "private metadata carrier cannot enter maintained public catalog fingerprint",
                 ));
             }
-            continue;
         }
         if files
             .len()
