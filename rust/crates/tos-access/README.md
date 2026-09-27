@@ -88,9 +88,9 @@ the generic dispatcher and unselected NoOwner binary do not look up ambient ToS 
 create registry grants or advertise contracts readiness.
 
 The explicit managed-local native composition follows
-[the versioned consumer contract](../../../../access/contracts/native-managed-release.v1.md).
+[the versioned consumer contract](../../../access/contracts/native-managed-release.v1.md).
 `--release-root` or `TOS_RELEASE_ROOT` selects the existing local ReleaseStore
-holder and a independently persisted producer companion. Missing shared lock,
+holder and an independently persisted producer companion. Missing shared lock,
 current selection, kernel fs-verity custody or actual process enforcement refuses
 admission. The factory retains the admitted model and exact registry carriers;
 its real release lease lasts through final flush. Dossier uses the original

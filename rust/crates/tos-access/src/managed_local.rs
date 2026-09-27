@@ -212,7 +212,7 @@ impl ManagedLocalExecutor {
 }
 fn intended(operation: O) -> &'static str {
     match operation {
-        O::Catalog => tos_query::knowledge_catalog::CATALOG_INTENDED_USE,
+        O::Catalog => tos_query::CATALOG_INTENDED_USE,
         O::Temporal => tos_query::TEMPORAL_INTENDED_USE,
         O::Lens => tos_query::knowledge_lens::LENS_INTENDED_USE,
         O::Focus => tos_query::knowledge_lens::FOCUS_INTENDED_USE,
@@ -372,7 +372,7 @@ impl Authority {
         let selected = bound.selection();
         let inspect = IndexedDisclosureScope {
             operation_id: operation.into(),
-            carrier_layer: tos_query::knowledge_catalog::CATALOG_CARRIER_LAYER.into(),
+            carrier_layer: tos_query::CATALOG_CARRIER_LAYER.into(),
             intended_use: intended.into(),
             selected_model_receipt_id: bound.owner_receipt_id().into(),
             source_cut: selected.source_cut.clone(),
@@ -389,7 +389,7 @@ impl Authority {
         let catalog = CatalogDisclosureScope {
             operation_id: O::Catalog.id().into(),
             carrier_layer: inspect.carrier_layer.clone(),
-            intended_use: tos_query::knowledge_catalog::CATALOG_INTENDED_USE.into(),
+            intended_use: tos_query::CATALOG_INTENDED_USE.into(),
             selected_model_receipt_id: inspect.selected_model_receipt_id.clone(),
             source_cut: inspect.source_cut.clone(),
             through_commit_seq: inspect.through_commit_seq,
