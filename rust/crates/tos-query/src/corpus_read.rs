@@ -751,19 +751,7 @@ pub fn execute_selected_corpus<A: InspectCurrentAuthority + ?Sized>(
         CORPUS_INTENDED_USE,
         budget.inspect,
         |read| {
-            let receipt = read.corpus_receipt()?;
-            if (receipt.profile != tos_compiler::CORPUS_ORIGINAL_PROFILE
-                && receipt.profile != tos_compiler::NATIVE_CORPUS_ORIGINAL_PROFILE)
-                || receipt.descriptor_sha256
-                    != bound.selection().vocabulary.descriptor_sha256.to_hex()
-                || receipt.source_cut != bound.selection().source_cut
-                || receipt.membership_root != bound.selection().source_membership_root.to_hex()
-            {
-                return Err(fail(
-                    SearchV2ErrorCode::CorruptSelectedCarrier,
-                    "selected corpus component binding differs",
-                ));
-            }
+            let receipt = bound_original_receipt(read, bound)?;
             let header = read
                 .corpus_row(&receipt, Collection::Header, &Selector::All, None)?
                 .ok_or_else(|| {
@@ -786,6 +774,69 @@ pub fn execute_selected_corpus<A: InspectCurrentAuthority + ?Sized>(
                 remaining: budget.max_work_steps,
             };
             corpus.packet(request)
+        },
+    )
+}
+
+fn bound_original_receipt<A: InspectCurrentAuthority + ?Sized>(
+    read: &mut Reader<'_, '_, A>,
+    bound: &BoundCmpKnowledge<'_>,
+) -> Result<CorpusOriginalReceipt, SearchV2Error> {
+    let receipt = read.corpus_receipt()?;
+    if (receipt.profile != tos_compiler::CORPUS_ORIGINAL_PROFILE
+        && receipt.profile != tos_compiler::NATIVE_CORPUS_ORIGINAL_PROFILE)
+        || receipt.descriptor_sha256 != bound.selection().vocabulary.descriptor_sha256.to_hex()
+        || receipt.source_cut != bound.selection().source_cut
+        || receipt.membership_root != bound.selection().source_membership_root.to_hex()
+    {
+        return Err(fail(
+            SearchV2ErrorCode::CorruptSelectedCarrier,
+            "selected corpus component binding differs",
+        ));
+    }
+    Ok(receipt)
+}
+
+/// Site-default identity projection, not the complete Summary packet. Consult
+/// only cold-verified GraphViews index identities in encounter order, stopping
+/// at the first supported view. The existing summary scope and disclosure hold
+/// cover every consulted identity, including skipped/null entries.
+pub fn execute_selected_corpus_view_ids<A: InspectCurrentAuthority + ?Sized>(
+    model: &mut VerifiedKnowledgeModel<'_>,
+    bound: &BoundCmpKnowledge<'_>,
+    authority: &mut A,
+    budget: CorpusReadBudget,
+) -> Result<DisclosableInspect, SearchV2Error> {
+    if budget.max_work_steps == 0 {
+        return Err(budget_error());
+    }
+    execute_selected_carrier_packet(
+        model,
+        bound,
+        authority,
+        CorpusReadRequest::Summary.operation_id(),
+        CORPUS_INTENDED_USE,
+        budget.inspect,
+        |read| {
+            let receipt = bound_original_receipt(read, bound)?;
+            let mut after = None;
+            let mut remaining = budget.max_work_steps;
+            let mut views = vec![];
+            loop {
+                if remaining == 0 {
+                    return Err(budget_error());
+                }
+                let Some(row) = read.corpus_view_identity(&receipt, after)? else {
+                    break;
+                };
+                remaining -= 1;
+                after = Some(row.ordinal);
+                if let Some(id) = row.view_id.filter(|id| supported(id)) {
+                    views.push(object(vec![("view_id", text(&id))]));
+                    break;
+                }
+            }
+            Ok(object(vec![("graph_views", array(views))]))
         },
     )
 }

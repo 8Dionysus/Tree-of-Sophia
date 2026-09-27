@@ -75,6 +75,17 @@ pub trait InspectCurrentAuthority {
     ) -> Result<(), SearchV2Error> {
         Err(error(SearchV2ErrorCode::Unavailable, "selected corpus original authorization unavailable"))
     }
+    /// Cold-verified GraphViews index identity, covered by the same corpus
+    /// projection hold. No original body or source-text grant is implied.
+    fn authorize_corpus_view_identity_current(
+        &mut self,
+        _: &tos_compiler::CorpusOriginalReceipt,
+        _: u64,
+        _: Option<&str>,
+        _: Digest256,
+    ) -> Result<(), SearchV2Error> {
+        Err(error(SearchV2ErrorCode::Unavailable, "selected corpus view identity authorization unavailable"))
+    }
     /// The current projection hold covers the exact selected philosophy
     /// header and every consulted original row. Custody alone is not a grant.
     fn authorize_philosophy_original_current(
@@ -201,6 +212,22 @@ impl<A: InspectCurrentAuthority + ?Sized> Reader<'_, '_, A> {
             tos_compiler::Error::Budget(_) | tos_compiler::Error::SqliteVmBudget { .. } => budget_error(),
             _ => corrupt("selected corpus original receipt invalid"),
         })
+    }
+    pub(crate) fn corpus_view_identity(&mut self, receipt: &tos_compiler::CorpusOriginalReceipt, after: Option<u64>) -> Result<Option<tos_compiler::CorpusOriginalViewIdentity>, SearchV2Error> {
+        self.check_interrupt()?;
+        if self.rows >= self.budget.max_rows { return Err(budget_error()); }
+        let bytes = self.budget.max_decoded_bytes.saturating_sub(self.decoded).min(self.budget.max_payload_bytes as u64);
+        let page = self.model.corpus_original_view_identities_under_caller_budget(after, 1, self.budget.max_field_bytes, bytes).map_err(|reason| match reason {
+            tos_compiler::Error::Budget(_) | tos_compiler::Error::SqliteVmBudget { .. } => budget_error(),
+            _ => corrupt("selected corpus view identity read failed"),
+        })?;
+        self.charge_original(page.rows.len(), page.decoded_bytes)?;
+        let Some(row) = page.rows.into_iter().next() else { return Ok(None); };
+        if after.is_some_and(|previous| row.ordinal <= previous) { return Err(corrupt("selected corpus view identity order differs")); }
+        let sha = Digest256::from_hex(&row.raw_sha256).map_err(|_| corrupt("selected corpus view identity digest invalid"))?;
+        self.authority.authorize_corpus_view_identity_current(receipt, row.ordinal, row.view_id.as_deref(), sha)?;
+        self.check_interrupt()?;
+        Ok(Some(row))
     }
     pub(crate) fn corpus_row(&mut self, receipt: &tos_compiler::CorpusOriginalReceipt, collection: tos_compiler::CorpusOriginalCollection, selector: &tos_compiler::CorpusOriginalSelector, after: Option<u64>) -> Result<Option<(u64, JsonValue)>, SearchV2Error> {
         self.check_interrupt()?;
