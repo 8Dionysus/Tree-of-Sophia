@@ -20,7 +20,8 @@ fn fixture_files(profile: &str) -> (BTreeMap<String, Vec<u8>>, Vec<u8>, String) 
         .join("rust/crates/tos-command/tests/fixtures/source_forms_shadow")
         .join(profile);
     let independent_work = profile == "de_constantia";
-    let config = fs::read(packet.join(if independent_work {
+    let claim_profile = matches!(profile, "claim_v1" | "claim_v2");
+    let config = fs::read(packet.join(if independent_work || claim_profile {
         "owner.json"
     } else {
         "owner.synthetic.json"
@@ -28,7 +29,15 @@ fn fixture_files(profile: &str) -> (BTreeMap<String, Vec<u8>>, Vec<u8>, String) 
     .unwrap();
     let owner: Value = serde_json::from_slice(&config).unwrap();
     let path = owner["source_path"].as_str().unwrap().to_owned();
-    let target = format!("{}.human-forms.json", path.strip_suffix(".json").unwrap());
+    let target = if claim_profile {
+        format!(
+            "{}.{}.human-forms.json",
+            path.strip_suffix(".jsonl").unwrap(),
+            Digest256::of_bytes(owner["claim_id"].as_str().unwrap().as_bytes()).to_hex()
+        )
+    } else {
+        format!("{}.human-forms.json", path.strip_suffix(".json").unwrap())
+    };
     let mut files = BTreeMap::new();
     // Existing exact selected schema resources; no production corpus traversal.
     for entry in fs::read_dir(repository.join("ToS/contracts")).unwrap() {
@@ -43,7 +52,7 @@ fn fixture_files(profile: &str) -> (BTreeMap<String, Vec<u8>>, Vec<u8>, String) 
     }
     // Native oracle pins its exact source schema, independently of current
     // schema evolution. The fixture worker receives these selected bytes.
-    if !profile.is_empty() && !independent_work {
+    if !profile.is_empty() && !independent_work && !claim_profile {
         let source: Value =
             serde_json::from_slice(&fs::read(packet.join("source.initial.json")).unwrap()).unwrap();
         let schema = match source["schema_version"].as_str().unwrap() {
@@ -59,7 +68,7 @@ fn fixture_files(profile: &str) -> (BTreeMap<String, Vec<u8>>, Vec<u8>, String) 
     }
     files.insert(
         path,
-        fs::read(packet.join(if independent_work {
+        fs::read(packet.join(if independent_work || claim_profile {
             "source.json"
         } else {
             "source.initial.json"
@@ -68,13 +77,27 @@ fn fixture_files(profile: &str) -> (BTreeMap<String, Vec<u8>>, Vec<u8>, String) 
     );
     files.insert(
         target.clone(),
-        fs::read(packet.join(if independent_work {
+        fs::read(packet.join(if independent_work || claim_profile {
             "initial.json"
         } else {
             "form-set.initial.json"
         }))
         .unwrap(),
     );
+    if claim_profile {
+        let expected: BTreeMap<String, String> =
+            serde_json::from_slice(&fs::read(packet.join("source_contracts.json")).unwrap())
+                .unwrap();
+        for (path, digest) in expected {
+            let raw = fs::read(repository.join(&path)).unwrap();
+            assert_eq!(
+                Digest256::of_bytes(&raw).to_prefixed(),
+                digest,
+                "pinned Claim oracle source resource: {path}"
+            );
+            files.insert(path, raw);
+        }
+    }
     (files, config, target)
 }
 pub(super) fn open_cut(
@@ -176,6 +199,20 @@ pub(super) fn successor(
     revision
 }
 
+fn assert_form_oracle_response(response: &tos_foundation::JsonValue, expected: &Path) {
+    let actual: Value = serde_json::from_slice(
+        &tos_foundation::canonical_bytes_v1(
+            response,
+            tos_foundation::CanonicalProfile::SourceCommandInputV1,
+            JsonLimits::default(),
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    let oracle: Value = serde_json::from_slice(&fs::read(expected).unwrap()).unwrap();
+    assert_eq!(actual, oracle, "{}", expected.display());
+}
+
 #[test]
 fn maintained_forms_propose_exact_bytes_bind_real_cut_and_refuse_unissued_admission() {
     let repository = super::validation_cut_cases::repository()
@@ -213,6 +250,8 @@ fn maintained_forms_propose_exact_bytes_bind_real_cut_and_refuse_unissued_admiss
         "artifact-v2",
         "composite-v1",
         "de_constantia",
+        "claim_v1",
+        "claim_v2",
     ] {
         let (mut files, config, target) = fixture_files(profile);
         let packet = super::validation_cut_cases::repository()
@@ -246,7 +285,8 @@ fn maintained_forms_propose_exact_bytes_bind_real_cut_and_refuse_unissued_admiss
         let cut = open_cut(&root, base, deadline, &cancel);
         let mut worker = schemas(&cut, deadline, &cancel);
         let independent_work = profile == "de_constantia";
-        let request = fs::read(packet.join(if independent_work {
+        let claim_profile = matches!(profile, "claim_v1" | "claim_v2");
+        let request = fs::read(packet.join(if independent_work || claim_profile {
             "apply_request.json"
         } else {
             "apply.request.json"
@@ -293,6 +333,69 @@ fn maintained_forms_propose_exact_bytes_bind_real_cut_and_refuse_unissued_admiss
                 assert_eq!(actual, oracle, "{profile}: {input}");
             }
         }
+        if claim_profile {
+            let mut operations = vec![
+                ("describe_request.json", "describe.json"),
+                (
+                    "prepare-claim-statement.request.json",
+                    "prepare-claim-statement.response.json",
+                ),
+            ];
+            if profile == "claim_v2" {
+                operations.extend([
+                    (
+                        "prepare-claim-name.request.json",
+                        "prepare-claim-name.response.json",
+                    ),
+                    (
+                        "prepare-claim-caption.request.json",
+                        "prepare-claim-caption.response.json",
+                    ),
+                    (
+                        "prepare-claim-hover.request.json",
+                        "prepare-claim-hover.response.json",
+                    ),
+                ]);
+            }
+            for (input, expected) in operations {
+                let mut observed = ctx.clone();
+                observed.request_raw = fs::read(packet.join(input)).unwrap();
+                let result = run_form_command_from_captures(
+                    &observed,
+                    &cut,
+                    &software,
+                    &components,
+                    &mut worker,
+                    deadline,
+                    &cancel,
+                )
+                .unwrap();
+                assert!(result.changes.is_empty());
+                assert_form_oracle_response(&result.response, &packet.join(expected));
+            }
+            if profile == "claim_v1" {
+                let mut forbidden = ctx.clone();
+                forbidden.request_raw = fs::read(
+                    packet
+                        .parent()
+                        .unwrap()
+                        .join("claim_v2/prepare-claim-name.request.json"),
+                )
+                .unwrap();
+                assert!(matches!(
+                    run_form_command_from_captures(
+                        &forbidden,
+                        &cut,
+                        &software,
+                        &components,
+                        &mut worker,
+                        deadline,
+                        &cancel,
+                    ),
+                    Err(SourceCommandError::Denied(_))
+                ));
+            }
+        }
         if independent_work {
             let mut wrong_guard = ctx.clone();
             let request = String::from_utf8(wrong_guard.request_raw.clone()).unwrap();
@@ -332,6 +435,73 @@ fn maintained_forms_propose_exact_bytes_bind_real_cut_and_refuse_unissued_admiss
                 Err(SourceCommandError::Invalid(_))
             ));
         }
+        if profile == "claim_v1" {
+            let owner: Value = serde_json::from_slice(&config).unwrap();
+            let source_path = owner["source_path"].as_str().unwrap();
+            for (name, duplicated) in [("absent", false), ("duplicate", true)] {
+                let mut invalid_files = files.clone();
+                let raw = if duplicated {
+                    let mut raw = invalid_files[source_path].clone();
+                    raw.push(b'\n');
+                    raw.extend_from_slice(&invalid_files[source_path]);
+                    raw
+                } else {
+                    Vec::new()
+                };
+                invalid_files.insert(source_path.to_owned(), raw);
+                let invalid_root = temporary.path().join(name);
+                let invalid_base =
+                    super::validation_cut_cases::write_cut_store(&invalid_files, &invalid_root);
+                let invalid_cut = open_cut(&invalid_root, invalid_base, deadline, &cancel);
+                let mut invalid_worker = schemas(&invalid_cut, deadline, &cancel);
+                let mut invalid_ctx = context(
+                    &invalid_files,
+                    config.clone(),
+                    fs::read(packet.join("describe_request.json")).unwrap(),
+                    invalid_base,
+                );
+                invalid_ctx.files.push(SourceFile {
+                    path: component_path.clone(),
+                    raw: software_raw.clone(),
+                });
+                assert!(
+                    matches!(
+                        run_form_command_from_captures(
+                            &invalid_ctx,
+                            &invalid_cut,
+                            &software,
+                            &components,
+                            &mut invalid_worker,
+                            deadline,
+                            &cancel,
+                        ),
+                        Err(SourceCommandError::Invalid(_))
+                    ),
+                    "selected Claim must occur exactly once: {name}"
+                );
+            }
+        }
+        if profile == "claim_v2" {
+            let mut narrowed_ctx = ctx.clone();
+            let mut narrowed: Value = serde_json::from_slice(&config).unwrap();
+            narrowed["allowed_field_ids"] = serde_json::json!(["claim.statement"]);
+            narrowed_ctx.configuration_raw = serde_json::to_vec(&narrowed).unwrap();
+            assert!(
+                matches!(
+                    run_form_command_from_captures(
+                        &narrowed_ctx,
+                        &cut,
+                        &software,
+                        &components,
+                        &mut worker,
+                        deadline,
+                        &cancel,
+                    ),
+                    Err(SourceCommandError::Denied(_))
+                ),
+                "field revocation applies before new Claim apply"
+            );
+        }
         let prepared = run_form_command_from_captures(
             &ctx,
             &cut,
@@ -343,7 +513,7 @@ fn maintained_forms_propose_exact_bytes_bind_real_cut_and_refuse_unissued_admiss
         )
         .unwrap();
         assert_eq!(prepared.changes.len(), 1, "{profile}");
-        if independent_work {
+        if independent_work || claim_profile {
             let actual: Value = serde_json::from_slice(
                 &tos_foundation::canonical_bytes_v1(
                     &prepared.response,
@@ -360,7 +530,7 @@ fn maintained_forms_propose_exact_bytes_bind_real_cut_and_refuse_unissued_admiss
         let raw = prepared.changes[0].after.as_ref().unwrap();
         assert_eq!(
             *raw,
-            fs::read(packet.join(if independent_work {
+            fs::read(packet.join(if independent_work || claim_profile {
                 "published.json"
             } else {
                 "form-set.published.json"
@@ -555,7 +725,7 @@ fn maintained_forms_propose_exact_bytes_bind_real_cut_and_refuse_unissued_admiss
         .unwrap();
         assert!(replay.replayed);
         assert!(replay.changes.is_empty());
-        if independent_work {
+        if independent_work || claim_profile {
             let actual: Value = serde_json::from_slice(
                 &tos_foundation::canonical_bytes_v1(
                     &replay.response,
@@ -567,7 +737,36 @@ fn maintained_forms_propose_exact_bytes_bind_real_cut_and_refuse_unissued_admiss
             .unwrap();
             let oracle: Value =
                 serde_json::from_slice(&fs::read(packet.join("replay.json")).unwrap()).unwrap();
-            assert_eq!(actual, oracle, "independent Work replay result");
+            assert_eq!(actual, oracle, "{profile}: whole replay result");
+        }
+        if profile == "claim_v2" {
+            let mut narrowed: Value = serde_json::from_slice(&config).unwrap();
+            narrowed["allowed_field_ids"] = serde_json::json!(["claim.statement"]);
+            let mut narrowed_ctx = context(
+                &files,
+                serde_json::to_vec(&narrowed).unwrap(),
+                request.clone(),
+                candidate,
+            );
+            narrowed_ctx.files.push(SourceFile {
+                path: component_path.clone(),
+                raw: software_raw.clone(),
+            });
+            assert!(
+                matches!(
+                    run_form_command_from_captures(
+                        &narrowed_ctx,
+                        &candidate_cut,
+                        &software,
+                        &components,
+                        &mut worker,
+                        deadline,
+                        &cancel,
+                    ),
+                    Err(SourceCommandError::Denied(_))
+                ),
+                "field revocation applies before Claim replay"
+            );
         }
         // Current revocation must apply before historical receipt replay.
         let mut revoked: Value = serde_json::from_slice(&config).unwrap();

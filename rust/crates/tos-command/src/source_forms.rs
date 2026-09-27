@@ -39,7 +39,7 @@ pub fn run_form_command_from_captures(
     cancelled: &AtomicBool,
 ) -> Result<PreparedCommand> {
     ctx.check_from_selected_captures(source, software, components, deadline, cancelled)?;
-    run_form_command(ctx, worker, deadline, cancelled)
+    run_form_command(ctx, source, worker, deadline, cancelled)
 }
 
 /// Execute maintained owner/request/form proposal semantics over caller bytes.
@@ -49,12 +49,15 @@ pub fn run_form_command_from_captures(
 /// explicitly refuses until complete source admission and owner fencing exist.
 pub fn run_form_command(
     ctx: &CommandContext,
+    cut: &CorpusCutReader,
     worker: &mut CutWorkerSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> Result<PreparedCommand> {
     ctx.check()?;
-    if worker.source_revision() != ctx.base_revision {
+    if worker.source_revision() != ctx.base_revision
+        || cut.current().revision() != ctx.base_revision
+    {
         return Err(Error::Conflict(
             "schema worker and command source cut differ",
         ));
@@ -63,28 +66,48 @@ pub fn run_form_command(
     let request = parse(&ctx.request_raw)?;
     let owner = text(&config, "schema_version")?;
     let canonical = owner == "tos_local_canonical_form_owner_v1";
+    let claim_owner = matches!(
+        owner,
+        "tos_local_claim_form_owner_v1" | "tos_local_claim_form_owner_v2"
+    );
     if !matches!(
         owner,
-        "tos_local_source_command_owner_v1" | "tos_local_canonical_form_owner_v1"
+        "tos_local_source_command_owner_v1"
+            | "tos_local_canonical_form_owner_v1"
+            | "tos_local_claim_form_owner_v1"
+            | "tos_local_claim_form_owner_v2"
     ) {
         return Err(Error::Unsupported(
             "Claim/profile owner form closure requires its exact source adapter",
         ));
     }
-    exact_keys(
-        &config,
-        &[
-            "schema_version",
-            "uid",
-            "principal_id",
-            "source_root",
-            "source_path",
-            "authority_ref",
-            "allowed_form_ids",
-            "allowed_operations",
-            "expires_at",
-        ],
-    )?;
+    let mut config_keys = vec![
+        "schema_version",
+        "uid",
+        "principal_id",
+        "source_root",
+        "source_path",
+        "authority_ref",
+        "allowed_form_ids",
+        "allowed_operations",
+        "expires_at",
+    ];
+    if claim_owner {
+        config_keys.push("claim_id");
+    }
+    if owner == "tos_local_claim_form_owner_v2" {
+        config_keys.push("allowed_field_ids");
+    }
+    exact_keys(&config, &config_keys)?;
+    if claim_owner {
+        if ctx.configuration_raw.len() > 1_048_576 || ctx.request_raw.len() > 1_048_576 {
+            return Err(Error::Invalid("Claim owner/request byte budget"));
+        }
+        claim_form_field_ids(&config)?;
+        if !claim_id(text(&config, "claim_id")?) {
+            return Err(Error::Invalid("Claim forms require stable Claim identity"));
+        }
+    }
     if integer(&config, "uid")? != ctx.effective_uid
         || !nonblank(text(&config, "principal_id")?)
         || !nonblank(text(&config, "authority_ref")?)
@@ -106,7 +129,11 @@ pub fn run_form_command(
         }
     } else if !path.starts_with("ToS/source-witnesses/")
         || path.starts_with("ToS/source-witnesses/owner-local/")
-        || !path.ends_with(".json")
+        || (if claim_owner {
+            parts.last() != Some(&"source-claims.jsonl")
+        } else {
+            !path.ends_with(".json")
+        })
         || path.ends_with(".human-forms.json")
         || parts
             .iter()
@@ -136,28 +163,40 @@ pub fn run_form_command(
     let source_raw = ctx
         .file(&source_path)?
         .ok_or(Error::Invalid("explicit source absent"))?;
-    let source = parse(source_raw)?;
+    let source = if claim_owner {
+        select_form_claim(source_raw, text(&config, "claim_id")?)?
+    } else {
+        parse(source_raw)?
+    };
     let version = text(&source, "schema_version")?;
-    let schema = match version {
-        "tos_canonical_node_v1" if canonical => "ToS/contracts/tos-node-contract.schema.json",
-        "tos_artifact_source_witness_v1" if !canonical => {
-            "ToS/contracts/artifact-source-witness.schema.json"
-        }
-        "tos_artifact_source_witness_v2" if !canonical => {
-            "ToS/contracts/artifact-source-witness-v2.schema.json"
-        }
-        "tos_scholarly_composite_witness_v1" if !canonical => {
-            "ToS/contracts/scholarly-composite-witness.schema.json"
-        }
-        "tos_corpus_record_v1" if !canonical => "ToS/contracts/corpus-record.schema.json",
-        "tos_historical_record_v1" if !canonical => "ToS/contracts/historical-record.schema.json",
-        _ => {
-            return Err(Error::Unsupported(
-                "source profile needs complete registry/native binding adapter",
-            ));
+    let schema = if claim_owner {
+        ""
+    } else {
+        match version {
+            "tos_canonical_node_v1" if canonical => "ToS/contracts/tos-node-contract.schema.json",
+            "tos_artifact_source_witness_v1" if !canonical => {
+                "ToS/contracts/artifact-source-witness.schema.json"
+            }
+            "tos_artifact_source_witness_v2" if !canonical => {
+                "ToS/contracts/artifact-source-witness-v2.schema.json"
+            }
+            "tos_scholarly_composite_witness_v1" if !canonical => {
+                "ToS/contracts/scholarly-composite-witness.schema.json"
+            }
+            "tos_corpus_record_v1" if !canonical => "ToS/contracts/corpus-record.schema.json",
+            "tos_historical_record_v1" if !canonical => {
+                "ToS/contracts/historical-record.schema.json"
+            }
+            _ => {
+                return Err(Error::Unsupported(
+                    "source profile needs complete registry/native binding adapter",
+                ));
+            }
         }
     };
-    schema_check(worker, path, source_raw, schema, deadline, cancelled)?;
+    if !claim_owner {
+        schema_check(worker, path, source_raw, schema, deadline, cancelled)?;
+    }
     let subject = metadata_subject(&source)?;
     if canonical {
         let kind = text(&source, "node_type")?;
@@ -183,11 +222,19 @@ pub fn run_form_command(
     {
         return Err(Error::Denied("historical metadata visibility"));
     }
-    let stem = path
-        .strip_suffix(".json")
-        .ok_or(Error::Invalid("source filename"))?;
-    let target = tos_foundation::RelativePath::parse(&format!("{stem}.human-forms.json"))
-        .map_err(|_| Error::Invalid("adjacent forms path"))?;
+    let target = if claim_owner {
+        let stem = path
+            .strip_suffix(".jsonl")
+            .ok_or(Error::Invalid("Claim stream filename"))?;
+        let suffix = Digest256::of_bytes(text(&config, "claim_id")?.as_bytes()).to_hex();
+        tos_foundation::RelativePath::parse(&format!("{stem}.{suffix}.human-forms.json"))
+    } else {
+        let stem = path
+            .strip_suffix(".json")
+            .ok_or(Error::Invalid("source filename"))?;
+        tos_foundation::RelativePath::parse(&format!("{stem}.human-forms.json"))
+    }
+    .map_err(|_| Error::Invalid("adjacent forms path"))?;
     let old_raw = ctx.file(&target)?;
     let old = old_raw.map(parse).transpose()?;
     if let Some(raw) = old_raw {
@@ -224,7 +271,106 @@ pub fn run_form_command(
             | "tos_artifact_source_witness_v2"
             | "tos_scholarly_composite_witness_v1"
     );
-    let contracts = if bound_contracts {
+    let contracts = if claim_owner {
+        let raw = canonical_bytes(&source)?;
+        let report = tos_validation::record_rules::validate_source_claim_from_cut(
+            cut,
+            &raw,
+            worker,
+            tos_validation::item_rules::ItemLimits {
+                max_member_bytes: 1_048_576,
+                // VAL accounts its selected decoded Claim input; the owner
+                // snapshot counts the original complete stream exactly once.
+                max_total_bytes: 8_388_608 - source_raw.len() as u64 + raw.len() as u64,
+                max_state_bytes: 8_388_608,
+                max_issues: 128,
+                deadline,
+            },
+            cancelled,
+        )
+        .map_err(|_| Error::Unsupported("Claim local profile execution incomplete"))?;
+        if report.source_revision != ctx.base_revision
+            || report.source_input_sha256 != Digest256::of_bytes(&raw)
+        {
+            return Err(Error::Conflict("Claim local profile input binding differs"));
+        }
+        if !report.issues.is_empty() {
+            return Err(Error::Invalid(
+                "Claim violates selected local source profile",
+            ));
+        }
+        if report.dependency_digests.len() > 128 {
+            return Err(Error::Invalid("Claim source dependency snapshot count"));
+        }
+        let mut contracts = object(vec![]);
+        for (path, digest) in &report.dependency_digests {
+            let dependency = tos_foundation::RelativePath::parse(path)
+                .map_err(|_| Error::Invalid("Claim profile dependency path"))?;
+            let raw = ctx.file(&dependency)?.ok_or(Error::Invalid(
+                "Claim profile dependency absent from command reads",
+            ))?;
+            if Digest256::of_bytes(raw) != *digest {
+                return Err(Error::Conflict(
+                    "Claim profile dependency differs from selected cut",
+                ));
+            }
+            source_command::set(&mut contracts, path, string(&digest.to_prefixed()))?;
+        }
+        // claim_field_catalog is a distinct existing reader predicate:
+        // recognized statement language/script uses the corpus field-language
+        // fragment. This extra read does not alter SourceClaimProfiles' owner
+        // configuration digest or pretend to be source admission.
+        if source
+            .object_get("qualifiers")
+            .and_then(|qualifiers| qualifiers.object_get("statement"))
+            .and_then(JsonValue::as_str)
+            .is_some_and(nonblank)
+        {
+            let contract =
+                tos_foundation::RelativePath::parse("ToS/contracts/corpus-record.schema.json")
+                    .map_err(|_| Error::Invalid("field language schema path"))?;
+            let raw = ctx.file(&contract)?.ok_or(Error::Invalid(
+                "Claim field language schema absent from command reads",
+            ))?;
+            let metadata = cut.current().member(&contract).ok_or(Error::Invalid(
+                "Claim field language schema absent from cut",
+            ))?;
+            if Digest256::of_bytes(raw) != metadata.sha256 {
+                return Err(Error::Conflict(
+                    "Claim field language schema differs from cut",
+                ));
+            }
+            let qualifiers = field(&source, "qualifiers")?;
+            let declarations = object(vec![(
+                "notes",
+                object(vec![
+                    (
+                        "language",
+                        qualifiers
+                            .object_get("statement_language")
+                            .cloned()
+                            .unwrap_or(JsonValue::Null),
+                    ),
+                    (
+                        "script",
+                        qualifiers
+                            .object_get("statement_script")
+                            .cloned()
+                            .unwrap_or(JsonValue::Null),
+                    ),
+                ]),
+            )]);
+            schema_check(
+                worker,
+                path,
+                &canonical_bytes(&declarations)?,
+                "ToS/contracts/corpus-record.schema.json#/properties/field_languages",
+                deadline,
+                cancelled,
+            )?;
+        }
+        Some(contracts)
+    } else if bound_contracts {
         let schema_path = tos_foundation::RelativePath::parse(schema)
             .map_err(|_| Error::Invalid("schema path"))?;
         let raw = ctx
@@ -289,6 +435,9 @@ pub fn run_form_command(
         {
             return Err(Error::Denied("prepared form outside scope"));
         }
+        if claim_owner && !claim_form_field_ids(&config)?.contains(&text(&request, "field_id")?) {
+            return Err(Error::Denied("Claim form field outside delegation"));
+        }
         let change = prepare_form_change(
             &source,
             old.as_ref(),
@@ -297,6 +446,9 @@ pub fn run_form_command(
             text(&request, "field_id")?,
         )?;
         check_changes(&config, std::slice::from_ref(&change), canonical)?;
+        if claim_owner {
+            check_claim_form_changes(&config, std::slice::from_ref(&change), old.as_ref(), true)?;
+        }
         let proposed = apply_form_changes(old.as_ref(), &subject, std::slice::from_ref(&change))?;
         schema_check(
             worker,
@@ -365,6 +517,9 @@ pub fn run_form_command(
     }
     let changes = array(&request, "changes")?;
     check_changes(&config, changes, canonical)?;
+    if claim_owner {
+        check_claim_form_changes(&config, changes, old.as_ref(), false)?;
+    }
     let request_digest = Digest256::of_bytes(&canonical_bytes(&request)?).to_prefixed();
     if let Some(receipt) = old
         .as_ref()
@@ -378,6 +533,19 @@ pub fn run_form_command(
     {
         if text(receipt, "request_digest")? != request_digest {
             return Err(Error::Conflict("command identity reused"));
+        }
+        if claim_owner {
+            let results = JsonValue::Array(
+                changes
+                    .iter()
+                    .map(|change| form_reference(field(change, "form")?))
+                    .collect::<Result<Vec<_>>>()?,
+            );
+            if !same(field(receipt, "results")?, &results)? {
+                return Err(Error::Invalid(
+                    "Claim form receipt differs from request results",
+                ));
+            }
         }
         return ctx.plan(
             if canonical {
@@ -408,6 +576,9 @@ pub fn run_form_command(
         return Err(Error::Conflict(
             "expected source/configuration/revision stale",
         ));
+    }
+    if claim_owner {
+        check_claim_form_changes(&config, changes, old.as_ref(), true)?;
     }
     let mut successor = apply_form_changes(old.as_ref(), &subject, changes)?;
     let views = materialize_source_forms(&source, &successor)?;
@@ -515,6 +686,151 @@ fn form_id(value: &str) -> bool {
             ch.is_ascii_lowercase() || ch.is_ascii_digit() || matches!(ch, b'.' | b'_' | b'-')
         })
 }
+fn claim_id(value: &str) -> bool {
+    value.strip_prefix("tos.claim.").is_some_and(|rest| {
+        rest.split(['.', '-']).all(|part| {
+            !part.is_empty()
+                && part
+                    .bytes()
+                    .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit())
+        })
+    })
+}
+
+fn select_form_claim(raw: &[u8], id: &str) -> Result<JsonValue> {
+    if raw.len() > 1_048_576 {
+        return Err(Error::Invalid("Claim form source stream byte budget"));
+    }
+    let mut selected = None;
+    // Maintained _read returns bytes: bytes.splitlines recognizes CR/LF,
+    // and bytes.strip has these six ASCII whitespace characters.
+    for line in raw.split(|byte| matches!(*byte, b'\r' | b'\n')) {
+        if line
+            .iter()
+            .all(|byte| matches!(*byte, b'\t' | b'\n' | 0x0b | 0x0c | b'\r' | b' '))
+        {
+            continue;
+        }
+        let claim = parse(line)?;
+        if claim.as_object().is_none() {
+            return Err(Error::Invalid("Claim stream row must be an object"));
+        }
+        if claim.object_get("claim_id").and_then(JsonValue::as_str) == Some(id) {
+            if selected.replace(claim).is_some() {
+                return Err(Error::Invalid("delegated Claim must resolve exactly once"));
+            }
+        }
+    }
+    selected.ok_or(Error::Invalid("delegated Claim must resolve exactly once"))
+}
+
+fn claim_form_field_ids(config: &JsonValue) -> Result<Vec<&str>> {
+    if text(config, "schema_version")? == "tos_local_claim_form_owner_v1" {
+        return Ok(vec!["claim.statement"]);
+    }
+    let values = array(config, "allowed_field_ids")?;
+    if !(1..=4).contains(&values.len()) {
+        return Err(Error::Invalid("Claim field scope size"));
+    }
+    let mut seen = HashSet::new();
+    values
+        .iter()
+        .map(|value| {
+            let value = value
+                .as_str()
+                .ok_or(Error::Invalid("Claim field scope text"))?;
+            if !matches!(
+                value,
+                "claim.statement" | "claim.name" | "claim.caption" | "claim.hover"
+            ) || !seen.insert(value)
+            {
+                return Err(Error::Invalid(
+                    "Claim field scope must be explicit known unique selectors",
+                ));
+            }
+            Ok(value)
+        })
+        .collect()
+}
+
+fn check_claim_form_changes(
+    config: &JsonValue,
+    changes: &[JsonValue],
+    set: Option<&JsonValue>,
+    current: bool,
+) -> Result<()> {
+    let allowed = claim_form_field_ids(config)?;
+    let mut selected_ids = HashSet::new();
+    let mut forms = Vec::new();
+    let mut predecessors = Vec::new();
+    for change in changes {
+        let form = field(change, "form")?;
+        let predecessor = field(change, "expected_form")?;
+        if !same(predecessor, field(form, "revises")?)? {
+            return Err(Error::Conflict(
+                "Claim form request differs from bound predecessor",
+            ));
+        }
+        let create = text(change, "operation")? == "form.create";
+        if create != predecessor.is_null() || create && integer(form, "form_version")? != 1 {
+            return Err(Error::Conflict(
+                "Claim form operation differs from retained lineage",
+            ));
+        }
+        selected_ids.insert(text(form, "form_id")?);
+        forms.push(form);
+        if !predecessor.is_null() {
+            predecessors.push(predecessor);
+        }
+    }
+    if let Some(set) = set {
+        for (candidate, is_current) in array(set, "forms")?
+            .iter()
+            .map(|form| (form, true))
+            .chain(array(set, "prior_forms")?.iter().map(|form| (form, false)))
+        {
+            let reference = form_reference(candidate)?;
+            let mut retained = false;
+            for predecessor in &predecessors {
+                retained |= same(predecessor, &reference)?;
+            }
+            if retained
+                || current && is_current && selected_ids.contains(text(candidate, "form_id")?)
+            {
+                forms.push(candidate);
+            }
+        }
+    }
+    for form in forms {
+        let content = field(form, "content")?;
+        if text(content, "kind")? != "source-copy" {
+            if text(config, "schema_version")? == "tos_local_claim_form_owner_v2" {
+                return Err(Error::Denied(
+                    "Claim display delegation permits only source copies",
+                ));
+            }
+            continue; // v1 retains unassessed non-copy proposals.
+        }
+        let bound = field(field(form, "bindings")?, text(content, "slot")?)?;
+        let role = text(form, "role")?;
+        let pointer = text(bound, "pointer")?;
+        if !allowed.iter().any(|field| match *field {
+            "claim.statement" => role == "statement" && pointer == "/qualifiers/statement",
+            "claim.name" => role == "name" && pointer == "/qualifiers/display_fields/name/text",
+            "claim.caption" => {
+                role == "caption" && pointer == "/qualifiers/display_fields/caption/text"
+            }
+            "claim.hover" => role == "hover" && pointer == "/qualifiers/display_fields/hover/text",
+            _ => false,
+        }) {
+            return Err(Error::Denied(
+                "Claim source-copy field outside current delegation",
+            ));
+        }
+    }
+    Ok(())
+}
+
 fn check_changes(config: &JsonValue, changes: &[JsonValue], canonical: bool) -> Result<()> {
     if changes.is_empty() || changes.len() > 32 {
         return Err(Error::Invalid("form batch size"));
@@ -618,6 +934,21 @@ fn form_response(
         ("replayed", JsonValue::Bool(replayed)),
         ("grants_admission", JsonValue::Bool(false)),
     ]);
+    if matches!(
+        text(config, "schema_version")?,
+        "tos_local_claim_form_owner_v1" | "tos_local_claim_form_owner_v2"
+    ) {
+        source_command::set(
+            &mut response,
+            "allowed_field_ids",
+            JsonValue::Array(
+                claim_form_field_ids(config)?
+                    .into_iter()
+                    .map(string)
+                    .collect(),
+            ),
+        )?;
+    }
     if let Some(contracts) = contracts {
         source_command::set(&mut response, "source_contracts", contracts.clone())?;
     }
