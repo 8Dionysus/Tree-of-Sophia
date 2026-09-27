@@ -81,6 +81,18 @@ pub trait InspectDisclosureLease: Send {
     fn recheck(&mut self) -> Result<(), SearchV2Error>;
 }
 pub trait InspectCurrentAuthority {
+    /// Original navigation custody is distinct from normalized carrier access.
+    /// The same disclosure lease must cover this selected component, including
+    /// its original membership index, header and every consulted rights row.
+    fn authorize_navigation_original_current(
+        &mut self,
+        _: &tos_compiler::NavigationOriginalReceipt,
+        _: i64,
+        _: &[u8],
+        _: Digest256,
+    ) -> Result<(), SearchV2Error> {
+        Err(error(SearchV2ErrorCode::Unavailable, "selected navigation original authorization unavailable"))
+    }
     /// Exact owner-carried registry bytes, never ambient data-root discovery.
     /// A contracts disclosure lease must cover both grants through final flush.
     fn authorize_registry_current(
@@ -138,6 +150,50 @@ pub(crate) struct Reader<'a, 'b, A: ?Sized> {
     scope: &'a IndexedDisclosureScope,
 }
 impl<A: InspectCurrentAuthority + ?Sized> Reader<'_, '_, A> {
+    fn original_error(reason: tos_compiler::Error) -> SearchV2Error {
+        match reason {
+            tos_compiler::Error::Budget(_) => budget_error(),
+            _ => corrupt("selected navigation original read failed"),
+        }
+    }
+    fn charge_original(&mut self, rows: usize, bytes: u64) -> Result<(), SearchV2Error> {
+        self.rows = self.rows.checked_add(rows as u64).ok_or_else(budget_error)?;
+        self.decoded = self.decoded.checked_add(bytes).ok_or_else(budget_error)?;
+        if self.rows > self.budget.max_rows || self.decoded > self.budget.max_decoded_bytes { return Err(budget_error()); }
+        self.check_interrupt()
+    }
+    pub(crate) fn original_receipt(&mut self) -> Result<tos_compiler::NavigationOriginalReceipt, SearchV2Error> {
+        self.check_interrupt()?;
+        if self.model.selection().model_abi != tos_compiler::KNOWLEDGE_NAVIGATION_MODEL_ABI {
+            return Err(error(SearchV2ErrorCode::Unavailable, "selected navigation originals unavailable"));
+        }
+        self.model.check_pin().map_err(|_| error(SearchV2ErrorCode::StaleSelection, "selected navigation pin changed"))?;
+        let receipt = self.model.navigation_original_receipt().map_err(Self::original_error)?.clone();
+        let rows = receipt.nodes.checked_add(receipt.edges).and_then(|n| n.checked_add(receipt.rights)).and_then(|n| n.checked_add(1)).ok_or_else(budget_error)?;
+        let bytes = receipt.total_bytes.checked_add(receipt.member_index_bytes).ok_or_else(budget_error)?;
+        if rows > self.budget.max_rows.saturating_sub(self.rows) || bytes > self.budget.max_decoded_bytes.saturating_sub(self.decoded) { return Err(budget_error()); }
+        Ok(receipt)
+    }
+    pub(crate) fn original_row(&mut self, receipt: &tos_compiler::NavigationOriginalReceipt, after: Option<i64>) -> Result<Option<(i64, JsonValue)>, SearchV2Error> {
+        self.check_interrupt()?;
+        if self.rows >= self.budget.max_rows { return Err(budget_error()); }
+        let bytes = self.budget.max_decoded_bytes.saturating_sub(self.decoded).min(self.budget.max_payload_bytes as u64);
+        let page = self.model.navigation_original_page_under_caller_budget(after, 1, bytes as usize, bytes).map_err(Self::original_error)?;
+        self.charge_original(page.rows.len(), page.decoded_bytes)?;
+        let Some((ordinal, raw)) = page.rows.into_iter().next() else { return Ok(None); };
+        self.authority.authorize_navigation_original_current(receipt, ordinal, &raw, Digest256::of_bytes(&raw))?;
+        self.check_interrupt()?;
+        let value = parse_json(&raw, JsonMode::PublishedStrict, self.budget.json).map_err(|_| corrupt("selected navigation original JSON invalid"))?.into_root();
+        Ok(Some((ordinal, value)))
+    }
+    pub(crate) fn original_member(&mut self, collection: &str, after: Option<&str>) -> Result<Option<tos_compiler::NavigationOriginalMember>, SearchV2Error> {
+        self.check_interrupt()?;
+        if self.rows >= self.budget.max_rows { return Err(budget_error()); }
+        let bytes = self.budget.max_decoded_bytes.saturating_sub(self.decoded).min(self.budget.max_payload_bytes as u64);
+        let page = self.model.navigation_original_members_under_caller_budget(collection, after, 1, bytes).map_err(Self::original_error)?;
+        self.charge_original(page.rows.len(), page.decoded_bytes)?;
+        Ok(page.rows.into_iter().next())
+    }
     pub(crate) fn registry_current(&mut self, id: &str, raw: &[u8], sha: Digest256) -> Result<(), SearchV2Error> {
         self.check_interrupt()?;
         self.rows = self.rows.checked_add(1).ok_or_else(budget_error)?;
