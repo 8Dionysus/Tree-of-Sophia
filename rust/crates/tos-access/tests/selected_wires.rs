@@ -1258,7 +1258,7 @@ with tempfile.TemporaryDirectory() as d:
             .to_owned();
         let cold_limits = fixture.cold_limits();
         let process = NATIVE_SOFTWARE_FIXTURE_PROCESS_LIMITS;
-        let base = fixture.path.parent().unwrap();
+        let base = fixture.path.parent().unwrap().to_path_buf();
         let install = base.join("software/bin/tos-access");
         fs::create_dir_all(install.parent().unwrap()).unwrap();
         fs::copy(env!("CARGO_BIN_EXE_tos-access"), &install).unwrap();
