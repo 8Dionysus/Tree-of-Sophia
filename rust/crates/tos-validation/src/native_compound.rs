@@ -2131,6 +2131,31 @@ impl NativeCompoundReader<'_> {
         let expression_path = text(scope, kind.child_path())?;
         let home = parent(expression_path)?;
         let work_home = parent(work_path)?;
+        // Keep the original whole reconstruction allowance, but do not make
+        // future forms/companion/event trees coexist with the local Claim
+        // constructor before those trees are built. The transaction itself,
+        // retained histories and returned raw copies have separate charges.
+        let mut whole_workspace = self.json_cost(&canonical(&tx.manifest)?)?;
+        let mut initial_workspace = self.json_cost(&canonical(authority)?)?;
+        let parent_inputs = selected_names(work_path)?;
+        for (path, (before, after)) in &tx.files {
+            for (is_before, raw) in [(true, before), (false, after)] {
+                let Some(raw) = raw else { continue; };
+                let amount = raw.len().checked_add(self.carrier_json_cost(path, raw)?)
+                    .ok_or(ItemRefusal::Budget)?;
+                whole_workspace = whole_workspace.checked_add(amount).ok_or(ItemRefusal::Budget)?;
+                if is_before && parent_inputs.iter().any(|name| path == &format!("{work_home}/{name}"))
+                    || !is_before && ["source-create-request.json", "source-create-environment.json", kind.receipt_file()]
+                        .iter().any(|name| path == &format!("{home}/{name}"))
+                {
+                    initial_workspace = initial_workspace.checked_add(amount).ok_or(ItemRefusal::Budget)?;
+                }
+            }
+        }
+        let whole_workspace = whole_workspace.checked_mul(8).ok_or(ItemRefusal::Budget)?;
+        let initial_workspace = initial_workspace.checked_mul(8).ok_or(ItemRefusal::Budget)?;
+        let remaining_workspace = whole_workspace.checked_sub(initial_workspace).ok_or(ItemRefusal::Budget)?;
+        self.temporary(initial_workspace)?;
         let after = |name: &str| {
             tx.files
                 .get(&format!("{home}/{name}"))
@@ -2297,7 +2322,7 @@ impl NativeCompoundReader<'_> {
             .max_total_bytes
             .checked_sub(self.bytes)
             .ok_or(ItemRefusal::Budget)?;
-        let local = crate::record_rules::validate_source_claim_from_cut(
+        let mut local = crate::record_rules::validate_source_claim_from_cut(
             self.cut,
             &claim_raw,
             schemas,
@@ -2307,7 +2332,9 @@ impl NativeCompoundReader<'_> {
         if !local.issues.is_empty() {
             return Err(bad("compound Claim local owner profile"));
         }
-        for (path, sha) in local.dependency_digests {
+        let dependency_digests = std::mem::take(&mut local.dependency_digests);
+        drop(local);
+        for (path, sha) in dependency_digests {
             let relative = RelativePath::parse(&path).map_err(|_| bad("Claim contract path"))?;
             let size = self
                 .cut
@@ -2325,6 +2352,10 @@ impl NativeCompoundReader<'_> {
                 digest: sha.to_prefixed(),
             })?;
         }
+        // The constructor's decoded registries/routes have now been dropped.
+        // Acquire the remainder before allocating any generated forms,
+        // Item companions, provenance event or whole output maps.
+        self.temporary(remaining_workspace)?;
         let form_name = kind.parent_forms();
         let prior_forms = before.get(form_name).map(|v| ordered(v)).transpose()?;
         let principal = text(authority, "principal_id")?;
@@ -2744,19 +2775,6 @@ impl NativeCompoundReader<'_> {
         {
             return Err(bad("current source snapshot is pending owner recovery"));
         }
-        let mut scratch = self.json_cost(&canonical(&tx.manifest)?)?;
-        for (path, (before, after)) in &tx.files {
-            for raw in before.iter().chain(after.iter()) {
-                let decoded = self.carrier_json_cost(path, raw)?;
-                scratch = scratch
-                    .checked_add(raw.len())
-                    .and_then(|n| n.checked_add(decoded))
-                    .ok_or(ItemRefusal::Budget)?;
-            }
-        }
-        // Multiple ordered/decoded trees and prepared buffers coexist through
-        // current-lineage verification. Retain this allowance while caches grow.
-        self.temporary(scratch.checked_mul(8).ok_or(ItemRefusal::Budget)?)?;
         let reconstructed = self.reconstruct(&tx, kind, schemas)?;
         let scope = &reconstructed.scope;
         let work = text(scope, kind.parent_path())?;
