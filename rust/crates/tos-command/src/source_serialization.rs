@@ -124,6 +124,37 @@ fn encoded(value: Value) -> SourceCommandResult<Vec<u8>> {
     Ok(raw)
 }
 
+fn selected_components(
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<Vec<Value>> {
+    if components.capture() != software.selection() || components.members().count() == 0 {
+        return Err(SourceCommandError::Conflict(
+            "native producer selected capture differs or is empty",
+        ));
+    }
+    let mut selected = Vec::new();
+    let mut remaining = 16_777_216u64;
+    for member in components.members() {
+        active(deadline, cancelled)?;
+        if member.path.as_str().starts_with("ToS/") || member.size_bytes > remaining {
+            return Err(SourceCommandError::Invalid(
+                "native software namespace or total byte budget",
+            ));
+        }
+        remaining -= member.size_bytes;
+        let raw = software
+            .read_selected_component(components, &member.path, 8_388_608, deadline, cancelled)
+            .map_err(|_| {
+                SourceCommandError::Conflict("native producer selected component read differs")
+            })?;
+        selected.push(json!({"name":member.path.as_str(),"version":"selected-capture-bytes","role":"serialization-source-observation","artifact_ref":member.path.as_str(),"artifact_sha256":Digest256::of_bytes(&raw).to_hex(),"verification_status":"verified"}));
+    }
+    Ok(selected)
+}
+
 /// Called inside the create handler after it serializes validated records/forms.
 /// Mutates only the pending in-memory package; no publication or attestation.
 pub(crate) fn capture_creation(
@@ -174,23 +205,7 @@ pub(crate) fn capture_creation(
     let argv_raw = serde_json::to_vec(&argv)
         .map_err(|_| SourceCommandError::Invalid("native argv capture"))?;
     let argv_digest = Digest256::of_bytes(&cmd::canonical(&cmd::parse(&argv_raw)?)?).to_hex();
-    let mut selected = Vec::new();
-    let mut remaining = 16_777_216u64;
-    for member in components.members() {
-        active(deadline, cancelled)?;
-        if member.path.as_str().starts_with("ToS/") || member.size_bytes > remaining {
-            return Err(SourceCommandError::Invalid(
-                "native software namespace or total byte budget",
-            ));
-        }
-        remaining -= member.size_bytes;
-        let raw = software
-            .read_selected_component(components, &member.path, 8_388_608, deadline, cancelled)
-            .map_err(|_| {
-                SourceCommandError::Conflict("native producer selected component read differs")
-            })?;
-        selected.push(json!({"name":member.path.as_str(),"version":"selected-capture-bytes","role":"serialization-source-observation","artifact_ref":member.path.as_str(),"artifact_sha256":Digest256::of_bytes(&raw).to_hex(),"verification_status":"verified"}));
-    }
+    let mut selected = selected_components(software, components, deadline, cancelled)?;
     selected.push(json!({"name":"executing native process","version":env!("CARGO_PKG_VERSION"),"role":"serialization-runner","artifact_ref":"runtime:tos-native-executable","artifact_sha256":runtime,"verification_status":"verified"}));
     let outputs: Vec<_> = files
         .iter()
@@ -232,4 +247,123 @@ pub(crate) fn capture_creation(
 
 fn entity(home: &str, name: &str, raw: &[u8], role: &str) -> Value {
     json!({"entity_ref":format!("{home}/{name}"),"role":role,"media_type":if name.ends_with(".jsonl"){"application/x-ndjson"}else{"application/json"},"size_bytes":raw.len(),"sha256":Digest256::of_bytes(raw).to_hex(),"availability":"owner_local","content_disclosure":"public_metadata_only","fixity_verified":false,"fixity_verified_at":null})
+}
+
+/// Reuse only exact historical byte observations supplied by the durable owner.
+/// No current runtime capture or past authority is inferred from these buffers.
+pub(crate) fn restore_creation_capture(
+    request: &JsonValue,
+    event_id: &str,
+    home: &str,
+    files: &mut BTreeMap<String, Vec<u8>>,
+    retained: &BTreeMap<String, Vec<u8>>,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<()> {
+    active(deadline, cancelled)?;
+    let capture_names = [
+        "source-create-request.json",
+        "source-create-environment.json",
+        "source-create-provenance.jsonl",
+        "source-create-receipt.json",
+    ];
+    if files.is_empty()
+        || retained.len() != files.len() + capture_names.len()
+        || retained.len() > 40
+        || retained.values().any(|raw| raw.len() > 8_388_608)
+        || retained
+            .values()
+            .try_fold(0usize, |n, raw| n.checked_add(raw.len()))
+            .is_none_or(|n| n > 33_554_432)
+        || files.iter().any(|(name, raw)| {
+            capture_names.contains(&name.as_str()) || retained.get(name) != Some(raw)
+        })
+        || capture_names
+            .iter()
+            .any(|name| !retained.contains_key(*name))
+    {
+        return Err(SourceCommandError::Conflict(
+            "retained native capture original output closure differs",
+        ));
+    }
+    let mut request_raw = cmd::canonical(request)?;
+    request_raw.push(b'\n');
+    if retained["source-create-request.json"] != request_raw {
+        return Err(SourceCommandError::Conflict(
+            "retained native capture request bytes differ",
+        ));
+    }
+    let environment_raw = &retained["source-create-environment.json"];
+    let environment: Value = serde_json::from_slice(environment_raw)
+        .map_err(|_| SourceCommandError::Invalid("retained native environment JSON"))?;
+    if !environment.is_object() || encoded(environment.clone())? != *environment_raw {
+        return Err(SourceCommandError::Conflict(
+            "retained native environment encoding differs",
+        ));
+    }
+    let event_raw = &retained["source-create-provenance.jsonl"];
+    let event: Value = serde_json::from_slice(event_raw)
+        .map_err(|_| SourceCommandError::Invalid("retained native provenance JSON"))?;
+    if encoded(event.clone())? != *event_raw {
+        return Err(SourceCommandError::Conflict(
+            "retained native provenance encoding differs",
+        ));
+    }
+    let binding = |name: &str, raw: &[u8]| {
+        json!({"ref":format!("{home}/{name}"),
+        "sha256":Digest256::of_bytes(raw).to_hex()})
+    };
+    let runtime = environment
+        .get("runtime_artifact_sha256")
+        .and_then(Value::as_str)
+        .ok_or(SourceCommandError::Invalid(
+            "retained native runtime observation absent",
+        ))?;
+    // The digest is a retained observation, not the current executable or an
+    // authored-file binding; the caller's selected software is checked below.
+    if runtime.len() != 64
+        || !runtime
+            .bytes()
+            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+    {
+        return Err(SourceCommandError::Invalid(
+            "retained native runtime digest",
+        ));
+    }
+    let runtime_version = environment
+        .get("runtime_version")
+        .and_then(Value::as_str)
+        .ok_or(SourceCommandError::Invalid(
+            "retained native runtime version absent",
+        ))?;
+    let mut selected = selected_components(software, components, deadline, cancelled)?;
+    selected.push(
+        json!({"name":"executing native process","version":runtime_version,
+        "role":"serialization-runner","artifact_ref":"runtime:tos-native-executable",
+        "artifact_sha256":runtime,"verification_status":"verified"}),
+    );
+    let mut method_environment = environment.clone();
+    method_environment["environment_profile_binding"] =
+        binding("source-create-environment.json", environment_raw);
+    if event.get("event_id") != Some(&json!(event_id))
+        || event.get("record_binding")
+            != Some(
+                &json!({"manifest_ref":format!("{home}/source-create-receipt.json"),
+            "digest_algorithm":"sha256","digest_scope":"exact_event_record_bytes"}),
+            )
+        || event.pointer("/method/configuration_binding")
+            != Some(&binding("source-create-request.json", &request_raw))
+        || event.pointer("/method/environment") != Some(&method_environment)
+        || event.pointer("/method/software_components") != Some(&Value::Array(selected))
+    {
+        return Err(SourceCommandError::Conflict(
+            "retained native capture selected bindings differ",
+        ));
+    }
+    for name in capture_names.into_iter().take(3) {
+        files.insert(name.into(), retained[name].clone());
+    }
+    active(deadline, cancelled)
 }

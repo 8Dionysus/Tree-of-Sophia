@@ -131,10 +131,10 @@ pub(crate) struct ManagedCreationObservation {
 }
 /// Private-issued complete Agent input; the context revision binds schemas only.
 pub struct ManagedCreationInput {
-    context: CommandContext,
-    basis: ManagedCreationBasis,
-    observations: BTreeMap<String, ManagedCreationObservation>,
-    components: SoftwareComponentSelectionV1,
+    pub(crate) context: CommandContext,
+    pub(crate) basis: ManagedCreationBasis,
+    pub(crate) observations: BTreeMap<String, ManagedCreationObservation>,
+    pub(crate) components: SoftwareComponentSelectionV1,
 }
 pub fn select_managed_agent_creation_input(
     coordinator: &mut crate::durable_adapter::DurablePgCoordinator,
@@ -306,7 +306,7 @@ impl ManagedPreparedCreation {
     ) -> SourceCommandResult<ManagedSerializedCreation> {
         let (prepared, plan) = self
             .prepared
-            .serialize_content(software, components, worker, deadline, cancelled)?;
+            .serialize_content(software, components, worker, deadline, cancelled, None)?;
         let basis = prepared
             .managed_basis
             .clone()
@@ -362,6 +362,9 @@ impl SerializedCreation {
     }
 }
 impl PreparedCreation {
+    pub(crate) fn selected_components(&self) -> &SoftwareComponentSelectionV1 {
+        &self.components
+    }
     pub fn family(&self) -> CreationFamily {
         self.family
     }
@@ -427,7 +430,7 @@ impl PreparedCreation {
             ));
         }
         let (prepared, plan) =
-            self.serialize_content(software, components, worker, deadline, cancelled)?;
+            self.serialize_content(software, components, worker, deadline, cancelled, None)?;
         let command = plan.into_v1(prepared.context.base_revision);
         Ok(SerializedCreation { prepared, command })
     }
@@ -438,6 +441,7 @@ impl PreparedCreation {
         worker: &mut CutWorkerSchemaExecutor,
         deadline: Instant,
         cancelled: &AtomicBool,
+        retained: Option<&BTreeMap<String, Vec<u8>>>,
     ) -> SourceCommandResult<(PreparedCreation, cmd::CommandPlan)> {
         if components != &self.components || software.selection() != self.components.capture() {
             return Err(SourceCommandError::Conflict(
@@ -465,16 +469,30 @@ impl PreparedCreation {
             ));
         }
         if self.family != CreationFamily::HistoricalV1 {
-            crate::source_serialization::capture_creation(
-                &request,
-                cmd::text(&config, "provenance_event_id")?,
-                self.home.as_str(),
-                &mut self.files,
-                software,
-                components,
-                deadline,
-                cancelled,
-            )?;
+            if let Some(original) = retained {
+                crate::source_serialization::restore_creation_capture(
+                    &request,
+                    cmd::text(&config, "provenance_event_id")?,
+                    self.home.as_str(),
+                    &mut self.files,
+                    original,
+                    software,
+                    components,
+                    deadline,
+                    cancelled,
+                )?;
+            } else {
+                crate::source_serialization::capture_creation(
+                    &request,
+                    cmd::text(&config, "provenance_event_id")?,
+                    self.home.as_str(),
+                    &mut self.files,
+                    software,
+                    components,
+                    deadline,
+                    cancelled,
+                )?;
+            }
             let raw = self.files.get("source-create-provenance.jsonl").unwrap();
             let event = cmd::parse(raw)?;
             revisions::schema(
@@ -535,6 +553,16 @@ impl PreparedCreation {
                 ));
             }
         }
+        let recorded_at = if let Some(original) = retained {
+            let original_receipt = cmd::parse(original.get("source-create-receipt.json").ok_or(
+                SourceCommandError::Conflict("retained creation receipt absent"),
+            )?)?;
+            let instant = cmd::text(&original_receipt, "recorded_at")?.to_owned();
+            cmd::validate_instant(&instant)?;
+            instant
+        } else {
+            crate::source_serialization::instant()?
+        };
         let refs = file_refs(&self.files);
         let receipt = cmd::object(vec![
             (
@@ -556,10 +584,7 @@ impl PreparedCreation {
                 cmd::field(&config, "authority_ref")?.clone(),
             ),
             ("owner_configuration", cmd::string(&configuration)),
-            (
-                "recorded_at",
-                cmd::string(&crate::source_serialization::instant()?),
-            ),
+            ("recorded_at", cmd::string(&recorded_at)),
             ("source_path", cmd::field(&config, "source_path")?.clone()),
             ("source", self.subject.clone()),
             ("dependencies", cmd::string(&self.dependencies)),
@@ -579,6 +604,11 @@ impl PreparedCreation {
         {
             return Err(SourceCommandError::Invalid(
                 "creation serialized package count/byte budget",
+            ));
+        }
+        if retained.is_some_and(|original| original != &self.files) {
+            return Err(SourceCommandError::Conflict(
+                "retained creation package differs from reprepare",
             ));
         }
         let changes = self
@@ -1769,5 +1799,43 @@ fn prepare_creation(
         dependencies,
         files,
         components: components.clone(),
+    })
+}
+
+/// Only the durable committed-attempt reader supplies this original input and
+/// immutable package. Reconstruct mechanics, never register or authorize a write.
+pub(crate) fn reprepare_managed_agent_creation(
+    input: ManagedCreationInput,
+    schema_cut: &CorpusCutReader,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    original_files: BTreeMap<String, Vec<u8>>,
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<ManagedSerializedCreation> {
+    let prepared = prepare_managed_agent_creation(
+        &input, schema_cut, software, components, worker, deadline, cancelled,
+    )?
+    .prepared;
+    if prepared.family != CreationFamily::AgentCorpus {
+        return Err(SourceCommandError::Unsupported(
+            "managed recovery is Agent-only",
+        ));
+    }
+    let basis = input.basis.clone();
+    drop(input);
+    let (prepared, plan) = prepared.serialize_content(
+        software,
+        components,
+        worker,
+        deadline,
+        cancelled,
+        Some(&original_files),
+    )?;
+    Ok(ManagedSerializedCreation {
+        basis,
+        prepared,
+        plan,
     })
 }
