@@ -54,6 +54,16 @@ impl ImmutableKnowledgeCustody for FixtureCustody {
     }
 }
 
+/// Engineering caps for this finite software fixture only. Existing cold work
+/// is 100MiB, model/per-file ceiling 64MiB and cache 8MiB; a finite 1GiB AS
+/// envelope leaves bounded decoder/SQLite/service headroom. This is not host
+/// aggregate admission or an aggregate temporary-file quota.
+pub const NATIVE_SOFTWARE_FIXTURE_PROCESS_LIMITS: crate::NativeProcessLimits =
+    crate::NativeProcessLimits {
+        address_space_bytes: 1024 * 1024 * 1024,
+        file_size_bytes: 64 * 1024 * 1024,
+    };
+
 pub struct FullKnowledgeFixture {
     pub path: PathBuf,
     pub expectation: KnowledgeSelectedExpectation,
@@ -79,21 +89,25 @@ impl FullKnowledgeFixture {
     pub fn registry_originals(&self) -> [&[u8]; 2] {
         [&self.entity_registry_bytes, &self.relation_registry_bytes]
     }
+    /// Existing cold fixture limits, shared with its actual native companion.
+    pub fn cold_limits(&self) -> ColdOpenLimits {
+        ColdOpenLimits {
+            max_file_bytes: 64 * 1024 * 1024,
+            max_vm_steps: 100_000_000,
+            sqlite_cache_kib: 8192,
+            max_rows: 100_000,
+            max_work_bytes: 100 * 1024 * 1024,
+            max_row_bytes: 1024 * 1024,
+            max_metadata_bytes: 256 * 1024,
+            max_sources: self.vocabulary.sources.len(),
+        }
+    }
     pub fn open(&self) -> Result<VerifiedKnowledgeModel<'_>> {
         open_selected_knowledge_model(
             &self.path,
             self.expectation.clone(),
             &self.custody,
-            ColdOpenLimits {
-                max_file_bytes: 64 * 1024 * 1024,
-                max_vm_steps: 100_000_000,
-                sqlite_cache_kib: 8192,
-                max_rows: 100_000,
-                max_work_bytes: 100 * 1024 * 1024,
-                max_row_bytes: 1024 * 1024,
-                max_metadata_bytes: 256 * 1024,
-                max_sources: self.vocabulary.sources.len(),
-            },
+            self.cold_limits(),
         )
     }
 }
