@@ -40,7 +40,7 @@ fn sign_uses_current_native_content_assessment_and_replays_its_original_package(
     // to Rust. Original authority dates expire on 2026-10-01. An expired
     // current evaluation must FAIL this positive case, never skip it.
     let factory = r#"
-import json,sys,shutil
+import json,sys,shutil,stat
 from pathlib import Path
 from unittest.mock import patch
 repo,root=map(Path,sys.argv[1:])
@@ -70,9 +70,16 @@ try:
     configured,_,_=commands._configuration(owner)
     _,outputs,_=commands._prepare_creation(configured,preview)
     response=commands.run_local_command(owner,preview)
-    authored={p.relative_to(root).as_posix():p.read_bytes().hex() for p in sorted((root/'ToS').rglob('*')) if p.is_file() and p.relative_to(root).as_posix()!=f.native.content_ref and not {'payload','local-content'}.intersection(p.relative_to(root).parts)}
+    # Complete private custody for this synthetic root, under existing v1 law.
+    # Inclusion does not grant native content disclosure or source admission.
+    def eligible(p):
+        ref=p.relative_to(root).as_posix()
+        return p.is_file() and not {'.git','payload','owner-local'}.intersection(p.relative_to(root).parts) and (not (ref.startswith('ToS/derived-exports/') or ref.startswith('ToS/source-witnesses/catalog/')) or ref.endswith('.md'))
+    selected=[p for p in sorted((root/'ToS').rglob('*')) if eligible(p)]
+    authored={p.relative_to(root).as_posix():p.read_bytes().hex() for p in selected}
+    modes={p.relative_to(root).as_posix():stat.S_IMODE(p.stat().st_mode) for p in selected}
     head=root/'assessment-journal'/__import__('hashlib').sha256(f.identifier.encode()).hexdigest()/'head'
-    print(json.dumps({'owner':str(owner),'assessment_owner':str(f.owner),'config_raw':owner.read_bytes().hex(),'request':request,'preview_request':preview,'preview_raw':commands._canonical(response).hex(),'outputs':{name:raw.hex() for name,raw in outputs.items()},'authored':authored,'content':f.native.content_ref,'scope_source':f.occurrence_path,'head':str(head),'original_payload':f.native.original_ref},ensure_ascii=False,allow_nan=False))
+    print(json.dumps({'owner':str(owner),'assessment_owner':str(f.owner),'config_raw':owner.read_bytes().hex(),'request':request,'preview_request':preview,'preview_raw':commands._canonical(response).hex(),'outputs':{name:raw.hex() for name,raw in outputs.items()},'authored':authored,'modes':modes,'content':f.native.content_ref,'scope_source':f.occurrence_path,'head':str(head),'original_payload':f.native.original_ref},ensure_ascii=False,allow_nan=False))
 finally:
     test.doCleanups()
 "#;
@@ -110,9 +117,20 @@ finally:
     assert!(authored.keys().all(|name| {
         !name
             .split('/')
-            .any(|part| matches!(part, "local-content" | "payload"))
+            .any(|part| matches!(part, ".git" | "owner-local" | "payload"))
     }));
-    assert!(!authored.contains_key(required(&oracle, "content")));
+    assert!(authored.contains_key(required(&oracle, "content")));
+    assert!(
+        authored
+            .keys()
+            .any(|name| name.split('/').any(|part| part == "local-content"))
+    );
+    let modes = oracle["modes"]
+        .as_object()
+        .unwrap()
+        .iter()
+        .map(|(name, mode)| (name.clone(), u32::try_from(mode.as_u64().unwrap()).unwrap()))
+        .collect::<BTreeMap<_, _>>();
     let mut files = authored.clone();
     // Rule implementation and native serialization observations are selected
     // through a separate exact software capture, never the authored cut.
@@ -143,10 +161,74 @@ finally:
         fs::write(target, &raw).unwrap();
         files.insert(name.into(), raw);
     }
-    let (_capture, software, components) = captured_components(&files, deadline, &cancellation);
     let store = temporary.path().join("sign-cut");
-    let revision = super::validation_cut_cases::write_cut_store(&authored, &store);
+    let revision =
+        super::validation_cut_cases::write_cut_store_with_modes(&authored, &store, &modes);
     let cut = open_cut(&store, revision, deadline, &cancellation);
+    // Cheap complete selection check before any worker/content evaluation.
+    let selected = cut
+        .current()
+        .members()
+        .map(|member| {
+            (
+                member.path.as_str().to_owned(),
+                (member.sha256, member.size_bytes, member.mode),
+            )
+        })
+        .collect::<BTreeMap<_, _>>();
+    let expected = authored
+        .iter()
+        .map(|(name, raw)| {
+            (
+                name.clone(),
+                (Digest256::of_bytes(raw), raw.len() as u64, modes[name]),
+            )
+        })
+        .collect::<BTreeMap<_, _>>();
+    assert_eq!(selected, expected);
+    let mut actual = BTreeMap::new();
+    let mut directories = vec![isolated.path().join("ToS")];
+    while let Some(directory) = directories.pop() {
+        for entry in fs::read_dir(directory).unwrap() {
+            let path = entry.unwrap().path();
+            let name = path
+                .strip_prefix(isolated.path())
+                .unwrap()
+                .to_str()
+                .unwrap();
+            let metadata = fs::symlink_metadata(&path).unwrap();
+            assert!(!metadata.file_type().is_symlink());
+            if metadata.is_dir() {
+                if tos_source_store::has_authored_source_descendants_v1(name) {
+                    directories.push(path);
+                }
+            } else if tos_source_store::is_authored_source_path_v1(name) {
+                assert!(metadata.is_file());
+                let raw = fs::read(&path).unwrap();
+                actual.insert(
+                    name.to_owned(),
+                    (
+                        Digest256::of_bytes(&raw),
+                        raw.len() as u64,
+                        metadata.mode() & 0o7777,
+                    ),
+                );
+            }
+        }
+    }
+    assert_eq!(
+        selected, actual,
+        "complete actual eligible snapshot before worker execution"
+    );
+    let native_custody_before = authored
+        .iter()
+        .filter(|(name, _)| {
+            name.as_str() == required(&oracle, "content")
+                || name.split('/').any(|part| part == "local-content")
+        })
+        .map(|(name, raw)| (name.clone(), raw.clone()))
+        .collect::<BTreeMap<_, _>>();
+    let (_capture, software, components) = captured_components(&files, deadline, &cancellation);
     let owner = Path::new(required(&oracle, "owner"));
     let config_raw = decode_hex(required(&oracle, "config_raw"));
     let mut context = cut_context(
@@ -328,6 +410,9 @@ finally:
         fs::read(isolated.path().join(required(&oracle, "content"))).unwrap(),
         native_before
     );
+    for (name, original) in &native_custody_before {
+        assert_eq!(fs::read(isolated.path().join(name)).unwrap(), *original);
+    }
     let content_path = isolated.path().join(required(&oracle, "content"));
     let mut changed_content = native_before.clone();
     changed_content.push(b'\n');
@@ -376,6 +461,9 @@ finally:
         .unwrap();
     assert!(replay.replayed);
     assert_eq!(replay.receipt_sha256, published.receipt_sha256);
+    for (name, original) in &native_custody_before {
+        assert_eq!(fs::read(isolated.path().join(name)).unwrap(), *original);
+    }
     let form_set: Value =
         serde_json::from_slice(&fs::read(home.join("sign.human-forms.json")).unwrap()).unwrap();
     assert!(form_set["forms"].as_array().unwrap().iter().all(|form| {

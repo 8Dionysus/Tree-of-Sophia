@@ -71,6 +71,24 @@ fn write_cut_store_on_base(
     root: &Path,
     base: Option<SourceRevision>,
 ) -> SourceRevision {
+    write_cut_store_with_optional_modes(files, root, base, None)
+}
+
+pub(super) fn write_cut_store_with_modes(
+    files: &BTreeMap<String, Vec<u8>>,
+    root: &Path,
+    modes: &BTreeMap<String, u32>,
+) -> SourceRevision {
+    assert!(files.keys().eq(modes.keys()));
+    write_cut_store_with_optional_modes(files, root, None, Some(modes))
+}
+
+fn write_cut_store_with_optional_modes(
+    files: &BTreeMap<String, Vec<u8>>,
+    root: &Path,
+    base: Option<SourceRevision>,
+    modes: Option<&BTreeMap<String, u32>>,
+) -> SourceRevision {
     fs::create_dir_all(root.join("objects")).unwrap();
     fs::create_dir_all(root.join("revisions")).unwrap();
     let members: Vec<_> = files
@@ -78,7 +96,8 @@ fn write_cut_store_on_base(
         .map(|(path, raw)| {
             let sha = Digest256::of_bytes(raw).to_hex();
             fs::write(root.join("objects").join(&sha), raw).unwrap();
-            serde_json::json!({"path":path,"sha256":sha,"size_bytes":raw.len(),"mode":420})
+            let mode = modes.map_or(0o644, |values| values[path]);
+            serde_json::json!({"path":path,"sha256":sha,"size_bytes":raw.len(),"mode":mode})
         })
         .collect();
     let mut manifest = serde_json::json!({"schema_version":"tos_corpus_snapshot_v1",
