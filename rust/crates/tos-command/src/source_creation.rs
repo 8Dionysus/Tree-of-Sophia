@@ -1200,7 +1200,8 @@ fn prepare_creation(
             "creation source home already occupied",
         ));
     }
-    let mut inventory = claims::maintained_inventory(&ctx, worker, deadline, cancelled)?;
+    let mut inventory =
+        claims::maintained_inventory_from_cut(&ctx, cut, worker, deadline, cancelled)?;
     if inventory
         .objects
         .contains_key(cmd::text(record, "record_id")?)
@@ -1388,7 +1389,14 @@ fn prepare_creation(
         )?;
     }
     let source_profiles = inventory.record_inputs;
-    let empty_native = Digest256::of_bytes(b"{}").to_prefixed();
+    let native_identity_snapshot =
+        inventory
+            .native_identity_snapshot
+            .take()
+            .ok_or(SourceCommandError::Invalid(
+                "creation native identity inventory was not selected",
+            ))?;
+    let native_text_snapshot = inventory.native_text_snapshot.take();
     let provenance_contract = if family == CreationFamily::HistoricalV1 {
         cmd::object(vec![])
     } else {
@@ -1398,7 +1406,7 @@ fn prepare_creation(
             true,
         )?
     };
-    let snapshot = cmd::object(vec![
+    let mut snapshot = cmd::object(vec![
         ("records", inventory.records),
         (
             "claims",
@@ -1407,9 +1415,15 @@ fn prepare_creation(
         ("source_profiles", source_profiles),
         (
             "native_semantic_identity_snapshot",
-            cmd::string(&empty_native),
+            cmd::string(&native_identity_snapshot),
         ),
-        ("native_text_binding_snapshot", JsonValue::Null),
+        (
+            "native_text_binding_snapshot",
+            native_text_snapshot
+                .as_deref()
+                .map(cmd::string)
+                .unwrap_or(JsonValue::Null),
+        ),
         ("source_claim_profiles", inventory.claim_profile_inputs),
         ("provenance_contract", provenance_contract),
         ("events", inventory.events),
@@ -1422,6 +1436,17 @@ fn prepare_creation(
             claims::raw_digests(&ctx, RULE_INPUTS, true)?,
         ),
     ]);
+    if family == CreationFamily::Sign {
+        let promotion_implementation =
+            "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/assessment_journal.py";
+        cmd::set(
+            &mut snapshot,
+            "promotion_implementation",
+            cmd::string(
+                &Digest256::of_bytes(selected(&ctx, promotion_implementation)?).to_prefixed(),
+            ),
+        )?;
+    }
     let dependencies = cmd::record_digest(&snapshot)?.to_prefixed();
     if cancelled.load(Ordering::Relaxed) || Instant::now() >= deadline {
         return Err(SourceCommandError::Denied(

@@ -445,6 +445,7 @@ impl CreationFilesystem {
         limits: tos_validation::assessment::AssessmentLimits,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<CreationPublication> {
+        crate::source_sign::require_assessment_profile(assessment_worker)?;
         self.current(package, limits.deadline, cancelled)?;
         let mut read = crate::source_sign::SignPromotionRead::select(
             &self.configuration_path,
@@ -637,6 +638,7 @@ impl CreationFilesystem {
         limits: tos_validation::assessment::AssessmentLimits,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<CreationPublication> {
+        crate::source_sign::require_assessment_profile(assessment_worker)?;
         self.current(package, limits.deadline, cancelled)?;
         let mut read = crate::source_sign::SignPromotionRead::select(
             &self.configuration_path,

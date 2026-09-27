@@ -127,6 +127,8 @@ finally:
         "scripts/source_owner_context.py",
         "scripts/source_witness_bibliographic_graph_common.py",
         "rust/crates/tos-command/src/source_creation.rs",
+        "rust/crates/tos-command/src/source_claims.rs",
+        "rust/crates/tos-command/src/source_revisions.rs",
         "rust/crates/tos-command/src/source_creation_store.rs",
         "rust/crates/tos-command/src/source_serialization.rs",
         "rust/crates/tos-command/src/source_sign.rs",

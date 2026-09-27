@@ -2626,12 +2626,38 @@ fn native_identity_inventory(
     let cut = cut.ok_or(SourceCommandError::Unsupported(
         "profile native identity reservation needs complete anchored source cut",
     ))?;
+    let (_, snapshot, schema) =
+        selected_native_identity_inventory(ctx, cut, worker, deadline, cancelled, Some(record_id))?;
+    Ok((Some(snapshot), schema))
+}
+
+/// Exact native identity membership for the maintained creation catalog.
+/// It reserves identities; it never projects private semantic packet contents.
+pub(crate) fn native_identity_inventory_from_cut(
+    ctx: &CommandContext,
+    cut: &CorpusCutReader,
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<(BTreeMap<String, Vec<String>>, String, bool)> {
+    selected_native_identity_inventory(ctx, cut, worker, deadline, cancelled, None)
+}
+
+fn selected_native_identity_inventory(
+    ctx: &CommandContext,
+    cut: &CorpusCutReader,
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    reserved_id: Option<&str>,
+) -> SourceCommandResult<(BTreeMap<String, Vec<String>>, String, bool)> {
     if cut.current().revision() != ctx.base_revision {
         return Err(SourceCommandError::Conflict(
             "native inventory source cut differs",
         ));
     }
     let mut entries = BTreeMap::new();
+    let mut identities: BTreeMap<String, Vec<String>> = BTreeMap::new();
     let mut remaining = 8_388_608usize;
     let contract = "ToS/contracts/semantic-annotation-packet-v2.schema.json";
     for member in cut.current().members() {
@@ -2694,11 +2720,16 @@ fn native_identity_inventory(
             &packet,
         )?;
         for entity in cmd::array(&packet, "entities")? {
-            if cmd::text(entity, "entity_id")? == record_id {
+            let entity_id = cmd::text(entity, "entity_id")?;
+            if reserved_id == Some(entity_id) {
                 return Err(SourceCommandError::Denied(
                     "subject identity belongs to native packet; explicit owner migration required",
                 ));
             }
+            identities
+                .entry(entity_id.to_owned())
+                .or_default()
+                .push(name.to_owned());
         }
         entries.insert(
             name.to_string(),
@@ -2713,7 +2744,7 @@ fn native_identity_inventory(
             .collect(),
     );
     // Python inventory json.dumps uses ensure_ascii=True, like binding snapshots.
-    Ok((Some(python_ascii_digest(&value)?), used_schema))
+    Ok((identities, python_ascii_digest(&value)?, used_schema))
 }
 
 struct NativeBindingReader<'a> {
@@ -3614,6 +3645,33 @@ pub fn resolve_record_version(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<(JsonValue, String)> {
+    resolve_record_version_selected(ctx, None, exact, worker, deadline, cancelled)
+}
+
+pub(crate) fn resolve_record_version_from_cut(
+    ctx: &CommandContext,
+    cut: &CorpusCutReader,
+    exact: &JsonValue,
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<(JsonValue, String)> {
+    if cut.current().revision() != ctx.base_revision {
+        return Err(SourceCommandError::Conflict(
+            "metadata resolver selected cut differs",
+        ));
+    }
+    resolve_record_version_selected(ctx, Some(cut), exact, worker, deadline, cancelled)
+}
+
+fn resolve_record_version_selected(
+    ctx: &CommandContext,
+    cut: Option<&CorpusCutReader>,
+    exact: &JsonValue,
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<(JsonValue, String)> {
     ctx.check()?;
     exact_ref(exact)?;
     if worker.source_revision() != ctx.base_revision {
@@ -3716,7 +3774,7 @@ pub fn resolve_record_version(
     let mut routed = ctx.clone();
     routed.configuration_raw = cmd::canonical(&descriptor)?;
     profile(
-        None,
+        cut,
         worker,
         deadline,
         cancelled,

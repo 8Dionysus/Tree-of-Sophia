@@ -5,6 +5,7 @@ use crate::source_command::*;
 use crate::source_forms::{
     apply_form_changes, materialize_source_forms, metadata_subject, prepare_form_change,
 };
+use crate::source_sign_native::{NativeReadKind, NativeReadScope, SignNativeRead};
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::atomic::AtomicBool;
 use std::time::Instant;
@@ -1768,6 +1769,169 @@ fn catalogue_claim(
     Ok(result)
 }
 
+/// Exact metadata transport for the shared native resolver. The cut supplies
+/// membership and secure current reads; selected context bytes must match it.
+struct ProfileMetadataReader<'a> {
+    ctx: &'a CommandContext,
+    cut: &'a CorpusCutReader,
+    observed: BTreeMap<String, (Digest256, usize)>,
+    observed_bytes: usize,
+}
+impl ProfileMetadataReader<'_> {
+    fn public_path(&self, name: &str) -> SourceCommandResult<RelativePath> {
+        let parsed = path(name)?;
+        if !name.starts_with("ToS/")
+            || name.split('/').any(|part| {
+                matches!(
+                    part,
+                    "owner-local" | "catalog" | "payload" | "local-content"
+                )
+            })
+        {
+            return Err(SourceCommandError::Denied(
+                "native profile public metadata namespace",
+            ));
+        }
+        Ok(parsed)
+    }
+    fn current_raw(
+        &self,
+        name: &str,
+        cap: usize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<Vec<u8>> {
+        if self.cut.current().revision() != self.ctx.base_revision {
+            return Err(SourceCommandError::Conflict(
+                "native profile source cut changed",
+            ));
+        }
+        let parsed = self.public_path(name)?;
+        let expected = selected(self.ctx, name)?;
+        let descriptor = self
+            .cut
+            .current()
+            .member(&parsed)
+            .ok_or(SourceCommandError::Conflict(
+                "native profile member missing",
+            ))?;
+        if descriptor.size_bytes > cap as u64
+            || expected.len() > cap
+            || descriptor.size_bytes != expected.len() as u64
+            || descriptor.sha256 != Digest256::of_bytes(expected)
+        {
+            return Err(SourceCommandError::Conflict(
+                "native profile selected metadata descriptor mismatch",
+            ));
+        }
+        let member = self
+            .cut
+            .read_member(
+                self.ctx.base_revision,
+                &parsed,
+                cap as u64,
+                deadline,
+                cancelled,
+            )
+            .map_err(|_| {
+                SourceCommandError::Conflict("native profile secure current read refused")
+            })?;
+        if member.raw != expected {
+            return Err(SourceCommandError::Conflict(
+                "native profile selected metadata bytes changed",
+            ));
+        }
+        Ok(member.raw)
+    }
+}
+impl SignNativeRead for ProfileMetadataReader<'_> {
+    fn read(
+        &mut self,
+        name: &str,
+        kind: NativeReadKind,
+        max_bytes: usize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<Vec<u8>> {
+        let prefix = match kind {
+            NativeReadKind::Schema => "ToS/contracts/",
+            NativeReadKind::Support => "ToS/",
+            NativeReadKind::Metadata => "ToS/source-witnesses/",
+            NativeReadKind::Content => {
+                return Err(SourceCommandError::Denied(
+                    "profile resolver cannot read content",
+                ));
+            }
+        };
+        if !name.starts_with(prefix) {
+            return Err(SourceCommandError::Denied(
+                "native profile input kind namespace",
+            ));
+        }
+        let prior = self.observed.get(name);
+        if prior.is_none() && self.observed.len() >= 128 {
+            return Err(SourceCommandError::Invalid(
+                "native profile shared input count",
+            ));
+        }
+        let cap = max_bytes.min(1_048_576).min(if prior.is_some() {
+            8_388_608
+        } else {
+            8_388_608 - self.observed_bytes
+        });
+        let raw = self.current_raw(name, cap, deadline, cancelled)?;
+        let digest = Digest256::of_bytes(&raw);
+        if let Some((expected, length)) = prior {
+            if *expected != digest || *length != raw.len() {
+                return Err(SourceCommandError::Conflict(
+                    "native profile shared read changed",
+                ));
+            }
+        } else {
+            self.observed_bytes = self
+                .observed_bytes
+                .checked_add(raw.len())
+                .filter(|total| *total <= 8_388_608)
+                .ok_or(SourceCommandError::Invalid(
+                    "native profile shared metadata byte budget",
+                ))?;
+            self.observed.insert(name.into(), (digest, raw.len()));
+        }
+        Ok(raw)
+    }
+    fn verify_current(
+        &mut self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()> {
+        if Instant::now() >= deadline || cancelled.load(std::sync::atomic::Ordering::Acquire) {
+            return Err(SourceCommandError::Invalid(
+                "native profile read deadline or cancellation",
+            ));
+        }
+        for (name, (digest, length)) in &self.observed {
+            let raw = self.current_raw(name, *length, deadline, cancelled)?;
+            if Digest256::of_bytes(&raw) != *digest {
+                return Err(SourceCommandError::Conflict(
+                    "native profile observed input changed",
+                ));
+            }
+        }
+        Ok(())
+    }
+    fn owner_local(&self, name: &str) -> SourceCommandResult<bool> {
+        // Content locators are declarations in MetadataOnly scope, including
+        // payload/local-content locators absent from the metadata cut. Native
+        // owns their content route; only actual metadata reads use public_path.
+        path(name)?;
+        if !name.starts_with("ToS/") {
+            return Err(SourceCommandError::Denied("native profile owner namespace"));
+        }
+        Ok(name == "ToS/source-witnesses/owner-local"
+            || name.starts_with("ToS/source-witnesses/owner-local/"))
+    }
+}
+
 /// Existing maintained selected-cut catalog mechanics, shared by Claim and
 /// source-create handlers. These observations carry no permission or admission.
 pub(crate) struct MaintainedInventory {
@@ -1779,6 +1943,8 @@ pub(crate) struct MaintainedInventory {
     pub claim_profile_inputs: JsonValue,
     pub events: JsonValue,
     pub anchors: JsonValue,
+    pub native_identity_snapshot: Option<String>,
+    pub native_text_snapshot: Option<String>,
 }
 pub(crate) fn maintained_inventory(
     ctx: &CommandContext,
@@ -1786,8 +1952,56 @@ pub(crate) fn maintained_inventory(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<MaintainedInventory> {
-    let entities = json_file(ctx, ENTITIES)?;
+    maintained_inventory_inner(ctx, None, executor, deadline, cancelled)
+}
+
+/// Complete authored membership comes from the actual cut, independently of
+/// selected software inputs. Native observations remain metadata-only.
+pub(crate) fn maintained_inventory_from_cut(
+    ctx: &CommandContext,
+    cut: &CorpusCutReader,
+    executor: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<MaintainedInventory> {
+    let mut files = complete_authored_inputs(ctx, cut, deadline, cancelled)?;
+    files.extend(
+        ctx.files
+            .iter()
+            .filter(|f| !f.path.as_str().starts_with("ToS/"))
+            .cloned(),
+    );
+    let complete = CommandContext {
+        files,
+        ..ctx.clone()
+    };
+    complete.check()?;
+    maintained_inventory_inner(&complete, Some(cut), executor, deadline, cancelled)
+}
+
+fn maintained_inventory_inner(
+    ctx: &CommandContext,
+    cut: Option<&CorpusCutReader>,
+    executor: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<MaintainedInventory> {
+    let entities = crate::source_revisions::validate_source_profile_registry(
+        executor, deadline, cancelled, ctx,
+    )?;
     let types = array(&entities, "types")?;
+    // collect_records seeds its collision universe before reading metadata.
+    // Even an empty snapshot is observed only by the cut-backed owner reader.
+    let (native_identities, native_identity_snapshot, native_schema_used) = if let Some(cut) = cut {
+        let (identities, snapshot, schema_used) =
+            crate::source_revisions::native_identity_inventory_from_cut(
+                ctx, cut, executor, deadline, cancelled,
+            )?;
+        (identities, Some(snapshot), schema_used)
+    } else {
+        (BTreeMap::new(), None, false)
+    };
+    let mut native_bindings = Vec::new();
     let mut kinds: BTreeMap<String, String> = NATIVE_CATALOG_KINDS
         .iter()
         .map(|kind| ((*kind).into(), format!("{kind}.json")))
@@ -1811,6 +2025,14 @@ pub(crate) fn maintained_inventory(
         "ToS/contracts/semantic-relation-type-registry.schema.json",
     ];
     let mut record_inputs = raw_digests(ctx, &registry_refs, false)?;
+    if native_schema_used {
+        let name = "ToS/contracts/semantic-annotation-packet-v2.schema.json";
+        set(
+            &mut record_inputs,
+            name,
+            string(&Digest256::of_bytes(selected(ctx, name)?).to_hex()),
+        )?;
+    }
     let mut prior_profile_inputs = raw_digests(ctx, &claim_registry_refs, false)?;
     let mut records: BTreeMap<String, Vec<JsonValue>> = NATIVE_CATALOG_KINDS
         .iter()
@@ -1834,7 +2056,10 @@ pub(crate) fn maintained_inventory(
             continue;
         }
         let basename = location.rsplit('/').next().unwrap_or("");
-        if basename.starts_with("semantic-annotation") && basename.ends_with(".json") {
+        if cut.is_none()
+            && basename.starts_with("semantic-annotation")
+            && basename.ends_with(".json")
+        {
             return Err(SourceCommandError::Unsupported(
                 "maintained native semantic identity snapshot adapter",
             ));
@@ -1855,6 +2080,11 @@ pub(crate) fn maintained_inventory(
             if id.is_empty() {
                 return Err(SourceCommandError::Invalid("catalog metadata identity"));
             }
+            if native_identities.contains_key(&id) {
+                return Err(SourceCommandError::Conflict(
+                    "catalog metadata identity is occupied by native semantic packet",
+                ));
+            }
             let descriptor = types.iter().find_map(|entity| {
                 entity
                     .object_get("source_record_profile")
@@ -1866,12 +2096,16 @@ pub(crate) fn maintained_inventory(
                     })
             });
             let schema = if let Some(descriptor) = descriptor {
-                if descriptor.object_get("native_binding_adapter").is_some()
-                    || record.object_get("native_text_binding").is_some()
+                if cut.is_none()
+                    && (descriptor.object_get("native_binding_adapter").is_some()
+                        || record.object_get("native_text_binding").is_some())
                 {
                     return Err(SourceCommandError::Unsupported(
                         "maintained native text binding snapshot adapter",
                     ));
+                }
+                if descriptor.object_get("native_binding_adapter").is_some() {
+                    native_bindings.push(field(&record, "native_text_binding")?.clone());
                 }
                 let route = array(descriptor, "schemas")?
                     .iter()
@@ -1886,9 +2120,15 @@ pub(crate) fn maintained_inventory(
                     &["ToS/contracts/corpus-record.schema.json"],
                 )?;
                 let exact = metadata_subject(&record)?;
-                let (verified, locator) = crate::source_revisions::resolve_record_version(
-                    ctx, &exact, executor, deadline, cancelled,
-                )?;
+                let (verified, locator) = if let Some(cut) = cut {
+                    crate::source_revisions::resolve_record_version_from_cut(
+                        ctx, cut, &exact, executor, deadline, cancelled,
+                    )?
+                } else {
+                    crate::source_revisions::resolve_record_version(
+                        ctx, &exact, executor, deadline, cancelled,
+                    )?
+                };
                 if !same(&verified, &record)? || locator != location {
                     return Err(SourceCommandError::Conflict(
                         "catalog profile source owner drift",
@@ -2038,6 +2278,74 @@ pub(crate) fn maintained_inventory(
             }
         }
     }
+    let native_text_snapshot = if native_bindings.is_empty() {
+        None
+    } else {
+        let cut = cut.ok_or(SourceCommandError::Unsupported(
+            "maintained native text binding snapshot adapter",
+        ))?;
+        let mut reader = ProfileMetadataReader {
+            ctx,
+            cut,
+            observed: BTreeMap::new(),
+            observed_bytes: 0,
+        };
+        let resolved = crate::source_sign_native::resolve_bindings(
+            &mut reader,
+            executor,
+            &native_bindings,
+            NativeReadScope::MetadataOnly,
+            deadline,
+            cancelled,
+        )?;
+        if resolved.summaries.len() != native_bindings.len() {
+            return Err(SourceCommandError::Conflict(
+                "native profile resolver summary count",
+            ));
+        }
+        for summary in &resolved.summaries {
+            if summary.object_get("public_content_declared") != Some(&JsonValue::Bool(true)) {
+                return Err(SourceCommandError::Denied(
+                    "profile native text binding has no declared public content",
+                ));
+            }
+        }
+        // The exported closure must name only metadata inputs authenticated
+        // by this same reader. Category-specific duplicates retain their roles.
+        for input in &resolved.inputs {
+            if input.kind == NativeReadKind::Content
+                || reader
+                    .observed
+                    .get(&input.reference)
+                    .map(|(digest, _)| *digest)
+                    != Some(input.raw_sha256)
+            {
+                return Err(SourceCommandError::Conflict(
+                    "native profile exported read closure differs",
+                ));
+            }
+        }
+        for (name, digest) in resolved.schema_digests {
+            if Digest256::of_bytes(selected(ctx, &name)?) != digest {
+                return Err(SourceCommandError::Conflict(
+                    "native profile schema input differs from selected source",
+                ));
+            }
+            let value = string(&digest.to_hex());
+            if record_inputs
+                .object_get(&name)
+                .is_some_and(|prior| prior != &value)
+            {
+                return Err(SourceCommandError::Conflict(
+                    "native profile schema digest conflict",
+                ));
+            }
+            set(&mut record_inputs, &name, value)?;
+        }
+        // The owner's batch snapshot contains exactly its successful shared
+        // cache inputs; it is not synthesized from caller-selected files.
+        Some(resolved.input_snapshot)
+    };
     if !has_profiled_claim {
         prior_profile_inputs = object(vec![]);
     }
@@ -2061,6 +2369,8 @@ pub(crate) fn maintained_inventory(
         claim_profile_inputs: prior_profile_inputs,
         events,
         anchors,
+        native_identity_snapshot,
+        native_text_snapshot,
     })
 }
 
@@ -2082,6 +2392,7 @@ fn maintained_grounding(
         claim_profile_inputs: prior_profile_inputs,
         events,
         anchors,
+        ..
     } = maintained_inventory(ctx, executor, deadline, cancelled)?;
     let mut new_profile_inputs = raw_digests(
         ctx,

@@ -68,6 +68,13 @@ pub(crate) struct ResolvedSignBinding {
     pub input_snapshot: String,
     pub schema_digests: BTreeMap<String, Digest256>,
 }
+pub(crate) struct ResolvedSignBindingBatch {
+    pub summaries: Vec<JsonValue>,
+    pub inputs: Vec<NativeInput>,
+    pub input_snapshot: String,
+    pub schema_digests: BTreeMap<String, Digest256>,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ResolvedSignNative {
     /// Maintained Record.from_payload inputs: id/version/payload/origin_id.
@@ -1487,8 +1494,18 @@ fn selected_binding<'a, R: SignNativeRead + ?Sized>(
     deadline: Instant,
     cancelled: &'a AtomicBool,
 ) -> SourceCommandResult<(Native<'a, R>, JsonValue, JsonValue, JsonValue)> {
+    let mut native = selected_native(reader, worker, deadline, cancelled)?;
+    let (packet, layer, summary) = native.resolve(binding, scope)?;
+    Ok((native, packet, layer, summary))
+}
+fn selected_native<'a, R: SignNativeRead + ?Sized>(
+    reader: &'a mut R,
+    worker: &'a mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &'a AtomicBool,
+) -> SourceCommandResult<Native<'a, R>> {
     reader.verify_current(deadline, cancelled)?;
-    let mut native = Native {
+    Ok(Native {
         reader,
         worker,
         deadline,
@@ -1497,10 +1514,39 @@ fn selected_binding<'a, R: SignNativeRead + ?Sized>(
         schemas: BTreeMap::new(),
         remaining_metadata: MAX_METADATA_BYTES,
         remaining_content: MAX_CONTENT_BYTES,
-    };
-    let (packet, layer, summary) = native.resolve(binding, scope)?;
-    Ok((native, packet, layer, summary))
+    })
 }
+
+/// The maintained SourceRecordProfiles owns one resolver closure across every
+/// loaded binding. Reuse the actual resolver cache, quotas and snapshot law.
+pub(crate) fn resolve_bindings<R: SignNativeRead + ?Sized>(
+    reader: &mut R,
+    worker: &mut CutWorkerSchemaExecutor,
+    bindings: &[JsonValue],
+    scope: NativeReadScope,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<ResolvedSignBindingBatch> {
+    if bindings.is_empty() {
+        return Err(SourceCommandError::Invalid(
+            "native binding batch requires a used resolver",
+        ));
+    }
+    let mut native = selected_native(reader, worker, deadline, cancelled)?;
+    let mut summaries = Vec::new();
+    for binding in bindings {
+        let (_, _, summary) = native.resolve(binding, scope)?;
+        summaries.push(summary);
+    }
+    let input_snapshot = native.snapshot()?;
+    Ok(ResolvedSignBindingBatch {
+        summaries,
+        inputs: selected_inputs(&native),
+        input_snapshot,
+        schema_digests: native.schemas,
+    })
+}
+
 fn selected_inputs<R: SignNativeRead + ?Sized>(native: &Native<'_, R>) -> Vec<NativeInput> {
     native
         .cache
