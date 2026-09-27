@@ -35,6 +35,8 @@ mod source_read_projection;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod source_dossier;
 #[cfg(not(target_arch = "wasm32"))]
+pub mod philosophy_read;
+#[cfg(not(target_arch = "wasm32"))]
 mod sqlite;
 mod temporal_comparison;
 

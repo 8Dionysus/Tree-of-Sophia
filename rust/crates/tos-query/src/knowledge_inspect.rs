@@ -81,6 +81,18 @@ pub trait InspectDisclosureLease: Send {
     fn recheck(&mut self) -> Result<(), SearchV2Error>;
 }
 pub trait InspectCurrentAuthority {
+    /// The current projection hold covers the exact selected philosophy
+    /// header and every consulted original row. Custody alone is not a grant.
+    fn authorize_philosophy_original_current(
+        &mut self,
+        _: &tos_compiler::PhilosophyOriginalReceipt,
+        _: tos_compiler::PhilosophyOriginalCollection,
+        _: u64,
+        _: &[u8],
+        _: Digest256,
+    ) -> Result<(), SearchV2Error> {
+        Err(error(SearchV2ErrorCode::Unavailable, "selected philosophy original authorization unavailable"))
+    }
     /// Original navigation custody is distinct from normalized carrier access.
     /// The same disclosure lease must cover this selected component, including
     /// its original membership index, header and every consulted rights row.
@@ -164,7 +176,7 @@ impl<A: InspectCurrentAuthority + ?Sized> Reader<'_, '_, A> {
     }
     pub(crate) fn original_receipt(&mut self) -> Result<tos_compiler::NavigationOriginalReceipt, SearchV2Error> {
         self.check_interrupt()?;
-        if self.model.selection().model_abi != tos_compiler::KNOWLEDGE_NAVIGATION_MODEL_ABI {
+        if !self.model.navigation_original_available() {
             return Err(error(SearchV2ErrorCode::Unavailable, "selected navigation originals unavailable"));
         }
         self.model.check_pin().map_err(|_| error(SearchV2ErrorCode::StaleSelection, "selected navigation pin changed"))?;
@@ -173,6 +185,38 @@ impl<A: InspectCurrentAuthority + ?Sized> Reader<'_, '_, A> {
         let bytes = receipt.total_bytes.checked_add(receipt.member_index_bytes).ok_or_else(budget_error)?;
         if rows > self.budget.max_rows.saturating_sub(self.rows) || bytes > self.budget.max_decoded_bytes.saturating_sub(self.decoded) { return Err(budget_error()); }
         Ok(receipt)
+    }
+    pub(crate) fn philosophy_receipt(&mut self) -> Result<tos_compiler::PhilosophyOriginalReceipt, SearchV2Error> {
+        self.check_interrupt()?;
+        if !self.model.philosophy_original_available() {
+            return Err(error(SearchV2ErrorCode::Unavailable, "selected philosophy originals unavailable"));
+        }
+        self.model.check_pin().map_err(|_| error(SearchV2ErrorCode::StaleSelection, "selected philosophy pin changed"))?;
+        let receipt = self.model.philosophy_original_receipt().map_err(|reason| match reason {
+            tos_compiler::Error::Budget(_) => budget_error(),
+            _ => corrupt("selected philosophy original receipt invalid"),
+        })?.clone();
+        let rows = receipt.nodes.checked_add(receipt.edges).and_then(|n| n.checked_add(1)).ok_or_else(budget_error)?;
+        if rows > self.budget.max_rows.saturating_sub(self.rows) || receipt.total_bytes > self.budget.max_decoded_bytes.saturating_sub(self.decoded) { return Err(budget_error()); }
+        Ok(receipt)
+    }
+    pub(crate) fn philosophy_row(&mut self, receipt: &tos_compiler::PhilosophyOriginalReceipt, collection: tos_compiler::PhilosophyOriginalCollection, after: Option<u64>) -> Result<Option<(u64, JsonValue)>, SearchV2Error> {
+        self.check_interrupt()?;
+        if self.rows >= self.budget.max_rows { return Err(budget_error()); }
+        let bytes = self.budget.max_decoded_bytes.saturating_sub(self.decoded).min(self.budget.max_payload_bytes as u64);
+        let row_cap = usize::try_from(bytes).map_err(|_| budget_error())?;
+        let page = self.model.philosophy_original_page_under_caller_budget(collection, after, 1, row_cap, bytes).map_err(|reason| match reason {
+            tos_compiler::Error::Budget(_) => budget_error(),
+            _ => corrupt("selected philosophy original read failed"),
+        })?;
+        self.charge_original(page.rows.len(), page.decoded_bytes)?;
+        let Some(row) = page.rows.into_iter().next() else { return Ok(None); };
+        let sha = Digest256::of_bytes(&row.raw);
+        if sha.to_hex() != row.raw_sha256 { return Err(corrupt("selected philosophy original digest differs")); }
+        self.authority.authorize_philosophy_original_current(receipt, collection, row.ordinal, &row.raw, sha)?;
+        self.check_interrupt()?;
+        let value = parse_json(&row.raw, JsonMode::PublishedStrict, self.budget.json).map_err(|_| corrupt("selected philosophy original JSON invalid"))?.into_root();
+        Ok(Some((row.ordinal, value)))
     }
     pub(crate) fn original_row(&mut self, receipt: &tos_compiler::NavigationOriginalReceipt, after: Option<i64>) -> Result<Option<(i64, JsonValue)>, SearchV2Error> {
         self.check_interrupt()?;
