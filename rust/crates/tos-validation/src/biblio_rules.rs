@@ -1041,7 +1041,11 @@ pub fn inspect_bibliographic_delta(input:BiblioDeltaInput<'_>,limits:ItemLimits,
         let allowed_extra:&[&str]=match endpoint_kind {"edition"=>&["embodies_expression_refs","edition_statement","publication_claim_refs","provision_activity_claim_refs","exemplar_claim_refs","responsibility_claim_refs"],"item"=>&["item_manifest_ref"],_=>&[]};
         if matches!(endpoint_kind,"edition"|"item") && endpoint.as_object().is_some_and(|object|object.keys().any(|key|!common.contains(&key.as_str())&&!allowed_extra.contains(&key.as_str()))) {rules.issue("delta-child-scope-fields",input.endpoint_path)?;}
         let empty_fields:&[&str]=match endpoint_kind {"expression"=>&["responsibility_claim_refs","embodiment_claim_refs","derivation_claim_refs"],"edition"=>&["publication_claim_refs","exemplar_claim_refs","provision_activity_claim_refs","responsibility_claim_refs"],_=>&[]};
-        for empty in empty_fields {if endpoint.get(*empty).is_some_and(|v|*v!=json!([]))||matches!(*empty,"responsibility_claim_refs"|"embodiment_claim_refs"|"publication_claim_refs"|"exemplar_claim_refs")&&endpoint.get(*empty).is_none() {rules.issue("delta-no-inferred-endpoint-Claims",input.endpoint_path)?;}}
+        // The maintained recipes require different initial fields. Edition
+        // responsibility/provision and Expression derivation default to []
+        // when absent; a supplied value must still be exactly an empty array.
+        let required_empty_fields:&[&str]=match endpoint_kind {"expression"=>&["responsibility_claim_refs","embodiment_claim_refs"],"edition"=>&["publication_claim_refs","exemplar_claim_refs"],_=>&[]};
+        for empty in empty_fields {if endpoint.get(*empty).is_some_and(|v|*v!=json!([]))||required_empty_fields.contains(empty)&&endpoint.get(*empty).is_none() {rules.issue("delta-no-inferred-endpoint-Claims",input.endpoint_path)?;}}
         if endpoint_kind=="expression" && s(&endpoint,"work_ref")!=parent_id||endpoint_kind=="edition" && endpoint["embodies_expression_refs"]!=json!([parent_id])||endpoint_kind=="item" && s(&endpoint,"item_manifest_ref")!=Some(&format!("{child_home}/item.manifest.json")) {rules.issue("delta-exact-child-parent-or-manifest",input.endpoint_path)?;}
         for field in ["variant_labels","external_identifiers"] {if !endpoint[field].as_array().is_some_and(|a|a.iter().all(|v|v.is_object()&&if endpoint_kind=="expression" {s(v,"status")!=Some("verified")}else{s(v,"status")==Some("unverified")})) {rules.issue("delta-unverified-child-labels-and-identifiers",input.endpoint_path)?;}}
     } else {
