@@ -15,6 +15,7 @@ use tos_foundation::{
 
 const SCHEMA: &str = "tos_access_native_knowledge_selection_v1";
 const PHILOSOPHY_SCHEMA: &str = "tos_access_native_knowledge_selection_v2";
+const CORPUS_SCHEMA: &str = "tos_access_native_knowledge_selection_v3";
 const PROFILE: &str = "managed-local-linux-fsverity-v1";
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -33,6 +34,8 @@ pub struct NativeSelectionProducer {
     pub navigation_original: Option<NavigationOriginalReceipt>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub philosophy_original: Option<crate::PhilosophyOriginalReceipt>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub corpus_original: Option<crate::CorpusOriginalReceipt>,
 }
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -80,7 +83,9 @@ impl NativeKnowledgeSelection {
         max_bytes: usize,
     ) -> Result<Self> {
         let packet = Packet {
-            schema: if producer.philosophy_original.is_some() {
+            schema: if producer.corpus_original.is_some() {
+                CORPUS_SCHEMA
+            } else if producer.philosophy_original.is_some() {
                 PHILOSOPHY_SCHEMA
             } else {
                 SCHEMA
@@ -215,7 +220,9 @@ fn process(value: NativeProcessLimits) -> Result<()> {
     Ok(())
 }
 fn validate_packet(p: &Packet) -> Result<()> {
-    let schema = if p.expectation.model_abi == crate::KNOWLEDGE_PHILOSOPHY_MODEL_ABI {
+    let schema = if p.expectation.model_abi == crate::KNOWLEDGE_CORPUS_MODEL_ABI {
+        CORPUS_SCHEMA
+    } else if p.expectation.model_abi == crate::KNOWLEDGE_PHILOSOPHY_MODEL_ABI {
         PHILOSOPHY_SCHEMA
     } else {
         SCHEMA
@@ -266,6 +273,7 @@ fn validate_packet(p: &Packet) -> Result<()> {
         || seal.search_index_root_sha256 != e.search_index_root_sha256
         || seal.navigation_original_root_sha256 != e.navigation_original_root_sha256
         || seal.philosophy_original_root_sha256 != e.philosophy_original_root_sha256
+        || seal.corpus_original_root_sha256 != e.corpus_original_root_sha256
         || s.input_collections != s.verified_inputs.len()
     {
         return Err(Error::Invalid(
@@ -324,6 +332,22 @@ fn validate_packet(p: &Packet) -> Result<()> {
         _ => {
             return Err(Error::Invalid(
                 "native producer philosophy original receipt binding",
+            ));
+        }
+    }
+    match (&p.producer.corpus_original, &e.corpus_original_root_sha256) {
+        (None, None) => (),
+        (Some(r), Some(root))
+            if &r.component_root_sha256 == root
+                && r.descriptor_sha256 == e.descriptor_sha256
+                && r.source_cut == e.source_cut
+                && r.membership_root == e.membership_root =>
+        {
+            crate::knowledge_corpus_original::validate_receipt(r)?
+        }
+        _ => {
+            return Err(Error::Invalid(
+                "native producer corpus original receipt binding",
             ));
         }
     }

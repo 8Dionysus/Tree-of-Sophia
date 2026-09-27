@@ -62,6 +62,8 @@ pub struct KnowledgeSelectedExpectation {
     pub navigation_original_root_sha256: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub philosophy_original_root_sha256: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub corpus_original_root_sha256: Option<String>,
     pub catalog_packet_sha256: String,
     pub catalog_index_root_sha256: String,
     pub source_scope_root_sha256: String,
@@ -128,6 +130,7 @@ pub struct VerifiedKnowledgeModel<'a> {
     source_revision: String,
     navigation_original: Option<crate::NavigationOriginalReceipt>,
     philosophy_original: Option<crate::PhilosophyOriginalReceipt>,
+    corpus_original: Option<crate::CorpusOriginalReceipt>,
     custody: CustodyRef<'a>,
     max_cold_vm_steps: u64,
     sqlite_cache_kib: u64,
@@ -143,6 +146,37 @@ impl<'a> VerifiedKnowledgeModel<'a> {
     }
     pub fn philosophy_original_available(&self) -> bool {
         self.philosophy_original.is_some()
+    }
+    pub fn corpus_original_available(&self) -> bool {
+        self.corpus_original.is_some()
+    }
+    pub fn corpus_original_receipt(&self) -> Result<&crate::CorpusOriginalReceipt> {
+        self.check_pin()?;
+        self.corpus_original
+            .as_ref()
+            .ok_or(Error::Invalid("selected corpus original unavailable"))
+    }
+    pub fn corpus_original_page_under_caller_budget(
+        &self,
+        collection: crate::CorpusOriginalCollection,
+        selector: &crate::CorpusOriginalSelector,
+        after: Option<u64>,
+        max_rows: usize,
+        max_row_bytes: usize,
+        max_page_bytes: u64,
+    ) -> Result<crate::CorpusOriginalPage> {
+        self.corpus_original_receipt()?;
+        let page = crate::knowledge_corpus_original::page(
+            &self.connection,
+            collection,
+            selector,
+            after,
+            max_rows,
+            max_row_bytes,
+            max_page_bytes,
+        )?;
+        self.check_pin()?;
+        Ok(page)
     }
     pub fn philosophy_original_receipt(&self) -> Result<&crate::PhilosophyOriginalReceipt> {
         self.check_pin()?;
@@ -298,6 +332,7 @@ impl<'a> VerifiedKnowledgeModel<'a> {
             source_revision: self.source_revision.clone(),
             navigation_original: self.navigation_original.clone(),
             philosophy_original: self.philosophy_original.clone(),
+            corpus_original: self.corpus_original.clone(),
             custody: self.custody.clone(),
             max_cold_vm_steps: max_vm_steps,
             sqlite_cache_kib: self.sqlite_cache_kib,
@@ -336,6 +371,7 @@ pub(crate) fn validate(
             KNOWLEDGE_MODEL_ABI,
             crate::KNOWLEDGE_NAVIGATION_MODEL_ABI,
             crate::KNOWLEDGE_PHILOSOPHY_MODEL_ABI,
+            crate::KNOWLEDGE_CORPUS_MODEL_ABI,
         ]
         .contains(&expected.model_abi.as_str())
         || !expected.complete
@@ -348,13 +384,23 @@ pub(crate) fn validate(
         expected.model_abi.as_str(),
         &expected.navigation_original_root_sha256,
         &expected.philosophy_original_root_sha256,
+        &expected.corpus_original_root_sha256,
     ) {
-        (KNOWLEDGE_MODEL_ABI, None, None) => (),
-        (crate::KNOWLEDGE_NAVIGATION_MODEL_ABI, Some(nav), None) => checked_digest(nav)?,
-        (crate::KNOWLEDGE_PHILOSOPHY_MODEL_ABI, nav, Some(phi)) => {
+        (KNOWLEDGE_MODEL_ABI, None, None, None) => (),
+        (crate::KNOWLEDGE_NAVIGATION_MODEL_ABI, Some(nav), None, None) => checked_digest(nav)?,
+        (crate::KNOWLEDGE_PHILOSOPHY_MODEL_ABI, nav, Some(phi), None) => {
             checked_digest(phi)?;
             if let Some(nav) = nav {
                 checked_digest(nav)?;
+            }
+        }
+        (crate::KNOWLEDGE_CORPUS_MODEL_ABI, nav, phi, Some(corpus)) => {
+            checked_digest(corpus)?;
+            if let Some(r) = nav {
+                checked_digest(r)?;
+            }
+            if let Some(r) = phi {
+                checked_digest(r)?;
             }
         }
         _ => {
@@ -1008,6 +1054,8 @@ fn open_selected_inner<'a>(
         crate::knowledge_navigation_original::verify(&db, &expected, limits, &mut work)?;
     let philosophy_original =
         crate::knowledge_philosophy_original::verify(&db, &expected, limits, &mut work)?;
+    let corpus_original =
+        crate::knowledge_corpus_original::verify(&db, &expected, limits, &mut work)?;
     custody.verify_cold_resources(limits)?;
     custody.verify(&pinned, &expected)?;
     Ok(VerifiedKnowledgeModel {
@@ -1017,6 +1065,7 @@ fn open_selected_inner<'a>(
         source_revision,
         navigation_original,
         philosophy_original,
+        corpus_original,
         custody,
         max_cold_vm_steps: limits.max_vm_steps,
         sqlite_cache_kib: limits.sqlite_cache_kib,
@@ -1308,6 +1357,12 @@ fn verify_selected_table_allowlist(db: &Connection) -> Result<()> {
             crate::knowledge_philosophy_original::ROW_TABLE,
         ]);
     }
+    if crate::knowledge_corpus_original::present(db)? {
+        expected.extend([
+            crate::knowledge_corpus_original::META_TABLE,
+            crate::knowledge_corpus_original::ROW_TABLE,
+        ]);
+    }
     expected.sort_unstable();
     let mut table_statement=db.prepare("SELECT CASE WHEN typeof(name)='text' AND length(CAST(name AS BLOB))<=128 THEN name ELSE NULL END FROM sqlite_master WHERE type='table' ORDER BY name")?;
     let mut rows = table_statement.query([])?;
@@ -1335,6 +1390,9 @@ pub(crate) fn verify_schema(db: &Connection) -> Result<()> {
     }
     if crate::knowledge_philosophy_original::present(db)? {
         crate::knowledge_philosophy_original::verify_ddl(db)?;
+    }
+    if crate::knowledge_corpus_original::present(db)? {
+        crate::knowledge_corpus_original::verify_ddl(db)?;
     }
     for (table, expected_ddl_sha256) in SELECTED_TABLES {
         let ddl: Option<Vec<u8>> = db
@@ -2104,6 +2162,7 @@ mod tests {
             graph_root_sha256: GRAPH_ROOT.into(),
             navigation_original_root_sha256: None,
             philosophy_original_root_sha256: None,
+            corpus_original_root_sha256: None,
             catalog_packet_sha256: EMPTY.into(),
             catalog_index_root_sha256: EMPTY.into(),
             source_scope_root_sha256: EMPTY.into(),

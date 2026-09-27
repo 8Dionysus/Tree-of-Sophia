@@ -563,7 +563,7 @@ pub(crate) fn verify_stage(
                 [],
                 |r| r.get(0),
             )?;
-            if abi != KNOWLEDGE_PHILOSOPHY_MODEL_ABI {
+            if ![KNOWLEDGE_PHILOSOPHY_MODEL_ABI,crate::KNOWLEDGE_CORPUS_MODEL_ABI].contains(&abi.as_str()) {
                 return Err(Error::Invalid("philosophy original finish ABI"));
             }
         }
@@ -585,7 +585,12 @@ pub(crate) fn verify(
 ) -> Result<Option<PhilosophyOriginalReceipt>> {
     let found = present(db)?;
     if found != e.philosophy_original_root_sha256.is_some()
-        || found != (e.model_abi == KNOWLEDGE_PHILOSOPHY_MODEL_ABI)
+        || found
+            && ![
+                KNOWLEDGE_PHILOSOPHY_MODEL_ABI,
+                crate::KNOWLEDGE_CORPUS_MODEL_ABI,
+            ]
+            .contains(&e.model_abi.as_str())
     {
         return Err(Error::Invalid("philosophy original ABI/expected coverage"));
     }

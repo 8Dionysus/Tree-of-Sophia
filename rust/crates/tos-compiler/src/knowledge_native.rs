@@ -34,6 +34,7 @@ pub struct NativeFamilyInputs<'a> {
     pub repository_root: Option<RepositoryRootInput<'a>>,
     pub navigation_original: Option<NavigationOriginalInput<'a>>,
     pub philosophy_original: Option<crate::PhilosophyOriginalInput<'a>>,
+    pub corpus_original: Option<&'a crate::CapturedCorpusOriginalPlan>,
     pub topology: TopologyLimits,
     pub canon_prepare: CanonPrepareLimits,
     pub canon: CanonMaterializeLimits,
@@ -46,6 +47,7 @@ impl NativeFamilyInputs<'_> {
             repository_root: None,
             navigation_original: None,
             philosophy_original: None,
+            corpus_original: None,
             topology: TopologyLimits {
                 max_rows: limits.finalize.max_rows,
                 max_page_rows: limits.finalize.max_page_rows,
@@ -112,6 +114,7 @@ pub struct NativeProducerReceipt {
     pub final_rows: NativeFinalizeReceipt,
     pub navigation_original: Option<crate::NavigationOriginalReceipt>,
     pub philosophy_original: Option<crate::PhilosophyOriginalReceipt>,
+    pub corpus_original: Option<crate::CorpusOriginalReceipt>,
     pub base_node_root_sha256: String,
     pub endpoint_title_root_sha256: String,
     pub claim_group_root_sha256: String,
@@ -1115,10 +1118,15 @@ pub fn materialize_native_sources_with_inputs(
         }
         clear_global_titles(stage)?;
         clear_inherited_views(stage)?;
+        let corpus_original = additional
+            .corpus_original
+            .map(|plan| crate::retain_captured_corpus_original(stage, vocabulary, plan))
+            .transpose()?;
         Ok(NativeProducerReceipt {
             final_rows,
             navigation_original,
             philosophy_original,
+            corpus_original,
             base_node_root_sha256: base.node_root_sha256,
             endpoint_title_root_sha256: titles.title_root_sha256,
             claim_group_root_sha256: contexts.root_sha256,

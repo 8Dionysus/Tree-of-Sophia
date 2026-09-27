@@ -13,10 +13,46 @@ use tos_foundation::{
     CanonicalProfile, Digest256, JsonLimits, JsonMode, JsonValue, canonical_bytes_v1, parse_json,
 };
 
-const ROOT_CAP: usize = 256 * 1024;
-const INDEX_CAP: usize = 128 * 1024;
-const PART_CAP: usize = 8 * 1024 * 1024;
-const STORED_OVERHEAD: usize = 65536;
+pub(crate) const ROOT_CAP: usize = 256 * 1024;
+pub(crate) const INDEX_CAP: usize = 128 * 1024;
+pub(crate) const PART_CAP: usize = 8 * 1024 * 1024;
+pub(crate) const STORED_OVERHEAD: usize = 65536;
+
+/// Shared physical part decoder for existing filesystem navigation and exact
+/// captured corpus inputs. Namespace and member selection stay with each owner.
+pub(crate) fn decode_partition_part(
+    stored: &[u8],
+    kind: &str,
+    stored_len: usize,
+    decoded_len: usize,
+    stored_sha: &str,
+    decoded_sha: &str,
+) -> Result<Vec<u8>> {
+    let cap = match kind {
+        "data" => PART_CAP,
+        "index" => INDEX_CAP,
+        _ => return Err(Error::Invalid("part kind")),
+    };
+    if stored_len > cap + STORED_OVERHEAD || decoded_len > cap {
+        return Err(Error::Budget("part bytes"));
+    }
+    if stored.len() != stored_len || Digest256::of_bytes(stored).to_hex() != stored_sha {
+        return Err(Error::Invalid("part digest mismatch"));
+    }
+    let raw = if kind == "data" {
+        let mut decoded = Vec::with_capacity(decoded_len);
+        GzDecoder::new(stored)
+            .take(decoded_len as u64 + 1)
+            .read_to_end(&mut decoded)?;
+        decoded
+    } else {
+        stored.to_vec()
+    };
+    if raw.len() != decoded_len || Digest256::of_bytes(&raw).to_hex() != decoded_sha {
+        return Err(Error::Invalid("decoded part mismatch"));
+    }
+    Ok(raw)
+}
 
 pub struct LegacyPartitionedNavigation {
     path: PathBuf,
@@ -176,25 +212,14 @@ impl LegacyPartitionedNavigation {
             return Err(Error::Budget("input work bytes"));
         }
         self.work_bytes.set(work);
-        let digest = Digest256::of_bytes(&stored).to_hex();
-        if digest != string(descriptor, "sha256")? {
-            return Err(Error::Invalid("part digest mismatch"));
-        }
-        let raw = if kind == "data" {
-            let mut decoded = Vec::with_capacity(decoded_len);
-            GzDecoder::new(stored.as_slice())
-                .take(decoded_len as u64 + 1)
-                .read_to_end(&mut decoded)?;
-            decoded
-        } else {
-            stored
-        };
-        if raw.len() != decoded_len
-            || Digest256::of_bytes(&raw).to_hex() != string(descriptor, "decoded_sha256")?
-        {
-            return Err(Error::Invalid("decoded part mismatch"));
-        }
-        Ok(raw)
+        decode_partition_part(
+            &stored,
+            kind,
+            stored_len,
+            decoded_len,
+            string(descriptor, "sha256")?,
+            string(descriptor, "decoded_sha256")?,
+        )
     }
 
     fn walk(

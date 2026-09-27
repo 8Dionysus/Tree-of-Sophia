@@ -804,6 +804,7 @@ impl<'a> KnowledgeStage<'a> {
         if self.selected_full {
             crate::knowledge_navigation_original::verify_stage(&mut self, None)?;
             crate::knowledge_philosophy_original::verify_stage(&mut self, None)?;
+            crate::knowledge_corpus_original::verify_stage(&mut self, None)?;
             self.check(WritePhase::Finalize)?;
             preflight_selected_vacuum(self.db(), &self.candidate, self.inode, self.limits)?;
             // Owner input is removed from the private stage only after exact
@@ -970,6 +971,7 @@ pub(crate) fn selected_table_closure(db: &Connection) -> Result<()> {
         "catalog_source_counts",
     ];
     let philosophy_original = crate::knowledge_philosophy_original::present(db)?;
+    let corpus_original = crate::knowledge_corpus_original::present(db)?;
     let philosophy_tables = [
         crate::knowledge_philosophy_original::META_TABLE,
         crate::knowledge_philosophy_original::ROW_TABLE,
@@ -993,7 +995,13 @@ pub(crate) fn selected_table_closure(db: &Connection) -> Result<()> {
         };
         if !(TABLES.contains(&name.as_str())
             || navigation_original && navigation_tables.contains(&name.as_str())
-            || philosophy_original && philosophy_tables.contains(&name.as_str()))
+            || philosophy_original && philosophy_tables.contains(&name.as_str())
+            || corpus_original
+                && [
+                    crate::knowledge_corpus_original::META_TABLE,
+                    crate::knowledge_corpus_original::ROW_TABLE,
+                ]
+                .contains(&name.as_str()))
             || !seen.insert(name)
         {
             return Err(Error::Invalid("unexpected selected knowledge table"));
@@ -1003,6 +1011,7 @@ pub(crate) fn selected_table_closure(db: &Connection) -> Result<()> {
         != TABLES.len()
             + if navigation_original { 3 } else { 0 }
             + if philosophy_original { 2 } else { 0 }
+            + if corpus_original { 2 } else { 0 }
     {
         return Err(Error::Invalid("missing selected knowledge table"));
     }
@@ -1073,15 +1082,26 @@ pub(crate) fn selected_table_closure(db: &Connection) -> Result<()> {
         let (Some(name), Some(sql)) = (name, sql) else {
             return Err(Error::Budget("selected knowledge schema text bytes"));
         };
-        if !EXPLICIT_INDEXES
+        if !(EXPLICIT_INDEXES
             .iter()
             .any(|(expected_name, expected_sql)| name == *expected_name && sql == *expected_sql)
+            || corpus_original
+                && crate::knowledge_corpus_original::INDEXES
+                    .iter()
+                    .any(|(n, d)| name == *n && sql == *d))
             || !indexes.insert(name)
         {
             return Err(Error::Invalid("unexpected selected knowledge index"));
         }
     }
-    if indexes.len() != EXPLICIT_INDEXES.len() {
+    if indexes.len()
+        != EXPLICIT_INDEXES.len()
+            + if corpus_original {
+                crate::knowledge_corpus_original::INDEXES.len()
+            } else {
+                0
+            }
+    {
         return Err(Error::Invalid("missing selected knowledge index"));
     }
     let extra: Option<i64> = db

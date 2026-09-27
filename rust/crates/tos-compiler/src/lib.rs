@@ -10,6 +10,15 @@ pub mod knowledge_canon_materialize;
 pub mod knowledge_canon_prepare;
 pub mod knowledge_canon_source;
 mod knowledge_catalog_index;
+mod knowledge_corpus_original;
+mod knowledge_corpus_source;
+pub use knowledge_corpus_original::{
+    CORPUS_ORIGINAL_PROFILE, CapturedCorpusOrigin, CapturedCorpusOriginalPlan,
+    CorpusOriginalCollection, CorpusOriginalCollectionReceipt, CorpusOriginalMember,
+    CorpusOriginalPage, CorpusOriginalReceipt, CorpusOriginalRow, CorpusOriginalSelector,
+    KNOWLEDGE_CORPUS_MODEL_ABI, retain_captured_corpus_original,
+};
+pub use knowledge_corpus_source::{CorpusOriginalSourceLimits, prepare_captured_corpus_original};
 mod knowledge_full;
 #[cfg(all(not(target_arch = "wasm32"), any(test, feature = "test-fixture")))]
 pub mod knowledge_full_fixture;

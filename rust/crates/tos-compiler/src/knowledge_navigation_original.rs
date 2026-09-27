@@ -662,6 +662,7 @@ pub(crate) fn verify(
             && ![
                 KNOWLEDGE_NAVIGATION_MODEL_ABI,
                 crate::KNOWLEDGE_PHILOSOPHY_MODEL_ABI,
+                crate::KNOWLEDGE_CORPUS_MODEL_ABI,
             ]
             .contains(&expected.model_abi.as_str())
     {
@@ -824,7 +825,7 @@ pub(crate) fn verify_stage(
         )?;
         if descriptor.is_none() {
             let abi: String=db.query_row("SELECT CAST(value AS TEXT) FROM metadata WHERE key='model_abi'",[],|r|r.get(0))?;
-            if ![KNOWLEDGE_NAVIGATION_MODEL_ABI,crate::KNOWLEDGE_PHILOSOPHY_MODEL_ABI].contains(&abi.as_str()){return Err(Error::Invalid("navigation original finish ABI"));}
+            if ![KNOWLEDGE_NAVIGATION_MODEL_ABI,crate::KNOWLEDGE_PHILOSOPHY_MODEL_ABI,crate::KNOWLEDGE_CORPUS_MODEL_ABI].contains(&abi.as_str()){return Err(Error::Invalid("navigation original finish ABI"));}
             for (key,wanted) in [("descriptor_sha256",r.descriptor_sha256.as_str()),("navigation_original_root_sha256",r.component_root_sha256.as_str())] {
                 let actual:Option<String>=db.query_row("SELECT CAST(value AS TEXT) FROM metadata WHERE key=?1 AND length(CAST(value AS BLOB))<=128",[key],|r|r.get(0)).optional()?;
                 if actual.as_deref()!=Some(wanted){return Err(Error::Invalid("navigation original finish seal"));}

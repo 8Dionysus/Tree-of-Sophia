@@ -53,6 +53,8 @@ pub struct KnowledgeSealReceipt {
     pub navigation_original_root_sha256: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub philosophy_original_root_sha256: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub corpus_original_root_sha256: Option<String>,
     pub graph_root_sha256: String,
     pub graph_header_sha256: String,
     pub node_root_sha256: String,
@@ -319,7 +321,11 @@ fn seal_inner(
         stage,
         Some(&vocabulary.descriptor_sha256),
     )?;
-    let model_abi = if philosophy.is_some() {
+    let corpus =
+        crate::knowledge_corpus_original::verify_stage(stage, Some(&vocabulary.descriptor_sha256))?;
+    let model_abi = if corpus.is_some() {
+        crate::KNOWLEDGE_CORPUS_MODEL_ABI
+    } else if philosophy.is_some() {
         crate::KNOWLEDGE_PHILOSOPHY_MODEL_ABI
     } else if navigation.is_some() {
         crate::KNOWLEDGE_NAVIGATION_MODEL_ABI
@@ -392,6 +398,12 @@ fn seal_inner(
             r.component_root_sha256.clone(),
         ));
     }
+    if let Some(r) = &corpus {
+        metadata.push((
+            "corpus_original_root_sha256",
+            r.component_root_sha256.clone(),
+        ));
+    }
     if metadata.iter().any(|(key, value)| {
         key.len() > 128
             || value.is_empty()
@@ -440,6 +452,7 @@ fn seal_inner(
         model_abi: model_abi.into(),
         navigation_original_root_sha256: navigation.map(|r| r.component_root_sha256),
         philosophy_original_root_sha256: philosophy.map(|r| r.component_root_sha256),
+        corpus_original_root_sha256: corpus.map(|r| r.component_root_sha256),
         graph_root_sha256,
         graph_header_sha256: header_sha.to_hex(),
         node_root_sha256: roots.node_sha256,
