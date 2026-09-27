@@ -43,6 +43,8 @@ pub mod source_gap;
 #[cfg(not(target_arch = "wasm32"))]
 mod sqlite;
 mod temporal_comparison;
+mod inspect_plan;
+pub use inspect_plan::{AbortProbe, AbortReason, InspectBudget, InspectRequest, InspectNeed, InspectPlan, validate_inspect_request};
 
 #[cfg(not(target_arch = "wasm32"))]
 pub use knowledge_binding::{BoundCmpKnowledge, bind_verified_knowledge};
@@ -54,7 +56,7 @@ pub use knowledge_catalog::{
 };
 #[cfg(not(target_arch = "wasm32"))]
 pub use knowledge_inspect::{
-    DisclosableInspect, INSPECT_INTENDED_USE, InspectBudget, InspectCurrentAuthority,
+    DisclosableInspect, INSPECT_INTENDED_USE, InspectCurrentAuthority,
     InspectDisclosureLease, InspectedCarrier, NODE_INSPECT_OPERATION, ObservedInspectCarrier,
     RELATION_INSPECT_OPERATION, execute_selected_inspect,
 };
@@ -79,7 +81,7 @@ pub use source_descend::{
 };
 #[cfg(not(target_arch = "wasm32"))]
 pub use sqlite::{
-    AbortProbe, AbortReason, AdapterAdmissionBudget, AdapterAdmissionCharge, CmpPinnedModel,
+    AdapterAdmissionBudget, AdapterAdmissionCharge, CmpPinnedModel,
     CmpSqliteReadModel, CurrentPolicy, DisclosureScope, PinnedLocalModel, SourcePin,
     SqliteReadModel,
 };

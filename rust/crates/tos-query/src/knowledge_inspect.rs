@@ -4,7 +4,7 @@ use crate::{
     knowledge_binding::BoundCmpKnowledge,
     knowledge_packet::IndexedDisclosureScope,
     search_v2::{CurrentPolicyBinding, SearchKind, SearchV2Error, SearchV2ErrorCode},
-    source_read_projection::{object, source_read_targets, text},
+    source_read_projection::text,
 };
 use rusqlite::{ErrorCode, params};
 use std::{
@@ -17,8 +17,8 @@ use std::{
 };
 use tos_compiler::VerifiedKnowledgeModel;
 use tos_foundation::{
-    CanonicalProfile, Digest256, JsonLimits, JsonMode, JsonNumber, JsonNumberKind, JsonValue,
-    canonical_bytes_v1, parse_json, python_strip_unicode16_v1,
+    CanonicalProfile, Digest256, JsonLimits, JsonMode, JsonValue,
+    canonical_bytes_v1, parse_json,
 };
 
 pub const NODE_INSPECT_OPERATION: &str = "tos.knowledge.node.inspect";
@@ -41,25 +41,7 @@ fn sql_error(reason: rusqlite::Error) -> SearchV2Error {
         corrupt("selected inspect query failed")
     }
 }
-fn number(value: u64) -> JsonValue {
-    JsonValue::Number(JsonNumber {
-        kind: JsonNumberKind::Int,
-        lexeme: value.to_string(),
-    })
-}
-
-#[derive(Clone, Copy, Debug)]
-pub struct InspectBudget {
-    pub max_open_vm_steps: u64,
-    pub max_read_vm_steps: u64,
-    pub max_matches: usize,
-    pub max_rows: u64,
-    pub max_field_bytes: usize,
-    pub max_payload_bytes: usize,
-    pub max_decoded_bytes: u64,
-    pub max_response_bytes: usize,
-    pub json: JsonLimits,
-}
+pub use crate::inspect_plan::InspectBudget;
 /// A retained row's authenticated full projection. Authority includes every
 /// consulted carrier, including endpoint/context carriers and every alias.
 pub struct InspectedCarrier {
@@ -715,45 +697,15 @@ impl<A: InspectCurrentAuthority + ?Sized> Reader<'_, '_, A> {
         }
         Ok(values)
     }
-    fn resolve(
-        &mut self,
-        kind: SearchKind,
-        id: &str,
-    ) -> Result<(&'static str, Vec<JsonValue>), SearchV2Error> {
-        let exact = self.items(kind, "id", id, 1, false)?;
-        if !exact.is_empty() {
-            return Ok(("id", exact));
-        }
-        if kind == SearchKind::Nodes {
-            let entity = self.items(kind, "entity_id", id, self.budget.max_matches + 1, false)?;
-            if entity.len() > self.budget.max_matches {
-                return Err(budget_error());
-            }
-            if !entity.is_empty() {
-                return Ok(("entity_id", entity));
-            }
-        }
-        let native = self.items(kind, "native_id", id, self.budget.max_matches + 1, false)?;
-        if native.len() > self.budget.max_matches {
-            return Err(budget_error());
-        }
-        if native.is_empty() {
-            return Err(error(
-                SearchV2ErrorCode::UnknownIdentifier,
-                "unknown ToS knowledge identifier",
-            ));
-        }
-        Ok(("native_id", native))
-    }
     fn incident(
         &mut self,
-        matches: &[JsonValue],
+        matches: &[String],
         limit: usize,
     ) -> Result<(u64, Vec<JsonValue>), SearchV2Error> {
         let ids = JsonValue::Array(
             matches
                 .iter()
-                .map(|value| value.object_get("id").expect("verified id").clone())
+                .map(|value| text(value))
                 .collect(),
         );
         let encoded = canonical_bytes_v1(
@@ -811,22 +763,7 @@ pub fn execute_selected_inspect<A: InspectCurrentAuthority + ?Sized>(
     relation_limit: usize,
     budget: InspectBudget,
 ) -> Result<DisclosableInspect, SearchV2Error> {
-    let identifier = python_strip_unicode16_v1(identifier, 4096).map_err(|_| {
-        error(
-            SearchV2ErrorCode::InvalidRequest,
-            "inspect identifier exceeds character cap",
-        )
-    })?;
-    if identifier.is_empty()
-        || identifier.chars().count() > 4096
-        || identifier.len() > budget.max_field_bytes
-        || relation_limit > 1000
-    {
-        return Err(error(
-            SearchV2ErrorCode::InvalidRequest,
-            "invalid inspect identifier or relation limit",
-        ));
-    }
+    let request = crate::InspectRequest::new(kind, identifier, relation_limit, budget)?;
     let operation = if kind == SearchKind::Nodes {
         NODE_INSPECT_OPERATION
     } else {
@@ -840,108 +777,31 @@ pub fn execute_selected_inspect<A: InspectCurrentAuthority + ?Sized>(
         INSPECT_INTENDED_USE,
         budget,
         |read| {
-            let (field, matches) = read.resolve(kind, identifier)?;
-            let (context, count) = if kind == SearchKind::Nodes {
-                let (total, related) = read.incident(&matches, relation_limit)?;
-                (related, total)
-            } else {
-                let mut ids = BTreeSet::new();
-                for value in &matches {
-                    for field in ["from_id", "to_id"] {
-                        ids.insert(
-                            value
-                                .object_get(field)
-                                .and_then(JsonValue::as_str)
-                                .ok_or_else(|| corrupt("inspect relation endpoint invalid"))?
-                                .to_owned(),
-                        );
-                    }
-                }
-                let mut endpoints = vec![];
-                for id in ids {
-                    let values = read.items(SearchKind::Nodes, "id", &id, 1, true)?;
-                    if values.len() != 1 {
-                        return Err(corrupt("inspect relation endpoint closure incomplete"));
-                    }
-                    endpoints.extend(values);
-                }
-                let count = endpoints.len() as u64;
-                (endpoints, count)
-            };
-            let items: Vec<_> = matches.iter().chain(&context).cloned().collect();
-            let mut refs = BTreeSet::new();
-            for item in &items {
-                if let Some(JsonValue::Array(values)) = item.object_get("source_refs") {
-                    for value in values {
-                        if let Some(value) = value.as_str().filter(|value| !value.is_empty()) {
-                            refs.insert(value.to_owned());
-                        }
-                    }
-                }
-            }
             let authority_boundary = parse_json(
-                bound.authority_boundary().as_bytes(),
-                JsonMode::PublishedStrict,
-                budget.json,
-            )
-            .map_err(|_| corrupt("inspect authority boundary invalid"))?
-            .root()
-            .clone();
-            let mut fields = vec![
-                (
-                    "schema",
-                    text(if kind == SearchKind::Nodes {
-                        "tos_knowledge_node_packet_v1"
-                    } else {
-                        "tos_knowledge_relation_packet_v1"
-                    }),
-                ),
-                ("source_revision", text(bound.source_revision())),
-                ("requested_id", text(identifier)),
-                (
-                    "ambiguous_native_id",
-                    JsonValue::Bool(field == "native_id" && matches.len() > 1),
-                ),
-                ("matches", JsonValue::Array(matches.clone())),
-                (
-                    "source_refs",
-                    JsonValue::Array(refs.into_iter().map(|value| text(&value)).collect()),
-                ),
-                (
-                    "source_read_targets",
-                    source_read_targets(&items, bound.source_revision(), budget.json),
-                ),
-                ("authority_boundary", authority_boundary),
-            ];
-            if kind == SearchKind::Nodes {
-                fields.extend([
-                    (
-                        "shared_entity_id",
-                        JsonValue::Bool(field == "entity_id" && matches.len() > 1),
-                    ),
-                    (
-                        "counts",
-                        object(vec![
-                            ("matches", number(matches.len() as u64)),
-                            ("related_relations", number(count)),
-                            ("returned_relations", number(context.len() as u64)),
-                        ]),
-                    ),
-                    ("related_relations", JsonValue::Array(context)),
-                ]);
-            } else {
-                fields.extend([
-                    (
-                        "counts",
-                        object(vec![
-                            ("matches", number(matches.len() as u64)),
-                            ("endpoints", number(count)),
-                        ]),
-                    ),
-                    ("endpoints", JsonValue::Array(context)),
-                ]);
+                bound.authority_boundary().as_bytes(), JsonMode::PublishedStrict, budget.json,
+            ).map_err(|_| corrupt("inspect authority boundary invalid"))?.root().clone();
+            let mut plan = crate::InspectPlan::new(request, bound.source_revision().to_owned(), authority_boundary, budget)?;
+            let probe = read.authority.abort_probe();
+            while let Some(need) = plan.need().cloned() {
+                read.check_interrupt()?;
+                let before = read.decoded;
+                match need {
+                    crate::InspectNeed::Lookup { kind, selector, identifier, limit } => {
+                        let rows = read.items(kind, selector, &identifier, limit.checked_add(1).ok_or_else(budget_error)?, false)?;
+                        plan.resume_lookup(rows, read.decoded - before, probe.as_deref())?;
+                    }
+                    crate::InspectNeed::NodeIncident { ids, relation_limit } => {
+                        let (total, rows) = read.incident(&ids, relation_limit)?;
+                        plan.resume_incident(total, rows, read.decoded - before, probe.as_deref())?;
+                    }
+                    crate::InspectNeed::RelationEndpoints { ids } => {
+                        let mut rows = Vec::new();
+                        for id in ids { rows.extend(read.items(SearchKind::Nodes, "id", &id, 1, true)?); }
+                        plan.resume_endpoints(rows, read.decoded - before, probe.as_deref())?;
+                    }
+                }
             }
-            Ok(object(fields))
+            plan.into_packet()
         },
     )
 }

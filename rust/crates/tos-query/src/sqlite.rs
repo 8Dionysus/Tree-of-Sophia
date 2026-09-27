@@ -48,18 +48,7 @@ pub struct AdapterAdmissionCharge {
     pub metadata_rows: u64,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum AbortReason {
-    Cancelled,
-    DeadlineExceeded,
-}
-
-/// A cheap owner/transport cancellation probe. Deadline clocks and client
-/// disconnect signals stay with the caller; QRY checks at domain boundaries
-/// and inside every SQLite VM progress callback during a seek.
-pub trait AbortProbe: Send + Sync {
-    fn reason(&self) -> Option<AbortReason>;
-}
+pub use crate::inspect_plan::{AbortProbe, AbortReason};
 
 /// Implement only for an owner-verified selected model whose SQLite connection
 /// holds the already-digested immutable inode. The receipt, full source cut,

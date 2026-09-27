@@ -121,7 +121,7 @@ fn record_target(record: &JsonValue, claim: bool, limits: JsonLimits) -> Option<
         ("content_revision", text(&sha)),
     ];
     if let Some(kind) = kind {
-        fields.push(("record_type", text(kind)));
+        fields.insert(1, ("record_type", text(kind)));
     }
     Some(object(fields))
 }
