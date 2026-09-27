@@ -311,6 +311,12 @@ fn reference(v: &Value, id: &str, version: &str) -> Result<Value, ItemRefusal> {
     }
     Ok(json!({"id":text(v,id)?,"version":n,"digest":digest(v)?}))
 }
+// The real reference has these three owned fields. Price its shape without
+// constructing a stand-in reference or executing its source digest.
+fn reference_state(value:&Value,id:&str,version:&str)->Result<usize,ItemRefusal> {
+    let id=text(value,id)?;let number=value.get(version).and_then(Value::as_number).ok_or_else(||bad("record version number"))?;
+    std::mem::size_of::<Value>().checked_add(3*std::mem::size_of::<(String,Value)>()).and_then(|n|n.checked_add("id".len()+"version".len()+"digest".len())).and_then(|n|n.checked_add(id.len())).and_then(|n|n.checked_add(number.as_str().len())).and_then(|n|n.checked_add("sha256:".len()+2*std::mem::size_of::<Digest256>())).ok_or(ItemRefusal::Budget)
+}
 fn file_refs(files: &Package) -> Value {
     Value::Object(
         files
@@ -425,8 +431,8 @@ impl<'a> NativeCompoundReader<'a> {
         if let Some(raw) = this.optional(CONTROL, 8192)? {
             let state=this.decoded(&raw)?;
             let retained=crate::record_biblio_cut::decoded_state(&state)?;
-            let scratch=retained.checked_add(this.canonical_workspace(&state)?).ok_or(ItemRefusal::Budget)?;
-            this.temporary(scratch)?;state_valid(&state)?;this.release_temporary(scratch);
+            this.temporary(retained)?;
+            state_valid_with(&state,&mut |value|this.canonical_observation(value))?;this.release_temporary(retained);
             // Move the same tree from the temporary scope into publication.
             this.temporary_state-=retained;
             this.publication=Some(state);
@@ -473,33 +479,38 @@ impl<'a> NativeCompoundReader<'a> {
         self.temporary(crate::record_biblio_cut::ordered_state(&value)?)?;
         Ok(value)
     }
-    fn canonical_workspace(&self,value:&Value)->Result<usize,ItemRefusal> {
+    // One actual canonicalization supplies the consumed digest and byte length.
+    // Counting serialization admits its buffer; no canonical result is built
+    // solely to estimate another execution of the same codec pipeline.
+    fn canonical_observation(&self,value:&Value)->Result<(String,usize),ItemRefusal> {
         let available=self.limits.max_state_bytes.checked_sub(self.state).ok_or(ItemRefusal::Budget)?;
-        crate::record_biblio_cut::decoded_wire_size(value,available)?;
+        crate::record_biblio_cut::decoded_wire_size(value,available.saturating_sub(std::mem::size_of::<Vec<u8>>()))?;
         let raw=serde_json::to_vec(value).map_err(|_|bad("serialization"))?;
-        let remaining=available.checked_sub(raw.len()).ok_or(ItemRefusal::BudgetCheck{check:"compound canonical input workspace",used:Some(raw.len() as u64),limit:Some(available as u64)})?;
+        let raw_state=raw.len().checked_add(std::mem::size_of::<Vec<u8>>()).ok_or(ItemRefusal::Budget)?;
+        let remaining=available.checked_sub(raw_state).ok_or(ItemRefusal::BudgetCheck{check:"compound canonical input workspace",used:Some(raw_state as u64),limit:Some(available as u64)})?;
         let tree=crate::record_biblio_cut::bounded_ordered(&raw,limits(),remaining,self.limits.deadline,self.cancelled)?;
-        let parse_peak=raw.len().checked_add(crate::record_biblio_cut::ordered_codec_state(&tree)?).ok_or(ItemRefusal::Budget)?;
-        let emit_state=crate::record_biblio_cut::ordered_emit_state(&tree)?;
-        let emit_base=raw.len().checked_add(crate::record_biblio_cut::ordered_state(&tree)?).and_then(|n|n.checked_add(emit_state)).ok_or(ItemRefusal::Budget)?;
+        let parse_peak=raw_state.checked_add(crate::record_biblio_cut::ordered_codec_state(&tree)?).ok_or(ItemRefusal::Budget)?;
+        let emit_base=raw_state.checked_add(crate::record_biblio_cut::ordered_state(&tree)?).and_then(|n|n.checked_add(crate::record_biblio_cut::ordered_emit_state(&tree).ok()?)).and_then(|n|n.checked_add(std::mem::size_of::<Vec<u8>>())).ok_or(ItemRefusal::Budget)?;
         let room=available.checked_sub(emit_base).ok_or(ItemRefusal::BudgetCheck{check:"compound canonical emit indexes",used:Some(emit_base as u64),limit:Some(available as u64)})?;
         let mut emission=limits();emission.max_bytes=emission.max_bytes.min(room);
         let output=canonical_bytes_v1(&tree,CanonicalProfile::SourceCommandInputV1,emission).map_err(|error|if error.code==tos_foundation::FoundationErrorCode::BudgetExceeded {ItemRefusal::BudgetCheck{check:"compound canonical output workspace",used:None,limit:Some(room as u64)}}else{ItemRefusal::Unsupported(format!("compound canonical: {error:?}"))})?;
-        let emit_peak=emit_base.checked_add(output.len()).ok_or(ItemRefusal::Budget)?;
-        let peak=parse_peak.max(emit_peak);
+        let peak=parse_peak.max(emit_base.checked_add(output.len()).ok_or(ItemRefusal::Budget)?);
         if peak>available {return Err(ItemRefusal::BudgetCheck{check:"compound canonical codec workspace",used:Some(peak as u64),limit:Some(available as u64)});}
-        Ok(peak)
+        check(self.limits.deadline,self.cancelled)?;
+        Ok((Digest256::of_bytes(&output).to_prefixed(),output.len()))
     }
     fn package_revision(&mut self,files:&Package)->Result<String,ItemRefusal> {
         let refs=file_refs(files);let tree=crate::record_biblio_cut::decoded_state(&refs)?;
         self.temporary(tree)?;
-        let scratch=self.canonical_workspace(&refs)?;self.temporary(scratch)?;
-        let result=digest(&refs);drop(refs);self.release_temporary(tree+scratch);result
+        let result=self.canonical_observation(&refs).map(|(digest,_)|digest);
+        drop(refs);self.release_temporary(tree);result
     }
     fn reference_matches(&mut self,value:&Value,id:&str,version:&str,expected:&Value)->Result<bool,ItemRefusal> {
-        let scratch=self.canonical_workspace(value)?;self.temporary(scratch)?;
-        let reference=reference(value,id,version)?;let tree=crate::record_biblio_cut::decoded_state(&reference)?;
-        self.temporary(tree)?;let result=&reference==expected;drop(reference);self.release_temporary(tree+scratch);Ok(result)
+        let n=integer(value,version)?;if n==0 {return Err(bad("positive record version"));}
+        let (digest,_)=self.canonical_observation(value)?;
+        let reference=json!({"id":text(value,id)?,"version":n,"digest":digest});
+        let tree=crate::record_biblio_cut::decoded_state(&reference)?;
+        self.temporary(tree)?;let result=&reference==expected;drop(reference);self.release_temporary(tree);Ok(result)
     }
     fn value_copy(&mut self,value:&Value)->Result<Value,ItemRefusal> {
         self.temporary(crate::record_biblio_cut::decoded_state(value)?)?;
@@ -519,8 +530,9 @@ impl<'a> NativeCompoundReader<'a> {
             if raw.len() > cap {
                 return Err(ItemRefusal::BudgetCheck {check:"compound cached member bytes",used:Some(raw.len() as u64),limit:Some(cap as u64)});
             }
-            let copy = raw.clone();
-            self.temporary(copy.len()+std::mem::size_of::<Vec<u8>>())?;
+            let size=raw.len()+std::mem::size_of::<Vec<u8>>();
+            self.temporary(size)?;
+            let copy = self.raw.get(path).expect("selected cache entry remains").clone();
             return Ok(Some(copy));
         }
         if !self.paths.contains(path) {
@@ -659,10 +671,7 @@ impl<'a> NativeCompoundReader<'a> {
             return Err(bad("transaction version/path profile mismatch"));
         }
         if !plan["authorization"].is_object() {return Err(bad("bounded authorization"));}
-        let authorization_scratch=self.canonical_workspace(&plan["authorization"])?;
-        self.temporary(authorization_scratch)?;
-        let authorization=canonical(&plan["authorization"])?;
-        let oversized=authorization.len()>65536;drop(authorization);self.release_temporary(authorization_scratch);
+        let oversized=self.canonical_observation(&plan["authorization"])?.1>65536;
         if oversized {return Err(bad("bounded authorization"));}
         let directories = array(plan, "new_directories")?;
         if directories.len() > 64 {
@@ -807,8 +816,8 @@ impl<'a> NativeCompoundReader<'a> {
                 if text(&v, "schema_version")? != "tos_selected_metadata_completion_v1" {
                     return Err(bad("completion schema"));
                 }
-                let scratch=crate::record_biblio_cut::decoded_state(&v["publication"])?.checked_add(self.canonical_workspace(&v["publication"])?).ok_or(ItemRefusal::Budget)?;
-                self.temporary(scratch)?;state_valid(&v["publication"])?;self.release_temporary(scratch);
+                let scratch=crate::record_biblio_cut::decoded_state(&v["publication"])?;
+                self.temporary(scratch)?;state_valid_with(&v["publication"],&mut |value|self.canonical_observation(value))?;self.release_temporary(scratch);
                 let s = &v["publication"];
                 if text(s, "phase")? != "ready"
                     || text(s, "transaction_id")? != id
@@ -995,7 +1004,7 @@ impl<'a> NativeCompoundReader<'a> {
         (self.bytes, self.reads)
     }
 }
-fn state_valid(v: &Value) -> Result<(), ItemRefusal> {
+fn state_valid_with(v: &Value,observe:&mut impl FnMut(&Value)->Result<(String,usize),ItemRefusal>) -> Result<(), ItemRefusal> {
     keys(
         v,
         &[
@@ -1030,19 +1039,19 @@ fn state_valid(v: &Value) -> Result<(), ItemRefusal> {
     }
     if !v["recovery_authorization"].is_null()
         && (!v["recovery_authorization"].is_object()
-            || canonical(&v["recovery_authorization"])?.len() > 4096)
+            || observe(&v["recovery_authorization"])?.1 > 4096)
     {
         return Err(bad("recovery evidence bound"));
     }
     let mut contents = v.clone();
     contents.as_object_mut().unwrap().remove("token");
-    if text(v, "token")? != digest(&contents)? {
+    if text(v, "token")? != observe(&contents)?.0 {
         return Err(bad("publication token digest"));
     }
     Ok(())
 }
 
-fn request_valid(request: &Value, kind: CompoundKind) -> Result<(), ItemRefusal> {
+fn request_valid_with(request: &Value, kind: CompoundKind,observe:&mut impl FnMut(&Value)->Result<(String,usize),ItemRefusal>) -> Result<(String,usize), ItemRefusal> {
     let mut request_keys = vec![
         "schema_version",
         "operation",
@@ -1078,10 +1087,11 @@ fn request_valid(request: &Value, kind: CompoundKind) -> Result<(), ItemRefusal>
     keys(request, &request_keys)?;
     if text(request, "schema_version")? != kind.request_schema()
         || text(request, "operation")? != kind.operation()
-        || canonical(request)?.len() > 1_048_576
     {
         return Err(bad("native bibliographic compound request grammar"));
     }
+    let observed=observe(request)?;
+    if observed.1>1_048_576 {return Err(bad("native bibliographic compound request grammar"));}
     let reason = tos_foundation::python_strip_unicode16_v1(text(request, "reason")?, MAX_SIDE)
         .map_err(|_| ItemRefusal::Budget)?;
     if reason.is_empty()
@@ -1101,16 +1111,20 @@ fn request_valid(request: &Value, kind: CompoundKind) -> Result<(), ItemRefusal>
         hash(text(request, "expected_publication")?)?;
     }
     keys(&request["fields"], &[kind.field()])?;
-    Ok(())
+    Ok(observed)
 }
-fn transaction_id(request: &Value, kind: CompoundKind) -> Result<String, ItemRefusal> {
-    digest(
-        &json!({"operation":kind.operation(),"command_id":request["command_id"],"owner_configuration":request["expected_configuration"],"request_digest":digest(request)?}),
-    )
+fn transaction_id_with(request:&Value,kind:CompoundKind,observe:&mut impl FnMut(&Value)->Result<(String,usize),ItemRefusal>)->Result<String,ItemRefusal> {
+    let request_digest=observe(request)?.0;
+    transaction_id_with_digest(request,kind,&request_digest,observe)
 }
-fn parent_receipt_shape(receipt: &Value, kind: CompoundKind) -> Result<(), ItemRefusal> {
+fn transaction_id_with_digest(request:&Value,kind:CompoundKind,request_digest:&str,observe:&mut impl FnMut(&Value)->Result<(String,usize),ItemRefusal>)->Result<String,ItemRefusal> {
+    observe(&json!({"operation":kind.operation(),"command_id":request["command_id"],"owner_configuration":request["expected_configuration"],"request_digest":request_digest})).map(|(digest,_)|digest)
+}
+fn canonical_observation(value:&Value)->Result<(String,usize),ItemRefusal> {let bytes=canonical(value)?;Ok((Digest256::of_bytes(&bytes).to_prefixed(),bytes.len()))}
+fn transaction_id(request:&Value,kind:CompoundKind)->Result<String,ItemRefusal> {transaction_id_with(request,kind,&mut canonical_observation)}
+fn parent_receipt_shape_with(receipt: &Value, kind: CompoundKind,observe:&mut impl FnMut(&Value)->Result<(String,usize),ItemRefusal>) -> Result<(String,usize), ItemRefusal> {
     let request = &receipt["request"];
-    request_valid(request, kind)?;
+    let request_observation=request_valid_with(request, kind,observe)?;
     let publication = &receipt["publication"];
     keys(
         publication,
@@ -1118,7 +1132,7 @@ fn parent_receipt_shape(receipt: &Value, kind: CompoundKind) -> Result<(), ItemR
     )?;
     let refs = array(&request["fields"], kind.field())?;
     if text(publication, "protocol")? != PROTOCOL
-        || text(publication, "transaction_id")? != transaction_id(request, kind)?
+        || text(publication, "transaction_id")? != transaction_id_with_digest(request, kind,&request_observation.0,observe)?
         || publication["selected_files"] != {
             let mut names = selected_names(kind.parent_file())?;
             names.sort();
@@ -1136,7 +1150,7 @@ fn parent_receipt_shape(receipt: &Value, kind: CompoundKind) -> Result<(), ItemR
     {
         return Err(bad("explicit compound parent lineage"));
     }
-    Ok(())
+    Ok(request_observation)
 }
 
 /// Existing `_history` law over exact read-only packages. Callers own custody.
@@ -1153,11 +1167,12 @@ pub fn inspect_record_history(
         Some(raw) => decode(raw)?,
         None => json!({"schema_version":"tos_source_revision_history_v1","record_id":record["record_id"],"receipts":[]}),
     };
-    validate_record_history_values(files,&record,&history,deadline,cancelled)?;
+    validate_record_history_values(files,&record,&history,deadline,cancelled,&mut canonical_observation)?;
     Ok(history)
 }
-fn validate_record_history_values(files:&Package,record:&Value,history:&Value,deadline:Instant,cancelled:&AtomicBool)->Result<(),ItemRefusal> {
-    let subject = reference(&record, "record_id", "record_version")?;
+fn validate_record_history_values(files:&Package,record:&Value,history:&Value,deadline:Instant,cancelled:&AtomicBool,observe:&mut impl FnMut(&Value)->Result<(String,usize),ItemRefusal>)->Result<(),ItemRefusal> {
+    let version=integer(record,"record_version")?;if version==0{return Err(bad("positive record version"));}
+    let subject=json!({"id":text(record,"record_id")?,"version":version,"digest":observe(record)?.0});
     keys(&history, &["schema_version", "record_id", "receipts"])?;
     if !matches!(
         text(&history, "schema_version")?,
@@ -1228,25 +1243,25 @@ fn validate_record_history_values(files:&Package,record:&Value,history:&Value,de
         )
         .map_err(|_| bad("history aware instant"))?;
         let request = &receipt["request"];
-        match text(request, "operation")? {
+        let observed_request=match text(request, "operation")? {
             "work.expression.create" | "expression.edition.create" | "item.adopt" => {
-                parent_receipt_shape(
+                Some(parent_receipt_shape_with(
                     receipt,
-                    CompoundKind::from_operation(text(request, "operation")?)?,
-                )?
+                    CompoundKind::from_operation(text(request, "operation")?)?,observe,
+                )?)
             }
-            "record.revise" => {}
+            "record.revise" => None,
             other => {
                 return Err(ItemRefusal::Unsupported(format!(
                     "retained compound parent handler {other}"
                 )));
             }
-        }
+        };
         let fields = request["fields"]
             .as_object()
             .ok_or_else(|| bad("retained request fields"))?;
         if !commands.insert(text(receipt, "command_id")?)
-            || text(receipt, "request_digest")? != digest(request)?
+            || text(receipt, "request_digest")? != match observed_request {Some((digest,_))=>digest,None=>observe(request)?.0}
             || receipt["command_id"] != request["command_id"]
             || receipt["previous_source"] != request["expected_source"]
             || receipt["previous_revision"] != request["expected_revision"]
@@ -1306,15 +1321,10 @@ impl NativeCompoundReader<'_> {
         };
         // The commands index borrows retained history strings. Field-name
         // vectors contain only references; the exact subject is one owned value.
-        let subject=reference(&record,"record_id","record_version")?;
-        let history_validation_state=crate::record_biblio_cut::decoded_state(&subject)?+array(&history,"receipts")?.len()*std::mem::size_of::<&str>()+17*std::mem::size_of::<&str>();
+        let history_validation_state=reference_state(&record,"record_id","record_version")?+array(&history,"receipts")?.len()*std::mem::size_of::<&str>()+17*std::mem::size_of::<&str>();
         self.temporary(history_validation_state)?;
-        let mut canonical_peak=self.canonical_workspace(&record)?;
-        for receipt in array(&history,"receipts")? {canonical_peak=canonical_peak.max(self.canonical_workspace(&receipt["request"])?);}
-        self.temporary(canonical_peak)?;
-        drop(subject);
-        validate_record_history_values(files,&record,&history,self.limits.deadline,self.cancelled)?;
-        self.release_temporary(canonical_peak+history_validation_state);
+        validate_record_history_values(files,&record,&history,self.limits.deadline,self.cancelled,&mut |value|self.canonical_observation(value))?;
+        self.release_temporary(history_validation_state);
         for (index, receipt) in array(&history, "receipts")?.iter().enumerate() {
             check(self.limits.deadline, self.cancelled)?;
             let previous_temporary = self.temporary_state;
@@ -1324,13 +1334,10 @@ impl NativeCompoundReader<'_> {
                 Some(raw)=>self.decoded(raw)?,
                 None=>{let value=json!({"schema_version":"tos_source_revision_history_v1","record_id":id,"receipts":[]});self.temporary(crate::record_biblio_cut::decoded_state(&value)?)?;value}
             };
-            let mut predecessor_peak=self.canonical_workspace(&predecessor_record)?;
-            for prior in array(&predecessor,"receipts")? {predecessor_peak=predecessor_peak.max(self.canonical_workspace(&prior["request"])?);}
-            let predecessor_subject=reference(&predecessor_record,"record_id","record_version")?;
+            let predecessor_subject_state=reference_state(&predecessor_record,"record_id","record_version")?;
             let predecessor_indexes=array(&predecessor,"receipts")?.len()*std::mem::size_of::<&str>()+17*std::mem::size_of::<&str>();
-            self.temporary(predecessor_peak.checked_add(crate::record_biblio_cut::decoded_state(&predecessor_subject)?).and_then(|n|n.checked_add(predecessor_indexes)).ok_or(ItemRefusal::Budget)?)?;
-            drop(predecessor_subject);
-            validate_record_history_values(&archived,&predecessor_record,&predecessor,self.limits.deadline,self.cancelled)?;
+            self.temporary(predecessor_subject_state.checked_add(predecessor_indexes).ok_or(ItemRefusal::Budget)?)?;
+            validate_record_history_values(&archived,&predecessor_record,&predecessor,self.limits.deadline,self.cancelled,&mut |value|self.canonical_observation(value))?;
             if array(&predecessor, "receipts")? != &array(&history, "receipts")?[..index] {
                 return Err(bad("retained predecessor receipt prefix"));
             }
@@ -2160,7 +2167,8 @@ impl NativeCompoundReader<'_> {
         };
         let request_raw = self.buffer(after("source-create-request.json")?)?;
         let request = self.decoded(&request_raw)?;
-        request_valid(&request, kind)?;
+        let request_observation=request_valid_with(&request, kind,&mut |value|self.canonical_observation(value))?;
+        self.temporary(std::mem::size_of::<String>()+request_observation.0.len())?;
         scope_valid(scope, &request, authority, kind)?;
         let environment_raw = self.buffer(after("source-create-environment.json")?)?;
         let environment = self.decoded(&environment_raw)?;
@@ -2205,16 +2213,14 @@ impl NativeCompoundReader<'_> {
             .get(kind.parent_file())
             .ok_or_else(|| bad("retained parent input missing"))?;
         let old = self.decoded(old_raw)?;
-        let mut canonical_peak=self.canonical_workspace(&old)?.max(self.canonical_workspace(&request)?).max(self.canonical_workspace(&authority["dependency_bindings"])?);
         if !self.reference_matches(&old,"record_id","record_version",&request["expected_source"])?
             || self.package_revision(&before)? != text(&request, "expected_revision")? {
             return Err(bad("retained authorization/request/before binding"));
         }
-        self.temporary(canonical_peak)?;
         if authority["owner_configuration"] != request["expected_configuration"]
             || authority["command_id"] != request["command_id"]
-            || text(authority, "request_digest")? != digest(&request)?
-            || digest(&authority["dependency_bindings"])?
+            || text(authority, "request_digest")? != request_observation.0
+            || self.canonical_observation(&authority["dependency_bindings"])?.0
                 != text(&request, "expected_dependencies")?
         {
             return Err(bad("retained authorization/request/before binding"));
@@ -2247,9 +2253,6 @@ impl NativeCompoundReader<'_> {
         );
         // Inserts replace old subtrees; charge only positive growth of the
         // retained revised tree, not another full cloned profile.
-        self.release_temporary(canonical_peak);
-        canonical_peak=canonical_peak.max(self.canonical_workspace(&revised)?);
-        self.temporary(canonical_peak)?;
         let old_state=crate::record_biblio_cut::decoded_state(&old)?;
         let revised_state=crate::record_biblio_cut::decoded_state(&revised)?;
         self.temporary(revised_state.saturating_sub(old_state))?;
@@ -2403,7 +2406,7 @@ impl NativeCompoundReader<'_> {
         for value in [&claim_forms,&claim_refs] {
             self.temporary(crate::record_biblio_cut::ordered_state(value)?)?;
         }
-        let id = transaction_id(&request, kind)?;
+        let id = transaction_id_with_digest(&request, kind,&request_observation.0,&mut |value|self.canonical_observation(value))?;
         if id != tx.manifest["transaction_id"] {
             return Err(bad("compound transaction request identity"));
         }
@@ -2414,7 +2417,7 @@ impl NativeCompoundReader<'_> {
         );
         let parent_receipt_ordered = object(vec![
             ("command_id", j(&request["command_id"])?),
-            ("request_digest", string(&digest(&request)?)),
+            ("request_digest", string(&request_observation.0)),
             ("principal_id", j(&authority["principal_id"])?),
             ("authority_ref", j(&authority["authority_ref"])?),
             (
@@ -2457,7 +2460,7 @@ impl NativeCompoundReader<'_> {
         self.temporary(crate::record_biblio_cut::ordered_state(&parent_receipt_ordered)?)?;
         let parent_receipt_raw=self.buffer(canonical_ordered(&parent_receipt_ordered)?)?;
         let parent_receipt = self.decoded(&parent_receipt_raw)?;
-        parent_receipt_shape(&parent_receipt, kind)?;
+        parent_receipt_shape_with(&parent_receipt, kind,&mut |value|self.canonical_observation(value))?;
         let (mut receipts,mut receipt_array_state)=match before.get(HISTORY) {
             Some(raw)=>{
                 let prior=self.ordered_value(raw)?;
@@ -2602,7 +2605,7 @@ impl NativeCompoundReader<'_> {
             ("operation", string(kind.operation())),
             ("transaction_id", string(&id)),
             ("command_id", j(&request["command_id"])?),
-            ("request_digest", string(&digest(&request)?)),
+            ("request_digest", string(&request_observation.0)),
             ("principal_id", j(&authority["principal_id"])?),
             ("authority_ref", j(&authority["authority_ref"])?),
             (
