@@ -505,8 +505,19 @@ fn copy_pending_page(
     after: Option<&[u8]>,
     rows_cap: usize,
 ) -> Result<Option<Vec<u8>>> {
-    let mut statement = db.prepare("SELECT gram FROM search_pending_grams WHERE n=?1 AND (?2 IS NULL OR gram>?2) ORDER BY gram LIMIT ?3")?;
-    let mut rows = statement.query(params![GRAM_N, after, rows_cap as i64])?;
+    // Keep continuation as a direct (n,gram) primary-key seek. A nullable
+    // disjunction can revisit the whole n-prefix on every bounded page.
+    let sql = if after.is_some() {
+        "SELECT gram FROM search_pending_grams WHERE n=?1 AND gram>?2 ORDER BY gram LIMIT ?3"
+    } else {
+        "SELECT gram FROM search_pending_grams WHERE n=?1 ORDER BY gram LIMIT ?2"
+    };
+    let mut statement = db.prepare(sql)?;
+    let mut rows = if let Some(after) = after {
+        statement.query(params![GRAM_N, after, rows_cap as i64])?
+    } else {
+        statement.query(params![GRAM_N, rows_cap as i64])?
+    };
     let mut grams = Vec::with_capacity(rows_cap);
     while let Some(row) = rows.next()? {
         grams.push(row.get::<_, Vec<u8>>(0)?);
