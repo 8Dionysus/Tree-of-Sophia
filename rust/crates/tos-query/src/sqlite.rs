@@ -118,7 +118,7 @@ impl<S: SourcePin> CmpPinnedModel<S> {
             .model
             .fork_reader_with_vm_budget(max_open_vm_steps)
             .map_err(|reason| {
-                if matches!(reason, tos_compiler::Error::Budget(_)) {
+                if matches!(reason, tos_compiler::Error::Budget(_) | tos_compiler::Error::SqliteVmBudget { .. }) {
                     error(
                         QueryErrorCode::BudgetExceeded,
                         "selected model warm-reader VM admission exceeded",

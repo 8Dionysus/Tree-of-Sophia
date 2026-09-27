@@ -158,7 +158,7 @@ pub(crate) struct Reader<'a, 'b, A: ?Sized> {
 impl<A: InspectCurrentAuthority + ?Sized> Reader<'_, '_, A> {
     fn original_error(reason: tos_compiler::Error) -> SearchV2Error {
         match reason {
-            tos_compiler::Error::Budget(_) => budget_error(),
+            tos_compiler::Error::Budget(_) | tos_compiler::Error::SqliteVmBudget { .. } => budget_error(),
             _ => corrupt("selected navigation original read failed"),
         }
     }
@@ -187,7 +187,7 @@ impl<A: InspectCurrentAuthority + ?Sized> Reader<'_, '_, A> {
         }
         self.model.check_pin().map_err(|_| error(SearchV2ErrorCode::StaleSelection, "selected philosophy pin changed"))?;
         let receipt = self.model.philosophy_original_receipt().map_err(|reason| match reason {
-            tos_compiler::Error::Budget(_) => budget_error(),
+            tos_compiler::Error::Budget(_) | tos_compiler::Error::SqliteVmBudget { .. } => budget_error(),
             _ => corrupt("selected philosophy original receipt invalid"),
         })?.clone();
         let rows = receipt.nodes.checked_add(receipt.edges).and_then(|n| n.checked_add(1)).ok_or_else(budget_error)?;
@@ -198,7 +198,7 @@ impl<A: InspectCurrentAuthority + ?Sized> Reader<'_, '_, A> {
         self.check_interrupt()?;
         if !self.model.corpus_original_available() { return Err(error(SearchV2ErrorCode::Unavailable, "selected corpus originals unavailable")); }
         self.model.corpus_original_receipt().map(Clone::clone).map_err(|reason| match reason {
-            tos_compiler::Error::Budget(_) => budget_error(),
+            tos_compiler::Error::Budget(_) | tos_compiler::Error::SqliteVmBudget { .. } => budget_error(),
             _ => corrupt("selected corpus original receipt invalid"),
         })
     }
@@ -207,7 +207,7 @@ impl<A: InspectCurrentAuthority + ?Sized> Reader<'_, '_, A> {
         let bytes = self.budget.max_decoded_bytes.saturating_sub(self.decoded).min(self.budget.max_payload_bytes as u64);
         let row_cap = usize::try_from(bytes).map_err(|_| budget_error())?;
         let page = self.model.corpus_original_page_under_caller_budget(collection, selector, after, 1, row_cap, bytes).map_err(|reason| match reason {
-            tos_compiler::Error::Budget(_) => budget_error(),
+            tos_compiler::Error::Budget(_) | tos_compiler::Error::SqliteVmBudget { .. } => budget_error(),
             _ => corrupt("selected corpus original read failed"),
         })?;
         self.charge_original(page.rows.len(), page.decoded_bytes)?;
@@ -225,7 +225,7 @@ impl<A: InspectCurrentAuthority + ?Sized> Reader<'_, '_, A> {
         let bytes = self.budget.max_decoded_bytes.saturating_sub(self.decoded).min(self.budget.max_payload_bytes as u64);
         let row_cap = usize::try_from(bytes).map_err(|_| budget_error())?;
         let page = self.model.philosophy_original_page_under_caller_budget(collection, after, 1, row_cap, bytes).map_err(|reason| match reason {
-            tos_compiler::Error::Budget(_) => budget_error(),
+            tos_compiler::Error::Budget(_) | tos_compiler::Error::SqliteVmBudget { .. } => budget_error(),
             _ => corrupt("selected philosophy original read failed"),
         })?;
         self.charge_original(page.rows.len(), page.decoded_bytes)?;
