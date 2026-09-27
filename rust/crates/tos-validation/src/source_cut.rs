@@ -37,6 +37,20 @@ pub trait CutSchemaExecutor {
         cancelled: &AtomicBool,
     ) -> Result<bool, ItemRefusal>;
 
+    /// An actual prior scalar execution may satisfy this repeated immutable
+    /// schema request. Logical source reads/predicates remain caller-owned;
+    /// a reuse hit is not a new execution receipt. Other executors stay fresh.
+    fn check_reusing_scalar(
+        &mut self,
+        path: &str,
+        raw: &[u8],
+        contract: &str,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<bool, ItemRefusal> {
+        self.check(path, raw, contract, deadline, cancelled)
+    }
+
     fn schema_input_cost(
         &self,
         _path: &str,
@@ -375,6 +389,17 @@ impl CutWorkerSchemaExecutor {
 }
 
 impl CutSchemaExecutor for CutWorkerSchemaExecutor {
+    fn check_reusing_scalar(
+        &mut self,
+        path: &str,
+        raw: &[u8],
+        contract: &str,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<bool, ItemRefusal> {
+        CutWorkerSchemaExecutor::check_reusing_scalar(self, path, raw, contract, deadline, cancelled)
+    }
+
     fn schema_input_cost(
         &self,
         path: &str,
@@ -827,7 +852,7 @@ impl ProvenanceSource for CutProvenanceSource<'_> {
             ));
         }
         self.schemas
-            .check(path, raw, contract, deadline, self.cancelled)
+            .check_reusing_scalar(path, raw, contract, deadline, self.cancelled)
     }
 }
 
@@ -1059,7 +1084,7 @@ impl<S: CutSchemaExecutor, P: CutPayloadReader> ItemSource for CutItemSource<'_,
     ) -> Result<bool, ItemRefusal> {
         check(deadline, self.cancelled)?;
         self.schemas
-            .check(path, raw, contract, deadline, self.cancelled)
+            .check_reusing_scalar(path, raw, contract, deadline, self.cancelled)
     }
     fn payload(&mut self, path: &str, deadline: Instant) -> Result<ItemPayload, ItemRefusal> {
         check(deadline, self.cancelled)?;

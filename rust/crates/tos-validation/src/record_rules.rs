@@ -2681,7 +2681,6 @@ pub fn validate_source_claim_from_cut(
     cancelled: &std::sync::atomic::AtomicBool,
 ) -> Result<SourceClaimLocalReport, crate::item_rules::ItemRefusal> {
     use crate::item_rules::ItemRefusal;
-    use crate::source_cut::CutSchemaExecutor;
     local_claim_checkpoint(limits, cancelled)?;
     let revision = cut.current().revision();
     let binding = worker.execution_binding();
@@ -2728,7 +2727,7 @@ pub fn validate_source_claim_from_cut(
         }
     }
     for (path, schema) in [(LOCAL_CLAIM_REGISTRY, LOCAL_CLAIM_CONTRACT), (ENTITY_REGISTRY, ENTITY_CONTRACT)] {
-        if !worker.check(path, &inputs[path].1, schema, limits.deadline, cancelled)? {
+        if !worker.check_reusing_scalar(path, &inputs[path].1, schema, limits.deadline, cancelled)? {
             local_claim_issue(&mut report, limits, "claim-registry-schema", path)?;
         }
     }
@@ -3033,7 +3032,6 @@ fn validate_local_claim_shape(
     bytes:&mut u64,inputs:&mut BTreeMap<String,(std::sync::Arc<Value>,Vec<u8>)>,report:&mut SourceClaimLocalReport,
 )->Result<(),crate::item_rules::ItemRefusal> {
     use crate::item_rules::ItemRefusal;
-    use crate::source_cut::CutSchemaExecutor;
     let route_state=local_route_state(routes)?;
     report.workspace=route_state;
     local_claim_state_check(report.logical_state,route_state,limits)?;
@@ -3069,7 +3067,7 @@ fn validate_local_claim_shape(
     local_claim_resources(cut,&paths,claim,route_state,worker,limits,cancelled,bytes,inputs,report)?;
     drop(paths);
     for contract in [selected,LOCAL_CLAIM_BASE] {
-        if !worker.check("selected Claim",raw,contract,limits.deadline,cancelled)? {local_claim_issue(report,limits,"claim-exact-schema-or-shared-record",contract)?;}
+        if !worker.check_reusing_scalar("selected Claim",raw,contract,limits.deadline,cancelled)? {local_claim_issue(report,limits,"claim-exact-schema-or-shared-record",contract)?;}
     }
     if !report.issues.is_empty(){return Ok(());}
     crate::record_biblio_cut::decoded_wire_size(&claim["object"],limits.max_state_bytes.checked_sub(report.logical_state).and_then(|n|n.checked_sub(route_state)).ok_or(ItemRefusal::Budget)?)?;
@@ -3078,10 +3076,10 @@ fn validate_local_claim_shape(
     local_claim_state_check(report.logical_state,report.workspace,limits)?;
     if local_is_temporal(reader) {
         let root=if reader=="document-catalogue-temporal-v1"{format!("{LOCAL_DOCUMENT}#/$defs/documentDate")}else{format!("{LOCAL_TEMPORAL}#/$defs/historicalDate")};
-        if !worker.check("selected Claim/object",&object_raw,&root,limits.deadline,cancelled)? {local_claim_issue(report,limits,"claim-shared-temporal-value",&root)?;}
+        if !worker.check_reusing_scalar("selected Claim/object",&object_raw,&root,limits.deadline,cancelled)? {local_claim_issue(report,limits,"claim-shared-temporal-value",&root)?;}
     }
     if local_is_structured(reader) {
-        if !worker.check("selected Claim/object",&object_raw,LOCAL_STRUCTURED,limits.deadline,cancelled)?
+        if !worker.check_reusing_scalar("selected Claim/object",&object_raw,LOCAL_STRUCTURED,limits.deadline,cancelled)?
             || claim["object"]["kind"]!=profile["value_kind"]
         {local_claim_issue(report,limits,"claim-shared-value-kind",predicate)?;}
     }
@@ -3096,7 +3094,7 @@ fn validate_local_claim_shape(
         let qualifier_raw=serde_json::to_vec(qualifiers).map_err(|_|ItemRefusal::Unsupported("local Claim qualifiers serialization".into()))?;
         report.workspace=route_state.checked_add(std::mem::size_of::<Vec<u8>>()+object_raw.len()).and_then(|n|n.checked_add(display_path_state)).and_then(|n|n.checked_add(std::mem::size_of::<Vec<u8>>()+qualifier_raw.len())).ok_or(ItemRefusal::Budget)?;
         local_claim_state_check(report.logical_state,report.workspace,limits)?;
-        if !worker.check("selected Claim/qualifiers",&qualifier_raw,LOCAL_DISPLAY,limits.deadline,cancelled)? {local_claim_issue(report,limits,"claim-display-fields",predicate)?;}
+        if !worker.check_reusing_scalar("selected Claim/qualifiers",&qualifier_raw,LOCAL_DISPLAY,limits.deadline,cancelled)? {local_claim_issue(report,limits,"claim-display-fields",predicate)?;}
     }
     report.workspace=route_state.checked_add(std::mem::size_of::<Vec<u8>>()+object_raw.len()).ok_or(ItemRefusal::Budget)?;
     if let Some(role)=local_document_role(predicate) {
@@ -3134,7 +3132,7 @@ fn validate_local_claim_shape(
         if !valid {local_claim_issue(report,limits,"claim-reference-value-members",predicate)?;}
     }
     if scoped {
-        if !worker.check("selected Claim/object",&object_raw,LOCAL_MEMBERS,limits.deadline,cancelled)? {
+        if !worker.check_reusing_scalar("selected Claim/object",&object_raw,LOCAL_MEMBERS,limits.deadline,cancelled)? {
             local_claim_issue(report,limits,"claim-shared-member-structure",predicate)?;
         } else {
             let mut scoped_limits=limits;

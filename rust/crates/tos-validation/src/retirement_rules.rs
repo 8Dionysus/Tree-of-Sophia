@@ -223,7 +223,7 @@ pub fn inspect_retirements_from_cut(
         let raw = budget.read(cut, current.revision(), &path(event_ref)?, MAX_EVENT_BYTES)?;
         let event = object(&raw, MAX_EVENT_BYTES)?;
         if !schemas
-            .check(event_ref, &raw, SCHEMA, limits.deadline, cancelled)
+            .check_reusing_scalar(event_ref, &raw, SCHEMA, limits.deadline, cancelled)
             .map_err(schema_error)?
         {
             return Err(source("retirement event violates provenance schema"));

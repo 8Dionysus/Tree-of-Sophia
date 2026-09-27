@@ -106,7 +106,7 @@ impl<S: CutSchemaExecutor> LayerFamilySource for CutLayerFamilySource<'_, S> {
             ));
         }
         self.schemas
-            .check(path, raw, contract, deadline, self.cancelled)
+            .check_reusing_scalar(path, raw, contract, deadline, self.cancelled)
     }
     fn exists(&mut self, path: &str, _: usize, deadline: Instant) -> Result<bool, ItemRefusal> {
         self.checkpoint(deadline)?;

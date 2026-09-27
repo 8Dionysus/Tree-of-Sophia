@@ -2,7 +2,7 @@
 //! Schema validity and stored permission wording cannot establish a current
 //! grant, revocation fence, personal consent, publication right or legal review.
 use crate::item_rules::{ItemLimits, ItemRefusal};
-use crate::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
+use crate::source_cut::CutWorkerSchemaExecutor;
 use crate::{KeyState, PredicateRead};
 use serde_json::Value;
 use std::collections::BTreeSet;
@@ -237,7 +237,7 @@ pub fn inspect_rights_from_cut(
         {
             return Err(ItemRefusal::Budget);
         }
-        if !schemas.check(path, &member.raw, CONTRACT, limits.deadline, cancelled)? {
+        if !schemas.check_reusing_scalar(path, &member.raw, CONTRACT, limits.deadline, cancelled)? {
             state.issue(path, "schema", CONTRACT)?;
         }
         source_refs(cut, path, &value, &mut state, cancelled)?;

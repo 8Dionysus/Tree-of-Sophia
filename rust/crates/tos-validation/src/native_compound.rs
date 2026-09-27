@@ -1833,7 +1833,7 @@ fn item_companions(
     ] {
         let raw=canonical_ordered(value)?;
         guard(workspace.checked_add(raw.len()).ok_or(ItemRefusal::Budget)?)?;
-        if !schemas.check(
+        if !schemas.check_reusing_scalar(
             &format!("{}#compound-reconstructed", locator(leaf)),
             &raw,
             &format!("ToS/contracts/{name}.schema.json"),
@@ -1886,7 +1886,7 @@ fn item_companions(
     for (index, value) in [&event, &enumeration].into_iter().enumerate() {
         let raw = canonical(value)?;
         guard(workspace.checked_add(provenance.len()).and_then(|n|n.checked_add(raw.len())).ok_or(ItemRefusal::Budget)?)?;
-        if !schemas.check(
+        if !schemas.check_reusing_scalar(
             &format!(
                 "{}:{}#compound-reconstructed",
                 locator("provenance.jsonl"),
@@ -2562,7 +2562,7 @@ impl NativeCompoundReader<'_> {
         let mut event_raw = canonical(&event)?;
         event_raw.push(b'\n');
         let event_raw=self.buffer(event_raw)?;
-        if !schemas.check(
+        if !schemas.check_reusing_scalar(
             &format!("{home}/source-create-provenance.jsonl"),
             &event_raw,
             "ToS/contracts/provenance-event-v2.schema.json",
@@ -2572,7 +2572,7 @@ impl NativeCompoundReader<'_> {
             return Err(bad("reconstructed provenance schema"));
         }
         for raw in [&parent_forms, &expression_forms, &claim_forms] {
-            if !schemas.check(
+            if !schemas.check_reusing_scalar(
                 "compound-reconstructed-human-form-set",
                 &canonical_ordered(raw)?,
                 "ToS/contracts/human-form-set.schema.json",

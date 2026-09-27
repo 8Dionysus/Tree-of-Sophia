@@ -136,7 +136,7 @@ pub fn inspect_bibliography_from_cut(cut: &CorpusCutReader, records: &SourceCutR
     for (path, contract) in [(ENTITY,"ToS/contracts/semantic-entity-type-registry.schema.json"),(RELATION,"ToS/contracts/semantic-relation-type-registry.schema.json")] {
         let raw=current(cut,path,limits,cancelled,&mut rules.bytes)?;
         reserve(&mut rules.state,raw.len()+std::mem::size_of::<Vec<u8>>(),limits.max_state_bytes)?;
-        if !schemas.check(path,&raw,contract,limits.deadline,cancelled)? { return Err(ItemRefusal::Unsupported(format!("invalid bibliography registry {path}"))); }
+        if !schemas.check_reusing_scalar(path,&raw,contract,limits.deadline,cancelled)? { return Err(ItemRefusal::Unsupported(format!("invalid bibliography registry {path}"))); }
         schema_read(cut,contract,&mut rules)?;
         let (value,value_state)=strict_decoded(&raw,&rules)?;
         reserve(&mut rules.state,value_state,limits.max_state_bytes)?;
@@ -213,7 +213,7 @@ pub fn inspect_bibliography_from_cut(cut: &CorpusCutReader, records: &SourceCutR
             } else if let Some(id)=s(&value,"event_id") {
                 let contract=match s(&value,"schema_version") {Some("tos_provenance_event_v1")=>"ToS/contracts/provenance-event.schema.json",Some("tos_provenance_event_v2")=>"ToS/contracts/provenance-event-v2.schema.json",_=>return Err(ItemRefusal::Unsupported(format!("unknown bibliography event profile {path}:{}",index+1)))};
                 schema_read(cut,contract,&mut rules)?;
-                if !schemas.check(&format!("{path}:{}",index+1),line,contract,limits.deadline,cancelled)? {rules.issue("bibliography-event-schema",path)?;}
+                if !schemas.check_reusing_scalar(&format!("{path}:{}",index+1),line,contract,limits.deadline,cancelled)? {rules.issue("bibliography-event-schema",path)?;}
                 if s(&value,"schema_version")==Some("tos_provenance_event_v2") {
                     let available=rules.limits.max_state_bytes.checked_sub(rules.state).ok_or(ItemRefusal::Budget)?;
                     let workspace=crate::provenance_rules::semantic_workspace(&value,limits.max_issues,available)?;
@@ -383,7 +383,7 @@ fn schema_value(value:&Value,location:&str,contract:&str,schemas:&mut impl CutSc
     let temporary=bytes.checked_add(header).ok_or(ItemRefusal::Budget)?;
     reserve(&mut rules.state,temporary,rules.limits.max_state_bytes)?;
     let raw=serde_json::to_vec(value).map_err(|_|ItemRefusal::Unsupported("Claim secondary worker serialization".into()))?;
-    let result=schemas.check(location,&raw,contract,rules.limits.deadline,rules.cancelled);
+    let result=schemas.check_reusing_scalar(location,&raw,contract,rules.limits.deadline,rules.cancelled);
     drop(raw);rules.state-=temporary;result
 }
 
@@ -404,7 +404,7 @@ fn inspect_claim_inner(cut:&CorpusCutReader, claim:&BiblioClaim, routes:&BTreeMa
     if claim.native {
         let Some(route)=routes.get(predicate) else { rules.issue("unrecognized-predicate",&location)?; return Ok(()); };
         let Some(contract)=s(row,"schema_version").and_then(|v|route.versions.get(v)) else { rules.issue("unrecognized-Claim-schema-version",&location)?; return Ok(()); };
-        if !schemas.check(&location,&bytes,contract,rules.limits.deadline,rules.cancelled)? || !schemas.check(&location,&bytes,BASE,rules.limits.deadline,rules.cancelled)? { rules.issue("claim-profile-schema",&location)?; return Ok(()); }
+        if !schemas.check_reusing_scalar(&location,&bytes,contract,rules.limits.deadline,rules.cancelled)? || !schemas.check_reusing_scalar(&location,&bytes,BASE,rules.limits.deadline,rules.cancelled)? { rules.issue("claim-profile-schema",&location)?; return Ok(()); }
         if s(row,"claim_type")!=Some("relation") || s(row,"claim_id")==s(row,"subject_ref") || s(row,"claim_id")==s(row,"object") {rules.issue("Claim-profile-identity",&location)?;}
         if !matches!(s(row,"visibility"),Some("public"|"public_metadata_only")) { rules.issue("claim-public-shape",&location)?; }
         if !s(row,"assertion_layer").is_some_and(|layer|route.layers.iter().any(|v|v==layer)) { rules.issue("claim-assertion-layer",&location)?; }
@@ -481,7 +481,7 @@ fn inspect_claim_inner(cut:&CorpusCutReader, claim:&BiblioClaim, routes:&BTreeMa
             _ => { rules.skip_parts(&["non-bibliographic-legacy-stream:",basename])?; return Ok(()); }
         };
         schema_read(cut,contract,rules)?;
-        if !schemas.check(&location,&bytes,contract,rules.limits.deadline,rules.cancelled)? { rules.issue("legacy-Claim-schema",&location)?; return Ok(()); }
+        if !schemas.check_reusing_scalar(&location,&bytes,contract,rules.limits.deadline,rules.cancelled)? { rules.issue("legacy-Claim-schema",&location)?; return Ok(()); }
         if expected.is_some_and(|p|p!=predicate) { rules.issue("legacy-Claim-predicate",&location)?; }
         if !matches!(basename,"object-link-claims.jsonl"|"expression-derivation-claims.jsonl"|"historical-claims.jsonl") && s(row,"claim_type")!=Some("bibliographic") { rules.issue("legacy-Claim-type",&location)?; }
         let mut subject_kind=subject_kind;
@@ -1003,7 +1003,7 @@ pub fn inspect_bibliographic_delta(input:BiblioDeltaInput<'_>,limits:ItemLimits,
     };
     for (path,raw,contract) in [(input.parent_path,input.parent_after_raw,"ToS/contracts/corpus-record.schema.json"),(input.endpoint_path,input.endpoint_raw,"ToS/contracts/corpus-record.schema.json"),(input.claim_path,input.claim_raw,"ToS/contracts/source-relation-claim.schema.json")] {
         check(limits.deadline,cancelled)?;
-        if !schemas.check(path,raw,contract,limits.deadline,cancelled)? {rules.issue("bibliographic-delta-schema",path)?;}
+        if !schemas.check_reusing_scalar(path,raw,contract,limits.deadline,cancelled)? {rules.issue("bibliographic-delta-schema",path)?;}
         rules.read(path.len()+("sha256:".len()+std::mem::size_of::<Digest256>()*2),||PredicateRead::ExactPath {path:path.into(),digest:Digest256::of_bytes(raw).to_prefixed()})?;
     }
     rules.read("before:".len()+input.parent_path.len()+("sha256:".len()+std::mem::size_of::<Digest256>()*2),||PredicateRead::ExactBytes {locator:format!("before:{}",input.parent_path),digest:Digest256::of_bytes(input.parent_before_raw).to_prefixed()})?;
