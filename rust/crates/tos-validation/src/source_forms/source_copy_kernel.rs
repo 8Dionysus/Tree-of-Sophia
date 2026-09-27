@@ -437,11 +437,11 @@ fn empty_set(subject: &JsonValue) -> JsonValue {
 }
 
 pub fn apply_form_changes(
-    set: Option<&JsonValue>,
+    prior_set: Option<&JsonValue>,
     subject: &JsonValue,
     changes: &[JsonValue],
 ) -> Result<JsonValue> {
-    let mut successor = match set {
+    let mut successor = match prior_set {
         Some(v) => parse(&canonical(v)?)?,
         None => empty_set(subject),
     };
