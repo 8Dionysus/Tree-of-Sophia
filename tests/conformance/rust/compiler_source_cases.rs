@@ -785,6 +785,21 @@ fn actual_native_corpus_composition_with_retained_claim_matches_maintained_pytho
         "scripts/tos_corpus_index_common.py".into(),
         fs::read(repository.join("scripts/tos_corpus_index_common.py")).unwrap(),
     );
+    let declaration_raw =
+        fs::read(repository.join("access/contracts/runtime-data.v1.json")).unwrap();
+    let declaration: Value = serde_json::from_slice(&declaration_raw).unwrap();
+    let outputs = declaration["subjects"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|subject| subject["subject_id"] == "tos-corpus-index")
+        .collect::<Vec<_>>();
+    assert_eq!(outputs.len(), 1);
+    let output_path = outputs[0]["source_path"].as_str().unwrap().to_owned();
+    captured.insert(
+        "access/contracts/runtime-data.v1.json".into(),
+        declaration_raw,
+    );
     for (path, raw) in &captured {
         let target = git_root.join(path);
         fs::create_dir_all(target.parent().unwrap()).unwrap();
@@ -792,7 +807,13 @@ fn actual_native_corpus_composition_with_retained_claim_matches_maintained_pytho
     }
     git(
         &git_root,
-        &["add", "--", "ToS", "scripts/tos_corpus_index_common.py"],
+        &[
+            "add",
+            "--",
+            "ToS",
+            "scripts/tos_corpus_index_common.py",
+            "access/contracts/runtime-data.v1.json",
+        ],
     );
     git(
         &git_root,
@@ -812,8 +833,11 @@ fn actual_native_corpus_composition_with_retained_claim_matches_maintained_pytho
         .unwrap()
         .trim()
         .to_owned();
-    let capture =
-        super::source_cut_cases::captured_software_fixture(&git_root, &commit, &["ToS", "scripts"]);
+    let capture = super::source_cut_cases::captured_software_fixture(
+        &git_root,
+        &commit,
+        &["ToS", "scripts", "access/contracts"],
+    );
     let cancelled = AtomicBool::new(false);
     let deadline = Instant::now() + Duration::from_secs(240);
     let read_limits = ReadLimits {
@@ -1225,7 +1249,7 @@ sys.stdout.write(owner.render_payload(payload))
     assert_eq!(projection.output_bytes(), output.stdout.as_slice());
     let original = tos_compiler::prepare_native_corpus_original(
         &projection,
-        &tos_foundation::RelativePath::parse("ToS/projections/tos-corpus-index.json").unwrap(),
+        &tos_foundation::RelativePath::parse(&output_path).unwrap(),
         &binding,
         &vocabulary,
         tos_compiler::CorpusOriginalSourceLimits {
