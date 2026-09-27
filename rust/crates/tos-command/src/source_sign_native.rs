@@ -975,7 +975,8 @@ impl<R: SignNativeRead + ?Sized> Native<'_, R> {
             tos_validation::item_rules::ItemRefusal::Deadline => {
                 SourceCommandError::Unsupported("native edit replay deadline")
             }
-            tos_validation::item_rules::ItemRefusal::Budget => {
+            tos_validation::item_rules::ItemRefusal::Budget
+            | tos_validation::item_rules::ItemRefusal::BudgetCheck { .. } => {
                 SourceCommandError::Unsupported("native edit replay backend budget")
             }
             tos_validation::item_rules::ItemRefusal::Unsupported(_) => {

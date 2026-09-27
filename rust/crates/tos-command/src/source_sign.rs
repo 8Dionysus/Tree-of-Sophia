@@ -49,7 +49,8 @@ pub(crate) fn finish_worker(
             tos_validation::item_rules::ItemRefusal::Deadline => {
                 Error::Denied("Sign schema operation expired")
             }
-            tos_validation::item_rules::ItemRefusal::Budget => {
+            tos_validation::item_rules::ItemRefusal::Budget
+            | tos_validation::item_rules::ItemRefusal::BudgetCheck { .. } => {
                 Error::Invalid("Sign schema operation budget")
             }
             tos_validation::item_rules::ItemRefusal::Source(_) => {
@@ -1785,9 +1786,10 @@ fn current_basis(
             AssessmentRefusal::Schema(tos_validation::item_rules::ItemRefusal::Source(_)) => {
                 Error::Invalid("Sign native current assessment schema")
             }
-            AssessmentRefusal::Schema(tos_validation::item_rules::ItemRefusal::Budget) => {
-                Error::Invalid("Sign native current assessment schema budget")
-            }
+            AssessmentRefusal::Schema(tos_validation::item_rules::ItemRefusal::Budget)
+            | AssessmentRefusal::Schema(tos_validation::item_rules::ItemRefusal::BudgetCheck {
+                ..
+            }) => Error::Invalid("Sign native current assessment schema budget"),
             AssessmentRefusal::Schema(tos_validation::item_rules::ItemRefusal::Deadline) => {
                 Error::Denied("Sign native current assessment schema expired")
             }
