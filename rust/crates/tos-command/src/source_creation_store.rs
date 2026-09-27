@@ -22,7 +22,7 @@ const CORPUS_LOCK: &str = ".historical-create.writer.lock";
 const MAX_FILES: usize = 4096;
 const MAX_BYTES: usize = 33_554_432;
 
-fn active(deadline: Instant, cancelled: &AtomicBool) -> SourceCommandResult<()> {
+pub(crate) fn active(deadline: Instant, cancelled: &AtomicBool) -> SourceCommandResult<()> {
     if cancelled.load(Ordering::Relaxed) || Instant::now() >= deadline {
         Err(SourceCommandError::Denied(
             "creation filesystem cancelled or expired",
@@ -42,10 +42,10 @@ fn stamp(m: &Metadata) -> (u64, u64, u64, i64, i64, i64, i64) {
         m.ctime_nsec(),
     )
 }
-fn inode(m: &Metadata) -> (u64, u64) {
+pub(crate) fn inode(m: &Metadata) -> (u64, u64) {
     (m.dev(), m.ino())
 }
-fn owned(file: &File, uid: u32, directory: bool) -> SourceCommandResult<Metadata> {
+pub(crate) fn owned(file: &File, uid: u32, directory: bool) -> SourceCommandResult<Metadata> {
     let m = file
         .metadata()
         .map_err(|_| SourceCommandError::Invalid("creation fd metadata"))?;
@@ -64,7 +64,7 @@ fn child(parent: &File, leaf: &str) -> SourceCommandResult<File> {
     tos_fd_open::open_directory_at(parent, Path::new(leaf))
         .map_err(|_| SourceCommandError::Denied("creation directory absent or unsafe"))
 }
-fn protected_configuration_parents(path: &Path, uid: u32) -> SourceCommandResult<()> {
+pub(crate) fn protected_configuration_parents(path: &Path, uid: u32) -> SourceCommandResult<()> {
     use std::path::Component;
     let mut components = path.components();
     if components.next() != Some(Component::RootDir) {
@@ -111,7 +111,7 @@ fn walk(root: &File, path: &str, uid: u32) -> SourceCommandResult<File> {
     }
     Ok(fd)
 }
-fn raw(
+pub(crate) fn raw(
     file: &mut File,
     cap: usize,
     deadline: Instant,
@@ -728,7 +728,15 @@ fn scan(
                 return Err(SourceCommandError::Invalid("creation source depth budget"));
             }
             scan(
-                &child, &path, uid, staging, files, total, deadline, cancelled,
+                &child,
+                &path,
+                uid,
+                staging,
+                files,
+                total,
+                directories,
+                deadline,
+                cancelled,
             )?;
             let now =
                 tos_fd_open::open_directory_at(directory, Path::new(&name)).map_err(|_| {
