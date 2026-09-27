@@ -862,7 +862,10 @@ impl<'a> KnowledgeStage<'a> {
         }
         self.owner.recheck_sealed_cut(&self.receipt)?;
         let input_rows = match self.closed_input_rows {
-            Some(rows) => rows,
+            Some(rows) => {
+                self.check(WritePhase::Sort)?;
+                rows
+            }
             None => self.verified_input_rows()?,
         };
         let (node_rows, node_root) = output_root(self.db(), "knowledge_nodes")?;
@@ -1873,6 +1876,14 @@ mod tests {
             deny: false,
         };
         let omitted = stage_path("omitted");
+        let stage =
+            KnowledgeStage::create(&omitted, limits(), exact_receipt(RAW_ROOT), &owner, &quota)
+                .unwrap();
+        assert!(stage.finish().is_err());
+        assert!(!omitted.exists());
+        fs::remove_dir_all(omitted.parent().unwrap()).unwrap();
+
+        let omitted = stage_path("omitted-transition");
         let mut stage =
             KnowledgeStage::create(&omitted, limits(), exact_receipt(RAW_ROOT), &owner, &quota)
                 .unwrap();
