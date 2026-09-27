@@ -774,8 +774,8 @@ mod native {
             {
                 return Err(ExecutorFailure::InputBudget);
             }
-            put_bytes(&mut encoded, resource.uri.as_bytes())?;
-            put_bytes(&mut encoded, &resource.raw)?;
+            put_batch_bytes(&mut encoded, resource.uri.as_bytes())?;
+            put_batch_bytes(&mut encoded, &resource.raw)?;
         }
         Ok((encoded, schema_set_digest(resources)?))
     }
@@ -2385,7 +2385,7 @@ mod native {
             let mut fds = [
                 libc::pollfd {
                     fd: if written < prepared.frame.len() {
-                        input.as_ref().map_or(-1, AsRawFd::as_raw_fd)
+                        input.as_ref().map_or(-1, |fd| fd.as_raw_fd())
                     } else {
                         -1
                     },
