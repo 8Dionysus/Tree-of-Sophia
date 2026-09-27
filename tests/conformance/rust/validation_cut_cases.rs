@@ -672,7 +672,8 @@ try:
             ref=p.relative_to(m.root);target=c.root/ref;target.parent.mkdir(parents=True,exist_ok=True)
             assert not target.exists();target.write_bytes(p.read_bytes())
         m.root=c.root;m.collection_path=c.root/m.collection_ref;m.work_path=c.root/m.work_ref
-        m.owner=c.root/'membership-owner.json';m.config['source_root']=str(c.root);m.owner.write_text(json.dumps(m.config))
+        m.owner=c.root/'membership-owner.json';m.config['source_root']=str(c.root)
+        m.select_claim('first')
         m.rebuild();first_membership=m.request();commands.run_local_command(m.owner,first_membership)
         m.correct_work();m.work=json.loads(m.work_path.read_bytes());m.rebuild()
         m.select_claim('second');second_membership=m.request();commands.run_local_command(m.owner,second_membership);m.rebuild()
@@ -702,7 +703,7 @@ try:
         current_forms=json.loads(r.expression_path.with_name('expression.human-forms.json').read_bytes())['forms']
         r.forms=[{'form_id':form['form_id'],'field_id':form['field_id']} for form in current_forms]
         r.config.update(source_root=str(c.root),expression_id=r.expression['record_id'],expression_source_path=r.expression_ref,allowed_expression_form_ids=[form['form_id'] for form in current_forms])
-        r.owner.write_text(json.dumps(r.config));r.rebuild()
+        r.select_claim('first');r.rebuild()
         first_responsibility=r.request();commands.run_local_command(r.owner,first_responsibility)
         r.correct_agent();r.agent=json.loads(r.agent_path.read_bytes());r.rebuild()
         r.select_claim('second');second_responsibility=r.request();commands.run_local_command(r.owner,second_responsibility);r.rebuild()
