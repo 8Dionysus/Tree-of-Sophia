@@ -2732,14 +2732,27 @@ pub fn validate_source_claim_from_cut(
             "local Claim requires the observed Python FormatChecker profile".into(),
         ));
     }
-    if selected_claim_raw.len() > limits.max_member_bytes.min(MAX_RECORD_BYTES)
-        || selected_claim_raw.len() as u64 > limits.max_total_bytes
-        || selected_claim_raw
-            .len()
-            .checked_mul(4)
-            .is_none_or(|n| n > limits.max_state_bytes / 2)
-    {
-        return Err(ItemRefusal::Budget);
+    if selected_claim_raw.len() > limits.max_member_bytes.min(MAX_RECORD_BYTES) {
+        return Err(ItemRefusal::BudgetCheck {
+            check: "local Claim raw member bytes",
+            used: Some(selected_claim_raw.len() as u64),
+            limit: Some(limits.max_member_bytes.min(MAX_RECORD_BYTES) as u64),
+        });
+    }
+    if selected_claim_raw.len() as u64 > limits.max_total_bytes {
+        return Err(ItemRefusal::BudgetCheck {
+            check: "local Claim initial read bytes",
+            used: Some(selected_claim_raw.len() as u64),
+            limit: Some(limits.max_total_bytes),
+        });
+    }
+    let initial_state = selected_claim_raw.len().checked_mul(4);
+    if initial_state.is_none_or(|n| n > limits.max_state_bytes / 2) {
+        return Err(ItemRefusal::BudgetCheck {
+            check: "local Claim initial decoded input half-state",
+            used: initial_state.map(|n| n as u64),
+            limit: Some((limits.max_state_bytes / 2) as u64),
+        });
     }
     // This consumer receives the native owner's decoded JSON transport. A
     // representation Rust cannot retain is Unsupported, never invalid source.
@@ -2839,12 +2852,15 @@ pub fn validate_source_claim_from_cut(
             sum.checked_add(path.len() + 2 * std::mem::size_of::<String>())
         })
         .ok_or(ItemRefusal::Budget)?;
-    if receipt_bytes
+    let report_state = receipt_bytes
         .checked_add(order_bytes)
-        .and_then(|n| n.checked_add((bytes as usize).checked_mul(4)?))
-        .is_none_or(|n| n > limits.max_state_bytes / 2)
-    {
-        return Err(ItemRefusal::Budget);
+        .and_then(|n| n.checked_add((bytes as usize).checked_mul(4)?));
+    if report_state.is_none_or(|n| n > limits.max_state_bytes / 2) {
+        return Err(ItemRefusal::BudgetCheck {
+            check: "local Claim decoded inputs/order/receipts half-state",
+            used: report_state.map(|n| n as u64),
+            limit: Some((limits.max_state_bytes / 2) as u64),
+        });
     }
     report.schema_receipts = receipts.to_vec();
     Ok(report)
@@ -2870,7 +2886,11 @@ fn local_claim_issue(
     location: &str,
 ) -> Result<(), crate::item_rules::ItemRefusal> {
     if report.issues.len() >= limits.max_issues {
-        return Err(crate::item_rules::ItemRefusal::Budget);
+        return Err(crate::item_rules::ItemRefusal::BudgetCheck {
+            check: "local Claim issue count",
+            used: (report.issues.len() as u64).checked_add(1),
+            limit: Some(limits.max_issues as u64),
+        });
     }
     report.issues.push(crate::relation_rules::RelationIssue {
         code,
@@ -2893,7 +2913,11 @@ fn local_claim_input(
         return Ok(());
     }
     if inputs.len() >= MAX_SOURCE_RESOURCES {
-        return Err(ItemRefusal::Budget);
+        return Err(ItemRefusal::BudgetCheck {
+            check: "local Claim source resource count",
+            used: (inputs.len() as u64).checked_add(1),
+            limit: Some(MAX_SOURCE_RESOURCES as u64),
+        });
     }
     let relative = tos_foundation::RelativePath::parse(path)
         .map_err(|_| ItemRefusal::Unsupported("local Claim dependency path".into()))?;
@@ -2908,17 +2932,26 @@ fn local_claim_input(
         .map_err(|e| {
             use tos_source_store::StoreErrorCode;
             match e.code {
-                StoreErrorCode::BudgetExceeded => ItemRefusal::Budget,
+                StoreErrorCode::BudgetExceeded => ItemRefusal::BudgetCheck {
+                    check: "local Claim selected dependency reader budget",
+                    used: None,
+                    limit: None,
+                },
                 StoreErrorCode::UnsupportedFormat | StoreErrorCode::UnsupportedPlatform => {
                     ItemRefusal::Unsupported(e.to_string())
                 }
                 _ => ItemRefusal::Source(e.to_string()),
             }
         })?;
-    *bytes = bytes
-        .checked_add(member.raw.len() as u64)
-        .filter(|n| *n <= limits.max_total_bytes)
-        .ok_or(ItemRefusal::Budget)?;
+    let next_bytes = bytes.checked_add(member.raw.len() as u64);
+    *bytes =
+        next_bytes
+            .filter(|n| *n <= limits.max_total_bytes)
+            .ok_or(ItemRefusal::BudgetCheck {
+                check: "local Claim selected dependency read bytes",
+                used: next_bytes,
+                limit: Some(limits.max_total_bytes),
+            })?;
     // Half the state quota retains decoded inputs and receipts; the other
     // half is reserved for constructor routes and their cloned descriptors.
     let order_bytes = report
@@ -2929,12 +2962,15 @@ fn local_claim_input(
             |sum, path| sum.checked_add(path.len() + 2 * std::mem::size_of::<String>()),
         )
         .ok_or(ItemRefusal::Budget)?;
-    if bytes
+    let input_state = bytes
         .checked_mul(4)
-        .and_then(|n| n.checked_add(order_bytes as u64))
-        .is_none_or(|n| n > (limits.max_state_bytes / 2) as u64)
-    {
-        return Err(ItemRefusal::Budget);
+        .and_then(|n| n.checked_add(order_bytes as u64));
+    if input_state.is_none_or(|n| n > (limits.max_state_bytes / 2) as u64) {
+        return Err(ItemRefusal::BudgetCheck {
+            check: "local Claim selected decoded inputs/order half-state",
+            used: input_state,
+            limit: Some((limits.max_state_bytes / 2) as u64),
+        });
     }
     let value = published_value(&member.raw, limits.max_member_bytes.min(MAX_RECORD_BYTES))
         .map_err(|e| ItemRefusal::Unsupported(format!("local Claim dependency {path}: {e:?}")))?;
@@ -3357,7 +3393,11 @@ fn compile_local_claim_routes(
         for schema in schemas {
             if routes.len() >= MAX_COMPILED_ROUTES {
                 return Err(LocalClaimCompileError::Refusal(
-                    crate::item_rules::ItemRefusal::Budget,
+                    crate::item_rules::ItemRefusal::BudgetCheck {
+                        check: "local Claim compiled route count",
+                        used: (routes.len() as u64).checked_add(1),
+                        limit: Some(MAX_COMPILED_ROUTES as u64),
+                    },
                 ));
             }
             let version = field_str(schema, "schema_version", "claim-schema-version")?;
@@ -3373,11 +3413,15 @@ fn compile_local_claim_routes(
                 .ok_or(LocalClaimCompileError::Refusal(
                     crate::item_rules::ItemRefusal::Budget,
                 ))?;
-            route_bytes = route_bytes
-                .checked_add(size)
+            let next_route_bytes = route_bytes.checked_add(size);
+            route_bytes = next_route_bytes
                 .filter(|n| *n <= limits.max_state_bytes / 2)
                 .ok_or(LocalClaimCompileError::Refusal(
-                    crate::item_rules::ItemRefusal::Budget,
+                    crate::item_rules::ItemRefusal::BudgetCheck {
+                        check: "local Claim compiled route descriptor half-state",
+                        used: next_route_bytes.map(|n| n as u64),
+                        limit: Some((limits.max_state_bytes / 2) as u64),
+                    },
                 ))?;
             if routes
                 .insert(
