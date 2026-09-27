@@ -643,6 +643,39 @@ impl DurablePgCoordinator {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> DurableResult<ManagedCurrentMember> {
+        self.read_source_member_bound(store, cohort, None, path, max_bytes, deadline, cancelled)
+    }
+
+    pub(crate) fn read_generation_source_member(
+        &mut self,
+        store: &SegmentStore,
+        generation: &crate::source_current_cut::ManagedCurrentSourceGeneration,
+        path: &RelativePath,
+        max_bytes: u64,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<ManagedCurrentMember> {
+        self.read_source_member_bound(
+            store,
+            generation.cohort(),
+            Some(generation),
+            path,
+            max_bytes,
+            deadline,
+            cancelled,
+        )
+    }
+
+    fn read_source_member_bound(
+        &mut self,
+        store: &SegmentStore,
+        cohort: &ManagedSourceCohort,
+        generation: Option<&crate::source_current_cut::ManagedCurrentSourceGeneration>,
+        path: &RelativePath,
+        max_bytes: u64,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<ManagedCurrentMember> {
         active(deadline, cancelled)?;
         if max_bytes == 0 || max_bytes > 8_388_608 {
             return Err(DurableError::Refused(
@@ -684,6 +717,18 @@ impl DurablePgCoordinator {
             &[&cohort.domain],
         )?;
         cohort_matches(&domain, cohort, true)?;
+        if let Some(selected) = generation {
+            let selected_seq = as_i64(selected.commit_seq())?;
+            if domain.get::<_, i64>("head_seq") != selected_seq
+                || domain.get::<_, Option<i64>>("source_generation") != Some(selected_seq)
+                || domain.get::<_, Option<String>>("selected_generation_digest")
+                    != Some(selected.digest().to_hex())
+            {
+                return Err(DurableError::Conflict(
+                    "selected current source generation changed",
+                ));
+            }
+        }
         if !domain.get::<_, bool>("rights_allowed") {
             return Err(DurableError::Refused("current source rights revoked"));
         }

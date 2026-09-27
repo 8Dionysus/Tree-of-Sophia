@@ -1085,25 +1085,25 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
             .any(|p| p.as_str() == earlier_path),
         true
     );
-    let current_reopened = reopened_db
-        .cold_reopen_source_cohort(
+    let current_reopened = tos_command::source_current_cut::select_current_source_generation(
+        &mut reopened_db,
+        &reopened_store,
+        &lab.domain,
+        &cut,
+        revision,
+        membership,
+        &contexts[0],
+        &software,
+        &components,
+        &mut new_worker(&cut),
+        deadline,
+        &cancelled,
+    )
+    .unwrap();
+    let second_member = current_reopened
+        .read_current_member(
+            &mut reopened_db,
             &reopened_store,
-            &lab.domain,
-            &cut,
-            revision,
-            membership,
-            &contexts[0],
-            &software,
-            &components,
-            &mut new_worker(&cut),
-            deadline,
-            &cancelled,
-        )
-        .unwrap();
-    let second_member = reopened_db
-        .read_current_source_member(
-            &reopened_store,
-            &current_reopened.cohort,
             &second_path,
             8_388_608,
             deadline,
@@ -1125,7 +1125,7 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
     let second_replay = reopened_db
         .reopen_committed_source_creation_attempt(
             &reopened_store,
-            &current_reopened.cohort,
+            current_reopened.cohort(),
             b"agent-current-second",
             &current_package,
             &mut second_replay_worker,
