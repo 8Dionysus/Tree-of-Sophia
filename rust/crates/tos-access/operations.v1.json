@@ -549,6 +549,409 @@
           "additionalProperties": false
         }
       }
+    },
+    {
+      "operation_id": "tos.node.inspect",
+      "execution_version": "tos_philosophy_original_v1",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_philosophy_original_and_current_policy_fence",
+      "http": {
+        "method": "GET",
+        "path_template": "/api/philosophy/nodes/{node_id}"
+      },
+      "mcp": {
+        "tool": "tos_philosophy_graph_node",
+        "description": "Inspect one retained philosophy projection node",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "node_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "node_id"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "operation_id": "tos_philosophy_graph_edge",
+      "execution_version": "tos_philosophy_original_v1",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_philosophy_original_and_current_policy_fence",
+      "http": {
+        "method": "GET",
+        "path_template": "/api/philosophy/edges/{edge_id}"
+      },
+      "mcp": {
+        "tool": "tos_philosophy_graph_edge",
+        "description": "Inspect one retained philosophy projection edge",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "edge_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "edge_id"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "operation_id": "tos.neighborhood",
+      "execution_version": "tos_philosophy_original_v1",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_philosophy_original_and_current_policy_fence",
+      "http": {
+        "method": "GET",
+        "path_template": "/api/philosophy/neighborhood/{node_id}"
+      },
+      "mcp": {
+        "tool": "tos_philosophy_graph_neighborhood",
+        "description": "Read a bounded philosophy projection neighborhood",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "node_id": {
+              "type": "string"
+            },
+            "depth": {
+              "type": "integer",
+              "default": 1
+            },
+            "layers": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "predicates": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "limit": {
+              "type": "integer",
+              "default": 80
+            }
+          },
+          "required": [
+            "node_id"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "operation_id": "tos.path.find",
+      "execution_version": "tos_philosophy_original_v1",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_philosophy_original_and_current_policy_fence",
+      "http": {
+        "method": "GET",
+        "path_template": "/api/philosophy/paths"
+      },
+      "mcp": {
+        "tool": "tos_philosophy_graph_path",
+        "description": "Read deterministic bounded philosophy paths",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "from_id": {
+              "type": "string"
+            },
+            "to_id": {
+              "type": "string"
+            },
+            "layers": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "predicates": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "max_depth": {
+              "type": "integer",
+              "default": 6
+            },
+            "direction": {
+              "type": "string",
+              "default": "outgoing"
+            },
+            "view_id": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "excluded_edge_ids": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "alternative_limit": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          "required": [
+            "from_id",
+            "to_id"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "operation_id": "tos.view.open",
+      "execution_version": "tos_philosophy_original_v1",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_philosophy_original_and_current_policy_fence",
+      "http": {
+        "method": "GET",
+        "path_template": "/api/philosophy/views/{view_id}"
+      },
+      "mcp": {
+        "tool": "tos_philosophy_graph_view",
+        "description": "Read one retained philosophy graph view",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "view_id": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "default": 1000
+            }
+          },
+          "required": [
+            "view_id"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "operation_id": "tos_philosophy_graph_views",
+      "execution_version": "tos_philosophy_original_v1",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_philosophy_original_and_current_policy_fence",
+      "http": {
+        "method": "GET",
+        "path_template": "/api/philosophy/views"
+      },
+      "mcp": {
+        "tool": "tos_philosophy_graph_views",
+        "description": "List retained philosophy graph views",
+        "input_schema": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "operation_id": "tos_philosophy_graph_layers",
+      "execution_version": "tos_philosophy_original_v1",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_philosophy_original_and_current_policy_fence",
+      "http": {
+        "method": "GET",
+        "path_template": "/api/philosophy/layers"
+      },
+      "mcp": {
+        "tool": "tos_philosophy_graph_layers",
+        "description": "Read retained philosophy layers and counts",
+        "input_schema": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "operation_id": "tos_philosophy_graph_clusters",
+      "execution_version": "tos_philosophy_original_v1",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_philosophy_original_and_current_policy_fence",
+      "http": {
+        "method": "GET",
+        "path_template": "/api/philosophy/clusters"
+      },
+      "mcp": {
+        "tool": "tos_philosophy_graph_clusters",
+        "description": "Read compact philosophy clusters",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "view_id": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "cluster_kind": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "limit": {
+              "type": "integer",
+              "default": 80
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "operation_id": "tos_philosophy_graph_review_packet",
+      "execution_version": "tos_philosophy_original_v1",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_philosophy_original_and_current_policy_fence",
+      "http": {
+        "method": "GET",
+        "path_template": "/api/philosophy/review-packet"
+      },
+      "mcp": {
+        "tool": "tos_philosophy_graph_review_packet",
+        "description": "Read a philosophy review packet",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "view_id": {
+              "type": "string",
+              "default": "chronology"
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "operation_id": "tos.snapshot",
+      "execution_version": "tos_philosophy_original_v1",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_philosophy_original_and_current_policy_fence",
+      "http": {
+        "method": "GET",
+        "path_template": "/api/philosophy/snapshot"
+      },
+      "mcp": {
+        "tool": "tos_philosophy_graph_snapshot",
+        "description": "Read philosophy snapshot fingerprints",
+        "input_schema": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "operation_id": "tos_philosophy_graph_unresolved",
+      "execution_version": "tos_philosophy_original_v1",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_philosophy_original_and_current_policy_fence",
+      "http": {
+        "method": "GET",
+        "path_template": "/api/philosophy/unresolved"
+      },
+      "mcp": {
+        "tool": "tos_philosophy_graph_unresolved",
+        "description": "Read unresolved philosophy review surfaces",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "view_id": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        }
+      }
     }
   ]
 }

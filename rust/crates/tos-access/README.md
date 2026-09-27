@@ -96,3 +96,13 @@ admission. The factory retains the admitted model and exact registry carriers;
 its real release lease lasts through final flush. Dossier uses the original
 component only for existing projection fields; exact source read/text remains
 a separate owner service. This source candidate does not activate a release.
+
+Selected philosophy delivery uses the producer-retained ABI4 original component
+for the eleven maintained GET/HEAD and MCP reads. HTTP query aliases and MCP
+options construct the shared typed QRY request; no traversal, view selection or
+packet projection is duplicated in transport. Original header/node/edge grants
+share one final-flush hold even when no normalized graph carrier is consulted.
+The existing producer fixture and QRY differential own domain parity; the native
+wire case checks thirteen complete packets, HEAD lengths and final withdrawal,
+cancellation and deadline refusal. These source checks do not establish installed
+managed execution while the named host fs-verity prerequisite remains unavailable.

@@ -17,6 +17,17 @@ pub enum KnowledgeOperation {
     Contracts,
     SearchCapabilities,
     Dossier,
+    PhilosophyNode,
+    PhilosophyEdge,
+    PhilosophyNeighborhood,
+    PhilosophyPath,
+    PhilosophyView,
+    PhilosophyViews,
+    PhilosophyLayers,
+    PhilosophyClusters,
+    PhilosophyReview,
+    PhilosophySnapshot,
+    PhilosophyUnresolved,
 }
 impl KnowledgeOperation {
     pub fn from_id(id: &str) -> Option<Self> {
@@ -32,6 +43,17 @@ impl KnowledgeOperation {
             "tos.knowledge.contracts" => Self::Contracts,
             "tos.knowledge.search.capabilities" => Self::SearchCapabilities,
             "tos.dossier.inspect" => Self::Dossier,
+            "tos.node.inspect" => Self::PhilosophyNode,
+            "tos_philosophy_graph_edge" => Self::PhilosophyEdge,
+            "tos.neighborhood" => Self::PhilosophyNeighborhood,
+            "tos.path.find" => Self::PhilosophyPath,
+            "tos.view.open" => Self::PhilosophyView,
+            "tos_philosophy_graph_views" => Self::PhilosophyViews,
+            "tos_philosophy_graph_layers" => Self::PhilosophyLayers,
+            "tos_philosophy_graph_clusters" => Self::PhilosophyClusters,
+            "tos_philosophy_graph_review_packet" => Self::PhilosophyReview,
+            "tos.snapshot" => Self::PhilosophySnapshot,
+            "tos_philosophy_graph_unresolved" => Self::PhilosophyUnresolved,
             _ => return None,
         })
     }
@@ -48,7 +70,34 @@ impl KnowledgeOperation {
             Self::Contracts => "tos.knowledge.contracts",
             Self::SearchCapabilities => "tos.knowledge.search.capabilities",
             Self::Dossier => "tos.dossier.inspect",
+            Self::PhilosophyNode => "tos.node.inspect",
+            Self::PhilosophyEdge => "tos_philosophy_graph_edge",
+            Self::PhilosophyNeighborhood => "tos.neighborhood",
+            Self::PhilosophyPath => "tos.path.find",
+            Self::PhilosophyView => "tos.view.open",
+            Self::PhilosophyViews => "tos_philosophy_graph_views",
+            Self::PhilosophyLayers => "tos_philosophy_graph_layers",
+            Self::PhilosophyClusters => "tos_philosophy_graph_clusters",
+            Self::PhilosophyReview => "tos_philosophy_graph_review_packet",
+            Self::PhilosophySnapshot => "tos.snapshot",
+            Self::PhilosophyUnresolved => "tos_philosophy_graph_unresolved",
         }
+    }
+    pub fn is_philosophy(self) -> bool {
+        matches!(
+            self,
+            Self::PhilosophyNode
+                | Self::PhilosophyEdge
+                | Self::PhilosophyNeighborhood
+                | Self::PhilosophyPath
+                | Self::PhilosophyView
+                | Self::PhilosophyViews
+                | Self::PhilosophyLayers
+                | Self::PhilosophyClusters
+                | Self::PhilosophyReview
+                | Self::PhilosophySnapshot
+                | Self::PhilosophyUnresolved
+        )
     }
 }
 #[derive(Clone, Debug)]
@@ -74,6 +123,7 @@ pub enum KnowledgeRequest {
         object_id: String,
         limit: usize,
     },
+    Philosophy(tos_query::philosophy_read::PhilosophyReadRequest),
 }
 impl KnowledgeRequest {
     pub fn operation(&self) -> KnowledgeOperation {
@@ -89,12 +139,31 @@ impl KnowledgeRequest {
             Self::Contracts => KnowledgeOperation::Contracts,
             Self::SearchCapabilities => KnowledgeOperation::SearchCapabilities,
             Self::Dossier { .. } => KnowledgeOperation::Dossier,
+            Self::Philosophy(request) => {
+                use tos_query::philosophy_read::PhilosophyReadRequest as P;
+                match request {
+                    P::Node { .. } => KnowledgeOperation::PhilosophyNode,
+                    P::Edge { .. } => KnowledgeOperation::PhilosophyEdge,
+                    P::Neighborhood { .. } => KnowledgeOperation::PhilosophyNeighborhood,
+                    P::Path { .. } => KnowledgeOperation::PhilosophyPath,
+                    P::View { .. } => KnowledgeOperation::PhilosophyView,
+                    P::Views => KnowledgeOperation::PhilosophyViews,
+                    P::Layers => KnowledgeOperation::PhilosophyLayers,
+                    P::Clusters { .. } => KnowledgeOperation::PhilosophyClusters,
+                    P::Review { .. } => KnowledgeOperation::PhilosophyReview,
+                    P::Snapshot => KnowledgeOperation::PhilosophySnapshot,
+                    P::Unresolved { .. } => KnowledgeOperation::PhilosophyUnresolved,
+                }
+            }
         }
     }
     pub fn from_arguments(
         operation: KnowledgeOperation,
         args: &JsonValue,
     ) -> Result<Self, AccessError> {
+        if operation.is_philosophy() {
+            return philosophy_from_arguments(operation, args).map(Self::Philosophy);
+        }
         let fields = args
             .as_object()
             .ok_or_else(|| invalid("tool arguments must be an object"))?;
@@ -118,6 +187,7 @@ impl KnowledgeRequest {
             KnowledgeOperation::Relation => &["relation_id"],
             KnowledgeOperation::Lens => &["spec"],
             KnowledgeOperation::Temporal | KnowledgeOperation::Explore => &["request"],
+            _ => unreachable!("philosophy handled above"),
         };
         if fields
             .iter()
@@ -197,6 +267,154 @@ impl KnowledgeRequest {
             _ => Err(invalid("operation does not accept a structured body")),
         }
     }
+}
+fn philosophy_from_arguments(
+    operation: KnowledgeOperation,
+    args: &JsonValue,
+) -> Result<tos_query::philosophy_read::PhilosophyReadRequest, AccessError> {
+    use KnowledgeOperation as O;
+    use tos_query::philosophy_read::{PhilosophyDirection as D, PhilosophyReadRequest as R};
+    let fields = args
+        .as_object()
+        .ok_or_else(|| invalid("tool arguments must be an object"))?;
+    let allowed: &[&str] = match operation {
+        O::PhilosophyNode => &["node_id"],
+        O::PhilosophyEdge => &["edge_id"],
+        O::PhilosophyNeighborhood => &["node_id", "depth", "limit", "layers", "predicates"],
+        O::PhilosophyPath => &[
+            "from_id",
+            "to_id",
+            "layers",
+            "predicates",
+            "max_depth",
+            "direction",
+            "view_id",
+            "excluded_edge_ids",
+            "alternative_limit",
+        ],
+        O::PhilosophyView => &["view_id", "limit"],
+        O::PhilosophyClusters => &["view_id", "cluster_kind", "limit"],
+        O::PhilosophyReview | O::PhilosophyUnresolved => &["view_id"],
+        O::PhilosophyViews | O::PhilosophyLayers | O::PhilosophySnapshot => &[],
+        _ => return Err(invalid("not a philosophy operation")),
+    };
+    if fields
+        .iter()
+        .any(|(key, _)| !key.as_str().is_some_and(|key| allowed.contains(&key)))
+    {
+        return Err(invalid("unknown tool argument"));
+    }
+    let optional = |key: &str| -> Result<Option<String>, AccessError> {
+        match args.object_get(key) {
+            None | Some(JsonValue::Null) => Ok(None),
+            Some(value) => value
+                .as_str()
+                .filter(|s| s.chars().count() <= 4096)
+                .map(|s| {
+                    if s.is_empty() {
+                        None
+                    } else {
+                        Some(s.to_owned())
+                    }
+                })
+                .ok_or_else(|| invalid("philosophy identifier must be a bounded string")),
+        }
+    };
+    let id = |key: &str| optional(key)?.ok_or_else(|| invalid("philosophy identifier is required"));
+    let strings = |key: &str| -> Result<Vec<String>, AccessError> {
+        match args.object_get(key) {
+            None | Some(JsonValue::Null) => Ok(vec![]),
+            Some(value) => value
+                .as_array()
+                .ok_or_else(|| invalid("philosophy filters must be arrays"))?
+                .iter()
+                .map(|value| {
+                    value
+                        .as_str()
+                        .filter(|s| s.chars().count() <= 4096)
+                        .map(str::to_owned)
+                        .ok_or_else(|| invalid("philosophy filter must be a bounded string"))
+                })
+                .collect(),
+        }
+    };
+    // The maintained methods clamp integer options; this is caller coercion,
+    // while traversal/selection remains entirely in QRY.
+    let count =
+        |key: &str, default: usize, low: usize, high: usize| -> Result<usize, AccessError> {
+            match args.object_get(key) {
+                None => Ok(default),
+                Some(JsonValue::Number(number))
+                    if number.kind == tos_foundation::JsonNumberKind::Int =>
+                {
+                    if number.lexeme.starts_with('-') {
+                        Ok(low)
+                    } else {
+                        Ok(number
+                            .lexeme
+                            .parse::<usize>()
+                            .unwrap_or(usize::MAX)
+                            .clamp(low, high))
+                    }
+                }
+                _ => Err(invalid("philosophy limit must be an integer")),
+            }
+        };
+    Ok(match operation {
+        O::PhilosophyNode => R::Node {
+            node_id: id("node_id")?,
+        },
+        O::PhilosophyEdge => R::Edge {
+            edge_id: id("edge_id")?,
+        },
+        O::PhilosophyNeighborhood => R::Neighborhood {
+            node_id: id("node_id")?,
+            depth: count("depth", 1, 1, 3)?,
+            limit: count("limit", 80, 1, 300)?,
+            layers: strings("layers")?,
+            predicates: strings("predicates")?,
+        },
+        O::PhilosophyPath => R::Path {
+            from_id: id("from_id")?,
+            to_id: id("to_id")?,
+            layers: strings("layers")?,
+            predicates: strings("predicates")?,
+            max_depth: count("max_depth", 6, 1, 8)?,
+            direction: match (match args.object_get("direction") {
+                None => "outgoing",
+                Some(value) => value
+                    .as_str()
+                    .ok_or_else(|| invalid("invalid philosophy path direction"))?,
+            }) {
+                "outgoing" => D::Outgoing,
+                "incoming" => D::Incoming,
+                "either" => D::Either,
+                _ => return Err(invalid("invalid philosophy path direction")),
+            },
+            view_id: optional("view_id")?,
+            excluded_edge_ids: strings("excluded_edge_ids")?,
+            alternative_limit: count("alternative_limit", 1, 1, 5)?,
+        },
+        O::PhilosophyView => R::View {
+            view_id: id("view_id")?,
+            limit: count("limit", 1000, 1, 1000)?,
+        },
+        O::PhilosophyViews => R::Views,
+        O::PhilosophyLayers => R::Layers,
+        O::PhilosophyClusters => R::Clusters {
+            view_id: optional("view_id")?,
+            cluster_kind: optional("cluster_kind")?,
+            limit: count("limit", 80, 1, 1000)?,
+        },
+        O::PhilosophyReview => R::Review {
+            view_id: optional("view_id")?.unwrap_or_else(|| "chronology".into()),
+        },
+        O::PhilosophySnapshot => R::Snapshot,
+        O::PhilosophyUnresolved => R::Unresolved {
+            view_id: optional("view_id")?,
+        },
+        _ => unreachable!("validated philosophy operation"),
+    })
 }
 fn invalid(message: &'static str) -> AccessError {
     AccessError::new(AccessErrorCode::InvalidRequest, message)
@@ -333,6 +551,19 @@ pub fn execute_selected_knowledge(
         probe: inspect_probe,
     };
     let packet = match request {
+        KnowledgeRequest::Philosophy(request) => {
+            let packet = tos_query::philosophy_read::execute_selected_philosophy(
+                model,
+                bound,
+                &mut inspect,
+                &request,
+                tos_query::philosophy_read::PhilosophyReadBudget {
+                    inspect: budgets.inspect,
+                    max_work_steps: budgets.inspect.max_read_vm_steps,
+                },
+            )?;
+            from_inspect(packet)
+        }
         KnowledgeRequest::SearchCapabilities => from_inspect(
             tos_query::knowledge_legacy_search::execute_selected_search_capabilities(
                 model,
@@ -536,6 +767,17 @@ struct InspectProbe<'a> {
     probe: Arc<dyn AbortProbe>,
 }
 impl tos_query::InspectCurrentAuthority for InspectProbe<'_> {
+    fn authorize_philosophy_original_current(
+        &mut self,
+        receipt: &tos_compiler::PhilosophyOriginalReceipt,
+        collection: tos_compiler::PhilosophyOriginalCollection,
+        ordinal: u64,
+        raw: &[u8],
+        hash: tos_foundation::Digest256,
+    ) -> Result<(), tos_query::search_v2::SearchV2Error> {
+        self.inner
+            .authorize_philosophy_original_current(receipt, collection, ordinal, raw, hash)
+    }
     fn abort_probe(&self) -> Option<Arc<dyn AbortProbe>> {
         Some(Arc::clone(&self.probe))
     }

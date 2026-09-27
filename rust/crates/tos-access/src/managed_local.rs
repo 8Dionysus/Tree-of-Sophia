@@ -13,7 +13,8 @@ use std::{
     time::Duration,
 };
 use tos_compiler::{
-    ColdOpenLimits, NavigationOriginalReceipt, QueryVocabulary, VerifiedKnowledgeModel,
+    ColdOpenLimits, NavigationOriginalReceipt, PhilosophyOriginalCollection,
+    PhilosophyOriginalReceipt, QueryVocabulary, VerifiedKnowledgeModel,
 };
 use tos_foundation::{Digest256, JsonLimits};
 use tos_query::search_v2::{CurrentPolicyBinding, SearchV2Error, SearchV2ErrorCode};
@@ -30,6 +31,7 @@ pub struct ManagedLocalExecutor {
     descriptor: Vec<u8>,
     registries: [Vec<u8>; 2],
     original: Option<NavigationOriginalReceipt>,
+    philosophy_original: Option<PhilosophyOriginalReceipt>,
     cold: ColdOpenLimits,
     profile: AccessProfile,
     checkpoints: ProcessExplorationCheckpoints,
@@ -125,6 +127,7 @@ impl ManagedLocalExecutor {
             descriptor,
             [entity, relation],
             selection.producer().navigation_original.clone(),
+            selection.producer().philosophy_original.clone(),
             selection.cold_limits(),
             profile,
         )
@@ -137,6 +140,7 @@ impl ManagedLocalExecutor {
         descriptor: Vec<u8>,
         registries: [Vec<u8>; 2],
         original: Option<NavigationOriginalReceipt>,
+        philosophy_original: Option<PhilosophyOriginalReceipt>,
         cold: ColdOpenLimits,
         profile: AccessProfile,
     ) -> Result<Self, AccessError> {
@@ -157,6 +161,7 @@ impl ManagedLocalExecutor {
             descriptor,
             registries,
             original,
+            philosophy_original,
             cold,
             profile,
             checkpoints,
@@ -211,6 +216,9 @@ impl ManagedLocalExecutor {
     }
 }
 fn intended(operation: O) -> &'static str {
+    if operation.is_philosophy() {
+        return tos_query::philosophy_read::PHILOSOPHY_INTENDED_USE;
+    }
     match operation {
         O::Catalog => tos_query::CATALOG_INTENDED_USE,
         O::Temporal => tos_query::TEMPORAL_INTENDED_USE,
@@ -224,6 +232,7 @@ fn intended(operation: O) -> &'static str {
         }
         O::Dossier => tos_query::source_dossier::DOSSIER_INTENDED_USE,
         O::Node | O::Relation => tos_query::INSPECT_INTENDED_USE,
+        _ => unreachable!("philosophy handled above"),
     }
 }
 impl AccessExecutor for ManagedLocalExecutor {
@@ -240,7 +249,11 @@ impl AccessExecutor for ManagedLocalExecutor {
         ))
     }
     fn knowledge_available(&self, operation: O) -> bool {
-        operation != O::Dossier || self.original.is_some()
+        if operation.is_philosophy() {
+            self.philosophy_original.is_some()
+        } else {
+            operation != O::Dossier || self.original.is_some()
+        }
     }
     fn knowledge_search_legacy_available(&self) -> bool {
         true
@@ -348,6 +361,8 @@ struct Authority {
     registry_grants: u8,
     original: Option<NavigationOriginalReceipt>,
     original_granted: bool,
+    philosophy_original: Option<PhilosophyOriginalReceipt>,
+    philosophy_granted: bool,
 }
 impl Authority {
     fn new(
@@ -421,6 +436,8 @@ impl Authority {
             registry_grants: 0,
             original: owner.original.clone(),
             original_granted: false,
+            philosophy_original: owner.philosophy_original.clone(),
+            philosophy_granted: false,
         })
     }
     fn check(&mut self) -> Result<(), SearchV2Error> {
@@ -450,6 +467,49 @@ impl CatalogDisclosureLease for ReleaseLease {
     }
 }
 impl InspectCurrentAuthority for Authority {
+    fn authorize_philosophy_original_current(
+        &mut self,
+        receipt: &PhilosophyOriginalReceipt,
+        collection: PhilosophyOriginalCollection,
+        ordinal: u64,
+        raw: &[u8],
+        sha: Digest256,
+    ) -> Result<(), SearchV2Error> {
+        self.check()?;
+        let expected = self
+            .philosophy_original
+            .as_ref()
+            .ok_or_else(|| query_error("selected philosophy original unavailable"))?;
+        let ordinal_valid = match collection {
+            PhilosophyOriginalCollection::Header => {
+                ordinal == 0 && sha.to_hex() == expected.header_sha256
+            }
+            PhilosophyOriginalCollection::Nodes => ordinal < expected.nodes,
+            PhilosophyOriginalCollection::Edges => ordinal < expected.edges,
+        };
+        if self.inspect.intended_use != tos_query::philosophy_read::PHILOSOPHY_INTENDED_USE
+            || receipt.profile != expected.profile
+            || receipt.descriptor_sha256 != expected.descriptor_sha256
+            || receipt.source_cut != expected.source_cut
+            || receipt.membership_root != expected.membership_root
+            || receipt.source_graph != expected.source_graph
+            || receipt.nodes != expected.nodes
+            || receipt.edges != expected.edges
+            || receipt.node_input_root_sha256 != expected.node_input_root_sha256
+            || receipt.edge_input_root_sha256 != expected.edge_input_root_sha256
+            || receipt.header_sha256 != expected.header_sha256
+            || receipt.nodes_root_sha256 != expected.nodes_root_sha256
+            || receipt.edges_root_sha256 != expected.edges_root_sha256
+            || receipt.component_root_sha256 != expected.component_root_sha256
+            || receipt.total_bytes != expected.total_bytes
+            || !ordinal_valid
+            || Digest256::of_bytes(raw) != sha
+        {
+            return Err(query_error("selected philosophy original scope changed"));
+        }
+        self.philosophy_granted = true;
+        Ok(())
+    }
     fn policy_binding(&self) -> CurrentPolicyBinding {
         self.policy.clone()
     }
@@ -535,6 +595,8 @@ impl InspectCurrentAuthority for Authority {
         if scope != &self.inspect
             || (scope.operation_id == O::Contracts.id() && self.registry_grants != 3)
             || (scope.operation_id == O::Dossier.id() && !self.original_granted)
+            || (scope.intended_use == tos_query::philosophy_read::PHILOSOPHY_INTENDED_USE
+                && !self.philosophy_granted)
         {
             return Err(query_error("selected local disclosure scope incomplete"));
         }

@@ -449,6 +449,7 @@ mod selected_knowledge {
         controls: Arc<Controls>,
         registries: [(String, Digest256); 2],
         registry_grants: u8,
+        philosophy_granted: bool,
     }
     impl Authority {
         fn new(
@@ -458,6 +459,7 @@ mod selected_knowledge {
             controls: Arc<Controls>,
         ) -> Self {
             let intended = match request.operation() {
+                op if op.is_philosophy() => tos_query::philosophy_read::PHILOSOPHY_INTENDED_USE,
                 O::Dossier => tos_query::source_dossier::DOSSIER_INTENDED_USE,
                 O::Explore => tos_query::knowledge_exploration::EXPLORATION_INTENDED_USE,
                 O::Temporal => tos_query::TEMPORAL_INTENDED_USE,
@@ -537,6 +539,7 @@ mod selected_knowledge {
                     ),
                 ],
                 registry_grants: 0,
+                philosophy_granted: false,
             }
         }
         fn lease(&self) -> Lease {
@@ -569,6 +572,40 @@ mod selected_knowledge {
     impl InspectCurrentAuthority for Authority {
         fn abort_probe(&self) -> Option<Arc<dyn AbortProbe>> {
             Some(self.controls.clone())
+        }
+        fn authorize_philosophy_original_current(
+            &mut self,
+            receipt: &tos_compiler::PhilosophyOriginalReceipt,
+            collection: tos_compiler::PhilosophyOriginalCollection,
+            ordinal: u64,
+            raw: &[u8],
+            sha: Digest256,
+        ) -> Result<(), SearchV2Error> {
+            use tos_compiler::PhilosophyOriginalCollection as C;
+            assert_eq!(
+                self.inspect.intended_use,
+                tos_query::philosophy_read::PHILOSOPHY_INTENDED_USE
+            );
+            assert_eq!(receipt.source_cut, self.inspect.source_cut);
+            assert_eq!(
+                receipt.descriptor_sha256,
+                self.inspect.descriptor_sha256.to_hex()
+            );
+            assert_eq!(
+                receipt.membership_root,
+                self.inspect.source_membership_root.to_hex()
+            );
+            assert_eq!(Digest256::of_bytes(raw), sha);
+            match collection {
+                C::Header => {
+                    assert_eq!(ordinal, 0);
+                    assert_eq!(sha.to_hex(), receipt.header_sha256);
+                }
+                C::Nodes => assert!(ordinal < receipt.nodes),
+                C::Edges => assert!(ordinal < receipt.edges),
+            }
+            self.philosophy_granted = true;
+            Ok(()) // Fixture-only oracle; production compares the retained producer receipt.
         }
         fn authorize_navigation_original_current(
             &mut self,
@@ -621,7 +658,13 @@ mod selected_knowledge {
             _: &IndexedDisclosureScope,
             observed: &[ObservedInspectCarrier],
         ) -> Result<Box<dyn InspectDisclosureLease>, SearchV2Error> {
-            if self.inspect.operation_id == O::Contracts.id() {
+            if self.inspect.intended_use == tos_query::philosophy_read::PHILOSOPHY_INTENDED_USE {
+                assert!(self.philosophy_granted);
+                assert!(
+                    observed.is_empty(),
+                    "phi originals are separately granted under the same hold"
+                );
+            } else if self.inspect.operation_id == O::Contracts.id() {
                 assert_eq!(
                     self.registry_grants, 3,
                     "one current hold must cover both selected registry grants"
@@ -702,7 +745,8 @@ mod selected_knowledge {
             Ok(packet)
         }
         fn knowledge_available(&self, operation: O) -> bool {
-            (operation == O::Dossier && self.fixture.navigation_original.is_some())
+            (operation.is_philosophy() && self.fixture.philosophy_original.is_some())
+                || (operation == O::Dossier && self.fixture.navigation_original.is_some())
                 || matches!(
                     operation,
                     O::Catalog
@@ -1296,6 +1340,7 @@ with tempfile.TemporaryDirectory() as d:
                 stage: fixture.stage_receipt.clone(),
                 seal: fixture.seal_receipt.clone(),
                 navigation_original: fixture.navigation_original.clone(),
+                philosophy_original: None,
             },
             fixture.expectation.clone(),
             measurement,
@@ -2356,6 +2401,296 @@ with tempfile.TemporaryDirectory() as d:
             executor.controls.revoked.store(false, Ordering::SeqCst);
             executor.controls.cancelled.store(false, Ordering::SeqCst);
         }
+    }
+
+    #[test]
+    fn maintained_selected_philosophy_get_head_and_mcp_hold_exact_packets() {
+        use tos_compiler::{
+            PhilosophyOriginalCollection as C,
+            knowledge_full_fixture::build_native_fixture_with_philosophy_original,
+        };
+        let fixture = build_native_fixture_with_philosophy_original();
+        let mut cold = fixture.open().unwrap();
+        let read = |cold: &mut tos_compiler::VerifiedKnowledgeModel<'_>, collection, count| {
+            cold.philosophy_original_page_under_caller_budget(
+                collection,
+                None,
+                count,
+                budgets().inspect.max_payload_bytes,
+                budgets().inspect.max_decoded_bytes as u64,
+            )
+            .unwrap()
+            .rows
+            .into_iter()
+            .map(|row| {
+                parse_json(&row.raw, JsonMode::PublishedStrict, budgets().inspect.json)
+                    .unwrap()
+                    .into_root()
+            })
+            .collect::<Vec<_>>()
+        };
+        let header = read(&mut cold, C::Header, 1).remove(0);
+        let nodes = read(&mut cold, C::Nodes, 2);
+        let edge = read(&mut cold, C::Edges, 1).remove(0);
+        let id =
+            |value: &JsonValue, key| value.object_get(key).unwrap().as_str().unwrap().to_owned();
+        let left = id(&nodes[0], "node_id");
+        let right = id(&nodes[1], "node_id");
+        let edge_id = id(&edge, "edge_id");
+        let view = id(
+            &header.object_get("views").unwrap().as_array().unwrap()[0],
+            "view_id",
+        );
+        drop(cold);
+        let executor = Executor {
+            fixture,
+            held: Arc::new(AtomicUsize::new(0)),
+            controls: Arc::new(Controls::default()),
+            checkpoints: Mutex::new(
+                tos_access::exploration_checkpoints::ProcessExplorationCheckpoints::new(
+                    tos_access::exploration_checkpoints::CheckpointLimits {
+                        ttl: Duration::from_secs(60),
+                        max_entries: 16,
+                        max_encoded_bytes: 2_000_000,
+                    },
+                )
+                .unwrap(),
+            ),
+        };
+        let number = |n: usize| {
+            JsonValue::Number(tos_foundation::JsonNumber {
+                kind: tos_foundation::JsonNumberKind::Int,
+                lexeme: n.to_string(),
+            })
+        };
+        // The shared QRY differential owns thirteen independent Python packets.
+        // These same actual originals exercise only maintained caller selectors and delivery.
+        let path_args = |from: &str, to: &str, direction: &str, excluded: Vec<JsonValue>| {
+            object(vec![
+                ("from_id", text(from)),
+                ("to_id", text(to)),
+                ("max_depth", number(3)),
+                ("direction", text(direction)),
+                ("excluded_edge_ids", JsonValue::Array(excluded)),
+            ])
+        };
+        let cases = vec![
+            (
+                O::PhilosophyNode,
+                path_id(&left),
+                String::new(),
+                object(vec![("node_id", text(&left))]),
+            ),
+            (
+                O::PhilosophyEdge,
+                path_id(&edge_id),
+                String::new(),
+                object(vec![("edge_id", text(&edge_id))]),
+            ),
+            (
+                O::PhilosophyNeighborhood,
+                path_id(&left),
+                "?depth=2&limit=1".into(),
+                object(vec![
+                    ("node_id", text(&left)),
+                    ("depth", number(2)),
+                    ("limit", number(1)),
+                ]),
+            ),
+            (
+                O::PhilosophyPath,
+                String::new(),
+                format!(
+                    "?from={}&to={}&max_depth=3",
+                    path_id(&left),
+                    path_id(&right)
+                ),
+                path_args(&left, &right, "outgoing", vec![]),
+            ),
+            (
+                O::PhilosophyPath,
+                String::new(),
+                format!(
+                    "?from={}&to={}&max_depth=3&direction=incoming",
+                    path_id(&right),
+                    path_id(&left)
+                ),
+                path_args(&right, &left, "incoming", vec![]),
+            ),
+            (
+                O::PhilosophyPath,
+                String::new(),
+                format!(
+                    "?from={}&to={}&max_depth=3&direction=either&exclude={}",
+                    path_id(&left),
+                    path_id(&right),
+                    path_id(&edge_id)
+                ),
+                path_args(&left, &right, "either", vec![text(&edge_id)]),
+            ),
+            (
+                O::PhilosophyView,
+                path_id(&view),
+                "?limit=1".into(),
+                object(vec![("view_id", text(&view)), ("limit", number(1))]),
+            ),
+            (
+                O::PhilosophyViews,
+                String::new(),
+                String::new(),
+                object(vec![]),
+            ),
+            (
+                O::PhilosophyLayers,
+                String::new(),
+                String::new(),
+                object(vec![]),
+            ),
+            (
+                O::PhilosophyClusters,
+                String::new(),
+                format!("?view_id={}&limit=1", path_id(&view)),
+                object(vec![("view_id", text(&view)), ("limit", number(1))]),
+            ),
+            (
+                O::PhilosophyReview,
+                String::new(),
+                format!("?view_id={}", path_id(&view)),
+                object(vec![("view_id", text(&view))]),
+            ),
+            (
+                O::PhilosophySnapshot,
+                String::new(),
+                String::new(),
+                object(vec![]),
+            ),
+            (
+                O::PhilosophyUnresolved,
+                String::new(),
+                format!("?view_id={}", path_id(&view)),
+                object(vec![("view_id", text(&view))]),
+            ),
+        ];
+        let profile = AccessProfile::new(65_536, 1_048_576, 65_536);
+        let mcp_profile = profile.with_mcp_frame_budget(
+            tos_access::mcp::tool_result_frame_byte_bound(
+                profile.max_response_bytes,
+                profile.max_request_bytes.min(profile.max_line_bytes),
+            )
+            .unwrap(),
+        );
+        for (op, encoded, query, args) in &cases {
+            let operation = tos_access::registered_operations()
+                .unwrap()
+                .iter()
+                .find(|row| row.operation_id == op.id())
+                .unwrap();
+            assert!(
+                operation.cli_command.is_none(),
+                "maintained phi has no one-shot CLI"
+            );
+            assert!(executor.knowledge_available(*op));
+            let packet = executor
+                .knowledge(R::from_arguments(*op, args).unwrap(), Arc::new(NeverAbort))
+                .unwrap();
+            let expected = packet.body.clone();
+            drop(packet);
+            let base = operation.http_path.split('{').next().unwrap();
+            let target = format!("{base}{encoded}{query}");
+            for method in ["GET", "HEAD"] {
+                let response = handle_get(&executor, method, &target, profile);
+                assert_eq!(
+                    response.status,
+                    200,
+                    "{op:?}/{method}: {}",
+                    String::from_utf8_lossy(&response.body)
+                );
+                let mut writer = HeldWriter {
+                    bytes: vec![],
+                    held: executor.held.clone(),
+                };
+                tos_access::http::write_response(&mut writer, response).unwrap();
+                if method == "GET" {
+                    assert_eq!(http_packet(&writer.bytes), expected);
+                } else {
+                    assert!(writer.bytes.ends_with(b"\r\n\r\n"));
+                    assert!(
+                        String::from_utf8_lossy(&writer.bytes)
+                            .contains(&format!("Content-Length: {}", expected.len()))
+                    );
+                }
+                assert_eq!(executor.held.load(Ordering::SeqCst), 0);
+            }
+            let mut writer = McpHeldWriter {
+                bytes: vec![],
+                held: executor.held.clone(),
+                source_frame: false,
+            };
+            run_io(
+                Cursor::new(mcp_input(&operation.mcp_tool, args)),
+                &mut writer,
+                &executor,
+                mcp_profile,
+            )
+            .unwrap();
+            check_mcp_packet(
+                last_frame(&writer.bytes),
+                &expected,
+                mcp_profile.max_mcp_frame_bytes,
+            );
+            assert_eq!(executor.held.load(Ordering::SeqCst), 0);
+        }
+        // The changed original-only hold must survive through the final transport fence.
+        let (op, encoded, query, args) = &cases[0];
+        let operation = tos_access::registered_operations()
+            .unwrap()
+            .iter()
+            .find(|row| row.operation_id == op.id())
+            .unwrap();
+        let target = format!(
+            "{}{}{}",
+            operation.http_path.split('{').next().unwrap(),
+            encoded,
+            query
+        );
+        for change in [1, 2] {
+            executor
+                .controls
+                .after_prepare
+                .store(change, Ordering::SeqCst);
+            let response = handle_get(&executor, "GET", &target, profile);
+            let mut bytes = vec![];
+            tos_access::http::write_response(&mut bytes, response).unwrap();
+            assert!(!bytes.starts_with(b"HTTP/1.1 200 "));
+            assert!(
+                String::from_utf8_lossy(http_packet(&bytes)).contains(if change == 1 {
+                    "stale_selection"
+                } else {
+                    "cancelled"
+                })
+            );
+            assert_eq!(executor.held.load(Ordering::SeqCst), 0);
+            executor.controls.revoked.store(false, Ordering::SeqCst);
+            executor.controls.cancelled.store(false, Ordering::SeqCst);
+            let mut bytes = vec![];
+            run_io(
+                Cursor::new(mcp_input(&operation.mcp_tool, args)),
+                &mut bytes,
+                &executor,
+                mcp_profile,
+            )
+            .unwrap();
+            assert!(!String::from_utf8_lossy(last_frame(&bytes)).contains("structuredContent"));
+            assert_eq!(executor.held.load(Ordering::SeqCst), 0);
+            executor.controls.revoked.store(false, Ordering::SeqCst);
+            executor.controls.cancelled.store(false, Ordering::SeqCst);
+        }
+        executor.controls.after_prepare.store(0, Ordering::SeqCst);
+        let deadline = profile.with_query_timeout(Duration::ZERO);
+        let response = handle_get(&executor, "GET", &target, deadline);
+        assert_eq!(response.status, 408);
+        assert!(String::from_utf8_lossy(&response.body).contains("deadline_exceeded"));
+        assert_eq!(executor.held.load(Ordering::SeqCst), 0);
     }
 
     #[test]

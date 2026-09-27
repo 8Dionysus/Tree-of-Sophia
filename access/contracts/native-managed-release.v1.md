@@ -36,9 +36,11 @@ inputs name the code-owned native program members and their actual digests; they
 do not relabel the produced model as a compiler input. The old Python manifest and eight-field
 prepared-binding formats keep their existing meanings and are not ABI3.
 
-The selected companion is `tos_access_native_knowledge_selection_v1`, profile
-`managed-local-linux-fsverity-v1`, owned by the native producer. It persists
-actual stage/seal and optional navigation-original receipts, the independently
+The producer companion uses `tos_access_native_knowledge_selection_v1` for
+ABI2/3 and `tos_access_native_knowledge_selection_v2` for ABI4, with the same
+`managed-local-linux-fsverity-v1` profile. The compiler decoder owns both versioned
+shapes. It persists actual stage/seal, optional navigation-original and
+philosophy-original receipts, the independently
 produced `KnowledgeSelectedExpectation`, exact model/descriptor/entity-registry/
 relation-registry member paths, fs-verity measurement, `ColdOpenLimits`, and
 process limits. It is decoded by the compiler against the exact selected
@@ -74,7 +76,14 @@ legacy search, capabilities and contracts use this held projection authority.
 Dossier GET/HEAD `/api/source/dossiers/{object_id}` and MCP
 `tos_dossier_inspect` require the exact persisted original component receipt;
 there is no dossier CLI command. Its original component only computes the
-maintained admitted dossier fields. It does not expose a new raw header/rights
+maintained admitted dossier fields. ABI4 philosophy GET/HEAD and the existing
+`tos_philosophy_graph_*` MCP tools require the independently persisted philosophy
+original component receipt. Node, edge, neighborhood, path, view, views, layers,
+clusters, review packet, snapshot and unresolved reads use the common QRY kernel
+and its bounded ordered original rows. The same release hold covers every
+consulted header/node/edge grant through final flush. Missing phi originals
+leave those tools unavailable; the consumer does not derive them from normalized
+knowledge rows. No philosophy one-shot CLI is added. It does not expose a new raw header/rights
 or source-byte operation. Exact source record/text remains the separate opt-in
 `SelectedSourceReadService`/`SourceOwnerBinding` contract. Indexed transport
 continuations and compressed publication require their respective real owner

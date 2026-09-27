@@ -309,6 +309,9 @@ fn handle_get_with_probe(
                 continue;
             };
             let request = match op {
+                operation if operation.is_philosophy() => {
+                    philosophy_http_request(operation, encoded, query)
+                }
                 KnowledgeOperation::Catalog => Ok(KnowledgeRequest::Catalog),
                 KnowledgeOperation::SearchCapabilities => Ok(KnowledgeRequest::SearchCapabilities),
                 KnowledgeOperation::Contracts => Ok(KnowledgeRequest::Contracts),
@@ -786,6 +789,87 @@ pub fn serve(
     Ok(())
 }
 
+fn philosophy_http_request(
+    operation: KnowledgeOperation,
+    encoded: &str,
+    query: &str,
+) -> Result<KnowledgeRequest, AccessError> {
+    use KnowledgeOperation as O;
+    let text = |s: String| JsonValue::String(JsonString::from_utf8(&s));
+    let count = |key: &str, default: i64, low: i64, high: i64| {
+        JsonValue::Number(JsonNumber {
+            kind: JsonNumberKind::Int,
+            lexeme: bounded_legacy_int(query_value(query, key).as_deref(), default, low, high)
+                .to_string(),
+        })
+    };
+    let list =
+        |key: &str| JsonValue::Array(query_list(query, key).into_iter().map(&text).collect());
+    let optional = |key: &str| {
+        query_value(query, key)
+            .filter(|value| !value.is_empty())
+            .map(&text)
+            .unwrap_or(JsonValue::Null)
+    };
+    let fields = match operation {
+        O::PhilosophyNode => vec![("node_id", text(percent_decode(encoded, false)?))],
+        O::PhilosophyEdge => vec![("edge_id", text(percent_decode(encoded, false)?))],
+        O::PhilosophyView => vec![
+            (
+                "view_id",
+                text(percent_decode(
+                    encoded.split('/').next().unwrap_or(""),
+                    false,
+                )?),
+            ),
+            ("limit", count("limit", 1000, 1, 1000)),
+        ],
+        O::PhilosophyNeighborhood => vec![
+            ("node_id", text(percent_decode(encoded, false)?)),
+            ("depth", count("depth", 1, 1, 3)),
+            ("limit", count("limit", 80, 1, 300)),
+            ("layers", list("layers")),
+            ("predicates", list("predicates")),
+        ],
+        O::PhilosophyPath => vec![
+            (
+                "from_id",
+                text(query_value(query, "from").unwrap_or_default()),
+            ),
+            ("to_id", text(query_value(query, "to").unwrap_or_default())),
+            ("layers", list("layers")),
+            ("predicates", list("predicates")),
+            ("max_depth", count("max_depth", 6, 1, 8)),
+            (
+                "direction",
+                text(query_value(query, "direction").unwrap_or_else(|| "outgoing".into())),
+            ),
+            ("view_id", optional("view_id")),
+            ("excluded_edge_ids", list("exclude")),
+            ("alternative_limit", count("alternatives", 1, 1, 5)),
+        ],
+        O::PhilosophyClusters => vec![
+            ("view_id", optional("view_id")),
+            ("cluster_kind", optional("kind")),
+            ("limit", count("limit", 80, 1, 1000)),
+        ],
+        O::PhilosophyReview => vec![(
+            "view_id",
+            text(query_value(query, "view_id").unwrap_or_else(|| "chronology".into())),
+        )],
+        O::PhilosophyUnresolved => vec![("view_id", optional("view_id"))],
+        _ => vec![],
+    };
+    KnowledgeRequest::from_arguments(
+        operation,
+        &JsonValue::Object(
+            fields
+                .into_iter()
+                .map(|(key, value)| (JsonString::from_utf8(key), value))
+                .collect(),
+        ),
+    )
+}
 fn focus_http_request(encoded: &str, query: &str) -> Result<KnowledgeRequest, AccessError> {
     let text = |s: &str| JsonValue::String(JsonString::from_utf8(s));
     let count = |n: i64| {
