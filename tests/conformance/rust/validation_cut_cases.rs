@@ -910,7 +910,15 @@ finally:c.doCleanups()
             .iter()
             .all(|receipt| receipt.source_revision == revision)
     );
-    assert_eq!(report.bibliography.native_compounds.len(), 6);
+    assert_eq!(
+        report.bibliography.native_compounds.len(),
+        6,
+        "native compound coverage: observations {:?}; bibliography issues {:?}; checked {:?}; skipped {:?}",
+        report.bibliography.native_compounds,
+        report.bibliography.shadow.issues,
+        report.bibliography.shadow.checked_profiles,
+        report.bibliography.shadow.skipped_profiles
+    );
     assert!(
         report
             .bibliography
