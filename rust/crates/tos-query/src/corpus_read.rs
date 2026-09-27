@@ -827,6 +827,12 @@ pub fn execute_selected_corpus_view_ids<A: InspectCurrentAuthority + ?Sized>(
                     return Err(budget_error());
                 }
                 let Some(row) = read.corpus_view_identity(&receipt, after)? else {
+                    if after.is_none() {
+                        return Err(fail(
+                            SearchV2ErrorCode::Unavailable,
+                            "selected corpus view identities unavailable",
+                        ));
+                    }
                     break;
                 };
                 remaining -= 1;
