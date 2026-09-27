@@ -19,8 +19,8 @@ use tos_source_store::{CorpusCutReader, SoftwareCaptureReader, SoftwareComponent
 use tos_validation::source_cut::CutWorkerSchemaExecutor;
 
 const CORPUS_LOCK: &str = ".historical-create.writer.lock";
-const MAX_FILES: usize = 4096;
-const MAX_BYTES: usize = 33_554_432;
+pub(crate) const MAX_FILES: usize = 4096;
+pub(crate) const MAX_BYTES: usize = 33_554_432;
 
 pub(crate) fn active(deadline: Instant, cancelled: &AtomicBool) -> SourceCommandResult<()> {
     if cancelled.load(Ordering::Relaxed) || Instant::now() >= deadline {
@@ -244,6 +244,27 @@ impl IsolatedCreationRoot {
     }
     pub fn path(&self) -> &Path {
         &self.path
+    }
+    pub(crate) fn verify_current(
+        &self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<File> {
+        active(deadline, cancelled)?;
+        let uid = rustix::process::geteuid().as_raw();
+        if rustix::process::getuid().as_raw() != uid {
+            return Err(SourceCommandError::Denied("isolated root account changed"));
+        }
+        let current = tos_fd_open::open_absolute_directory(&self.path)
+            .map_err(|_| SourceCommandError::Conflict("isolated root path replaced"))?;
+        if inode(&owned(&current, uid, true)?) != self.identity
+            || inode(&owned(&self.directory, uid, true)?) != self.identity
+        {
+            return Err(SourceCommandError::Conflict(
+                "isolated root identity changed",
+            ));
+        }
+        Ok(current)
     }
 }
 impl CreationFilesystem {
@@ -1064,16 +1085,16 @@ pub fn execute_isolated_creation_from_captures(
     Ok((serialized, publication, response))
 }
 
-struct PendingCreation<'a> {
+pub(crate) struct PendingCreation<'a> {
     parent: &'a File,
-    directory: File,
+    pub(crate) directory: File,
     identity: (u64, u64),
-    name: String,
+    pub(crate) name: String,
     names: BTreeSet<String>,
-    published: bool,
+    pub(crate) published: bool,
 }
 impl<'a> PendingCreation<'a> {
-    fn create(
+    pub(crate) fn create(
         parent: &'a File,
         uid: u32,
         deadline: Instant,
@@ -1110,7 +1131,7 @@ impl<'a> PendingCreation<'a> {
             "creation staging name collisions",
         ))
     }
-    fn write(
+    pub(crate) fn write(
         &mut self,
         name: &str,
         bytes: &[u8],
@@ -1152,7 +1173,7 @@ impl<'a> PendingCreation<'a> {
         }
         Ok(())
     }
-    fn rollback(&mut self) -> SourceCommandResult<()> {
+    pub(crate) fn rollback(&mut self) -> SourceCommandResult<()> {
         if self.published {
             return Ok(());
         }
