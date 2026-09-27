@@ -203,7 +203,8 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
         CanonicalProfile, JsonLimits, JsonMode, RelativePath, canonical_bytes_v1, parse_json,
     };
     use tos_source_store::{
-        CorpusReader, CutReadLimits, ReadLimits, SoftwareCaptureReader, SoftwareCaptureSelectionV1,
+        CorpusCutReader, CorpusReader, CutReadLimits, ReadLimits, SoftwareCaptureReader,
+        SoftwareCaptureSelectionV1,
     };
     use tos_validation::executor::{ExactWorkerIdentity, ExecutorBudget};
     use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerLimits, CutWorkerSchemaExecutor};
@@ -413,9 +414,9 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
         sha256: Digest256::of_bytes(&fs::read(&worker_path).unwrap()),
         absolute_path: worker_path,
     };
-    let new_worker = || {
+    let new_worker = |selected_cut: &CorpusCutReader| {
         CutWorkerSchemaExecutor::from_cut(
-            &cut,
+            selected_cut,
             tos_validation::FormatProfile::LegacyPythonObserved20260923,
             worker_identity.clone(),
             ExecutorBudget::laboratory(),
@@ -458,7 +459,7 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
                 })
                 .collect(),
         };
-        let mut worker = new_worker();
+        let mut worker = new_worker(&cut);
         let preview = prepare_source_creation_from_captures(
             &context,
             &cut,
@@ -500,7 +501,7 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
         worker.finish(deadline, &cancelled).unwrap();
         contexts.push(context);
     }
-    let mut worker = new_worker();
+    let mut worker = new_worker(&cut);
     let initial = lab
         .db
         .bootstrap_source_cohort(
@@ -533,7 +534,7 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
         .iter()
         .enumerate()
         .map(|(i, p)| {
-            let mut registration_worker = new_worker();
+            let mut registration_worker = new_worker(&cut);
             let attempt = lab
                 .db
                 .register_source_creation(
@@ -614,7 +615,7 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
                 &initial.cohort,
                 b"agent-1",
                 &packages[1],
-                &mut new_worker(),
+                &mut new_worker(&cut),
                 deadline,
                 &cancelled
             ),
@@ -654,7 +655,7 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
             &contexts[0],
             &software,
             &components,
-            &mut new_worker(),
+            &mut new_worker(&cut),
             deadline,
             &cancelled,
         )
@@ -737,7 +738,7 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
                 &initial.cohort,
                 b"stale-epoch",
                 &packages[2],
-                &mut new_worker(),
+                &mut new_worker(&cut),
                 deadline,
                 &cancelled
             )
@@ -753,13 +754,13 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
             &contexts[0],
             &software,
             &components,
-            &mut new_worker(),
+            &mut new_worker(&cut),
             deadline,
             &cancelled,
         )
         .unwrap();
     assert!(verified.cohort.epoch() > initial.cohort.epoch());
-    let mut replay_attempt_worker = new_worker();
+    let mut replay_attempt_worker = new_worker(&cut);
     let replay_attempt = reopened_db
         .reopen_committed_source_creation_attempt(
             &reopened_store,
@@ -801,7 +802,7 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
         &contexts[0],
         &software,
         &components,
-        &mut new_worker(),
+        &mut new_worker(&cut),
         &isolated,
         None,
         read_limits,
@@ -869,19 +870,7 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
     current_request["forms"][0]["form_id"] =
         serde_json::json!("tos.form.synthetic-durable-current");
     current_context.request_raw = canonical(&current_request);
-    let mut current_worker = CutWorkerSchemaExecutor::from_cut(
-        current.cut(),
-        tos_validation::FormatProfile::LegacyPythonObserved20260923,
-        worker_identity.clone(),
-        ExecutorBudget::laboratory(),
-        CutWorkerLimits {
-            max_receipts: 128,
-            max_receipt_bytes: 262_144,
-        },
-        deadline,
-        &cancelled,
-    )
-    .unwrap();
+    let mut current_worker = new_worker(current.cut());
     let preview = prepare_source_creation_from_captures(
         &current_context,
         current.cut(),
@@ -945,7 +934,7 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
         &contexts[0],
         &software,
         &components,
-        &mut new_worker(),
+        &mut new_worker(&cut),
         &isolated,
         Some(&current),
         read_limits,
@@ -984,7 +973,7 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
             &contexts[0],
             &software,
             &components,
-            &mut new_worker(),
+            &mut new_worker(&cut),
             deadline,
             &cancelled,
         )
@@ -1008,7 +997,9 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
             .unwrap()
     );
     assert_eq!(second_member.current_generation, second_receipt.commit_seq);
-    let mut second_replay_worker = new_worker();
+    // Replay revalidates this package against its exact selected proposal
+    // base, while the durable owner independently checks the current cohort.
+    let mut second_replay_worker = new_worker(current.cut());
     let second_replay = reopened_db
         .reopen_committed_source_creation_attempt(
             &reopened_store,
@@ -1055,7 +1046,7 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
                 &contexts[0],
                 &software,
                 &components,
-                &mut new_worker(),
+                &mut new_worker(&cut),
                 deadline,
                 &cancelled
             )
