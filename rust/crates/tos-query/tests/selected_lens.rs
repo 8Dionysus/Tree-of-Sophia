@@ -1075,8 +1075,9 @@ from tos_access.core import ToSAccessCore
 payload=json.load(sys.stdin)
 # Independent maintained domain methods over the exact admitted originals;
 # the software oracle supplies no native current/disclosure authority.
-core=ToSAccessCore.__new__(ToSAccessCore)
-core.philosophy_projection=lambda:payload
+class OriginalProjectionCore(ToSAccessCore):
+ def philosophy_projection(self):return payload
+core=OriginalProjectionCore.__new__(OriginalProjectionCore)
 left,right=payload['nodes'][0]['node_id'],payload['nodes'][1]['node_id']
 edge=payload['edges'][0]['edge_id'];view=payload['views'][0]['view_id']
 cases={
