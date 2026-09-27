@@ -27,6 +27,17 @@ const CONTROL: &str = "ToS/source-witnesses/.metadata-publication.json";
 const ENTITIES: &str = "ToS/doctrine/semantic-interchange/entity-types.v1.json";
 const RELATIONS: &str = "ToS/doctrine/semantic-interchange/relation-types.v1.json";
 
+pub(crate) fn require_assessment_profile(worker: &CutWorkerSchemaExecutor) -> Result<()> {
+    if worker.execution_binding().schema_profile
+        != tos_validation::FormatProfile::AssertedSourceCandidateV1
+    {
+        return Err(Error::Unsupported(
+            "Sign assessment requires asserted source grammar formats",
+        ));
+    }
+    Ok(())
+}
+
 pub(crate) fn finish_worker(
     worker: &mut CutWorkerSchemaExecutor,
     deadline: Instant,
@@ -1424,6 +1435,7 @@ impl<'a> SignPromotionRead<'a> {
         cancelled: &AtomicBool,
         sign_publication: impl FnOnce(&JsonValue, &mut dyn FnMut() -> Result<()>) -> Result<T>,
     ) -> Result<T> {
+        require_assessment_profile(assessment_worker)?;
         let subject = cmd::text(&self.configuration, "promotion_candidate_id")?.to_owned();
         self.configuration_current(limits.deadline, cancelled)?;
         if self.prepared_sources.is_none() {

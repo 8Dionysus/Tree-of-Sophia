@@ -1,4 +1,4 @@
-use super::command_form_cases::{context as cut_context, open_cut, schemas};
+use super::command_form_cases::{context as cut_context, open_cut, schemas, schemas_for_profile};
 use super::*;
 use std::collections::BTreeMap;
 use std::sync::atomic::AtomicBool;
@@ -22,6 +22,7 @@ fn sign_uses_current_native_content_assessment_and_replays_its_original_package(
     use tos_command::source_creation_store::{
         CreationDurability, CreationFilesystem, IsolatedCreationRoot,
     };
+    use tos_validation::FormatProfile;
     use tos_validation::assessment::AssessmentLimits;
     use tos_validation::executor::BatchBudget;
     use tos_validation::source_cut::CutSchemaExecutor;
@@ -158,7 +159,12 @@ finally:
         deadline,
     };
     let mut local_worker = schemas(&cut, deadline, &cancellation);
-    let mut assessment_worker = schemas(&cut, deadline, &cancellation);
+    let mut assessment_worker = schemas_for_profile(
+        &cut,
+        FormatProfile::AssertedSourceCandidateV1,
+        deadline,
+        &cancellation,
+    );
     let prepared = prepare_sign_promotion_from_captures(
         owner,
         &context,
@@ -189,7 +195,12 @@ finally:
     // dependency values; Rust must independently reconstruct them again.
     context.request_raw = canonical_json(&oracle["request"]);
     let mut local_worker = schemas(&cut, deadline, &cancellation);
-    let mut assessment_worker = schemas(&cut, deadline, &cancellation);
+    let mut assessment_worker = schemas_for_profile(
+        &cut,
+        FormatProfile::AssertedSourceCandidateV1,
+        deadline,
+        &cancellation,
+    );
     let prepared = prepare_sign_promotion_from_captures(
         owner,
         &context,
@@ -253,7 +264,12 @@ finally:
         };
         fs::write(&target, changed).unwrap();
         let mut local = schemas(&cut, deadline, &cancellation);
-        let mut assessment = schemas(&cut, deadline, &cancellation);
+        let mut assessment = schemas_for_profile(
+            &cut,
+            FormatProfile::AssertedSourceCandidateV1,
+            deadline,
+            &cancellation,
+        );
         assert!(
             filesystem
                 .publish_sign_isolated(
@@ -278,7 +294,12 @@ finally:
     }
     let native_before = fs::read(isolated.path().join(required(&oracle, "content"))).unwrap();
     let mut local_worker = schemas(&cut, deadline, &cancellation);
-    let mut assessment_worker = schemas(&cut, deadline, &cancellation);
+    let mut assessment_worker = schemas_for_profile(
+        &cut,
+        FormatProfile::AssertedSourceCandidateV1,
+        deadline,
+        &cancellation,
+    );
     let published = filesystem
         .publish_sign_isolated(
             &serialized,
@@ -307,7 +328,12 @@ finally:
     changed_content.push(b'\n');
     fs::write(&content_path, changed_content).unwrap();
     let mut local_worker = schemas(&cut, deadline, &cancellation);
-    let mut assessment_worker = schemas(&cut, deadline, &cancellation);
+    let mut assessment_worker = schemas_for_profile(
+        &cut,
+        FormatProfile::AssertedSourceCandidateV1,
+        deadline,
+        &cancellation,
+    );
     assert!(
         filesystem
             .replay_sign_isolated(
@@ -325,7 +351,12 @@ finally:
     );
     fs::write(&content_path, &native_before).unwrap();
     let mut local_worker = schemas(&cut, deadline, &cancellation);
-    let mut assessment_worker = schemas(&cut, deadline, &cancellation);
+    let mut assessment_worker = schemas_for_profile(
+        &cut,
+        FormatProfile::AssertedSourceCandidateV1,
+        deadline,
+        &cancellation,
+    );
     let replay = filesystem
         .replay_sign_isolated(
             &serialized,

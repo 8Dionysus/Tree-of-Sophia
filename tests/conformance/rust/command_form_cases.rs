@@ -134,11 +134,24 @@ pub(super) fn schemas(
     deadline: Instant,
     cancel: &AtomicBool,
 ) -> CutWorkerSchemaExecutor {
+    schemas_for_profile(
+        cut,
+        FormatProfile::LegacyPythonObserved20260923,
+        deadline,
+        cancel,
+    )
+}
+pub(super) fn schemas_for_profile(
+    cut: &CorpusCutReader,
+    profile: FormatProfile,
+    deadline: Instant,
+    cancel: &AtomicBool,
+) -> CutWorkerSchemaExecutor {
     let absolute_path = super::validation_cut_cases::selected_worker_path();
     let sha256 = Digest256::of_bytes(&fs::read(&absolute_path).unwrap());
     CutWorkerSchemaExecutor::from_cut(
         cut,
-        FormatProfile::LegacyPythonObserved20260923,
+        profile,
         ExactWorkerIdentity {
             absolute_path,
             sha256,

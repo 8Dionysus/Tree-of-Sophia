@@ -1068,6 +1068,7 @@ pub fn prepare_sign_promotion_from_captures(
     limits: tos_validation::assessment::AssessmentLimits,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<PreparedCreation> {
+    crate::source_sign::require_assessment_profile(assessment_worker)?;
     context.check_from_selected_captures(cut, software, components, limits.deadline, cancelled)?;
     let (family, config, home) = configuration(context)?;
     if family != CreationFamily::Sign || !contains(&config, "allowed_operations", "sign.promote")? {
