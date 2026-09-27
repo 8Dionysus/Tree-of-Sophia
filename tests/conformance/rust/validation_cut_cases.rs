@@ -688,6 +688,36 @@ try:
             ref='ToS/source-witnesses/relations/synthetic-membership-'+request['claim']['claim_id'].rsplit('.',1)[1]+'/source-claims.jsonl'
             current=json.loads((c.root/ref).read_bytes());attachment.verify_compound(c.root,ref,current)
     finally:m.doCleanups()
+    from test_source_responsibility_commands import NativeResponsibilityTests,attachment as responsibility
+    r=NativeResponsibilityTests();r.setUp()
+    try:
+        # Reuse the actual already committed Expression and its current forms;
+        # only the existing Agent input comes from this maintained factory.
+        agent_raw=r.agent_path.read_bytes();agent_ref=r.agent_ref
+        r.root=c.root;r.expression_ref=c.origin.expression_ref
+        r.expression_path=c.root/r.expression_ref;r.expression=json.loads(r.expression_path.read_bytes())
+        r.agent_path=c.root/agent_ref;r.agent_path.parent.mkdir(parents=True,exist_ok=True)
+        assert not r.agent_path.exists();r.agent_path.write_bytes(agent_raw)
+        r.owner=c.root/'responsibility-owner.json'
+        current_forms=json.loads(r.expression_path.with_name('expression.human-forms.json').read_bytes())['forms']
+        r.forms=[{'form_id':form['form_id'],'field_id':form['field_id']} for form in current_forms]
+        r.config.update(source_root=str(c.root),expression_id=r.expression['record_id'],expression_source_path=r.expression_ref,allowed_expression_form_ids=[form['form_id'] for form in current_forms])
+        r.owner.write_text(json.dumps(r.config));r.rebuild()
+        first_responsibility=r.request();commands.run_local_command(r.owner,first_responsibility)
+        r.correct_agent();r.agent=json.loads(r.agent_path.read_bytes());r.rebuild()
+        r.select_claim('second');second_responsibility=r.request();commands.run_local_command(r.owner,second_responsibility);r.rebuild()
+        r.select_claim('first');r.rebuild()
+        config={key:r.config[key] for key in ('uid','principal_id','source_root','authority_ref','expires_at')}
+        config.update(schema_version=commands.CLAIM_REVISION_CONFIG,source_path=r.config['claim_source_path'],claim_id=r.config['claim_id'],allowed_operations=['claim.revise'],allowed_fields=['qualifiers'],allowed_evidence_refs=r.config['allowed_evidence_refs'],allowed_form_ids=r.config['allowed_claim_form_ids'])
+        correction_owner=c.root/'translator-correction-owner.json';correction_owner.write_text(json.dumps(config))
+        proposal={'schema_version':'tos_local_source_command_v1','operation':'prepare-revise','fields':{'qualifiers':{'statement':'Corrected wording of the same qualified translator attribution.'}},'forms':r.proposal()['claim_forms'],'reason':'Synthetic translator statement correction.'}
+        prepared=commands.run_local_command(correction_owner,proposal)
+        correction={**proposal,'operation':'claim.revise','command_id':'synthetic:translator-correction','expected_configuration':prepared['owner_configuration'],'expected_source':prepared['source'],'expected_revision':prepared['revision'],'expected_dependencies':prepared['expected_dependencies'],'expected_inputs':prepared['source_bindings']}
+        commands.run_local_command(correction_owner,correction);r.rebuild()
+        for request in (first_responsibility,second_responsibility):
+            ref='ToS/source-witnesses/relations/synthetic-translator-'+request['claim']['claim_id'].rsplit('.',1)[1]+'/source-claims.jsonl'
+            responsibility.verify_compound(c.root,ref,json.loads((c.root/ref).read_bytes()))
+    finally:r.doCleanups()
     files={p.relative_to(c.root).as_posix():p.read_bytes().hex()
            for p in sorted((c.root/'ToS').rglob('*')) if p.is_file()}
     print(json.dumps(files))
@@ -939,7 +969,7 @@ finally:c.doCleanups()
     );
     assert_eq!(
         report.bibliography.native_compounds.len(),
-        8,
+        10,
         "native compound coverage: observations {:?}; bibliography issues {:?}; checked {:?}; skipped {:?}",
         report.bibliography.native_compounds,
         report.bibliography.shadow.issues,
@@ -1012,7 +1042,8 @@ finally:c.doCleanups()
             .iter()
             .any(|issue| matches!(
                 issue.code,
-                "native-collection-work-compound-evidence"
+                "native-expression-responsibility-compound-evidence"
+                    | "native-collection-work-compound-evidence"
                     | "native-work-expression-compound-evidence"
                     | "native-expression-edition-compound-evidence"
                     | "native-edition-item-compound-evidence"
@@ -1028,6 +1059,18 @@ finally:c.doCleanups()
     );
     assert!(!report.bibliography.shadow.skipped_profiles.contains(
         "native-compound-owner-evidence:contains_work"
+    ));
+
+    assert!(report.bibliography.shadow.checked_profiles.contains(
+        "native-expression-responsibility-exact-compound-plan-and-current-lineage@1"
+    ));
+    assert_eq!(
+        report.bibliography.native_compounds.iter().filter(|observed|
+            observed.claim_path.contains("/relations/synthetic-translator-")).count(),
+        2
+    );
+    assert!(!report.bibliography.shadow.skipped_profiles.contains(
+        "native-compound-owner-evidence:translated_by"
     ));
 
 
@@ -1086,7 +1129,24 @@ finally:c.doCleanups()
         .unwrap().to_owned() + "claim-revision-history.json";
     let mut removed_history: Value = serde_json::from_slice(&files[&membership_history]).unwrap();
     removed_history["receipts"] = serde_json::json!([]);
+    let translator = report.bibliography.native_compounds.iter().find(|observed|
+        observed.claim_path.contains("/relations/synthetic-translator-first/")).unwrap();
+    let translator_receipt = translator.claim_path.strip_suffix("source-claims.jsonl")
+        .unwrap().to_owned() + "responsibility-attachment-receipt.json";
+    let binding: Value = serde_json::from_slice(&files[&translator_receipt]).unwrap();
+    let agent_path = binding["scope"]["agent_source_path"].as_str().unwrap();
+    let agent_history = agent_path.strip_suffix("agent.json").unwrap().to_owned()
+        + "source-revision-history.json";
+    let mut removed_agent_history: Value =
+        serde_json::from_slice(&files[&agent_history]).unwrap();
+    removed_agent_history["receipts"] = serde_json::json!([]);
     for (target, raw, claim_path, code) in [
+        (
+            agent_history,
+            serde_json::to_vec(&removed_agent_history).unwrap(),
+            translator.claim_path.as_str(),
+            "native-expression-responsibility-compound-evidence",
+        ),
         (membership_history, serde_json::to_vec(&removed_history).unwrap(),
             membership.claim_path.as_str(), "native-collection-work-compound-evidence"),
         (
@@ -1115,6 +1175,7 @@ finally:c.doCleanups()
             item.claim_path.as_str(),
             "native-edition-item-compound-evidence",
         ),
+
 
     ] {
         let mut damaged = files.clone();

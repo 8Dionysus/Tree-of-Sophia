@@ -48,6 +48,7 @@ pub struct NativeCompoundObservation {
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum CompoundKind {
     CollectionWork,
+    ExpressionResponsibility,
     WorkExpression,
     ExpressionEdition,
     EditionItem,
@@ -56,6 +57,7 @@ impl CompoundKind {
     fn from_operation(operation: &str) -> Result<Self, ItemRefusal> {
         match operation {
             "collection.work.attach" => Ok(Self::CollectionWork),
+            "expression.responsibility.attach" => Ok(Self::ExpressionResponsibility),
             "work.expression.create" => Ok(Self::WorkExpression),
             "expression.edition.create" => Ok(Self::ExpressionEdition),
             "item.adopt" => Ok(Self::EditionItem),
@@ -67,6 +69,7 @@ impl CompoundKind {
     fn from_predicate(predicate: &str) -> Result<Self, ItemRefusal> {
         match predicate {
             "contains_work" => Ok(Self::CollectionWork),
+            "translated_by" => Ok(Self::ExpressionResponsibility),
             "has_expression" => Ok(Self::WorkExpression),
             "embodied_by" => Ok(Self::ExpressionEdition),
             "exemplified_by" => Ok(Self::EditionItem),
@@ -78,6 +81,7 @@ impl CompoundKind {
     fn parent_kind(self) -> &'static str {
         match self {
             Self::CollectionWork => "collection",
+            Self::ExpressionResponsibility => "expression",
             Self::WorkExpression => "work",
             Self::ExpressionEdition => "expression",
             Self::EditionItem => "edition",
@@ -86,6 +90,7 @@ impl CompoundKind {
     fn child_kind(self) -> &'static str {
         match self {
             Self::CollectionWork => "work",
+            Self::ExpressionResponsibility => "agent",
             Self::WorkExpression => "expression",
             Self::ExpressionEdition => "edition",
             Self::EditionItem => "item",
@@ -94,6 +99,7 @@ impl CompoundKind {
     fn parent_key(self) -> &'static str {
         match self {
             Self::CollectionWork => "collection_id",
+            Self::ExpressionResponsibility => "expression_id",
             Self::WorkExpression => "work_id",
             Self::ExpressionEdition => "expression_id",
             Self::EditionItem => "edition_id",
@@ -102,6 +108,7 @@ impl CompoundKind {
     fn child_key(self) -> &'static str {
         match self {
             Self::CollectionWork => "work_id",
+            Self::ExpressionResponsibility => "agent_id",
             Self::WorkExpression => "expression_id",
             Self::ExpressionEdition => "edition_id",
             Self::EditionItem => "item_id",
@@ -110,6 +117,7 @@ impl CompoundKind {
     fn parent_path(self) -> &'static str {
         match self {
             Self::CollectionWork => "collection_source_path",
+            Self::ExpressionResponsibility => "expression_source_path",
             Self::WorkExpression => "work_source_path",
             Self::ExpressionEdition => "expression_source_path",
             Self::EditionItem => "edition_source_path",
@@ -118,6 +126,7 @@ impl CompoundKind {
     fn child_path(self) -> &'static str {
         match self {
             Self::CollectionWork => "work_source_path",
+            Self::ExpressionResponsibility => "agent_source_path",
             Self::WorkExpression => "expression_source_path",
             Self::ExpressionEdition => "edition_source_path",
             Self::EditionItem => "item_source_path",
@@ -126,6 +135,7 @@ impl CompoundKind {
     fn parent_file(self) -> &'static str {
         match self {
             Self::CollectionWork => "collection.json",
+            Self::ExpressionResponsibility => "expression.json",
             Self::WorkExpression => "work.json",
             Self::ExpressionEdition => "expression.json",
             Self::EditionItem => "edition.json",
@@ -134,6 +144,7 @@ impl CompoundKind {
     fn child_file(self) -> &'static str {
         match self {
             Self::CollectionWork => "work.json",
+            Self::ExpressionResponsibility => "agent.json",
             Self::WorkExpression => "expression.json",
             Self::ExpressionEdition => "edition.json",
             Self::EditionItem => "item.json",
@@ -142,6 +153,7 @@ impl CompoundKind {
     fn parent_forms(self) -> &'static str {
         match self {
             Self::CollectionWork => "collection.human-forms.json",
+            Self::ExpressionResponsibility => "expression.human-forms.json",
             Self::WorkExpression => "work.human-forms.json",
             Self::ExpressionEdition => "expression.human-forms.json",
             Self::EditionItem => "edition.human-forms.json",
@@ -150,6 +162,7 @@ impl CompoundKind {
     fn child_forms(self) -> &'static str {
         match self {
             Self::CollectionWork => "work.human-forms.json",
+            Self::ExpressionResponsibility => "agent.human-forms.json",
             Self::WorkExpression => "expression.human-forms.json",
             Self::ExpressionEdition => "edition.human-forms.json",
             Self::EditionItem => "item.human-forms.json",
@@ -158,6 +171,7 @@ impl CompoundKind {
     fn child_form_request(self) -> &'static str {
         match self {
             Self::CollectionWork => "forms",
+            Self::ExpressionResponsibility => "forms",
             Self::WorkExpression => "expression_forms",
             Self::ExpressionEdition => "edition_forms",
             Self::EditionItem => "item_forms",
@@ -166,6 +180,7 @@ impl CompoundKind {
     fn field(self) -> &'static str {
         match self {
             Self::CollectionWork => "membership_claim_refs",
+            Self::ExpressionResponsibility => "responsibility_claim_refs",
             Self::WorkExpression => "expression_claim_refs",
             Self::ExpressionEdition => "embodiment_claim_refs",
             Self::EditionItem => "exemplar_claim_refs",
@@ -174,6 +189,7 @@ impl CompoundKind {
     fn predicate(self) -> &'static str {
         match self {
             Self::CollectionWork => "contains_work",
+            Self::ExpressionResponsibility => "translated_by",
             Self::WorkExpression => "has_expression",
             Self::ExpressionEdition => "embodied_by",
             Self::EditionItem => "exemplified_by",
@@ -182,6 +198,7 @@ impl CompoundKind {
     fn operation(self) -> &'static str {
         match self {
             Self::CollectionWork => "collection.work.attach",
+            Self::ExpressionResponsibility => "expression.responsibility.attach",
             Self::WorkExpression => "work.expression.create",
             Self::ExpressionEdition => "expression.edition.create",
             Self::EditionItem => "item.adopt",
@@ -190,6 +207,7 @@ impl CompoundKind {
     fn request_schema(self) -> &'static str {
         match self {
             Self::CollectionWork => "tos_local_collection_membership_command_v1",
+            Self::ExpressionResponsibility => "tos_local_expression_responsibility_command_v1",
             Self::WorkExpression => "tos_local_work_expression_command_v1",
             Self::ExpressionEdition => "tos_local_expression_edition_command_v1",
             Self::EditionItem => "tos_local_item_adoption_command_v1",
@@ -198,6 +216,7 @@ impl CompoundKind {
     fn authorization_schema(self) -> &'static str {
         match self {
             Self::CollectionWork => "tos_collection_membership_authorization_v1",
+            Self::ExpressionResponsibility => "tos_expression_responsibility_authorization_v1",
             Self::WorkExpression => "tos_work_expression_authorization_v1",
             Self::ExpressionEdition => "tos_expression_edition_authorization_v1",
             Self::EditionItem => "tos_item_adoption_authorization_v1",
@@ -206,6 +225,7 @@ impl CompoundKind {
     fn receipt_schema(self) -> &'static str {
         match self {
             Self::CollectionWork => "tos_collection_membership_receipt_v1",
+            Self::ExpressionResponsibility => "tos_expression_responsibility_receipt_v1",
             Self::WorkExpression => "tos_work_expression_receipt_v1",
             Self::ExpressionEdition => "tos_expression_edition_receipt_v1",
             Self::EditionItem => "tos_edition_item_receipt_v1",
@@ -214,6 +234,7 @@ impl CompoundKind {
     fn receipt_file(self) -> &'static str {
         match self {
             Self::CollectionWork => "membership-attachment-receipt.json",
+            Self::ExpressionResponsibility => "responsibility-attachment-receipt.json",
             Self::WorkExpression => "work-expression-receipt.json",
             Self::ExpressionEdition => "expression-edition-receipt.json",
             Self::EditionItem => "edition-item-receipt.json",
@@ -222,6 +243,7 @@ impl CompoundKind {
     fn module(self) -> &'static str {
         match self {
             Self::CollectionWork => "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_collection_commands.py",
+            Self::ExpressionResponsibility => "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_responsibility_commands.py",
             Self::WorkExpression => {
                 "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_expression_commands.py"
             }
@@ -236,6 +258,7 @@ impl CompoundKind {
     fn executor(self) -> &'static str {
         match self {
             Self::CollectionWork => "software:tos-source-membership-commands",
+            Self::ExpressionResponsibility => "software:tos-source-responsibility-commands",
             Self::WorkExpression => "software:tos-source-expression-commands",
             Self::ExpressionEdition => "software:tos-source-edition-commands",
             Self::EditionItem => "software:tos-source-item-commands",
@@ -244,6 +267,7 @@ impl CompoundKind {
     fn procedure(self) -> &'static str {
         match self {
             Self::CollectionWork => "native-collection-membership-metadata-serialization",
+            Self::ExpressionResponsibility => "native-expression-responsibility-metadata-serialization",
             Self::WorkExpression => "native-work-expression-metadata-serialization",
             Self::ExpressionEdition => "native-expression-edition-metadata-serialization",
             Self::EditionItem => "native-item-adoption-metadata-serialization",
@@ -252,17 +276,21 @@ impl CompoundKind {
     fn component(self) -> &'static str {
         match self {
             Self::CollectionWork => "ToS native Collection membership adapter",
+            Self::ExpressionResponsibility => "ToS native Expression responsibility adapter",
             Self::WorkExpression => "ToS native Work Expression adapter",
             Self::ExpressionEdition => "ToS native Expression Edition adapter",
             Self::EditionItem => "ToS native Edition Item adapter",
         }
     }
-    fn record_key(self)->&'static str {if self==Self::CollectionWork {"work"}else{"record"}}
+    fn relation_attachment(self)->bool {matches!(self,Self::CollectionWork|Self::ExpressionResponsibility)}
+    fn parent_form_grant(self)->&'static str {if self==Self::CollectionWork {"allowed_collection_form_ids"}else{"allowed_expression_form_ids"}}
+    fn record_key(self)->&'static str {match self {Self::CollectionWork=>"work",Self::ExpressionResponsibility=>"agent",_=>"record"}}
     fn publication_home<'a>(self,scope:&'a Value)->Result<&'a str,ItemRefusal> {
-        parent(text(scope,if self==Self::CollectionWork {"claim_source_path"}else{self.child_path()})?)
+        parent(text(scope,if self.relation_attachment() {"claim_source_path"}else{self.child_path()})?)
     }
     fn initial_backlink(self, record: &Value, parent: &Value) -> bool {
         match self {
+            Self::ExpressionResponsibility => true, // Existing Agent receives no invented backlink.
             Self::CollectionWork => true, // Existing Work has no invented Collection backlink.
             Self::EditionItem => true, // Item backlink is its exact manifest path, checked at its scope/current read.
             Self::WorkExpression => record["work_ref"] == *parent,
@@ -1081,7 +1109,7 @@ impl<'a> NativeCompoundReader<'a> {
         for (line,_) in claim_lines(raw) {check(self.limits.deadline,self.cancelled)?;if line.iter().all(u8::is_ascii_whitespace) {continue;}if result.is_some() {return Err(bad("membership current stream has another Claim"));}let value=self.decoded(line)?;if text(&value,"claim_id")?!=id {return Err(bad("membership current stream Claim identity"));}result=Some(value);}
         result.ok_or_else(||bad("membership Claim stream empty"))
     }
-    fn membership_claim_initial(&mut self,path:&str,claim:&Value)->Result<Vec<u8>,ItemRefusal> {
+    fn attachment_claim_initial(&mut self,path:&str,claim:&Value)->Result<Vec<u8>,ItemRefusal> {
         use crate::source_forms::source_copy_kernel as kernel;
         let files=self.flat_package(parent(path)?)?;let id=text(claim,"claim_id")?;
         let raw=files.get("source-claims.jsonl").ok_or_else(||bad("membership current stream missing"))?;
@@ -1155,44 +1183,44 @@ impl<'a> NativeCompoundReader<'a> {
         if expected.as_ref()!=Some(raw) {return Err(bad("membership current stream differs from correction head"));}
         initial.ok_or_else(||bad("membership initial stream absent"))
     }
-    // Maintained attachment resolves the caller Work through its actual
-    // current/continuously archived lineage; it never creates a Work child.
-    fn membership_work_binding(&mut self,scope:&Value,work:&Value,dependencies:&Value)->Result<JsonValue,ItemRefusal> {
+    // The two maintained attachment owners resolve their existing endpoint
+    // through current/continuously archived lineage; neither creates it.
+    fn attachment_endpoint_binding(&mut self,scope:&Value,work:&Value,dependencies:&Value,kind:CompoundKind)->Result<JsonValue,ItemRefusal> {
         let start=self.temporary_state;
-        let result=self.membership_work_binding_inner(scope,work,dependencies);
+        let result=self.attachment_endpoint_binding_inner(scope,work,dependencies,kind);
         self.release_temporary_since(start);
         if let Ok(value)=&result {self.temporary(crate::record_biblio_cut::ordered_state(value)?)?;}
         result
     }
-    fn membership_work_binding_inner(&mut self,scope:&Value,work:&Value,dependencies:&Value)->Result<JsonValue,ItemRefusal> {
-        let path=text(scope,"work_source_path")?;let id=text(scope,"work_id")?;
+    fn attachment_endpoint_binding_inner(&mut self,scope:&Value,work:&Value,dependencies:&Value,kind:CompoundKind)->Result<JsonValue,ItemRefusal> {
+        let path=text(scope,kind.child_path())?;let id=text(scope,kind.child_key())?;
         let sha=text(&dependencies["catalog_and_sources"],path)?;
         let expected=Digest256::from_hex(sha).map_err(|_|bad("membership exact Work dependency raw hash"))?;
-        let files=self.selected(path)?;let current=self.decoded(&files["work.json"])?;
-        if text(&current,"record_id")?!=id||text(&current,"record_type")?!="work" {return Err(bad("membership Work current typed identity"));}
+        let files=self.selected(path)?;let current=self.decoded(&files[kind.child_file()])?;
+        if text(&current,"record_id")?!=id||text(&current,"record_type")?!=kind.child_kind() {return Err(bad("membership Work current typed identity"));}
         let history=self.history(path,&files)?;
         self.temporary(std::mem::size_of::<String>()+71)?;
         let work_digest=self.canonical_observation(work)?.0;
         let mut matched=None;
-        if Digest256::of_bytes(&files["work.json"])==expected {
+        if Digest256::of_bytes(&files[kind.child_file()])==expected {
             if self.canonical_observation(&current)?.0!=work_digest {return Err(bad("membership Work current payload binding"));}
-            matched=Some(files["work.json"].len());
+            matched=Some(files[kind.child_file()].len());
         }
         for receipt in array(&history,"receipts")? {
             check(self.limits.deadline,self.cancelled)?;
             let request=&receipt["request"];
-            if text(request,"operation")?=="work.expression.create" {parent_receipt_shape_with(receipt,CompoundKind::WorkExpression,&mut |value|self.canonical_observation(value))?;}
+            if kind==CompoundKind::CollectionWork && text(request,"operation")?=="work.expression.create" {parent_receipt_shape_with(receipt,CompoundKind::WorkExpression,&mut |value|self.canonical_observation(value))?;}
             else if request["schema_version"]!="tos_local_source_command_v1"||request["operation"]!="record.revise"||request["fields"].as_object().is_none_or(|fields|fields.is_empty()||fields.keys().any(|key|!["preferred_label","notes","field_languages","source_refs"].contains(&key.as_str()))) {return Err(bad("membership Work undeclared metadata transition"));}
             let phase=self.temporary_state;
             let archived=self.archive(path,id,receipt)?;
             if let Some(publication)=receipt.get("publication") {
                 let tx=self.transaction(text(publication,"transaction_id")?)?;
                 let (before,after)=tx.files.get(path).ok_or_else(||bad("membership Work selected transition absent"))?;
-                if tx.status!="committed"||before.as_ref()!=archived.get("work.json") {return Err(bad("membership Work committed selected before binding"));}
+                if tx.status!="committed"||before.as_ref()!=archived.get(kind.child_file()) {return Err(bad("membership Work committed selected before binding"));}
                 let after=self.decoded(after.as_ref().ok_or_else(||bad("membership Work selected successor absent"))?)?;
                 if !self.reference_matches(&after,"record_id","record_version",&receipt["source"])? {return Err(bad("membership Work committed selected successor binding"));}
             }
-            let raw=&archived["work.json"];
+            let raw=&archived[kind.child_file()];
             if Digest256::of_bytes(raw)==expected {
                 let previous=self.decoded(raw)?;
                 if self.canonical_observation(&previous)?.0!=work_digest {return Err(bad("membership retained Work payload binding"));}
@@ -1283,7 +1311,7 @@ fn request_valid_with(request: &Value, kind: CompoundKind,observe:&mut impl FnMu
         "expected_dependencies",
         "expected_publication",
     ];
-    if kind == CompoundKind::CollectionWork {request_keys.retain(|key|*key!=kind.child_form_request());request_keys.push("forms");}
+    if kind.relation_attachment() {request_keys.retain(|key|*key!=kind.child_form_request());request_keys.push("forms");}
     if kind == CompoundKind::EditionItem {
         request_keys.extend([
             "rights",
@@ -1459,7 +1487,7 @@ fn validate_record_history_values(files:&Package,record:&Value,history:&Value,de
         .map_err(|_| bad("history aware instant"))?;
         let request = &receipt["request"];
         let observed_request=match text(request, "operation")? {
-            "collection.work.attach" | "work.expression.create" | "expression.edition.create" | "item.adopt" => {
+            "collection.work.attach" | "expression.responsibility.attach" | "work.expression.create" | "expression.edition.create" | "item.adopt" => {
                 Some(parent_receipt_shape_with(
                     receipt,
                     CompoundKind::from_operation(text(request, "operation")?)?,observe,
@@ -1617,8 +1645,8 @@ fn scope_valid(
     authority: &Value,
     kind: CompoundKind,
 ) -> Result<(), ItemRefusal> {
-    if kind == CompoundKind::CollectionWork {
-        collection_scope_valid(scope,request)?;
+    if kind.relation_attachment() {
+        attachment_scope_valid(scope,request,kind)?;
     } else if kind == CompoundKind::EditionItem {
         item_scope_valid(scope, request)?;
     } else {
@@ -1681,6 +1709,7 @@ fn scope_valid(
             "forms",
             match kind {
                 CompoundKind::CollectionWork => "allowed_collection_form_ids",
+                CompoundKind::ExpressionResponsibility => "allowed_expression_form_ids",
                 CompoundKind::WorkExpression => "allowed_work_form_ids",
                 CompoundKind::ExpressionEdition => "allowed_expression_form_ids",
                 CompoundKind::EditionItem => "allowed_edition_form_ids",
@@ -1690,13 +1719,14 @@ fn scope_valid(
             kind.child_form_request(),
             match kind {
                 CompoundKind::CollectionWork => "allowed_collection_form_ids",
+                CompoundKind::ExpressionResponsibility => "allowed_expression_form_ids",
                 CompoundKind::WorkExpression => "allowed_expression_form_ids",
                 CompoundKind::ExpressionEdition => "allowed_edition_form_ids",
                 CompoundKind::EditionItem => "allowed_item_form_ids",
             },
         ),
         ("claim_forms", "allowed_claim_form_ids"),
-    ].into_iter().filter(|(field,_)|kind!=CompoundKind::CollectionWork||*field!="forms").chain((kind==CompoundKind::CollectionWork).then_some(("forms","allowed_collection_form_ids"))) {
+    ].into_iter().filter(|(field,_)|!kind.relation_attachment()||*field!="forms").chain((kind.relation_attachment()).then_some(("forms",kind.parent_form_grant()))) {
         let ids = array(scope, allowed)?;
         if !(1..=32).contains(&ids.len()) {
             return Err(bad("form identity bounds"));
@@ -1755,23 +1785,26 @@ fn scope_valid(
     Ok(())
 }
 const COLLECTION_SCOPE_KEYS:[&str;12]=["collection_id","collection_source_path","work_id","work_source_path","predicate","claim_id","claim_source_path","provenance_event_id","allowed_collection_form_ids","allowed_claim_form_ids","allowed_evidence_refs","retained_membership_provenance_refs"];
-fn collection_scope_valid(scope:&Value,request:&Value)->Result<(),ItemRefusal> {
-    keys(scope,&COLLECTION_SCOPE_KEYS)?;
-    for (field,kind) in [("collection_id","collection"),("work_id","work"),("claim_id","claim"),("provenance_event_id","event")] {
+const RESPONSIBILITY_SCOPE_KEYS:[&str;11]=["expression_id","expression_source_path","agent_id","agent_source_path","predicate","claim_id","claim_source_path","provenance_event_id","allowed_expression_form_ids","allowed_claim_form_ids","allowed_evidence_refs"];
+fn attachment_scope_valid(scope:&Value,request:&Value,kind:CompoundKind)->Result<(),ItemRefusal> {
+    keys(scope,if kind==CompoundKind::CollectionWork {&COLLECTION_SCOPE_KEYS[..]}else{&RESPONSIBILITY_SCOPE_KEYS[..]})?;
+    for (field,kind) in [(kind.parent_key(),kind.parent_kind()),(kind.child_key(),kind.child_kind()),("claim_id","claim"),("provenance_event_id","event")] {
         if !typed_id(text(scope,field)?,kind) {return Err(bad("membership typed scope identities"));}
     }
-    let collection=text(scope,"collection_source_path")?;let work=text(scope,"work_source_path")?;let claim=text(scope,"claim_source_path")?;
+    let collection=text(scope,kind.parent_path())?;let work=text(scope,kind.child_path())?;let claim=text(scope,"claim_source_path")?;
     for path in [collection,work,claim] {metadata_path(path,false)?;}
-    if text(scope,"predicate")?!="contains_work"||!collection.starts_with("ToS/source-witnesses/collections/")||collection.split('/').count()<5||!collection.ends_with("/collection.json")||!work.starts_with("ToS/source-witnesses/works/")||!work.ends_with("/work.json")||!claim.starts_with("ToS/source-witnesses/relations/")||claim.split('/').count()!=5||!claim.ends_with("/source-claims.jsonl")||!segment(parent(claim)?.rsplit('/').next().unwrap()) {return Err(bad("membership separate exact public homes"));}
-    if request["work"]["record_type"]!="work"||request["claim"]["predicate"]!=scope["predicate"] {return Err(bad("membership exact Work/Claim route"));}
+    if text(scope,"predicate")?!=kind.predicate()||if kind==CompoundKind::CollectionWork {!collection.starts_with("ToS/source-witnesses/collections/")||collection.split('/').count()<5||!collection.ends_with("/collection.json")||!work.starts_with("ToS/source-witnesses/works/")||!work.ends_with("/work.json")}else{!collection.starts_with("ToS/source-witnesses/works/")||!collection.ends_with("/expression.json")||!collection.split('/').any(|part|part=="expressions")||!work.starts_with("ToS/source-witnesses/agents/")||!work.ends_with("/agent.json")}||!claim.starts_with("ToS/source-witnesses/relations/")||claim.split('/').count()!=5||!claim.ends_with("/source-claims.jsonl")||!segment(parent(claim)?.rsplit('/').next().unwrap()) {return Err(bad("membership separate exact public homes"));}
+    if request[kind.record_key()]["record_type"]!=kind.child_kind()||request["claim"]["predicate"]!=scope["predicate"] {return Err(bad("membership exact Work/Claim route"));}
     let evidence=array(scope,"allowed_evidence_refs")?;
     if !(1..=128).contains(&evidence.len()) {return Err(bad("membership evidence bounds"));}
     let mut seen=BTreeSet::new();
     for value in evidence {let value=value.as_str().ok_or_else(||bad("membership evidence strings"))?;if value.chars().count()>4096||tos_foundation::python_strip_unicode16_v1(value,MAX_SIDE).map_err(|_|ItemRefusal::Budget)?.is_empty()||!seen.insert(value) {return Err(bad("membership distinct explicit evidence"));}}
     for field in ["evidence_refs","counterevidence_refs"] {if let Some(refs)=request["claim"].get(field) {for value in refs.as_array().ok_or_else(||bad("membership evidence array"))? {if !value.is_string()||!evidence.contains(value) {return Err(bad("membership evidence exceeds recorded scope"));}}}}
+    if kind==CompoundKind::CollectionWork {
     let provenance=array(scope,"retained_membership_provenance_refs")?;
     if provenance.len()>32 {return Err(bad("membership retained provenance bounds"));}
     seen.clear();for value in provenance {let path=value.as_str().ok_or_else(||bad("membership provenance path"))?;metadata_path(path,false)?;let name=path.rsplit('/').next().unwrap();if !name.ends_with(".jsonl")||!name.contains("provenance")||!seen.insert(path) {return Err(bad("membership retained provenance grammar"));}}
+    }
     Ok(())
 }
 const ITEM_SCOPE_KEYS: [&str; 18] = [
@@ -2426,15 +2459,15 @@ impl NativeCompoundReader<'_> {
         let request = self.decoded(&request_raw)?;
         let request_observation=request_valid_with(&request, kind,&mut |value|self.canonical_observation(value))?;
         self.temporary(std::mem::size_of::<String>()+request_observation.0.len())?;
-        let scope_scratch=if kind==CompoundKind::CollectionWork {
-            let evidence=array(scope,"allowed_evidence_refs")?;let provenance=array(scope,"retained_membership_provenance_refs")?;
-            let grants=array(scope,"allowed_collection_form_ids")?.len()+array(scope,"allowed_claim_form_ids")?.len();
+        let scope_scratch=if kind.relation_attachment() {
+            let evidence=array(scope,"allowed_evidence_refs")?;let provenance=if kind==CompoundKind::CollectionWork {array(scope,"retained_membership_provenance_refs")?.len()}else{0};
+            let grants=array(scope,kind.parent_form_grant())?.len()+array(scope,"allowed_claim_form_ids")?.len();
             let selections=array(&request,"forms")?.len().max(array(&request,"claim_forms")?.len());
             // Collection evidence/provenance indexes are dropped before the
             // form pass. Form seen+current grant+selected indexes coexist;
             // Unicode strip is borrowed and allocates no string.
-            let current_grant=array(scope,"allowed_collection_form_ids")?.len().max(array(scope,"allowed_claim_form_ids")?.len());
-            3*std::mem::size_of::<BTreeSet<&str>>()+evidence.len().max(provenance.len()).max(grants+current_grant+selections)*std::mem::size_of::<&str>()
+            let current_grant=array(scope,kind.parent_form_grant())?.len().max(array(scope,"allowed_claim_form_ids")?.len());
+            3*std::mem::size_of::<BTreeSet<&str>>()+evidence.len().max(provenance).max(grants+current_grant+selections)*std::mem::size_of::<&str>()
         }else{0};
         self.temporary(scope_scratch)?;
         scope_valid(scope, &request, authority, kind)?;
@@ -2495,8 +2528,8 @@ impl NativeCompoundReader<'_> {
             return Err(bad("retained authorization/request/before binding"));
         }
         let dirs = array(plan, "new_directories")?;
-        if kind==CompoundKind::CollectionWork && (dirs.len()!=1||dirs[0].as_str()!=Some(home))
-            || kind!=CompoundKind::CollectionWork && !(kind == CompoundKind::EditionItem && dirs.is_empty())
+        if kind.relation_attachment() && (dirs.len()!=1||dirs[0].as_str()!=Some(home))
+            || !kind.relation_attachment() && !(kind == CompoundKind::EditionItem && dirs.is_empty())
             && *dirs != vec![json!(home)]
             && *dirs != vec![json!(parent(home)?), json!(home)]
         {
@@ -2592,7 +2625,7 @@ impl NativeCompoundReader<'_> {
         if kind == CompoundKind::WorkExpression
             && (!text(expression, "language").is_ok_and(|v| !v.is_empty())
                 || !text(expression, "expression_role").is_ok_and(|v| !v.is_empty()))
-            || kind!=CompoundKind::CollectionWork && ["variant_labels", "external_identifiers"].iter().any(|k| {
+            || !kind.relation_attachment() && ["variant_labels", "external_identifiers"].iter().any(|k| {
                 !expression[*k]
                     .as_array()
                     .is_some_and(|a| a.iter().all(|v| v["status"] == "unverified"))
@@ -2656,7 +2689,7 @@ impl NativeCompoundReader<'_> {
             self.limits.max_state_bytes.checked_sub(self.state).ok_or(ItemRefusal::Budget)?,
         )?;
         for value in [&parent_forms,&parent_refs] {self.temporary(crate::record_biblio_cut::ordered_state(value)?)?;}
-        let (expression_forms, expression_refs) = if kind==CompoundKind::CollectionWork {(JsonValue::Null,JsonValue::Null)}else{forms(
+        let (expression_forms, expression_refs) = if kind.relation_attachment() {(JsonValue::Null,JsonValue::Null)}else{forms(
             &expression_ordered,
             None,
             &request[kind.child_form_request()],
@@ -2768,7 +2801,7 @@ impl NativeCompoundReader<'_> {
             ("source-claims.jsonl".into(), claim_raw),
             (claim_form_name, self.buffer(pretty(&claim_forms)?)?),
         ];
-        if kind!=CompoundKind::CollectionWork {
+        if !kind.relation_attachment() {
             child_files.insert(0,(kind.child_file().into(),expression_raw));
             child_files.insert(1,(kind.child_forms().into(),self.buffer(pretty(&expression_forms)?)?));
         }else{let cost=std::mem::size_of::<Vec<u8>>()+expression_raw.len();drop(expression_raw);self.release_temporary(cost);}
@@ -2925,14 +2958,14 @@ impl NativeCompoundReader<'_> {
             ("grants_admission", JsonValue::Bool(false)),
         ];
         let mut binding_state=0;
-        if kind!=CompoundKind::CollectionWork {
+        if !kind.relation_attachment() {
             let forms=receipt_fields.iter_mut().find(|(key,_)|*key=="forms").unwrap();
             if let JsonValue::Object(ref mut fields)=forms.1 {fields.insert(1,(tos_foundation::JsonString::from_utf8(kind.child_kind()),expression_refs));}
         }else{
-            let binding=self.membership_work_binding(scope,expression,&authority["dependency_bindings"])?;
+            let binding=self.attachment_endpoint_binding(scope,expression,&authority["dependency_bindings"],kind)?;
             binding_state=crate::record_biblio_cut::ordered_state(&binding)?;
             let claim_position=receipt_fields.iter().position(|(key,_)|*key=="claim").unwrap();
-            receipt_fields.insert(claim_position,("work_source_binding",binding));
+            receipt_fields.insert(claim_position,(if kind==CompoundKind::CollectionWork {"work_source_binding"}else{"agent_source_binding"},binding));
         }
         let receipt_ordered=object(receipt_fields);
         let rows_state=slice_rows_state(&files)?.checked_add(slice_rows_state(&before_refs)?).ok_or(ItemRefusal::Budget)?;
@@ -3042,11 +3075,11 @@ fn compound_event(
     let result=json!({
         "$schema":"https://tree-of-sophia.local/ToS/contracts/provenance-event-v2.schema.json","schema_version":"tos_provenance_event_v2","event_id":scope["provenance_event_id"],"event_version":1,"supersedes_event_ref":null,
         "record_binding":{"manifest_ref":format!("{home}/{}",kind.receipt_file()),"digest_algorithm":"sha256","digest_scope":"exact_event_record_bytes"},
-        "activity":{"event_type":"annotation","started_at":recorded_at,"ended_at":recorded_at,"status":"completed_with_warnings","terminal_reason":null,"exit_code":0,"warnings":["Captured prepared metadata buffers; the committed transaction is a separate verification.",if kind==CompoundKind::CollectionWork {"A qualified membership account is supplied by the caller; serialization and URL presence do not prove source reading or its truth."}else{"Observed denotes the declared record link, not accepted bibliographic or textual truth."}]},
+        "activity":{"event_type":"annotation","started_at":recorded_at,"ended_at":recorded_at,"status":"completed_with_warnings","terminal_reason":null,"exit_code":0,"warnings":["Captured prepared metadata buffers; the committed transaction is a separate verification.",if kind==CompoundKind::ExpressionResponsibility {"A qualified attribution is supplied by the caller; serialization and URL presence do not prove source reading or its truth."}else if kind==CompoundKind::CollectionWork {"A qualified membership account is supplied by the caller; serialization and URL presence do not prove source reading or its truth."}else{"Observed denotes the declared record link, not accepted bibliographic or textual truth."}]},
         "entities":{"inputs":inputs,"outputs":output.iter().map(|(p,r)|entity(p,r,"prepared-compound-source-metadata")).collect::<Vec<_>>(),"byproducts":[entity(&environment_ref,&environment_raw,"runtime-description")]},
         "derivations":output.keys().enumerate().map(|(index,p)|json!({"derivation_id":format!("{derivation}.output-{index}"),"input_entity_ref":request_ref,"output_entity_ref":p,"relation":"was_derived_from","influence_asserted":true,"description":"Technical source metadata serialization; no historical influence or textual identity is asserted."})).collect::<Vec<_>>(),
         "responsibility":[{"agent_ref":kind.executor(),"agent_kind":"software","role":"executor","responsibility_posture":"performed","evidence_binding":{"ref":module,"sha256":script},"human_evidence_status":"not_applicable"}],
-        "method":{"procedure":{"name":kind.procedure(),"version":"1","purpose":if kind==CompoundKind::CollectionWork {"Serialize one qualified membership Claim and a Collection membership reference without judging membership."}else{"Serialize one declared parent link and explicit source-copy forms without judging their content."}},"command_capture":{"disclosure":"withheld_digest_only","argv":null,"argv_sha256":environment["argv_sha256"],"withholding_reason":"Process arguments may contain a private owner-configuration path."},"configuration_binding":{"ref":request_ref,"sha256":Digest256::of_bytes(&request_raw).to_hex()},"software_components":[{"name":kind.component(),"version":"1","role":"serialization-runner","artifact_ref":module,"artifact_sha256":script,"verification_status":"verified"}],"model_invocations":[],"environment":env},
+        "method":{"procedure":{"name":kind.procedure(),"version":"1","purpose":if kind==CompoundKind::ExpressionResponsibility {"Serialize one qualified translator Claim and an Expression responsibility reference without judging attribution."}else if kind==CompoundKind::CollectionWork {"Serialize one qualified membership Claim and a Collection membership reference without judging membership."}else{"Serialize one declared parent link and explicit source-copy forms without judging their content."}},"command_capture":{"disclosure":"withheld_digest_only","argv":null,"argv_sha256":environment["argv_sha256"],"withholding_reason":"Process arguments may contain a private owner-configuration path."},"configuration_binding":{"ref":request_ref,"sha256":Digest256::of_bytes(&request_raw).to_hex()},"software_components":[{"name":kind.component(),"version":"1","role":"serialization-runner","artifact_ref":module,"artifact_sha256":script,"verification_status":"verified"}],"model_invocations":[],"environment":env},
         "manual_changes":{"status":"none_declared","change_receipts":[],"statement":"Caller authorship precedes this operation; no manual edits are performed inside serialization."},
         "measurements":[{"metric":"output_bytes","status":"measured","value":output_bytes,"unit":"bytes","method":"Sum of prepared source record, form and parent history buffers; excludes capture and receipt.","evidence_binding":null}],
         "evidence_authentication":{"capture_posture":"tool_captured","signature_status":"unsigned","signature_bindings":[],"verification_status":"unverified","producer_control_boundary":"The same unsigned local process serializes and records; hashes do not authenticate execution truth."},
@@ -3122,10 +3155,10 @@ impl NativeCompoundReader<'_> {
         let work = text(scope, kind.parent_path())?;
         let expression = text(scope, kind.child_path())?;
         if path != format!("{}/source-claims.jsonl", kind.publication_home(scope)?)
-            || kind!=CompoundKind::CollectionWork && claim != &reconstructed.request["claim"]
+            || !kind.relation_attachment() && claim != &reconstructed.request["claim"]
             || receipt != reconstructed.receipt
             || receipt_raw != reconstructed.child[kind.receipt_file()]
-            || kind!=CompoundKind::CollectionWork && self.required(path, MAX_FILE)? != reconstructed.child["source-claims.jsonl"]
+            || !kind.relation_attachment() && self.required(path, MAX_FILE)? != reconstructed.child["source-claims.jsonl"]
         {
             return Err(bad("exact current compound Claim/receipt bytes"));
         }
@@ -3167,10 +3200,10 @@ impl NativeCompoundReader<'_> {
         if !array(&parent_history, "receipts")?.contains(&reconstructed.parent_receipt) {
             return Err(bad("compound transition missing in current parent lineage"));
         }
-        if kind==CompoundKind::CollectionWork {
-            let initial=self.membership_claim_initial(path,claim)?;
+        if kind.relation_attachment() {
+            let initial=self.attachment_claim_initial(path,claim)?;
             if initial!=reconstructed.child["source-claims.jsonl"] {return Err(bad("membership exact committed initial stream"));}
-            for key in ["statement","statement_language","statement_script","membership_scope"] {
+            for key in ["statement","statement_language","statement_script",if kind==CompoundKind::CollectionWork {"membership_scope"}else{"attribution_scope"}] {
                 let value=text(&claim["qualifiers"],key)?;
                 if tos_foundation::python_strip_unicode16_v1(value,MAX_SIDE).map_err(|_|ItemRefusal::Budget)?.is_empty() {return Err(bad("membership current qualified wording"));}
             }
