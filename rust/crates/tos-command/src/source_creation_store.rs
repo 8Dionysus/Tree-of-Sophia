@@ -16,7 +16,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 use tos_foundation::{Digest256, RelativePath};
 use tos_source_store::{CorpusCutReader, SoftwareCaptureReader, SoftwareComponentSelectionV1};
-use tos_validation::source_cut::CutWorkerSchemaExecutor;
+use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
 
 const CORPUS_LOCK: &str = ".historical-create.writer.lock";
 pub(crate) const MAX_FILES: usize = 4096;
@@ -1089,6 +1089,24 @@ pub fn execute_isolated_creation_from_captures(
         context, cut, software, components, worker, deadline, cancelled,
     )?;
     let serialized = prepared.serialize(software, components, worker, deadline, cancelled)?;
+    worker
+        .finish(deadline, cancelled)
+        .map_err(|error| match error {
+            tos_validation::item_rules::ItemRefusal::Deadline => {
+                SourceCommandError::Denied("creation schema operation deadline")
+            }
+            tos_validation::item_rules::ItemRefusal::Budget
+            | tos_validation::item_rules::ItemRefusal::BudgetCheck { .. } => {
+                SourceCommandError::Invalid("creation schema operation budget")
+            }
+            tos_validation::item_rules::ItemRefusal::Source(_)
+                if cancelled.load(Ordering::Relaxed) =>
+            {
+                SourceCommandError::Denied("creation schema operation cancelled")
+            }
+            _ => SourceCommandError::Unsupported("creation schema operation incomplete"),
+        })?;
+    active(deadline, cancelled)?;
     let publication =
         filesystem.publish_isolated(&serialized, cut, software, components, deadline, cancelled)?;
     let response = serialized.published_result(publication.replayed)?;

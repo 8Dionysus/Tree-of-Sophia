@@ -741,6 +741,7 @@ fn initial_source_packages_use_real_native_capture_and_isolated_atomic_publicati
     use tos_command::source_creation_store::{
         CreationDurability, CreationFilesystem, IsolatedCreationRoot,
     };
+    use tos_validation::source_cut::CutSchemaExecutor;
 
     let repository = super::validation_cut_cases::repository()
         .canonicalize()
@@ -904,7 +905,7 @@ fn initial_source_packages_use_real_native_capture_and_isolated_atomic_publicati
 
         // Actual maintained whole prepare oracle on this same owner-selected
         // filesystem. It prepares buffers only and never writes source bytes.
-        let script = "import json,sys;from pathlib import Path;repo=Path(sys.argv[1]);sys.path[:0]=[str(repo/'scripts'),str(repo/'mechanics/growth-cycle/parts/branch-growth-cycle/scripts')];import source_commands as commands;request=json.load(sys.stdin);config,_,_=commands._configuration(Path(sys.argv[2]));_,files,_=commands._prepare_creation(config,request);print(json.dumps({'result':commands.run_local_command(Path(sys.argv[2]),request),'files':{name:raw.hex() for name,raw in files.items()}},ensure_ascii=False,allow_nan=False))";
+        let script = "import json,sys;from pathlib import Path;repo=Path(sys.argv[1]);sys.path[:0]=[str(repo/'scripts'),str(repo/'mechanics/growth-cycle/parts/branch-growth-cycle/scripts')];import source_commands as commands;request=commands._json_object(commands._canonical(json.load(sys.stdin)));config,_,_=commands._configuration(Path(sys.argv[2]));_,files,_=commands._prepare_creation(config,request);result=commands.run_local_command(Path(sys.argv[2]),request);print(json.dumps({'result_raw':commands._canonical(result).hex(),'files':{name:raw.hex() for name,raw in files.items()}},ensure_ascii=False,allow_nan=False))";
         let mut oracle = Command::new("python3");
         for (key, _) in std::env::vars_os() {
             if key.to_string_lossy().starts_with("GIT_")
@@ -939,7 +940,7 @@ fn initial_source_packages_use_real_native_capture_and_isolated_atomic_publicati
         let oracle: Value = serde_json::from_slice(&oracle.stdout).unwrap();
         assert_eq!(
             bytes(&preview),
-            canonical_json(&oracle["result"]),
+            decode_hex(required(&oracle, "result_raw")),
             "{kind} full prepare result"
         );
         for (name, raw) in prepared.files() {
@@ -977,6 +978,7 @@ fn initial_source_packages_use_real_native_capture_and_isolated_atomic_publicati
         let serialized = prepared
             .serialize(&software, &components, &mut worker, deadline, &cancellation)
             .unwrap();
+        worker.finish(deadline, &cancellation).unwrap();
         assert!(matches!(
             serialized.command().commit(),
             Err(SourceCommandError::MissingProductionAdmission)
