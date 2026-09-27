@@ -1311,6 +1311,9 @@ fn native_corpus_composition_case(installed: bool) {
         &cancelled,
     )
     .unwrap();
+    // The projection already finished the one shared schema operation. Close
+    // its sealed worker image before the independent oracle and selected DB.
+    drop(validator);
     phase(started, deadline, "native-projection-ready");
     // The maintained whole oracle receives exactly the selected authored paths.
     // Generated catalogue companions are private oracle outputs, not new inputs.
