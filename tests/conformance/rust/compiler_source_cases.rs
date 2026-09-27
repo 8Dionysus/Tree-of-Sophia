@@ -19,6 +19,10 @@ use tos_compiler::{
 use tos_validation::executor::{ExactWorkerIdentity, ExecutorBudget};
 use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerLimits, CutWorkerSchemaExecutor};
 
+include!("native_corpus_query.rs");
+#[path = "native_managed_corpus_consumer.rs"]
+mod native_managed_corpus_consumer;
+
 struct FixtureOwner;
 impl StageOwner for FixtureOwner {
     fn verify_receipt(&self, _: &ExactInputReceipt) -> tos_compiler::Result<()> {
@@ -693,6 +697,18 @@ print(json.dumps({'files':files,'manifest':manifest,'graph':{key:payload[key] fo
 /// distinct; neither the owner stubs nor this oracle issue source admission.
 #[test]
 fn actual_native_corpus_composition_with_retained_claim_matches_maintained_python() {
+    native_corpus_composition_case(false);
+}
+
+/// Required installed-native stage of the same authored recipe. OPS admits
+/// this Linux kernel/product boundary independently from pure selected reads.
+#[test]
+#[ignore = "requires admitted Linux fs-verity and installed native consumer binary"]
+fn actual_native_corpus_managed_installed_consumer() {
+    native_corpus_composition_case(true);
+}
+
+fn native_corpus_composition_case(installed: bool) {
     use tos_compiler::knowledge_canon_source::*;
     use tos_compiler::knowledge_stage::{InputCollectionReceipt, InputRow};
     use tos_compiler::source_bibliographic::{BibliographicLimits, BibliographicSourceCut};
@@ -1183,7 +1199,7 @@ fn actual_native_corpus_composition_with_retained_claim_matches_maintained_pytho
     }
     let originals = tos_compiler::NavigationOriginalLimits {
         max_rows: 4096,
-        max_row_bytes: 2 * 1024 * 1024,
+        max_row_bytes: limits.catalog.max_output_row_bytes,
         max_total_bytes: 16 * 1024 * 1024,
     };
     let projection = project_native_corpus_from_sources(
@@ -1229,11 +1245,13 @@ for path,text in catalog.render_outputs(root).items():
 payload=owner.build_payload(source_paths=json.loads(pathlib.Path(sys.argv[3]).read_text()))
 sys.stdout.write(owner.render_payload(payload))
 "#;
+    let python = format!("{python}\n{NATIVE_CORPUS_QUERY_ORACLE}");
     let output = Command::new("python3")
-        .args(["-c", python])
+        .args(["-c", &python])
         .arg(&repository)
         .arg(&oracle_root)
         .arg(&paths)
+        .arg(&output_path)
         .env_remove("PYTHONPATH")
         .env_remove("PYTHONHOME")
         .env("PYTHONDONTWRITEBYTECODE", "1")
@@ -1261,19 +1279,289 @@ sys.stdout.write(owner.render_payload(payload))
         &cancelled,
     )
     .unwrap();
-    let receipt =
-        tos_compiler::retain_corpus_original(&mut target, &vocabulary, &original).unwrap();
+    // A fresh independently declared selected stage receives actual family
+    // outputs. Catalogue custody and private planner tables stay out of its DDL.
+    let mut graph = BibliographicOutput::default();
+    tos_compiler::source_bibliographic::render_bibliographic_graph(
+        &mut catalog_stage,
+        &candidate.catalog,
+        &candidate.bibliographic,
+        limits,
+        &mut graph,
+    )
+    .unwrap();
+    let mut selected_rows = BTreeMap::<(String, String), BTreeMap<String, Vec<u8>>>::new();
+    let mut selected_collections = repository_plan.receipt().collections.clone();
+    selected_collections.extend(canon_plan.receipt().collections.iter().map(|c| {
+        InputCollectionReceipt {
+            source_graph: c.source_graph.clone(),
+            collection: c.collection.clone(),
+            input_role: c.input_role.clone(),
+            adapter_profile: c.adapter_profile.clone(),
+            expected_count: c.count,
+            expected_root_sha256: c.root_sha256.clone(),
+        }
+    }));
+    for source in &vocabulary.sources {
+        if [
+            "repository-topology-v1",
+            "canon-node-relation-v1",
+            "candidate-relation-v1",
+        ]
+        .contains(&source.adapter_profile.as_str())
+        {
+            continue;
+        }
+        let names: &[&str] = if source.adapter_profile == "reified-bibliographic-claims-v1" {
+            &["nodes", "edges", "claim_traces"]
+        } else {
+            &["nodes", "edges"]
+        };
+        for &collection in names {
+            let mut rows = BTreeMap::new();
+            let values = match source.adapter_profile.as_str() {
+                "source-navigation-node-edge-v1" => navigation.value()[collection]
+                    .as_array()
+                    .unwrap()
+                    .as_slice(),
+                "reified-bibliographic-claims-v1" => {
+                    graph.0.get(collection).map_or(&[][..], Vec::as_slice)
+                }
+                // The selected authored recipe has no inputs for these raw
+                // families. Zero receipts are explicit; no philosophy original
+                // component or whole-source philosophy parity is claimed.
+                "philosophy-node-edge-v1"
+                | "declared-identity-and-source-ref-joins-v1"
+                | "indexed-node-edge-v1" => &[],
+                _ => panic!("unsupported selected source family"),
+            };
+            let key = match collection {
+                "nodes" => "node_id",
+                "edges" => "edge_id",
+                "claim_traces" => "claim_ref",
+                _ => unreachable!(),
+            };
+            for value in values {
+                let id = value[key].as_str().unwrap().to_owned();
+                let raw = serde_json::to_vec(value).unwrap();
+                assert!(raw.len() <= limits.catalog.max_output_row_bytes);
+                assert!(rows.insert(id, raw).is_none());
+            }
+            selected_collections.push(raw_receipt(
+                &source.source_graph_id,
+                collection,
+                &source.input_role,
+                &source.adapter_profile,
+                &rows,
+            ));
+            assert!(
+                selected_rows
+                    .insert((source.source_graph_id.clone(), collection.into()), rows)
+                    .is_none()
+            );
+        }
+    }
+    let mut selected_binding = binding.clone();
+    selected_binding.projection_root_sha256 =
+        Digest256::of_bytes(&serde_json::to_vec(&selected_collections).unwrap()).to_hex();
+    let selected_dir = fixture.path().join("native-selected");
+    fs::create_dir(&selected_dir).unwrap();
+    let selected_path = selected_dir.join("knowledge.sqlite3");
+    let mut selected_stage = KnowledgeStage::create(
+        &selected_path,
+        stage_limits,
+        ExactInputReceipt {
+            binding: selected_binding,
+            collections: selected_collections,
+        },
+        &owner,
+        &isolation,
+    )
+    .unwrap();
+    render_repository_source_plan(
+        &mut selected_stage,
+        &repository_plan,
+        &vocabulary,
+        deadline,
+        &cancelled,
+    )
+    .unwrap();
+    render_canon_source_plan(
+        &mut canon_planner,
+        &canon_plan,
+        &cut,
+        revision,
+        membership,
+        &mut selected_stage,
+        canon_limits,
+        deadline,
+        &cancelled,
+    )
+    .unwrap();
+    for ((source, collection), rows) in &selected_rows {
+        for (id, raw) in rows {
+            selected_stage
+                .ingest_input(InputRow {
+                    source_graph: source,
+                    collection,
+                    id,
+                    payload: raw,
+                })
+                .unwrap();
+        }
+    }
+    let mut navigation_header = navigation.value().clone();
+    for field in ["nodes", "edges", "rights"] {
+        navigation_header.as_object_mut().unwrap().remove(field);
+    }
+    let navigation_header_raw = serde_json::to_vec(&navigation_header).unwrap();
+    let navigation_claim = tos_compiler::NavigationHeaderClaim {
+        expected_sha256: Digest256::of_bytes(&navigation_header_raw).to_hex(),
+        raw_json: navigation_header_raw,
+    };
+    let rights = navigation.value()["rights"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|r| serde_json::to_vec(r).unwrap())
+        .collect::<Vec<_>>();
+    let rights_refs = rights.iter().map(Vec::as_slice).collect::<Vec<_>>();
+    let rights_root = tos_compiler::navigation_original_rights_root(&rights_refs);
+    let additional = tos_compiler::NativeFamilyInputs {
+        repository_root: Some(repository_plan.root_input()),
+        navigation_original: Some(tos_compiler::NavigationOriginalInput {
+            rights: &rights_refs,
+            expected_rights_root_sha256: &rights_root,
+            limits: originals,
+        }),
+        philosophy_original: None,
+        corpus_original: Some(&original),
+        topology: tos_compiler::TopologyLimits {
+            max_rows: stage_limits.sqlite.max_rows,
+            max_page_rows: 16,
+            max_row_bytes: stage_limits.sqlite.max_row_bytes,
+            max_work_bytes: stage_limits.sqlite.max_work_bytes,
+        },
+        canon_prepare: tos_compiler::knowledge_canon_prepare::CanonPrepareLimits {
+            max_nodes: stage_limits.sqlite.max_rows,
+            max_packs: stage_limits.sqlite.max_rows,
+            max_edges: stage_limits.sqlite.max_rows,
+            max_node_relations: stage_limits.sqlite.max_rows,
+            max_page_rows: 16,
+            max_row_bytes: limits.catalog.max_output_row_bytes,
+            max_work_bytes: stage_limits.sqlite.max_work_bytes,
+        },
+        canon: tos_compiler::knowledge_canon_materialize::CanonMaterializeLimits {
+            max_raw_bytes: limits.catalog.max_output_row_bytes,
+            max_output_bytes: limits.catalog.max_output_row_bytes,
+            max_registry_bytes: 4 * 1024 * 1024,
+            max_page_rows: 16,
+            max_page_bytes: 16 * 1024 * 1024,
+            max_rows: stage_limits.sqlite.max_rows,
+            max_work_bytes: stage_limits.sqlite.max_work_bytes,
+        },
+        indexed: tos_compiler::IndexedLimits {
+            max_row_bytes: limits.catalog.max_output_row_bytes,
+            max_page_rows: 16,
+        },
+    };
+    let selected = tos_compiler::knowledge_full_fixture::finish_native_source_fixture(
+        selected_stage,
+        selected_path,
+        &files["ToS/doctrine/semantic-interchange/entity-types.v1.json"],
+        &files["ToS/doctrine/semantic-interchange/relation-types.v1.json"],
+        vocabulary.clone(),
+        descriptor,
+        &navigation_claim,
+        additional,
+        tos_compiler::FullKnowledgeLimits {
+            scope: tos_compiler::ScopeLimits {
+                max_sources: vocabulary.sources.len(),
+                max_rows: stage_limits.sqlite.max_rows,
+                max_index_work_bytes: 8 * 1024 * 1024,
+            },
+            catalog: tos_compiler::catalog::CatalogLimits::default(),
+            catalog_index: tos_compiler::CatalogIndexLimits::default(),
+            search: tos_compiler::SearchBuildLimits {
+                max_payload_bytes: limits.catalog.max_output_row_bytes,
+                max_document_chars: limits.catalog.max_output_row_bytes,
+                max_document_bytes: 4 * 1024 * 1024,
+                max_rank_field_bytes: limits.catalog.max_output_row_bytes,
+                max_postings: 100_000,
+                max_work_bytes: 100 * 1024 * 1024,
+                gram_batch_rows: 64,
+            },
+            seal: tos_compiler::SealLimits {
+                max_header_bytes: limits.catalog.max_output_row_bytes,
+            },
+            max_registry_bytes: 4 * 1024 * 1024,
+        },
+    );
+    let cold = selected.open().unwrap();
+    let receipt = cold.corpus_original_receipt().unwrap();
     assert_eq!(
-        receipt
-            .origin
-            .native_producer
-            .as_ref()
-            .unwrap()
-            .output_sha256,
-        projection.receipt().output_sha256
+        receipt.origin.native_producer.as_ref(),
+        Some(projection.receipt())
     );
     assert!(receipt.origin.source_git_commit.is_none());
     assert_eq!(receipt.origin.members.len(), 1);
+    assert_eq!(
+        selected
+            .corpus_original
+            .as_ref()
+            .unwrap()
+            .component_root_sha256,
+        selected
+            .expectation
+            .corpus_original_root_sha256
+            .as_ref()
+            .unwrap()
+            .as_str()
+    );
+    assert_eq!(selected.expectation.source_cut, binding.source_cut);
+    assert_eq!(
+        selected.expectation.membership_root,
+        membership.digest.to_hex()
+    );
+    assert_eq!(
+        selected.expectation.through_commit_seq,
+        binding.through_commit_seq
+    );
+    drop(cold);
+    let inspect = tos_query::InspectBudget {
+        max_open_vm_steps: selected.cold_limits().max_vm_steps,
+        max_read_vm_steps: stage_limits.sqlite.max_sql_vm_steps,
+        max_matches: usize::try_from(stage_limits.sqlite.max_rows).unwrap(),
+        max_rows: stage_limits.sqlite.max_rows,
+        max_field_bytes: 8192,
+        max_payload_bytes: originals.max_row_bytes,
+        max_decoded_bytes: stage_limits.sqlite.max_work_bytes,
+        max_response_bytes: 8 * 1024 * 1024,
+        json: tos_foundation::JsonLimits::default(),
+    };
+    let packets = assert_native_corpus_query_packets(
+        &selected,
+        &projection,
+        &expected,
+        &oracle_root,
+        &output_path,
+        tos_query::corpus_read::CorpusReadBudget {
+            inspect,
+            // Existing API caller law: logical JSON/string work has its own
+            // bound, distinct from row count and SQLite VM accounting.
+            max_work_steps: inspect.max_read_vm_steps,
+        },
+    );
+    if installed {
+        native_managed_corpus_consumer::exercise_managed_native_corpus(
+            &selected,
+            &projection,
+            &repository,
+            &output_path,
+            &files,
+            &packets,
+        );
+    }
 }
 
 /// Full authored projection contract. OPS runs this ignored functional case

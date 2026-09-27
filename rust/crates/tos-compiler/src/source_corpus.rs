@@ -22,7 +22,7 @@ pub struct NativeCorpusLimits {
     /// Must come from the same owner declaration used to create the validator.
     pub schema_work: BatchStreamBudget,
 }
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct NativeCorpusSourceReceipt {
     pub profile: String,

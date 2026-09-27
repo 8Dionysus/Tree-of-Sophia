@@ -354,7 +354,7 @@ pub fn build_fixture() -> FullKnowledgeFixture {
 
 #[allow(clippy::too_many_arguments)]
 fn finish_fixture(
-    mut stage: KnowledgeStage<'_>,
+    stage: KnowledgeStage<'_>,
     path: PathBuf,
     registry: KnowledgeRegistry,
     entity_bytes: &[u8],
@@ -367,6 +367,123 @@ fn finish_fixture(
     philosophy_original: Option<crate::PhilosophyOriginalReceipt>,
     corpus_original: Option<crate::CorpusOriginalReceipt>,
 ) -> FullKnowledgeFixture {
+    let limits = FullKnowledgeLimits {
+        scope: ScopeLimits {
+            max_sources: vocabulary.sources.len(),
+            max_rows: 1000,
+            max_index_work_bytes: 1024 * 1024,
+        },
+        catalog: CatalogLimits::default(),
+        catalog_index: CatalogIndexLimits::default(),
+        search: SearchBuildLimits {
+            max_payload_bytes: 1024 * 1024,
+            max_document_chars: 1024 * 1024,
+            max_document_bytes: 4 * 1024 * 1024,
+            max_rank_field_bytes: 1024 * 1024,
+            max_postings: 100_000,
+            max_work_bytes: 100 * 1024 * 1024,
+            gram_batch_rows: 64,
+        },
+        seal: SealLimits {
+            max_header_bytes: 1024 * 1024,
+        },
+        max_registry_bytes: 4 * 1024 * 1024,
+    };
+    finish_fixture_with_limits(
+        stage,
+        path,
+        registry,
+        entity_bytes,
+        relation_bytes,
+        vocabulary,
+        descriptor_bytes,
+        header,
+        saved_lenses,
+        navigation_original,
+        philosophy_original,
+        corpus_original,
+        limits,
+    )
+}
+
+/// Complete the existing finite fixture from genuine already frozen native
+/// inputs. This never substitutes synthetic source rows or grants admission;
+/// owner/cold custody stubs remain the explicit software-conformance profile.
+#[allow(clippy::too_many_arguments)]
+pub fn finish_native_source_fixture(
+    mut stage: KnowledgeStage<'_>,
+    path: PathBuf,
+    entity_bytes: &[u8],
+    relation_bytes: &[u8],
+    vocabulary: QueryVocabulary,
+    descriptor_bytes: Vec<u8>,
+    navigation_header: &NavigationHeaderClaim,
+    additional: NativeFamilyInputs<'_>,
+    full_limits: FullKnowledgeLimits,
+) -> FullKnowledgeFixture {
+    let native_limits =
+        native_fixture_limits(full_limits.scope.max_rows, full_limits.scope.max_rows);
+    let registry = KnowledgeRegistry::parse(entity_bytes, relation_bytes).unwrap();
+    let native = materialize_native_sources_with_inputs(
+        &mut stage,
+        &registry,
+        entity_bytes,
+        relation_bytes,
+        &vocabulary,
+        &descriptor_bytes,
+        navigation_header,
+        native_limits,
+        additional,
+    )
+    .unwrap();
+    let mut header = native_fixture_header(&mut stage, &registry, entity_bytes);
+    // This software fixture derives header pins from the actual native output
+    // and compiled entry source. It does not claim a source admission or the
+    // digest of a complete production compiler installation.
+    let proof = native
+        .corpus_original
+        .as_ref()
+        .and_then(|receipt| receipt.origin.native_producer.as_ref())
+        .expect("native source fixture requires its actual corpus producer proof");
+    header["source_revision"] = json!(proof.source_revision);
+    header["normalization_binding"]["processor_digest"] =
+        json!(Digest256::of_bytes(include_bytes!("knowledge_native.rs")).to_hex());
+    header["normalization_binding"]["configuration_digest"] =
+        json!(Digest256::of_bytes(&descriptor_bytes).to_hex());
+    finish_fixture_with_limits(
+        stage,
+        path,
+        registry,
+        entity_bytes,
+        relation_bytes,
+        vocabulary,
+        descriptor_bytes,
+        header,
+        &[],
+        native.navigation_original,
+        native.philosophy_original,
+        native.corpus_original,
+        full_limits,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn finish_fixture_with_limits(
+    mut stage: KnowledgeStage<'_>,
+    path: PathBuf,
+    registry: KnowledgeRegistry,
+    entity_bytes: &[u8],
+    relation_bytes: &[u8],
+    vocabulary: QueryVocabulary,
+    descriptor_bytes: Vec<u8>,
+    header: Value,
+    saved_lenses: &[Value],
+    navigation_original: Option<crate::NavigationOriginalReceipt>,
+    philosophy_original: Option<crate::PhilosophyOriginalReceipt>,
+    corpus_original: Option<crate::CorpusOriginalReceipt>,
+    limits: FullKnowledgeLimits,
+) -> FullKnowledgeFixture {
+    let source_binding = stage.exact_receipt().binding.clone();
     let full = compile_full_knowledge_components(
         &mut stage,
         &header,
@@ -376,28 +493,7 @@ fn finish_fixture(
         saved_lenses,
         &vocabulary,
         &descriptor_bytes,
-        FullKnowledgeLimits {
-            scope: ScopeLimits {
-                max_sources: vocabulary.sources.len(),
-                max_rows: 1000,
-                max_index_work_bytes: 1024 * 1024,
-            },
-            catalog: CatalogLimits::default(),
-            catalog_index: CatalogIndexLimits::default(),
-            search: SearchBuildLimits {
-                max_payload_bytes: 1024 * 1024,
-                max_document_chars: 1024 * 1024,
-                max_document_bytes: 4 * 1024 * 1024,
-                max_rank_field_bytes: 1024 * 1024,
-                max_postings: 100_000,
-                max_work_bytes: 100 * 1024 * 1024,
-                gram_batch_rows: 64,
-            },
-            seal: SealLimits {
-                max_header_bytes: 1024 * 1024,
-            },
-            max_registry_bytes: 4 * 1024 * 1024,
-        },
+        limits,
     )
     .unwrap();
     let (source_scopes,graph)=stage.with_connection(WritePhase::Finalize,|db| {
@@ -438,7 +534,7 @@ fn finish_fixture(
         descriptor_version: vocabulary.descriptor_version,
         semantic_primitive_profile: vocabulary.semantic_primitive_profile.clone(),
         source_cut: output.source_cut.clone(),
-        through_commit_seq: 7,
+        through_commit_seq: source_binding.through_commit_seq,
         membership_root: output.membership_root.clone(),
         entity_registry_id: registry.entity_registry_id.clone(),
         entity_registry_version: registry.entity_registry_version.to_string(),
@@ -453,9 +549,9 @@ fn finish_fixture(
         search_index_root_sha256: full.search.search_index_root_sha256,
         node_count: output.node_rows,
         relation_count: output.relation_rows,
-        index_generation: "fixture-generation".into(),
-        route_map_version: "fixture-routes".into(),
-        reader_abi: "fixture-reader".into(),
+        index_generation: source_binding.index_generation,
+        route_map_version: source_binding.route_map_version,
+        reader_abi: source_binding.reader_abi,
         authority_boundary: serde_json::to_string(&header["authority_boundary"]).unwrap(),
         source_scopes,
         complete: true,
@@ -798,104 +894,7 @@ fn build_native_fixture_inner(
         expected_sha256: Digest256::of_bytes(&raw_json).to_hex(),
         raw_json,
     };
-    let native_limits = NativeProducerLimits {
-        navigation_prepare: NavigationPrepareLimits {
-            max_nodes: 100,
-            max_edges: 100,
-            max_endpoint_refs: 200,
-            max_page_rows: 2,
-            max_row_bytes: 262144,
-            max_header_bytes: 65536,
-            max_work_bytes: 32 * 1024 * 1024,
-        },
-        navigation_nodes: NavigationNodeLimits {
-            max_raw_bytes: 262144,
-            max_output_bytes: 1048576,
-            max_ancestor_cache_bytes: 1048576,
-        },
-        navigation_materialize: NavigationMaterializeLimits {
-            max_nodes: 100,
-            max_edges: 100,
-            max_placeholders: 100,
-            max_page_rows: 2,
-            max_raw_bytes: 262144,
-            max_output_bytes: 1048576,
-            max_page_bytes: 524288,
-            max_work_bytes: 32 * 1024 * 1024,
-        },
-        navigation_dependencies: NavigationRelationLimits {
-            max_edges: 100,
-            max_page_rows: 2,
-            max_raw_bytes: 262144,
-            max_context_bytes: 1048576,
-            max_page_bytes: 524288,
-            max_work_bytes: 32 * 1024 * 1024,
-        },
-        navigation_relations: NavigationRelationNormalizeLimits {
-            max_raw_bytes: 262144,
-            max_output_bytes: 1048576,
-            max_registry_bytes: 4 * 1024 * 1024,
-            max_claim_contexts: 64,
-            max_global_input_bytes: 1048576,
-        },
-        claims_prepare: ClaimPrepareLimits {
-            max_nodes: 100,
-            max_edges: 100,
-            max_claims: 100,
-            max_page_rows: 2,
-            max_row_bytes: 262144,
-            max_work_bytes: 32 * 1024 * 1024,
-        },
-        claims: ClaimNormalizeLimits {
-            max_raw_bytes: 262144,
-            max_output_bytes: 1048576,
-            max_page_rows: 2,
-            max_contexts: 64,
-            max_work_bytes: 64 * 1024 * 1024,
-        },
-        philosophy_prepare: PhilosophyPrepareLimits {
-            max_nodes: 100,
-            max_edges: 100,
-            max_edge_view_bindings: 100,
-            max_page_rows: 2,
-            max_row_bytes: 262144,
-            max_work_bytes: 32 * 1024 * 1024,
-        },
-        philosophy: PhilosophyMaterializeLimits {
-            max_raw_bytes: 262144,
-            max_output_bytes: 1048576,
-            max_registry_bytes: 4 * 1024 * 1024,
-            max_page_rows: 2,
-            max_rows: 100,
-            max_work_bytes: 32 * 1024 * 1024,
-        },
-        titles: GlobalTitleLimits {
-            max_nodes: 100,
-            max_page_rows: 2,
-            max_page_bytes: 2 * 1048576,
-            max_node_bytes: 1048576,
-            max_title_bytes: 65536,
-            max_work_bytes: 32 * 1024 * 1024,
-        },
-        inherited: InheritedViewLimits {
-            max_relations: 100,
-            max_endpoint_evidence_rows: 200,
-            max_view_tokens: 100,
-            max_page_rows: 2,
-            max_page_bytes: 2 * 1048576,
-            max_row_bytes: 1048576,
-            max_work_bytes: 32 * 1024 * 1024,
-        },
-        finalize: NativeFinalizeLimits {
-            max_rows: 200,
-            max_page_rows: 2,
-            max_page_bytes: 2 * 1048576,
-            max_row_bytes: 1048576,
-            max_view_ids_per_node: 64,
-            max_context_sources: 64,
-            max_work_bytes: 64 * 1024 * 1024,
-        },
-    };
+    let native_limits = native_fixture_limits(100, 200);
     let mut additional = NativeFamilyInputs::bounded_from(native_limits);
     let original_right = br#"{ "rights_id":"fixture-original-declaration", "visibility":"public_metadata_only", "assessment_status":"unknown", "restrictions":[] }"#;
     let default_rights: [&[u8]; 1] = [original_right];
@@ -995,6 +994,109 @@ fn build_native_fixture_inner(
         native.philosophy_original,
         native.corpus_original,
     )
+}
+
+// Existing software fixture engineering profile. Source composition uses its
+// independently declared row envelope; per-row/cache/work limits stay shared.
+fn native_fixture_limits(row_limit: u64, final_limit: u64) -> NativeProducerLimits {
+    NativeProducerLimits {
+        navigation_prepare: NavigationPrepareLimits {
+            max_nodes: row_limit,
+            max_edges: row_limit,
+            max_endpoint_refs: row_limit.saturating_mul(2),
+            max_page_rows: 2,
+            max_row_bytes: 262144,
+            max_header_bytes: 65536,
+            max_work_bytes: 32 * 1024 * 1024,
+        },
+        navigation_nodes: NavigationNodeLimits {
+            max_raw_bytes: 262144,
+            max_output_bytes: 1048576,
+            max_ancestor_cache_bytes: 1048576,
+        },
+        navigation_materialize: NavigationMaterializeLimits {
+            max_nodes: row_limit,
+            max_edges: row_limit,
+            max_placeholders: row_limit,
+            max_page_rows: 2,
+            max_raw_bytes: 262144,
+            max_output_bytes: 1048576,
+            max_page_bytes: 524288,
+            max_work_bytes: 32 * 1024 * 1024,
+        },
+        navigation_dependencies: NavigationRelationLimits {
+            max_edges: row_limit,
+            max_page_rows: 2,
+            max_raw_bytes: 262144,
+            max_context_bytes: 1048576,
+            max_page_bytes: 524288,
+            max_work_bytes: 32 * 1024 * 1024,
+        },
+        navigation_relations: NavigationRelationNormalizeLimits {
+            max_raw_bytes: 262144,
+            max_output_bytes: 1048576,
+            max_registry_bytes: 4 * 1024 * 1024,
+            max_claim_contexts: 64,
+            max_global_input_bytes: 1048576,
+        },
+        claims_prepare: ClaimPrepareLimits {
+            max_nodes: row_limit,
+            max_edges: row_limit,
+            max_claims: row_limit,
+            max_page_rows: 2,
+            max_row_bytes: 262144,
+            max_work_bytes: 32 * 1024 * 1024,
+        },
+        claims: ClaimNormalizeLimits {
+            max_raw_bytes: 262144,
+            max_output_bytes: 1048576,
+            max_page_rows: 2,
+            max_contexts: 64,
+            max_work_bytes: 64 * 1024 * 1024,
+        },
+        philosophy_prepare: PhilosophyPrepareLimits {
+            max_nodes: row_limit,
+            max_edges: row_limit,
+            max_edge_view_bindings: row_limit,
+            max_page_rows: 2,
+            max_row_bytes: 262144,
+            max_work_bytes: 32 * 1024 * 1024,
+        },
+        philosophy: PhilosophyMaterializeLimits {
+            max_raw_bytes: 262144,
+            max_output_bytes: 1048576,
+            max_registry_bytes: 4 * 1024 * 1024,
+            max_page_rows: 2,
+            max_rows: row_limit,
+            max_work_bytes: 32 * 1024 * 1024,
+        },
+        titles: GlobalTitleLimits {
+            max_nodes: row_limit,
+            max_page_rows: 2,
+            max_page_bytes: 2 * 1048576,
+            max_node_bytes: 1048576,
+            max_title_bytes: 65536,
+            max_work_bytes: 32 * 1024 * 1024,
+        },
+        inherited: InheritedViewLimits {
+            max_relations: row_limit,
+            max_endpoint_evidence_rows: row_limit.saturating_mul(2),
+            max_view_tokens: row_limit,
+            max_page_rows: 2,
+            max_page_bytes: 2 * 1048576,
+            max_row_bytes: 1048576,
+            max_work_bytes: 32 * 1024 * 1024,
+        },
+        finalize: NativeFinalizeLimits {
+            max_rows: final_limit,
+            max_page_rows: 2,
+            max_page_bytes: 2 * 1048576,
+            max_row_bytes: 1048576,
+            max_view_ids_per_node: 64,
+            max_context_sources: 64,
+            max_work_bytes: 64 * 1024 * 1024,
+        },
+    }
 }
 
 fn native_fixture_header(
