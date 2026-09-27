@@ -3,8 +3,9 @@
 use super::*;
 use serde_json::json;
 use std::collections::BTreeMap;
+use std::io::Write;
 use std::process::Command;
-use std::sync::atomic::AtomicBool;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 use tos_compiler::knowledge_repository_source::{
     RepositorySourceLimits, plan_repository_source_inputs, render_repository_source_plan,
@@ -35,6 +36,33 @@ impl StageOwner for FixtureOwner {
 struct FixtureIsolation;
 impl StageIsolation for FixtureIsolation {
     fn verify(&self, _: &Path, _: StageLimits, _: WritePhase) -> tos_compiler::Result<()> {
+        Ok(())
+    }
+}
+struct NativeSelectedIsolation {
+    started: Instant,
+    enabled: AtomicBool,
+    catalog_seen: AtomicBool,
+    search_seen: AtomicBool,
+}
+impl StageIsolation for NativeSelectedIsolation {
+    fn verify(&self, _: &Path, _: StageLimits, phase: WritePhase) -> tos_compiler::Result<()> {
+        if self.enabled.load(Ordering::Relaxed) {
+            let seen = match phase {
+                WritePhase::Catalog => Some(&self.catalog_seen),
+                WritePhase::Search => Some(&self.search_seen),
+                _ => None,
+            };
+            if let Some(seen) = seen {
+                if !seen.swap(true, Ordering::Relaxed) {
+                    let _ = writeln!(
+                        std::io::stderr().lock(),
+                        "native corpus selected write phase={phase:?} elapsed_seconds={}",
+                        self.started.elapsed().as_secs()
+                    );
+                }
+            }
+        }
         Ok(())
     }
 }
@@ -709,7 +737,6 @@ fn actual_native_corpus_managed_installed_consumer() {
 }
 
 fn native_corpus_composition_case(installed: bool) {
-    use std::io::Write;
     use tos_compiler::knowledge_canon_source::*;
     use tos_compiler::knowledge_stage::{InputCollectionReceipt, InputRow};
     use tos_compiler::source_bibliographic::{BibliographicLimits, BibliographicSourceCut};
@@ -1423,6 +1450,12 @@ sys.stdout.write(owner.render_payload(payload))
     // this guard from existing work, not the current corpus's observed count.
     let search_work_bytes = (100 * 1024 * 1024u64).min(stage_limits.sqlite.max_work_bytes);
     let search_postings = search_work_bytes / 3;
+    let selected_isolation = NativeSelectedIsolation {
+        started,
+        enabled: AtomicBool::new(false),
+        catalog_seen: AtomicBool::new(false),
+        search_seen: AtomicBool::new(false),
+    };
     let mut selected_stage = KnowledgeStage::create(
         &selected_path,
         selected_stage_limits,
@@ -1431,7 +1464,7 @@ sys.stdout.write(owner.render_payload(payload))
             collections: selected_collections,
         },
         &owner,
-        &isolation,
+        &selected_isolation,
     )
     .unwrap();
     render_repository_source_plan(
@@ -1582,6 +1615,7 @@ sys.stdout.write(owner.render_payload(payload))
         },
     };
     phase(started, deadline, "selected-model-start");
+    selected_isolation.enabled.store(true, Ordering::Relaxed);
     let selected = tos_compiler::knowledge_full_fixture::finish_native_source_fixture(
         selected_stage,
         selected_path,

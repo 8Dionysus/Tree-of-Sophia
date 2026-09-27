@@ -17,11 +17,18 @@ use crate::{
 use serde_json::{Value, json};
 use std::{
     fs,
+    io::Write,
     os::unix::fs::MetadataExt,
     path::{Path, PathBuf},
     time::{SystemTime, UNIX_EPOCH},
 };
 use tos_foundation::Digest256Hasher;
+
+fn native_fixture_phase(name: &str) {
+    // The native whole case may be stopped by its outer deadline while libtest
+    // still captures print macros. Keep only the reached fixture stage.
+    let _ = writeln!(std::io::stderr().lock(), "native fixture phase={name}");
+}
 
 /// Metadata for the finite managed software fixture's produced carrier grant.
 /// The fixture feature keeps this private-stage read out of production APIs.
@@ -487,6 +494,7 @@ fn finish_fixture(
         philosophy_original,
         corpus_original,
         limits,
+        false,
     )
 }
 
@@ -508,6 +516,7 @@ pub fn finish_native_source_fixture(
     let native_limits =
         native_fixture_limits(full_limits.scope.max_rows, full_limits.scope.max_rows);
     let registry = KnowledgeRegistry::parse(entity_bytes, relation_bytes).unwrap();
+    native_fixture_phase("native-materialization-start");
     let native = materialize_native_sources_with_inputs(
         &mut stage,
         &registry,
@@ -520,6 +529,7 @@ pub fn finish_native_source_fixture(
         additional,
     )
     .unwrap();
+    native_fixture_phase("native-materialization-ready");
     // This software fixture derives header pins from the actual native output
     // and compiled entry source. It does not claim a source admission or the
     // digest of a complete production compiler installation.
@@ -528,6 +538,7 @@ pub fn finish_native_source_fixture(
         .as_ref()
         .and_then(|receipt| receipt.origin.native_producer.as_ref())
         .expect("native source fixture requires its actual corpus producer proof");
+    native_fixture_phase("native-header-start");
     let header = native_fixture_header_with_binding(
         &mut stage,
         &registry,
@@ -539,6 +550,7 @@ pub fn finish_native_source_fixture(
         Digest256::of_bytes(&descriptor_bytes),
     )
     .unwrap();
+    native_fixture_phase("native-header-ready");
     finish_fixture_with_limits(
         stage,
         path,
@@ -553,6 +565,7 @@ pub fn finish_native_source_fixture(
         native.philosophy_original,
         native.corpus_original,
         full_limits,
+        true,
     )
 }
 
@@ -571,8 +584,12 @@ fn finish_fixture_with_limits(
     philosophy_original: Option<crate::PhilosophyOriginalReceipt>,
     corpus_original: Option<crate::CorpusOriginalReceipt>,
     limits: FullKnowledgeLimits,
+    trace_native: bool,
 ) -> FullKnowledgeFixture {
     let source_binding = stage.exact_receipt().binding.clone();
+    if trace_native {
+        native_fixture_phase("full-components-start");
+    }
     let full = compile_full_knowledge_components(
         &mut stage,
         &header,
@@ -585,6 +602,10 @@ fn finish_fixture_with_limits(
         limits,
     )
     .unwrap();
+    if trace_native {
+        native_fixture_phase("full-components-ready");
+        native_fixture_phase("graph-snapshot-start");
+    }
     let (source_scopes,graph)=stage.with_connection(WritePhase::Finalize,|db| {
         let mut statement=db.prepare("SELECT source_graph,input_role,adapter_profile,expected_node_count,expected_relation_count,lower(hex(node_root_sha256)),lower(hex(relation_root_sha256)) FROM source_scope ORDER BY source_graph")?;
         let scopes=statement.query_map([],|r|Ok(ExpectedSourceScope {source_graph:r.get(0)?,input_role:r.get(1)?,adapter_profile:r.get(2)?,
@@ -599,8 +620,15 @@ fn finish_fixture_with_limits(
         }
         Ok((scopes,graph))
     }).unwrap();
+    if trace_native {
+        native_fixture_phase("graph-snapshot-ready");
+        native_fixture_phase("stage-finish-start");
+    }
     let private_inode = fs::metadata(&path).unwrap().ino();
     let output = stage.finish().unwrap();
+    if trace_native {
+        native_fixture_phase("stage-finish-ready");
+    }
     assert_ne!(fs::metadata(&path).unwrap().ino(), private_inode);
     let raw_table_count: i64 = rusqlite::Connection::open(&path)
         .unwrap()
