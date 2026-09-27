@@ -20,6 +20,14 @@ ALTER TABLE cmd2_domain ADD COLUMN IF NOT EXISTS complete_cut_digest char(64);
 ALTER TABLE cmd2_domain ADD COLUMN IF NOT EXISTS complete_cut_generation bigint
   CHECK (complete_cut_generation >= 0);
 ALTER TABLE cmd2_domain ADD COLUMN IF NOT EXISTS selected_generation_digest char(64);
+-- Initial immutable selection and maintained controlled generation are distinct.
+ALTER TABLE cmd2_domain ADD COLUMN IF NOT EXISTS source_revision char(64);
+ALTER TABLE cmd2_domain ADD COLUMN IF NOT EXISTS source_membership_digest char(64);
+ALTER TABLE cmd2_domain ADD COLUMN IF NOT EXISTS source_membership_count bigint CHECK (source_membership_count >= 0);
+ALTER TABLE cmd2_domain ADD COLUMN IF NOT EXISTS source_epoch bigint CHECK (source_epoch > 0);
+ALTER TABLE cmd2_domain ADD COLUMN IF NOT EXISTS source_generation bigint CHECK (source_generation >= 0);
+ALTER TABLE cmd2_domain ADD COLUMN IF NOT EXISTS source_complete boolean NOT NULL DEFAULT false;
+ALTER TABLE cmd2_domain ADD COLUMN IF NOT EXISTS source_definition_digest char(64);
 
 -- Every selected metadata mutation must change this independent, lockable
 -- generation. Every writer and the short publisher locks it before attempt
@@ -69,6 +77,19 @@ CREATE TABLE IF NOT EXISTS cmd2_attempt (
   PRIMARY KEY (domain, prepare_id),
   UNIQUE (domain, command_id),
   CHECK ((state = 'committed') = (commit_seq IS NOT NULL AND receipt_digest IS NOT NULL))
+);
+ALTER TABLE cmd2_attempt ADD COLUMN IF NOT EXISTS source_reads bytea;
+ALTER TABLE cmd2_attempt ADD COLUMN IF NOT EXISTS source_indexes bytea;
+ALTER TABLE cmd2_attempt ADD COLUMN IF NOT EXISTS source_epoch bigint CHECK (source_epoch > 0);
+
+-- Owner-derived unique identities. Original bytes remain in current/history.
+CREATE TABLE IF NOT EXISTS cmd2_source_index (
+  domain text NOT NULL REFERENCES cmd2_domain(domain),
+  kind text NOT NULL,
+  token text NOT NULL,
+  path text NOT NULL,
+  definition_digest char(64) NOT NULL,
+  PRIMARY KEY(domain,kind,token)
 );
 
 -- A ready member has every coordinate needed for exact cold STO recovery.
@@ -202,6 +223,14 @@ CREATE TABLE IF NOT EXISTS cmd2_outbox (
   UNIQUE (domain, commit_seq)
 );
 
+-- Exact source-carrier metadata stays alongside its existing byte locator.
+ALTER TABLE cmd2_member ADD COLUMN IF NOT EXISTS source_mode integer CHECK(source_mode >= 0 AND source_mode <= 4095);
+ALTER TABLE cmd2_member ADD COLUMN IF NOT EXISTS source_dependencies text[];
+ALTER TABLE cmd2_current ADD COLUMN IF NOT EXISTS source_mode integer CHECK(source_mode >= 0 AND source_mode <= 4095);
+ALTER TABLE cmd2_current ADD COLUMN IF NOT EXISTS source_dependencies text[];
+ALTER TABLE cmd2_history ADD COLUMN IF NOT EXISTS source_mode integer CHECK(source_mode >= 0 AND source_mode <= 4095);
+ALTER TABLE cmd2_history ADD COLUMN IF NOT EXISTS source_dependencies text[];
+
 CREATE OR REPLACE FUNCTION cmd2_register_audit_domain() RETURNS trigger
 LANGUAGE plpgsql AS $$
 BEGIN
@@ -269,12 +298,27 @@ CREATE OR REPLACE TRIGGER cmd2_fence_maintenance_transition
   BEFORE UPDATE ON cmd2_audit_fence FOR EACH ROW
   EXECUTE FUNCTION cmd2_fence_maintenance_transition();
 
+CREATE OR REPLACE FUNCTION cmd2_invalidate_source_maintenance() RETURNS trigger
+LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.maintenance_state IS DISTINCT FROM OLD.maintenance_state THEN
+    UPDATE cmd2_domain SET source_complete=false,source_epoch=source_epoch+1,
+      selected_generation_digest=NULL,complete_cut_digest=NULL,complete_cut_generation=NULL
+      WHERE domain=NEW.domain AND source_revision IS NOT NULL;
+    UPDATE cmd2_predicate SET complete=false WHERE domain=NEW.domain;
+  END IF;
+  RETURN NULL;
+END $$;
+CREATE OR REPLACE TRIGGER cmd2_invalidate_source_maintenance
+  AFTER UPDATE ON cmd2_audit_fence FOR EACH ROW
+  EXECUTE FUNCTION cmd2_invalidate_source_maintenance();
+
 DO $$
 DECLARE table_name text;
 BEGIN
   FOREACH table_name IN ARRAY ARRAY[
     'cmd2_job','cmd2_predicate','cmd2_attempt','cmd2_member',
-    'cmd2_current','cmd2_history','cmd2_receipt','cmd2_log','cmd2_outbox'
+    'cmd2_current','cmd2_history','cmd2_receipt','cmd2_log','cmd2_outbox','cmd2_source_index'
   ] LOOP
     EXECUTE format(
       'CREATE OR REPLACE TRIGGER %I AFTER INSERT OR UPDATE OR DELETE ON %I '

@@ -192,6 +192,868 @@ fn contract_digest() -> Digest256 {
     Digest256::of_bytes(b"cmd2.private.shadow.contract.v1")
 }
 
+#[test]
+fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes() {
+    use std::collections::BTreeMap;
+    use std::os::unix::fs::{MetadataExt, PermissionsExt};
+    use tos_command::source_command::{CommandContext, SourceFile};
+    use tos_command::source_creation::prepare_source_creation_from_captures;
+    use tos_command::source_creation_store::{CreationFilesystem, IsolatedCreationRoot};
+    use tos_foundation::{
+        CanonicalProfile, JsonLimits, JsonMode, RelativePath, canonical_bytes_v1, parse_json,
+    };
+    use tos_source_store::{
+        CorpusReader, CutReadLimits, ReadLimits, SoftwareCaptureReader, SoftwareCaptureSelectionV1,
+    };
+    use tos_validation::executor::{ExactWorkerIdentity, ExecutorBudget};
+    use tos_validation::source_cut::{CutWorkerLimits, CutWorkerSchemaExecutor};
+
+    fn canonical(value: &serde_json::Value) -> Vec<u8> {
+        let raw = serde_json::to_vec(value).unwrap();
+        let parsed = parse_json(&raw, JsonMode::PublishedStrict, JsonLimits::default()).unwrap();
+        canonical_bytes_v1(
+            parsed.root(),
+            CanonicalProfile::CorpusSnapshotV1,
+            JsonLimits::default(),
+        )
+        .unwrap()
+    }
+    fn clean(command: &mut Command) {
+        for (key, _) in std::env::vars_os() {
+            if key.to_string_lossy().starts_with("GIT_")
+                || key == "PYTHONPATH"
+                || key == "PYTHONHOME"
+            {
+                command.env_remove(key);
+            }
+        }
+        command
+            .env("PYTHONDONTWRITEBYTECODE", "1")
+            .env("GIT_NO_REPLACE_OBJECTS", "1");
+    }
+    let url = database_url();
+    let mut lab = Lab::new(&url);
+    let root = ScratchRoot::new();
+    let repository = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../../..")
+        .canonicalize()
+        .unwrap();
+    let cancelled = AtomicBool::new(false);
+    let deadline = Instant::now() + Duration::from_secs(240);
+    let isolated = IsolatedCreationRoot::create(&root.0, deadline, &cancelled).unwrap();
+    // The same actual maintained resources as the existing native creation
+    // scenario. No philosophical corpus or payload discovery is performed.
+    let inputs = [
+        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py",
+        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_command_contracts.py",
+        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_historical_claims.py",
+        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/human_forms.py",
+        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/knowledge_assessment.py",
+        "scripts/source_witness_human_forms.py",
+        "scripts/build_source_witness_catalog.py",
+        "scripts/source_record_profiles.py",
+        "scripts/native_text_binding.py",
+        "scripts/source_owner_context.py",
+        "scripts/source_witness_bibliographic_graph_common.py",
+        "rust/crates/tos-command/src/source_creation.rs",
+        "rust/crates/tos-command/src/source_creation_store.rs",
+        "rust/crates/tos-command/src/source_serialization.rs",
+        "ToS/contracts/historical-record.schema.json",
+        "ToS/contracts/corpus-record.schema.json",
+        "ToS/contracts/historical-claim.schema.json",
+        "ToS/contracts/claim-packet.schema.json",
+        "ToS/contracts/knowledge-assessment.schema.json",
+        "ToS/contracts/human-form.schema.json",
+        "ToS/contracts/human-form-set.schema.json",
+        "ToS/contracts/human-form-template.schema.json",
+        "ToS/contracts/semantic-entity-type-registry.schema.json",
+        "ToS/contracts/semantic-relation-type-registry.schema.json",
+        "ToS/contracts/provenance-event-v2.schema.json",
+        "ToS/doctrine/semantic-interchange/entity-types.v1.json",
+        "ToS/doctrine/semantic-interchange/relation-types.v1.json",
+    ];
+    let files = inputs
+        .iter()
+        .map(|p| (p.to_string(), fs::read(repository.join(p)).unwrap()))
+        .collect::<BTreeMap<_, _>>();
+    fs::create_dir_all(isolated.path().join("ToS/source-witnesses/agents")).unwrap();
+    for (path, raw) in &files {
+        let target = isolated.path().join(path);
+        fs::create_dir_all(target.parent().unwrap()).unwrap();
+        fs::write(&target, raw).unwrap();
+        fs::set_permissions(target, fs::Permissions::from_mode(0o644)).unwrap();
+    }
+    // Existing corpus snapshot transport, not a semantic validator verdict.
+    let source_root = root.0.join("source-cut");
+    fs::create_dir_all(source_root.join("objects")).unwrap();
+    fs::create_dir_all(source_root.join("revisions")).unwrap();
+    let members = files
+        .iter()
+        .filter(|(p, _)| p.starts_with("ToS/"))
+        .map(|(path, raw)| {
+            let sha = Digest256::of_bytes(raw).to_hex();
+            fs::write(source_root.join("objects").join(&sha), raw).unwrap();
+            serde_json::json!({"path":path,"sha256":sha,"size_bytes":raw.len(),"mode":420})
+        })
+        .collect::<Vec<_>>();
+    let mut manifest = serde_json::json!({"schema_version":"tos_corpus_snapshot_v1","base_revision":null,"files":members,"identities":{},"dependencies":{},"retirements":[],"validator_sha256":Digest256::of_bytes(b"synthetic transport only, no source admission").to_hex()});
+    let revision = tos_foundation::SourceRevision(Digest256::of_bytes(&canonical(&manifest)));
+    manifest["revision"] = serde_json::json!(revision.0.to_hex());
+    let directory = source_root.join("revisions").join(revision.0.to_hex());
+    fs::create_dir(directory.clone()).unwrap();
+    fs::write(directory.join("snapshot.json"), canonical(&manifest)).unwrap();
+    let limits = ReadLimits {
+        max_manifest_bytes: 4_194_304,
+        max_manifest_entries: 2048,
+        max_selected_object_bytes: 8_388_608,
+        json: JsonLimits::default(),
+    };
+    let cut = CorpusReader::open_existing(&source_root, limits)
+        .unwrap()
+        .open_source_cut(
+            revision,
+            CutReadLimits {
+                max_revisions: 4,
+                max_members: 2048,
+                max_total_bytes: 33_554_432,
+                max_member_bytes: 8_388_608,
+            },
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+    let membership = cut.stream(revision).unwrap().expectation();
+
+    // Reuse the actual maintained software capture/restore program, selecting
+    // exact source paths from the composed commit rather than current markers.
+    let commit_output = Command::new("git")
+        .arg("-C")
+        .arg(&repository)
+        .args(["rev-parse", "HEAD^{commit}"])
+        .output()
+        .unwrap();
+    assert!(commit_output.status.success());
+    let commit = String::from_utf8(commit_output.stdout)
+        .unwrap()
+        .trim()
+        .to_owned();
+    let program = Command::new("git")
+        .arg("-C")
+        .arg(&repository)
+        .args(["show", &format!("{commit}:scripts/corpus_archive.py")])
+        .output()
+        .unwrap();
+    assert!(program.status.success());
+    let tool = root.0.join("corpus_archive.py");
+    fs::write(&tool, program.stdout).unwrap();
+    let capture = root.0.join("software-capture");
+    let restored = root.0.join("software-restored");
+    let mut command = Command::new("python3");
+    command
+        .arg(&tool)
+        .arg("capture")
+        .arg("--repo-root")
+        .arg(&repository)
+        .arg("--commit")
+        .arg(&commit)
+        .arg("--output")
+        .arg(&capture);
+    for name in files.keys().filter(|p| !p.starts_with("ToS/")) {
+        command.arg("--include-prefix").arg(name);
+    }
+    clean(&mut command);
+    let output = command.output().unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let mut command = Command::new("python3");
+    command
+        .arg(&tool)
+        .arg("restore")
+        .arg("--capture")
+        .arg(&capture)
+        .arg("--output")
+        .arg(&restored);
+    clean(&mut command);
+    let output = command.output().unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let capture_raw = fs::read(capture.join("capture.json")).unwrap();
+    let captured: serde_json::Value = serde_json::from_slice(&capture_raw).unwrap();
+    let software = SoftwareCaptureReader::open(
+        &capture,
+        &restored,
+        SoftwareCaptureSelectionV1 {
+            source_git_commit: commit,
+            source_git_tree: captured["source_git_tree"].as_str().unwrap().into(),
+            capture_manifest_sha256: Digest256::of_bytes(&capture_raw),
+        },
+        limits,
+        deadline,
+        &cancelled,
+    )
+    .unwrap();
+    let paths = files
+        .keys()
+        .filter(|p| !p.starts_with("ToS/"))
+        .map(|p| RelativePath::parse(p).unwrap())
+        .collect::<Vec<_>>();
+    let components = software.select_components(&paths).unwrap();
+    let worker_path = PathBuf::from(
+        std::env::var_os("TOS_SCHEMA_WORKER_PATH")
+            .expect("OPS selects actual schema worker before this whole PG case"),
+    );
+    assert!(worker_path.is_absolute());
+    let worker_identity = ExactWorkerIdentity {
+        sha256: Digest256::of_bytes(&fs::read(&worker_path).unwrap()),
+        absolute_path: worker_path,
+    };
+    let new_worker = || {
+        CutWorkerSchemaExecutor::from_cut(
+            &cut,
+            tos_validation::FormatProfile::LegacyPythonObserved20260923,
+            worker_identity.clone(),
+            ExecutorBudget::laboratory(),
+            CutWorkerLimits {
+                max_receipts: 128,
+                max_receipt_bytes: 262_144,
+            },
+            deadline,
+            &cancelled,
+        )
+        .unwrap()
+    };
+    let uid = fs::metadata(isolated.path()).unwrap().uid();
+    let mut packages = Vec::new();
+    let mut contexts = Vec::new();
+    let mut owners = Vec::new();
+    // B has a disjoint home; C shares A's form ID. Both original proposals
+    // must be fenced after A changes the actually consumed whole inventory.
+    for (name, form_name) in [("a", "a"), ("b", "b"), ("c", "a")] {
+        let record = serde_json::json!({"schema_version":"tos_corpus_record_v1","record_type":"agent","record_id":format!("tos.agent.synthetic-durable-{name}"),"record_version":1,"preferred_label":"Synthetic custody subject","variant_labels":[],"identity_status":"provisional","source_refs":["synthetic-test-only:no-admission"],"external_identifiers":[],"same_as_posture":"no_equivalence_claim","notes":"Synthetic source mechanics only.","supersedes_ref":null,"field_languages":{"preferred_label":{"language":"en","script":"Latn"},"notes":{"language":"en","script":"Latn"}}});
+        let config = serde_json::json!({"schema_version":"tos_local_corpus_create_owner_v2","uid":uid,"principal_id":"software:test-fixture","maker_type":"software","source_root":isolated.path(),"source_path":format!("ToS/source-witnesses/agents/synthetic-durable-{name}/agent.json"),"record_type":"agent","record_id":record["record_id"],"authority_ref":"synthetic-test-only:no-admission","allowed_form_ids":[format!("tos.form.synthetic-durable-{form_name}")],"allowed_operations":["source.create"],"expires_at":"2099-01-01T00:00:00Z","provenance_event_id":format!("tos.event.synthetic-durable-{name}")});
+        let owner = isolated.path().join(format!("owner-{name}.json"));
+        fs::write(&owner, canonical(&config)).unwrap();
+        fs::set_permissions(&owner, fs::Permissions::from_mode(0o600)).unwrap();
+        owners.push(
+            CreationFilesystem::select_isolated(&isolated, &owner, deadline, &cancelled).unwrap(),
+        );
+        let mut request = serde_json::json!({"schema_version":"tos_local_source_command_v1","operation":"prepare-create","record":record,"forms":[{"form_id":format!("tos.form.synthetic-durable-{form_name}"),"field_id":"metadata.preferred-name"}]});
+        let mut context = CommandContext {
+            base_revision: revision,
+            configuration_raw: canonical(&config),
+            request_raw: canonical(&request),
+            recorded_at: "2026-09-27T00:00:00Z".into(),
+            effective_uid: uid as u64,
+            files: files
+                .iter()
+                .map(|(p, r)| SourceFile {
+                    path: RelativePath::parse(p).unwrap(),
+                    raw: r.clone(),
+                })
+                .collect(),
+        };
+        let mut worker = new_worker();
+        let preview = prepare_source_creation_from_captures(
+            &context,
+            &cut,
+            &software,
+            &components,
+            &mut worker,
+            deadline,
+            &cancelled,
+        )
+        .unwrap()
+        .preview()
+        .unwrap();
+        request["operation"] = serde_json::json!("source.create");
+        request["command_id"] = serde_json::json!(format!("synthetic:durable-{name}"));
+        for (key, field) in [
+            ("expected_configuration", "owner_configuration"),
+            ("expected_dependencies", "expected_dependencies"),
+        ] {
+            request[key] = serde_json::json!(preview.object_get(field).unwrap().as_str().unwrap());
+        }
+        request["expected_source"] = serde_json::Value::Null;
+        request["expected_revision"] = serde_json::Value::Null;
+        context.request_raw = canonical(&request);
+        let prepared = prepare_source_creation_from_captures(
+            &context,
+            &cut,
+            &software,
+            &components,
+            &mut worker,
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+        packages.push(
+            prepared
+                .serialize(&software, &components, &mut worker, deadline, &cancelled)
+                .unwrap(),
+        );
+        contexts.push(context);
+    }
+    let mut worker = new_worker();
+    let initial = lab
+        .db
+        .bootstrap_source_cohort(
+            &lab.store,
+            &lab.domain,
+            &cut,
+            revision,
+            membership,
+            &contexts[0],
+            &software,
+            &components,
+            &mut worker,
+            contract_digest(),
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+    assert_eq!(initial.current_membership, membership);
+    for original_member in cut.current().members() {
+        assert_eq!(
+            &initial.metadata[original_member.path.as_str()],
+            original_member
+        );
+        assert_eq!(
+            initial.dependency_claims[original_member.path.as_str()].as_deref(),
+            cut.current().indexed_dependencies(&original_member.path)
+        );
+    }
+    let attempts = packages
+        .iter()
+        .enumerate()
+        .map(|(i, p)| {
+            lab.db
+                .register_source_creation(
+                    &lab.store,
+                    &initial.cohort,
+                    format!("agent-{i}").as_bytes(),
+                    p,
+                    &mut new_worker(),
+                    deadline,
+                    &cancelled,
+                )
+                .unwrap()
+        })
+        .collect::<Vec<_>>();
+    let starting_head = lab.head_seq();
+    let (a, _) = lab
+        .db
+        .commit_source_creation(
+            &lab.store,
+            &attempts[0],
+            &packages[0],
+            &owners[0],
+            contract_digest(),
+            0,
+            0,
+            "private-job",
+            1,
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+    assert!(
+        matches!(
+            lab.db.commit_source_creation(
+                &lab.store,
+                &attempts[1],
+                &packages[1],
+                &owners[1],
+                contract_digest(),
+                0,
+                0,
+                "private-job",
+                1,
+                deadline,
+                &cancelled
+            ),
+            Err(DurableError::Conflict(_))
+        ),
+        "maintained whole inventory insertion invalidates another original proposal"
+    );
+    assert_eq!(a.commit_seq, starting_head + 1);
+    assert!(
+        matches!(
+            lab.db.commit_source_creation(
+                &lab.store,
+                &attempts[2],
+                &packages[2],
+                &owners[2],
+                contract_digest(),
+                0,
+                0,
+                "private-job",
+                1,
+                deadline,
+                &cancelled
+            ),
+            Err(DurableError::Conflict(_))
+        ),
+        "current owner inventory and form phantom are fenced in durable commit"
+    );
+    assert_eq!(lab.head_seq(), a.commit_seq);
+    assert!(
+        matches!(
+            lab.db.reopen_committed_source_creation_attempt(
+                &lab.store,
+                &initial.cohort,
+                b"agent-1",
+                &packages[1],
+                &mut new_worker(),
+                deadline,
+                &cancelled
+            ),
+            Err(DurableError::Refused(_))
+        ),
+        "cold replay seam cannot grant a pending attempt a new write"
+    );
+    let (replay, _) = lab
+        .db
+        .commit_source_creation(
+            &lab.store,
+            &attempts[0],
+            &packages[0],
+            &owners[0],
+            contract_digest(),
+            0,
+            0,
+            "private-job",
+            1,
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+    assert!(replay.replayed);
+    assert_eq!(replay.commit_seq, a.commit_seq);
+    let copied = ScratchRoot::new();
+    copy_store_tree(&lab._root.0, &copied.0);
+    let reopened_store = SegmentStore::open_existing(&copied.0, limits()).unwrap();
+    let mut reopened_db = DurablePgCoordinator::connect(&url).unwrap();
+    let reopened = reopened_db
+        .cold_reopen_source_cohort(
+            &reopened_store,
+            &lab.domain,
+            &cut,
+            revision,
+            membership,
+            &contexts[0],
+            &software,
+            &components,
+            &mut new_worker(),
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+    for package in &packages[..1] {
+        for (name, raw) in package.prepared().files() {
+            let path = format!("{}/{name}", package.prepared().home().as_str());
+            assert_eq!(&reopened.files[&path], raw);
+            let member = reopened_db
+                .read_current_source_member(
+                    &reopened_store,
+                    &reopened.cohort,
+                    &RelativePath::parse(&path).unwrap(),
+                    8_388_608,
+                    deadline,
+                    &cancelled,
+                )
+                .unwrap();
+            assert_eq!(&member.raw, raw);
+            assert_eq!(member.current_generation, a.commit_seq);
+            assert_eq!(member.metadata.mode, 0o644);
+            assert_eq!(reopened.metadata[&path], member.metadata);
+            assert_eq!(reopened.dependency_claims[&path], member.dependency_claims);
+        }
+    }
+    assert!(
+        reopened
+            .indexes
+            .iter()
+            .any(|(kind, id, _)| kind == "metadata" && id == "tos.agent.synthetic-durable-a")
+    );
+    assert!(
+        reopened
+            .indexes
+            .iter()
+            .any(|(kind, id, _)| kind == "form" && id == "tos.form.synthetic-durable-a")
+    );
+    assert_eq!(
+        reopened.cohort.initial_revision(),
+        revision,
+        "original bootstrap is not renamed current"
+    );
+    assert_eq!(
+        reopened.current_membership.count,
+        membership.count
+            + packages[..1]
+                .iter()
+                .map(|p| p.prepared().files().len() as u64)
+                .sum::<u64>()
+    );
+
+    let mut sql = Client::connect(&url, NoTls).unwrap();
+    sql.execute(
+        "UPDATE cmd2_audit_fence SET maintenance_state='active' WHERE domain=$1",
+        &[&lab.domain],
+    )
+    .unwrap();
+    assert!(
+        reopened_db
+            .read_current_source_member(
+                &reopened_store,
+                &reopened.cohort,
+                &RelativePath::parse("ToS/source-witnesses/agents/synthetic-durable-a/agent.json")
+                    .unwrap(),
+                8_388_608,
+                deadline,
+                &cancelled
+            )
+            .is_err()
+    );
+    sql.execute(
+        "UPDATE cmd2_audit_fence SET maintenance_state='normal' WHERE domain=$1",
+        &[&lab.domain],
+    )
+    .unwrap();
+    assert!(
+        lab.db
+            .register_source_creation(
+                &lab.store,
+                &initial.cohort,
+                b"stale-epoch",
+                &packages[2],
+                &mut new_worker(),
+                deadline,
+                &cancelled
+            )
+            .is_err()
+    );
+    let verified = reopened_db
+        .cold_reopen_source_cohort(
+            &reopened_store,
+            &lab.domain,
+            &cut,
+            revision,
+            membership,
+            &contexts[0],
+            &software,
+            &components,
+            &mut new_worker(),
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+    assert!(verified.cohort.epoch() > initial.cohort.epoch());
+    let replay_attempt = reopened_db
+        .reopen_committed_source_creation_attempt(
+            &reopened_store,
+            &verified.cohort,
+            b"agent-0",
+            &packages[0],
+            &mut new_worker(),
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+    let (restored_replay, _) = reopened_db
+        .commit_source_creation(
+            &reopened_store,
+            &replay_attempt,
+            &packages[0],
+            &owners[0],
+            contract_digest(),
+            0,
+            0,
+            "private-job",
+            1,
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+    assert!(restored_replay.replayed);
+    assert_eq!(restored_replay.commit_seq, a.commit_seq);
+    // After a cold restore, select a real immutable CURRENT cut and prepare
+    // a second maintained Agent that reads the earlier authored Agent body.
+    let current = tos_command::source_current_cut::select_current_source_cut(
+        &mut reopened_db,
+        &reopened_store,
+        &lab.domain,
+        &cut,
+        revision,
+        membership,
+        &contexts[0],
+        &software,
+        &components,
+        &mut new_worker(),
+        &isolated,
+        None,
+        limits,
+        CutReadLimits {
+            max_revisions: 4,
+            max_members: 2048,
+            max_total_bytes: 33_554_432,
+            max_member_bytes: 8_388_608,
+        },
+        deadline,
+        &cancelled,
+    )
+    .unwrap();
+    let current_revision = current.cut().current().revision();
+    assert_ne!(
+        current_revision, revision,
+        "created body requires a distinct source revision"
+    );
+    let mut current_context = contexts[1].clone();
+    current_context.base_revision = current_revision;
+    current_context
+        .files
+        .retain(|f| !f.path.as_str().starts_with("ToS/"));
+    let mut current_stream = current.cut().stream(current_revision).unwrap();
+    let current_membership = current_stream.expectation();
+    while let Some(member) = current_stream.next_member(deadline, &cancelled).unwrap() {
+        current_context.files.push(SourceFile {
+            path: member.path,
+            raw: member.raw,
+        });
+    }
+    assert_eq!(current_stream.coverage(), Some(current_membership));
+    current_context.files.sort_by(|a, b| a.path.cmp(&b.path));
+    let mut current_config: serde_json::Value =
+        serde_json::from_slice(&current_context.configuration_raw).unwrap();
+    current_config["source_path"] =
+        serde_json::json!("ToS/source-witnesses/agents/synthetic-durable-current/agent.json");
+    current_config["record_id"] = serde_json::json!("tos.agent.synthetic-durable-current");
+    current_config["allowed_form_ids"] = serde_json::json!(["tos.form.synthetic-durable-current"]);
+    current_config["provenance_event_id"] =
+        serde_json::json!("tos.event.synthetic-durable-current");
+    let current_owner = isolated.path().join("owner-current.json");
+    fs::write(&current_owner, canonical(&current_config)).unwrap();
+    fs::set_permissions(&current_owner, fs::Permissions::from_mode(0o600)).unwrap();
+    let current_filesystem =
+        CreationFilesystem::select_isolated(&isolated, &current_owner, deadline, &cancelled)
+            .unwrap();
+    current_context.configuration_raw = canonical(&current_config);
+    let mut current_request: serde_json::Value =
+        serde_json::from_slice(&contexts[1].request_raw).unwrap();
+    for field in [
+        "command_id",
+        "expected_configuration",
+        "expected_dependencies",
+        "expected_source",
+        "expected_revision",
+    ] {
+        current_request.as_object_mut().unwrap().remove(field);
+    }
+    current_request["operation"] = serde_json::json!("prepare-create");
+    current_request["record"]["record_id"] =
+        serde_json::json!("tos.agent.synthetic-durable-current");
+    let earlier_path = "ToS/source-witnesses/agents/synthetic-durable-a/agent.json";
+    current_request["record"]["source_refs"] = serde_json::json!([earlier_path]);
+    current_request["forms"][0]["form_id"] =
+        serde_json::json!("tos.form.synthetic-durable-current");
+    current_context.request_raw = canonical(&current_request);
+    let mut current_worker = CutWorkerSchemaExecutor::from_cut(
+        current.cut(),
+        tos_validation::FormatProfile::LegacyPythonObserved20260923,
+        worker_identity.clone(),
+        ExecutorBudget::laboratory(),
+        CutWorkerLimits {
+            max_receipts: 128,
+            max_receipt_bytes: 262_144,
+        },
+        deadline,
+        &cancelled,
+    )
+    .unwrap();
+    let preview = prepare_source_creation_from_captures(
+        &current_context,
+        current.cut(),
+        &software,
+        &components,
+        &mut current_worker,
+        deadline,
+        &cancelled,
+    )
+    .unwrap()
+    .preview()
+    .unwrap();
+    current_request["operation"] = serde_json::json!("source.create");
+    current_request["command_id"] = serde_json::json!("synthetic:durable-current-second");
+    for (key, field) in [
+        ("expected_configuration", "owner_configuration"),
+        ("expected_dependencies", "expected_dependencies"),
+    ] {
+        current_request[key] =
+            serde_json::json!(preview.object_get(field).unwrap().as_str().unwrap());
+    }
+    current_request["expected_source"] = serde_json::Value::Null;
+    current_request["expected_revision"] = serde_json::Value::Null;
+    current_context.request_raw = canonical(&current_request);
+    let (current_package, second_receipt, _) = reopened_db
+        .execute_current_agent_creation_from_captures(
+            &reopened_store,
+            &current,
+            b"agent-current-second",
+            &current_filesystem,
+            &current_context,
+            &software,
+            &components,
+            &mut current_worker,
+            contract_digest(),
+            0,
+            0,
+            "private-job",
+            1,
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+    assert_eq!(second_receipt.commit_seq, a.commit_seq + 1);
+    assert!(
+        current_package
+            .command()
+            .reads
+            .iter()
+            .any(|r| r.path.as_str() == earlier_path
+                && r.raw_sha256 == Digest256::of_bytes(&reopened.files[earlier_path])),
+        "second maintained command consumes exact first authored body"
+    );
+    let successor = tos_command::source_current_cut::select_current_source_cut(
+        &mut reopened_db,
+        &reopened_store,
+        &lab.domain,
+        &cut,
+        revision,
+        membership,
+        &contexts[0],
+        &software,
+        &components,
+        &mut new_worker(),
+        &isolated,
+        Some(&current),
+        limits,
+        CutReadLimits {
+            max_revisions: 4,
+            max_members: 2048,
+            max_total_bytes: 33_554_432,
+            max_member_bytes: 8_388_608,
+        },
+        deadline,
+        &cancelled,
+    )
+    .unwrap();
+    assert_ne!(successor.cut().current().revision(), current_revision);
+    let second_path =
+        RelativePath::parse("ToS/source-witnesses/agents/synthetic-durable-current/agent.json")
+            .unwrap();
+    assert!(successor.cut().current().member(&second_path).is_some());
+    assert_eq!(
+        successor
+            .cut()
+            .current()
+            .indexed_dependencies(&second_path)
+            .unwrap()
+            .iter()
+            .any(|p| p.as_str() == earlier_path),
+        true
+    );
+    let current_reopened = reopened_db
+        .cold_reopen_source_cohort(
+            &reopened_store,
+            &lab.domain,
+            &cut,
+            revision,
+            membership,
+            &contexts[0],
+            &software,
+            &components,
+            &mut new_worker(),
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+    let second_member = reopened_db
+        .read_current_source_member(
+            &reopened_store,
+            &current_reopened.cohort,
+            &second_path,
+            8_388_608,
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+    assert_eq!(
+        &second_member.raw,
+        current_package
+            .prepared()
+            .files()
+            .get("agent.json")
+            .unwrap()
+    );
+    assert_eq!(second_member.current_generation, second_receipt.commit_seq);
+    let second_replay = reopened_db
+        .reopen_committed_source_creation_attempt(
+            &reopened_store,
+            &current_reopened.cohort,
+            b"agent-current-second",
+            &current_package,
+            &mut new_worker(),
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+    let (second_replayed, _) = reopened_db
+        .commit_source_creation(
+            &reopened_store,
+            &second_replay,
+            &current_package,
+            &current_filesystem,
+            contract_digest(),
+            0,
+            0,
+            "private-job",
+            1,
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+    assert!(second_replayed.replayed);
+    assert_eq!(second_replayed.commit_seq, second_receipt.commit_seq);
+    // Corruption must not be relabelled complete by a cold/open SQL marker.
+    sql.execute(
+        "DELETE FROM cmd2_source_index WHERE domain=$1 AND kind='metadata' AND token=$2",
+        &[&lab.domain, &"tos.agent.synthetic-durable-a"],
+    )
+    .unwrap();
+    assert!(
+        reopened_db
+            .cold_reopen_source_cohort(
+                &reopened_store,
+                &lab.domain,
+                &cut,
+                revision,
+                membership,
+                &contexts[0],
+                &software,
+                &components,
+                &mut new_worker(),
+                deadline,
+                &cancelled
+            )
+            .is_err()
+    );
+}
+
 struct Lab {
     db: DurablePgCoordinator,
     store: SegmentStore,

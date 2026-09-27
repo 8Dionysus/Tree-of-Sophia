@@ -36,6 +36,9 @@ const CURRENT_KEY_CODEC: &[u8] =
     b"cmd2-current-key-v1:tag,u32be-domain-len,domain,u32be-subject-len,subject";
 const MAX_COLD_AUDIT_ELAPSED: Duration = Duration::from_secs(300);
 
+#[path = "source_cohort.rs"]
+pub mod source_cohort;
+
 fn check_cold_deadline(
     started: Instant,
     requested: Option<(Instant, &AtomicBool)>,
@@ -132,6 +135,7 @@ mod membership_key_tests {
 pub enum DurableError {
     Database(postgres::Error),
     Storage(SegmentError),
+    Source(crate::source_command::SourceCommandError),
     Invalid(&'static str),
     Conflict(&'static str),
     Refused(&'static str),
@@ -144,6 +148,7 @@ impl fmt::Display for DurableError {
         match self {
             Self::Database(error) => write!(f, "database: {error}"),
             Self::Storage(error) => write!(f, "storage: {error}"),
+            Self::Source(error) => write!(f, "source owner: {error:?}"),
             Self::Invalid(reason) => write!(f, "invalid input: {reason}"),
             Self::Conflict(reason) => write!(f, "conflict: {reason}"),
             Self::Refused(reason) => write!(f, "refused: {reason}"),
@@ -472,6 +477,7 @@ fn update_member_root(hasher: &mut Digest256Hasher, row: &postgres::Row) {
     part(hasher, receipt_id.as_bytes());
     part(hasher, content_digest.as_bytes());
     part(hasher, &content_length.to_be_bytes());
+    source_cohort::hash_source_metadata(hasher, row);
 }
 
 fn metadata_locator_digest(row: &postgres::Row) -> Digest256 {
@@ -508,6 +514,7 @@ fn metadata_locator_digest(row: &postgres::Row) -> Digest256 {
     for column in ["member_slot", "frame_index"] {
         part(&mut hasher, &row.get::<_, i32>(column).to_be_bytes());
     }
+    source_cohort::hash_source_metadata(&mut hasher, row);
     hasher.finalize()
 }
 
@@ -685,6 +692,29 @@ impl DurablePgCoordinator {
         expected_attempt_fence: u64,
         members: &[DurableShadowMember],
     ) -> DurableResult<()> {
+        self.attach_ready_profile(
+            store,
+            domain,
+            prepare_id,
+            expected_attempt_fence,
+            members,
+            PROFILE_ID,
+            None,
+            None,
+        )
+    }
+
+    fn attach_ready_profile(
+        &mut self,
+        store: &SegmentStore,
+        domain: &str,
+        prepare_id: &[u8],
+        expected_attempt_fence: u64,
+        members: &[DurableShadowMember],
+        profile: &[u8],
+        registered_delta: Option<Digest256>,
+        source_metadata: Option<&source_cohort::SourceMetadata>,
+    ) -> DurableResult<()> {
         if expected_attempt_fence == 0 || members.is_empty() || members.len() > MAX_MEMBERS {
             return Err(DurableError::Invalid("invalid member count"));
         }
@@ -703,7 +733,7 @@ impl DurablePgCoordinator {
         let mut slots = std::collections::HashSet::new();
         let mut subjects = std::collections::HashSet::new();
         for member in members {
-            check_shadow_member(domain, prepare_id, member)?;
+            check_durable_member(domain, prepare_id, member, profile)?;
             if !slots.insert(member.member_slot) || !subjects.insert(member.subject.as_str()) {
                 return Err(DurableError::Invalid("duplicate member slot or subject"));
             }
@@ -714,13 +744,14 @@ impl DurablePgCoordinator {
                 return Err(DurableError::Invalid("compound members use different pins"));
             }
         }
-        let delta_digest = durable_shadow_delta(members);
+        let delta_digest = registered_delta.unwrap_or_else(|| durable_shadow_delta(members));
         let mut tx = self
             .client
             .build_transaction()
             .isolation_level(IsolationLevel::ReadCommitted)
             .start()?;
         lock_audit_fence(&mut tx, domain)?;
+        source_cohort::check_writer_profile(&mut tx, domain, profile)?;
         let row = tx.query_one(
             "SELECT state,delta_digest,attempt_fence FROM cmd2_attempt
              WHERE domain=$1 AND prepare_id=$2 FOR UPDATE",
@@ -748,6 +779,7 @@ impl DurablePgCoordinator {
                     .iter()
                     .find(|row| row.get::<_, i32>("member_slot") == member.member_slot as i32)
                     .ok_or(DurableError::Conflict("ready member slot differs"))?;
+                source_cohort::check_source_metadata(row, source_metadata, &member.subject)?;
                 check_member_row(
                     row,
                     &member.receipt,
@@ -781,7 +813,8 @@ impl DurablePgCoordinator {
                     &domain,
                     &prepare_id,
                     &(member.member_slot as i32),
-                    &"cmd2.lab.embedded-revision",
+                    &std::str::from_utf8(profile)
+                        .map_err(|_| DurableError::Invalid("profile UTF-8"))?,
                     &"1",
                     &member.subject,
                     &expected_revision,
@@ -804,6 +837,12 @@ impl DurablePgCoordinator {
                     &"LinuxFileAndDirectorySyncReopenSha256V1",
                 ],
             )?;
+            if let Some(metadata) = source_metadata {
+                let value = metadata
+                    .get(&member.subject)
+                    .ok_or(DurableError::Corrupt("source member metadata absent"))?;
+                tx.execute("UPDATE cmd2_member SET source_mode=$4,source_dependencies=$5 WHERE domain=$1 AND prepare_id=$2 AND member_slot=$3", &[&domain,&prepare_id,&(member.member_slot as i32),&(value.mode as i32),&value.dependencies])?;
+            }
         }
         tx.execute(
             "UPDATE cmd2_attempt SET state='ready' WHERE domain=$1 AND prepare_id=$2",
@@ -820,6 +859,15 @@ impl DurablePgCoordinator {
         &mut self,
         store: &SegmentStore,
         request: &CommitShadowAttempt<'_>,
+    ) -> DurableResult<(DurableCommitReceipt, DurableTiming)> {
+        self.commit_durable(store, request, source_cohort::CommitMode::Shadow)
+    }
+
+    fn commit_durable(
+        &mut self,
+        store: &SegmentStore,
+        request: &CommitShadowAttempt<'_>,
+        mode: source_cohort::CommitMode<'_>,
     ) -> DurableResult<(DurableCommitReceipt, DurableTiming)> {
         if request.attempt_fence == 0
             || request.receipts.is_empty()
@@ -905,8 +953,17 @@ impl DurablePgCoordinator {
         if !rights_allowed || rights_version != request.expected_rights_version {
             return Err(DurableError::Refused("current local rights changed"));
         }
+        source_cohort::check_commit_owner(
+            &mut tx,
+            request,
+            &attempt,
+            &member_rows,
+            &mode,
+            replayed,
+        )?;
         if replayed {
             let receipt = receipt_from_committed_attempt(&mut tx, &attempt)?;
+            source_cohort::verify_owner_before_outcome(&mode)?;
             let lock_held = fence_acquired.elapsed();
             tx.commit()
                 .map_err(|_| DurableError::Indeterminate("replay transaction outcome unknown"))?;
@@ -924,7 +981,9 @@ impl DurablePgCoordinator {
                 },
             ));
         }
-        if head != request.full_base_seq {
+        if !matches!(mode, source_cohort::CommitMode::Creation { .. })
+            && head != request.full_base_seq
+        {
             return Err(DurableError::Conflict(
                 "FullOnly base drift; re-audit outside lock",
             ));
@@ -981,11 +1040,11 @@ impl DurablePgCoordinator {
                   domain,subject,revision,commit_seq,prepare_id,member_slot,profile_id,profile_version,
                   content_digest,content_length,store_id,custody_domain_digest,custody_domain,pin_id,
                   pin_fence,segment_digest,segment_size,frame_index,frame_header_offset,frame_digest,
-                  frame_length,sto_receipt_id,durability_class)
+                  frame_length,sto_receipt_id,durability_class,source_mode,source_dependencies)
                  SELECT domain,subject,proposed_revision,$3,prepare_id,member_slot,profile_id,profile_version,
                   content_digest,content_length,store_id,custody_domain_digest,custody_domain,pin_id,
                   pin_fence,segment_digest,segment_size,frame_index,frame_header_offset,frame_digest,
-                  frame_length,sto_receipt_id,durability_class
+                  frame_length,sto_receipt_id,durability_class,source_mode,source_dependencies
                  FROM cmd2_member WHERE domain=$1 AND prepare_id=$2 AND member_slot=$4",
                 &[&request.domain, &request.prepare_id, &seq_db, &slot],
             )?;
@@ -998,15 +1057,16 @@ impl DurablePgCoordinator {
                   domain,subject,revision,commit_seq,prepare_id,member_slot,profile_id,profile_version,
                   content_digest,content_length,store_id,custody_domain_digest,custody_domain,pin_id,
                   pin_fence,segment_digest,segment_size,frame_index,frame_header_offset,frame_digest,
-                  frame_length,sto_receipt_id,durability_class)
+                  frame_length,sto_receipt_id,durability_class,source_mode,source_dependencies)
                  SELECT domain,subject,proposed_revision,$3,prepare_id,member_slot,profile_id,profile_version,
                   content_digest,content_length,store_id,custody_domain_digest,custody_domain,pin_id,
                   pin_fence,segment_digest,segment_size,frame_index,frame_header_offset,frame_digest,
-                  frame_length,sto_receipt_id,durability_class
+                  frame_length,sto_receipt_id,durability_class,source_mode,source_dependencies
                  FROM cmd2_member WHERE domain=$1 AND prepare_id=$2 AND member_slot=$4",
                 &[&request.domain, &request.prepare_id, &seq_db, &slot],
             )?;
         }
+        source_cohort::apply_source_change(&mut tx, request, &mode, seq)?;
         let members_root = member_hasher.finalize();
         let command_id: String = attempt.get("command_id");
         let raw_request_digest: String = attempt.get("raw_request_digest");
@@ -1070,6 +1130,7 @@ impl DurablePgCoordinator {
                 &receipt_digest.to_hex(),
             ],
         )?;
+        source_cohort::verify_owner_before_outcome(&mode)?;
         let lock_held = fence_acquired.elapsed();
         tx.commit()
             .map_err(|_| DurableError::Indeterminate("commit outcome unknown; retain pin"))?;
@@ -1494,6 +1555,7 @@ impl DurablePgCoordinator {
             ("cmd2_receipt", "command_id"),
             ("cmd2_log", "commit_seq"),
             ("cmd2_outbox", "commit_seq"),
+            ("cmd2_source_index", "kind,token,path"),
         ];
         // Pre-admit every selected row before any client-side materialization.
         // The PostgreSQL snapshot is stable across this bound and the later
@@ -1669,6 +1731,15 @@ impl DurablePgCoordinator {
                     {
                         return Err(DurableError::Corrupt(
                             "cold history/member identity differs",
+                        ));
+                    }
+                    if member.get::<_, Option<i32>>("source_mode")
+                        != historical.get::<_, Option<i32>>("source_mode")
+                        || member.get::<_, Option<Vec<String>>>("source_dependencies")
+                            != historical.get::<_, Option<Vec<String>>>("source_dependencies")
+                    {
+                        return Err(DurableError::Corrupt(
+                            "cold source carrier metadata differs from attached member",
                         ));
                     }
                     update_member_root(&mut member_hasher, member);
@@ -1883,7 +1954,9 @@ impl DurablePgCoordinator {
             .query_one(
                 "SELECT row_to_json(d)::text FROM
              (SELECT domain,head_seq,rights_version,rights_allowed,rule_version,
-                     contract_digest,schema_profile_digest
+                     contract_digest,schema_profile_digest,source_revision,source_membership_digest,
+                     source_membership_count,source_epoch,source_generation,source_complete,
+                     source_definition_digest
               FROM cmd2_domain WHERE domain=$1) d",
                 &[&domain],
             )?
@@ -2378,15 +2451,16 @@ fn compare_installed_membership(
     Ok(coverage)
 }
 
-fn check_shadow_member(
+fn check_durable_member(
     domain: &str,
     prepare_id: &[u8],
     member: &DurableShadowMember,
+    profile: &[u8],
 ) -> DurableResult<()> {
     let receipt = &member.receipt;
     let binding = receipt.binding();
     let coordinate = receipt.coordinate();
-    if binding.profile_id != PROFILE_ID
+    if binding.profile_id != profile
         || binding.profile_version != PROFILE_VERSION
         || binding.subject_key != member.subject.as_bytes()
         || binding.member_slot != member.member_slot
@@ -2409,11 +2483,15 @@ fn check_shadow_member(
             "owner revision is not exact successor",
         ));
     }
-    check_lab_record(
-        &member.exact_bytes,
-        &member.subject,
-        member.proposed_revision,
-    )
+    if profile == PROFILE_ID {
+        check_lab_record(
+            &member.exact_bytes,
+            &member.subject,
+            member.proposed_revision,
+        )
+    } else {
+        source_cohort::check_source_member(profile, member)
+    }
 }
 
 fn check_member_row(
@@ -2424,13 +2502,13 @@ fn check_member_row(
 ) -> DurableResult<()> {
     let coordinate = receipt.coordinate();
     if row.get::<_, String>("subject") != subject
-        || receipt.binding().profile_id != PROFILE_ID
+        || !source_cohort::known_profile(&receipt.binding().profile_id)
         || receipt.binding().profile_version != PROFILE_VERSION
         || receipt.binding().subject_key != subject.as_bytes()
         || row.get::<_, i32>("member_slot") != receipt.binding().member_slot as i32
         || row.get::<_, Vec<u8>>("prepare_id") != receipt.prepare_id()
         || row.get::<_, i64>("proposed_revision") != as_i64(revision)?
-        || row.get::<_, String>("profile_id") != "cmd2.lab.embedded-revision"
+        || row.get::<_, String>("profile_id").as_bytes() != receipt.binding().profile_id
         || row.get::<_, String>("profile_version") != "1"
         || row.get::<_, Vec<u8>>("store_id") != receipt.store_id()
         || row.get::<_, String>("custody_domain_digest") != receipt.domain_digest().to_hex()
@@ -2563,13 +2641,13 @@ fn check_history_locator(
     let coordinate = receipt.coordinate();
     if row.get::<_, String>("domain") != domain
         || row.get::<_, String>("subject") != subject
-        || receipt.binding().profile_id != PROFILE_ID
+        || !source_cohort::known_profile(&receipt.binding().profile_id)
         || receipt.binding().profile_version != PROFILE_VERSION
         || receipt.binding().subject_key != subject.as_bytes()
         || row.get::<_, i64>("revision") != as_i64(revision)?
         || row.get::<_, i32>("member_slot") != receipt.binding().member_slot as i32
         || row.get::<_, Vec<u8>>("prepare_id") != receipt.prepare_id()
-        || row.get::<_, String>("profile_id") != "cmd2.lab.embedded-revision"
+        || row.get::<_, String>("profile_id").as_bytes() != receipt.binding().profile_id
         || row.get::<_, String>("profile_version") != "1"
         || row.get::<_, Vec<u8>>("store_id") != receipt.store_id()
         || row.get::<_, String>("custody_domain_digest") != receipt.domain_digest().to_hex()
