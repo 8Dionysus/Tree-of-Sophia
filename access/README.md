@@ -1365,3 +1365,58 @@ member identity/size/SHA, inaccessible retained Git state or a failed/bounded
 Git observation refuses the candidate. Git subdirectory and linked-worktree
 discovery is preserved; ambient Git directory/worktree/index overrides cannot
 select another source.
+
+
+### Native fresh-prefix installation
+
+The native software archive installs without Python:
+
+```sh
+/path/to/admitted/tos-access software install --archive /absolute/software.zip \
+  --prefix /absolute/fresh-user-prefix \
+  --max-total-bytes ADMITTED_EXPANDED_BYTES --max-archive-bytes ADMITTED_ZIP_BYTES \
+  --max-members ADMITTED_MEMBER_COUNT --max-metadata-bytes ADMITTED_METADATA_BYTES
+/absolute/fresh-user-prefix/bin/tos --help
+/absolute/fresh-user-prefix/bin/tos --version
+/absolute/fresh-user-prefix/bin/tos serve 127.0.0.1:8765
+/absolute/fresh-user-prefix/bin/tos mcp
+```
+
+`software install` composes the existing verified extraction into
+`PREFIX/software`. Only after extraction succeeds does the installer create
+`PREFIX/bin/tos`, a relative link to the manifest-bound native member in that
+software tree. This fixed installer link is outside the archive: archived
+symlinks remain forbidden. The native image is not copied a second time.
+The archive FD, extracted software directory, prefix and entry directory are
+retained/rechecked through completion. Existing prefixes, including dangling
+links, refuse without overwrite. A partial failure leaves an explicit incomplete
+candidate (possibly with a link if a final check fails); it reports failure and
+never starts its program. Do not select that
+candidate on PATH. No automatic cleanup or recursive uninstall is performed.
+
+PATH selection and switching remain explicit user actions. A previous prefix
+stays untouched and provides rollback by choosing its entrypoint again. To
+uninstall, first deselect the owned prefix and stop its processes, then dispose
+of that explicitly selected software-only directory through the filesystem
+owner's normal route. Data releases and service state live outside this prefix;
+installation does not touch them. No systemwide install, shell edit, service
+restart, publication or activation occurs. Use `--release-root` only when
+explicitly selecting an admitted managed data release. Help/version do not
+open a data owner, and NoOwner HTTP/MCP remain truthfully unavailable for data.
+The version string identifies the package version; the manifest's unchanged
+nine-field native receipt owns exact build identity.
+
+The new install composition adds one final retained-archive hash to extraction:
+its reads are approximately `5Z + 2S` (including verification), with `S` written
+once and one small link created. The complete build→verify→install path is
+approximately `5S + 8Z`, plus the previously described bounded manifest/Git and
+startup reads. No new image staging copy or decompressed buffer is introduced.
+These bounds describe operation I/O, not an aggregate RSS guarantee.
+
+**LEGACY compatibility:** `pip install ./access`, wheel/editable/sdist hooks,
+Python CLI and their existing isolated-install/streaming RECORD integrity checks
+remain unchanged. That wheel still requires Python, does not include the native
+ELF, and does not become the native installation path. Wheel/Python retirement
+remains an open migration requirement until its consumers and unique checks
+have an accepted replacement. Native archive installation does not prove a
+wheel, installed managed data profile, or complete migration ready.

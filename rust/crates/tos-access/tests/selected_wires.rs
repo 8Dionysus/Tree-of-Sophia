@@ -4457,6 +4457,31 @@ json.dump({'capture':str(capture),'restored':str(restored),'commit':commit,'tree
             .is_err(),
             "finite metadata admission rejects before owned central expansion"
         );
+        // Integrity-only install composition; this tiny ELF is never executed.
+        let prefix = base.join("prefix");
+        verified.install(&prefix).unwrap();
+        assert_eq!(
+            fs::read_link(prefix.join("bin/tos")).unwrap(),
+            PathBuf::from("../software/access/src/tos_access/tos-access")
+        );
+        assert_eq!(
+            fs::read(prefix.join("software/access/src/tos_access/tos-access")).unwrap(),
+            elf
+        );
+        assert!(
+            verified.install(&prefix).is_err(),
+            "fresh prefix cannot overwrite an installation"
+        );
+        let occupied = base.join("occupied-prefix");
+        std::os::unix::fs::symlink("missing-target", &occupied).unwrap();
+        assert!(
+            verified.install(&occupied).is_err(),
+            "dangling link is an occupied prefix"
+        );
+        assert_eq!(
+            fs::read_link(&occupied).unwrap(),
+            PathBuf::from("missing-target")
+        );
         // Whole archive SHA is updated, but the member CRC/SHA must still fail.
         let mut changed = original.clone();
         let offset = changed
@@ -4610,35 +4635,159 @@ json.dump({'capture':str(capture),'restored':str(restored),'commit':commit,'tree
             String::from_utf8_lossy(&verified.stderr)
         );
         let extracted = Command::new(&binary)
-            .args(["software", "extract"])
+            .args(["software", "install"])
             .arg("--archive")
             .arg(&package)
-            .arg("--destination")
+            .arg("--prefix")
             .arg(&installed)
             .args(limits())
             .output()
             .unwrap();
         assert!(
             extracted.status.success(),
-            "native Rust extraction: {}",
+            "native Rust installation: {}",
             String::from_utf8_lossy(&extracted.stderr)
         );
         let overwrite = Command::new(&binary)
-            .args(["software", "extract"])
+            .args(["software", "install"])
             .arg("--archive")
             .arg(&package)
-            .arg("--destination")
+            .arg("--prefix")
             .arg(&installed)
             .args(limits())
             .output()
             .unwrap();
         assert!(
             !overwrite.status.success(),
-            "fresh extraction refuses overwrite"
+            "fresh installation refuses overwrite"
         );
-        let program = installed.join("access/src/tos_access/tos-access");
+        let program = installed.join("bin/tos");
+        let image = installed.join("software/access/src/tos_access/tos-access");
+        assert_eq!(
+            fs::read_link(&program).unwrap(),
+            PathBuf::from("../software/access/src/tos_access/tos-access")
+        );
         let outside = root.join("outside");
         fs::create_dir(&outside).unwrap();
+        for option in ["--help", "--version"] {
+            let help = Command::new(&program)
+                .arg(option)
+                .current_dir(&outside)
+                .env_clear()
+                .env("PATH", "")
+                .env("TOS_RELEASE_ROOT", "/missing-owner-must-not-affect-help")
+                .output()
+                .unwrap();
+            assert!(
+                help.status.success(),
+                "installed software metadata without selected owner"
+            );
+            assert!(help.stderr.is_empty());
+            assert!(
+                String::from_utf8_lossy(&help.stdout).starts_with(if option == "--help" {
+                    "usage: tos "
+                } else {
+                    "tos "
+                })
+            );
+        }
+
+        let usage = Command::new(&program)
+            .current_dir(&outside)
+            .env_clear()
+            .env("PATH", "")
+            .output()
+            .unwrap();
+        assert_eq!(usage.status.code(), Some(2));
+        assert!(usage.stdout.is_empty());
+        assert!(String::from_utf8_lossy(&usage.stderr).starts_with("usage:"));
+        // The same installed bin/tos provides actual stdio MCP without Python.
+        let catalog = tos_access::registered_operations()
+            .unwrap()
+            .into_iter()
+            .find(|op| op.operation_id == tos_access::KnowledgeOperation::Catalog.id())
+            .unwrap();
+        let mut input = mcp_input(&catalog.mcp_tool, &object(vec![]));
+        let end = input
+            .iter()
+            .enumerate()
+            .filter(|(_, b)| **b == b'\n')
+            .nth(1)
+            .unwrap()
+            .0
+            + 1;
+        input.truncate(end);
+        input.extend_from_slice(b"{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/list\"}\n");
+        let contracts = tos_access::registered_operations()
+            .unwrap()
+            .iter()
+            .find(|op| op.operation_id == tos_access::KnowledgeOperation::ExplorationContracts.id())
+            .unwrap();
+        input.extend_from_slice(format!("{{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"tools/call\",\"params\":{{\"name\":\"{}\",\"arguments\":{{}}}}}}\n", contracts.mcp_tool).as_bytes());
+        let mut rpc = Command::new(&program)
+            .arg("mcp")
+            .current_dir(&outside)
+            .env_clear()
+            .env("PATH", "")
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .unwrap();
+        rpc.stdin.take().unwrap().write_all(&input).unwrap();
+        let output = rpc.wait_with_output().unwrap();
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert!(output.stderr.is_empty());
+        let frames = output
+            .stdout
+            .split(|b| *b == b'\n')
+            .filter(|f| !f.is_empty())
+            .collect::<Vec<_>>();
+        assert_eq!(
+            frames.len(),
+            3,
+            "complete initialize, tools/list and software-contract frames"
+        );
+        let advertised =
+            parse_json(frames[1], JsonMode::PublishedStrict, JsonLimits::default()).unwrap();
+        let tools = advertised
+            .root()
+            .object_get("result")
+            .unwrap()
+            .object_get("tools")
+            .unwrap()
+            .as_array()
+            .unwrap();
+        assert!(
+            !tools
+                .iter()
+                .any(|tool| tool.object_get("name").unwrap().as_str()
+                    == Some(catalog.mcp_tool.as_str())),
+            "NoOwner does not advertise selected catalog"
+        );
+        assert!(
+            tools
+                .iter()
+                .any(|tool| tool.object_get("name").unwrap().as_str()
+                    == Some(contracts.mcp_tool.as_str()))
+        );
+        let returned =
+            parse_json(frames[2], JsonMode::PublishedStrict, JsonLimits::default()).unwrap();
+        let returned = returned
+            .root()
+            .object_get("result")
+            .unwrap()
+            .object_get("structuredContent")
+            .unwrap();
+        for (field, raw) in tos_access::exploration_contracts::CONTRACTS {
+            let expected =
+                parse_json(raw, JsonMode::PublishedStrict, JsonLimits::default()).unwrap();
+            assert_eq!(returned.object_get(field).unwrap(), expected.root());
+        }
         let listener = TcpListener::bind("127.0.0.1:0").unwrap();
         let address = listener.local_addr().unwrap();
         drop(listener);
@@ -4756,7 +4905,7 @@ json.dump({'capture':str(capture),'restored':str(restored),'commit':commit,'tree
         ] {
             let path = format!("/static/assets/{asset}");
             let member = installed
-                .join("access/src/tos_access/web_dist/assets")
+                .join("software/access/src/tos_access/web_dist/assets")
                 .join(asset);
             assert!(fs::metadata(&member).unwrap().len() <= 16 * 1024 * 1024);
             let expected = fs::read(&member).unwrap();
@@ -4777,8 +4926,8 @@ json.dump({'capture':str(capture),'restored':str(restored),'commit':commit,'tree
         let traversal = request("GET", "/static/%2e%2e/Cargo.lock");
         assert!(!traversal.starts_with(b"HTTP/1.1 200 "));
         // A live process must refuse disappearance of its exact software image.
-        let moved = program.with_extension("held");
-        fs::rename(&program, &moved).unwrap();
+        let moved = image.with_extension("held");
+        fs::rename(&image, &moved).unwrap();
         let refused = request("GET", "/");
         assert!(refused.starts_with(b"HTTP/1.1 503 "));
         assert!(!String::from_utf8_lossy(&refused).contains("window.__TOS_GRAPH_BOOT__"));

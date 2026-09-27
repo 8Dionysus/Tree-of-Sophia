@@ -35,7 +35,7 @@ const TOS_SCHEMAS: [&str; 3] = [
     "semantic-relation-type-registry.schema.json",
     "epistemic-evidence-projection.schema.json",
 ];
-const README: &str = "# Tree of Sophia software package\n\nInstall the software from this archive:\n\n```sh\npip install ./access\n```\n\nSelect a compatible data release explicitly before running the reader:\n\n```sh\nexport TOS_DATA_ROOT=/path/to/compatible-data\n```\n\nThe software package contains no corpus or other production data. Data is\nselected separately through `TOS_DATA_ROOT`.\n";
+const README: &str = "# Tree of Sophia software package\n\nNative Linux x86_64 software is the verified member\n`access/src/tos_access/tos-access`; it needs no Python runtime.\nRun that member with `--help`, or install this archive into a fresh user prefix\nwith `software install --archive ABSOLUTE_ARCHIVE --prefix ABSOLUTE_PREFIX`\nand the explicit total/archive/member/metadata budgets documented in access/README.md.\nThe installed entrypoint is PREFIX/bin/tos; select its PATH explicitly.\nSelect managed data separately with `--release-root ABSOLUTE_RELEASE`.\nNo selected data means truthful unavailable data capabilities.\n\nLEGACY Python compatibility remains available with `pip install ./access`.\nThat wheel installs the Python tos entrypoint, requires Python, and does not\ninclude the native ELF. Neither installation carries corpus data.\n";
 type Result<T> = std::result::Result<T, String>;
 trait Checked<T> {
     fn checked(self) -> Result<T>;
@@ -1299,8 +1299,11 @@ impl VerifiedArchive {
         if !path_ok(leaf) {
             return Err("extraction leaf invalid".into());
         }
+        self.extract_at(&parent, leaf).map(|(report, _)| report)
+    }
+    fn extract_at(&mut self, parent: &File, leaf: &str) -> Result<(JsonValue, File)> {
         fs::create_dir(format!("/proc/self/fd/{}/{leaf}", parent.as_raw_fd())).checked()?;
-        let root = tos_fd_open::open_directory_at(&parent, Path::new(leaf)).checked()?;
+        let root = tos_fd_open::open_directory_at(parent, Path::new(leaf)).checked()?;
         for (name, member) in &self.members {
             let mut directory = tos_fd_open::reopen_directory(&root).checked()?;
             let mut parts = name.split('/').peekable();
@@ -1333,15 +1336,88 @@ impl VerifiedArchive {
         }
         root.sync_all().checked()?;
         self.recheck()?;
+        let selected = tos_fd_open::open_directory_at(parent, Path::new(leaf)).checked()?;
+        let retained = root.metadata().checked()?;
+        let current = selected.metadata().checked()?;
+        if retained.dev() != current.dev() || retained.ino() != current.ino() {
+            return Err("extraction directory changed during assembly".into());
+        }
+        Ok((
+            object(vec![
+                ("extracted", JsonValue::Bool(true)),
+                (
+                    "software_ref",
+                    text(string(&self.manifest, "software_ref")?),
+                ),
+                ("data_included", JsonValue::Bool(false)),
+                ("native_wheel_entry", JsonValue::Bool(false)),
+                ("max_total_bytes", number(self.limits.max_total_bytes)),
+            ]),
+            root,
+        ))
+    }
+    /// A fresh software-only user prefix. No PATH edits, data selection or cleanup.
+    pub fn install(&mut self, prefix: &Path) -> Result<JsonValue> {
+        self.recheck()?;
+        if !prefix.is_absolute() {
+            return Err("fresh installation prefix must be absolute".into());
+        }
+        let parent = tos_fd_open::open_absolute_directory(
+            prefix.parent().ok_or("installation parent absent")?,
+        )
+        .checked()?;
+        let leaf = prefix
+            .file_name()
+            .and_then(|p| p.to_str())
+            .filter(|p| path_ok(p))
+            .ok_or("installation prefix leaf invalid")?;
+        fs::create_dir(format!("/proc/self/fd/{}/{leaf}", parent.as_raw_fd())).checked()?;
+        let root = tos_fd_open::open_directory_at(&parent, Path::new(leaf)).checked()?;
+        // Extraction consumes this same verified archive object. On any error,
+        // the owned incomplete prefix remains inspectable; no install/startup success.
+        let (extracted, software) = self.extract_at(&root, "software")?;
+        fs::create_dir(format!("/proc/self/fd/{}/bin", root.as_raw_fd())).checked()?;
+        let bin = tos_fd_open::open_directory_at(&root, Path::new("bin")).checked()?;
+        std::os::unix::fs::symlink(
+            format!("../software/{PROGRAM}"),
+            format!("/proc/self/fd/{}/tos", bin.as_raw_fd()),
+        )
+        .checked()?;
+        bin.sync_all().checked()?;
+        root.sync_all().checked()?;
+        parent.sync_all().checked()?;
+        self.recheck()?;
+        let selected_bin = tos_fd_open::open_directory_at(&root, Path::new("bin")).checked()?;
+        let retained_bin = bin.metadata().checked()?;
+        let current_bin = selected_bin.metadata().checked()?;
+        if retained_bin.dev() != current_bin.dev()
+            || retained_bin.ino() != current_bin.ino()
+            || fs::read_link(format!("/proc/self/fd/{}/tos", selected_bin.as_raw_fd())).checked()?
+                != PathBuf::from(format!("../software/{PROGRAM}"))
+        {
+            return Err("installed entrypoint changed during assembly".into());
+        }
+        let selected_software =
+            tos_fd_open::open_directory_at(&root, Path::new("software")).checked()?;
+        let retained_software = software.metadata().checked()?;
+        let current_software = selected_software.metadata().checked()?;
+        if retained_software.dev() != current_software.dev()
+            || retained_software.ino() != current_software.ino()
+        {
+            return Err("installed software directory changed during assembly".into());
+        }
+        let selected = tos_fd_open::open_directory_at(&parent, Path::new(leaf)).checked()?;
+        let retained = root.metadata().checked()?;
+        let current = selected.metadata().checked()?;
+        if retained.dev() != current.dev() || retained.ino() != current.ino() {
+            return Err("installation prefix changed during assembly".into());
+        }
         Ok(object(vec![
-            ("extracted", JsonValue::Bool(true)),
-            (
-                "software_ref",
-                text(string(&self.manifest, "software_ref")?),
-            ),
+            ("installed", JsonValue::Bool(true)),
+            ("software_ref", text(string(&extracted, "software_ref")?)),
+            ("entrypoint", text("bin/tos")),
             ("data_included", JsonValue::Bool(false)),
             ("native_wheel_entry", JsonValue::Bool(false)),
-            ("max_total_bytes", number(self.limits.max_total_bytes)),
         ]))
     }
 }
@@ -1358,7 +1434,7 @@ pub fn run_if_requested(
     let result = (|| {
         let action = args
             .get(1)
-            .ok_or("usage: software build|verify|extract OPTIONS")?;
+            .ok_or("usage: software build|verify|extract|install OPTIONS")?;
         let mut options = BTreeMap::new();
         let mut at = 2;
         while at < args.len() {
@@ -1399,6 +1475,7 @@ pub fn run_if_requested(
             ],
             "verify" => &["archive"],
             "extract" => &["archive", "destination"],
+            "install" => &["archive", "prefix"],
             _ => return Err("unknown software action".into()),
         };
         if options.keys().any(|k| {
@@ -1435,6 +1512,16 @@ pub fn run_if_requested(
                 }
                 VerifiedArchive::open(Path::new(&required("archive")?), limits)?
                     .extract(Path::new(&destination))?
+            }
+            "install" => {
+                let prefix = required("prefix")?;
+                match fs::symlink_metadata(&prefix) {
+                    Ok(_) => return Err("fresh installation prefix already exists".into()),
+                    Err(e) if e.kind() == std::io::ErrorKind::NotFound => (),
+                    Err(e) => return Err(e.to_string()),
+                }
+                VerifiedArchive::open(Path::new(&required("archive")?), limits)?
+                    .install(Path::new(&prefix))?
             }
             _ => unreachable!(),
         };
