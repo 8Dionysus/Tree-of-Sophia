@@ -226,8 +226,10 @@ where
         || sha(field(right, "value"), limits)? != value_digest
         || sha(field(time, "raw"), limits)? != value_digest
         || get(value, "native_id") != Some(expected_native.as_str())
-        || !matches!(field(left,"source_line"),JsonValue::Number(n) if n.kind==JsonNumberKind::Int && n.lexeme.parse::<u64>().is_ok_and(|v|v>0))
-        || !same_json(field(left, "source_line"), field(right, "source_line"))
+        || !matches!(field(left,"source_line"),JsonValue::Number(n) if n.kind==JsonNumberKind::Int && !n.lexeme.starts_with('-') && n.lexeme.bytes().any(|b| b != b'0'))
+        || !(same_json(field(left, "source_line"), field(right, "source_line"))
+            || (matches!(field(right, "source_line"), JsonValue::Bool(true))
+                && matches!(field(left, "source_line"), JsonValue::Number(n) if n.lexeme == "1")))
         || field(claim, "source_refs") != field(value, "source_refs")
     {
         return Ok(Some("document-catalogue-exact-source-binding-inconsistent"));
@@ -494,9 +496,16 @@ where
         if !reference
             .as_object()
             .is_some_and(|fields| fields.len() == 2)
-            || !get(reference, "node_id").is_some_and(|id| {
-                !id.is_empty()
-                    && python_strip_unicode16_v1(id, 1024).is_ok_and(|stripped| id == stripped)
+            || !matches!(field(reference, "node_id"), JsonValue::String(id) if {
+                // Python request normalization accepts lone surrogates as string
+                // code points. They remain unaddressable carriers (503), rather
+                // than becoming a request-shape error (400). Replacement here
+                // preserves length and whitespace solely for normalization;
+                // operand lookup still requires the original valid UTF-8 ID.
+                let normalized = String::from_utf16_lossy(id.units());
+                !normalized.is_empty()
+                    && python_strip_unicode16_v1(&normalized, 1024)
+                        .is_ok_and(|stripped| normalized == stripped)
             })
             || !get(reference, "content_revision").is_some_and(bare)
         {
@@ -600,12 +609,15 @@ where
         // The maintained normalizer fixes root order while preserving each
         // accepted operand reference's member order. Native canonical output
         // remains identical; published compact output retains this order.
-        ("request", object(vec![
-            ("schema_version", field(request, "schema_version").clone()),
-            ("source_revision", field(request, "source_revision").clone()),
-            ("left", field(request, "left").clone()),
-            ("right", field(request, "right").clone()),
-        ])),
+        (
+            "request",
+            object(vec![
+                ("schema_version", field(request, "schema_version").clone()),
+                ("source_revision", field(request, "source_revision").clone()),
+                ("left", field(request, "left").clone()),
+                ("right", field(request, "right").clone()),
+            ]),
+        ),
         (
             "comparison",
             object(vec![
