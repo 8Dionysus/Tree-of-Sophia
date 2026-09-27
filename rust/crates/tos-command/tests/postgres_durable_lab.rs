@@ -233,28 +233,27 @@ fn managed_fixture_carriers(
     stage: &mut tos_compiler::knowledge_stage::KnowledgeStage<'_>,
     limits: tos_compiler::knowledge_stage::StageLimits,
 ) -> tos_compiler::Result<Vec<ManagedFixtureCarrier>> {
-    stage.with_connection(tos_compiler::knowledge_stage::WritePhase::Finalize, |db| {
-        let mut facts = Vec::new();
-        let mut state_bytes = 0u64;
-        for (table, kind) in [("knowledge_nodes", tos_query::search_v2::SearchKind::Nodes),
-            ("knowledge_relations", tos_query::search_v2::SearchKind::Relations)] {
-            let mut statement = db.prepare(&format!("SELECT id,source_graph,source_order,lower(hex(payload_sha256)) FROM {table} ORDER BY source_order,id"))?;
-            let mut rows = statement.query([])?;
-            while let Some(row) = rows.next()? {
-                if facts.len() as u64 >= limits.sqlite.max_rows { return Err(tos_compiler::Error::Budget("finite managed fixture carrier scope")); }
-                let sha: String = row.get(3)?;
-                let id: String = row.get(0)?;
-                let graph: String = row.get(1)?;
-                state_bytes = state_bytes.checked_add((id.len() + graph.len() + std::mem::size_of::<ManagedFixtureCarrier>()) as u64)
-                    .filter(|n| *n <= limits.max_seek_bytes)
-                    .ok_or(tos_compiler::Error::Budget("finite managed fixture carrier metadata state"))?;
-                facts.push(ManagedFixtureCarrier { kind, id, graph, position: row.get(2)?,
-                    sha: Digest256::from_hex(&sha).map_err(|_| tos_compiler::Error::Invalid("fixture produced carrier digest"))? });
-            }
-        }
-        Ok(facts)
-    })
+    use tos_compiler::knowledge_full_fixture::NativeFixtureCarrierKind;
+    tos_compiler::knowledge_full_fixture::native_fixture_produced_carriers(stage, limits).map(
+        |rows| {
+            rows.into_iter()
+                .map(|row| ManagedFixtureCarrier {
+                    kind: match row.kind {
+                        NativeFixtureCarrierKind::Node => tos_query::search_v2::SearchKind::Nodes,
+                        NativeFixtureCarrierKind::Relation => {
+                            tos_query::search_v2::SearchKind::Relations
+                        }
+                    },
+                    id: row.id,
+                    graph: row.source_graph,
+                    position: row.source_order,
+                    sha: row.payload_sha256,
+                })
+                .collect()
+        },
+    )
 }
+
 #[derive(Clone)]
 struct ManagedFixtureReadGrant {
     selected: tos_compiler::KnowledgeSelectedExpectation,
