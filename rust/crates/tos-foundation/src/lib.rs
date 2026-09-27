@@ -25,7 +25,7 @@ pub use json::{
     CanonicalProfile, EncodedJson, JsonDocument, JsonEmissionProfile, JsonLimits, JsonMode,
     JsonNumber, JsonNumberKind, JsonString, JsonValue, canonical_bytes_v1, canonical_digest_v1,
     canonical_raw_bytes_profile, canonical_raw_bytes_v1, emit_json_profile, emit_preserved_json,
-    emit_value_preserved_json, parse_json, parse_json_profile,
+    emit_python_compact_json, emit_value_preserved_json, parse_json, parse_json_profile,
 };
 pub use logical_ref::LogicalRecordRefV1;
 pub use path::RelativePath;

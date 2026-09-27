@@ -558,6 +558,13 @@ pub fn emit_value_preserved_json(value: &JsonValue, limits: JsonLimits) -> Resul
     write_document(value, limits, WriteStyle::PreservedCompact)
 }
 
+/// Published packet framing: Python compact JSON with insertion-ordered object
+/// members, Python numeric spelling and no final line feed. This selects only
+/// bytes; it does not grant publication or change canonical digest profiles.
+pub fn emit_python_compact_json(value: &JsonValue, limits: JsonLimits) -> Result<Vec<u8>> {
+    write_document(value, limits, WriteStyle::PythonPublishedCompact)
+}
+
 /// Produce owner-profile bytes using Python's sorted compact JSON spelling.
 /// Only `CorpusSnapshotV1` includes a final line feed.
 pub fn canonical_bytes_v1(
@@ -663,6 +670,7 @@ pub fn canonical_raw_bytes_profile(
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum WriteStyle {
     PreservedCompact,
+    PythonPublishedCompact,
     PythonCompact,
     PythonCompactLf,
     PythonPretty2Lf,
