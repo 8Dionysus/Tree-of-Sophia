@@ -1,6 +1,7 @@
 //! Shared bounded SQLite blob row decoding for the two retained projection paths.
 use crate::{Error, Result};
 use tos_foundation::Digest256;
+pub(crate) const MAX_PAGE_ROWS: usize = 1024;
 pub(crate) const MAX_ROWS: u64 = 1_000_000;
 pub(crate) const MAX_ROW_BYTES: usize = 8 * 1024 * 1024;
 pub(crate) const MAX_TOTAL_BYTES: u64 = 256 * 1024 * 1024;
@@ -18,7 +19,7 @@ pub(crate) fn page_limits(
     max_page_bytes: u64,
 ) -> Result<()> {
     if max_rows == 0
-        || max_rows > 1024
+        || max_rows > MAX_PAGE_ROWS
         || max_row_bytes == 0
         || max_row_bytes > MAX_ROW_BYTES
         || max_page_bytes == 0

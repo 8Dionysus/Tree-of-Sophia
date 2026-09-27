@@ -368,6 +368,34 @@ pub(crate) fn validate_receipt(r: &CorpusOriginalReceipt) -> Result<()> {
     }
     Ok(())
 }
+// The finite plan and streaming captured importer write the same rows/indexes.
+pub(crate) fn insert_original_row(
+    insert: &mut rusqlite::Statement<'_>,
+    collection: CorpusOriginalCollection,
+    ordinal: u64,
+    raw: &[u8],
+) -> Result<()> {
+    let v = values(raw, crate::knowledge_original_rows::MAX_ROW_BYTES)?;
+    let fields = indexed_fields(collection, &v)?;
+    insert.execute(params![
+        collection.as_str(),
+        ordinal as i64,
+        raw.len() as i64,
+        Digest256::of_bytes(raw).as_bytes().as_slice(),
+        raw,
+        fields[0],
+        fields[1],
+        fields[2],
+        fields[3],
+        fields[4],
+        fields[5],
+        fields[6]
+    ])?;
+    Ok(())
+}
+pub(crate) const INSERT_ROW: &str =
+    "INSERT INTO corpus_original_rows VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12)";
+
 /// The opaque capture plan's original authority stays separate from the stage.
 /// This comparison is release composition, not a fabricated source ancestry.
 pub fn retain_corpus_original(
@@ -407,30 +435,13 @@ pub fn retain_corpus_original(
                 "INSERT INTO corpus_original_meta VALUES(1,?1)",
                 [raw.as_slice()],
             )?;
-            let mut insert = tx.prepare(
-                "INSERT INTO corpus_original_rows VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12)",
-            )?;
+            let mut insert = tx.prepare(INSERT_ROW)?;
             let header = vec![plan.header.clone()];
             for (collection, rows) in std::iter::once((CorpusOriginalCollection::Header, &header))
                 .chain(plan.rows.iter().map(|(c, r)| (*c, r)))
             {
                 for (ordinal, raw) in rows.iter().enumerate() {
-                    let v = values(raw, crate::knowledge_original_rows::MAX_ROW_BYTES)?;
-                    let fields = indexed_fields(collection, &v)?;
-                    insert.execute(params![
-                        collection.as_str(),
-                        ordinal as i64,
-                        raw.len() as i64,
-                        Digest256::of_bytes(raw).as_bytes().as_slice(),
-                        raw,
-                        fields[0],
-                        fields[1],
-                        fields[2],
-                        fields[3],
-                        fields[4],
-                        fields[5],
-                        fields[6]
-                    ])?;
+                    insert_original_row(&mut insert, collection, ordinal as u64, raw)?;
                 }
             }
             drop(insert);

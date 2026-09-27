@@ -1,7 +1,9 @@
 //! Exact selected public corpus compatibility input. Reads only explicitly
 //! selected capture members; it never claims an authored native builder result.
 use crate::knowledge_corpus_original::*;
+use crate::knowledge_stage::{KnowledgeStage, WritePhase};
 use crate::{Error, NavigationOriginalLimits, QueryVocabulary, Result, SourceBinding};
+use rusqlite::params;
 use serde_json::Value;
 use std::collections::BTreeMap;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -347,70 +349,22 @@ fn original_packets(
         }
         rows.push((collection, encoded));
     }
-    let omitted = [
-        "nodes",
-        "edges",
-        "rights",
-        "resources",
-        "manifests",
-        "branches",
-        "relation_edges",
-        "relation_packs",
-        "graph_views",
-        "claim_traces",
-        "input_digests",
-        "source_navigation",
-    ];
-    let header = payload
-        .as_object()
-        .ok_or(Error::Invalid("corpus original header object"))?
-        .iter()
-        .filter(|(field, _)| !omitted.contains(&field.as_str()))
-        .map(|(field, value)| (field.clone(), value.clone()))
-        .collect();
-    let header = encode(&Value::Object(header), limits.max_row_bytes)?;
+    let header = detached_header(payload, limits.max_row_bytes)?;
     total = total
         .checked_add(header.len() as u64)
         .filter(|n| *n <= limits.max_total_bytes)
         .ok_or(Error::Budget("corpus original header bytes"))?;
     Ok((header, rows, total))
 }
-/// Exact existing captured member origin, distinct from the selected authored
-/// cut. Caller-selected release composition is checked again before retention.
-pub fn prepare_captured_corpus_original(
-    capture: &SoftwareCaptureReader,
-    source_path: &RelativePath,
-    binding: &SourceBinding,
-    vocab: &QueryVocabulary,
-    limits: CorpusOriginalSourceLimits,
-    deadline: Instant,
-    cancelled: &AtomicBool,
-) -> Result<CapturedCorpusOriginalPlan> {
-    limits.originals.validate()?;
-    if limits.max_members == 0
-        || limits.max_members > 65_536
-        || limits.max_work_bytes == 0
-        || limits.max_work_bytes > crate::knowledge_original_rows::MAX_COLD_WORK
-        || !binding.complete
-    {
-        return Err(Error::Budget("corpus captured source limits"));
-    }
-    let mut source = Source {
-        reader: capture,
-        root: source_path,
-        limits,
-        deadline,
-        cancelled,
-        work: 0,
-        members: BTreeMap::new(),
-    };
-    let raw = source.read(source_path, crate::legacy::PART_CAP)?;
-    let root = json(&raw, crate::legacy::PART_CAP)?;
-    let mut payload = root.clone();
+// One source law for the finite compatibility plan and the disk-backed importer.
+// The sink sees one logical row; it must not collect all source collections.
+fn visit_captured_rows(
+    source: &mut Source<'_>,
+    root: &Value,
+    sink_row: &mut dyn FnMut(CorpusOriginalCollection, &[String], &Value) -> Result<()>,
+) -> Result<Vec<u8>> {
+    let limits = source.limits;
     if root["schema_version"] == "tos_partitioned_projection_v1" {
-        if raw.len() > crate::legacy::ROOT_CAP {
-            return Err(Error::Budget("corpus partition root bytes"));
-        }
         keys(
             &root,
             &[
@@ -429,7 +383,7 @@ pub fn prepare_captured_corpus_original(
         {
             return Err(Error::Invalid("corpus partition logical profile"));
         }
-        payload = root["header"].clone();
+        let payload = &root["header"];
         let specs = root["collections"]
             .as_object()
             .ok_or(Error::Invalid("corpus partition collections"))?;
@@ -464,8 +418,6 @@ pub fn prepare_captured_corpus_original(
         {
             return Err(Error::Invalid("corpus partition collection closure"));
         }
-        let mut kept_bytes = 0u64;
-        let mut kept_rows = 1u64;
         for (name, spec) in specs {
             keys(spec, &["key_field", "order_fields", "root"])?;
             let (key, order) = if name == "diagnostics" {
@@ -480,21 +432,15 @@ pub fn prepare_captured_corpus_original(
             if spec["key_field"] != key || spec["order_fields"] != serde_json::json!(order) {
                 return Err(Error::Invalid("corpus partition ordering policy"));
             }
-            let mut rows = Vec::<(Vec<String>, Value)>::new();
             let keep = !name.starts_with("source_navigation/") && name != "diagnostics";
+            let collection = CorpusOriginalCollection::ROWS
+                .iter()
+                .copied()
+                .find(|c| c.as_str() == name);
             let mut sink = |_: &str, v: Value| -> Result<()> {
                 if !keep {
                     return Ok(());
                 }
-                let raw = encode(&v, limits.originals.max_row_bytes)?;
-                kept_bytes = kept_bytes
-                    .checked_add(raw.len() as u64)
-                    .filter(|n| *n <= limits.originals.max_total_bytes)
-                    .ok_or(Error::Budget("corpus partition logical bytes"))?;
-                kept_rows = kept_rows
-                    .checked_add(1)
-                    .filter(|n| *n <= limits.originals.max_rows)
-                    .ok_or(Error::Budget("corpus partition logical rows"))?;
                 let sort = order
                     .iter()
                     .map(|f| match v.get(*f) {
@@ -505,8 +451,11 @@ pub fn prepare_captured_corpus_original(
                         )),
                     })
                     .collect::<Result<Vec<_>>>()?;
-                rows.push((sort, v));
-                Ok(())
+                sink_row(
+                    collection.ok_or(Error::Invalid("corpus original collection"))?,
+                    &sort,
+                    &v,
+                )
             };
             // Unique hashed keys plus the complete root count and positional
             // range prove dense diagnostic positions, including unretained rows.
@@ -517,29 +466,98 @@ pub fn prepare_captured_corpus_original(
                 number(&spec["root"], "count")?,
                 &mut sink,
             )?;
-            if keep {
-                rows.sort_by(|a, b| a.0.cmp(&b.0));
-                payload[name] = Value::Array(rows.into_iter().map(|(_, v)| v).collect());
+        }
+
+        for collection in [
+            CorpusOriginalCollection::Branches,
+            CorpusOriginalCollection::GraphViews,
+        ] {
+            for value in payload
+                .get(collection.as_str())
+                .and_then(Value::as_array)
+                .ok_or(Error::Invalid("corpus original required array"))?
+            {
+                source.check()?;
+                sink_row(collection, &[], value)?;
             }
         }
+        return detached_header(payload, limits.originals.max_row_bytes);
     }
-    if payload["schema_version"] != "tos_corpus_index_v1" {
+    if root["schema_version"] != "tos_corpus_index_v1" {
         return Err(Error::Invalid("captured corpus logical schema"));
     }
-    let mut packet_limits = limits.originals;
-    packet_limits.max_total_bytes = packet_limits
-        .max_total_bytes
-        .min(source.limits.max_work_bytes.saturating_sub(source.work));
-    let (header, rows, total) = original_packets(&payload, packet_limits, deadline, cancelled)?;
-    source.charge(total)?;
-    let collections = rows
+    for collection in CorpusOriginalCollection::ROWS {
+        for value in root
+            .get(collection.as_str())
+            .and_then(Value::as_array)
+            .ok_or(Error::Invalid("corpus original required array"))?
+        {
+            source.check()?;
+            sink_row(collection, &[], value)?;
+        }
+    }
+    detached_header(root, limits.originals.max_row_bytes)
+}
+fn detached_header(payload: &Value, cap: usize) -> Result<Vec<u8>> {
+    let omitted = [
+        "nodes",
+        "edges",
+        "rights",
+        "resources",
+        "manifests",
+        "branches",
+        "relation_edges",
+        "relation_packs",
+        "graph_views",
+        "claim_traces",
+        "input_digests",
+        "source_navigation",
+    ];
+    let header = payload
+        .as_object()
+        .ok_or(Error::Invalid("corpus original header object"))?
         .iter()
-        .map(|(c, r)| CorpusOriginalCollectionReceipt {
-            collection: c.as_str().into(),
-            rows: r.len() as u64,
-            ordered_root_sha256: ordered_root(c.as_str(), r),
-        })
+        .filter(|(field, _)| !omitted.contains(&field.as_str()))
+        .map(|(field, value)| (field.clone(), value.clone()))
         .collect();
+    encode(&Value::Object(header), cap)
+}
+fn captured_source<'a>(
+    capture: &'a SoftwareCaptureReader,
+    source_path: &'a RelativePath,
+    binding: &SourceBinding,
+    limits: CorpusOriginalSourceLimits,
+    deadline: Instant,
+    cancelled: &'a AtomicBool,
+) -> Result<Source<'a>> {
+    limits.originals.validate()?;
+    if limits.max_members == 0
+        || limits.max_members > 65_536
+        || limits.max_work_bytes == 0
+        || limits.max_work_bytes > crate::knowledge_original_rows::MAX_COLD_WORK
+        || !binding.complete
+    {
+        return Err(Error::Budget("corpus captured source limits"));
+    }
+    Ok(Source {
+        reader: capture,
+        root: source_path,
+        limits,
+        deadline,
+        cancelled,
+        work: 0,
+        members: BTreeMap::new(),
+    })
+}
+fn captured_receipt(
+    source: Source<'_>,
+    binding: &SourceBinding,
+    vocab: &QueryVocabulary,
+    root_raw: &[u8],
+    header: &[u8],
+    collections: Vec<CorpusOriginalCollectionReceipt>,
+    total: u64,
+) -> Result<CorpusOriginalReceipt> {
     let members = source.members.into_values().collect::<Vec<_>>();
     let mut member_root = Digest256Hasher::new();
     text(&mut member_root, "tos-captured-corpus-members-v1");
@@ -552,7 +570,7 @@ pub fn prepare_captured_corpus_original(
                 .as_bytes(),
         );
     }
-    let pin = capture.selection();
+    let pin = source.reader.selection();
     let mut receipt = CorpusOriginalReceipt {
         profile: CORPUS_ORIGINAL_PROFILE.into(),
         descriptor_sha256: vocab.descriptor_sha256.clone(),
@@ -564,25 +582,320 @@ pub fn prepare_captured_corpus_original(
             source_git_tree: Some(pin.source_git_tree.clone()),
             capture_manifest_sha256: Some(pin.capture_manifest_sha256.to_hex()),
             native_producer: None,
-            source_path: source_path.as_str().into(),
-            source_sha256: Digest256::of_bytes(&raw).to_hex(),
-            source_size_bytes: raw.len() as u64,
+            source_path: source.root.as_str().into(),
+            source_sha256: Digest256::of_bytes(root_raw).to_hex(),
+            source_size_bytes: root_raw.len() as u64,
             members,
             member_root_sha256: member_root.finalize().to_hex(),
         },
-        header_sha256: Digest256::of_bytes(&header).to_hex(),
+        header_sha256: Digest256::of_bytes(header).to_hex(),
         collections,
         component_root_sha256: String::new(),
         total_bytes: total,
     };
     receipt.component_root_sha256 = super::knowledge_corpus_original::component_root(&receipt)?;
     super::knowledge_corpus_original::validate_receipt(&receipt)?;
+    Ok(receipt)
+}
+/// Finite compatibility plan. Partitioned inputs use the same traversal law,
+/// but this older API retains all encoded rows. Prefer direct stage import.
+pub fn prepare_captured_corpus_original(
+    capture: &SoftwareCaptureReader,
+    source_path: &RelativePath,
+    binding: &SourceBinding,
+    vocab: &QueryVocabulary,
+    limits: CorpusOriginalSourceLimits,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> Result<CapturedCorpusOriginalPlan> {
+    let mut source = captured_source(capture, source_path, binding, limits, deadline, cancelled)?;
+    let raw = source.read(source_path, crate::legacy::PART_CAP)?;
+    let root = json(&raw, crate::legacy::PART_CAP)?;
+    check_partition_root_size(&root, raw.len())?;
+    let mut packets = BTreeMap::<String, Vec<(Vec<String>, Vec<u8>)>>::new();
+    let mut count = 1u64;
+    let mut total = 0u64;
+    let mut sink =
+        |collection: CorpusOriginalCollection, sort: &[String], v: &Value| -> Result<()> {
+            indexed_fields(collection, v)?;
+            let raw = encode(v, limits.originals.max_row_bytes)?;
+            charge_packet(&mut count, &mut total, &raw, limits.originals)?;
+            packets
+                .entry(collection.as_str().into())
+                .or_default()
+                .push((sort.to_vec(), raw));
+            Ok(())
+        };
+    let header = visit_captured_rows(&mut source, &root, &mut sink)?;
+    total = total
+        .checked_add(header.len() as u64)
+        .filter(|n| *n <= limits.originals.max_total_bytes)
+        .ok_or(Error::Budget("corpus original header bytes"))?;
+    source.charge(total)?;
+    let rows = CorpusOriginalCollection::ROWS
+        .into_iter()
+        .map(|c| {
+            let mut p = packets.remove(c.as_str()).unwrap_or_default();
+            p.sort_by(|a, b| a.0.cmp(&b.0)); // Stable encounter tie, as the maintained logical reader.
+            (c, p.into_iter().map(|(_, raw)| raw).collect::<Vec<_>>())
+        })
+        .collect::<Vec<_>>();
+    let collections = rows
+        .iter()
+        .map(|(c, r)| CorpusOriginalCollectionReceipt {
+            collection: c.as_str().into(),
+            rows: r.len() as u64,
+            ordered_root_sha256: ordered_root(c.as_str(), r),
+        })
+        .collect();
+    let receipt = captured_receipt(source, binding, vocab, &raw, &header, collections, total)?;
     Ok(CapturedCorpusOriginalPlan {
         binding: binding.clone(),
         receipt,
         header,
         rows,
     })
+}
+fn check_partition_root_size(root: &Value, bytes: usize) -> Result<()> {
+    if root["schema_version"] == "tos_partitioned_projection_v1" && bytes > crate::legacy::ROOT_CAP
+    {
+        return Err(Error::Budget("corpus partition root bytes"));
+    }
+    Ok(())
+}
+fn charge_packet(
+    count: &mut u64,
+    total: &mut u64,
+    raw: &[u8],
+    limits: NavigationOriginalLimits,
+) -> Result<()> {
+    *count = count
+        .checked_add(1)
+        .filter(|n| *n <= limits.max_rows)
+        .ok_or(Error::Budget("corpus original rows"))?;
+    *total = total
+        .checked_add(raw.len() as u64)
+        .filter(|n| *n <= limits.max_total_bytes)
+        .ok_or(Error::Budget("corpus original bytes"))?;
+    Ok(())
+}
+
+// Private external sort. It is never a selected component and is removed
+// before successful receipt publication. SQLite spill remains stage-owned.
+const PENDING_DDL: &str = "CREATE TABLE corpus_capture_pending(collection TEXT NOT NULL,sort0 TEXT NOT NULL,sort1 TEXT NOT NULL,encounter INTEGER NOT NULL,packet BLOB NOT NULL,packet_sha256 BLOB NOT NULL,PRIMARY KEY(collection,sort0,sort1,encounter)) WITHOUT ROWID";
+struct PendingRow {
+    collection: CorpusOriginalCollection,
+    sort0: String,
+    sort1: String,
+    encounter: u64,
+    raw: Vec<u8>,
+}
+fn flush_capture_page(stage: &mut KnowledgeStage<'_>, page: &mut Vec<PendingRow>) -> Result<()> {
+    if page.is_empty() {
+        return Ok(());
+    }
+    let bytes = page
+        .iter()
+        .try_fold(0u64, |n, r| n.checked_add(r.raw.len() as u64))
+        .ok_or(Error::Budget("corpus capture page bytes"))?;
+    stage.charge_materialized(0, bytes)?;
+    stage.with_connection(WritePhase::Sort, |db| {
+        let tx = db.transaction()?;
+        let mut insert =
+            tx.prepare("INSERT INTO corpus_capture_pending VALUES(?1,?2,?3,?4,?5,?6)")?;
+        for r in page.iter() {
+            insert.execute(params![
+                r.collection.as_str(),
+                r.sort0,
+                r.sort1,
+                r.encounter as i64,
+                r.raw,
+                Digest256::of_bytes(&r.raw).as_bytes().as_slice()
+            ])?;
+        }
+        drop(insert);
+        tx.commit()?;
+        Ok(())
+    })?;
+    page.clear();
+    Ok(())
+}
+/// Import exact captured corpus parts into the actual selected original rows.
+/// No whole logical payload is reconstructed. The existing finite original
+/// carrier limits still apply; this is not a goal-scale carrier/profile grant.
+pub fn retain_captured_corpus_original_from_capture(
+    stage: &mut KnowledgeStage<'_>,
+    capture: &SoftwareCaptureReader,
+    source_path: &RelativePath,
+    vocab: &QueryVocabulary,
+    limits: CorpusOriginalSourceLimits,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> Result<CorpusOriginalReceipt> {
+    let result = (|| {
+        let binding = stage.exact_receipt().binding.clone();
+        let mut source =
+            captured_source(capture, source_path, &binding, limits, deadline, cancelled)?;
+        let root_raw = source.read(source_path, crate::legacy::PART_CAP)?;
+        let root = json(&root_raw, crate::legacy::PART_CAP)?;
+        check_partition_root_size(&root, root_raw.len())?;
+        // Derive a page from the existing part and original-page ceilings.
+        let page_rows = (crate::legacy::PART_CAP / limits.originals.max_row_bytes)
+            .min(crate::knowledge_original_rows::MAX_PAGE_ROWS);
+        crate::knowledge_original_rows::page_limits(
+            page_rows,
+            limits.originals.max_row_bytes,
+            crate::legacy::PART_CAP as u64,
+        )?;
+        stage.with_connection(WritePhase::Sort, |db| {
+            db.execute_batch(PENDING_DDL)?;
+            Ok(())
+        })?;
+        let mut page = Vec::new();
+        let mut count = 1u64;
+        let mut total = 0u64;
+        let mut sink =
+            |collection: CorpusOriginalCollection, sort: &[String], value: &Value| -> Result<()> {
+                check_originals(deadline, cancelled)?;
+                indexed_fields(collection, value)?;
+                let raw = encode(value, limits.originals.max_row_bytes)?;
+                charge_packet(&mut count, &mut total, &raw, limits.originals)?;
+                page.push(PendingRow {
+                    collection,
+                    sort0: sort.first().cloned().unwrap_or_default(),
+                    sort1: sort.get(1).cloned().unwrap_or_default(),
+                    encounter: count - 2,
+                    raw,
+                });
+                if page.len() == page_rows {
+                    flush_capture_page(stage, &mut page)?;
+                }
+                Ok(())
+            };
+        let header = visit_captured_rows(&mut source, &root, &mut sink)?;
+        drop(sink);
+        flush_capture_page(stage, &mut page)?;
+        total = total
+            .checked_add(header.len() as u64)
+            .filter(|n| *n <= limits.originals.max_total_bytes)
+            .ok_or(Error::Budget("corpus original header bytes"))?;
+        // Account both private sort writes and final original row copies.
+        source.charge(
+            total
+                .checked_mul(2)
+                .ok_or(Error::Budget("corpus capture work"))?,
+        )?;
+        stage.charge_materialized(1, header.len() as u64)?;
+        stage.with_connection(WritePhase::Finalize, |db| {
+            let tx = db.transaction()?;
+            tx.execute_batch(META_DDL)?;
+            tx.execute_batch(ROW_DDL)?;
+            for (_, ddl) in INDEXES {
+                tx.execute_batch(ddl)?;
+            }
+            let mut insert = tx.prepare(INSERT_ROW)?;
+            insert_original_row(&mut insert, CorpusOriginalCollection::Header, 0, &header)?;
+            drop(insert);
+            tx.commit()?;
+            Ok(())
+        })?;
+        let mut collections = Vec::new();
+        let mut emitted = 1u64;
+        for collection in CorpusOriginalCollection::ROWS {
+            let mut cursor = None::<(String, String, i64)>;
+            let mut ordinal = 0u64;
+            let mut root_hash = order_hash(collection.as_str());
+            loop {
+                source.check()?;
+                let rows = stage.with_connection(WritePhase::Sort, |db| {
+                    // Separate initial and continuation seeks; no nullable
+                    // cursor OR that would repeatedly scan an old prefix.
+                    let first = "SELECT sort0,sort1,encounter,packet,packet_sha256 FROM corpus_capture_pending WHERE collection=?1 ORDER BY sort0,sort1,encounter LIMIT ?2";
+                    let next = "SELECT sort0,sort1,encounter,packet,packet_sha256 FROM corpus_capture_pending WHERE collection=?1 AND (sort0,sort1,encounter)>(?2,?3,?4) ORDER BY sort0,sort1,encounter LIMIT ?5";
+                    let mut q = db.prepare(if cursor.is_some() { next } else { first })?;
+                    let mut scan = if let Some((a,b,c)) = &cursor {
+                        q.query(params![collection.as_str(),a,b,c,page_rows as i64])?
+                    } else { q.query(params![collection.as_str(),page_rows as i64])? };
+                    let mut rows = Vec::new();
+                    let mut bytes = 0u64;
+                    while let Some(row) = scan.next()? {
+                        let raw: Vec<u8> = row.get(3)?;
+                        let sha: Vec<u8> = row.get(4)?;
+                        bytes = bytes.checked_add(raw.len() as u64)
+                            .filter(|n| *n <= crate::legacy::PART_CAP as u64)
+                            .ok_or(Error::Budget("corpus pending page bytes"))?;
+                        if raw.len() > limits.originals.max_row_bytes
+                            || Digest256::of_bytes(&raw).as_bytes().as_slice() != sha {
+                            return Err(Error::Invalid("corpus pending row identity"));
+                        }
+                        rows.push((row.get::<_,String>(0)?,row.get::<_,String>(1)?,row.get::<_,i64>(2)?,raw));
+                    }
+                    Ok(rows)
+                })?;
+                if rows.is_empty() {
+                    break;
+                }
+                let bytes = rows.iter().map(|r| r.3.len() as u64).sum();
+                stage.charge_materialized(rows.len() as u64, bytes)?;
+                stage.with_connection(WritePhase::Finalize, |db| {
+                    let tx = db.transaction()?;
+                    let mut insert = tx.prepare(INSERT_ROW)?;
+                    for (a, b, c, raw) in &rows {
+                        check_originals(deadline, cancelled)?;
+                        insert_original_row(&mut insert, collection, ordinal, raw)?;
+                        order_item(&mut root_hash, ordinal, raw);
+                        ordinal += 1;
+                        cursor = Some((a.clone(), b.clone(), *c));
+                    }
+                    drop(insert);
+                    tx.commit()?;
+                    Ok(())
+                })?;
+            }
+            emitted = emitted
+                .checked_add(ordinal)
+                .ok_or(Error::Budget("corpus import EOF rows"))?;
+            collections.push(CorpusOriginalCollectionReceipt {
+                collection: collection.as_str().into(),
+                rows: ordinal,
+                ordered_root_sha256: root_hash.finalize().to_hex(),
+            });
+        }
+        if emitted != count {
+            return Err(Error::Invalid("corpus import EOF closure"));
+        }
+        let receipt = captured_receipt(
+            source,
+            &binding,
+            vocab,
+            &root_raw,
+            &header,
+            collections,
+            total,
+        )?;
+        let raw =
+            serde_json::to_vec(&receipt).map_err(|_| Error::Invalid("corpus receipt encoding"))?;
+        if raw.len() > JsonLimits::default().max_bytes {
+            return Err(Error::Budget("corpus original receipt bytes"));
+        }
+        stage.charge_materialized(1, raw.len() as u64)?;
+        stage.with_connection(WritePhase::Finalize, |db| {
+            let tx = db.transaction()?;
+            tx.execute(
+                "INSERT INTO corpus_original_meta VALUES(1,?1)",
+                [raw.as_slice()],
+            )?;
+            tx.execute_batch("DROP TABLE corpus_capture_pending")?;
+            tx.commit()?;
+            Ok(())
+        })?;
+        check_originals(deadline, cancelled)?;
+        Ok(receipt)
+    })();
+    if result.is_err() {
+        stage.poison();
+    }
+    result
 }
 
 /// Retain only a real opaque native composition result. Capture metadata is

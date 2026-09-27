@@ -21,6 +21,7 @@ pub use knowledge_corpus_original::{
 };
 pub use knowledge_corpus_source::{
     CorpusOriginalSourceLimits, prepare_captured_corpus_original, prepare_native_corpus_original,
+    retain_captured_corpus_original_from_capture,
 };
 mod knowledge_full;
 #[cfg(all(not(target_arch = "wasm32"), any(test, feature = "test-fixture")))]

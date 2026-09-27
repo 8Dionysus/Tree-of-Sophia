@@ -934,28 +934,7 @@ fn build_native_fixture_inner(
             },
         });
     }
-    let corpus_plan = captured_corpus.map(|(capture, path, deadline, cancelled)| {
-        crate::prepare_captured_corpus_original(
-            capture,
-            path,
-            &stage.exact_receipt().binding,
-            &vocabulary,
-            crate::CorpusOriginalSourceLimits {
-                originals: NavigationOriginalLimits {
-                    max_rows: 200,
-                    max_row_bytes: 65536,
-                    max_total_bytes: 262144,
-                },
-                max_members: 128,
-                max_work_bytes: 16 * 1024 * 1024,
-            },
-            deadline,
-            cancelled,
-        )
-        .unwrap()
-    });
-    additional.corpus_original = corpus_plan.as_ref();
-    let native = materialize_native_sources_with_inputs(
+    let mut native = materialize_native_sources_with_inputs(
         &mut stage,
         &registry,
         entity_bytes,
@@ -967,6 +946,28 @@ fn build_native_fixture_inner(
         additional,
     )
     .unwrap();
+    if let Some((capture, path, deadline, cancelled)) = captured_corpus {
+        native.corpus_original = Some(
+            crate::retain_captured_corpus_original_from_capture(
+                &mut stage,
+                capture,
+                path,
+                &vocabulary,
+                crate::CorpusOriginalSourceLimits {
+                    originals: NavigationOriginalLimits {
+                        max_rows: 200,
+                        max_row_bytes: 65536,
+                        max_total_bytes: 262144,
+                    },
+                    max_members: 128,
+                    max_work_bytes: 16 * 1024 * 1024,
+                },
+                deadline,
+                cancelled,
+            )
+            .unwrap(),
+        );
+    }
     let graph_header = native_fixture_header(&mut stage, &registry, entity_bytes);
     // One versioned LensSpec travels through the real catalog producer. Its
     // source scope comes from this fixture's selected owner descriptor.
