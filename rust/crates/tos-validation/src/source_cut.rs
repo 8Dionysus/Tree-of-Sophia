@@ -260,7 +260,7 @@ impl CutWorkerSchemaExecutor {
     pub fn set_operation_budget(&mut self, budget: BatchStreamBudget) -> Result<(), ItemRefusal> {
         self.prepared
             .set_operation_budget(budget)
-            .map_err(operation_failure)
+            .map_err(|reason| operation_failure_with_context(reason,self.prepared.exchange_failure()))
     }
 
     /// Explicit reuse of an actual scalar execution within this immutable
@@ -274,7 +274,7 @@ impl CutWorkerSchemaExecutor {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> Result<bool, ItemRefusal> {
-        self.prepared.preflight(deadline, cancelled).map_err(operation_failure)?;
+        self.prepared.preflight(deadline, cancelled).map_err(|reason| operation_failure_with_context(reason,self.prepared.exchange_failure()))?;
         // Reapply the same selected-contract/fragment and raw/decoded admission
         // bounds even on a hit; a receipt cannot bypass current operation law.
         let (_, decoded)=self.decoded_input(raw,contract)?;
@@ -293,7 +293,7 @@ impl CutWorkerSchemaExecutor {
         ).map(|receipt|receipt.valid);
         drop(decoded);
         if let Some(valid)=hit {
-            self.prepared.preflight(deadline,cancelled).map_err(operation_failure)?;
+            self.prepared.preflight(deadline,cancelled).map_err(|reason| operation_failure_with_context(reason,self.prepared.exchange_failure()))?;
             return Ok(valid);
         }
         self.check(path,raw,contract,deadline,cancelled)
@@ -348,7 +348,7 @@ impl CutWorkerSchemaExecutor {
     ) -> Result<(), ItemRefusal> {
         self.prepared
             .release_child(deadline, cancelled)
-            .map_err(operation_failure)
+            .map_err(|reason| operation_failure_with_context(reason,self.prepared.exchange_failure()))
     }
 
     pub fn contract_digest(&self, contract: &str) -> Option<Digest256> {
@@ -400,7 +400,7 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
                 uri.len(),
                 unit.raw_instance.len(),
             )
-            .map_err(operation_failure)?;
+            .map_err(|reason| operation_failure_with_context(reason,self.prepared.exchange_failure()))?;
         let receipt = path
             .len()
             .checked_add(contract.len())
@@ -428,7 +428,7 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
     fn finish(&mut self, deadline: Instant, cancelled: &AtomicBool) -> Result<(), ItemRefusal> {
         self.prepared
             .finish(deadline, cancelled)
-            .map_err(operation_failure)
+            .map_err(|reason| operation_failure_with_context(reason,self.prepared.exchange_failure()))
     }
 
     fn check_batch(
@@ -440,7 +440,7 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
     ) -> Result<Vec<bool>, ItemRefusal> {
         self.prepared
             .preflight(deadline, cancelled)
-            .map_err(operation_failure)?;
+            .map_err(|reason| operation_failure_with_context(reason,self.prepared.exchange_failure()))?;
         if budget.max_units == 0
             || budget.max_units > BatchBudget::MAX_UNITS
             || budget.max_total_raw_bytes == 0
@@ -463,7 +463,7 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
         for (ordinal, input) in checks.iter().enumerate() {
             self.prepared
                 .preflight(deadline, cancelled)
-                .map_err(operation_failure)?;
+                .map_err(|reason| operation_failure_with_context(reason,self.prepared.exchange_failure()))?;
             next_bytes = input
                 .path
                 .len()
@@ -500,7 +500,7 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
         if matches!(&outcome, BatchOutcome::Complete { .. }) {
             self.prepared
                 .preflight(deadline, cancelled)
-                .map_err(operation_failure)?;
+                .map_err(|reason| operation_failure_with_context(reason,self.prepared.exchange_failure()))?;
         }
         let (receipts, checkpoint) = match outcome {
             BatchOutcome::Complete {
@@ -577,7 +577,7 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
         }
         self.prepared
             .preflight(deadline, cancelled)
-            .map_err(operation_failure)?;
+            .map_err(|reason| operation_failure_with_context(reason,self.prepared.exchange_failure()))?;
         self.receipt_bytes = next_bytes;
         self.receipts.extend(staged);
         Ok(verdicts)
@@ -593,7 +593,7 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
     ) -> Result<bool, ItemRefusal> {
         self.prepared
             .preflight(deadline, cancelled)
-            .map_err(operation_failure)?;
+            .map_err(|reason| operation_failure_with_context(reason,self.prepared.exchange_failure()))?;
         if self.receipts.len() >= self.limits.max_receipts {
             return Err(ItemRefusal::BudgetCheck {check:"Cut scalar receipt count",used:(self.receipts.len() as u64).checked_add(1),limit:Some(self.limits.max_receipts as u64)});
         }
@@ -621,7 +621,7 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
         ) {
             self.prepared
                 .preflight(deadline, cancelled)
-                .map_err(operation_failure)?;
+                .map_err(|reason| operation_failure_with_context(reason,self.prepared.exchange_failure()))?;
         }
         let (execution, valid) = match result {
             ExecutorOutcome::SchemaValid(identity) => (identity, true),
@@ -1099,9 +1099,12 @@ fn store_error(error: tos_source_store::StoreError) -> ItemRefusal {
 }
 
 fn operation_failure(reason: ExecutorFailure) -> ItemRefusal {
+    operation_failure_with_context(reason,None)
+}
+fn operation_failure_with_context(reason: ExecutorFailure, exchange: Option<crate::executor::ExchangeFailureContext>) -> ItemRefusal {
     match reason {
         ExecutorFailure::Timeout => ItemRefusal::Deadline,
         ExecutorFailure::Cancelled => ItemRefusal::Source("schema operation cancelled".into()),
-        other => ItemRefusal::Unsupported(format!("schema operation refused: {other:?}")),
+        other => ItemRefusal::Unsupported(format!("schema operation refused: {other:?}; original exchange: {exchange:?}")),
     }
 }

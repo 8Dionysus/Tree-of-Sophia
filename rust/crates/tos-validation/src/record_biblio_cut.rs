@@ -102,7 +102,7 @@ impl BiblioRecordExecutor {
                         ItemRefusal::Source("record operation cancelled".into())
                     }
                     other => ItemRefusal::Unsupported(format!(
-                        "record operation finalization: {other:?}"
+                        "record operation finalization: {other:?}; original exchange: {:?}", image.exchange_failure()
                     )),
                 })?;
         }
@@ -131,7 +131,7 @@ impl BiblioRecordExecutor {
                         ItemRefusal::Source("record operation cancelled".into())
                     }
                     other => {
-                        ItemRefusal::Unsupported(format!("record operation refused: {other:?}"))
+                        ItemRefusal::Unsupported(format!("record operation refused: {other:?}; original exchange: {:?}", image.exchange_failure()))
                     }
                 })?;
         } else if cancelled.load(Ordering::Relaxed) || Instant::now() >= limits.deadline {
@@ -217,7 +217,7 @@ impl BiblioRecordExecutor {
                         ItemRefusal::Source("record operation cancelled".into())
                     }
                     other => {
-                        ItemRefusal::Unsupported(format!("record operation refused: {other:?}"))
+                        ItemRefusal::Unsupported(format!("record operation refused: {other:?}; original exchange: {:?}", self.image.as_ref().and_then(VerifiedWorkerImage::exchange_failure)))
                     }
                 })?;
         }

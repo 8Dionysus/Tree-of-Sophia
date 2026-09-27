@@ -518,6 +518,7 @@ pub(crate) use native::{PreparedSchemaWorker, VerifiedWorkerImage};
 pub(crate) struct VerifiedWorkerImage;
 #[cfg(not(all(target_os = "linux", target_pointer_width = "64")))]
 impl VerifiedWorkerImage {
+    pub(crate) fn exchange_failure(&self) -> Option<ExchangeFailureContext> { None }
     pub(crate) fn preflight(&mut self, _: Instant, _: &AtomicBool) -> Result<(), ExecutorFailure> {
         Err(ExecutorFailure::UnsupportedHost)
     }
@@ -564,6 +565,7 @@ impl VerifiedWorkerImage {
 pub(crate) struct PreparedSchemaWorker;
 #[cfg(not(all(target_os = "linux", target_pointer_width = "64")))]
 impl PreparedSchemaWorker {
+    pub(crate) fn exchange_failure(&self) -> Option<ExchangeFailureContext> { None }
     pub(crate) fn preflight(&mut self, _: Instant, _: &AtomicBool) -> Result<(), ExecutorFailure> {
         Err(ExecutorFailure::UnsupportedHost)
     }
@@ -812,6 +814,7 @@ mod native {
         operation_budget: BatchStreamBudget,
         session: Option<OwnedSchemaSession>,
         poisoned: Option<ExecutorFailure>,
+        poison_exchange: Option<ExchangeFailureContext>,
         operation_started: Option<Instant>,
         used_frames: u64,
         used_units: u64,
@@ -879,6 +882,7 @@ mod native {
                 operation_budget,
                 session: None,
                 poisoned: None,
+                poison_exchange: None,
                 operation_started: Some(operation_started),
                 used_frames: 0,
                 used_units: 0,
@@ -900,6 +904,9 @@ mod native {
             budget.validate()?;
             self.operation_budget = budget;
             Ok(())
+        }
+        pub(crate) fn exchange_failure(&self) -> Option<ExchangeFailureContext> {
+            self.poison_exchange
         }
         pub(crate) fn poison(&mut self, mut reason: ExecutorFailure) -> ExecutorFailure {
             if let Some(mut session) = self.session.take() {
@@ -1163,7 +1170,9 @@ mod native {
             );
             let refusal = |p, r, why| batch_incomplete(p, Vec::new(), r, why);
             if let Some(reason) = self.poisoned {
-                return refusal(prepared, results, reason);
+                let mut outcome = refusal(prepared, results, reason);
+                if let BatchOutcome::Incomplete { exchange, .. } = &mut outcome { *exchange = self.poison_exchange; }
+                return outcome;
             }
             if let Err(reason) = preparation_check(Some(deadline), Some(cancelled)) {
                 let why = self.poison(reason);
@@ -1343,7 +1352,10 @@ mod native {
             );
             match &outcome {
                 BatchOutcome::Complete { .. } => session.sequence += 1,
-                BatchOutcome::Incomplete { reason, .. } => {
+                BatchOutcome::Incomplete { reason, exchange, .. } => {
+                    // A later preflight/finish refuses this poisoned operation,
+                    // but must not replace its first actual exchange origin.
+                    if self.poison_exchange.is_none() { self.poison_exchange = *exchange; }
                     let why = *reason;
                     self.poison(why);
                 }
@@ -1548,6 +1560,9 @@ mod native {
         }
         pub(crate) fn operation_budget(&self) -> BatchStreamBudget {
             self.image.operation_budget
+        }
+        pub(crate) fn exchange_failure(&self) -> Option<ExchangeFailureContext> {
+            self.image.exchange_failure()
         }
         pub(crate) fn preflight(
             &mut self,
