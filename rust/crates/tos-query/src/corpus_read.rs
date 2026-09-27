@@ -752,7 +752,8 @@ pub fn execute_selected_corpus<A: InspectCurrentAuthority + ?Sized>(
         budget.inspect,
         |read| {
             let receipt = read.corpus_receipt()?;
-            if receipt.profile != tos_compiler::CORPUS_ORIGINAL_PROFILE
+            if (receipt.profile != tos_compiler::CORPUS_ORIGINAL_PROFILE
+                && receipt.profile != tos_compiler::NATIVE_CORPUS_ORIGINAL_PROFILE)
                 || receipt.descriptor_sha256
                     != bound.selection().vocabulary.descriptor_sha256.to_hex()
                 || receipt.source_cut != bound.selection().source_cut
