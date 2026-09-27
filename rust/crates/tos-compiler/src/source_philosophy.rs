@@ -747,6 +747,61 @@ fn insert_projection_rows(
     }
     flush(&mut pending)
 }
+const INITIAL_ROW_PAGE: &str = "SELECT id,CASE WHEN length(payload)<=?3 THEN payload ELSE NULL END,payload_sha256 FROM source_philosophy_rows WHERE collection=?1 ORDER BY id LIMIT ?4";
+const CONTINUED_ROW_PAGE: &str = "SELECT id,CASE WHEN length(payload)<=?3 THEN payload ELSE NULL END,payload_sha256 FROM source_philosophy_rows WHERE collection=?1 AND id>?2 ORDER BY id LIMIT ?4";
+// Keep continuation as a direct primary-key range. A nullable OR cursor
+// makes SQLite revisit the collection prefix on every bounded page.
+fn row_page(
+    db: &rusqlite::Connection,
+    collection: &str,
+    after_id: Option<&str>,
+    limits: PhilosophySourceLimits,
+) -> Result<Vec<(String, Vec<u8>, Vec<u8>)>> {
+    let sql = if after_id.is_some() {
+        CONTINUED_ROW_PAGE
+    } else {
+        INITIAL_ROW_PAGE
+    };
+    let mut query = db.prepare(sql)?;
+    let rows = query.query_map(
+        params![
+            collection,
+            after_id,
+            limits.max_raw_row_bytes as i64,
+            limits.max_page_rows as i64
+        ],
+        |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+    )?;
+    rows.collect::<std::result::Result<Vec<_>, _>>()
+        .map_err(Error::from)
+}
+fn material_page(
+    planner: &mut KnowledgeStage<'_>,
+    collection: &str,
+    after_id: Option<&str>,
+    limits: PhilosophySourceLimits,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> Result<Vec<PhilosophyMaterialRow>> {
+    check(deadline, cancelled)?;
+    let rows = planner.with_connection(WritePhase::Sort, |db| {
+        row_page(db, collection, after_id, limits)
+    })?;
+    rows.into_iter()
+        .map(|(id, payload, sha)| {
+            check(deadline, cancelled)?;
+            let digest = Digest256::of_bytes(&payload);
+            if digest.as_bytes() != sha.as_slice() {
+                return Err(Error::Invalid("philosophy material row digest"));
+            }
+            Ok(PhilosophyMaterialRow {
+                id,
+                payload,
+                payload_sha256: digest.to_hex(),
+            })
+        })
+        .collect()
+}
 fn visit_rows<F>(
     stage: &mut KnowledgeStage<'_>,
     collection: &str,
@@ -764,7 +819,9 @@ where
     let mut hash = Digest256Hasher::new();
     loop {
         check(deadline, cancelled)?;
-        let batch:Vec<(String,Vec<u8>,Vec<u8>)>=stage.with_connection(WritePhase::Sort,|db|{let mut q=db.prepare("SELECT id,CASE WHEN length(payload)<=?3 THEN payload ELSE NULL END,payload_sha256 FROM source_philosophy_rows WHERE collection=?1 AND (?2 IS NULL OR id>?2) ORDER BY id LIMIT ?4")?;let rows=q.query_map(params![collection,after,l.max_raw_row_bytes as i64,l.max_page_rows as i64],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?)))?;rows.collect::<std::result::Result<Vec<_>,_>>().map_err(Error::from)})?;
+        let batch = stage.with_connection(WritePhase::Sort, |db| {
+            row_page(db, collection, after.as_deref(), l)
+        })?;
         if batch.is_empty() {
             break;
         }
@@ -1504,21 +1561,7 @@ pub fn scan_philosophy_source_material(
         if count != expected.count || root != expected.root_sha256 {
             return Err(Error::Invalid("philosophy material frozen root/count"));
         }
-        let rows:Vec<(String,Vec<u8>,Vec<u8>)>=planner.with_connection(WritePhase::Sort,|db|{let mut q=db.prepare("SELECT id,CASE WHEN length(payload)<=?3 THEN payload ELSE NULL END,payload_sha256 FROM source_philosophy_rows WHERE collection=?1 AND (?2 IS NULL OR id>?2) ORDER BY id LIMIT ?4")?;let rows=q.query_map(params![collection,after_id,limits.max_raw_row_bytes as i64,limits.max_page_rows as i64],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?)))?;rows.collect::<std::result::Result<Vec<_>,_>>().map_err(Error::from)})?;
-        rows.into_iter()
-            .map(|(id, payload, sha)| {
-                check(deadline, cancelled)?;
-                let digest = Digest256::of_bytes(&payload);
-                if digest.as_bytes() != sha.as_slice() {
-                    return Err(Error::Invalid("philosophy material row digest"));
-                }
-                Ok(PhilosophyMaterialRow {
-                    id,
-                    payload,
-                    payload_sha256: digest.to_hex(),
-                })
-            })
-            .collect()
+        material_page(planner, collection, after_id, limits, deadline, cancelled)
     })();
     if result.is_err() {
         planner.poison();
@@ -1557,9 +1600,10 @@ where
             cancelled,
             &mut work,
         )?;
-        let page = scan_philosophy_source_material(
-            planner, plan, "header", None, limits, deadline, cancelled,
-        )?;
+        // verify_plan has just checked every collection root/count under the
+        // exclusive mutable planner borrow. Do not repeat that whole closure
+        // check through the independently callable public material scan.
+        let page = material_page(planner, "header", None, limits, deadline, cancelled)?;
         if page.len() != 1 {
             return Err(Error::Invalid("philosophy projection header closure"));
         }
@@ -1635,4 +1679,95 @@ where
         planner.poison();
     }
     result
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::{Arc, atomic::AtomicU64};
+
+    #[test]
+    fn philosophy_material_continuation_seeks_within_one_vm_budget() {
+        let db = rusqlite::Connection::open_in_memory().unwrap();
+        db.execute_batch("CREATE TABLE source_philosophy_rows(collection TEXT NOT NULL,id TEXT NOT NULL,ordinal INTEGER NOT NULL,payload BLOB NOT NULL,payload_sha256 BLOB NOT NULL,PRIMARY KEY(collection,id)) WITHOUT ROWID;CREATE UNIQUE INDEX source_philosophy_order ON source_philosophy_rows(collection,ordinal);").unwrap();
+        let raw = b"{}";
+        let sha = Digest256::of_bytes(raw);
+        for ordinal in 0..256 {
+            db.execute(
+                "INSERT INTO source_philosophy_rows VALUES(?1,?2,?3,?4,?5)",
+                params![
+                    "nodes",
+                    format!("node:{ordinal:03}"),
+                    ordinal,
+                    raw.as_slice(),
+                    sha.as_bytes().as_slice()
+                ],
+            )
+            .unwrap();
+        }
+        // Both pages and EOF share this counter. The old nullable cursor
+        // predicate walks the late prefix and cannot complete within this cap.
+        let used = Arc::new(AtomicU64::new(0));
+        let counter = Arc::clone(&used);
+        db.progress_handler(
+            1,
+            Some(move || counter.fetch_add(1, Ordering::Relaxed) >= 512),
+        );
+        let limits = PhilosophySourceLimits {
+            max_page_rows: 8,
+            max_raw_row_bytes: 1024,
+            max_page_bytes: 8192,
+            ..PhilosophySourceLimits::default()
+        };
+        let initial = row_page(&db, "nodes", None, limits).unwrap();
+        let continued = row_page(&db, "nodes", Some("node:247"), limits).unwrap();
+        assert_eq!(initial.len(), 8);
+        assert_eq!(initial[0].0, "node:000");
+        assert_eq!(continued.len(), 8);
+        assert_eq!(continued[0].0, "node:248");
+        assert_eq!(continued[7].0, "node:255");
+        assert!(
+            continued
+                .iter()
+                .all(|(_, payload, digest)| payload.as_slice() == raw
+                    && digest.as_slice() == sha.as_bytes())
+        );
+        assert!(
+            row_page(&db, "nodes", Some("node:255"), limits)
+                .unwrap()
+                .is_empty()
+        );
+        assert!(used.load(Ordering::Relaxed) < 512);
+        db.progress_handler(0, None::<fn() -> bool>);
+        for (name, sql) in [
+            ("initial", INITIAL_ROW_PAGE),
+            ("continued", CONTINUED_ROW_PAGE),
+        ] {
+            let mut statement = db.prepare(&format!("EXPLAIN QUERY PLAN {sql}")).unwrap();
+            let plans = statement
+                .query_map(params!["nodes", "node:247", 1024, 8], |row| {
+                    row.get::<_, String>(3)
+                })
+                .unwrap()
+                .collect::<std::result::Result<Vec<_>, _>>()
+                .unwrap();
+            eprintln!("phi {name} query plan: {plans:?}");
+        }
+        eprintln!(
+            "phi initial+late continuation+EOF VM steps: {} / 512",
+            used.load(Ordering::Relaxed)
+        );
+        assert!(
+            row_page(
+                &db,
+                "nodes",
+                None,
+                PhilosophySourceLimits {
+                    max_raw_row_bytes: 1,
+                    ..limits
+                }
+            )
+            .is_err()
+        );
+    }
 }
