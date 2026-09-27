@@ -98,7 +98,7 @@ impl CorpusReader {
             let snapshot = self.load_exact(revision)?;
             for member in snapshot.members() {
                 check_time(deadline, cancelled)?;
-                if !is_source_member(&member.path.as_str().to_owned()) {
+                if !is_authored_source_path_v1(&member.path.as_str().to_owned()) {
                     return Err(StoreError::new(
                         StoreErrorCode::InvalidMemberIndex,
                         "member is outside the source admission carrier",
@@ -118,8 +118,8 @@ impl CorpusReader {
                 }
             }
             for retired in snapshot.retirements() {
-                if !is_source_member(retired.path.as_str())
-                    || !is_source_member(retired.event_ref.as_str())
+                if !is_authored_source_path_v1(retired.path.as_str())
+                    || !is_authored_source_path_v1(retired.event_ref.as_str())
                 {
                     return Err(StoreError::new(
                         StoreErrorCode::InvalidRetirementIndex,
@@ -452,7 +452,9 @@ fn feed_member(h: &mut Digest256Hasher, path: &str, length: u64, digest: Digest2
     h.update(&length.to_be_bytes());
     h.update(digest.as_bytes());
 }
-fn is_source_member(path: &str) -> bool {
+/// Existing authored-cut path eligibility only; no filesystem completeness or
+/// byte-read authority is inferred from a true result.
+pub fn is_authored_source_path_v1(path: &str) -> bool {
     path.starts_with("ToS/")
         && !path
             .split('/')
