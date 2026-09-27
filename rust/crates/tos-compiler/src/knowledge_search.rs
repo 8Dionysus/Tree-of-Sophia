@@ -412,6 +412,50 @@ fn write_document(
 ) -> Result<()> {
     limits.validate()?;
     check()?;
+    if doc.chars > limits.max_document_chars || doc.text.len() > limits.max_document_bytes {
+        return Err(Error::Budget("search document bytes/chars"));
+    }
+    let gram_count = doc.chars.saturating_sub(2);
+    let offset_bytes = gram_count
+        .checked_mul(std::mem::size_of::<usize>())
+        .ok_or(Error::Budget("search gram offsets"))?;
+    let max_offset_bytes = limits
+        .max_document_chars
+        .saturating_sub(2)
+        .checked_mul(std::mem::size_of::<usize>())
+        .ok_or(Error::Budget("search gram offsets"))?;
+    if offset_bytes > max_offset_bytes {
+        return Err(Error::Budget("search gram offsets"));
+    }
+    let mut offsets = Vec::new();
+    offsets
+        .try_reserve_exact(gram_count)
+        .map_err(|_| Error::Budget("search gram offsets"))?;
+    let mut starts = doc.text.char_indices().map(|(offset, _)| offset);
+    if let (Some(mut first), Some(mut second)) = (starts.next(), starts.next()) {
+        for (attempt, third) in starts.enumerate() {
+            if attempt % limits.gram_batch_rows == 0 {
+                check()?;
+            }
+            let end = third
+                + doc.text[third..]
+                    .chars()
+                    .next()
+                    .expect("gram third character")
+                    .len_utf8();
+            charge(&mut receipt.work_bytes, end - first, limits)?;
+            offsets.push(first);
+            first = second;
+            second = third;
+        }
+    }
+    if offsets.len() != gram_count {
+        return Err(Error::Invalid("search gram character count"));
+    }
+    check()?;
+    offsets.sort_unstable_by(|a, b| gram_slice(&doc.text, *a).cmp(gram_slice(&doc.text, *b)));
+    offsets.dedup_by(|a, b| gram_slice(&doc.text, *a) == gram_slice(&doc.text, *b));
+    check()?;
     let transaction = db.transaction()?;
     transaction.execute(
         "INSERT INTO search_documents(kind,position,id,source_graph,kind_id,predicate_id,id_lower,native_id_lower,identity_values,visible_values,document_chars,document_digest) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12)",
@@ -423,54 +467,23 @@ fn write_document(
     )?;
     check()?;
     let mut document_postings = 0u64;
-    let mut iterator = doc.text.chars();
-    if let (Some(mut a), Some(mut b)) = (iterator.next(), iterator.next()) {
-        let mut batch: Vec<Vec<u8>> = Vec::with_capacity(limits.gram_batch_rows);
-        for c in iterator {
-            let mut gram = String::with_capacity(a.len_utf8() + b.len_utf8() + c.len_utf8());
-            gram.push(a);
-            gram.push(b);
-            gram.push(c);
-            charge(&mut receipt.work_bytes, gram.len(), limits)?;
-            batch.push(gram.into_bytes());
-            if batch.len() == limits.gram_batch_rows {
-                check()?;
-                document_postings = document_postings
-                    .checked_add(insert_posting_batch(
-                        &transaction,
-                        kind,
-                        row.position,
-                        &batch,
-                    )?)
-                    .ok_or(Error::Budget("search postings"))?;
-                receipt
-                    .postings
-                    .checked_add(document_postings)
-                    .filter(|n| *n <= limits.max_postings)
-                    .ok_or(Error::Budget("search postings"))?;
-                check()?;
-                batch.clear();
-            }
-            a = b;
-            b = c;
-        }
-        if !batch.is_empty() {
-            check()?;
-            document_postings = document_postings
-                .checked_add(insert_posting_batch(
-                    &transaction,
-                    kind,
-                    row.position,
-                    &batch,
-                )?)
-                .ok_or(Error::Budget("search postings"))?;
-            receipt
-                .postings
-                .checked_add(document_postings)
-                .filter(|n| *n <= limits.max_postings)
-                .ok_or(Error::Budget("search postings"))?;
-            check()?;
-        }
+    for batch in offsets.chunks(limits.gram_batch_rows) {
+        check()?;
+        document_postings = document_postings
+            .checked_add(insert_posting_batch(
+                &transaction,
+                kind,
+                row.position,
+                &doc.text,
+                batch,
+            )?)
+            .ok_or(Error::Budget("search postings"))?;
+        receipt
+            .postings
+            .checked_add(document_postings)
+            .filter(|n| *n <= limits.max_postings)
+            .ok_or(Error::Budget("search postings"))?;
+        check()?;
     }
     let next_postings = receipt
         .postings
@@ -502,38 +515,44 @@ fn write_document(
     Ok(())
 }
 
+fn gram_slice(text: &str, start: usize) -> &[u8] {
+    let (third, character) = text[start..]
+        .char_indices()
+        .nth(2)
+        .expect("prepared three-character gram");
+    &text.as_bytes()[start..start + third + character.len_utf8()]
+}
+
 fn insert_posting_batch(
     db: &Transaction<'_>,
     kind: &str,
     position: i64,
-    batch: &[Vec<u8>],
+    text: &str,
+    batch: &[usize],
 ) -> Result<u64> {
     if batch.len() > MAX_GRAM_BATCH_ROWS {
         return Err(Error::Budget("search gram batch rows"));
     }
-    // Attempted grams were already charged, including duplicates. Avoid
-    // spending SQL VM instructions on duplicate keys within this bounded
-    // batch; the final PK deduplicates across all batches of this document.
-    let mut unique = batch.iter().map(Vec::as_slice).collect::<Vec<_>>();
-    unique.sort_unstable();
-    unique.dedup();
-    if unique.is_empty() {
+    if batch.is_empty() {
         return Ok(0);
     }
-    // One bounded statement avoids restarting a VM program for every gram.
-    // Only placeholders and the fixed gram size enter the SQL text; each gram
-    // remains a bound borrowed blob and the final PK owns cross-batch dedup.
+    // The document's borrowed offsets are already sorted and deduplicated.
+    // Only placeholders and the fixed gram size enter the SQL text.
     let sql = format!(
         "INSERT OR IGNORE INTO search_grams(kind,n,gram,position) VALUES {}",
-        (0..unique.len())
+        (0..batch.len())
             .map(|index| format!("(?1,{GRAM_N},?{},?2)", index + 3))
             .collect::<Vec<_>>()
             .join(",")
     );
-    let mut parameters: Vec<&dyn rusqlite::ToSql> = Vec::with_capacity(unique.len() + 2);
+    let grams = batch
+        .iter()
+        .map(|offset| gram_slice(text, *offset))
+        .collect::<Vec<_>>();
+    let mut parameters: Vec<&dyn rusqlite::ToSql> = Vec::with_capacity(batch.len() + 2);
     parameters.push(&kind);
     parameters.push(&position);
-    parameters.extend(unique.iter().map(|gram| gram as &dyn rusqlite::ToSql));
+    parameters.extend(grams.iter().map(|gram| gram as &dyn rusqlite::ToSql));
     let inserted = db.execute(&sql, params_from_iter(parameters))?;
     u64::try_from(inserted).map_err(|_| Error::Budget("search postings"))
 }
@@ -821,12 +840,17 @@ mod tests {
         )
         .unwrap();
         let checks = std::cell::Cell::new(0);
+        let after_first_insert = guarded_doc
+            .chars
+            .saturating_sub(2)
+            .div_ceil(limits().gram_batch_rows)
+            + 6;
         assert!(matches!(
             write_document(
                 &mut db,
                 &|| {
                     checks.set(checks.get() + 1);
-                    if checks.get() == 5 {
+                    if checks.get() == after_first_insert {
                         Err(Error::Invalid("fixture late guard"))
                     } else {
                         Ok(())
