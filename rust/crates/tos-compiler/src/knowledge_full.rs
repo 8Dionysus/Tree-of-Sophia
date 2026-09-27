@@ -181,6 +181,100 @@ mod tests {
     }
 
     #[test]
+    fn navigation_original_selected_custody_preserves_bytes_and_refuses_tamper() {
+        use crate::knowledge_full_fixture::{
+            build_fixture, build_native_fixture_with_navigation_original,
+        };
+        use tos_foundation::Digest256;
+        let mut fixture = build_native_fixture_with_navigation_original();
+        {
+            let mut model = fixture.open().unwrap();
+            let receipt = model.navigation_original_receipt().unwrap().clone();
+            assert_eq!(
+                model.selection().model_abi,
+                crate::KNOWLEDGE_NAVIGATION_MODEL_ABI
+            );
+            assert_eq!(
+                receipt.descriptor_sha256,
+                fixture.vocabulary.descriptor_sha256
+            );
+            assert_eq!(receipt.source_cut, model.selection().source_cut);
+            assert_eq!(receipt.membership_root, model.selection().membership_root);
+            assert_eq!(receipt.rights, 1);
+            let first = model
+                .navigation_original_page(None, 100_000, 1, 65536, 65536)
+                .unwrap();
+            assert_eq!(first.rows.len(), 1);
+            assert_eq!(first.rows[0].0, -1);
+            assert_eq!(
+                Digest256::of_bytes(&first.rows[0].1).to_hex(),
+                receipt.header_sha256
+            );
+            let second = model
+                .navigation_original_page(first.next_ordinal, 100_000, 1, 65536, 65536)
+                .unwrap();
+            assert_eq!(second.rows[0].0, 0);
+            assert_eq!(second.rows[0].1.as_slice(),br#"{ "rights_id":"fixture-original-declaration", "visibility":"public_metadata_only", "assessment_status":"unknown", "restrictions":[] }"#);
+            let tail = model
+                .navigation_original_page(second.next_ordinal, 100_000, 1, 65536, 65536)
+                .unwrap();
+            assert!(tail.rows.is_empty());
+            assert!(tail.next_ordinal.is_none());
+            assert!(first.vm_steps > 0 && second.vm_steps > 0);
+            assert_eq!(
+                first.decoded_bytes + second.decoded_bytes,
+                receipt.total_bytes
+            );
+            assert_eq!(
+                crate::navigation_original_rights_root(&[&second.rows[0].1]),
+                receipt.rights_root_sha256
+            );
+            let mut fork = model.fork_reader_with_vm_budget(100_000).unwrap();
+            assert_eq!(
+                fork.navigation_original_receipt()
+                    .unwrap()
+                    .component_root_sha256,
+                receipt.component_root_sha256
+            );
+            assert_eq!(
+                fork.navigation_original_page(Some(-1), 100_000, 1, 65536, 65536)
+                    .unwrap()
+                    .rows[0]
+                    .1,
+                second.rows[0].1
+            );
+            assert!(
+                model
+                    .navigation_original_page(None, 1, 1, 65536, 65536)
+                    .is_err()
+            );
+            assert!(
+                model
+                    .navigation_original_page(None, 100_000, 2, 65536, 65536)
+                    .is_err()
+            );
+        }
+        // Deliberately rehash the synthetic expected carrier after tampering:
+        // refusal must come from the inner component, not only whole-file SHA.
+        let changed = br#"{"rights_id":"fixture-original-declaration","visibility":"private"}"#;
+        let db = rusqlite::Connection::open(&fixture.path).unwrap();
+        db.execute("UPDATE navigation_original_rows SET packet_len=?1,packet_sha256=?2,packet=?3 WHERE ordinal=0",rusqlite::params![changed.len() as i64,Digest256::of_bytes(changed).as_bytes().as_slice(),changed.as_slice()]).unwrap();
+        drop(db);
+        let raw = std::fs::read(&fixture.path).unwrap();
+        fixture.expectation.model_sha256 = Digest256::of_bytes(&raw).to_hex();
+        fixture.expectation.model_size_bytes = raw.len() as u64;
+        assert!(fixture.open().is_err());
+        let legacy = build_fixture();
+        let mut old = legacy.open().unwrap();
+        assert_eq!(old.selection().model_abi, crate::KNOWLEDGE_MODEL_ABI);
+        assert!(old.navigation_original_receipt().is_err());
+        assert!(
+            old.navigation_original_page(None, 100_000, 1, 65536, 65536)
+                .is_err()
+        );
+    }
+
+    #[test]
     fn native_raw_claim_navigation_produces_complete_selected_graph() {
         let fixture = crate::knowledge_full_fixture::build_native_fixture();
         let graph: serde_json::Value = serde_json::from_slice(&fixture.graph_input_bytes).unwrap();

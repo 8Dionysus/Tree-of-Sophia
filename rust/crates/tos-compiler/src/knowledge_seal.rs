@@ -48,6 +48,8 @@ pub struct SealLimits {
 
 #[derive(Clone, Debug)]
 pub struct KnowledgeSealReceipt {
+    pub model_abi: String,
+    pub navigation_original_root_sha256: Option<String>,
     pub graph_root_sha256: String,
     pub graph_header_sha256: String,
     pub node_root_sha256: String,
@@ -306,8 +308,17 @@ fn seal_inner(
         &relation_root,
     );
     let binding = stage.exact_receipt().binding.clone();
-    let metadata = [
-        ("model_abi", KNOWLEDGE_MODEL_ABI.to_owned()),
+    let navigation = crate::knowledge_navigation_original::verify_stage(
+        stage,
+        Some(&vocabulary.descriptor_sha256),
+    )?;
+    let model_abi = if navigation.is_some() {
+        crate::KNOWLEDGE_NAVIGATION_MODEL_ABI
+    } else {
+        KNOWLEDGE_MODEL_ABI
+    };
+    let mut metadata = vec![
+        ("model_abi", model_abi.to_owned()),
         ("descriptor_sha256", vocabulary.descriptor_sha256.clone()),
         (
             "descriptor_version",
@@ -360,6 +371,12 @@ fn seal_inner(
         ("relation_count", roots.relations.to_string()),
         ("complete", "true".to_owned()),
     ];
+    if let Some(r) = &navigation {
+        metadata.push((
+            "navigation_original_root_sha256",
+            r.component_root_sha256.clone(),
+        ));
+    }
     if metadata.iter().any(|(key, value)| {
         key.len() > 128
             || value.is_empty()
@@ -405,6 +422,8 @@ fn seal_inner(
     })?;
     stage.mark_selected_full()?;
     Ok(KnowledgeSealReceipt {
+        model_abi: model_abi.into(),
+        navigation_original_root_sha256: navigation.map(|r| r.component_root_sha256),
         graph_root_sha256,
         graph_header_sha256: header_sha.to_hex(),
         node_root_sha256: roots.node_sha256,

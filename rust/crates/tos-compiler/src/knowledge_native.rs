@@ -32,6 +32,7 @@ use tos_foundation::{Digest256, Digest256Hasher};
 /// selected source material, never inferred from an ambient checkout path.
 pub struct NativeFamilyInputs<'a> {
     pub repository_root: Option<RepositoryRootInput<'a>>,
+    pub navigation_original: Option<NavigationOriginalInput<'a>>,
     pub topology: TopologyLimits,
     pub canon_prepare: CanonPrepareLimits,
     pub canon: CanonMaterializeLimits,
@@ -42,6 +43,7 @@ impl NativeFamilyInputs<'_> {
     pub fn bounded_from(limits: NativeProducerLimits) -> Self {
         Self {
             repository_root: None,
+            navigation_original: None,
             topology: TopologyLimits {
                 max_rows: limits.finalize.max_rows,
                 max_page_rows: limits.finalize.max_page_rows,
@@ -588,6 +590,17 @@ pub fn materialize_native_sources_with_inputs(
             navigation_header,
             limits.navigation_prepare,
         )?;
+        if let Some(original) = additional.navigation_original.as_ref() {
+            retain_navigation_original(
+                stage,
+                vocabulary,
+                &navigation,
+                navigation_header,
+                original.rights,
+                original.expected_rights_root_sha256,
+                original.limits,
+            )?;
+        }
         let mut nav_nodes = NavigationNodeNormalizer::new(
             registry,
             entity_bytes,

@@ -799,6 +799,7 @@ impl<'a> KnowledgeStage<'a> {
         self.check(WritePhase::Sort)?;
         let mut selected_file = None;
         if self.selected_full {
+            crate::knowledge_navigation_original::verify_stage(&mut self, None)?;
             self.check(WritePhase::Finalize)?;
             preflight_selected_vacuum(self.db(), &self.candidate, self.inode, self.limits)?;
             // Owner input is removed from the private stage only after exact
@@ -963,6 +964,11 @@ pub(crate) fn selected_table_closure(db: &Connection) -> Result<()> {
         "catalog_routes",
         "catalog_source_counts",
     ];
+    let navigation_original = crate::knowledge_navigation_original::present(db)?;
+    let navigation_tables = [
+        crate::knowledge_navigation_original::META_TABLE,
+        crate::knowledge_navigation_original::ROW_TABLE,
+    ];
     let mut statement = db.prepare(
         "SELECT CASE WHEN typeof(name)='text' AND length(CAST(name AS BLOB))<=128 THEN name ELSE NULL END
          FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name",
@@ -974,11 +980,14 @@ pub(crate) fn selected_table_closure(db: &Connection) -> Result<()> {
         let Some(name) = name else {
             return Err(Error::Budget("selected knowledge table name bytes"));
         };
-        if !TABLES.contains(&name.as_str()) || !seen.insert(name) {
+        if !(TABLES.contains(&name.as_str())
+            || navigation_original && navigation_tables.contains(&name.as_str()))
+            || !seen.insert(name)
+        {
             return Err(Error::Invalid("unexpected selected knowledge table"));
         }
     }
-    if seen.len() != TABLES.len() {
+    if seen.len() != TABLES.len() + if navigation_original { 2 } else { 0 } {
         return Err(Error::Invalid("missing selected knowledge table"));
     }
     const EXPLICIT_INDEXES: &[(&str, &str)] = &[

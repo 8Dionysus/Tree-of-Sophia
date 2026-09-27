@@ -19,6 +19,12 @@ mod knowledge_inherited_views;
 mod knowledge_native;
 mod knowledge_native_finalize;
 mod knowledge_navigation_finalize;
+mod knowledge_navigation_original;
+pub use knowledge_navigation_original::{
+    KNOWLEDGE_NAVIGATION_MODEL_ABI, NAVIGATION_ORIGINAL_PROFILE, NavigationOriginalInput,
+    NavigationOriginalLimits, NavigationOriginalPage, NavigationOriginalReceipt,
+    navigation_original_rights_root, retain_navigation_original,
+};
 mod knowledge_navigation_materialize;
 pub mod knowledge_normalization;
 mod knowledge_ordered;

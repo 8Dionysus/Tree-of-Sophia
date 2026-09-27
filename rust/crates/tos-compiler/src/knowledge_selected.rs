@@ -105,6 +105,7 @@ pub struct VerifiedKnowledgeModel<'a> {
     pinned: File,
     selection: KnowledgeSelectedExpectation,
     source_revision: String,
+    navigation_original: Option<crate::NavigationOriginalReceipt>,
     custody: &'a dyn ImmutableKnowledgeCustody,
     max_cold_vm_steps: u64,
     sqlite_cache_kib: u64,
@@ -112,6 +113,49 @@ pub struct VerifiedKnowledgeModel<'a> {
 }
 
 impl<'a> VerifiedKnowledgeModel<'a> {
+    /// Exact bounded original carrier under this same immutable selected lease.
+    /// Legacy snapshots explicitly refuse; this is not a current rights grant.
+    pub fn navigation_original_receipt(&self) -> Result<&crate::NavigationOriginalReceipt> {
+        self.check_pin()?;
+        self.navigation_original.as_ref().ok_or(Error::Invalid(
+            "selected navigation original component unavailable",
+        ))
+    }
+    pub fn navigation_original_page(
+        &mut self,
+        after: Option<i64>,
+        max_vm_steps: u64,
+        max_rows: usize,
+        max_row_bytes: usize,
+        max_page_bytes: u64,
+    ) -> Result<crate::NavigationOriginalPage> {
+        self.navigation_original_receipt()?;
+        if max_vm_steps == 0 || max_vm_steps > self.max_cold_vm_steps {
+            return Err(Error::Budget("navigation original seek VM budget"));
+        }
+        let counter = Arc::new(AtomicU64::new(0));
+        let used = Arc::clone(&counter);
+        self.connection.progress_handler(
+            1,
+            Some(move || used.fetch_add(1, Ordering::Relaxed).saturating_add(1) >= max_vm_steps),
+        );
+        let result = crate::knowledge_navigation_original::page(
+            &self.connection,
+            after,
+            max_rows,
+            max_row_bytes,
+            max_page_bytes,
+        );
+        self.connection.progress_handler(0, None::<fn() -> bool>);
+        self.check_pin()?;
+        if counter.load(Ordering::Relaxed) >= max_vm_steps {
+            return Err(Error::Budget("navigation original seek VM budget"));
+        }
+        result.map(|mut page| {
+            page.vm_steps = counter.load(Ordering::Relaxed);
+            page
+        })
+    }
     pub fn selection(&self) -> &KnowledgeSelectedExpectation {
         &self.selection
     }
@@ -157,6 +201,7 @@ impl<'a> VerifiedKnowledgeModel<'a> {
             pinned,
             selection: self.selection.clone(),
             source_revision: self.source_revision.clone(),
+            navigation_original: self.navigation_original.clone(),
             custody: self.custody,
             max_cold_vm_steps: max_vm_steps,
             sqlite_cache_kib: self.sqlite_cache_kib,
@@ -188,7 +233,8 @@ fn validate(expected: &KnowledgeSelectedExpectation, limits: ColdOpenLimits) -> 
     }
     if expected.model_size_bytes == 0
         || expected.model_size_bytes > limits.max_file_bytes
-        || expected.model_abi != KNOWLEDGE_MODEL_ABI
+        || ![KNOWLEDGE_MODEL_ABI, crate::KNOWLEDGE_NAVIGATION_MODEL_ABI]
+            .contains(&expected.model_abi.as_str())
         || !expected.complete
         || expected.source_scopes.is_empty()
         || expected.source_scopes.len() > limits.max_sources
@@ -784,6 +830,8 @@ pub fn open_selected_knowledge_model<'a>(
     let source_revision =
         verify_graph_root(&db, &expected, limits, &mut work, node_root, relation_root)?;
     verify_catalog(&db, &expected, limits, &mut work)?;
+    let navigation_original =
+        crate::knowledge_navigation_original::verify(&db, &expected, limits, &mut work)?;
     custody.verify_cold_resources(limits)?;
     custody.verify(&pinned, &expected)?;
     Ok(VerifiedKnowledgeModel {
@@ -791,6 +839,7 @@ pub fn open_selected_knowledge_model<'a>(
         pinned,
         selection: expected,
         source_revision,
+        navigation_original,
         custody,
         max_cold_vm_steps: limits.max_vm_steps,
         sqlite_cache_kib: limits.sqlite_cache_kib,
@@ -1067,29 +1116,39 @@ const SELECTED_TABLES: [(&str, &str); 13] = [
 fn verify_selected_table_allowlist(db: &Connection) -> Result<()> {
     // The selected file contains only the read model. In particular, private
     // raw input and intermediate build tables must not survive publication.
-    let mut table_statement = db.prepare(
-        "SELECT CASE WHEN typeof(name)='text' AND length(CAST(name AS BLOB))<=128 THEN name ELSE NULL END
-         FROM sqlite_master WHERE type='table' ORDER BY name",
-    )?;
-    let mut table_rows = table_statement.query([])?;
-    for (expected_table, _) in SELECTED_TABLES {
-        let actual: Option<String> = table_rows
+    let optional = crate::knowledge_navigation_original::present(db)?;
+    let mut expected: Vec<_> = SELECTED_TABLES.iter().map(|(name, _)| *name).collect();
+    if optional {
+        expected.extend([
+            crate::knowledge_navigation_original::META_TABLE,
+            crate::knowledge_navigation_original::ROW_TABLE,
+        ]);
+    }
+    expected.sort_unstable();
+    let mut table_statement=db.prepare("SELECT CASE WHEN typeof(name)='text' AND length(CAST(name AS BLOB))<=128 THEN name ELSE NULL END FROM sqlite_master WHERE type='table' ORDER BY name")?;
+    let mut rows = table_statement.query([])?;
+    for name in expected {
+        let actual: Option<String> = rows
             .next()?
             .ok_or(Error::Invalid("knowledge table omitted"))?
             .get(0)?;
-        if actual.as_deref() != Some(expected_table) {
+        if actual.as_deref() != Some(name) {
             return Err(Error::Invalid("knowledge selected table allowlist"));
         }
     }
-    if table_rows.next()?.is_some() {
+    if rows.next()?.is_some() {
         return Err(Error::Invalid("knowledge selected extra table"));
     }
+
     Ok(())
 }
 
 pub(crate) fn verify_schema(db: &Connection) -> Result<()> {
     verify_selected_table_allowlist(db)?;
     knowledge_stage::selected_table_closure(db)?;
+    if crate::knowledge_navigation_original::present(db)? {
+        crate::knowledge_navigation_original::verify_ddl(db)?;
+    }
     for (table, expected_ddl_sha256) in SELECTED_TABLES {
         let ddl: Option<Vec<u8>> = db
             .query_row(
@@ -1946,6 +2005,22 @@ mod tests {
             db.execute(&format!("CREATE TABLE {table}(x)"), []).unwrap();
         }
         assert!(verify_selected_table_allowlist(&db).is_ok());
+        db.execute_batch(crate::knowledge_navigation_original::META_DDL)
+            .unwrap();
+        assert!(verify_selected_table_allowlist(&db).is_err());
+        db.execute_batch(crate::knowledge_navigation_original::ROW_DDL)
+            .unwrap();
+        assert!(verify_selected_table_allowlist(&db).is_ok());
+        crate::knowledge_navigation_original::verify_ddl(&db).unwrap();
+        db.execute("DROP TABLE navigation_original_rows", [])
+            .unwrap();
+        db.execute("CREATE TABLE navigation_original_rows(x)", [])
+            .unwrap();
+        assert!(crate::knowledge_navigation_original::verify_ddl(&db).is_err());
+        db.execute("DROP TABLE navigation_original_rows", [])
+            .unwrap();
+        db.execute("DROP TABLE navigation_original_meta", [])
+            .unwrap();
         db.execute("CREATE TABLE raw_records(x)", []).unwrap();
         assert!(verify_selected_table_allowlist(&db).is_err());
         db.execute("DROP TABLE raw_records", []).unwrap();

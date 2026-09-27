@@ -392,7 +392,7 @@ fn finish_fixture(
         model_sha256: output.sqlite_sha256.clone(),
         model_size_bytes: output.sqlite_size_bytes,
         owner_receipt_id: "fixture-owner-receipt".into(),
-        model_abi: crate::KNOWLEDGE_MODEL_ABI.into(),
+        model_abi: full.seal.model_abi,
         descriptor_sha256: vocabulary.descriptor_sha256.clone(),
         descriptor_version: vocabulary.descriptor_version,
         semantic_primitive_profile: vocabulary.semantic_primitive_profile.clone(),
@@ -433,6 +433,14 @@ fn finish_fixture(
 /// Claim bytes and a bounded navigation owner carrier for its exact subject.
 /// No pre-normalized Claim, time envelope or final row is a test input.
 pub fn build_native_fixture() -> FullKnowledgeFixture {
+    build_native_fixture_inner(false)
+}
+/// Existing native raw fixture with one explicitly synthetic rights declaration
+/// retained through normal assembler/seal/cold-open. This grants no authority.
+pub fn build_native_fixture_with_navigation_original() -> FullKnowledgeFixture {
+    build_native_fixture_inner(true)
+}
+fn build_native_fixture_inner(retain_original: bool) -> FullKnowledgeFixture {
     use crate::knowledge_source_claims::ClaimNormalizeLimits;
     let entity_bytes =
         include_bytes!("../../../../ToS/doctrine/semantic-interchange/entity-types.v1.json");
@@ -574,13 +582,126 @@ pub fn build_native_fixture() -> FullKnowledgeFixture {
             .unwrap();
     }
     let header = json!({"schema_version":"tos_source_navigation_v1","authority_boundary":"derived fixture, source semantics and admission retained upstream",
-        "counts":{"nodes":1,"edges":1,"rights":0}});
+        "counts":{"nodes":1,"edges":1,"rights":u64::from(retain_original)}});
     let raw_json = serde_json::to_vec(&header).unwrap();
     let navigation_header = NavigationHeaderClaim {
         expected_sha256: Digest256::of_bytes(&raw_json).to_hex(),
         raw_json,
     };
-    materialize_native_sources(
+    let native_limits = NativeProducerLimits {
+        navigation_prepare: NavigationPrepareLimits {
+            max_nodes: 100,
+            max_edges: 100,
+            max_endpoint_refs: 200,
+            max_page_rows: 2,
+            max_row_bytes: 262144,
+            max_header_bytes: 65536,
+            max_work_bytes: 32 * 1024 * 1024,
+        },
+        navigation_nodes: NavigationNodeLimits {
+            max_raw_bytes: 262144,
+            max_output_bytes: 1048576,
+            max_ancestor_cache_bytes: 1048576,
+        },
+        navigation_materialize: NavigationMaterializeLimits {
+            max_nodes: 100,
+            max_edges: 100,
+            max_placeholders: 100,
+            max_page_rows: 2,
+            max_raw_bytes: 262144,
+            max_output_bytes: 1048576,
+            max_page_bytes: 524288,
+            max_work_bytes: 32 * 1024 * 1024,
+        },
+        navigation_dependencies: NavigationRelationLimits {
+            max_edges: 100,
+            max_page_rows: 2,
+            max_raw_bytes: 262144,
+            max_context_bytes: 1048576,
+            max_page_bytes: 524288,
+            max_work_bytes: 32 * 1024 * 1024,
+        },
+        navigation_relations: NavigationRelationNormalizeLimits {
+            max_raw_bytes: 262144,
+            max_output_bytes: 1048576,
+            max_registry_bytes: 4 * 1024 * 1024,
+            max_claim_contexts: 64,
+            max_global_input_bytes: 1048576,
+        },
+        claims_prepare: ClaimPrepareLimits {
+            max_nodes: 100,
+            max_edges: 100,
+            max_claims: 100,
+            max_page_rows: 2,
+            max_row_bytes: 262144,
+            max_work_bytes: 32 * 1024 * 1024,
+        },
+        claims: ClaimNormalizeLimits {
+            max_raw_bytes: 262144,
+            max_output_bytes: 1048576,
+            max_page_rows: 2,
+            max_contexts: 64,
+            max_work_bytes: 64 * 1024 * 1024,
+        },
+        philosophy_prepare: PhilosophyPrepareLimits {
+            max_nodes: 100,
+            max_edges: 100,
+            max_edge_view_bindings: 100,
+            max_page_rows: 2,
+            max_row_bytes: 262144,
+            max_work_bytes: 32 * 1024 * 1024,
+        },
+        philosophy: PhilosophyMaterializeLimits {
+            max_raw_bytes: 262144,
+            max_output_bytes: 1048576,
+            max_registry_bytes: 4 * 1024 * 1024,
+            max_page_rows: 2,
+            max_rows: 100,
+            max_work_bytes: 32 * 1024 * 1024,
+        },
+        titles: GlobalTitleLimits {
+            max_nodes: 100,
+            max_page_rows: 2,
+            max_page_bytes: 2 * 1048576,
+            max_node_bytes: 1048576,
+            max_title_bytes: 65536,
+            max_work_bytes: 32 * 1024 * 1024,
+        },
+        inherited: InheritedViewLimits {
+            max_relations: 100,
+            max_endpoint_evidence_rows: 200,
+            max_view_tokens: 100,
+            max_page_rows: 2,
+            max_page_bytes: 2 * 1048576,
+            max_row_bytes: 1048576,
+            max_work_bytes: 32 * 1024 * 1024,
+        },
+        finalize: NativeFinalizeLimits {
+            max_rows: 200,
+            max_page_rows: 2,
+            max_page_bytes: 2 * 1048576,
+            max_row_bytes: 1048576,
+            max_view_ids_per_node: 64,
+            max_context_sources: 64,
+            max_work_bytes: 64 * 1024 * 1024,
+        },
+    };
+    let mut additional = NativeFamilyInputs::bounded_from(native_limits);
+    let original_right = br#"{ "rights_id":"fixture-original-declaration", "visibility":"public_metadata_only", "assessment_status":"unknown", "restrictions":[] }"#;
+    let original_rights: [&[u8]; 1] = [original_right];
+    let original_root = navigation_original_rights_root(&original_rights);
+    if retain_original {
+        additional.navigation_original = Some(NavigationOriginalInput {
+            rights: &original_rights,
+            expected_rights_root_sha256: &original_root,
+            limits: NavigationOriginalLimits {
+                max_rows: 4,
+                max_row_bytes: 65536,
+                max_total_bytes: 262144,
+            },
+        });
+    }
+    materialize_native_sources_with_inputs(
         &mut stage,
         &registry,
         entity_bytes,
@@ -588,104 +709,8 @@ pub fn build_native_fixture() -> FullKnowledgeFixture {
         &vocabulary,
         &descriptor_bytes,
         &navigation_header,
-        NativeProducerLimits {
-            navigation_prepare: NavigationPrepareLimits {
-                max_nodes: 100,
-                max_edges: 100,
-                max_endpoint_refs: 200,
-                max_page_rows: 2,
-                max_row_bytes: 262144,
-                max_header_bytes: 65536,
-                max_work_bytes: 32 * 1024 * 1024,
-            },
-            navigation_nodes: NavigationNodeLimits {
-                max_raw_bytes: 262144,
-                max_output_bytes: 1048576,
-                max_ancestor_cache_bytes: 1048576,
-            },
-            navigation_materialize: NavigationMaterializeLimits {
-                max_nodes: 100,
-                max_edges: 100,
-                max_placeholders: 100,
-                max_page_rows: 2,
-                max_raw_bytes: 262144,
-                max_output_bytes: 1048576,
-                max_page_bytes: 524288,
-                max_work_bytes: 32 * 1024 * 1024,
-            },
-            navigation_dependencies: NavigationRelationLimits {
-                max_edges: 100,
-                max_page_rows: 2,
-                max_raw_bytes: 262144,
-                max_context_bytes: 1048576,
-                max_page_bytes: 524288,
-                max_work_bytes: 32 * 1024 * 1024,
-            },
-            navigation_relations: NavigationRelationNormalizeLimits {
-                max_raw_bytes: 262144,
-                max_output_bytes: 1048576,
-                max_registry_bytes: 4 * 1024 * 1024,
-                max_claim_contexts: 64,
-                max_global_input_bytes: 1048576,
-            },
-            claims_prepare: ClaimPrepareLimits {
-                max_nodes: 100,
-                max_edges: 100,
-                max_claims: 100,
-                max_page_rows: 2,
-                max_row_bytes: 262144,
-                max_work_bytes: 32 * 1024 * 1024,
-            },
-            claims: ClaimNormalizeLimits {
-                max_raw_bytes: 262144,
-                max_output_bytes: 1048576,
-                max_page_rows: 2,
-                max_contexts: 64,
-                max_work_bytes: 64 * 1024 * 1024,
-            },
-            philosophy_prepare: PhilosophyPrepareLimits {
-                max_nodes: 100,
-                max_edges: 100,
-                max_edge_view_bindings: 100,
-                max_page_rows: 2,
-                max_row_bytes: 262144,
-                max_work_bytes: 32 * 1024 * 1024,
-            },
-            philosophy: PhilosophyMaterializeLimits {
-                max_raw_bytes: 262144,
-                max_output_bytes: 1048576,
-                max_registry_bytes: 4 * 1024 * 1024,
-                max_page_rows: 2,
-                max_rows: 100,
-                max_work_bytes: 32 * 1024 * 1024,
-            },
-            titles: GlobalTitleLimits {
-                max_nodes: 100,
-                max_page_rows: 2,
-                max_page_bytes: 2 * 1048576,
-                max_node_bytes: 1048576,
-                max_title_bytes: 65536,
-                max_work_bytes: 32 * 1024 * 1024,
-            },
-            inherited: InheritedViewLimits {
-                max_relations: 100,
-                max_endpoint_evidence_rows: 200,
-                max_view_tokens: 100,
-                max_page_rows: 2,
-                max_page_bytes: 2 * 1048576,
-                max_row_bytes: 1048576,
-                max_work_bytes: 32 * 1024 * 1024,
-            },
-            finalize: NativeFinalizeLimits {
-                max_rows: 200,
-                max_page_rows: 2,
-                max_page_bytes: 2 * 1048576,
-                max_row_bytes: 1048576,
-                max_view_ids_per_node: 64,
-                max_context_sources: 64,
-                max_work_bytes: 64 * 1024 * 1024,
-            },
-        },
+        native_limits,
+        additional,
     )
     .unwrap();
     let graph_header = native_fixture_header(&mut stage, &registry, entity_bytes);

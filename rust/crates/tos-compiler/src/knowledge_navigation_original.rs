@@ -1,0 +1,555 @@
+//! Exact navigation originals retained inside the selected immutable model.
+//! This component binds projection custody, never current rights authority.
+use crate::knowledge_selected::{ColdOpenLimits, KnowledgeSelectedExpectation};
+use crate::knowledge_stage::{KnowledgeStage, WritePhase};
+use crate::{Error, NavigationHeaderClaim, NavigationPrepareReceipt, QueryVocabulary, Result};
+use rusqlite::{Connection, OptionalExtension, params};
+use tos_foundation::{Digest256, Digest256Hasher};
+
+pub const NAVIGATION_ORIGINAL_PROFILE: &str = "tos_navigation_original_v1";
+pub const KNOWLEDGE_NAVIGATION_MODEL_ABI: &str = "tos_knowledge_read_model_v3";
+pub(crate) const META_TABLE: &str = "navigation_original_meta";
+pub(crate) const ROW_TABLE: &str = "navigation_original_rows";
+pub(crate) const META_DDL: &str = "CREATE TABLE navigation_original_meta(singleton INTEGER PRIMARY KEY CHECK(singleton=1),profile TEXT NOT NULL,descriptor_sha256 TEXT NOT NULL,source_cut TEXT NOT NULL,membership_root TEXT NOT NULL,source_graph TEXT NOT NULL,node_count INTEGER NOT NULL,edge_count INTEGER NOT NULL,rights_count INTEGER NOT NULL,node_input_root BLOB NOT NULL,edge_input_root BLOB NOT NULL,header_sha256 BLOB NOT NULL,rights_root BLOB NOT NULL,component_root BLOB NOT NULL,total_bytes INTEGER NOT NULL)";
+pub(crate) const ROW_DDL: &str = "CREATE TABLE navigation_original_rows(ordinal INTEGER PRIMARY KEY,packet_len INTEGER NOT NULL,packet_sha256 BLOB NOT NULL,packet BLOB NOT NULL)";
+
+#[derive(Clone, Copy, Debug)]
+pub struct NavigationOriginalLimits {
+    pub max_rows: u64,
+    pub max_row_bytes: usize,
+    pub max_total_bytes: u64,
+}
+impl NavigationOriginalLimits {
+    fn validate(self) -> Result<()> {
+        if self.max_rows == 0
+            || self.max_rows > 1_000_000
+            || self.max_row_bytes == 0
+            || self.max_row_bytes > 8 * 1024 * 1024
+            || self.max_total_bytes == 0
+            || self.max_total_bytes > 256 * 1024 * 1024
+        {
+            return Err(Error::Budget("navigation original limits"));
+        }
+        Ok(())
+    }
+}
+pub struct NavigationOriginalInput<'a> {
+    pub rights: &'a [&'a [u8]],
+    pub expected_rights_root_sha256: &'a str,
+    pub limits: NavigationOriginalLimits,
+}
+#[derive(Clone, Debug)]
+pub struct NavigationOriginalReceipt {
+    pub profile: String,
+    pub descriptor_sha256: String,
+    pub source_cut: String,
+    pub membership_root: String,
+    pub source_graph: String,
+    pub nodes: u64,
+    pub edges: u64,
+    pub rights: u64,
+    pub node_input_root_sha256: String,
+    pub edge_input_root_sha256: String,
+    pub header_sha256: String,
+    pub rights_root_sha256: String,
+    pub component_root_sha256: String,
+    pub total_bytes: u64,
+}
+#[derive(Debug)]
+pub struct NavigationOriginalPage {
+    /// Complete original JSON bytes, in preserved input order. Ordinal -1 is
+    /// the detached header; rights start at 0, with duplicates preserved.
+    pub rows: Vec<(i64, Vec<u8>)>,
+    pub next_ordinal: Option<i64>,
+    pub decoded_bytes: u64,
+    pub vm_steps: u64,
+}
+fn hash_text(h: &mut Digest256Hasher, text: &str) {
+    h.update(&(text.len() as u64).to_be_bytes());
+    h.update(text.as_bytes());
+}
+fn row_hash(h: &mut Digest256Hasher, ordinal: i64, raw: &[u8]) {
+    h.update(&ordinal.to_be_bytes());
+    h.update(&(raw.len() as u64).to_be_bytes());
+    h.update(Digest256::of_bytes(raw).as_bytes());
+}
+fn rights_hash() -> Digest256Hasher {
+    let mut h = Digest256Hasher::new();
+    hash_text(&mut h, "tos-navigation-original-rights-v1");
+    h
+}
+fn root(r: &NavigationOriginalReceipt) -> Result<String> {
+    let mut h = Digest256Hasher::new();
+    for s in [
+        NAVIGATION_ORIGINAL_PROFILE,
+        &r.descriptor_sha256,
+        &r.source_cut,
+        &r.membership_root,
+        &r.source_graph,
+    ] {
+        hash_text(&mut h, s);
+    }
+    for n in [r.nodes, r.edges, r.rights, r.total_bytes] {
+        h.update(&n.to_be_bytes());
+    }
+    for s in [
+        &r.node_input_root_sha256,
+        &r.edge_input_root_sha256,
+        &r.header_sha256,
+        &r.rights_root_sha256,
+    ] {
+        h.update(
+            Digest256::from_hex(s)
+                .map_err(|_| Error::Invalid("navigation original digest"))?
+                .as_bytes(),
+        );
+    }
+    Ok(h.finalize().to_hex())
+}
+fn header(raw: &[u8], r: &NavigationOriginalReceipt, cap: usize) -> Result<()> {
+    let row = crate::knowledge_normalization::SourceRow::parse(raw, cap)?;
+    let v = row.value();
+    if v["schema_version"] != "tos_source_navigation_v1"
+        || !v["authority_boundary"].is_string()
+        || v.get("nodes").is_some()
+        || v.get("edges").is_some()
+        || v.get("rights").is_some()
+        || v["counts"].as_object().is_none_or(|o| o.len() != 3)
+        || v["counts"]["nodes"].as_u64() != Some(r.nodes)
+        || v["counts"]["edges"].as_u64() != Some(r.edges)
+        || v["counts"]["rights"].as_u64() != Some(r.rights)
+    {
+        return Err(Error::Invalid("navigation original header closure"));
+    }
+    Ok(())
+}
+fn right(raw: &[u8], cap: usize) -> Result<()> {
+    let row = crate::knowledge_normalization::SourceRow::parse(raw, cap)?;
+    if !row.value().is_object()
+        || row.value()["rights_id"]
+            .as_str()
+            .is_none_or(|s| s.is_empty())
+    {
+        return Err(Error::Invalid("navigation original rights row"));
+    }
+    Ok(())
+}
+/// Independently supplied expected rights root binds the original ordered rows.
+/// The same-cut owner must supply these originals alongside its prepared raw
+/// navigation. Mechanical binding does not admit the source or current rights.
+pub fn retain_navigation_original(
+    stage: &mut KnowledgeStage<'_>,
+    vocabulary: &QueryVocabulary,
+    prepared: &NavigationPrepareReceipt,
+    claim: &NavigationHeaderClaim,
+    rights: &[&[u8]],
+    expected_rights_root_sha256: &str,
+    limits: NavigationOriginalLimits,
+) -> Result<NavigationOriginalReceipt> {
+    let result = (|| {
+        limits.validate()?;
+        let binding = &stage.exact_receipt().binding;
+        let source = vocabulary
+            .sources
+            .iter()
+            .find(|s| s.source_graph_id == prepared.source_graph)
+            .ok_or(Error::Invalid("navigation original registered source"))?;
+        if vocabulary
+            .sources
+            .iter()
+            .filter(|s| s.adapter_profile == "source-navigation-node-edge-v1")
+            .count()
+            != 1
+            || source.input_role != prepared.input_role
+            || source.adapter_profile != "source-navigation-node-edge-v1"
+            || prepared.source_cut != binding.source_cut
+            || prepared.header_claim_sha256 != claim.expected_sha256
+            || prepared.header_claim_rights_count != rights.len() as u64
+            || rights.len() as u64 > limits.max_rows
+            || Digest256::of_bytes(&claim.raw_json).to_hex() != claim.expected_sha256
+        {
+            return Err(Error::Invalid("navigation original prepared binding"));
+        }
+        for (name, count, digest) in [
+            ("nodes", prepared.nodes, &prepared.node_input_root_sha256),
+            ("edges", prepared.edges, &prepared.edge_input_root_sha256),
+        ] {
+            let entries: Vec<_> = stage
+                .exact_receipt()
+                .collections
+                .iter()
+                .filter(|c| c.source_graph == source.source_graph_id && c.collection == name)
+                .collect();
+            if entries.len() != 1
+                || entries[0].expected_count != count
+                || &entries[0].expected_root_sha256 != digest
+            {
+                return Err(Error::Invalid("navigation original input closure"));
+            }
+        }
+        let mut bytes = claim.raw_json.len() as u64;
+        let mut rights_root = rights_hash();
+        for (i, raw) in rights.iter().enumerate() {
+            if raw.len() > limits.max_row_bytes {
+                return Err(Error::Budget("navigation original row bytes"));
+            }
+            right(raw, limits.max_row_bytes)?;
+            bytes = bytes
+                .checked_add(raw.len() as u64)
+                .filter(|n| *n <= limits.max_total_bytes)
+                .ok_or(Error::Budget("navigation original bytes"))?;
+            row_hash(&mut rights_root, i as i64, raw);
+        }
+        if claim.raw_json.len() > limits.max_row_bytes || bytes > limits.max_total_bytes {
+            return Err(Error::Budget("navigation original header/total bytes"));
+        }
+        let actual_rights_root = rights_root.finalize().to_hex();
+        if actual_rights_root != expected_rights_root_sha256 {
+            return Err(Error::Invalid("navigation original expected rights root"));
+        }
+        let mut receipt = NavigationOriginalReceipt {
+            profile: NAVIGATION_ORIGINAL_PROFILE.into(),
+            descriptor_sha256: vocabulary.descriptor_sha256.clone(),
+            source_cut: binding.source_cut.clone(),
+            membership_root: binding.membership_root.clone(),
+            source_graph: prepared.source_graph.clone(),
+            nodes: prepared.nodes,
+            edges: prepared.edges,
+            rights: rights.len() as u64,
+            node_input_root_sha256: prepared.node_input_root_sha256.clone(),
+            edge_input_root_sha256: prepared.edge_input_root_sha256.clone(),
+            header_sha256: claim.expected_sha256.clone(),
+            rights_root_sha256: actual_rights_root,
+            component_root_sha256: String::new(),
+            total_bytes: bytes,
+        };
+        header(&claim.raw_json, &receipt, limits.max_row_bytes)?;
+        receipt.component_root_sha256 = root(&receipt)?;
+        stage.charge(&claim.raw_json)?;
+        for raw in rights {
+            stage.charge(raw)?;
+        }
+        stage.charge_materialized(
+            1,
+            (receipt.profile.len()
+                + receipt.descriptor_sha256.len()
+                + receipt.source_cut.len()
+                + receipt.membership_root.len()
+                + receipt.source_graph.len()
+                + 5 * 32
+                + 5 * 8) as u64,
+        )?;
+        stage.with_connection(WritePhase::Finalize, |db| {
+            let tx = db.transaction()?;
+            tx.execute_batch(META_DDL)?; tx.execute_batch(ROW_DDL)?;
+            tx.execute("INSERT INTO navigation_original_meta VALUES(1,?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14)", params![receipt.profile,receipt.descriptor_sha256,receipt.source_cut,receipt.membership_root,receipt.source_graph,receipt.nodes as i64,receipt.edges as i64,receipt.rights as i64,Digest256::from_hex(&receipt.node_input_root_sha256).map_err(|_|Error::Invalid("navigation original input root"))?.as_bytes().as_slice(),Digest256::from_hex(&receipt.edge_input_root_sha256).map_err(|_|Error::Invalid("navigation original input root"))?.as_bytes().as_slice(),Digest256::from_hex(&receipt.header_sha256).map_err(|_|Error::Invalid("navigation original header root"))?.as_bytes().as_slice(),Digest256::from_hex(&receipt.rights_root_sha256).map_err(|_|Error::Invalid("navigation original rights root"))?.as_bytes().as_slice(),Digest256::from_hex(&receipt.component_root_sha256).map_err(|_|Error::Invalid("navigation original component root"))?.as_bytes().as_slice(),receipt.total_bytes as i64])?;
+            { let mut insert = tx.prepare("INSERT INTO navigation_original_rows VALUES(?1,?2,?3,?4)")?;
+              for (ordinal, raw) in std::iter::once((-1i64, claim.raw_json.as_slice())).chain(rights.iter().enumerate().map(|(i,r)|(i as i64,*r))) {
+                  insert.execute(params![ordinal, raw.len() as i64, Digest256::of_bytes(raw).as_bytes().as_slice(),raw])?;
+              }
+            }
+            tx.commit()?; Ok(())
+        })?;
+        Ok(receipt)
+    })();
+    if result.is_err() {
+        stage.poison();
+    }
+    result
+}
+/// Root calculation for the same-cut producer/caller before retention. This
+/// is not an admission receipt; callers must retain the independently expected
+/// result with the prepared original navigation.
+pub fn navigation_original_rights_root(rights: &[&[u8]]) -> String {
+    let mut h = rights_hash();
+    for (i, r) in rights.iter().enumerate() {
+        row_hash(&mut h, i as i64, r);
+    }
+    h.finalize().to_hex()
+}
+pub(crate) fn present(db: &Connection) -> Result<bool> {
+    let mut seen = 0;
+    for name in [META_TABLE, ROW_TABLE] {
+        seen += usize::from(
+            db.query_row(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?1",
+                [name],
+                |r| r.get::<_, i64>(0),
+            )
+            .optional()?
+            .is_some(),
+        );
+    }
+    if seen == 1 {
+        return Err(Error::Invalid("navigation original partial tables"));
+    }
+    Ok(seen == 2)
+}
+pub(crate) fn verify_ddl(db: &Connection) -> Result<()> {
+    for (name, expected) in [(META_TABLE, META_DDL), (ROW_TABLE, ROW_DDL)] {
+        let sql: Option<String> = db.query_row("SELECT CASE WHEN typeof(sql)='text' AND length(CAST(sql AS BLOB))<=4096 THEN sql ELSE NULL END FROM sqlite_master WHERE type='table' AND name=?1",[name],|r|r.get(0)).optional()?.flatten();
+        if sql.as_deref() != Some(expected) {
+            return Err(Error::Invalid("navigation original component DDL"));
+        }
+    }
+    Ok(())
+}
+fn digest(raw: Vec<u8>) -> Result<String> {
+    if raw.len() != 32 {
+        return Err(Error::Invalid("navigation original stored digest"));
+    }
+    Ok(raw.iter().map(|b| format!("{b:02x}")).collect())
+}
+pub(crate) fn receipt(db: &Connection) -> Result<NavigationOriginalReceipt> {
+    if !present(db)? {
+        return Err(Error::Invalid(
+            "selected navigation original component unavailable",
+        ));
+    }
+    let n: i64 = db.query_row("SELECT COUNT(*) FROM navigation_original_meta", [], |r| {
+        r.get(0)
+    })?;
+    if n != 1 {
+        return Err(Error::Invalid("navigation original metadata coverage"));
+    }
+    db.query_row("SELECT CASE WHEN length(CAST(profile AS BLOB))<=128 THEN profile ELSE NULL END,CASE WHEN length(CAST(descriptor_sha256 AS BLOB))<=64 THEN descriptor_sha256 ELSE NULL END,CASE WHEN length(CAST(source_cut AS BLOB))<=4096 THEN source_cut ELSE NULL END,CASE WHEN length(CAST(membership_root AS BLOB))<=64 THEN membership_root ELSE NULL END,CASE WHEN length(CAST(source_graph AS BLOB))<=4096 THEN source_graph ELSE NULL END,node_count,edge_count,rights_count,CASE WHEN typeof(node_input_root)='blob' AND length(node_input_root)=32 THEN node_input_root ELSE NULL END,CASE WHEN typeof(edge_input_root)='blob' AND length(edge_input_root)=32 THEN edge_input_root ELSE NULL END,CASE WHEN typeof(header_sha256)='blob' AND length(header_sha256)=32 THEN header_sha256 ELSE NULL END,CASE WHEN typeof(rights_root)='blob' AND length(rights_root)=32 THEN rights_root ELSE NULL END,CASE WHEN typeof(component_root)='blob' AND length(component_root)=32 THEN component_root ELSE NULL END,total_bytes FROM navigation_original_meta WHERE singleton=1",[],|row| {
+        // Bounded decoding remains in the compiler Result below.
+        Ok((row.get::<_,Option<String>>(0)?,row.get::<_,Option<String>>(1)?,row.get::<_,Option<String>>(2)?,row.get::<_,Option<String>>(3)?,row.get::<_,Option<String>>(4)?,row.get::<_,i64>(5)?,row.get::<_,i64>(6)?,row.get::<_,i64>(7)?,row.get::<_,Option<Vec<u8>>>(8)?,row.get::<_,Option<Vec<u8>>>(9)?,row.get::<_,Option<Vec<u8>>>(10)?,row.get::<_,Option<Vec<u8>>>(11)?,row.get::<_,Option<Vec<u8>>>(12)?,row.get::<_,i64>(13)?))
+    }).map_err(Error::from).and_then(|v| Ok(NavigationOriginalReceipt {
+        profile:v.0.ok_or(Error::Budget("navigation original profile"))?,descriptor_sha256:v.1.ok_or(Error::Budget("navigation original descriptor"))?,source_cut:v.2.ok_or(Error::Budget("navigation original cut"))?,membership_root:v.3.ok_or(Error::Budget("navigation original membership"))?,source_graph:v.4.ok_or(Error::Budget("navigation original source"))?,
+        nodes:u64::try_from(v.5).map_err(|_|Error::Invalid("navigation original count"))?,edges:u64::try_from(v.6).map_err(|_|Error::Invalid("navigation original count"))?,rights:u64::try_from(v.7).map_err(|_|Error::Invalid("navigation original count"))?,
+        node_input_root_sha256:digest(v.8.ok_or(Error::Invalid("navigation original digest"))?)?,edge_input_root_sha256:digest(v.9.ok_or(Error::Invalid("navigation original digest"))?)?,header_sha256:digest(v.10.ok_or(Error::Invalid("navigation original digest"))?)?,rights_root_sha256:digest(v.11.ok_or(Error::Invalid("navigation original digest"))?)?,component_root_sha256:digest(v.12.ok_or(Error::Invalid("navigation original digest"))?)?,total_bytes:u64::try_from(v.13).map_err(|_|Error::Invalid("navigation original size"))?,
+    }))
+}
+pub(crate) fn page(
+    db: &Connection,
+    after: Option<i64>,
+    max_rows: usize,
+    max_row_bytes: usize,
+    max_page_bytes: u64,
+) -> Result<NavigationOriginalPage> {
+    if max_rows == 0
+        || max_rows > 1024
+        || max_row_bytes == 0
+        || max_row_bytes > 8 * 1024 * 1024
+        || max_page_bytes == 0
+        || max_page_bytes > 64 * 1024 * 1024
+        || max_rows
+            .checked_mul(max_row_bytes)
+            .is_none_or(|n| n as u64 > max_page_bytes)
+        || after.is_some_and(|i| i < -1)
+    {
+        return Err(Error::Budget("navigation original page limits"));
+    }
+    let mut q=db.prepare("SELECT ordinal,packet_len,CASE WHEN typeof(packet_sha256)='blob' AND length(packet_sha256)=32 THEN packet_sha256 ELSE NULL END,CASE WHEN typeof(packet)='blob' AND packet_len=length(packet) AND length(packet)<=?2 THEN packet ELSE NULL END FROM navigation_original_rows WHERE ordinal>?1 ORDER BY ordinal LIMIT ?3")?;
+    let mut scan = q.query(params![
+        after.unwrap_or(-2),
+        max_row_bytes as i64,
+        max_rows as i64
+    ])?;
+    let mut rows = Vec::new();
+    let mut bytes = 0u64;
+    while let Some(row) = scan.next()? {
+        let ordinal: i64 = row.get(0)?;
+        let size: i64 = row.get(1)?;
+        let sha: Vec<u8> = row
+            .get::<_, Option<Vec<u8>>>(2)?
+            .ok_or(Error::Invalid("navigation original row digest"))?;
+        let raw: Vec<u8> = row
+            .get::<_, Option<Vec<u8>>>(3)?
+            .ok_or(Error::Budget("navigation original row bytes"))?;
+        bytes = bytes
+            .checked_add(raw.len() as u64)
+            .filter(|n| *n <= max_page_bytes)
+            .ok_or(Error::Budget("navigation original page bytes"))?;
+        if size < 0
+            || size as usize != raw.len()
+            || sha.as_slice() != Digest256::of_bytes(&raw).as_bytes()
+        {
+            return Err(Error::Invalid("navigation original row identity"));
+        }
+        rows.push((ordinal, raw));
+    }
+    let next_ordinal = if rows.len() == max_rows {
+        rows.last().map(|r| r.0)
+    } else {
+        None
+    };
+    Ok(NavigationOriginalPage {
+        rows,
+        next_ordinal,
+        decoded_bytes: bytes,
+        vm_steps: 0,
+    })
+}
+pub(crate) fn verify(
+    db: &Connection,
+    expected: &KnowledgeSelectedExpectation,
+    l: ColdOpenLimits,
+    work: &mut u64,
+) -> Result<Option<NavigationOriginalReceipt>> {
+    let present = present(db)?;
+    if expected.model_abi == KNOWLEDGE_NAVIGATION_MODEL_ABI && !present
+        || expected.model_abi != KNOWLEDGE_NAVIGATION_MODEL_ABI && present
+    {
+        return Err(Error::Invalid("navigation original model ABI coverage"));
+    }
+    if !present {
+        let n: i64 = db.query_row(
+            "SELECT COUNT(*) FROM metadata WHERE key='navigation_original_root_sha256'",
+            [],
+            |r| r.get(0),
+        )?;
+        if n != 0 {
+            return Err(Error::Invalid("navigation original phantom seal"));
+        }
+        return Ok(None);
+    }
+    verify_ddl(db)?;
+    let r = receipt(db)?;
+    if r.profile != NAVIGATION_ORIGINAL_PROFILE
+        || r.descriptor_sha256 != expected.descriptor_sha256
+        || r.source_cut != expected.source_cut
+        || r.membership_root != expected.membership_root
+        || r.rights.checked_add(1).is_none_or(|n| n > l.max_rows)
+        || r.total_bytes > l.max_work_bytes
+        || !expected.source_scopes.iter().any(|s| {
+            s.source_graph == r.source_graph
+                && s.adapter_profile == "source-navigation-node-edge-v1"
+        })
+        || root(&r)? != r.component_root_sha256
+    {
+        return Err(Error::Invalid("navigation original selected binding"));
+    }
+    *work = work
+        .checked_add(
+            (r.profile.len()
+                + r.descriptor_sha256.len()
+                + r.source_cut.len()
+                + r.membership_root.len()
+                + r.source_graph.len()
+                + 5 * 32
+                + 5 * 8) as u64,
+        )
+        .filter(|n| *n <= l.max_work_bytes)
+        .ok_or(Error::Budget("navigation original cold binding bytes"))?;
+    verify_rows(
+        db,
+        &r,
+        NavigationOriginalLimits {
+            max_rows: l.max_rows.saturating_sub(1),
+            max_row_bytes: l.max_row_bytes.min(8 * 1024 * 1024),
+            max_total_bytes: l.max_work_bytes.min(256 * 1024 * 1024),
+        },
+        work,
+        l.max_work_bytes,
+    )?;
+    let meta:Option<String>=db.query_row("SELECT CAST(value AS TEXT) FROM metadata WHERE key='navigation_original_root_sha256' AND length(CAST(value AS BLOB))=64",[],|r|r.get(0)).optional()?;
+    if meta.as_deref() != Some(&r.component_root_sha256) {
+        return Err(Error::Invalid("navigation original sealed root"));
+    }
+    Ok(Some(r))
+}
+
+fn verify_rows(
+    db: &Connection,
+    r: &NavigationOriginalReceipt,
+    l: NavigationOriginalLimits,
+    work: &mut u64,
+    work_cap: u64,
+) -> Result<()> {
+    if r.rights > l.max_rows || r.total_bytes > l.max_total_bytes {
+        return Err(Error::Budget("navigation original aggregate limits"));
+    }
+    let mut after = None;
+    let mut count = 0u64;
+    let mut bytes = 0u64;
+    let mut rights = rights_hash();
+    loop {
+        let p = page(
+            db,
+            after,
+            1,
+            l.max_row_bytes,
+            (l.max_row_bytes as u64).min(64 * 1024 * 1024),
+        )?;
+        for (ordinal, raw) in &p.rows {
+            let want = count as i64 - 1;
+            if *ordinal != want {
+                return Err(Error::Invalid("navigation original ordinal coverage"));
+            }
+            if *ordinal == -1 {
+                header(raw, &r, l.max_row_bytes)?;
+                if Digest256::of_bytes(raw).to_hex() != r.header_sha256 {
+                    return Err(Error::Invalid("navigation original header SHA"));
+                }
+            } else {
+                right(raw, l.max_row_bytes)?;
+                row_hash(&mut rights, *ordinal, raw);
+            }
+            count = count
+                .checked_add(1)
+                .filter(|n| *n <= l.max_rows.saturating_add(1))
+                .ok_or(Error::Budget("navigation original count"))?;
+            bytes = bytes
+                .checked_add(raw.len() as u64)
+                .ok_or(Error::Budget("navigation original bytes"))?;
+            *work = work
+                .checked_add(raw.len() as u64 + 40)
+                .filter(|n| *n <= work_cap)
+                .ok_or(Error::Budget("navigation original cold work"))?;
+        }
+        after = p.next_ordinal;
+        if after.is_none() {
+            break;
+        }
+    }
+    if count != r.rights + 1
+        || bytes != r.total_bytes
+        || rights.finalize().to_hex() != r.rights_root_sha256
+    {
+        return Err(Error::Invalid("navigation original root/coverage"));
+    }
+    Ok(())
+}
+/// Recheck original component before seal and again before selected vacuum.
+pub(crate) fn verify_stage(
+    stage: &mut KnowledgeStage<'_>,
+    descriptor: Option<&str>,
+) -> Result<Option<NavigationOriginalReceipt>> {
+    let binding = stage.exact_receipt().binding.clone();
+    stage.with_connection(WritePhase::Finalize, |db| {
+        if !present(db)? {
+            return Ok(None);
+        }
+        verify_ddl(db)?;
+        let r = receipt(db)?;
+        if r.profile != NAVIGATION_ORIGINAL_PROFILE
+            || r.source_cut != binding.source_cut
+            || r.membership_root != binding.membership_root
+            || descriptor.is_some_and(|d| d != r.descriptor_sha256)
+            || root(&r)? != r.component_root_sha256
+        {
+            return Err(Error::Invalid("navigation original stage binding"));
+        }
+        let mut work = 0;
+        verify_rows(
+            db,
+            &r,
+            NavigationOriginalLimits {
+                max_rows: 1_000_000,
+                max_row_bytes: 8 * 1024 * 1024,
+                max_total_bytes: 256 * 1024 * 1024,
+            },
+            &mut work,
+            320 * 1024 * 1024,
+        )?;
+        if descriptor.is_none() {
+            for (key,wanted) in [("model_abi",KNOWLEDGE_NAVIGATION_MODEL_ABI),("descriptor_sha256",r.descriptor_sha256.as_str()),("navigation_original_root_sha256",r.component_root_sha256.as_str())] {
+                let actual:Option<String>=db.query_row("SELECT CAST(value AS TEXT) FROM metadata WHERE key=?1 AND length(CAST(value AS BLOB))<=128",[key],|r|r.get(0)).optional()?;
+                if actual.as_deref()!=Some(wanted){return Err(Error::Invalid("navigation original finish seal"));}
+            }
+        }
+        Ok(Some(r))
+    })
+}
