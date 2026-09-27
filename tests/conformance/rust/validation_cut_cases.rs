@@ -775,3 +775,116 @@ fn actual_general_operation_keeps_selected_family_coverage_below_source_admissio
             .all(|receipt| receipt.source_revision == revision)
     );
 }
+
+#[test]
+fn actual_cut_schema_batch_binds_ordered_units_and_refuses_partial_receipts() {
+    use tos_validation::executor::BatchBudget;
+    use tos_validation::source_cut::{CutSchemaCheck, CutSchemaExecutor};
+
+    let files = selected_item_sources();
+    let temporary = tempfile::tempdir().unwrap();
+    let root = temporary.path().join("store");
+    let revision = write_cut_store(&files, &root);
+    let cancelled = AtomicBool::new(false);
+    let deadline = Instant::now() + Duration::from_secs(60);
+    let reader = CorpusReader::open_existing(&root, ReadLimits {
+        max_manifest_bytes: 1_048_576,
+        max_manifest_entries: 512,
+        max_selected_object_bytes: 2_097_152,
+        json: JsonLimits::default(),
+    }).unwrap();
+    let cut = reader.open_source_cut(revision, CutReadLimits {
+        max_revisions: 4, max_members: 1024, max_total_bytes: 16_777_216,
+        max_member_bytes: 2_097_152,
+    }, deadline, &cancelled).unwrap();
+    let worker_path = selected_worker_path();
+    let worker_digest = Digest256::of_bytes(&fs::read(&worker_path).unwrap());
+    let mut schemas = CutWorkerSchemaExecutor::from_cut(
+        &cut, FormatProfile::LegacyPythonObserved20260923,
+        ExactWorkerIdentity { absolute_path: worker_path, sha256: worker_digest },
+        ExecutorBudget::laboratory(),
+        CutWorkerLimits { max_receipts: 16, max_receipt_bytes: 32_768 },
+        deadline, &cancelled,
+    ).unwrap();
+    let binding = schemas.execution_binding();
+    let item_path = format!("{ITEM}/item.json");
+    let item: Value = serde_json::from_slice(&files[&item_path]).unwrap();
+    let version = serde_json::to_vec(&item["record_version"]).unwrap();
+    let label = serde_json::to_vec(&item["preferred_label"]).unwrap();
+    let version_contract = "ToS/contracts/corpus-record.schema.json#/properties/record_version";
+    // These are field-instance probes and deliberate negative mutations, not
+    // whole-record validation, source enumeration or owner admission.
+    let mut spaced_version = vec![b' '];
+    spaced_version.extend_from_slice(&version);
+    spaced_version.push(b'\n');
+    let inputs = vec![
+        CutSchemaCheck { path: format!("{item_path}#/record_version/first"), raw: spaced_version,
+            contract: version_contract.into() },
+        CutSchemaCheck { path: format!("{item_path}#/record_version/negative"), raw: b"0".to_vec(),
+            contract: version_contract.into() },
+        CutSchemaCheck { path: format!("{item_path}#/record_version/repeated"), raw: version,
+            contract: version_contract.into() },
+        CutSchemaCheck { path: format!("{item_path}#/preferred_label"), raw: label,
+            contract: "ToS/contracts/corpus-record.schema.json#/properties/preferred_label".into() },
+    ];
+    let mut budget = BatchBudget::laboratory();
+    budget.max_units = inputs.len();
+    budget.max_total_raw_bytes = inputs.iter().map(|input| input.raw.len()).sum();
+    assert_eq!(schemas.check_batch(&inputs, budget, deadline, &cancelled).unwrap(),
+        vec![true, false, true, true]);
+    assert_eq!(schemas.receipts().len(), inputs.len());
+    let checkpoint = schemas.receipts()[0].batch.unwrap().checkpoint;
+    assert_eq!(checkpoint.completed_count, inputs.len() as u64);
+    assert_eq!(checkpoint.worker_sha256, worker_digest);
+    assert_eq!(checkpoint.schema_set_sha256, binding.schema_set_sha256);
+    assert_eq!(checkpoint.profile, binding.schema_profile);
+    let mut unit_digests = BTreeSet::new();
+    for (ordinal, (input, receipt)) in inputs.iter().zip(schemas.receipts()).enumerate() {
+        let batch = receipt.batch.unwrap();
+        assert_eq!(batch.checkpoint, checkpoint);
+        assert_eq!(batch.ordinal, ordinal as u64);
+        assert!(unit_digests.insert(batch.unit_sha256));
+        assert_eq!(receipt.path, input.path);
+        assert_eq!(receipt.contract, input.contract);
+        assert_eq!(receipt.source_revision, revision);
+        assert_eq!(receipt.source_raw_sha256, Digest256::of_bytes(&input.raw));
+        let decoded: Value = serde_json::from_slice(&input.raw).unwrap();
+        let decoded_digest = Digest256::of_bytes(&serde_json::to_vec(&decoded).unwrap());
+        assert_eq!(receipt.decoded_instance_sha256, decoded_digest);
+        assert_eq!(receipt.execution.instance_sha256, decoded_digest);
+        assert_eq!(receipt.execution.request_sha256, checkpoint.request_sha256);
+        assert_eq!(receipt.execution.worker_sha256, worker_digest);
+        assert_eq!(receipt.execution.schema_set_sha256, binding.schema_set_sha256);
+    }
+    assert_ne!(schemas.receipts()[0].source_raw_sha256, schemas.receipts()[0].decoded_instance_sha256);
+    // The first valid unit is emitted before this second decoded instance
+    // exceeds the strict worker's depth budget. Complete coverage must fail;
+    // the adapter may not append the provisional first receipt.
+    let mut deep = vec![b'['; 65];
+    deep.push(b'0');
+    deep.extend(std::iter::repeat_n(b']', 65));
+    let incomplete = vec![inputs[0].clone(), CutSchemaCheck {
+        path: format!("{item_path}#/record_version/depth-budget"), raw: deep,
+        contract: version_contract.into(),
+    }, inputs[2].clone()];
+    budget.max_units = incomplete.len();
+    budget.max_total_raw_bytes = incomplete.iter().map(|input| input.raw.len()).sum();
+    let refusal = schemas.check_batch(&incomplete, budget, deadline, &cancelled).unwrap_err();
+    match refusal {
+        tos_validation::item_rules::ItemRefusal::Unsupported(reason) => {
+            // The existing owner diagnostic retains the typed transport
+            // outcome: this must be a partial worker result, not an earlier
+            // adapter budget/deadline refusal that happened to leave no rows.
+            assert!(reason.contains("reason: InputBudget"), "{reason}");
+            assert!(reason.contains("completed_count: 1"), "{reason}");
+        }
+        other => panic!("expected actual partial worker refusal, got {other:?}"),
+    }
+    assert_eq!(schemas.receipts().len(), inputs.len());
+    assert!(schemas.receipts().iter().all(|receipt| receipt.batch.unwrap().checkpoint == checkpoint));
+    assert!(schemas.check_batch(&inputs, BatchBudget::laboratory(), deadline,
+        &AtomicBool::new(true)).is_err());
+    assert!(schemas.check_batch(&inputs, BatchBudget::laboratory(), Instant::now(),
+        &cancelled).is_err());
+    assert_eq!(schemas.receipts().len(), inputs.len());
+}
