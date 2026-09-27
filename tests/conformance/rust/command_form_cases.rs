@@ -525,7 +525,10 @@ fn maintained_forms_propose_exact_bytes_bind_real_cut_and_refuse_unissued_admiss
             .unwrap();
             let oracle: Value =
                 serde_json::from_slice(&fs::read(packet.join("apply.json")).unwrap()).unwrap();
-            assert_eq!(actual, oracle, "independent Work apply result");
+            assert_eq!(
+                actual, oracle,
+                "{profile}: independent maintained apply result"
+            );
         }
         let raw = prepared.changes[0].after.as_ref().unwrap();
         assert_eq!(

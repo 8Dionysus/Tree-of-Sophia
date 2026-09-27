@@ -302,8 +302,22 @@ pub fn run_form_command(
         if report.dependency_digests.len() > 128 {
             return Err(Error::Invalid("Claim source dependency snapshot count"));
         }
+        // The owner serializer retains first-read insertion order in the
+        // receipt. Canonical digest equality alone cannot bind these published
+        // bytes: an alphabetically rebuilt map has another raw revision.
+        if report.dependency_order.len() != report.dependency_digests.len()
+            || report.dependency_order.iter().collect::<HashSet<_>>().len()
+                != report.dependency_order.len()
+            || report
+                .dependency_order
+                .iter()
+                .any(|path| !report.dependency_digests.contains_key(path))
+        {
+            return Err(Error::Invalid("Claim source dependency order coverage"));
+        }
         let mut contracts = object(vec![]);
-        for (path, digest) in &report.dependency_digests {
+        for path in &report.dependency_order {
+            let digest = &report.dependency_digests[path];
             let dependency = tos_foundation::RelativePath::parse(path)
                 .map_err(|_| Error::Invalid("Claim profile dependency path"))?;
             let raw = ctx.file(&dependency)?.ok_or(Error::Invalid(
