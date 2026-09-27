@@ -59,7 +59,7 @@ struct SyntheticCatalogAuthority {
     checks: Arc<AtomicUsize>,
     expected_sha: Digest256,
 }
-impl CatalogCurrentAuthority for SyntheticCatalogAuthority {
+impl<'hold> CatalogCurrentAuthority<'hold> for SyntheticCatalogAuthority {
     fn policy_binding(&self) -> CurrentPolicyBinding {
         self.policy.clone()
     }
@@ -77,7 +77,7 @@ impl CatalogCurrentAuthority for SyntheticCatalogAuthority {
         &mut self,
         _: &CatalogDisclosureScope,
         sha: Digest256,
-    ) -> Result<Box<dyn CatalogDisclosureLease>, CatalogError> {
+    ) -> Result<Box<dyn CatalogDisclosureLease + 'hold>, CatalogError> {
         assert_eq!(sha, self.expected_sha);
         Ok(Box::new(SyntheticCatalogLease(Arc::clone(&self.checks))))
     }

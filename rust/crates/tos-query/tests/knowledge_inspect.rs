@@ -64,7 +64,7 @@ impl Authority {
         }
     }
 }
-impl InspectCurrentAuthority for Authority {
+impl<'hold> InspectCurrentAuthority<'hold> for Authority {
     fn policy_binding(&self) -> CurrentPolicyBinding {
         self.policy.clone()
     }
@@ -82,7 +82,7 @@ impl InspectCurrentAuthority for Authority {
         &mut self,
         _: &IndexedDisclosureScope,
         consulted: &[ObservedInspectCarrier],
-    ) -> Result<Box<dyn InspectDisclosureLease>, SearchV2Error> {
+    ) -> Result<Box<dyn InspectDisclosureLease + 'hold>, SearchV2Error> {
         if self.withdrawn {
             return Err(SearchV2Error {
                 code: SearchV2ErrorCode::StalePolicy,

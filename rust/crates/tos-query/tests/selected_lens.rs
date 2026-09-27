@@ -98,7 +98,7 @@ impl Authority {
         }
     }
 }
-impl InspectCurrentAuthority for Authority {
+impl<'hold> InspectCurrentAuthority<'hold> for Authority {
     fn authorize_corpus_original_current(
         &mut self,
         receipt: &tos_compiler::CorpusOriginalReceipt,
@@ -237,7 +237,7 @@ impl InspectCurrentAuthority for Authority {
         &mut self,
         _: &IndexedDisclosureScope,
         consulted: &[ObservedInspectCarrier],
-    ) -> Result<Box<dyn InspectDisclosureLease>, SearchV2Error> {
+    ) -> Result<Box<dyn InspectDisclosureLease + 'hold>, SearchV2Error> {
         self.check_selected()?;
         if self.scope.operation_id == STORED_LENS_OPERATION {
             assert_eq!(self.catalog_consulted, 1);

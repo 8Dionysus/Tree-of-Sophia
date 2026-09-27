@@ -10,13 +10,13 @@ use crate::{
 };
 use tos_compiler::VerifiedKnowledgeModel;
 use tos_foundation::JsonValue;
-pub fn execute_selected_temporal<A: InspectCurrentAuthority + ?Sized>(
+pub fn execute_selected_temporal<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
     model: &mut VerifiedKnowledgeModel<'_>,
     bound: &BoundCmpKnowledge<'_>,
     authority: &mut A,
     request: &JsonValue,
     budget: InspectBudget,
-) -> Result<DisclosableInspect, SearchV2Error> {
+) -> Result<DisclosableInspect<'hold>, SearchV2Error> {
     bound.require_source_revision()?;
     let claim_source = bound
         .source_for_adapter("reified-bibliographic-claims-v1")

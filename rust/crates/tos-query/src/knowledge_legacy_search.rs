@@ -182,7 +182,7 @@ struct Hit {
     item: JsonValue,
     bytes: usize,
 }
-fn scan<A: InspectCurrentAuthority + ?Sized>(
+fn scan<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
     reader: &mut Reader<'_, '_, A>,
     kind: SearchKind,
     sources: &[String],
@@ -320,13 +320,13 @@ fn scan<A: InspectCurrentAuthority + ?Sized>(
     }
     Ok((matching, selected.into_iter().map(|v| v.item).collect()))
 }
-pub fn execute_selected_legacy_search<A: InspectCurrentAuthority + ?Sized>(
+pub fn execute_selected_legacy_search<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
     model: &mut VerifiedKnowledgeModel<'_>,
     bound: &BoundCmpKnowledge<'_>,
     authority: &mut A,
     request: &LegacySearchRequest,
     caps: LegacySearchBudget,
-) -> Result<DisclosableInspect, SearchV2Error> {
+) -> Result<DisclosableInspect<'hold>, SearchV2Error> {
     // Transport has already supplied typed strings; retained source vocabulary
     // owns closure. Legacy permits unknown kind/predicate IDs (zero matches).
     let mut input_bytes = request.query.len() as u64;
@@ -468,12 +468,12 @@ pub fn execute_selected_legacy_search<A: InspectCurrentAuthority + ?Sized>(
 }
 /// Describes this exact selected engine, under a distinct current held grant.
 /// It neither probes ambient publications nor advertises public activation.
-pub fn execute_selected_search_capabilities<A: InspectCurrentAuthority + ?Sized>(
+pub fn execute_selected_search_capabilities<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
     model: &mut VerifiedKnowledgeModel<'_>,
     bound: &BoundCmpKnowledge<'_>,
     authority: &mut A,
     caps: InspectBudget,
-) -> Result<DisclosableInspect, SearchV2Error> {
+) -> Result<DisclosableInspect<'hold>, SearchV2Error> {
     execute_selected_carrier_packet(
         model,
         bound,

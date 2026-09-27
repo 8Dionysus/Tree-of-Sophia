@@ -276,7 +276,7 @@ impl PhilosophyReadRequest {
     }
 }
 
-fn original_rows<A: InspectCurrentAuthority + ?Sized>(
+fn original_rows<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
     read: &mut Reader<'_, '_, A>,
     receipt: &PhilosophyOriginalReceipt,
     collection: PhilosophyOriginalCollection,
@@ -307,13 +307,13 @@ fn original_rows<A: InspectCurrentAuthority + ?Sized>(
 
 /// Exact selected originals, current projection authorization and one held
 /// final packet. This grants no source record, Item payload or text access.
-pub fn execute_selected_philosophy<A: InspectCurrentAuthority + ?Sized>(
+pub fn execute_selected_philosophy<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
     model: &mut VerifiedKnowledgeModel<'_>,
     bound: &BoundCmpKnowledge<'_>,
     authority: &mut A,
     request: &PhilosophyReadRequest,
     budget: PhilosophyReadBudget,
-) -> Result<DisclosableInspect, SearchV2Error> {
+) -> Result<DisclosableInspect<'hold>, SearchV2Error> {
     request.validate(budget.inspect)?;
     if budget.max_work_steps == 0 {
         return Err(failure(
@@ -1232,7 +1232,7 @@ pub(crate) fn compute_philosophy_read(
     }
 }
 
-fn bound_original_receipt<A: InspectCurrentAuthority + ?Sized>(
+fn bound_original_receipt<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
     read: &mut Reader<'_, '_, A>,
     bound: &BoundCmpKnowledge<'_>,
 ) -> Result<PhilosophyOriginalReceipt, SearchV2Error> {
@@ -1262,12 +1262,12 @@ fn bound_original_receipt<A: InspectCurrentAuthority + ?Sized>(
 /// Metadata projection for site defaults, not the complete maintained Views
 /// packet. Only the exact original Header is consulted under the existing
 /// philosophy views scope and current held original-component authority.
-pub fn execute_selected_philosophy_view_ids<A: InspectCurrentAuthority + ?Sized>(
+pub fn execute_selected_philosophy_view_ids<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
     model: &mut VerifiedKnowledgeModel<'_>,
     bound: &BoundCmpKnowledge<'_>,
     authority: &mut A,
     budget: PhilosophyReadBudget,
-) -> Result<DisclosableInspect, SearchV2Error> {
+) -> Result<DisclosableInspect<'hold>, SearchV2Error> {
     if budget.max_work_steps == 0 {
         return Err(invalid());
     }

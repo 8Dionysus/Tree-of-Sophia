@@ -86,7 +86,7 @@ fn assert_native_corpus_query_packets(
         deny: bool,
         withdrawn: Arc<AtomicBool>,
     }
-    impl InspectCurrentAuthority for ProjectionAuthority {
+    impl<'hold> InspectCurrentAuthority<'hold> for ProjectionAuthority {
         fn policy_binding(&self) -> CurrentPolicyBinding {
             self.policy.clone()
         }
@@ -136,7 +136,7 @@ fn assert_native_corpus_query_packets(
             &mut self,
             scope: &IndexedDisclosureScope,
             consulted: &[ObservedInspectCarrier],
-        ) -> Result<Box<dyn InspectDisclosureLease>, SearchV2Error> {
+        ) -> Result<Box<dyn InspectDisclosureLease + 'hold>, SearchV2Error> {
             self.check_selected()?;
             assert_eq!(scope.operation_id, self.scope.operation_id);
             assert_eq!(scope.intended_use, CORPUS_INTENDED_USE);

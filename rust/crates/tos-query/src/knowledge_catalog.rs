@@ -112,7 +112,21 @@ pub trait CatalogDisclosureLease: Send {
 
 /// The ToS publication owner supplies current authorization for the exact
 /// selected public catalog carrier. A synthetic implementation is test-only.
-pub trait CatalogCurrentAuthority {
+/// An owned provider may support 'static; a scoped provider's returned lease
+/// and packet retain exactly its held-read lifetime through final delivery.
+pub trait CatalogCurrentAuthority<'hold> {
+    /// Match the descriptive proof to the command owner's opaque parent and
+    /// already-held current guards. Catalog authorization remains separate;
+    /// the same disclosure lease covers both checks through final delivery.
+    fn authorize_managed_source_current(
+        &mut self,
+        _: &tos_compiler::ManagedSourceProofV1,
+    ) -> Result<(), CatalogError> {
+        Err(error(
+            CatalogErrorCode::PolicyBindingUnavailable,
+            "managed selected source authorization unavailable",
+        ))
+    }
     fn abort_probe(&self) -> Option<Arc<dyn crate::AbortProbe>> { None }
     fn policy_binding(&self) -> CurrentPolicyBinding;
     fn disclosure_scope(&self) -> CatalogDisclosureScope;
@@ -122,25 +136,25 @@ pub trait CatalogCurrentAuthority {
         &mut self,
         scope: &CatalogDisclosureScope,
         packet_sha256: Digest256,
-    ) -> Result<Box<dyn CatalogDisclosureLease>, CatalogError>;
+    ) -> Result<Box<dyn CatalogDisclosureLease + 'hold>, CatalogError>;
 }
 
-pub struct DisclosableCatalog {
+pub struct DisclosableCatalog<'hold> {
     body: Vec<u8>,
-    lease: Box<dyn CatalogDisclosureLease>,
+    lease: Box<dyn CatalogDisclosureLease + 'hold>,
 }
 
-impl Deref for DisclosableCatalog {
+impl Deref for DisclosableCatalog<'_> {
     type Target = [u8];
     fn deref(&self) -> &Self::Target {
         &self.body
     }
 }
 
-impl DisclosableCatalog {
+impl<'hold> DisclosableCatalog<'hold> {
     /// Move the authenticated bytes and held lease into a transport packet.
     /// The adapter must retain and recheck the lease through the final flush.
-    pub fn into_parts(self) -> (Vec<u8>, Box<dyn CatalogDisclosureLease>) {
+    pub fn into_parts(self) -> (Vec<u8>, Box<dyn CatalogDisclosureLease + 'hold>) {
         (self.body, self.lease)
     }
     pub fn recheck(&mut self) -> Result<(), CatalogError> {
@@ -165,12 +179,12 @@ fn sql_error(reason: rusqlite::Error) -> CatalogError {
 
 /// Return the exact compatibility packet only if its complete selected bytes
 /// fit the caller's budget. No row is returned when any size/type cap fails.
-pub fn execute_selected_catalog<A: CatalogCurrentAuthority + ?Sized>(
+pub fn execute_selected_catalog<'hold, A: CatalogCurrentAuthority<'hold> + ?Sized>(
     model: &mut VerifiedKnowledgeModel<'_>,
     bound: &BoundCmpKnowledge<'_>,
     authority: &mut A,
     budget: CatalogBudget,
-) -> Result<DisclosableCatalog, CatalogError> {
+) -> Result<DisclosableCatalog<'hold>, CatalogError> {
     if budget.max_open_vm_steps == 0
         || model.open_vm_steps() > budget.max_open_vm_steps
         || budget.max_read_vm_steps == 0

@@ -1660,7 +1660,7 @@ fn snapshot(
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-fn drive_selected<A: InspectCurrentAuthority + ?Sized>(
+fn drive_selected<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
     read: &mut Reader<'_, '_, A>,
     input: crate::exploration_plan::ExplorationInput,
     revision: &str,
@@ -1770,7 +1770,8 @@ fn drive_selected<A: InspectCurrentAuthority + ?Sized>(
 /// all pass. A failed query leaves the input cursor/state unchanged.
 #[cfg(not(target_arch = "wasm32"))]
 pub fn execute_selected_exploration<
-    A: InspectCurrentAuthority + ?Sized,
+    'hold,
+    A: InspectCurrentAuthority<'hold> + ?Sized,
     C: ExplorationCheckpoints + ?Sized,
 >(
     model: &mut VerifiedKnowledgeModel<'_>,
@@ -1779,7 +1780,7 @@ pub fn execute_selected_exploration<
     checkpoints: &mut C,
     request: &JsonValue,
     budget: ExplorationBudget,
-) -> Result<DisclosableInspect, SearchV2Error> {
+) -> Result<DisclosableInspect<'hold>, SearchV2Error> {
     validate_budget(budget)?;
     let prepared = std::cell::RefCell::new(None::<Box<dyn PreparedExplorationCheckpoint>>);
     let packet = execute_selected_carrier_packet_observed(

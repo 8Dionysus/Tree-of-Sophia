@@ -183,7 +183,7 @@ struct CorpusRead<'a, 'b, 'c, A: ?Sized> {
     context: &'a CorpusReadContext,
     remaining: u64,
 }
-impl<A: InspectCurrentAuthority + ?Sized> CorpusRead<'_, '_, '_, A> {
+impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> CorpusRead<'_, '_, '_, A> {
     fn work(&mut self, steps: usize) -> Result<(), SearchV2Error> {
         self.remaining = self
             .remaining
@@ -734,14 +734,14 @@ impl<A: InspectCurrentAuthority + ?Sized> CorpusRead<'_, '_, '_, A> {
 
 /// The caller supplies the actual same-release source-member context and
 /// original-row grants. One existing disclosure hold covers the complete body.
-pub fn execute_selected_corpus<A: InspectCurrentAuthority + ?Sized>(
+pub fn execute_selected_corpus<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
     model: &mut VerifiedKnowledgeModel<'_>,
     bound: &BoundCmpKnowledge<'_>,
     authority: &mut A,
     context: &CorpusReadContext,
     request: &CorpusReadRequest,
     budget: CorpusReadBudget,
-) -> Result<DisclosableInspect, SearchV2Error> {
+) -> Result<DisclosableInspect<'hold>, SearchV2Error> {
     request.validate(context, budget)?;
     execute_selected_carrier_packet(
         model,
@@ -778,7 +778,7 @@ pub fn execute_selected_corpus<A: InspectCurrentAuthority + ?Sized>(
     )
 }
 
-fn bound_original_receipt<A: InspectCurrentAuthority + ?Sized>(
+fn bound_original_receipt<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
     read: &mut Reader<'_, '_, A>,
     bound: &BoundCmpKnowledge<'_>,
 ) -> Result<CorpusOriginalReceipt, SearchV2Error> {
@@ -801,12 +801,12 @@ fn bound_original_receipt<A: InspectCurrentAuthority + ?Sized>(
 /// only cold-verified GraphViews index identities in encounter order, stopping
 /// at the first supported view. The existing summary scope and disclosure hold
 /// cover every consulted identity, including skipped/null entries.
-pub fn execute_selected_corpus_view_ids<A: InspectCurrentAuthority + ?Sized>(
+pub fn execute_selected_corpus_view_ids<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
     model: &mut VerifiedKnowledgeModel<'_>,
     bound: &BoundCmpKnowledge<'_>,
     authority: &mut A,
     budget: CorpusReadBudget,
-) -> Result<DisclosableInspect, SearchV2Error> {
+) -> Result<DisclosableInspect<'hold>, SearchV2Error> {
     if budget.max_work_steps == 0 {
         return Err(budget_error());
     }

@@ -22,13 +22,13 @@ impl Authority {fn new(bound:&BoundCmpKnowledge<'_>,operation:&str,intended:&str
 let policy=CurrentPolicyBinding{scope:"synthetic-query".into(),issuer_ref:"synthetic-issuer".into(),authorization_receipt_id:"synthetic-receipt".into(),policy_epoch:"synthetic-epoch".into(),withdrawal_generation:"synthetic-generation".into()};
 Self{scope:IndexedDisclosureScope{operation_id:operation.into(),carrier_layer:"tos_knowledge_public_graph_projection_v1".into(),intended_use:intended.into(),selected_model_receipt_id:bound.owner_receipt_id().into(),source_cut:bound.selection().source_cut.clone(),through_commit_seq:bound.selection().through_commit_seq,source_membership_root:bound.selection().source_membership_root,descriptor_sha256:bound.selection().vocabulary.descriptor_sha256,selected_index_sha256:bound.selection().index_root_sha256,policy_issuer_ref:policy.issuer_ref.clone(),policy_receipt_id:policy.authorization_receipt_id.clone(),policy_scope:policy.scope.clone(),policy_epoch:policy.policy_epoch.clone(),withdrawal_generation:policy.withdrawal_generation.clone()},policy,withdrawn:false,probe:None}
 }}
-impl InspectCurrentAuthority for Authority {
+impl<'hold> InspectCurrentAuthority<'hold> for Authority {
 fn abort_probe(&self)->Option<Arc<dyn AbortProbe>>{self.probe.clone()}
 fn policy_binding(&self)->CurrentPolicyBinding{self.policy.clone()}
 fn disclosure_scope(&self)->IndexedDisclosureScope{self.scope.clone()}
 fn check_selected(&mut self)->Result<(),SearchV2Error>{Ok(())}
 fn authorize_current(&mut self,_:&InspectedCarrier)->Result<(),SearchV2Error>{Ok(())}
-fn acquire_disclosure(&mut self,_:&IndexedDisclosureScope,_:&[ObservedInspectCarrier])->Result<Box<dyn InspectDisclosureLease>,SearchV2Error>{if self.withdrawn{Err(err(SearchV2ErrorCode::StalePolicy))}else{Ok(Box::new(Lease))}}
+fn acquire_disclosure(&mut self,_:&IndexedDisclosureScope,_:&[ObservedInspectCarrier])->Result<Box<dyn InspectDisclosureLease + 'hold>,SearchV2Error>{if self.withdrawn{Err(err(SearchV2ErrorCode::StalePolicy))}else{Ok(Box::new(Lease))}}
 }
 fn read_budget()->InspectBudget {InspectBudget{max_open_vm_steps:100_000_000,max_read_vm_steps:1_000_000,max_matches:64,max_rows:1000,max_field_bytes:16384,max_payload_bytes:1_000_000,max_decoded_bytes:8_000_000,max_response_bytes:1_000_000,json:JsonLimits::default()}}
 fn exploration_budget(work:usize)->ExplorationBudget {ExplorationBudget{read:read_budget(),max_work_units:work,max_session_nodes:10000,max_session_relations:20000,max_state_bytes:1_000_000,max_checkpoint_bytes:2_000_000,max_checkpoints:128}}

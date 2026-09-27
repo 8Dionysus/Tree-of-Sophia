@@ -27,7 +27,7 @@ fn corrupt(message: &'static str) -> SearchV2Error {
     err(SearchV2ErrorCode::CorruptSelectedCarrier, message)
 }
 
-fn members<A: InspectCurrentAuthority + ?Sized>(
+fn members<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
     read: &mut Reader<'_, '_, A>,
     collection: &str,
     count: u64,
@@ -50,7 +50,7 @@ fn members<A: InspectCurrentAuthority + ?Sized>(
     Ok(result)
 }
 
-fn original_payloads<A: InspectCurrentAuthority + ?Sized>(
+fn original_payloads<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
     read: &mut Reader<'_, '_, A>,
     source: &str,
     kind: SearchKind,
@@ -146,14 +146,14 @@ fn original_payloads<A: InspectCurrentAuthority + ?Sized>(
 
 /// Exact original source and rights semantics, under one current selected hold.
 /// Component retention is custody; the owner still authorizes disclosure.
-pub fn execute_selected_dossier<A: InspectCurrentAuthority + ?Sized>(
+pub fn execute_selected_dossier<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
     model: &mut VerifiedKnowledgeModel<'_>,
     bound: &BoundCmpKnowledge<'_>,
     authority: &mut A,
     object_id: &str,
     limit: usize,
     budget: DossierBudget,
-) -> Result<DisclosableInspect, SearchV2Error> {
+) -> Result<DisclosableInspect<'hold>, SearchV2Error> {
     if object_id.is_empty()
         || object_id.len() > budget.inspect.max_field_bytes
         || !(1..=300).contains(&limit)

@@ -143,13 +143,13 @@ pub(crate) fn relation_regime(
                     .any(|p| p == string(get(r, "relation_type_id")))))
 }
 #[cfg(not(target_arch = "wasm32"))]
-pub fn execute_selected_lens<A: InspectCurrentAuthority + ?Sized>(
+pub fn execute_selected_lens<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
     model: &mut VerifiedKnowledgeModel<'_>,
     bound: &BoundCmpKnowledge<'_>,
     authority: &mut A,
     value: &JsonValue,
     budget_value: LensBudget,
-) -> Result<DisclosableInspect, SearchV2Error> {
+) -> Result<DisclosableInspect<'hold>, SearchV2Error> {
     execute_selected_lens_request(
         model,
         bound,
@@ -159,13 +159,13 @@ pub fn execute_selected_lens<A: InspectCurrentAuthority + ?Sized>(
     )
 }
 #[cfg(not(target_arch = "wasm32"))]
-pub fn execute_selected_focus<A: InspectCurrentAuthority + ?Sized>(
+pub fn execute_selected_focus<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
     model: &mut VerifiedKnowledgeModel<'_>,
     bound: &BoundCmpKnowledge<'_>,
     authority: &mut A,
     request: &crate::knowledge_focus::KnowledgeFocusRequest,
     budget_value: LensBudget,
-) -> Result<DisclosableInspect, SearchV2Error> {
+) -> Result<DisclosableInspect<'hold>, SearchV2Error> {
     execute_selected_lens_request(
         model,
         bound,
@@ -175,13 +175,13 @@ pub fn execute_selected_focus<A: InspectCurrentAuthority + ?Sized>(
     )
 }
 #[cfg(not(target_arch = "wasm32"))]
-pub fn execute_selected_stored_lens<A: InspectCurrentAuthority + ?Sized>(
+pub fn execute_selected_stored_lens<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
     model: &mut VerifiedKnowledgeModel<'_>,
     bound: &BoundCmpKnowledge<'_>,
     authority: &mut A,
     lens_id: &str,
     budget_value: LensBudget,
-) -> Result<DisclosableInspect, SearchV2Error> {
+) -> Result<DisclosableInspect<'hold>, SearchV2Error> {
     if lens_id.is_empty() || lens_id.len() > 128 {
         return Err(invalid("invalid stored lens identifier"));
     }
@@ -201,13 +201,13 @@ enum LensRequest<'a> {
     Stored(&'a str),
 }
 #[cfg(not(target_arch = "wasm32"))]
-fn execute_selected_lens_request<A: InspectCurrentAuthority + ?Sized>(
+fn execute_selected_lens_request<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
     model: &mut VerifiedKnowledgeModel<'_>,
     bound: &BoundCmpKnowledge<'_>,
     authority: &mut A,
     request: LensRequest<'_>,
     budget_value: LensBudget,
-) -> Result<DisclosableInspect, SearchV2Error> {
+) -> Result<DisclosableInspect<'hold>, SearchV2Error> {
     bound.require_source_revision()?;
     if budget_value.max_candidates == 0
         || budget_value.max_candidates >= i64::MAX as usize

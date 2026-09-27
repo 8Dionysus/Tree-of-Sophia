@@ -62,7 +62,20 @@ pub struct ObservedInspectCarrier {
 pub trait InspectDisclosureLease: Send {
     fn recheck(&mut self) -> Result<(), SearchV2Error>;
 }
-pub trait InspectCurrentAuthority {
+/// The hold lifetime comes from the owner, not the temporary adapter borrow.
+/// Owned providers may support 'static; a scoped managed provider supports
+/// only its actual held-read lifetime, including final transport delivery.
+pub trait InspectCurrentAuthority<'hold> {
+    /// Descriptive managed basis must match the command owner's privately
+    /// retained parent under its already-held current read guards. This check
+    /// grants no original/carrier access and must remain covered by the same
+    /// disclosure lease; its recheck must not reacquire owner locks.
+    fn authorize_managed_source_current(
+        &mut self,
+        _: &tos_compiler::ManagedSourceProofV1,
+    ) -> Result<(), SearchV2Error> {
+        Err(error(SearchV2ErrorCode::Unavailable, "managed selected source authorization unavailable"))
+    }
     /// Exact captured/public corpus originals, under the same current release
     /// projection hold. This does not grant source text or authored admission.
     fn authorize_corpus_original_current(
@@ -135,21 +148,21 @@ pub trait InspectCurrentAuthority {
         &mut self,
         scope: &IndexedDisclosureScope,
         consulted: &[ObservedInspectCarrier],
-    ) -> Result<Box<dyn InspectDisclosureLease>, SearchV2Error>;
+    ) -> Result<Box<dyn InspectDisclosureLease + 'hold>, SearchV2Error>;
 }
-pub struct DisclosableInspect {
+pub struct DisclosableInspect<'hold> {
     body: Vec<u8>,
-    lease: Box<dyn InspectDisclosureLease>,
+    lease: Box<dyn InspectDisclosureLease + 'hold>,
 }
-impl Deref for DisclosableInspect {
+impl Deref for DisclosableInspect<'_> {
     type Target = [u8];
     fn deref(&self) -> &[u8] {
         &self.body
     }
 }
-impl DisclosableInspect {
+impl<'hold> DisclosableInspect<'hold> {
     /// Move authenticated bytes and the disclosure hold into a transport packet.
-    pub fn into_parts(self) -> (Vec<u8>, Box<dyn InspectDisclosureLease>) {
+    pub fn into_parts(self) -> (Vec<u8>, Box<dyn InspectDisclosureLease + 'hold>) {
         (self.body, self.lease)
     }
     pub fn recheck(&mut self) -> Result<(), SearchV2Error> {
@@ -166,7 +179,7 @@ pub(crate) struct Reader<'a, 'b, A: ?Sized> {
     consulted: Vec<ObservedInspectCarrier>,
     scope: &'a IndexedDisclosureScope,
 }
-impl<A: InspectCurrentAuthority + ?Sized> Reader<'_, '_, A> {
+impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
     fn original_error(reason: tos_compiler::Error) -> SearchV2Error {
         match reason {
             tos_compiler::Error::Budget(_) | tos_compiler::Error::SqliteVmBudget { .. } => budget_error(),
@@ -792,7 +805,7 @@ impl<A: InspectCurrentAuthority + ?Sized> Reader<'_, '_, A> {
 
 /// Exact legacy packet semantics, with selected-row closure and current held
 /// disclosure. Caller budgets may refuse an expensive complete packet.
-pub fn execute_selected_inspect<A: InspectCurrentAuthority + ?Sized>(
+pub fn execute_selected_inspect<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
     model: &mut VerifiedKnowledgeModel<'_>,
     bound: &BoundCmpKnowledge<'_>,
     authority: &mut A,
@@ -800,7 +813,7 @@ pub fn execute_selected_inspect<A: InspectCurrentAuthority + ?Sized>(
     identifier: &str,
     relation_limit: usize,
     budget: InspectBudget,
-) -> Result<DisclosableInspect, SearchV2Error> {
+) -> Result<DisclosableInspect<'hold>, SearchV2Error> {
     let request = crate::InspectRequest::new(kind, identifier, relation_limit, budget)?;
     bound.require_source_revision()?;
     let operation = if kind == SearchKind::Nodes {
@@ -846,7 +859,7 @@ pub fn execute_selected_inspect<A: InspectCurrentAuthority + ?Sized>(
 }
 
 // The exact-carrier families share one bounded read and disclosure lifetime.
-pub(crate) fn execute_selected_carrier_packet<A: InspectCurrentAuthority + ?Sized, F>(
+pub(crate) fn execute_selected_carrier_packet<'hold, A: InspectCurrentAuthority<'hold> + ?Sized, F>(
     model: &mut VerifiedKnowledgeModel<'_>,
     bound: &BoundCmpKnowledge<'_>,
     authority: &mut A,
@@ -854,7 +867,7 @@ pub(crate) fn execute_selected_carrier_packet<A: InspectCurrentAuthority + ?Size
     intended_use: &str,
     budget: InspectBudget,
     compute: F,
-) -> Result<DisclosableInspect, SearchV2Error>
+) -> Result<DisclosableInspect<'hold>, SearchV2Error>
 where
     F: FnOnce(&mut Reader<'_, '_, A>) -> Result<JsonValue, SearchV2Error>,
 {
@@ -864,7 +877,7 @@ where
 // E3 alone needs the actual emitted response for staged checkpoint accounting.
 // The observer cannot return/substitute bytes. Failure drops the staged hold
 // before disclosure; successful commit remains outside this common read path.
-pub(crate) fn execute_selected_carrier_packet_observed<A: InspectCurrentAuthority + ?Sized, F, O>(
+pub(crate) fn execute_selected_carrier_packet_observed<'hold, A: InspectCurrentAuthority<'hold> + ?Sized, F, O>(
     model: &mut VerifiedKnowledgeModel<'_>,
     bound: &BoundCmpKnowledge<'_>,
     authority: &mut A,
@@ -873,7 +886,7 @@ pub(crate) fn execute_selected_carrier_packet_observed<A: InspectCurrentAuthorit
     budget: InspectBudget,
     compute: F,
     observe: O,
-) -> Result<DisclosableInspect, SearchV2Error>
+) -> Result<DisclosableInspect<'hold>, SearchV2Error>
 where
     F: FnOnce(&mut Reader<'_, '_, A>) -> Result<JsonValue, SearchV2Error>,
     O: FnOnce(&[u8]) -> Result<(), SearchV2Error>,
