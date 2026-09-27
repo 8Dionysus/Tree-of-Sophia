@@ -1771,12 +1771,11 @@ mod selected_knowledge {
                 held: executor.held.clone(),
                 source_frame: false,
             };
-            mcp::run_stdio_with_probe(
-                &mut input.as_slice(),
+            run_io(
+                Cursor::new(input),
                 &mut writer,
                 executor.as_ref(),
                 mcp_profile,
-                Arc::new(NeverAbort),
             )
             .unwrap();
             check_mcp_packet(
@@ -1846,12 +1845,11 @@ mod selected_knowledge {
             held: executor.held.clone(),
             source_frame: false,
         };
-        mcp::run_stdio_with_probe(
-            &mut input.as_slice(),
+        run_io(
+            Cursor::new(input),
             &mut writer,
             executor.as_ref(),
             mcp_profile,
-            Arc::new(NeverAbort),
         )
         .unwrap();
         check_mcp_packet(
