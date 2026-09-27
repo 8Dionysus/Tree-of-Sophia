@@ -1024,18 +1024,29 @@ fn native_corpus_composition_case(installed: bool) {
     let mut operation = tos_validation::executor::BatchStreamBudget::laboratory();
     operation.max_chunks = limits.max_output_rows;
     operation.max_total_units = limits.max_output_rows;
-    operation.total_execution_wall = deadline.saturating_duration_since(Instant::now());
-    operation.operation_cpu_seconds = operation.total_execution_wall.as_secs().saturating_add(1);
-    operation.operation_address_space_bytes = ExecutorBudget::laboratory().address_space_bytes;
     let worker_path = super::validation_cut_cases::selected_worker_path();
     let worker = ExactWorkerIdentity {
         sha256: Digest256::of_bytes(&fs::read(&worker_path).unwrap()),
         absolute_path: worker_path,
     };
+    // Exact schema closure and image preparation belong to this whole case.
+    // The scalar laboratory's five-second default may expire during that
+    // preparation; only time left on the original whole clock is available.
+    let remaining = deadline
+        .checked_duration_since(Instant::now())
+        .filter(|duration| !duration.is_zero())
+        .expect("native corpus whole schema preparation deadline");
+    let schema_budget = ExecutorBudget {
+        execution_wall: remaining,
+        ..ExecutorBudget::laboratory()
+    };
+    operation.total_execution_wall = remaining;
+    operation.operation_cpu_seconds = remaining.as_secs().saturating_add(1);
+    operation.operation_address_space_bytes = schema_budget.address_space_bytes;
     let validator = SourceCatalogValidator::from_cut(
         &cut,
         &worker,
-        ExecutorBudget::laboratory(),
+        schema_budget,
         CutWorkerLimits {
             max_receipts: 4096,
             max_receipt_bytes: 16 * 1024 * 1024,
