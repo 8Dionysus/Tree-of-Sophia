@@ -4782,7 +4782,21 @@ json.dump({'capture':str(capture),'restored':str(restored),'commit':commit,'tree
         for (field, raw) in tos_access::exploration_contracts::CONTRACTS {
             let expected =
                 parse_json(raw, JsonMode::PublishedStrict, JsonLimits::default()).unwrap();
-            assert_eq!(returned.object_get(field).unwrap(), expected.root());
+            // The software packet canonically orders object members; the
+            // packaged schema retains source order. Use the same complete
+            // schema identity comparison as the existing contracts harness.
+            let canonical = |value| {
+                tos_foundation::canonical_bytes_v1(
+                    value,
+                    tos_foundation::CanonicalProfile::CorpusSnapshotV1,
+                    JsonLimits::default(),
+                )
+                .unwrap()
+            };
+            assert_eq!(
+                canonical(returned.object_get(field).unwrap()),
+                canonical(expected.root())
+            );
         }
         let listener = TcpListener::bind("127.0.0.1:0").unwrap();
         let address = listener.local_addr().unwrap();
