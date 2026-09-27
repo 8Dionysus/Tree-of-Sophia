@@ -1271,20 +1271,6 @@ sys.stdout.write(owner.render_payload(payload))
     let expected: Value = serde_json::from_slice(&output.stdout).unwrap();
     assert_eq!(projection.value(), &expected);
     assert_eq!(projection.output_bytes(), output.stdout.as_slice());
-    let original = tos_compiler::prepare_native_corpus_original(
-        &projection,
-        &tos_foundation::RelativePath::parse(&output_path).unwrap(),
-        &binding,
-        &vocabulary,
-        tos_compiler::CorpusOriginalSourceLimits {
-            originals,
-            max_members: 1,
-            max_work_bytes: 64 * 1024 * 1024,
-        },
-        deadline,
-        &cancelled,
-    )
-    .unwrap();
     // A fresh independently declared selected stage receives actual family
     // outputs. Catalogue custody and private planner tables stay out of its DDL.
     let mut graph = BibliographicOutput::default();
@@ -1460,6 +1446,23 @@ sys.stdout.write(owner.render_payload(payload))
                 .unwrap();
         }
     }
+    // Bind this original plan to the final selected transport, not the prior
+    // corpus planner's projection root. The producer validates every other
+    // source-selection field and preserves its independent output proof.
+    let original = tos_compiler::prepare_native_corpus_original(
+        &projection,
+        &tos_foundation::RelativePath::parse(&output_path).unwrap(),
+        &selected_stage.exact_receipt().binding,
+        &vocabulary,
+        tos_compiler::CorpusOriginalSourceLimits {
+            originals,
+            max_members: 1,
+            max_work_bytes: 64 * 1024 * 1024,
+        },
+        deadline,
+        &cancelled,
+    )
+    .unwrap();
     let mut navigation_header = navigation.value().clone();
     for field in ["nodes", "edges", "rights"] {
         navigation_header.as_object_mut().unwrap().remove(field);
