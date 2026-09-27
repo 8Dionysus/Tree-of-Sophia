@@ -712,7 +712,7 @@ mod tests {
         db.execute_batch(SCHEMA).unwrap();
         let make_row = |position, id: &str| {
             let payload = format!(
-                r#"{{"id":"{id}","source_graph":"g","kind_id":"k","display":{{"title":"aaaaaaaaabbbccc"}}}}"#
+                r#"{{"id":"{id}","source_graph":"g","kind_id":"k","display":{{"title":"aaaaaaaaaá🌳ßá🌳ßá🌳ßbbbccc"}}}}"#
             )
             .into_bytes();
             SourceRow {
@@ -749,6 +749,15 @@ mod tests {
                 .collect::<std::collections::BTreeSet<_>>();
             assert!(doc.text.matches("aaa").count() > limits().gram_batch_rows);
             assert!(expected.len() > limits().gram_batch_rows);
+            assert!(expected.contains("á🌳ß".as_bytes()));
+            assert!(expected.contains(&b"bbb"[..]));
+            assert!(
+                expected
+                    .iter()
+                    .take_while(|gram| gram.as_slice() < &b"bbb"[..])
+                    .count()
+                    > limits().gram_batch_rows
+            );
             write_document(
                 &mut db,
                 &|| Ok(()),
