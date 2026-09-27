@@ -241,7 +241,7 @@ impl AccessExecutor for SelectedExecutor {
         &self,
         request: Params,
         abort_probe: Arc<dyn AbortProbe>,
-    ) -> Result<PreparedPacket, AccessError> {
+    ) -> Result<PreparedPacket<'static>, AccessError> {
         let mut session = self.session.lock().unwrap();
         session.model.set_abort_probe(Some(abort_probe));
         let result = session.execute(request);
@@ -550,7 +550,7 @@ mod selected_knowledge {
             Lease(Arc::clone(&self.held), Arc::clone(&self.controls))
         }
     }
-    impl CatalogCurrentAuthority for Authority {
+    impl<'hold> CatalogCurrentAuthority<'hold> for Authority {
         fn policy_binding(&self) -> CurrentPolicyBinding {
             self.policy.clone()
         }
@@ -568,11 +568,11 @@ mod selected_knowledge {
             &mut self,
             _: &CatalogDisclosureScope,
             _: Digest256,
-        ) -> Result<Box<dyn CatalogDisclosureLease>, CatalogError> {
+        ) -> Result<Box<dyn CatalogDisclosureLease + 'hold>, CatalogError> {
             Ok(Box::new(self.lease()))
         }
     }
-    impl InspectCurrentAuthority for Authority {
+    impl<'hold> InspectCurrentAuthority<'hold> for Authority {
         fn authorize_corpus_view_identity_current(
             &mut self,
             _: &tos_compiler::CorpusOriginalReceipt,
@@ -710,7 +710,7 @@ mod selected_knowledge {
             &mut self,
             _: &IndexedDisclosureScope,
             observed: &[ObservedInspectCarrier],
-        ) -> Result<Box<dyn InspectDisclosureLease>, SearchV2Error> {
+        ) -> Result<Box<dyn InspectDisclosureLease + 'hold>, SearchV2Error> {
             if self.inspect.intended_use == tos_query::corpus_read::CORPUS_INTENDED_USE {
                 assert!(self.corpus_granted);
                 assert!(observed.is_empty());
@@ -759,7 +759,7 @@ mod selected_knowledge {
             &self,
             _: Params,
             _: Arc<dyn AbortProbe>,
-        ) -> Result<PreparedPacket, AccessError> {
+        ) -> Result<PreparedPacket<'static>, AccessError> {
             unreachable!()
         }
         fn knowledge_search_legacy_available(&self) -> bool {
@@ -769,7 +769,7 @@ mod selected_knowledge {
             &self,
             request: tos_query::knowledge_legacy_search::LegacySearchRequest,
             probe: Arc<dyn AbortProbe>,
-        ) -> Result<PreparedPacket, AccessError> {
+        ) -> Result<PreparedPacket<'static>, AccessError> {
             use tos_query::knowledge_legacy_search::{
                 LEGACY_SEARCH_INTENDED_USE, LEGACY_SEARCH_OPERATION,
             };
@@ -827,7 +827,7 @@ mod selected_knowledge {
             &self,
             request: R,
             probe: Arc<dyn AbortProbe>,
-        ) -> Result<PreparedPacket, AccessError> {
+        ) -> Result<PreparedPacket<'static>, AccessError> {
             let cold = self.fixture.open().unwrap();
             let bound = bind_verified_knowledge(
                 &cold,
@@ -1509,6 +1509,7 @@ with tempfile.TemporaryDirectory() as d:
                 navigation_original: fixture.navigation_original.clone(),
                 philosophy_original: None,
                 corpus_original: None,
+                managed_source: None,
             },
             fixture.expectation.clone(),
             measurement,
@@ -3997,14 +3998,14 @@ json.dump({'capture':str(capture),'restored':str(restored),'commit':commit,'tree
                 &self,
                 _: Params,
                 _: Arc<dyn AbortProbe>,
-            ) -> Result<PreparedPacket, AccessError> {
+            ) -> Result<PreparedPacket<'static>, AccessError> {
                 unreachable!()
             }
             fn knowledge(
                 &self,
                 request: R,
                 probe: Arc<dyn AbortProbe>,
-            ) -> Result<PreparedPacket, AccessError> {
+            ) -> Result<PreparedPacket<'static>, AccessError> {
                 match request {
                     R::CorpusViewIds => self.corpus.knowledge(request, probe),
                     R::PhilosophyViewIds => self.philosophy.knowledge(request, probe),

@@ -31,7 +31,7 @@ impl AccessExecutor for Synthetic {
         &self,
         request: Params,
         probe: Arc<dyn AbortProbe>,
-    ) -> Result<PreparedPacket, AccessError> {
+    ) -> Result<PreparedPacket<'static>, AccessError> {
         if let Some(reason) = probe.reason() {
             let code = match reason {
                 AbortReason::Cancelled => tos_access::AccessErrorCode::Cancelled,
@@ -190,7 +190,7 @@ impl AccessExecutor for SearchSynthetic {
         &self,
         _: Params,
         _: Arc<dyn AbortProbe>,
-    ) -> Result<PreparedPacket, AccessError> {
+    ) -> Result<PreparedPacket<'static>, AccessError> {
         unreachable!()
     }
     fn knowledge_search_indexed_available(&self) -> bool {
@@ -200,7 +200,7 @@ impl AccessExecutor for SearchSynthetic {
         &self,
         request: IndexedSearchParams,
         _: Arc<dyn AbortProbe>,
-    ) -> Result<PreparedPacket, AccessError> {
+    ) -> Result<PreparedPacket<'static>, AccessError> {
         self.calls.lock().unwrap().push(request);
         Ok(PreparedPacket {
             body: br#"{"schema":"tos_knowledge_search_indexed_v2","nodes":[],"relations":[]}"#
@@ -323,7 +323,7 @@ impl AccessExecutor for LargePacket {
         &self,
         _: Params,
         _: Arc<dyn AbortProbe>,
-    ) -> Result<PreparedPacket, AccessError> {
+    ) -> Result<PreparedPacket<'static>, AccessError> {
         let mut body = b"{\"schema\":\"synthetic\",\"value\":\"".to_vec();
         body.extend(vec![b'a'; 600]);
         body.extend_from_slice(b"\"}");
@@ -455,7 +455,7 @@ impl AccessExecutor for WithdrawnExecutor {
         &self,
         _: Params,
         _: Arc<dyn AbortProbe>,
-    ) -> Result<PreparedPacket, AccessError> {
+    ) -> Result<PreparedPacket<'static>, AccessError> {
         Ok(PreparedPacket {
             body: br#"{"secret":"would leak"}"#.to_vec(),
             fence: Box::new(Withdrawn),
@@ -530,7 +530,7 @@ impl AccessExecutor for KnowledgeSynthetic {
         &self,
         _: Params,
         _: Arc<dyn AbortProbe>,
-    ) -> Result<PreparedPacket, AccessError> {
+    ) -> Result<PreparedPacket<'static>, AccessError> {
         unreachable!()
     }
     fn knowledge_available(&self, _: tos_access::KnowledgeOperation) -> bool {
@@ -540,7 +540,7 @@ impl AccessExecutor for KnowledgeSynthetic {
         &self,
         request: tos_access::KnowledgeRequest,
         probe: Arc<dyn AbortProbe>,
-    ) -> Result<PreparedPacket, AccessError> {
+    ) -> Result<PreparedPacket<'static>, AccessError> {
         assert!(probe.reason().is_none());
         self.calls.lock().unwrap().push(request);
         Ok(PreparedPacket{body:br#"{"source_revision":"fixture","source_refs":[],"authority_note":"synthetic; no rights grant"}"#.to_vec(),fence:Box::new(Fence)})

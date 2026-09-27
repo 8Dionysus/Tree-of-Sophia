@@ -7,8 +7,9 @@ use tos_foundation::{JsonMode, JsonNumber, JsonNumberKind, JsonString, JsonValue
 use crate::common::{checked_execute, validate_packet};
 use crate::{AccessExecutor, AccessProfile, Params, PreparedPacket};
 
-fn write_packet(
-    mut packet: PreparedPacket,
+/// Consume the complete held packet within its owner scope, through final flush.
+pub fn write_packet(
+    mut packet: PreparedPacket<'_>,
     profile: AccessProfile,
     stdout: &mut dyn Write,
     stderr: &mut dyn Write,

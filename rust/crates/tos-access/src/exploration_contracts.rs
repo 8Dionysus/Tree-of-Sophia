@@ -149,7 +149,7 @@ pub fn runtime_capabilities(
 pub fn execute(
     executor: &dyn AccessExecutor,
     max_bytes: usize,
-) -> Result<PreparedPacket, AccessError> {
+) -> Result<PreparedPacket<'static>, AccessError> {
     let limits = JsonLimits {
         max_bytes,
         ..JsonLimits::default()

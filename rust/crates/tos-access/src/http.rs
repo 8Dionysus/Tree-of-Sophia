@@ -475,7 +475,7 @@ fn handle_get_with_probe(
 }
 
 fn packet_response(
-    result: Result<PreparedPacket, AccessError>,
+    result: Result<PreparedPacket<'static>, AccessError>,
     method: &str,
     profile: AccessProfile,
 ) -> HttpResponse {

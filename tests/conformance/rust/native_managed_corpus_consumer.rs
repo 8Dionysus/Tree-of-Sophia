@@ -266,6 +266,7 @@ pub(super) fn exercise_managed_native_corpus(
             navigation_original: selected.navigation_original.clone(),
             philosophy_original: selected.philosophy_original.clone(),
             corpus_original: selected.corpus_original.clone(),
+            managed_source: None,
         },
         selected.expectation.clone(),
         measurement,

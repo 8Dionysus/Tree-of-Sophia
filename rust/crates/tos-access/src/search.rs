@@ -101,7 +101,7 @@ impl SearchRequest {
         self,
         executor: &dyn AccessExecutor,
         probe: Arc<dyn AbortProbe>,
-    ) -> Result<PreparedPacket, AccessError> {
+    ) -> Result<PreparedPacket<'static>, AccessError> {
         match self {
             Self::Legacy(request) if executor.knowledge_search_legacy_available() => {
                 executor.knowledge_search_legacy(request, probe)

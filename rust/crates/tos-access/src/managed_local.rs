@@ -92,6 +92,13 @@ impl ManagedLocalExecutor {
             JsonLimits::default().max_bytes,
         )
         .map_err(|_| unavailable("native producer selection is not admitted"))?;
+        // A persistent release manifest does not own CMD's scoped current hold.
+        // Managed-source first consumption stays inside with_current_model.
+        if selection.producer().managed_source.is_some() {
+            return Err(unavailable(
+                "managed source current holder is not available in persistent release",
+            ));
+        }
         if release.query_schema != selection.expectation().model_abi
             || release.compiler_version != tos_compiler::COMPILER_VERSION
         {
@@ -275,7 +282,7 @@ impl AccessExecutor for ManagedLocalExecutor {
         &self,
         _: Params,
         _: Arc<dyn AbortProbe>,
-    ) -> Result<PreparedPacket, AccessError> {
+    ) -> Result<PreparedPacket<'static>, AccessError> {
         Err(unavailable(
             "exact source owner is not selected by the release holder",
         ))
@@ -292,7 +299,7 @@ impl AccessExecutor for ManagedLocalExecutor {
         &self,
         request: tos_query::source_gap::SourceGapRequest,
         probe: Arc<dyn AbortProbe>,
-    ) -> Result<PreparedPacket, AccessError> {
+    ) -> Result<PreparedPacket<'static>, AccessError> {
         execute_selected_source_gap(
             &self.release,
             &request,
@@ -328,7 +335,7 @@ impl AccessExecutor for ManagedLocalExecutor {
         &self,
         request: tos_query::knowledge_legacy_search::LegacySearchRequest,
         probe: Arc<dyn AbortProbe>,
-    ) -> Result<PreparedPacket, AccessError> {
+    ) -> Result<PreparedPacket<'static>, AccessError> {
         let cold = self
             .model
             .lock()
@@ -374,7 +381,7 @@ impl AccessExecutor for ManagedLocalExecutor {
         &self,
         request: R,
         probe: Arc<dyn AbortProbe>,
-    ) -> Result<PreparedPacket, AccessError> {
+    ) -> Result<PreparedPacket<'static>, AccessError> {
         let cold = self
             .model
             .lock()
@@ -575,7 +582,7 @@ impl CatalogDisclosureLease for ReleaseLease {
             .map_err(|_| catalog_error("selected local release changed or revoked"))
     }
 }
-impl InspectCurrentAuthority for Authority {
+impl<'hold> InspectCurrentAuthority<'hold> for Authority {
     fn authorize_corpus_view_identity_current(
         &mut self,
         receipt: &tos_compiler::CorpusOriginalReceipt,
@@ -761,7 +768,7 @@ impl InspectCurrentAuthority for Authority {
         &mut self,
         scope: &IndexedDisclosureScope,
         _: &[ObservedInspectCarrier],
-    ) -> Result<Box<dyn InspectDisclosureLease>, SearchV2Error> {
+    ) -> Result<Box<dyn InspectDisclosureLease + 'hold>, SearchV2Error> {
         if scope != &self.inspect
             || (scope.operation_id == O::Contracts.id() && self.registry_grants != 3)
             || (scope.operation_id == O::Dossier.id() && !self.original_granted)
@@ -775,7 +782,7 @@ impl InspectCurrentAuthority for Authority {
         Ok(Box::new(self.take()?))
     }
 }
-impl CatalogCurrentAuthority for Authority {
+impl<'hold> CatalogCurrentAuthority<'hold> for Authority {
     fn policy_binding(&self) -> CurrentPolicyBinding {
         self.policy.clone()
     }
@@ -797,7 +804,7 @@ impl CatalogCurrentAuthority for Authority {
         &mut self,
         scope: &CatalogDisclosureScope,
         sha: Digest256,
-    ) -> Result<Box<dyn CatalogDisclosureLease>, CatalogError> {
+    ) -> Result<Box<dyn CatalogDisclosureLease + 'hold>, CatalogError> {
         if scope != &self.catalog || sha != self.catalog.catalog_packet_sha256 {
             return Err(catalog_error("selected catalog binding changed"));
         }
@@ -815,7 +822,7 @@ pub fn execute_selected_source_gap(
     budget: tos_query::source_gap::SourceGapBudget,
     max_input_bytes: usize,
     probe: Arc<dyn AbortProbe>,
-) -> Result<PreparedPacket, AccessError> {
+) -> Result<PreparedPacket<'static>, AccessError> {
     crate::knowledge::check_abort(&probe)?;
     let mut hold = release.acquire()?;
     let owned = hold.public_source_gap_records(max_input_bytes)?;

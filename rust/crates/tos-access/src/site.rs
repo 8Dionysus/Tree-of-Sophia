@@ -363,7 +363,7 @@ impl SoftwareSite {
         self: &Arc<Self>,
         relative: &str,
         probe: Arc<dyn AbortProbe>,
-    ) -> Result<crate::PreparedPacket, AccessError> {
+    ) -> Result<crate::PreparedPacket<'static>, AccessError> {
         RelativePath::parse(relative).map_err(|_| {
             AccessError::new(AccessErrorCode::InvalidRequest, "invalid static path")
         })?;
@@ -488,7 +488,7 @@ impl SoftwareSite {
         executor: &dyn AccessExecutor,
         profile: AccessProfile,
         probe: Arc<dyn AbortProbe>,
-    ) -> Result<(crate::PreparedPacket, String), AccessError> {
+    ) -> Result<(crate::PreparedPacket<'static>, String), AccessError> {
         crate::knowledge::check_abort(&probe)?;
         self.check()?;
         let mut holds = Vec::new();

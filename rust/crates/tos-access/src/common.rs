@@ -493,7 +493,7 @@ impl AccessProfile {
         self.query_timeout = Some(timeout);
         self
     }
-    pub(crate) fn deadline_probe(self) -> Arc<dyn AbortProbe> {
+    pub fn deadline_probe(self) -> Arc<dyn AbortProbe> {
         let now = Instant::now();
         Arc::new(DeadlineProbe {
             deadline: self
@@ -521,7 +521,7 @@ impl AccessExecutor for NoOwner {
         &self,
         _: Params,
         _: Arc<dyn AbortProbe>,
-    ) -> Result<PreparedPacket, AccessError> {
+    ) -> Result<PreparedPacket<'static>, AccessError> {
         Err(AccessError::new(
             AccessErrorCode::Unavailable,
             "source owner is not selected",
@@ -537,7 +537,7 @@ pub trait AccessExecutor: Send + Sync {
         &self,
         request: Params,
         abort_probe: Arc<dyn AbortProbe>,
-    ) -> Result<PreparedPacket, AccessError>;
+    ) -> Result<PreparedPacket<'static>, AccessError>;
     /// Software-only discovery; schema availability never implies a read grant.
     fn exploration_runtime_capabilities(&self) -> JsonValue {
         crate::exploration_contracts::runtime_capabilities(None)
@@ -547,7 +547,7 @@ pub trait AccessExecutor: Send + Sync {
         &self,
         _: tos_query::source_gap::SourceGapRequest,
         _: Arc<dyn AbortProbe>,
-    ) -> Result<PreparedPacket, AccessError> {
+    ) -> Result<PreparedPacket<'static>, AccessError> {
         Err(AccessError::new(
             AccessErrorCode::Unavailable,
             "selected public ledger unavailable",
@@ -562,7 +562,7 @@ pub trait AccessExecutor: Send + Sync {
         &self,
         _: tos_query::knowledge_legacy_search::LegacySearchRequest,
         _: Arc<dyn AbortProbe>,
-    ) -> Result<PreparedPacket, AccessError> {
+    ) -> Result<PreparedPacket<'static>, AccessError> {
         Err(AccessError::new(
             AccessErrorCode::Unavailable,
             "legacy knowledge search unavailable",
@@ -576,7 +576,7 @@ pub trait AccessExecutor: Send + Sync {
         &self,
         _: IndexedSearchParams,
         _: Arc<dyn AbortProbe>,
-    ) -> Result<PreparedPacket, AccessError> {
+    ) -> Result<PreparedPacket<'static>, AccessError> {
         Err(AccessError::new(
             AccessErrorCode::Unavailable,
             "indexed knowledge search unavailable",
@@ -589,7 +589,7 @@ pub trait AccessExecutor: Send + Sync {
         &self,
         _: crate::knowledge::KnowledgeRequest,
         _: Arc<dyn AbortProbe>,
-    ) -> Result<PreparedPacket, AccessError> {
+    ) -> Result<PreparedPacket<'static>, AccessError> {
         Err(AccessError::new(
             AccessErrorCode::Unavailable,
             "selected knowledge operation unavailable",
@@ -614,17 +614,19 @@ pub trait DisclosureFence: Send {
     fn recheck(&mut self) -> Result<(), AccessError>;
 }
 
-pub struct PreparedPacket {
+/// Scoped packets cannot outlive their owner's held current model.
+/// Installed AccessExecutor methods return owned static packets.
+pub struct PreparedPacket<'hold> {
     pub body: Vec<u8>,
-    pub fence: Box<dyn DisclosureFence>,
+    pub fence: Box<dyn DisclosureFence + 'hold>,
 }
 
 /// Retain processing cancellation through transport validation and the final
 /// pre-send disclosure check, rather than dropping it when query returns.
-pub(crate) fn checked_execute(
+pub fn checked_execute<'hold>(
     probe: Arc<dyn AbortProbe>,
-    execute: impl FnOnce(Arc<dyn AbortProbe>) -> Result<PreparedPacket, AccessError>,
-) -> Result<PreparedPacket, AccessError> {
+    execute: impl FnOnce(Arc<dyn AbortProbe>) -> Result<PreparedPacket<'hold>, AccessError>,
+) -> Result<PreparedPacket<'hold>, AccessError> {
     crate::knowledge::check_abort(&probe)?;
     let mut packet = execute(Arc::clone(&probe))?;
     crate::knowledge::check_abort(&probe)?;
@@ -634,11 +636,11 @@ pub(crate) fn checked_execute(
     });
     Ok(packet)
 }
-struct AbortFence {
-    inner: Box<dyn DisclosureFence>,
+struct AbortFence<'hold> {
+    inner: Box<dyn DisclosureFence + 'hold>,
     probe: Arc<dyn AbortProbe>,
 }
-impl DisclosureFence for AbortFence {
+impl DisclosureFence for AbortFence<'_> {
     fn recheck(&mut self) -> Result<(), AccessError> {
         crate::knowledge::check_abort(&self.probe)?;
         self.inner.recheck()?;
@@ -654,7 +656,7 @@ pub struct QuerySession<M: ReadModel> {
 }
 
 impl<M: ReadModel> QuerySession<M> {
-    pub fn execute(&mut self, params: Params) -> Result<PreparedPacket, AccessError> {
+    pub fn execute(&mut self, params: Params) -> Result<PreparedPacket<'static>, AccessError> {
         let request = SourceDescendRequest {
             node_id: params.node_id,
             max_depth: params.max_depth,
