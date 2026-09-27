@@ -551,7 +551,129 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
             attempt
         })
         .collect::<Vec<_>>();
+    // Exercise the real registered predicate set independently of the
+    // whole-inventory conflict below. A changed generation or unproved
+    // definition must refuse before any durable projection is published.
+    let mut predicate_sql = Client::connect(&url, NoTls).unwrap();
+    let registered_reads: Vec<u8> = predicate_sql
+        .query_one(
+            "SELECT source_reads FROM cmd2_attempt WHERE domain=$1 AND prepare_id=$2",
+            &[&lab.domain, &b"agent-0".as_slice()],
+        )
+        .unwrap()
+        .get(0);
+    let registered_reads: serde_json::Value = serde_json::from_slice(&registered_reads).unwrap();
+    let predicate_keys = registered_reads
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|r| r[0] == "generation")
+        .map(|r| {
+            (
+                r[1].as_str().unwrap().to_owned(),
+                r[2].as_str().unwrap().to_owned(),
+                r[3].as_str().unwrap().to_owned(),
+                r[4].as_str().unwrap().to_owned(),
+                r[5].as_str().unwrap().to_owned(),
+            )
+        })
+        .collect::<Vec<_>>();
+    assert!(predicate_keys.windows(2).all(|p| p[0] < p[1]));
+    for scope in ["source-inventory", "source-home", "metadata", "form"] {
+        assert!(predicate_keys.iter().any(|p| p.2 == scope));
+    }
     let starting_head = lab.head_seq();
+    let starting_counts = [
+        lab.count("current"),
+        lab.count("history"),
+        lab.count("receipt"),
+        lab.count("log"),
+        lab.count("outbox"),
+    ];
+    for (kind, owner, scope, token, definition) in predicate_keys
+        .iter()
+        .filter(|p| p.2 == "source-home" || p.2 == "form")
+    {
+        assert_eq!(predicate_sql.execute(
+            "UPDATE cmd2_predicate SET generation=generation+1 WHERE domain=$1 AND kind=$2 AND owner=$3 AND scope=$4 AND token=$5",
+            &[&lab.domain, kind, owner, scope, token],
+        ).unwrap(), 1);
+        assert!(matches!(
+            lab.db.commit_source_creation(
+                &lab.store,
+                &attempts[0],
+                &packages[0],
+                &owners[0],
+                contract_digest(),
+                0,
+                0,
+                "private-job",
+                1,
+                deadline,
+                &cancelled,
+            ),
+            Err(DurableError::Conflict("affected source predicate changed"))
+        ));
+        predicate_sql.execute(
+            "UPDATE cmd2_predicate SET generation=generation-1,complete=false WHERE domain=$1 AND kind=$2 AND owner=$3 AND scope=$4 AND token=$5",
+            &[&lab.domain, kind, owner, scope, token],
+        ).unwrap();
+        assert!(matches!(
+            lab.db.commit_source_creation(
+                &lab.store,
+                &attempts[0],
+                &packages[0],
+                &owners[0],
+                contract_digest(),
+                0,
+                0,
+                "private-job",
+                1,
+                deadline,
+                &cancelled,
+            ),
+            Err(DurableError::Refused(
+                "source predicate definition/completeness invalidated"
+            ))
+        ));
+        predicate_sql.execute(
+            "UPDATE cmd2_predicate SET complete=true,definition_version=$6 WHERE domain=$1 AND kind=$2 AND owner=$3 AND scope=$4 AND token=$5",
+            &[&lab.domain, kind, owner, scope, token, &Digest256::of_bytes(b"changed owner definition").to_hex()],
+        ).unwrap();
+        assert!(matches!(
+            lab.db.commit_source_creation(
+                &lab.store,
+                &attempts[0],
+                &packages[0],
+                &owners[0],
+                contract_digest(),
+                0,
+                0,
+                "private-job",
+                1,
+                deadline,
+                &cancelled,
+            ),
+            Err(DurableError::Refused(
+                "source predicate definition/completeness invalidated"
+            ))
+        ));
+        predicate_sql.execute(
+            "UPDATE cmd2_predicate SET definition_version=$6 WHERE domain=$1 AND kind=$2 AND owner=$3 AND scope=$4 AND token=$5",
+            &[&lab.domain, kind, owner, scope, token, definition],
+        ).unwrap();
+        assert_eq!(lab.head_seq(), starting_head);
+        assert_eq!(
+            [
+                lab.count("current"),
+                lab.count("history"),
+                lab.count("receipt"),
+                lab.count("log"),
+                lab.count("outbox")
+            ],
+            starting_counts
+        );
+    }
     let (a, _) = lab
         .db
         .commit_source_creation(
