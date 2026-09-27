@@ -19,8 +19,9 @@ conservative finite allowance from declared packet and request byte caps,
 including worst-case JSON escaping of packet text and canonical request ID,
 the structured copy, fixed envelope and newline. It returns `None` on arithmetic
 overflow. Pass the smaller of request and line caps for the request bound. This
-helper selects no production policy; the native binary keeps its existing
-1 MiB packet and frame caps and remains without a public owner binding.
+helper selects no production policy. The explicitly selected managed-local
+binary profile derives a separate complete frame allowance from its existing
+1 MiB packet and 64 KiB request caps; library defaults keep equal caps.
 
 The maintained selected-wire fixture explicitly uses this derived allowance
 so every packet within its declared packet cap can traverse MCP. Its parser
@@ -83,5 +84,15 @@ and invokes the existing authority's default-deny registry callback; its one
 disclosure hold must cover both grants through final transport flush. The
 actual fixture executor supplies compiler-retained originals for CLI, GET/HEAD
 and MCP checks. Production without that owner carrier holder still refuses:
-the generic dispatcher and NoOwner binary do not look up ambient ToS files,
+the generic dispatcher and unselected NoOwner binary do not look up ambient ToS files,
 create registry grants or advertise contracts readiness.
+
+The explicit managed-local native composition follows
+[the versioned consumer contract](../../../../access/contracts/native-managed-release.v1.md).
+`--release-root` or `TOS_RELEASE_ROOT` selects the existing local ReleaseStore
+holder and a independently persisted producer companion. Missing shared lock,
+current selection, kernel fs-verity custody or actual process enforcement refuses
+admission. The factory retains the admitted model and exact registry carriers;
+its real release lease lasts through final flush. Dossier uses the original
+component only for existing projection fields; exact source read/text remains
+a separate owner service. This source candidate does not activate a release.

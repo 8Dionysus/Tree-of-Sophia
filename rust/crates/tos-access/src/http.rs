@@ -312,6 +312,17 @@ fn handle_get_with_probe(
                 KnowledgeOperation::Catalog => Ok(KnowledgeRequest::Catalog),
                 KnowledgeOperation::SearchCapabilities => Ok(KnowledgeRequest::SearchCapabilities),
                 KnowledgeOperation::Contracts => Ok(KnowledgeRequest::Contracts),
+                KnowledgeOperation::Dossier => {
+                    percent_decode(encoded, false).map(|object_id| KnowledgeRequest::Dossier {
+                        object_id,
+                        limit: bounded_legacy_int(
+                            query_value(query, "limit").as_deref(),
+                            300,
+                            1,
+                            300,
+                        ) as usize,
+                    })
+                }
                 KnowledgeOperation::StoredLens => percent_decode(encoded, false)
                     .map(|lens_id| KnowledgeRequest::StoredLens { lens_id }),
                 KnowledgeOperation::Focus => focus_http_request(encoded, query),

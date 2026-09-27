@@ -518,6 +518,37 @@
       },
       "request": {},
       "result": "selected search capabilities packet under held current authority"
+    },
+    {
+      "operation_id": "tos.dossier.inspect",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_original_component_and_held_current_release_authority",
+      "http": {
+        "method": "GET",
+        "path_template": "/api/source/dossiers/{object_id}"
+      },
+      "mcp": {
+        "tool": "tos_dossier_inspect",
+        "description": "Read the admitted source dossier projection from the selected original navigation component",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "object_id": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 300,
+              "default": 300
+            }
+          },
+          "required": [
+            "object_id"
+          ],
+          "additionalProperties": false
+        }
+      }
     }
   ]
 }

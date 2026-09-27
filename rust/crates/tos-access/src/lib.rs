@@ -7,6 +7,8 @@
 pub mod cli;
 pub mod exploration_checkpoints;
 pub mod knowledge;
+pub mod managed_local;
+pub mod release_state;
 pub use knowledge::{KnowledgeOperation, KnowledgeRequest};
 mod common;
 pub mod http;

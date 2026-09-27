@@ -458,6 +458,7 @@ mod selected_knowledge {
             controls: Arc<Controls>,
         ) -> Self {
             let intended = match request.operation() {
+                O::Dossier => tos_query::source_dossier::DOSSIER_INTENDED_USE,
                 O::Explore => tos_query::knowledge_exploration::EXPLORATION_INTENDED_USE,
                 O::Temporal => tos_query::TEMPORAL_INTENDED_USE,
                 O::Lens => tos_query::knowledge_lens::LENS_INTENDED_USE,
@@ -568,6 +569,18 @@ mod selected_knowledge {
     impl InspectCurrentAuthority for Authority {
         fn abort_probe(&self) -> Option<Arc<dyn AbortProbe>> {
             Some(self.controls.clone())
+        }
+        fn authorize_navigation_original_current(
+            &mut self,
+            _: &tos_compiler::NavigationOriginalReceipt,
+            ordinal: i64,
+            raw: &[u8],
+            sha: Digest256,
+        ) -> Result<(), SearchV2Error> {
+            assert_eq!(self.inspect.operation_id, O::Dossier.id());
+            assert!(ordinal >= -1);
+            assert_eq!(Digest256::of_bytes(raw), sha);
+            Ok(()) // Test-only QRY reference, never the managed-local factory.
         }
         fn authorize_registry_current(
             &mut self,
@@ -689,19 +702,20 @@ mod selected_knowledge {
             Ok(packet)
         }
         fn knowledge_available(&self, operation: O) -> bool {
-            matches!(
-                operation,
-                O::Catalog
-                    | O::Node
-                    | O::Relation
-                    | O::Explore
-                    | O::Temporal
-                    | O::Lens
-                    | O::Focus
-                    | O::StoredLens
-                    | O::SearchCapabilities
-                    | O::Contracts
-            )
+            (operation == O::Dossier && self.fixture.navigation_original.is_some())
+                || matches!(
+                    operation,
+                    O::Catalog
+                        | O::Node
+                        | O::Relation
+                        | O::Explore
+                        | O::Temporal
+                        | O::Lens
+                        | O::Focus
+                        | O::StoredLens
+                        | O::SearchCapabilities
+                        | O::Contracts
+                )
         }
         fn knowledge(
             &self,
@@ -1160,6 +1174,445 @@ mod selected_knowledge {
             page.body, replay.body,
             "repeating a consumed cursor returns its exact admitted page"
         );
+    }
+
+    #[test]
+    fn managed_local_installed_entrypoint_retains_real_release_and_kernel_custody() {
+        use std::process::Command;
+        use tos_access::release_state::{ManagedRelease, NATIVE_DATA_SCHEMA};
+        use tos_compiler::knowledge_full_fixture::{
+            NATIVE_SOFTWARE_FIXTURE_PROCESS_LIMITS, build_native_fixture_with_navigation_inputs,
+        };
+        use tos_compiler::{
+            NATIVE_KNOWLEDGE_ADAPTER_PROFILES, NativeKnowledgeSelection, NativeSelectionPaths,
+            NativeSelectionProducer, prepare_native_knowledge_artifact,
+        };
+        use tos_foundation::{CanonicalProfile, JsonNumber, JsonNumberKind, canonical_bytes_v1};
+        // Reuse the maintained software fixture, exporting only original inputs.
+        // The existing independent QRY dossier case owns Python domain equality.
+        let script = r#"
+import json,sys,tempfile
+from pathlib import Path
+sys.path.insert(0,sys.argv[1])
+from test_access_contract import write_fixture
+with tempfile.TemporaryDirectory() as d:
+ root=Path(d);write_fixture(root)
+ nav=json.loads((root/'ToS/derived-exports/tos_corpus_index.min.json').read_text())['source_navigation']
+ print(json.dumps(nav,ensure_ascii=False,separators=(',',':'),allow_nan=False))
+"#;
+        let output = Command::new("python3")
+            .arg("-c")
+            .arg(script)
+            .arg(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/../../../access/tests"
+            ))
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        let nav = parse_json(
+            &output.stdout,
+            JsonMode::PublishedStrict,
+            JsonLimits::default(),
+        )
+        .unwrap()
+        .into_root();
+        let mut header = nav.clone();
+        if let JsonValue::Object(fields) = &mut header {
+            fields.retain(|(key, _)| !matches!(key.as_str(), Some("nodes" | "edges" | "rights")));
+        }
+        let original = |key: &str| {
+            nav.object_get(key)
+                .unwrap()
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(json_bytes)
+                .collect::<Vec<_>>()
+        };
+        let nodes = original("nodes");
+        let edges = original("edges");
+        let rights = original("rights");
+        let fixture = build_native_fixture_with_navigation_inputs(
+            &json_bytes(&header),
+            &nodes.iter().map(Vec::as_slice).collect::<Vec<_>>(),
+            &edges.iter().map(Vec::as_slice).collect::<Vec<_>>(),
+            &rights.iter().map(Vec::as_slice).collect::<Vec<_>>(),
+        );
+        let object_id = nav
+            .object_get("nodes")
+            .unwrap()
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|node| node.object_get("node_kind").and_then(JsonValue::as_str) == Some("item"))
+            .unwrap()
+            .object_get("node_id")
+            .unwrap()
+            .as_str()
+            .unwrap()
+            .to_owned();
+        let cold_limits = fixture.cold_limits();
+        let process = NATIVE_SOFTWARE_FIXTURE_PROCESS_LIMITS;
+        let base = fixture.path.parent().unwrap();
+        let install = base.join("software/bin/tos-access");
+        fs::create_dir_all(install.parent().unwrap()).unwrap();
+        fs::copy(env!("CARGO_BIN_EXE_tos-access"), &install).unwrap();
+        let software_sha = Digest256::of_bytes(&fs::read(&install).unwrap());
+        // The producer ran in this existing test executable, not the consumer
+        // executable. Keep its actual code fingerprint as a separate member.
+        let producer_program = base.join("software/bin/native-producer-fixture");
+        fs::copy(std::env::current_exe().unwrap(), &producer_program).unwrap();
+        let producer_sha = Digest256::of_bytes(&fs::read(&producer_program).unwrap());
+        let data_root = base.join("native-snapshot");
+        fs::create_dir_all(data_root.join("data")).unwrap();
+        let paths = NativeSelectionPaths {
+            model: "data/model.sqlite3".into(),
+            descriptor: "data/descriptor.json".into(),
+            entity_registry: "data/entity-registry.json".into(),
+            relation_registry: "data/relation-registry.json".into(),
+        };
+        fs::copy(&fixture.path, data_root.join(&paths.model)).unwrap();
+        fs::write(data_root.join(&paths.descriptor), &fixture.descriptor_bytes).unwrap();
+        let registries = fixture.registry_originals();
+        fs::write(data_root.join(&paths.entity_registry), registries[0]).unwrap();
+        fs::write(data_root.join(&paths.relation_registry), registries[1]).unwrap();
+        fs::write(data_root.join("data/navigation-input.json"), &output.stdout).unwrap();
+        // This explicit ioctl is confined to the fresh isolated owned copy.
+        // OPS admits this exact case before execution; unsupported custody is
+        // a concrete failure, never a skipped positive/fallback grant.
+        let measurement = prepare_native_knowledge_artifact(
+            &data_root.join(&paths.model),
+            &fixture.stage_receipt,
+        )
+        .unwrap_or_else(|error| panic!("isolated native fs-verity custody refusal: {error}"));
+        let selection = NativeKnowledgeSelection::from_producer(
+            paths.clone(),
+            NativeSelectionProducer {
+                stage: fixture.stage_receipt.clone(),
+                seal: fixture.seal_receipt.clone(),
+                navigation_original: fixture.navigation_original.clone(),
+            },
+            fixture.expectation.clone(),
+            measurement,
+            cold_limits,
+            process,
+            &fixture.descriptor_bytes,
+            registries[0],
+            registries[1],
+            NATIVE_KNOWLEDGE_ADAPTER_PROFILES,
+            JsonLimits::default().max_bytes,
+        )
+        .unwrap();
+        fs::write(
+            data_root.join("data/native-selection.json"),
+            selection.encode(JsonLimits::default().max_bytes).unwrap(),
+        )
+        .unwrap();
+        let canonical = |value: &JsonValue| {
+            canonical_bytes_v1(
+                value,
+                CanonicalProfile::CorpusSnapshotV1,
+                JsonLimits::default(),
+            )
+            .unwrap()
+        };
+        let number = |n: u64| {
+            JsonValue::Number(JsonNumber {
+                kind: JsonNumberKind::Int,
+                lexeme: n.to_string(),
+            })
+        };
+        let mut members = vec![
+            paths.model.clone(),
+            paths.descriptor.clone(),
+            paths.entity_registry.clone(),
+            paths.relation_registry.clone(),
+            "data/native-selection.json".into(),
+            "data/navigation-input.json".into(),
+        ];
+        members.sort();
+        let members = members
+            .into_iter()
+            .map(|path| {
+                let raw = fs::read(data_root.join(&path)).unwrap();
+                object(vec![
+                    ("path", text(&path)),
+                    ("size_bytes", number(raw.len() as u64)),
+                    ("sha256", text(&Digest256::of_bytes(&raw).to_hex())),
+                ])
+            })
+            .collect();
+        let source_sha = Digest256::of_bytes(&output.stdout).to_hex();
+        let compiler = object(vec![
+            ("schema", text(&fixture.expectation.model_abi)),
+            ("compiler_version", text(tos_compiler::COMPILER_VERSION)),
+            ("compiler_sha256", text(&producer_sha.to_hex())),
+            (
+                "compiler_paths",
+                JsonValue::Array(vec![text("software/bin/native-producer-fixture")]),
+            ),
+            (
+                "input_bindings",
+                object(vec![(
+                    "software/bin/native-producer-fixture",
+                    text(&producer_sha.to_hex()),
+                )]),
+            ),
+        ]);
+        let corpus = fixture.stage_receipt.membership_root.clone();
+        let mut manifest = object(vec![
+            ("schema_version", text(NATIVE_DATA_SCHEMA)),
+            ("corpus_revision", text(&corpus)),
+            (
+                "input_bindings",
+                object(vec![("data/navigation-input.json", text(&source_sha))]),
+            ),
+            ("compiler", compiler),
+            ("members", JsonValue::Array(members)),
+            ("native_selection", text("data/native-selection.json")),
+        ]);
+        let revision = Digest256::of_bytes(&canonical(&manifest)).to_hex();
+        if let JsonValue::Object(fields) = &mut manifest {
+            fields.push((
+                tos_foundation::JsonString::from_utf8("data_revision"),
+                text(&revision),
+            ));
+        }
+        let manifest_raw = canonical(&manifest);
+        fs::write(data_root.join("data/manifest.json"), &manifest_raw).unwrap();
+        let root = base.join("release");
+        for dir in [
+            "pairs",
+            "bindings",
+            "revocations/data",
+            "revocations/corpus",
+            "revocations/software",
+        ] {
+            fs::create_dir_all(root.join(dir)).unwrap();
+        }
+        fs::write(root.join(".release.lock"), []).unwrap();
+        let pair = object(vec![
+            ("schema_version", text("tos_access_release_pair_v1")),
+            ("software_sha256", text(&software_sha.to_hex())),
+            ("data_revision", text(&revision)),
+            (
+                "data_manifest_sha256",
+                text(&Digest256::of_bytes(&manifest_raw).to_hex()),
+            ),
+            ("corpus_revision", text(&corpus)),
+            ("query_schema", text(&fixture.expectation.model_abi)),
+            ("compiler_version", text(tos_compiler::COMPILER_VERSION)),
+        ]);
+        let pair_raw = canonical(&pair);
+        let pair_id = Digest256::of_bytes(&pair_raw).to_hex();
+        fs::write(root.join(format!("pairs/{pair_id}.json")), pair_raw).unwrap();
+        fs::write(
+            root.join(format!("bindings/{pair_id}.json")),
+            canonical(&object(vec![
+                ("data_root", text(data_root.to_str().unwrap())),
+                ("software_archive", text(install.to_str().unwrap())),
+            ])),
+        )
+        .unwrap();
+        fs::write(
+            root.join("current.json"),
+            canonical(&object(vec![
+                ("schema_version", text("tos_access_release_pointer_v1")),
+                ("current", text(&pair_id)),
+                ("previous", JsonValue::Null),
+            ])),
+        )
+        .unwrap();
+        let reference = Executor {
+            fixture,
+            held: Arc::new(AtomicUsize::new(0)),
+            checkpoints: Mutex::new(
+                tos_access::exploration_checkpoints::ProcessExplorationCheckpoints::new(
+                    tos_access::exploration_checkpoints::CheckpointLimits {
+                        ttl: Duration::from_secs(900),
+                        max_entries: 128,
+                        max_encoded_bytes: 32 * 1024 * 1024,
+                    },
+                )
+                .unwrap(),
+            ),
+            controls: Arc::new(Controls::default()),
+        };
+        let catalog = reference
+            .knowledge(R::Catalog, Arc::new(NeverAbort))
+            .unwrap()
+            .body;
+        let dossier = reference
+            .knowledge(
+                R::Dossier {
+                    object_id: object_id.clone(),
+                    limit: 300,
+                },
+                Arc::new(NeverAbort),
+            )
+            .unwrap()
+            .body;
+        // The established prlimit utility sets live child kernel limits, not an
+        // ENV admission boolean. Cargo/test fixture setup remains unrestricted.
+        let child = || {
+            let mut cmd = Command::new("prlimit");
+            cmd.arg(format!("--as={}", process.address_space_bytes))
+                .arg(format!("--fsize={}", process.file_size_bytes))
+                .arg("--")
+                .arg(&install)
+                .arg("--release-root")
+                .arg(&root)
+                .env_remove("TOS_RELEASE_ROOT");
+            cmd
+        };
+        let result = child().args(["knowledge", "catalog"]).output().unwrap();
+        assert!(
+            result.status.success(),
+            "{}",
+            String::from_utf8_lossy(&result.stderr)
+        );
+        assert_eq!(result.stdout, [catalog.as_slice(), b"\n"].concat());
+        let descriptor = tos_access::registered_operations()
+            .unwrap()
+            .iter()
+            .find(|op| op.operation_id == O::Dossier.id())
+            .unwrap();
+        let input = mcp_input(
+            &descriptor.mcp_tool,
+            &object(vec![("object_id", text(&object_id))]),
+        );
+        let mut rpc = child()
+            .arg("mcp")
+            .stdin(std::process::Stdio::piped())
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .spawn()
+            .unwrap();
+        rpc.stdin.take().unwrap().write_all(&input).unwrap();
+        let result = rpc.wait_with_output().unwrap();
+        assert!(
+            result.status.success(),
+            "{}",
+            String::from_utf8_lossy(&result.stderr)
+        );
+        let frame_cap = tos_access::mcp::tool_result_frame_byte_bound(1_048_576, 65_536).unwrap();
+        check_mcp_packet(last_frame(&result.stdout), &dossier, frame_cap);
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let address = listener.local_addr().unwrap();
+        drop(listener);
+        let mut server = child()
+            .arg("serve")
+            .arg(address.to_string())
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::piped())
+            .spawn()
+            .unwrap();
+        let deadline = std::time::Instant::now() + Duration::from_secs(60);
+        let mut socket = loop {
+            match TcpStream::connect(address) {
+                Ok(socket) => break socket,
+                Err(error) => {
+                    let exited = server.try_wait().unwrap().is_some();
+                    if exited || std::time::Instant::now() >= deadline {
+                        if !exited {
+                            server.kill().unwrap();
+                        }
+                        let output = server.wait_with_output().unwrap();
+                        panic!(
+                            "managed native HTTP startup failed {error}: {}",
+                            String::from_utf8_lossy(&output.stderr)
+                        );
+                    }
+                    std::thread::sleep(Duration::from_millis(20));
+                }
+            }
+        };
+        let path = descriptor
+            .http_path
+            .replace("{object_id}", &path_id(&object_id));
+        let mut response = Vec::new();
+        let received = socket
+            .set_read_timeout(Some(Duration::from_secs(30)))
+            .and_then(|_| write!(socket, "GET {path} HTTP/1.1\r\nHost: localhost\r\n\r\n"))
+            .and_then(|_| socket.read_to_end(&mut response));
+        server.kill().unwrap();
+        server.wait().unwrap();
+        received.unwrap();
+        assert_eq!(http_packet(&response), dossier);
+        let release = ManagedRelease::open(&root).unwrap();
+        let lock = fs::OpenOptions::new()
+            .read(true)
+            .write(true)
+            .open(root.join(".release.lock"))
+            .unwrap();
+        lock.try_lock().unwrap();
+        lock.unlock().unwrap();
+        let lease = release.acquire().unwrap();
+        assert!(
+            lock.try_lock().is_err(),
+            "real shared holder must serialize withdrawal"
+        );
+        drop(lease);
+        lock.try_lock().unwrap();
+        lock.unlock().unwrap();
+        // An equal-SHA fresh inode without fs-verity is still not custody.
+        // Corrupt only this isolated fixture, under its real release lock.
+        lock.try_lock().unwrap();
+        let retained = base.join("retained.verity.sqlite3");
+        fs::rename(data_root.join(&paths.model), &retained).unwrap();
+        fs::copy(&retained, data_root.join(&paths.model)).unwrap();
+        lock.unlock().unwrap();
+        let result = child().args(["knowledge", "catalog"]).output().unwrap();
+        assert_eq!(result.status.code(), Some(3));
+        assert!(result.stdout.is_empty());
+        lock.try_lock().unwrap();
+        fs::remove_file(data_root.join(&paths.model)).unwrap();
+        fs::rename(&retained, data_root.join(&paths.model)).unwrap();
+        lock.unlock().unwrap();
+        let result = Command::new("prlimit")
+            .args(["--as=unlimited", "--fsize=unlimited", "--"])
+            .arg(&install)
+            .arg("--release-root")
+            .arg(&root)
+            .args(["knowledge", "catalog"])
+            .env_remove("TOS_RELEASE_ROOT")
+            .output()
+            .unwrap();
+        assert_eq!(result.status.code(), Some(3));
+        assert!(result.stdout.is_empty());
+        fs::rename(
+            root.join(".release.lock"),
+            root.join("retained.release.lock"),
+        )
+        .unwrap();
+        let result = child().args(["knowledge", "catalog"]).output().unwrap();
+        assert_eq!(result.status.code(), Some(3));
+        assert!(result.stdout.is_empty());
+        fs::rename(
+            root.join("retained.release.lock"),
+            root.join(".release.lock"),
+        )
+        .unwrap();
+        let revoked = object(vec![
+            ("schema_version", text("tos_access_release_revocation_v1")),
+            ("kind", text("data")),
+            ("digest", text(&revision)),
+            ("reason", text("software fixture withdrawal")),
+            ("owner_ref", text("maintained native release case")),
+        ]);
+        fs::write(
+            root.join(format!("revocations/data/{revision}.json")),
+            canonical(&revoked),
+        )
+        .unwrap();
+        let result = child().args(["knowledge", "catalog"]).output().unwrap();
+        assert_eq!(result.status.code(), Some(3));
+        assert!(result.stdout.is_empty());
     }
 
     fn json_bytes(value: &JsonValue) -> Vec<u8> {
@@ -1740,10 +2193,18 @@ mod selected_knowledge {
                     value,
                     tos_foundation::CanonicalProfile::SourceRecordDigestV1,
                     JsonLimits::default(),
-                ).unwrap()
+                )
+                .unwrap()
             };
             assert_eq!(
-                identity(value.root().object_get("contracts").unwrap().object_get(key).unwrap()),
+                identity(
+                    value
+                        .root()
+                        .object_get("contracts")
+                        .unwrap()
+                        .object_get(key)
+                        .unwrap()
+                ),
                 identity(registry.root())
             );
         }

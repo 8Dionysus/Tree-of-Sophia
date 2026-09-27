@@ -16,6 +16,7 @@ pub enum KnowledgeOperation {
     StoredLens,
     Contracts,
     SearchCapabilities,
+    Dossier,
 }
 impl KnowledgeOperation {
     pub fn from_id(id: &str) -> Option<Self> {
@@ -30,6 +31,7 @@ impl KnowledgeOperation {
             "tos.lens.open" => Self::StoredLens,
             "tos.knowledge.contracts" => Self::Contracts,
             "tos.knowledge.search.capabilities" => Self::SearchCapabilities,
+            "tos.dossier.inspect" => Self::Dossier,
             _ => return None,
         })
     }
@@ -45,6 +47,7 @@ impl KnowledgeOperation {
             Self::StoredLens => "tos.lens.open",
             Self::Contracts => "tos.knowledge.contracts",
             Self::SearchCapabilities => "tos.knowledge.search.capabilities",
+            Self::Dossier => "tos.dossier.inspect",
         }
     }
 }
@@ -67,6 +70,10 @@ pub enum KnowledgeRequest {
     },
     Contracts,
     SearchCapabilities,
+    Dossier {
+        object_id: String,
+        limit: usize,
+    },
 }
 impl KnowledgeRequest {
     pub fn operation(&self) -> KnowledgeOperation {
@@ -81,6 +88,7 @@ impl KnowledgeRequest {
             Self::StoredLens { .. } => KnowledgeOperation::StoredLens,
             Self::Contracts => KnowledgeOperation::Contracts,
             Self::SearchCapabilities => KnowledgeOperation::SearchCapabilities,
+            Self::Dossier { .. } => KnowledgeOperation::Dossier,
         }
     }
     pub fn from_arguments(
@@ -105,6 +113,7 @@ impl KnowledgeRequest {
                 "profile",
             ],
             KnowledgeOperation::StoredLens => &["lens_id"],
+            KnowledgeOperation::Dossier => &["object_id", "limit"],
             KnowledgeOperation::Node => &["node_id", "relation_limit"],
             KnowledgeOperation::Relation => &["relation_id"],
             KnowledgeOperation::Lens => &["spec"],
@@ -127,6 +136,17 @@ impl KnowledgeRequest {
             KnowledgeOperation::Catalog => Self::Catalog,
             KnowledgeOperation::Contracts => Self::Contracts,
             KnowledgeOperation::SearchCapabilities => Self::SearchCapabilities,
+            KnowledgeOperation::Dossier => Self::Dossier {
+                object_id: id("object_id")?,
+                limit: match args.object_get("limit") {
+                    None => 300,
+                    Some(value) => value
+                        .as_u64()
+                        .filter(|n| (1..=300).contains(n))
+                        .ok_or_else(|| invalid("dossier limit must be an integer in 1..300"))?
+                        as usize,
+                },
+            },
             KnowledgeOperation::Focus => Self::Focus(focus_from_arguments(args)?),
             KnowledgeOperation::StoredLens => Self::StoredLens {
                 lens_id: id("lens_id")?,
@@ -321,6 +341,21 @@ pub fn execute_selected_knowledge(
                 budgets.inspect,
             )?,
         ),
+        KnowledgeRequest::Dossier { object_id, limit } => {
+            from_inspect(tos_query::source_dossier::execute_selected_dossier(
+                model,
+                bound,
+                &mut inspect,
+                &object_id,
+                limit,
+                tos_query::source_dossier::DossierBudget {
+                    inspect: budgets.inspect,
+                    max_candidates: usize::try_from(budgets.inspect.max_rows).unwrap_or(usize::MAX),
+                    max_work_steps: budgets.inspect.max_read_vm_steps,
+                    block_size: 128,
+                },
+            ))?
+        }
         KnowledgeRequest::Contracts => {
             return Err(AccessError::new(
                 AccessErrorCode::Unavailable,
@@ -512,6 +547,16 @@ impl tos_query::InspectCurrentAuthority for InspectProbe<'_> {
     }
     fn check_selected(&mut self) -> Result<(), tos_query::search_v2::SearchV2Error> {
         self.inner.check_selected()
+    }
+    fn authorize_navigation_original_current(
+        &mut self,
+        receipt: &tos_compiler::NavigationOriginalReceipt,
+        ordinal: i64,
+        raw: &[u8],
+        hash: tos_foundation::Digest256,
+    ) -> Result<(), tos_query::search_v2::SearchV2Error> {
+        self.inner
+            .authorize_navigation_original_current(receipt, ordinal, raw, hash)
     }
     fn authorize_registry_current(
         &mut self,
