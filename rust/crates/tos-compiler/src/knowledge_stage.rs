@@ -68,15 +68,20 @@ impl StageLimits {
         self.sqlite.validate()?;
         if self.max_temp_bytes == 0
             || self.max_seek_rows == 0
-            || self.max_seek_rows > 1024
+            || self.max_seek_rows > MAX_STAGE_PAGE_ROWS
             || self.max_seek_bytes == 0
-            || self.max_seek_bytes > 64 * 1024 * 1024
+            || self.max_seek_bytes > MAX_STAGE_PAGE_BYTES
         {
             return Err(Error::Budget("stage temp/seek limits must be positive"));
         }
         Ok(())
     }
 }
+
+// Existing stage page ceilings; callers still pass their narrower actual
+// normalization/finalization page limits to with_write_page.
+const MAX_STAGE_PAGE_ROWS: usize = 1024;
+const MAX_STAGE_PAGE_BYTES: u64 = 64 * 1024 * 1024;
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -210,10 +215,18 @@ pub struct KnowledgeStage<'a> {
     total_rows: u64,
     work_bytes: u64,
     poisoned: bool,
+    write_page: Option<WritePageCharge>,
     keep: bool,
     selected_full: bool,
     closed_input_rows: Option<u64>,
     fresh_selected: Option<PathBuf>,
+}
+
+struct WritePageCharge {
+    rows: u64,
+    bytes: u64,
+    max_rows: u64,
+    max_bytes: u64,
 }
 
 impl<'a> KnowledgeStage<'a> {
@@ -234,11 +247,14 @@ impl<'a> KnowledgeStage<'a> {
         self.poisoned = true;
     }
     pub(crate) fn mark_selected_full(&mut self) -> Result<()> {
-        if self.poisoned || self.selected_full {
-            return Err(Error::Invalid("selected full-model stage state"));
-        }
-        self.selected_full = true;
-        Ok(())
+        let result = if self.poisoned || self.write_page.is_some() || self.selected_full {
+            Err(Error::Invalid("selected full-model stage state"))
+        } else {
+            self.selected_full = true;
+            Ok(())
+        };
+        self.poisoned |= result.is_err();
+        result
     }
 
     pub fn create(
@@ -320,6 +336,7 @@ impl<'a> KnowledgeStage<'a> {
             total_rows: 0,
             work_bytes: 0,
             poisoned: false,
+            write_page: None,
             keep: false,
             selected_full: false,
             closed_input_rows: None,
@@ -417,6 +434,85 @@ impl<'a> KnowledgeStage<'a> {
         })
     }
 
+    /// One already-bounded normalization/finalization page. The closure uses
+    /// the same Stage methods and connection, so its reads see earlier writes
+    /// in this page. Previous committed pages remain independent. A caller
+    /// may not commit an ignored row error: every Stage failure poisons it.
+    pub(crate) fn with_write_page<T>(
+        &mut self,
+        phase: WritePhase,
+        max_rows: usize,
+        max_bytes: u64,
+        f: impl FnOnce(&mut Self) -> Result<T>,
+    ) -> Result<T> {
+        let result = (|| {
+            if self.poisoned || self.write_page.is_some() {
+                return Err(Error::Invalid("stage write page unavailable"));
+            }
+            if !matches!(phase, WritePhase::Normalized | WritePhase::Finalize) {
+                return Err(Error::Invalid("stage write page phase"));
+            }
+            if max_rows == 0
+                || max_rows > MAX_STAGE_PAGE_ROWS
+                || max_bytes == 0
+                || max_bytes > MAX_STAGE_PAGE_BYTES
+            {
+                return Err(Error::Budget("stage write page bounds"));
+            }
+            self.check(phase)?;
+            if !self.db().is_autocommit() {
+                return Err(Error::Invalid("stage write page nested transaction"));
+            }
+            self.db()
+                .execute_batch("BEGIN IMMEDIATE")
+                .map_err(|error| Error::SqlitePhase { phase, error })?;
+            self.write_page = Some(WritePageCharge {
+                rows: 0,
+                bytes: 0,
+                max_rows: max_rows as u64,
+                max_bytes,
+            });
+            let page = (|| {
+                let value = f(self)?;
+                if self.poisoned || self.db().is_autocommit() {
+                    return Err(Error::Invalid("stage write page failed or closed"));
+                }
+                self.check(phase)?;
+                Ok(value)
+            })();
+            let value = match page {
+                Ok(value) => value,
+                Err(error) => {
+                    let rollback = self.db().execute_batch("ROLLBACK");
+                    self.write_page = None;
+                    return match rollback {
+                        Ok(()) => Err(error),
+                        Err(reason) => Err(Error::SqlitePhase {
+                            phase,
+                            error: reason,
+                        }),
+                    };
+                }
+            };
+            if let Err(error) = self.db().execute_batch("COMMIT") {
+                let rollback = self.db().execute_batch("ROLLBACK");
+                self.write_page = None;
+                return Err(match rollback {
+                    Ok(()) => Error::SqlitePhase { phase, error },
+                    Err(reason) => Error::SqlitePhase {
+                        phase,
+                        error: reason,
+                    },
+                });
+            }
+            self.write_page = None;
+            self.check(phase)?;
+            Ok(value)
+        })();
+        self.poisoned |= result.is_err();
+        result
+    }
+
     fn require_open_inputs(&self) -> Result<()> {
         if self.poisoned {
             return Err(Error::Invalid("stage poisoned by prior failure"));
@@ -449,6 +545,9 @@ impl<'a> KnowledgeStage<'a> {
     pub(crate) fn close_inputs_for_full_components(&mut self) -> Result<()> {
         let result = (|| {
             self.require_open_inputs()?;
+            if self.write_page.is_some() {
+                return Err(Error::Invalid("stage close input inside write page"));
+            }
             self.owner.recheck_sealed_cut(&self.receipt)?;
             let rows = self.verified_input_rows()?;
             self.with_connection(WritePhase::Finalize, |db| {
@@ -475,42 +574,68 @@ impl<'a> KnowledgeStage<'a> {
         })
     }
     pub(crate) fn charge(&mut self, payload: &[u8]) -> Result<()> {
-        if payload.len() > self.limits.sqlite.max_row_bytes {
-            return Err(Error::Budget("stage row bytes"));
-        }
-        self.total_rows = self
-            .total_rows
-            .checked_add(1)
-            .ok_or(Error::Budget("stage rows"))?;
-        if self.total_rows > self.limits.sqlite.max_rows {
-            return Err(Error::Budget("stage rows"));
-        }
-        self.work_bytes = self
-            .work_bytes
-            .checked_add(payload.len() as u64)
-            .ok_or(Error::Budget("stage work bytes"))?;
-        if self.work_bytes > self.limits.sqlite.max_work_bytes {
-            return Err(Error::Budget("stage work bytes"));
+        let result = (|| {
+            if payload.len() > self.limits.sqlite.max_row_bytes {
+                return Err(Error::Budget("stage row bytes"));
+            }
+            self.total_rows = self
+                .total_rows
+                .checked_add(1)
+                .ok_or(Error::Budget("stage rows"))?;
+            if self.total_rows > self.limits.sqlite.max_rows {
+                return Err(Error::Budget("stage rows"));
+            }
+            self.work_bytes = self
+                .work_bytes
+                .checked_add(payload.len() as u64)
+                .ok_or(Error::Budget("stage work bytes"))?;
+            if self.work_bytes > self.limits.sqlite.max_work_bytes {
+                return Err(Error::Budget("stage work bytes"));
+            }
+            self.charge_write_page(1, payload.len() as u64)?;
+            Ok(())
+        })();
+        self.poisoned |= result.is_err();
+        result
+    }
+    fn charge_write_page(&mut self, rows: u64, bytes: u64) -> Result<()> {
+        if let Some(page) = self.write_page.as_mut() {
+            page.rows = page
+                .rows
+                .checked_add(rows)
+                .ok_or(Error::Budget("stage write page rows"))?;
+            page.bytes = page
+                .bytes
+                .checked_add(bytes)
+                .ok_or(Error::Budget("stage write page bytes"))?;
+            if page.rows > page.max_rows || page.bytes > page.max_bytes {
+                return Err(Error::Budget("stage write page rows/bytes"));
+            }
         }
         Ok(())
     }
     /// Charge a disk-backed external-sort copy before the SQL statement that
     /// writes final rows. A later failure poisons the stage and removes it.
     pub(crate) fn charge_materialized(&mut self, rows: u64, bytes: u64) -> Result<()> {
-        self.total_rows = self
-            .total_rows
-            .checked_add(rows)
-            .ok_or(Error::Budget("stage rows"))?;
-        self.work_bytes = self
-            .work_bytes
-            .checked_add(bytes)
-            .ok_or(Error::Budget("stage work bytes"))?;
-        if self.total_rows > self.limits.sqlite.max_rows
-            || self.work_bytes > self.limits.sqlite.max_work_bytes
-        {
-            return Err(Error::Budget("stage materialized rows/work bytes"));
-        }
-        Ok(())
+        let result = (|| {
+            self.total_rows = self
+                .total_rows
+                .checked_add(rows)
+                .ok_or(Error::Budget("stage rows"))?;
+            self.work_bytes = self
+                .work_bytes
+                .checked_add(bytes)
+                .ok_or(Error::Budget("stage work bytes"))?;
+            if self.total_rows > self.limits.sqlite.max_rows
+                || self.work_bytes > self.limits.sqlite.max_work_bytes
+            {
+                return Err(Error::Budget("stage materialized rows/work bytes"));
+            }
+            self.charge_write_page(rows, bytes)?;
+            Ok(())
+        })();
+        self.poisoned |= result.is_err();
+        result
     }
     pub fn ingest_input(&mut self, row: InputRow<'_>) -> Result<()> {
         let result = self.ingest_input_inner(row);
@@ -521,12 +646,20 @@ impl<'a> KnowledgeStage<'a> {
     pub(crate) fn input_batch_limits(&self) -> (usize, u64) {
         (self.limits.max_seek_rows, self.limits.max_seek_bytes)
     }
+    /// The existing validated private-stage page ceiling, distinct from the
+    /// caller's narrower input seek limit and its actual output page budget.
+    pub(crate) fn write_page_limits(&self) -> (usize, u64) {
+        (MAX_STAGE_PAGE_ROWS, MAX_STAGE_PAGE_BYTES)
+    }
     /// Atomic finite input chunk using the existing seek row/byte ceilings.
     /// Borrowed original rows are not copied or granted new source custody.
     /// Failure poisons the private stage and rolls back the current chunk.
     pub fn ingest_input_batch(&mut self, rows: &[InputRow<'_>]) -> Result<()> {
         let result = (|| {
             self.require_open_inputs()?;
+            if self.write_page.is_some() {
+                return Err(Error::Invalid("stage input batch inside write page"));
+            }
             if rows.is_empty() || rows.len() > self.limits.max_seek_rows {
                 return Err(Error::Budget("stage input chunk rows"));
             }
@@ -570,6 +703,9 @@ impl<'a> KnowledgeStage<'a> {
     }
     fn ingest_input_inner(&mut self, row: InputRow<'_>) -> Result<()> {
         self.require_open_inputs()?;
+        if self.write_page.is_some() {
+            return Err(Error::Invalid("stage input inside write page"));
+        }
         if !self.registered(row.source_graph, row.collection) {
             return Err(Error::Invalid("unregistered input collection"));
         }
@@ -865,7 +1001,7 @@ impl<'a> KnowledgeStage<'a> {
     }
 
     pub fn finish(mut self) -> Result<StageReceipt> {
-        if self.poisoned {
+        if self.poisoned || self.write_page.is_some() || !self.db().is_autocommit() {
             return Err(Error::Invalid("stage poisoned by prior failed row"));
         }
         self.owner.recheck_sealed_cut(&self.receipt)?;
@@ -1576,7 +1712,7 @@ CREATE INDEX knowledge_relations_predicate ON knowledge_relations(predicate_id,s
 mod tests {
     use super::*;
     use std::{
-        sync::atomic::{AtomicUsize, Ordering},
+        sync::atomic::{AtomicBool, AtomicUsize, Ordering},
         time::{SystemTime, UNIX_EPOCH},
     };
 
@@ -1610,6 +1746,18 @@ mod tests {
                 return Err(Error::Budget("test host temp quota"));
             }
             Ok(())
+        }
+    }
+    struct ToggleQuota {
+        deny: AtomicBool,
+    }
+    impl StageIsolation for ToggleQuota {
+        fn verify(&self, _: &Path, _: StageLimits, _: WritePhase) -> Result<()> {
+            if self.deny.load(Ordering::SeqCst) {
+                Err(Error::Budget("late stage quota"))
+            } else {
+                Ok(())
+            }
         }
     }
     fn limits() -> StageLimits {
@@ -1772,6 +1920,222 @@ mod tests {
             0
         );
         assert!(stage.ingest_input_batch(&[row()]).is_err());
+        assert!(stage.finish().is_err());
+        assert!(!candidate.exists());
+        fs::remove_dir_all(candidate.parent().unwrap()).unwrap();
+    }
+
+    #[test]
+    fn bounded_write_page_keeps_prior_chunk_and_refuses_failed_stage() {
+        let owner = Owner {
+            checks: AtomicUsize::new(0),
+        };
+        let quota = TestQuota {
+            calls: AtomicUsize::new(0),
+            deny: false,
+        };
+        let candidate = stage_path("normalized-page");
+        let mut stage = KnowledgeStage::create(
+            &candidate,
+            limits(),
+            exact_receipt(RAW_ROOT),
+            &owner,
+            &quota,
+        )
+        .unwrap();
+        stage
+            .ingest_input(InputRow {
+                source_graph: "fixture.graph",
+                collection: "fixture/raw",
+                id: "raw.1",
+                payload: b"raw",
+            })
+            .unwrap();
+        stage.with_write_page(WritePhase::Normalized, 2, 64, |stage| {
+            assert_eq!(
+                stage.raw_by_id("fixture.graph", "fixture/raw", "raw.1")?.unwrap().payload,
+                b"raw"
+            );
+            stage.insert_node(NodeRow {
+                id: "node.1", source_graph: "fixture.graph", native_id: None,
+                entity_id: None, kind_id: "kind.1", type_id: "type.1",
+                source_order: 0, payload: b"node",
+            })?;
+            stage.insert_relation(RelationRow {
+                id: "rel.1", source_graph: "fixture.graph", native_id: None,
+                from_id: "node.1", to_id: "node.1", predicate_id: "pred.1",
+                relation_type_id: "reltype.1", source_order: 0, payload: b"relation",
+            })?;
+            let endpoints = stage.with_connection(WritePhase::Normalized, |db| {
+                Ok(db.query_row("SELECT count(*) FROM knowledge_relations r JOIN knowledge_nodes n ON n.id=r.from_id WHERE r.id='rel.1'", [], |row| row.get::<_, u64>(0))?)
+            })?;
+            assert_eq!(endpoints, 1);
+            Ok(())
+        }).unwrap();
+        let vm_before = stage.vm_used.as_ref().unwrap().load(Ordering::Relaxed);
+        let rows_before = stage.total_rows;
+        assert!(
+            stage
+                .with_write_page(WritePhase::Normalized, 2, 64, |stage| {
+                    stage.insert_node(NodeRow {
+                        id: "node.2",
+                        source_graph: "fixture.graph",
+                        native_id: None,
+                        entity_id: None,
+                        kind_id: "kind.1",
+                        type_id: "type.1",
+                        source_order: 1,
+                        payload: b"node",
+                    })?;
+                    // The caller's ignored SQL error still poisons this page.
+                    let _ = stage.insert_node(NodeRow {
+                        id: "node.1",
+                        source_graph: "fixture.graph",
+                        native_id: None,
+                        entity_id: None,
+                        kind_id: "kind.1",
+                        type_id: "type.1",
+                        source_order: 2,
+                        payload: b"node",
+                    });
+                    Ok(())
+                })
+                .is_err()
+        );
+        assert_eq!(
+            stage
+                .db()
+                .query_row("SELECT count(*) FROM knowledge_nodes", [], |row| row
+                    .get::<_, u64>(0))
+                .unwrap(),
+            1
+        );
+        assert!(stage.vm_used.as_ref().unwrap().load(Ordering::Relaxed) >= vm_before);
+        assert!(stage.total_rows > rows_before);
+        assert!(stage.finish().is_err());
+        assert!(!candidate.exists());
+        fs::remove_dir_all(candidate.parent().unwrap()).unwrap();
+
+        let candidate = stage_path("normalized-page-cap");
+        let mut stage = KnowledgeStage::create(
+            &candidate,
+            limits(),
+            exact_receipt(RAW_ROOT),
+            &owner,
+            &quota,
+        )
+        .unwrap();
+        assert!(
+            stage
+                .with_write_page(WritePhase::Normalized, 1, 8, |stage| {
+                    stage.insert_node(NodeRow {
+                        id: "node.1",
+                        source_graph: "fixture.graph",
+                        native_id: None,
+                        entity_id: None,
+                        kind_id: "kind.1",
+                        type_id: "type.1",
+                        source_order: 0,
+                        payload: b"node",
+                    })?;
+                    stage.insert_node(NodeRow {
+                        id: "node.2",
+                        source_graph: "fixture.graph",
+                        native_id: None,
+                        entity_id: None,
+                        kind_id: "kind.1",
+                        type_id: "type.1",
+                        source_order: 1,
+                        payload: b"node",
+                    })?;
+                    Ok(())
+                })
+                .is_err()
+        );
+        assert_eq!(
+            stage
+                .db()
+                .query_row("SELECT count(*) FROM knowledge_nodes", [], |row| row
+                    .get::<_, u64>(0))
+                .unwrap(),
+            0
+        );
+        assert!(stage.finish().is_err());
+        assert!(!candidate.exists());
+        fs::remove_dir_all(candidate.parent().unwrap()).unwrap();
+
+        let candidate = stage_path("normalized-page-nested");
+        let mut stage = KnowledgeStage::create(
+            &candidate,
+            limits(),
+            exact_receipt(RAW_ROOT),
+            &owner,
+            &quota,
+        )
+        .unwrap();
+        assert!(
+            stage
+                .with_write_page(WritePhase::Normalized, 1, 8, |stage| {
+                    stage.insert_node(NodeRow {
+                        id: "node.1",
+                        source_graph: "fixture.graph",
+                        native_id: None,
+                        entity_id: None,
+                        kind_id: "kind.1",
+                        type_id: "type.1",
+                        source_order: 0,
+                        payload: b"node",
+                    })?;
+                    let _ = stage.with_write_page(WritePhase::Normalized, 1, 8, |_| Ok(()));
+                    Ok(())
+                })
+                .is_err()
+        );
+        assert_eq!(
+            stage
+                .db()
+                .query_row("SELECT count(*) FROM knowledge_nodes", [], |row| row
+                    .get::<_, u64>(0))
+                .unwrap(),
+            0
+        );
+        assert!(stage.finish().is_err());
+        assert!(!candidate.exists());
+        fs::remove_dir_all(candidate.parent().unwrap()).unwrap();
+
+        let candidate = stage_path("normalized-page-late-guard");
+        let late = ToggleQuota {
+            deny: AtomicBool::new(false),
+        };
+        let mut stage =
+            KnowledgeStage::create(&candidate, limits(), exact_receipt(RAW_ROOT), &owner, &late)
+                .unwrap();
+        assert!(
+            stage
+                .with_write_page(WritePhase::Normalized, 1, 8, |stage| {
+                    stage.insert_node(NodeRow {
+                        id: "node.1",
+                        source_graph: "fixture.graph",
+                        native_id: None,
+                        entity_id: None,
+                        kind_id: "kind.1",
+                        type_id: "type.1",
+                        source_order: 0,
+                        payload: b"node",
+                    })?;
+                    late.deny.store(true, Ordering::SeqCst);
+                    Ok(())
+                })
+                .is_err()
+        );
+        assert_eq!(
+            stage
+                .db()
+                .query_row("SELECT count(*) FROM knowledge_nodes", [], |row| row
+                    .get::<_, u64>(0))
+                .unwrap(),
+            0
+        );
         assert!(stage.finish().is_err());
         assert!(!candidate.exists());
         fs::remove_dir_all(candidate.parent().unwrap()).unwrap();

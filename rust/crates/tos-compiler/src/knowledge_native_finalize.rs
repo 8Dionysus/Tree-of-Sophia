@@ -171,6 +171,11 @@ where
                 if batch.is_empty() {
                     break;
                 }
+                stage.with_write_page(
+                    WritePhase::Finalize,
+                    limits.max_page_rows,
+                    limits.max_page_bytes as u64,
+                    |stage| {
                 for row in batch {
                     if row.order <= after
                         || row.sha.len() != 32
@@ -371,6 +376,9 @@ where
                     }
                     after = row.order;
                 }
+                Ok(())
+                    },
+                )?;
             }
         }
         if total
