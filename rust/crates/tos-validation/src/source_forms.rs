@@ -370,3 +370,6 @@ mod tests {
         assert_eq!(probe.is_valid_raw(root, &invalid), Ok(false));
     }
 }
+
+/// Shared maintained pure producer; validation and admission remain separate.
+pub mod source_copy_kernel;
