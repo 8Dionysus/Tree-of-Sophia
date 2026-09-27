@@ -240,6 +240,42 @@ test('temporal equivalent source float spellings bind canonically while duplicat
  }finally{data.close();}
 });
 
+// Unique predecessor controls now exercise the default Rust HTTP route rather
+// than keeping a second TS temporal algorithm as their executor.
+test('invalid temporal requests fail 400 before any forbidden or unavailable D1 access',async()=>{
+ const data=selected();try{
+  let accesses=0;
+  const forbidden=new Proxy({}, {get(){accesses++;throw Error('D1 access forbidden by request validation');}});
+  for(const request of [null,[],{}, {...data.request,extra:true},
+   {...data.request,source_revision:'invalid'}, {...data.request,left:{...data.request.left,node_id:' x'}},
+   {...data.request,right:{...data.request.right,content_revision:'invalid'}},
+   {...data.request,left:{...data.request.left,node_id:'😀'.repeat(1025)}}]){
+   const actual=await response({db:forbidden,request:data.request},request);
+   assert.equal(actual.status,400);await actual.arrayBuffer();
+  }
+  assert.equal(accesses,0);
+  const actual=await response(data,{...data.request,left:{...data.request.left,node_id:'😀'.repeat(1024)}});
+  assert.equal(actual.status,404);await actual.arrayBuffer();
+ }finally{data.close();}
+});
+
+test('temporal escaped row keys and decoded duplicate identity use retained Rust route bytes',async()=>{
+ for(const ambiguous of [false,true]){
+  const data=selected('document-native-numbers');try{
+   const claim=JSON.parse(data.sqlite.prepare('SELECT json FROM knowledge_nodes WHERE id=?').get(data.request.left.node_id).json);
+   const valueId=claim.semantics.claim.object_node_id;
+   for(const row of data.sqlite.prepare('SELECT id FROM knowledge_nodes').all())replaceRow(data,'node',row.id,raw=>{
+    if(ambiguous)return row.id===valueId?raw.slice(0,-1)+',"\\u0061ttributes":'+JSON.stringify(JSON.parse(raw).attributes)+'}':raw;
+    return ' \n'+raw.replace(/"(attributes|source_claim|semantics|time|raw|value)"(?=\s*:)/g,
+     (_,key)=>'"\\u'+key.charCodeAt(0).toString(16).padStart(4,'0')+key.slice(1)+'"')+'\n ';
+   });
+   const actual=await response(data);
+   if(ambiguous){assert.equal(actual.status,503);await actual.arrayBuffer();}
+   else {const expected=oracle(data);assert.equal(actual.status,expected.status);assertPackets(await actual.text(),expected.raw);}
+  }finally{data.close();}
+ }
+});
+
 test('temporal expanded canonical floats refuse source binding rather than imposing a hidden small-row cutoff',async()=>{
  const data=selected('document-native-numbers');try{
   replaceRow(data,'node',data.request.left.node_id,raw=>{

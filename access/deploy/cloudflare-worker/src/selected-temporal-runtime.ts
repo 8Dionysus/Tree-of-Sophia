@@ -18,6 +18,9 @@ export interface TemporalReplayModule {
   TemporalReplaySession: new (revision: string, profile: string, request: Uint8Array,
     admission: Uint8Array, publishedOutput?: boolean) => TemporalReplaySession;
 }
+export interface TemporalPublishedModule extends TemporalReplayModule {
+  validate_temporal_request_wasm_v1(request: Uint8Array, admission: Uint8Array): void;
+}
 export interface TemporalReadAccess {
   /** All values belong to one selected source revision and Claim profile. */
   readonly sourceRevision: string;

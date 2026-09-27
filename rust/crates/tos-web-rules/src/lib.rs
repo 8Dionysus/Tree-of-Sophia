@@ -36,6 +36,58 @@ mod wasm {
     };
     use wasm_bindgen::prelude::*;
 
+    fn temporal_budget(admission: &[u8]) -> Result<super::TemporalSessionBudget, JsValue> {
+        let document = tos_foundation::parse_json(
+            admission,
+            tos_foundation::JsonMode::PublishedStrict,
+            tos_foundation::JsonLimits {
+                max_bytes: 4096,
+                ..Default::default()
+            },
+        )
+        .map_err(|_| JsValue::from_str("invalid_temporal_admission"))?;
+        let value = document.root();
+        let cap = |name| {
+            value
+                .object_get(name)
+                .and_then(tos_foundation::JsonValue::as_u64)
+                .filter(|n| *n > 0 && *n <= 9_007_199_254_740_991)
+                .and_then(|n| usize::try_from(n).ok())
+                .ok_or_else(|| JsValue::from_str("invalid_temporal_admission"))
+        };
+        let budget = super::TemporalSessionBudget {
+            json: tos_foundation::JsonLimits::new(
+                cap("max_json_bytes")?,
+                cap("max_json_depth")?,
+                cap("max_json_visits")?,
+                cap("max_integer_digits")?,
+            )
+            .map_err(|_| JsValue::from_str("invalid_temporal_admission"))?,
+            max_source_bytes: cap("max_source_bytes")?,
+            max_replay_bytes: cap("max_replay_bytes")?,
+            max_output_bytes: cap("max_output_bytes")?,
+        };
+        Ok(budget)
+    }
+
+    /// The maintained published HTTP route validates request shape before any
+    /// D1 access. Actual selected revision matching remains in the comparator.
+    #[wasm_bindgen]
+    pub fn validate_temporal_request_wasm_v1(
+        request: &[u8],
+        admission: &[u8],
+    ) -> Result<(), JsValue> {
+        let budget = temporal_budget(admission)?;
+        let document = tos_foundation::parse_json(
+            request,
+            tos_foundation::JsonMode::RequestLastWins,
+            budget.json,
+        )
+        .map_err(|_| JsValue::from_str("InvalidRequest"))?;
+        tos_query::validate_temporal_request(document.root())
+            .map_err(|error| JsValue::from_str(&format!("{:?}", error.code)))
+    }
+
     /// A need is physical I/O intent. Successful bytes do not select a model,
     /// publication or disclosure rule; those belong to the actual consumer.
     #[wasm_bindgen]
@@ -88,36 +140,7 @@ mod wasm {
             admission: &[u8],
             published_output: Option<bool>,
         ) -> Result<TemporalReplaySession, JsValue> {
-            let document = tos_foundation::parse_json(
-                admission,
-                tos_foundation::JsonMode::PublishedStrict,
-                tos_foundation::JsonLimits {
-                    max_bytes: 4096,
-                    ..Default::default()
-                },
-            )
-            .map_err(|_| JsValue::from_str("invalid_temporal_admission"))?;
-            let value = document.root();
-            let cap = |name| {
-                value
-                    .object_get(name)
-                    .and_then(tos_foundation::JsonValue::as_u64)
-                    .filter(|n| *n > 0 && *n <= 9_007_199_254_740_991)
-                    .and_then(|n| usize::try_from(n).ok())
-                    .ok_or_else(|| JsValue::from_str("invalid_temporal_admission"))
-            };
-            let budget = super::TemporalSessionBudget {
-                json: tos_foundation::JsonLimits::new(
-                    cap("max_json_bytes")?,
-                    cap("max_json_depth")?,
-                    cap("max_json_visits")?,
-                    cap("max_integer_digits")?,
-                )
-                .map_err(|_| JsValue::from_str("invalid_temporal_admission"))?,
-                max_source_bytes: cap("max_source_bytes")?,
-                max_replay_bytes: cap("max_replay_bytes")?,
-                max_output_bytes: cap("max_output_bytes")?,
-            };
+            let budget = temporal_budget(admission)?;
             let inner = super::TemporalSession::new(revision, profile, request, budget)
                 .map_err(|e| JsValue::from_str(&format!("{:?}", e.code)))?;
             let inner = if published_output == Some(true) {

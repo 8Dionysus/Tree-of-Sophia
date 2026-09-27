@@ -11,11 +11,9 @@ import {nativeStrip} from '../../../shared/native-unicode.ts';
 import {NativeSearchDelivery, nativeSearchFailure} from './native-search-store.ts';
 import {executeNativeLensD1} from './native-lens-store.ts';
 import {inspectNativeD1, readNativeInspectionPublication} from './native-inspection-store.ts';
-import {respondTemporalSnapshot, SelectedTemporalError, type TemporalReplayModule} from './selected-temporal-runtime.ts';
+import {respondTemporalSnapshot, SelectedTemporalError, type TemporalPublishedModule} from './selected-temporal-runtime.ts';
 import {parseNativeJson, parseNativeRequest, nativeField, arrayRefs, type NativeRef, type NativeLensResult, type NativePacket} from './native-lens.ts';
 import {NativeD1Read, NativeD1Rows, nativeD1Limits, readNativePublication, nativeSha256, nativeUnavailable} from './native-d1-read.ts';
-import {compareNativeTemporalD1} from './native-temporal-store.ts';
-import {normalizeTemporalComparisonRequest} from './temporal-comparison.ts';
 
 const KNOWLEDGE_SOURCES = new Set(["philosophy", "canon", "candidate-intake", "source-navigation", "source-claims", "semantic-interchange", "repository"]);
 const SEARCH_NGRAM_SIZE = 3;
@@ -151,10 +149,23 @@ export async function executeKnowledgeLensD1(db: D1Database, specValue: NativeRe
 
 /** The publisher/import selects the public snapshot. This reader validates
  * publication framing and retained exact rows; it issues no runtime rights. */
-export async function temporalSnapshotResponseD1(db: D1Database, runtime: TemporalReplayModule,
+export async function temporalSnapshotResponseD1(db: D1Database, runtime: TemporalPublishedModule,
   request: Uint8Array, signal?: AbortSignal): Promise<Response> {
-  if (!runtime || typeof runtime.TemporalReplaySession !== 'function') {
+  if (!runtime || typeof runtime.TemporalReplaySession !== 'function'
+      || typeof runtime.validate_temporal_request_wasm_v1 !== 'function') {
     throw new SelectedTemporalError('selected_runtime_unavailable');
+  }
+  signal?.throwIfAborted();
+  const encoder = new TextEncoder();
+  const admission = encoder.encode(JSON.stringify({max_json_bytes:1048576, max_json_depth:64,
+    max_json_visits:300000, max_integer_digits:4300, max_source_bytes:6*1048576,
+    max_replay_bytes:7*(65536+6*1048576), max_output_bytes:16*1048576}));
+  // Same shared request validator and parser admission as comparison. Invalid
+  // shapes retain 400 before even publication metadata on an unavailable DB.
+  try { runtime.validate_temporal_request_wasm_v1(request, admission); }
+  catch (error) {
+    if (typeof error === 'string') throw new SelectedTemporalError(error);
+    throw error;
   }
   signal?.throwIfAborted();
   const read = new NativeD1Read(db, nativeD1Limits, true);
@@ -171,15 +182,12 @@ export async function temporalSnapshotResponseD1(db: D1Database, runtime: Tempor
     signal?.throwIfAborted();
   };
   const rows = new NativeD1Rows(read, nativeD1Limits, false);
-  const encoder = new TextEncoder();
   const selected = {
     sourceRevision: nativeField(publication.top.ref, 'source_revision').value as string,
     // The published normalized source-claims contract owns this profile name;
     // no native selected receipt or runtime grant is inferred from the header.
     claimSourceGraph: 'source-claims',
-    admission: encoder.encode(JSON.stringify({max_json_bytes:1048576, max_json_depth:64,
-      max_json_visits:300000, max_integer_digits:4300, max_source_bytes:6*1048576,
-      max_replay_bytes:7*(65536+6*1048576), max_output_bytes:16*1048576})),
+    admission,
     checkSelected,
     async readExactNode(id: string): Promise<Uint8Array | null> {
       await checkSelected();
@@ -265,11 +273,6 @@ export async function knowledgeNodeD1(db: D1Database, id: string, relationLimit:
 
 export async function knowledgeRelationD1(db: D1Database, id: string): Promise<NativePacket> {
   return consistentRead(db, snapshot => inspectNativeD1(db, 'relation', id, 200, snapshot.revision));
-}
-
-export async function knowledgeTemporalCompareD1(db: D1Database, request: unknown): Promise<NativePacket> {
-  const normalized = normalizeTemporalComparisonRequest(request);
-  return consistentRead(db, snapshot => compareNativeTemporalD1(db,normalized,snapshot.revision));
 }
 
 type SqlFragment = { sql: string; bindings: unknown[] };

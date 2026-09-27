@@ -157,25 +157,32 @@ preemption. These are bounded preservation tests, not universal runtime parity.
 
 ## Temporal comparison boundary
 
-`native-temporal-store.ts` uses the same bounded published header, emitted-row
-digest and identity checks as inspection, but executes no inspection or lens.
-Only the exact selected Claim IDs and their declared value/Document-subject IDs
-are read. Four historical or six documentary lookup calls are sufficient; a
-request-local cache avoids fetching a repeated full operand. No schema, generated
-scalar index, historical assertion or inferred Claim is introduced.
+The maintained temporal POST uses `knowledge-store.ts` and
+`selected-temporal-runtime.ts` over the generated shared Rust module. The former
+Worker `temporal-comparison.ts` algorithm, `native-temporal-store.ts` executor
+and dead `knowledgeTemporalCompareD1` entry are retired. The same bounded
+published header, emitted-row digests and identity checks as inspection deliver
+verified raw bytes through `NativeD1Rows.getRaw`; no JS source reserialization
+or lens execution is involved. Rust derives the exact Claim/value/Document-
+subject IDs, with at most six distinct rows and seven replay executions.
 
-`temporal-comparison.ts` carries original `NativeRef`s into `NativePacket` result
-fragments. Its `_same_json` equivalent adds the temporal contract's boolean/type
-distinction to exact native numeric equality. Documentary canonical digests sort
-keys by code point and use Python numeric representations, not original token
-spelling or rounded `.value` numbers. Returned source references keep original
-numeric kinds/lexemes and member order independently of that canonical digest.
-Canonicalization has a separate 8 MiB character-work allowance: a short float
-token can expand in Python's representation. The accepted canonical source
-companion still has the owner's 262144 UTF-8-byte limit; exceeding that limit
-is an inconsistent binding, not a hidden smaller input-row budget.
-The existing source profile, role, source-line kind, exact raw binding and
-date-envelope rules remain the Python owner's computation.
+`tos_query::compare_temporal_operands` owns request shape, source/content
+revision matching, declared profiles, assessment/visibility, date envelopes,
+exact source binding and documentary source-line numeric rules. Its shared
+`validate_temporal_request` also powers the narrow WASM request entry before
+ANY D1 access, preserving malformed request400 even with an unavailable DB.
+Actual source revision matching remains after verified publication selection;
+there is no dummy revision or host copy of normalization.
+
+FND retains original integer/float kinds and member order. Published packet
+emission uses insertion-ordered Python compact numeric/string spelling, with
+no final LF. Documentary digests keep the separate sorted canonical profile.
+Published canonical work uses the declared 16 MiB output cap independently of
+1 MiB retained-row/request parsing: Python float spelling may expand short
+input. The owner's 262144-byte exact source binding cutoff remains an
+undetermined binding reason, not a smaller input-row budget. Aggregate canonical
+bytes/CPU instructions are not measured. Private selected native admission
+remains separate from this published snapshot path.
 
 HTTP request decoding is bounded to 64 KiB and rejects invalid UTF-8/BOM; request
 selection member order and Python whitespace semantics survive normalization.

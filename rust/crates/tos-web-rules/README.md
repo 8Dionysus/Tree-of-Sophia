@@ -70,9 +70,18 @@ valid retained row. The common temporal core still decides its 262 KiB exact
 source-binding limit and emits its undetermined reason. The private canonical
 profile retains its existing limits.
 
-Existing TS domain functions remain pending retirement until actual maintained
-published Worker parity is accepted. Inspection/lens/exploration selected native
-executors remain separate. Source wiring does not establish a deployment.
+Root accepted local published default-route parity on corrected products:
+104 existing oracle controls passed, including actual Miniflare, and the four
+unchanged body controls were retained. The exclusively replaced Worker TS
+algorithm/store and dead entry are removed; independent host presentation and
+browser temporal controls stay. The shared request-shape validator is additionally
+exposed by `validate_temporal_request_wasm_v1(raw, admission)` before any D1 access,
+using the same bounded parser and budget decoder as the replay session. Comparison
+uses that same QRY validator and matches actual publication revision later.
+The changed pre-I/O boundary and migrated unique controls still need their
+narrow actual check; prior full oracle/body evidence is retained without an
+unchanged rerun. Inspection/lens/exploration selected native executors remain
+separate. Local acceptance does not establish a deployment.
 
 The existing `tests/domain-wasm-host.mjs` exercises the real generated binding
 and async driver with a maintained selected-packet oracle carrier, plus

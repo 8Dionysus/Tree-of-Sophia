@@ -38,12 +38,12 @@ import {nativeLensResponse, nativePacketResponse} from './native-lens-response.t
 import {NativeBudgetExceeded} from '../../../shared/native-semantics.ts';
 import {nativeStrip,nativeIntegerString} from '../../../shared/native-unicode.ts';
 import {SelectedTemporalError} from './selected-temporal-runtime.ts';
-import {initSync, TemporalReplaySession} from '../generated/tos_web_rules.js';
+import {initSync, TemporalReplaySession, validate_temporal_request_wasm_v1} from '../generated/tos_web_rules.js';
 import temporalWasm from '../generated/tos_web_rules_bg.wasm';
 
 // wasm-bindgen owns module initialization; no second host cache or fetch.
 initSync({module: temporalWasm});
-const temporalRuntime = {TemporalReplaySession};
+const temporalRuntime = {TemporalReplaySession, validate_temporal_request_wasm_v1};
 
 const STATIC_CORPUS_LIMITS = new Set([1, 100, 700, 1000]);
 const STATIC_PHILOSOPHY_LIMITS = new Set([1, 1000]);
