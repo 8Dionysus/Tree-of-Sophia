@@ -14,5 +14,6 @@ pub mod mcp;
 
 pub use common::{
     AccessError, AccessErrorCode, AccessExecutor, AccessProfile, DisclosureFence,
-    IndexedSearchParams, Params, PreparedPacket, QuerySession, descriptor,
+    IndexedSearchParams, Params, PreparedPacket, QuerySession, RegisteredOperation, descriptor,
+    registered_operations,
 };

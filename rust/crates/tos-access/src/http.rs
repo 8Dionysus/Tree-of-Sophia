@@ -551,7 +551,9 @@ fn read_head(stream: &mut TcpStream) -> std::io::Result<Vec<u8>> {
     Ok(head)
 }
 
-fn write_response(stream: &mut TcpStream, mut response: HttpResponse) -> std::io::Result<()> {
+/// Write the prepared response through the same final current/cancellation fence
+/// used by socket delivery, retaining its disclosure hold through final flush.
+pub fn write_response<W: Write>(stream: &mut W, mut response: HttpResponse) -> std::io::Result<()> {
     if let Some(fence) = response.fence.as_mut() {
         if let Err(error) = fence.recheck() {
             response.status = error.http_status();

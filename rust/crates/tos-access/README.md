@@ -29,3 +29,13 @@ and structured packet bytes plus the selected lease through final flush.
 The existing framing refusal case continues to check the default equal caps.
 Cancellation and current-authority disclosure fences apply independently of
 these byte allowances.
+
+The selected-family wire case also reuses the maintained native producer
+fixture for temporal, lens compile, focus, stored lens and exploration replay.
+It derives route selectors from the native descriptor and stored LensSpec from
+the digest-bound selected catalog. The fixture authority is still a test-only
+current-binding model, never an issuer or public grant. Native HTTP
+`write_response` is shared by the socket path and supplied writers; its final
+fence precedes bytes and its hold lasts through flush. Selected family cases
+observe that hold and refuse withdrawal/cancellation before disclosure. Public
+session issuance and Worker Response/body delivery require their own owners.

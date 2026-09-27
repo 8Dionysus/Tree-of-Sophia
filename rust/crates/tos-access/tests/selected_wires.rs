@@ -380,9 +380,11 @@ fn selected_cmp_packet_survives_all_three_native_wire_adapters() {
 // demonstrate custody/fence mechanics only.
 mod selected_knowledge {
     use super::*;
-    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::atomic::{AtomicBool, AtomicU8, AtomicUsize, Ordering};
     use tos_access::{KnowledgeOperation as O, KnowledgeRequest as R};
-    use tos_compiler::knowledge_full_fixture::{FullKnowledgeFixture, build_fixture};
+    use tos_compiler::knowledge_full_fixture::{
+        FullKnowledgeFixture, build_fixture, build_native_fixture,
+    };
     use tos_foundation::Digest256;
     use tos_query::knowledge_exploration::{
         ExplorationBudget, ExplorationCheckpoint, ExplorationCheckpoints,
@@ -394,7 +396,22 @@ mod selected_knowledge {
         InspectCurrentAuthority, InspectDisclosureLease, InspectedCarrier, ObservedInspectCarrier,
         bind_verified_knowledge,
     };
-    struct Lease(Arc<AtomicUsize>);
+    #[derive(Default)]
+    struct Controls {
+        revoked: AtomicBool,
+        cancelled: AtomicBool,
+        // Fixture-only withdrawal/cancellation immediately after preparation.
+        after_prepare: AtomicU8,
+        catalog_grants: AtomicUsize,
+    }
+    impl AbortProbe for Controls {
+        fn reason(&self) -> Option<tos_query::AbortReason> {
+            self.cancelled
+                .load(Ordering::SeqCst)
+                .then_some(tos_query::AbortReason::Cancelled)
+        }
+    }
+    struct Lease(Arc<AtomicUsize>, Arc<Controls>);
     impl Drop for Lease {
         fn drop(&mut self) {
             self.0.fetch_sub(1, Ordering::SeqCst);
@@ -402,7 +419,21 @@ mod selected_knowledge {
     }
     impl InspectDisclosureLease for Lease {
         fn recheck(&mut self) -> Result<(), SearchV2Error> {
-            Ok(())
+            use tos_query::search_v2::SearchV2ErrorCode as Code;
+            let code = if self.1.revoked.load(Ordering::SeqCst) {
+                Some(Code::StalePolicy)
+            } else if self.1.cancelled.load(Ordering::SeqCst) {
+                Some(Code::Cancelled)
+            } else {
+                None
+            };
+            match code {
+                Some(code) => Err(SearchV2Error {
+                    code,
+                    message: "fixture disclosure withdrawn or cancelled",
+                }),
+                None => Ok(()),
+            }
         }
     }
     impl CatalogDisclosureLease for Lease {
@@ -415,9 +446,15 @@ mod selected_knowledge {
         catalog: CatalogDisclosureScope,
         inspect: IndexedDisclosureScope,
         held: Arc<AtomicUsize>,
+        controls: Arc<Controls>,
     }
     impl Authority {
-        fn new(bound: &BoundCmpKnowledge<'_>, request: &R, held: Arc<AtomicUsize>) -> Self {
+        fn new(
+            bound: &BoundCmpKnowledge<'_>,
+            request: &R,
+            held: Arc<AtomicUsize>,
+            controls: Arc<Controls>,
+        ) -> Self {
             let policy = CurrentPolicyBinding {
                 scope: "synthetic-wire".into(),
                 issuer_ref: "synthetic-issuer".into(),
@@ -429,10 +466,13 @@ mod selected_knowledge {
             let inspect = IndexedDisclosureScope {
                 operation_id: request.operation().id().into(),
                 carrier_layer: "tos_knowledge_public_graph_projection_v1".into(),
-                intended_use: if request.operation() == O::Explore {
-                    "read_only_public_knowledge_exploration_v1"
-                } else {
-                    "read_only_public_knowledge_inspect_v1"
+                intended_use: match request.operation() {
+                    O::Explore => tos_query::knowledge_exploration::EXPLORATION_INTENDED_USE,
+                    O::Temporal => tos_query::TEMPORAL_INTENDED_USE,
+                    O::Lens => tos_query::knowledge_lens::LENS_INTENDED_USE,
+                    O::Focus => tos_query::knowledge_lens::FOCUS_INTENDED_USE,
+                    O::StoredLens => tos_query::knowledge_lens::STORED_LENS_INTENDED_USE,
+                    _ => "read_only_public_knowledge_inspect_v1",
                 }
                 .into(),
                 selected_model_receipt_id: bound.owner_receipt_id().into(),
@@ -469,11 +509,12 @@ mod selected_knowledge {
                 catalog,
                 inspect,
                 held,
+                controls,
             }
         }
         fn lease(&self) -> Lease {
             self.held.fetch_add(1, Ordering::SeqCst);
-            Lease(Arc::clone(&self.held))
+            Lease(Arc::clone(&self.held), Arc::clone(&self.controls))
         }
     }
     impl CatalogCurrentAuthority for Authority {
@@ -499,6 +540,15 @@ mod selected_knowledge {
         }
     }
     impl InspectCurrentAuthority for Authority {
+        fn abort_probe(&self) -> Option<Arc<dyn AbortProbe>> {
+            Some(self.controls.clone())
+        }
+        fn authorize_catalog_current(&mut self, sha: Digest256) -> Result<(), SearchV2Error> {
+            assert_eq!(self.inspect.operation_id, O::StoredLens.id());
+            assert_eq!(sha, self.catalog.catalog_packet_sha256);
+            self.controls.catalog_grants.fetch_add(1, Ordering::SeqCst);
+            Ok(())
+        }
         fn policy_binding(&self) -> CurrentPolicyBinding {
             self.policy.clone()
         }
@@ -524,6 +574,7 @@ mod selected_knowledge {
         fixture: FullKnowledgeFixture,
         held: Arc<AtomicUsize>,
         checkpoints: Mutex<tos_access::exploration_checkpoints::ProcessExplorationCheckpoints>,
+        controls: Arc<Controls>,
     }
     impl AccessExecutor for Executor {
         fn source_descend_available(&self) -> bool {
@@ -537,7 +588,17 @@ mod selected_knowledge {
             unreachable!()
         }
         fn knowledge_available(&self, operation: O) -> bool {
-            matches!(operation, O::Catalog | O::Node | O::Relation | O::Explore)
+            matches!(
+                operation,
+                O::Catalog
+                    | O::Node
+                    | O::Relation
+                    | O::Explore
+                    | O::Temporal
+                    | O::Lens
+                    | O::Focus
+                    | O::StoredLens
+            )
         }
         fn knowledge(
             &self,
@@ -552,10 +613,20 @@ mod selected_knowledge {
             )
             .unwrap();
             let mut model = cold.fork_reader_with_vm_budget(1_000_000).unwrap();
-            let mut catalog = Authority::new(&bound, &request, Arc::clone(&self.held));
-            let mut inspect = Authority::new(&bound, &request, Arc::clone(&self.held));
+            let mut catalog = Authority::new(
+                &bound,
+                &request,
+                Arc::clone(&self.held),
+                Arc::clone(&self.controls),
+            );
+            let mut inspect = Authority::new(
+                &bound,
+                &request,
+                Arc::clone(&self.held),
+                Arc::clone(&self.controls),
+            );
             let budgets = budgets();
-            tos_access::knowledge::execute_selected_knowledge(
+            let packet = tos_access::knowledge::execute_selected_knowledge(
                 &mut model,
                 &bound,
                 &mut catalog,
@@ -564,7 +635,13 @@ mod selected_knowledge {
                 request,
                 budgets,
                 probe,
-            )
+            )?;
+            match self.controls.after_prepare.load(Ordering::SeqCst) {
+                1 => self.controls.revoked.store(true, Ordering::SeqCst),
+                2 => self.controls.cancelled.store(true, Ordering::SeqCst),
+                _ => {}
+            }
+            Ok(packet)
         }
     }
     fn budgets() -> tos_access::knowledge::SelectedKnowledgeBudgets {
@@ -654,6 +731,7 @@ mod selected_knowledge {
     fn real_selected_catalog_and_inspect_packets_survive_all_native_wires() {
         let executor = Arc::new(Executor {
             fixture: build_fixture(),
+            controls: Arc::new(Controls::default()),
             held: Arc::new(AtomicUsize::new(0)),
             checkpoints: Mutex::new(
                 tos_access::exploration_checkpoints::ProcessExplorationCheckpoints::new(
@@ -935,5 +1013,512 @@ mod selected_knowledge {
             page.body, replay.body,
             "repeating a consumed cursor returns its exact admitted page"
         );
+    }
+
+    fn json_bytes(value: &JsonValue) -> Vec<u8> {
+        tos_foundation::emit_value_preserved_json(value, JsonLimits::default()).unwrap()
+    }
+    fn object(fields: Vec<(&str, JsonValue)>) -> JsonValue {
+        JsonValue::Object(
+            fields
+                .into_iter()
+                .map(|(key, value)| (tos_foundation::JsonString::from_utf8(key), value))
+                .collect(),
+        )
+    }
+    fn text(value: &str) -> JsonValue {
+        JsonValue::String(tos_foundation::JsonString::from_utf8(value))
+    }
+    fn path_id(value: &str) -> String {
+        value
+            .bytes()
+            .map(|byte| {
+                if byte.is_ascii_alphanumeric() || b"-._~".contains(&byte) {
+                    (byte as char).to_string()
+                } else {
+                    format!("%{byte:02X}")
+                }
+            })
+            .collect()
+    }
+    fn http_packet(response: &[u8]) -> &[u8] {
+        let marker = response.windows(4).position(|w| w == b"\r\n\r\n").unwrap() + 4;
+        let header = std::str::from_utf8(&response[..marker]).unwrap();
+        assert!(header.starts_with("HTTP/1.1 200 "), "{header}");
+        let length = header
+            .lines()
+            .find_map(|line| line.strip_prefix("Content-Length: "))
+            .unwrap()
+            .parse::<usize>()
+            .unwrap();
+        assert_eq!(response.len() - marker, length);
+        &response[marker..]
+    }
+    fn mcp_input(tool: &str, arguments: &JsonValue) -> Vec<u8> {
+        let mut input = b"{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2025-11-25\"}}\n{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}\n".to_vec();
+        input.extend(json_bytes(&object(vec![
+            ("jsonrpc", text("2.0")),
+            (
+                "id",
+                JsonValue::Number(tos_foundation::JsonNumber {
+                    kind: tos_foundation::JsonNumberKind::Int,
+                    lexeme: "2".into(),
+                }),
+            ),
+            ("method", text("tools/call")),
+            (
+                "params",
+                object(vec![("name", text(tool)), ("arguments", arguments.clone())]),
+            ),
+        ])));
+        input.push(b'\n');
+        input
+    }
+    fn last_frame(output: &[u8]) -> &[u8] {
+        output
+            .split(|b| *b == b'\n')
+            .filter(|frame| !frame.is_empty())
+            .last()
+            .unwrap()
+    }
+    fn check_mcp_packet(frame: &[u8], expected: &[u8], cap: usize) {
+        assert!(frame.len() + 1 <= cap);
+        let document = parse_json(
+            frame,
+            JsonMode::PublishedStrict,
+            JsonLimits {
+                max_bytes: cap,
+                ..JsonLimits::default()
+            },
+        )
+        .unwrap();
+        let result = document
+            .root()
+            .object_get("result")
+            .unwrap_or_else(|| panic!("selected MCP refusal: {}", String::from_utf8_lossy(frame)));
+        assert_eq!(
+            result.object_get("content").unwrap().as_array().unwrap()[0]
+                .object_get("text")
+                .unwrap()
+                .as_str()
+                .unwrap()
+                .as_bytes(),
+            expected
+        );
+        assert!(frame.ends_with(b"}}"));
+        assert_eq!(
+            &frame[frame.len() - expected.len() - 2..frame.len() - 2],
+            expected
+        );
+    }
+
+    #[test]
+    fn real_selected_query_families_survive_native_wires_and_disclosure_changes() {
+        let executor = Arc::new(Executor {
+            fixture: build_native_fixture(),
+            held: Arc::new(AtomicUsize::new(0)),
+            controls: Arc::new(Controls::default()),
+            checkpoints: Mutex::new(
+                tos_access::exploration_checkpoints::ProcessExplorationCheckpoints::new(
+                    tos_access::exploration_checkpoints::CheckpointLimits {
+                        ttl: Duration::from_secs(60),
+                        max_entries: 16,
+                        max_encoded_bytes: 2_000_000,
+                    },
+                )
+                .unwrap(),
+            ),
+        });
+        let profile = AccessProfile::new(65_536, 1_048_576, 65_536);
+        let mcp_profile = profile.with_mcp_frame_budget(
+            tos_access::mcp::tool_result_frame_byte_bound(
+                profile.max_response_bytes,
+                profile.max_request_bytes.min(profile.max_line_bytes),
+            )
+            .unwrap(),
+        );
+        let graph = parse_json(
+            &executor.fixture.graph_input_bytes,
+            JsonMode::PublishedStrict,
+            JsonLimits::default(),
+        )
+        .unwrap();
+        let nodes = graph
+            .root()
+            .object_get("nodes")
+            .unwrap()
+            .as_array()
+            .unwrap();
+        let claim = nodes
+            .iter()
+            .find(|node| {
+                node.object_get("kind_id").and_then(JsonValue::as_str) == Some("claim")
+                    && node.object_get("type_id").and_then(JsonValue::as_str)
+                        == Some("tos.entity.claim")
+            })
+            .expect("genuine maintained native Claim operand");
+        let claim_id = claim.object_get("id").unwrap().as_str().unwrap();
+        let operand = object(vec![
+            ("node_id", text(claim_id)),
+            (
+                "content_revision",
+                claim.object_get("content_revision").unwrap().clone(),
+            ),
+        ]);
+        let temporal = object(vec![
+            ("schema_version", text("tos_temporal_comparison_request_v1")),
+            (
+                "source_revision",
+                graph.root().object_get("source_revision").unwrap().clone(),
+            ),
+            ("left", operand.clone()),
+            ("right", operand),
+        ]);
+        // Retrieve the authored stored spec through the actual selected catalog,
+        // instead of embedding a lens ID or maintained source list in consumers.
+        let catalog = executor
+            .knowledge(R::Catalog, Arc::new(NeverAbort))
+            .unwrap();
+        let catalog_value = parse_json(
+            &catalog.body,
+            JsonMode::PublishedStrict,
+            JsonLimits::default(),
+        )
+        .unwrap();
+        let lens = catalog_value
+            .root()
+            .object_get("lenses")
+            .unwrap()
+            .as_array()
+            .unwrap()
+            .first()
+            .expect("real selected stored LensSpec")
+            .clone();
+        let lens_id = lens
+            .object_get("lens_id")
+            .unwrap()
+            .as_str()
+            .unwrap()
+            .to_owned();
+        drop(catalog);
+        // Initial continuations are nondeterministic process-owned cursors.
+        // Obtain one actual paused traversal, then compare its exact admitted
+        // replay packet across POST and MCP using the same consumed input.
+        let first = nodes
+            .iter()
+            .find_map(|node| {
+                let request = object(vec![
+                    ("focus_node_id", node.object_get("id").unwrap().clone()),
+                    (
+                        "page_nodes",
+                        parse_json(b"1", JsonMode::PublishedStrict, JsonLimits::default())
+                            .unwrap()
+                            .into_root(),
+                    ),
+                    (
+                        "page_relations",
+                        parse_json(b"1", JsonMode::PublishedStrict, JsonLimits::default())
+                            .unwrap()
+                            .into_root(),
+                    ),
+                    (
+                        "max_depth",
+                        parse_json(b"2", JsonMode::PublishedStrict, JsonLimits::default())
+                            .unwrap()
+                            .into_root(),
+                    ),
+                ]);
+                let packet = executor
+                    .knowledge(R::Explore(request), Arc::new(NeverAbort))
+                    .unwrap();
+                let value = parse_json(
+                    &packet.body,
+                    JsonMode::PublishedStrict,
+                    JsonLimits::default(),
+                )
+                .unwrap()
+                .into_root();
+                value
+                    .object_get("page")
+                    .unwrap()
+                    .object_get("next_cursor")
+                    .unwrap()
+                    .as_str()
+                    .is_some()
+                    .then_some(value)
+            })
+            .expect("genuine resumable native neighborhood");
+        let cursor = first
+            .object_get("page")
+            .unwrap()
+            .object_get("next_cursor")
+            .unwrap()
+            .as_str()
+            .unwrap();
+        let explore = object(vec![("cursor", text(cursor))]);
+        let focus = tos_query::knowledge_focus::KnowledgeFocusRequest::new(claim_id.to_owned());
+        // Optional suffix, request body, MCP args, selected request.
+        let cases = vec![
+            (
+                Some("-".to_owned()),
+                Some(json_bytes(&temporal)),
+                object(vec![("request", temporal.clone())]),
+                R::Temporal(temporal),
+            ),
+            (
+                Some("-".to_owned()),
+                Some(json_bytes(&lens)),
+                object(vec![("spec", lens.clone())]),
+                R::Lens(lens),
+            ),
+            (
+                Some(claim_id.to_owned()),
+                None,
+                object(vec![("node_id", text(claim_id))]),
+                R::Focus(focus),
+            ),
+            (
+                Some(lens_id.clone()),
+                None,
+                object(vec![("lens_id", text(&lens_id))]),
+                R::StoredLens { lens_id },
+            ),
+            (
+                None,
+                Some(json_bytes(&explore)),
+                object(vec![("request", explore.clone())]),
+                R::Explore(explore),
+            ),
+        ];
+        for (suffix, body, arguments, request) in &cases {
+            let operation = tos_access::registered_operations()
+                .unwrap()
+                .iter()
+                .find(|op| op.operation_id == request.operation().id())
+                .unwrap();
+            let path = operation
+                .http_path
+                .replace("{node_id}", &path_id(claim_id))
+                .replace("{lens_id}", &path_id(suffix.as_deref().unwrap_or_default()));
+            let packet = executor
+                .knowledge(request.clone(), Arc::new(NeverAbort))
+                .unwrap();
+            let expected = packet.body.clone();
+            drop(packet);
+            if let Some(suffix) = suffix {
+                let mut args: Vec<String> = operation
+                    .cli_command
+                    .as_ref()
+                    .unwrap()
+                    .split_whitespace()
+                    .map(str::to_owned)
+                    .collect();
+                args.push(suffix.clone());
+                let mut writer = HeldWriter {
+                    bytes: Vec::new(),
+                    held: Arc::clone(&executor.held),
+                };
+                let mut errors = Vec::new();
+                assert_eq!(
+                    cli::run_cli_with_input(
+                        &args,
+                        executor.as_ref(),
+                        profile,
+                        &mut Cursor::new(body.clone().unwrap_or_default()),
+                        &mut writer,
+                        &mut errors
+                    ),
+                    0,
+                    "{}: {}",
+                    operation.operation_id,
+                    String::from_utf8_lossy(&errors)
+                );
+                assert!(errors.is_empty());
+                assert_eq!(&writer.bytes[..writer.bytes.len() - 1], expected);
+            }
+            let response = if operation.http_method == "POST" {
+                tos_access::http::handle_post(
+                    executor.as_ref(),
+                    &path,
+                    body.as_ref().unwrap(),
+                    profile,
+                )
+            } else {
+                handle_get(executor.as_ref(), &path, "GET", profile)
+            };
+            let mut writer = HeldWriter {
+                bytes: Vec::new(),
+                held: Arc::clone(&executor.held),
+            };
+            tos_access::http::write_response(&mut writer, response).unwrap();
+            assert_eq!(http_packet(&writer.bytes), expected);
+            assert_eq!(executor.held.load(Ordering::SeqCst), 0);
+            let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+            let address = listener.local_addr().unwrap();
+            let owner = Arc::clone(&executor);
+            let server = std::thread::spawn(move || {
+                let (stream, _) = listener.accept().unwrap();
+                serve_connection(stream, owner, profile);
+            });
+            let mut client = TcpStream::connect(address).unwrap();
+            let wire_body = if operation.http_method == "POST" {
+                body.clone().unwrap()
+            } else {
+                Vec::new()
+            };
+            let header = format!(
+                "{} {path} HTTP/1.1\r\nHost: localhost\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n",
+                operation.http_method,
+                wire_body.len()
+            );
+            client.write_all(header.as_bytes()).unwrap();
+            client.write_all(&wire_body).unwrap();
+            let mut bytes = Vec::new();
+            client.read_to_end(&mut bytes).unwrap();
+            server.join().unwrap();
+            assert_eq!(http_packet(&bytes), expected);
+            let mut writer = McpHeldWriter {
+                bytes: Vec::new(),
+                held: Arc::clone(&executor.held),
+                source_frame: false,
+            };
+            run_io(
+                Cursor::new(mcp_input(&operation.mcp_tool, arguments)),
+                &mut writer,
+                executor.as_ref(),
+                mcp_profile,
+            )
+            .unwrap();
+            check_mcp_packet(
+                last_frame(&writer.bytes),
+                &expected,
+                mcp_profile.max_mcp_frame_bytes,
+            );
+            assert_eq!(executor.held.load(Ordering::SeqCst), 0);
+        }
+        assert!(
+            executor.controls.catalog_grants.load(Ordering::SeqCst) >= 4,
+            "stored-lens direct/CLI/HTTP/MCP consultations authorize exact selected catalog"
+        );
+
+        // The real prepared temporal packet becomes undisclosable when the
+        // fixture's current binding is withdrawn or owner probe is cancelled.
+        // Every transport must refuse before emitting packet bytes and drop hold.
+        let (suffix, body, arguments, request) = &cases[0];
+        let operation = tos_access::registered_operations()
+            .unwrap()
+            .iter()
+            .find(|op| op.operation_id == request.operation().id())
+            .unwrap();
+        let reset = || {
+            executor.controls.revoked.store(false, Ordering::SeqCst);
+            executor.controls.cancelled.store(false, Ordering::SeqCst);
+        };
+        for change in [1, 2] {
+            executor
+                .controls
+                .after_prepare
+                .store(change, Ordering::SeqCst);
+            let mut args: Vec<String> = operation
+                .cli_command
+                .as_ref()
+                .unwrap()
+                .split_whitespace()
+                .map(str::to_owned)
+                .collect();
+            args.push(suffix.as_ref().unwrap().clone());
+            let mut output = Vec::new();
+            let mut errors = Vec::new();
+            assert_eq!(
+                cli::run_cli_with_input(
+                    &args,
+                    executor.as_ref(),
+                    profile,
+                    &mut Cursor::new(body.clone().unwrap()),
+                    &mut output,
+                    &mut errors
+                ),
+                1
+            );
+            assert!(output.is_empty());
+            assert!(!errors.is_empty());
+            assert_eq!(executor.held.load(Ordering::SeqCst), 0);
+            reset();
+            let response = tos_access::http::handle_post(
+                executor.as_ref(),
+                &operation.http_path,
+                body.as_ref().unwrap(),
+                profile,
+            );
+            let mut output = Vec::new();
+            tos_access::http::write_response(&mut output, response).unwrap();
+            assert!(
+                !String::from_utf8_lossy(&output).contains("tos_temporal_comparison_result_v1")
+            );
+            assert!(!String::from_utf8_lossy(&output).starts_with("HTTP/1.1 200 "));
+            assert_eq!(executor.held.load(Ordering::SeqCst), 0);
+            reset();
+            let mut output = Vec::new();
+            run_io(
+                Cursor::new(mcp_input(&operation.mcp_tool, arguments)),
+                &mut output,
+                executor.as_ref(),
+                mcp_profile,
+            )
+            .unwrap();
+            let frame = last_frame(&output);
+            assert!(String::from_utf8_lossy(frame).contains("\"isError\":true"));
+            assert!(!String::from_utf8_lossy(frame).contains("structuredContent"));
+            assert_eq!(executor.held.load(Ordering::SeqCst), 0);
+            reset();
+        }
+        executor.controls.after_prepare.store(0, Ordering::SeqCst);
+        let mut output = Vec::new();
+        let mut errors = Vec::new();
+        let mut args: Vec<String> = operation
+            .cli_command
+            .as_ref()
+            .unwrap()
+            .split_whitespace()
+            .map(str::to_owned)
+            .collect();
+        args.push(suffix.as_ref().unwrap().clone());
+        assert_eq!(
+            cli::run_cli_with_input(
+                &args,
+                executor.as_ref(),
+                profile.with_query_timeout(Duration::ZERO),
+                &mut Cursor::new(body.clone().unwrap()),
+                &mut output,
+                &mut errors
+            ),
+            1
+        );
+        assert!(output.is_empty());
+        assert!(String::from_utf8_lossy(&errors).contains("deadline_exceeded"));
+        assert_eq!(executor.held.load(Ordering::SeqCst), 0);
+        let deadline = profile.with_query_timeout(Duration::ZERO);
+        let response = tos_access::http::handle_post(
+            executor.as_ref(),
+            &operation.http_path,
+            body.as_ref().unwrap(),
+            deadline,
+        );
+        assert_eq!(response.status, 408);
+        let mut output = Vec::new();
+        tos_access::http::write_response(&mut output, response).unwrap();
+        assert!(String::from_utf8_lossy(&output).contains("deadline_exceeded"));
+        let mut output = Vec::new();
+        run_io(
+            Cursor::new(mcp_input(&operation.mcp_tool, arguments)),
+            &mut output,
+            executor.as_ref(),
+            mcp_profile.with_query_timeout(Duration::ZERO),
+        )
+        .unwrap();
+        let frame = String::from_utf8_lossy(last_frame(&output));
+        assert!(frame.contains("\"isError\":true"));
+        assert!(!frame.contains("structuredContent"));
+        assert_eq!(executor.held.load(Ordering::SeqCst), 0);
     }
 }
