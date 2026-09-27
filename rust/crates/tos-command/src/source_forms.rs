@@ -981,6 +981,9 @@ fn form_error(error: forms_kernel::FormMechanicsError) -> Error {
         forms_kernel::FormMechanicsError::Unsupported(text) => Error::Unsupported(text),
     }
 }
+fn validate_history(set: &JsonValue, subject: &JsonValue) -> Result<()> {
+    forms_kernel::validate_history(set, subject).map_err(form_error)
+}
 pub fn form_reference(form: &JsonValue) -> Result<JsonValue> {
     forms_kernel::form_reference(form).map_err(form_error)
 }
