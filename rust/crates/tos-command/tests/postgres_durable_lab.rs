@@ -206,7 +206,7 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
         CorpusReader, CutReadLimits, ReadLimits, SoftwareCaptureReader, SoftwareCaptureSelectionV1,
     };
     use tos_validation::executor::{ExactWorkerIdentity, ExecutorBudget};
-    use tos_validation::source_cut::{CutWorkerLimits, CutWorkerSchemaExecutor};
+    use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerLimits, CutWorkerSchemaExecutor};
 
     fn canonical(value: &serde_json::Value) -> Vec<u8> {
         let raw = serde_json::to_vec(value).unwrap();
@@ -497,6 +497,7 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
                 .serialize(&software, &components, &mut worker, deadline, &cancelled)
                 .unwrap(),
         );
+        worker.finish(deadline, &cancelled).unwrap();
         contexts.push(context);
     }
     let mut worker = new_worker();
@@ -532,17 +533,21 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
         .iter()
         .enumerate()
         .map(|(i, p)| {
-            lab.db
+            let mut registration_worker = new_worker();
+            let attempt = lab
+                .db
                 .register_source_creation(
                     &lab.store,
                     &initial.cohort,
                     format!("agent-{i}").as_bytes(),
                     p,
-                    &mut new_worker(),
+                    &mut registration_worker,
                     deadline,
                     &cancelled,
                 )
-                .unwrap()
+                .unwrap();
+            registration_worker.finish(deadline, &cancelled).unwrap();
+            attempt
         })
         .collect::<Vec<_>>();
     let starting_head = lab.head_seq();
@@ -754,17 +759,19 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
         )
         .unwrap();
     assert!(verified.cohort.epoch() > initial.cohort.epoch());
+    let mut replay_attempt_worker = new_worker();
     let replay_attempt = reopened_db
         .reopen_committed_source_creation_attempt(
             &reopened_store,
             &verified.cohort,
             b"agent-0",
             &packages[0],
-            &mut new_worker(),
+            &mut replay_attempt_worker,
             deadline,
             &cancelled,
         )
         .unwrap();
+    replay_attempt_worker.finish(deadline, &cancelled).unwrap();
     let (restored_replay, _) = reopened_db
         .commit_source_creation(
             &reopened_store,
@@ -1001,17 +1008,19 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
             .unwrap()
     );
     assert_eq!(second_member.current_generation, second_receipt.commit_seq);
+    let mut second_replay_worker = new_worker();
     let second_replay = reopened_db
         .reopen_committed_source_creation_attempt(
             &reopened_store,
             &current_reopened.cohort,
             b"agent-current-second",
             &current_package,
-            &mut new_worker(),
+            &mut second_replay_worker,
             deadline,
             &cancelled,
         )
         .unwrap();
+    second_replay_worker.finish(deadline, &cancelled).unwrap();
     let (second_replayed, _) = reopened_db
         .commit_source_creation(
             &reopened_store,

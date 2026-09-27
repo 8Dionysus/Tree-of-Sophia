@@ -598,7 +598,9 @@ impl DurablePgCoordinator {
         if domain.is_empty() {
             return Err(DurableError::Invalid("empty domain"));
         }
-        self.client.execute(
+        let mut tx = self.client.transaction()?;
+        tx.batch_execute("SET LOCAL lock_timeout = '5s'; SET LOCAL statement_timeout = '15s'")?;
+        tx.execute(
             "INSERT INTO cmd2_domain(domain,contract_digest,schema_profile_digest)
              VALUES($1,$2,$3) ON CONFLICT DO NOTHING",
             &[
@@ -607,11 +609,13 @@ impl DurablePgCoordinator {
                 &schema_profile_digest().to_hex(),
             ],
         )?;
+        tx.commit()?;
         Ok(())
     }
 
     pub fn set_job_epoch(&mut self, domain: &str, job_id: &str, epoch: u64) -> DurableResult<()> {
         let mut tx = self.client.transaction()?;
+        tx.batch_execute("SET LOCAL lock_timeout = '5s'; SET LOCAL statement_timeout = '15s'")?;
         lock_audit_fence(&mut tx, domain)?;
         let changed = tx.execute(
             "INSERT INTO cmd2_job(domain,job_id,fence_epoch) VALUES($1,$2,$3)
@@ -637,6 +641,7 @@ impl DurablePgCoordinator {
             return Err(DurableError::Invalid("empty attempt identity"));
         }
         let mut tx = self.client.transaction()?;
+        tx.batch_execute("SET LOCAL lock_timeout = '5s'; SET LOCAL statement_timeout = '15s'")?;
         lock_audit_fence(&mut tx, request.domain)?;
         let changed = tx.execute(
             "INSERT INTO cmd2_attempt(domain,prepare_id,command_id,raw_request_digest,delta_digest,
@@ -750,6 +755,7 @@ impl DurablePgCoordinator {
             .build_transaction()
             .isolation_level(IsolationLevel::ReadCommitted)
             .start()?;
+        tx.batch_execute("SET LOCAL lock_timeout = '5s'; SET LOCAL statement_timeout = '15s'")?;
         lock_audit_fence(&mut tx, domain)?;
         source_cohort::check_writer_profile(&mut tx, domain, profile)?;
         let row = tx.query_one(
@@ -1161,6 +1167,7 @@ impl DurablePgCoordinator {
         prepare_id: &[u8],
     ) -> DurableResult<AttemptResolution> {
         let mut tx = self.client.transaction()?;
+        tx.batch_execute("SET LOCAL lock_timeout = '5s'; SET LOCAL statement_timeout = '15s'")?;
         lock_audit_fence(&mut tx, domain)?;
         let row = tx.query_one(
             "SELECT * FROM cmd2_attempt WHERE domain=$1 AND prepare_id=$2 FOR UPDATE",
@@ -1397,8 +1404,14 @@ impl DurablePgCoordinator {
         if store.custody_domain() != domain.as_bytes() {
             return Err(DurableError::Conflict("STO custody domain differs"));
         }
-        let row = self
+        let mut metadata_tx = self
             .client
+            .build_transaction()
+            .isolation_level(IsolationLevel::RepeatableRead)
+            .read_only(true)
+            .start()?;
+        metadata_tx.batch_execute("SET LOCAL lock_timeout = '5s'; SET LOCAL statement_timeout = '60s'; SET LOCAL work_mem = '4MB'")?;
+        let row = metadata_tx
             .query_opt(
                 "SELECT * FROM cmd2_history
                  WHERE domain=$1 AND subject=$2 AND revision=$3",
@@ -1412,8 +1425,7 @@ impl DurablePgCoordinator {
         let mut pin_id = [0u8; 16];
         pin_id.copy_from_slice(&pin);
         let prepare_id: Vec<u8> = row.get("prepare_id");
-        let attempt = self
-            .client
+        let attempt = metadata_tx
             .query_opt(
                 "SELECT state,attempt_fence,commit_seq FROM cmd2_attempt
                  WHERE domain=$1 AND prepare_id=$2",
@@ -1426,6 +1438,7 @@ impl DurablePgCoordinator {
             return Err(DurableError::Corrupt("historical attempt not committed"));
         }
         let attempt_fence = as_u64(attempt.get::<_, i64>(1))?;
+        metadata_tx.commit()?;
         let receipts = match store.recover_attempt_fenced(&prepare_id, attempt_fence, 0)? {
             Some(AttemptRecovery::Sealed { receipts }) => receipts,
             _ => return Err(DurableError::Corrupt("historical fenced intent not sealed")),

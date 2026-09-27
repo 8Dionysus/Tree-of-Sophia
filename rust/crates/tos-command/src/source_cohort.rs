@@ -14,7 +14,8 @@ use tos_source_store::{
     CorpusCutReader, MemberMetadata, SoftwareCaptureReader, SoftwareComponentSelectionV1,
     SourceMembershipV1,
 };
-use tos_validation::source_cut::CutWorkerSchemaExecutor;
+use tos_validation::item_rules::ItemRefusal;
+use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
 
 const ORIGINAL: &[u8] = b"tos.source-file.original-v1";
 const CREATION: &[u8] = b"tos.source-file.agent-create-v1";
@@ -255,6 +256,31 @@ fn active(deadline: Instant, cancelled: &AtomicBool) -> DurableResult<()> {
         Ok(())
     }
 }
+fn finish_worker(
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> DurableResult<()> {
+    active(deadline, cancelled)?;
+    worker.finish(deadline, cancelled).map_err(|error| {
+        source_error(match error {
+            ItemRefusal::Deadline => {
+                cmd::SourceCommandError::Denied("source schema operation deadline")
+            }
+            ItemRefusal::Budget => {
+                cmd::SourceCommandError::Invalid("source schema operation budget")
+            }
+            ItemRefusal::Source(_) if cancelled.load(Ordering::Relaxed) => {
+                cmd::SourceCommandError::Denied("source schema operation cancelled")
+            }
+            _ => cmd::SourceCommandError::Unsupported(
+                "source schema operation finalization incomplete",
+            ),
+        })
+    })?;
+    active(deadline, cancelled)
+}
+
 fn definition() -> Digest256 {
     static DEFINITION: std::sync::OnceLock<Digest256> = std::sync::OnceLock::new();
     *DEFINITION.get_or_init(|| {
@@ -629,19 +655,23 @@ impl DurablePgCoordinator {
                 "current source custody domain differs",
             ));
         }
-        let observed = self
-            .client
+        let mut observed_tx = self.client.transaction()?;
+        observed_tx
+            .batch_execute("SET LOCAL lock_timeout = '5s'; SET LOCAL statement_timeout = '15s'")?;
+        let observed = observed_tx
             .query_opt(
                 "SELECT revision FROM cmd2_current WHERE domain=$1 AND subject=$2",
                 &[&cohort.domain, &path.as_str()],
             )?
             .ok_or(DurableError::Conflict("current source member absent"))?;
+        observed_tx.commit()?;
         let revision = as_u64(observed.get(0))?;
         let recovered = self.cold_recover_exact(store, &cohort.domain, path.as_str(), revision)?;
         // Retain the global STO pin guard through the actual post-lock current
         // check and disclosure, independent of the filesystem owner mutex.
         let _custody = store.hold_audit_root()?;
         let mut tx = self.client.transaction()?;
+        tx.batch_execute("SET LOCAL lock_timeout = '5s'; SET LOCAL statement_timeout = '15s'")?;
         let fence = tx.query_one(
             "SELECT maintenance_state FROM cmd2_audit_fence WHERE domain=$1 FOR SHARE",
             &[&cohort.domain],
@@ -726,6 +756,7 @@ impl DurablePgCoordinator {
             deadline,
             cancelled,
         )?;
+        finish_worker(worker, deadline, cancelled)?;
         let (receipt, timing) = self.commit_source_creation(
             store,
             &attempt,
@@ -783,6 +814,7 @@ impl DurablePgCoordinator {
             deadline,
             cancelled,
         )?;
+        finish_worker(worker, deadline, cancelled)?;
         let (receipt, timing) = self.commit_source_creation(
             store,
             &attempt,
@@ -887,6 +919,7 @@ impl DurablePgCoordinator {
         let def = definition();
         self.create_domain(domain, contract)?;
         let mut tx = self.client.transaction()?;
+        tx.batch_execute("SET LOCAL lock_timeout = '5s'; SET LOCAL statement_timeout = '15s'")?;
         lock_audit_fence(&mut tx, domain)?;
         let row = tx.query_one(
             "SELECT * FROM cmd2_domain WHERE domain=$1 FOR UPDATE",
@@ -947,7 +980,19 @@ impl DurablePgCoordinator {
                 .iter()
                 .map(|m| m.receipt.clone())
                 .collect::<Vec<_>>();
-            let head = self.head_seq(domain)?;
+            let mut head_tx = self.client.transaction()?;
+            head_tx.batch_execute(
+                "SET LOCAL lock_timeout = '5s'; SET LOCAL statement_timeout = '15s'",
+            )?;
+            let head = as_u64(
+                head_tx
+                    .query_one(
+                        "SELECT head_seq FROM cmd2_domain WHERE domain=$1",
+                        &[&domain],
+                    )?
+                    .get(0),
+            )?;
+            head_tx.commit()?;
             self.commit_durable(
                 store,
                 &CommitShadowAttempt {
@@ -966,6 +1011,7 @@ impl DurablePgCoordinator {
             )?;
         }
         let mut tx = self.client.transaction()?;
+        tx.batch_execute("SET LOCAL lock_timeout = '5s'; SET LOCAL statement_timeout = '15s'")?;
         lock_audit_fence(&mut tx, domain)?;
         for (kind, token, path) in &indexes {
             tx.execute("INSERT INTO cmd2_source_index(domain,kind,token,path,definition_digest) VALUES($1,$2,$3,$4,$5)", &[&domain,kind,token,path,&def.to_hex()])?;
@@ -989,6 +1035,8 @@ impl DurablePgCoordinator {
         )
     }
 
+    /// Composable registration: its highest caller must finish the schema
+    /// operation after all registrations and before commit_source_creation.
     pub fn register_source_creation(
         &mut self,
         store: &SegmentStore,
@@ -1018,6 +1066,7 @@ impl DurablePgCoordinator {
 
     /// A subsequent maintained creation consumes the actual parent-owned,
     /// independently reopened current source cut, including earlier bodies.
+    /// Its highest caller finishes the schema operation before durable commit.
     pub fn register_source_creation_from_current(
         &mut self,
         store: &SegmentStore,
@@ -1066,6 +1115,7 @@ impl DurablePgCoordinator {
     /// Recover only an already committed exact package, including one prepared
     /// from a retained later source revision. Current owner/rule/rights/lease
     /// checks still run at replay; this route cannot register a new write.
+    /// Its highest caller finishes the schema operation before replay commit.
     pub fn reopen_committed_source_creation_attempt(
         &mut self,
         store: &SegmentStore,
@@ -1112,6 +1162,7 @@ impl DurablePgCoordinator {
         let raw_request_digest = Digest256::of_bytes(&package.prepared().context().request_raw);
         let domain = cohort.domain.as_str();
         let mut tx = self.client.transaction()?;
+        tx.batch_execute("SET LOCAL lock_timeout = '5s'; SET LOCAL statement_timeout = '15s'")?;
         lock_audit_fence(&mut tx, domain)?;
         let row = tx.query_one("SELECT * FROM cmd2_domain WHERE domain=$1", &[&domain])?;
         cohort_matches(&row, cohort, true)?;
@@ -1441,6 +1492,8 @@ impl DurablePgCoordinator {
 
     /// Reverify the ORIGINAL bootstrap plus exact CURRENT bodies/indexes and
     /// all retained CMD/STO history before selecting an affected basis again.
+    /// Finalizes the highest schema operation before completeness publication;
+    /// callers must not finalize this worker again.
     /// Returns a managed generation and current membership, never labels the
     /// initial SourceRevision as the current contents or as a new source cut.
     pub fn cold_reopen_source_cohort(
@@ -1497,9 +1550,19 @@ impl DurablePgCoordinator {
         }
         let before =
             self.cold_verify_cut_with_budget(store, domain, Some((deadline, cancelled)))?;
-        let domain_row = self
+        let mut metadata_tx = self
             .client
-            .query_one("SELECT * FROM cmd2_domain WHERE domain=$1", &[&domain])?;
+            .build_transaction()
+            .isolation_level(IsolationLevel::RepeatableRead)
+            .read_only(true)
+            .start()?;
+        metadata_tx.batch_execute("SET LOCAL lock_timeout = '5s'; SET LOCAL statement_timeout = '60s'; SET LOCAL work_mem = '4MB'")?;
+        let domain_row =
+            metadata_tx.query_one("SELECT * FROM cmd2_domain WHERE domain=$1", &[&domain])?;
+        let rows=metadata_tx.query("SELECT c.*,a.attempt_fence AS source_attempt_fence FROM cmd2_current c JOIN cmd2_attempt a USING(domain,prepare_id) WHERE c.domain=$1 ORDER BY c.prepare_id,c.member_slot", &[&domain])?;
+        let stored=metadata_tx.query("SELECT kind,token,path,definition_digest FROM cmd2_source_index WHERE domain=$1 ORDER BY kind,token,path", &[&domain])?;
+        let persisted_predicates=metadata_tx.query("SELECT kind,scope,token,definition_version FROM cmd2_predicate WHERE domain=$1 AND owner=$2", &[&domain,&OWNER])?;
+        metadata_tx.commit()?;
         let cohort = ManagedSourceCohort {
             domain: domain.into(),
             store_id: store.store_id(),
@@ -1521,10 +1584,6 @@ impl DurablePgCoordinator {
         let mut metadata = BTreeMap::new();
         let mut dependency_claims = BTreeMap::new();
         let source_metadata = original_metadata(original);
-        let rows = self.client.query(
-            "SELECT * FROM cmd2_current WHERE domain=$1 ORDER BY prepare_id,member_slot",
-            &[&domain],
-        )?;
         if rows.len() != before.current_members as usize {
             return Err(DurableError::Conflict(
                 "cold current membership changed during verification",
@@ -1547,11 +1606,11 @@ impl DurablePgCoordinator {
             total_bytes += size;
             let prepare: Vec<u8> = row.get("prepare_id");
             if prepare != last_prepare {
-                let attempt = self.client.query_one(
-                    "SELECT attempt_fence FROM cmd2_attempt WHERE domain=$1 AND prepare_id=$2",
-                    &[&domain, &prepare],
-                )?;
-                sealed = match store.recover_attempt_fenced(&prepare, as_u64(attempt.get(0))?, 0)? {
+                sealed = match store.recover_attempt_fenced(
+                    &prepare,
+                    as_u64(row.get("source_attempt_fence"))?,
+                    0,
+                )? {
                     Some(AttemptRecovery::Sealed { receipts }) => receipts,
                     _ => return Err(DurableError::Corrupt("cold source intent absent")),
                 };
@@ -1566,6 +1625,9 @@ impl DurablePgCoordinator {
             // Rights are checked before disclosure even for this private full
             // cold operation, and held through each exact selected frame read.
             let mut rights_tx = self.client.transaction()?;
+            rights_tx.batch_execute(
+                "SET LOCAL lock_timeout = '5s'; SET LOCAL statement_timeout = '15s'",
+            )?;
             if !rights_tx
                 .query_one(
                     "SELECT rights_allowed FROM cmd2_domain WHERE domain=$1 FOR SHARE",
@@ -1623,7 +1685,6 @@ impl DurablePgCoordinator {
         ctx.check().map_err(source_error)?;
         let indexes = index_rows(&ctx, worker, deadline, cancelled)?;
         verify_manifest_indexes(original, &indexes)?;
-        let stored=self.client.query("SELECT kind,token,path,definition_digest FROM cmd2_source_index WHERE domain=$1 ORDER BY kind,token,path", &[&domain])?;
         let mut actual = IndexRows::new();
         for row in stored {
             if row.get::<_, String>(3) != cohort.definition.to_hex() {
@@ -1638,22 +1699,6 @@ impl DurablePgCoordinator {
                 "current original bodies and complete owner indexes differ",
             ));
         }
-        let current_membership = membership_of_files(&files);
-        let mut tx = self.client.transaction()?;
-        if lock_audit_fence(&mut tx, domain)? != before.audit_generation {
-            return Err(DurableError::Conflict(
-                "source verification raced metadata mutation",
-            ));
-        }
-        let row = tx.query_one(
-            "SELECT * FROM cmd2_domain WHERE domain=$1 FOR UPDATE",
-            &[&domain],
-        )?;
-        cohort_matches(&row, &cohort, false)?;
-        if as_u64(row.get("head_seq"))? != before.through_commit_seq {
-            return Err(DurableError::Conflict("source cold head changed"));
-        }
-        let persisted_predicates=tx.query("SELECT kind,scope,token,definition_version FROM cmd2_predicate WHERE domain=$1 AND owner=$2", &[&domain,&OWNER])?;
         let mut predicate_keys = BTreeSet::new();
         for row in persisted_predicates {
             let kind: String = row.get(0);
@@ -1677,6 +1722,25 @@ impl DurablePgCoordinator {
             return Err(DurableError::Corrupt(
                 "complete source invalidation membership is missing",
             ));
+        }
+        // Highest schema owner: verification is complete. Final child custody
+        // must succeed before any completeness enablement or cut selection.
+        finish_worker(worker, deadline, cancelled)?;
+        let current_membership = membership_of_files(&files);
+        let mut tx = self.client.transaction()?;
+        tx.batch_execute("SET LOCAL lock_timeout = '5s'; SET LOCAL statement_timeout = '15s'")?;
+        if lock_audit_fence(&mut tx, domain)? != before.audit_generation {
+            return Err(DurableError::Conflict(
+                "source verification raced metadata mutation",
+            ));
+        }
+        let row = tx.query_one(
+            "SELECT * FROM cmd2_domain WHERE domain=$1 FOR UPDATE",
+            &[&domain],
+        )?;
+        cohort_matches(&row, &cohort, false)?;
+        if as_u64(row.get("head_seq"))? != before.through_commit_seq {
+            return Err(DurableError::Conflict("source cold head changed"));
         }
         // Existing empty/absent predicates must be verified and re-enabled too.
         tx.execute("UPDATE cmd2_predicate SET complete=true WHERE domain=$1 AND owner=$2 AND definition_version=$3", &[&domain,&OWNER,&cohort.definition.to_hex()])?;
