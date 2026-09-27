@@ -10,7 +10,8 @@ import {nativeLower, codePointCompare, nativeNumberInfo, NativeBudgetExceeded} f
 import {nativeStrip} from '../../../shared/native-unicode.ts';
 import {NativeSearchDelivery, nativeSearchFailure} from './native-search-store.ts';
 import {executeNativeLensD1} from './native-lens-store.ts';
-import {inspectNativeD1, readNativeInspectionPublication} from './native-inspection-store.ts';
+import {InspectionD1Transport, readNativeInspectionPublication} from './native-inspection-store.ts';
+import {respondInspectionSnapshot, inspectionError, SelectedInspectionError, type InspectionModule} from './selected-inspection-runtime.ts';
 import {respondTemporalSnapshot, SelectedTemporalError, type TemporalPublishedModule} from './selected-temporal-runtime.ts';
 import {parseNativeJson, parseNativeRequest, nativeField, arrayRefs, type NativeRef, type NativeLensResult, type NativePacket} from './native-lens.ts';
 import {NativeD1Read, NativeD1Rows, nativeD1Limits, readNativePublication, nativeSha256, nativeUnavailable} from './native-d1-read.ts';
@@ -267,12 +268,54 @@ export async function knowledgeSearchD1Indexed(
   return nativeSearchFailure(()=>consistentRead(db, (snapshot) => knowledgeSearchD1IndexedUnchecked(db, options, snapshot)));
 }
 
-export async function knowledgeNodeD1(db: D1Database, id: string, relationLimit: number): Promise<NativePacket> {
-  return consistentRead(db, snapshot => inspectNativeD1(db, 'node', id, relationLimit, snapshot.revision));
-}
-
-export async function knowledgeRelationD1(db: D1Database, id: string): Promise<NativePacket> {
-  return consistentRead(db, snapshot => inspectNativeD1(db, 'relation', id, 200, snapshot.revision));
+/** Full node/relation inspection of one publisher-selected public snapshot.
+ * Rust owns request shape, alias precedence/completeness and packet semantics;
+ * this adapter owns existing D1 integrity/physical admission and body handoff. */
+export async function inspectionSnapshotResponseD1(db:D1Database,runtime:InspectionModule,
+  kind:'node'|'relation',identifier:string,relationLimit:number,signal?:AbortSignal,method='GET'):Promise<Response> {
+  const encoder=new TextEncoder();
+  const admission=encoder.encode(JSON.stringify({max_open_vm_steps:nativeD1Limits.maxSqlReads,
+    max_read_vm_steps:nativeD1Limits.maxSqlReads,max_matches:128,max_rows:nativeD1Limits.maxRows,
+    max_field_bytes:1048576,max_payload_bytes:1048576,max_decoded_bytes:nativeD1Limits.maxDecodedBytes,
+    max_response_bytes:16*1048576,max_json_bytes:16*1048576,max_json_depth:64,
+    max_json_visits:300000,max_integer_digits:4300}));
+  const request=encoder.encode(JSON.stringify({kind,identifier,relation_limit:relationLimit}));
+  try {
+    signal?.throwIfAborted();
+    if(typeof runtime?.InspectionSession!=='function'||typeof runtime.validate_inspect_request_wasm_v1!=='function') {
+      throw new SelectedInspectionError('selected_runtime_unavailable');
+    }
+    // Preserve malformed request refusal before even snapshot metadata I/O.
+    try {runtime.validate_inspect_request_wasm_v1(request,admission);}catch(error){inspectionError(error);}
+    signal?.throwIfAborted();
+    const read=new NativeD1Read(db,nativeD1Limits,true,signal);
+    const publication=await consistentRead(db,async snapshot=>({snapshot,
+      top:await readNativeInspectionPublication(read,snapshot.revision)}));
+    const checkSelected=async():Promise<void>=>{
+      signal?.throwIfAborted();
+      const current=await knowledgeSnapshot(db);
+      if(!sameKnowledgeSnapshot(current,publication.snapshot)) {
+        throw new HttpError(409,'knowledge snapshot changed during query; retry against the current revision');
+      }
+      signal?.throwIfAborted();
+    };
+    const physical=new InspectionD1Transport(read);
+    const selected={sourceRevision:nativeField(publication.top.ref,'source_revision').value as string,
+      top:encoder.encode(publication.top.raw),admission,checkSelected,
+      lookup:physical.lookup.bind(physical),incident:physical.incident.bind(physical),endpoints:physical.endpoints.bind(physical)};
+    try {return await respondInspectionSnapshot(runtime,selected,request,signal,method);}
+    catch(error){await checkSelected();throw error;}
+  } catch(error) {
+    signal?.throwIfAborted();
+    if(error instanceof HttpError)throw error;
+    if(error instanceof NativeBudgetExceeded)throw new HttpError(413,error.message);
+    if(error instanceof SelectedInspectionError) {
+      const status=error.code==='UnknownIdentifier'?404:error.code==='StaleSelection'?409:
+        error.code==='BudgetExceeded'?413:error.code==='InvalidRequest'||error.code==='InvalidJson'?400:503;
+      throw new HttpError(status,error.message);
+    }
+    return nativeUnavailable('prepared inspection publication unavailable or invalid');
+  }
 }
 
 type SqlFragment = { sql: string; bindings: unknown[] };

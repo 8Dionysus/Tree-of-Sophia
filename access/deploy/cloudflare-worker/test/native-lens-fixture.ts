@@ -5,12 +5,49 @@
 import {createHash} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
+import {readFileSync} from 'node:fs';
+import {join} from 'node:path';
+import {build} from 'esbuild';
 import {executeKnowledgeLensD1} from '../src/knowledge-store.ts';
-import {nativePacketJson, parseNativeRequest} from '../src/native-lens.ts';
+import {nativePacketJson, parseNativeRequest, parseNativeJson, type NativeRef} from '../src/native-lens.ts';
+import {HttpError} from '../src/common.ts';
 import {nativeLower, codePointCompare, nativeUnicodeVersion} from '../../../shared/native-semantics.ts';
 import type {executeKnowledgeLens} from '../src/knowledge.ts';
 const initialized = new WeakSet<object>();
 const sha = (raw: string) => createHash('sha256').update(raw).digest('hex');
+
+// Existing tiny-fixture inspection checks consume the maintained HTTP route.
+// Its WASM module is the build-owned product, never a TS inspection executor.
+let inspectionWorker: Promise<{fetch(request: Request, env: Env, context: unknown): Promise<Response>}> | undefined;
+async function inspectFixture(db: D1Database, kind: 'node' | 'relation', id: string, limit = 200): Promise<NativeRef> {
+  inspectionWorker ??= build({entryPoints:[fileURLToPath(new URL('../src/index.ts',import.meta.url))],
+    bundle:true,write:false,format:'esm',platform:'browser',target:'es2022',
+    plugins:[{name:'existing-node-wasm-module',setup(build){build.onLoad({filter:/\.wasm$/},({path})=>({
+      contents:`export default new WebAssembly.Module(Uint8Array.from(atob(${JSON.stringify(readFileSync(path).toString('base64'))}),c=>c.charCodeAt(0)))`,loader:'js'}));}}]})
+    .then(async bundle=>(await import('data:text/javascript;base64,'+Buffer.from(bundle.outputFiles[0]!.text).toString('base64'))).default);
+  const response = await (await inspectionWorker).fetch(new Request(
+    `https://tos.test/api/knowledge/${kind}s/${encodeURIComponent(id)}?relation_limit=${limit}`),
+    {DB:db,ASSETS:{fetch(){throw new Error('inspection must not read static assets');}}} as unknown as Env, {});
+  const raw = await response.text();
+  if (response.status !== 200) throw new HttpError(response.status, raw);
+  return parseNativeJson(raw, {maxBytes:16*1024*1024});
+}
+export const inspectPublishedFixtureNode = (db: D1Database, id: string, limit: number): Promise<NativeRef> => inspectFixture(db,'node',id,limit);
+export const inspectPublishedFixtureRelation = (db: D1Database, id: string): Promise<NativeRef> => inspectFixture(db,'relation',id);
+
+/** The existing real Worker fixtures consume the same mandatory static product
+ * as deployment. This only supplies Miniflare's module handles; no loader,
+ * publication, runtime grant or generated product is fabricated. */
+export async function publishedWorkerFixtureModules() {
+  const bundle=await build({entryPoints:[fileURLToPath(new URL('../src/index.ts',import.meta.url))],
+    bundle:true,write:false,format:'esm',platform:'browser',target:'es2022',
+    plugins:[{name:'existing-workerd-wasm-module',setup(build){build.onResolve({filter:/\.wasm$/},()=>({path:'./tos_web_rules_bg.wasm',external:true}));}}]});
+  const modulesRoot=fileURLToPath(new URL('../generated/',import.meta.url));
+  return {modulesRoot,modules:[
+    {type:'ESModule' as const,path:join(modulesRoot,'published-worker-test.mjs'),contents:bundle.outputFiles[0]!.text},
+    {type:'CompiledWasm' as const,path:join(modulesRoot,'tos_web_rules_bg.wasm'),contents:readFileSync(join(modulesRoot,'tos_web_rules_bg.wasm'))}],
+    compatibilityDate:'2026-09-03'};
+}
 
 export async function publishNativeLensFixture(db: D1Database): Promise<void> {
   if (!initialized.has(db)) {

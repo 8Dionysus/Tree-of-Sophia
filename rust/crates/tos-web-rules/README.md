@@ -78,10 +78,38 @@ browser temporal controls stay. The shared request-shape validator is additional
 exposed by `validate_temporal_request_wasm_v1(raw, admission)` before any D1 access,
 using the same bounded parser and budget decoder as the replay session. Comparison
 uses that same QRY validator and matches actual publication revision later.
-The changed pre-I/O boundary and migrated unique controls still need their
-narrow actual check; prior full oracle/body evidence is retained without an
-unchanged rerun. Inspection/lens/exploration selected native executors remain
-separate. Local acceptance does not establish a deployment.
+The changed pre-I/O boundary and migrated unique controls passed their narrow
+actual check; prior full oracle/body evidence is retained without an unchanged
+rerun. Local acceptance does not establish a deployment.
+
+## Full published inspection continuation
+
+WASM `InspectionSession` drives the same `tos_query::InspectPlan` used by the
+selected native node/relation consumer. `validate_inspect_request_wasm_v1`
+checks the original bounded JSON request before any D1 access. Concrete needs
+are lookup with exact/entity/native selector and admitted complete match count,
+node incident count/selection, or exact relation endpoints. Each batch resumes
+once; execution never replays or loads a complete graph.
+
+The published host authenticates full retained rows and enforces its 1 MiB
+per-row byte cap before parsing. Raw JSON array envelopes preserve each original
+carrier substring; FND strict parsing and the plan retain exact numeric kinds,
+source member order and full unknown fields. Actual envelope bytes charge the
+plan's 16 MiB selected input cap. The shared core validates producer phase,
+matching identity, ordered complete sets, incident count and endpoint closure,
+then constructs full packets and source targets. FND's existing insertion-order
+Python compact writer emits the bounded result. Physical SQL admission and
+logical value visits have separate caps; neither claims aggregate CPU accounting.
+
+The actual Worker GET/HEAD routes use the mandatory build-owned generated
+module and the existing published snapshot reader. They reuse the accepted
+demand-driven whole-packet Response lifecycle: selection checks surround needs
+and precede final enqueue/close; abort/cancel discard bytes, and HEAD runs full
+admission before an empty response. No native current-policy issuer is added.
+The existing inspection Python/Miniflare harness and unique source-target
+controls are routed through that real consumer. Source is ready for OPS product
+and execution review; inspection runtime parity and exclusive TS retirement
+remain gated on that run. Temporal greens are not repeated for this new family.
 
 The existing `tests/domain-wasm-host.mjs` exercises the real generated binding
 and async driver with a maintained selected-packet oracle carrier, plus

@@ -120,7 +120,15 @@ export async function captureSelectedTemporal<T>(runtime: TemporalReplayModule, 
  */
 export async function respondTemporalSnapshot(runtime: TemporalReplayModule, selected: TemporalReadAccess,
   request: Uint8Array, signal?: AbortSignal): Promise<Response> {
-  let bytes: Uint8Array | undefined = await computeSelectedTemporal(runtime, selected, request, signal, true);
+  const bytes = await computeSelectedTemporal(runtime, selected, request, signal, true);
+  return snapshotPacketResponse(bytes, () => selected.checkSelected(), signal);
+}
+
+/** Deliver one bounded whole packet from the still-selected public snapshot.
+ * HEAD retains computation and snapshot checks while emitting no body. */
+export async function snapshotPacketResponse(packet: Uint8Array, checkSelected: () => Promise<void>,
+  signal?: AbortSignal, method = 'GET'): Promise<Response> {
+  let bytes: Uint8Array | undefined = packet;
   let terminal = false;
   let controller: ReadableStreamDefaultController<Uint8Array> | undefined;
   const finish = (): void => {
@@ -135,14 +143,19 @@ export async function respondTemporalSnapshot(runtime: TemporalReplayModule, sel
   };
   try {
     checkAbort(signal);
-    await selected.checkSelected();
+    await checkSelected();
     checkAbort(signal);
+    const headers = {'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store'};
+    if (method === 'HEAD') {
+      finish();
+      return new Response(null, {headers});
+    }
     const body = new ReadableStream<Uint8Array>({
       start(value) { controller = value; },
       async pull(value) {
         if (terminal) return;
         try {
-          await selected.checkSelected();
+          await checkSelected();
           if (terminal) return;
           checkAbort(signal);
           // No await between the snapshot check and final whole-body handoff.
@@ -156,8 +169,6 @@ export async function respondTemporalSnapshot(runtime: TemporalReplayModule, sel
     }, {highWaterMark: 0});
     signal?.addEventListener('abort', onAbort, {once: true});
     if (signal?.aborted) { onAbort(); checkAbort(signal); }
-    return new Response(body, {headers: {
-      'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store',
-    }});
+    return new Response(body, {headers});
   } catch (error) { finish(); throw error; }
 }

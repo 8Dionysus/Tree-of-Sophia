@@ -5,13 +5,14 @@ import test from "node:test";
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { build } from 'esbuild';
 import { Miniflare, convertV4MiniflareOptions } from "miniflare";
-import { knowledgeSearchD1 as nativeSearchD1, knowledgeSearchD1Indexed as nativeSearchD1Indexed, knowledgeNodeD1, knowledgeRelationD1 } from "../src/knowledge-store.ts";
+import { knowledgeSearchD1 as nativeSearchD1, knowledgeSearchD1Indexed as nativeSearchD1Indexed } from "../src/knowledge-store.ts";
 import {nativeChild, nativeField, nativePacketJson, parseNativeJson} from '../src/native-lens.ts';
 import {NativeBudgetExceeded} from '../../../shared/native-semantics.ts';
 
-import {executePublishedFixtureLens, executePublishedFixturePythonLens, publishNativeLensFixture, publishNativeSearchFixture} from './native-lens-fixture.ts';
+import {executePublishedFixtureLens, executePublishedFixturePythonLens, publishNativeLensFixture, publishNativeSearchFixture,
+  inspectPublishedFixtureNode as knowledgeNodeD1, inspectPublishedFixtureRelation as knowledgeRelationD1,
+  publishedWorkerFixtureModules} from './native-lens-fixture.ts';
 import { executeKnowledgeLens, focusKnowledgeNode, knowledgeScene, normalizeLensSpec, selectDisplayForm, type KnowledgeGraph } from "../src/knowledge.ts";
 import { selectHumanForms, formDeliveryCost, HUMAN_FORM_SELECTION_BUDGET } from '../src/human-forms.ts';
 import { decodeHumanFormSelection } from '../../../shared/human-form-selection-codec.ts';
@@ -226,17 +227,8 @@ const graph: KnowledgeGraph = {
 };
 
 test("health packet compacts diagnostics and rejects incomplete coverage", async () => {
-  const bundle = await build({
-    entryPoints: [fileURLToPath(new URL('../src/index.ts', import.meta.url))],
-    bundle: true,
-    write: false,
-    format: 'esm',
-    platform: 'browser',
-    target: 'es2022',
-  });
   const mf = new Miniflare(convertV4MiniflareOptions({
-    modules: true,
-    script: bundle.outputFiles[0]!.text,
+    ...await publishedWorkerFixtureModules(),
     d1Databases: ['DB'],
   }));
   try {
@@ -416,9 +408,7 @@ test("knowledge reads require the publication clock and reject invalid or ABA sn
 });
 
 test("indexed D1 path conditions and inclusion agree with the pure engine", async () => {
-  const bundle = await build({ entryPoints: [fileURLToPath(new URL('../src/index.ts', import.meta.url))],
-    bundle: true, write: false, format: 'esm', platform: 'browser', target: 'es2022' });
-  const mf = new Miniflare(convertV4MiniflareOptions({ modules: true, script: bundle.outputFiles[0]!.text, d1Databases: ["DB"] }));
+  const mf = new Miniflare(convertV4MiniflareOptions({ ...await publishedWorkerFixtureModules(), d1Databases: ["DB"] }));
   try {
     const db = await mf.getD1Database("DB");
     await db.batch([
@@ -777,9 +767,7 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
 });
 
 test("indexed D1 search keeps exhausted kinds exhausted and matches bounded Python packet order", async () => {
-  const bundle = await build({ entryPoints: [fileURLToPath(new URL('../src/index.ts', import.meta.url))],
-    bundle: true, write: false, format: 'esm', platform: 'browser', target: 'es2022' });
-  const mf = new Miniflare(convertV4MiniflareOptions({ modules: true, script: bundle.outputFiles[0]!.text, d1Databases: ["DB"] }));
+  const mf = new Miniflare(convertV4MiniflareOptions({ ...await publishedWorkerFixtureModules(), d1Databases: ["DB"] }));
   try {
     const db = await mf.getD1Database("DB");
     const indexedGraph = structuredClone(graph);
@@ -1750,17 +1738,8 @@ test("D1 reconstructs oversized knowledge payloads without losing search", async
     await legacyMf.dispose();
   }
 
-  const bundle = await build({
-    entryPoints: [fileURLToPath(new URL("../src/index.ts", import.meta.url))],
-    bundle: true,
-    write: false,
-    format: "esm",
-    platform: "browser",
-    target: "es2022",
-  });
   const mf = new Miniflare(convertV4MiniflareOptions({
-    modules: true,
-    script: bundle.outputFiles[0]!.text,
+    ...await publishedWorkerFixtureModules(),
     d1Databases: ["DB"],
   }));
   try {

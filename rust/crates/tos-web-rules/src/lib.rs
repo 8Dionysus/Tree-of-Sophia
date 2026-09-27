@@ -5,6 +5,8 @@
 //! execute a query, interpret a cursor, grant source access or alter the
 //! direct knowledge API's legacy default.
 
+#[cfg(feature = "wasm")]
+mod inspection_session;
 mod knowledge_envelope;
 mod search_mode;
 mod temporal_session;
@@ -35,6 +37,115 @@ mod wasm {
         workspace_proposal_digest_v1, workspace_transition_v1,
     };
     use wasm_bindgen::prelude::*;
+
+    fn inspection_budget(admission: &[u8]) -> Result<tos_query::InspectBudget, JsValue> {
+        let document = tos_foundation::parse_json(
+            admission,
+            tos_foundation::JsonMode::PublishedStrict,
+            tos_foundation::JsonLimits {
+                max_bytes: 4096,
+                ..Default::default()
+            },
+        )
+        .map_err(|_| JsValue::from_str("invalid_inspection_admission"))?;
+        let cap = |name| {
+            document
+                .root()
+                .object_get(name)
+                .and_then(tos_foundation::JsonValue::as_u64)
+                .filter(|n| *n > 0 && *n <= 9_007_199_254_740_991)
+                .and_then(|n| usize::try_from(n).ok())
+                .ok_or_else(|| JsValue::from_str("invalid_inspection_admission"))
+        };
+        Ok(tos_query::InspectBudget {
+            max_open_vm_steps: cap("max_open_vm_steps")? as u64,
+            max_read_vm_steps: cap("max_read_vm_steps")? as u64,
+            max_matches: cap("max_matches")?,
+            max_rows: cap("max_rows")? as u64,
+            max_field_bytes: cap("max_field_bytes")?,
+            max_payload_bytes: cap("max_payload_bytes")?,
+            max_decoded_bytes: cap("max_decoded_bytes")? as u64,
+            max_response_bytes: cap("max_response_bytes")?,
+            json: tos_foundation::JsonLimits::new(
+                cap("max_json_bytes")?,
+                cap("max_json_depth")?,
+                cap("max_json_visits")?,
+                cap("max_integer_digits")?,
+            )
+            .map_err(|_| JsValue::from_str("invalid_inspection_admission"))?,
+        })
+    }
+
+    /// The same request rule as the selected native plan, before any D1 read.
+    #[wasm_bindgen]
+    pub fn validate_inspect_request_wasm_v1(
+        request: &[u8],
+        admission: &[u8],
+    ) -> Result<(), JsValue> {
+        let budget = inspection_budget(admission)?;
+        let document = tos_foundation::parse_json(
+            request,
+            tos_foundation::JsonMode::RequestLastWins,
+            tos_foundation::JsonLimits {
+                max_bytes: 65536,
+                ..budget.json
+            },
+        )
+        .map_err(|_| JsValue::from_str("InvalidRequest"))?;
+        tos_query::validate_inspect_request(document.root(), budget)
+            .map_err(|e| JsValue::from_str(&format!("{:?}", e.code)))
+    }
+
+    /// A concrete node/relation plan. Each authenticated batch resumes once;
+    /// no query replay, publication issuer, source access or runtime grant.
+    #[wasm_bindgen]
+    pub struct InspectionSession {
+        inner: super::inspection_session::InspectionSession,
+    }
+    #[wasm_bindgen]
+    impl InspectionSession {
+        #[wasm_bindgen(constructor)]
+        pub fn new(
+            request: &[u8],
+            revision: String,
+            top: &[u8],
+            admission: &[u8],
+        ) -> Result<Self, JsValue> {
+            let inner = super::inspection_session::InspectionSession::new(
+                request,
+                revision,
+                top,
+                inspection_budget(admission)?,
+            )
+            .map_err(|e| JsValue::from_str(&format!("{:?}", e.code)))?;
+            Ok(Self { inner })
+        }
+        pub fn need(&self) -> Result<Option<Vec<u8>>, JsValue> {
+            self.inner
+                .need_bytes()
+                .map_err(|e| JsValue::from_str(&format!("{:?}", e.code)))
+        }
+        pub fn resume_lookup(&mut self, rows: &[u8]) -> Result<(), JsValue> {
+            self.inner
+                .resume_lookup(rows)
+                .map_err(|e| JsValue::from_str(&format!("{:?}", e.code)))
+        }
+        pub fn resume_incident(&mut self, total: u64, rows: &[u8]) -> Result<(), JsValue> {
+            self.inner
+                .resume_incident(total, rows)
+                .map_err(|e| JsValue::from_str(&format!("{:?}", e.code)))
+        }
+        pub fn resume_endpoints(&mut self, rows: &[u8]) -> Result<(), JsValue> {
+            self.inner
+                .resume_endpoints(rows)
+                .map_err(|e| JsValue::from_str(&format!("{:?}", e.code)))
+        }
+        pub fn finish(&mut self) -> Result<Vec<u8>, JsValue> {
+            self.inner
+                .finish()
+                .map_err(|e| JsValue::from_str(&format!("{:?}", e.code)))
+        }
+    }
 
     fn temporal_budget(admission: &[u8]) -> Result<super::TemporalSessionBudget, JsValue> {
         let document = tos_foundation::parse_json(

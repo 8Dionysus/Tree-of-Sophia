@@ -272,9 +272,16 @@ with `native-inspection-store.ts`. Inspection is an independent v8/v9 plan:
 exact normalized ID, then node entity ID, then native aliases; code-point ID
 ordering; full selected rows; exact incident counts; bounded related relations
 or complete unique endpoint closure. It never executes a lens, reads the catalog
-or lens histograms, or rereads selected full rows to rebuild a packet. Its
-`NativePacket` contains raw row/header refs and explicitly derived counts/flags;
-`nativePacketResponse` is its first serialization, including for HEAD admission.
+or lens histograms, or rereads selected full rows to rebuild a packet. The
+maintained GET/HEAD routes now pass original verified full rows through the
+shared Rust `InspectPlan` and mandatory WASM product. The plan selects concrete
+lookup/incident/endpoint needs and owns aliases, packet construction and exact
+source targets. Host code executes bounded SQL and verifies the publication,
+row digests and identity. Python compact emission occurs in FND; demand-driven
+body delivery rechecks the publication epoch/revision before enqueue/close.
+HEAD computes the same bounded packet and returns no body. Source readiness is
+separate from the pending actual inspection oracle/product gate; the replaced
+dead TS algorithm is removed only after that acceptance.
 
 Inspection adopts the published Python reader's explicit compatibility
 corrections: nonempty string `source_refs` only, incomplete endpoint closure

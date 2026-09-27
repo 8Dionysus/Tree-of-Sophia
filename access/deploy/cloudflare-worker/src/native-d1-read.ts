@@ -20,24 +20,29 @@ export class NativeD1Read {
   returned = 0; deliveredBytes = 0; queries = 0; sqlReads = 0;
   private pending: Promise<void> = Promise.resolve();
   readonly db: D1Database; readonly limits: NativeD1Limits; readonly typedSizeBudgets: boolean;
-  constructor(db: D1Database, limits: NativeD1Limits, typedSizeBudgets = false) {
+  readonly signal: AbortSignal | undefined;
+  constructor(db: D1Database, limits: NativeD1Limits, typedSizeBudgets = false, signal?: AbortSignal) {
     this.db = db; this.limits = limits; this.typedSizeBudgets = typedSizeBudgets;
+    this.signal = signal;
   }
   sourceSizeExceeded(message: string): never {
     if (this.typedSizeBudgets) throw new NativeBudgetExceeded(message);
     return nativeUnavailable(message);
   }
   async query<T>(input: string | (() => {sql: string; args: unknown[]}), ...bindings: unknown[]): Promise<T[]> {
+    this.signal?.throwIfAborted();
     // A request may merge several endpoint streams concurrently. Serialize
     // delivery admission so they cannot each reserve the same remaining bytes.
     const previous = this.pending; let release!: () => void;
     this.pending = new Promise<void>(resolve => {release = resolve;});
     await previous;
     try {
+      this.signal?.throwIfAborted();
       if (this.returned >= this.limits.maxRows) throw new NativeBudgetExceeded('native D1 returned-row budget');
       if (++this.queries > this.limits.maxQueries) throw new NativeBudgetExceeded('native D1 query budget');
       const {sql, args} = typeof input === 'string' ? {sql: input, args: bindings} : input();
       const result = await this.db.prepare(sql).bind(...args).all<T>();
+      this.signal?.throwIfAborted();
       this.sqlReads += result.meta?.rows_read ?? 0;
       if (this.sqlReads > this.limits.maxSqlReads) throw new NativeBudgetExceeded('native D1 rows-read budget');
       for (const row of result.results) {

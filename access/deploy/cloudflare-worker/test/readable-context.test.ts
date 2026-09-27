@@ -6,9 +6,8 @@ import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import {Miniflare, convertV4MiniflareOptions} from 'miniflare';
 import {executeKnowledgeLens, type KnowledgeGraph} from '../src/knowledge.ts';
-import {knowledgeNodeD1} from '../src/knowledge-store.ts';
 import {nativePacketJson} from '../src/native-lens.ts';
-import {executePublishedFixtureLens} from './native-lens-fixture.ts';
+import {executePublishedFixtureLens, inspectPublishedFixtureNode as knowledgeNodeD1} from './native-lens-fixture.ts';
 
 const knowledgeExplorationMigration = readFileSync(
   new URL('../migrations/0001-exploration.sql', import.meta.url),

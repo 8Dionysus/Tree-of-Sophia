@@ -19,8 +19,7 @@ import { scaleExportResponse } from "./scale";
 import {
   executeKnowledgeLensD1,
   focusKnowledgeNodeD1,
-  knowledgeNodeD1,
-  knowledgeRelationD1,
+  inspectionSnapshotResponseD1,
   knowledgeSearchD1,
   knowledgeSearchCapabilitiesD1,
   knowledgeSearchD1Indexed,
@@ -38,12 +37,14 @@ import {nativeLensResponse, nativePacketResponse} from './native-lens-response.t
 import {NativeBudgetExceeded} from '../../../shared/native-semantics.ts';
 import {nativeStrip,nativeIntegerString} from '../../../shared/native-unicode.ts';
 import {SelectedTemporalError} from './selected-temporal-runtime.ts';
-import {initSync, TemporalReplaySession, validate_temporal_request_wasm_v1} from '../generated/tos_web_rules.js';
+import {initSync, TemporalReplaySession, validate_temporal_request_wasm_v1,
+  InspectionSession, validate_inspect_request_wasm_v1} from '../generated/tos_web_rules.js';
 import temporalWasm from '../generated/tos_web_rules_bg.wasm';
 
 // wasm-bindgen owns module initialization; no second host cache or fetch.
 initSync({module: temporalWasm});
 const temporalRuntime = {TemporalReplaySession, validate_temporal_request_wasm_v1};
+const inspectionRuntime = {InspectionSession, validate_inspect_request_wasm_v1};
 
 const STATIC_CORPUS_LIMITS = new Set([1, 100, 700, 1000]);
 const STATIC_PHILOSOPHY_LIMITS = new Set([1, 1000]);
@@ -301,15 +302,13 @@ async function apiResponse(request: Request, env: Env, url: URL): Promise<Respon
   }
   const knowledgeNodePrefix = "/api/knowledge/nodes/";
   if (path.startsWith(knowledgeNodePrefix)) {
-    return nativePacketResponse(
-      await knowledgeNodeD1(env.DB, segment(path, knowledgeNodePrefix), boundedInt(search.get("relation_limit"), 200, 0, 1000)),
-      200,
-      method,
-    );
+    return withSecurity(await inspectionSnapshotResponseD1(env.DB,inspectionRuntime,'node',
+      segment(path,knowledgeNodePrefix),boundedInt(search.get("relation_limit"),200,0,1000),request.signal,method));
   }
   const knowledgeRelationPrefix = "/api/knowledge/relations/";
   if (path.startsWith(knowledgeRelationPrefix)) {
-    return nativePacketResponse(await knowledgeRelationD1(env.DB, segment(path, knowledgeRelationPrefix)), 200, method);
+    return withSecurity(await inspectionSnapshotResponseD1(env.DB,inspectionRuntime,'relation',
+      segment(path,knowledgeRelationPrefix),200,request.signal,method));
   }
   const knowledgeFocusPrefix = "/api/knowledge/focus/";
   if (path.startsWith(knowledgeFocusPrefix)) {

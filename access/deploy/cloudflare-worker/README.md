@@ -456,14 +456,38 @@ or full-corpus runtime parity. Shared header/status alignment is described above
 
 ### Lossless inspection compatibility
 
-Node/relation inspection independently supports published v8/v9 rows. It uses
-the common bounded SQL/digest reader and retains full `NativeRef` rows through
-the first HTTP serialization. It does not execute a lens, read its histogram or
+Node/relation inspection independently supports published v8/v9 rows. The
+maintained GET/HEAD routes use the shared Rust `InspectPlan` through the same
+mandatory generated WASM product. Request validation precedes any D1 access.
+The common bounded SQL/digest reader passes original full row bytes to Rust;
+alias resolution, endpoint closure, counts, source refs and exact source targets
+belong to that shared plan. It does not execute a lens, read its histogram or
 catalog, scan a whole graph, or reread selected full rows. Existing packet
 schemas, exact/entity/native resolution precedence, code-point ID order,
 relation_limit 0..1000 (default 200), exact counts and the shared publication
 clock/ABA guard remain intact. V9 required migration indices are checked without
 loading the lens ordered carrier.
+
+The host executes only concrete lookup, incident and endpoint needs. Lookup
+lookahead refuses an oversized alias set before payload loading. Each selected
+full row is read once; no complete graph is loaded. Raw batch envelopes retain
+integer/float kinds, source object order and original carrier lexemes. Rust emits
+the insertion-ordered Python compact packet under the existing 16 MiB response
+ceiling. The shared snapshot response driver checks epoch/data_revision again
+before whole-body enqueue/close, handles cancel/abort, and computes the same
+bounded packet for HEAD before returning an empty body. This is optimistic
+publication consistency before body handoff, not remote network flush or a
+native current-policy grant. The inspection D1 reader checks request abort
+before and after each queued SQL operation.
+
+Physical D1 limits remain separate from Rust logical work admission: the shared
+plan caps accumulated supplied JSON value visits at 200,000; each FND batch parse
+has depth 64, 300,000 visits and 4300 integer digits. Aggregate raw batch input
+and output are capped at 16 MiB. These bounds are not CPU instruction accounting.
+The source package is awaiting its own generated-product/typecheck/oracle run;
+temporal's accepted execution does not establish inspection parity. The dead TS
+inspection algorithm and source-target projection are retained only until that
+actual route gate, then retired. Host publication/header/SQL transport remains.
 
 The following are explicit compatibility corrections to the older D1
 inspection implementation, matching the authoritative published Python reader:
