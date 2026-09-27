@@ -263,6 +263,42 @@ impl CutWorkerSchemaExecutor {
             .map_err(operation_failure)
     }
 
+    /// Explicit reuse of an actual scalar execution within this immutable
+    /// operation. A hit is not a new execution receipt or source observation.
+    /// Callers still own every current byte read and predicate observation.
+    pub fn check_reusing_scalar(
+        &mut self,
+        path: &str,
+        raw: &[u8],
+        contract: &str,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<bool, ItemRefusal> {
+        self.prepared.preflight(deadline, cancelled).map_err(operation_failure)?;
+        // Reapply the same selected-contract/fragment and raw/decoded admission
+        // bounds even on a hit; a receipt cannot bypass current operation law.
+        let (_, decoded)=self.decoded_input(raw,contract)?;
+        let raw_sha=Digest256::of_bytes(raw);
+        let decoded_sha=Digest256::of_bytes(&decoded);
+        let hit=self.receipts.iter().rev().find(|receipt|
+            receipt.batch.is_none()
+            && receipt.path==path && receipt.contract==contract
+            && receipt.source_revision==self.revision
+            && receipt.source_raw_sha256==raw_sha
+            && receipt.decoded_instance_sha256==decoded_sha
+            && receipt.execution.instance_sha256==decoded_sha
+            && receipt.execution.schema_set_sha256==self.schema_set_digest
+            && receipt.execution.profile==self.profile
+            && receipt.execution.worker_sha256==self.worker.sha256
+        ).map(|receipt|receipt.valid);
+        drop(decoded);
+        if let Some(valid)=hit {
+            self.prepared.preflight(deadline,cancelled).map_err(operation_failure)?;
+            return Ok(valid);
+        }
+        self.check(path,raw,contract,deadline,cancelled)
+    }
+
     fn decoded_input(&self, raw: &[u8], contract: &str) -> Result<(String, Vec<u8>), ItemRefusal> {
         if raw.len() > SchemaBackendProbe::MAX_INSTANCE_BYTES {
             return Err(ItemRefusal::Budget);
