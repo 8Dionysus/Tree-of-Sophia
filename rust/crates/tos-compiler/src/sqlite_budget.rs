@@ -10,9 +10,14 @@ use std::sync::{
 
 const MAX_PROGRESS_INTERVAL: u64 = 1_000;
 
+pub(crate) fn effective_vm_cap(limits: Limits) -> u64 {
+    let interval = limits.max_sql_vm_steps.min(MAX_PROGRESS_INTERVAL);
+    (limits.max_sql_vm_steps / interval) * interval
+}
+
 pub(crate) fn install_progress(db: &Connection, limits: Limits, used: Arc<AtomicU64>) {
     let interval = limits.max_sql_vm_steps.min(MAX_PROGRESS_INTERVAL);
-    let effective_cap = (limits.max_sql_vm_steps / interval) * interval;
+    let effective_cap = effective_vm_cap(limits);
     db.progress_handler(
         interval as i32,
         Some(move || {

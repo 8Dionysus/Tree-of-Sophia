@@ -13,7 +13,10 @@ use std::{
     os::fd::AsRawFd,
     os::unix::fs::{MetadataExt, OpenOptionsExt, PermissionsExt},
     path::{Path, PathBuf},
-    sync::{Arc, atomic::AtomicU64},
+    sync::{
+        Arc,
+        atomic::{AtomicU64, Ordering},
+    },
 };
 use tos_foundation::{Digest256, Digest256Hasher};
 
@@ -357,12 +360,27 @@ impl<'a> KnowledgeStage<'a> {
         if self.poisoned {
             return Err(Error::Invalid("stage poisoned by prior failure"));
         }
-        let result = (|| {
+        let mut result = (|| {
             self.check(phase)?;
             let value = f(self.db.as_mut().expect("stage database open"))?;
             self.check(phase)?;
             Ok(value)
         })();
+        // Attribute a budget refusal only when this operation's actual
+        // cumulative VM counter reached its configured guard. No reason-text
+        // match, counter reset, new query, or post-failure cleanup can hide it.
+        let used_steps = self
+            .vm_used
+            .as_ref()
+            .map_or(0, |used| used.load(Ordering::Relaxed));
+        let max_steps = sqlite_budget::effective_vm_cap(self.limits.sqlite);
+        if matches!(&result, Err(Error::Budget(_))) && used_steps >= max_steps {
+            result = Err(Error::SqliteVmBudget {
+                phase,
+                used_steps,
+                max_steps,
+            });
+        }
         self.poisoned |= result.is_err();
         result
     }

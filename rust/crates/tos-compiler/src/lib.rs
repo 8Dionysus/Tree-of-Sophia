@@ -211,6 +211,11 @@ pub enum Error {
     Invalid(&'static str),
     Source(String),
     Budget(&'static str),
+    SqliteVmBudget {
+        phase: knowledge_stage::WritePhase,
+        used_steps: u64,
+        max_steps: u64,
+    },
 }
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -220,6 +225,14 @@ impl fmt::Display for Error {
             Self::Invalid(s) => write!(f, "invalid compiler input: {s}"),
             Self::Source(s) => write!(f, "source carrier: {s}"),
             Self::Budget(s) => write!(f, "compiler budget exceeded: {s}"),
+            Self::SqliteVmBudget {
+                phase,
+                used_steps,
+                max_steps,
+            } => write!(
+                f,
+                "compiler budget exceeded: SQLite VM steps in {phase:?} (used {used_steps}, max {max_steps})"
+            ),
         }
     }
 }
