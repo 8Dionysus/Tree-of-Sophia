@@ -4,8 +4,8 @@
 //! indexes Python's sorted, default-spaced JSON spelling after Unicode lower.
 
 use tos_foundation::{
-    CanonicalProfile, Digest256, FoundationErrorCode, JsonLimits, JsonMode, canonical_bytes_v1,
-    parse_json, python_lower_unicode16_v1,
+    CanonicalProfile, Digest256, FoundationErrorCode, JsonLimits, JsonMode, JsonValue,
+    canonical_bytes_v1, parse_json, python_lower_unicode16_v1,
 };
 
 use crate::{QueryError, QueryErrorCode};
@@ -101,14 +101,27 @@ pub fn verify_indexed_search_document(
     if parsed.root().as_object().is_none() {
         return Err(carrier_error("indexed search carrier is not an object"));
     }
+    let document = lower_search_value(parsed.root(), budget)?;
+    if document.code_points as u64 != expected_code_points
+        || Digest256::of_bytes(document.lower.as_bytes()) != expected_sha256
+    {
+        return Err(carrier_error(
+            "indexed search document digest or length differs",
+        ));
+    }
+    Ok(document)
+}
+
+/// Shared maintained Python JSON spelling for already authenticated values.
+/// Matching a spelling does not grant rights; callers retain their own lease.
+pub(crate) fn lower_search_value(
+    value: &JsonValue,
+    budget: SearchDocumentBudget,
+) -> Result<VerifiedSearchDocument, QueryError> {
     let mut emit_limits = budget.json;
     emit_limits.max_bytes = budget.max_document_bytes;
-    let compact = canonical_bytes_v1(
-        parsed.root(),
-        CanonicalProfile::SourceRecordDigestV1,
-        emit_limits,
-    )
-    .map_err(map_foundation)?;
+    let compact = canonical_bytes_v1(value, CanonicalProfile::SourceRecordDigestV1, emit_limits)
+        .map_err(map_foundation)?;
     let spaced = python_default_spaces(&compact, budget.max_document_bytes)?;
     let lower = python_lower_unicode16_v1(
         &spaced,
@@ -118,12 +131,5 @@ pub fn verify_indexed_search_document(
     )
     .map_err(map_foundation)?;
     let code_points = lower.chars().count();
-    if code_points as u64 != expected_code_points
-        || Digest256::of_bytes(lower.as_bytes()) != expected_sha256
-    {
-        return Err(carrier_error(
-            "indexed search document digest or length differs",
-        ));
-    }
     Ok(VerifiedSearchDocument { lower, code_points })
 }

@@ -23,6 +23,8 @@ pub mod knowledge_presentation;
 mod knowledge_sqlite;
 #[cfg(not(target_arch = "wasm32"))]
 mod knowledge_temporal;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod knowledge_legacy_search;
 pub mod search_candidate;
 mod search_document;
 mod search_execute;

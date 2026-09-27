@@ -455,3 +455,211 @@ fn normalized_selected_lenses_match_independent_python_and_hold_current_disclosu
         })
     ));
 }
+
+/// Same genuine normalized producer and current-disclosure seam, narrowed to
+/// the maintained legacy search operation; no new corpus or fixture producer.
+#[test]
+fn normalized_selected_legacy_search_matches_python_packets_and_exact_counts() {
+    use tos_query::knowledge_legacy_search::{
+        LEGACY_SEARCH_INTENDED_USE, LEGACY_SEARCH_OPERATION, LegacySearchBudget,
+        LegacySearchRequest, SEARCH_CAPABILITIES_INTENDED_USE, SEARCH_CAPABILITIES_OPERATION,
+        execute_selected_legacy_search, execute_selected_search_capabilities,
+    };
+    let fixture = build_native_fixture();
+    let cold = fixture.open().unwrap();
+    let bound =
+        bind_verified_knowledge(&cold, &fixture.vocabulary, &fixture.descriptor_bytes).unwrap();
+    let caps = LegacySearchBudget {
+        inspect: budget().inspect,
+        document: tos_query::SearchDocumentBudget {
+            max_carrier_bytes: 1_000_000,
+            max_document_bytes: 4_000_000,
+            max_document_code_points: 1_000_000,
+            json: JsonLimits::default(),
+        },
+        max_candidates: 100_000,
+        max_document_bytes: 128_000_000,
+        max_document_code_points: 128_000_000,
+        max_retained_per_kind: 100_100,
+        max_retained_bytes: 8_000_000,
+        block_size: 16,
+    };
+    let script = r#"
+import json,sys
+from pathlib import Path
+sys.path.insert(0,sys.argv[1])
+from tos_access import knowledge as k
+from tos_access.core import ToSAccessCore
+graph,descriptor=json.load(sys.stdin)
+k.KNOWLEDGE_SOURCES=tuple(s['source_graph_id'] for s in descriptor['sources'])
+first=graph['nodes'][0]
+requests=[{}, {'query':' '}, {'query':': '}, {'query':graph['source_revision']},
+          {'query':first['id']}, {'query':first['native_id'].upper()},
+          {'query':first['source_refs'][0]}, {'query':first['native_id'][:1]},
+          {'query':'\u2003'+first['native_id']+'\u001c'},
+          {'offset':1,'limit':1}, {'offset':100_000}, {'sources':[]},
+          {'sources':['',first['source_graph'],first['source_graph']]},
+          {'kind_ids':[first['kind_id'],'',first['kind_id']]},
+          {'kind_ids':['unregistered-fixture-kind']},
+          {'predicate_ids':[graph['relations'][0]['predicate_id']]},
+          {'predicate_ids':['unregistered-fixture-predicate']},
+          {'query':'x'*257}, {'offset':100_001}, {'limit':0},
+          {'sources':['unregistered-fixture-source']}]
+requests += [{'sources':[source]} for source in k.KNOWLEDGE_SOURCES]
+cases=[]
+for request in requests:
+    try: packet=k.search_knowledge_graph(graph,**request)
+    except ValueError: cases.append({'request':request,'error':'invalid'})
+    else: cases.append({'request':request,'packet':packet})
+# Exact maintained engine-selection profile; does not create a public grant.
+class SelectedEngine:
+    _prepared_reader=None
+    _data_guard=None
+    def _query_store(self): return None
+json.dump({'cases':cases,'capabilities':ToSAccessCore.knowledge_search_capabilities(SelectedEngine())},sys.stdout,ensure_ascii=False)
+"#;
+    let mut child = Command::new("python3")
+        .arg("-c")
+        .arg(script)
+        .arg(concat!(env!("CARGO_MANIFEST_DIR"), "/../../../access/src"))
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .spawn()
+        .unwrap();
+    let mut input = child.stdin.take().unwrap();
+    input.write_all(b"[").unwrap();
+    input.write_all(&fixture.graph_input_bytes).unwrap();
+    input.write_all(b",").unwrap();
+    input.write_all(&fixture.descriptor_bytes).unwrap();
+    input.write_all(b"]").unwrap();
+    drop(input);
+    let output = child.wait_with_output().unwrap();
+    assert!(output.status.success());
+    let oracle = parse_json(
+        &output.stdout,
+        JsonMode::PublishedStrict,
+        JsonLimits {
+            max_bytes: 32_000_000,
+            max_visits: 4_000_000,
+            ..JsonLimits::default()
+        },
+    )
+    .unwrap()
+    .into_root();
+    let mut model = cold
+        .fork_reader_with_vm_budget(caps.inspect.max_read_vm_steps)
+        .unwrap();
+    let authority_for = |operation: &str, intended: &str| {
+        let mut authority = Authority::new(&bound);
+        authority.scope.operation_id = operation.into();
+        authority.scope.intended_use = intended.into();
+        authority
+    };
+    let mut first_request = None;
+    for case in field(&oracle, "cases").as_array().unwrap() {
+        let raw = field(case, "request");
+        let mut request = LegacySearchRequest::default();
+        if let Some(v) = raw.object_get("query") {
+            request.query = v.as_str().unwrap().into();
+        }
+        for (key, slot) in [
+            ("kind_ids", &mut request.kind_ids),
+            ("predicate_ids", &mut request.predicate_ids),
+        ] {
+            if let Some(v) = raw.object_get(key) {
+                *slot = v
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .map(|v| v.as_str().unwrap().to_owned())
+                    .collect();
+            }
+        }
+        if let Some(v) = raw.object_get("sources") {
+            request.sources = Some(
+                v.as_array()
+                    .unwrap()
+                    .iter()
+                    .map(|v| v.as_str().unwrap().to_owned())
+                    .collect(),
+            );
+        }
+        if let Some(v) = raw.object_get("offset") {
+            request.offset = v.as_u64().unwrap() as usize;
+        }
+        if let Some(v) = raw.object_get("limit") {
+            request.limit = v.as_u64().unwrap() as usize;
+        }
+        let mut authority = authority_for(LEGACY_SEARCH_OPERATION, LEGACY_SEARCH_INTENDED_USE);
+        let result =
+            execute_selected_legacy_search(&mut model, &bound, &mut authority, &request, caps);
+        if case.object_get("error").is_some() {
+            assert!(
+                matches!(result,Err(ref e) if e.code==SearchV2ErrorCode::InvalidRequest),
+                "{raw:?}"
+            );
+            continue;
+        }
+        let mut result = result.unwrap_or_else(|e| panic!("{raw:?}: {e:?}"));
+        result.recheck().unwrap();
+        let actual = parse_json(&result, JsonMode::PublishedStrict, JsonLimits::default()).unwrap();
+        assert_eq!(
+            canonical(actual.root()),
+            canonical(field(case, "packet")),
+            "{raw:?}"
+        );
+        // Even filtered, skipped-offset and nonmatching carriers were consulted.
+        if request.sources.as_ref().is_none_or(|s| s.is_empty()) {
+            assert!(!authority.consulted.is_empty());
+        }
+        authority.withdrawn.store(true, Ordering::SeqCst);
+        assert!(matches!(result.recheck(),Err(ref e) if e.code==SearchV2ErrorCode::StalePolicy));
+        first_request.get_or_insert(request);
+    }
+    let mut authority = authority_for(
+        SEARCH_CAPABILITIES_OPERATION,
+        SEARCH_CAPABILITIES_INTENDED_USE,
+    );
+    let mut result =
+        execute_selected_search_capabilities(&mut model, &bound, &mut authority, caps.inspect)
+            .unwrap();
+    assert_eq!(
+        canonical(
+            parse_json(&result, JsonMode::PublishedStrict, JsonLimits::default())
+                .unwrap()
+                .root()
+        ),
+        canonical(field(&oracle, "capabilities"))
+    );
+    authority.withdrawn.store(true, Ordering::SeqCst);
+    assert!(matches!(result.recheck(),Err(ref e) if e.code==SearchV2ErrorCode::StalePolicy));
+    let request = first_request.unwrap();
+    for narrow in [
+        LegacySearchBudget {
+            max_candidates: 1,
+            ..caps
+        },
+        LegacySearchBudget {
+            max_document_bytes: 1,
+            ..caps
+        },
+        LegacySearchBudget {
+            max_retained_bytes: 1,
+            ..caps
+        },
+        LegacySearchBudget {
+            max_retained_per_kind: 1,
+            ..caps
+        },
+    ] {
+        let mut authority = authority_for(LEGACY_SEARCH_OPERATION, LEGACY_SEARCH_INTENDED_USE);
+        assert!(
+            matches!(execute_selected_legacy_search(&mut model,&bound,&mut authority,&request,narrow),Err(ref e) if e.code==SearchV2ErrorCode::BudgetExceeded)
+        );
+    }
+    let mut wrong_scope = Authority::new(&bound);
+    assert!(
+        execute_selected_legacy_search(&mut model, &bound, &mut wrong_scope, &request, caps)
+            .is_err()
+    );
+}

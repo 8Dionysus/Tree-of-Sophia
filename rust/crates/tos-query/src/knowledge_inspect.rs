@@ -128,6 +128,29 @@ pub(crate) struct Reader<'a, 'b, A: ?Sized> {
     scope: &'a IndexedDisclosureScope,
 }
 impl<A: InspectCurrentAuthority + ?Sized> Reader<'_, '_, A> {
+    /// Use the same transport probe between bounded non-SQL work units.
+    pub(crate) fn check_interrupt(&mut self) -> Result<(), SearchV2Error> {
+        match self
+            .authority
+            .abort_probe()
+            .and_then(|probe| probe.reason())
+        {
+            Some(crate::AbortReason::Cancelled) => {
+                return Err(error(
+                    SearchV2ErrorCode::Cancelled,
+                    "selected knowledge query cancelled",
+                ));
+            }
+            Some(crate::AbortReason::DeadlineExceeded) => {
+                return Err(error(
+                    SearchV2ErrorCode::DeadlineExceeded,
+                    "selected knowledge query deadline exceeded",
+                ));
+            }
+            None => {}
+        }
+        self.authority.check_selected()
+    }
     pub(crate) fn disclosure_scope(&self) -> &IndexedDisclosureScope {
         self.scope
     }
