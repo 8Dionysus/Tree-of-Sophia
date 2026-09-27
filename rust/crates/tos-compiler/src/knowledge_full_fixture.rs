@@ -23,6 +23,64 @@ use std::{
 };
 use tos_foundation::Digest256Hasher;
 
+/// Metadata for the finite managed software fixture's produced carrier grant.
+/// The fixture feature keeps this private-stage read out of production APIs.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum NativeFixtureCarrierKind {
+    Node,
+    Relation,
+}
+
+#[derive(Clone, Debug)]
+pub struct NativeFixtureProducedCarrier {
+    pub kind: NativeFixtureCarrierKind,
+    pub id: String,
+    pub source_graph: String,
+    pub source_order: u64,
+    pub payload_sha256: Digest256,
+}
+
+/// Capture only verified row identities for the existing synthetic read grant.
+/// The stage retains its Finalize VM, isolation and poison checks; callers
+/// receive no SQLite connection or payload authority.
+pub fn native_fixture_produced_carriers(
+    stage: &mut KnowledgeStage<'_>,
+    limits: StageLimits,
+) -> Result<Vec<NativeFixtureProducedCarrier>> {
+    stage.with_connection(WritePhase::Finalize, |db| {
+        let mut facts = Vec::new();
+        let mut state_bytes = 0u64;
+        for (sql, kind) in [
+            ("SELECT id,source_graph,source_order,lower(hex(payload_sha256)) FROM knowledge_nodes ORDER BY source_order,id", NativeFixtureCarrierKind::Node),
+            ("SELECT id,source_graph,source_order,lower(hex(payload_sha256)) FROM knowledge_relations ORDER BY source_order,id", NativeFixtureCarrierKind::Relation),
+        ] {
+            let mut statement = db.prepare(sql)?;
+            let mut rows = statement.query([])?;
+            while let Some(row) = rows.next()? {
+                if facts.len() as u64 >= limits.sqlite.max_rows {
+                    return Err(Error::Budget("finite managed fixture carrier scope"));
+                }
+                let sha: String = row.get(3)?;
+                let id: String = row.get(0)?;
+                let source_graph: String = row.get(1)?;
+                state_bytes = state_bytes
+                    .checked_add((id.len() + source_graph.len() + std::mem::size_of::<NativeFixtureProducedCarrier>()) as u64)
+                    .filter(|n| *n <= limits.max_seek_bytes)
+                    .ok_or(Error::Budget("finite managed fixture carrier metadata state"))?;
+                facts.push(NativeFixtureProducedCarrier {
+                    kind,
+                    id,
+                    source_graph,
+                    source_order: row.get(2)?,
+                    payload_sha256: Digest256::from_hex(&sha)
+                        .map_err(|_| Error::Invalid("fixture produced carrier digest"))?,
+                });
+            }
+        }
+        Ok(facts)
+    })
+}
+
 struct FixtureOwner;
 impl StageOwner for FixtureOwner {
     fn verify_receipt(&self, _: &ExactInputReceipt) -> Result<()> {
