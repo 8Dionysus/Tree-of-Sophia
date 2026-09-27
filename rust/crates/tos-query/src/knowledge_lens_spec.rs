@@ -1099,7 +1099,13 @@ fn float_integer_text(n: f64) -> Option<String> {
     if !n.is_finite() || n.fract() != 0. {
         return None;
     }
-    Some(format!("{n:.0}"))
+    // Python compares signed floating zero equal to integer/bool zero.
+    // This comparison key does not change the retained float source carrier.
+    Some(if n == 0. {
+        "0".into()
+    } else {
+        format!("{n:.0}")
+    })
 }
 fn equal(a: &JsonValue, b: &JsonValue) -> bool {
     match (int_text(a), int_text(b)) {
