@@ -346,7 +346,15 @@ impl<'a> KnowledgeStage<'a> {
         self.db.as_ref().expect("stage database open")
     }
     fn check(&self, phase: WritePhase) -> Result<()> {
-        self.isolation.verify(&self.candidate, self.limits, phase)
+        Self::check_isolation(self.isolation, &self.candidate, self.limits, phase)
+    }
+    fn check_isolation(
+        isolation: &dyn StageIsolation,
+        candidate: &Path,
+        limits: StageLimits,
+        phase: WritePhase,
+    ) -> Result<()> {
+        isolation.verify(candidate, limits, phase)
     }
     /// A bounded producer may add catalog/search tables and indexed joins to
     /// this private database. The caller must keep its own row/byte budgets;
@@ -383,6 +391,24 @@ impl<'a> KnowledgeStage<'a> {
         }
         self.poisoned |= result.is_err();
         result
+    }
+
+    /// A document transaction keeps the same bounded isolation-check cadence
+    /// while borrowing the connection. Attribution and poison stay in the
+    /// existing with_connection path; the callback cannot replace its guard.
+    pub(crate) fn with_connection_checks<T>(
+        &mut self,
+        phase: WritePhase,
+        f: impl FnOnce(&mut Connection, &dyn Fn() -> Result<()>) -> Result<T>,
+    ) -> Result<T> {
+        let isolation = self.isolation;
+        let candidate = self.candidate.clone();
+        let limits = self.limits;
+        self.with_connection(phase, |db| {
+            f(db, &|| {
+                Self::check_isolation(isolation, &candidate, limits, phase)
+            })
+        })
     }
 
     pub(crate) fn core_roots(&mut self) -> Result<CoreRoots> {
