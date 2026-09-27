@@ -19,7 +19,13 @@ fn fixture_files(profile: &str) -> (BTreeMap<String, Vec<u8>>, Vec<u8>, String) 
     let packet = repository
         .join("rust/crates/tos-command/tests/fixtures/source_forms_shadow")
         .join(profile);
-    let config = fs::read(packet.join("owner.synthetic.json")).unwrap();
+    let independent_work = profile == "de_constantia";
+    let config = fs::read(packet.join(if independent_work {
+        "owner.json"
+    } else {
+        "owner.synthetic.json"
+    }))
+    .unwrap();
     let owner: Value = serde_json::from_slice(&config).unwrap();
     let path = owner["source_path"].as_str().unwrap().to_owned();
     let target = format!("{}.human-forms.json", path.strip_suffix(".json").unwrap());
@@ -37,7 +43,7 @@ fn fixture_files(profile: &str) -> (BTreeMap<String, Vec<u8>>, Vec<u8>, String) 
     }
     // Native oracle pins its exact source schema, independently of current
     // schema evolution. The fixture worker receives these selected bytes.
-    if !profile.is_empty() {
+    if !profile.is_empty() && !independent_work {
         let source: Value =
             serde_json::from_slice(&fs::read(packet.join("source.initial.json")).unwrap()).unwrap();
         let schema = match source["schema_version"].as_str().unwrap() {
@@ -51,10 +57,23 @@ fn fixture_files(profile: &str) -> (BTreeMap<String, Vec<u8>>, Vec<u8>, String) 
             fs::read(packet.join("source-schema.initial.json")).unwrap(),
         );
     }
-    files.insert(path, fs::read(packet.join("source.initial.json")).unwrap());
+    files.insert(
+        path,
+        fs::read(packet.join(if independent_work {
+            "source.json"
+        } else {
+            "source.initial.json"
+        }))
+        .unwrap(),
+    );
     files.insert(
         target.clone(),
-        fs::read(packet.join("form-set.initial.json")).unwrap(),
+        fs::read(packet.join(if independent_work {
+            "initial.json"
+        } else {
+            "form-set.initial.json"
+        }))
+        .unwrap(),
     );
     (files, config, target)
 }
@@ -188,7 +207,13 @@ fn maintained_forms_propose_exact_bytes_bind_real_cut_and_refuse_unissued_admiss
             "rust/crates/tos-command/src/source_command.rs",
         ],
     );
-    for profile in ["", "artifact-v1", "artifact-v2", "composite-v1"] {
+    for profile in [
+        "",
+        "artifact-v1",
+        "artifact-v2",
+        "composite-v1",
+        "de_constantia",
+    ] {
         let (mut files, config, target) = fixture_files(profile);
         let packet = super::validation_cut_cases::repository()
             .join("rust/crates/tos-command/tests/fixtures/source_forms_shadow")
@@ -220,12 +245,93 @@ fn maintained_forms_propose_exact_bytes_bind_real_cut_and_refuse_unissued_admiss
             .unwrap();
         let cut = open_cut(&root, base, deadline, &cancel);
         let mut worker = schemas(&cut, deadline, &cancel);
-        let request = fs::read(packet.join("apply.request.json")).unwrap();
+        let independent_work = profile == "de_constantia";
+        let request = fs::read(packet.join(if independent_work {
+            "apply_request.json"
+        } else {
+            "apply.request.json"
+        }))
+        .unwrap();
         let mut ctx = context(&files, config.clone(), request.clone(), base);
         ctx.files.push(SourceFile {
             path: component_path.clone(),
             raw: software_raw.clone(),
         });
+        if independent_work {
+            // Transfer the shadow's independent ru/Cyrl Work oracle through
+            // the real selected-capture handler. Both revise and create preview
+            // must preserve the source-owned language/context bindings.
+            for (input, expected) in [
+                ("describe_request.json", "describe.json"),
+                ("prepare_request.json", "prepare.json"),
+                ("create_request.json", "create.json"),
+            ] {
+                let mut observed = ctx.clone();
+                observed.request_raw = fs::read(packet.join(input)).unwrap();
+                let result = run_form_command_from_captures(
+                    &observed,
+                    &cut,
+                    &software,
+                    &components,
+                    &mut worker,
+                    deadline,
+                    &cancel,
+                )
+                .unwrap();
+                assert!(result.changes.is_empty());
+                let actual: Value = serde_json::from_slice(
+                    &tos_foundation::canonical_bytes_v1(
+                        &result.response,
+                        tos_foundation::CanonicalProfile::SourceCommandInputV1,
+                        JsonLimits::default(),
+                    )
+                    .unwrap(),
+                )
+                .unwrap();
+                let oracle: Value =
+                    serde_json::from_slice(&fs::read(packet.join(expected)).unwrap()).unwrap();
+                assert_eq!(actual, oracle, "{profile}: {input}");
+            }
+        }
+        if independent_work {
+            let mut wrong_guard = ctx.clone();
+            let request = String::from_utf8(wrong_guard.request_raw.clone()).unwrap();
+            assert!(request.contains("/field_languages/notes"));
+            wrong_guard.request_raw = request
+                .replace("/field_languages/notes", "/absent-language-guard")
+                .into_bytes();
+            assert!(
+                run_form_command_from_captures(
+                    &wrong_guard,
+                    &cut,
+                    &software,
+                    &components,
+                    &mut worker,
+                    deadline,
+                    &cancel,
+                )
+                .is_err(),
+                "source-owned language context cannot be replaced"
+            );
+            let mut unknown_field = ctx.clone();
+            let request = fs::read_to_string(packet.join("prepare_request.json")).unwrap();
+            assert!(request.contains("metadata.source-note"));
+            unknown_field.request_raw = request
+                .replace("metadata.source-note", "metadata.unknown")
+                .into_bytes();
+            assert!(matches!(
+                run_form_command_from_captures(
+                    &unknown_field,
+                    &cut,
+                    &software,
+                    &components,
+                    &mut worker,
+                    deadline,
+                    &cancel,
+                ),
+                Err(SourceCommandError::Invalid(_))
+            ));
+        }
         let prepared = run_form_command_from_captures(
             &ctx,
             &cut,
@@ -237,10 +343,29 @@ fn maintained_forms_propose_exact_bytes_bind_real_cut_and_refuse_unissued_admiss
         )
         .unwrap();
         assert_eq!(prepared.changes.len(), 1, "{profile}");
+        if independent_work {
+            let actual: Value = serde_json::from_slice(
+                &tos_foundation::canonical_bytes_v1(
+                    &prepared.response,
+                    tos_foundation::CanonicalProfile::SourceCommandInputV1,
+                    JsonLimits::default(),
+                )
+                .unwrap(),
+            )
+            .unwrap();
+            let oracle: Value =
+                serde_json::from_slice(&fs::read(packet.join("apply.json")).unwrap()).unwrap();
+            assert_eq!(actual, oracle, "independent Work apply result");
+        }
         let raw = prepared.changes[0].after.as_ref().unwrap();
         assert_eq!(
             *raw,
-            fs::read(packet.join("form-set.published.json")).unwrap(),
+            fs::read(packet.join(if independent_work {
+                "published.json"
+            } else {
+                "form-set.published.json"
+            }))
+            .unwrap(),
             "{profile}: maintained exact Python publication bytes"
         );
         assert_eq!(
@@ -430,6 +555,20 @@ fn maintained_forms_propose_exact_bytes_bind_real_cut_and_refuse_unissued_admiss
         .unwrap();
         assert!(replay.replayed);
         assert!(replay.changes.is_empty());
+        if independent_work {
+            let actual: Value = serde_json::from_slice(
+                &tos_foundation::canonical_bytes_v1(
+                    &replay.response,
+                    tos_foundation::CanonicalProfile::SourceCommandInputV1,
+                    JsonLimits::default(),
+                )
+                .unwrap(),
+            )
+            .unwrap();
+            let oracle: Value =
+                serde_json::from_slice(&fs::read(packet.join("replay.json")).unwrap()).unwrap();
+            assert_eq!(actual, oracle, "independent Work replay result");
+        }
         // Current revocation must apply before historical receipt replay.
         let mut revoked: Value = serde_json::from_slice(&config).unwrap();
         revoked["allowed_operations"] = serde_json::json!([]);
