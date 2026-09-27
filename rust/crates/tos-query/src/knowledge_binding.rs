@@ -125,7 +125,7 @@ impl BoundCmpKnowledge<'_> {
             limits,
         )
         .map_err(|reason| SearchV2Error {
-            code: if reason.code == tos_foundation::ErrorCode::BudgetExceeded {
+            code: if reason.code == tos_foundation::FoundationErrorCode::BudgetExceeded {
                 SearchV2ErrorCode::BudgetExceeded
             } else {
                 SearchV2ErrorCode::CorruptSelectedCarrier
