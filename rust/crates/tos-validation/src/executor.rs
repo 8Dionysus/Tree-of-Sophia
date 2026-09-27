@@ -2774,7 +2774,7 @@ mod native {
                 let mut results = Digest256Hasher::new();
                 results.update(b"tos-val2-batch-results-v1\0");
                 let outcome = run_batch_image(
-                    image.try_clone().unwrap(),
+                    &image,
                     prepared,
                     results,
                     budget,
