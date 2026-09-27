@@ -279,9 +279,11 @@ lookup/incident/endpoint needs and owns aliases, packet construction and exact
 source targets. Host code executes bounded SQL and verifies the publication,
 row digests and identity. Python compact emission occurs in FND; demand-driven
 body delivery rechecks the publication epoch/revision before enqueue/close.
-HEAD computes the same bounded packet and returns no body. Source readiness is
-separate from the pending actual inspection oracle/product gate; the replaced
-dead TS algorithm is removed only after that acceptance.
+HEAD computes the same bounded packet and returns no body. The actual product,
+typecheck and 13 existing inspection/CSV, two overflow and two readable-context
+controls passed, including real Miniflare. The exclusively replaced TS algorithm
+and source-target projection are removed; shared publication/physical transport
+stays. Local execution does not establish deployment or every portable family.
 
 Inspection adopts the published Python reader's explicit compatibility
 corrections: nonempty string `source_refs` only, incomplete endpoint closure

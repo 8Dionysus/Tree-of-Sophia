@@ -484,10 +484,12 @@ Physical D1 limits remain separate from Rust logical work admission: the shared
 plan caps accumulated supplied JSON value visits at 200,000; each FND batch parse
 has depth 64, 300,000 visits and 4300 integer digits. Aggregate raw batch input
 and output are capped at 16 MiB. These bounds are not CPU instruction accounting.
-The source package is awaiting its own generated-product/typecheck/oracle run;
-temporal's accepted execution does not establish inspection parity. The dead TS
-inspection algorithm and source-target projection are retained only until that
-actual route gate, then retired. Host publication/header/SQL transport remains.
+The inspection product/typecheck and existing affected actual route controls
+passed: 13 inspection/CSV including real Miniflare, two overflow and two readable
+context cases. The exclusively replaced TS inspection algorithm and source-target
+projection are removed. Shared publication/header/SQL host transport remains.
+These local checks establish their bounded scope, not deployment or every WASM
+family; temporal's prior accepted evidence is retained without a repeated run.
 
 The following are explicit compatibility corrections to the older D1
 inspection implementation, matching the authoritative published Python reader:

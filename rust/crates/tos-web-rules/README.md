@@ -107,9 +107,13 @@ demand-driven whole-packet Response lifecycle: selection checks surround needs
 and precede final enqueue/close; abort/cancel discard bytes, and HEAD runs full
 admission before an empty response. No native current-policy issuer is added.
 The existing inspection Python/Miniflare harness and unique source-target
-controls are routed through that real consumer. Source is ready for OPS product
-and execution review; inspection runtime parity and exclusive TS retirement
-remain gated on that run. Temporal greens are not repeated for this new family.
+controls are routed through that real consumer. OPS built the actual generated
+product; typecheck, 13 existing inspection/CSV, two overflow and two readable
+context controls passed, including real Miniflare. The replaced exclusive TS
+inspection algorithm and source-target projection are removed. The stronger
+native consumer's independent fixture/parity status remains separate. Temporal
+greens were retained without repeating them for this new family; no deployment
+or general WASM coverage is claimed.
 
 The existing `tests/domain-wasm-host.mjs` exercises the real generated binding
 and async driver with a maintained selected-packet oracle carrier, plus
