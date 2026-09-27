@@ -1,6 +1,7 @@
 //! Executable source-owned Claim and bibliographic closure families.
 //! All source bytes come from the immutable cut; schemas execute through the
-//! existing bounded worker. Local closure does not admit historical compounds.
+//! existing bounded worker. Reconstructed historical compounds remain mechanical
+//! observations and never confer current publication or source admission.
 use crate::item_rules::{ItemLimits, ItemRefusal};
 use crate::record_biblio_cut::{
     BiblioCurrentRecord, SourceCutRecordReport, account, check, current, reserve, store_error,
@@ -54,6 +55,7 @@ pub struct SourceCutBiblioReport {
     /// Immutable current rows; retained rows never join this namespace.
     pub claims: Vec<BiblioClaim>,
     pub bytes_read: u64,
+    pub native_compounds: Vec<crate::native_compound::NativeCompoundObservation>,
 }
 struct Route {
     reader: String,
@@ -502,6 +504,86 @@ pub fn inspect_bibliography_from_cut(
     })?;
     let mut identities = BTreeSet::new();
     let mut topology = Vec::new();
+    // Only the consumed Work->Expression owner is reconstructed here. One
+    // invocation shares the exact read/index budget across all its Claims.
+    let mut verified_native = BTreeSet::new();
+    let mut native_compounds = Vec::new();
+    if claims
+        .iter()
+        .any(|claim| claim.native && s(&claim.value, "predicate") == Some("has_expression"))
+    {
+        let mut compound_limits = limits;
+        compound_limits.max_state_bytes = limits
+            .max_state_bytes
+            .checked_sub(rules.state)
+            .ok_or(ItemRefusal::Budget)?;
+        compound_limits.max_total_bytes = limits
+            .max_total_bytes
+            .checked_sub(rules.bytes)
+            .ok_or(ItemRefusal::Budget)?;
+        let mut compounds =
+            crate::native_compound::WorkExpression::new(cut, compound_limits, cancelled)?;
+        for claim in claims
+            .iter()
+            .filter(|c| c.native && s(&c.value, "predicate") == Some("has_expression"))
+        {
+            let location = format!("{}:{}", claim.path, claim.line);
+            match compounds.verify(&claim.path, &claim.value, schemas) {
+                Ok(observation) => {
+                    let id = s(&claim.value, "claim_id").ok_or_else(|| {
+                        ItemRefusal::Source("compound Claim identity missing".into())
+                    })?;
+                    reserve(
+                        &mut rules.state,
+                        id.len()
+                            + observation.claim_path.len()
+                            + observation.transaction_id.len()
+                            + observation.manifest_sha256.len()
+                            + 256,
+                        limits.max_state_bytes,
+                    )?;
+                    match observation.transport {
+                        crate::native_compound::NativeTransportState::Committed => {
+                            verified_native.insert(id.to_owned());
+                            rules.shadow.checked_profiles.insert(
+                                "native-work-expression-exact-compound-plan-and-current-lineage@1"
+                                    .into(),
+                            );
+                        }
+                        crate::native_compound::NativeTransportState::Pending => {
+                            rules.issue("native-work-expression-transaction-pending", &location)?
+                        }
+                        crate::native_compound::NativeTransportState::RolledBack => rules
+                            .issue("native-work-expression-transaction-rolled-back", &location)?,
+                        crate::native_compound::NativeTransportState::Orphan => {
+                            rules.issue("native-work-expression-transaction-orphan", &location)?
+                        }
+                    }
+                    rules.read(PredicateRead::ExactBytes {
+                        locator: format!("transaction:{}", observation.transaction_id),
+                        digest: observation.manifest_sha256.clone(),
+                    })?;
+                    native_compounds.push(observation);
+                }
+                Err(ItemRefusal::Source(_)) => {
+                    rules.issue("native-work-expression-compound-evidence", &location)?
+                }
+                Err(ItemRefusal::Unsupported(reason)) => {
+                    rules.skip(&format!("native-work-expression-compound:{reason}"))?
+                }
+                Err(error) => return Err(error),
+            }
+        }
+        let (bytes, reads) = compounds.finish();
+        account(
+            &mut rules.bytes,
+            usize::try_from(bytes).map_err(|_| ItemRefusal::Budget)?,
+            limits.max_total_bytes,
+        )?;
+        for read in reads {
+            rules.read(read)?;
+        }
+    }
     for claim in &claims {
         inspect_claim(
             cut,
@@ -560,6 +642,7 @@ pub fn inspect_bibliography_from_cut(
                 s(&claim.value, "predicate"),
                 Some("has_expression" | "embodied_by" | "exemplified_by")
             )
+            && !s(&claim.value, "claim_id").is_some_and(|id| verified_native.contains(id))
     });
     let topology_report = inspect_current_topology(
         &values,
@@ -577,10 +660,9 @@ pub fn inspect_bibliography_from_cut(
         &mut rules,
     )?;
     inspect_batches(&claims, &events, &records.records, &mut rules)?;
-    // No complete-source verdict escapes this family. Native compound grants,
-    // retained profile execution and exact native publication reconstruction remain
-    // separate missing contracts even when the local structural checks pass.
-    rules.skip("native-compound-transaction-reconstruction-and-current-parent-lineage")?;
+    // No complete-source verdict escapes this family. Other native compounds
+    // and retained profile execution remain explicit missing owner coverage.
+    rules.skip("other-native-compound-transaction-reconstruction-and-current-parent-lineage")?;
     rules.skip("retained-frozen-profile-source-admission")?;
     check(limits.deadline, cancelled)?;
     Ok(SourceCutBiblioReport {
@@ -589,6 +671,7 @@ pub fn inspect_bibliography_from_cut(
         shadow: rules.shadow,
         claims,
         bytes_read: rules.bytes,
+        native_compounds,
     })
 }
 
@@ -803,8 +886,7 @@ fn inspect_claim(
                 // append/revision plan or specialized semantic ownership.
                 if matches!(
                     predicate,
-                    "has_expression"
-                        | "embodied_by"
+                    "embodied_by"
                         | "exemplified_by"
                         | "contains_work"
                         | "translated_by"

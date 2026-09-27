@@ -20,6 +20,7 @@ pub mod executor;
 pub mod item_rules;
 pub mod layer_family_cut;
 pub mod layer_family_rules;
+pub mod native_compound;
 pub mod operation;
 pub mod provenance_rules;
 pub mod record_biblio_cut;

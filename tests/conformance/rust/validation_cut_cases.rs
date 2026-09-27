@@ -611,6 +611,47 @@ fn actual_general_operation_keeps_selected_family_coverage_below_source_admissio
         );
         before.insert(path.into(), raw);
     }
+    // Reuse the maintained native compound fixture's real isolated writer.
+    // Two siblings exercise the complete parent archive prefix; a descriptive
+    // child successor must retain its original committed package lineage.
+    let oracle=std::process::Command::new("python3").arg("-c").arg(r#"
+import copy,json,sys
+from pathlib import Path
+root=Path(sys.argv[1])
+sys.path.insert(0,str(root/'mechanics/growth-cycle/tests'))
+from test_source_expression_commands import NativeExpressionTests,commands,compound
+c=NativeExpressionTests();c.setUp()
+try:
+    first=c.request();commands.run_local_command(c.owner,first)
+    c.correct_expression();c.rebuild()
+    c.select_child('second');second=c.request();commands.run_local_command(c.owner,second)
+    c.rebuild()
+    for request in (first,second):
+        child=request['claim']['evidence_refs'][1]
+        compound.verify_compound(c.root,str(Path(child).with_name('source-claims.jsonl')),request['claim'])
+    files={p.relative_to(c.root).as_posix():p.read_bytes().hex()
+           for p in sorted((c.root/'ToS').rglob('*')) if p.is_file()}
+    print(json.dumps(files))
+finally:c.doCleanups()
+"#).arg(&owner).env("PYTHONDONTWRITEBYTECODE","1").output().unwrap();
+    assert!(
+        oracle.status.success(),
+        "maintained compound oracle: {}",
+        String::from_utf8_lossy(&oracle.stderr)
+    );
+    let compound_files: Value = serde_json::from_slice(&oracle.stdout).unwrap();
+    for (path, hex) in compound_files.as_object().unwrap() {
+        let hex = hex.as_str().unwrap();
+        assert_eq!(hex.len() % 2, 0);
+        let raw = (0..hex.len())
+            .step_by(2)
+            .map(|i| u8::from_str_radix(&hex[i..i + 2], 16).unwrap())
+            .collect::<Vec<_>>();
+        if let Some(existing) = before.get(path) {
+            assert_eq!(existing, &raw, "selected common source {path}");
+        }
+        before.insert(path.clone(), raw);
+    }
     let temporary = tempfile::tempdir().unwrap();
     let root = temporary.path().join("store");
     let base = write_cut_store(&before, &root);
@@ -804,6 +845,116 @@ fn actual_general_operation_keeps_selected_family_coverage_below_source_admissio
             .schema_receipts()
             .iter()
             .all(|receipt| receipt.source_revision == revision)
+    );
+    assert_eq!(report.bibliography.native_compounds.len(), 2);
+    assert!(
+        report
+            .bibliography
+            .native_compounds
+            .iter()
+            .all(|observed| observed.transport
+                == tos_validation::native_compound::NativeTransportState::Committed)
+    );
+    assert!(
+        report
+            .bibliography
+            .shadow
+            .checked_profiles
+            .contains("native-work-expression-exact-compound-plan-and-current-lineage@1")
+    );
+    assert!(
+        !report
+            .bibliography
+            .shadow
+            .issues
+            .iter()
+            .any(|issue| issue.code == "native-work-expression-compound-evidence")
+    );
+
+    // Equal decoded JSON is insufficient: retained publication binds exact
+    // receipt bytes. Inspect the changed current cut through the same actual
+    // record/bibliographic route, not a caller-issued transport observation.
+    let receipt_path = report.bibliography.native_compounds[0]
+        .claim_path
+        .strip_suffix("source-claims.jsonl")
+        .unwrap()
+        .to_owned()
+        + "work-expression-receipt.json";
+    let mut damaged = files.clone();
+    damaged.get_mut(&receipt_path).unwrap().push(b'\n');
+    let damaged_revision = write_cut_store_on_base(&damaged, &root, Some(revision));
+    let negative_deadline = Instant::now() + Duration::from_secs(120);
+    let damaged_cut = reader
+        .open_source_cut(
+            damaged_revision,
+            CutReadLimits {
+                max_revisions: 4,
+                max_members: 2048,
+                max_total_bytes: 32_000_000,
+                max_member_bytes: 2_097_152,
+            },
+            negative_deadline,
+            &cancelled,
+        )
+        .unwrap();
+    let negative_limits = ItemLimits {
+        deadline: negative_deadline,
+        ..composed_limits.family
+    };
+    let mut negative_records = BiblioRecordExecutor::new(
+        record_executor.worker.clone(),
+        ExecutorBudget::laboratory(),
+        FormatProfile::LegacyPythonObserved20260923,
+        256,
+    );
+    let retained = tos_validation::record_biblio_cut::inspect_records_from_cut(
+        &damaged_cut,
+        negative_limits,
+        &cancelled,
+        &mut negative_records,
+    )
+    .unwrap();
+    negative_records
+        .finish(negative_deadline, &cancelled)
+        .unwrap();
+    let mut negative_schemas = CutWorkerSchemaExecutor::from_cut(
+        &damaged_cut,
+        FormatProfile::LegacyPythonObserved20260923,
+        record_executor.worker.clone(),
+        ExecutorBudget::laboratory(),
+        CutWorkerLimits {
+            max_receipts: 256,
+            max_receipt_bytes: 262_144,
+        },
+        negative_deadline,
+        &cancelled,
+    )
+    .unwrap();
+    let refused = tos_validation::biblio_rules::inspect_bibliography_from_cut(
+        &damaged_cut,
+        &retained,
+        negative_limits,
+        &cancelled,
+        &mut negative_schemas,
+    )
+    .unwrap();
+    negative_schemas
+        .finish(negative_deadline, &cancelled)
+        .unwrap();
+    assert!(refused.shadow.issues.iter().any(|issue| {
+        issue.code == "native-work-expression-compound-evidence"
+            && issue
+                .location
+                .starts_with(report.bibliography.native_compounds[0].claim_path.as_str())
+    }));
+    assert!(
+        !refused
+            .native_compounds
+            .iter()
+            .any(|observed| observed.claim_path
+                == report.bibliography.native_compounds[0].claim_path
+                && observed.transport
+                    == tos_validation::native_compound::NativeTransportState::Committed)
     );
 }
 
