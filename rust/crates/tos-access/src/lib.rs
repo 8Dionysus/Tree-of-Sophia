@@ -21,6 +21,6 @@ pub mod software_archive;
 
 pub use common::{
     AccessError, AccessErrorCode, AccessExecutor, AccessProfile, DisclosureFence,
-    IndexedSearchParams, Params, PreparedPacket, QuerySession, RegisteredOperation,
+    IndexedSearchParams, NoOwner, Params, PreparedPacket, QuerySession, RegisteredOperation,
     SEARCH_OPERATION_ID, descriptor, registered_operations,
 };

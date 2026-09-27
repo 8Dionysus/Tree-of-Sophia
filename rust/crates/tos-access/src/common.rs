@@ -511,6 +511,24 @@ impl AccessProfile {
     }
 }
 
+/// Default executor when no owner is explicitly selected.
+pub struct NoOwner;
+impl AccessExecutor for NoOwner {
+    fn source_descend_available(&self) -> bool {
+        false
+    }
+    fn source_descend(
+        &self,
+        _: Params,
+        _: Arc<dyn AbortProbe>,
+    ) -> Result<PreparedPacket, AccessError> {
+        Err(AccessError::new(
+            AccessErrorCode::Unavailable,
+            "source owner is not selected",
+        ))
+    }
+}
+
 pub trait AccessExecutor: Send + Sync {
     /// Only true when a sealed source cut, verified selected model, live source
     /// policy, pre-disclosure fence and QRY progress-abort probe are installed.

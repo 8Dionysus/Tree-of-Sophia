@@ -580,7 +580,7 @@ mod selected_knowledge {
             _: Option<&str>,
             _: Digest256,
         ) -> Result<(), SearchV2Error> {
-            self.check_selected()?;
+            InspectCurrentAuthority::check_selected(self)?;
             assert_eq!(self.inspect.operation_id, O::CorpusSummary.id());
             self.corpus_granted = true;
             Ok(())
@@ -4234,10 +4234,7 @@ json.dump({'capture':str(capture),'restored':str(restored),'commit':commit,'tree
             handle_get_with_software(&boot, "GET", "/static/assets/link.js", profile, &site).status,
             404
         );
-        let no_owner = Synthetic {
-            allowed: false,
-            calls: Mutex::new(vec![]),
-        };
+        let no_owner = tos_access::NoOwner;
         let unavailable = handle_get_with_software(&no_owner, "GET", "/", profile, &site);
         assert_eq!(unavailable.status, 200);
         let html = String::from_utf8(unavailable.body).unwrap();

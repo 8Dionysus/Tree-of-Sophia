@@ -2,26 +2,8 @@
 //! Without selection, no source or projection authority is invented.
 use std::{path::Path, sync::Arc};
 use tos_access::{
-    AccessError, AccessErrorCode, AccessExecutor, AccessProfile, Params, PreparedPacket, cli, http,
-    managed_local::ManagedLocalExecutor, mcp,
+    AccessExecutor, AccessProfile, NoOwner, cli, http, managed_local::ManagedLocalExecutor, mcp,
 };
-use tos_query::AbortProbe;
-struct NoOwner;
-impl AccessExecutor for NoOwner {
-    fn source_descend_available(&self) -> bool {
-        false
-    }
-    fn source_descend(
-        &self,
-        _: Params,
-        _: Arc<dyn AbortProbe>,
-    ) -> Result<PreparedPacket, AccessError> {
-        Err(AccessError::new(
-            AccessErrorCode::Unavailable,
-            "source owner is not selected",
-        ))
-    }
-}
 fn main() {
     let mut args: Vec<String> = std::env::args().skip(1).collect();
     // Software help/version never opens a selected release or grants readiness.
