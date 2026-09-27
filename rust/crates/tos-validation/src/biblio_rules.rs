@@ -504,14 +504,17 @@ pub fn inspect_bibliography_from_cut(
     })?;
     let mut identities = BTreeSet::new();
     let mut topology = Vec::new();
-    // Only the consumed Work->Expression owner is reconstructed here. One
+    // Only the consumed Work->Expression and Expression->Edition owners are reconstructed here. One
     // invocation shares the exact read/index budget across all its Claims.
     let mut verified_native = BTreeSet::new();
     let mut native_compounds = Vec::new();
-    if claims
-        .iter()
-        .any(|claim| claim.native && s(&claim.value, "predicate") == Some("has_expression"))
-    {
+    if claims.iter().any(|claim| {
+        claim.native
+            && matches!(
+                s(&claim.value, "predicate"),
+                Some("has_expression" | "embodied_by")
+            )
+    }) {
         let mut compound_limits = limits;
         compound_limits.max_state_bytes = limits
             .max_state_bytes
@@ -522,11 +525,14 @@ pub fn inspect_bibliography_from_cut(
             .checked_sub(rules.bytes)
             .ok_or(ItemRefusal::Budget)?;
         let mut compounds =
-            crate::native_compound::WorkExpression::new(cut, compound_limits, cancelled)?;
-        for claim in claims
-            .iter()
-            .filter(|c| c.native && s(&c.value, "predicate") == Some("has_expression"))
-        {
+            crate::native_compound::NativeCompoundReader::new(cut, compound_limits, cancelled)?;
+        for claim in claims.iter().filter(|c| {
+            c.native
+                && matches!(
+                    s(&c.value, "predicate"),
+                    Some("has_expression" | "embodied_by")
+                )
+        }) {
             let location = format!("{}:{}", claim.path, claim.line);
             compounds.set_remaining_state(
                 limits
@@ -558,19 +564,32 @@ pub fn inspect_bibliography_from_cut(
                     match observation.transport {
                         crate::native_compound::NativeTransportState::Committed => {
                             verified_native.insert(id.to_owned());
-                            rules.shadow.checked_profiles.insert(
-                                "native-work-expression-exact-compound-plan-and-current-lineage@1"
-                                    .into(),
-                            );
+                            rules.shadow.checked_profiles.insert(if s(&claim.value,"predicate")==Some("has_expression") {"native-work-expression-exact-compound-plan-and-current-lineage@1"} else {"native-expression-edition-exact-compound-plan-and-current-lineage@1"}.into());
                         }
-                        crate::native_compound::NativeTransportState::Pending => {
-                            rules.issue("native-work-expression-transaction-pending", &location)?
-                        }
-                        crate::native_compound::NativeTransportState::RolledBack => rules
-                            .issue("native-work-expression-transaction-rolled-back", &location)?,
-                        crate::native_compound::NativeTransportState::Orphan => {
-                            rules.issue("native-work-expression-transaction-orphan", &location)?
-                        }
+                        crate::native_compound::NativeTransportState::Pending => rules.issue(
+                            if s(&claim.value, "predicate") == Some("has_expression") {
+                                "native-work-expression-transaction-pending"
+                            } else {
+                                "native-expression-edition-transaction-pending"
+                            },
+                            &location,
+                        )?,
+                        crate::native_compound::NativeTransportState::RolledBack => rules.issue(
+                            if s(&claim.value, "predicate") == Some("has_expression") {
+                                "native-work-expression-transaction-rolled-back"
+                            } else {
+                                "native-expression-edition-transaction-rolled-back"
+                            },
+                            &location,
+                        )?,
+                        crate::native_compound::NativeTransportState::Orphan => rules.issue(
+                            if s(&claim.value, "predicate") == Some("has_expression") {
+                                "native-work-expression-transaction-orphan"
+                            } else {
+                                "native-expression-edition-transaction-orphan"
+                            },
+                            &location,
+                        )?,
                     }
                     rules.read(PredicateRead::ExactBytes {
                         locator: format!("transaction:{}", observation.transaction_id),
@@ -578,11 +597,16 @@ pub fn inspect_bibliography_from_cut(
                     })?;
                     native_compounds.push(observation);
                 }
-                Err(ItemRefusal::Source(_)) => {
-                    rules.issue("native-work-expression-compound-evidence", &location)?
-                }
+                Err(ItemRefusal::Source(_)) => rules.issue(
+                    if s(&claim.value, "predicate") == Some("has_expression") {
+                        "native-work-expression-compound-evidence"
+                    } else {
+                        "native-expression-edition-compound-evidence"
+                    },
+                    &location,
+                )?,
                 Err(ItemRefusal::Unsupported(reason)) => {
-                    rules.skip(&format!("native-work-expression-compound:{reason}"))?
+                    rules.skip(&format!("native-bibliographic-compound:{reason}"))?
                 }
                 Err(error) => return Err(error),
             }
@@ -920,8 +944,7 @@ fn inspect_claim(
                 // append/revision plan or specialized semantic ownership.
                 if matches!(
                     predicate,
-                    "embodied_by"
-                        | "exemplified_by"
+                    "exemplified_by"
                         | "contains_work"
                         | "translated_by"
                         | "described_by"

@@ -42,6 +42,178 @@ pub struct NativeCompoundObservation {
     pub transport: NativeTransportState,
 }
 
+// Two maintained bibliographic recipes share only their transport and exact
+// buffer-construction law. These constants are owner profiles, not grants.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum CompoundKind {
+    WorkExpression,
+    ExpressionEdition,
+}
+impl CompoundKind {
+    fn from_operation(operation: &str) -> Result<Self, ItemRefusal> {
+        match operation {
+            "work.expression.create" => Ok(Self::WorkExpression),
+            "expression.edition.create" => Ok(Self::ExpressionEdition),
+            other => Err(ItemRefusal::Unsupported(format!(
+                "retained compound parent handler {other}"
+            ))),
+        }
+    }
+    fn from_predicate(predicate: &str) -> Result<Self, ItemRefusal> {
+        match predicate {
+            "has_expression" => Ok(Self::WorkExpression),
+            "embodied_by" => Ok(Self::ExpressionEdition),
+            other => Err(ItemRefusal::Unsupported(format!(
+                "native compound predicate {other}"
+            ))),
+        }
+    }
+    fn parent_kind(self) -> &'static str {
+        match self {
+            Self::WorkExpression => "work",
+            Self::ExpressionEdition => "expression",
+        }
+    }
+    fn child_kind(self) -> &'static str {
+        match self {
+            Self::WorkExpression => "expression",
+            Self::ExpressionEdition => "edition",
+        }
+    }
+    fn parent_key(self) -> &'static str {
+        match self {
+            Self::WorkExpression => "work_id",
+            Self::ExpressionEdition => "expression_id",
+        }
+    }
+    fn child_key(self) -> &'static str {
+        match self {
+            Self::WorkExpression => "expression_id",
+            Self::ExpressionEdition => "edition_id",
+        }
+    }
+    fn parent_path(self) -> &'static str {
+        match self {
+            Self::WorkExpression => "work_source_path",
+            Self::ExpressionEdition => "expression_source_path",
+        }
+    }
+    fn child_path(self) -> &'static str {
+        match self {
+            Self::WorkExpression => "expression_source_path",
+            Self::ExpressionEdition => "edition_source_path",
+        }
+    }
+    fn parent_file(self) -> &'static str {
+        match self {
+            Self::WorkExpression => "work.json",
+            Self::ExpressionEdition => "expression.json",
+        }
+    }
+    fn child_file(self) -> &'static str {
+        match self {
+            Self::WorkExpression => "expression.json",
+            Self::ExpressionEdition => "edition.json",
+        }
+    }
+    fn parent_forms(self) -> &'static str {
+        match self {
+            Self::WorkExpression => "work.human-forms.json",
+            Self::ExpressionEdition => "expression.human-forms.json",
+        }
+    }
+    fn child_forms(self) -> &'static str {
+        match self {
+            Self::WorkExpression => "expression.human-forms.json",
+            Self::ExpressionEdition => "edition.human-forms.json",
+        }
+    }
+    fn child_form_request(self) -> &'static str {
+        match self {
+            Self::WorkExpression => "expression_forms",
+            Self::ExpressionEdition => "edition_forms",
+        }
+    }
+    fn field(self) -> &'static str {
+        match self {
+            Self::WorkExpression => "expression_claim_refs",
+            Self::ExpressionEdition => "embodiment_claim_refs",
+        }
+    }
+    fn predicate(self) -> &'static str {
+        match self {
+            Self::WorkExpression => "has_expression",
+            Self::ExpressionEdition => "embodied_by",
+        }
+    }
+    fn operation(self) -> &'static str {
+        match self {
+            Self::WorkExpression => "work.expression.create",
+            Self::ExpressionEdition => "expression.edition.create",
+        }
+    }
+    fn request_schema(self) -> &'static str {
+        match self {
+            Self::WorkExpression => "tos_local_work_expression_command_v1",
+            Self::ExpressionEdition => "tos_local_expression_edition_command_v1",
+        }
+    }
+    fn authorization_schema(self) -> &'static str {
+        match self {
+            Self::WorkExpression => "tos_work_expression_authorization_v1",
+            Self::ExpressionEdition => "tos_expression_edition_authorization_v1",
+        }
+    }
+    fn receipt_schema(self) -> &'static str {
+        match self {
+            Self::WorkExpression => "tos_work_expression_receipt_v1",
+            Self::ExpressionEdition => "tos_expression_edition_receipt_v1",
+        }
+    }
+    fn receipt_file(self) -> &'static str {
+        match self {
+            Self::WorkExpression => "work-expression-receipt.json",
+            Self::ExpressionEdition => "expression-edition-receipt.json",
+        }
+    }
+    fn module(self) -> &'static str {
+        match self {
+            Self::WorkExpression => {
+                "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_expression_commands.py"
+            }
+            Self::ExpressionEdition => {
+                "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_edition_commands.py"
+            }
+        }
+    }
+    fn executor(self) -> &'static str {
+        match self {
+            Self::WorkExpression => "software:tos-source-expression-commands",
+            Self::ExpressionEdition => "software:tos-source-edition-commands",
+        }
+    }
+    fn procedure(self) -> &'static str {
+        match self {
+            Self::WorkExpression => "native-work-expression-metadata-serialization",
+            Self::ExpressionEdition => "native-expression-edition-metadata-serialization",
+        }
+    }
+    fn component(self) -> &'static str {
+        match self {
+            Self::WorkExpression => "ToS native Work Expression adapter",
+            Self::ExpressionEdition => "ToS native Expression Edition adapter",
+        }
+    }
+    fn initial_backlink(self, record: &Value, parent: &Value) -> bool {
+        match self {
+            Self::WorkExpression => record["work_ref"] == *parent,
+            Self::ExpressionEdition => record["embodies_expression_refs"]
+                .as_array()
+                .is_some_and(|refs| refs.contains(parent)),
+        }
+    }
+}
+
 fn bad(message: &str) -> ItemRefusal {
     ItemRefusal::Source(format!("native compound: {message}"))
 }
@@ -203,7 +375,11 @@ fn revision(files: &Package) -> Result<String, ItemRefusal> {
     digest(&file_refs(files))
 }
 fn selected_names(path: &str) -> Result<[String; 3], ItemRefusal> {
-    let (_, base) = path.rsplit_once('/').ok_or_else(|| bad("record path"))?;
+    let base = path
+        .rsplit('/')
+        .next()
+        .filter(|s| !s.is_empty())
+        .ok_or_else(|| bad("record path"))?;
     let stem = base
         .strip_suffix(".json")
         .ok_or_else(|| bad("record basename"))?;
@@ -251,7 +427,7 @@ struct Transaction {
 
 /// One family invocation owns the directory index and deduplicated exact reads.
 /// Neither cache nor historical state survives the selected operation.
-pub(crate) struct WorkExpression<'a> {
+pub(crate) struct NativeCompoundReader<'a> {
     cut: &'a CorpusCutReader,
     limits: ItemLimits,
     cancelled: &'a AtomicBool,
@@ -265,7 +441,7 @@ pub(crate) struct WorkExpression<'a> {
     reads: Vec<PredicateRead>,
     publication: Option<Value>,
 }
-impl<'a> WorkExpression<'a> {
+impl<'a> NativeCompoundReader<'a> {
     pub(crate) fn new(
         cut: &'a CorpusCutReader,
         limits: ItemLimits,
@@ -459,7 +635,7 @@ impl<'a> WorkExpression<'a> {
         if text(&manifest, "schema_version")? != "tos_selected_metadata_transaction_v1"
             || text(&manifest, "transaction_id")? != id
         {
-            return Err(bad("Work Expression transaction grammar"));
+            return Err(bad("native bibliographic transaction grammar"));
         }
         let base = &manifest["base_publication"];
         keys(base, &["token", "generation"])?;
@@ -865,7 +1041,7 @@ fn state_valid(v: &Value) -> Result<(), ItemRefusal> {
     Ok(())
 }
 
-fn request_valid(request: &Value) -> Result<(), ItemRefusal> {
+fn request_valid(request: &Value, kind: CompoundKind) -> Result<(), ItemRefusal> {
     keys(
         request,
         &[
@@ -874,7 +1050,7 @@ fn request_valid(request: &Value) -> Result<(), ItemRefusal> {
             "record",
             "claim",
             "forms",
-            "expression_forms",
+            kind.child_form_request(),
             "claim_forms",
             "reason",
             "command_id",
@@ -886,11 +1062,11 @@ fn request_valid(request: &Value) -> Result<(), ItemRefusal> {
             "expected_publication",
         ],
     )?;
-    if text(request, "schema_version")? != "tos_local_work_expression_command_v1"
-        || text(request, "operation")? != "work.expression.create"
+    if text(request, "schema_version")? != kind.request_schema()
+        || text(request, "operation")? != kind.operation()
         || canonical(request)?.len() > 1_048_576
     {
-        return Err(bad("Work Expression request grammar"));
+        return Err(bad("native bibliographic compound request grammar"));
     }
     let reason = tos_foundation::python_strip_unicode16_v1(text(request, "reason")?, MAX_SIDE)
         .map_err(|_| ItemRefusal::Budget)?;
@@ -910,35 +1086,37 @@ fn request_valid(request: &Value) -> Result<(), ItemRefusal> {
     if !request["expected_publication"].is_null() {
         hash(text(request, "expected_publication")?)?;
     }
-    keys(&request["fields"], &["expression_claim_refs"])?;
+    keys(&request["fields"], &[kind.field()])?;
     Ok(())
 }
-fn transaction_id(request: &Value) -> Result<String, ItemRefusal> {
+fn transaction_id(request: &Value, kind: CompoundKind) -> Result<String, ItemRefusal> {
     digest(
-        &json!({"operation":"work.expression.create","command_id":request["command_id"],"owner_configuration":request["expected_configuration"],"request_digest":digest(request)?}),
+        &json!({"operation":kind.operation(),"command_id":request["command_id"],"owner_configuration":request["expected_configuration"],"request_digest":digest(request)?}),
     )
 }
-fn work_parent_receipt(receipt: &Value) -> Result<(), ItemRefusal> {
+fn parent_receipt_shape(receipt: &Value, kind: CompoundKind) -> Result<(), ItemRefusal> {
     let request = &receipt["request"];
-    request_valid(request)?;
+    request_valid(request, kind)?;
     let publication = &receipt["publication"];
     keys(
         publication,
         &["protocol", "transaction_id", "selected_files"],
     )?;
-    let refs = array(&request["fields"], "expression_claim_refs")?;
+    let refs = array(&request["fields"], kind.field())?;
     if text(publication, "protocol")? != PROTOCOL
-        || text(publication, "transaction_id")? != transaction_id(request)?
-        || publication["selected_files"]
-            != json!([
-                "source-revision-history.json",
-                "work.human-forms.json",
-                "work.json"
-            ])
-        || receipt["changed_fields"] != json!(["expression_claim_refs"])
-        || request["claim"]["predicate"] != "has_expression"
+        || text(publication, "transaction_id")? != transaction_id(request, kind)?
+        || publication["selected_files"] != {
+            let mut names = selected_names(kind.parent_file())?;
+            names.sort();
+            json!(names)
+        }
+        || receipt["changed_fields"] != json!([kind.field()])
+        || request["claim"]["predicate"] != kind.predicate()
         || request["claim"]["subject_ref"] != receipt["previous_source"]["id"]
-        || request["record"]["work_ref"] != receipt["previous_source"]["id"]
+        || !kind.initial_backlink(&request["record"], &receipt["previous_source"]["id"])
+        || kind == CompoundKind::ExpressionEdition
+            && request["record"]["embodies_expression_refs"]
+                != json!([receipt["previous_source"]["id"]])
         || request["claim"]["object"] != request["record"]["record_id"]
         || refs.last() != request["claim"].get("claim_id")
     {
@@ -1035,7 +1213,10 @@ pub fn inspect_record_history(
         .map_err(|_| bad("history aware instant"))?;
         let request = &receipt["request"];
         match text(request, "operation")? {
-            "work.expression.create" => work_parent_receipt(receipt)?,
+            "work.expression.create" | "expression.edition.create" => parent_receipt_shape(
+                receipt,
+                CompoundKind::from_operation(text(request, "operation")?)?,
+            )?,
             "record.revise" => {}
             other => {
                 return Err(ItemRefusal::Unsupported(format!(
@@ -1075,7 +1256,7 @@ pub fn inspect_record_history(
     Ok(history)
 }
 
-impl WorkExpression<'_> {
+impl NativeCompoundReader<'_> {
     fn history(&mut self, path: &str, files: &Package) -> Result<Value, ItemRefusal> {
         let before = self.temporary_state;
         let result = self.history_inner(path, files);
@@ -1163,6 +1344,19 @@ const SCOPE_KEYS: [&str; 9] = [
     "allowed_expression_form_ids",
     "allowed_claim_form_ids",
 ];
+const EDITION_SCOPE_KEYS: [&str; 11] = [
+    "work_id",
+    "work_source_path",
+    "expression_id",
+    "expression_source_path",
+    "edition_id",
+    "edition_source_path",
+    "claim_id",
+    "provenance_event_id",
+    "allowed_expression_form_ids",
+    "allowed_edition_form_ids",
+    "allowed_claim_form_ids",
+];
 fn typed_id(id: &str, kind: &str) -> bool {
     id.strip_prefix(&format!("tos.{kind}."))
         .is_some_and(segment)
@@ -1178,8 +1372,20 @@ fn segment(s: &str) -> bool {
             .windows(2)
             .any(|p| matches!(p[0], b'.' | b'-') && matches!(p[1], b'.' | b'-'))
 }
-fn scope_valid(scope: &Value, request: &Value, authority: &Value) -> Result<(), ItemRefusal> {
-    keys(scope, &SCOPE_KEYS)?;
+fn scope_valid(
+    scope: &Value,
+    request: &Value,
+    authority: &Value,
+    kind: CompoundKind,
+) -> Result<(), ItemRefusal> {
+    keys(
+        scope,
+        if kind == CompoundKind::WorkExpression {
+            &SCOPE_KEYS
+        } else {
+            &EDITION_SCOPE_KEYS
+        },
+    )?;
     for (k, kind) in [
         ("work_id", "work"),
         ("expression_id", "expression"),
@@ -1209,10 +1415,39 @@ fn scope_valid(scope: &Value, request: &Value, authority: &Value) -> Result<(), 
     {
         return Err(bad("one exact child home"));
     }
+    if kind == CompoundKind::ExpressionEdition {
+        if !typed_id(text(scope, "edition_id")?, "edition") {
+            return Err(bad("typed Edition identity"));
+        }
+        let edition = text(scope, "edition_source_path")?;
+        metadata_path(edition, false)?;
+        let expected = format!("{}/editions/", parent(expression)?);
+        if !edition.ends_with("/edition.json")
+            || !parent(edition)?
+                .strip_prefix(&expected)
+                .is_some_and(|s| !s.contains('/') && segment(s))
+        {
+            return Err(bad("one exact Edition home"));
+        }
+    }
     let mut seen = BTreeSet::new();
     for (field, allowed) in [
-        ("forms", "allowed_work_form_ids"),
-        ("expression_forms", "allowed_expression_form_ids"),
+        (
+            "forms",
+            if kind == CompoundKind::WorkExpression {
+                "allowed_work_form_ids"
+            } else {
+                "allowed_expression_form_ids"
+            },
+        ),
+        (
+            kind.child_form_request(),
+            if kind == CompoundKind::WorkExpression {
+                "allowed_expression_form_ids"
+            } else {
+                "allowed_edition_form_ids"
+            },
+        ),
         ("claim_forms", "allowed_claim_form_ids"),
     ] {
         let ids = array(scope, allowed)?;
@@ -1251,11 +1486,13 @@ fn scope_valid(scope: &Value, request: &Value, authority: &Value) -> Result<(), 
     }
     let claim = &request["claim"];
     let record = &request["record"];
-    if record["record_id"] != scope["expression_id"]
-        || record["work_ref"] != scope["work_id"]
+    if record["record_id"] != scope[kind.child_key()]
+        || !kind.initial_backlink(record, &scope[kind.parent_key()])
+        || kind == CompoundKind::ExpressionEdition
+            && record["embodies_expression_refs"] != json!([scope["expression_id"]])
         || claim["claim_id"] != scope["claim_id"]
-        || claim["subject_ref"] != scope["work_id"]
-        || claim["object"] != scope["expression_id"]
+        || claim["subject_ref"] != scope[kind.parent_key()]
+        || claim["object"] != scope[kind.child_key()]
         || claim["provenance_event_ref"] != scope["provenance_event_id"]
         || claim["maker"]
             != json!({"maker_type":authority["maker_type"],"agent_ref":authority["principal_id"]})
@@ -1392,10 +1629,11 @@ struct Reconstructed {
     child: Package,
     receipt: Value,
 }
-impl WorkExpression<'_> {
+impl NativeCompoundReader<'_> {
     fn reconstruct(
         &mut self,
         tx: &Transaction,
+        kind: CompoundKind,
         schemas: &mut CutWorkerSchemaExecutor,
     ) -> Result<Reconstructed, ItemRefusal> {
         let plan = &tx.manifest["plan"];
@@ -1414,12 +1652,12 @@ impl WorkExpression<'_> {
                 "dependency_bindings",
             ],
         )?;
-        if text(authority, "schema_version")? != "tos_work_expression_authorization_v1" {
-            return Err(bad("native Work Expression authorization profile"));
+        if text(authority, "schema_version")? != kind.authorization_schema() {
+            return Err(bad("native bibliographic authorization profile"));
         }
         let scope = &authority["scope"];
-        let work_path = text(scope, "work_source_path")?;
-        let expression_path = text(scope, "expression_source_path")?;
+        let work_path = text(scope, kind.parent_path())?;
+        let expression_path = text(scope, kind.child_path())?;
         let home = parent(expression_path)?;
         let work_home = parent(work_path)?;
         let after = |name: &str| {
@@ -1431,8 +1669,8 @@ impl WorkExpression<'_> {
         };
         let request_raw = after("source-create-request.json")?;
         let request = decode(&request_raw)?;
-        request_valid(&request)?;
-        scope_valid(scope, &request, authority)?;
+        request_valid(&request, kind)?;
+        scope_valid(scope, &request, authority, kind)?;
         let environment_raw = after("source-create-environment.json")?;
         let environment = decode(&environment_raw)?;
         keys(
@@ -1455,7 +1693,7 @@ impl WorkExpression<'_> {
         for k in ["runtime_artifact_sha256", "argv_sha256"] {
             hash(&format!("sha256:{}", text(&environment, k)?))?;
         }
-        let receipt_raw = after("work-expression-receipt.json")?;
+        let receipt_raw = after(kind.receipt_file())?;
         let actual_receipt = decode(&receipt_raw)?;
         let recorded_at = text(&actual_receipt, "recorded_at")?;
         crate::retirement_rules::observed_instant_order(recorded_at, recorded_at)
@@ -1471,7 +1709,7 @@ impl WorkExpression<'_> {
             }
         }
         let old_raw = before
-            .get("work.json")
+            .get(kind.parent_file())
             .ok_or_else(|| bad("retained parent input missing"))?;
         let old = decode(old_raw)?;
         if reference(&old, "record_id", "record_version")? != request["expected_source"]
@@ -1486,7 +1724,7 @@ impl WorkExpression<'_> {
         }
         let dirs = array(plan, "new_directories")?;
         if *dirs != vec![json!(home)] && *dirs != vec![json!(parent(home)?), json!(home)] {
-            return Err(bad("exact new Expression directories"));
+            return Err(bad("exact new child directories"));
         }
         let history = self.history(work_path, &before)?;
         if array(&history, "receipts")?.len() >= MAX_HISTORY {
@@ -1510,8 +1748,8 @@ impl WorkExpression<'_> {
         let mut revised_ordered = ordered(old_raw)?;
         set(
             &mut revised_ordered,
-            "expression_claim_refs",
-            j(&request["fields"]["expression_claim_refs"])?,
+            kind.field(),
+            j(&request["fields"][kind.field()])?,
         )?;
         set(
             &mut revised_ordered,
@@ -1522,7 +1760,7 @@ impl WorkExpression<'_> {
         let claim = &request["claim"];
         let expression_ordered = ordered(&request_raw)?
             .object_get("record")
-            .ok_or_else(|| bad("ordered expression"))?
+            .ok_or_else(|| bad("ordered child record"))?
             .clone();
         let claim_ordered = ordered(&request_raw)?
             .object_get("claim")
@@ -1532,6 +1770,17 @@ impl WorkExpression<'_> {
         let expression_raw = pretty(&expression_ordered)?;
         let mut claim_raw = canonical_ordered(&claim_ordered)?;
         claim_raw.push(b'\n');
+        let mut delta_limits = self.limits;
+        delta_limits.max_state_bytes = self
+            .limits
+            .max_state_bytes
+            .checked_sub(self.state)
+            .ok_or(ItemRefusal::Budget)?;
+        delta_limits.max_total_bytes = self
+            .limits
+            .max_total_bytes
+            .checked_sub(self.bytes)
+            .ok_or(ItemRefusal::Budget)?;
         let delta = crate::biblio_rules::inspect_bibliographic_delta(
             crate::biblio_rules::BiblioDeltaInput {
                 parent_path: work_path,
@@ -1542,25 +1791,26 @@ impl WorkExpression<'_> {
                 claim_path: &format!("{home}/source-claims.jsonl"),
                 claim_raw: &claim_raw,
             },
-            self.limits,
+            delta_limits,
             self.cancelled,
             schemas,
         )?;
         if !delta.issues.is_empty() {
-            return Err(bad("Work Expression append/delta mechanics"));
+            return Err(bad("native bibliographic append/delta mechanics"));
         }
         for read in delta.reads {
             self.record_read(read)?;
         }
-        if !text(expression, "language").is_ok_and(|v| !v.is_empty())
-            || !text(expression, "expression_role").is_ok_and(|v| !v.is_empty())
+        if kind == CompoundKind::WorkExpression
+            && (!text(expression, "language").is_ok_and(|v| !v.is_empty())
+                || !text(expression, "expression_role").is_ok_and(|v| !v.is_empty()))
             || ["variant_labels", "external_identifiers"].iter().any(|k| {
                 !expression[*k]
                     .as_array()
                     .is_some_and(|a| a.iter().all(|v| v["status"] == "unverified"))
             })
         {
-            return Err(bad("Expression language/role/unverified variants"));
+            return Err(bad("child language/role/unverified variants"));
         }
         let mut local_limits = self.limits;
         local_limits.max_state_bytes = self
@@ -1601,7 +1851,7 @@ impl WorkExpression<'_> {
                 digest: sha.to_prefixed(),
             })?;
         }
-        let form_name = "work.human-forms.json";
+        let form_name = kind.parent_forms();
         let prior_forms = before.get(form_name).map(|v| ordered(v)).transpose()?;
         let principal = text(authority, "principal_id")?;
         let (parent_forms, parent_refs) = forms(
@@ -1614,7 +1864,7 @@ impl WorkExpression<'_> {
         let (expression_forms, expression_refs) = forms(
             &expression_ordered,
             None,
-            &request["expression_forms"],
+            &request[kind.child_form_request()],
             principal,
             false,
         )?;
@@ -1625,13 +1875,13 @@ impl WorkExpression<'_> {
             principal,
             true,
         )?;
-        let id = transaction_id(&request)?;
+        let id = transaction_id(&request, kind)?;
         if id != tx.manifest["transaction_id"] {
             return Err(bad("compound transaction request identity"));
         }
         let archive_path = format!(
             "{HOME}/.record-revisions/{}-{}",
-            Digest256::of_bytes(text(scope, "work_id")?.as_bytes()).to_hex(),
+            Digest256::of_bytes(text(scope, kind.parent_key())?.as_bytes()).to_hex(),
             hash(text(&request, "expected_revision")?)?
         );
         let parent_receipt_ordered = object(vec![
@@ -1656,7 +1906,7 @@ impl WorkExpression<'_> {
             ("previous_revision", j(&request["expected_revision"])?),
             ("archive_path", string(&archive_path)),
             ("dependencies", j(&request["expected_dependencies"])?),
-            ("changed_fields", j(&json!(["expression_claim_refs"]))?),
+            ("changed_fields", j(&json!([kind.field()]))?),
             ("forms", parent_refs.clone()),
             ("grants_admission", JsonValue::Bool(false)),
             ("request", ordered(&request_raw)?),
@@ -1667,13 +1917,17 @@ impl WorkExpression<'_> {
                     ("transaction_id", string(&id)),
                     (
                         "selected_files",
-                        j(&json!([HISTORY, "work.human-forms.json", "work.json"]))?,
+                        j(&{
+                            let mut names = selected_names(work_path)?;
+                            names.sort();
+                            json!(names)
+                        })?,
                     ),
                 ]),
             ),
         ]);
         let parent_receipt = decode(&canonical_ordered(&parent_receipt_ordered)?)?;
-        work_parent_receipt(&parent_receipt)?;
+        parent_receipt_shape(&parent_receipt, kind)?;
         let mut receipts = match before.get(HISTORY) {
             Some(raw) => ordered(raw)?
                 .object_get("receipts")
@@ -1687,11 +1941,11 @@ impl WorkExpression<'_> {
         // retained receipt object order, but not prior outer order, survives.
         let history_ordered = object(vec![
             ("schema_version", string("tos_source_revision_history_v2")),
-            ("record_id", j(&scope["work_id"])?),
+            ("record_id", j(&scope[kind.parent_key()])?),
             ("receipts", JsonValue::Array(receipts)),
         ]);
         let parent_files: Vec<(String, Vec<u8>)> = vec![
-            ("work.json".into(), parent_raw),
+            (kind.parent_file().into(), parent_raw),
             (form_name.into(), pretty(&parent_forms)?),
             (HISTORY.into(), pretty(&history_ordered)?),
         ];
@@ -1700,11 +1954,8 @@ impl WorkExpression<'_> {
             Digest256::of_bytes(text(scope, "claim_id")?.as_bytes()).to_hex()
         );
         let mut child_files: Vec<(String, Vec<u8>)> = vec![
-            ("expression.json".into(), expression_raw),
-            (
-                "expression.human-forms.json".into(),
-                pretty(&expression_forms)?,
-            ),
+            (kind.child_file().into(), expression_raw),
+            (kind.child_forms().into(), pretty(&expression_forms)?),
             ("source-claims.jsonl".into(), claim_raw),
             (claim_form_name, pretty(&claim_forms)?),
         ];
@@ -1718,6 +1969,7 @@ impl WorkExpression<'_> {
             )
             .collect();
         let event = compound_event(
+            kind,
             scope,
             &request,
             &before,
@@ -1775,8 +2027,8 @@ impl WorkExpression<'_> {
             .filter_map(|n| before.get(n).map(|r| (n.clone(), r.clone())))
             .collect();
         let receipt_ordered = object(vec![
-            ("schema_version", string("tos_work_expression_receipt_v1")),
-            ("operation", string("work.expression.create")),
+            ("schema_version", string(kind.receipt_schema())),
+            ("operation", string(kind.operation())),
             ("transaction_id", string(&id)),
             ("command_id", j(&request["command_id"])?),
             ("request_digest", string(&digest(&request)?)),
@@ -1808,15 +2060,15 @@ impl WorkExpression<'_> {
             ),
             ("parent_before_files", refs_ordered(&before_refs)),
             (
-                "expression",
+                kind.child_kind(),
                 ref_ordered(expression, "record_id", "record_version")?,
             ),
             ("claim", ref_ordered(claim, "claim_id", "claim_version")?),
             (
                 "forms",
                 object(vec![
-                    ("work", parent_refs),
-                    ("expression", expression_refs),
+                    (kind.parent_kind(), parent_refs),
+                    (kind.child_kind(), expression_refs),
                     ("claim", claim_refs),
                 ]),
             ),
@@ -1828,7 +2080,7 @@ impl WorkExpression<'_> {
         if actual_receipt != receipt || receipt_raw != expected_raw {
             return Err(bad("exact reconstructed compound receipt bytes"));
         }
-        child_files.push(("work-expression-receipt.json".into(), expected_raw));
+        child_files.push((kind.receipt_file().into(), expected_raw));
         if parent_files
             .iter()
             .chain(child_files.iter())
@@ -1853,7 +2105,7 @@ impl WorkExpression<'_> {
         if tx.files != expected {
             return Err(bad("exact whole retained before/after plan"));
         }
-        if self.archive(work_path, text(scope, "work_id")?, &parent_receipt)? != before {
+        if self.archive(work_path, text(scope, kind.parent_key())?, &parent_receipt)? != before {
             return Err(bad("parent archive versus transaction inputs"));
         }
         Ok(Reconstructed {
@@ -1867,6 +2119,7 @@ impl WorkExpression<'_> {
 }
 
 fn compound_event(
+    kind: CompoundKind,
     scope: &Value,
     request: &Value,
     before: &Package,
@@ -1875,9 +2128,8 @@ fn compound_event(
     dependencies: &Value,
     recorded_at: &str,
 ) -> Result<Value, ItemRefusal> {
-    const MODULE: &str =
-        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_expression_commands.py";
-    let home = parent(text(scope, "expression_source_path")?)?;
+    let module = kind.module();
+    let home = parent(text(scope, kind.child_path())?)?;
     let request_ref = format!("{home}/source-create-request.json");
     let environment_ref = format!("{home}/source-create-environment.json");
     let mut request_raw = canonical(request)?;
@@ -1886,7 +2138,7 @@ fn compound_event(
     environment_raw.push(b'\n');
     let archive = format!(
         "{HOME}/.record-revisions/{}-{}",
-        Digest256::of_bytes(text(scope, "work_id")?.as_bytes()).to_hex(),
+        Digest256::of_bytes(text(scope, kind.parent_key())?.as_bytes()).to_hex(),
         hash(text(request, "expected_revision")?)?
     );
     let prior: BTreeMap<_, _> = before
@@ -1910,7 +2162,7 @@ fn compound_event(
             .iter()
             .map(|(p, r)| entity(p, r, "retained-parent-metadata-input")),
     );
-    let script = text(&dependencies["implementation"], MODULE)?;
+    let script = text(&dependencies["implementation"], module)?;
     hash(&format!("sha256:{script}"))?;
     let mut env = environment.clone();
     env.as_object_mut().unwrap().remove("argv_sha256");
@@ -1926,12 +2178,12 @@ fn compound_event(
         .ok_or(ItemRefusal::Budget)?;
     Ok(json!({
         "$schema":"https://tree-of-sophia.local/ToS/contracts/provenance-event-v2.schema.json","schema_version":"tos_provenance_event_v2","event_id":scope["provenance_event_id"],"event_version":1,"supersedes_event_ref":null,
-        "record_binding":{"manifest_ref":format!("{home}/work-expression-receipt.json"),"digest_algorithm":"sha256","digest_scope":"exact_event_record_bytes"},
+        "record_binding":{"manifest_ref":format!("{home}/{}",kind.receipt_file()),"digest_algorithm":"sha256","digest_scope":"exact_event_record_bytes"},
         "activity":{"event_type":"annotation","started_at":recorded_at,"ended_at":recorded_at,"status":"completed_with_warnings","terminal_reason":null,"exit_code":0,"warnings":["Captured prepared metadata buffers; the committed transaction is a separate verification.","Observed denotes the declared record link, not accepted bibliographic or textual truth."]},
         "entities":{"inputs":inputs,"outputs":output.iter().map(|(p,r)|entity(p,r,"prepared-compound-source-metadata")).collect::<Vec<_>>(),"byproducts":[entity(&environment_ref,&environment_raw,"runtime-description")]},
         "derivations":output.keys().enumerate().map(|(index,p)|json!({"derivation_id":format!("{derivation}.output-{index}"),"input_entity_ref":request_ref,"output_entity_ref":p,"relation":"was_derived_from","influence_asserted":true,"description":"Technical source metadata serialization; no historical influence or textual identity is asserted."})).collect::<Vec<_>>(),
-        "responsibility":[{"agent_ref":"software:tos-source-expression-commands","agent_kind":"software","role":"executor","responsibility_posture":"performed","evidence_binding":{"ref":MODULE,"sha256":script},"human_evidence_status":"not_applicable"}],
-        "method":{"procedure":{"name":"native-work-expression-metadata-serialization","version":"1","purpose":"Serialize one declared parent link and explicit source-copy forms without judging their content."},"command_capture":{"disclosure":"withheld_digest_only","argv":null,"argv_sha256":environment["argv_sha256"],"withholding_reason":"Process arguments may contain a private owner-configuration path."},"configuration_binding":{"ref":request_ref,"sha256":Digest256::of_bytes(&request_raw).to_hex()},"software_components":[{"name":"ToS native Work Expression adapter","version":"1","role":"serialization-runner","artifact_ref":MODULE,"artifact_sha256":script,"verification_status":"verified"}],"model_invocations":[],"environment":env},
+        "responsibility":[{"agent_ref":kind.executor(),"agent_kind":"software","role":"executor","responsibility_posture":"performed","evidence_binding":{"ref":module,"sha256":script},"human_evidence_status":"not_applicable"}],
+        "method":{"procedure":{"name":kind.procedure(),"version":"1","purpose":"Serialize one declared parent link and explicit source-copy forms without judging their content."},"command_capture":{"disclosure":"withheld_digest_only","argv":null,"argv_sha256":environment["argv_sha256"],"withholding_reason":"Process arguments may contain a private owner-configuration path."},"configuration_binding":{"ref":request_ref,"sha256":Digest256::of_bytes(&request_raw).to_hex()},"software_components":[{"name":kind.component(),"version":"1","role":"serialization-runner","artifact_ref":module,"artifact_sha256":script,"verification_status":"verified"}],"model_invocations":[],"environment":env},
         "manual_changes":{"status":"none_declared","change_receipts":[],"statement":"Caller authorship precedes this operation; no manual edits are performed inside serialization."},
         "measurements":[{"metric":"output_bytes","status":"measured","value":output_bytes,"unit":"bytes","method":"Sum of prepared source record, form and parent history buffers; excludes capture and receipt.","evidence_binding":null}],
         "evidence_authentication":{"capture_posture":"tool_captured","signature_status":"unsigned","signature_bindings":[],"verification_status":"unverified","producer_control_boundary":"The same unsigned local process serializes and records; hashes do not authenticate execution truth."},
@@ -1942,7 +2194,7 @@ fn compound_event(
     }))
 }
 
-impl WorkExpression<'_> {
+impl NativeCompoundReader<'_> {
     pub(crate) fn verify(
         &mut self,
         path: &str,
@@ -1961,16 +2213,16 @@ impl WorkExpression<'_> {
         schemas: &mut CutWorkerSchemaExecutor,
     ) -> Result<NativeCompoundObservation, ItemRefusal> {
         check(self.limits.deadline, self.cancelled)?;
+        let kind = CompoundKind::from_predicate(text(claim, "predicate")?)?;
         metadata_path(path, false)?;
         if !path.ends_with("/source-claims.jsonl") {
             return Err(bad("native compound Claim carrier"));
         }
         let home = parent(path)?;
-        let receipt_raw =
-            self.required(&format!("{home}/work-expression-receipt.json"), MAX_FILE)?;
+        let receipt_raw = self.required(&format!("{home}/{}", kind.receipt_file()), MAX_FILE)?;
         self.temporary(self.json_cost(&receipt_raw)?)?;
         let receipt = decode(&receipt_raw)?;
-        if text(&receipt, "schema_version")? != "tos_work_expression_receipt_v1" {
+        if text(&receipt, "schema_version")? != kind.receipt_schema() {
             return Err(bad("native Claim compound receipt"));
         }
         let id = text(&receipt, "transaction_id")?;
@@ -2012,14 +2264,14 @@ impl WorkExpression<'_> {
         // Multiple ordered/decoded trees and prepared buffers coexist through
         // current-lineage verification. Retain this allowance while caches grow.
         self.temporary(scratch.checked_mul(8).ok_or(ItemRefusal::Budget)?)?;
-        let reconstructed = self.reconstruct(&tx, schemas)?;
+        let reconstructed = self.reconstruct(&tx, kind, schemas)?;
         let scope = &reconstructed.scope;
-        let work = text(scope, "work_source_path")?;
-        let expression = text(scope, "expression_source_path")?;
+        let work = text(scope, kind.parent_path())?;
+        let expression = text(scope, kind.child_path())?;
         if path != format!("{}/source-claims.jsonl", parent(expression)?)
             || claim != &reconstructed.request["claim"]
             || receipt != reconstructed.receipt
-            || receipt_raw != reconstructed.child["work-expression-receipt.json"]
+            || receipt_raw != reconstructed.child[kind.receipt_file()]
             || self.required(path, MAX_FILE)? != reconstructed.child["source-claims.jsonl"]
         {
             return Err(bad("exact current compound Claim/receipt bytes"));
@@ -2034,9 +2286,12 @@ impl WorkExpression<'_> {
             }
         }
         let parent_files = self.selected(work)?;
-        self.temporary(self.json_cost(&parent_files["work.json"])?)?;
-        let parent_record = decode(&parent_files["work.json"])?;
-        if parent_record["record_id"] != scope["work_id"] || parent_record["record_type"] != "work"
+        self.temporary(self.json_cost(&parent_files[kind.parent_file()])?)?;
+        let parent_record = decode(&parent_files[kind.parent_file()])?;
+        if parent_record["record_id"] != scope[kind.parent_key()]
+            || parent_record["record_type"] != kind.parent_kind()
+            || kind == CompoundKind::ExpressionEdition
+                && parent_record["work_ref"] != scope["work_id"]
         {
             return Err(bad("current parent typed identity"));
         }
@@ -2045,28 +2300,30 @@ impl WorkExpression<'_> {
             return Err(bad("compound transition missing in current parent lineage"));
         }
         let child_files = self.selected(expression)?;
-        self.temporary(self.json_cost(&child_files["expression.json"])?)?;
-        let child_record = decode(&child_files["expression.json"])?;
-        if child_record["record_id"] != scope["expression_id"]
-            || child_record["record_type"] != "expression"
-            || child_record["work_ref"] != scope["work_id"]
+        self.temporary(self.json_cost(&child_files[kind.child_file()])?)?;
+        let child_record = decode(&child_files[kind.child_file()])?;
+        if child_record["record_id"] != scope[kind.child_key()]
+            || child_record["record_type"] != kind.child_kind()
+            || !kind.initial_backlink(&child_record, &scope[kind.parent_key()])
         {
-            return Err(bad("current Expression typed parent binding"));
+            return Err(bad("current compound child typed parent binding"));
         }
         let child_history = self.history(expression, &child_files)?;
-        let mut initial = child_files["expression.json"] == reconstructed.child["expression.json"];
+        let mut initial = child_files[kind.child_file()] == reconstructed.child[kind.child_file()];
         for receipt in array(&child_history, "receipts")? {
             check(self.limits.deadline, self.cancelled)?;
-            let archive = self.archive(expression, text(scope, "expression_id")?, receipt)?;
-            if receipt["previous_source"] == reconstructed.receipt["expression"] {
-                if archive["expression.json"] != reconstructed.child["expression.json"] {
-                    return Err(bad("Expression initial archive bytes changed"));
+            let archive = self.archive(expression, text(scope, kind.child_key())?, receipt)?;
+            if receipt["previous_source"] == reconstructed.receipt[kind.child_kind()] {
+                if archive[kind.child_file()] != reconstructed.child[kind.child_file()] {
+                    return Err(bad("compound child initial archive bytes changed"));
                 }
                 initial = true;
             }
         }
         if !initial {
-            return Err(bad("current Expression lacks committed initial lineage"));
+            return Err(bad(
+                "current compound child lacks committed initial lineage",
+            ));
         }
         check(self.limits.deadline, self.cancelled)?;
         Ok(observation)
