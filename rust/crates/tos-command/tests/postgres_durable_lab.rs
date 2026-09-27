@@ -1943,35 +1943,44 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
     let mut inspect = synthetic_read.clone();
     let mut denied_output = Vec::new();
     let mut denied_errors = Vec::new();
-    assert_ne!(
-        second_selected
-            .write_current_knowledge(
-                &mut reopened_db,
-                &reopened_store,
-                &current_filesystem,
-                &current_package,
-                contract_digest(),
-                0,
-                0,
-                "private-job",
-                1,
-                &vocabulary,
-                &descriptor_raw,
-                &mut catalog,
-                &mut inspect,
-                &mut no_checkpoints,
-                tos_access::KnowledgeRequest::Catalog,
-                query_budgets,
-                query_profile,
-                &mut denied_output,
-                &mut denied_errors,
-                deadline,
-                &cancelled,
-            )
-            .unwrap(),
-        0
-    );
+    let withdrawn = second_selected
+        .write_current_knowledge(
+            &mut reopened_db,
+            &reopened_store,
+            &current_filesystem,
+            &current_package,
+            contract_digest(),
+            0,
+            0,
+            "private-job",
+            1,
+            &vocabulary,
+            &descriptor_raw,
+            &mut catalog,
+            &mut inspect,
+            &mut no_checkpoints,
+            tos_access::KnowledgeRequest::Catalog,
+            query_budgets,
+            query_profile,
+            &mut denied_output,
+            &mut denied_errors,
+            deadline,
+            &cancelled,
+        )
+        .unwrap_err();
+    match withdrawn {
+        tos_command::source_managed_selection::ManagedSelectionError::Access(error) => {
+            assert_eq!(error.code, tos_access::AccessErrorCode::PolicyDenied);
+            assert_eq!(error.message, "finite projection hold withdrawn");
+        }
+        other => panic!("unexpected withdrawn read boundary: {other:?}"),
+    }
     assert!(denied_output.is_empty());
+    assert!(
+        denied_errors.is_empty(),
+        "refusal precedes the packet writer"
+    );
+    assert_eq!(synthetic_read.active.load(Ordering::SeqCst), 0);
     synthetic_read.withdrawn.store(false, Ordering::SeqCst);
     let successor = second_selected.generation();
     // The next real command consumes the returned warm successor, without
