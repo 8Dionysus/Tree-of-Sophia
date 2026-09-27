@@ -185,7 +185,7 @@ fn texts(v: &JsonValue, key: &str, max: usize) -> SourceCommandResult<Vec<String
 fn has(v: &JsonValue, key: &str, name: &str) -> SourceCommandResult<bool> {
     Ok(texts(v, key, 128)?.iter().any(|s| s == name))
 }
-fn valid_id(id: &str, prefix: &str, form: bool) -> bool {
+pub(crate) fn valid_id(id: &str, prefix: &str, form: bool) -> bool {
     let Some(tail) = id.strip_prefix(prefix) else {
         return false;
     };
@@ -2407,7 +2407,7 @@ fn archive_path(config: &JsonValue, revision: &str) -> SourceCommandResult<Strin
     ))
 }
 
-fn schema(
+pub(crate) fn schema(
     worker: &mut CutWorkerSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
@@ -3308,15 +3308,14 @@ fn native_text_binding(
     reader.snapshot()
 }
 
-fn public_profile(
-    cut: Option<&CorpusCutReader>,
+/// Reuse the maintained registry constructor law without loading unused profile
+/// schemas or confusing a profile declaration with writer authority.
+pub(crate) fn validate_source_profile_registry(
     worker: &mut CutWorkerSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
     ctx: &CommandContext,
-    config: &JsonValue,
-    record: &JsonValue,
-) -> SourceCommandResult<(JsonValue, Vec<String>, Option<String>, Option<String>)> {
+) -> SourceCommandResult<JsonValue> {
     let contract = "ToS/contracts/semantic-entity-type-registry.schema.json";
     let registry = cmd::parse(required(ctx, REGISTRY)?)?;
     schema(
@@ -3459,6 +3458,24 @@ fn public_profile(
             }
         }
     }
+    Ok(registry)
+}
+
+pub(crate) fn public_profile(
+    cut: Option<&CorpusCutReader>,
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    ctx: &CommandContext,
+    config: &JsonValue,
+    record: &JsonValue,
+) -> SourceCommandResult<(JsonValue, Vec<String>, Option<String>, Option<String>)> {
+    let contract = "ToS/contracts/semantic-entity-type-registry.schema.json";
+    let registry = validate_source_profile_registry(worker, deadline, cancelled, ctx)?;
+    let entities = cmd::array(&registry, "types")?
+        .iter()
+        .map(|entry| Ok((cmd::text(entry, "type_id")?, entry)))
+        .collect::<SourceCommandResult<BTreeMap<_, _>>>()?;
     let entry = entities
         .get(cmd::text(config, "profile_type_id")?)
         .ok_or(SourceCommandError::Denied("profile type absent"))?;

@@ -1,0 +1,954 @@
+//! Descriptor-bound maintained creation publication. This coordinates byte
+//! mechanics in an independently selected owner filesystem, not source admission.
+//! The corpus lock name and rename-no-replace protocol interoperate with Python.
+
+use crate::source_command::{self as cmd, SourceCommandError, SourceCommandResult};
+use crate::source_creation::SerializedCreation;
+use rustix::fs::{AtFlags, FlockOperation, Mode, OFlags, RenameFlags};
+use rustix::io::Errno;
+use std::collections::{BTreeMap, BTreeSet};
+use std::fs::{File, Metadata, Permissions};
+use std::io::{Read, Write};
+use std::os::fd::AsRawFd;
+use std::os::unix::fs::{MetadataExt, PermissionsExt};
+use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::time::{Duration, Instant};
+use tos_foundation::{Digest256, RelativePath};
+use tos_source_store::{CorpusCutReader, SoftwareCaptureReader, SoftwareComponentSelectionV1};
+use tos_validation::source_cut::CutWorkerSchemaExecutor;
+
+const CORPUS_LOCK: &str = ".historical-create.writer.lock";
+const MAX_FILES: usize = 4096;
+const MAX_BYTES: usize = 33_554_432;
+
+fn active(deadline: Instant, cancelled: &AtomicBool) -> SourceCommandResult<()> {
+    if cancelled.load(Ordering::Relaxed) || Instant::now() >= deadline {
+        Err(SourceCommandError::Denied(
+            "creation filesystem cancelled or expired",
+        ))
+    } else {
+        Ok(())
+    }
+}
+fn stamp(m: &Metadata) -> (u64, u64, u64, i64, i64, i64, i64) {
+    (
+        m.dev(),
+        m.ino(),
+        m.len(),
+        m.mtime(),
+        m.mtime_nsec(),
+        m.ctime(),
+        m.ctime_nsec(),
+    )
+}
+fn inode(m: &Metadata) -> (u64, u64) {
+    (m.dev(), m.ino())
+}
+fn owned(file: &File, uid: u32, directory: bool) -> SourceCommandResult<Metadata> {
+    let m = file
+        .metadata()
+        .map_err(|_| SourceCommandError::Invalid("creation fd metadata"))?;
+    if m.uid() != uid
+        || m.mode() & 0o022 != 0
+        || m.is_dir() != directory
+        || (!directory && !m.is_file())
+    {
+        return Err(SourceCommandError::Denied(
+            "creation path ownership/type/write boundary",
+        ));
+    }
+    Ok(m)
+}
+fn child(parent: &File, leaf: &str) -> SourceCommandResult<File> {
+    tos_fd_open::open_directory_at(parent, Path::new(leaf))
+        .map_err(|_| SourceCommandError::Denied("creation directory absent or unsafe"))
+}
+fn protected_configuration_parents(path: &Path, uid: u32) -> SourceCommandResult<()> {
+    use std::path::Component;
+    let mut components = path.components();
+    if components.next() != Some(Component::RootDir) {
+        return Err(SourceCommandError::Denied(
+            "configuration path is not absolute",
+        ));
+    }
+    let parts = components.collect::<Vec<_>>();
+    if parts.is_empty() || parts.iter().any(|p| !matches!(p, Component::Normal(_))) {
+        return Err(SourceCommandError::Denied(
+            "configuration path is not normalized",
+        ));
+    }
+    let mut parent = tos_fd_open::open_absolute_directory(Path::new("/"))
+        .map_err(|_| SourceCommandError::Denied("configuration root descriptor"))?;
+    for part in std::iter::once(None).chain(parts[..parts.len() - 1].iter().map(Some)) {
+        if let Some(Component::Normal(name)) = part {
+            parent = tos_fd_open::open_directory_at(&parent, Path::new(name))
+                .map_err(|_| SourceCommandError::Denied("configuration ancestor unsafe"))?;
+        }
+        let metadata = parent
+            .metadata()
+            .map_err(|_| SourceCommandError::Denied("configuration ancestor metadata"))?;
+        let root_sticky = metadata.uid() == 0 && metadata.mode() & 0o1000 != 0;
+        if !metadata.is_dir()
+            || ![0, uid].contains(&metadata.uid())
+            || metadata.mode() & 0o022 != 0 && !root_sticky
+        {
+            return Err(SourceCommandError::Denied(
+                "configuration ancestor ownership/write boundary",
+            ));
+        }
+    }
+    Ok(())
+}
+fn walk(root: &File, path: &str, uid: u32) -> SourceCommandResult<File> {
+    let relative = RelativePath::parse(path)
+        .map_err(|_| SourceCommandError::Invalid("creation directory relative path"))?;
+    let mut fd = tos_fd_open::reopen_directory(root)
+        .map_err(|_| SourceCommandError::Denied("creation root descriptor"))?;
+    for part in relative.as_str().split('/') {
+        fd = child(&fd, part)?;
+        owned(&fd, uid, true)?;
+    }
+    Ok(fd)
+}
+fn raw(
+    file: &mut File,
+    cap: usize,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<Vec<u8>> {
+    let before = file
+        .metadata()
+        .map_err(|_| SourceCommandError::Invalid("creation read metadata"))?;
+    if !before.is_file() || before.len() > cap as u64 {
+        return Err(SourceCommandError::Invalid(
+            "creation read byte/type budget",
+        ));
+    }
+    let mut bytes = Vec::new();
+    let mut buffer = [0u8; 65536];
+    loop {
+        active(deadline, cancelled)?;
+        let n = file
+            .read(&mut buffer)
+            .map_err(|_| SourceCommandError::Invalid("creation descriptor read"))?;
+        if n == 0 {
+            break;
+        }
+        if bytes.len().checked_add(n).is_none_or(|size| size > cap) {
+            return Err(SourceCommandError::Invalid(
+                "creation read exceeds byte budget",
+            ));
+        }
+        bytes.extend_from_slice(&buffer[..n]);
+    }
+    let after = file
+        .metadata()
+        .map_err(|_| SourceCommandError::Invalid("creation readback metadata"))?;
+    if bytes.len() as u64 != before.len() || stamp(&before) != stamp(&after) {
+        return Err(SourceCommandError::Conflict(
+            "creation input changed during read",
+        ));
+    }
+    Ok(bytes)
+}
+
+/// Normal Unix ownership and exact protected configuration are selected here.
+/// Construction creates no directory, writes no record and issues no admission.
+pub struct CreationFilesystem {
+    root_path: PathBuf,
+    root: File,
+    root_identity: (u64, u64),
+    configuration_path: PathBuf,
+    configuration_raw: Vec<u8>,
+    uid: u32,
+}
+
+/// Bounded execution authority is an actually newly created private directory,
+/// not a caller-supplied Boolean or an arbitrary existing canonical root. Its
+/// opaque identity is retained through fixture seeding and publication.
+pub struct IsolatedCreationRoot {
+    path: PathBuf,
+    directory: File,
+    identity: (u64, u64),
+}
+impl IsolatedCreationRoot {
+    pub fn create(
+        parent: &Path,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<Self> {
+        let uid = rustix::process::geteuid().as_raw();
+        let parent_fd = tos_fd_open::open_absolute_directory(parent)
+            .map_err(|_| SourceCommandError::Denied("isolated creation parent unsafe"))?;
+        owned(&parent_fd, uid, true)?;
+        for _ in 0..32 {
+            active(deadline, cancelled)?;
+            let mut entropy = [0u8; 24];
+            File::open("/dev/urandom")
+                .and_then(|mut f| f.read_exact(&mut entropy))
+                .map_err(|_| SourceCommandError::Invalid("isolated root entropy"))?;
+            let name = format!(
+                "tos-isolated-create-{}",
+                Digest256::of_bytes(&entropy).to_hex()
+            );
+            match rustix::fs::mkdirat(&parent_fd, name.as_str(), Mode::from_raw_mode(0o700)) {
+                Ok(()) => {
+                    let directory = child(&parent_fd, &name)?;
+                    let identity = inode(&owned(&directory, uid, true)?);
+                    parent_fd
+                        .sync_all()
+                        .map_err(|_| SourceCommandError::Invalid("isolated root parent fsync"))?;
+                    return Ok(Self {
+                        path: parent.join(name),
+                        directory,
+                        identity,
+                    });
+                }
+                Err(Errno::EXIST) => continue,
+                Err(_) => return Err(SourceCommandError::Invalid("isolated root mkdir")),
+            }
+        }
+        Err(SourceCommandError::Conflict(
+            "isolated root name collision budget",
+        ))
+    }
+    pub fn path(&self) -> &Path {
+        &self.path
+    }
+}
+impl CreationFilesystem {
+    pub fn select_isolated(
+        isolated: &IsolatedCreationRoot,
+        configuration_path: &Path,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<Self> {
+        active(deadline, cancelled)?;
+        let root = isolated.path();
+        let uid = rustix::process::geteuid().as_raw();
+        if rustix::process::getuid().as_raw() != uid {
+            return Err(SourceCommandError::Denied(
+                "creation refuses changed real/effective account",
+            ));
+        }
+        let fd = tos_fd_open::open_absolute_directory(root)
+            .map_err(|_| SourceCommandError::Denied("creation selected absolute root"))?;
+        let m = owned(&fd, uid, true)?;
+        if inode(&m) != isolated.identity
+            || inode(&owned(&isolated.directory, uid, true)?) != isolated.identity
+        {
+            return Err(SourceCommandError::Conflict(
+                "isolated creation root replaced",
+            ));
+        }
+        protected_configuration_parents(configuration_path, uid)?;
+        let mut config = tos_fd_open::open_absolute_regular(configuration_path, 1_048_576)
+            .map_err(|_| SourceCommandError::Denied("creation protected configuration path"))?;
+        let config_m = owned(&config, uid, false)?;
+        if config_m.mode() & 0o077 != 0 || configuration_path.starts_with(root.join("ToS")) {
+            return Err(SourceCommandError::Denied(
+                "creation configuration is not privately protected",
+            ));
+        }
+        let configuration_raw = raw(&mut config, 1_048_576, deadline, cancelled)?;
+        let value = cmd::parse(&configuration_raw)?;
+        if Path::new(cmd::text(&value, "source_root")?) != root
+            || cmd::integer(&value, "uid")? != u64::from(uid)
+        {
+            return Err(SourceCommandError::Denied(
+                "creation configuration selects another root/account",
+            ));
+        }
+        Ok(Self {
+            root_path: root.to_path_buf(),
+            root: fd,
+            root_identity: inode(&m),
+            configuration_path: configuration_path.to_path_buf(),
+            configuration_raw,
+            uid,
+        })
+    }
+    fn current(
+        &self,
+        package: &SerializedCreation,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()> {
+        active(deadline, cancelled)?;
+        if rustix::process::geteuid().as_raw() != self.uid
+            || rustix::process::getuid().as_raw() != self.uid
+        {
+            return Err(SourceCommandError::Denied("creation account changed"));
+        }
+        let root = tos_fd_open::open_absolute_directory(&self.root_path)
+            .map_err(|_| SourceCommandError::Conflict("creation root replaced or unsafe"))?;
+        if inode(&owned(&root, self.uid, true)?) != self.root_identity {
+            return Err(SourceCommandError::Conflict(
+                "creation selected root identity changed",
+            ));
+        }
+        protected_configuration_parents(&self.configuration_path, self.uid)?;
+        let mut fd = tos_fd_open::open_absolute_regular(&self.configuration_path, 1_048_576)
+            .map_err(|_| {
+                SourceCommandError::Denied("creation current configuration unavailable")
+            })?;
+        if owned(&fd, self.uid, false)?.mode() & 0o077 != 0 {
+            return Err(SourceCommandError::Denied(
+                "creation current configuration protection changed",
+            ));
+        }
+        let bytes = raw(&mut fd, 1_048_576, deadline, cancelled)?;
+        if bytes != self.configuration_raw || bytes != package.prepared.context().configuration_raw
+        {
+            return Err(SourceCommandError::Conflict(
+                "creation delegation changed before publication",
+            ));
+        }
+        let config = cmd::parse(&bytes)?;
+        cmd::validate_expiry(
+            cmd::text(&config, "expires_at")?,
+            &crate::source_serialization::instant()?,
+        )?;
+        if package.prepared.context().effective_uid != u64::from(self.uid) {
+            return Err(SourceCommandError::Denied(
+                "creation prepared account differs",
+            ));
+        }
+        Ok(())
+    }
+
+    /// Real maintained corpus mutex; separate open descriptions also conflict
+    /// inside one process. No lock acquisition blocks beyond cancellation/time.
+    fn lock(
+        &self,
+        witness: &File,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<File> {
+        let fd: File = rustix::fs::openat(
+            witness,
+            CORPUS_LOCK,
+            OFlags::RDWR | OFlags::CREATE | OFlags::NOFOLLOW | OFlags::NONBLOCK | OFlags::CLOEXEC,
+            Mode::from_raw_mode(0o600),
+        )
+        .map(File::from)
+        .map_err(|_| SourceCommandError::Denied("creation corpus lock open"))?;
+        owned(&fd, self.uid, false)?;
+        loop {
+            active(deadline, cancelled)?;
+            match rustix::fs::flock(&fd, FlockOperation::NonBlockingLockExclusive) {
+                Ok(()) => break,
+                Err(Errno::AGAIN) => std::thread::sleep(Duration::from_millis(5)),
+                Err(_) => {
+                    return Err(SourceCommandError::Denied(
+                        "creation corpus lock unsupported",
+                    ));
+                }
+            }
+        }
+        owned(&fd, self.uid, false)?;
+        // Verify pathname still identifies the locked inode, not a replacement.
+        let current = tos_fd_open::open_regular_at(witness, Path::new(CORPUS_LOCK))
+            .map_err(|_| SourceCommandError::Conflict("creation corpus lock path changed"))?;
+        if inode(
+            &fd.metadata()
+                .map_err(|_| SourceCommandError::Invalid("creation lock identity"))?,
+        ) != inode(
+            &current
+                .metadata()
+                .map_err(|_| SourceCommandError::Invalid("creation current lock identity"))?,
+        ) {
+            return Err(SourceCommandError::Conflict(
+                "creation locked inode detached",
+            ));
+        }
+        Ok(fd)
+    }
+
+    /// Publish only a privately constructed, genuinely serialized handler
+    /// package. Canonical source admission is deliberately a separate gate.
+    /// This reusable filesystem mechanism is executed only with independently
+    /// selected isolated-owner authority until that gate exists.
+    pub fn publish_isolated(
+        &self,
+        package: &SerializedCreation,
+        cut: &CorpusCutReader,
+        software: &SoftwareCaptureReader,
+        components: &SoftwareComponentSelectionV1,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<CreationPublication> {
+        if components != package.prepared.components() {
+            return Err(SourceCommandError::Conflict(
+                "creation sealed software subset differs",
+            ));
+        }
+        if package.prepared.family() == crate::source_creation::CreationFamily::Sign {
+            return Err(SourceCommandError::Unsupported(
+                "Sign publication requires held current assessment journal fences",
+            ));
+        }
+        self.current(package, deadline, cancelled)?;
+        package
+            .prepared
+            .context()
+            .check_from_selected_captures(cut, software, components, deadline, cancelled)?;
+        let tos = walk(&self.root, "ToS", self.uid)?;
+        let witness = walk(&self.root, "ToS/source-witnesses", self.uid)?;
+        let _lock = self.lock(&witness, deadline, cancelled)?;
+        self.current(package, deadline, cancelled)?;
+        self.reselect(package, cut, None, false, deadline, cancelled)?;
+        self.reselect_components(software, components, deadline, cancelled)?;
+        let (parent_path, target_name) = package
+            .prepared
+            .home()
+            .as_str()
+            .rsplit_once('/')
+            .ok_or(SourceCommandError::Invalid("creation target parent"))?;
+        let parent = walk(&self.root, parent_path, self.uid)?;
+        let parent_identity = inode(&owned(&parent, self.uid, true)?);
+        let mut stage = PendingCreation::create(&tos, self.uid, deadline, cancelled)?;
+        let preparation = (|| {
+            for (name, bytes) in package.prepared.files() {
+                stage.write(name, bytes, deadline, cancelled)?;
+            }
+            stage
+                .directory
+                .sync_all()
+                .map_err(|_| SourceCommandError::Invalid("creation staging directory fsync"))?;
+            self.current(package, deadline, cancelled)?;
+            self.reselect(package, cut, Some(&stage.name), false, deadline, cancelled)?;
+            self.reselect_components(software, components, deadline, cancelled)?;
+            let current_parent = walk(&self.root, parent_path, self.uid)?;
+            if inode(&owned(&current_parent, self.uid, true)?) != parent_identity {
+                return Err(SourceCommandError::Conflict(
+                    "creation target parent changed",
+                ));
+            }
+            // NOREPLACE treats files, directories and symlinks as occupied.
+            rustix::fs::renameat_with(
+                &tos,
+                stage.name.as_str(),
+                &parent,
+                target_name,
+                RenameFlags::NOREPLACE,
+            )
+            .map_err(|error| {
+                if error == Errno::EXIST {
+                    SourceCommandError::Conflict("creation target is already occupied")
+                } else {
+                    SourceCommandError::Invalid("creation atomic no-replace publication")
+                }
+            })?;
+            stage.published = true;
+            Ok(())
+        })();
+        if let Err(error) = preparation {
+            stage.rollback()?;
+            return Err(error);
+        }
+        // After rename, a failed directory sync is an observed publication with
+        // uncertain crash durability. Never misreport it as rolled back.
+        let parent_synced = parent.sync_all().is_ok();
+        let staging_parent_synced = tos.sync_all().is_ok();
+        let durable = parent_synced && staging_parent_synced;
+        Ok(CreationPublication {
+            home: package.prepared.home().clone(),
+            receipt_sha256: Digest256::of_bytes(
+                package
+                    .prepared
+                    .files()
+                    .get("source-create-receipt.json")
+                    .ok_or(SourceCommandError::Invalid("creation receipt absent"))?,
+            ),
+            durability: if durable {
+                CreationDurability::DirectoriesSynced
+            } else {
+                CreationDurability::PublishedSyncIncomplete
+            },
+            replayed: false,
+        })
+    }
+
+    /// Exact repeat of the original package. A later source/Claim successor
+    /// needs the separate maintained history reconstruction route; it is never
+    /// treated as the original package by a current-version fallback here.
+    pub fn replay_isolated(
+        &self,
+        package: &SerializedCreation,
+        original_base: &CorpusCutReader,
+        software: &SoftwareCaptureReader,
+        components: &SoftwareComponentSelectionV1,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<CreationPublication> {
+        if components != package.prepared.components() {
+            return Err(SourceCommandError::Conflict(
+                "creation sealed software subset differs",
+            ));
+        }
+        if package.prepared.family() == crate::source_creation::CreationFamily::Sign {
+            return Err(SourceCommandError::Unsupported(
+                "Sign replay requires current assessment journal fences",
+            ));
+        }
+        if components != package.prepared.components() {
+            return Err(SourceCommandError::Conflict(
+                "creation sealed software subset differs",
+            ));
+        }
+        self.current(package, deadline, cancelled)?;
+        package.prepared.context().check_from_selected_captures(
+            original_base,
+            software,
+            components,
+            deadline,
+            cancelled,
+        )?;
+        let witness = walk(&self.root, "ToS/source-witnesses", self.uid)?;
+        let _lock = self.lock(&witness, deadline, cancelled)?;
+        self.current(package, deadline, cancelled)?;
+        self.reselect(package, original_base, None, true, deadline, cancelled)?;
+        self.reselect_components(software, components, deadline, cancelled)?;
+        let directory = walk(&self.root, package.prepared.home().as_str(), self.uid)?;
+        let parent_path = package
+            .prepared
+            .home()
+            .as_str()
+            .rsplit_once('/')
+            .ok_or(SourceCommandError::Invalid("creation replay parent"))?
+            .0;
+        let parent = walk(&self.root, parent_path, self.uid)?;
+        // Repeating fsync can resolve a prior post-rename durability ambiguity.
+        let tos = walk(&self.root, "ToS", self.uid)?;
+        let directory_synced = directory.sync_all().is_ok();
+        let parent_synced = parent.sync_all().is_ok();
+        let staging_parent_synced = tos.sync_all().is_ok();
+        let durable = directory_synced && parent_synced && staging_parent_synced;
+        Ok(CreationPublication {
+            home: package.prepared.home().clone(),
+            receipt_sha256: Digest256::of_bytes(
+                package
+                    .prepared
+                    .files()
+                    .get("source-create-receipt.json")
+                    .ok_or(SourceCommandError::Invalid(
+                        "creation replay receipt absent",
+                    ))?,
+            ),
+            durability: if durable {
+                CreationDurability::DirectoriesSynced
+            } else {
+                CreationDurability::PublishedSyncIncomplete
+            },
+            replayed: true,
+        })
+    }
+
+    fn reselect_components(
+        &self,
+        software: &SoftwareCaptureReader,
+        components: &SoftwareComponentSelectionV1,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()> {
+        if components.capture() != software.selection() {
+            return Err(SourceCommandError::Conflict(
+                "creation current component capture changed",
+            ));
+        }
+        let mut remaining = 16_777_216u64;
+        for member in components.members() {
+            active(deadline, cancelled)?;
+            if member.path.as_str().starts_with("ToS/") || member.size_bytes > remaining {
+                return Err(SourceCommandError::Invalid(
+                    "creation selected software namespace/aggregate budget",
+                ));
+            }
+            remaining -= member.size_bytes;
+            let captured = software
+                .read_selected_component(components, &member.path, 8_388_608, deadline, cancelled)
+                .map_err(|_| {
+                    SourceCommandError::Conflict("creation selected software custody changed")
+                })?;
+            let (parent_path, leaf) = member
+                .path
+                .as_str()
+                .rsplit_once('/')
+                .ok_or(SourceCommandError::Invalid("creation component parent"))?;
+            let parent = walk(&self.root, parent_path, self.uid)?;
+            let mut file =
+                tos_fd_open::open_regular_at(&parent, Path::new(leaf)).map_err(|_| {
+                    SourceCommandError::Conflict("creation current component unavailable")
+                })?;
+            owned(&file, self.uid, false)?;
+            if raw(&mut file, 8_388_608, deadline, cancelled)? != captured {
+                return Err(SourceCommandError::Conflict(
+                    "creation current producer component differs from selected capture",
+                ));
+            }
+        }
+        Ok(())
+    }
+
+    fn reselect(
+        &self,
+        package: &SerializedCreation,
+        cut: &CorpusCutReader,
+        staging: Option<&str>,
+        published: bool,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()> {
+        if cut.current().revision() != package.prepared.context().base_revision {
+            return Err(SourceCommandError::Conflict("creation base cut changed"));
+        }
+        let mut observed = BTreeMap::new();
+        let mut total = 0usize;
+        let mut directories = 0usize;
+        let tos = walk(&self.root, "ToS", self.uid)?;
+        scan(
+            &tos,
+            "ToS",
+            self.uid,
+            staging,
+            &mut observed,
+            &mut total,
+            &mut directories,
+            deadline,
+            cancelled,
+        )?;
+        let mut selected: BTreeMap<_, _> = cut
+            .current()
+            .members()
+            .map(|m| (m.path.as_str().to_owned(), (m.sha256, m.size_bytes, m.mode)))
+            .collect();
+        if published {
+            for (name, bytes) in package.prepared.files() {
+                let path = format!("{}/{name}", package.prepared.home().as_str());
+                if selected
+                    .insert(
+                        path,
+                        (Digest256::of_bytes(bytes), bytes.len() as u64, 0o644),
+                    )
+                    .is_some()
+                {
+                    return Err(SourceCommandError::Conflict(
+                        "creation replay original base already contains target",
+                    ));
+                }
+            }
+        }
+        if observed != selected {
+            return Err(SourceCommandError::Conflict(
+                "creation current authored membership/bytes/modes differ from selected base",
+            ));
+        }
+        // Software inputs are selected separately and also reselected from the
+        // actual owner tree. A restored capture alone cannot substitute them.
+        for input in &package.prepared.context().files {
+            active(deadline, cancelled)?;
+            if input.path.as_str().starts_with("ToS/") {
+                continue;
+            }
+            let (parent_path, name) = input
+                .path
+                .as_str()
+                .rsplit_once('/')
+                .ok_or(SourceCommandError::Invalid("creation software parent"))?;
+            let parent = walk(&self.root, parent_path, self.uid)?;
+            let mut fd = tos_fd_open::open_regular_at(&parent, Path::new(name)).map_err(|_| {
+                SourceCommandError::Conflict("creation current software input unavailable")
+            })?;
+            owned(&fd, self.uid, false)?;
+            if raw(&mut fd, 8_388_608, deadline, cancelled)? != input.raw {
+                return Err(SourceCommandError::Conflict(
+                    "creation current software input changed",
+                ));
+            }
+        }
+        Ok(())
+    }
+}
+
+fn scan(
+    directory: &File,
+    prefix: &str,
+    uid: u32,
+    staging: Option<&str>,
+    files: &mut BTreeMap<String, (Digest256, u64, u32)>,
+    total: &mut usize,
+    directories: &mut usize,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<()> {
+    active(deadline, cancelled)?;
+    *directories = directories
+        .checked_add(1)
+        .ok_or(SourceCommandError::Invalid(
+            "creation directory count overflow",
+        ))?;
+    if *directories > 8192 {
+        return Err(SourceCommandError::Invalid(
+            "creation directory traversal budget",
+        ));
+    }
+    let before = owned(directory, uid, true)?;
+    // This kernel-owned path addresses the pinned FD, never a request path.
+    let entries = std::fs::read_dir(format!("/proc/self/fd/{}", directory.as_raw_fd()))
+        .map_err(|_| SourceCommandError::Invalid("creation current directory enumeration"))?;
+    let mut names = BTreeSet::new();
+    for entry in entries {
+        active(deadline, cancelled)?;
+        let name = entry
+            .map_err(|_| SourceCommandError::Invalid("creation directory entry"))?
+            .file_name()
+            .into_string()
+            .map_err(|_| SourceCommandError::Invalid("creation non-UTF8 source path"))?;
+        if names.len() >= MAX_FILES || !names.insert(name) {
+            return Err(SourceCommandError::Invalid(
+                "creation directory entry budget",
+            ));
+        }
+    }
+    for name in names {
+        let path = format!("{prefix}/{name}");
+        if path == format!("ToS/source-witnesses/{CORPUS_LOCK}")
+            || (prefix == "ToS" && staging == Some(name.as_str()))
+        {
+            continue;
+        }
+        if !tos_source_store::is_authored_source_path_v1(&path) {
+            continue;
+        }
+        // Secure open rejects symlinks, devices/FIFOs and replaced components.
+        if let Ok(child) = tos_fd_open::open_directory_at(directory, Path::new(&name)) {
+            if path.split('/').count() > 64 {
+                return Err(SourceCommandError::Invalid("creation source depth budget"));
+            }
+            scan(
+                &child, &path, uid, staging, files, total, deadline, cancelled,
+            )?;
+            let now =
+                tos_fd_open::open_directory_at(directory, Path::new(&name)).map_err(|_| {
+                    SourceCommandError::Conflict("creation traversed directory detached")
+                })?;
+            if inode(
+                &now.metadata()
+                    .map_err(|_| SourceCommandError::Invalid("creation child metadata"))?,
+            ) != inode(
+                &child
+                    .metadata()
+                    .map_err(|_| SourceCommandError::Invalid("creation child identity"))?,
+            ) {
+                return Err(SourceCommandError::Conflict(
+                    "creation traversed directory replaced",
+                ));
+            }
+        } else {
+            let mut file = tos_fd_open::open_regular_at(directory, Path::new(&name))
+                .map_err(|_| SourceCommandError::Denied("creation current member unsafe"))?;
+            let metadata = owned(&file, uid, false)?;
+            let bytes = raw(&mut file, 8_388_608, deadline, cancelled)?;
+            *total = total
+                .checked_add(bytes.len())
+                .ok_or(SourceCommandError::Invalid("creation total byte overflow"))?;
+            if *total > MAX_BYTES || files.len() >= MAX_FILES {
+                return Err(SourceCommandError::Invalid(
+                    "creation current source budget",
+                ));
+            }
+            let current = tos_fd_open::open_regular_at(directory, Path::new(&name))
+                .map_err(|_| SourceCommandError::Conflict("creation current member detached"))?;
+            if stamp(
+                &current
+                    .metadata()
+                    .map_err(|_| SourceCommandError::Invalid("creation member current metadata"))?,
+            ) != stamp(&metadata)
+            {
+                return Err(SourceCommandError::Conflict(
+                    "creation current member replaced",
+                ));
+            }
+            files.insert(
+                path,
+                (
+                    Digest256::of_bytes(&bytes),
+                    bytes.len() as u64,
+                    metadata.mode() & 0o777,
+                ),
+            );
+        }
+    }
+    let after = owned(directory, uid, true)?;
+    if stamp(&before) != stamp(&after) {
+        return Err(SourceCommandError::Conflict(
+            "creation source directory changed during enumeration",
+        ));
+    }
+    Ok(())
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CreationDurability {
+    DirectoriesSynced,
+    PublishedSyncIncomplete,
+}
+pub struct CreationPublication {
+    pub home: RelativePath,
+    pub receipt_sha256: Digest256,
+    pub durability: CreationDurability,
+    pub replayed: bool,
+}
+
+/// A complete executable initial-package path in an actually isolated owner
+/// corpus. PreparedCommand remains an unauthorised canonical-write proposal.
+pub fn execute_isolated_creation_from_captures(
+    filesystem: &CreationFilesystem,
+    context: &cmd::CommandContext,
+    cut: &CorpusCutReader,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<(
+    SerializedCreation,
+    CreationPublication,
+    tos_foundation::JsonValue,
+)> {
+    let prepared = crate::source_creation::prepare_source_creation_from_captures(
+        context, cut, software, components, worker, deadline, cancelled,
+    )?;
+    let serialized = prepared.serialize(software, components, worker, deadline, cancelled)?;
+    let publication =
+        filesystem.publish_isolated(&serialized, cut, software, components, deadline, cancelled)?;
+    let response = serialized.published_result(publication.replayed)?;
+    Ok((serialized, publication, response))
+}
+
+struct PendingCreation<'a> {
+    parent: &'a File,
+    directory: File,
+    identity: (u64, u64),
+    name: String,
+    names: BTreeSet<String>,
+    published: bool,
+}
+impl<'a> PendingCreation<'a> {
+    fn create(
+        parent: &'a File,
+        uid: u32,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<Self> {
+        for _ in 0..32 {
+            active(deadline, cancelled)?;
+            let mut entropy = [0u8; 24];
+            File::open("/dev/urandom")
+                .and_then(|mut f| f.read_exact(&mut entropy))
+                .map_err(|_| SourceCommandError::Invalid("creation staging entropy unavailable"))?;
+            let name = format!(
+                ".source-create-{}.pending",
+                Digest256::of_bytes(&entropy).to_hex()
+            );
+            match rustix::fs::mkdirat(parent, name.as_str(), Mode::from_raw_mode(0o700)) {
+                Ok(()) => {
+                    let directory = child(parent, &name)?;
+                    let identity = inode(&owned(&directory, uid, true)?);
+                    return Ok(Self {
+                        parent,
+                        directory,
+                        identity,
+                        name,
+                        names: BTreeSet::new(),
+                        published: false,
+                    });
+                }
+                Err(Errno::EXIST) => continue,
+                Err(_) => return Err(SourceCommandError::Invalid("creation staging mkdir")),
+            }
+        }
+        Err(SourceCommandError::Conflict(
+            "creation staging name collisions",
+        ))
+    }
+    fn write(
+        &mut self,
+        name: &str,
+        bytes: &[u8],
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()> {
+        let path = RelativePath::parse(name)
+            .map_err(|_| SourceCommandError::Invalid("creation package file name"))?;
+        if path.as_str().contains('/') || self.names.len() >= 40 || bytes.len() > 8_388_608 {
+            return Err(SourceCommandError::Invalid(
+                "creation package leaf/count/byte budget",
+            ));
+        }
+        active(deadline, cancelled)?;
+        let mut file: File = rustix::fs::openat(
+            &self.directory,
+            name,
+            OFlags::RDWR | OFlags::CREATE | OFlags::EXCL | OFlags::NOFOLLOW | OFlags::CLOEXEC,
+            Mode::from_raw_mode(0o600),
+        )
+        .map(File::from)
+        .map_err(|_| SourceCommandError::Conflict("creation staging file occupied or unsafe"))?;
+        self.names.insert(name.to_owned());
+        for block in bytes.chunks(65536) {
+            active(deadline, cancelled)?;
+            file.write_all(block)
+                .map_err(|_| SourceCommandError::Invalid("creation staging write"))?;
+        }
+        file.set_permissions(Permissions::from_mode(0o644))
+            .map_err(|_| SourceCommandError::Invalid("creation package file permissions"))?;
+        file.sync_all()
+            .map_err(|_| SourceCommandError::Invalid("creation package file fsync"))?;
+        let mut check = tos_fd_open::open_regular_at(&self.directory, Path::new(name))
+            .map_err(|_| SourceCommandError::Conflict("creation staging readback path"))?;
+        if raw(&mut check, 8_388_608, deadline, cancelled)? != bytes {
+            return Err(SourceCommandError::Conflict(
+                "creation staging readback differs",
+            ));
+        }
+        Ok(())
+    }
+    fn rollback(&mut self) -> SourceCommandResult<()> {
+        if self.published {
+            return Ok(());
+        }
+        let current = child(self.parent, &self.name)?;
+        if inode(
+            &current
+                .metadata()
+                .map_err(|_| SourceCommandError::Invalid("creation rollback metadata"))?,
+        ) != self.identity
+        {
+            return Err(SourceCommandError::Conflict(
+                "creation rollback directory replaced",
+            ));
+        }
+        for name in &self.names {
+            rustix::fs::unlinkat(&self.directory, name.as_str(), AtFlags::empty())
+                .map_err(|_| SourceCommandError::Invalid("creation owned pending file cleanup"))?;
+        }
+        rustix::fs::unlinkat(self.parent, self.name.as_str(), AtFlags::REMOVEDIR).map_err(
+            |_| SourceCommandError::Conflict("creation pending directory not empty or replaced"),
+        )?;
+        self.published = true;
+        self.parent
+            .sync_all()
+            .map_err(|_| SourceCommandError::Invalid("creation pending cleanup fsync"))?;
+        Ok(())
+    }
+}
+impl Drop for PendingCreation<'_> {
+    fn drop(&mut self) {
+        if !self.published {
+            let _ = self.rollback();
+        }
+    }
+}

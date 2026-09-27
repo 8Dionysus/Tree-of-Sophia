@@ -266,6 +266,394 @@ fn captured_components(
     (capture, software, components)
 }
 
+#[test]
+fn initial_source_packages_use_real_native_capture_and_isolated_atomic_publication() {
+    use std::io::Write;
+    use std::os::unix::fs::{MetadataExt, PermissionsExt};
+    use std::process::{Command, Stdio};
+    use tos_command::source_creation::prepare_source_creation_from_captures;
+    use tos_command::source_creation_store::{
+        CreationDurability, CreationFilesystem, IsolatedCreationRoot,
+    };
+
+    let repository = super::validation_cut_cases::repository()
+        .canonicalize()
+        .unwrap();
+    let cancellation = AtomicBool::new(false);
+    let deadline = Instant::now() + Duration::from_secs(240);
+    // Existing maintained creator support law, plus the actual native buffer
+    // producer sources. The capture is byte evidence; it is not a build proof.
+    let inputs = [
+        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py",
+        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_command_contracts.py",
+        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_historical_claims.py",
+        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/human_forms.py",
+        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/knowledge_assessment.py",
+        "scripts/source_witness_human_forms.py",
+        "scripts/build_source_witness_catalog.py",
+        "scripts/source_record_profiles.py",
+        "scripts/native_text_binding.py",
+        "scripts/source_owner_context.py",
+        "scripts/source_witness_bibliographic_graph_common.py",
+        "rust/crates/tos-command/src/source_creation.rs",
+        "rust/crates/tos-command/src/source_creation_store.rs",
+        "rust/crates/tos-command/src/source_serialization.rs",
+        "ToS/contracts/historical-record.schema.json",
+        "ToS/contracts/corpus-record.schema.json",
+        "ToS/contracts/historical-claim.schema.json",
+        "ToS/contracts/claim-packet.schema.json",
+        "ToS/contracts/knowledge-assessment.schema.json",
+        "ToS/contracts/human-form.schema.json",
+        "ToS/contracts/human-form-set.schema.json",
+        "ToS/contracts/human-form-template.schema.json",
+        "ToS/contracts/semantic-entity-type-registry.schema.json",
+        "ToS/contracts/semantic-relation-type-registry.schema.json",
+        "ToS/contracts/provenance-event-v2.schema.json",
+        "ToS/contracts/source-metadata-record.schema.json",
+        "ToS/contracts/semantic-description-record.schema.json",
+        "ToS/contracts/research-corpus-record.schema.json",
+        "ToS/doctrine/semantic-interchange/entity-types.v1.json",
+        "ToS/doctrine/semantic-interchange/relation-types.v1.json",
+    ];
+    let files: BTreeMap<String, Vec<u8>> = inputs
+        .iter()
+        .map(|name| (name.to_string(), fs::read(repository.join(name)).unwrap()))
+        .collect();
+    let (_captured, software, components) = captured_components(&files, deadline, &cancellation);
+    let temporary = tempfile::tempdir().unwrap();
+    let authored: BTreeMap<_, _> = files
+        .iter()
+        .filter(|(path, _)| path.starts_with("ToS/"))
+        .map(|(path, raw)| (path.clone(), raw.clone()))
+        .collect();
+    let store = temporary.path().join("selected-store");
+    let revision = super::validation_cut_cases::write_cut_store(&authored, &store);
+    let cut = open_cut(&store, revision, deadline, &cancellation);
+
+    for (family, kind, relative) in [
+        (
+            "tos_local_historical_create_owner_v2",
+            "historical-event",
+            "ToS/source-witnesses/history/new-subject/historical-event.json",
+        ),
+        (
+            "tos_local_corpus_create_owner_v1",
+            "work",
+            "ToS/source-witnesses/works/new-subject/work.json",
+        ),
+        (
+            "tos_local_profile_create_owner_v1",
+            "research-corpus",
+            "ToS/source-witnesses/research-corpora/new-subject/research-corpus.json",
+        ),
+    ] {
+        let isolated =
+            IsolatedCreationRoot::create(temporary.path(), deadline, &cancellation).unwrap();
+        for (path, bytes) in &files {
+            let target = isolated.path().join(path);
+            fs::create_dir_all(target.parent().unwrap()).unwrap();
+            fs::write(&target, bytes).unwrap();
+            fs::set_permissions(&target, fs::Permissions::from_mode(0o644)).unwrap();
+        }
+        fs::create_dir_all(
+            isolated
+                .path()
+                .join(relative)
+                .parent()
+                .unwrap()
+                .parent()
+                .unwrap(),
+        )
+        .unwrap();
+        let identity = format!("tos.{kind}.synthetic-native-create");
+        let mut record = serde_json::json!({"schema_version":"tos_corpus_record_v1", "record_type":kind,
+            "record_id":identity,"record_version":1,"preferred_label":"Synthetic mechanics subject", "variant_labels":[],
+            "identity_status":"provisional","source_refs":["synthetic-test-only:creation-not-assessment"],
+            "external_identifiers":[],"same_as_posture":"no_equivalence_claim","visibility":"public_metadata_only",
+            "supersedes_ref":null,"notes":"Synthetic proposed source metadata only; no historical existence, textual judgment or admission asserted.",
+            "field_languages":{"preferred_label":{"language":"en","script":"Latn"},"notes":{"language":"en","script":"Latn"}}});
+        if kind == "historical-event" {
+            record["schema_version"] = serde_json::json!("tos_historical_record_v1");
+        }
+        if kind == "work" {
+            record.as_object_mut().unwrap().remove("visibility");
+            record["expression_claim_refs"] = serde_json::json!([]);
+        }
+        if kind == "research-corpus" {
+            record["schema_version"] = serde_json::json!("tos_research_corpus_record_v1");
+            record["semantic_scope"] = serde_json::json!({"scope_note":"Finite synthetic mechanics test only.","identity_criterion":"The same test purpose, not source assessment or membership.","language":"en","script":"Latn"});
+            record["semantic_content"] = serde_json::json!({"research_purpose":"Exercise an authored metadata profile.","selection_criterion":"Only individually selected synthetic test material.","coverage_account":"No membership declared; no historical emptiness asserted.","language":"en","script":"Latn","uninterpreted":[false,null,0]});
+        }
+        let operation = if kind == "historical-event" {
+            "historical.create"
+        } else {
+            "source.create"
+        };
+        let uid = fs::metadata(isolated.path()).unwrap().uid();
+        let mut config = serde_json::json!({"schema_version":family,"uid":uid,"principal_id":"software:test-fixture", "maker_type":"software",
+            "source_root":isolated.path(),"source_path":relative,"record_id":identity,
+            "authority_ref":"synthetic-test-only:creation-not-assessment","allowed_form_ids":["tos.form.creation.fixture-name"],
+            "allowed_operations":[operation],"expires_at":"2099-01-01T00:00:00Z"});
+        config["provenance_event_id"] = serde_json::json!("tos.event.synthetic-native-create");
+        if kind == "historical-event" {
+            config["allowed_claim_ids"] = serde_json::json!([]);
+        } else {
+            if kind == "work" {
+                config["record_type"] = serde_json::json!(kind);
+            } else {
+                config["profile_type_id"] = serde_json::json!("tos.entity.research-corpus");
+            }
+        }
+        let config_raw = canonical_json(&config);
+        let owner = isolated.path().join("owner.json");
+        fs::write(&owner, &config_raw).unwrap();
+        fs::set_permissions(&owner, fs::Permissions::from_mode(0o600)).unwrap();
+        let filesystem =
+            CreationFilesystem::select_isolated(&isolated, &owner, deadline, &cancellation)
+                .unwrap();
+        let mut request = serde_json::json!({"schema_version":"tos_local_source_command_v1","operation":"prepare-create", "record":record,
+            "forms":[{"form_id":"tos.form.creation.fixture-name","field_id":"metadata.preferred-name"}]});
+        if kind == "historical-event" {
+            request["claims"] = serde_json::json!([]);
+        }
+        let mut context = cut_context(
+            &files,
+            config_raw.clone(),
+            canonical_json(&request),
+            revision,
+        );
+        context.effective_uid = u64::from(uid);
+        let mut worker = schemas(&cut, deadline, &cancellation);
+        let prepared = prepare_source_creation_from_captures(
+            &context,
+            &cut,
+            &software,
+            &components,
+            &mut worker,
+            deadline,
+            &cancellation,
+        )
+        .unwrap();
+        let preview = prepared.preview().unwrap();
+
+        // Actual maintained whole prepare oracle on this same owner-selected
+        // filesystem. It prepares buffers only and never writes source bytes.
+        let script = "import json,sys;from pathlib import Path;repo=Path(sys.argv[1]);sys.path[:0]=[str(repo/'scripts'),str(repo/'mechanics/growth-cycle/parts/branch-growth-cycle/scripts')];import source_commands as commands;request=json.load(sys.stdin);config,_,_=commands._configuration(Path(sys.argv[2]));_,files,_=commands._prepare_creation(config,request);print(json.dumps({'result':commands.run_local_command(Path(sys.argv[2]),request),'files':{name:raw.hex() for name,raw in files.items()}},ensure_ascii=False,allow_nan=False))";
+        let mut oracle = Command::new("python3");
+        for (key, _) in std::env::vars_os() {
+            if key.to_string_lossy().starts_with("GIT_")
+                || key == "PYTHONPATH"
+                || key == "PYTHONHOME"
+            {
+                oracle.env_remove(key);
+            }
+        }
+        let mut child = oracle
+            .args(["-c", script])
+            .arg(&repository)
+            .arg(&owner)
+            .env("PYTHONDONTWRITEBYTECODE", "1")
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .unwrap();
+        child
+            .stdin
+            .take()
+            .unwrap()
+            .write_all(&canonical_json(&request))
+            .unwrap();
+        let oracle = child.wait_with_output().unwrap();
+        assert!(
+            oracle.status.success(),
+            "{kind}: {}",
+            String::from_utf8_lossy(&oracle.stderr)
+        );
+        let oracle: Value = serde_json::from_slice(&oracle.stdout).unwrap();
+        assert_eq!(
+            bytes(&preview),
+            canonical_json(&oracle["result"]),
+            "{kind} full prepare result"
+        );
+        for (name, raw) in prepared.files() {
+            let hex = raw
+                .iter()
+                .map(|byte| format!("{byte:02x}"))
+                .collect::<String>();
+            assert_eq!(
+                oracle["files"][name].as_str(),
+                Some(hex.as_str()),
+                "{kind} original output {name}"
+            );
+        }
+        request["operation"] = serde_json::json!(operation);
+        request["command_id"] = serde_json::json!("synthetic:create-first");
+        request["expected_configuration"] =
+            serde_json::from_slice(&bytes(preview.object_get("owner_configuration").unwrap()))
+                .unwrap();
+        request["expected_dependencies"] =
+            serde_json::from_slice(&bytes(preview.object_get("expected_dependencies").unwrap()))
+                .unwrap();
+        request["expected_source"] = Value::Null;
+        request["expected_revision"] = Value::Null;
+        context.request_raw = canonical_json(&request);
+        let prepared = prepare_source_creation_from_captures(
+            &context,
+            &cut,
+            &software,
+            &components,
+            &mut worker,
+            deadline,
+            &cancellation,
+        )
+        .unwrap();
+        let serialized = prepared
+            .serialize(&software, &components, &mut worker, deadline, &cancellation)
+            .unwrap();
+        assert!(matches!(
+            serialized.command().commit(),
+            Err(SourceCommandError::MissingProductionAdmission)
+        ));
+        // Unchanged source and separately captured software are reselected
+        // from the actual owner filesystem, rather than from public context.
+        for path in [
+            "ToS/contracts/human-form.schema.json",
+            "rust/crates/tos-command/src/source_serialization.rs",
+        ] {
+            let target = isolated.path().join(path);
+            let original = fs::read(&target).unwrap();
+            let mut substituted = original.clone();
+            substituted.push(b'\n');
+            fs::write(&target, substituted).unwrap();
+            assert!(
+                matches!(
+                    filesystem.publish_isolated(
+                        &serialized,
+                        &cut,
+                        &software,
+                        &components,
+                        deadline,
+                        &cancellation
+                    ),
+                    Err(SourceCommandError::Conflict(_))
+                ),
+                "{kind} unchanged dependency {path}"
+            );
+            fs::write(&target, original).unwrap();
+        }
+        let incomplete_components = software
+            .select_components(&[RelativePath::parse(
+                "rust/crates/tos-command/src/source_serialization.rs",
+            )
+            .unwrap()])
+            .unwrap();
+        assert!(matches!(
+            filesystem.publish_isolated(
+                &serialized,
+                &cut,
+                &software,
+                &incomplete_components,
+                deadline,
+                &cancellation
+            ),
+            Err(SourceCommandError::Conflict(_))
+        ));
+        let stopped = AtomicBool::new(true);
+        assert!(matches!(
+            filesystem.publish_isolated(
+                &serialized,
+                &cut,
+                &software,
+                &components,
+                deadline,
+                &stopped
+            ),
+            Err(SourceCommandError::Denied(_))
+        ));
+        assert!(matches!(
+            filesystem.publish_isolated(
+                &serialized,
+                &cut,
+                &software,
+                &components,
+                Instant::now(),
+                &cancellation
+            ),
+            Err(SourceCommandError::Denied(_))
+        ));
+        let home = isolated.path().join(relative).parent().unwrap().to_owned();
+        // An empty competing directory must survive the genuine NOREPLACE gate.
+        fs::create_dir(&home).unwrap();
+        assert!(matches!(
+            filesystem.publish_isolated(
+                &serialized,
+                &cut,
+                &software,
+                &components,
+                deadline,
+                &cancellation
+            ),
+            Err(SourceCommandError::Conflict(_))
+        ));
+        assert!(home.is_dir() && fs::read_dir(&home).unwrap().next().is_none());
+        fs::remove_dir(&home).unwrap(); // this test's exact empty competitor only
+        let published = filesystem
+            .publish_isolated(
+                &serialized,
+                &cut,
+                &software,
+                &components,
+                deadline,
+                &cancellation,
+            )
+            .unwrap();
+        assert!(!published.replayed);
+        assert_eq!(published.durability, CreationDurability::DirectoriesSynced);
+        for (name, bytes) in serialized.prepared().files() {
+            assert_eq!(fs::read(home.join(name)).unwrap(), *bytes);
+        }
+        assert_eq!(
+            fs::read_dir(&home).unwrap().count(),
+            serialized.prepared().files().len()
+        );
+        let replay = filesystem
+            .replay_isolated(
+                &serialized,
+                &cut,
+                &software,
+                &components,
+                deadline,
+                &cancellation,
+            )
+            .unwrap();
+        assert!(replay.replayed && replay.receipt_sha256 == published.receipt_sha256);
+        let mut revoked = config.clone();
+        revoked["allowed_operations"] = serde_json::json!([]);
+        fs::write(&owner, canonical_json(&revoked)).unwrap();
+        assert!(matches!(
+            filesystem.replay_isolated(
+                &serialized,
+                &cut,
+                &software,
+                &components,
+                deadline,
+                &cancellation
+            ),
+            Err(SourceCommandError::Conflict(_))
+        ));
+        assert!(
+            fs::read_dir(isolated.path().join("ToS"))
+                .unwrap()
+                .all(|entry| !entry
+                    .unwrap()
+                    .file_name()
+                    .to_string_lossy()
+                    .starts_with(".source-create-"))
+        );
+    }
+}
+
 fn retain_transport(
     ctx: &mut CommandContext,
     transaction: &RetainedRevisionTransaction,

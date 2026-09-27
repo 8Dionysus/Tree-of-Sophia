@@ -756,7 +756,7 @@ pub fn run_claim_command_from_captures(
     run_claim_command_inner(&complete, Some(ctx), executor, deadline, cancelled)
 }
 
-fn complete_authored_inputs(
+pub(crate) fn complete_authored_inputs(
     ctx: &CommandContext,
     cut: &CorpusCutReader,
     deadline: Instant,
@@ -1511,7 +1511,7 @@ struct ClaimGrounding {
     dependencies: JsonValue,
     bindings: JsonValue,
 }
-fn raw_digests(
+pub(crate) fn raw_digests(
     ctx: &CommandContext,
     refs: &[&str],
     prefixed: bool,
@@ -1768,15 +1768,24 @@ fn catalogue_claim(
     Ok(result)
 }
 
-fn maintained_grounding(
+/// Existing maintained selected-cut catalog mechanics, shared by Claim and
+/// source-create handlers. These observations carry no permission or admission.
+pub(crate) struct MaintainedInventory {
+    pub records: JsonValue,
+    pub record_inputs: JsonValue,
+    pub objects: BTreeMap<String, JsonValue>,
+    pub source_records: BTreeMap<String, JsonValue>,
+    pub claims: BTreeMap<String, JsonValue>,
+    pub claim_profile_inputs: JsonValue,
+    pub events: JsonValue,
+    pub anchors: JsonValue,
+}
+pub(crate) fn maintained_inventory(
     ctx: &CommandContext,
-    config: &JsonValue,
-    claims: &[JsonValue],
-    forms: Option<&[JsonValue]>,
     executor: &mut CutWorkerSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
-) -> SourceCommandResult<ClaimGrounding> {
+) -> SourceCommandResult<MaintainedInventory> {
     let entities = json_file(ctx, ENTITIES)?;
     let types = array(&entities, "types")?;
     let mut kinds: BTreeMap<String, String> = NATIVE_CATALOG_KINDS
@@ -1803,7 +1812,6 @@ fn maintained_grounding(
     ];
     let mut record_inputs = raw_digests(ctx, &registry_refs, false)?;
     let mut prior_profile_inputs = raw_digests(ctx, &claim_registry_refs, false)?;
-    let mut new_profile_inputs = raw_digests(ctx, &claim_registry_refs, false)?;
     let mut records: BTreeMap<String, Vec<JsonValue>> = NATIVE_CATALOG_KINDS
         .iter()
         .map(|kind| ((*kind).into(), Vec::new()))
@@ -2044,6 +2052,47 @@ fn maintained_grounding(
     for (kind, entries) in &records {
         set(&mut record_catalog, kind, JsonValue::Array(entries.clone()))?;
     }
+    Ok(MaintainedInventory {
+        records: record_catalog,
+        record_inputs,
+        objects,
+        source_records,
+        claims: prior,
+        claim_profile_inputs: prior_profile_inputs,
+        events,
+        anchors,
+    })
+}
+
+fn maintained_grounding(
+    ctx: &CommandContext,
+    config: &JsonValue,
+    claims: &[JsonValue],
+    forms: Option<&[JsonValue]>,
+    executor: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<ClaimGrounding> {
+    let MaintainedInventory {
+        records: record_catalog,
+        record_inputs,
+        objects,
+        source_records,
+        claims: prior,
+        claim_profile_inputs: prior_profile_inputs,
+        events,
+        anchors,
+    } = maintained_inventory(ctx, executor, deadline, cancelled)?;
+    let mut new_profile_inputs = raw_digests(
+        ctx,
+        &[
+            ENTITIES,
+            "ToS/contracts/semantic-entity-type-registry.schema.json",
+            RELATIONS,
+            "ToS/contracts/semantic-relation-type-registry.schema.json",
+        ],
+        false,
+    )?;
     let mut bindings = object(vec![
         ("objects", object(vec![])),
         ("evidence", object(vec![])),
@@ -2330,7 +2379,7 @@ fn python_bytes_blank(raw: &[u8]) -> bool {
     raw.iter()
         .all(|byte| matches!(*byte, b' ' | b'\t' | b'\n' | b'\r' | 0x0b | 0x0c))
 }
-fn maintained_evidence(
+pub(crate) fn maintained_evidence(
     ctx: &CommandContext,
     reference: &str,
     objects: &BTreeMap<String, JsonValue>,
@@ -2827,7 +2876,7 @@ fn find_record(ctx: &CommandContext, id: &str) -> SourceCommandResult<(JsonValue
         "Claim endpoint source metadata not selected",
     ))
 }
-fn ancestry(types: &[JsonValue], id: &str) -> SourceCommandResult<BTreeSet<String>> {
+pub(crate) fn ancestry(types: &[JsonValue], id: &str) -> SourceCommandResult<BTreeSet<String>> {
     let mut result = BTreeSet::new();
     let mut active = BTreeSet::new();
     let mut stack = vec![(id.to_owned(), false)];
