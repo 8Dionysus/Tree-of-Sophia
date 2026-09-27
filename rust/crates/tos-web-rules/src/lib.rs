@@ -6,6 +6,8 @@
 //! direct knowledge API's legacy default.
 
 #[cfg(feature = "wasm")]
+mod exploration_session;
+#[cfg(feature = "wasm")]
 mod inspection_session;
 mod knowledge_envelope;
 #[cfg(feature = "wasm")]
@@ -217,6 +219,150 @@ mod wasm {
             )
             .map_err(|_| JsValue::from_str("invalid_inspection_admission"))?,
         })
+    }
+
+    fn exploration_budget(
+        admission: &[u8],
+    ) -> Result<tos_query::exploration_plan::PublishedExplorationBudget, JsValue> {
+        let read = inspection_budget(admission)?;
+        let document = tos_foundation::parse_json(
+            admission,
+            tos_foundation::JsonMode::PublishedStrict,
+            tos_foundation::JsonLimits {
+                max_bytes: 4096,
+                ..Default::default()
+            },
+        )
+        .map_err(|_| JsValue::from_str("invalid_exploration_admission"))?;
+        let cap = |name| {
+            document
+                .root()
+                .object_get(name)
+                .and_then(tos_foundation::JsonValue::as_u64)
+                .filter(|n| *n > 0 && *n <= 9_007_199_254_740_991)
+                .and_then(|n| usize::try_from(n).ok())
+                .ok_or_else(|| JsValue::from_str("invalid_exploration_admission"))
+        };
+        Ok(tos_query::exploration_plan::PublishedExplorationBudget {
+            exploration: tos_query::knowledge_exploration::ExplorationBudget {
+                read,
+                max_work_units: cap("max_work_units")?,
+                max_session_nodes: cap("max_session_nodes")?,
+                max_session_relations: cap("max_session_relations")?,
+                max_state_bytes: cap("max_state_bytes")?,
+                max_checkpoint_bytes: cap("max_checkpoint_bytes")?,
+                max_checkpoints: cap("max_checkpoints")?,
+            },
+            max_cache_bytes: cap("max_cache_bytes")?,
+            max_cache_entries: cap("max_cache_entries")?,
+        })
+    }
+    fn exploration_error(error: tos_query::search_v2::SearchV2Error) -> JsValue {
+        JsValue::from_str(&format!("{:?}", error.code))
+    }
+    #[wasm_bindgen]
+    pub fn validate_exploration_request_wasm_v1(
+        request: &[u8],
+        admission: &[u8],
+    ) -> Result<Option<String>, JsValue> {
+        let budget = exploration_budget(admission)?;
+        let document = tos_foundation::parse_json(
+            request,
+            tos_foundation::JsonMode::RequestLastWins,
+            tos_foundation::JsonLimits {
+                max_bytes: 65536,
+                ..budget.exploration.read.json
+            },
+        )
+        .map_err(|_| JsValue::from_str("InvalidRequest"))?;
+        tos_query::knowledge_exploration::validate_published_exploration_request(document.root())
+            .map_err(exploration_error)
+    }
+    #[wasm_bindgen]
+    pub fn validate_exploration_replay_wasm_v1(
+        packet: &[u8],
+        admission: &[u8],
+    ) -> Result<(), JsValue> {
+        let budget = exploration_budget(admission)?;
+        tos_query::knowledge_exploration::validate_published_exploration_replay(
+            packet,
+            tos_foundation::JsonLimits {
+                max_bytes: budget.exploration.read.max_response_bytes,
+                ..budget.exploration.read.json
+            },
+        )
+        .map_err(exploration_error)
+    }
+    #[wasm_bindgen]
+    pub fn exploration_cache_version_wasm_v1() -> String {
+        tos_query::knowledge_exploration::PUBLISHED_EXPLORATION_CACHE_VERSION.to_owned()
+    }
+    #[wasm_bindgen]
+    pub struct ExplorationSession {
+        inner: super::exploration_session::ExplorationSession,
+    }
+    #[wasm_bindgen]
+    impl ExplorationSession {
+        #[wasm_bindgen(constructor)]
+        pub fn new(
+            request: &[u8],
+            revision: String,
+            data_revision: String,
+            epoch: u64,
+            top: &[u8],
+            state: &[u8],
+            admission: &[u8],
+        ) -> Result<Self, JsValue> {
+            Ok(Self {
+                inner: super::exploration_session::ExplorationSession::new(
+                    request,
+                    &revision,
+                    &data_revision,
+                    epoch,
+                    top,
+                    state,
+                    exploration_budget(admission)?,
+                )
+                .map_err(exploration_error)?,
+            })
+        }
+        pub fn need(&mut self) -> Result<Option<Vec<u8>>, JsValue> {
+            self.inner.need_bytes().map_err(exploration_error)
+        }
+        pub fn resume_rows(
+            &mut self,
+            rows: &[u8],
+            sizes: &[u32],
+            ambiguous: &[u8],
+        ) -> Result<(), JsValue> {
+            self.inner
+                .resume_rows(rows, sizes, ambiguous)
+                .map_err(exploration_error)
+        }
+        pub fn resume_focus(
+            &mut self,
+            matched: usize,
+            rows: &[u8],
+            sizes: &[u32],
+        ) -> Result<(), JsValue> {
+            self.inner
+                .resume_focus(matched, rows, sizes)
+                .map_err(exploration_error)
+        }
+        pub fn resume_ids(&mut self, ids: &[u8]) -> Result<(), JsValue> {
+            self.inner.resume_ids(ids).map_err(exploration_error)
+        }
+        pub fn paused(&self) -> Result<bool, JsValue> {
+            self.inner.paused().map_err(exploration_error)
+        }
+        pub fn state(&self) -> Result<Vec<u8>, JsValue> {
+            self.inner.state().map_err(exploration_error)
+        }
+        pub fn finish(&mut self, cursor: Option<String>) -> Result<Vec<u8>, JsValue> {
+            self.inner
+                .finish(cursor.as_deref())
+                .map_err(exploration_error)
+        }
     }
 
     /// The same request rule as the selected native plan, before any D1 read.

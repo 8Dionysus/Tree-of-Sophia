@@ -7,9 +7,9 @@ import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {DatabaseSync} from 'node:sqlite';
 import {createHash} from 'node:crypto';
-import {build} from 'esbuild';
+import {publishedNodeFixtureWorker,publishedWorkerFixtureModules} from './native-lens-fixture.ts';
 import {Miniflare,convertV4MiniflareOptions} from 'miniflare';
-import {exploreD1} from '../src/exploration.ts';
+import {HttpError} from '../src/common.ts';
 
 const repo=fileURLToPath(new URL('../../../../',import.meta.url));
 const sha=raw=>createHash('sha256').update(raw).digest('hex');
@@ -83,9 +83,12 @@ except Exception as e:
  print(json.dumps({'status':status,'error':str(e)}))
 `,{path:data.path,binding:data.binding(),request,stream});
 }
-let workerPromise,bundlePromise;
-async function bundle(){return bundlePromise??=build({entryPoints:[fileURLToPath(new URL('../src/index.ts',import.meta.url))],bundle:true,write:false,format:'esm',platform:'browser',target:'es2022'}).then(result=>result.outputFiles[0].text);}
-async function worker(){return workerPromise??=bundle().then(async code=>(await import('data:text/javascript;base64,'+Buffer.from(code).toString('base64'))).default);}
+const worker=publishedNodeFixtureWorker;
+async function exploreD1(db,request) {
+ const result=await response({db},request),raw=await result.text();
+ if(result.status!==200)throw new HttpError(result.status,raw);
+ return raw;
+}
 async function response(data,request,raw){return (await worker()).fetch(new Request('https://tos.test/api/knowledge/explore',{
  method:'POST',headers:{'Content-Type':'application/json'},body:raw??JSON.stringify(request)}),{DB:data.db,ASSETS:{fetch(){throw Error('no source/asset fallback');}}},{});}
 async function stream(data,query){const pages=[];for(let count=0;count<500;count++){
@@ -150,7 +153,7 @@ test('native exploration replay and concurrent CAS winner retain identical store
   assert.equal(await exploreD1(data.db,{cursor}),raw);
   const state=data.sqlite.prepare('SELECT state FROM knowledge_exploration_checkpoints WHERE token=?').get(JSON.parse(raw).page.next_cursor).state;
   assert.doesNotMatch(state,/transport_probe|9007199254740993|authority_boundary|display_selection/);
-  assert.match(data.sqlite.prepare('SELECT version FROM knowledge_exploration_checkpoints WHERE token=?').get(cursor).version,/native-json-v1\/selected-relation-first-v1$/);
+  assert.equal(data.sqlite.prepare('SELECT version FROM knowledge_exploration_checkpoints WHERE token=?').get(cursor).version,'tos-exploration-d1-execution-v6/rust-state-v1');
  }finally{data.close();}
 });
 
@@ -308,8 +311,8 @@ test('reserved source IDs stay owned inclusion keys rather than JavaScript proto
 });
 
 test('real D1 raw HTTP restart and concurrent retries preserve native checkpoint pages',async()=>{
- const directory=mkdtempSync(join(tmpdir(),'tos-native-explore-real-')),code=await bundle();
- const options=()=>convertV4MiniflareOptions({modules:true,script:code,d1Databases:['DB'],resourcePersistencePath:directory});
+ const directory=mkdtempSync(join(tmpdir(),'tos-native-explore-real-')),modules=await publishedWorkerFixtureModules();
+ const options=()=>convertV4MiniflareOptions({...modules,d1Databases:['DB'],resourcePersistencePath:directory});
  let mf=new Miniflare(options());
  const post=query=>mf.dispatchFetch('https://tos.test/api/knowledge/explore',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(query)});
  try {

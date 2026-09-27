@@ -5,10 +5,11 @@ import {readFileSync, mkdtempSync, rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {build} from 'esbuild';
 import {Miniflare, convertV4MiniflareOptions} from 'miniflare';
-import {ADJACENCY_SQL, IDENTITY_SQL, explorationCapabilitiesD1, normalizeExploration} from '../src/exploration.ts';
-import {exploreD1,publishExplorationFixture} from './native-exploration-fixture.ts';
+import {explorationCapabilitiesD1} from '../src/exploration.ts';
+import {PUBLISHED_EXPLORATION_ADJACENCY_SQL as ADJACENCY_SQL,PUBLISHED_EXPLORATION_IDENTITY_SQL as IDENTITY_SQL} from '../src/native-exploration-store.ts';
+import {publishedWorkerFixtureModules} from './native-lens-fixture.ts';
+import {exploreD1,publishExplorationFixture,validateExploration} from './native-exploration-fixture.ts';
 import {knowledgeScene, type Item} from '../src/knowledge.ts';
 
 const migration = readFileSync(new URL('../migrations/0001-exploration.sql', import.meta.url), 'utf8').replace(/^--.*$/gm, '').trim();
@@ -185,7 +186,7 @@ test('overview identity steps are resumable, zero distance, filtered and promote
       await db.prepare('UPDATE knowledge_nodes SET source_graph=?,json=? WHERE id=?').bind('source-claims',JSON.stringify(g.nodes[1]),'1').run();
       const filtered = await collect(db,{focus_node_id:'0',sources:['philosophy'],max_depth:2,page_nodes:1});
       assert.ok(filtered.every(p => (p.nodes as {source_graph:string}[]).every(n => n.source_graph==='philosophy')));
-      const plan = await db.prepare('EXPLAIN QUERY PLAN '+IDENTITY_SQL).bind('0','[]','',JSON.stringify(['philosophy'])).all<{detail:string}>();
+      const plan = await db.prepare('EXPLAIN QUERY PLAN '+IDENTITY_SQL).bind('0','tos.','tos.','[]','',JSON.stringify(['philosophy']),32).all<{detail:string}>();
       assert.match(plan.results.map(r=>r.detail).join('\n'),/knowledge_nodes_identity_seek.*entity_id=\? AND id>\?/);
       await db.exec('DROP INDEX knowledge_nodes_identity_seek');
       assert.equal((await explorationCapabilitiesD1(db)).available, false);
@@ -293,7 +294,7 @@ test('D1 exploration conserves Python BFS order across direction, depth, size an
         for (const e of page.relations as {id:string;from_id:string;to_id:string}[]) assert.ok(ids.has(e.from_id)&&ids.has(e.to_id));
       }
     }
-    const plan = await db.prepare('EXPLAIN QUERY PLAN '+ADJACENCY_SQL).bind('0','','0','').all<{detail:string}>();
+    const plan = await db.prepare('EXPLAIN QUERY PLAN '+ADJACENCY_SQL).bind('0','',32,'0','',32,32).all<{detail:string}>();
     const details = plan.results.map(r=>r.detail).join('\n');
     assert.match(details,/knowledge_relations_from_seek.*from_id=\? AND id>\?/);
     assert.match(details,/knowledge_relations_to_seek.*to_id=\? AND id>\?/);
@@ -336,9 +337,9 @@ test('overview exploration excludes typed record provenance but not unknown pred
 });
 
 test('actual Worker HTTP continuation survives isolate restart and concurrent retries', async () => {
-  const bundle = await build({entryPoints:[fileURLToPath(new URL('../src/index.ts',import.meta.url))],bundle:true,write:false,format:'esm',platform:'browser',target:'es2022'});
+  const modules = await publishedWorkerFixtureModules();
   const directory = mkdtempSync(join(tmpdir(),'tos-exploration-'));
-  const options = () => convertV4MiniflareOptions({modules:true,script:bundle.outputFiles[0]!.text,d1Databases:['DB'],resourcePersistencePath:directory});
+  const options = () => convertV4MiniflareOptions({...modules,d1Databases:['DB'],resourcePersistencePath:directory});
   let mf = new Miniflare(options());
   const post = (body: unknown) => mf.dispatchFetch('http://tos.test/api/knowledge/explore',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
   try {
@@ -405,5 +406,5 @@ test('D1 rejects crossed publication before committing a page; cache admission i
 });
 
 test('D1 request validation agrees with local schema boundaries', () => {
-  for (const value of [{},{focus_node_id:' '},{focus_node_id:'0',sources:[]},{focus_node_id:'0',page_nodes:true},{focus_node_id:'0',max_depth:null},{focus_node_id:'0',profile:null},{focus_node_id:'0',direction:[]},{focus_node_id:'0',extra:1}]) assert.throws(()=>normalizeExploration(value));
+  for (const value of [{},{focus_node_id:' '},{focus_node_id:'0',sources:[]},{focus_node_id:'0',page_nodes:true},{focus_node_id:'0',max_depth:null},{focus_node_id:'0',profile:null},{focus_node_id:'0',direction:[]},{focus_node_id:'0',extra:1}]) assert.throws(()=>validateExploration(value));
 });

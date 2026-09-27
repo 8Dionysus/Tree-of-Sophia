@@ -29,14 +29,15 @@ import { SourceNavigationError } from "./source-navigation";
 import { sourceDescendD1, sourceDossierD1 } from "./source-navigation-store";
 import { metaItem } from "./store";
 import { KnowledgeRevisionConflict } from "./lens-pagination";
-import { exploreD1, explorationCapabilitiesD1 } from "./exploration";
-import {parseNativeRequest, type NativeRef} from './native-lens.ts';
+import { explorationSnapshotResponseD1, explorationCapabilitiesD1 } from "./exploration";
 import {nativePacketResponse} from './native-lens-response.ts';
 import {NativeBudgetExceeded} from '../../../shared/native-semantics.ts';
 import {nativeStrip,nativeIntegerString} from '../../../shared/native-unicode.ts';
 import {SelectedTemporalError} from './selected-temporal-runtime.ts';
 import {initSync, TemporalReplaySession, validate_temporal_request_wasm_v1,
-  InspectionSession, validate_inspect_request_wasm_v1, LensSession, validate_lens_request_wasm_v1} from '../generated/tos_web_rules.js';
+  InspectionSession, validate_inspect_request_wasm_v1, LensSession, validate_lens_request_wasm_v1,
+  ExplorationSession,validate_exploration_request_wasm_v1,validate_exploration_replay_wasm_v1,
+  exploration_cache_version_wasm_v1} from '../generated/tos_web_rules.js';
 import temporalWasm from '../generated/tos_web_rules_bg.wasm';
 
 // wasm-bindgen owns module initialization; no second host cache or fetch.
@@ -44,6 +45,8 @@ initSync({module: temporalWasm});
 const temporalRuntime = {TemporalReplaySession, validate_temporal_request_wasm_v1};
 const inspectionRuntime = {InspectionSession, validate_inspect_request_wasm_v1};
 const lensRuntime={LensSession,validate_lens_request_wasm_v1};
+const explorationRuntime={ExplorationSession,validate_exploration_request_wasm_v1,
+  validate_exploration_replay_wasm_v1,exploration_cache_version_wasm_v1};
 
 const STATIC_CORPUS_LIMITS = new Set([1, 100, 700, 1000]);
 const STATIC_PHILOSOPHY_LIMITS = new Set([1, 1000]);
@@ -150,23 +153,7 @@ async function lensCompileResponse(request: Request, env: Env,
     }
   }
   if(operation==='lens')return withSecurity(await lensSnapshotResponseD1(env.DB,lensRuntime,bytes,'compile',request.signal,request.method));
-  let spec: unknown, nativeSpec: NativeRef | null = null;
-  try {
-    const raw = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(bytes);
-    nativeSpec = parseNativeRequest(raw, {maxBytes: MAX_LENS_REQUEST_BYTES}); spec = nativeSpec.value;
-  } catch (error) {
-    throw new HttpError(400, `invalid LensSpec JSON: ${error instanceof Error ? error.message : "decode failed"}`);
-  }
-  if (!spec || typeof spec !== "object" || Array.isArray(spec)) throw new HttpError(400, "lens spec must be an object");
-  try {
-    return withSecurity(new Response(await exploreD1(env.DB,spec,nativeSpec??undefined),{status:200,
-      headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'}}));
-  } catch (error) {
-    if (error instanceof KnowledgeRevisionConflict) throw error;
-    if (error instanceof HttpError) throw error;
-    if (error instanceof NativeBudgetExceeded) throw new HttpError(413, error.message);
-    throw error;
-  }
+  return withSecurity(await explorationSnapshotResponseD1(env.DB,explorationRuntime,bytes,request.signal,request.method));
 }
 
 async function apiResponse(request: Request, env: Env, url: URL): Promise<Response> {

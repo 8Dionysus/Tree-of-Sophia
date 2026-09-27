@@ -3,7 +3,10 @@ import { OVERVIEW_EXCLUDED_PREDICATES, OVERVIEW_EXCLUDED_RELATION_TYPES, knowled
 import {bindOriginD1, normalizeOrigin, REQUEST_V2, RESULT_V2, type Origin, type ResolvedOrigin} from './exploration-origin.ts';
 import {NativeD1Read,nativeD1Limits,nativeUnavailable} from './native-d1-read.ts';
 import {readNativeInspectionPublication} from './native-inspection-store.ts';
-import {NativeExplorationRows} from './native-exploration-store.ts';
+import {NativeExplorationRows,PublishedExplorationD1Transport} from './native-exploration-store.ts';
+import {advanceExploration,explorationError,SelectedExplorationError,type PublishedExplorationModule,
+  type PublishedExplorationSession} from './selected-exploration-runtime.ts';
+import {snapshotPacketResponse} from './selected-temporal-runtime.ts';
 import {nativeCarrier} from './native-lens-result.ts';
 import {NativeBudgetExceeded,codePointCompare,nativeNumberInfo} from '../../../shared/native-semantics.ts';
 import {nativeStrip} from '../../../shared/native-unicode.ts';
@@ -329,6 +332,90 @@ export async function exploreD1(db: D1Database, request: unknown, nativeRequest?
     return nativeUnavailable('prepared exploration publication or checkpoint is unavailable or invalid');
   }
 }
+
+/** Existing published host limits, shared by the real route and its pure
+ * pre-I/O validator. These are software admission, not publication authority. */
+export function publishedExplorationAdmission():Uint8Array {
+  const limits=nativeD1Limits;
+  return new TextEncoder().encode(JSON.stringify({max_open_vm_steps:limits.maxSqlReads,max_read_vm_steps:limits.maxSqlReads,
+    max_matches:limits.maxCandidates,max_rows:limits.maxRows,max_field_bytes:1048576,max_payload_bytes:1048576,
+    max_decoded_bytes:limits.maxDecodedBytes,max_response_bytes:MAX_BYTES,max_json_bytes:MAX_BYTES,
+    max_json_depth:64,max_json_visits:300000,max_integer_digits:4300,max_work_units:512,
+    max_session_nodes:10000,max_session_relations:20000,max_state_bytes:MAX_BYTES,
+    max_checkpoint_bytes:32*MAX_BYTES,max_checkpoints:128,max_cache_bytes:limits.maxCacheBytes,
+    max_cache_entries:limits.maxCacheEntries}));
+}
+/** Actual published exploration: shared Rust rules, existing verified D1 rows,
+ * disposable checkpoint CAS and snapshot-bound final whole-body handoff. */
+export async function explorationSnapshotResponseD1(db:D1Database,runtime:PublishedExplorationModule,
+  request:Uint8Array,signal?:AbortSignal,method='POST'):Promise<Response> {
+  const encoder=new TextEncoder(),decoder=new TextDecoder('utf-8',{fatal:true,ignoreBOM:true});
+  const limits=nativeD1Limits,admission=publishedExplorationAdmission();
+  try {
+    signal?.throwIfAborted();
+    if(typeof runtime?.ExplorationSession!=='function'||typeof runtime.validate_exploration_request_wasm_v1!=='function'
+      ||typeof runtime.validate_exploration_replay_wasm_v1!=='function'||typeof runtime.exploration_cache_version_wasm_v1!=='function') {
+      throw new SelectedExplorationError('Unavailable');
+    }
+    let cursor:string|undefined;
+    try {cursor=runtime.validate_exploration_request_wasm_v1(request,admission);}catch(error){return explorationError(error);}
+    signal?.throwIfAborted();
+    if(!(await explorationCapabilitiesD1(db)).available)throw new HttpError(503,'exploration read model is not prepared');
+    signal?.throwIfAborted();
+    const read=new NativeD1Read(db,limits,true,signal),snap=await snapshot(read),now=Date.now();
+    const publication=await readNativeInspectionPublication(read,snap.revision);
+    if(nativeField(publication.ref,'source_revision').value!==snap.source_revision
+      ||nativePacketJson(nativeField(publication.ref,'authority_boundary'))!==nativePacketJson(snap.authority_boundary)) {
+      nativeUnavailable('exploration publication headers disagree');
+    }
+    const version=runtime.exploration_cache_version_wasm_v1();
+    const checkSelected=async():Promise<void>=>{
+      signal?.throwIfAborted();const current=await snapshot(read);
+      if(current.epoch!==snap.epoch||current.revision!==snap.revision||current.source_revision!==snap.source_revision)conflict();
+      signal?.throwIfAborted();
+    };
+    const validate=(bytes:Uint8Array):void=>{
+      try {runtime.validate_exploration_replay_wasm_v1(bytes,admission);}catch(error){return explorationError(error);}
+    };
+    const replay=(raw:string):Uint8Array=>{
+      const bytes=encoder.encode(raw);validate(bytes);
+      return bytes;
+    };
+    let record:Checkpoint|null=null;
+    if(cursor!==undefined) {
+      record=await checkpoint(db,cursor,now);signal?.throwIfAborted();
+      if(!record)expired();
+      if(record.epoch!==snap.epoch||record.version!==version)conflict();
+      if(record.response!==null)return snapshotPacketResponse(replay(record.response),checkSelected,signal,method);
+      if(!record.state)nativeUnavailable('exploration checkpoint state missing');
+    }
+    let session:PublishedExplorationSession;
+    try {session=new runtime.ExplorationSession(request,snap.source_revision,snap.revision,BigInt(snap.epoch),
+      encoder.encode(publication.raw),encoder.encode(record?.state??''),admission);}catch(error){return explorationError(error);}
+    let packet:Uint8Array,response:string,next:string|null,nextState:string|null;
+    try {
+      await advanceExploration(session,new PublishedExplorationD1Transport(read),signal);
+      signal?.throwIfAborted();next=session.paused()?token():null;
+      nextState=next?decoder.decode(session.state()):null;
+      packet=next===null?session.finish():session.finish(next);response=decoder.decode(packet);
+      signal?.throwIfAborted();
+    }catch(error){return explorationError(error);}finally{session.free();}
+    validate(packet);
+    const admitted=await commitExplorationCheckpoint(db,record,cursor,snap.epoch,version,now,response,next,nextState,checkSelected,signal);
+    return snapshotPacketResponse(record?replay(admitted):packet,checkSelected,signal,method);
+  }catch(error) {
+    signal?.throwIfAborted();
+    if(error instanceof HttpError)throw error;
+    if(error instanceof NativeBudgetExceeded)throw new HttpError(413,error.message);
+    if(error instanceof SelectedExplorationError) {
+      const status=error.code==='UnknownIdentifier'?404:error.code==='CursorExpired'?410
+        :error.code==='StaleSelection'||error.code==='StaleContinuation'?409:error.code==='BudgetExceeded'?413
+        :error.code==='InvalidRequest'||error.code==='InvalidJson'?400:503;
+      throw new HttpError(status,error.message);
+    }
+    return nativeUnavailable('prepared exploration publication or checkpoint is unavailable or invalid');
+  }
+}
 async function exploreNativeD1(db: D1Database, request: unknown, nativeRequest?: NativeRef): Promise<string> {
   const input = object(request), continuing = 'cursor' in input;
   if (nativeRequest) for (const key of ['max_depth','page_nodes','page_relations']) if (nativeKeys(nativeRequest).includes(key)) {
@@ -385,24 +472,34 @@ async function exploreNativeD1(db: D1Database, request: unknown, nativeRequest?:
   // Validate the exact final text, without reserializing it. In particular,
   // Python's UTF-8 response boundary refuses retained lone-surrogate strings.
   validateReplay(response);
+  const admitted=await commitExplorationCheckpoint(db,record,cursor as string|undefined,snap.epoch,CACHE_VERSION,now,response,next,nextState,
+    async()=>{if((await snapshot(read)).epoch!==snap.epoch)conflict();});
+  validateReplay(admitted);return admitted;
+}
+
+/** Disposable checkpoint custody: epoch-guarded CAS, successor admission and
+ * eviction remain a single D1 batch. Rust owns the state and packet content. */
+async function commitExplorationCheckpoint(db:D1Database,record:Checkpoint|null,cursor:string|undefined,
+  epoch:number,version:string,now:number,response:string,next:string|null,nextState:string|null,
+  checkSelected:()=>Promise<void>,signal?:AbortSignal):Promise<string> {
   const expires = record?.expires ?? now + TTL;
   const finished = Date.now();
   if (expires <= finished) expired();
-  if ((await snapshot(read)).epoch !== snap.epoch) conflict();
+  await checkSelected();
   const statements: D1PreparedStatement[] = [];
   statements.push(db.prepare(`DELETE FROM knowledge_exploration_checkpoints WHERE expires<=?
-    AND EXISTS(SELECT 1 FROM knowledge_exploration_clock WHERE singleton=1 AND epoch=?)`).bind(finished,snap.epoch));
+    AND EXISTS(SELECT 1 FROM knowledge_exploration_clock WHERE singleton=1 AND epoch=?)`).bind(finished,epoch));
   if (record) {
     statements.push(db.prepare(`UPDATE knowledge_exploration_checkpoints SET state=NULL,response=?,successor=?,bytes=?
       WHERE token=? AND response IS NULL AND expires>? AND epoch=? AND version=?
       AND EXISTS(SELECT 1 FROM knowledge_exploration_clock WHERE epoch=? AND singleton=1)`)
-      .bind(response, next, byteSize(response), cursor, finished, snap.epoch, CACHE_VERSION, snap.epoch));
+      .bind(response, next, byteSize(response), cursor, finished, epoch, version, epoch));
   }
   if (next) {
     statements.push(db.prepare(`INSERT INTO knowledge_exploration_checkpoints(token,expires,epoch,version,state,bytes)
       SELECT ?,?,?,?,?,? WHERE EXISTS(SELECT 1 FROM knowledge_exploration_clock WHERE singleton=1 AND epoch=?)
       ${record ? 'AND EXISTS(SELECT 1 FROM knowledge_exploration_checkpoints WHERE token=? AND successor=?)' : ''}`)
-      .bind(next, expires, snap.epoch, CACHE_VERSION, nextState, byteSize(nextState!), snap.epoch, ...(record ? [cursor, next] : [])));
+      .bind(next, expires, epoch, version, nextState, byteSize(nextState!), epoch, ...(record ? [cursor, next] : [])));
   }
   // Global bounds are enforced in the same atomic batch as admission. Eviction
   // affects execution cache only, not source or read-model records.
@@ -410,18 +507,20 @@ async function exploreNativeD1(db: D1Database, request: unknown, nativeRequest?:
     SELECT token FROM (SELECT token,ROW_NUMBER() OVER(ORDER BY rowid DESC) AS n,
       SUM(bytes) OVER(ORDER BY rowid DESC) AS total FROM knowledge_exploration_checkpoints)
     WHERE n>128 OR total>33554432)
-    AND EXISTS(SELECT 1 FROM knowledge_exploration_clock WHERE singleton=1 AND epoch=?)`).bind(snap.epoch));
+    AND EXISTS(SELECT 1 FROM knowledge_exploration_clock WHERE singleton=1 AND epoch=?)`).bind(epoch));
   statements.push(db.prepare('SELECT epoch FROM knowledge_exploration_clock WHERE singleton=1'));
   if (record) statements.push(db.prepare(`SELECT ${RESPONSE_COLUMN} FROM knowledge_exploration_checkpoints WHERE token=?`).bind(cursor));
+  signal?.throwIfAborted();
   const committed = await db.batch(statements);
+  signal?.throwIfAborted();
   const epochIndex = committed.length - (record ? 2 : 1);
-  if ((committed[epochIndex]!.results[0] as {epoch: number} | undefined)?.epoch !== snap.epoch) conflict();
+  if ((committed[epochIndex]!.results[0] as {epoch: number} | undefined)?.epoch !== epoch) conflict();
   if (record) {
     const winner = committed.at(-1)!.results[0] as {response: string | null;response_bytes:number|null} | undefined;
     if (winner?.response_bytes && winner.response_bytes > MAX_BYTES) throw new NativeBudgetExceeded('exploration replay exceeds 1 MiB');
     if(winner&&winner.response===null&&winner.response_bytes!==null)nativeUnavailable('invalid exploration winning replay storage type');
     if (!winner?.response) expired();
-    validateReplay(winner.response); return winner.response;
+    return winner.response;
   }
   return response;
 }
