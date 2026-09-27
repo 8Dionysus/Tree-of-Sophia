@@ -242,7 +242,7 @@ test('native auxiliary corruption, epoch drift and mid-query mutation refuse; un
     sqlite.prepare('UPDATE knowledge_exploration_clock SET epoch=epoch+1').run();
     await assert.rejects(executePublishedLensD1(db,parseNativeRequest(JSON.stringify(spec))),/stale/);
     sqlite.prepare('UPDATE knowledge_exploration_clock SET epoch=epoch-1').run();
-    const wrapped={prepare(sql){const statement=db.prepare(sql);return {bind(...args){statement.bind(...args);return this;},async all(){const result=await statement.all();if(sql.includes('FROM knowledge_compact_lens c')) sqlite.prepare('UPDATE knowledge_compact_lens_state SET valid=0').run();return result;}};}};
+    const wrapped={prepare(sql){const statement=db.prepare(sql);return {bind(...args){statement.bind(...args);return this;},first(){return statement.first();},async all(){const result=await statement.all();if(sql.includes('FROM knowledge_compact_lens c')) sqlite.prepare('UPDATE knowledge_compact_lens_state SET valid=0').run();return result;}};}};
     await assert.rejects(executePublishedLensWithLimits(wrapped,parseNativeRequest(JSON.stringify(spec))),error=>error.status===409);
     const original=fixture.cases.find(item=>item.name==='eq-unsafe');
     const expected=python("from tos_access.knowledge import execute_knowledge_lens;d=json.load(sys.stdin);print(json.dumps(json.dumps(execute_knowledge_lens(json.loads(d['graph']),json.loads(d['spec'])))))",{graph:auxiliaryFixture.rawGraph,spec:original.rawSpec});
