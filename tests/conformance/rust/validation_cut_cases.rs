@@ -960,3 +960,331 @@ fn actual_cut_schema_batch_binds_ordered_units_and_refuses_partial_receipts() {
     );
     assert_eq!(schemas.receipts().len(), inputs.len());
 }
+
+#[test]
+fn maintained_assessment_whole_output_matches_native_current_view() {
+    use tos_validation::assessment::{
+        AssessmentLimits, AssessmentReadInput, AssessmentRecordInput, AssessmentRefusal,
+        AssessmentSourceRoute, AssessmentSubmissionInput, evaluate_current_assessment,
+    };
+    use tos_validation::executor::BatchBudget;
+
+    // Reuse the maintained pure owner fixture factory and implementation.
+    // No protected journal, public source, semantic review or grant is written.
+    // The oracle is the entire current-view output, not a hand-authored bool.
+    let oracle = std::process::Command::new("python3").arg("-c").arg(r#"
+import copy,json,sys
+from dataclasses import replace
+from pathlib import Path
+root=Path(sys.argv[1])
+sys.path.insert(0,str(root/'mechanics/growth-cycle/tests'))
+from test_knowledge_assessment import AssessmentPolicyTests,NOW
+from knowledge_assessment import Record,CommittedScope,RequiredAdmission
+def fresh():
+    c=AssessmentPolicyTests();c.setUp();return c
+def envelope(r):
+    return dict(id=r.id,version=r.version,payload=r.payload,origin_id=r.origin_id)
+def submission(s):
+    scope=None if s.committed_scope is None else dict(assertion_layer=s.committed_scope.assertion_layer,
+        risk=s.committed_scope.risk,languages=list(s.committed_scope.languages),
+        maker_id=s.committed_scope.maker_id,requested_use=s.committed_scope.requested_use)
+    return dict(assessment=s.assessment,principal_id=s.principal_id,
+        execution_profile=s.execution_profile.ref,committed_scope=scope)
+rows=[]
+def emit(name,c,reviews=(),history=(),context=None,now=NOW,sourced=(),native=(),claim=False,source_read=None):
+    ctx=context or c.context
+    source_ids={r.id for r in (*sourced,*native)}
+    rows.append(dict(name=name,policy=envelope(c.policy),authorities=list(map(envelope,c.authorities)),
+        competencies=list(map(envelope,c.competencies)),records=[envelope(r) for r in c.records if r.id not in source_ids],
+        source_records=list(map(envelope,sourced)),native_records=list(map(envelope,native)),claim=claim,
+        subject_id=ctx.record.id,configured_scope=dict(record=ctx.record.ref,assertion_layer=ctx.assertion_layer,
+            risk=ctx.risk,languages=list(ctx.languages),maker_id=ctx.maker_id,requested_use=ctx.requested_use,
+            access_allowed=ctx.access_allowed),required_source_refs=[r.ref for r in ctx.required_sources],
+        required_admission_bases=[envelope(a.basis) for a in ctx.required_admissions],
+        reviews=list(map(submission,reviews)),trusted_history=list(map(submission,history)),observed_now=now,source_read=source_read,
+        expected=c.engine().evaluate(ctx,reviews,now=now,trusted_history=history)))
+c=fresh();emit('positive-current',c,[c.review()])
+c=fresh();emit('competing-reject',c,[c.review(),c.review(1,decision='reject')])
+c=fresh();s=c.review();s.assessment['counterevidence_search']['status']='not-searched';emit('countersearch',c,[s])
+c=fresh();s=c.review();s.assessment['rationale']=17;emit('schema-invalid',c,[s])
+c=fresh();s=c.review();t=copy.deepcopy(s);t.assessment['rationale']='conflicting fixture';emit('identity-collision',c,[s,t])
+c=fresh();s=c.review();s.assessment['subject']['version']=1.0;s.assessment['policy']['version']=1.0
+s.assessment['authority']['version']=1.0;s.assessment['competence']['version']=1.0
+emit('python-numeric-exactrefs',c,[s])
+c=fresh();body=c.policy.payload;body['profiles'][0]['min_reviewers']=9007199254740993
+c.policy=Record.from_payload(c.policy.id,1,body)
+for i,r in enumerate(c.authorities):
+    body=r.payload;body['policy']=c.policy.ref;c.authorities[i]=Record.from_payload(r.id,1,body)
+emit('large-integer-quorum',c,[c.review()])
+c=fresh();s=c.review();body=c.authorities[0].payload;body['state']='revoked'
+c.authorities[0]=Record.from_payload(c.authorities[0].id,2,{**body,'authority_version':2})
+emit('current-revocation',c,history=[replace(s,committed_scope=CommittedScope.from_context(c.context))])
+c=fresh();emit('current-time-expired',c,[c.review()],now='2026-10-02T00:00:00Z')
+c=fresh();s=c.review();w=c.review(decision='withdraw',name='tos.review.fixture-withdrawal')
+w.assessment['supersedes']=[Record.from_payload(s.assessment['assessment_id'],1,s.assessment).ref]
+scope=CommittedScope.from_context(c.context)
+emit('committed-withdrawal',c,history=[replace(s,committed_scope=scope),replace(w,committed_scope=scope)])
+body=c.authorities[0].payload;body['state']='revoked';body['authority_version']=2
+c.authorities[0]=Record.from_payload(c.authorities[0].id,2,body)
+emit('historical-suppression-after-revocation',c,history=[replace(s,committed_scope=scope),replace(w,committed_scope=scope)])
+c=fresh();s=replace(c.review(),committed_scope=CommittedScope.from_context(c.context))
+emit('purpose-changed',c,history=[s],context=replace(c.context,risk='moderate'))
+c=fresh();body=c.authorities[0].payload;body['languages']=['STRASSE']
+c.authorities[0]=Record.from_payload(c.authorities[0].id,1,body)
+body=c.competencies[0].payload;body['languages']=['strasse']
+c.competencies[0]=Record.from_payload(c.competencies[0].id,1,body)
+body=c.authorities[0].payload;body['competence_refs']=[c.competencies[0].ref]
+c.authorities[0]=Record.from_payload(c.authorities[0].id,1,body)
+s=c.review();s.assessment['language']='strasse'
+ctx=replace(c.context,languages=('Straße',))
+s=replace(s,committed_scope=CommittedScope.from_context(replace(ctx,languages=('STRASSE',))))
+emit('unicode-casefold-purpose',c,history=[s],context=ctx)
+c=fresh();s=c.review(profile='identity');t=c.review(1,profile='identity')
+for r in (s,t):r.assessment['evidence'].append(dict(record=c.source_b.ref,stance='supports',locator='fixture B'))
+emit('independent-quorum',c,[s,t],context=replace(c.context,assertion_layer='identity_assertion',risk='high'))
+body=c.authorities[1].payload;body['independence_group']='assessor-a'
+c.authorities[1]=Record.from_payload(c.authorities[1].id,1,body)
+t=c.review(1,profile='identity');t.assessment['evidence'].append(dict(record=c.source_b.ref,stance='supports',locator='fixture B'))
+emit('shared-independence-group',c,[s,t],context=replace(c.context,assertion_layer='identity_assertion',risk='high'))
+c=fresh();body=c.policy.payload;body['profiles'][0].update(min_reviewers=3,min_independence_groups=3)
+c.policy=Record.from_payload(c.policy.id,1,body)
+for i,r in enumerate(c.authorities):
+    body=r.payload;body['policy']=c.policy.ref;body['independence_group']='group-one' if i==0 else 'group-shared'
+    c.authorities[i]=Record.from_payload(r.id,1,body)
+body=c.competencies[1].payload;body.update(competence_id='tos.competence.assessor-c',actor_id='assessor-c')
+third=Record.from_payload(body['competence_id'],1,body);c.competencies.append(third)
+body=c.authorities[1].payload;body.update(authority_id='tos.authority.assessor-c',actor_id='assessor-c',competence_refs=[third.ref])
+c.authorities.append(Record.from_payload(body['authority_id'],1,body))
+c.competencies.append(c.competencies[0])
+body=c.authorities[0].payload;body.update(authority_id='tos.authority.assessor-a-alt',independence_group='group-two')
+c.authorities.append(Record.from_payload(body['authority_id'],1,body))
+voters=[c.review(i,name=f'tos.review.matching-{i}') for i in range(4)]
+emit('actor-group-maximum-matching',c,voters)
+body=c.authorities[2].payload;body['independence_group']='group-third'
+c.authorities[2]=Record.from_payload(c.authorities[2].id,1,body)
+voters[2]=c.review(2,name='tos.review.matching-2')
+emit('actor-group-augmenting-path',c,voters)
+c=fresh();same=Record.from_payload(c.source_b.id,1,c.source.payload,origin_id='source-b')
+c.records[2]=same;s=c.review(profile='identity');t=c.review(1,profile='identity')
+for r in (s,t):r.assessment['evidence'].append(dict(record=same.ref,stance='supports',locator='same exact source bytes'))
+emit('same-bytes-no-extra-origin',c,[s,t],context=replace(c.context,assertion_layer='identity_assertion',risk='high'))
+c=fresh();basis=Record.from_payload('tos.quality-basis.fixture',1,dict(synthetic=True,can_use=True,
+    limits=['fixture quality limitation']),origin_id='source-a');c.records.append(basis)
+ctx=replace(c.context,required_sources=(c.source,),required_admissions=(RequiredAdmission(basis,True,('fixture quality limitation',)),))
+s=c.review();s.assessment['evidence'].append(dict(record=basis.ref,stance='context',locator='whole fixture basis'))
+emit('exact-dependency-and-limits',c,[s],context=ctx)
+missing=copy.deepcopy(s);missing.assessment['evidence'][0]['record']['version']=1.0
+emit('canonical-evidence-not-numeric-ref',c,[missing],context=ctx)
+c=fresh();binding=dict(unit_id='tos.text-unit.fixture',version=1,sha256='0'*64)
+subject=Record.from_payload(c.subject.id,1,dict(synthetic=True,native_text_binding=binding))
+c.subject=subject;c.records[0]=subject;ctx=replace(c.context,record=subject,source_read_ready=False)
+native=Record.from_payload('tos.native.fixture',1,dict(native_binding=binding,content_verified=False),origin_id='fixture-native')
+c.records.append(native)
+emit('metadata-only-is-not-content-read',c,[c.review()],context=ctx,sourced=[subject],native=[native],claim=True,
+    source_read=dict(required=True,ready=False))
+print(json.dumps(rows,ensure_ascii=False,allow_nan=False,separators=(',',':')))
+"#).arg(repository()).output().unwrap();
+    assert!(
+        oracle.status.success(),
+        "maintained owner oracle: {}",
+        String::from_utf8_lossy(&oracle.stderr)
+    );
+    let cases: Value = serde_json::from_slice(&oracle.stdout).unwrap();
+    let cases = cases.as_array().unwrap();
+    assert!(!cases.is_empty());
+    let files = selected_item_sources();
+    let temporary = tempfile::tempdir().unwrap();
+    let root = temporary.path().join("store");
+    let revision = write_cut_store(&files, &root);
+    let cancelled = AtomicBool::new(false);
+    let deadline = Instant::now() + Duration::from_secs(300);
+    let reader = CorpusReader::open_existing(
+        &root,
+        ReadLimits {
+            max_manifest_bytes: 1_048_576,
+            max_manifest_entries: 512,
+            max_selected_object_bytes: 2_097_152,
+            json: JsonLimits::default(),
+        },
+    )
+    .unwrap();
+    let cut = reader
+        .open_source_cut(
+            revision,
+            CutReadLimits {
+                max_revisions: 4,
+                max_members: 1024,
+                max_total_bytes: 16_777_216,
+                max_member_bytes: 2_097_152,
+            },
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+    let worker_path = selected_worker_path();
+    let worker_digest = Digest256::of_bytes(&fs::read(&worker_path).unwrap());
+    let mut schemas = CutWorkerSchemaExecutor::from_cut(
+        &cut,
+        FormatProfile::AssertedSourceCandidateV1,
+        ExactWorkerIdentity {
+            absolute_path: worker_path,
+            sha256: worker_digest,
+        },
+        ExecutorBudget::laboratory(),
+        CutWorkerLimits {
+            max_receipts: 512,
+            max_receipt_bytes: 524_288,
+        },
+        deadline,
+        &cancelled,
+    )
+    .unwrap();
+    let record = |value: &Value| AssessmentRecordInput {
+        envelope: serde_json::to_vec(value).unwrap(),
+    };
+    let records = |value: &Value| {
+        value
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(record)
+            .collect::<Vec<_>>()
+    };
+    let submissions = |value: &Value| {
+        value
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|s| AssessmentSubmissionInput {
+                assessment: serde_json::to_vec(&s["assessment"]).unwrap(),
+                principal_id: required(s, "principal_id").into(),
+                execution_profile: serde_json::to_vec(&s["execution_profile"]).unwrap(),
+                committed_scope: (!s["committed_scope"].is_null())
+                    .then(|| serde_json::to_vec(&s["committed_scope"]).unwrap()),
+            })
+            .collect::<Vec<_>>()
+    };
+    let limits = AssessmentLimits {
+        max_input_bytes: 8_388_608,
+        max_work: 4_194_304,
+        batch: BatchBudget::laboratory(),
+        deadline,
+    };
+    let mut hashes = BTreeSet::new();
+    let mut last_input = None;
+    for case in cases {
+        let name = required(case, "name");
+        let input = AssessmentReadInput {
+            source_revision: revision,
+            policy: record(&case["policy"]),
+            authorities: records(&case["authorities"]),
+            competencies: records(&case["competencies"]),
+            records: records(&case["records"]),
+            source_records: records(&case["source_records"]),
+            native_records: records(&case["native_records"]),
+            source_route: if case["claim"].as_bool().unwrap() {
+                AssessmentSourceRoute::SourceBoundClaim
+            } else {
+                AssessmentSourceRoute::SelectedSource
+            },
+            subject_id: required(case, "subject_id").into(),
+            configured_scope: serde_json::to_vec(&case["configured_scope"]).unwrap(),
+            required_source_refs: case["required_source_refs"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|r| serde_json::to_vec(r).unwrap())
+                .collect(),
+            required_admission_bases: records(&case["required_admission_bases"]),
+            reviews: submissions(&case["reviews"]),
+            trusted_history: submissions(&case["trusted_history"]),
+            observed_now: required(case, "observed_now").into(),
+        };
+        let start = schemas.receipts().len();
+        let report = evaluate_current_assessment(&input, &mut schemas, limits, &cancelled)
+            .unwrap_or_else(|e| panic!("{name}: {e:?}"));
+        assert_eq!(
+            report.current_admission(),
+            &case["expected"],
+            "entire maintained output: {name}"
+        );
+        assert_eq!(report.schema_binding().source_revision, revision);
+        assert_eq!(report.schema_binding().worker_sha256, worker_digest);
+        assert_eq!(report.observed_now(), required(case, "observed_now"));
+        if case["source_read"].is_null() {
+            assert!(
+                !report.source_read_required(),
+                "empty native closure must not create a present Sign read gate: {name}"
+            );
+            assert!(report.source_read_ready());
+        } else {
+            assert_eq!(
+                report.source_read_required(),
+                case["source_read"]["required"].as_bool().unwrap()
+            );
+            assert_eq!(
+                report.source_read_ready(),
+                case["source_read"]["ready"].as_bool().unwrap()
+            );
+        }
+        assert!(
+            hashes.insert(report.input_sha256()),
+            "each owner observation must bind a distinct input: {name}"
+        );
+        assert!(schemas.receipts().len() > start);
+        assert!(
+            schemas.receipts()[start..]
+                .iter()
+                .all(|r| r.source_revision == revision
+                    && r.execution.worker_sha256 == worker_digest
+                    && r.execution.profile == FormatProfile::AssertedSourceCandidateV1
+                    && r.batch.is_some())
+        );
+        last_input = Some(input);
+    }
+    let mut input = last_input.unwrap();
+    let start = schemas.receipts().len();
+    let current_revision = input.source_revision;
+    input.source_revision = SourceRevision(Digest256::of_bytes(b"different selected source"));
+    assert!(matches!(
+        evaluate_current_assessment(&input, &mut schemas, limits, &cancelled),
+        Err(AssessmentRefusal::InvalidInput(_))
+    ));
+    input.source_revision = current_revision;
+    assert!(matches!(
+        evaluate_current_assessment(&input, &mut schemas, limits, &AtomicBool::new(true)),
+        Err(AssessmentRefusal::Cancelled)
+    ));
+    assert!(matches!(
+        evaluate_current_assessment(
+            &input,
+            &mut schemas,
+            AssessmentLimits {
+                deadline: Instant::now(),
+                ..limits
+            },
+            &cancelled
+        ),
+        Err(AssessmentRefusal::Deadline)
+    ));
+    assert!(matches!(
+        evaluate_current_assessment(
+            &input,
+            &mut schemas,
+            AssessmentLimits {
+                max_input_bytes: 1,
+                ..limits
+            },
+            &cancelled
+        ),
+        Err(AssessmentRefusal::Budget)
+    ));
+    input.source_route = AssessmentSourceRoute::LayerQuality;
+    assert!(matches!(
+        evaluate_current_assessment(&input, &mut schemas, limits, &cancelled),
+        Err(AssessmentRefusal::Unsupported(_))
+    ));
+    assert_eq!(schemas.receipts().len(), start);
+    // Every true fixture value above remains a pure synthetic mechanics
+    // observation. No journal, current source admission or Sign issuer exists.
+}

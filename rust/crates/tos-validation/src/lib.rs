@@ -15,6 +15,7 @@ use tos_foundation::{
 };
 
 mod audit;
+pub mod assessment;
 pub mod biblio_rules;
 pub mod executor;
 mod global_facts;
