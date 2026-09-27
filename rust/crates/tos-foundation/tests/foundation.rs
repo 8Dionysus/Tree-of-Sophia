@@ -2,8 +2,8 @@ use tos_foundation::{
     CanonicalProfile, CodePointSpan, Digest256, Digest256Hasher, FoundationErrorCode,
     JsonEmissionProfile, JsonLimits, JsonMode, JsonNumber, JsonNumberKind, JsonString, JsonValue,
     LogicalRecordRefV1, RelativePath, StableId, UnicodeProfile, canonical_bytes_v1,
-    emit_json_profile, emit_preserved_json, parse_json, python_casefold_unicode16_v1,
-    python_lower_unicode16_v1, python_strip_unicode16_v1,
+    canonical_count_v1, emit_json_profile, emit_preserved_json, parse_json,
+    python_casefold_unicode16_v1, python_lower_unicode16_v1, python_strip_unicode16_v1,
 };
 
 #[test]
