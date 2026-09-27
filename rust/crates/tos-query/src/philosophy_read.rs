@@ -329,27 +329,7 @@ pub fn execute_selected_philosophy<A: InspectCurrentAuthority + ?Sized>(
         PHILOSOPHY_INTENDED_USE,
         budget.inspect,
         |read| {
-            let receipt = read.philosophy_receipt()?;
-            let source = bound
-                .source_for_adapter("philosophy-node-edge-v1")
-                .ok_or_else(|| {
-                    failure(
-                        SearchV2ErrorCode::Unavailable,
-                        "selected philosophy source unavailable",
-                    )
-                })?;
-            if receipt.profile != tos_compiler::PHILOSOPHY_ORIGINAL_PROFILE
-                || receipt.source_graph != source
-                || receipt.descriptor_sha256
-                    != bound.selection().vocabulary.descriptor_sha256.to_hex()
-                || receipt.source_cut != bound.selection().source_cut
-                || receipt.membership_root != bound.selection().source_membership_root.to_hex()
-            {
-                return Err(failure(
-                    SearchV2ErrorCode::CorruptSelectedCarrier,
-                    "selected philosophy original binding differs",
-                ));
-            }
+            let receipt = bound_original_receipt(read, bound)?;
             let mut header =
                 original_rows(read, &receipt, PhilosophyOriginalCollection::Header, 1)?;
             let nodes = original_rows(
@@ -1250,4 +1230,81 @@ pub(crate) fn compute_philosophy_read(
             ]))
         }
     }
+}
+
+fn bound_original_receipt<A: InspectCurrentAuthority + ?Sized>(
+    read: &mut Reader<'_, '_, A>,
+    bound: &BoundCmpKnowledge<'_>,
+) -> Result<PhilosophyOriginalReceipt, SearchV2Error> {
+    let receipt = read.philosophy_receipt()?;
+    let source = bound
+        .source_for_adapter("philosophy-node-edge-v1")
+        .ok_or_else(|| {
+            failure(
+                SearchV2ErrorCode::Unavailable,
+                "selected philosophy source unavailable",
+            )
+        })?;
+    if receipt.profile != tos_compiler::PHILOSOPHY_ORIGINAL_PROFILE
+        || receipt.source_graph != source
+        || receipt.descriptor_sha256 != bound.selection().vocabulary.descriptor_sha256.to_hex()
+        || receipt.source_cut != bound.selection().source_cut
+        || receipt.membership_root != bound.selection().source_membership_root.to_hex()
+    {
+        return Err(failure(
+            SearchV2ErrorCode::CorruptSelectedCarrier,
+            "selected philosophy original binding differs",
+        ));
+    }
+    Ok(receipt)
+}
+
+/// Metadata projection for site defaults, not the complete maintained Views
+/// packet. Only the exact original Header is consulted under the existing
+/// philosophy views scope and current held original-component authority.
+pub fn execute_selected_philosophy_view_ids<A: InspectCurrentAuthority + ?Sized>(
+    model: &mut VerifiedKnowledgeModel<'_>,
+    bound: &BoundCmpKnowledge<'_>,
+    authority: &mut A,
+    budget: PhilosophyReadBudget,
+) -> Result<DisclosableInspect, SearchV2Error> {
+    if budget.max_work_steps == 0 {
+        return Err(invalid());
+    }
+    execute_selected_carrier_packet(
+        model,
+        bound,
+        authority,
+        PhilosophyReadRequest::Views.operation_id(),
+        PHILOSOPHY_INTENDED_USE,
+        budget.inspect,
+        |read| {
+            let receipt = bound_original_receipt(read, bound)?;
+            let header =
+                original_rows(read, &receipt, PhilosophyOriginalCollection::Header, 1)?.remove(0);
+            let mut interrupt = || read.check_interrupt();
+            let mut work = Work {
+                remaining: budget.max_work_steps,
+                interrupt: &mut interrupt,
+            };
+            let mut views = vec![];
+            for view in arr(get(&header, "views")) {
+                work.step()?;
+                if view.as_object().is_none()
+                    || !crate::knowledge_lens_spec::truthy(get(view, "view_id"))
+                {
+                    continue;
+                }
+                let id = crate::knowledge_lens_spec::py_string(get(view, "view_id"));
+                if id.len() > budget.inspect.max_field_bytes {
+                    return Err(failure(
+                        SearchV2ErrorCode::BudgetExceeded,
+                        "philosophy view identity exceeds field budget",
+                    ));
+                }
+                views.push(object(vec![("view_id", text(&id))]));
+            }
+            Ok(object(vec![("views", values(views))]))
+        },
+    )
 }
