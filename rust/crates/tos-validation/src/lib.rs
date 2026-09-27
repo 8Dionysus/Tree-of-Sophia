@@ -477,30 +477,7 @@ impl SchemaBackendProbe {
     /// Internal structural probe. Public callers enter through `is_valid_raw`
     /// so an already-collapsed JSON object cannot bypass `PublishedStrict`.
     fn is_valid(&self, root_uri: &str, instance: &Value) -> Result<bool, SchemaProbeError> {
-        let (base_uri, fragment) = match root_uri.split_once('#') {
-            Some((base, fragment))
-                if !base.is_empty() && fragment.starts_with('/') && !fragment.contains('#') =>
-            {
-                (base, Some(fragment))
-            }
-            Some(_) => return Err(SchemaProbeError::InvalidResourceId),
-            None => (root_uri, None),
-        };
-        let root_schema = self
-            .resources
-            .get(base_uri)
-            .ok_or(SchemaProbeError::MissingResource)?;
-        // Resolve a selected JSON Pointer through the original registry. Taking
-        // a Value::pointer subtree and compiling it alone would lose enclosing
-        // $id scopes and relative $ref resolution. This selector adds no resource
-        // bytes, identity, network retrieval or alternative schema engine.
-        let selector;
-        let schema = if fragment.is_some() {
-            selector = serde_json::json!({"$ref": root_uri});
-            &selector
-        } else {
-            root_schema
-        };
+        let schema = self.selected_schema(root_uri)?;
         let registry = Registry::new()
             .extend(
                 self.resources
@@ -523,9 +500,35 @@ impl SchemaBackendProbe {
                 .with_format("uri-reference", |_| true);
         }
         let validator = options
-            .build(schema)
+            .build(schema.as_ref())
             .map_err(|error| SchemaProbeError::Backend(error.to_string()))?;
         Ok(validator.is_valid(instance))
+    }
+
+    /// Keep fragment resolution inside the original registry and its $id scopes.
+    fn selected_schema(&self, root_uri: &str) -> Result<std::borrow::Cow<'_, Value>, SchemaProbeError> {
+        let (base_uri, fragment) = match root_uri.split_once('#') {
+            Some((base, fragment))
+                if !base.is_empty() && fragment.starts_with('/') && !fragment.contains('#') =>
+            {
+                (base, Some(fragment))
+            }
+            Some(_) => return Err(SchemaProbeError::InvalidResourceId),
+            None => (root_uri, None),
+        };
+        let root_schema = self
+            .resources
+            .get(base_uri)
+            .ok_or(SchemaProbeError::MissingResource)?;
+        // Resolve a selected JSON Pointer through the original registry. Taking
+        // a Value::pointer subtree and compiling it alone would lose enclosing
+        // $id scopes and relative $ref resolution. This selector adds no resource
+        // bytes, identity, network retrieval or alternative schema engine.
+        Ok(if fragment.is_some() {
+            std::borrow::Cow::Owned(serde_json::json!({"$ref": root_uri}))
+        } else {
+            std::borrow::Cow::Borrowed(root_schema)
+        })
     }
 
     /// Compile the complete supplied set against one bounded, local registry.

@@ -14,6 +14,8 @@ use tos_source_store::{
 };
 
 use crate::executor::{
+    BatchBudget, BatchCoverageCheckpoint, BatchCoverageExpectation, BatchOutcome, BatchUnit,
+    BatchUnitVerdict,
     BoundedSchemaExecutor, ExactWorkerIdentity, ExecutionIdentity, ExecutorBudget, ExecutorFailure,
     ExecutorOutcome,
 };
@@ -35,6 +37,31 @@ pub trait CutSchemaExecutor {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> Result<bool, ItemRefusal>;
+
+    /// One bounded disposable invocation; no fallback to a weaker executor.
+    fn check_batch(
+        &mut self,
+        _checks: &[CutSchemaCheck],
+        _budget: BatchBudget,
+        _deadline: Instant,
+        _cancelled: &AtomicBool,
+    ) -> Result<Vec<bool>, ItemRefusal> {
+        Err(ItemRefusal::Unsupported("schema batch execution unavailable".into()))
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct CutSchemaCheck {
+    pub path: String,
+    pub raw: Vec<u8>,
+    pub contract: String,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct CutBatchBinding {
+    pub checkpoint: BatchCoverageCheckpoint,
+    pub ordinal: u64,
+    pub unit_sha256: Digest256,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -55,6 +82,8 @@ pub struct CutSchemaReceipt {
     pub decoded_instance_sha256: Digest256,
     pub execution: ExecutionIdentity,
     pub valid: bool,
+    /// Transport coverage of this finite invocation, not owner completeness.
+    pub batch: Option<CutBatchBinding>,
 }
 
 /// Real disposable schema execution over resources read from the exact source
@@ -185,6 +214,120 @@ impl CutWorkerSchemaExecutor {
 }
 
 impl CutSchemaExecutor for CutWorkerSchemaExecutor {
+    fn check_batch(
+        &mut self,
+        checks: &[CutSchemaCheck],
+        mut budget: BatchBudget,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<Vec<bool>, ItemRefusal> {
+        check(deadline, cancelled)?;
+        if budget.max_units == 0 || budget.max_units > BatchBudget::MAX_UNITS
+            || budget.max_total_raw_bytes == 0 || budget.max_total_raw_bytes > BatchBudget::MAX_RAW_BYTES
+            || checks.is_empty() || checks.len() > budget.max_units
+            || self.receipts.len().checked_add(checks.len())
+                .filter(|n| *n <= self.limits.max_receipts).is_none()
+        {
+            return Err(ItemRefusal::Budget);
+        }
+        let mut next_bytes = self.receipt_bytes;
+        let mut total_raw = 0usize;
+        let mut units = Vec::with_capacity(checks.len());
+        let mut raw_digests = Vec::with_capacity(checks.len());
+        for (ordinal, input) in checks.iter().enumerate() {
+            check(deadline, cancelled)?;
+            next_bytes = input.path.len().checked_add(input.contract.len())
+                .and_then(|n| n.checked_add(std::mem::size_of::<CutSchemaReceipt>()))
+                .and_then(|n| next_bytes.checked_add(n))
+                .filter(|n| *n <= self.limits.max_receipt_bytes)
+                .ok_or(ItemRefusal::Budget)?;
+            let (base, fragment) = match input.contract.split_once('#') {
+                Some((base, fragment)) if !base.is_empty() && fragment.starts_with('/')
+                    && !fragment.contains('#') => (base, Some(fragment)),
+                Some(_) => return Err(ItemRefusal::Unsupported("invalid source schema fragment selector".into())),
+                None => (input.contract.as_str(), None),
+            };
+            let base_uri = &self.contracts.get(base)
+                .ok_or_else(|| ItemRefusal::Unsupported(format!("missing source schema {}", input.contract)))?.0;
+            let uri = fragment.map_or_else(|| base_uri.clone(), |f| format!("{base_uri}#{f}"));
+            if input.raw.len() > SchemaBackendProbe::MAX_INSTANCE_BYTES {
+                return Err(ItemRefusal::Budget);
+            }
+            let decoded: serde_json::Value = serde_json::from_slice(&input.raw)
+                .map_err(|_| ItemRefusal::Unsupported("unsupported native decoded JSON representation".into()))?;
+            let worker_raw = serde_json::to_vec(&decoded)
+                .map_err(|_| ItemRefusal::Unsupported("native decoded JSON serialization".into()))?;
+            total_raw = total_raw.checked_add(worker_raw.len())
+                .filter(|n| *n <= budget.max_total_raw_bytes).ok_or(ItemRefusal::Budget)?;
+            raw_digests.push(Digest256::of_bytes(&input.raw));
+            units.push(BatchUnit {
+                ordinal: ordinal as u64,
+                member_id: ordinal.to_string(),
+                relative_path: input.path.clone(),
+                root_uri: uri,
+                raw_instance: worker_raw,
+            });
+        }
+        let expected = BatchCoverageExpectation::from_units(&units)
+            .map_err(|_| ItemRefusal::Budget)?;
+        let remaining = deadline.checked_duration_since(Instant::now()).ok_or(ItemRefusal::Deadline)?;
+        budget.total_execution_wall = budget.total_execution_wall.min(remaining);
+        budget.startup_wall = budget.startup_wall.min(budget.total_execution_wall);
+        budget.per_unit_wall = budget.per_unit_wall.min(budget.total_execution_wall);
+        let outcome = BoundedSchemaExecutor::evaluate_batch_cancellable(
+            &self.worker, &self.resources, self.profile, units.clone(), expected, budget, cancelled,
+        );
+        check(deadline, cancelled)?;
+        let (receipts, checkpoint) = match outcome {
+            BatchOutcome::Complete { receipts, checkpoint } => (receipts, checkpoint),
+            BatchOutcome::Incomplete { reason: ExecutorFailure::Timeout, .. } => return Err(ItemRefusal::Deadline),
+            BatchOutcome::Incomplete { reason: ExecutorFailure::Cancelled, .. } =>
+                return Err(ItemRefusal::Source("schema execution cancelled".into())),
+            other => return Err(ItemRefusal::Unsupported(format!("schema batch execution incomplete: {other:?}"))),
+        };
+        if checkpoint.worker_sha256 != self.worker.sha256
+            || checkpoint.schema_set_sha256 != self.schema_set_digest
+            || checkpoint.profile != self.profile
+            || checkpoint.ordered_manifest_sha256 != expected.ordered_manifest_sha256
+            || checkpoint.completed_count != expected.count
+            || receipts.len() != checks.len()
+        {
+            return Err(ItemRefusal::Source("schema batch identity mismatch".into()));
+        }
+        let mut staged = Vec::with_capacity(checks.len());
+        let mut verdicts = Vec::with_capacity(checks.len());
+        for (ordinal, ((input, unit), receipt)) in checks.iter().zip(&units).zip(receipts).enumerate() {
+            let decoded_digest = Digest256::of_bytes(&unit.raw_instance);
+            if receipt.ordinal != ordinal as u64 || receipt.member_id != unit.member_id
+                || receipt.relative_path != input.path || receipt.root_uri != unit.root_uri
+                || receipt.raw_sha256 != decoded_digest
+            {
+                return Err(ItemRefusal::Source("schema batch unit identity mismatch".into()));
+            }
+            let valid = match receipt.verdict {
+                BatchUnitVerdict::SchemaValid => true,
+                BatchUnitVerdict::SchemaInvalid => false,
+                BatchUnitVerdict::InputRejected => return Err(ItemRefusal::Source("schema batch input rejected".into())),
+            };
+            staged.push(CutSchemaReceipt {
+                path: input.path.clone(), contract: input.contract.clone(), source_revision: self.revision,
+                source_raw_sha256: raw_digests[ordinal], decoded_instance_sha256: decoded_digest,
+                execution: ExecutionIdentity {
+                    worker_sha256: checkpoint.worker_sha256, request_sha256: checkpoint.request_sha256,
+                    schema_set_sha256: checkpoint.schema_set_sha256, instance_sha256: decoded_digest,
+                    profile: checkpoint.profile,
+                },
+                valid,
+                batch: Some(CutBatchBinding { checkpoint, ordinal: receipt.ordinal, unit_sha256: receipt.unit_sha256 }),
+            });
+            verdicts.push(valid);
+        }
+        check(deadline, cancelled)?;
+        self.receipt_bytes = next_bytes;
+        self.receipts.extend(staged);
+        Ok(verdicts)
+    }
+
     fn check(
         &mut self,
         path: &str,
@@ -292,6 +435,7 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
             decoded_instance_sha256: decoded_digest,
             execution,
             valid,
+            batch: None,
         });
         Ok(valid)
     }

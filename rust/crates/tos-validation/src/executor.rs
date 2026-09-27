@@ -128,6 +128,8 @@ pub struct BatchBudget {
 }
 
 impl BatchBudget {
+    pub const MAX_UNITS: usize = MAX_BATCH_UNITS;
+    pub const MAX_RAW_BYTES: usize = MAX_BATCH_RAW_BYTES;
     pub fn laboratory() -> Self {
         Self {
             total_execution_wall: Duration::from_secs(60),
@@ -276,6 +278,51 @@ pub enum BatchStreamOutcome {
     },
 }
 
+fn batch_unit_digest(unit: &BatchUnit) -> Result<Digest256, ExecutorFailure> {
+    if unit.member_id.is_empty()
+        || unit.member_id.len() > MAX_MEMBER_ID_BYTES
+        || unit.relative_path.is_empty()
+        || unit.relative_path.len() > MAX_PATH_BYTES
+        || unit.relative_path.starts_with('/')
+        || unit.relative_path.split('/').any(|part| part == "..")
+        || unit.root_uri.len() > MAX_URI_BYTES
+        || unit.raw_instance.len() > crate::SchemaBackendProbe::MAX_INSTANCE_BYTES
+    {
+        return Err(ExecutorFailure::InputBudget);
+    }
+    let mut digest = tos_foundation::Digest256Hasher::new();
+    digest.update(b"tos-val2-batch-unit-v1\0");
+    digest.update(&unit.ordinal.to_be_bytes());
+    for value in [
+        unit.member_id.as_bytes(),
+        unit.relative_path.as_bytes(),
+        unit.root_uri.as_bytes(),
+        unit.raw_instance.as_slice(),
+    ] {
+        digest.update(&(value.len() as u32).to_be_bytes());
+        digest.update(value);
+    }
+    Ok(digest.finalize())
+}
+
+impl BatchCoverageExpectation {
+    /// Exact transport manifest only; this does not establish source coverage.
+    pub fn from_units(units: &[BatchUnit]) -> Result<Self, ExecutorFailure> {
+        if units.is_empty() || units.len() > MAX_BATCH_UNITS {
+            return Err(ExecutorFailure::InputBudget);
+        }
+        let mut manifest = tos_foundation::Digest256Hasher::new();
+        manifest.update(b"tos-val2-batch-manifest-v1\0");
+        for (ordinal, unit) in units.iter().enumerate() {
+            if unit.ordinal != ordinal as u64 {
+                return Err(ExecutorFailure::CoverageMismatch);
+            }
+            manifest.update(batch_unit_digest(unit)?.as_bytes());
+        }
+        Ok(Self { count: units.len() as u64, ordered_manifest_sha256: manifest.finalize() })
+    }
+}
+
 fn unknown(reason: ExecutorFailure, identity: Option<ExecutionIdentity>) -> ExecutorOutcome {
     ExecutorOutcome::Indeterminate { reason, identity }
 }
@@ -359,11 +406,44 @@ impl BoundedSchemaExecutor {
     ) -> BatchOutcome {
         #[cfg(all(target_os = "linux", target_pointer_width = "64"))]
         {
-            native::evaluate_batch(worker, resources, profile, units, expected, budget)
+            native::evaluate_batch(worker, resources, profile, units, expected, budget, None)
         }
         #[cfg(not(all(target_os = "linux", target_pointer_width = "64")))]
         {
             let _ = (worker, resources, profile, units, expected, budget);
+            BatchOutcome::Incomplete {
+                receipts: Vec::new(),
+                checkpoint: BatchCoverageCheckpoint {
+                    worker_sha256: worker.sha256,
+                    request_sha256: Digest256::of_bytes(b""),
+                    profile,
+                    schema_set_sha256: Digest256::of_bytes(b""),
+                    ordered_manifest_sha256: Digest256::of_bytes(b""),
+                    completed_count: 0,
+                    result_stream_sha256: Digest256::of_bytes(b""),
+                },
+                reason: ExecutorFailure::UnsupportedHost,
+            }
+        }
+    }
+
+    /// Same finite protocol, with cooperative cancellation during parent polls.
+    pub fn evaluate_batch_cancellable(
+        worker: &ExactWorkerIdentity,
+        resources: &[SchemaResource],
+        profile: FormatProfile,
+        units: impl IntoIterator<Item = BatchUnit>,
+        expected: BatchCoverageExpectation,
+        budget: BatchBudget,
+        cancelled: &AtomicBool,
+    ) -> BatchOutcome {
+        #[cfg(all(target_os = "linux", target_pointer_width = "64"))]
+        {
+            native::evaluate_batch(worker, resources, profile, units, expected, budget, Some(cancelled))
+        }
+        #[cfg(not(all(target_os = "linux", target_pointer_width = "64")))]
+        {
+            let _ = (worker, resources, profile, units, expected, budget, cancelled);
             BatchOutcome::Incomplete {
                 receipts: Vec::new(),
                 checkpoint: BatchCoverageCheckpoint {
@@ -655,9 +735,15 @@ mod native {
         units: impl IntoIterator<Item = BatchUnit>,
         expected: BatchCoverageExpectation,
         budget: BatchBudget,
+        cancelled: Option<&AtomicBool>,
     ) -> BatchOutcome {
+        let start = Instant::now();
         let empty_digest = Digest256::of_bytes(b"");
-        let prepared = match make_batch_request(worker.sha256, resources, profile, units, budget) {
+        let prepared = match if cancelled.is_some_and(|flag| flag.load(Ordering::Relaxed)) {
+            Err(ExecutorFailure::Cancelled)
+        } else {
+            make_batch_request(worker.sha256, resources, profile, units, budget)
+        } {
             Ok(prepared) => prepared,
             Err(reason) => {
                 return BatchOutcome::Incomplete {
@@ -684,11 +770,16 @@ mod native {
                 ExecutorFailure::CoverageMismatch,
             );
         }
-        let start = Instant::now();
+        if cancelled.is_some_and(|flag| flag.load(Ordering::Relaxed)) {
+            return batch_incomplete(prepared, Vec::new(), results, ExecutorFailure::Cancelled);
+        }
         let image = match sealed_worker(worker) {
             Ok(image) => image,
             Err(reason) => return batch_incomplete(prepared, Vec::new(), results, reason),
         };
+        if cancelled.is_some_and(|flag| flag.load(Ordering::Relaxed)) {
+            return batch_incomplete(prepared, Vec::new(), results, ExecutorFailure::Cancelled);
+        }
         if start.elapsed() >= budget.total_execution_wall || start.elapsed() >= budget.startup_wall
         {
             return batch_incomplete(prepared, Vec::new(), results, ExecutorFailure::Timeout);
@@ -697,7 +788,7 @@ mod native {
             c"tos-schema-worker".as_ptr() as *mut libc::c_char,
             std::ptr::null_mut(),
         ];
-        run_batch_image(image, prepared, results, budget, start, &argv)
+        run_batch_image_cancellable(image, prepared, results, budget, start, &argv, cancelled)
     }
 
     fn batch_checkpoint(
@@ -728,33 +819,6 @@ mod native {
             checkpoint,
             reason,
         }
-    }
-
-    fn stream_unit_digest(unit: &BatchUnit) -> Result<Digest256, ExecutorFailure> {
-        if unit.member_id.is_empty()
-            || unit.member_id.len() > MAX_MEMBER_ID_BYTES
-            || unit.relative_path.is_empty()
-            || unit.relative_path.len() > MAX_PATH_BYTES
-            || unit.relative_path.starts_with('/')
-            || unit.relative_path.split('/').any(|part| part == "..")
-            || unit.root_uri.len() > MAX_URI_BYTES
-            || unit.raw_instance.len() > crate::SchemaBackendProbe::MAX_INSTANCE_BYTES
-        {
-            return Err(ExecutorFailure::InputBudget);
-        }
-        let mut digest = Digest256Hasher::new();
-        digest.update(b"tos-val2-batch-unit-v1\0");
-        digest.update(&unit.ordinal.to_be_bytes());
-        for value in [
-            unit.member_id.as_bytes(),
-            unit.relative_path.as_bytes(),
-            unit.root_uri.as_bytes(),
-            unit.raw_instance.as_slice(),
-        ] {
-            digest.update(&(value.len() as u32).to_be_bytes());
-            digest.update(value);
-        }
-        Ok(digest.finalize())
     }
 
     struct StreamPendingUnit {
@@ -868,7 +932,7 @@ mod native {
                 self.failure = Some(ExecutorFailure::CoverageMismatch);
                 return Err(ExecutorFailure::CoverageMismatch);
             }
-            let global_unit_sha256 = match stream_unit_digest(&unit) {
+            let global_unit_sha256 = match batch_unit_digest(&unit) {
                 Ok(digest) => digest,
                 Err(reason) => {
                     self.failure = Some(reason);
@@ -950,7 +1014,7 @@ mod native {
                 let mut unit = entry.unit;
                 globals.push((unit.ordinal, entry.global_unit_sha256));
                 unit.ordinal = local_ordinal as u64;
-                let local_sha256 = match stream_unit_digest(&unit) {
+                let local_sha256 = match batch_unit_digest(&unit) {
                     Ok(digest) => digest,
                     Err(reason) => {
                         self.failure = Some(reason);
@@ -1544,13 +1608,26 @@ mod native {
         interpret_response(&response, identity)
     }
 
+    #[cfg(test)]
     fn run_batch_image(
+        image: File,
+        prepared: BatchPrepared,
+        results: Digest256Hasher,
+        budget: BatchBudget,
+        start: Instant,
+        argv: &[*mut libc::c_char],
+    ) -> BatchOutcome {
+        run_batch_image_cancellable(image, prepared, results, budget, start, argv, None)
+    }
+
+    fn run_batch_image_cancellable(
         image: File,
         prepared: BatchPrepared,
         mut results: Digest256Hasher,
         budget: BatchBudget,
         start: Instant,
         argv: &[*mut libc::c_char],
+        cancelled: Option<&AtomicBool>,
     ) -> BatchOutcome {
         let (input_parent, input_child) = match socket_pair() {
             Ok(pair) => pair,
@@ -1611,6 +1688,10 @@ mod native {
         let mut status = None;
         let mut failure = None;
         while !output_eof || status.is_none() || receipts.len() != prepared.units.len() {
+            if cancelled.is_some_and(|flag| flag.load(Ordering::Relaxed)) {
+                failure = Some(ExecutorFailure::Cancelled);
+                break;
+            }
             let now = Instant::now();
             if now.duration_since(start) >= budget.total_execution_wall
                 || (!ack && now.duration_since(start) >= budget.startup_wall)
@@ -2062,9 +2143,8 @@ mod native {
                 continue;
             }
             let schema = probe
-                .resources
-                .get(unit.root_uri)
-                .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "missing root"))?;
+                .selected_schema(unit.root_uri)
+                .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "missing root selector"))?;
             let mut options = jsonschema::options()
                 .with_draft(Draft::Draft202012)
                 .with_registry(&registry)
@@ -2078,7 +2158,7 @@ mod native {
                     .with_format("uri-reference", |_| true);
             }
             let validator = options
-                .build(schema)
+                .build(schema.as_ref())
                 .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "schema compile"))?;
             validators.insert(unit.root_uri, validator);
         }
@@ -2398,6 +2478,67 @@ mod native {
             assert_eq!(permuted[BATCH_ACK_BYTES + 48], 1);
             assert_eq!(permuted[BATCH_ACK_BYTES + BATCH_UNIT_BYTES + 48], 0);
             assert_eq!(permuted[BATCH_ACK_BYTES + 2 * BATCH_UNIT_BYTES + 48], 0);
+        }
+
+        #[test]
+        fn batch_selected_fragments_keep_scope_and_independent_unit_outcomes() {
+            let root = "https://treeofsophia.local/tests/root.json";
+            let target = "https://treeofsophia.local/tests/nested/types.json";
+            let resources = vec![SchemaResource {
+                uri: root.into(),
+                raw: format!(r#"{{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"{root}","$defs":{{"scoped":{{"$id":"nested/child.json","properties":{{"a/b~c":{{"$ref":"types.json#/$defs/code"}}}}}},"deny":false}}}}"#).into_bytes(),
+            }, SchemaResource {
+                uri: target.into(),
+                raw: format!(r#"{{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"{target}","$defs":{{"code":{{"const":"owned"}}}}}}"#).into_bytes(),
+            }];
+            let mut units = vec![batch_unit(0, br#""owned""#), batch_unit(1, br#""other""#), batch_unit(2, b"3")];
+            units[0].root_uri = format!("{root}#/$defs/scoped/properties/a~1b~0c");
+            units[1].root_uri = units[0].root_uri.clone();
+            units[2].root_uri = format!("{root}#/$defs/deny");
+            let expected = BatchCoverageExpectation::from_units(&units).unwrap();
+            let prepared = make_batch_request(Digest256::of_bytes(b"fixture-worker"),
+                &resources, FormatProfile::AssertedSourceCandidateV1, units, BatchBudget::laboratory()).unwrap();
+            assert_eq!(prepared.ordered_manifest_sha256, expected.ordered_manifest_sha256);
+            let mut output = Vec::new();
+            batch_worker_once(std::io::Cursor::new(&prepared.frame[8..]), &mut output, *BATCH_REQUEST_MAGIC).unwrap();
+            assert_eq!(output.len(), BATCH_ACK_BYTES + 3 * BATCH_UNIT_BYTES);
+            assert_eq!(&output[8..40], prepared.request_sha256.as_bytes());
+            assert_eq!(&output[40..72], prepared.schema_set_sha256.as_bytes());
+            for (ordinal, verdict) in [0u8, 1, 1].into_iter().enumerate() {
+                let start = BATCH_ACK_BYTES + ordinal * BATCH_UNIT_BYTES;
+                assert_eq!(&output[start + 8..start + 16], &(ordinal as u64).to_be_bytes());
+                assert_eq!(&output[start + 16..start + 48], prepared.units[ordinal].unit_sha256.as_bytes());
+                assert_eq!(output[start + 48], verdict);
+            }
+        }
+
+        #[test]
+        fn batch_cancellation_before_image_and_during_poll_is_incomplete() {
+            let units = vec![batch_unit(0, b"7")];
+            let expected = BatchCoverageExpectation::from_units(&units).unwrap();
+            let outcome = BoundedSchemaExecutor::evaluate_batch_cancellable(
+                &ExactWorkerIdentity { absolute_path: PathBuf::from("/absent-worker"), sha256: Digest256::of_bytes(b"") },
+                &batch_schema(), FormatProfile::AssertedSourceCandidateV1, units,
+                expected, BatchBudget::laboratory(), &AtomicBool::new(true));
+            assert!(matches!(outcome, BatchOutcome::Incomplete { reason: ExecutorFailure::Cancelled, receipts, .. } if receipts.is_empty()));
+            let image = fixture_image("/usr/bin/sleep");
+            let argv = [c"sleep".as_ptr() as *mut libc::c_char, c"2".as_ptr() as *mut libc::c_char, std::ptr::null_mut()];
+            let budget = BatchBudget::laboratory();
+            let prepared = make_batch_request(Digest256::of_bytes(b"fixture-worker"), &batch_schema(),
+                FormatProfile::AssertedSourceCandidateV1, [batch_unit(0, b"7")], budget).unwrap();
+            let mut results = Digest256Hasher::new();
+            results.update(b"tos-val2-batch-results-v1\0");
+            let cancelled = AtomicBool::new(false);
+            let start = Instant::now();
+            let outcome = std::thread::scope(|scope| {
+                scope.spawn(|| {
+                    std::thread::sleep(Duration::from_millis(20));
+                    cancelled.store(true, Ordering::Relaxed);
+                });
+                run_batch_image_cancellable(image, prepared, results, budget, start, &argv, Some(&cancelled))
+            });
+            assert!(matches!(outcome, BatchOutcome::Incomplete { reason: ExecutorFailure::Cancelled, receipts, .. } if receipts.is_empty()));
+            assert!(start.elapsed() < Duration::from_millis(700));
         }
 
         #[test]
