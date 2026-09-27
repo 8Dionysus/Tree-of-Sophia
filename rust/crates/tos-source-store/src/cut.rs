@@ -456,10 +456,16 @@ fn feed_member(h: &mut Digest256Hasher, path: &str, length: u64, digest: Digest2
 /// byte-read authority is inferred from a true result.
 pub fn is_authored_source_path_v1(path: &str) -> bool {
     path.starts_with("ToS/")
-        && !path
-            .split('/')
-            .any(|p| matches!(p, ".git" | "payload" | "owner-local"))
+        && has_authored_source_descendants_v1(path)
         && (!(path.starts_with("ToS/derived-exports/")
             || path.starts_with("ToS/source-witnesses/catalog/"))
             || path.ends_with(".md"))
+}
+
+/// Directory traversal classification for the existing authored-cut law.
+/// Weak output parents may contain authored Markdown companions. This grants
+/// neither file membership, completeness nor a read permission.
+pub fn has_authored_source_descendants_v1(path: &str) -> bool {
+    (path == "ToS" || path.starts_with("ToS/"))
+        && !path.split('/').any(|p| matches!(p, ".git" | "payload" | "owner-local"))
 }
