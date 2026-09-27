@@ -42,6 +42,7 @@ mod temporal_comparison;
 pub use knowledge_binding::{BoundCmpKnowledge, bind_verified_knowledge};
 #[cfg(not(target_arch = "wasm32"))]
 pub use knowledge_catalog::{
+    CATALOG_CARRIER_LAYER, CATALOG_INTENDED_USE, CATALOG_OPERATION_ID,
     CatalogBudget, CatalogCurrentAuthority, CatalogDisclosureLease, CatalogDisclosureScope,
     CatalogError, CatalogErrorCode, DisclosableCatalog, execute_selected_catalog,
 };
