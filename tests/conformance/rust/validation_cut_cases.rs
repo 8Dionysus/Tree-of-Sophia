@@ -613,25 +613,35 @@ fn actual_general_operation_keeps_selected_family_coverage_below_source_admissio
         before.insert(path.into(), raw);
     }
     // Reuse the maintained native compound fixture's real isolated writer.
-    // Two Edition siblings exercise mixed parent history and archive prefixes;
-    // their Work-origin child retains its committed initial package lineage.
+    // Two siblings at each consumed tier exercise parent archive prefixes;
+    // descriptive Expression lineage and exact older commitments survive.
     let oracle=std::process::Command::new("python3").arg("-c").arg(r#"
 import copy,json,sys
 from pathlib import Path
 root=Path(sys.argv[1])
 sys.path.insert(0,str(root/'mechanics/growth-cycle/tests'))
-from test_source_edition_commands import NativeEditionTests,commands,edition,expression_fixture
-c=NativeEditionTests();c.setUp()
+from test_source_item_commands import NativeItemTests,commands,item,edition_fixture
+c=NativeItemTests();c.setUp()
 try:
-    c.origin.correct_expression();c.rebuild()
+    c.origin.origin.correct_expression();c.rebuild()
+    c.origin.origin.select_child('second');second_work=c.origin.origin.request()
+    commands.run_local_command(c.origin.origin.owner,second_work)
+    work_child=Path(c.origin.origin.config['expression_source_path'])
+    c.origin.extra_records.append(c.root/work_child)
+    c.origin.extra_claims.append((c.root/work_child).with_name('source-claims.jsonl'));c.rebuild()
+    c.origin.select_child('second');second_edition=c.origin.request()
+    commands.run_local_command(c.origin.owner,second_edition);c.rebuild()
     first=c.request();commands.run_local_command(c.owner,first);c.rebuild()
-    c.select_child('second');second=c.request();commands.run_local_command(c.owner,second)
-    c.rebuild()
-    child=c.origin_request['claim']['evidence_refs'][1]
-    expression_fixture.compound.verify_compound(c.root,str(Path(child).with_name('source-claims.jsonl')),c.origin_request['claim'])
+    c.select_item('second');second=c.request();commands.run_local_command(c.owner,second);c.rebuild()
+    for request in (c.origin.origin_request,second_work):
+        child=request['claim']['evidence_refs'][1]
+        edition_fixture.expression_fixture.compound.verify_compound(c.root,str(Path(child).with_name('source-claims.jsonl')),request['claim'])
+    for request in (c.edition_request,second_edition):
+        child=request['claim']['evidence_refs'][1]
+        edition_fixture.edition.verify_compound(c.root,str(Path(child).with_name('source-claims.jsonl')),request['claim'])
     for request in (first,second):
         child=request['claim']['evidence_refs'][1]
-        edition.verify_compound(c.root,str(Path(child).with_name('source-claims.jsonl')),request['claim'])
+        item.verify_compound(c.root,str(Path(child).with_name('source-claims.jsonl')),request['claim'])
     files={p.relative_to(c.root).as_posix():p.read_bytes().hex()
            for p in sorted((c.root/'ToS').rglob('*')) if p.is_file()}
     print(json.dumps(files))
@@ -849,7 +859,7 @@ finally:c.doCleanups()
             .iter()
             .all(|receipt| receipt.source_revision == revision)
     );
-    assert_eq!(report.bibliography.native_compounds.len(), 3);
+    assert_eq!(report.bibliography.native_compounds.len(), 6);
     assert!(
         report
             .bibliography
@@ -865,6 +875,15 @@ finally:c.doCleanups()
             .checked_profiles
             .contains("native-work-expression-exact-compound-plan-and-current-lineage@1")
     );
+    assert_eq!(
+        report
+            .bibliography
+            .native_compounds
+            .iter()
+            .filter(|observed| !observed.claim_path.contains("/editions/"))
+            .count(),
+        2
+    );
     assert!(
         report
             .bibliography
@@ -872,12 +891,29 @@ finally:c.doCleanups()
             .checked_profiles
             .contains("native-expression-edition-exact-compound-plan-and-current-lineage@1")
     );
+    assert!(
+        report
+            .bibliography
+            .shadow
+            .checked_profiles
+            .contains("native-edition-item-exact-compound-plan-and-current-lineage@1")
+    );
     assert_eq!(
         report
             .bibliography
             .native_compounds
             .iter()
-            .filter(|observed| observed.claim_path.contains("/editions/"))
+            .filter(|observed| observed.claim_path.contains("/items/"))
+            .count(),
+        2
+    );
+    assert_eq!(
+        report
+            .bibliography
+            .native_compounds
+            .iter()
+            .filter(|observed| observed.claim_path.contains("/editions/")
+                && !observed.claim_path.contains("/items/"))
             .count(),
         2
     );
@@ -891,6 +927,7 @@ finally:c.doCleanups()
                 issue.code,
                 "native-work-expression-compound-evidence"
                     | "native-expression-edition-compound-evidence"
+                    | "native-edition-item-compound-evidence"
             ))
     );
 
@@ -901,7 +938,9 @@ finally:c.doCleanups()
         .bibliography
         .native_compounds
         .iter()
-        .find(|observed| !observed.claim_path.contains("/editions/"))
+        .find(|observed| {
+            !observed.claim_path.contains("/editions/") && !observed.claim_path.contains("/items/")
+        })
         .unwrap();
     let receipt_path = origin
         .claim_path
@@ -913,7 +952,9 @@ finally:c.doCleanups()
         .bibliography
         .native_compounds
         .iter()
-        .find(|observed| observed.claim_path.contains("/editions/"))
+        .find(|observed| {
+            observed.claim_path.contains("/editions/") && !observed.claim_path.contains("/items/")
+        })
         .unwrap();
     let edition_path = edition
         .claim_path
@@ -925,6 +966,18 @@ finally:c.doCleanups()
     rewritten["notes"] = Value::String("Unretained rewrite".into());
     let mut rewritten_raw = serde_json::to_vec(&rewritten).unwrap();
     rewritten_raw.push(b'\n');
+    let item = report
+        .bibliography
+        .native_compounds
+        .iter()
+        .find(|observed| observed.claim_path.contains("/items/"))
+        .unwrap();
+    let fixity_path = item
+        .claim_path
+        .strip_suffix("source-claims.jsonl")
+        .unwrap()
+        .to_owned()
+        + "fixity.sha256";
     for (target, raw, claim_path, code) in [
         (
             receipt_path.clone(),
@@ -941,6 +994,16 @@ finally:c.doCleanups()
             rewritten_raw,
             edition.claim_path.as_str(),
             "native-expression-edition-compound-evidence",
+        ),
+        (
+            fixity_path.clone(),
+            {
+                let mut raw = files[&fixity_path].clone();
+                raw.push(b'\n');
+                raw
+            },
+            item.claim_path.as_str(),
+            "native-edition-item-compound-evidence",
         ),
     ] {
         let mut damaged = files.clone();

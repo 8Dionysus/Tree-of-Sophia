@@ -504,7 +504,7 @@ pub fn inspect_bibliography_from_cut(
     })?;
     let mut identities = BTreeSet::new();
     let mut topology = Vec::new();
-    // Only the consumed Work->Expression and Expression->Edition owners are reconstructed here. One
+    // Only the consumed Work->Expression, Expression->Edition and Edition->Item owners are reconstructed here. One
     // invocation shares the exact read/index budget across all its Claims.
     let mut verified_native = BTreeSet::new();
     let mut native_compounds = Vec::new();
@@ -512,7 +512,7 @@ pub fn inspect_bibliography_from_cut(
         claim.native
             && matches!(
                 s(&claim.value, "predicate"),
-                Some("has_expression" | "embodied_by")
+                Some("has_expression" | "embodied_by" | "exemplified_by")
             )
     }) {
         let mut compound_limits = limits;
@@ -530,7 +530,7 @@ pub fn inspect_bibliography_from_cut(
             c.native
                 && matches!(
                     s(&c.value, "predicate"),
-                    Some("has_expression" | "embodied_by")
+                    Some("has_expression" | "embodied_by" | "exemplified_by")
                 )
         }) {
             let location = format!("{}:{}", claim.path, claim.line);
@@ -564,29 +564,41 @@ pub fn inspect_bibliography_from_cut(
                     match observation.transport {
                         crate::native_compound::NativeTransportState::Committed => {
                             verified_native.insert(id.to_owned());
-                            rules.shadow.checked_profiles.insert(if s(&claim.value,"predicate")==Some("has_expression") {"native-work-expression-exact-compound-plan-and-current-lineage@1"} else {"native-expression-edition-exact-compound-plan-and-current-lineage@1"}.into());
+                            rules.shadow.checked_profiles.insert(match s(&claim.value,"predicate") {Some("has_expression")=>"native-work-expression-exact-compound-plan-and-current-lineage@1",Some("embodied_by")=>"native-expression-edition-exact-compound-plan-and-current-lineage@1",_=>"native-edition-item-exact-compound-plan-and-current-lineage@1"}.into());
                         }
                         crate::native_compound::NativeTransportState::Pending => rules.issue(
-                            if s(&claim.value, "predicate") == Some("has_expression") {
-                                "native-work-expression-transaction-pending"
-                            } else {
-                                "native-expression-edition-transaction-pending"
+                            match s(&claim.value, "predicate") {
+                                Some("has_expression") => {
+                                    "native-work-expression-transaction-pending"
+                                }
+                                Some("embodied_by") => {
+                                    "native-expression-edition-transaction-pending"
+                                }
+                                _ => "native-edition-item-transaction-pending",
                             },
                             &location,
                         )?,
                         crate::native_compound::NativeTransportState::RolledBack => rules.issue(
-                            if s(&claim.value, "predicate") == Some("has_expression") {
-                                "native-work-expression-transaction-rolled-back"
-                            } else {
-                                "native-expression-edition-transaction-rolled-back"
+                            match s(&claim.value, "predicate") {
+                                Some("has_expression") => {
+                                    "native-work-expression-transaction-rolled-back"
+                                }
+                                Some("embodied_by") => {
+                                    "native-expression-edition-transaction-rolled-back"
+                                }
+                                _ => "native-edition-item-transaction-rolled-back",
                             },
                             &location,
                         )?,
                         crate::native_compound::NativeTransportState::Orphan => rules.issue(
-                            if s(&claim.value, "predicate") == Some("has_expression") {
-                                "native-work-expression-transaction-orphan"
-                            } else {
-                                "native-expression-edition-transaction-orphan"
+                            match s(&claim.value, "predicate") {
+                                Some("has_expression") => {
+                                    "native-work-expression-transaction-orphan"
+                                }
+                                Some("embodied_by") => {
+                                    "native-expression-edition-transaction-orphan"
+                                }
+                                _ => "native-edition-item-transaction-orphan",
                             },
                             &location,
                         )?,
@@ -598,10 +610,10 @@ pub fn inspect_bibliography_from_cut(
                     native_compounds.push(observation);
                 }
                 Err(ItemRefusal::Source(_)) => rules.issue(
-                    if s(&claim.value, "predicate") == Some("has_expression") {
-                        "native-work-expression-compound-evidence"
-                    } else {
-                        "native-expression-edition-compound-evidence"
+                    match s(&claim.value, "predicate") {
+                        Some("has_expression") => "native-work-expression-compound-evidence",
+                        Some("embodied_by") => "native-expression-edition-compound-evidence",
+                        _ => "native-edition-item-compound-evidence",
                     },
                     &location,
                 )?,
@@ -944,8 +956,7 @@ fn inspect_claim(
                 // append/revision plan or specialized semantic ownership.
                 if matches!(
                     predicate,
-                    "exemplified_by"
-                        | "contains_work"
+                    "contains_work"
                         | "translated_by"
                         | "described_by"
                         | "metadata_at"

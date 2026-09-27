@@ -42,18 +42,20 @@ pub struct NativeCompoundObservation {
     pub transport: NativeTransportState,
 }
 
-// Two maintained bibliographic recipes share only their transport and exact
+// Maintained bibliographic recipes share only their transport and exact
 // buffer-construction law. These constants are owner profiles, not grants.
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum CompoundKind {
     WorkExpression,
     ExpressionEdition,
+    EditionItem,
 }
 impl CompoundKind {
     fn from_operation(operation: &str) -> Result<Self, ItemRefusal> {
         match operation {
             "work.expression.create" => Ok(Self::WorkExpression),
             "expression.edition.create" => Ok(Self::ExpressionEdition),
+            "item.adopt" => Ok(Self::EditionItem),
             other => Err(ItemRefusal::Unsupported(format!(
                 "retained compound parent handler {other}"
             ))),
@@ -63,6 +65,7 @@ impl CompoundKind {
         match predicate {
             "has_expression" => Ok(Self::WorkExpression),
             "embodied_by" => Ok(Self::ExpressionEdition),
+            "exemplified_by" => Ok(Self::EditionItem),
             other => Err(ItemRefusal::Unsupported(format!(
                 "native compound predicate {other}"
             ))),
@@ -72,108 +75,126 @@ impl CompoundKind {
         match self {
             Self::WorkExpression => "work",
             Self::ExpressionEdition => "expression",
+            Self::EditionItem => "edition",
         }
     }
     fn child_kind(self) -> &'static str {
         match self {
             Self::WorkExpression => "expression",
             Self::ExpressionEdition => "edition",
+            Self::EditionItem => "item",
         }
     }
     fn parent_key(self) -> &'static str {
         match self {
             Self::WorkExpression => "work_id",
             Self::ExpressionEdition => "expression_id",
+            Self::EditionItem => "edition_id",
         }
     }
     fn child_key(self) -> &'static str {
         match self {
             Self::WorkExpression => "expression_id",
             Self::ExpressionEdition => "edition_id",
+            Self::EditionItem => "item_id",
         }
     }
     fn parent_path(self) -> &'static str {
         match self {
             Self::WorkExpression => "work_source_path",
             Self::ExpressionEdition => "expression_source_path",
+            Self::EditionItem => "edition_source_path",
         }
     }
     fn child_path(self) -> &'static str {
         match self {
             Self::WorkExpression => "expression_source_path",
             Self::ExpressionEdition => "edition_source_path",
+            Self::EditionItem => "item_source_path",
         }
     }
     fn parent_file(self) -> &'static str {
         match self {
             Self::WorkExpression => "work.json",
             Self::ExpressionEdition => "expression.json",
+            Self::EditionItem => "edition.json",
         }
     }
     fn child_file(self) -> &'static str {
         match self {
             Self::WorkExpression => "expression.json",
             Self::ExpressionEdition => "edition.json",
+            Self::EditionItem => "item.json",
         }
     }
     fn parent_forms(self) -> &'static str {
         match self {
             Self::WorkExpression => "work.human-forms.json",
             Self::ExpressionEdition => "expression.human-forms.json",
+            Self::EditionItem => "edition.human-forms.json",
         }
     }
     fn child_forms(self) -> &'static str {
         match self {
             Self::WorkExpression => "expression.human-forms.json",
             Self::ExpressionEdition => "edition.human-forms.json",
+            Self::EditionItem => "item.human-forms.json",
         }
     }
     fn child_form_request(self) -> &'static str {
         match self {
             Self::WorkExpression => "expression_forms",
             Self::ExpressionEdition => "edition_forms",
+            Self::EditionItem => "item_forms",
         }
     }
     fn field(self) -> &'static str {
         match self {
             Self::WorkExpression => "expression_claim_refs",
             Self::ExpressionEdition => "embodiment_claim_refs",
+            Self::EditionItem => "exemplar_claim_refs",
         }
     }
     fn predicate(self) -> &'static str {
         match self {
             Self::WorkExpression => "has_expression",
             Self::ExpressionEdition => "embodied_by",
+            Self::EditionItem => "exemplified_by",
         }
     }
     fn operation(self) -> &'static str {
         match self {
             Self::WorkExpression => "work.expression.create",
             Self::ExpressionEdition => "expression.edition.create",
+            Self::EditionItem => "item.adopt",
         }
     }
     fn request_schema(self) -> &'static str {
         match self {
             Self::WorkExpression => "tos_local_work_expression_command_v1",
             Self::ExpressionEdition => "tos_local_expression_edition_command_v1",
+            Self::EditionItem => "tos_local_item_adoption_command_v1",
         }
     }
     fn authorization_schema(self) -> &'static str {
         match self {
             Self::WorkExpression => "tos_work_expression_authorization_v1",
             Self::ExpressionEdition => "tos_expression_edition_authorization_v1",
+            Self::EditionItem => "tos_item_adoption_authorization_v1",
         }
     }
     fn receipt_schema(self) -> &'static str {
         match self {
             Self::WorkExpression => "tos_work_expression_receipt_v1",
             Self::ExpressionEdition => "tos_expression_edition_receipt_v1",
+            Self::EditionItem => "tos_edition_item_receipt_v1",
         }
     }
     fn receipt_file(self) -> &'static str {
         match self {
             Self::WorkExpression => "work-expression-receipt.json",
             Self::ExpressionEdition => "expression-edition-receipt.json",
+            Self::EditionItem => "edition-item-receipt.json",
         }
     }
     fn module(self) -> &'static str {
@@ -184,28 +205,35 @@ impl CompoundKind {
             Self::ExpressionEdition => {
                 "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_edition_commands.py"
             }
+            Self::EditionItem => {
+                "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_item_commands.py"
+            }
         }
     }
     fn executor(self) -> &'static str {
         match self {
             Self::WorkExpression => "software:tos-source-expression-commands",
             Self::ExpressionEdition => "software:tos-source-edition-commands",
+            Self::EditionItem => "software:tos-source-item-commands",
         }
     }
     fn procedure(self) -> &'static str {
         match self {
             Self::WorkExpression => "native-work-expression-metadata-serialization",
             Self::ExpressionEdition => "native-expression-edition-metadata-serialization",
+            Self::EditionItem => "native-item-adoption-metadata-serialization",
         }
     }
     fn component(self) -> &'static str {
         match self {
             Self::WorkExpression => "ToS native Work Expression adapter",
             Self::ExpressionEdition => "ToS native Expression Edition adapter",
+            Self::EditionItem => "ToS native Edition Item adapter",
         }
     }
     fn initial_backlink(self, record: &Value, parent: &Value) -> bool {
         match self {
+            Self::EditionItem => true, // Item backlink is its exact manifest path, checked at its scope/current read.
             Self::WorkExpression => record["work_ref"] == *parent,
             Self::ExpressionEdition => record["embodies_expression_refs"]
                 .as_array()
@@ -491,6 +519,9 @@ impl<'a> NativeCompoundReader<'a> {
         )
     }
     fn carrier_json_cost(&self, path: &str, raw: &[u8]) -> Result<usize, ItemRefusal> {
+        if !(path.ends_with(".json") || path.ends_with(".jsonl")) {
+            return raw.len().checked_mul(2).ok_or(ItemRefusal::Budget);
+        }
         if !path.ends_with(".jsonl") {
             return self.json_cost(raw);
         }
@@ -632,9 +663,7 @@ impl<'a> NativeCompoundReader<'a> {
                 "parents",
             ],
         )?;
-        if text(&manifest, "schema_version")? != "tos_selected_metadata_transaction_v1"
-            || text(&manifest, "transaction_id")? != id
-        {
+        if text(&manifest, "transaction_id")? != id {
             return Err(bad("native bibliographic transaction grammar"));
         }
         let base = &manifest["base_publication"];
@@ -647,7 +676,38 @@ impl<'a> NativeCompoundReader<'a> {
             hash(text(base, "token")?)?;
         }
         let plan = &manifest["plan"];
-        keys(plan, &["authorization", "files", "new_directories"])?;
+        let companion_home = if let Some(profile) = plan.get("path_profile") {
+            keys(
+                plan,
+                &["authorization", "files", "new_directories", "path_profile"],
+            )?;
+            keys(profile, &["schema_version", "item_source_path"])?;
+            let path = text(profile, "item_source_path")?;
+            metadata_path(path, false)?;
+            if text(profile, "schema_version")? != "tos_item_metadata_paths_v1"
+                || !path.ends_with("/item.json")
+                || !parent(path)?
+                    .rsplit_once('/')
+                    .is_some_and(|(p, _)| p.ends_with("/items"))
+                || plan["authorization"]["schema_version"] != "tos_item_adoption_authorization_v1"
+                || plan["authorization"]["scope"]["item_source_path"] != path
+            {
+                return Err(bad("exact Item transaction path profile"));
+            }
+            Some(parent(path)?.to_owned())
+        } else {
+            keys(plan, &["authorization", "files", "new_directories"])?;
+            None
+        };
+        if text(&manifest, "schema_version")?
+            != if companion_home.is_some() {
+                "tos_selected_metadata_transaction_v2"
+            } else {
+                "tos_selected_metadata_transaction_v1"
+            }
+        {
+            return Err(bad("transaction version/path profile mismatch"));
+        }
         if !plan["authorization"].is_object() || canonical(&plan["authorization"])?.len() > 65536 {
             return Err(bad("bounded authorization"));
         }
@@ -681,7 +741,14 @@ impl<'a> NativeCompoundReader<'a> {
             check(self.limits.deadline, self.cancelled)?;
             keys(row, &["path", "before", "after"])?;
             let path = text(row, "path")?;
-            metadata_path(path, false)?;
+            if companion_home.as_ref().is_some_and(|home| {
+                path == format!("{home}/fixity.sha256")
+                    || path == format!("{home}/forensic-report.md")
+            }) {
+                // The home itself passed the exact public metadata path law.
+            } else {
+                metadata_path(path, false)?;
+            }
             if path <= last {
                 return Err(bad("file path order/uniqueness"));
             }
@@ -1042,26 +1109,39 @@ fn state_valid(v: &Value) -> Result<(), ItemRefusal> {
 }
 
 fn request_valid(request: &Value, kind: CompoundKind) -> Result<(), ItemRefusal> {
-    keys(
-        request,
-        &[
-            "schema_version",
-            "operation",
-            "record",
-            "claim",
-            "forms",
-            kind.child_form_request(),
-            "claim_forms",
-            "reason",
-            "command_id",
-            "fields",
-            "expected_configuration",
-            "expected_source",
-            "expected_revision",
-            "expected_dependencies",
-            "expected_publication",
-        ],
-    )?;
+    let mut request_keys = vec![
+        "schema_version",
+        "operation",
+        "record",
+        "claim",
+        "forms",
+        kind.child_form_request(),
+        "claim_forms",
+        "reason",
+        "command_id",
+        "fields",
+        "expected_configuration",
+        "expected_source",
+        "expected_revision",
+        "expected_dependencies",
+        "expected_publication",
+    ];
+    if kind == CompoundKind::EditionItem {
+        request_keys.extend([
+            "rights",
+            "item_kind",
+            "inventory",
+            "inventory_limitation",
+            "fixity_verified_at",
+        ]);
+        let now = text(request, "fixity_verified_at")?;
+        crate::retirement_rules::observed_instant_order(now, now)
+            .map_err(|_| bad("Item fixity instant"))?;
+        if request["inventory"].is_null() != !request["inventory_limitation"].is_null() {
+            return Err(bad("explicit inventory completeness/limitation"));
+        }
+    }
+    keys(request, &request_keys)?;
     if text(request, "schema_version")? != kind.request_schema()
         || text(request, "operation")? != kind.operation()
         || canonical(request)?.len() > 1_048_576
@@ -1213,10 +1293,12 @@ pub fn inspect_record_history(
         .map_err(|_| bad("history aware instant"))?;
         let request = &receipt["request"];
         match text(request, "operation")? {
-            "work.expression.create" | "expression.edition.create" => parent_receipt_shape(
-                receipt,
-                CompoundKind::from_operation(text(request, "operation")?)?,
-            )?,
+            "work.expression.create" | "expression.edition.create" | "item.adopt" => {
+                parent_receipt_shape(
+                    receipt,
+                    CompoundKind::from_operation(text(request, "operation")?)?,
+                )?
+            }
             "record.revise" => {}
             other => {
                 return Err(ItemRefusal::Unsupported(format!(
@@ -1378,74 +1460,78 @@ fn scope_valid(
     authority: &Value,
     kind: CompoundKind,
 ) -> Result<(), ItemRefusal> {
-    keys(
-        scope,
-        if kind == CompoundKind::WorkExpression {
-            &SCOPE_KEYS
-        } else {
-            &EDITION_SCOPE_KEYS
-        },
-    )?;
-    for (k, kind) in [
-        ("work_id", "work"),
-        ("expression_id", "expression"),
-        ("claim_id", "claim"),
-        ("provenance_event_id", "event"),
-    ] {
-        if !typed_id(text(scope, k)?, kind) {
-            return Err(bad("typed compound scope identities"));
+    if kind == CompoundKind::EditionItem {
+        item_scope_valid(scope, request)?;
+    } else {
+        keys(
+            scope,
+            if kind == CompoundKind::WorkExpression {
+                &SCOPE_KEYS
+            } else {
+                &EDITION_SCOPE_KEYS
+            },
+        )?;
+        for (k, kind) in [
+            ("work_id", "work"),
+            ("expression_id", "expression"),
+            ("claim_id", "claim"),
+            ("provenance_event_id", "event"),
+        ] {
+            if !typed_id(text(scope, k)?, kind) {
+                return Err(bad("typed compound scope identities"));
+            }
         }
-    }
-    let work = text(scope, "work_source_path")?;
-    let expression = text(scope, "expression_source_path")?;
-    metadata_path(work, false)?;
-    metadata_path(expression, false)?;
-    if !work.starts_with("ToS/source-witnesses/works/")
-        || work.split('/').count() < 5
-        || !work.ends_with("/work.json")
-        || !expression.ends_with("/expression.json")
-    {
-        return Err(bad("Work Expression home grammar"));
-    }
-    let child = parent(expression)?;
-    let expected = format!("{}/expressions/", parent(work)?);
-    if !child
-        .strip_prefix(&expected)
-        .is_some_and(|s| !s.contains('/') && segment(s))
-    {
-        return Err(bad("one exact child home"));
-    }
-    if kind == CompoundKind::ExpressionEdition {
-        if !typed_id(text(scope, "edition_id")?, "edition") {
-            return Err(bad("typed Edition identity"));
-        }
-        let edition = text(scope, "edition_source_path")?;
-        metadata_path(edition, false)?;
-        let expected = format!("{}/editions/", parent(expression)?);
-        if !edition.ends_with("/edition.json")
-            || !parent(edition)?
-                .strip_prefix(&expected)
-                .is_some_and(|s| !s.contains('/') && segment(s))
+        let work = text(scope, "work_source_path")?;
+        let expression = text(scope, "expression_source_path")?;
+        metadata_path(work, false)?;
+        metadata_path(expression, false)?;
+        if !work.starts_with("ToS/source-witnesses/works/")
+            || work.split('/').count() < 5
+            || !work.ends_with("/work.json")
+            || !expression.ends_with("/expression.json")
         {
-            return Err(bad("one exact Edition home"));
+            return Err(bad("Work Expression home grammar"));
+        }
+        let child = parent(expression)?;
+        let expected = format!("{}/expressions/", parent(work)?);
+        if !child
+            .strip_prefix(&expected)
+            .is_some_and(|s| !s.contains('/') && segment(s))
+        {
+            return Err(bad("one exact child home"));
+        }
+        if kind == CompoundKind::ExpressionEdition {
+            if !typed_id(text(scope, "edition_id")?, "edition") {
+                return Err(bad("typed Edition identity"));
+            }
+            let edition = text(scope, "edition_source_path")?;
+            metadata_path(edition, false)?;
+            let expected = format!("{}/editions/", parent(expression)?);
+            if !edition.ends_with("/edition.json")
+                || !parent(edition)?
+                    .strip_prefix(&expected)
+                    .is_some_and(|s| !s.contains('/') && segment(s))
+            {
+                return Err(bad("one exact Edition home"));
+            }
         }
     }
     let mut seen = BTreeSet::new();
     for (field, allowed) in [
         (
             "forms",
-            if kind == CompoundKind::WorkExpression {
-                "allowed_work_form_ids"
-            } else {
-                "allowed_expression_form_ids"
+            match kind {
+                CompoundKind::WorkExpression => "allowed_work_form_ids",
+                CompoundKind::ExpressionEdition => "allowed_expression_form_ids",
+                CompoundKind::EditionItem => "allowed_edition_form_ids",
             },
         ),
         (
             kind.child_form_request(),
-            if kind == CompoundKind::WorkExpression {
-                "allowed_expression_form_ids"
-            } else {
-                "allowed_edition_form_ids"
+            match kind {
+                CompoundKind::WorkExpression => "allowed_expression_form_ids",
+                CompoundKind::ExpressionEdition => "allowed_edition_form_ids",
+                CompoundKind::EditionItem => "allowed_item_form_ids",
             },
         ),
         ("claim_forms", "allowed_claim_form_ids"),
@@ -1490,6 +1576,12 @@ fn scope_valid(
         || !kind.initial_backlink(record, &scope[kind.parent_key()])
         || kind == CompoundKind::ExpressionEdition
             && record["embodies_expression_refs"] != json!([scope["expression_id"]])
+        || kind == CompoundKind::EditionItem
+            && record["item_manifest_ref"]
+                != format!(
+                    "{}/item.manifest.json",
+                    parent(text(scope, "item_source_path")?)?
+                )
         || claim["claim_id"] != scope["claim_id"]
         || claim["subject_ref"] != scope[kind.parent_key()]
         || claim["object"] != scope[kind.child_key()]
@@ -1501,6 +1593,378 @@ fn scope_valid(
     }
     Ok(())
 }
+const ITEM_SCOPE_KEYS: [&str; 18] = [
+    "edition_id",
+    "edition_source_path",
+    "item_id",
+    "item_source_path",
+    "claim_id",
+    "provenance_event_id",
+    "allowed_edition_form_ids",
+    "allowed_item_form_ids",
+    "allowed_claim_form_ids",
+    "file_id",
+    "payload_basename",
+    "original_basename",
+    "media_type",
+    "byte_size",
+    "sha256",
+    "rights_id",
+    "acquisition_event_id",
+    "inventory_event_id",
+];
+fn item_scope_valid(scope: &Value, request: &Value) -> Result<(), ItemRefusal> {
+    keys(scope, &ITEM_SCOPE_KEYS)?;
+    for (key, kind) in [
+        ("edition_id", "edition"),
+        ("item_id", "item"),
+        ("file_id", "file"),
+        ("claim_id", "claim"),
+        ("provenance_event_id", "event"),
+        ("rights_id", "rights"),
+        ("acquisition_event_id", "event"),
+        ("inventory_event_id", "event"),
+    ] {
+        if !typed_id(text(scope, key)?, kind) {
+            return Err(bad("typed Item adoption identity"));
+        }
+    }
+    if [
+        text(scope, "provenance_event_id")?,
+        text(scope, "acquisition_event_id")?,
+        text(scope, "inventory_event_id")?,
+    ]
+    .into_iter()
+    .collect::<BTreeSet<_>>()
+    .len()
+        != 3
+    {
+        return Err(bad("separate Item copy/enumeration/serialization events"));
+    }
+    let edition = text(scope, "edition_source_path")?;
+    let item = text(scope, "item_source_path")?;
+    metadata_path(edition, false)?;
+    metadata_path(item, false)?;
+    let prefix = format!("{}/items/", parent(edition)?);
+    if !edition.ends_with("/edition.json")
+        || !edition.split('/').any(|p| p == "editions")
+        || !item.ends_with("/item.json")
+        || !parent(item)?
+            .strip_prefix(&prefix)
+            .is_some_and(|part| !part.contains('/') && segment(part))
+    {
+        return Err(bad("one exact Item child home"));
+    }
+    let payload = text(scope, "payload_basename")?;
+    let original = text(scope, "original_basename")?;
+    let media = text(scope, "media_type")?;
+    let media_part = |part: &str| {
+        !part.is_empty()
+            && part.bytes().all(|b| {
+                b.is_ascii_lowercase() || b.is_ascii_digit() || matches!(b, b'.' | b'+' | b'-')
+            })
+    };
+    if !(1..=201).contains(&payload.len())
+        || !payload.as_bytes()[0].is_ascii_alphanumeric()
+        || !payload
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'.' | b'_' | b'-'))
+        || !(1..=256).contains(&original.chars().count())
+        || original
+            .chars()
+            .any(|c| matches!(c, '/' | '\\' | '\n' | '\r' | '\0'))
+        || !media
+            .split_once('/')
+            .is_some_and(|(a, b)| media_part(a) && media_part(b))
+        || !(1..=536_870_912).contains(&integer(scope, "byte_size")?)
+    {
+        return Err(bad("bounded Item File name/media/size"));
+    }
+    hash(&format!("sha256:{}", text(scope, "sha256")?))?;
+    let rights = &request["rights"];
+    let scopes = array(rights, "scope_refs")?
+        .iter()
+        .filter_map(Value::as_str)
+        .collect::<BTreeSet<_>>();
+    if rights["rights_id"] != scope["rights_id"]
+        || scopes != BTreeSet::from([text(scope, "item_id")?, text(scope, "file_id")?])
+        || rights["visibility"] != "local_only"
+        || rights["review_status"] != "unreviewed"
+        || !matches!(
+            text(rights, "assessment_status")?,
+            "not_assessed" | "copyright_not_evaluated" | "copyright_undetermined"
+        )
+        || rights["redistribution_posture"] != "not_authorized"
+        || rights["derivative_posture"] != "local_research_only"
+        || rights["permissions"] != json!([])
+        || rights
+            .get("layer_assessments")
+            .is_some_and(|v| *v != json!([]))
+        || !matches!(
+            text(request, "item_kind")?,
+            "born_digital" | "digitized_physical_copy" | "derived_publication" | "unknown"
+        )
+    {
+        return Err(bad(
+            "supplied Item rights remain separate unreviewed local-only observations",
+        ));
+    }
+    Ok(())
+}
+fn item_payload(scope: &Value) -> Result<Value, ItemRefusal> {
+    Ok(
+        json!({"file_id":scope["file_id"],"relative_path":format!("payload/{}",text(scope,"payload_basename")?),
+        "original_basename":scope["original_basename"],"media_type":scope["media_type"],
+        "byte_size":scope["byte_size"],"sha256":scope["sha256"]}),
+    )
+}
+fn item_companions(
+    scope: &Value,
+    request: &Value,
+    byte_receipt: &Value,
+    generator: &str,
+    schemas: &mut impl CutSchemaExecutor,
+    limits: ItemLimits,
+    cancelled: &AtomicBool,
+) -> Result<Vec<(String, Vec<u8>)>, ItemRefusal> {
+    check(limits.deadline, cancelled)?;
+    keys(
+        byte_receipt,
+        &[
+            "schema_version",
+            "transaction_id",
+            "owner_configuration",
+            "private_stage_digest",
+            "recovery_configuration",
+            "file",
+            "started_at",
+            "deposited_at",
+            "observation_interval",
+            "original_preserved",
+            "metadata_committed",
+            "grants_admission",
+        ],
+    )?;
+    let identifier = transaction_id(request, CompoundKind::EditionItem)?;
+    if byte_receipt["schema_version"] != "tos_item_deposit_receipt_v1"
+        || byte_receipt["transaction_id"] != identifier
+        || byte_receipt["owner_configuration"] != request["expected_configuration"]
+        || byte_receipt["file"] != item_payload(scope)?
+        || byte_receipt["original_preserved"] != true
+        || byte_receipt["metadata_committed"] != false
+        || byte_receipt["grants_admission"] != false
+    {
+        return Err(bad("public Item byte receipt exact File binding"));
+    }
+    hash(text(byte_receipt, "private_stage_digest")?)?;
+    if !byte_receipt["recovery_configuration"].is_null() {
+        hash(text(byte_receipt, "recovery_configuration")?)?;
+    }
+    let interval = &byte_receipt["observation_interval"];
+    keys(interval, &["started_at", "ended_at"])?;
+    let times = [
+        text(interval, "started_at")?,
+        text(interval, "ended_at")?,
+        text(byte_receipt, "started_at")?,
+        text(byte_receipt, "deposited_at")?,
+    ];
+    for pair in times.windows(2) {
+        if crate::retirement_rules::observed_instant_order(pair[0], pair[1])
+            .map_err(|_| bad("Item deposit aware chronology"))?
+            == std::cmp::Ordering::Greater
+        {
+            return Err(bad("Item observation/deposit times reversed"));
+        }
+    }
+    // A public retained receipt binds source-safe observations, not possession
+    // of the private stage, current payload fixity or any publication grant.
+    let boundary = match generator {
+        "1" => {
+            "resource enumeration, geometry, ordering, counts, and one-way fingerprints only; no source text, bibliographic acceptance, textual acceptance, rights clearance, translation, semantics, or canon authority"
+        }
+        "2" => {
+            "This inventory records resource enumeration, geometry, ordering, counts and one-way fingerprints for the selected source."
+        }
+        _ => {
+            return Err(ItemRefusal::Unsupported(
+                "resource inventory generator version".into(),
+            ));
+        }
+    };
+    let home = parent(text(scope, "item_source_path")?)?;
+    let locator = |name: &str| format!("{home}/{name}");
+    let stamp = text(byte_receipt, "deposited_at")?;
+    let payload = object(vec![
+        ("file_id", j(&scope["file_id"])?),
+        (
+            "relative_path",
+            string(&format!("payload/{}", text(scope, "payload_basename")?)),
+        ),
+        ("original_basename", j(&scope["original_basename"])?),
+        ("media_type", j(&scope["media_type"])?),
+        ("byte_size", j(&scope["byte_size"])?),
+        ("sha256", j(&scope["sha256"])?),
+        ("fixity_verified_at", string(stamp)),
+    ]);
+    let manifest = object(vec![
+        ("schema_version", string("tos_source_item_manifest_v1")),
+        ("item_id", j(&scope["item_id"])?),
+        ("item_kind", j(&request["item_kind"])?),
+        ("embodiment_ref", j(&scope["edition_id"])?),
+        ("storage_posture", string("local_gitignored_payload")),
+        ("payload_files", JsonValue::Array(vec![payload])),
+        ("acquisition_event_ref", j(&scope["acquisition_event_id"])?),
+        ("rights_ref", string(&locator("rights.json"))),
+        ("provenance_ref", string(&locator("provenance.jsonl"))),
+        (
+            "forensic_report_ref",
+            string(&locator("forensic-report.md")),
+        ),
+        (
+            "resource_inventory_ref",
+            string(&locator("resource-inventory.json")),
+        ),
+        ("visibility", string("local_only")),
+        ("manifest_version", j(&json!(1))?),
+    ]);
+    let input = &request["inventory"];
+    if input.is_null() || !request["inventory_limitation"].is_null() {
+        return Err(bad("Item inventory unavailable"));
+    }
+    for (key, value) in [
+        ("file_id", &scope["file_id"]),
+        ("file_sha256", &scope["sha256"]),
+        ("media_type", &scope["media_type"]),
+    ] {
+        if input.get(key) != Some(value) {
+            return Err(bad("Item inventory exact granted File"));
+        }
+    }
+    let inventory = object(vec![
+        (
+            "$schema",
+            string(
+                "https://tree-of-sophia.local/ToS/contracts/source-resource-inventory.schema.json",
+            ),
+        ),
+        ("schema_version", string("tos_source_resource_inventory_v1")),
+        ("item_id", j(&scope["item_id"])?),
+        (
+            "generated_from_manifest_ref",
+            string(&locator("item.manifest.json")),
+        ),
+        ("inventory_authority", string("mechanical_metadata_only")),
+        ("source_text_included", JsonValue::Bool(false)),
+        ("files", JsonValue::Array(vec![j(input)?])),
+        (
+            "generator",
+            object(vec![
+                ("name", string("build_source_resource_inventories.py")),
+                ("version", string(generator)),
+            ]),
+        ),
+        ("provenance_event_ref", j(&scope["inventory_event_id"])?),
+        ("inventory_version", j(&json!(1))?),
+        ("supersedes_inventory_ref", JsonValue::Null),
+        ("authority_boundary", string(boundary)),
+    ]);
+    let rights = j(&request["rights"])?;
+    for (name, leaf, value) in [
+        ("source-item-manifest", "item.manifest.json", &manifest),
+        (
+            "source-resource-inventory",
+            "resource-inventory.json",
+            &inventory,
+        ),
+        ("rights-record", "rights.json", &rights),
+    ] {
+        if !schemas.check(
+            &format!("{}#compound-reconstructed", locator(leaf)),
+            &canonical_ordered(value)?,
+            &format!("ToS/contracts/{name}.schema.json"),
+            limits.deadline,
+            cancelled,
+        )? {
+            return Err(bad("Item companion selected schema"));
+        }
+    }
+    let inventory_raw = pretty(&inventory)?;
+    let event = json!({"schema_version":"tos_provenance_event_v1","event_id":scope["acquisition_event_id"],
+        "event_type":"acquisition","started_at":byte_receipt["started_at"],"ended_at":stamp,
+        "agent_refs":["software:tos-source-item-commands"],
+        "inputs":[{"ref":scope["file_id"],"role":"previously_acquired_local_input","sha256":scope["sha256"]}],
+        "outputs":[{"ref":locator(&format!("payload/{}",text(scope,"payload_basename")?)),"role":"retained_local_witness_bytes","sha256":scope["sha256"]}],
+        "method":{"maker_type":"software","name":"bounded-local-file-adoption","version":"1","configuration":{
+            "transaction_id":identifier,"owner_configuration":request["expected_configuration"],"byte_receipt_ref":locator("item-deposit-receipt.json")}},
+        "status":"completed_with_warnings","warnings":["Local retention only; not rights, bibliographic or textual admission."],
+        "receipt_refs":[locator("edition-item-receipt.json")],"rights_basis_ref":locator("rights.json"),"event_version":1});
+    let mut enumeration = event.clone();
+    for (key, value) in [
+        ("event_id", scope["inventory_event_id"].clone()),
+        ("event_type", json!("forensic_inspection")),
+        ("started_at", interval["started_at"].clone()),
+        ("ended_at", interval["ended_at"].clone()),
+        (
+            "inputs",
+            json!([{"ref":scope["file_id"],"role":"resource_inventory_input","sha256":scope["sha256"]}]),
+        ),
+        (
+            "outputs",
+            json!([{"ref":locator("resource-inventory.json"),"role":"tracked_text_free_resource_inventory","sha256":Digest256::of_bytes(&inventory_raw).to_hex()}]),
+        ),
+        (
+            "method",
+            json!({"maker_type":"software","name":"build_source_resource_inventories.py","version":generator,
+            "configuration":{"scope":"resource enumeration only; no text extraction or semantic reading"}}),
+        ),
+    ] {
+        enumeration
+            .as_object_mut()
+            .unwrap()
+            .insert(key.into(), value);
+    }
+    let mut provenance = Vec::new();
+    for (index, value) in [&event, &enumeration].into_iter().enumerate() {
+        let raw = canonical(value)?;
+        if !schemas.check(
+            &format!(
+                "{}:{}#compound-reconstructed",
+                locator("provenance.jsonl"),
+                index + 1
+            ),
+            &raw,
+            "ToS/contracts/provenance-event.schema.json",
+            limits.deadline,
+            cancelled,
+        )? {
+            return Err(bad("Item acquisition/enumeration selected schema"));
+        }
+        provenance.extend(raw);
+        provenance.push(b'\n');
+    }
+    let report = format!(
+        "# Local Item adoption forensic boundary\n\nFile: {}\nSHA-256: {}\nRetains one unchanged previously acquired local file; the input is preserved.\nThe inventory enumerates resources only. No OCR, correction, translation, source reading,\ncopyright clearance, publication authorization or semantic acceptance was performed.\nCopy and metadata publication are separate stages; retained transaction evidence owns recovery.\n",
+        text(scope, "file_id")?,
+        text(scope, "sha256")?
+    );
+    Ok(vec![
+        ("item.manifest.json".into(), pretty(&manifest)?),
+        ("rights.json".into(), pretty(&rights)?),
+        ("resource-inventory.json".into(), inventory_raw),
+        (
+            "fixity.sha256".into(),
+            format!(
+                "{}  payload/{}\n",
+                text(scope, "sha256")?,
+                text(scope, "payload_basename")?
+            )
+            .into_bytes(),
+        ),
+        ("forensic-report.md".into(), report.into_bytes()),
+        ("provenance.jsonl".into(), provenance),
+    ])
+}
+
 fn j(value: &Value) -> Result<JsonValue, ItemRefusal> {
     ordered(&serde_json::to_vec(value).map_err(|_| bad("JSON value encoding"))?)
 }
@@ -1723,7 +2187,10 @@ impl NativeCompoundReader<'_> {
             return Err(bad("retained authorization/request/before binding"));
         }
         let dirs = array(plan, "new_directories")?;
-        if *dirs != vec![json!(home)] && *dirs != vec![json!(parent(home)?), json!(home)] {
+        if !(kind == CompoundKind::EditionItem && dirs.is_empty())
+            && *dirs != vec![json!(home)]
+            && *dirs != vec![json!(parent(home)?), json!(home)]
+        {
             return Err(bad("exact new child directories"));
         }
         let history = self.history(work_path, &before)?;
@@ -1959,6 +2426,24 @@ impl NativeCompoundReader<'_> {
             ("source-claims.jsonl".into(), claim_raw),
             (claim_form_name, pretty(&claim_forms)?),
         ];
+        if kind == CompoundKind::EditionItem {
+            let byte_receipt_raw = after("item-deposit-receipt.json")?;
+            let byte_receipt = decode(&byte_receipt_raw)?;
+            let inventory = decode(&after("resource-inventory.json")?)?;
+            child_files.extend(item_companions(
+                scope,
+                &request,
+                &byte_receipt,
+                text(&inventory["generator"], "version")?,
+                schemas,
+                self.limits,
+                self.cancelled,
+            )?);
+            child_files.push((
+                "item-deposit-receipt.json".into(),
+                pretty(&ordered(&byte_receipt_raw)?)?,
+            ));
+        }
         let outputs: Vec<_> = parent_files
             .iter()
             .map(|(n, r)| (format!("{work_home}/{n}"), r.clone()))
@@ -2151,7 +2636,7 @@ fn compound_event(
         })
         .collect();
     let output: BTreeMap<_, _> = outputs.iter().map(|(p, r)| (p, r)).collect();
-    let entity = |reference: &str, raw: &[u8], role: &str| json!({"entity_ref":reference,"role":role,"sha256":Digest256::of_bytes(raw).to_hex(),"size_bytes":raw.len(),"media_type":if reference.ends_with(".jsonl"){"application/x-ndjson"}else{"application/json"},"availability":"owner_local","content_disclosure":"public_metadata_only","fixity_verified":false,"fixity_verified_at":null});
+    let entity = |reference: &str, raw: &[u8], role: &str| json!({"entity_ref":reference,"role":role,"sha256":Digest256::of_bytes(raw).to_hex(),"size_bytes":raw.len(),"media_type":if reference.ends_with(".jsonl"){"application/x-ndjson"}else if kind==CompoundKind::EditionItem && reference.ends_with("/forensic-report.md"){"text/markdown"}else if kind==CompoundKind::EditionItem && reference.ends_with("/fixity.sha256"){"text/plain"}else{"application/json"},"availability":"owner_local","content_disclosure":"public_metadata_only","fixity_verified":false,"fixity_verified_at":null});
     let mut inputs = vec![entity(
         &request_ref,
         &request_raw,
@@ -2285,6 +2770,22 @@ impl NativeCompoundReader<'_> {
                 return Err(bad("immutable compound capture changed"));
             }
         }
+        if kind == CompoundKind::EditionItem {
+            for name in [
+                "item-deposit-receipt.json",
+                "item.manifest.json",
+                "rights.json",
+                "provenance.jsonl",
+                "resource-inventory.json",
+                "fixity.sha256",
+                "forensic-report.md",
+            ] {
+                if self.required(&format!("{home}/{name}"), MAX_FILE)? != reconstructed.child[name]
+                {
+                    return Err(bad("immutable Item companion bytes changed"));
+                }
+            }
+        }
         let parent_files = self.selected(work)?;
         self.temporary(self.json_cost(&parent_files[kind.parent_file()])?)?;
         let parent_record = decode(&parent_files[kind.parent_file()])?;
@@ -2305,6 +2806,9 @@ impl NativeCompoundReader<'_> {
         if child_record["record_id"] != scope[kind.child_key()]
             || child_record["record_type"] != kind.child_kind()
             || !kind.initial_backlink(&child_record, &scope[kind.parent_key()])
+            || kind == CompoundKind::EditionItem
+                && child_record["item_manifest_ref"]
+                    != format!("{}/item.manifest.json", parent(expression)?)
         {
             return Err(bad("current compound child typed parent binding"));
         }
