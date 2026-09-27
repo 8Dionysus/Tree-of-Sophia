@@ -2665,7 +2665,7 @@ pub fn validate_source_claim_from_cut(
     }
     if selected_claim_raw.len() > limits.max_member_bytes.min(MAX_RECORD_BYTES)
         || selected_claim_raw.len() as u64 > limits.max_total_bytes
-        || selected_claim_raw.len().checked_mul(4).is_none_or(|n| n > limits.max_state_bytes)
+        || selected_claim_raw.len().checked_mul(4).is_none_or(|n| n > limits.max_state_bytes/2)
     { return Err(ItemRefusal::Budget); }
     // This consumer receives the native owner's decoded JSON transport. A
     // representation Rust cannot retain is Unsupported, never invalid source.
@@ -2712,7 +2712,7 @@ pub fn validate_source_claim_from_cut(
     // Only this invocation's concrete executed receipts are exposed.
     let receipts = &worker.receipts()[first_receipt..];
     let receipt_bytes = receipts.iter().try_fold(0usize, |n,r| n.checked_add(r.path.len()+r.contract.len()+256)).ok_or(ItemRefusal::Budget)?;
-    if receipt_bytes.checked_add((bytes as usize).checked_mul(4).ok_or(ItemRefusal::Budget)?).is_none_or(|n|n>limits.max_state_bytes) {return Err(ItemRefusal::Budget);}
+    if receipt_bytes.checked_add((bytes as usize).checked_mul(4).ok_or(ItemRefusal::Budget)?).is_none_or(|n|n>limits.max_state_bytes/2) {return Err(ItemRefusal::Budget);}
     report.schema_receipts = receipts.to_vec();
     Ok(report)
 }
@@ -2742,7 +2742,9 @@ fn local_claim_input(
         match e.code {StoreErrorCode::BudgetExceeded=>ItemRefusal::Budget, StoreErrorCode::UnsupportedFormat|StoreErrorCode::UnsupportedPlatform=>ItemRefusal::Unsupported(e.to_string()),_=>ItemRefusal::Source(e.to_string())}
     })?;
     *bytes=bytes.checked_add(member.raw.len() as u64).filter(|n|*n<=limits.max_total_bytes).ok_or(ItemRefusal::Budget)?;
-    if bytes.checked_mul(4).is_none_or(|n| n>limits.max_state_bytes as u64) {return Err(ItemRefusal::Budget);}
+    // Half the state quota retains decoded inputs and receipts; the other
+    // half is reserved for constructor routes and their cloned descriptors.
+    if bytes.checked_mul(4).is_none_or(|n| n>(limits.max_state_bytes/2) as u64) {return Err(ItemRefusal::Budget);}
     let value=published_value(&member.raw,limits.max_member_bytes.min(MAX_RECORD_BYTES)).map_err(|e|ItemRefusal::Unsupported(format!("local Claim dependency {path}: {e:?}")))?;
     if !value.is_object() {return Err(ItemRefusal::Unsupported(format!("local Claim dependency must be an object: {path}")));}
     report.dependency_digests.insert(path.into(),Digest256::of_bytes(&member.raw));
