@@ -454,6 +454,7 @@ impl CreationFilesystem {
             cancelled,
         )?;
         read.prepare_sources(package.prepared.context(), local_worker, limits, cancelled)?;
+        crate::source_sign::finish_worker(local_worker, limits.deadline, cancelled)?;
         self.publish(
             package,
             cut,
@@ -645,6 +646,7 @@ impl CreationFilesystem {
             cancelled,
         )?;
         read.prepare_sources(package.prepared.context(), local_worker, limits, cancelled)?;
+        crate::source_sign::finish_worker(local_worker, limits.deadline, cancelled)?;
         self.replay(
             package,
             original_base,

@@ -27,6 +27,29 @@ const CONTROL: &str = "ToS/source-witnesses/.metadata-publication.json";
 const ENTITIES: &str = "ToS/doctrine/semantic-interchange/entity-types.v1.json";
 const RELATIONS: &str = "ToS/doctrine/semantic-interchange/relation-types.v1.json";
 
+pub(crate) fn finish_worker(
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> Result<()> {
+    worker
+        .finish(deadline, cancelled)
+        .map_err(|error| match error {
+            tos_validation::item_rules::ItemRefusal::Deadline => {
+                Error::Denied("Sign schema operation expired")
+            }
+            tos_validation::item_rules::ItemRefusal::Budget => {
+                Error::Invalid("Sign schema operation budget")
+            }
+            tos_validation::item_rules::ItemRefusal::Source(_) => {
+                Error::Invalid("Sign schema operation failed")
+            }
+            tos_validation::item_rules::ItemRefusal::Unsupported(_) => {
+                Error::Unsupported("Sign schema operation incomplete")
+            }
+        })
+}
+
 fn protected(fd: &File, uid: u32, directory: bool) -> Result<()> {
     let m = fd
         .metadata()
@@ -1442,6 +1465,7 @@ impl<'a> SignPromotionRead<'a> {
         let config = &self.configuration;
         let owner = &self.owner;
         let reader = &mut self.reader;
+        let mut finalized = false;
         let mut final_read = || {
             configuration_current(path, raw, config, reader.uid, limits.deadline, cancelled)?;
             let current = current_basis(
@@ -1461,9 +1485,27 @@ impl<'a> SignPromotionRead<'a> {
                 ));
             }
             configuration_current(path, raw, config, reader.uid, limits.deadline, cancelled)?;
+            // FINAL/EOF/resource acceptance must precede the actual rename,
+            // not become an error reported after successful publication.
+            finish_worker(assessment_worker, limits.deadline, cancelled)?;
+            finalized = true;
+            configuration_current(path, raw, config, reader.uid, limits.deadline, cancelled)?;
+            owner.verify_current(limits.deadline, cancelled)?;
+            reader.verify_current(limits.deadline, cancelled)?;
+            fence.verify_current(limits.deadline, cancelled)?;
+            if fence.head(&subject, limits.deadline, cancelled)? != history.head {
+                return Err(Error::Conflict("Sign held journal head changed"));
+            }
             Ok(())
         };
-        sign_publication(&basis, &mut final_read)
+        let result = sign_publication(&basis, &mut final_read);
+        drop(final_read);
+        // Preparation has no publication edge. Its private basis still may
+        // return only after the operation child has completed successfully.
+        if result.is_ok() && !finalized {
+            finish_worker(assessment_worker, limits.deadline, cancelled)?;
+        }
+        result
     }
 }
 

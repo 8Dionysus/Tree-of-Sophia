@@ -24,6 +24,7 @@ fn sign_uses_current_native_content_assessment_and_replays_its_original_package(
     };
     use tos_validation::assessment::AssessmentLimits;
     use tos_validation::executor::BatchBudget;
+    use tos_validation::source_cut::CutSchemaExecutor;
 
     let repository = super::validation_cut_cases::repository()
         .canonicalize()
@@ -183,6 +184,7 @@ finally:
             "original Sign buffer {name}"
         );
     }
+    local_worker.finish(deadline, &cancellation).unwrap();
     // The request retains the Python author's exact basis/configuration and
     // dependency values; Rust must independently reconstruct them again.
     context.request_raw = canonical_json(&oracle["request"]);
@@ -209,6 +211,7 @@ finally:
             &cancellation,
         )
         .unwrap();
+    local_worker.finish(deadline, &cancellation).unwrap();
     assert!(matches!(
         serialized.command().commit(),
         Err(SourceCommandError::MissingProductionAdmission)
