@@ -15,6 +15,8 @@ tos-segment-store = { path = "../tos-segment-store" }
 tos-source-store = { path = "../tos-source-store" }
 tos-validation = { path = "../tos-validation" }
 tos-compiler = { path = "../tos-compiler" }
+tos-query = { path = "../tos-query" }
+tos-access = { path = "../tos-access" }
 serde_json = { version = "1", features = ["arbitrary_precision"] }
 postgres = "0.19"
 tos-fd-open = { path = "../tos-fd-open" }
