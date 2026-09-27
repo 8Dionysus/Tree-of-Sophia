@@ -214,6 +214,7 @@ pub struct ManagedRelease {
     selection_path: String,
     members: BTreeMap<String, Member>,
     source_bindings: BTreeMap<String, Digest256>,
+    compiler_bindings: BTreeMap<String, Digest256>,
 }
 #[derive(Clone)]
 pub struct ReleaseMemberGuard {
@@ -356,6 +357,20 @@ impl ManagedRelease {
                 ))
             })
             .collect::<Result<BTreeMap<_, _>>>()?;
+        let compiler_bindings = compiler
+            .object_get("input_bindings")
+            .unwrap()
+            .as_object()
+            .unwrap()
+            .iter()
+            .map(|(key, value)| {
+                Ok((
+                    key.as_str().unwrap().to_owned(),
+                    Digest256::from_hex(value.as_str().unwrap())
+                        .map_err(|_| unavailable("compiler input binding invalid"))?,
+                ))
+            })
+            .collect::<Result<BTreeMap<_, _>>>()?;
         let mut prior = String::new();
         let compiler_paths = compiler
             .object_get("compiler_paths")
@@ -433,6 +448,7 @@ impl ManagedRelease {
             selection_path,
             members,
             source_bindings,
+            compiler_bindings,
         });
         release.check_locked()?;
         // The native cold owner verifies the selected model and exact companion
@@ -583,6 +599,45 @@ impl ReleaseLease {
         {
             return Err(unavailable("corpus original declaration binding differs"));
         }
+        // Native produced output and captured public input have disjoint
+        // provenance. Neither selection nor this check grants authored rights.
+        let native = match receipt.origin.profile.as_str() {
+            "captured-public-corpus-v1" if receipt.origin.native_producer.is_none() => None,
+            "native-corpus-producer-v1" => {
+                let proof = receipt
+                    .origin
+                    .native_producer
+                    .as_ref()
+                    .ok_or_else(|| unavailable("native corpus producer missing"))?;
+                if proof.source_revision != release.corpus_revision
+                    || proof.source_cut != receipt.source_cut
+                    || proof.source_membership_sha256 != receipt.membership_root
+                    || proof.descriptor_sha256 != receipt.descriptor_sha256
+                    || proof.output_sha256 != receipt.origin.source_sha256
+                    || proof.output_bytes != receipt.origin.source_size_bytes
+                    || release
+                        .compiler_bindings
+                        .get("scripts/tos_corpus_index_common.py")
+                        .map(|sha| sha.to_hex())
+                        != Some(proof.owner_program_sha256.clone())
+                    || release
+                        .compiler_bindings
+                        .get("ToS/contracts/tos-corpus-index.schema.json")
+                        .map(|sha| sha.to_hex())
+                        != Some(proof.owner_schema_sha256.clone())
+                {
+                    return Err(unavailable(
+                        "native corpus source/software/output binding differs",
+                    ));
+                }
+                Some(proof)
+            }
+            _ => {
+                return Err(unavailable(
+                    "corpus original provenance profile unsupported",
+                ));
+            }
+        };
         let mut total = 0u64;
         let mut guards = vec![];
         let mut source_seen = false;
@@ -591,7 +646,15 @@ impl ReleaseLease {
             let (size, sha) = release.member_binding(&selected)?;
             if size != member.size_bytes
                 || sha.to_hex() != member.sha256
-                || release.source_bindings.get(&member.path) != Some(&sha)
+                || match native {
+                    None => release.source_bindings.get(&member.path) != Some(&sha),
+                    Some(proof) => {
+                        release.source_bindings.contains_key(&member.path)
+                            || member.path != receipt.origin.source_path
+                            || member.sha256 != proof.output_sha256
+                            || member.size_bytes != proof.output_bytes
+                    }
+                }
             {
                 return Err(unavailable("corpus source member binding differs"));
             }

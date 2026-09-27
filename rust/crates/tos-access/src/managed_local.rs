@@ -826,6 +826,7 @@ fn same_corpus_receipt(
         && a.origin.source_git_commit == b.origin.source_git_commit
         && a.origin.source_git_tree == b.origin.source_git_tree
         && a.origin.capture_manifest_sha256 == b.origin.capture_manifest_sha256
+        && a.origin.native_producer.as_ref() == b.origin.native_producer.as_ref()
         && a.origin.source_path == b.origin.source_path
         && a.origin.source_sha256 == b.origin.source_sha256
         && a.origin.source_size_bytes == b.origin.source_size_bytes
