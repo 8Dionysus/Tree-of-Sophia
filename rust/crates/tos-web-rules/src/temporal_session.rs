@@ -2,7 +2,8 @@
 //! carrier integrity, visibility, or disclosure authority is established here.
 use std::collections::BTreeMap;
 use tos_foundation::{
-    CanonicalProfile, JsonLimits, JsonMode, JsonValue, canonical_bytes_v1, parse_json,
+    CanonicalProfile, JsonLimits, JsonMode, JsonValue, canonical_bytes_v1,
+    emit_python_compact_json, parse_json,
 };
 use tos_query::{
     compare_temporal_operands,
@@ -31,9 +32,9 @@ pub struct TemporalSessionWork {
     pub exact_lookups: usize,
 }
 
-/// A request-local session must only receive exact, verified carriers from one
-/// selected model and current policy scope. Host changes to either invalidate
-/// and dispose the session; a completed packet still requires a held lease.
+/// A request-local session only receives exact verified carriers from one
+/// selected source revision/profile. Native selected disclosure and published
+/// snapshot delivery retain their distinct host admission and lifetime rules.
 pub struct TemporalSession {
     revision: String,
     profile: String,
@@ -46,6 +47,7 @@ pub struct TemporalSession {
     replay_bytes: usize,
     executions: usize,
     terminal: bool,
+    published_output: bool,
 }
 
 fn error(code: SearchV2ErrorCode, message: &'static str) -> SearchV2Error {
@@ -113,6 +115,7 @@ impl TemporalSession {
             replay_bytes: 0,
             executions: 0,
             terminal: false,
+            published_output: false,
         })
     }
 
@@ -183,14 +186,15 @@ impl TemporalSession {
             return Ok(TemporalSessionStep::Need(id));
         }
         let packet = result?;
-        let bytes = canonical_bytes_v1(
-            &packet,
-            CanonicalProfile::SourceRecordDigestV1,
-            JsonLimits {
-                max_bytes: self.budget.max_output_bytes,
-                ..self.budget.json
-            },
-        )
+        let limits = JsonLimits {
+            max_bytes: self.budget.max_output_bytes,
+            ..self.budget.json
+        };
+        let bytes = if self.published_output {
+            emit_python_compact_json(&packet, limits)
+        } else {
+            canonical_bytes_v1(&packet, CanonicalProfile::SourceRecordDigestV1, limits)
+        }
         .map_err(|_| {
             error(
                 SearchV2ErrorCode::BudgetExceeded,
@@ -199,6 +203,13 @@ impl TemporalSession {
         })?;
         self.terminal = true;
         Ok(TemporalSessionStep::Complete(bytes))
+    }
+
+    /// Serialization only: published snapshot packets retain insertion order
+    /// and Python compact spelling. The private native default stays canonical.
+    pub fn with_published_output(mut self) -> Self {
+        self.published_output = true;
+        self
     }
 
     /// None attests exact absence; Some is the full retained published carrier,

@@ -10,9 +10,10 @@ import {nativeLower, codePointCompare, nativeNumberInfo, NativeBudgetExceeded} f
 import {nativeStrip} from '../../../shared/native-unicode.ts';
 import {NativeSearchDelivery, nativeSearchFailure} from './native-search-store.ts';
 import {executeNativeLensD1} from './native-lens-store.ts';
-import {inspectNativeD1} from './native-inspection-store.ts';
+import {inspectNativeD1, readNativeInspectionPublication} from './native-inspection-store.ts';
+import {respondTemporalSnapshot, SelectedTemporalError, type TemporalReplayModule} from './selected-temporal-runtime.ts';
 import {parseNativeJson, parseNativeRequest, nativeField, arrayRefs, type NativeRef, type NativeLensResult, type NativePacket} from './native-lens.ts';
-import {NativeD1Read, nativeD1Limits, readNativePublication, nativeSha256, nativeUnavailable} from './native-d1-read.ts';
+import {NativeD1Read, NativeD1Rows, nativeD1Limits, readNativePublication, nativeSha256, nativeUnavailable} from './native-d1-read.ts';
 import {compareNativeTemporalD1} from './native-temporal-store.ts';
 import {normalizeTemporalComparisonRequest} from './temporal-comparison.ts';
 
@@ -146,6 +147,52 @@ export async function consistentRead<T>(
 
 export async function executeKnowledgeLensD1(db: D1Database, specValue: NativeRef): Promise<NativeLensResult> {
   return consistentRead(db, snapshot => executeNativeLensD1(db, specValue, {}, snapshot.revision));
+}
+
+/** The publisher/import selects the public snapshot. This reader validates
+ * publication framing and retained exact rows; it issues no runtime rights. */
+export async function temporalSnapshotResponseD1(db: D1Database, runtime: TemporalReplayModule,
+  request: Uint8Array, signal?: AbortSignal): Promise<Response> {
+  if (!runtime || typeof runtime.TemporalReplaySession !== 'function') {
+    throw new SelectedTemporalError('selected_runtime_unavailable');
+  }
+  signal?.throwIfAborted();
+  const read = new NativeD1Read(db, nativeD1Limits, true);
+  const publication = await consistentRead(db, async snapshot => {
+    const top = await readNativeInspectionPublication(read, snapshot.revision);
+    return {snapshot, top};
+  });
+  const checkSelected = async (): Promise<void> => {
+    signal?.throwIfAborted();
+    const current = await knowledgeSnapshot(db);
+    if (!sameKnowledgeSnapshot(current, publication.snapshot)) {
+      throw new HttpError(409, 'knowledge snapshot changed during query; retry against the current revision');
+    }
+    signal?.throwIfAborted();
+  };
+  const rows = new NativeD1Rows(read, nativeD1Limits, false);
+  const encoder = new TextEncoder();
+  const selected = {
+    sourceRevision: nativeField(publication.top.ref, 'source_revision').value as string,
+    // The published normalized source-claims contract owns this profile name;
+    // no native selected receipt or runtime grant is inferred from the header.
+    claimSourceGraph: 'source-claims',
+    admission: encoder.encode(JSON.stringify({max_json_bytes:1048576, max_json_depth:64,
+      max_json_visits:300000, max_integer_digits:4300, max_source_bytes:6*1048576,
+      max_replay_bytes:7*(65536+6*1048576), max_output_bytes:16*1048576})),
+    checkSelected,
+    async readExactNode(id: string): Promise<Uint8Array | null> {
+      await checkSelected();
+      if (!id.isWellFormed()) nativeUnavailable('prepared response contains invalid JSON values');
+      const found = await read.textRows<{id:string}>(['id'], ['id'],
+        'SELECT id FROM knowledge_nodes WHERE id=? ORDER BY id LIMIT 2', id);
+      if (found.length > 1) throw new NativeBudgetExceeded('prepared temporal has too many exact identity matches');
+      const raw = found.length ? encoder.encode(await rows.getRaw('node', id)) : null;
+      await checkSelected();
+      return raw;
+    },
+  };
+  return respondTemporalSnapshot(runtime, selected, request, signal);
 }
 
 async function publishedCatalog(db: D1Database, revision: string): Promise<NativeRef> {

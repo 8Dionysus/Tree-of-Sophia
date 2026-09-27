@@ -9,7 +9,6 @@ import {DatabaseSync} from 'node:sqlite';
 import {createHash} from 'node:crypto';
 import {build} from 'esbuild';
 import {Miniflare, convertV4MiniflareOptions} from 'miniflare';
-import {knowledgeTemporalCompareD1} from '../src/knowledge-store.ts';
 
 const repo = fileURLToPath(new URL('../../../../',import.meta.url));
 const sha = raw => createHash('sha256').update(raw).digest('hex');
@@ -97,7 +96,9 @@ p=json.load(sys.stdin);print(json.dumps(diff(json.loads(p['actual']),json.loads(
 }
 let workerPromise;
 async function worker() {
-  workerPromise??=build({entryPoints:[fileURLToPath(new URL('../src/index.ts',import.meta.url))],bundle:true,write:false,format:'esm',platform:'browser',target:'es2022'})
+  workerPromise??=build({entryPoints:[fileURLToPath(new URL('../src/index.ts',import.meta.url))],bundle:true,write:false,format:'esm',platform:'browser',target:'es2022',
+    plugins:[{name:'existing-node-wasm-module',setup(build){build.onLoad({filter:/\.wasm$/},({path})=>({
+      contents:`export default new WebAssembly.Module(Uint8Array.from(atob(${JSON.stringify(readFileSync(path).toString('base64'))}),c=>c.charCodeAt(0)))`,loader:'js'}));}}]})
     .then(async bundle=>(await import('data:text/javascript;base64,'+Buffer.from(bundle.outputFiles[0].text).toString('base64'))).default);
   return workerPromise;
 }
@@ -275,8 +276,13 @@ p=json.load(sys.stdin);top=json.loads(p['raw']);top['schema']='tos_published_kno
 
 test('real Miniflare temporal D1 raw HTTP matches published Python and rejects ABA',async()=>{
  const fixture=fixtures.find(item=>item.name==='document-native-numbers'),data=database(fixture);data.request=fixture.request;
- const bundle=await build({entryPoints:[fileURLToPath(new URL('../src/index.ts',import.meta.url))],bundle:true,write:false,format:'esm',platform:'browser',target:'es2022'});
- const mf=new Miniflare(convertV4MiniflareOptions({modules:true,script:bundle.outputFiles[0].text,compatibilityDate:'2026-09-03',d1Databases:['DB']}));
+ const bundle=await build({entryPoints:[fileURLToPath(new URL('../src/index.ts',import.meta.url))],bundle:true,write:false,format:'esm',platform:'browser',target:'es2022',
+  plugins:[{name:'existing-workerd-wasm-module',setup(build){build.onResolve({filter:/\.wasm$/},()=>({path:'./tos_web_rules_bg.wasm',external:true}));}}]});
+ const modulesRoot=fileURLToPath(new URL('../generated/',import.meta.url));
+ const mf=new Miniflare(convertV4MiniflareOptions({modulesRoot,modules:[
+  {type:'ESModule',path:join(modulesRoot,'temporal-worker-test.mjs'),contents:bundle.outputFiles[0].text},
+  {type:'CompiledWasm',path:join(modulesRoot,'tos_web_rules_bg.wasm'),contents:readFileSync(join(modulesRoot,'tos_web_rules_bg.wasm'))}],
+  compatibilityDate:'2026-09-03',d1Databases:['DB']}));
  try{
   const db=await mf.getD1Database('DB');
   await db.batch(schema.split(';').map(s=>s.trim()).filter(Boolean).map(s=>db.prepare(s)));
@@ -296,6 +302,7 @@ test('real Miniflare temporal D1 raw HTTP matches published Python and rejects A
      db.prepare("UPDATE edge_meta SET json_chunk=? WHERE key='data_revision'").bind(fixture.metadata.data_revision)]);
    }return result;
   }};}};
-  await assert.rejects(knowledgeTemporalCompareD1(guarded,data.request),error=>error.status===409);assert.equal(changed,true);
+  const changedResponse=await response({db:guarded,request:data.request});
+  assert.equal(changedResponse.status,409);await changedResponse.arrayBuffer();assert.equal(changed,true);
  }finally{data.close();await mf.dispose();}
 });

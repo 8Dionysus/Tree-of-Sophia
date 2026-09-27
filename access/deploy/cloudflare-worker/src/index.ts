@@ -24,7 +24,7 @@ import {
   knowledgeSearchD1,
   knowledgeSearchCapabilitiesD1,
   knowledgeSearchD1Indexed,
-  knowledgeTemporalCompareD1,
+  temporalSnapshotResponseD1,
   knowledgeCatalogD1,
   storedKnowledgeLensD1,
 } from "./knowledge-store";
@@ -37,6 +37,13 @@ import {parseNativeRequest, type NativeRef} from './native-lens.ts';
 import {nativeLensResponse, nativePacketResponse} from './native-lens-response.ts';
 import {NativeBudgetExceeded} from '../../../shared/native-semantics.ts';
 import {nativeStrip,nativeIntegerString} from '../../../shared/native-unicode.ts';
+import {SelectedTemporalError} from './selected-temporal-runtime.ts';
+import {initSync, TemporalReplaySession} from '../generated/tos_web_rules.js';
+import temporalWasm from '../generated/tos_web_rules_bg.wasm';
+
+// wasm-bindgen owns module initialization; no second host cache or fetch.
+initSync({module: temporalWasm});
+const temporalRuntime = {TemporalReplaySession};
 
 const STATIC_CORPUS_LIMITS = new Set([1, 100, 700, 1000]);
 const STATIC_PHILOSOPHY_LIMITS = new Set([1, 1000]);
@@ -93,7 +100,8 @@ async function sourceGapResponse(request: Request, env: Env, search: URLSearchPa
   return jsonResponse({ ...packet, query, result_count: gaps.length, gaps }, 200, request.method);
 }
 
-async function lensCompileResponse(request: Request, env: Env, operation: 'lens' | 'exploration' | 'temporal' = 'lens'): Promise<Response> {
+async function lensCompileResponse(request: Request, env: Env,
+  operation: 'lens' | 'exploration' | 'temporal' = 'lens'): Promise<Response> {
   const contentType = ((request.headers.get("Content-Type") ?? "").split(";").at(0) ?? "").trim().toLowerCase();
   if (contentType !== "application/json") throw new HttpError(415, "lens request must use application/json");
   const declaredLength = request.headers.get("Content-Length");
@@ -125,18 +133,32 @@ async function lensCompileResponse(request: Request, env: Env, operation: 'lens'
     bytes.set(chunk, offset);
     offset += chunk.byteLength;
   }
+  // The maintained temporal route passes its generated shared Rust module.
+  // Publication selection and exact retained bytes stay with the D1 reader.
+  if (operation === 'temporal') {
+    try { return withSecurity(await temporalSnapshotResponseD1(env.DB, temporalRuntime, bytes, request.signal)); }
+    catch (error) {
+      if (error instanceof NativeBudgetExceeded) throw new HttpError(413, error.message);
+      if (error instanceof SelectedTemporalError) {
+        const status = error.code === 'UnknownIdentifier' ? 404
+          : error.code === 'StaleSelection' ? 409
+          : error.code === 'BudgetExceeded' ? 413
+          : error.code === 'InvalidRequest' || error.code === 'InvalidJson' ? 400 : 503;
+        throw new HttpError(status, error.message);
+      }
+      throw error;
+    }
+  }
   let spec: unknown, nativeSpec: NativeRef | null = null;
   try {
     const raw = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(bytes);
-    if (operation === 'lens' || operation === 'exploration') {nativeSpec = parseNativeRequest(raw, {maxBytes: MAX_LENS_REQUEST_BYTES}); spec = nativeSpec.value;}
-    else spec = JSON.parse(raw);
+    nativeSpec = parseNativeRequest(raw, {maxBytes: MAX_LENS_REQUEST_BYTES}); spec = nativeSpec.value;
   } catch (error) {
     throw new HttpError(400, `invalid LensSpec JSON: ${error instanceof Error ? error.message : "decode failed"}`);
   }
   if (!spec || typeof spec !== "object" || Array.isArray(spec)) throw new HttpError(400, "lens spec must be an object");
   try {
     if (nativeSpec && operation === 'lens') return nativeLensResponse(await executeKnowledgeLensD1(env.DB, nativeSpec), 200, request.method);
-    if (operation === 'temporal') return nativePacketResponse(await knowledgeTemporalCompareD1(env.DB,spec),200,request.method);
     return withSecurity(new Response(await exploreD1(env.DB,spec,nativeSpec??undefined),{status:200,
       headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'}}));
   } catch (error) {

@@ -39,19 +39,35 @@ must bind `tos.knowledge.temporal.compare`,
 every consulted carrier, and hold/recheck the current lease through private
 capture. `captureSelectedTemporal` refuses a callback's returned `Response`:
 response construction finishes before Worker platform body consumption/enqueue.
-Captured values are not public-delivery admission. A real Worker body lifecycle
-primitive holding/rechecking the owner lease through final enqueue and releasing
-it on completion/cancellation remains absent.
+Captured values are not public-delivery admission. This private selected profile
+remains distinct from the maintained published D1 snapshot route.
 Cancellation is cooperative around platform awaits; the platform
 reader owns cancellation within its I/O. Replay needs and finished bytes grant
 no disclosure authority by themselves.
 
-There is no production Worker binding or public route activation here. Existing
-`temporal-comparison.ts`, `native-temporal-store.ts` and their live route retain
-their current execution until an authentic selected publication/current-policy
-provider and actual Worker parity are admitted. The new TS module is byte
-transport; it does not retire those domain functions. Inspection, lens and
-exploration selected native executors remain separate from this temporal seam.
+The maintained Worker temporal POST imports the generated module directly and
+uses `respondTemporalSnapshot` over the existing verified D1 publication reader.
+The publisher/import selects public data; this path does not require or invent
+the native selected profile's disclosure issuer. It verifies the supported
+publication header/indexes and exact emitted row digests/identity, then passes
+raw retained bytes to Rust. Epoch/data_revision checks surround reads and run
+again immediately before whole-body enqueue/close. A demand-driven stream with
+zero high-water mark emits no bytes during Response construction; cancellation,
+request abort and snapshot failure discard the buffered packet. This is a
+publication consistency check before body handoff, not a transaction held
+through remote network flush.
+
+The optional fifth WASM constructor argument `published_output: true` selects
+FND insertion-ordered Python compact emission without a final LF. It changes
+serialization only. Absent/false retains native canonical emission and the
+accepted private capture ABI. Physical D1 admission stays bounded by the
+existing reader; replay retains at most six 1 MiB rows, seven executions and a
+16 MiB packet, with the existing JSON depth/visit/integer limits. Replay byte
+admission follows those explicit roles and caps, not claimed CPU measurement.
+
+Existing TS domain functions remain pending retirement until actual maintained
+published Worker parity is accepted. Inspection/lens/exploration selected native
+executors remain separate. Source wiring does not establish a deployment.
 
 The existing `tests/domain-wasm-host.mjs` exercises the real generated binding
 and async driver with a maintained selected-packet oracle carrier, plus
@@ -75,3 +91,10 @@ strings and asserts identical privately captured packet bytes; it neither rebuil
 round-trips carrier bodies through JS objects. The harness reports
 `genuine_temporal_cases: 0` when no capture was supplied, and
 `temporal_public_delivery: false` regardless of fixture parity.
+
+The existing workerd harness supports `--temporal-body-only` to exercise deferred
+whole-packet consumption, body cancellation, request abort and changed-snapshot
+refusal without repeating historical private captures. The maintained Worker
+`test/native-temporal.test.mjs` exercises the actual default route against the
+existing published Python oracle, including retained number kinds/member order,
+publication damage and ABA. No new test framework is introduced.

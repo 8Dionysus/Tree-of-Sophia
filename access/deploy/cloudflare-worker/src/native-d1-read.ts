@@ -110,11 +110,11 @@ export class NativeD1Rows {
   constructor(read: NativeD1Read, limits: NativeD1Limits, verifyOrder = true) {
     this.read = read; this.limits = limits; this.verifyOrder = verifyOrder;
   }
-  async load(kind: NativeKind, identifiers: Iterable<string>): Promise<Map<string, NativeRef>> {
+  async load(kind: NativeKind, identifiers: Iterable<string>, retained?: (id: string, raw: string) => void): Promise<Map<string, NativeRef>> {
     const ids = [...new Set(identifiers)].sort(codePointCompare), result = new Map<string, NativeRef>(), missing: string[] = [];
     for (const id of ids) {
       const key = kind + ':' + id, cached = this.cache.get(key);
-      if (cached) {this.cache.delete(key); this.cache.set(key, cached); result.set(id, cached.ref);} else missing.push(id);
+      if (cached && !retained) {this.cache.delete(key); this.cache.set(key, cached); result.set(id, cached.ref);} else missing.push(id);
     }
     for (let offset = 0; offset < missing.length; offset += this.limits.blockSize) {
       const page = missing.slice(offset, offset + this.limits.blockSize);
@@ -163,6 +163,7 @@ export class NativeD1Rows {
         const id = stringField(ref, 'id'), order = byOrder.get(id);
         if (this.verifyOrder && (!order || order.kind !== kind || order.sort_key !== nativeLower(id) || order.from_id !== (kind === 'relation' ? stringField(ref, 'from_id') : '') || order.to_id !== (kind === 'relation' ? stringField(ref, 'to_id') : ''))) nativeUnavailable('native lens ordered carrier differs from payload');
         result.set(id, ref);
+        retained?.(id, raw);
         if (size <= this.limits.maxCacheBytes) {
           while (this.cache.size && (this.cache.size >= this.limits.maxCacheEntries || this.cacheBytes + size > this.limits.maxCacheBytes)) {
             const [key, retired] = this.cache.entries().next().value!; this.cache.delete(key); this.cacheBytes -= retired.size;
@@ -174,6 +175,13 @@ export class NativeD1Rows {
     return result;
   }
   async get(kind: NativeKind, id: string): Promise<NativeRef> {return (await this.load(kind, [id])).get(id)!;}
+  /** Retain verified emitted bytes for a Rust consumer without JS reserialization. */
+  async getRaw(kind: NativeKind, id: string): Promise<string> {
+    let raw: string | undefined;
+    await this.load(kind, [id], (found, value) => {if (found === id) raw = value;});
+    if (raw === undefined) nativeUnavailable('native selected retained payload missing');
+    return raw;
+  }
 }
 
 /** Python compact emitted framing, including UTF-8 encodability of every key/value. */

@@ -36,8 +36,8 @@ mod wasm {
     };
     use wasm_bindgen::prelude::*;
 
-    /// Private continuation. A need is only physical I/O intent; successful
-    /// bytes still require the selected owner's current held disclosure lease.
+    /// A need is physical I/O intent. Successful bytes do not select a model,
+    /// publication or disclosure rule; those belong to the actual consumer.
     #[wasm_bindgen]
     pub struct TemporalReplaySession {
         inner: super::TemporalSession,
@@ -77,14 +77,16 @@ mod wasm {
         pub fn exact_lookups(&self) -> usize {
             self.inner.work().exact_lookups
         }
-        /// Admission is supplied by the selected caller, never inferred from
-        /// projection availability. All byte/CPU caps are positive safe integers.
+        /// Admission is supplied by the caller. Caps bound parsing/replay/output,
+        /// not measured CPU instructions. Optional published_output selects
+        /// insertion-ordered Python compact bytes; absent/false stays canonical.
         #[wasm_bindgen(constructor)]
         pub fn new(
             revision: String,
             profile: String,
             request: &[u8],
             admission: &[u8],
+            published_output: Option<bool>,
         ) -> Result<TemporalReplaySession, JsValue> {
             let document = tos_foundation::parse_json(
                 admission,
@@ -118,6 +120,11 @@ mod wasm {
             };
             let inner = super::TemporalSession::new(revision, profile, request, budget)
                 .map_err(|e| JsValue::from_str(&format!("{:?}", e.code)))?;
+            let inner = if published_output == Some(true) {
+                inner.with_published_output()
+            } else {
+                inner
+            };
             Ok(Self { inner })
         }
         pub fn advance(&mut self) -> TemporalReplayStep {

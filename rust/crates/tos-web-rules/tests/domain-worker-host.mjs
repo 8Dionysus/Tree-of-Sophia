@@ -7,7 +7,8 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-const [miniflarePackage, bindingPath, wasmPath, wranglerPath, temporalCapturePath] = process.argv.slice(2);
+const bodyOnly = process.argv.includes('--temporal-body-only');
+const [miniflarePackage, bindingPath, wasmPath, wranglerPath, temporalCapturePath] = process.argv.slice(2).filter(arg=>arg!=='--temporal-body-only');
 if (!miniflarePackage || !bindingPath || !wasmPath || !wranglerPath) throw new Error('usage: node domain-worker-host.mjs WORKER_PACKAGE.json BINDING.mjs MODULE_bg.wasm WRANGLER.jsonc');
 const require = createRequire(pathToFileURL(miniflarePackage).href);
 const { Miniflare, convertV4MiniflareOptions } = require('miniflare');
@@ -22,7 +23,7 @@ const temporalDriver = (await transform(await readFile(new URL('../../../../acce
   {loader:'ts',format:'esm',target:'es2022'})).code;
 const entry = `
 import { initSync, compact_knowledge_search_page_wasm_v1, workspace_proposal_digest_wasm_v1, workspace_transition_wasm_v1, TemporalReplaySession } from './tos_web_rules.mjs';
-import { captureSelectedTemporal, SelectedTemporalError } from './selected-temporal-runtime.mjs';
+import { captureSelectedTemporal, respondTemporalSnapshot, SelectedTemporalError } from './selected-temporal-runtime.mjs';
 import rulesModule from './tos_web_rules_bg.wasm';
 let ready = false;
 export default { async fetch(request) {
@@ -39,6 +40,25 @@ export default { async fetch(request) {
       },async withCurrentDisclosure(deliver){if(fixture.withdrawn)throw Error('withdrawn');
         held=true;try{return await deliver();}finally{held=false;}}
     };
+    if(fixture.lifecycle){
+      // Synthetic snapshot mutation/cancellation controls exercise the actual
+      // demand-driven Response body, without claiming publisher selection.
+      let phase='compute',checks=0;
+      selected.checkSelected=async()=>{checks++;if(phase==='body'&&fixture.lifecycle==='changed')throw Error('snapshot changed');};
+      const response=await respondTemporalSnapshot({TemporalReplaySession},selected,encoder.encode(fixture.request),abort.signal);
+      phase='body';const before=checks;
+      await Promise.resolve();await Promise.resolve();
+      if(checks!==before)throw Error('Response construction consumed the body');
+      const reader=response.body.getReader();let observed;
+      if(fixture.lifecycle==='cancel'){await reader.cancel();observed=await reader.read();}
+      else if(fixture.lifecycle==='abort'){abort.abort();try{await reader.read();throw Error('aborted body delivered');}catch(error){
+        if(error.name!=='AbortError')throw error;observed={aborted:true};}}
+      else if(fixture.lifecycle==='changed'){try{await reader.read();throw Error('changed snapshot delivered');}catch(error){
+        if(error.message!=='snapshot changed')throw error;observed={changed:true};}}
+      else {const chunk=await reader.read();if(chunk.done||!chunk.value.length)throw Error('packet absent');
+        observed={packet:new TextDecoder().decode(chunk.value),closed:(await reader.read()).done};}
+      return Response.json({before,checks,observed});
+    }
     try{
       const captured=await captureSelectedTemporal({TemporalReplaySession},selected,encoder.encode(fixture.request),async bytes=>{
         if(!held)throw Error('capture lease absent');
@@ -90,6 +110,7 @@ try {
     assert.equal(response.status, 200, await response.clone().text());
     return response.json();
   };
+  if(!bodyOnly){
   const proposal = {
     id: 'proposal:one', kind: 'interpretation', parent_hypothesis_id: 'hyp:one', target_id: 'edge:one',
     statement: 'Another reading.', source_refs: ['source:one'], evidence_refs: ['evidence:one'],
@@ -131,6 +152,7 @@ try {
   assert.equal(undone.value, true);
   assert.deepEqual(undone.machine.state.excluded_edge_ids, []);
   assert.deepEqual(await call('/workspace', { schema, operation: 'import', machine: undone.machine, packet: '{"schema":"bad"}' }), { error: 'invalid_packet' });
+  }
   const oracle=JSON.parse(await readFile(new URL('../../tos-query/tests/fixtures/cmp_knowledge_inspect_python_oracle.json',import.meta.url),'utf8'));
   const owned=oracle.cases.find(row=>row.kind==='nodes'&&row.packet.matches.length===1);assert.ok(owned);
   const node=owned.packet.matches[0],temporalFixture={revision:owned.packet.source_revision,profile:node.source_graph,id:node.id,
@@ -138,6 +160,7 @@ try {
       left:{node_id:node.id,content_revision:node.content_revision},right:{node_id:node.id,content_revision:node.content_revision}}),
     admission:JSON.stringify({max_json_bytes:1048576,max_json_depth:64,max_json_visits:300000,max_integer_digits:4300,
       max_source_bytes:1048576,max_replay_bytes:8388608,max_output_bytes:1048576})};
+  if(!bodyOnly){
   const temporal=await call('/temporal',temporalFixture);
   assert.equal(temporal.comparison.status,'unsupported');assert.deepEqual(temporal.left.claim,node);assert.deepEqual(temporal.right.claim,node);
   const cancelled=await call('/temporal',{...temporalFixture,cancel:true});
@@ -145,8 +168,17 @@ try {
   assert.equal((await call('/temporal',{...temporalFixture,withdrawn:true})).message,'withdrawn');
   assert.equal((await call('/temporal',{...temporalFixture,absent:true})).error,'UnknownIdentifier');
   assert.equal((await call('/temporal',{...temporalFixture,return_response:true})).error,'response_delivery_lifecycle_unavailable');
+  }
+  for(const lifecycle of ['consume','cancel','abort','changed']){
+    const result=await call('/temporal',{...temporalFixture,lifecycle});
+    if(lifecycle==='consume'){assert.equal(result.checks,result.before+1);assert.equal(result.observed.closed,true);
+      const packet=JSON.parse(result.observed.packet);assert.equal(packet.comparison.status,'unsupported');assert.deepEqual(packet.left.claim,node);}
+    else if(lifecycle==='cancel'){assert.equal(result.checks,result.before);assert.equal(result.observed.done,true);}
+    else if(lifecycle==='abort'){assert.equal(result.checks,result.before);assert.equal(result.observed.aborted,true);}
+    else {assert.equal(result.checks,result.before+1);assert.equal(result.observed.changed,true);}
+  }
   let genuineTemporalCases=0;
-  if(temporalCapturePath){
+  if(temporalCapturePath&&!bodyOnly){
     const capture=JSON.parse(await readFile(temporalCapturePath,'utf8'));
     assert.equal(new Set(capture.carriers.map(row=>row.id)).size,capture.carriers.length);
     for(const testCase of capture.temporal){
@@ -160,7 +192,8 @@ try {
     assert.ok(genuineTemporalCases>0,'native capture contains no temporal cases');
   }
   console.log(JSON.stringify({ status: 'pass', host: 'local Miniflare/workerd WebAssembly', compatibility_date: compatibilityDate,
-    cases: 9, temporal_bridge_cases:5,genuine_temporal_cases:genuineTemporalCases,temporal_public_delivery:false }));
+    cases: bodyOnly?0:9, temporal_bridge_cases:bodyOnly?0:5,temporal_body_cases:4,
+    genuine_temporal_cases:genuineTemporalCases,temporal_public_delivery:false }));
 } finally {
   if (mf) await mf.dispose();
   process.chdir(originalCwd);
