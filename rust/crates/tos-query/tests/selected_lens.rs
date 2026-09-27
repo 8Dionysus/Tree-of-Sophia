@@ -52,6 +52,8 @@ struct Authority {
     originals_denied: bool,
     original_ordinals: Vec<i64>,
     original_rights: u64,
+    philosophy_rows: Vec<(tos_compiler::PhilosophyOriginalCollection, u64)>,
+    philosophy_counts: Option<(u64, u64)>,
 }
 impl Authority {
     fn new(bound: &BoundCmpKnowledge<'_>) -> Self {
@@ -89,10 +91,41 @@ impl Authority {
             originals_denied: true,
             original_ordinals: vec![],
             original_rights: 0,
+            philosophy_rows: vec![],
+            philosophy_counts: None,
         }
     }
 }
 impl InspectCurrentAuthority for Authority {
+    fn authorize_philosophy_original_current(
+        &mut self,
+        receipt: &tos_compiler::PhilosophyOriginalReceipt,
+        collection: tos_compiler::PhilosophyOriginalCollection,
+        ordinal: u64,
+        raw: &[u8],
+        sha: tos_foundation::Digest256,
+    ) -> Result<(), SearchV2Error> {
+        self.check_selected()?;
+        if self.originals_denied {
+            return Err(SearchV2Error {
+                code: SearchV2ErrorCode::Unavailable,
+                message: "synthetic philosophy original grant unavailable",
+            });
+        }
+        assert_eq!(receipt.source_cut, self.scope.source_cut);
+        assert_eq!(
+            receipt.membership_root,
+            self.scope.source_membership_root.to_hex()
+        );
+        assert_eq!(
+            receipt.descriptor_sha256,
+            self.scope.descriptor_sha256.to_hex()
+        );
+        assert_eq!(tos_foundation::Digest256::of_bytes(raw), sha);
+        self.philosophy_rows.push((collection, ordinal));
+        self.philosophy_counts = Some((receipt.nodes, receipt.edges));
+        Ok(())
+    }
     fn authorize_navigation_original_current(
         &mut self,
         receipt: &tos_compiler::NavigationOriginalReceipt,
@@ -188,6 +221,17 @@ impl InspectCurrentAuthority for Authority {
                 self.original_ordinals,
                 (-1..self.original_rights as i64).collect::<Vec<_>>()
             );
+        }
+        if self.scope.intended_use == tos_query::philosophy_read::PHILOSOPHY_INTENDED_USE {
+            use tos_compiler::PhilosophyOriginalCollection::{Edges, Header, Nodes};
+            let (nodes, edges) = self
+                .philosophy_counts
+                .expect("original grants precede hold");
+            let expected = std::iter::once((Header, 0))
+                .chain((0..nodes).map(|i| (Nodes, i)))
+                .chain((0..edges).map(|i| (Edges, i)))
+                .collect::<Vec<_>>();
+            assert_eq!(self.philosophy_rows, expected);
         }
         assert_eq!(
             consulted.iter().map(|r| &r.id).collect::<Vec<_>>(),
@@ -967,5 +1011,261 @@ print(raw({'header':raw(header),'nodes':[raw(v) for v in nav['nodes']],'edges':[
             .unwrap()
             .code,
         SearchV2ErrorCode::BudgetExceeded
+    );
+}
+
+#[test]
+fn normalized_selected_philosophy_reads_match_original_python_packets_and_hold_projection() {
+    use tos_compiler::{
+        PhilosophyOriginalCollection,
+        knowledge_full_fixture::build_native_fixture_with_philosophy_original,
+    };
+    use tos_query::philosophy_read::{
+        PHILOSOPHY_INTENDED_USE, PhilosophyDirection, PhilosophyReadBudget, PhilosophyReadRequest,
+        execute_selected_philosophy,
+    };
+    // One finite software fixture goes through the normal producer, seal and
+    // cold open. Its exact originals feed the independent maintained reader;
+    // this is not authored philosophy, source or publication admission.
+    let fixture = build_native_fixture_with_philosophy_original();
+    let mut cold = fixture.open().unwrap();
+    let receipt = cold.philosophy_original_receipt().unwrap().clone();
+    let mut originals = |collection, count| {
+        let mut rows = Vec::new();
+        let mut after = None;
+        for ordinal in 0..count {
+            let page = cold
+                .philosophy_original_page_under_caller_budget(
+                    collection,
+                    after,
+                    1,
+                    budget().inspect.max_payload_bytes,
+                    budget().inspect.max_payload_bytes as u64,
+                )
+                .unwrap();
+            assert_eq!(page.rows.len(), 1);
+            let row = page.rows.into_iter().next().unwrap();
+            assert_eq!(row.ordinal, ordinal);
+            rows.push(
+                parse_json(&row.raw, JsonMode::PublishedStrict, budget().inspect.json)
+                    .unwrap()
+                    .into_root(),
+            );
+            after = Some(ordinal);
+        }
+        rows
+    };
+    let header = originals(PhilosophyOriginalCollection::Header, 1).remove(0);
+    let nodes = originals(PhilosophyOriginalCollection::Nodes, receipt.nodes);
+    let edges = originals(PhilosophyOriginalCollection::Edges, receipt.edges);
+    let mut projection = header.as_object().unwrap().to_vec();
+    projection.push((
+        tos_foundation::JsonString::from_utf8("nodes"),
+        JsonValue::Array(nodes),
+    ));
+    projection.push((
+        tos_foundation::JsonString::from_utf8("edges"),
+        JsonValue::Array(edges),
+    ));
+    let projection = JsonValue::Object(projection);
+    let script = r#"
+import json,sys
+sys.path.insert(0,sys.argv[1])
+from tos_access.core import ToSAccessCore
+payload=json.load(sys.stdin)
+# Independent maintained domain methods over the exact admitted originals;
+# the software oracle supplies no native current/disclosure authority.
+core=ToSAccessCore.__new__(ToSAccessCore)
+core.philosophy_projection=lambda:payload
+left,right=payload['nodes'][0]['node_id'],payload['nodes'][1]['node_id']
+edge=payload['edges'][0]['edge_id'];view=payload['views'][0]['view_id']
+cases={
+ 'node':core.philosophy_node(left),
+ 'edge':core.philosophy_edge(edge),
+ 'neighborhood':core.philosophy_neighborhood(left,depth=2,limit=1),
+ 'path':core.philosophy_path_between(left,right,max_depth=3),
+ 'path-incoming':core.philosophy_path_between(right,left,max_depth=3,direction='incoming'),
+ 'path-excluded':core.philosophy_path_between(left,right,max_depth=3,direction='either',excluded_edge_ids=[edge]),
+ 'view':core.philosophy_view(view,limit=1),
+ 'views':core.philosophy_views(),
+ 'layers':core.philosophy_layers(),
+ 'clusters':core.philosophy_clusters(view_id=view,limit=1),
+ 'review':core.philosophy_review_packet(view),
+ 'snapshot':core.philosophy_snapshot(),
+ 'unresolved':core.philosophy_unresolved(view),
+}
+json.dump({'left':left,'right':right,'edge':edge,'view':view,'cases':cases},sys.stdout,ensure_ascii=False,allow_nan=False)
+"#;
+    let mut child = Command::new("python3")
+        .arg("-c")
+        .arg(script)
+        .arg(concat!(env!("CARGO_MANIFEST_DIR"), "/../../../access/src"))
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap();
+    child
+        .stdin
+        .take()
+        .unwrap()
+        .write_all(&canonical(&projection))
+        .unwrap();
+    let output = child.wait_with_output().unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let oracle = parse_json(
+        &output.stdout,
+        JsonMode::PublishedStrict,
+        budget().inspect.json,
+    )
+    .unwrap()
+    .into_root();
+    let id = |name| field(&oracle, name).as_str().unwrap().to_owned();
+    let path = |direction, from_id, to_id, excluded_edge_ids| PhilosophyReadRequest::Path {
+        from_id,
+        to_id,
+        direction,
+        excluded_edge_ids,
+        max_depth: 3,
+        view_id: None,
+        alternative_limit: 1,
+        layers: vec![],
+        predicates: vec![],
+    };
+    let requests = vec![
+        (
+            "node",
+            PhilosophyReadRequest::Node {
+                node_id: id("left"),
+            },
+        ),
+        (
+            "edge",
+            PhilosophyReadRequest::Edge {
+                edge_id: id("edge"),
+            },
+        ),
+        (
+            "neighborhood",
+            PhilosophyReadRequest::Neighborhood {
+                node_id: id("left"),
+                depth: 2,
+                limit: 1,
+                layers: vec![],
+                predicates: vec![],
+            },
+        ),
+        (
+            "path",
+            path(
+                PhilosophyDirection::Outgoing,
+                id("left"),
+                id("right"),
+                vec![],
+            ),
+        ),
+        (
+            "path-incoming",
+            path(
+                PhilosophyDirection::Incoming,
+                id("right"),
+                id("left"),
+                vec![],
+            ),
+        ),
+        (
+            "path-excluded",
+            path(
+                PhilosophyDirection::Either,
+                id("left"),
+                id("right"),
+                vec![id("edge")],
+            ),
+        ),
+        (
+            "view",
+            PhilosophyReadRequest::View {
+                view_id: id("view"),
+                limit: 1,
+            },
+        ),
+        ("views", PhilosophyReadRequest::Views),
+        ("layers", PhilosophyReadRequest::Layers),
+        (
+            "clusters",
+            PhilosophyReadRequest::Clusters {
+                view_id: Some(id("view")),
+                cluster_kind: None,
+                limit: 1,
+            },
+        ),
+        (
+            "review",
+            PhilosophyReadRequest::Review {
+                view_id: id("view"),
+            },
+        ),
+        ("snapshot", PhilosophyReadRequest::Snapshot),
+        (
+            "unresolved",
+            PhilosophyReadRequest::Unresolved {
+                view_id: Some(id("view")),
+            },
+        ),
+    ];
+    let bound =
+        bind_verified_knowledge(&cold, &fixture.vocabulary, &fixture.descriptor_bytes).unwrap();
+    let caps = PhilosophyReadBudget {
+        inspect: budget().inspect,
+        max_work_steps: u64::try_from(budget().max_path_steps).unwrap(),
+    };
+    let current = |request: &PhilosophyReadRequest| {
+        let mut a = Authority::new(&bound);
+        a.scope.operation_id = request.operation_id().into();
+        a.scope.intended_use = PHILOSOPHY_INTENDED_USE.into();
+        a.originals_denied = false;
+        a
+    };
+    for (name, request) in &requests {
+        let mut authority = current(request);
+        let mut packet =
+            execute_selected_philosophy(&mut cold, &bound, &mut authority, request, caps).unwrap();
+        assert_eq!(
+            &*packet,
+            canonical(field(field(&oracle, "cases"), name)),
+            "{name}"
+        );
+        packet.recheck().unwrap();
+    }
+    let request = &requests[0].1;
+    let mut denied = current(request);
+    denied.originals_denied = true;
+    assert_eq!(
+        execute_selected_philosophy(&mut cold, &bound, &mut denied, request, caps)
+            .err()
+            .unwrap()
+            .code,
+        SearchV2ErrorCode::Unavailable
+    );
+    let mut tiny = caps;
+    tiny.inspect.max_rows = 1;
+    assert_eq!(
+        execute_selected_philosophy(&mut cold, &bound, &mut current(request), request, tiny)
+            .err()
+            .unwrap()
+            .code,
+        SearchV2ErrorCode::BudgetExceeded
+    );
+    let mut authority = current(request);
+    let mut held =
+        execute_selected_philosophy(&mut cold, &bound, &mut authority, request, caps).unwrap();
+    authority.withdrawn.store(true, Ordering::SeqCst);
+    assert_eq!(
+        held.recheck().unwrap_err().code,
+        SearchV2ErrorCode::StalePolicy
     );
 }
