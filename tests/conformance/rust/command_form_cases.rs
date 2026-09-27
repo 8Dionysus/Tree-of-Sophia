@@ -147,6 +147,15 @@ pub(super) fn schemas_for_profile(
     deadline: Instant,
     cancel: &AtomicBool,
 ) -> CutWorkerSchemaExecutor {
+    schemas_for_profile_with_budget(cut, profile, ExecutorBudget::laboratory(), deadline, cancel)
+}
+pub(super) fn schemas_for_profile_with_budget(
+    cut: &CorpusCutReader,
+    profile: FormatProfile,
+    budget: ExecutorBudget,
+    deadline: Instant,
+    cancel: &AtomicBool,
+) -> CutWorkerSchemaExecutor {
     let absolute_path = super::validation_cut_cases::selected_worker_path();
     let sha256 = Digest256::of_bytes(&fs::read(&absolute_path).unwrap());
     CutWorkerSchemaExecutor::from_cut(
@@ -156,7 +165,7 @@ pub(super) fn schemas_for_profile(
             absolute_path,
             sha256,
         },
-        ExecutorBudget::laboratory(),
+        budget,
         CutWorkerLimits {
             max_receipts: 128,
             max_receipt_bytes: 262_144,

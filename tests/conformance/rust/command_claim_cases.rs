@@ -17,6 +17,7 @@ use tos_command::source_forms::metadata_subject;
 use tos_command::source_operation::{SourceOperationError, bind_selected_candidate};
 use tos_source_store::{CorpusCutReader, SoftwareCaptureReader, SoftwareComponentSelectionV1};
 use tos_validation::operation::OperationLimits;
+use tos_validation::{FormatProfile, executor::ExecutorBudget};
 
 fn selected_context(
     files: &BTreeMap<String, Vec<u8>>,
@@ -591,10 +592,11 @@ fn initial_claim_creation_publishes_five_native_files_and_cold_replays() {
     let repository = super::validation_cut_cases::repository()
         .canonicalize()
         .unwrap();
-    let (mut files, mut claim, _, source_path) = claim_fixture();
+    let (mut files, mut claim, mut revision_owner, source_path) = claim_fixture();
     claim["claim_version"] = Value::from(1);
     let mut software_names = CLAIM_GROUNDING_RULE_INPUTS
         .iter()
+        .chain(CLAIM_REVISION_RULE_INPUTS)
         .copied()
         .filter(|name| !name.starts_with("ToS/"))
         .collect::<Vec<_>>();
@@ -620,6 +622,18 @@ fn initial_claim_creation_publishes_five_native_files_and_cold_replays() {
     let store = temporary.path().join("selected-store");
     let base = super::validation_cut_cases::write_cut_store(&authored, &store);
     let cut = open_cut(&store, base, deadline, &cancellation);
+    let claim_worker = || {
+        let mut budget = ExecutorBudget::laboratory();
+        budget.execution_wall = deadline.saturating_duration_since(Instant::now());
+        assert!(!budget.execution_wall.is_zero());
+        super::command_form_cases::schemas_for_profile_with_budget(
+            &cut,
+            FormatProfile::LegacyPythonObserved20260923,
+            budget,
+            deadline,
+            &cancellation,
+        )
+    };
     let isolated = IsolatedCreationRoot::create(temporary.path(), deadline, &cancellation).unwrap();
     for (name, raw) in &files {
         let target = isolated.path().join(name);
@@ -670,7 +684,7 @@ fn initial_claim_creation_publishes_five_native_files_and_cold_replays() {
         base,
     );
     context.effective_uid = u64::from(uid);
-    let mut worker = schemas(&cut, deadline, &cancellation);
+    let mut worker = claim_worker();
     let preview = checked_command(
         &context,
         &cut,
@@ -761,6 +775,7 @@ fn initial_claim_creation_publishes_five_native_files_and_cold_replays() {
         &cancellation,
     )
     .unwrap();
+    drop(worker);
     assert!(!publication.replayed);
     assert_eq!(created.files().len(), 5);
     assert_eq!(
@@ -839,8 +854,10 @@ fn initial_claim_creation_publishes_five_native_files_and_cold_replays() {
     }
     let current = successor(&current_files, &store, base);
     let current_cut = open_cut(&store, current, deadline, &cancellation);
+    let original_creation_files = created.files().clone();
+    let creation_home = created.home().as_str().to_owned();
     drop(created);
-    let mut replay_worker = schemas(&cut, deadline, &cancellation);
+    let mut replay_worker = claim_worker();
     let (restored, replayed, replay_result) = execute_isolated_claim_creation_from_captures(
         &filesystem,
         &context,
@@ -854,6 +871,7 @@ fn initial_claim_creation_publishes_five_native_files_and_cold_replays() {
         &cancellation,
     )
     .unwrap();
+    drop(replay_worker);
     assert!(replayed.replayed);
     assert!(fs::read(&lock_path).unwrap().is_empty());
     assert!(restored.command().changes.is_empty());
@@ -868,8 +886,9 @@ fn initial_claim_creation_publishes_five_native_files_and_cold_replays() {
         )
         .unwrap()
     );
+    drop(restored);
     fs::write(&lock_path, b"unexpected operational lock data").unwrap();
-    let mut nonempty_lock_worker = schemas(&cut, deadline, &cancellation);
+    let mut nonempty_lock_worker = claim_worker();
     assert!(matches!(
         execute_isolated_claim_creation_from_captures(
             &filesystem,
@@ -885,13 +904,14 @@ fn initial_claim_creation_publishes_five_native_files_and_cold_replays() {
         ),
         Err(SourceCommandError::Conflict(_))
     ));
+    drop(nonempty_lock_worker);
     fs::write(&lock_path, b"").unwrap();
     let evidence_path = isolated
         .path()
         .join(claim["evidence_refs"][0].as_str().unwrap());
     let evidence_original = fs::read(&evidence_path).unwrap();
     fs::write(&evidence_path, b"Changed after the selected Claim cut.\n").unwrap();
-    let mut stale_source_worker = schemas(&cut, deadline, &cancellation);
+    let mut stale_source_worker = claim_worker();
     assert!(matches!(
         execute_isolated_claim_creation_from_captures(
             &filesystem,
@@ -907,12 +927,13 @@ fn initial_claim_creation_publishes_five_native_files_and_cold_replays() {
         ),
         Err(SourceCommandError::Conflict(_))
     ));
+    drop(stale_source_worker);
     fs::write(&evidence_path, evidence_original).unwrap();
     let prior = fs::read(&owner).unwrap();
     let mut revoked = configuration;
     revoked["allowed_operations"] = serde_json::json!([]);
     fs::write(&owner, source_bytes(&source_value(&revoked))).unwrap();
-    let mut revoked_worker = schemas(&cut, deadline, &cancellation);
+    let mut revoked_worker = claim_worker();
     assert!(matches!(
         execute_isolated_claim_creation_from_captures(
             &filesystem,
@@ -928,5 +949,191 @@ fn initial_claim_creation_publishes_five_native_files_and_cold_replays() {
         ),
         Err(SourceCommandError::Conflict(_) | SourceCommandError::Denied(_))
     ));
+    drop(revoked_worker);
     fs::write(&owner, prior).unwrap();
+
+    // Correct the genuinely published Claim through the maintained owner.
+    // Its writer retains the full predecessor, including the empty private
+    // form-lock blob, and emits an adjacent HumanForm and revision history.
+    revision_owner["uid"] = serde_json::json!(uid);
+    revision_owner["source_root"] = serde_json::json!(isolated.path());
+    let revision_owner_path = isolated.path().join("revision-owner.json");
+    fs::write(
+        &revision_owner_path,
+        serde_json::to_vec(&revision_owner).unwrap(),
+    )
+    .unwrap();
+    fs::set_permissions(&revision_owner_path, fs::Permissions::from_mode(0o600)).unwrap();
+    let revised_wording = format!(
+        "{} [retained correction; no assessment]",
+        claim["qualifiers"]["statement"].as_str().unwrap()
+    );
+    let correction = serde_json::json!({
+        "schema_version":"tos_local_source_command_v1",
+        "operation":"prepare-revise",
+        "fields":{"qualifiers":{"statement":revised_wording}},
+        "forms":[{"form_id":revision_owner["allowed_form_ids"][0],"field_id":"claim.statement"}],
+        "reason":"Retained source-copy correction in an isolated Claim corpus; no assessment."
+    });
+    let correction_stdout = temporary.path().join("claim-correction.stdout");
+    let correction_stderr = temporary.path().join("claim-correction.stderr");
+    let correction_script = "import json,sys;from pathlib import Path;r=Path(sys.argv[1]);sys.path[:0]=[str(r/'mechanics/growth-cycle/parts/branch-growth-cycle/scripts'),str(r/'scripts')];import source_commands as c;owner=Path(sys.argv[2]);request=json.load(sys.stdin);p=c.run_local_command(owner,request);q={**request,'operation':'claim.revise','command_id':'synthetic:claim-creation-retained-correction','expected_configuration':p['owner_configuration'],'expected_source':p['source'],'expected_revision':p['revision'],'expected_dependencies':p['expected_dependencies'],'expected_inputs':p['source_bindings']};v=c.run_local_command(owner,q);print(json.dumps({'prepared':p,'result':v},ensure_ascii=False,separators=(',',':')))";
+    let mut correction_writer = std::process::Command::new("python3")
+        .args(["-c", correction_script])
+        .arg(&repository)
+        .arg(&revision_owner_path)
+        .env_remove("PYTHONPATH")
+        .env_remove("PYTHONHOME")
+        .env("PYTHONDONTWRITEBYTECODE", "1")
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::from(
+            fs::File::create(&correction_stdout).unwrap(),
+        ))
+        .stderr(std::process::Stdio::from(
+            fs::File::create(&correction_stderr).unwrap(),
+        ))
+        .spawn()
+        .unwrap();
+    correction_writer
+        .stdin
+        .take()
+        .unwrap()
+        .write_all(&serde_json::to_vec(&correction).unwrap())
+        .unwrap();
+    let correction_status = loop {
+        if let Some(status) = correction_writer.try_wait().unwrap() {
+            break status;
+        }
+        if Instant::now() >= deadline
+            || fs::metadata(&correction_stdout).unwrap().len() > 1_048_576
+            || fs::metadata(&correction_stderr).unwrap().len() > 1_048_576
+        {
+            correction_writer.kill().unwrap();
+            correction_writer.wait().unwrap();
+            panic!("bounded maintained Claim correction refused");
+        }
+        std::thread::sleep(Duration::from_millis(10));
+    };
+    assert!(
+        correction_status.success(),
+        "{}",
+        String::from_utf8_lossy(&fs::read(&correction_stderr).unwrap())
+    );
+    let correction: Value = serde_json::from_slice(&fs::read(&correction_stdout).unwrap()).unwrap();
+    assert_eq!(correction["result"]["replayed"], false);
+    assert_eq!(correction["result"]["source"]["version"], 2);
+    assert_eq!(correction["result"]["receipt"]["grants_admission"], false);
+    assert_eq!(
+        correction["result"]["receipt"]["previous_source"],
+        result["receipt"]["claims"][0]
+    );
+    let revised_home = isolated.path().join(&creation_home);
+    let expected_names = original_creation_files
+        .keys()
+        .cloned()
+        .chain([
+            form_name.clone(),
+            "claim-revision-history.json".into(),
+            format!(".{form_name}.writer.lock"),
+        ])
+        .collect::<std::collections::BTreeSet<_>>();
+    let actual_names = fs::read_dir(&revised_home)
+        .unwrap()
+        .map(|entry| entry.unwrap().file_name().into_string().unwrap())
+        .collect::<std::collections::BTreeSet<_>>();
+    assert_eq!(actual_names, expected_names);
+    assert!(fs::read(&lock_path).unwrap().is_empty());
+    let mut corrected_files = current_files;
+    for name in &actual_names {
+        if name.ends_with(".writer.lock") {
+            continue;
+        }
+        let current_path = revised_home.join(name);
+        assert_eq!(
+            fs::metadata(&current_path).unwrap().permissions().mode() & 0o7777,
+            0o600,
+            "maintained corrected metadata uses private inode mode"
+        );
+        let raw = fs::read(current_path).unwrap();
+        if name.starts_with("source-create-") {
+            assert_eq!(&raw, &original_creation_files[name]);
+        }
+        corrected_files.insert(format!("{creation_home}/{name}"), raw);
+    }
+    let form: Value =
+        serde_json::from_slice(&corrected_files[&format!("{creation_home}/{form_name}")]).unwrap();
+    assert_eq!(form["forms"][0]["role"], "statement");
+    assert_eq!(
+        form["forms"][0]["bindings"]["wording"]["pointer"],
+        "/qualifiers/statement"
+    );
+    let history: Value = serde_json::from_slice(
+        &corrected_files[&format!("{creation_home}/claim-revision-history.json")],
+    )
+    .unwrap();
+    assert_eq!(history["receipts"].as_array().unwrap().len(), 1);
+    assert_eq!(history["receipts"][0], correction["result"]["receipt"]);
+    let archive = correction["result"]["receipt"]["archive_path"]
+        .as_str()
+        .unwrap();
+    let archive_dir = isolated.path().join(archive);
+    let manifest: Value =
+        serde_json::from_slice(&fs::read(archive_dir.join("manifest.json")).unwrap()).unwrap();
+    assert_eq!(
+        manifest["files"]
+            .as_object()
+            .unwrap()
+            .keys()
+            .cloned()
+            .collect::<std::collections::BTreeSet<_>>(),
+        original_creation_files
+            .keys()
+            .cloned()
+            .chain([format!(".{form_name}.writer.lock")])
+            .collect()
+    );
+    let lock_name = format!(".{form_name}.writer.lock");
+    let lock_blob = manifest["files"][lock_name.as_str()]["blob"]
+        .as_str()
+        .unwrap();
+    assert!(fs::read(archive_dir.join(lock_blob)).unwrap().is_empty());
+    let archive_entries = fs::read_dir(&archive_dir).unwrap().collect::<Vec<_>>();
+    assert!(archive_entries.len() <= 65);
+    let mut archive_bytes = 0u64;
+    for entry in archive_entries {
+        let entry = entry.unwrap();
+        let name = entry.file_name().into_string().unwrap();
+        let metadata = entry.metadata().unwrap();
+        assert!(metadata.is_file() && metadata.len() <= 8_388_608);
+        assert_eq!(metadata.permissions().mode() & 0o7777, 0o600);
+        archive_bytes += metadata.len();
+        assert!(archive_bytes <= 9_437_184);
+        corrected_files.insert(format!("{archive}/{name}"), fs::read(entry.path()).unwrap());
+    }
+    let corrected = successor(&corrected_files, &store, current);
+    let corrected_cut = open_cut(&store, corrected, deadline, &cancellation);
+    let mut corrected_worker = claim_worker();
+    let (restored_after_correction, replay_after_correction, corrected_result) =
+        execute_isolated_claim_creation_from_captures(
+            &filesystem,
+            &context,
+            &cut,
+            &corrected_cut,
+            &software,
+            &components,
+            &mut corrected_worker,
+            None,
+            deadline,
+            &cancellation,
+        )
+        .unwrap();
+    drop(corrected_worker);
+    assert!(replay_after_correction.replayed);
+    assert!(restored_after_correction.command().changes.is_empty());
+    assert_eq!(restored_after_correction.files(), &original_creation_files);
+    assert_eq!(
+        corrected_result,
+        restored_after_correction.command().response
+    );
+    assert!(fs::read(&lock_path).unwrap().is_empty());
 }

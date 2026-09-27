@@ -43,6 +43,15 @@ fn stamp(m: &Metadata) -> (u64, u64, u64, i64, i64, i64, i64) {
         m.ctime_nsec(),
     )
 }
+// A v1 cut carries the portable declared mode, not the current inode's
+// permissions. The maintained Claim revision writer uses private 0600 temp
+// files for metadata whose portable cut mode is 0644. This compatibility
+// applies only while reading a Claim creation/replay; special bits never match.
+fn member_mode_matches(actual: u32, declared: u32, claim_read: bool) -> bool {
+    actual & 0o7000 == 0
+        && (actual & 0o777 == declared
+            || claim_read && actual & 0o777 == 0o600 && declared == 0o644)
+}
 pub(crate) fn inode(m: &Metadata) -> (u64, u64) {
     (m.dev(), m.ino())
 }
@@ -702,8 +711,10 @@ impl CreationFilesystem {
                 .map_err(|_| SourceCommandError::Denied("Claim retained member unsafe"))?;
             let metadata = owned(&file, self.uid, false)?;
             let lock = name.ends_with(".writer.lock");
-            let expected_mode = if lock { 0o600 } else { 0o644 };
-            if metadata.mode() & 0o777 != expected_mode || lock && metadata.len() != 0 {
+            let mode = metadata.mode() & 0o7777;
+            if (lock && (mode != 0o600 || metadata.len() != 0))
+                || (!lock && !member_mode_matches(mode, 0o644, true))
+            {
                 return Err(SourceCommandError::Conflict(
                     "Claim retained member mode or operational lock contents differ",
                 ));
@@ -731,11 +742,14 @@ impl CreationFilesystem {
             let mut file = tos_fd_open::open_regular_at(&directory, Path::new(&name))
                 .map_err(|_| SourceCommandError::Denied("Claim retained member unsafe"))?;
             let lock = name.ends_with(".writer.lock");
-            let expected_mode = if lock { 0o600 } else { 0o644 };
             let metadata = owned(&file, self.uid, false)?;
-            if metadata.mode() & 0o777 != expected_mode
-                || inspected.get(&name) != Some(&stamp(&metadata))
-            {
+            let mode = metadata.mode() & 0o7777;
+            let accepted_mode = if lock {
+                mode == 0o600
+            } else {
+                member_mode_matches(mode, 0o644, true)
+            };
+            if !accepted_mode || inspected.get(&name) != Some(&stamp(&metadata)) {
                 return Err(SourceCommandError::Conflict(
                     "Claim retained member changed after metadata preflight",
                 ));
@@ -1237,7 +1251,21 @@ impl CreationFilesystem {
                 }
             }
         }
-        if observed != selected {
+        if observed.len() != selected.len()
+            || observed.iter().any(|(path, (sha, size, mode))| {
+                selected
+                    .get(path)
+                    .is_none_or(|(expected_sha, expected_size, declared_mode)| {
+                        sha != expected_sha
+                            || size != expected_size
+                            || !member_mode_matches(
+                                *mode,
+                                *declared_mode,
+                                operational_sidecars.is_some(),
+                            )
+                    })
+            })
+        {
             return Err(SourceCommandError::Conflict(
                 "creation current authored membership/bytes/modes differ from selected base",
             ));
@@ -1420,7 +1448,7 @@ fn scan(
                 (
                     Digest256::of_bytes(&bytes),
                     bytes.len() as u64,
-                    metadata.mode() & 0o777,
+                    metadata.mode() & 0o7777,
                 ),
             );
         }
