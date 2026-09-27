@@ -622,9 +622,11 @@ pub fn render_source_bibliographic_plan(
                     })?;
                 }
             } else {
-                for collections in member.collections.chunks(rows_per_chunk) {
+                let mut collections = member.collections.iter();
+                loop {
                     let rows = collections
-                        .iter()
+                        .by_ref()
+                        .take(rows_per_chunk)
                         .map(|collection| {
                             check(l.deadline, validator.cancelled)?;
                             Ok(InputRow {
@@ -635,6 +637,9 @@ pub fn render_source_bibliographic_plan(
                             })
                         })
                         .collect::<Result<Vec<_>>>()?;
+                    if rows.is_empty() {
+                        break;
+                    }
                     target.ingest_input_batch(&rows)?;
                     check(l.deadline, validator.cancelled)?;
                 }
