@@ -242,8 +242,12 @@ impl CompoundKind {
     }
     fn module(self) -> &'static str {
         match self {
-            Self::CollectionWork => "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_collection_commands.py",
-            Self::ExpressionResponsibility => "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_responsibility_commands.py",
+            Self::CollectionWork => {
+                "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_collection_commands.py"
+            }
+            Self::ExpressionResponsibility => {
+                "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_responsibility_commands.py"
+            }
             Self::WorkExpression => {
                 "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_expression_commands.py"
             }
@@ -267,7 +271,9 @@ impl CompoundKind {
     fn procedure(self) -> &'static str {
         match self {
             Self::CollectionWork => "native-collection-membership-metadata-serialization",
-            Self::ExpressionResponsibility => "native-expression-responsibility-metadata-serialization",
+            Self::ExpressionResponsibility => {
+                "native-expression-responsibility-metadata-serialization"
+            }
             Self::WorkExpression => "native-work-expression-metadata-serialization",
             Self::ExpressionEdition => "native-expression-edition-metadata-serialization",
             Self::EditionItem => "native-item-adoption-metadata-serialization",
@@ -282,11 +288,32 @@ impl CompoundKind {
             Self::EditionItem => "ToS native Edition Item adapter",
         }
     }
-    fn relation_attachment(self)->bool {matches!(self,Self::CollectionWork|Self::ExpressionResponsibility)}
-    fn parent_form_grant(self)->&'static str {if self==Self::CollectionWork {"allowed_collection_form_ids"}else{"allowed_expression_form_ids"}}
-    fn record_key(self)->&'static str {match self {Self::CollectionWork=>"work",Self::ExpressionResponsibility=>"agent",_=>"record"}}
-    fn publication_home<'a>(self,scope:&'a Value)->Result<&'a str,ItemRefusal> {
-        parent(text(scope,if self.relation_attachment() {"claim_source_path"}else{self.child_path()})?)
+    fn relation_attachment(self) -> bool {
+        matches!(self, Self::CollectionWork | Self::ExpressionResponsibility)
+    }
+    fn parent_form_grant(self) -> &'static str {
+        if self == Self::CollectionWork {
+            "allowed_collection_form_ids"
+        } else {
+            "allowed_expression_form_ids"
+        }
+    }
+    fn record_key(self) -> &'static str {
+        match self {
+            Self::CollectionWork => "work",
+            Self::ExpressionResponsibility => "agent",
+            _ => "record",
+        }
+    }
+    fn publication_home<'a>(self, scope: &'a Value) -> Result<&'a str, ItemRefusal> {
+        parent(text(
+            scope,
+            if self.relation_attachment() {
+                "claim_source_path"
+            } else {
+                self.child_path()
+            },
+        )?)
     }
     fn initial_backlink(self, record: &Value, parent: &Value) -> bool {
         match self {
@@ -372,9 +399,19 @@ fn reference(v: &Value, id: &str, version: &str) -> Result<Value, ItemRefusal> {
 }
 // The real reference has these three owned fields. Price its shape without
 // constructing a stand-in reference or executing its source digest.
-fn reference_state(value:&Value,id:&str,version:&str)->Result<usize,ItemRefusal> {
-    let id=text(value,id)?;let number=value.get(version).and_then(Value::as_number).ok_or_else(||bad("record version number"))?;
-    std::mem::size_of::<Value>().checked_add(3*std::mem::size_of::<(String,Value)>()).and_then(|n|n.checked_add("id".len()+"version".len()+"digest".len())).and_then(|n|n.checked_add(id.len())).and_then(|n|n.checked_add(number.as_str().len())).and_then(|n|n.checked_add("sha256:".len()+2*std::mem::size_of::<Digest256>())).ok_or(ItemRefusal::Budget)
+fn reference_state(value: &Value, id: &str, version: &str) -> Result<usize, ItemRefusal> {
+    let id = text(value, id)?;
+    let number = value
+        .get(version)
+        .and_then(Value::as_number)
+        .ok_or_else(|| bad("record version number"))?;
+    std::mem::size_of::<Value>()
+        .checked_add(3 * std::mem::size_of::<(String, Value)>())
+        .and_then(|n| n.checked_add("id".len() + "version".len() + "digest".len()))
+        .and_then(|n| n.checked_add(id.len()))
+        .and_then(|n| n.checked_add(number.as_str().len()))
+        .and_then(|n| n.checked_add("sha256:".len() + 2 * std::mem::size_of::<Digest256>()))
+        .ok_or(ItemRefusal::Budget)
 }
 fn file_refs(files: &Package) -> Value {
     Value::Object(
@@ -486,15 +523,16 @@ impl<'a> NativeCompoundReader<'a> {
             )?;
             this.paths.insert(member.path.as_str());
         }
-        let startup_temporary=this.temporary_state;
+        let startup_temporary = this.temporary_state;
         if let Some(raw) = this.optional(CONTROL, 8192)? {
-            let state=this.decoded(&raw)?;
-            let retained=crate::record_biblio_cut::decoded_state(&state)?;
+            let state = this.decoded(&raw)?;
+            let retained = crate::record_biblio_cut::decoded_state(&state)?;
             this.temporary(retained)?;
-            state_valid_with(&state,&mut |value|this.canonical_observation(value))?;this.release_temporary(retained);
+            state_valid_with(&state, &mut |value| this.canonical_observation(value))?;
+            this.release_temporary(retained);
             // Move the same tree from the temporary scope into publication.
-            this.temporary_state-=retained;
-            this.publication=Some(state);
+            this.temporary_state -= retained;
+            this.publication = Some(state);
         }
         this.release_temporary_since(startup_temporary);
         this.release_raw_cache();
@@ -508,118 +546,253 @@ impl<'a> NativeCompoundReader<'a> {
     }
     pub(crate) fn set_remaining_state(&mut self, available: usize) -> Result<(), ItemRefusal> {
         if self.state > available {
-            return Err(ItemRefusal::BudgetCheck {check:"compound retained state after Rules growth",used:Some(self.state as u64),limit:Some(available as u64)});
+            return Err(ItemRefusal::BudgetCheck {
+                check: "compound retained state after Rules growth",
+                used: Some(self.state as u64),
+                limit: Some(available as u64),
+            });
         }
         self.limits.max_state_bytes = available;
         Ok(())
     }
     fn temporary(&mut self, amount: usize) -> Result<(), ItemRefusal> {
-        let next=self.state.checked_add(amount);
-        self.state=next.filter(|n|*n<=self.limits.max_state_bytes)
-            .ok_or(ItemRefusal::BudgetCheck {check:"compound live reconstruction/history state",used:next.map(|n|n as u64),limit:Some(self.limits.max_state_bytes as u64)})?;
+        let next = self.state.checked_add(amount);
+        self.state =
+            next.filter(|n| *n <= self.limits.max_state_bytes)
+                .ok_or(ItemRefusal::BudgetCheck {
+                    check: "compound live reconstruction/history state",
+                    used: next.map(|n| n as u64),
+                    limit: Some(self.limits.max_state_bytes as u64),
+                })?;
         self.temporary_state = self
             .temporary_state
             .checked_add(amount)
             .ok_or(ItemRefusal::Budget)?;
         Ok(())
     }
-    fn release_temporary(&mut self, amount:usize) {
-        self.state-=amount;
-        self.temporary_state-=amount;
+    fn release_temporary(&mut self, amount: usize) {
+        self.state -= amount;
+        self.temporary_state -= amount;
     }
     fn release_temporary_since(&mut self, before: usize) {
         let released = self.temporary_state - before;
         self.state -= released;
         self.temporary_state = before;
     }
-    fn decoded(&mut self, raw:&[u8])->Result<Value,ItemRefusal> {
-        let available=self.limits.max_state_bytes.checked_sub(self.state).ok_or(ItemRefusal::Budget)?;
-        let (value,state)=crate::record_biblio_cut::bounded_decoded_state(raw,limits(),available,self.limits.deadline,self.cancelled)?;
+    fn decoded(&mut self, raw: &[u8]) -> Result<Value, ItemRefusal> {
+        let available = self
+            .limits
+            .max_state_bytes
+            .checked_sub(self.state)
+            .ok_or(ItemRefusal::Budget)?;
+        let (value, state) = crate::record_biblio_cut::bounded_decoded_state(
+            raw,
+            limits(),
+            available,
+            self.limits.deadline,
+            self.cancelled,
+        )?;
         self.temporary(state)?;
         Ok(value)
     }
-    fn ordered_value(&mut self, raw:&[u8])->Result<JsonValue,ItemRefusal> {
-        let available=self.limits.max_state_bytes.checked_sub(self.state).ok_or(ItemRefusal::Budget)?;
-        let value=crate::record_biblio_cut::bounded_ordered(raw,limits(),available,self.limits.deadline,self.cancelled)?;
+    fn ordered_value(&mut self, raw: &[u8]) -> Result<JsonValue, ItemRefusal> {
+        let available = self
+            .limits
+            .max_state_bytes
+            .checked_sub(self.state)
+            .ok_or(ItemRefusal::Budget)?;
+        let value = crate::record_biblio_cut::bounded_ordered(
+            raw,
+            limits(),
+            available,
+            self.limits.deadline,
+            self.cancelled,
+        )?;
         self.temporary(crate::record_biblio_cut::ordered_state(&value)?)?;
         Ok(value)
     }
     // One actual canonicalization supplies the consumed digest and byte length.
     // Counting serialization admits its buffer; no canonical result is built
     // solely to estimate another execution of the same codec pipeline.
-    fn canonical_buffer(&self,value:&Value)->Result<Vec<u8>,ItemRefusal> {
-        let available=self.limits.max_state_bytes.checked_sub(self.state).ok_or(ItemRefusal::Budget)?;
-        crate::record_biblio_cut::decoded_wire_size(value,available.saturating_sub(std::mem::size_of::<Vec<u8>>()))?;
-        let raw=serde_json::to_vec(value).map_err(|_|bad("serialization"))?;
-        let raw_state=raw.len().checked_add(std::mem::size_of::<Vec<u8>>()).ok_or(ItemRefusal::Budget)?;
-        let remaining=available.checked_sub(raw_state).ok_or(ItemRefusal::BudgetCheck{check:"compound canonical input workspace",used:Some(raw_state as u64),limit:Some(available as u64)})?;
-        let tree=crate::record_biblio_cut::bounded_ordered(&raw,limits(),remaining,self.limits.deadline,self.cancelled)?;
-        let parse_peak=raw_state.checked_add(crate::record_biblio_cut::ordered_codec_state(&tree)?).ok_or(ItemRefusal::Budget)?;
-        let emit_base=raw_state.checked_add(crate::record_biblio_cut::ordered_state(&tree)?).and_then(|n|n.checked_add(crate::record_biblio_cut::ordered_emit_state(&tree).ok()?)).and_then(|n|n.checked_add(std::mem::size_of::<Vec<u8>>())).ok_or(ItemRefusal::Budget)?;
-        let room=available.checked_sub(emit_base).ok_or(ItemRefusal::BudgetCheck{check:"compound canonical emit indexes",used:Some(emit_base as u64),limit:Some(available as u64)})?;
-        let mut emission=limits();emission.max_bytes=emission.max_bytes.min(room);
-        let output=canonical_bytes_v1(&tree,CanonicalProfile::SourceCommandInputV1,emission).map_err(|error|if error.code==tos_foundation::FoundationErrorCode::BudgetExceeded {ItemRefusal::BudgetCheck{check:"compound canonical output workspace",used:None,limit:Some(room as u64)}}else{ItemRefusal::Unsupported(format!("compound canonical: {error:?}"))})?;
-        let peak=parse_peak.max(emit_base.checked_add(output.len()).ok_or(ItemRefusal::Budget)?);
-        if peak>available {return Err(ItemRefusal::BudgetCheck{check:"compound canonical codec workspace",used:Some(peak as u64),limit:Some(available as u64)});}
-        check(self.limits.deadline,self.cancelled)?;
+    fn canonical_buffer(&self, value: &Value) -> Result<Vec<u8>, ItemRefusal> {
+        let available = self
+            .limits
+            .max_state_bytes
+            .checked_sub(self.state)
+            .ok_or(ItemRefusal::Budget)?;
+        crate::record_biblio_cut::decoded_wire_size(
+            value,
+            available.saturating_sub(std::mem::size_of::<Vec<u8>>()),
+        )?;
+        let raw = serde_json::to_vec(value).map_err(|_| bad("serialization"))?;
+        let raw_state = raw
+            .len()
+            .checked_add(std::mem::size_of::<Vec<u8>>())
+            .ok_or(ItemRefusal::Budget)?;
+        let remaining = available
+            .checked_sub(raw_state)
+            .ok_or(ItemRefusal::BudgetCheck {
+                check: "compound canonical input workspace",
+                used: Some(raw_state as u64),
+                limit: Some(available as u64),
+            })?;
+        let tree = crate::record_biblio_cut::bounded_ordered(
+            &raw,
+            limits(),
+            remaining,
+            self.limits.deadline,
+            self.cancelled,
+        )?;
+        let parse_peak = raw_state
+            .checked_add(crate::record_biblio_cut::ordered_codec_state(&tree)?)
+            .ok_or(ItemRefusal::Budget)?;
+        let emit_base = raw_state
+            .checked_add(crate::record_biblio_cut::ordered_state(&tree)?)
+            .and_then(|n| n.checked_add(crate::record_biblio_cut::ordered_emit_state(&tree).ok()?))
+            .and_then(|n| n.checked_add(std::mem::size_of::<Vec<u8>>()))
+            .ok_or(ItemRefusal::Budget)?;
+        let room = available
+            .checked_sub(emit_base)
+            .ok_or(ItemRefusal::BudgetCheck {
+                check: "compound canonical emit indexes",
+                used: Some(emit_base as u64),
+                limit: Some(available as u64),
+            })?;
+        let mut emission = limits();
+        emission.max_bytes = emission.max_bytes.min(room);
+        let output = canonical_bytes_v1(&tree, CanonicalProfile::SourceCommandInputV1, emission)
+            .map_err(|error| {
+                if error.code == tos_foundation::FoundationErrorCode::BudgetExceeded {
+                    ItemRefusal::BudgetCheck {
+                        check: "compound canonical output workspace",
+                        used: None,
+                        limit: Some(room as u64),
+                    }
+                } else {
+                    ItemRefusal::Unsupported(format!("compound canonical: {error:?}"))
+                }
+            })?;
+        let peak = parse_peak.max(
+            emit_base
+                .checked_add(output.len())
+                .ok_or(ItemRefusal::Budget)?,
+        );
+        if peak > available {
+            return Err(ItemRefusal::BudgetCheck {
+                check: "compound canonical codec workspace",
+                used: Some(peak as u64),
+                limit: Some(available as u64),
+            });
+        }
+        check(self.limits.deadline, self.cancelled)?;
         Ok(output)
     }
-    fn canonical_observation(&self,value:&Value)->Result<(String,usize),ItemRefusal> {
-        let output=self.canonical_buffer(value)?;
-        Ok((Digest256::of_bytes(&output).to_prefixed(),output.len()))
+    fn canonical_observation(&self, value: &Value) -> Result<(String, usize), ItemRefusal> {
+        let output = self.canonical_buffer(value)?;
+        Ok((Digest256::of_bytes(&output).to_prefixed(), output.len()))
     }
-    fn ordered_buffer(&mut self,value:&JsonValue)->Result<Vec<u8>,ItemRefusal> {
-        let available=self.limits.max_state_bytes.checked_sub(self.state).ok_or(ItemRefusal::Budget)?;
-        let base=std::mem::size_of::<Vec<u8>>()+crate::record_biblio_cut::ordered_emit_state(value)?;
-        let room=available.checked_sub(base).ok_or(ItemRefusal::Budget)?;
-        let mut emit=limits();emit.max_bytes=emit.max_bytes.min(room);
-        let bytes=canonical_bytes_v1(value,CanonicalProfile::SourceCommandInputV1,emit).map_err(|error|if error.code==tos_foundation::FoundationErrorCode::BudgetExceeded {ItemRefusal::BudgetCheck{check:"membership ordered canonical buffer",used:None,limit:Some(room as u64)}}else{bad("membership ordered canonical buffer")})?;
+    fn ordered_buffer(&mut self, value: &JsonValue) -> Result<Vec<u8>, ItemRefusal> {
+        let available = self
+            .limits
+            .max_state_bytes
+            .checked_sub(self.state)
+            .ok_or(ItemRefusal::Budget)?;
+        let base =
+            std::mem::size_of::<Vec<u8>>() + crate::record_biblio_cut::ordered_emit_state(value)?;
+        let room = available.checked_sub(base).ok_or(ItemRefusal::Budget)?;
+        let mut emit = limits();
+        emit.max_bytes = emit.max_bytes.min(room);
+        let bytes = canonical_bytes_v1(value, CanonicalProfile::SourceCommandInputV1, emit)
+            .map_err(|error| {
+                if error.code == tos_foundation::FoundationErrorCode::BudgetExceeded {
+                    ItemRefusal::BudgetCheck {
+                        check: "membership ordered canonical buffer",
+                        used: None,
+                        limit: Some(room as u64),
+                    }
+                } else {
+                    bad("membership ordered canonical buffer")
+                }
+            })?;
         self.buffer(bytes)
     }
-    fn advance_claim(&mut self,previous:&Value,request:&Value)->Result<Value,ItemRefusal> {
+    fn advance_claim(&mut self, previous: &Value, request: &Value) -> Result<Value, ItemRefusal> {
         // One previous clone and the exact incoming patch can coexist during
         // replacement. Removed subtrees are released after the real mutation.
-        let admission=crate::record_biblio_cut::decoded_state(previous)?.checked_add(crate::record_biblio_cut::decoded_state(&request["fields"])?).ok_or(ItemRefusal::Budget)?;
+        let admission = crate::record_biblio_cut::decoded_state(previous)?
+            .checked_add(crate::record_biblio_cut::decoded_state(&request["fields"])?)
+            .ok_or(ItemRefusal::Budget)?;
         self.temporary(admission)?;
-        let result=advance_membership_claim(previous,request)?;
-        let retained=crate::record_biblio_cut::decoded_state(&result)?;
-        if retained>admission {return Err(bad("membership correction shape accounting"));}
-        self.release_temporary(admission-retained);Ok(result)
+        let result = advance_membership_claim(previous, request)?;
+        let retained = crate::record_biblio_cut::decoded_state(&result)?;
+        if retained > admission {
+            return Err(bad("membership correction shape accounting"));
+        }
+        self.release_temporary(admission - retained);
+        Ok(result)
     }
-    fn package_revision(&mut self,files:&Package)->Result<String,ItemRefusal> {
-        let refs=file_refs(files);let tree=crate::record_biblio_cut::decoded_state(&refs)?;
+    fn package_revision(&mut self, files: &Package) -> Result<String, ItemRefusal> {
+        let refs = file_refs(files);
+        let tree = crate::record_biblio_cut::decoded_state(&refs)?;
         self.temporary(tree)?;
-        let result=self.canonical_observation(&refs).map(|(digest,_)|digest);
-        drop(refs);self.release_temporary(tree);result
+        let result = self.canonical_observation(&refs).map(|(digest, _)| digest);
+        drop(refs);
+        self.release_temporary(tree);
+        result
     }
-    fn reference_matches(&mut self,value:&Value,id:&str,version:&str,expected:&Value)->Result<bool,ItemRefusal> {
-        let n=integer(value,version)?;if n==0 {return Err(bad("positive record version"));}
-        let (digest,_)=self.canonical_observation(value)?;
-        let reference=json!({"id":text(value,id)?,"version":n,"digest":digest});
-        let tree=crate::record_biblio_cut::decoded_state(&reference)?;
-        self.temporary(tree)?;let result=&reference==expected;drop(reference);self.release_temporary(tree);Ok(result)
+    fn reference_matches(
+        &mut self,
+        value: &Value,
+        id: &str,
+        version: &str,
+        expected: &Value,
+    ) -> Result<bool, ItemRefusal> {
+        let n = integer(value, version)?;
+        if n == 0 {
+            return Err(bad("positive record version"));
+        }
+        let (digest, _) = self.canonical_observation(value)?;
+        let reference = json!({"id":text(value,id)?,"version":n,"digest":digest});
+        let tree = crate::record_biblio_cut::decoded_state(&reference)?;
+        self.temporary(tree)?;
+        let result = &reference == expected;
+        drop(reference);
+        self.release_temporary(tree);
+        Ok(result)
     }
-    fn value_copy(&mut self,value:&Value)->Result<Value,ItemRefusal> {
+    fn value_copy(&mut self, value: &Value) -> Result<Value, ItemRefusal> {
         self.temporary(crate::record_biblio_cut::decoded_state(value)?)?;
         Ok(value.clone())
     }
-    fn ordered_copy(&mut self,value:&JsonValue)->Result<JsonValue,ItemRefusal> {
+    fn ordered_copy(&mut self, value: &JsonValue) -> Result<JsonValue, ItemRefusal> {
         self.temporary(crate::record_biblio_cut::ordered_state(value)?)?;
         Ok(value.clone())
     }
-    fn buffer(&mut self,raw:Vec<u8>)->Result<Vec<u8>,ItemRefusal> {
-        self.temporary(std::mem::size_of::<Vec<u8>>().checked_add(raw.len()).ok_or(ItemRefusal::Budget)?)?;
+    fn buffer(&mut self, raw: Vec<u8>) -> Result<Vec<u8>, ItemRefusal> {
+        self.temporary(
+            std::mem::size_of::<Vec<u8>>()
+                .checked_add(raw.len())
+                .ok_or(ItemRefusal::Budget)?,
+        )?;
         Ok(raw)
     }
     fn optional(&mut self, path: &str, cap: usize) -> Result<Option<Vec<u8>>, ItemRefusal> {
         check(self.limits.deadline, self.cancelled)?;
         if let Some(raw) = self.raw.get(path) {
             if raw.len() > cap {
-                return Err(ItemRefusal::BudgetCheck {check:"compound cached member bytes",used:Some(raw.len() as u64),limit:Some(cap as u64)});
+                return Err(ItemRefusal::BudgetCheck {
+                    check: "compound cached member bytes",
+                    used: Some(raw.len() as u64),
+                    limit: Some(cap as u64),
+                });
             }
-            let size=raw.len()+std::mem::size_of::<Vec<u8>>();
+            let size = raw.len() + std::mem::size_of::<Vec<u8>>();
             self.temporary(size)?;
-            let copy = self.raw.get(path).expect("selected cache entry remains").clone();
+            let copy = self
+                .raw
+                .get(path)
+                .expect("selected cache entry remains")
+                .clone();
             return Ok(Some(copy));
         }
         if !self.paths.contains(path) {
@@ -627,17 +800,30 @@ impl<'a> NativeCompoundReader<'a> {
         }
         let raw = current(self.cut, path, self.limits, self.cancelled, &mut self.bytes)?;
         if raw.len() > cap {
-            return Err(ItemRefusal::BudgetCheck {check:"compound selected member bytes",used:Some(raw.len() as u64),limit:Some(cap as u64)});
+            return Err(ItemRefusal::BudgetCheck {
+                check: "compound selected member bytes",
+                used: Some(raw.len() as u64),
+                limit: Some(cap as u64),
+            });
         }
         // One retained cache buffer, one owned map key and one entry slot.
         // The returned buffer is a distinct scoped temporary, never a third copy.
-        let raw_state = raw.len().checked_add(path.len())
-            .and_then(|n|n.checked_add(std::mem::size_of::<(String,Vec<u8>)>())).ok_or(ItemRefusal::Budget)?;
-        let cache_state = self.raw_cache_state.checked_add(raw_state).ok_or(ItemRefusal::Budget)?;
+        let raw_state = raw
+            .len()
+            .checked_add(path.len())
+            .and_then(|n| n.checked_add(std::mem::size_of::<(String, Vec<u8>)>()))
+            .ok_or(ItemRefusal::Budget)?;
+        let cache_state = self
+            .raw_cache_state
+            .checked_add(raw_state)
+            .ok_or(ItemRefusal::Budget)?;
         reserve(&mut self.state, raw_state, self.limits.max_state_bytes)?;
         self.raw_cache_state = cache_state;
-        self.temporary(raw.len()+std::mem::size_of::<Vec<u8>>())?;
-        self.record_read(PredicateRead::ExactPath {path:path.into(),digest:Digest256::of_bytes(&raw).to_prefixed()})?;
+        self.temporary(raw.len() + std::mem::size_of::<Vec<u8>>())?;
+        self.record_read(PredicateRead::ExactPath {
+            path: path.into(),
+            digest: Digest256::of_bytes(&raw).to_prefixed(),
+        })?;
         self.raw.insert(path.into(), raw.clone());
         Ok(Some(raw))
     }
@@ -671,7 +857,11 @@ impl<'a> NativeCompoundReader<'a> {
             if let Some(raw) = self.optional(&format!("{home}/{name}"), MAX_FILE)? {
                 total += raw.len();
                 if total > MAX_SIDE {
-                    return Err(ItemRefusal::BudgetCheck {check:"compound selected package bytes",used:Some(total as u64),limit:Some(MAX_SIDE as u64)});
+                    return Err(ItemRefusal::BudgetCheck {
+                        check: "compound selected package bytes",
+                        used: Some(total as u64),
+                        limit: Some(MAX_SIDE as u64),
+                    });
                 }
                 files.insert(name, raw);
             }
@@ -682,16 +872,38 @@ impl<'a> NativeCompoundReader<'a> {
         Ok(files)
     }
     fn transaction(&mut self, id: &str) -> Result<std::sync::Arc<Transaction>, ItemRefusal> {
-        let before=self.temporary_state;
-        let result=self.transaction_inner(id);
+        let before = self.temporary_state;
+        let result = self.transaction_inner(id);
         self.release_temporary_since(before);
-        if let Ok(tx)=&result {if !self.transactions.contains_key(id) {
-            let mut retained=std::mem::size_of::<Transaction>()+std::mem::size_of::<(String,std::sync::Arc<Transaction>)>()+2*std::mem::size_of::<usize>()+id.len()+tx.manifest_sha256.len()+tx.status.len();
-            retained=retained.checked_add(crate::record_biblio_cut::decoded_state(&tx.manifest)?.checked_sub(std::mem::size_of::<Value>()).ok_or(ItemRefusal::Budget)?).ok_or(ItemRefusal::Budget)?;
-            for (path,(before,after)) in &tx.files {retained=retained.checked_add(std::mem::size_of::<(String,(Option<Vec<u8>>,Option<Vec<u8>>))>()+path.len()).and_then(|n|n.checked_add(before.as_ref().map_or(0,Vec::len))).and_then(|n|n.checked_add(after.as_ref().map_or(0,Vec::len))).ok_or(ItemRefusal::Budget)?;}
-            reserve(&mut self.state,retained,self.limits.max_state_bytes)?;
-            self.transactions.insert(id.into(),tx.clone());
-        }}
+        if let Ok(tx) = &result {
+            if !self.transactions.contains_key(id) {
+                let mut retained = std::mem::size_of::<Transaction>()
+                    + std::mem::size_of::<(String, std::sync::Arc<Transaction>)>()
+                    + 2 * std::mem::size_of::<usize>()
+                    + id.len()
+                    + tx.manifest_sha256.len()
+                    + tx.status.len();
+                retained = retained
+                    .checked_add(
+                        crate::record_biblio_cut::decoded_state(&tx.manifest)?
+                            .checked_sub(std::mem::size_of::<Value>())
+                            .ok_or(ItemRefusal::Budget)?,
+                    )
+                    .ok_or(ItemRefusal::Budget)?;
+                for (path, (before, after)) in &tx.files {
+                    retained = retained
+                        .checked_add(
+                            std::mem::size_of::<(String, (Option<Vec<u8>>, Option<Vec<u8>>))>()
+                                + path.len(),
+                        )
+                        .and_then(|n| n.checked_add(before.as_ref().map_or(0, Vec::len)))
+                        .and_then(|n| n.checked_add(after.as_ref().map_or(0, Vec::len)))
+                        .ok_or(ItemRefusal::Budget)?;
+                }
+                reserve(&mut self.state, retained, self.limits.max_state_bytes)?;
+                self.transactions.insert(id.into(), tx.clone());
+            }
+        }
         result
     }
     fn transaction_inner(&mut self, id: &str) -> Result<std::sync::Arc<Transaction>, ItemRefusal> {
@@ -701,7 +913,7 @@ impl<'a> NativeCompoundReader<'a> {
         }
         let directory = format!("{TRANSACTIONS}/{}", hash(id)?);
         let raw = self.required(&format!("{directory}/manifest.json"), MAX_MANIFEST)?;
-        let manifest=self.decoded(&raw)?;
+        let manifest = self.decoded(&raw)?;
         keys(
             &manifest,
             &[
@@ -757,12 +969,20 @@ impl<'a> NativeCompoundReader<'a> {
         {
             return Err(bad("transaction version/path profile mismatch"));
         }
-        if !plan["authorization"].is_object() {return Err(bad("bounded authorization"));}
-        let oversized=self.canonical_observation(&plan["authorization"])?.1>65536;
-        if oversized {return Err(bad("bounded authorization"));}
+        if !plan["authorization"].is_object() {
+            return Err(bad("bounded authorization"));
+        }
+        let oversized = self.canonical_observation(&plan["authorization"])?.1 > 65536;
+        if oversized {
+            return Err(bad("bounded authorization"));
+        }
         let directories = array(plan, "new_directories")?;
         if directories.len() > 64 {
-            return Err(ItemRefusal::BudgetCheck {check:"compound new directory count",used:Some(directories.len() as u64),limit:Some(64)});
+            return Err(ItemRefusal::BudgetCheck {
+                check: "compound new directory count",
+                used: Some(directories.len() as u64),
+                limit: Some(64),
+            });
         }
         let dirs: Vec<_> = directories
             .iter()
@@ -770,7 +990,11 @@ impl<'a> NativeCompoundReader<'a> {
             .collect::<Result<_, _>>()?;
         // Three simultaneously live borrowed directory indexes: source Vec,
         // sorted Vec and uniqueness set; none owns another path payload.
-        self.temporary(2*std::mem::size_of::<Vec<&str>>()+std::mem::size_of::<BTreeSet<&&str>>()+dirs.len()*(2*std::mem::size_of::<&str>()+std::mem::size_of::<&&str>()))?;
+        self.temporary(
+            2 * std::mem::size_of::<Vec<&str>>()
+                + std::mem::size_of::<BTreeSet<&&str>>()
+                + dirs.len() * (2 * std::mem::size_of::<&str>() + std::mem::size_of::<&&str>()),
+        )?;
         let mut sorted_dirs = dirs.clone();
         sorted_dirs.sort_by_key(|v| (v.split('/').count(), *v));
         if dirs != sorted_dirs || dirs.iter().collect::<BTreeSet<_>>().len() != dirs.len() {
@@ -781,7 +1005,11 @@ impl<'a> NativeCompoundReader<'a> {
         }
         let rows = array(plan, "files")?;
         if !(1..=64).contains(&rows.len()) {
-            return Err(ItemRefusal::BudgetCheck {check:"compound plan file count (minimum 1)",used:Some(rows.len() as u64),limit:Some(64)});
+            return Err(ItemRefusal::BudgetCheck {
+                check: "compound plan file count (minimum 1)",
+                used: Some(rows.len() as u64),
+                limit: Some(64),
+            });
         }
         let mut files = BTreeMap::new();
         let mut blobs = BTreeMap::<String, Vec<u8>>::new();
@@ -822,18 +1050,26 @@ impl<'a> NativeCompoundReader<'a> {
                     usize::try_from(integer(binding, "bytes")?).map_err(|_| ItemRefusal::Budget)?;
                 sides[i] = sides[i].checked_add(size).ok_or(ItemRefusal::Budget)?;
                 if size > MAX_SIDE || sides[i] > MAX_SIDE {
-                    return Err(ItemRefusal::BudgetCheck {check:"compound transaction side bytes",used:Some(sides[i].max(size) as u64),limit:Some(MAX_SIDE as u64)});
+                    return Err(ItemRefusal::BudgetCheck {
+                        check: "compound transaction side bytes",
+                        used: Some(sides[i].max(size) as u64),
+                        limit: Some(MAX_SIDE as u64),
+                    });
                 }
                 if !blobs.contains_key(sha) {
                     total = total.checked_add(size).ok_or(ItemRefusal::Budget)?;
                     if total > 2 * MAX_SIDE {
-                        return Err(ItemRefusal::BudgetCheck {check:"compound unique transaction blob bytes",used:Some(total as u64),limit:Some((2*MAX_SIDE) as u64)});
+                        return Err(ItemRefusal::BudgetCheck {
+                            check: "compound unique transaction blob bytes",
+                            used: Some(total as u64),
+                            limit: Some((2 * MAX_SIDE) as u64),
+                        });
                     }
                     let raw = self.required(&format!("{directory}/{}.blob", hash(sha)?), size)?;
                     if raw.len() != size || Digest256::of_bytes(&raw).to_prefixed() != sha {
                         return Err(bad("transaction blob fixity"));
                     }
-                    self.temporary(std::mem::size_of::<(String,Vec<u8>)>()+sha.len())?;
+                    self.temporary(std::mem::size_of::<(String, Vec<u8>)>() + sha.len())?;
                     blobs.insert(sha.into(), raw);
                 }
                 // One retained file buffer; the returned transaction shares it.
@@ -861,11 +1097,13 @@ impl<'a> NativeCompoundReader<'a> {
             }
         }
         let mut parents = BTreeSet::from([HOME.to_owned()]);
-        self.temporary(std::mem::size_of::<String>()+HOME.len())?;
+        self.temporary(std::mem::size_of::<String>() + HOME.len())?;
         for p in files.keys().map(String::as_str).chain(dirs.iter().copied()) {
             let mut p = parent(p)?;
             while p == HOME || p.starts_with(&format!("{HOME}/")) {
-                if !parents.contains(p) {self.temporary(std::mem::size_of::<String>()+p.len())?;}
+                if !parents.contains(p) {
+                    self.temporary(std::mem::size_of::<String>() + p.len())?;
+                }
                 parents.insert(p.into());
                 if p == HOME {
                     break;
@@ -903,8 +1141,12 @@ impl<'a> NativeCompoundReader<'a> {
                 if text(&v, "schema_version")? != "tos_selected_metadata_completion_v1" {
                     return Err(bad("completion schema"));
                 }
-                let scratch=crate::record_biblio_cut::decoded_state(&v["publication"])?;
-                self.temporary(scratch)?;state_valid_with(&v["publication"],&mut |value|self.canonical_observation(value))?;self.release_temporary(scratch);
+                let scratch = crate::record_biblio_cut::decoded_state(&v["publication"])?;
+                self.temporary(scratch)?;
+                state_valid_with(&v["publication"], &mut |value| {
+                    self.canonical_observation(value)
+                })?;
+                self.release_temporary(scratch);
                 let s = &v["publication"];
                 if text(s, "phase")? != "ready"
                     || text(s, "transaction_id")? != id
@@ -950,21 +1192,37 @@ impl<'a> NativeCompoundReader<'a> {
             files
                 .keys()
                 .try_fold(0usize, |sum, path| {
-                    sum.checked_add(path.len())?.checked_add(
-                        std::mem::size_of::<(String, (Option<Vec<u8>>, Option<Vec<u8>>))>(),
-                    )
+                    sum.checked_add(path.len())?
+                        .checked_add(std::mem::size_of::<(
+                            String,
+                            (Option<Vec<u8>>, Option<Vec<u8>>),
+                        )>())
                 })
                 .ok_or(ItemRefusal::Budget)?,
         )?;
-        self.temporary(id.len()+std::mem::size_of::<(String,std::sync::Arc<Transaction>)>()+2*std::mem::size_of::<usize>()+std::mem::size_of::<Transaction>()+sha.len()+status.len())?;
-        let tx = std::sync::Arc::new(Transaction {manifest,manifest_sha256:sha,status,files});
+        self.temporary(
+            id.len()
+                + std::mem::size_of::<(String, std::sync::Arc<Transaction>)>()
+                + 2 * std::mem::size_of::<usize>()
+                + std::mem::size_of::<Transaction>()
+                + sha.len()
+                + status.len(),
+        )?;
+        let tx = std::sync::Arc::new(Transaction {
+            manifest,
+            manifest_sha256: sha,
+            status,
+            files,
+        });
         Ok(tx)
     }
     fn archive(&mut self, path: &str, id: &str, receipt: &Value) -> Result<Package, ItemRefusal> {
         let before = self.temporary_state;
         let result = self.archive_inner(path, id, receipt);
         self.release_temporary_since(before);
-        if let Ok(files)=&result {self.temporary(package_state(files)?)?;}
+        if let Ok(files) = &result {
+            self.temporary(package_state(files)?)?;
+        }
         result
     }
     fn archive_inner(
@@ -973,9 +1231,15 @@ impl<'a> NativeCompoundReader<'a> {
         id: &str,
         receipt: &Value,
     ) -> Result<Package, ItemRefusal> {
-        self.archive_files_inner(path,id,receipt,true)
+        self.archive_files_inner(path, id, receipt, true)
     }
-    fn archive_files_inner(&mut self,path:&str,id:&str,receipt:&Value,record_semantics:bool)->Result<Package,ItemRefusal> {
+    fn archive_files_inner(
+        &mut self,
+        path: &str,
+        id: &str,
+        receipt: &Value,
+        record_semantics: bool,
+    ) -> Result<Package, ItemRefusal> {
         let rev = text(receipt, "previous_revision")?;
         let home = format!(
             "{HOME}/.record-revisions/{}-{}",
@@ -1015,7 +1279,11 @@ impl<'a> NativeCompoundReader<'a> {
             .as_object()
             .ok_or_else(|| bad("archive files"))?;
         if bindings.len() > 64 {
-            return Err(ItemRefusal::BudgetCheck {check:"compound archived package file count",used:Some(bindings.len() as u64),limit:Some(64)});
+            return Err(ItemRefusal::BudgetCheck {
+                check: "compound archived package file count",
+                used: Some(bindings.len() as u64),
+                limit: Some(64),
+            });
         }
         let mut files = Package::new();
         let mut expected = BTreeSet::from(["manifest.json".to_owned()]);
@@ -1035,23 +1303,42 @@ impl<'a> NativeCompoundReader<'a> {
             let raw = self.required(&format!("{home}/{blob}"), size.min(MAX_FILE))?;
             total = total.checked_add(raw.len()).ok_or(ItemRefusal::Budget)?;
             if total > MAX_SIDE + MAX_FILE {
-                return Err(ItemRefusal::BudgetCheck {check:"compound archived package plus manifest bytes",used:Some(total as u64),limit:Some((MAX_SIDE+MAX_FILE) as u64)});
+                return Err(ItemRefusal::BudgetCheck {
+                    check: "compound archived package plus manifest bytes",
+                    used: Some(total as u64),
+                    limit: Some((MAX_SIDE + MAX_FILE) as u64),
+                });
             }
             if raw.len() != size || Digest256::of_bytes(&raw).to_prefixed() != sha {
                 return Err(bad("archive exact blob bytes"));
             }
-            self.temporary(std::mem::size_of::<(String,Vec<u8>)>()+name.len()+std::mem::size_of::<String>()+blob.len())?;
+            self.temporary(
+                std::mem::size_of::<(String, Vec<u8>)>()
+                    + name.len()
+                    + std::mem::size_of::<String>()
+                    + blob.len(),
+            )?;
             files.insert(name.clone(), raw);
             expected.insert(blob);
         }
         let prefix = format!("{home}/");
         let actual: BTreeSet<_> = self
             .paths
-            .range::<str,_>((std::ops::Bound::Included(prefix.as_str()),std::ops::Bound::Unbounded))
+            .range::<str, _>((
+                std::ops::Bound::Included(prefix.as_str()),
+                std::ops::Bound::Unbounded,
+            ))
             .take_while(|p| p.starts_with(&prefix))
             .map(|p| p[prefix.len()..].to_owned())
             .collect();
-        self.temporary(actual.iter().try_fold(0usize,|n,p:&String|n.checked_add(std::mem::size_of::<String>()+p.len())).ok_or(ItemRefusal::Budget)?)?;
+        self.temporary(
+            actual
+                .iter()
+                .try_fold(0usize, |n, p: &String| {
+                    n.checked_add(std::mem::size_of::<String>() + p.len())
+                })
+                .ok_or(ItemRefusal::Budget)?,
+        )?;
         if actual != expected {
             return Err(bad("archive extra/nested/unbound files"));
         }
@@ -1064,10 +1351,21 @@ impl<'a> NativeCompoundReader<'a> {
         if self.package_revision(&files)? != rev {
             return Err(bad("archive package revision"));
         }
-        if !record_semantics {return Ok(files);}
+        if !record_semantics {
+            return Ok(files);
+        }
         let names = selected_names(path)?;
-        let old = self.decoded(files.get(&names[0]).ok_or_else(||bad("archive source missing"))?)?;
-        if !self.reference_matches(&old,"record_id","record_version",&receipt["previous_source"])? {
+        let old = self.decoded(
+            files
+                .get(&names[0])
+                .ok_or_else(|| bad("archive source missing"))?,
+        )?;
+        if !self.reference_matches(
+            &old,
+            "record_id",
+            "record_version",
+            &receipt["previous_source"],
+        )? {
             return Err(bad("archive previous source"));
         }
         if let Some(request) = receipt.get("request") {
@@ -1089,169 +1387,574 @@ impl<'a> NativeCompoundReader<'a> {
                         .ok_or(ItemRefusal::Budget)?
                 ),
             );
-            self.temporary(crate::record_biblio_cut::decoded_state(&revised)?.saturating_sub(crate::record_biblio_cut::decoded_state(&old)?))?;
-            if !self.reference_matches(&revised,"record_id","record_version",&receipt["source"])? {
+            self.temporary(
+                crate::record_biblio_cut::decoded_state(&revised)?
+                    .saturating_sub(crate::record_biblio_cut::decoded_state(&old)?),
+            )?;
+            if !self.reference_matches(
+                &revised,
+                "record_id",
+                "record_version",
+                &receipt["source"],
+            )? {
                 return Err(bad("retained request successor"));
             }
         }
         Ok(files)
     }
-    fn flat_package(&mut self,home:&str)->Result<Package,ItemRefusal> {
-        let prefix=format!("{home}/");
-        self.temporary(std::mem::size_of::<String>()+prefix.len())?;
-        let count=self.paths.range::<str,_>((std::ops::Bound::Included(prefix.as_str()),std::ops::Bound::Unbounded)).take_while(|p|p.starts_with(&prefix)).count();
-        if !(1..=64).contains(&count) {return Err(bad("membership flat Claim package count"));}
-        self.temporary(std::mem::size_of::<Vec<&str>>()+count*std::mem::size_of::<&str>())?;
-        let names:Vec<&str>=self.paths.range::<str,_>((std::ops::Bound::Included(prefix.as_str()),std::ops::Bound::Unbounded)).take_while(|p|p.starts_with(&prefix)).map(|p|{let path=*p;&path[prefix.len()..]}).collect();
-        if !(1..=64).contains(&names.len())||names.iter().any(|name|name.contains('/')) {return Err(bad("membership flat Claim package"));}
-        let mut result=Package::new();self.temporary(std::mem::size_of::<Package>())?;let mut total=0usize;
-        for name in names {let raw=self.required(&format!("{home}/{name}"),MAX_FILE)?;total=total.checked_add(raw.len()).ok_or(ItemRefusal::Budget)?;if total>MAX_SIDE {return Err(ItemRefusal::BudgetCheck{check:"membership current Claim package bytes",used:Some(total as u64),limit:Some(MAX_SIDE as u64)});}self.temporary(std::mem::size_of::<(String,Vec<u8>)>()+name.len())?;result.insert(name.into(),raw);}
+    fn flat_package(&mut self, home: &str) -> Result<Package, ItemRefusal> {
+        let prefix = format!("{home}/");
+        self.temporary(std::mem::size_of::<String>() + prefix.len())?;
+        let count = self
+            .paths
+            .range::<str, _>((
+                std::ops::Bound::Included(prefix.as_str()),
+                std::ops::Bound::Unbounded,
+            ))
+            .take_while(|p| p.starts_with(&prefix))
+            .count();
+        if !(1..=64).contains(&count) {
+            return Err(bad("membership flat Claim package count"));
+        }
+        self.temporary(std::mem::size_of::<Vec<&str>>() + count * std::mem::size_of::<&str>())?;
+        let names: Vec<&str> = self
+            .paths
+            .range::<str, _>((
+                std::ops::Bound::Included(prefix.as_str()),
+                std::ops::Bound::Unbounded,
+            ))
+            .take_while(|p| p.starts_with(&prefix))
+            .map(|p| {
+                let path = *p;
+                &path[prefix.len()..]
+            })
+            .collect();
+        if !(1..=64).contains(&names.len()) || names.iter().any(|name| name.contains('/')) {
+            return Err(bad("membership flat Claim package"));
+        }
+        let mut result = Package::new();
+        self.temporary(std::mem::size_of::<Package>())?;
+        let mut total = 0usize;
+        for name in names {
+            let raw = self.required(&format!("{home}/{name}"), MAX_FILE)?;
+            total = total.checked_add(raw.len()).ok_or(ItemRefusal::Budget)?;
+            if total > MAX_SIDE {
+                return Err(ItemRefusal::BudgetCheck {
+                    check: "membership current Claim package bytes",
+                    used: Some(total as u64),
+                    limit: Some(MAX_SIDE as u64),
+                });
+            }
+            self.temporary(std::mem::size_of::<(String, Vec<u8>)>() + name.len())?;
+            result.insert(name.into(), raw);
+        }
         Ok(result)
     }
-    fn single_membership_claim(&mut self,raw:&[u8],id:&str)->Result<Value,ItemRefusal> {
-        if raw.len()>1_048_576 {return Err(ItemRefusal::BudgetCheck{check:"membership correction stream bytes",used:Some(raw.len() as u64),limit:Some(1_048_576)});}
-        let mut result=None;
-        for (line,_) in claim_lines(raw) {check(self.limits.deadline,self.cancelled)?;if line.iter().all(u8::is_ascii_whitespace) {continue;}if result.is_some() {return Err(bad("membership current stream has another Claim"));}let value=self.decoded(line)?;if text(&value,"claim_id")?!=id {return Err(bad("membership current stream Claim identity"));}result=Some(value);}
-        result.ok_or_else(||bad("membership Claim stream empty"))
-    }
-    fn attachment_claim_initial(&mut self,path:&str,claim:&Value)->Result<Vec<u8>,ItemRefusal> {
-        use crate::source_forms::source_copy_kernel as kernel;
-        let files=self.flat_package(parent(path)?)?;let id=text(claim,"claim_id")?;
-        let raw=files.get("source-claims.jsonl").ok_or_else(||bad("membership current stream missing"))?;
-        let current=self.single_membership_claim(raw,id)?;
-        if &current!=claim {return Err(bad("membership current stream differs from observed Claim"));}
-        let history=match files.get("claim-revision-history.json") {Some(raw)=>self.decoded(raw)?,None=>{let value=json!({"schema_version":"tos_claim_revision_history_v1","source_path":path,"receipts":[]});self.temporary(crate::record_biblio_cut::decoded_state(&value)?)?;value}};
-        keys(&history,&["schema_version","source_path","receipts"])?;
-        let receipts=array(&history,"receipts")?;
-        if history["schema_version"]!="tos_claim_revision_history_v1"||history["source_path"]!=path||receipts.len()>MAX_HISTORY {return Err(bad("membership correction history grammar"));}
-        if receipts.is_empty() {if current["claim_version"]!=1 {return Err(bad("membership noninitial Claim lacks history"));}self.temporary(std::mem::size_of::<Vec<u8>>()+raw.len())?;return Ok(raw.clone());}
-        let formname=format!("source-claims.{}.human-forms.json",Digest256::of_bytes(id.as_bytes()).to_hex());
-        self.temporary(std::mem::size_of::<String>()+formname.len())?;
-        let current_forms=self.ordered_value(files.get(&formname).ok_or_else(||bad("membership current correction forms absent"))?)?;
-        let subject=current_forms.object_get("subject").ok_or_else(||bad("membership correction form subject"))?;
-        let form_rows=current_forms.object_get("forms").and_then(JsonValue::as_array).ok_or_else(||bad("membership current forms"))?;
-        let prior_rows=current_forms.object_get("prior_forms").and_then(JsonValue::as_array).ok_or_else(||bad("membership prior forms"))?;
-        let history_scratch=(form_rows.len()+prior_rows.len())*std::mem::size_of::<((&str,u64),&JsonValue)>()+form_rows.len()*std::mem::size_of::<&str>();
-        self.temporary(history_scratch)?;
-        kernel::validate_history(&current_forms,subject).map_err(|_|bad("membership correction form history"))?;
-        self.release_temporary(history_scratch);
-        let mut commands=BTreeSet::new();self.temporary(std::mem::size_of::<BTreeSet<&str>>()+receipts.len()*std::mem::size_of::<&str>())?;
-        let mut expected:Option<Vec<u8>>=None;let mut initial=None;
-        for receipt in receipts {
-            check(self.limits.deadline,self.cancelled)?;
-            keys(receipt,&["command_id","request_digest","principal_id","authority_ref","owner_configuration","recorded_at","reason","previous_source","source","previous_revision","archive_path","dependencies","source_bindings","changed_fields","forms","grants_admission","request"])?;
-            let request=&receipt["request"];
-            crate::retirement_rules::observed_instant_order(text(receipt,"recorded_at")?,text(receipt,"recorded_at")?).map_err(|_|bad("membership correction aware instant"))?;
-            if !commands.insert(text(receipt,"command_id")?)||request["operation"]!="claim.revise"||text(receipt,"request_digest")?!=self.canonical_observation(request)?.0||receipt["grants_admission"]!=false||receipt["source"]["id"]!=receipt["previous_source"]["id"]||integer(&receipt["source"],"version")?!=integer(&receipt["previous_source"],"version")?.checked_add(1).ok_or(ItemRefusal::Budget)? {return Err(bad("membership correction receipt binding"));}
-            for (left,right) in [("command_id","command_id"),("previous_source","expected_source"),("previous_revision","expected_revision"),("owner_configuration","expected_configuration"),("dependencies","expected_dependencies"),("source_bindings","expected_inputs"),("reason","reason")] {if receipt[left]!=request[right] {return Err(bad("membership correction request binding"));}}
-            let fields=request["fields"].as_object().ok_or_else(||bad("membership correction fields"))?;
-            let changed=array(receipt,"changed_fields")?;
-            if changed.len()!=fields.len()||!changed.iter().zip(fields.keys()).all(|(value,key)|value.as_str()==Some(key.as_str())) {return Err(bad("membership correction changed fields"));}
-            let previous_survivors=initial.as_ref().map_or(0,|v:&Vec<u8>|std::mem::size_of::<Vec<u8>>()+v.len())+expected.as_ref().map_or(0,|v|std::mem::size_of::<Vec<u8>>()+v.len());
-            let phase=self.temporary_state.checked_sub(previous_survivors).ok_or(ItemRefusal::Budget)?;
-            let archived=self.archive_files_inner(path,text(&receipt["previous_source"],"id")?,receipt,false)?;
-            let before=archived.get("source-claims.jsonl").ok_or_else(||bad("membership correction archived stream"))?;
-            let previous=self.single_membership_claim(before,id)?;
-            if initial.is_none() {if previous["claim_version"]!=1 {return Err(bad("membership correction lacks initial stream"));}self.temporary(std::mem::size_of::<Vec<u8>>()+before.len())?;initial=Some(before.clone());}
-            if expected.as_ref().is_some_and(|raw|raw!=before)||!self.reference_matches(&previous,"claim_id","claim_version",&receipt["previous_source"])? {return Err(bad("membership correction predecessor bytes"));}
-            let revised=self.advance_claim(&previous,request)?;
-            if !self.reference_matches(&revised,"claim_id","claim_version",&receipt["source"])? {return Err(bad("membership correction successor reference"));}
-            let selections=array(request,"forms")?;
-            if !(1..=32).contains(&selections.len())||!selections.iter().any(|s|s["field_id"]=="claim.statement") {return Err(bad("membership correction statement form"));}
-            let mut seen=BTreeSet::new();self.temporary(std::mem::size_of::<BTreeSet<&str>>()+selections.len()*std::mem::size_of::<&str>())?;
-            for selection in selections {keys(selection,&["form_id","field_id"])?;if !seen.insert(text(selection,"form_id")?) {return Err(bad("membership correction duplicate form selection"));}}
-            let prior=archived.get(&formname).map(|raw|self.ordered_value(raw)).transpose()?;
-            let revised_raw=self.buffer(self.canonical_buffer(&revised)?)?;
-            let revised_ordered=self.ordered_value(&revised_raw)?;
-            let (result,result_refs)=forms(&revised_ordered,prior.as_ref(),&request["forms"],text(receipt,"principal_id")?,true,self.limits.max_state_bytes.checked_sub(self.state).ok_or(ItemRefusal::Budget)?)?;
-            self.temporary(crate::record_biblio_cut::ordered_state(&result)?.checked_add(crate::record_biblio_cut::ordered_state(&result_refs)?).ok_or(ItemRefusal::Budget)?)?;
-            let result_refs_raw=self.ordered_buffer(&result_refs)?;let expected_refs_raw=self.buffer(self.canonical_buffer(&receipt["forms"])?)?;
-            if result_refs_raw!=expected_refs_raw {return Err(bad("membership correction archived form results"));}
-            let reference_buffers=std::mem::size_of::<Vec<u8>>()*2+result_refs_raw.len()+expected_refs_raw.len();drop(result_refs_raw);drop(expected_refs_raw);self.release_temporary(reference_buffers);
-            for reference in array(receipt,"forms")? {
-                let mut retained=false;
-                for form in form_rows.iter().chain(prior_rows) {
-                    let before_form=self.temporary_state;let raw=self.ordered_buffer(form)?;let form=self.decoded(&raw)?;
-                    let matches=self.reference_matches(&form,"form_id","form_version",reference)?;
-                    drop(form);drop(raw);self.release_temporary_since(before_form);if matches {retained=true;break;}
-                }
-                if !retained {return Err(bad("membership correction result forms no longer retained"));}
-            }
-            let output_size=claim_lines(before).try_fold(0usize,|n,(line,ending)|n.checked_add(if line.iter().all(u8::is_ascii_whitespace){line.len()+ending.len()}else{revised_raw.len()+if ending==b"\r\n" {2}else if ending==b"\n" {1}else{0}})).ok_or(ItemRefusal::Budget)?;
-            self.temporary(std::mem::size_of::<Vec<u8>>()+output_size)?;let mut output=Vec::with_capacity(output_size);
-            for (line,ending) in claim_lines(before) {if line.iter().all(u8::is_ascii_whitespace) {output.extend_from_slice(line);output.extend_from_slice(ending);}else{output.extend_from_slice(&revised_raw);if ending==b"\r\n"||ending==b"\n" {output.extend_from_slice(ending);}}}
-            if let Some(old)=expected.replace(output) {let cost=std::mem::size_of::<Vec<u8>>()+old.len();drop(old);self.release_temporary(cost);}
-            // initial+expected survive the archive/reconstruction temporary phase.
-            let survivors=initial.as_ref().map_or(0,|v|std::mem::size_of::<Vec<u8>>()+v.len())+expected.as_ref().map_or(0,|v|std::mem::size_of::<Vec<u8>>()+v.len());
-            drop(archived);drop(previous);drop(revised);drop(prior);drop(revised_ordered);drop(result);drop(result_refs);drop(revised_raw);self.release_temporary_since(phase);self.temporary(survivors)?;
+    fn single_membership_claim(&mut self, raw: &[u8], id: &str) -> Result<Value, ItemRefusal> {
+        if raw.len() > 1_048_576 {
+            return Err(ItemRefusal::BudgetCheck {
+                check: "membership correction stream bytes",
+                used: Some(raw.len() as u64),
+                limit: Some(1_048_576),
+            });
         }
-        if expected.as_ref()!=Some(raw) {return Err(bad("membership current stream differs from correction head"));}
-        initial.ok_or_else(||bad("membership initial stream absent"))
+        let mut result = None;
+        for (line, _) in claim_lines(raw) {
+            check(self.limits.deadline, self.cancelled)?;
+            if line.iter().all(u8::is_ascii_whitespace) {
+                continue;
+            }
+            if result.is_some() {
+                return Err(bad("membership current stream has another Claim"));
+            }
+            let value = self.decoded(line)?;
+            if text(&value, "claim_id")? != id {
+                return Err(bad("membership current stream Claim identity"));
+            }
+            result = Some(value);
+        }
+        result.ok_or_else(|| bad("membership Claim stream empty"))
+    }
+    fn attachment_claim_initial(
+        &mut self,
+        path: &str,
+        claim: &Value,
+    ) -> Result<Vec<u8>, ItemRefusal> {
+        use crate::source_forms::source_copy_kernel as kernel;
+        let files = self.flat_package(parent(path)?)?;
+        let id = text(claim, "claim_id")?;
+        let raw = files
+            .get("source-claims.jsonl")
+            .ok_or_else(|| bad("membership current stream missing"))?;
+        let current = self.single_membership_claim(raw, id)?;
+        if &current != claim {
+            return Err(bad("membership current stream differs from observed Claim"));
+        }
+        let history = match files.get("claim-revision-history.json") {
+            Some(raw) => self.decoded(raw)?,
+            None => {
+                let value = json!({"schema_version":"tos_claim_revision_history_v1","source_path":path,"receipts":[]});
+                self.temporary(crate::record_biblio_cut::decoded_state(&value)?)?;
+                value
+            }
+        };
+        keys(&history, &["schema_version", "source_path", "receipts"])?;
+        let receipts = array(&history, "receipts")?;
+        if history["schema_version"] != "tos_claim_revision_history_v1"
+            || history["source_path"] != path
+            || receipts.len() > MAX_HISTORY
+        {
+            return Err(bad("membership correction history grammar"));
+        }
+        if receipts.is_empty() {
+            if current["claim_version"] != 1 {
+                return Err(bad("membership noninitial Claim lacks history"));
+            }
+            self.temporary(std::mem::size_of::<Vec<u8>>() + raw.len())?;
+            return Ok(raw.clone());
+        }
+        let formname = format!(
+            "source-claims.{}.human-forms.json",
+            Digest256::of_bytes(id.as_bytes()).to_hex()
+        );
+        self.temporary(std::mem::size_of::<String>() + formname.len())?;
+        let current_forms = self.ordered_value(
+            files
+                .get(&formname)
+                .ok_or_else(|| bad("membership current correction forms absent"))?,
+        )?;
+        let subject = current_forms
+            .object_get("subject")
+            .ok_or_else(|| bad("membership correction form subject"))?;
+        let form_rows = current_forms
+            .object_get("forms")
+            .and_then(JsonValue::as_array)
+            .ok_or_else(|| bad("membership current forms"))?;
+        let prior_rows = current_forms
+            .object_get("prior_forms")
+            .and_then(JsonValue::as_array)
+            .ok_or_else(|| bad("membership prior forms"))?;
+        let history_scratch = (form_rows.len() + prior_rows.len())
+            * std::mem::size_of::<((&str, u64), &JsonValue)>()
+            + form_rows.len() * std::mem::size_of::<&str>();
+        self.temporary(history_scratch)?;
+        kernel::validate_history(&current_forms, subject)
+            .map_err(|_| bad("membership correction form history"))?;
+        self.release_temporary(history_scratch);
+        let mut commands = BTreeSet::new();
+        self.temporary(
+            std::mem::size_of::<BTreeSet<&str>>() + receipts.len() * std::mem::size_of::<&str>(),
+        )?;
+        let mut expected: Option<Vec<u8>> = None;
+        let mut initial = None;
+        for receipt in receipts {
+            check(self.limits.deadline, self.cancelled)?;
+            keys(
+                receipt,
+                &[
+                    "command_id",
+                    "request_digest",
+                    "principal_id",
+                    "authority_ref",
+                    "owner_configuration",
+                    "recorded_at",
+                    "reason",
+                    "previous_source",
+                    "source",
+                    "previous_revision",
+                    "archive_path",
+                    "dependencies",
+                    "source_bindings",
+                    "changed_fields",
+                    "forms",
+                    "grants_admission",
+                    "request",
+                ],
+            )?;
+            let request = &receipt["request"];
+            crate::retirement_rules::observed_instant_order(
+                text(receipt, "recorded_at")?,
+                text(receipt, "recorded_at")?,
+            )
+            .map_err(|_| bad("membership correction aware instant"))?;
+            if !commands.insert(text(receipt, "command_id")?)
+                || request["operation"] != "claim.revise"
+                || text(receipt, "request_digest")? != self.canonical_observation(request)?.0
+                || receipt["grants_admission"] != false
+                || receipt["source"]["id"] != receipt["previous_source"]["id"]
+                || integer(&receipt["source"], "version")?
+                    != integer(&receipt["previous_source"], "version")?
+                        .checked_add(1)
+                        .ok_or(ItemRefusal::Budget)?
+            {
+                return Err(bad("membership correction receipt binding"));
+            }
+            for (left, right) in [
+                ("command_id", "command_id"),
+                ("previous_source", "expected_source"),
+                ("previous_revision", "expected_revision"),
+                ("owner_configuration", "expected_configuration"),
+                ("dependencies", "expected_dependencies"),
+                ("source_bindings", "expected_inputs"),
+                ("reason", "reason"),
+            ] {
+                if receipt[left] != request[right] {
+                    return Err(bad("membership correction request binding"));
+                }
+            }
+            let fields = request["fields"]
+                .as_object()
+                .ok_or_else(|| bad("membership correction fields"))?;
+            let changed = array(receipt, "changed_fields")?;
+            if changed.len() != fields.len()
+                || !changed
+                    .iter()
+                    .zip(fields.keys())
+                    .all(|(value, key)| value.as_str() == Some(key.as_str()))
+            {
+                return Err(bad("membership correction changed fields"));
+            }
+            let previous_survivors = initial
+                .as_ref()
+                .map_or(0, |v: &Vec<u8>| std::mem::size_of::<Vec<u8>>() + v.len())
+                + expected
+                    .as_ref()
+                    .map_or(0, |v| std::mem::size_of::<Vec<u8>>() + v.len());
+            let phase = self
+                .temporary_state
+                .checked_sub(previous_survivors)
+                .ok_or(ItemRefusal::Budget)?;
+            let archived = self.archive_files_inner(
+                path,
+                text(&receipt["previous_source"], "id")?,
+                receipt,
+                false,
+            )?;
+            let before = archived
+                .get("source-claims.jsonl")
+                .ok_or_else(|| bad("membership correction archived stream"))?;
+            let previous = self.single_membership_claim(before, id)?;
+            if initial.is_none() {
+                if previous["claim_version"] != 1 {
+                    return Err(bad("membership correction lacks initial stream"));
+                }
+                self.temporary(std::mem::size_of::<Vec<u8>>() + before.len())?;
+                initial = Some(before.clone());
+            }
+            if expected.as_ref().is_some_and(|raw| raw != before)
+                || !self.reference_matches(
+                    &previous,
+                    "claim_id",
+                    "claim_version",
+                    &receipt["previous_source"],
+                )?
+            {
+                return Err(bad("membership correction predecessor bytes"));
+            }
+            let revised = self.advance_claim(&previous, request)?;
+            if !self.reference_matches(&revised, "claim_id", "claim_version", &receipt["source"])? {
+                return Err(bad("membership correction successor reference"));
+            }
+            let selections = array(request, "forms")?;
+            if !(1..=32).contains(&selections.len())
+                || !selections
+                    .iter()
+                    .any(|s| s["field_id"] == "claim.statement")
+            {
+                return Err(bad("membership correction statement form"));
+            }
+            let mut seen = BTreeSet::new();
+            self.temporary(
+                std::mem::size_of::<BTreeSet<&str>>()
+                    + selections.len() * std::mem::size_of::<&str>(),
+            )?;
+            for selection in selections {
+                keys(selection, &["form_id", "field_id"])?;
+                if !seen.insert(text(selection, "form_id")?) {
+                    return Err(bad("membership correction duplicate form selection"));
+                }
+            }
+            let prior = archived
+                .get(&formname)
+                .map(|raw| self.ordered_value(raw))
+                .transpose()?;
+            let revised_raw = self.buffer(self.canonical_buffer(&revised)?)?;
+            let revised_ordered = self.ordered_value(&revised_raw)?;
+            let (result, result_refs) = forms(
+                &revised_ordered,
+                prior.as_ref(),
+                &request["forms"],
+                text(receipt, "principal_id")?,
+                true,
+                self.limits
+                    .max_state_bytes
+                    .checked_sub(self.state)
+                    .ok_or(ItemRefusal::Budget)?,
+            )?;
+            self.temporary(
+                crate::record_biblio_cut::ordered_state(&result)?
+                    .checked_add(crate::record_biblio_cut::ordered_state(&result_refs)?)
+                    .ok_or(ItemRefusal::Budget)?,
+            )?;
+            let result_refs_raw = self.ordered_buffer(&result_refs)?;
+            let expected_refs_raw = self.buffer(self.canonical_buffer(&receipt["forms"])?)?;
+            if result_refs_raw != expected_refs_raw {
+                return Err(bad("membership correction archived form results"));
+            }
+            let reference_buffers = std::mem::size_of::<Vec<u8>>() * 2
+                + result_refs_raw.len()
+                + expected_refs_raw.len();
+            drop(result_refs_raw);
+            drop(expected_refs_raw);
+            self.release_temporary(reference_buffers);
+            for reference in array(receipt, "forms")? {
+                let mut retained = false;
+                for form in form_rows.iter().chain(prior_rows) {
+                    let before_form = self.temporary_state;
+                    let raw = self.ordered_buffer(form)?;
+                    let form = self.decoded(&raw)?;
+                    let matches =
+                        self.reference_matches(&form, "form_id", "form_version", reference)?;
+                    drop(form);
+                    drop(raw);
+                    self.release_temporary_since(before_form);
+                    if matches {
+                        retained = true;
+                        break;
+                    }
+                }
+                if !retained {
+                    return Err(bad("membership correction result forms no longer retained"));
+                }
+            }
+            let output_size = claim_lines(before)
+                .try_fold(0usize, |n, (line, ending)| {
+                    n.checked_add(if line.iter().all(u8::is_ascii_whitespace) {
+                        line.len() + ending.len()
+                    } else {
+                        revised_raw.len()
+                            + if ending == b"\r\n" {
+                                2
+                            } else if ending == b"\n" {
+                                1
+                            } else {
+                                0
+                            }
+                    })
+                })
+                .ok_or(ItemRefusal::Budget)?;
+            self.temporary(std::mem::size_of::<Vec<u8>>() + output_size)?;
+            let mut output = Vec::with_capacity(output_size);
+            for (line, ending) in claim_lines(before) {
+                if line.iter().all(u8::is_ascii_whitespace) {
+                    output.extend_from_slice(line);
+                    output.extend_from_slice(ending);
+                } else {
+                    output.extend_from_slice(&revised_raw);
+                    if ending == b"\r\n" || ending == b"\n" {
+                        output.extend_from_slice(ending);
+                    }
+                }
+            }
+            if let Some(old) = expected.replace(output) {
+                let cost = std::mem::size_of::<Vec<u8>>() + old.len();
+                drop(old);
+                self.release_temporary(cost);
+            }
+            // initial+expected survive the archive/reconstruction temporary phase.
+            let survivors = initial
+                .as_ref()
+                .map_or(0, |v| std::mem::size_of::<Vec<u8>>() + v.len())
+                + expected
+                    .as_ref()
+                    .map_or(0, |v| std::mem::size_of::<Vec<u8>>() + v.len());
+            drop(archived);
+            drop(previous);
+            drop(revised);
+            drop(prior);
+            drop(revised_ordered);
+            drop(result);
+            drop(result_refs);
+            drop(revised_raw);
+            self.release_temporary_since(phase);
+            self.temporary(survivors)?;
+        }
+        if expected.as_ref() != Some(raw) {
+            return Err(bad(
+                "membership current stream differs from correction head",
+            ));
+        }
+        initial.ok_or_else(|| bad("membership initial stream absent"))
     }
     // The two maintained attachment owners resolve their existing endpoint
     // through current/continuously archived lineage; neither creates it.
-    fn attachment_endpoint_binding(&mut self,scope:&Value,work:&Value,dependencies:&Value,kind:CompoundKind)->Result<JsonValue,ItemRefusal> {
-        let start=self.temporary_state;
-        let result=self.attachment_endpoint_binding_inner(scope,work,dependencies,kind);
+    fn attachment_endpoint_binding(
+        &mut self,
+        scope: &Value,
+        work: &Value,
+        dependencies: &Value,
+        kind: CompoundKind,
+    ) -> Result<JsonValue, ItemRefusal> {
+        let start = self.temporary_state;
+        let result = self.attachment_endpoint_binding_inner(scope, work, dependencies, kind);
         self.release_temporary_since(start);
-        if let Ok(value)=&result {self.temporary(crate::record_biblio_cut::ordered_state(value)?)?;}
+        if let Ok(value) = &result {
+            self.temporary(crate::record_biblio_cut::ordered_state(value)?)?;
+        }
         result
     }
-    fn attachment_endpoint_binding_inner(&mut self,scope:&Value,work:&Value,dependencies:&Value,kind:CompoundKind)->Result<JsonValue,ItemRefusal> {
-        let path=text(scope,kind.child_path())?;let id=text(scope,kind.child_key())?;
-        let sha=text(&dependencies["catalog_and_sources"],path)?;
-        let expected=Digest256::from_hex(sha).map_err(|_|bad("membership exact Work dependency raw hash"))?;
-        let files=self.selected(path)?;let current=self.decoded(&files[kind.child_file()])?;
-        if text(&current,"record_id")?!=id||text(&current,"record_type")?!=kind.child_kind() {return Err(bad("membership Work current typed identity"));}
-        let history=self.history(path,&files)?;
-        self.temporary(std::mem::size_of::<String>()+71)?;
-        let work_digest=self.canonical_observation(work)?.0;
-        let mut matched=None;
-        if Digest256::of_bytes(&files[kind.child_file()])==expected {
-            if self.canonical_observation(&current)?.0!=work_digest {return Err(bad("membership Work current payload binding"));}
-            matched=Some(files[kind.child_file()].len());
+    fn attachment_endpoint_binding_inner(
+        &mut self,
+        scope: &Value,
+        work: &Value,
+        dependencies: &Value,
+        kind: CompoundKind,
+    ) -> Result<JsonValue, ItemRefusal> {
+        let path = text(scope, kind.child_path())?;
+        let id = text(scope, kind.child_key())?;
+        let sha = text(&dependencies["catalog_and_sources"], path)?;
+        let expected = Digest256::from_hex(sha)
+            .map_err(|_| bad("membership exact Work dependency raw hash"))?;
+        let files = self.selected(path)?;
+        let current = self.decoded(&files[kind.child_file()])?;
+        if text(&current, "record_id")? != id || text(&current, "record_type")? != kind.child_kind()
+        {
+            return Err(bad("membership Work current typed identity"));
         }
-        for receipt in array(&history,"receipts")? {
-            check(self.limits.deadline,self.cancelled)?;
-            let request=&receipt["request"];
-            if kind==CompoundKind::CollectionWork && text(request,"operation")?=="work.expression.create" {parent_receipt_shape_with(receipt,CompoundKind::WorkExpression,&mut |value|self.canonical_observation(value))?;}
-            else if request["schema_version"]!="tos_local_source_command_v1"||request["operation"]!="record.revise"||request["fields"].as_object().is_none_or(|fields|fields.is_empty()||fields.keys().any(|key|!["preferred_label","notes","field_languages","source_refs"].contains(&key.as_str()))) {return Err(bad("membership Work undeclared metadata transition"));}
-            let phase=self.temporary_state;
-            let archived=self.archive(path,id,receipt)?;
-            if let Some(publication)=receipt.get("publication") {
-                let tx=self.transaction(text(publication,"transaction_id")?)?;
-                let (before,after)=tx.files.get(path).ok_or_else(||bad("membership Work selected transition absent"))?;
-                if tx.status!="committed"||before.as_ref()!=archived.get(kind.child_file()) {return Err(bad("membership Work committed selected before binding"));}
-                let after=self.decoded(after.as_ref().ok_or_else(||bad("membership Work selected successor absent"))?)?;
-                if !self.reference_matches(&after,"record_id","record_version",&receipt["source"])? {return Err(bad("membership Work committed selected successor binding"));}
+        let history = self.history(path, &files)?;
+        self.temporary(std::mem::size_of::<String>() + 71)?;
+        let work_digest = self.canonical_observation(work)?.0;
+        let mut matched = None;
+        if Digest256::of_bytes(&files[kind.child_file()]) == expected {
+            if self.canonical_observation(&current)?.0 != work_digest {
+                return Err(bad("membership Work current payload binding"));
             }
-            let raw=&archived[kind.child_file()];
-            if Digest256::of_bytes(raw)==expected {
-                let previous=self.decoded(raw)?;
-                if self.canonical_observation(&previous)?.0!=work_digest {return Err(bad("membership retained Work payload binding"));}
-                matched=Some(raw.len());
-            }
-            drop(archived);self.release_temporary_since(phase);
+            matched = Some(files[kind.child_file()].len());
         }
-        let size=matched.ok_or_else(||bad("membership Work lacks current continuous raw binding"))?;
+        for receipt in array(&history, "receipts")? {
+            check(self.limits.deadline, self.cancelled)?;
+            let request = &receipt["request"];
+            if kind == CompoundKind::CollectionWork
+                && text(request, "operation")? == "work.expression.create"
+            {
+                parent_receipt_shape_with(receipt, CompoundKind::WorkExpression, &mut |value| {
+                    self.canonical_observation(value)
+                })?;
+            } else if request["schema_version"] != "tos_local_source_command_v1"
+                || request["operation"] != "record.revise"
+                || request["fields"].as_object().is_none_or(|fields| {
+                    fields.is_empty()
+                        || fields.keys().any(|key| {
+                            !["preferred_label", "notes", "field_languages", "source_refs"]
+                                .contains(&key.as_str())
+                        })
+                })
+            {
+                return Err(bad("membership Work undeclared metadata transition"));
+            }
+            let phase = self.temporary_state;
+            let archived = self.archive(path, id, receipt)?;
+            if let Some(publication) = receipt.get("publication") {
+                let tx = self.transaction(text(publication, "transaction_id")?)?;
+                let (before, after) = tx
+                    .files
+                    .get(path)
+                    .ok_or_else(|| bad("membership Work selected transition absent"))?;
+                if tx.status != "committed" || before.as_ref() != archived.get(kind.child_file()) {
+                    return Err(bad("membership Work committed selected before binding"));
+                }
+                let after = self.decoded(
+                    after
+                        .as_ref()
+                        .ok_or_else(|| bad("membership Work selected successor absent"))?,
+                )?;
+                if !self.reference_matches(
+                    &after,
+                    "record_id",
+                    "record_version",
+                    &receipt["source"],
+                )? {
+                    return Err(bad("membership Work committed selected successor binding"));
+                }
+            }
+            let raw = &archived[kind.child_file()];
+            if Digest256::of_bytes(raw) == expected {
+                let previous = self.decoded(raw)?;
+                if self.canonical_observation(&previous)?.0 != work_digest {
+                    return Err(bad("membership retained Work payload binding"));
+                }
+                matched = Some(raw.len());
+            }
+            drop(archived);
+            self.release_temporary_since(phase);
+        }
+        let size =
+            matched.ok_or_else(|| bad("membership Work lacks current continuous raw binding"))?;
         // The consumed reference reuses the already compared canonical digest.
         // Admit its two actual ordered object containers and strings before
         // constructing them; the helper input Vecs coexist during collection.
-        let version=integer(work,"record_version")?;
-        let version_digits=work["record_version"].as_number().ok_or_else(||bad("membership Work version number"))?.as_str().len();let size_digits=if size==0{1}else{size.ilog10() as usize+1};
-        let string_state=|s:&str|s.len()+s.encode_utf16().count()*std::mem::size_of::<u16>();
-        let keys=["source_path","source","source_sha256","source_bytes","id","version","digest"];
-        let retained=std::mem::size_of::<JsonValue>()+keys.len()*std::mem::size_of::<(tos_foundation::JsonString,JsonValue)>()+keys.iter().map(|key|string_state(key)).sum::<usize>()+string_state(path)+string_state(id)+2*string_state(&work_digest)+version_digits+size_digits;
-        let scratch=2*std::mem::size_of::<Vec<(&str,JsonValue)>>()+keys.len()*std::mem::size_of::<(&str,JsonValue)>()+std::mem::size_of::<String>()+71+2*std::mem::size_of::<Value>()+version_digits+size_digits;
+        let version = integer(work, "record_version")?;
+        let version_digits = work["record_version"]
+            .as_number()
+            .ok_or_else(|| bad("membership Work version number"))?
+            .as_str()
+            .len();
+        let size_digits = if size == 0 {
+            1
+        } else {
+            size.ilog10() as usize + 1
+        };
+        let string_state =
+            |s: &str| s.len() + s.encode_utf16().count() * std::mem::size_of::<u16>();
+        let keys = [
+            "source_path",
+            "source",
+            "source_sha256",
+            "source_bytes",
+            "id",
+            "version",
+            "digest",
+        ];
+        let retained = std::mem::size_of::<JsonValue>()
+            + keys.len() * std::mem::size_of::<(tos_foundation::JsonString, JsonValue)>()
+            + keys.iter().map(|key| string_state(key)).sum::<usize>()
+            + string_state(path)
+            + string_state(id)
+            + 2 * string_state(&work_digest)
+            + version_digits
+            + size_digits;
+        let scratch = 2 * std::mem::size_of::<Vec<(&str, JsonValue)>>()
+            + keys.len() * std::mem::size_of::<(&str, JsonValue)>()
+            + std::mem::size_of::<String>()
+            + 71
+            + 2 * std::mem::size_of::<Value>()
+            + version_digits
+            + size_digits;
         self.temporary(retained.checked_add(scratch).ok_or(ItemRefusal::Budget)?)?;
-        let result=object(vec![("source_path",string(path)),("source",object(vec![("id",string(id)),("version",j(&json!(version))?),("digest",string(&work_digest))])),("source_sha256",string(&expected.to_prefixed())),("source_bytes",j(&json!(size))?)]);
-        self.release_temporary(scratch);Ok(result)
+        let result = object(vec![
+            ("source_path", string(path)),
+            (
+                "source",
+                object(vec![
+                    ("id", string(id)),
+                    ("version", j(&json!(version))?),
+                    ("digest", string(&work_digest)),
+                ]),
+            ),
+            ("source_sha256", string(&expected.to_prefixed())),
+            ("source_bytes", j(&json!(size))?),
+        ]);
+        self.release_temporary(scratch);
+        Ok(result)
     }
     pub(crate) fn finish(self) -> (u64, Vec<PredicateRead>) {
         (self.bytes, self.reads)
     }
 }
-fn state_valid_with(v: &Value,observe:&mut impl FnMut(&Value)->Result<(String,usize),ItemRefusal>) -> Result<(), ItemRefusal> {
+fn state_valid_with(
+    v: &Value,
+    observe: &mut impl FnMut(&Value) -> Result<(String, usize), ItemRefusal>,
+) -> Result<(), ItemRefusal> {
     keys(
         v,
         &[
@@ -1298,7 +2001,11 @@ fn state_valid_with(v: &Value,observe:&mut impl FnMut(&Value)->Result<(String,us
     Ok(())
 }
 
-fn request_valid_with(request: &Value, kind: CompoundKind,observe:&mut impl FnMut(&Value)->Result<(String,usize),ItemRefusal>) -> Result<(String,usize), ItemRefusal> {
+fn request_valid_with(
+    request: &Value,
+    kind: CompoundKind,
+    observe: &mut impl FnMut(&Value) -> Result<(String, usize), ItemRefusal>,
+) -> Result<(String, usize), ItemRefusal> {
     let mut request_keys = vec![
         "schema_version",
         "operation",
@@ -1316,7 +2023,10 @@ fn request_valid_with(request: &Value, kind: CompoundKind,observe:&mut impl FnMu
         "expected_dependencies",
         "expected_publication",
     ];
-    if kind.relation_attachment() {request_keys.retain(|key|*key!=kind.child_form_request());request_keys.push("forms");}
+    if kind.relation_attachment() {
+        request_keys.retain(|key| *key != kind.child_form_request());
+        request_keys.push("forms");
+    }
     if kind == CompoundKind::EditionItem {
         request_keys.extend([
             "rights",
@@ -1338,8 +2048,10 @@ fn request_valid_with(request: &Value, kind: CompoundKind,observe:&mut impl FnMu
     {
         return Err(bad("native bibliographic compound request grammar"));
     }
-    let observed=observe(request)?;
-    if observed.1>1_048_576 {return Err(bad("native bibliographic compound request grammar"));}
+    let observed = observe(request)?;
+    if observed.1 > 1_048_576 {
+        return Err(bad("native bibliographic compound request grammar"));
+    }
     let reason = tos_foundation::python_strip_unicode16_v1(text(request, "reason")?, MAX_SIDE)
         .map_err(|_| ItemRefusal::Budget)?;
     if reason.is_empty()
@@ -1361,18 +2073,36 @@ fn request_valid_with(request: &Value, kind: CompoundKind,observe:&mut impl FnMu
     keys(&request["fields"], &[kind.field()])?;
     Ok(observed)
 }
-fn transaction_id_with(request:&Value,kind:CompoundKind,observe:&mut impl FnMut(&Value)->Result<(String,usize),ItemRefusal>)->Result<String,ItemRefusal> {
-    let request_digest=observe(request)?.0;
-    transaction_id_with_digest(request,kind,&request_digest,observe)
+fn transaction_id_with(
+    request: &Value,
+    kind: CompoundKind,
+    observe: &mut impl FnMut(&Value) -> Result<(String, usize), ItemRefusal>,
+) -> Result<String, ItemRefusal> {
+    let request_digest = observe(request)?.0;
+    transaction_id_with_digest(request, kind, &request_digest, observe)
 }
-fn transaction_id_with_digest(request:&Value,kind:CompoundKind,request_digest:&str,observe:&mut impl FnMut(&Value)->Result<(String,usize),ItemRefusal>)->Result<String,ItemRefusal> {
+fn transaction_id_with_digest(
+    request: &Value,
+    kind: CompoundKind,
+    request_digest: &str,
+    observe: &mut impl FnMut(&Value) -> Result<(String, usize), ItemRefusal>,
+) -> Result<String, ItemRefusal> {
     observe(&json!({"operation":kind.operation(),"command_id":request["command_id"],"owner_configuration":request["expected_configuration"],"request_digest":request_digest})).map(|(digest,_)|digest)
 }
-fn canonical_observation(value:&Value)->Result<(String,usize),ItemRefusal> {let bytes=canonical(value)?;Ok((Digest256::of_bytes(&bytes).to_prefixed(),bytes.len()))}
-fn transaction_id(request:&Value,kind:CompoundKind)->Result<String,ItemRefusal> {transaction_id_with(request,kind,&mut canonical_observation)}
-fn parent_receipt_shape_with(receipt: &Value, kind: CompoundKind,observe:&mut impl FnMut(&Value)->Result<(String,usize),ItemRefusal>) -> Result<(String,usize), ItemRefusal> {
+fn canonical_observation(value: &Value) -> Result<(String, usize), ItemRefusal> {
+    let bytes = canonical(value)?;
+    Ok((Digest256::of_bytes(&bytes).to_prefixed(), bytes.len()))
+}
+fn transaction_id(request: &Value, kind: CompoundKind) -> Result<String, ItemRefusal> {
+    transaction_id_with(request, kind, &mut canonical_observation)
+}
+fn parent_receipt_shape_with(
+    receipt: &Value,
+    kind: CompoundKind,
+    observe: &mut impl FnMut(&Value) -> Result<(String, usize), ItemRefusal>,
+) -> Result<(String, usize), ItemRefusal> {
     let request = &receipt["request"];
-    let request_observation=request_valid_with(request, kind,observe)?;
+    let request_observation = request_valid_with(request, kind, observe)?;
     let publication = &receipt["publication"];
     keys(
         publication,
@@ -1380,7 +2110,8 @@ fn parent_receipt_shape_with(receipt: &Value, kind: CompoundKind,observe:&mut im
     )?;
     let refs = array(&request["fields"], kind.field())?;
     if text(publication, "protocol")? != PROTOCOL
-        || text(publication, "transaction_id")? != transaction_id_with_digest(request, kind,&request_observation.0,observe)?
+        || text(publication, "transaction_id")?
+            != transaction_id_with_digest(request, kind, &request_observation.0, observe)?
         || publication["selected_files"] != {
             let mut names = selected_names(kind.parent_file())?;
             names.sort();
@@ -1389,7 +2120,10 @@ fn parent_receipt_shape_with(receipt: &Value, kind: CompoundKind,observe:&mut im
         || receipt["changed_fields"] != json!([kind.field()])
         || request["claim"]["predicate"] != kind.predicate()
         || request["claim"]["subject_ref"] != receipt["previous_source"]["id"]
-        || !kind.initial_backlink(&request[kind.record_key()], &receipt["previous_source"]["id"])
+        || !kind.initial_backlink(
+            &request[kind.record_key()],
+            &receipt["previous_source"]["id"],
+        )
         || kind == CompoundKind::ExpressionEdition
             && request[kind.record_key()]["embodies_expression_refs"]
                 != json!([receipt["previous_source"]["id"]])
@@ -1413,14 +2147,34 @@ pub fn inspect_record_history(
     let record = decode(record_raw)?;
     let history = match files.get(HISTORY) {
         Some(raw) => decode(raw)?,
-        None => json!({"schema_version":"tos_source_revision_history_v1","record_id":record["record_id"],"receipts":[]}),
+        None => {
+            json!({"schema_version":"tos_source_revision_history_v1","record_id":record["record_id"],"receipts":[]})
+        }
     };
-    validate_record_history_values(files,&record,&history,deadline,cancelled,&mut canonical_observation)?;
+    validate_record_history_values(
+        files,
+        &record,
+        &history,
+        deadline,
+        cancelled,
+        &mut canonical_observation,
+    )?;
     Ok(history)
 }
-fn validate_record_history_values(files:&Package,record:&Value,history:&Value,deadline:Instant,cancelled:&AtomicBool,observe:&mut impl FnMut(&Value)->Result<(String,usize),ItemRefusal>)->Result<(),ItemRefusal> {
-    let version=integer(record,"record_version")?;if version==0{return Err(bad("positive record version"));}
-    let subject=json!({"id":text(record,"record_id")?,"version":version,"digest":observe(record)?.0});
+fn validate_record_history_values(
+    files: &Package,
+    record: &Value,
+    history: &Value,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    observe: &mut impl FnMut(&Value) -> Result<(String, usize), ItemRefusal>,
+) -> Result<(), ItemRefusal> {
+    let version = integer(record, "record_version")?;
+    if version == 0 {
+        return Err(bad("positive record version"));
+    }
+    let subject =
+        json!({"id":text(record,"record_id")?,"version":version,"digest":observe(record)?.0});
     keys(&history, &["schema_version", "record_id", "receipts"])?;
     if !matches!(
         text(&history, "schema_version")?,
@@ -1491,13 +2245,16 @@ fn validate_record_history_values(files:&Package,record:&Value,history:&Value,de
         )
         .map_err(|_| bad("history aware instant"))?;
         let request = &receipt["request"];
-        let observed_request=match text(request, "operation")? {
-            "collection.work.attach" | "expression.responsibility.attach" | "work.expression.create" | "expression.edition.create" | "item.adopt" => {
-                Some(parent_receipt_shape_with(
-                    receipt,
-                    CompoundKind::from_operation(text(request, "operation")?)?,observe,
-                )?)
-            }
+        let observed_request = match text(request, "operation")? {
+            "collection.work.attach"
+            | "expression.responsibility.attach"
+            | "work.expression.create"
+            | "expression.edition.create"
+            | "item.adopt" => Some(parent_receipt_shape_with(
+                receipt,
+                CompoundKind::from_operation(text(request, "operation")?)?,
+                observe,
+            )?),
             "record.revise" => None,
             other => {
                 return Err(ItemRefusal::Unsupported(format!(
@@ -1509,7 +2266,11 @@ fn validate_record_history_values(files:&Package,record:&Value,history:&Value,de
             .as_object()
             .ok_or_else(|| bad("retained request fields"))?;
         if !commands.insert(text(receipt, "command_id")?)
-            || text(receipt, "request_digest")? != match observed_request {Some((digest,_))=>digest,None=>observe(request)?.0}
+            || text(receipt, "request_digest")?
+                != match observed_request {
+                    Some((digest, _)) => digest,
+                    None => observe(request)?.0,
+                }
             || receipt["command_id"] != request["command_id"]
             || receipt["previous_source"] != request["expected_source"]
             || receipt["previous_revision"] != request["expected_revision"]
@@ -1538,18 +2299,29 @@ fn validate_record_history_values(files:&Package,record:&Value,history:&Value,de
 }
 
 impl NativeCompoundReader<'_> {
-    fn history(&mut self, path: &str, files: &Package) -> Result<std::sync::Arc<Value>, ItemRefusal> {
+    fn history(
+        &mut self,
+        path: &str,
+        files: &Package,
+    ) -> Result<std::sync::Arc<Value>, ItemRefusal> {
         let before = self.temporary_state;
         let result = self.history_inner(path, files);
         self.release_temporary_since(before);
         result
     }
-    fn history_inner(&mut self, path: &str, files: &Package) -> Result<std::sync::Arc<Value>, ItemRefusal> {
+    fn history_inner(
+        &mut self,
+        path: &str,
+        files: &Package,
+    ) -> Result<std::sync::Arc<Value>, ItemRefusal> {
         check(self.limits.deadline, self.cancelled)?;
         // Bind memoized lineage to the whole selected package, not its subject
         // alone: source-copy forms and history bytes participate in revision.
         let key = (path.to_owned(), self.package_revision(files)?);
-        let key_state=std::mem::size_of_val(&key).checked_add(key.0.len()).and_then(|n|n.checked_add(key.1.len())).ok_or(ItemRefusal::Budget)?;
+        let key_state = std::mem::size_of_val(&key)
+            .checked_add(key.0.len())
+            .and_then(|n| n.checked_add(key.1.len()))
+            .ok_or(ItemRefusal::Budget)?;
         self.temporary(key_state)?;
         if let Some(history) = self.histories.get(&key) {
             return Ok(history.clone());
@@ -1561,31 +2333,66 @@ impl NativeCompoundReader<'_> {
         let raw = files
             .get(name)
             .ok_or_else(|| bad("history source absent"))?;
-        let record=self.decoded(raw)?;
-        let id=text(&record,"record_id")?;
-        let history=match files.get(HISTORY) {
-            Some(raw)=>self.decoded(raw)?,
-            None=>{let value=json!({"schema_version":"tos_source_revision_history_v1","record_id":id,"receipts":[]});self.temporary(crate::record_biblio_cut::decoded_state(&value)?)?;value}
+        let record = self.decoded(raw)?;
+        let id = text(&record, "record_id")?;
+        let history = match files.get(HISTORY) {
+            Some(raw) => self.decoded(raw)?,
+            None => {
+                let value = json!({"schema_version":"tos_source_revision_history_v1","record_id":id,"receipts":[]});
+                self.temporary(crate::record_biblio_cut::decoded_state(&value)?)?;
+                value
+            }
         };
         // The commands index borrows retained history strings. Field-name
         // vectors contain only references; the exact subject is one owned value.
-        let history_validation_state=reference_state(&record,"record_id","record_version")?+array(&history,"receipts")?.len()*std::mem::size_of::<&str>()+17*std::mem::size_of::<&str>();
+        let history_validation_state = reference_state(&record, "record_id", "record_version")?
+            + array(&history, "receipts")?.len() * std::mem::size_of::<&str>()
+            + 17 * std::mem::size_of::<&str>();
         self.temporary(history_validation_state)?;
-        validate_record_history_values(files,&record,&history,self.limits.deadline,self.cancelled,&mut |value|self.canonical_observation(value))?;
+        validate_record_history_values(
+            files,
+            &record,
+            &history,
+            self.limits.deadline,
+            self.cancelled,
+            &mut |value| self.canonical_observation(value),
+        )?;
         self.release_temporary(history_validation_state);
         for (index, receipt) in array(&history, "receipts")?.iter().enumerate() {
             check(self.limits.deadline, self.cancelled)?;
             let previous_temporary = self.temporary_state;
             let archived = self.archive(path, id, receipt)?;
-            let predecessor_record=self.decoded(archived.get(name).ok_or_else(||bad("archive source absent"))?)?;
-            let predecessor=match archived.get(HISTORY) {
-                Some(raw)=>self.decoded(raw)?,
-                None=>{let value=json!({"schema_version":"tos_source_revision_history_v1","record_id":id,"receipts":[]});self.temporary(crate::record_biblio_cut::decoded_state(&value)?)?;value}
+            let predecessor_record = self.decoded(
+                archived
+                    .get(name)
+                    .ok_or_else(|| bad("archive source absent"))?,
+            )?;
+            let predecessor = match archived.get(HISTORY) {
+                Some(raw) => self.decoded(raw)?,
+                None => {
+                    let value = json!({"schema_version":"tos_source_revision_history_v1","record_id":id,"receipts":[]});
+                    self.temporary(crate::record_biblio_cut::decoded_state(&value)?)?;
+                    value
+                }
             };
-            let predecessor_subject_state=reference_state(&predecessor_record,"record_id","record_version")?;
-            let predecessor_indexes=array(&predecessor,"receipts")?.len()*std::mem::size_of::<&str>()+17*std::mem::size_of::<&str>();
-            self.temporary(predecessor_subject_state.checked_add(predecessor_indexes).ok_or(ItemRefusal::Budget)?)?;
-            validate_record_history_values(&archived,&predecessor_record,&predecessor,self.limits.deadline,self.cancelled,&mut |value|self.canonical_observation(value))?;
+            let predecessor_subject_state =
+                reference_state(&predecessor_record, "record_id", "record_version")?;
+            let predecessor_indexes = array(&predecessor, "receipts")?.len()
+                * std::mem::size_of::<&str>()
+                + 17 * std::mem::size_of::<&str>();
+            self.temporary(
+                predecessor_subject_state
+                    .checked_add(predecessor_indexes)
+                    .ok_or(ItemRefusal::Budget)?,
+            )?;
+            validate_record_history_values(
+                &archived,
+                &predecessor_record,
+                &predecessor,
+                self.limits.deadline,
+                self.cancelled,
+                &mut |value| self.canonical_observation(value),
+            )?;
             if array(&predecessor, "receipts")? != &array(&history, "receipts")?[..index] {
                 return Err(bad("retained predecessor receipt prefix"));
             }
@@ -1595,12 +2402,19 @@ impl NativeCompoundReader<'_> {
             self.release_temporary_since(previous_temporary);
         }
         let history_state = crate::record_biblio_cut::decoded_state(&history)?
-            .checked_add(key.0.len()+key.1.len()+std::mem::size_of::<((String,String),std::sync::Arc<Value>)>()+2*std::mem::size_of::<usize>()).ok_or(ItemRefusal::Budget)?;
-        let tree_state=crate::record_biblio_cut::decoded_state(&history)?;
-        self.state-=tree_state+key_state; self.temporary_state-=tree_state+key_state;
+            .checked_add(
+                key.0.len()
+                    + key.1.len()
+                    + std::mem::size_of::<((String, String), std::sync::Arc<Value>)>()
+                    + 2 * std::mem::size_of::<usize>(),
+            )
+            .ok_or(ItemRefusal::Budget)?;
+        let tree_state = crate::record_biblio_cut::decoded_state(&history)?;
+        self.state -= tree_state + key_state;
+        self.temporary_state -= tree_state + key_state;
         reserve(&mut self.state, history_state, self.limits.max_state_bytes)?;
-        let history=std::sync::Arc::new(history);
-        self.histories.insert(key,history.clone());
+        let history = std::sync::Arc::new(history);
+        self.histories.insert(key, history.clone());
         Ok(history)
     }
 }
@@ -1651,7 +2465,7 @@ fn scope_valid(
     kind: CompoundKind,
 ) -> Result<(), ItemRefusal> {
     if kind.relation_attachment() {
-        attachment_scope_valid(scope,request,kind)?;
+        attachment_scope_valid(scope, request, kind)?;
     } else if kind == CompoundKind::EditionItem {
         item_scope_valid(scope, request)?;
     } else {
@@ -1731,7 +2545,11 @@ fn scope_valid(
             },
         ),
         ("claim_forms", "allowed_claim_form_ids"),
-    ].into_iter().filter(|(field,_)|!kind.relation_attachment()||*field!="forms").chain((kind.relation_attachment()).then_some(("forms",kind.parent_form_grant()))) {
+    ]
+    .into_iter()
+    .filter(|(field, _)| !kind.relation_attachment() || *field != "forms")
+    .chain((kind.relation_attachment()).then_some(("forms", kind.parent_form_grant())))
+    {
         let ids = array(scope, allowed)?;
         if !(1..=32).contains(&ids.len()) {
             return Err(bad("form identity bounds"));
@@ -1789,26 +2607,134 @@ fn scope_valid(
     }
     Ok(())
 }
-const COLLECTION_SCOPE_KEYS:[&str;12]=["collection_id","collection_source_path","work_id","work_source_path","predicate","claim_id","claim_source_path","provenance_event_id","allowed_collection_form_ids","allowed_claim_form_ids","allowed_evidence_refs","retained_membership_provenance_refs"];
-const RESPONSIBILITY_SCOPE_KEYS:[&str;11]=["expression_id","expression_source_path","agent_id","agent_source_path","predicate","claim_id","claim_source_path","provenance_event_id","allowed_expression_form_ids","allowed_claim_form_ids","allowed_evidence_refs"];
-fn attachment_scope_valid(scope:&Value,request:&Value,kind:CompoundKind)->Result<(),ItemRefusal> {
-    keys(scope,if kind==CompoundKind::CollectionWork {&COLLECTION_SCOPE_KEYS[..]}else{&RESPONSIBILITY_SCOPE_KEYS[..]})?;
-    for (field,kind) in [(kind.parent_key(),kind.parent_kind()),(kind.child_key(),kind.child_kind()),("claim_id","claim"),("provenance_event_id","event")] {
-        if !typed_id(text(scope,field)?,kind) {return Err(bad("membership typed scope identities"));}
+const COLLECTION_SCOPE_KEYS: [&str; 12] = [
+    "collection_id",
+    "collection_source_path",
+    "work_id",
+    "work_source_path",
+    "predicate",
+    "claim_id",
+    "claim_source_path",
+    "provenance_event_id",
+    "allowed_collection_form_ids",
+    "allowed_claim_form_ids",
+    "allowed_evidence_refs",
+    "retained_membership_provenance_refs",
+];
+const RESPONSIBILITY_SCOPE_KEYS: [&str; 11] = [
+    "expression_id",
+    "expression_source_path",
+    "agent_id",
+    "agent_source_path",
+    "predicate",
+    "claim_id",
+    "claim_source_path",
+    "provenance_event_id",
+    "allowed_expression_form_ids",
+    "allowed_claim_form_ids",
+    "allowed_evidence_refs",
+];
+fn attachment_scope_valid(
+    scope: &Value,
+    request: &Value,
+    kind: CompoundKind,
+) -> Result<(), ItemRefusal> {
+    keys(
+        scope,
+        if kind == CompoundKind::CollectionWork {
+            &COLLECTION_SCOPE_KEYS[..]
+        } else {
+            &RESPONSIBILITY_SCOPE_KEYS[..]
+        },
+    )?;
+    for (field, kind) in [
+        (kind.parent_key(), kind.parent_kind()),
+        (kind.child_key(), kind.child_kind()),
+        ("claim_id", "claim"),
+        ("provenance_event_id", "event"),
+    ] {
+        if !typed_id(text(scope, field)?, kind) {
+            return Err(bad("membership typed scope identities"));
+        }
     }
-    let collection=text(scope,kind.parent_path())?;let work=text(scope,kind.child_path())?;let claim=text(scope,"claim_source_path")?;
-    for path in [collection,work,claim] {metadata_path(path,false)?;}
-    if text(scope,"predicate")?!=kind.predicate()||if kind==CompoundKind::CollectionWork {!collection.starts_with("ToS/source-witnesses/collections/")||collection.split('/').count()<5||!collection.ends_with("/collection.json")||!work.starts_with("ToS/source-witnesses/works/")||!work.ends_with("/work.json")}else{!collection.starts_with("ToS/source-witnesses/works/")||!collection.ends_with("/expression.json")||!collection.split('/').any(|part|part=="expressions")||!work.starts_with("ToS/source-witnesses/agents/")||!work.ends_with("/agent.json")}||!claim.starts_with("ToS/source-witnesses/relations/")||claim.split('/').count()!=5||!claim.ends_with("/source-claims.jsonl")||!segment(parent(claim)?.rsplit('/').next().unwrap()) {return Err(bad("membership separate exact public homes"));}
-    if request[kind.record_key()]["record_type"]!=kind.child_kind()||request["claim"]["predicate"]!=scope["predicate"] {return Err(bad("membership exact Work/Claim route"));}
-    let evidence=array(scope,"allowed_evidence_refs")?;
-    if !(1..=128).contains(&evidence.len()) {return Err(bad("membership evidence bounds"));}
-    let mut seen=BTreeSet::new();
-    for value in evidence {let value=value.as_str().ok_or_else(||bad("membership evidence strings"))?;if value.chars().count()>4096||tos_foundation::python_strip_unicode16_v1(value,MAX_SIDE).map_err(|_|ItemRefusal::Budget)?.is_empty()||!seen.insert(value) {return Err(bad("membership distinct explicit evidence"));}}
-    for field in ["evidence_refs","counterevidence_refs"] {if let Some(refs)=request["claim"].get(field) {for value in refs.as_array().ok_or_else(||bad("membership evidence array"))? {if !value.is_string()||!evidence.contains(value) {return Err(bad("membership evidence exceeds recorded scope"));}}}}
-    if kind==CompoundKind::CollectionWork {
-    let provenance=array(scope,"retained_membership_provenance_refs")?;
-    if provenance.len()>32 {return Err(bad("membership retained provenance bounds"));}
-    seen.clear();for value in provenance {let path=value.as_str().ok_or_else(||bad("membership provenance path"))?;metadata_path(path,false)?;let name=path.rsplit('/').next().unwrap();if !name.ends_with(".jsonl")||!name.contains("provenance")||!seen.insert(path) {return Err(bad("membership retained provenance grammar"));}}
+    let collection = text(scope, kind.parent_path())?;
+    let work = text(scope, kind.child_path())?;
+    let claim = text(scope, "claim_source_path")?;
+    for path in [collection, work, claim] {
+        metadata_path(path, false)?;
+    }
+    if text(scope, "predicate")? != kind.predicate()
+        || if kind == CompoundKind::CollectionWork {
+            !collection.starts_with("ToS/source-witnesses/collections/")
+                || collection.split('/').count() < 5
+                || !collection.ends_with("/collection.json")
+                || !work.starts_with("ToS/source-witnesses/works/")
+                || !work.ends_with("/work.json")
+        } else {
+            !collection.starts_with("ToS/source-witnesses/works/")
+                || !collection.ends_with("/expression.json")
+                || !collection.split('/').any(|part| part == "expressions")
+                || !work.starts_with("ToS/source-witnesses/agents/")
+                || !work.ends_with("/agent.json")
+        }
+        || !claim.starts_with("ToS/source-witnesses/relations/")
+        || claim.split('/').count() != 5
+        || !claim.ends_with("/source-claims.jsonl")
+        || !segment(parent(claim)?.rsplit('/').next().unwrap())
+    {
+        return Err(bad("membership separate exact public homes"));
+    }
+    if request[kind.record_key()]["record_type"] != kind.child_kind()
+        || request["claim"]["predicate"] != scope["predicate"]
+    {
+        return Err(bad("membership exact Work/Claim route"));
+    }
+    let evidence = array(scope, "allowed_evidence_refs")?;
+    if !(1..=128).contains(&evidence.len()) {
+        return Err(bad("membership evidence bounds"));
+    }
+    let mut seen = BTreeSet::new();
+    for value in evidence {
+        let value = value
+            .as_str()
+            .ok_or_else(|| bad("membership evidence strings"))?;
+        if value.chars().count() > 4096
+            || tos_foundation::python_strip_unicode16_v1(value, MAX_SIDE)
+                .map_err(|_| ItemRefusal::Budget)?
+                .is_empty()
+            || !seen.insert(value)
+        {
+            return Err(bad("membership distinct explicit evidence"));
+        }
+    }
+    for field in ["evidence_refs", "counterevidence_refs"] {
+        if let Some(refs) = request["claim"].get(field) {
+            for value in refs
+                .as_array()
+                .ok_or_else(|| bad("membership evidence array"))?
+            {
+                if !value.is_string() || !evidence.contains(value) {
+                    return Err(bad("membership evidence exceeds recorded scope"));
+                }
+            }
+        }
+    }
+    if kind == CompoundKind::CollectionWork {
+        let provenance = array(scope, "retained_membership_provenance_refs")?;
+        if provenance.len() > 32 {
+            return Err(bad("membership retained provenance bounds"));
+        }
+        seen.clear();
+        for value in provenance {
+            let path = value
+                .as_str()
+                .ok_or_else(|| bad("membership provenance path"))?;
+            metadata_path(path, false)?;
+            let name = path.rsplit('/').next().unwrap();
+            if !name.ends_with(".jsonl") || !name.contains("provenance") || !seen.insert(path) {
+                return Err(bad("membership retained provenance grammar"));
+            }
+        }
     }
     Ok(())
 }
@@ -2088,9 +3014,23 @@ fn item_companions(
         ("authority_boundary", string(boundary)),
     ]);
     let rights = j(&request["rights"])?;
-    let guard=|used:usize|if used>limits.max_state_bytes {Err(ItemRefusal::BudgetCheck{check:"compound Item companion logical workspace",used:Some(used as u64),limit:Some(limits.max_state_bytes as u64)})}else{Ok(())};
-    let mut workspace=0usize;
-    for value in [&manifest,&inventory,&rights] {workspace=workspace.checked_add(crate::record_biblio_cut::ordered_state(value)?).ok_or(ItemRefusal::Budget)?;}
+    let guard = |used: usize| {
+        if used > limits.max_state_bytes {
+            Err(ItemRefusal::BudgetCheck {
+                check: "compound Item companion logical workspace",
+                used: Some(used as u64),
+                limit: Some(limits.max_state_bytes as u64),
+            })
+        } else {
+            Ok(())
+        }
+    };
+    let mut workspace = 0usize;
+    for value in [&manifest, &inventory, &rights] {
+        workspace = workspace
+            .checked_add(crate::record_biblio_cut::ordered_state(value)?)
+            .ok_or(ItemRefusal::Budget)?;
+    }
     guard(workspace)?;
     for (name, leaf, value) in [
         ("source-item-manifest", "item.manifest.json", &manifest),
@@ -2101,8 +3041,12 @@ fn item_companions(
         ),
         ("rights-record", "rights.json", &rights),
     ] {
-        let raw=canonical_ordered(value)?;
-        guard(workspace.checked_add(raw.len()).ok_or(ItemRefusal::Budget)?)?;
+        let raw = canonical_ordered(value)?;
+        guard(
+            workspace
+                .checked_add(raw.len())
+                .ok_or(ItemRefusal::Budget)?,
+        )?;
         if !schemas.check_reusing_scalar(
             &format!("{}#compound-reconstructed", locator(leaf)),
             &raw,
@@ -2123,8 +3067,15 @@ fn item_companions(
             "transaction_id":identifier,"owner_configuration":request["expected_configuration"],"byte_receipt_ref":locator("item-deposit-receipt.json")}},
         "status":"completed_with_warnings","warnings":["Local retention only; not rights, bibliographic or textual admission."],
         "receipt_refs":[locator("edition-item-receipt.json")],"rights_basis_ref":locator("rights.json"),"event_version":1});
-    workspace=workspace.checked_add(inventory_raw.len()).and_then(|n|n.checked_add(crate::record_biblio_cut::decoded_state(&event).ok()?)).ok_or(ItemRefusal::Budget)?;
-    guard(workspace.checked_add(crate::record_biblio_cut::decoded_state(&event)?).ok_or(ItemRefusal::Budget)?)?;
+    workspace = workspace
+        .checked_add(inventory_raw.len())
+        .and_then(|n| n.checked_add(crate::record_biblio_cut::decoded_state(&event).ok()?))
+        .ok_or(ItemRefusal::Budget)?;
+    guard(
+        workspace
+            .checked_add(crate::record_biblio_cut::decoded_state(&event)?)
+            .ok_or(ItemRefusal::Budget)?,
+    )?;
     let mut enumeration = event.clone();
     for (key, value) in [
         ("event_id", scope["inventory_event_id"].clone()),
@@ -2150,12 +3101,19 @@ fn item_companions(
             .unwrap()
             .insert(key.into(), value);
     }
-    workspace=workspace.checked_add(crate::record_biblio_cut::decoded_state(&enumeration)?).ok_or(ItemRefusal::Budget)?;
+    workspace = workspace
+        .checked_add(crate::record_biblio_cut::decoded_state(&enumeration)?)
+        .ok_or(ItemRefusal::Budget)?;
     guard(workspace)?;
     let mut provenance = Vec::new();
     for (index, value) in [&event, &enumeration].into_iter().enumerate() {
         let raw = canonical(value)?;
-        guard(workspace.checked_add(provenance.len()).and_then(|n|n.checked_add(raw.len())).ok_or(ItemRefusal::Budget)?)?;
+        guard(
+            workspace
+                .checked_add(provenance.len())
+                .and_then(|n| n.checked_add(raw.len()))
+                .ok_or(ItemRefusal::Budget)?,
+        )?;
         if !schemas.check_reusing_scalar(
             &format!(
                 "{}:{}#compound-reconstructed",
@@ -2177,8 +3135,8 @@ fn item_companions(
         text(scope, "file_id")?,
         text(scope, "sha256")?
     );
-    let inventory_bytes=inventory_raw.len();
-    let result=vec![
+    let inventory_bytes = inventory_raw.len();
+    let result = vec![
         ("item.manifest.json".into(), pretty(&manifest)?),
         ("rights.json".into(), pretty(&rights)?),
         ("resource-inventory.json".into(), inventory_raw),
@@ -2196,24 +3154,123 @@ fn item_companions(
     ];
     // inventory/provenance/report bytes move into these output rows, while the
     // manifest/rights/event trees above remain live until this return.
-    let trees=workspace.checked_sub(inventory_bytes).unwrap_or(workspace);
-    guard(trees.checked_add(rows_state(&result,true)?).ok_or(ItemRefusal::Budget)?)?;
+    let trees = workspace.checked_sub(inventory_bytes).unwrap_or(workspace);
+    guard(
+        trees
+            .checked_add(rows_state(&result, true)?)
+            .ok_or(ItemRefusal::Budget)?,
+    )?;
     Ok(result)
 }
 
-fn claim_lines(raw:&[u8])->impl Iterator<Item=(&[u8],&[u8])> {
-    let mut offset=0usize;
-    std::iter::from_fn(move||{if offset>=raw.len(){return None;}let start=offset;while offset<raw.len()&&!matches!(raw[offset],b'\n'|b'\r'){offset+=1;}let end=offset;if offset<raw.len(){let marker=raw[offset];offset+=1;if marker==b'\r'&&offset<raw.len()&&raw[offset]==b'\n'{offset+=1;}}Some((&raw[start..end],&raw[end..offset]))})
+fn claim_lines(raw: &[u8]) -> impl Iterator<Item = (&[u8], &[u8])> {
+    let mut offset = 0usize;
+    std::iter::from_fn(move || {
+        if offset >= raw.len() {
+            return None;
+        }
+        let start = offset;
+        while offset < raw.len() && !matches!(raw[offset], b'\n' | b'\r') {
+            offset += 1;
+        }
+        let end = offset;
+        if offset < raw.len() {
+            let marker = raw[offset];
+            offset += 1;
+            if marker == b'\r' && offset < raw.len() && raw[offset] == b'\n' {
+                offset += 1;
+            }
+        }
+        Some((&raw[start..end], &raw[end..offset]))
+    })
 }
-fn advance_membership_claim(previous:&Value,request:&Value)->Result<Value,ItemRefusal> {
-    let fields=request["fields"].as_object().ok_or_else(||bad("membership correction field patch"))?;
-    let transition=request.get("layer_transition").filter(|v|!v.is_null());
-    if fields.is_empty()||fields.keys().any(|key|if transition.is_some(){key!="assertion_layer"}else{!["qualifiers","evidence_refs","counterevidence_refs","alternative_claim_refs","supporting_quotes","epistemic_status","confidence","object"].contains(&key.as_str())}) {return Err(bad("membership correction cannot change identity/maker/endpoints"));}
-    if let Some(transition)=transition {keys(transition,&["from","to"])?;let from=text(transition,"from")?;let to=text(transition,"to")?;let layer=|value:&str|!value.is_empty()&&value.len()<=64&&value.as_bytes()[0].is_ascii_lowercase()&&value.bytes().all(|b|b.is_ascii_lowercase()||b.is_ascii_digit()||b==b'_');if !layer(from)||!layer(to)||from==to||previous["assertion_layer"]!=from||fields["assertion_layer"]!=to {return Err(bad("membership exact retained layer transition"));}}
-    if fields.contains_key("object")&&(!previous["object"].is_object()||!fields["object"].is_object()) {return Err(bad("membership correction cannot change identity endpoint"));}
-    let mut result=previous.clone();for (key,value) in fields {if key=="qualifiers" {let patch=value.as_object().ok_or_else(||bad("membership qualifier correction patch"))?;let target=result.as_object_mut().unwrap().entry(key.clone()).or_insert_with(||json!({})).as_object_mut().ok_or_else(||bad("membership qualifiers object"))?;target.extend(patch.iter().map(|(k,v)|(k.clone(),v.clone())));}else{result.as_object_mut().unwrap().insert(key.clone(),value.clone());}}
-    if &result==previous {return Err(bad("membership correction did not change source"));}
-    result.as_object_mut().unwrap().insert("claim_version".into(),json!(integer(previous,"claim_version")?.checked_add(1).ok_or(ItemRefusal::Budget)?));Ok(result)
+fn advance_membership_claim(previous: &Value, request: &Value) -> Result<Value, ItemRefusal> {
+    let fields = request["fields"]
+        .as_object()
+        .ok_or_else(|| bad("membership correction field patch"))?;
+    let transition = request.get("layer_transition").filter(|v| !v.is_null());
+    if fields.is_empty()
+        || fields.keys().any(|key| {
+            if transition.is_some() {
+                key != "assertion_layer"
+            } else {
+                ![
+                    "qualifiers",
+                    "evidence_refs",
+                    "counterevidence_refs",
+                    "alternative_claim_refs",
+                    "supporting_quotes",
+                    "epistemic_status",
+                    "confidence",
+                    "object",
+                ]
+                .contains(&key.as_str())
+            }
+        })
+    {
+        return Err(bad(
+            "membership correction cannot change identity/maker/endpoints",
+        ));
+    }
+    if let Some(transition) = transition {
+        keys(transition, &["from", "to"])?;
+        let from = text(transition, "from")?;
+        let to = text(transition, "to")?;
+        let layer = |value: &str| {
+            !value.is_empty()
+                && value.len() <= 64
+                && value.as_bytes()[0].is_ascii_lowercase()
+                && value
+                    .bytes()
+                    .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'_')
+        };
+        if !layer(from)
+            || !layer(to)
+            || from == to
+            || previous["assertion_layer"] != from
+            || fields["assertion_layer"] != to
+        {
+            return Err(bad("membership exact retained layer transition"));
+        }
+    }
+    if fields.contains_key("object")
+        && (!previous["object"].is_object() || !fields["object"].is_object())
+    {
+        return Err(bad("membership correction cannot change identity endpoint"));
+    }
+    let mut result = previous.clone();
+    for (key, value) in fields {
+        if key == "qualifiers" {
+            let patch = value
+                .as_object()
+                .ok_or_else(|| bad("membership qualifier correction patch"))?;
+            let target = result
+                .as_object_mut()
+                .unwrap()
+                .entry(key.clone())
+                .or_insert_with(|| json!({}))
+                .as_object_mut()
+                .ok_or_else(|| bad("membership qualifiers object"))?;
+            target.extend(patch.iter().map(|(k, v)| (k.clone(), v.clone())));
+        } else {
+            result
+                .as_object_mut()
+                .unwrap()
+                .insert(key.clone(), value.clone());
+        }
+    }
+    if &result == previous {
+        return Err(bad("membership correction did not change source"));
+    }
+    result.as_object_mut().unwrap().insert(
+        "claim_version".into(),
+        json!(
+            integer(previous, "claim_version")?
+                .checked_add(1)
+                .ok_or(ItemRefusal::Budget)?
+        ),
+    );
+    Ok(result)
 }
 
 fn j(value: &Value) -> Result<JsonValue, ItemRefusal> {
@@ -2249,7 +3306,7 @@ fn ref_ordered(v: &Value, id: &str, version: &str) -> Result<JsonValue, ItemRefu
         ("digest", j(&r["digest"])?),
     ]))
 }
-fn refs_ordered<T:AsRef<[u8]>>(files: &[(String, T)]) -> JsonValue {
+fn refs_ordered<T: AsRef<[u8]>>(files: &[(String, T)]) -> JsonValue {
     JsonValue::Object(
         files
             .iter()
@@ -2257,8 +3314,14 @@ fn refs_ordered<T:AsRef<[u8]>>(files: &[(String, T)]) -> JsonValue {
                 (
                     tos_foundation::JsonString::from_utf8(name),
                     object(vec![
-                        ("sha256", string(&Digest256::of_bytes(raw.as_ref()).to_prefixed())),
-                        ("bytes", j(&json!(raw.as_ref().len())).expect("bounded byte length")),
+                        (
+                            "sha256",
+                            string(&Digest256::of_bytes(raw.as_ref()).to_prefixed()),
+                        ),
+                        (
+                            "bytes",
+                            j(&json!(raw.as_ref().len())).expect("bounded byte length"),
+                        ),
                     ]),
                 )
             })
@@ -2271,7 +3334,7 @@ fn forms(
     selections: &Value,
     principal: &str,
     claim: bool,
-    available:usize,
+    available: usize,
 ) -> Result<(JsonValue, JsonValue), ItemRefusal> {
     use crate::source_forms::source_copy_kernel as kernel;
     let fail = |e| ItemRefusal::Unsupported(format!("compound source-copy forms: {e:?}"));
@@ -2299,71 +3362,218 @@ fn forms(
             }
         }
     }
-    let fields=kernel::metadata_fields(source).map_err(fail)?;
-    let mut fields_state=std::mem::size_of::<Vec<kernel::FormField>>();
+    let fields = kernel::metadata_fields(source).map_err(fail)?;
+    let mut fields_state = std::mem::size_of::<Vec<kernel::FormField>>();
     for field in &fields {
-        let strings=field.id.len()+field.pointer.len()+field.role.len();
-        let context=field.context.iter().try_fold(0usize,|n,s|n.checked_add(std::mem::size_of::<String>()+s.len())).ok_or(ItemRefusal::Budget)?;
-        fields_state=fields_state.checked_add(std::mem::size_of::<kernel::FormField>()).and_then(|n|n.checked_add(strings)).and_then(|n|n.checked_add(context))
-            .and_then(|n|n.checked_add(crate::record_biblio_cut::ordered_state(&field.language).ok()?.checked_sub(std::mem::size_of::<JsonValue>())?)).and_then(|n|n.checked_add(crate::record_biblio_cut::ordered_state(&field.script).ok()?.checked_sub(std::mem::size_of::<JsonValue>())?)).ok_or(ItemRefusal::Budget)?;
+        let strings = field.id.len() + field.pointer.len() + field.role.len();
+        let context = field
+            .context
+            .iter()
+            .try_fold(0usize, |n, s| {
+                n.checked_add(std::mem::size_of::<String>() + s.len())
+            })
+            .ok_or(ItemRefusal::Budget)?;
+        fields_state = fields_state
+            .checked_add(std::mem::size_of::<kernel::FormField>())
+            .and_then(|n| n.checked_add(strings))
+            .and_then(|n| n.checked_add(context))
+            .and_then(|n| {
+                n.checked_add(
+                    crate::record_biblio_cut::ordered_state(&field.language)
+                        .ok()?
+                        .checked_sub(std::mem::size_of::<JsonValue>())?,
+                )
+            })
+            .and_then(|n| {
+                n.checked_add(
+                    crate::record_biblio_cut::ordered_state(&field.script)
+                        .ok()?
+                        .checked_sub(std::mem::size_of::<JsonValue>())?,
+                )
+            })
+            .ok_or(ItemRefusal::Budget)?;
     }
-    let guard=|used:usize|if used>available {Err(ItemRefusal::BudgetCheck{check:"compound source-copy logical workspace",used:Some(used as u64),limit:Some(available as u64)})}else{Ok(())};
+    let guard = |used: usize| {
+        if used > available {
+            Err(ItemRefusal::BudgetCheck {
+                check: "compound source-copy logical workspace",
+                used: Some(used as u64),
+                limit: Some(available as u64),
+            })
+        } else {
+            Ok(())
+        }
+    };
     // Canonical hash/equality helpers emit at most two independent buffers at
     // once. Price the actual selected source/prior bytes, not a raw multiplier.
-    let mut codec_indexes=crate::record_biblio_cut::ordered_emit_state(source)?;
-    guard(fields_state.checked_add(codec_indexes).ok_or(ItemRefusal::Budget)?)?;
-    let mut codec_wire=canonical_count_v1(source,CanonicalProfile::SourceCommandInputV1,limits()).map_err(|error|ItemRefusal::Unsupported(format!("compound canonical: {error:?}")))?;
-    let prior_codec=if let Some(previous)=previous {
-        guard(fields_state.checked_add(crate::record_biblio_cut::ordered_emit_state(previous)?).ok_or(ItemRefusal::Budget)?)?;
-        let bytes=canonical_count_v1(previous,CanonicalProfile::SourceCommandInputV1,limits()).map_err(|error|ItemRefusal::Unsupported(format!("compound canonical: {error:?}")))?;
-        codec_wire=codec_wire.max(bytes);codec_indexes=codec_indexes.max(crate::record_biblio_cut::ordered_emit_state(previous)?);
-        bytes.checked_add(crate::record_biblio_cut::ordered_codec_state(previous)?).ok_or(ItemRefusal::Budget)?
-    }else{0};
-    guard(fields_state.checked_add(codec_wire.checked_add(codec_indexes).ok_or(ItemRefusal::Budget)?).ok_or(ItemRefusal::Budget)?)?;
-    let subject=kernel::metadata_subject(source).map_err(fail)?;
-    let subject_state=crate::record_biblio_cut::ordered_state(&subject)?;
-    let empty=if previous.is_none(){Some(kernel::empty_set(&subject))}else{None};
-    let empty_state=empty.as_ref().map(crate::record_biblio_cut::ordered_state).transpose()?.unwrap_or(0);
-    guard(fields_state.checked_add(subject_state).and_then(|n|n.checked_add(empty_state)).and_then(|n|n.checked_add(codec_wire.checked_add(codec_indexes)?)).ok_or(ItemRefusal::Budget)?)?;
+    let mut codec_indexes = crate::record_biblio_cut::ordered_emit_state(source)?;
+    guard(
+        fields_state
+            .checked_add(codec_indexes)
+            .ok_or(ItemRefusal::Budget)?,
+    )?;
+    let mut codec_wire =
+        canonical_count_v1(source, CanonicalProfile::SourceCommandInputV1, limits())
+            .map_err(|error| ItemRefusal::Unsupported(format!("compound canonical: {error:?}")))?;
+    let prior_codec = if let Some(previous) = previous {
+        guard(
+            fields_state
+                .checked_add(crate::record_biblio_cut::ordered_emit_state(previous)?)
+                .ok_or(ItemRefusal::Budget)?,
+        )?;
+        let bytes = canonical_count_v1(previous, CanonicalProfile::SourceCommandInputV1, limits())
+            .map_err(|error| ItemRefusal::Unsupported(format!("compound canonical: {error:?}")))?;
+        codec_wire = codec_wire.max(bytes);
+        codec_indexes = codec_indexes.max(crate::record_biblio_cut::ordered_emit_state(previous)?);
+        bytes
+            .checked_add(crate::record_biblio_cut::ordered_codec_state(previous)?)
+            .ok_or(ItemRefusal::Budget)?
+    } else {
+        0
+    };
+    guard(
+        fields_state
+            .checked_add(
+                codec_wire
+                    .checked_add(codec_indexes)
+                    .ok_or(ItemRefusal::Budget)?,
+            )
+            .ok_or(ItemRefusal::Budget)?,
+    )?;
+    let subject = kernel::metadata_subject(source).map_err(fail)?;
+    let subject_state = crate::record_biblio_cut::ordered_state(&subject)?;
+    let empty = if previous.is_none() {
+        Some(kernel::empty_set(&subject))
+    } else {
+        None
+    };
+    let empty_state = empty
+        .as_ref()
+        .map(crate::record_biblio_cut::ordered_state)
+        .transpose()?
+        .unwrap_or(0);
+    guard(
+        fields_state
+            .checked_add(subject_state)
+            .and_then(|n| n.checked_add(empty_state))
+            .and_then(|n| n.checked_add(codec_wire.checked_add(codec_indexes)?))
+            .ok_or(ItemRefusal::Budget)?,
+    )?;
     let mut changes = Vec::new();
-    let mut changes_state=std::mem::size_of::<Vec<JsonValue>>();
+    let mut changes_state = std::mem::size_of::<Vec<JsonValue>>();
     for selection in selections {
-        let field_id=text(selection,"field_id")?;
-        let selected=fields.iter().find(|field|field.id==field_id).ok_or_else(||fail(kernel::FormMechanicsError::Invalid("unknown source field selector")))?;
+        let field_id = text(selection, "field_id")?;
+        let selected = fields
+            .iter()
+            .find(|field| field.id == field_id)
+            .ok_or_else(|| {
+                fail(kernel::FormMechanicsError::Invalid(
+                    "unknown source field selector",
+                ))
+            })?;
         let change = kernel::prepared_change(
-                previous.or(empty.as_ref()).ok_or_else(||bad("form preparation base"))?,
-                &subject,
-                principal,
-                text(selection, "form_id")?,
-                selected,
-            ).map_err(fail)?;
-        changes_state=changes_state.checked_add(crate::record_biblio_cut::ordered_state(&change)?).ok_or(ItemRefusal::Budget)?;
-        let indexes=crate::record_biblio_cut::ordered_emit_state(&change)?;
-        guard(fields_state.checked_add(changes_state).and_then(|n|n.checked_add(subject_state)).and_then(|n|n.checked_add(empty_state)).and_then(|n|n.checked_add(indexes)).ok_or(ItemRefusal::Budget)?)?;
-        let bytes=canonical_count_v1(&change,CanonicalProfile::SourceCommandInputV1,limits()).map_err(|error|ItemRefusal::Unsupported(format!("compound canonical: {error:?}")))?;
-        codec_wire=codec_wire.max(bytes);codec_indexes=codec_indexes.max(crate::record_biblio_cut::ordered_emit_state(&change)?);
-        guard(fields_state.checked_add(changes_state).and_then(|n|n.checked_add(subject_state)).and_then(|n|n.checked_add(empty_state)).and_then(|n|n.checked_add(codec_wire.checked_add(codec_indexes)?)).ok_or(ItemRefusal::Budget)?)?;
+            previous
+                .or(empty.as_ref())
+                .ok_or_else(|| bad("form preparation base"))?,
+            &subject,
+            principal,
+            text(selection, "form_id")?,
+            selected,
+        )
+        .map_err(fail)?;
+        changes_state = changes_state
+            .checked_add(crate::record_biblio_cut::ordered_state(&change)?)
+            .ok_or(ItemRefusal::Budget)?;
+        let indexes = crate::record_biblio_cut::ordered_emit_state(&change)?;
+        guard(
+            fields_state
+                .checked_add(changes_state)
+                .and_then(|n| n.checked_add(subject_state))
+                .and_then(|n| n.checked_add(empty_state))
+                .and_then(|n| n.checked_add(indexes))
+                .ok_or(ItemRefusal::Budget)?,
+        )?;
+        let bytes = canonical_count_v1(&change, CanonicalProfile::SourceCommandInputV1, limits())
+            .map_err(|error| {
+            ItemRefusal::Unsupported(format!("compound canonical: {error:?}"))
+        })?;
+        codec_wire = codec_wire.max(bytes);
+        codec_indexes = codec_indexes.max(crate::record_biblio_cut::ordered_emit_state(&change)?);
+        guard(
+            fields_state
+                .checked_add(changes_state)
+                .and_then(|n| n.checked_add(subject_state))
+                .and_then(|n| n.checked_add(empty_state))
+                .and_then(|n| n.checked_add(codec_wire.checked_add(codec_indexes)?))
+                .ok_or(ItemRefusal::Budget)?,
+        )?;
         changes.push(change);
     }
     drop(empty);
     // apply retains one successor clone plus its canonical predecessor parse;
     // newly prepared forms are already owned by changes above.
-    guard(fields_state.checked_add(changes_state).and_then(|n|n.checked_add(subject_state)).and_then(|n|n.checked_add(prior_codec)).ok_or(ItemRefusal::Budget)?)?;
+    guard(
+        fields_state
+            .checked_add(changes_state)
+            .and_then(|n| n.checked_add(subject_state))
+            .and_then(|n| n.checked_add(prior_codec))
+            .ok_or(ItemRefusal::Budget)?,
+    )?;
     let result = kernel::apply_form_changes(previous, &subject, &changes).map_err(fail)?;
-    let result_state=crate::record_biblio_cut::ordered_state(&result)?;
-    let base=fields_state.checked_add(changes_state).and_then(|n|n.checked_add(subject_state)).and_then(|n|n.checked_add(result_state)).ok_or(ItemRefusal::Budget)?;
-    guard(base.checked_add(crate::record_biblio_cut::ordered_emit_state(&result)?).ok_or(ItemRefusal::Budget)?)?;
-    let result_bytes=canonical_count_v1(&result,CanonicalProfile::SourceCommandInputV1,limits()).map_err(|error|ItemRefusal::Unsupported(format!("compound canonical: {error:?}")))?;
-    codec_wire=codec_wire.max(result_bytes);codec_indexes=codec_indexes.max(crate::record_biblio_cut::ordered_emit_state(&result)?);
-    let equality_buffers=codec_wire.checked_add(codec_wire.checked_add(codec_indexes).ok_or(ItemRefusal::Budget)?).ok_or(ItemRefusal::Budget)?;
-    let forms=result.object_get("forms").and_then(JsonValue::as_array).map_or(0,|v|v.len());
-    let prior=result.object_get("prior_forms").and_then(JsonValue::as_array).map_or(0,|v|v.len());
+    let result_state = crate::record_biblio_cut::ordered_state(&result)?;
+    let base = fields_state
+        .checked_add(changes_state)
+        .and_then(|n| n.checked_add(subject_state))
+        .and_then(|n| n.checked_add(result_state))
+        .ok_or(ItemRefusal::Budget)?;
+    guard(
+        base.checked_add(crate::record_biblio_cut::ordered_emit_state(&result)?)
+            .ok_or(ItemRefusal::Budget)?,
+    )?;
+    let result_bytes =
+        canonical_count_v1(&result, CanonicalProfile::SourceCommandInputV1, limits())
+            .map_err(|error| ItemRefusal::Unsupported(format!("compound canonical: {error:?}")))?;
+    codec_wire = codec_wire.max(result_bytes);
+    codec_indexes = codec_indexes.max(crate::record_biblio_cut::ordered_emit_state(&result)?);
+    let equality_buffers = codec_wire
+        .checked_add(
+            codec_wire
+                .checked_add(codec_indexes)
+                .ok_or(ItemRefusal::Budget)?,
+        )
+        .ok_or(ItemRefusal::Budget)?;
+    let forms = result
+        .object_get("forms")
+        .and_then(JsonValue::as_array)
+        .map_or(0, |v| v.len());
+    let prior = result
+        .object_get("prior_forms")
+        .and_then(JsonValue::as_array)
+        .map_or(0, |v| v.len());
     // Borrowed history indexes, materializer subject and one field-match Vec.
-    let indexes=(forms+prior)*std::mem::size_of::<((&str,u64),&JsonValue)>()+forms*std::mem::size_of::<&str>()+fields.len()*std::mem::size_of::<&kernel::FormField>();
-    let inner=subject_state.checked_add(indexes).and_then(|n|n.checked_add(equality_buffers)).ok_or(ItemRefusal::Budget)?;
+    let indexes = (forms + prior) * std::mem::size_of::<((&str, u64), &JsonValue)>()
+        + forms * std::mem::size_of::<&str>()
+        + fields.len() * std::mem::size_of::<&kernel::FormField>();
+    let inner = subject_state
+        .checked_add(indexes)
+        .and_then(|n| n.checked_add(equality_buffers))
+        .ok_or(ItemRefusal::Budget)?;
     guard(base.checked_add(inner).ok_or(ItemRefusal::Budget)?)?;
-    let views = kernel::materialize_source_forms_from_fields(source, &result, &fields,available.checked_sub(base).and_then(|n|n.checked_sub(inner)).ok_or(ItemRefusal::Budget)?)?;
-    let views_state=views.iter().try_fold(std::mem::size_of::<Vec<JsonValue>>(),|n,v|n.checked_add(crate::record_biblio_cut::ordered_state(v).ok()?)).ok_or(ItemRefusal::Budget)?;
+    let views = kernel::materialize_source_forms_from_fields(
+        source,
+        &result,
+        &fields,
+        available
+            .checked_sub(base)
+            .and_then(|n| n.checked_sub(inner))
+            .ok_or(ItemRefusal::Budget)?,
+    )?;
+    let views_state = views
+        .iter()
+        .try_fold(std::mem::size_of::<Vec<JsonValue>>(), |n, v| {
+            n.checked_add(crate::record_biblio_cut::ordered_state(v).ok()?)
+        })
+        .ok_or(ItemRefusal::Budget)?;
     guard(base.checked_add(views_state).ok_or(ItemRefusal::Budget)?)?;
     if !views
         .iter()
@@ -2385,19 +3595,47 @@ fn forms(
             .map_err(fail)
         })
         .collect::<Result<Vec<_>, _>>()?;
-    let refs=JsonValue::Array(refs);
-    guard(base.checked_add(views_state).and_then(|n|n.checked_add(crate::record_biblio_cut::ordered_state(&refs).ok()?)).ok_or(ItemRefusal::Budget)?)?;
+    let refs = JsonValue::Array(refs);
+    guard(
+        base.checked_add(views_state)
+            .and_then(|n| n.checked_add(crate::record_biblio_cut::ordered_state(&refs).ok()?))
+            .ok_or(ItemRefusal::Budget)?,
+    )?;
     Ok((result, refs))
 }
 
-fn slice_rows_state(rows:&[(String,&[u8])])->Result<usize,ItemRefusal> {
-    rows.iter().try_fold(std::mem::size_of::<Vec<(String,&[u8])>>(),|sum,(name,_)|sum.checked_add(std::mem::size_of::<(String,&[u8])>())?.checked_add(name.len())).ok_or(ItemRefusal::Budget)
+fn slice_rows_state(rows: &[(String, &[u8])]) -> Result<usize, ItemRefusal> {
+    rows.iter()
+        .try_fold(
+            std::mem::size_of::<Vec<(String, &[u8])>>(),
+            |sum, (name, _)| {
+                sum.checked_add(std::mem::size_of::<(String, &[u8])>())?
+                    .checked_add(name.len())
+            },
+        )
+        .ok_or(ItemRefusal::Budget)
 }
-fn rows_state(rows:&[(String,Vec<u8>)], payloads:bool)->Result<usize,ItemRefusal> {
-    rows.iter().try_fold(std::mem::size_of::<Vec<(String,Vec<u8>)>>(),|sum,(name,raw)|sum.checked_add(std::mem::size_of::<(String,Vec<u8>)>())?.checked_add(name.len())?.checked_add(if payloads {raw.len()} else {0})).ok_or(ItemRefusal::Budget)
+fn rows_state(rows: &[(String, Vec<u8>)], payloads: bool) -> Result<usize, ItemRefusal> {
+    rows.iter()
+        .try_fold(
+            std::mem::size_of::<Vec<(String, Vec<u8>)>>(),
+            |sum, (name, raw)| {
+                sum.checked_add(std::mem::size_of::<(String, Vec<u8>)>())?
+                    .checked_add(name.len())?
+                    .checked_add(if payloads { raw.len() } else { 0 })
+            },
+        )
+        .ok_or(ItemRefusal::Budget)
 }
-fn package_state(files:&Package)->Result<usize,ItemRefusal> {
-    files.iter().try_fold(std::mem::size_of::<Package>(),|sum,(name,raw)|sum.checked_add(std::mem::size_of::<(String,Vec<u8>)>())?.checked_add(name.len())?.checked_add(raw.len())).ok_or(ItemRefusal::Budget)
+fn package_state(files: &Package) -> Result<usize, ItemRefusal> {
+    files
+        .iter()
+        .try_fold(std::mem::size_of::<Package>(), |sum, (name, raw)| {
+            sum.checked_add(std::mem::size_of::<(String, Vec<u8>)>())?
+                .checked_add(name.len())?
+                .checked_add(raw.len())
+        })
+        .ok_or(ItemRefusal::Budget)
 }
 struct Reconstructed {
     scope: Value,
@@ -2407,16 +3645,38 @@ struct Reconstructed {
     receipt: Value,
 }
 impl NativeCompoundReader<'_> {
-    fn reconstruct(&mut self,tx:&Transaction,kind:CompoundKind,schemas:&mut CutWorkerSchemaExecutor)->Result<Reconstructed,ItemRefusal> {
-        let before=self.temporary_state;
-        let result=self.reconstruct_inner(tx,kind,schemas);
+    fn reconstruct(
+        &mut self,
+        tx: &Transaction,
+        kind: CompoundKind,
+        schemas: &mut CutWorkerSchemaExecutor,
+    ) -> Result<Reconstructed, ItemRefusal> {
+        let before = self.temporary_state;
+        let result = self.reconstruct_inner(tx, kind, schemas);
         self.release_temporary_since(before);
-        if let Ok(value)=&result {
-            let mut amount=std::mem::size_of::<Reconstructed>();
-            for tree in [&value.scope,&value.request,&value.parent_receipt,&value.receipt] {
-                amount=amount.checked_add(crate::record_biblio_cut::decoded_state(tree)?.checked_sub(std::mem::size_of::<Value>()).ok_or(ItemRefusal::Budget)?).ok_or(ItemRefusal::Budget)?;
+        if let Ok(value) = &result {
+            let mut amount = std::mem::size_of::<Reconstructed>();
+            for tree in [
+                &value.scope,
+                &value.request,
+                &value.parent_receipt,
+                &value.receipt,
+            ] {
+                amount = amount
+                    .checked_add(
+                        crate::record_biblio_cut::decoded_state(tree)?
+                            .checked_sub(std::mem::size_of::<Value>())
+                            .ok_or(ItemRefusal::Budget)?,
+                    )
+                    .ok_or(ItemRefusal::Budget)?;
             }
-            amount=amount.checked_add(package_state(&value.child)?.checked_sub(std::mem::size_of::<Package>()).ok_or(ItemRefusal::Budget)?).ok_or(ItemRefusal::Budget)?;
+            amount = amount
+                .checked_add(
+                    package_state(&value.child)?
+                        .checked_sub(std::mem::size_of::<Package>())
+                        .ok_or(ItemRefusal::Budget)?,
+                )
+                .ok_or(ItemRefusal::Budget)?;
             self.temporary(amount)?;
         }
         result
@@ -2462,18 +3722,37 @@ impl NativeCompoundReader<'_> {
         };
         let request_raw = self.buffer(after("source-create-request.json")?)?;
         let request = self.decoded(&request_raw)?;
-        let request_observation=request_valid_with(&request, kind,&mut |value|self.canonical_observation(value))?;
-        self.temporary(std::mem::size_of::<String>()+request_observation.0.len())?;
-        let scope_scratch=if kind.relation_attachment() {
-            let evidence=array(scope,"allowed_evidence_refs")?;let provenance=if kind==CompoundKind::CollectionWork {array(scope,"retained_membership_provenance_refs")?.len()}else{0};
-            let grants=array(scope,kind.parent_form_grant())?.len()+array(scope,"allowed_claim_form_ids")?.len();
-            let selections=array(&request,"forms")?.len().max(array(&request,"claim_forms")?.len());
+        let request_observation = request_valid_with(&request, kind, &mut |value| {
+            self.canonical_observation(value)
+        })?;
+        self.temporary(std::mem::size_of::<String>() + request_observation.0.len())?;
+        let scope_scratch = if kind.relation_attachment() {
+            let evidence = array(scope, "allowed_evidence_refs")?;
+            let provenance = if kind == CompoundKind::CollectionWork {
+                array(scope, "retained_membership_provenance_refs")?.len()
+            } else {
+                0
+            };
+            let grants = array(scope, kind.parent_form_grant())?.len()
+                + array(scope, "allowed_claim_form_ids")?.len();
+            let selections = array(&request, "forms")?
+                .len()
+                .max(array(&request, "claim_forms")?.len());
             // Collection evidence/provenance indexes are dropped before the
             // form pass. Form seen+current grant+selected indexes coexist;
             // Unicode strip is borrowed and allocates no string.
-            let current_grant=array(scope,kind.parent_form_grant())?.len().max(array(scope,"allowed_claim_form_ids")?.len());
-            3*std::mem::size_of::<BTreeSet<&str>>()+evidence.len().max(provenance).max(grants+current_grant+selections)*std::mem::size_of::<&str>()
-        }else{0};
+            let current_grant = array(scope, kind.parent_form_grant())?
+                .len()
+                .max(array(scope, "allowed_claim_form_ids")?.len());
+            3 * std::mem::size_of::<BTreeSet<&str>>()
+                + evidence
+                    .len()
+                    .max(provenance)
+                    .max(grants + current_grant + selections)
+                    * std::mem::size_of::<&str>()
+        } else {
+            0
+        };
         self.temporary(scope_scratch)?;
         scope_valid(scope, &request, authority, kind)?;
         self.release_temporary(scope_scratch);
@@ -2511,8 +3790,8 @@ impl NativeCompoundReader<'_> {
                 .get(&format!("{work_home}/{name}"))
                 .and_then(|s| s.0.clone())
             {
-                let raw=self.buffer(raw)?;
-                self.temporary(std::mem::size_of::<(String,Vec<u8>)>()+name.len())?;
+                let raw = self.buffer(raw)?;
+                self.temporary(std::mem::size_of::<(String, Vec<u8>)>() + name.len())?;
                 before.insert(name, raw);
             }
         }
@@ -2520,23 +3799,31 @@ impl NativeCompoundReader<'_> {
             .get(kind.parent_file())
             .ok_or_else(|| bad("retained parent input missing"))?;
         let old = self.decoded(old_raw)?;
-        if !self.reference_matches(&old,"record_id","record_version",&request["expected_source"])?
-            || self.package_revision(&before)? != text(&request, "expected_revision")? {
+        if !self.reference_matches(
+            &old,
+            "record_id",
+            "record_version",
+            &request["expected_source"],
+        )? || self.package_revision(&before)? != text(&request, "expected_revision")?
+        {
             return Err(bad("retained authorization/request/before binding"));
         }
         if authority["owner_configuration"] != request["expected_configuration"]
             || authority["command_id"] != request["command_id"]
             || text(authority, "request_digest")? != request_observation.0
-            || self.canonical_observation(&authority["dependency_bindings"])?.0
+            || self
+                .canonical_observation(&authority["dependency_bindings"])?
+                .0
                 != text(&request, "expected_dependencies")?
         {
             return Err(bad("retained authorization/request/before binding"));
         }
         let dirs = array(plan, "new_directories")?;
-        if kind.relation_attachment() && (dirs.len()!=1||dirs[0].as_str()!=Some(home))
-            || !kind.relation_attachment() && !(kind == CompoundKind::EditionItem && dirs.is_empty())
-            && *dirs != vec![json!(home)]
-            && *dirs != vec![json!(parent(home)?), json!(home)]
+        if kind.relation_attachment() && (dirs.len() != 1 || dirs[0].as_str() != Some(home))
+            || !kind.relation_attachment()
+                && !(kind == CompoundKind::EditionItem && dirs.is_empty())
+                && *dirs != vec![json!(home)]
+                && *dirs != vec![json!(parent(home)?), json!(home)]
         {
             return Err(bad("exact new child directories"));
         }
@@ -2561,11 +3848,11 @@ impl NativeCompoundReader<'_> {
         );
         // Inserts replace old subtrees; charge only positive growth of the
         // retained revised tree, not another full cloned profile.
-        let old_state=crate::record_biblio_cut::decoded_state(&old)?;
-        let revised_state=crate::record_biblio_cut::decoded_state(&revised)?;
+        let old_state = crate::record_biblio_cut::decoded_state(&old)?;
+        let revised_state = crate::record_biblio_cut::decoded_state(&revised)?;
         self.temporary(revised_state.saturating_sub(old_state))?;
         let mut revised_ordered = self.ordered_value(old_raw)?;
-        let original_state=crate::record_biblio_cut::ordered_state(&revised_ordered)?;
+        let original_state = crate::record_biblio_cut::ordered_state(&revised_ordered)?;
         set(
             &mut revised_ordered,
             kind.field(),
@@ -2576,23 +3863,34 @@ impl NativeCompoundReader<'_> {
             "record_version",
             j(&revised["record_version"])?,
         )?;
-        self.temporary(crate::record_biblio_cut::ordered_state(&revised_ordered)?.saturating_sub(original_state))?;
+        self.temporary(
+            crate::record_biblio_cut::ordered_state(&revised_ordered)?
+                .saturating_sub(original_state),
+        )?;
         let expression = &request[kind.record_key()];
         let claim = &request["claim"];
-        let ordered_request=self.ordered_value(&request_raw)?;
-        let expression_ordered=self.ordered_copy(ordered_request.object_get(kind.record_key()).ok_or_else(||bad("ordered child record"))?)?;
-        let claim_ordered=self.ordered_copy(ordered_request.object_get("claim").ok_or_else(||bad("ordered Claim"))?)?;
-        let request_raw_state=std::mem::size_of::<Vec<u8>>()+request_raw.len();
+        let ordered_request = self.ordered_value(&request_raw)?;
+        let expression_ordered = self.ordered_copy(
+            ordered_request
+                .object_get(kind.record_key())
+                .ok_or_else(|| bad("ordered child record"))?,
+        )?;
+        let claim_ordered = self.ordered_copy(
+            ordered_request
+                .object_get("claim")
+                .ok_or_else(|| bad("ordered Claim"))?,
+        )?;
+        let request_raw_state = std::mem::size_of::<Vec<u8>>() + request_raw.len();
         drop(request_raw);
         self.release_temporary(request_raw_state);
-        let environment_raw_state=std::mem::size_of::<Vec<u8>>()+environment_raw.len();
+        let environment_raw_state = std::mem::size_of::<Vec<u8>>() + environment_raw.len();
         drop(environment_raw);
         self.release_temporary(environment_raw_state);
         let parent_raw = self.buffer(pretty(&revised_ordered)?)?;
         let expression_raw = self.buffer(pretty(&expression_ordered)?)?;
         let mut claim_raw = canonical_ordered(&claim_ordered)?;
         claim_raw.push(b'\n');
-        let claim_raw=self.buffer(claim_raw)?;
+        let claim_raw = self.buffer(claim_raw)?;
         let mut delta_limits = self.limits;
         delta_limits.max_state_bytes = self
             .limits
@@ -2621,7 +3919,13 @@ impl NativeCompoundReader<'_> {
         if !delta.issues.is_empty() {
             return Err(bad("native bibliographic append/delta mechanics"));
         }
-        let delta_reads_state=delta.reads.iter().try_fold(0usize,|n,r|n.checked_add(crate::record_biblio_cut::predicate_state(r).ok()?)).ok_or(ItemRefusal::Budget)?;
+        let delta_reads_state = delta
+            .reads
+            .iter()
+            .try_fold(0usize, |n, r| {
+                n.checked_add(crate::record_biblio_cut::predicate_state(r).ok()?)
+            })
+            .ok_or(ItemRefusal::Budget)?;
         self.temporary(delta_reads_state)?;
         for read in delta.reads {
             self.release_temporary(crate::record_biblio_cut::predicate_state(&read)?);
@@ -2630,11 +3934,12 @@ impl NativeCompoundReader<'_> {
         if kind == CompoundKind::WorkExpression
             && (!text(expression, "language").is_ok_and(|v| !v.is_empty())
                 || !text(expression, "expression_role").is_ok_and(|v| !v.is_empty()))
-            || !kind.relation_attachment() && ["variant_labels", "external_identifiers"].iter().any(|k| {
-                !expression[*k]
-                    .as_array()
-                    .is_some_and(|a| a.iter().all(|v| v["status"] == "unverified"))
-            })
+            || !kind.relation_attachment()
+                && ["variant_labels", "external_identifiers"].iter().any(|k| {
+                    !expression[*k]
+                        .as_array()
+                        .is_some_and(|a| a.iter().all(|v| v["status"] == "unverified"))
+                })
         {
             return Err(bad("child language/role/unverified variants"));
         }
@@ -2661,7 +3966,12 @@ impl NativeCompoundReader<'_> {
         }
         let dependency_digests = std::mem::take(&mut local.dependency_digests);
         drop(local);
-        let dependencies_state=dependency_digests.keys().try_fold(0usize,|n,path|n.checked_add(std::mem::size_of::<(String,Digest256)>()+path.len())).ok_or(ItemRefusal::Budget)?;
+        let dependencies_state = dependency_digests
+            .keys()
+            .try_fold(0usize, |n, path| {
+                n.checked_add(std::mem::size_of::<(String, Digest256)>() + path.len())
+            })
+            .ok_or(ItemRefusal::Budget)?;
         self.temporary(dependencies_state)?;
         for (path, sha) in dependency_digests {
             let relative = RelativePath::parse(&path).map_err(|_| bad("Claim contract path"))?;
@@ -2676,14 +3986,20 @@ impl NativeCompoundReader<'_> {
                 usize::try_from(size).map_err(|_| ItemRefusal::Budget)?,
                 self.limits.max_total_bytes,
             )?;
-            self.release_temporary(std::mem::size_of::<(String,Digest256)>()+path.len());
-            self.record_read(PredicateRead::ExactPath {path,digest:sha.to_prefixed()})?;
+            self.release_temporary(std::mem::size_of::<(String, Digest256)>() + path.len());
+            self.record_read(PredicateRead::ExactPath {
+                path,
+                digest: sha.to_prefixed(),
+            })?;
         }
         // The constructor's decoded registries/routes have now been dropped.
         // Acquire the remainder before allocating any generated forms,
         // Item companions, provenance event or whole output maps.
         let form_name = kind.parent_forms();
-        let prior_forms = before.get(form_name).map(|v| self.ordered_value(v)).transpose()?;
+        let prior_forms = before
+            .get(form_name)
+            .map(|v| self.ordered_value(v))
+            .transpose()?;
         let principal = text(authority, "principal_id")?;
         let (parent_forms, parent_refs) = forms(
             &revised_ordered,
@@ -2691,31 +4007,50 @@ impl NativeCompoundReader<'_> {
             &request["forms"],
             principal,
             false,
-            self.limits.max_state_bytes.checked_sub(self.state).ok_or(ItemRefusal::Budget)?,
+            self.limits
+                .max_state_bytes
+                .checked_sub(self.state)
+                .ok_or(ItemRefusal::Budget)?,
         )?;
-        for value in [&parent_forms,&parent_refs] {self.temporary(crate::record_biblio_cut::ordered_state(value)?)?;}
-        let (expression_forms, expression_refs) = if kind.relation_attachment() {(JsonValue::Null,JsonValue::Null)}else{forms(
-            &expression_ordered,
-            None,
-            &request[kind.child_form_request()],
-            principal,
-            false,
-            self.limits.max_state_bytes.checked_sub(self.state).ok_or(ItemRefusal::Budget)?,
-        )?
+        for value in [&parent_forms, &parent_refs] {
+            self.temporary(crate::record_biblio_cut::ordered_state(value)?)?;
+        }
+        let (expression_forms, expression_refs) = if kind.relation_attachment() {
+            (JsonValue::Null, JsonValue::Null)
+        } else {
+            forms(
+                &expression_ordered,
+                None,
+                &request[kind.child_form_request()],
+                principal,
+                false,
+                self.limits
+                    .max_state_bytes
+                    .checked_sub(self.state)
+                    .ok_or(ItemRefusal::Budget)?,
+            )?
         };
-        for value in [&expression_forms,&expression_refs] {self.temporary(crate::record_biblio_cut::ordered_state(value)?)?;}
+        for value in [&expression_forms, &expression_refs] {
+            self.temporary(crate::record_biblio_cut::ordered_state(value)?)?;
+        }
         let (claim_forms, claim_refs) = forms(
             &claim_ordered,
             None,
             &request["claim_forms"],
             principal,
             true,
-            self.limits.max_state_bytes.checked_sub(self.state).ok_or(ItemRefusal::Budget)?,
+            self.limits
+                .max_state_bytes
+                .checked_sub(self.state)
+                .ok_or(ItemRefusal::Budget)?,
         )?;
-        for value in [&claim_forms,&claim_refs] {
+        for value in [&claim_forms, &claim_refs] {
             self.temporary(crate::record_biblio_cut::ordered_state(value)?)?;
         }
-        let id = transaction_id_with_digest(&request, kind,&request_observation.0,&mut |value|self.canonical_observation(value))?;
+        let id =
+            transaction_id_with_digest(&request, kind, &request_observation.0, &mut |value| {
+                self.canonical_observation(value)
+            })?;
         if id != tx.manifest["transaction_id"] {
             return Err(bad("compound transaction request identity"));
         }
@@ -2766,23 +4101,45 @@ impl NativeCompoundReader<'_> {
                 ]),
             ),
         ]);
-        self.temporary(crate::record_biblio_cut::ordered_state(&parent_receipt_ordered)?)?;
-        let parent_receipt_raw=self.buffer(canonical_ordered(&parent_receipt_ordered)?)?;
+        self.temporary(crate::record_biblio_cut::ordered_state(
+            &parent_receipt_ordered,
+        )?)?;
+        let parent_receipt_raw = self.buffer(canonical_ordered(&parent_receipt_ordered)?)?;
         let parent_receipt = self.decoded(&parent_receipt_raw)?;
-        parent_receipt_shape_with(&parent_receipt, kind,&mut |value|self.canonical_observation(value))?;
-        let (mut receipts,mut receipt_array_state)=match before.get(HISTORY) {
-            Some(raw)=>{
-                let prior=self.ordered_value(raw)?;
-                let prior_state=crate::record_biblio_cut::ordered_state(&prior)?;
-                let rows=prior.object_get("receipts").and_then(JsonValue::as_array).ok_or_else(||bad("ordered receipt chain"))?;
-                let cost=rows.iter().try_fold(std::mem::size_of::<Vec<JsonValue>>(),|n,row|n.checked_add(crate::record_biblio_cut::ordered_state(row).ok()?)).ok_or(ItemRefusal::Budget)?;
-                self.temporary(cost)?;let rows=rows.to_vec();
-                drop(prior);self.release_temporary(prior_state);(rows,cost)
-            },
-            None=>{let cost=std::mem::size_of::<Vec<JsonValue>>();self.temporary(cost)?;(vec![],cost)},
+        parent_receipt_shape_with(&parent_receipt, kind, &mut |value| {
+            self.canonical_observation(value)
+        })?;
+        let (mut receipts, mut receipt_array_state) = match before.get(HISTORY) {
+            Some(raw) => {
+                let prior = self.ordered_value(raw)?;
+                let prior_state = crate::record_biblio_cut::ordered_state(&prior)?;
+                let rows = prior
+                    .object_get("receipts")
+                    .and_then(JsonValue::as_array)
+                    .ok_or_else(|| bad("ordered receipt chain"))?;
+                let cost = rows
+                    .iter()
+                    .try_fold(std::mem::size_of::<Vec<JsonValue>>(), |n, row| {
+                        n.checked_add(crate::record_biblio_cut::ordered_state(row).ok()?)
+                    })
+                    .ok_or(ItemRefusal::Budget)?;
+                self.temporary(cost)?;
+                let rows = rows.to_vec();
+                drop(prior);
+                self.release_temporary(prior_state);
+                (rows, cost)
+            }
+            None => {
+                let cost = std::mem::size_of::<Vec<JsonValue>>();
+                self.temporary(cost)?;
+                (vec![], cost)
+            }
         };
-        let new_receipt_state=crate::record_biblio_cut::ordered_state(&parent_receipt_ordered)?;
-        self.temporary(new_receipt_state)?;receipt_array_state=receipt_array_state.checked_add(new_receipt_state).ok_or(ItemRefusal::Budget)?;
+        let new_receipt_state = crate::record_biblio_cut::ordered_state(&parent_receipt_ordered)?;
+        self.temporary(new_receipt_state)?;
+        receipt_array_state = receipt_array_state
+            .checked_add(new_receipt_state)
+            .ok_or(ItemRefusal::Budget)?;
         receipts.push(parent_receipt_ordered.clone());
         // Maintained _compose creates this outer dict afresh in fixed order;
         // retained receipt object order, but not prior outer order, survives.
@@ -2807,19 +4164,33 @@ impl NativeCompoundReader<'_> {
             (claim_form_name, self.buffer(pretty(&claim_forms)?)?),
         ];
         if !kind.relation_attachment() {
-            child_files.insert(0,(kind.child_file().into(),expression_raw));
-            child_files.insert(1,(kind.child_forms().into(),self.buffer(pretty(&expression_forms)?)?));
-        }else{let cost=std::mem::size_of::<Vec<u8>>()+expression_raw.len();drop(expression_raw);self.release_temporary(cost);}
-        self.temporary(rows_state(&parent_files,false)?)?;
-        self.temporary(rows_state(&child_files,false)?)?;
+            child_files.insert(0, (kind.child_file().into(), expression_raw));
+            child_files.insert(
+                1,
+                (
+                    kind.child_forms().into(),
+                    self.buffer(pretty(&expression_forms)?)?,
+                ),
+            );
+        } else {
+            let cost = std::mem::size_of::<Vec<u8>>() + expression_raw.len();
+            drop(expression_raw);
+            self.release_temporary(cost);
+        }
+        self.temporary(rows_state(&parent_files, false)?)?;
+        self.temporary(rows_state(&child_files, false)?)?;
         if kind == CompoundKind::EditionItem {
             let byte_receipt_raw = self.buffer(after("item-deposit-receipt.json")?)?;
             let byte_receipt = self.decoded(&byte_receipt_raw)?;
-            let inventory_raw=self.buffer(after("resource-inventory.json")?)?;
+            let inventory_raw = self.buffer(after("resource-inventory.json")?)?;
             let inventory = self.decoded(&inventory_raw)?;
-            let mut companion_limits=self.limits;
-            companion_limits.max_state_bytes=self.limits.max_state_bytes.checked_sub(self.state).ok_or(ItemRefusal::Budget)?;
-            let companions=item_companions(
+            let mut companion_limits = self.limits;
+            companion_limits.max_state_bytes = self
+                .limits
+                .max_state_bytes
+                .checked_sub(self.state)
+                .ok_or(ItemRefusal::Budget)?;
+            let companions = item_companions(
                 scope,
                 &request,
                 &byte_receipt,
@@ -2828,7 +4199,7 @@ impl NativeCompoundReader<'_> {
                 companion_limits,
                 self.cancelled,
             )?;
-            self.temporary(rows_state(&companions,true)?)?;
+            self.temporary(rows_state(&companions, true)?)?;
             child_files.extend(companions);
             child_files.push((
                 "item-deposit-receipt.json".into(),
@@ -2854,15 +4225,18 @@ impl NativeCompoundReader<'_> {
             &environment,
             &authority["dependency_bindings"],
             recorded_at,
-            self.limits.max_state_bytes.checked_sub(self.state).ok_or(ItemRefusal::Budget)?,
+            self.limits
+                .max_state_bytes
+                .checked_sub(self.state)
+                .ok_or(ItemRefusal::Budget)?,
         )?;
-        let outputs_state=slice_rows_state(&outputs)?;
+        let outputs_state = slice_rows_state(&outputs)?;
         drop(outputs);
         self.release_temporary(outputs_state);
         self.temporary(crate::record_biblio_cut::decoded_state(&event)?)?;
         let mut event_raw = canonical(&event)?;
         event_raw.push(b'\n');
-        let event_raw=self.buffer(event_raw)?;
+        let event_raw = self.buffer(event_raw)?;
         if !schemas.check_reusing_scalar(
             &format!("{home}/source-create-provenance.jsonl"),
             &event_raw,
@@ -2962,19 +4336,51 @@ impl NativeCompoundReader<'_> {
             ("files", refs_ordered(&files)),
             ("grants_admission", JsonValue::Bool(false)),
         ];
-        let mut binding_state=0;
+        let mut binding_state = 0;
         if !kind.relation_attachment() {
-            let forms=receipt_fields.iter_mut().find(|(key,_)|*key=="forms").unwrap();
-            if let JsonValue::Object(ref mut fields)=forms.1 {fields.insert(1,(tos_foundation::JsonString::from_utf8(kind.child_kind()),expression_refs));}
-        }else{
-            let binding=self.attachment_endpoint_binding(scope,expression,&authority["dependency_bindings"],kind)?;
-            binding_state=crate::record_biblio_cut::ordered_state(&binding)?;
-            let claim_position=receipt_fields.iter().position(|(key,_)|*key=="claim").unwrap();
-            receipt_fields.insert(claim_position,(if kind==CompoundKind::CollectionWork {"work_source_binding"}else{"agent_source_binding"},binding));
+            let forms = receipt_fields
+                .iter_mut()
+                .find(|(key, _)| *key == "forms")
+                .unwrap();
+            if let JsonValue::Object(ref mut fields) = forms.1 {
+                fields.insert(
+                    1,
+                    (
+                        tos_foundation::JsonString::from_utf8(kind.child_kind()),
+                        expression_refs,
+                    ),
+                );
+            }
+        } else {
+            let binding = self.attachment_endpoint_binding(
+                scope,
+                expression,
+                &authority["dependency_bindings"],
+                kind,
+            )?;
+            binding_state = crate::record_biblio_cut::ordered_state(&binding)?;
+            let claim_position = receipt_fields
+                .iter()
+                .position(|(key, _)| *key == "claim")
+                .unwrap();
+            receipt_fields.insert(
+                claim_position,
+                (
+                    if kind == CompoundKind::CollectionWork {
+                        "work_source_binding"
+                    } else {
+                        "agent_source_binding"
+                    },
+                    binding,
+                ),
+            );
         }
-        let receipt_ordered=object(receipt_fields);
-        let rows_state=slice_rows_state(&files)?.checked_add(slice_rows_state(&before_refs)?).ok_or(ItemRefusal::Budget)?;
-        drop(files);drop(before_refs);
+        let receipt_ordered = object(receipt_fields);
+        let rows_state = slice_rows_state(&files)?
+            .checked_add(slice_rows_state(&before_refs)?)
+            .ok_or(ItemRefusal::Budget)?;
+        drop(files);
+        drop(before_refs);
         self.release_temporary(rows_state);
         // The binding moved into this receipt; transfer its existing charge,
         // rather than counting a second retained tree for the same value.
@@ -2993,11 +4399,36 @@ impl NativeCompoundReader<'_> {
         {
             return Err(ItemRefusal::Budget);
         }
-        let expected:BTreeMap<_,_>=parent_files.iter().map(|(name,raw)|(format!("{work_home}/{name}"),(before.get(name).map(Vec::as_slice),Some(raw.as_slice()))))
-            .chain(child_files.iter().map(|(name,raw)|(format!("{home}/{name}"),(None,Some(raw.as_slice()))))).collect();
-        let expected_state=expected.keys().try_fold(0usize,|sum,path|sum.checked_add(std::mem::size_of::<(String,(Option<&[u8]>,Option<&[u8]>))>()+path.len())).ok_or(ItemRefusal::Budget)?;
+        let expected: BTreeMap<_, _> = parent_files
+            .iter()
+            .map(|(name, raw)| {
+                (
+                    format!("{work_home}/{name}"),
+                    (before.get(name).map(Vec::as_slice), Some(raw.as_slice())),
+                )
+            })
+            .chain(
+                child_files
+                    .iter()
+                    .map(|(name, raw)| (format!("{home}/{name}"), (None, Some(raw.as_slice())))),
+            )
+            .collect();
+        let expected_state = expected
+            .keys()
+            .try_fold(0usize, |sum, path| {
+                sum.checked_add(
+                    std::mem::size_of::<(String, (Option<&[u8]>, Option<&[u8]>))>() + path.len(),
+                )
+            })
+            .ok_or(ItemRefusal::Budget)?;
         self.temporary(expected_state)?;
-        if tx.files.len()!=expected.len() || expected.iter().any(|(path,(before,after))|tx.files.get(path).is_none_or(|(old,new)|old.as_deref()!=*before || new.as_deref()!=*after)) {
+        if tx.files.len() != expected.len()
+            || expected.iter().any(|(path, (before, after))| {
+                tx.files
+                    .get(path)
+                    .is_none_or(|(old, new)| old.as_deref() != *before || new.as_deref() != *after)
+            })
+        {
             return Err(bad("exact whole retained before/after plan"));
         }
         drop(expected);
@@ -3024,7 +4455,7 @@ fn compound_event(
     environment: &Value,
     dependencies: &Value,
     recorded_at: &str,
-    available:usize,
+    available: usize,
 ) -> Result<Value, ItemRefusal> {
     let module = kind.module();
     let home = kind.publication_home(scope)?;
@@ -3074,10 +4505,33 @@ fn compound_event(
         .values()
         .try_fold(0usize, |sum, raw| sum.checked_add(raw.len()))
         .ok_or(ItemRefusal::Budget)?;
-    let mut scratch=request_raw.len().checked_add(environment_raw.len()).and_then(|n|n.checked_add(crate::record_biblio_cut::decoded_state(&env).ok()?)).ok_or(ItemRefusal::Budget)?;
-    scratch=scratch.checked_add(inputs.iter().try_fold(0usize,|n,v|n.checked_add(crate::record_biblio_cut::decoded_state(v).ok()?)).ok_or(ItemRefusal::Budget)?).ok_or(ItemRefusal::Budget)?;
-    scratch=scratch.checked_add(prior.keys().try_fold(0usize,|n,p|n.checked_add(std::mem::size_of::<(String,&Vec<u8>)>()+p.len())).ok_or(ItemRefusal::Budget)?).and_then(|n|n.checked_add(output.len()*std::mem::size_of::<(&String,&&[u8])>())).ok_or(ItemRefusal::Budget)?;
-    let result=json!({
+    let mut scratch = request_raw
+        .len()
+        .checked_add(environment_raw.len())
+        .and_then(|n| n.checked_add(crate::record_biblio_cut::decoded_state(&env).ok()?))
+        .ok_or(ItemRefusal::Budget)?;
+    scratch = scratch
+        .checked_add(
+            inputs
+                .iter()
+                .try_fold(0usize, |n, v| {
+                    n.checked_add(crate::record_biblio_cut::decoded_state(v).ok()?)
+                })
+                .ok_or(ItemRefusal::Budget)?,
+        )
+        .ok_or(ItemRefusal::Budget)?;
+    scratch = scratch
+        .checked_add(
+            prior
+                .keys()
+                .try_fold(0usize, |n, p| {
+                    n.checked_add(std::mem::size_of::<(String, &Vec<u8>)>() + p.len())
+                })
+                .ok_or(ItemRefusal::Budget)?,
+        )
+        .and_then(|n| n.checked_add(output.len() * std::mem::size_of::<(&String, &&[u8])>()))
+        .ok_or(ItemRefusal::Budget)?;
+    let result = json!({
         "$schema":"https://tree-of-sophia.local/ToS/contracts/provenance-event-v2.schema.json","schema_version":"tos_provenance_event_v2","event_id":scope["provenance_event_id"],"event_version":1,"supersedes_event_ref":null,
         "record_binding":{"manifest_ref":format!("{home}/{}",kind.receipt_file()),"digest_algorithm":"sha256","digest_scope":"exact_event_record_bytes"},
         "activity":{"event_type":"annotation","started_at":recorded_at,"ended_at":recorded_at,"status":"completed_with_warnings","terminal_reason":null,"exit_code":0,"warnings":["Captured prepared metadata buffers; the committed transaction is a separate verification.",if kind==CompoundKind::ExpressionResponsibility {"A qualified attribution is supplied by the caller; serialization and URL presence do not prove source reading or its truth."}else if kind==CompoundKind::CollectionWork {"A qualified membership account is supplied by the caller; serialization and URL presence do not prove source reading or its truth."}else{"Observed denotes the declared record link, not accepted bibliographic or textual truth."}]},
@@ -3093,8 +4547,16 @@ fn compound_event(
         "reproducibility":{"classification":"partially_specified","known_gaps":["Upstream research, source reading and model invocations are outside this operation.","Runtime metadata is captured, not a complete archived execution environment."],"replay_scope":"Exact retained request, metadata and source-copy buffer construction; not bibliographic truth."},
         "authority_boundary":{"validator_role":"mechanics_and_closure_only_not_truth","claims_not_established":["execution_truth","content_truth","source_fidelity","translation_quality","semantic_correctness","rights_clearance","human_review","publication_authority","canon_authority"]}
     });
-    let used=scratch.checked_add(crate::record_biblio_cut::decoded_state(&result)?).ok_or(ItemRefusal::Budget)?;
-    if used>available {return Err(ItemRefusal::BudgetCheck{check:"compound provenance logical workspace",used:Some(used as u64),limit:Some(available as u64)});}
+    let used = scratch
+        .checked_add(crate::record_biblio_cut::decoded_state(&result)?)
+        .ok_or(ItemRefusal::Budget)?;
+    if used > available {
+        return Err(ItemRefusal::BudgetCheck {
+            check: "compound provenance logical workspace",
+            used: Some(used as u64),
+            limit: Some(available as u64),
+        });
+    }
     Ok(result)
 }
 
@@ -3163,7 +4625,8 @@ impl NativeCompoundReader<'_> {
             || !kind.relation_attachment() && claim != &reconstructed.request["claim"]
             || receipt != reconstructed.receipt
             || receipt_raw != reconstructed.child[kind.receipt_file()]
-            || !kind.relation_attachment() && self.required(path, MAX_FILE)? != reconstructed.child["source-claims.jsonl"]
+            || !kind.relation_attachment()
+                && self.required(path, MAX_FILE)? != reconstructed.child["source-claims.jsonl"]
         {
             return Err(bad("exact current compound Claim/receipt bytes"));
         }
@@ -3206,13 +4669,29 @@ impl NativeCompoundReader<'_> {
             return Err(bad("compound transition missing in current parent lineage"));
         }
         if kind.relation_attachment() {
-            let initial=self.attachment_claim_initial(path,claim)?;
-            if initial!=reconstructed.child["source-claims.jsonl"] {return Err(bad("membership exact committed initial stream"));}
-            for key in ["statement","statement_language","statement_script",if kind==CompoundKind::CollectionWork {"membership_scope"}else{"attribution_scope"}] {
-                let value=text(&claim["qualifiers"],key)?;
-                if tos_foundation::python_strip_unicode16_v1(value,MAX_SIDE).map_err(|_|ItemRefusal::Budget)?.is_empty() {return Err(bad("membership current qualified wording"));}
+            let initial = self.attachment_claim_initial(path, claim)?;
+            if initial != reconstructed.child["source-claims.jsonl"] {
+                return Err(bad("membership exact committed initial stream"));
             }
-            check(self.limits.deadline,self.cancelled)?;
+            for key in [
+                "statement",
+                "statement_language",
+                "statement_script",
+                if kind == CompoundKind::CollectionWork {
+                    "membership_scope"
+                } else {
+                    "attribution_scope"
+                },
+            ] {
+                let value = text(&claim["qualifiers"], key)?;
+                if tos_foundation::python_strip_unicode16_v1(value, MAX_SIDE)
+                    .map_err(|_| ItemRefusal::Budget)?
+                    .is_empty()
+                {
+                    return Err(bad("membership current qualified wording"));
+                }
+            }
+            check(self.limits.deadline, self.cancelled)?;
             return Ok(observation);
         }
         let child_files = self.selected(expression)?;
@@ -3230,7 +4709,7 @@ impl NativeCompoundReader<'_> {
         let mut initial = child_files[kind.child_file()] == reconstructed.child[kind.child_file()];
         for receipt in array(&child_history, "receipts")? {
             check(self.limits.deadline, self.cancelled)?;
-            let before_archive=self.temporary_state;
+            let before_archive = self.temporary_state;
             let archive = self.archive(expression, text(scope, kind.child_key())?, receipt)?;
             if receipt["previous_source"] == reconstructed.receipt[kind.child_kind()] {
                 if archive[kind.child_file()] != reconstructed.child[kind.child_file()] {
