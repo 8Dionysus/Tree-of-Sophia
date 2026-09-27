@@ -186,21 +186,24 @@ fn actual_selected_capture_repository_plan_render_matches_maintained_python() {
     let repository = super::validation_cut_cases::repository()
         .canonicalize()
         .unwrap();
-    let mut descriptor: Value = serde_json::from_slice(
-        &fs::read(
-            repository.join("rust/crates/tos-compiler/tests/fixtures/query-vocabulary.v1.json"),
-        )
-        .unwrap(),
+    // Preserve the complete maintained descriptor: its dossier identity binds
+    // another registered source even for this repository-only producer case.
+    let descriptor_bytes = fs::read(
+        repository.join("rust/crates/tos-compiler/tests/fixtures/query-vocabulary.v1.json"),
     )
     .unwrap();
-    descriptor["sources"]
-        .as_array_mut()
-        .unwrap()
-        .retain(|source| source["adapter_profile"] == "repository-topology-v1");
-    let descriptor_bytes = serde_json::to_vec(&descriptor).unwrap();
     let vocabulary = QueryVocabulary::parse(
         &descriptor_bytes,
-        &["repository-topology-v1", "indexed-node-edge-v1"],
+        &[
+            "philosophy-node-edge-v1",
+            "canon-node-relation-v1",
+            "candidate-relation-v1",
+            "source-navigation-node-edge-v1",
+            "reified-bibliographic-claims-v1",
+            "declared-identity-and-source-ref-joins-v1",
+            "repository-topology-v1",
+            "indexed-node-edge-v1",
+        ],
     )
     .unwrap();
     let root_raw=serde_json::to_vec(&json!({"node_id":"fixture-source-root","node_type":"repository-root","label":"Selected fixture repository","source_ref":"ToS/source_home.manifest.json"})).unwrap();
@@ -315,7 +318,12 @@ print(json.dumps(result,ensure_ascii=False,sort_keys=True,separators=(',',':')))
         String::from_utf8_lossy(&output.stderr)
     );
     let expected: Value = serde_json::from_slice(&output.stdout).unwrap();
-    let source = &vocabulary.sources[0].source_graph_id;
+    let source = &vocabulary
+        .sources
+        .iter()
+        .find(|source| source.adapter_profile == "repository-topology-v1")
+        .unwrap()
+        .source_graph_id;
     let mut orders = Vec::new();
     for collection in ["branches", "manifests", "resources"] {
         let mut actual = Vec::new();
