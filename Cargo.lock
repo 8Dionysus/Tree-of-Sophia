@@ -1396,9 +1396,11 @@ version = "0.0.0"
 dependencies = [
  "serde_json",
  "tempfile",
+ "tos-access",
  "tos-command",
  "tos-compiler",
  "tos-foundation",
+ "tos-query",
  "tos-segment-store",
  "tos-source-store",
  "tos-validation",
