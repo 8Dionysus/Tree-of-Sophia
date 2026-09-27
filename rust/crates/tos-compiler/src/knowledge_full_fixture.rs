@@ -73,6 +73,9 @@ impl FullKnowledgeFixture {
     pub fn relation_registry_bytes(&self) -> &[u8] {
         &self.relation_registry_bytes
     }
+    pub fn registry_originals(&self) -> [&[u8]; 2] {
+        [&self.entity_registry_bytes, &self.relation_registry_bytes]
+    }
     pub fn open(&self) -> Result<VerifiedKnowledgeModel<'_>> {
         open_selected_knowledge_model(
             &self.path,
@@ -445,14 +448,29 @@ fn finish_fixture(
 /// Claim bytes and a bounded navigation owner carrier for its exact subject.
 /// No pre-normalized Claim, time envelope or final row is a test input.
 pub fn build_native_fixture() -> FullKnowledgeFixture {
-    build_native_fixture_inner(false)
+    build_native_fixture_inner(false, None)
 }
 /// Existing native raw fixture with one explicitly synthetic rights declaration
 /// retained through normal assembler/seal/cold-open. This grants no authority.
 pub fn build_native_fixture_with_navigation_original() -> FullKnowledgeFixture {
-    build_native_fixture_inner(true)
+    build_native_fixture_inner(true, None)
 }
-fn build_native_fixture_inner(retain_original: bool) -> FullKnowledgeFixture {
+/// Caller supplies complete original owner fixture packets. They traverse the
+/// same raw ingestion, native normalization, catalog, seal and cold-open path.
+/// Header counts and exact packet identities are verified by the normal producer.
+pub fn build_native_fixture_with_navigation_inputs(
+    header: &[u8],
+    nodes: &[&[u8]],
+    edges: &[&[u8]],
+    rights: &[&[u8]],
+) -> FullKnowledgeFixture {
+    build_native_fixture_inner(true, Some((header, nodes, edges, rights)))
+}
+type NavigationFixtureInputs<'a> = (&'a [u8], &'a [&'a [u8]], &'a [&'a [u8]], &'a [&'a [u8]]);
+fn build_native_fixture_inner(
+    retain_original: bool,
+    originals: Option<NavigationFixtureInputs<'_>>,
+) -> FullKnowledgeFixture {
     use crate::knowledge_source_claims::ClaimNormalizeLimits;
     let entity_bytes =
         include_bytes!("../../../../ToS/doctrine/semantic-interchange/entity-types.v1.json");
@@ -530,6 +548,27 @@ fn build_native_fixture_inner(retain_original: bool) -> FullKnowledgeFixture {
         "native-claim-subject".into(),
         serde_json::to_vec(&nav_edge).unwrap(),
     ));
+    if let Some((_, nodes, edges, _)) = originals {
+        let source = vocabulary
+            .sources
+            .iter()
+            .find(|s| s.adapter_profile == "source-navigation-node-edge-v1")
+            .unwrap();
+        rows.retain(|row| row.0 != source.source_graph_id);
+        for (collection, id_field, packets) in
+            [("nodes", "node_id", nodes), ("edges", "edge_id", edges)]
+        {
+            for raw in packets {
+                let value: Value = serde_json::from_slice(raw).unwrap();
+                rows.push((
+                    source.source_graph_id.clone(),
+                    collection.into(),
+                    value[id_field].as_str().unwrap().into(),
+                    raw.to_vec(),
+                ));
+            }
+        }
+    }
     let mut collections = Vec::new();
     for source in &vocabulary.sources {
         let names: &[&str] = if source.adapter_profile == "reified-bibliographic-claims-v1" {
@@ -595,7 +634,10 @@ fn build_native_fixture_inner(retain_original: bool) -> FullKnowledgeFixture {
     }
     let header = json!({"schema_version":"tos_source_navigation_v1","authority_boundary":"derived fixture, source semantics and admission retained upstream",
         "counts":{"nodes":1,"edges":1,"rights":u64::from(retain_original)}});
-    let raw_json = serde_json::to_vec(&header).unwrap();
+    let raw_json = originals.map_or_else(
+        || serde_json::to_vec(&header).unwrap(),
+        |(header, _, _, _)| header.to_vec(),
+    );
     let navigation_header = NavigationHeaderClaim {
         expected_sha256: Digest256::of_bytes(&raw_json).to_hex(),
         raw_json,
@@ -700,14 +742,15 @@ fn build_native_fixture_inner(retain_original: bool) -> FullKnowledgeFixture {
     };
     let mut additional = NativeFamilyInputs::bounded_from(native_limits);
     let original_right = br#"{ "rights_id":"fixture-original-declaration", "visibility":"public_metadata_only", "assessment_status":"unknown", "restrictions":[] }"#;
-    let original_rights: [&[u8]; 1] = [original_right];
-    let original_root = navigation_original_rights_root(&original_rights);
+    let default_rights: [&[u8]; 1] = [original_right];
+    let original_rights = originals.map_or(default_rights.as_slice(), |(_, _, _, rights)| rights);
+    let original_root = navigation_original_rights_root(original_rights);
     if retain_original {
         additional.navigation_original = Some(NavigationOriginalInput {
-            rights: &original_rights,
+            rights: original_rights,
             expected_rights_root_sha256: &original_root,
             limits: NavigationOriginalLimits {
-                max_rows: 4,
+                max_rows: 200,
                 max_row_bytes: 65536,
                 max_total_bytes: 262144,
             },

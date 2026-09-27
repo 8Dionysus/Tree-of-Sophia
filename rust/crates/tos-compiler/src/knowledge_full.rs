@@ -229,6 +229,47 @@ mod tests {
                 crate::navigation_original_rights_root(&[&second.rows[0].1]),
                 receipt.rights_root_sha256
             );
+            // Caller hook remains installed across both original accessors.
+            let calls = std::sync::Arc::new(std::sync::atomic::AtomicU64::new(0));
+            let counter = calls.clone();
+            model.connection().progress_handler(
+                1,
+                Some(move || {
+                    counter.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                    false
+                }),
+            );
+            let owned = model
+                .navigation_original_page_under_caller_budget(None, 1, 65536, 65536)
+                .unwrap();
+            assert_eq!(owned.vm_steps, 0);
+            let before = calls.load(std::sync::atomic::Ordering::Relaxed);
+            let mut members = Vec::new();
+            for collection in ["edges", "nodes"] {
+                let page = model
+                    .navigation_original_members_under_caller_budget(collection, None, 2, 16384)
+                    .unwrap();
+                assert_eq!(page.rows.len(), 1);
+                assert_eq!(page.vm_steps, 0);
+                assert!(page.next_id.is_none());
+                members.extend(page.rows);
+            }
+            assert!(calls.load(std::sync::atomic::Ordering::Relaxed) > before);
+            model.connection().progress_handler(0, None::<fn() -> bool>);
+            assert_eq!(members.len() as u64, receipt.nodes + receipt.edges);
+            assert_eq!(
+                members
+                    .iter()
+                    .map(|m| (m.collection.len() + m.id.len() + 192 + 8) as u64)
+                    .sum::<u64>(),
+                receipt.member_index_bytes
+            );
+            for member in &members {
+                assert_eq!(member.raw_sha256.len(), 64);
+                assert_eq!(member.semantic_sha256.len(), 64);
+                assert_eq!(member.canonical_original_sha256.len(), 64);
+                assert!(member.raw_bytes > 0);
+            }
             let mut fork = model.fork_reader_with_vm_budget(100_000).unwrap();
             assert_eq!(
                 fork.navigation_original_receipt()
@@ -256,6 +297,17 @@ mod tests {
         }
         // Deliberately rehash the synthetic expected carrier after tampering:
         // refusal must come from the inner component, not only whole-file SHA.
+        let db = rusqlite::Connection::open(&fixture.path).unwrap();
+        let (collection,id,canonical):(String,String,Vec<u8>)=db.query_row("SELECT collection,id,canonical_original_sha256 FROM navigation_original_members ORDER BY collection,id LIMIT 1",[],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).unwrap();
+        db.execute("UPDATE navigation_original_members SET canonical_original_sha256=?1 WHERE collection=?2 AND id=?3",rusqlite::params![vec![0u8;32],collection,id]).unwrap();
+        drop(db);
+        let raw = std::fs::read(&fixture.path).unwrap();
+        fixture.expectation.model_sha256 = Digest256::of_bytes(&raw).to_hex();
+        fixture.expectation.model_size_bytes = raw.len() as u64;
+        assert!(fixture.open().is_err());
+        let db = rusqlite::Connection::open(&fixture.path).unwrap();
+        db.execute("UPDATE navigation_original_members SET canonical_original_sha256=?1 WHERE collection=?2 AND id=?3",rusqlite::params![canonical,collection,id]).unwrap();
+        drop(db);
         let changed = br#"{"rights_id":"fixture-original-declaration","visibility":"private"}"#;
         let db = rusqlite::Connection::open(&fixture.path).unwrap();
         db.execute("UPDATE navigation_original_rows SET packet_len=?1,packet_sha256=?2,packet=?3 WHERE ordinal=0",rusqlite::params![changed.len() as i64,Digest256::of_bytes(changed).as_bytes().as_slice(),changed.as_slice()]).unwrap();

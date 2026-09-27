@@ -968,6 +968,7 @@ pub(crate) fn selected_table_closure(db: &Connection) -> Result<()> {
     let navigation_tables = [
         crate::knowledge_navigation_original::META_TABLE,
         crate::knowledge_navigation_original::ROW_TABLE,
+        crate::knowledge_navigation_original::MEMBER_TABLE,
     ];
     let mut statement = db.prepare(
         "SELECT CASE WHEN typeof(name)='text' AND length(CAST(name AS BLOB))<=128 THEN name ELSE NULL END
@@ -987,7 +988,7 @@ pub(crate) fn selected_table_closure(db: &Connection) -> Result<()> {
             return Err(Error::Invalid("unexpected selected knowledge table"));
         }
     }
-    if seen.len() != TABLES.len() + if navigation_original { 2 } else { 0 } {
+    if seen.len() != TABLES.len() + if navigation_original { 3 } else { 0 } {
         return Err(Error::Invalid("missing selected knowledge table"));
     }
     const EXPLICIT_INDEXES: &[(&str, &str)] = &[

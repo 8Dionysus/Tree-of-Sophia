@@ -156,6 +156,46 @@ impl<'a> VerifiedKnowledgeModel<'a> {
             page
         })
     }
+    /// Preserve the caller's existing aggregate VM/cancellation/authority hook.
+    /// Caller must install and charge that hook for this same selected lease.
+    pub fn navigation_original_page_under_caller_budget(
+        &self,
+        after: Option<i64>,
+        max_rows: usize,
+        max_row_bytes: usize,
+        max_page_bytes: u64,
+    ) -> Result<crate::NavigationOriginalPage> {
+        self.navigation_original_receipt()?;
+        let result = crate::knowledge_navigation_original::page(
+            &self.connection,
+            after,
+            max_rows,
+            max_row_bytes,
+            max_page_bytes,
+        );
+        self.check_pin()?;
+        result
+    }
+    /// Original membership index; never infer membership from payload key names.
+    /// This accessor preserves the caller's SQLite hook and reports no own VM charge.
+    pub fn navigation_original_members_under_caller_budget(
+        &self,
+        collection: &str,
+        after: Option<&str>,
+        max_rows: usize,
+        max_page_bytes: u64,
+    ) -> Result<crate::NavigationOriginalMemberPage> {
+        self.navigation_original_receipt()?;
+        let result = crate::knowledge_navigation_original::member_page(
+            &self.connection,
+            collection,
+            after,
+            max_rows,
+            max_page_bytes,
+        );
+        self.check_pin()?;
+        result
+    }
     pub fn selection(&self) -> &KnowledgeSelectedExpectation {
         &self.selection
     }
@@ -1122,6 +1162,7 @@ fn verify_selected_table_allowlist(db: &Connection) -> Result<()> {
         expected.extend([
             crate::knowledge_navigation_original::META_TABLE,
             crate::knowledge_navigation_original::ROW_TABLE,
+            crate::knowledge_navigation_original::MEMBER_TABLE,
         ]);
     }
     expected.sort_unstable();
@@ -2010,6 +2051,9 @@ mod tests {
         assert!(verify_selected_table_allowlist(&db).is_err());
         db.execute_batch(crate::knowledge_navigation_original::ROW_DDL)
             .unwrap();
+        assert!(verify_selected_table_allowlist(&db).is_err());
+        db.execute_batch(crate::knowledge_navigation_original::MEMBER_DDL)
+            .unwrap();
         assert!(verify_selected_table_allowlist(&db).is_ok());
         crate::knowledge_navigation_original::verify_ddl(&db).unwrap();
         db.execute("DROP TABLE navigation_original_rows", [])
@@ -2018,6 +2062,8 @@ mod tests {
             .unwrap();
         assert!(crate::knowledge_navigation_original::verify_ddl(&db).is_err());
         db.execute("DROP TABLE navigation_original_rows", [])
+            .unwrap();
+        db.execute("DROP TABLE navigation_original_members", [])
             .unwrap();
         db.execute("DROP TABLE navigation_original_meta", [])
             .unwrap();
