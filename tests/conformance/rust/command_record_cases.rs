@@ -69,7 +69,7 @@ try:
     response=commands.run_local_command(owner,preview)
     authored={p.relative_to(root).as_posix():p.read_bytes().hex() for p in sorted((root/'ToS').rglob('*')) if p.is_file() and p.relative_to(root).as_posix()!=f.native.content_ref and not {'payload','local-content'}.intersection(p.relative_to(root).parts)}
     head=root/'assessment-journal'/__import__('hashlib').sha256(f.identifier.encode()).hexdigest()/'head'
-    print(json.dumps({'owner':str(owner),'assessment_owner':str(f.owner),'config_raw':owner.read_bytes().hex(),'request':request,'preview_request':preview,'preview':response,'outputs':{name:raw.hex() for name,raw in outputs.items()},'authored':authored,'content':f.native.content_ref,'scope_source':f.occurrence_path,'head':str(head),'original_payload':f.native.original_ref},ensure_ascii=False,allow_nan=False))
+    print(json.dumps({'owner':str(owner),'assessment_owner':str(f.owner),'config_raw':owner.read_bytes().hex(),'request':request,'preview_request':preview,'preview_raw':commands._canonical(response).hex(),'outputs':{name:raw.hex() for name,raw in outputs.items()},'authored':authored,'content':f.native.content_ref,'scope_source':f.occurrence_path,'head':str(head),'original_payload':f.native.original_ref},ensure_ascii=False,allow_nan=False))
 finally:
     test.doCleanups()
 "#;
@@ -182,7 +182,7 @@ finally:
     let preview = prepared.preview().unwrap();
     assert_eq!(
         bytes(&preview),
-        canonical_json(&oracle["preview"]),
+        decode_hex(required(&oracle, "preview_raw")),
         "entire maintained Sign preparation including current full basis"
     );
     for (name, raw) in prepared.files() {
