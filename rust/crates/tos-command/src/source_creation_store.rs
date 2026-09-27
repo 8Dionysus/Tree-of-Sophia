@@ -689,29 +689,77 @@ impl CreationFilesystem {
                 "Claim revised package file budget",
             ));
         }
+        let aggregate_limit = if revised {
+            8_388_608u64
+        } else {
+            MAX_BYTES as u64
+        };
+        let mut inspected = BTreeMap::new();
+        let mut declared_total = 0u64;
+        for name in &names {
+            active(deadline, cancelled)?;
+            let file = tos_fd_open::open_regular_at(&directory, Path::new(name))
+                .map_err(|_| SourceCommandError::Denied("Claim retained member unsafe"))?;
+            let metadata = owned(&file, self.uid, false)?;
+            let lock = name.ends_with(".writer.lock");
+            let expected_mode = if lock { 0o600 } else { 0o644 };
+            if metadata.mode() & 0o777 != expected_mode || lock && metadata.len() != 0 {
+                return Err(SourceCommandError::Conflict(
+                    "Claim retained member mode or operational lock contents differ",
+                ));
+            }
+            if metadata.len() > 8_388_608 {
+                return Err(SourceCommandError::Invalid(
+                    "Claim retained per-file byte budget",
+                ));
+            }
+            declared_total = declared_total
+                .checked_add(metadata.len())
+                .ok_or(SourceCommandError::Invalid("Claim retained byte overflow"))?;
+            if declared_total > aggregate_limit {
+                return Err(SourceCommandError::Invalid(if revised {
+                    "Claim revised package byte budget"
+                } else {
+                    "Claim native complete input byte budget"
+                }));
+            }
+            inspected.insert(name.clone(), stamp(&metadata));
+        }
         let mut files = BTreeMap::new();
-        let mut total = 0usize;
+        let mut total = 0u64;
         for name in names {
             let mut file = tos_fd_open::open_regular_at(&directory, Path::new(&name))
                 .map_err(|_| SourceCommandError::Denied("Claim retained member unsafe"))?;
-            let expected_mode = if name.ends_with(".writer.lock") {
-                0o600
-            } else {
-                0o644
-            };
-            if owned(&file, self.uid, false)?.mode() & 0o777 != expected_mode {
+            let lock = name.ends_with(".writer.lock");
+            let expected_mode = if lock { 0o600 } else { 0o644 };
+            let metadata = owned(&file, self.uid, false)?;
+            if metadata.mode() & 0o777 != expected_mode
+                || inspected.get(&name) != Some(&stamp(&metadata))
+            {
                 return Err(SourceCommandError::Conflict(
-                    "Claim retained member mode differs",
+                    "Claim retained member changed after metadata preflight",
                 ));
             }
-            let bytes = raw(&mut file, 8_388_608, deadline, cancelled)?;
-            total = total
-                .checked_add(bytes.len())
-                .ok_or(SourceCommandError::Invalid("Claim retained byte overflow"))?;
-            if revised && total > 8_388_608 {
-                return Err(SourceCommandError::Invalid(
-                    "Claim revised package byte budget",
+            let bytes = raw(
+                &mut file,
+                if lock { 1 } else { 8_388_608 },
+                deadline,
+                cancelled,
+            )?;
+            if lock && !bytes.is_empty() {
+                return Err(SourceCommandError::Conflict(
+                    "Claim operational lock contains data",
                 ));
+            }
+            total = total
+                .checked_add(bytes.len() as u64)
+                .ok_or(SourceCommandError::Invalid("Claim retained byte overflow"))?;
+            if total > aggregate_limit {
+                return Err(SourceCommandError::Invalid(if revised {
+                    "Claim revised package byte budget"
+                } else {
+                    "Claim native complete input byte budget"
+                }));
             }
             files.insert(name, bytes);
         }
