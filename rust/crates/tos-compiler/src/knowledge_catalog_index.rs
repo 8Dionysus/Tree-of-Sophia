@@ -293,7 +293,7 @@ fn materialize_inner(
         "tos_knowledge_catalog_v1",
         crate::managed_source::MANAGED_CATALOG_SCHEMA,
     ]
-    .contains(&string(&receipt.catalog, "schema")?.as_str())
+    .contains(&string(&receipt.catalog, "schema")?)
     {
         return Err(Error::Invalid("catalog index packet schema"));
     }
