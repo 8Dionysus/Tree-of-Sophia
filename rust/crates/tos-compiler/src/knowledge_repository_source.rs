@@ -556,14 +556,43 @@ pub fn render_repository_source_plan(
                 "repository source plan complete target recipe",
             ));
         }
-        for row in &plan.rows {
+        let (max_rows, max_bytes) = stage.input_batch_limits();
+        let mut next = 0;
+        while next < plan.rows.len() {
+            let mut rows = Vec::new();
+            let mut bytes = 0u64;
+            while next < plan.rows.len() && rows.len() < max_rows {
+                check(deadline, cancelled)?;
+                let row = &plan.rows[next];
+                let row_bytes = row.raw.len() as u64;
+                if row_bytes > max_bytes {
+                    if rows.is_empty() {
+                        stage.ingest_input(InputRow {
+                            source_graph: source,
+                            collection: &row.collection,
+                            id: &row.id,
+                            payload: &row.raw,
+                        })?;
+                        next += 1;
+                    }
+                    break;
+                }
+                if bytes + row_bytes > max_bytes {
+                    break;
+                }
+                bytes += row_bytes;
+                rows.push(InputRow {
+                    source_graph: source,
+                    collection: &row.collection,
+                    id: &row.id,
+                    payload: &row.raw,
+                });
+                next += 1;
+            }
+            if !rows.is_empty() {
+                stage.ingest_input_batch(&rows)?;
+            }
             check(deadline, cancelled)?;
-            stage.ingest_input(InputRow {
-                source_graph: source,
-                collection: &row.collection,
-                id: &row.id,
-                payload: &row.raw,
-            })?;
         }
         Ok(())
     })();

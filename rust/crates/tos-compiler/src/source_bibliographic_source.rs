@@ -605,13 +605,39 @@ pub fn render_source_bibliographic_plan(
             if raw.len() as u64 != member.size || Digest256::of_bytes(&raw) != member.sha {
                 return Err(Error::Invalid("cold catalog transfer exact bytes"));
             }
-            for collection in &member.collections {
-                target.ingest_input(InputRow {
-                    source_graph: CATALOG_SOURCE,
-                    collection,
-                    id: path,
-                    payload: &raw,
-                })?;
+            let (max_rows, max_bytes) = target.input_batch_limits();
+            let rows_per_chunk = if raw.is_empty() {
+                max_rows
+            } else {
+                max_rows.min((max_bytes / raw.len() as u64) as usize)
+            };
+            if rows_per_chunk == 0 {
+                for collection in &member.collections {
+                    check(l.deadline, validator.cancelled)?;
+                    target.ingest_input(InputRow {
+                        source_graph: CATALOG_SOURCE,
+                        collection,
+                        id: path,
+                        payload: &raw,
+                    })?;
+                }
+            } else {
+                for collections in member.collections.chunks(rows_per_chunk) {
+                    let rows = collections
+                        .iter()
+                        .map(|collection| {
+                            check(l.deadline, validator.cancelled)?;
+                            Ok(InputRow {
+                                source_graph: CATALOG_SOURCE,
+                                collection,
+                                id: path,
+                                payload: &raw,
+                            })
+                        })
+                        .collect::<Result<Vec<_>>>()?;
+                    target.ingest_input_batch(&rows)?;
+                    check(l.deadline, validator.cancelled)?;
+                }
             }
         }
         let receipt = catalog::prepare_source_witness_catalog(target, validator, l.catalog)?;

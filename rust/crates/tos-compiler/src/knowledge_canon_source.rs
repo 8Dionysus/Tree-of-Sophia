@@ -865,7 +865,7 @@ where
                 deadline,
                 cancelled,
                 &mut work.bytes,
-                |_, _, _| Ok(()),
+                |_, _| Ok(()),
             )?;
             collections.push(CanonSourceCollection {
                 source_graph: selected.source_graph_id.clone(),
@@ -1103,7 +1103,7 @@ fn visit_rows<F>(
     mut sink: F,
 ) -> Result<(u64, String)>
 where
-    F: FnMut(&mut KnowledgeStage<'_>, &str, &[u8]) -> Result<()>,
+    F: FnMut(&mut KnowledgeStage<'_>, &[(String, Vec<u8>, Vec<u8>)]) -> Result<()>,
 {
     let mut after: Option<String> = None;
     let mut count = 0u64;
@@ -1119,7 +1119,7 @@ where
         if batch.is_empty() {
             break;
         }
-        for (id, raw, sha) in batch {
+        for (id, raw, sha) in &batch {
             check(deadline, cancelled)?;
             if sha.as_slice() != Digest256::of_bytes(&raw).as_bytes() {
                 return Err(Error::Invalid("canon source disk row digest"));
@@ -1139,11 +1139,58 @@ where
             framed(&mut root, &id);
             root.update(&sha);
             charge_bytes(work, raw.len(), l)?;
-            sink(stage, &id, &raw)?;
-            after = Some(id);
         }
+        sink(stage, &batch)?;
+        after = batch.last().map(|(id, _, _)| id.clone());
     }
     Ok((count, root.finalize().to_hex()))
+}
+fn ingest_canon_page(
+    target: &mut KnowledgeStage<'_>,
+    collection: &CanonSourceCollection,
+    page: &[(String, Vec<u8>, Vec<u8>)],
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> Result<()> {
+    let (max_rows, max_bytes) = target.input_batch_limits();
+    let mut next = 0;
+    while next < page.len() {
+        let mut rows = Vec::new();
+        let mut bytes = 0u64;
+        while next < page.len() && rows.len() < max_rows {
+            check(deadline, cancelled)?;
+            let (id, raw, _) = &page[next];
+            let row_bytes = raw.len() as u64;
+            if row_bytes > max_bytes {
+                if rows.is_empty() {
+                    target.ingest_input(InputRow {
+                        source_graph: &collection.source_graph,
+                        collection: &collection.collection,
+                        id,
+                        payload: raw,
+                    })?;
+                    next += 1;
+                }
+                break;
+            }
+            if bytes + row_bytes > max_bytes {
+                break;
+            }
+            bytes += row_bytes;
+            rows.push(InputRow {
+                source_graph: &collection.source_graph,
+                collection: &collection.collection,
+                id,
+                payload: raw,
+            });
+            next += 1;
+        }
+        if !rows.is_empty() {
+            target.ingest_input_batch(&rows)?;
+        }
+        check(deadline, cancelled)?;
+    }
+    Ok(())
 }
 fn match_target(stage: &KnowledgeStage<'_>, receipt: &CanonSourceReceipt) -> Result<()> {
     for c in &receipt.collections {
@@ -1297,7 +1344,7 @@ pub fn render_canon_source_plan(
                 deadline,
                 cancelled,
                 &mut work,
-                |_, _, _| Ok(()),
+                |_, _| Ok(()),
             )?;
             if count != c.count || root != c.root_sha256 {
                 return Err(Error::Invalid("canon frozen raw plan root/count"));
@@ -1311,14 +1358,7 @@ pub fn render_canon_source_plan(
                 deadline,
                 cancelled,
                 &mut work,
-                |_, id, raw| {
-                    target.ingest_input(InputRow {
-                        source_graph: &c.source_graph,
-                        collection: &c.collection,
-                        id,
-                        payload: raw,
-                    })
-                },
+                |_, page| ingest_canon_page(target, c, page, deadline, cancelled),
             )?;
             if count != c.count || root != c.root_sha256 {
                 return Err(Error::Invalid("canon rendered raw plan root/count"));
@@ -1378,14 +1418,7 @@ where
                 deadline,
                 cancelled,
                 &mut work,
-                |stage, id, raw| {
-                    stage.ingest_input(InputRow {
-                        source_graph: &collection.source_graph,
-                        collection: &collection.collection,
-                        id,
-                        payload: raw,
-                    })
-                },
+                |stage, page| ingest_canon_page(stage, collection, page, deadline, cancelled),
             )?;
             if count != collection.count || root != collection.root_sha256 {
                 return Err(Error::Invalid("canon rendered raw plan root/count"));

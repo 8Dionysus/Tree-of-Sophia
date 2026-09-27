@@ -1050,15 +1050,22 @@ fn native_corpus_composition_case(installed: bool) {
     )
     .unwrap();
     for (collection, rows) in [("source-files", &canon_files), ("contracts", &contracts)] {
-        for (id, raw) in rows {
-            canon_planner
-                .ingest_input(InputRow {
+        let mut entries = rows.iter();
+        loop {
+            let borrowed = entries
+                .by_ref()
+                .take(stage_limits.max_seek_rows)
+                .map(|(id, raw)| InputRow {
                     source_graph: CANON_SOURCE_CUSTODY,
                     collection,
                     id,
                     payload: raw,
                 })
-                .unwrap();
+                .collect::<Vec<_>>();
+            if borrowed.is_empty() {
+                break;
+            }
+            canon_planner.ingest_input_batch(&borrowed).unwrap();
         }
     }
     let canon_limits = CanonSourceLimits {
@@ -1185,17 +1192,25 @@ fn native_corpus_composition_case(installed: bool) {
         let mut after = None;
         loop {
             let page = catalog_stage
-                .scan_input(&input.source_graph, &input.collection, after.as_deref(), 1)
+                .scan_input(
+                    &input.source_graph,
+                    &input.collection,
+                    after.as_deref(),
+                    stage_limits.max_seek_rows,
+                )
                 .unwrap();
-            for row in page.rows {
-                target
-                    .ingest_input(InputRow {
+            if !page.rows.is_empty() {
+                let borrowed = page
+                    .rows
+                    .iter()
+                    .map(|row| InputRow {
                         source_graph: &input.source_graph,
                         collection: &input.collection,
                         id: &row.id,
                         payload: &row.payload,
                     })
-                    .unwrap();
+                    .collect::<Vec<_>>();
+                target.ingest_input_batch(&borrowed).unwrap();
             }
             after = page.next_id;
             if after.is_none() {
@@ -1419,7 +1434,8 @@ sys.stdout.write(owner.render_payload(payload))
                     16,
                 )
                 .unwrap();
-            for row in page.rows {
+            let mut borrowed = Vec::with_capacity(page.rows.len());
+            for row in &page.rows {
                 transfer_work = transfer_work
                     .checked_add(u64::try_from(row.id.len() + row.payload.len()).unwrap())
                     .filter(|n| *n <= stage_limits.sqlite.max_work_bytes)
@@ -1429,14 +1445,15 @@ sys.stdout.write(owner.render_payload(payload))
                 root.update(&(row.id.len() as u64).to_be_bytes());
                 root.update(row.id.as_bytes());
                 root.update(Digest256::of_bytes(&row.payload).as_bytes());
-                selected_stage
-                    .ingest_input(InputRow {
-                        source_graph: &collection.source_graph,
-                        collection: &collection.collection,
-                        id: &row.id,
-                        payload: &row.payload,
-                    })
-                    .unwrap();
+                borrowed.push(InputRow {
+                    source_graph: &collection.source_graph,
+                    collection: &collection.collection,
+                    id: &row.id,
+                    payload: &row.payload,
+                });
+            }
+            if !borrowed.is_empty() {
+                selected_stage.ingest_input_batch(&borrowed).unwrap();
             }
             after = page.next_id;
             if after.is_none() {
@@ -1447,15 +1464,22 @@ sys.stdout.write(owner.render_payload(payload))
         assert_eq!(root.finalize().to_hex(), collection.root_sha256);
     }
     for ((source, collection), rows) in &selected_rows {
-        for (id, raw) in rows {
-            selected_stage
-                .ingest_input(InputRow {
+        let mut entries = rows.iter();
+        loop {
+            let borrowed = entries
+                .by_ref()
+                .take(stage_limits.max_seek_rows)
+                .map(|(id, raw)| InputRow {
                     source_graph: source,
                     collection,
                     id,
                     payload: raw,
                 })
-                .unwrap();
+                .collect::<Vec<_>>();
+            if borrowed.is_empty() {
+                break;
+            }
+            selected_stage.ingest_input_batch(&borrowed).unwrap();
         }
     }
     // Bind this original plan to the final selected transport, not the prior
