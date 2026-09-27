@@ -1456,12 +1456,13 @@ from fixture_support import write_corpus_topology_fixture
 from corpus_archive import capture_git,restore_capture
 from partitioned_projection_common import write_partitioned_payload
 from tos_access.projection_store import load_projection
+from tos_access.knowledge_compile import INPUTS,compile_knowledge_store
 from tos_access.core import ToSAccessCore
 results=[]
 for transport in ('monolithic','partitioned'):
  base=Path(tempfile.mkdtemp(prefix='tos-query-corpus-'));source=base/'source';source.mkdir()
  write_corpus_topology_fixture(source)
- source_path='ToS/derived-exports/tos_corpus_index.min.json'
+ source_path=INPUTS['corpus']
  index_path=source/source_path;payload=json.loads(index_path.read_text())
  if transport == 'monolithic':
   # Reuse existing identities: plural matches and last-row resolution cannot be
@@ -1473,14 +1474,26 @@ for transport in ('monolithic','partitioned'):
   index_path.write_text(json.dumps(payload),encoding='utf-8')
  else:
   write_partitioned_payload(index_path,payload)
+  # Existing explicit offline fixture recipe: corpus/bibliography share a
+  # storage mode. The legacy fixture has no input-digest entries to transport.
+  bibliography_path=source/INPUTS['bibliographic']
+  bibliography=json.loads(bibliography_path.read_text())
+  bibliography.setdefault('input_digests',{})
+  write_partitioned_payload(bibliography_path,bibliography)
  def git(*args):
   return subprocess.check_output(['git','-C',str(source),*args],stderr=subprocess.PIPE,text=True).strip()
  prefixes=[source_path]
- if transport == 'partitioned': prefixes.append(str(Path(source_path).with_suffix('.parts')))
+ if transport == 'partitioned':
+  prefixes=list(INPUTS.values())
+  prefixes.extend(str(Path(INPUTS[name]).with_suffix('.parts')) for name in ('corpus','bibliographic'))
  git('init','-q');git('add',*prefixes);git('-c','user.name=ToS Software Fixture','-c','user.email=fixture@example.invalid','commit','-qm','existing corpus read input')
  commit=git('rev-parse','HEAD');tree=git('rev-parse','HEAD^{tree}')
  capture=base/'capture';restored=base/'restored'
  capture_git(source,commit,prefixes,capture);restore_capture(capture,restored)
+ if transport == 'partitioned':
+  # Build once, explicitly, before opening the maintained request reader.
+  # Never rebuild implicitly, supply a marker, or bypass its snapshot checks.
+  compile_knowledge_store(restored,allow_legacy=True)
  payload=load_projection(restored/source_path)
  core=ToSAccessCore.discover(tos_root=restored)
  node=payload['nodes'][0]['node_id'];pack=payload['relation_packs'][-1]['pack_id']
