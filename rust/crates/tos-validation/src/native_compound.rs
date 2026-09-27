@@ -87,6 +87,81 @@ fn decode(raw: &[u8]) -> Result<Value, ItemRefusal> {
     serde_json::from_slice(raw)
         .map_err(|_| ItemRefusal::Unsupported("compound decoded representation".into()))
 }
+// Charge decoded/ordered trees by node and string storage, not serialized size.
+// This covers both representations, Vec growth slack and map entry storage;
+// it is logical retained-state accounting, not a measurement of allocator RSS.
+fn json_storage_cost(
+    raw: &[u8],
+    deadline: std::time::Instant,
+    cancelled: &AtomicBool,
+    available: usize,
+) -> Result<usize, ItemRefusal> {
+    fn node(
+        value: &JsonValue,
+        deadline: std::time::Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<usize, ItemRefusal> {
+        check(deadline, cancelled)?;
+        let mut cost = 2 * (std::mem::size_of::<JsonValue>() + std::mem::size_of::<Value>()) + 64;
+        let mut add = |n: usize| -> Result<(), ItemRefusal> {
+            cost = cost.checked_add(n).ok_or(ItemRefusal::Budget)?;
+            Ok(())
+        };
+        match value {
+            JsonValue::Number(n) => {
+                add(n.lexeme.len().checked_mul(4).ok_or(ItemRefusal::Budget)?)?
+            }
+            JsonValue::String(v) => {
+                add(v.units().len().checked_mul(12).ok_or(ItemRefusal::Budget)?)?
+            }
+            JsonValue::Array(values) => {
+                add(4 * (std::mem::size_of::<JsonValue>() + std::mem::size_of::<Value>()))?;
+                for value in values {
+                    add(node(value, deadline, cancelled)?)?;
+                }
+            }
+            JsonValue::Object(values) => {
+                add(4
+                    * (std::mem::size_of::<(tos_foundation::JsonString, JsonValue)>()
+                        + std::mem::size_of::<(String, Value)>()))?;
+                for (key, value) in values {
+                    add(key
+                        .units()
+                        .len()
+                        .checked_mul(12)
+                        .and_then(|n| n.checked_add(128))
+                        .ok_or(ItemRefusal::Budget)?)?;
+                    add(node(value, deadline, cancelled)?)?;
+                }
+            }
+            _ => {}
+        }
+        Ok(cost)
+    }
+    // Bound the costing parse itself by the same remaining state. The codec
+    // already counts visits; string/input storage is bounded by input bytes.
+    let string_storage = raw.len().checked_mul(8).ok_or(ItemRefusal::Budget)?;
+    let node_storage = 2
+        * (std::mem::size_of::<JsonValue>() + std::mem::size_of::<tos_foundation::JsonString>())
+        + 128;
+    let visits = available
+        .checked_sub(string_storage)
+        .ok_or(ItemRefusal::Budget)?
+        / node_storage;
+    if visits == 0 {
+        return Err(ItemRefusal::Budget);
+    }
+    let mut parse_limits = limits();
+    parse_limits.max_visits = parse_limits.max_visits.min(visits);
+    let parsed = parse_json(raw, JsonMode::PublishedStrict, parse_limits).map_err(|e| {
+        if e.code == tos_foundation::FoundationErrorCode::BudgetExceeded {
+            ItemRefusal::Budget
+        } else {
+            ItemRefusal::Unsupported(format!("compound costing JSON: {e:?}"))
+        }
+    })?;
+    node(&parsed.into_root(), deadline, cancelled)
+}
 fn canonical(v: &Value) -> Result<Vec<u8>, ItemRefusal> {
     canonical_ordered(&ordered(
         &serde_json::to_vec(v).map_err(|_| bad("serialization"))?,
@@ -185,6 +260,7 @@ pub(crate) struct WorkExpression<'a> {
     transactions: BTreeMap<String, Transaction>,
     histories: BTreeMap<(String, String), Value>,
     state: usize,
+    temporary_state: usize,
     bytes: u64,
     reads: Vec<PredicateRead>,
     publication: Option<Value>,
@@ -204,6 +280,7 @@ impl<'a> WorkExpression<'a> {
             transactions: BTreeMap::new(),
             histories: BTreeMap::new(),
             state: 0,
+            temporary_state: 0,
             bytes: 0,
             reads: Vec::new(),
             publication: None,
@@ -218,11 +295,47 @@ impl<'a> WorkExpression<'a> {
             this.paths.insert(member.path.as_str().into());
         }
         if let Some(raw) = this.optional(CONTROL, 8192)? {
+            let decoded_state = this.json_cost(&raw)?;
+            reserve(&mut this.state, decoded_state, limits.max_state_bytes)?;
             let state = decode(&raw)?;
             state_valid(&state)?;
             this.publication = Some(state);
         }
         Ok(this)
+    }
+    fn json_cost(&self, raw: &[u8]) -> Result<usize, ItemRefusal> {
+        json_storage_cost(
+            raw,
+            self.limits.deadline,
+            self.cancelled,
+            self.limits
+                .max_state_bytes
+                .checked_sub(self.state)
+                .ok_or(ItemRefusal::Budget)?,
+        )
+    }
+    pub(crate) fn retained_state_bytes(&self) -> usize {
+        self.state
+    }
+    pub(crate) fn set_remaining_state(&mut self, available: usize) -> Result<(), ItemRefusal> {
+        if self.state > available {
+            return Err(ItemRefusal::Budget);
+        }
+        self.limits.max_state_bytes = available;
+        Ok(())
+    }
+    fn temporary(&mut self, amount: usize) -> Result<(), ItemRefusal> {
+        reserve(&mut self.state, amount, self.limits.max_state_bytes)?;
+        self.temporary_state = self
+            .temporary_state
+            .checked_add(amount)
+            .ok_or(ItemRefusal::Budget)?;
+        Ok(())
+    }
+    fn release_temporary_since(&mut self, before: usize) {
+        let released = self.temporary_state - before;
+        self.state -= released;
+        self.temporary_state = before;
     }
     fn optional(&mut self, path: &str, cap: usize) -> Result<Option<Vec<u8>>, ItemRefusal> {
         check(self.limits.deadline, self.cancelled)?;
@@ -244,7 +357,12 @@ impl<'a> WorkExpression<'a> {
             raw.len()
                 .checked_mul(3)
                 .ok_or(ItemRefusal::Budget)?
-                .checked_add(path.len() + 128)
+                .checked_add(
+                    path.len()
+                        .checked_mul(2)
+                        .and_then(|n| n.checked_add(128 + 2 * std::mem::size_of::<PredicateRead>()))
+                        .ok_or(ItemRefusal::Budget)?,
+                )
                 .ok_or(ItemRefusal::Budget)?,
             self.limits.max_state_bytes,
         )?;
@@ -262,7 +380,7 @@ impl<'a> WorkExpression<'a> {
     fn record_read(&mut self, read: PredicateRead) -> Result<(), ItemRefusal> {
         reserve(
             &mut self.state,
-            format!("{read:?}").len() + 64,
+            format!("{read:?}").len() + 64 + 2 * std::mem::size_of::<PredicateRead>(),
             self.limits.max_state_bytes,
         )?;
         self.reads.push(read);
@@ -294,6 +412,11 @@ impl<'a> WorkExpression<'a> {
         }
         let directory = format!("{TRANSACTIONS}/{}", hash(id)?);
         let raw = self.required(&format!("{directory}/manifest.json"), MAX_MANIFEST)?;
+        let manifest_state = self
+            .json_cost(&raw)?
+            .checked_mul(2)
+            .ok_or(ItemRefusal::Budget)?;
+        reserve(&mut self.state, manifest_state, self.limits.max_state_bytes)?;
         let manifest = decode(&raw)?;
         keys(
             &manifest,
@@ -389,6 +512,12 @@ impl<'a> WorkExpression<'a> {
                     }
                     blobs.insert(sha.into(), raw);
                 }
+                // The cached file map and returned transaction clone coexist.
+                reserve(
+                    &mut self.state,
+                    size.checked_mul(2).ok_or(ItemRefusal::Budget)?,
+                    self.limits.max_state_bytes,
+                )?;
                 bytes[i] = Some(blobs[sha].clone());
             }
             files.insert(path.into(), (bytes[0].take(), bytes[1].take()));
@@ -496,10 +625,14 @@ impl<'a> WorkExpression<'a> {
         };
         reserve(
             &mut self.state,
-            total
-                .checked_mul(3)
-                .ok_or(ItemRefusal::Budget)?
-                .checked_add(canonical(&manifest)?.len() * 3)
+            files
+                .keys()
+                .try_fold(0usize, |sum, path| {
+                    sum.checked_add(path.len().checked_mul(2)?)?.checked_add(
+                        2 * (std::mem::size_of::<(String, (Option<Vec<u8>>, Option<Vec<u8>>))>()
+                            + 64),
+                    )
+                })
                 .ok_or(ItemRefusal::Budget)?,
             self.limits.max_state_bytes,
         )?;
@@ -513,6 +646,17 @@ impl<'a> WorkExpression<'a> {
         Ok(tx)
     }
     fn archive(&mut self, path: &str, id: &str, receipt: &Value) -> Result<Package, ItemRefusal> {
+        let before = self.temporary_state;
+        let result = self.archive_inner(path, id, receipt);
+        self.release_temporary_since(before);
+        result
+    }
+    fn archive_inner(
+        &mut self,
+        path: &str,
+        id: &str,
+        receipt: &Value,
+    ) -> Result<Package, ItemRefusal> {
         let rev = text(receipt, "previous_revision")?;
         let home = format!(
             "{HOME}/.record-revisions/{}-{}",
@@ -523,6 +667,11 @@ impl<'a> WorkExpression<'a> {
             return Err(bad("archive exact locator"));
         }
         let raw = self.required(&format!("{home}/manifest.json"), MAX_FILE)?;
+        self.temporary(
+            self.json_cost(&raw)?
+                .checked_mul(2)
+                .ok_or(ItemRefusal::Budget)?,
+        )?;
         let manifest = decode(&raw)?;
         let v2 = text(&manifest, "schema_version")? == "tos_source_package_archive_v2";
         let mut wanted = vec![
@@ -595,6 +744,15 @@ impl<'a> WorkExpression<'a> {
         if revision(&files)? != rev {
             return Err(bad("archive package revision"));
         }
+        self.temporary(
+            self.json_cost(
+                files
+                    .get(&names[0])
+                    .ok_or_else(|| bad("archive source missing"))?,
+            )?
+            .checked_mul(4)
+            .ok_or(ItemRefusal::Budget)?,
+        )?;
         let old = decode(
             files
                 .get(&names[0])
@@ -891,6 +1049,12 @@ pub fn inspect_record_history(
 
 impl WorkExpression<'_> {
     fn history(&mut self, path: &str, files: &Package) -> Result<Value, ItemRefusal> {
+        let before = self.temporary_state;
+        let result = self.history_inner(path, files);
+        self.release_temporary_since(before);
+        result
+    }
+    fn history_inner(&mut self, path: &str, files: &Package) -> Result<Value, ItemRefusal> {
         check(self.limits.deadline, self.cancelled)?;
         // Bind memoized lineage to the whole selected package, not its subject
         // alone: source-copy forms and history bytes participate in revision.
@@ -905,12 +1069,36 @@ impl WorkExpression<'_> {
         let raw = files
             .get(name)
             .ok_or_else(|| bad("history source absent"))?;
+        let mut scratch = self.json_cost(raw)?;
+        if let Some(history) = files.get(HISTORY) {
+            scratch = scratch
+                .checked_add(self.json_cost(history)?)
+                .ok_or(ItemRefusal::Budget)?;
+        }
+        self.temporary(scratch.checked_mul(3).ok_or(ItemRefusal::Budget)?)?;
         let record = decode(raw)?;
         let id = text(&record, "record_id")?;
         let history = inspect_record_history(files, raw, self.limits.deadline, self.cancelled)?;
         for (index, receipt) in array(&history, "receipts")?.iter().enumerate() {
             check(self.limits.deadline, self.cancelled)?;
             let archived = self.archive(path, id, receipt)?;
+            let previous_temporary = self.temporary_state;
+            self.temporary(
+                self.json_cost(
+                    archived
+                        .get(name)
+                        .ok_or_else(|| bad("archive source absent"))?,
+                )?
+                .checked_mul(2)
+                .ok_or(ItemRefusal::Budget)?,
+            )?;
+            if let Some(raw) = archived.get(HISTORY) {
+                self.temporary(
+                    self.json_cost(raw)?
+                        .checked_mul(2)
+                        .ok_or(ItemRefusal::Budget)?,
+                )?;
+            }
             let predecessor = inspect_record_history(
                 &archived,
                 archived
@@ -922,16 +1110,15 @@ impl WorkExpression<'_> {
             if array(&predecessor, "receipts")? != &array(&history, "receipts")?[..index] {
                 return Err(bad("retained predecessor receipt prefix"));
             }
+            drop(predecessor);
+            self.release_temporary_since(previous_temporary);
         }
-        reserve(
-            &mut self.state,
-            canonical(&history)?
-                .len()
-                .checked_mul(3)
-                .and_then(|n| n.checked_add(key.0.len() + key.1.len() + 128))
-                .ok_or(ItemRefusal::Budget)?,
-            self.limits.max_state_bytes,
-        )?;
+        let history_state = self
+            .json_cost(&canonical(&history)?)?
+            .checked_mul(2)
+            .and_then(|n| n.checked_add(key.0.len() + key.1.len() + 128))
+            .ok_or(ItemRefusal::Budget)?;
+        reserve(&mut self.state, history_state, self.limits.max_state_bytes)?;
         self.histories.insert(key, history.clone());
         Ok(history)
     }
@@ -1184,22 +1371,6 @@ impl WorkExpression<'_> {
         schemas: &mut CutWorkerSchemaExecutor,
     ) -> Result<Reconstructed, ItemRefusal> {
         let plan = &tx.manifest["plan"];
-        let transient = tx
-            .files
-            .values()
-            .try_fold(0usize, |sum, (a, b)| {
-                sum.checked_add(a.as_ref().map_or(0, Vec::len))?
-                    .checked_add(b.as_ref().map_or(0, Vec::len))
-            })
-            .and_then(|n| n.checked_mul(12))
-            .ok_or(ItemRefusal::Budget)?;
-        if self
-            .state
-            .checked_add(transient)
-            .is_none_or(|n| n > self.limits.max_state_bytes)
-        {
-            return Err(ItemRefusal::Budget);
-        }
         let authority = &plan["authorization"];
         keys(
             authority,
@@ -1368,7 +1539,6 @@ impl WorkExpression<'_> {
             .limits
             .max_state_bytes
             .checked_sub(self.state)
-            .and_then(|n| n.checked_sub(transient))
             .ok_or(ItemRefusal::Budget)?;
         local_limits.max_total_bytes = self
             .limits
@@ -1755,6 +1925,17 @@ impl WorkExpression<'_> {
         claim: &Value,
         schemas: &mut CutWorkerSchemaExecutor,
     ) -> Result<NativeCompoundObservation, ItemRefusal> {
+        let before = self.temporary_state;
+        let result = self.verify_inner(path, claim, schemas);
+        self.release_temporary_since(before);
+        result
+    }
+    fn verify_inner(
+        &mut self,
+        path: &str,
+        claim: &Value,
+        schemas: &mut CutWorkerSchemaExecutor,
+    ) -> Result<NativeCompoundObservation, ItemRefusal> {
         check(self.limits.deadline, self.cancelled)?;
         metadata_path(path, false)?;
         if !path.ends_with("/source-claims.jsonl") {
@@ -1763,6 +1944,7 @@ impl WorkExpression<'_> {
         let home = parent(path)?;
         let receipt_raw =
             self.required(&format!("{home}/work-expression-receipt.json"), MAX_FILE)?;
+        self.temporary(self.json_cost(&receipt_raw)?)?;
         let receipt = decode(&receipt_raw)?;
         if text(&receipt, "schema_version")? != "tos_work_expression_receipt_v1" {
             return Err(bad("native Claim compound receipt"));
@@ -1793,6 +1975,19 @@ impl WorkExpression<'_> {
         {
             return Err(bad("current source snapshot is pending owner recovery"));
         }
+        let mut scratch = self.json_cost(&canonical(&tx.manifest)?)?;
+        for (before, after) in tx.files.values() {
+            for raw in before.iter().chain(after.iter()) {
+                let decoded = self.json_cost(raw)?;
+                scratch = scratch
+                    .checked_add(raw.len())
+                    .and_then(|n| n.checked_add(decoded))
+                    .ok_or(ItemRefusal::Budget)?;
+            }
+        }
+        // Multiple ordered/decoded trees and prepared buffers coexist through
+        // current-lineage verification. Retain this allowance while caches grow.
+        self.temporary(scratch.checked_mul(8).ok_or(ItemRefusal::Budget)?)?;
         let reconstructed = self.reconstruct(&tx, schemas)?;
         let scope = &reconstructed.scope;
         let work = text(scope, "work_source_path")?;
@@ -1815,6 +2010,7 @@ impl WorkExpression<'_> {
             }
         }
         let parent_files = self.selected(work)?;
+        self.temporary(self.json_cost(&parent_files["work.json"])?)?;
         let parent_record = decode(&parent_files["work.json"])?;
         if parent_record["record_id"] != scope["work_id"] || parent_record["record_type"] != "work"
         {
@@ -1825,6 +2021,7 @@ impl WorkExpression<'_> {
             return Err(bad("compound transition missing in current parent lineage"));
         }
         let child_files = self.selected(expression)?;
+        self.temporary(self.json_cost(&child_files["expression.json"])?)?;
         let child_record = decode(&child_files["expression.json"])?;
         if child_record["record_id"] != scope["expression_id"]
             || child_record["record_type"] != "expression"

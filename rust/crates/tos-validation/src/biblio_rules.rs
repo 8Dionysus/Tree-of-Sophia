@@ -528,7 +528,20 @@ pub fn inspect_bibliography_from_cut(
             .filter(|c| c.native && s(&c.value, "predicate") == Some("has_expression"))
         {
             let location = format!("{}:{}", claim.path, claim.line);
-            match compounds.verify(&claim.path, &claim.value, schemas) {
+            compounds.set_remaining_state(
+                limits
+                    .max_state_bytes
+                    .checked_sub(rules.state)
+                    .ok_or(ItemRefusal::Budget)?,
+            )?;
+            let inspected = compounds.verify(&claim.path, &claim.value, schemas);
+            // The cache remains alive while issues, observations and reads grow.
+            // Both concrete owners consume the same existing family envelope.
+            rules.limits.max_state_bytes = limits
+                .max_state_bytes
+                .checked_sub(compounds.retained_state_bytes())
+                .ok_or(ItemRefusal::Budget)?;
+            match inspected {
                 Ok(observation) => {
                     let id = s(&claim.value, "claim_id").ok_or_else(|| {
                         ItemRefusal::Source("compound Claim identity missing".into())
@@ -540,7 +553,7 @@ pub fn inspect_bibliography_from_cut(
                             + observation.transaction_id.len()
                             + observation.manifest_sha256.len()
                             + 256,
-                        limits.max_state_bytes,
+                        rules.limits.max_state_bytes,
                     )?;
                     match observation.transport {
                         crate::native_compound::NativeTransportState::Committed => {
@@ -574,15 +587,36 @@ pub fn inspect_bibliography_from_cut(
                 Err(error) => return Err(error),
             }
         }
-        let (bytes, reads) = compounds.finish();
+        let (bytes, mut reads) = compounds.finish();
         account(
             &mut rules.bytes,
             usize::try_from(bytes).map_err(|_| ItemRefusal::Budget)?,
             limits.max_total_bytes,
         )?;
-        for read in reads {
-            rules.read(read)?;
+        // Transfer owned read strings once; retain the old Vec allocation in
+        // the same ceiling until append releases its elements and we drop it.
+        let old_buffer = reads
+            .capacity()
+            .checked_mul(std::mem::size_of::<PredicateRead>())
+            .ok_or(ItemRefusal::Budget)?;
+        let mut read_state = 0usize;
+        for read in &reads {
+            check(limits.deadline, cancelled)?;
+            read_state = read_state
+                .checked_add(format!("{read:?}").len() + 64)
+                .ok_or(ItemRefusal::Budget)?;
         }
+        reserve(
+            &mut rules.state,
+            read_state,
+            limits
+                .max_state_bytes
+                .checked_sub(old_buffer)
+                .ok_or(ItemRefusal::Budget)?,
+        )?;
+        rules.shadow.reads.append(&mut reads);
+        drop(reads);
+        rules.limits.max_state_bytes = limits.max_state_bytes;
     }
     for claim in &claims {
         inspect_claim(
