@@ -709,6 +709,7 @@ fn actual_native_corpus_managed_installed_consumer() {
 }
 
 fn native_corpus_composition_case(installed: bool) {
+    use std::io::Write;
     use tos_compiler::knowledge_canon_source::*;
     use tos_compiler::knowledge_stage::{InputCollectionReceipt, InputRow};
     use tos_compiler::source_bibliographic::{BibliographicLimits, BibliographicSourceCut};
@@ -718,6 +719,19 @@ fn native_corpus_composition_case(installed: bool) {
     use tos_compiler::{
         SourceCatalogInputLimits, plan_source_catalog_inputs, render_source_bibliographic_plan,
     };
+    fn phase(started: Instant, deadline: Instant, name: &str) {
+        // Write to the actual stderr handle: libtest's captured eprintln!
+        // output is lost when the outer whole-case deadline kills the process.
+        let _ = writeln!(
+            std::io::stderr().lock(),
+            "native corpus phase={name} elapsed_seconds={}",
+            started.elapsed().as_secs()
+        );
+        assert!(
+            Instant::now() < deadline,
+            "native corpus deadline after {name}"
+        );
+    }
     fn add_tree(repository: &Path, relative: &str, files: &mut BTreeMap<String, Vec<u8>>) {
         let mut entries = fs::read_dir(repository.join(relative))
             .unwrap()
@@ -756,6 +770,10 @@ fn native_corpus_composition_case(installed: bool) {
             expected_root_sha256: hash.finalize().to_hex(),
         }
     }
+    let started = Instant::now();
+    let deadline = started + Duration::from_secs(240);
+    let cancelled = AtomicBool::new(false);
+    phase(started, deadline, "source-preparation");
     let repository = super::validation_cut_cases::repository()
         .canonicalize()
         .unwrap();
@@ -792,6 +810,7 @@ fn native_corpus_composition_case(installed: bool) {
     }
     assert!(files.len() <= 512);
     assert!(files.values().map(Vec::len).sum::<usize>() <= 16 * 1024 * 1024);
+    phase(started, deadline, "selected-inputs-ready");
     let fixture = tempfile::tempdir().unwrap();
     let git_root = fixture.path().join("selected-git");
     fs::create_dir(&git_root).unwrap();
@@ -822,6 +841,7 @@ fn native_corpus_composition_case(installed: bool) {
     );
     assert!(captured.len() <= 512);
     assert!(captured.values().map(Vec::len).sum::<usize>() <= 16 * 1024 * 1024);
+    phase(started, deadline, "capture-inputs-ready");
     for (path, raw) in &captured {
         let target = git_root.join(path);
         fs::create_dir_all(target.parent().unwrap()).unwrap();
@@ -855,13 +875,13 @@ fn native_corpus_composition_case(installed: bool) {
         .unwrap()
         .trim()
         .to_owned();
+    phase(started, deadline, "fixture-commit-ready");
     let capture = super::source_cut_cases::captured_software_fixture(
         &git_root,
         &commit,
         &["ToS", "scripts", "access/contracts"],
     );
-    let cancelled = AtomicBool::new(false);
-    let deadline = Instant::now() + Duration::from_secs(240);
+    phase(started, deadline, "software-capture-ready");
     let read_limits = ReadLimits {
         max_manifest_bytes: 2 * 1024 * 1024,
         max_manifest_entries: 512,
@@ -893,6 +913,7 @@ fn native_corpus_composition_case(installed: bool) {
             &cancelled,
         )
         .unwrap();
+    phase(started, deadline, "source-cut-ready");
     let membership = cut.stream(revision).unwrap().expectation();
     let descriptor = fs::read(
         repository.join("rust/crates/tos-compiler/tests/fixtures/query-vocabulary.v1.json"),
@@ -990,6 +1011,7 @@ fn native_corpus_composition_case(installed: bool) {
     )
     .unwrap();
     let mut forms = tos_command::source_forms_compiler::NativeBibliographicForms;
+    phase(started, deadline, "bibliographic-render-start");
     let candidate = render_source_bibliographic_plan(
         &catalog_plan,
         &cut,
@@ -1003,6 +1025,7 @@ fn native_corpus_composition_case(installed: bool) {
         16 * 1024 * 1024,
     )
     .unwrap();
+    phase(started, deadline, "bibliographic-candidate-ready");
     assert!(candidate.catalog.record_count > 1);
     assert!(candidate.bibliographic.edge_count > 0);
     let canon_files = files
@@ -1223,6 +1246,7 @@ fn native_corpus_composition_case(installed: bool) {
         max_row_bytes: limits.catalog.max_output_row_bytes,
         max_total_bytes: 16 * 1024 * 1024,
     };
+    phase(started, deadline, "native-projection-start");
     let projection = project_native_corpus_from_sources(
         &mut target,
         &vocabulary,
@@ -1241,6 +1265,7 @@ fn native_corpus_composition_case(installed: bool) {
         &cancelled,
     )
     .unwrap();
+    phase(started, deadline, "native-projection-ready");
     // The maintained whole oracle receives exactly the selected authored paths.
     // Generated catalogue companions are private oracle outputs, not new inputs.
     let oracle_root = fixture.path().join("oracle");
@@ -1267,6 +1292,7 @@ payload=owner.build_payload(source_paths=json.loads(pathlib.Path(sys.argv[3]).re
 sys.stdout.write(owner.render_payload(payload))
 "#;
     let python = format!("{python}\n{NATIVE_CORPUS_QUERY_ORACLE}");
+    phase(started, deadline, "maintained-oracle-start");
     let output = Command::new("python3")
         .args(["-c", &python])
         .arg(&repository)
@@ -1286,6 +1312,7 @@ sys.stdout.write(owner.render_payload(payload))
     let expected: Value = serde_json::from_slice(&output.stdout).unwrap();
     assert_eq!(projection.value(), &expected);
     assert_eq!(projection.output_bytes(), output.stdout.as_slice());
+    phase(started, deadline, "maintained-oracle-matched");
     // A fresh independently declared selected stage receives actual family
     // outputs. Catalogue custody and private planner tables stay out of its DDL.
     let mut graph = BibliographicOutput::default();
@@ -1554,6 +1581,7 @@ sys.stdout.write(owner.render_payload(payload))
             max_page_rows: 16,
         },
     };
+    phase(started, deadline, "selected-model-start");
     let selected = tos_compiler::knowledge_full_fixture::finish_native_source_fixture(
         selected_stage,
         selected_path,
@@ -1586,6 +1614,7 @@ sys.stdout.write(owner.render_payload(payload))
             max_registry_bytes: 4 * 1024 * 1024,
         },
     );
+    phase(started, deadline, "selected-model-sealed");
     let cold = selected.open().unwrap();
     let receipt = cold.corpus_original_receipt().unwrap();
     assert_eq!(
@@ -1628,6 +1657,7 @@ sys.stdout.write(owner.render_payload(payload))
         max_response_bytes: 8 * 1024 * 1024,
         json: tos_foundation::JsonLimits::default(),
     };
+    phase(started, deadline, "cold-query-start");
     let packets = assert_native_corpus_query_packets(
         &selected,
         &projection,
@@ -1641,6 +1671,7 @@ sys.stdout.write(owner.render_payload(payload))
             max_work_steps: inspect.max_read_vm_steps,
         },
     );
+    phase(started, deadline, "cold-query-matched");
     if installed {
         native_managed_corpus_consumer::exercise_managed_native_corpus(
             &selected,
