@@ -1427,7 +1427,9 @@ impl SegmentStore {
         let pin_lock = self.lock_pin_dir(FlockOperation::NonBlockingLockShared)?;
         let prepare_id = receipts[0].prepare_id.clone();
         let mut seen_receipts = HashSet::with_capacity(receipts.len());
-        let mut seen_segments = HashSet::new();
+        // This operation retains the shared pin lock: a decoded journal stays
+        // valid until its guard resolves. Do not reread all frames per member.
+        let mut journals = HashMap::<[u8; 16], PinJournal>::new();
         let mut total_bytes = 0u64;
         for receipt in receipts {
             if receipt.prepare_id != prepare_id || !seen_receipts.insert(receipt.receipt_id) {
@@ -1436,14 +1438,14 @@ impl SegmentStore {
                     "mixed prepare or duplicate receipt",
                 ));
             }
-            let journal = self.validated_receipt_journal(receipt)?;
-            if seen_segments.insert(receipt.pin_id) {
-                if seen_segments.len() > budget.max_segments {
+            if !journals.contains_key(&receipt.pin_id) {
+                if journals.len() >= budget.max_segments {
                     return Err(SegmentError::new(
                         Code::BudgetExceeded,
                         "too many segments in verification",
                     ));
                 }
+                let journal = self.validated_receipt_journal(receipt)?;
                 total_bytes = total_bytes
                     .checked_add(receipt.segment_size)
                     .ok_or_else(|| {
@@ -1456,6 +1458,9 @@ impl SegmentStore {
                     ));
                 }
                 self.verify_actual_segment(receipt, &journal)?;
+                journals.insert(receipt.pin_id, journal);
+            } else {
+                self.validate_receipt_binding(receipt, &journals[&receipt.pin_id])?;
             }
         }
         Ok(VerifiedSealGuard {
@@ -1688,7 +1693,23 @@ impl SegmentStore {
             ));
         }
         let journal = self.read_pin(receipt.pin_id)?;
-        if journal.state != PinState::Sealed
+        self.validate_receipt_binding(receipt, &journal)?;
+        Ok(journal)
+    }
+
+    fn validate_receipt_binding(
+        &self,
+        receipt: &ByteDurabilityReceipt,
+        journal: &PinJournal,
+    ) -> Result<()> {
+        if !Arc::ptr_eq(&self.inner, &receipt.inner) {
+            return Err(SegmentError::new(
+                Code::InvalidReceipt,
+                "receipt belongs to another store instance",
+            ));
+        }
+        if journal.pin_id != receipt.pin_id
+            || journal.state != PinState::Sealed
             || journal.fence_epoch != receipt.fence_epoch
             || journal.segment_digest != Some(receipt.segment_digest)
             || journal.segment_size != receipt.segment_size
@@ -1706,7 +1727,7 @@ impl SegmentStore {
                 "receipt differs from sealed pin",
             ));
         }
-        Ok(journal)
+        Ok(())
     }
 
     fn receipt_id(&self, journal: &PinJournal, frame_index: u32) -> Digest256 {
@@ -2687,6 +2708,20 @@ mod tests {
             max_segments: 1,
             max_total_segment_bytes: receipts[0].segment_size(),
         };
+        // Later members use the operation's already decoded pin journal, but
+        // their individual fence, coordinate and owner binding remain exact.
+        for changed in 0..3 {
+            let mut invalid = receipts.clone();
+            match changed {
+                0 => invalid[1].fence_epoch += 1,
+                1 => invalid[1].coordinate.sha256 = Digest256::of_bytes(b"substituted frame"),
+                _ => invalid[1].binding.member_slot += 1,
+            }
+            assert_eq!(
+                store.verify_and_hold(&invalid, budget).unwrap_err().code,
+                Code::InvalidReceipt
+            );
+        }
         let guard = store.verify_and_hold(&receipts, budget).unwrap();
         assert_eq!(guard.prepare_id(), b"guard-prepare");
         assert_eq!(guard.receipts().len(), 2);
