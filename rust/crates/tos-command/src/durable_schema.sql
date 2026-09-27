@@ -91,6 +91,10 @@ CREATE TABLE IF NOT EXISTS cmd2_source_index (
   definition_digest char(64) NOT NULL,
   PRIMARY KEY(domain,kind,token)
 );
+-- Exact owner-derived Agent inventory contribution; original body custody
+-- stays in current/history. NULL is an unproved scope, never empty inventory.
+ALTER TABLE cmd2_source_index ADD COLUMN IF NOT EXISTS inventory_projection bytea;
+ALTER TABLE cmd2_attempt ADD COLUMN IF NOT EXISTS source_projections bytea;
 
 -- A ready member has every coordinate needed for exact cold STO recovery.
 -- The pin is shared across the members of one compound seal. The adapter must
@@ -230,6 +234,9 @@ ALTER TABLE cmd2_current ADD COLUMN IF NOT EXISTS source_mode integer CHECK(sour
 ALTER TABLE cmd2_current ADD COLUMN IF NOT EXISTS source_dependencies text[];
 ALTER TABLE cmd2_history ADD COLUMN IF NOT EXISTS source_mode integer CHECK(source_mode >= 0 AND source_mode <= 4095);
 ALTER TABLE cmd2_history ADD COLUMN IF NOT EXISTS source_dependencies text[];
+ALTER TABLE cmd2_current ADD COLUMN IF NOT EXISTS inventory_projection bytea;
+ALTER TABLE cmd2_history ADD COLUMN IF NOT EXISTS inventory_projection bytea;
+ALTER TABLE cmd2_domain ADD COLUMN IF NOT EXISTS source_projection_digest char(64);
 
 CREATE OR REPLACE FUNCTION cmd2_register_audit_domain() RETURNS trigger
 LANGUAGE plpgsql AS $$
@@ -303,7 +310,7 @@ LANGUAGE plpgsql AS $$
 BEGIN
   IF NEW.maintenance_state IS DISTINCT FROM OLD.maintenance_state THEN
     UPDATE cmd2_domain SET source_complete=false,source_epoch=source_epoch+1,
-      selected_generation_digest=NULL,complete_cut_digest=NULL,complete_cut_generation=NULL
+      source_projection_digest=NULL,selected_generation_digest=NULL,complete_cut_digest=NULL,complete_cut_generation=NULL
       WHERE domain=NEW.domain AND source_revision IS NOT NULL;
     UPDATE cmd2_predicate SET complete=false WHERE domain=NEW.domain;
   END IF;

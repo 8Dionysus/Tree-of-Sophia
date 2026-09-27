@@ -1469,7 +1469,7 @@ pub const CLAIM_REVISION_RULE_INPUTS: &[&str] = &[
     "ToS/contracts/human-form-set.schema.json",
     "ToS/contracts/human-form-template.schema.json",
 ];
-const NATIVE_CATALOG_KINDS: &[&str] = &[
+pub(crate) const NATIVE_CATALOG_KINDS: &[&str] = &[
     "agent",
     "place",
     "organization",
@@ -1938,6 +1938,7 @@ impl SignNativeRead for ProfileMetadataReader<'_> {
 pub(crate) struct MaintainedInventory {
     pub records: JsonValue,
     pub record_inputs: JsonValue,
+    pub record_member_inputs: BTreeMap<String, JsonValue>,
     pub objects: BTreeMap<String, JsonValue>,
     pub source_records: BTreeMap<String, JsonValue>,
     pub claims: BTreeMap<String, JsonValue>,
@@ -1953,7 +1954,7 @@ pub(crate) fn maintained_inventory(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<MaintainedInventory> {
-    maintained_inventory_inner(ctx, None, executor, deadline, cancelled)
+    maintained_inventory_inner(ctx, None, false, executor, deadline, cancelled)
 }
 
 /// Complete authored membership comes from the actual cut, independently of
@@ -1977,7 +1978,7 @@ pub(crate) fn maintained_inventory_from_cut(
         ..ctx.clone()
     };
     complete.check()?;
-    maintained_inventory_inner(&complete, Some(cut), executor, deadline, cancelled)
+    maintained_inventory_inner(&complete, Some(cut), false, executor, deadline, cancelled)
 }
 
 /// Only the privately verified complete managed Agent input may use this route.
@@ -1985,6 +1986,7 @@ pub(crate) fn maintained_inventory_from_cut(
 /// the schema cut's authored completeness.
 pub(crate) fn maintained_agent_inventory_from_managed(
     ctx: &CommandContext,
+    capture_member_inputs: bool,
     executor: &mut CutWorkerSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
@@ -2006,7 +2008,20 @@ pub(crate) fn maintained_agent_inventory_from_managed(
             ));
         }
     }
-    let mut inventory = maintained_inventory_inner(ctx, None, executor, deadline, cancelled)?;
+    let inventory = maintained_inventory_inner(
+        ctx,
+        None,
+        capture_member_inputs,
+        executor,
+        deadline,
+        cancelled,
+    )?;
+    complete_agent_inventory(inventory)
+}
+
+fn complete_agent_inventory(
+    mut inventory: MaintainedInventory,
+) -> SourceCommandResult<MaintainedInventory> {
     if !inventory.claims.is_empty()
         || inventory
             .objects
@@ -2025,9 +2040,168 @@ pub(crate) fn maintained_agent_inventory_from_managed(
     Ok(inventory)
 }
 
+/// One actual member's maintained inventory contribution. The same extractor
+/// serves full inventory and this controlled Agent projection; no source body
+/// or permission is retained in the projection.
+pub(crate) fn agent_inventory_contribution(
+    ctx: &CommandContext,
+    file: &SourceFile,
+    inventory: &MaintainedInventory,
+    executor: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<JsonValue> {
+    if !file.path.as_str().starts_with("ToS/") {
+        return Err(SourceCommandError::Invalid(
+            "Agent projection authored namespace",
+        ));
+    }
+    let location = file.path.as_str();
+    if ctx.file(&file.path)? != Some(file.raw.as_slice()) {
+        return Err(SourceCommandError::Conflict(
+            "Agent contribution differs from selected bytes",
+        ));
+    }
+    if location
+        .split('/')
+        .any(|part| ["owner-local", "payload", "local-content"].contains(&part))
+    {
+        return Err(SourceCommandError::Unsupported(
+            "Agent projection requires private/native reader",
+        ));
+    }
+    let basename = location.rsplit('/').next().unwrap_or(location);
+    // These scopes require their actual owner readers. Never infer their
+    // absence from an empty Agent catalogue contribution.
+    if location.starts_with("ToS/source-witnesses/")
+        && !location.split('/').any(|part| {
+            ["catalog", "payload", "local-content", ".record-revisions"].contains(&part)
+        })
+        && (basename.starts_with("semantic-annotation") && basename.ends_with(".json")
+            || basename == CLAIM_STREAM
+            || LEGACY_CLAIM_STREAMS.contains(&basename)
+            || basename == "historical-claims.jsonl")
+    {
+        return Err(SourceCommandError::Unsupported(
+            "Agent projection requires Claim/native owner",
+        ));
+    }
+    let mut records = object(vec![]);
+    for (kind, entries) in inventory
+        .records
+        .as_object()
+        .ok_or(SourceCommandError::Invalid("Agent inventory record map"))?
+    {
+        set(
+            &mut records,
+            kind.as_str()
+                .ok_or(SourceCommandError::Invalid("Agent inventory kind"))?,
+            JsonValue::Array(
+                entries
+                    .as_array()
+                    .ok_or(SourceCommandError::Invalid("Agent catalogue array"))?
+                    .iter()
+                    .filter(|entry| text(entry, "source_record_ref").ok() == Some(location))
+                    .cloned()
+                    .collect(),
+            ),
+        )?;
+    }
+    let evidence = |entries: &JsonValue| -> SourceCommandResult<JsonValue> {
+        Ok(JsonValue::Object(
+            entries
+                .as_object()
+                .ok_or(SourceCommandError::Invalid("Agent evidence map"))?
+                .iter()
+                .filter(|(_, entry)| text(entry, "source_ref").ok() == Some(location))
+                .cloned()
+                .collect(),
+        ))
+    };
+    let form = if location.starts_with("ToS/source-witnesses/")
+        && basename.ends_with(".human-forms.json")
+    {
+        let prior = parse(&file.raw)?;
+        crate::source_forms::apply_form_changes(Some(&prior), field(&prior, "subject")?, &[])?;
+        let parent = format!(
+            "{}.json",
+            location.strip_suffix(".human-forms.json").unwrap()
+        );
+        if parent.ends_with("/agent.json")
+            && ctx
+                .file(
+                    &RelativePath::parse(&parent)
+                        .map_err(|_| SourceCommandError::Invalid("Agent form parent path"))?,
+                )?
+                .is_some()
+        {
+            crate::source_revisions::schema(
+                executor,
+                deadline,
+                cancelled,
+                ctx,
+                &["ToS/contracts/human-form-set.schema.json".into()],
+                "ToS/contracts/human-form-set.schema.json",
+                &prior,
+            )?;
+        }
+        object(vec![
+            (
+                "raw_sha256",
+                string(&Digest256::of_bytes(&file.raw).to_prefixed()),
+            ),
+            (
+                "form_ids",
+                JsonValue::Array(
+                    ["forms", "prior_forms"]
+                        .into_iter()
+                        .map(|section| array(&prior, section))
+                        .collect::<SourceCommandResult<Vec<_>>>()?
+                        .into_iter()
+                        .flatten()
+                        .map(|form| field(form, "form_id").cloned())
+                        .collect::<SourceCommandResult<Vec<_>>>()?,
+                ),
+            ),
+        ])
+    } else {
+        JsonValue::Null
+    };
+    Ok(object(vec![
+        (
+            "schema_version",
+            string("tos_managed_agent_inventory_member_v1"),
+        ),
+        ("path", string(location)),
+        (
+            "raw_sha256",
+            string(&Digest256::of_bytes(&file.raw).to_hex()),
+        ),
+        ("records", records),
+        (
+            "source_profiles",
+            match inventory.record_member_inputs.get(location) {
+                Some(inputs) => inputs.clone(),
+                None => raw_digests(
+                    ctx,
+                    &[
+                        ENTITIES,
+                        "ToS/contracts/semantic-entity-type-registry.schema.json",
+                    ],
+                    false,
+                )?,
+            },
+        ),
+        ("events", evidence(&inventory.events)?),
+        ("anchors", evidence(&inventory.anchors)?),
+        ("form", form),
+    ]))
+}
+
 fn maintained_inventory_inner(
     ctx: &CommandContext,
     cut: Option<&CorpusCutReader>,
+    capture_member_inputs: bool,
     executor: &mut CutWorkerSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
@@ -2071,6 +2245,7 @@ fn maintained_inventory_inner(
         "ToS/contracts/semantic-relation-type-registry.schema.json",
     ];
     let mut record_inputs = raw_digests(ctx, &registry_refs, false)?;
+    let mut record_member_inputs = BTreeMap::new();
     if native_schema_used {
         let name = "ToS/contracts/semantic-annotation-packet-v2.schema.json";
         set(
@@ -2141,6 +2316,11 @@ fn maintained_inventory_inner(
                             == Some(kind.as_str())
                     })
             });
+            let mut member_inputs = if capture_member_inputs {
+                Some(raw_digests(ctx, &registry_refs, false)?)
+            } else {
+                None
+            };
             let schema = if let Some(descriptor) = descriptor {
                 if cut.is_none()
                     && (descriptor.object_get("native_binding_adapter").is_some()
@@ -2165,6 +2345,14 @@ fn maintained_inventory_inner(
                     route,
                     &["ToS/contracts/corpus-record.schema.json"],
                 )?;
+                if let Some(inputs) = &mut member_inputs {
+                    include_route(
+                        ctx,
+                        inputs,
+                        route,
+                        &["ToS/contracts/corpus-record.schema.json"],
+                    )?;
+                }
                 let exact = metadata_subject(&record)?;
                 let (verified, locator) = if let Some(cut) = cut {
                     crate::source_revisions::resolve_record_version_from_cut(
@@ -2189,6 +2377,9 @@ fn maintained_inventory_inner(
                 return Err(SourceCommandError::Conflict(
                     "complete catalog has duplicate metadata identity",
                 ));
+            }
+            if let Some(inputs) = member_inputs {
+                record_member_inputs.insert(location.to_owned(), inputs);
             }
             source_records.insert(id, record);
             records.entry(kind.clone()).or_default().push(entry);
@@ -2409,6 +2600,7 @@ fn maintained_inventory_inner(
     Ok(MaintainedInventory {
         records: record_catalog,
         record_inputs,
+        record_member_inputs,
         objects,
         source_records,
         claims: prior,

@@ -135,6 +135,7 @@ pub struct ManagedCreationInput {
     pub(crate) basis: ManagedCreationBasis,
     pub(crate) observations: BTreeMap<String, ManagedCreationObservation>,
     pub(crate) components: SoftwareComponentSelectionV1,
+    pub(crate) inventory: Option<crate::source_cohort::ManagedAgentInventory>,
 }
 pub fn select_managed_agent_creation_input(
     coordinator: &mut crate::durable_adapter::DurablePgCoordinator,
@@ -160,21 +161,59 @@ pub fn select_managed_agent_creation_input(
         .map(|file| file.raw.len())
         .sum::<usize>();
     let mut observations = BTreeMap::new();
-    for member in generation.members() {
-        if !member.path.as_str().starts_with("ToS/")
-            || member
-                .path
-                .as_str()
-                .split('/')
-                .any(|part| ["owner-local", "payload", "local-content"].contains(&part))
+    // Schema resources retain their independently selected v1 meaning. Only
+    // these resources and addressed request dependencies are read as bodies.
+    let mut paths = schema_cut
+        .current()
+        .members()
+        .filter(|member| {
+            member.path.as_str().starts_with("ToS/contracts/")
+                || [ENTITIES, RELATIONS].contains(&member.path.as_str())
+        })
+        .map(|member| member.path.clone())
+        .collect::<BTreeSet<_>>();
+    let request = cmd::parse(&context.request_raw)?;
+    let record = cmd::field(&request, "record")?;
+    if cmd::text(record, "record_type")? != "agent" {
+        return Err(SourceCommandError::Unsupported(
+            "managed creation consumer is initial native Agent only",
+        ));
+    }
+    for reference in cmd::array(record, "source_refs")? {
+        let name = reference
+            .as_str()
+            .ok_or(SourceCommandError::Invalid("Agent source reference"))?;
+        if name.starts_with("ToS/") {
+            let path = relative(name)?;
+            // Literal source references are not invented endpoint constraints.
+            // Existing addressed members are read; absence is bound by the
+            // complete inventory generation used below and at registration.
+            if generation.member(&path).is_some() {
+                paths.insert(path);
+            }
+        }
+    }
+    while let Some(path) = paths.pop_first() {
+        if observations.contains_key(path.as_str()) {
+            continue;
+        }
+        if path
+            .as_str()
+            .split('/')
+            .any(|part| ["owner-local", "payload", "local-content"].contains(&part))
         {
             return Err(SourceCommandError::Unsupported(
-                "managed Agent selected scope requires separate private/native reader",
+                "managed Agent addressed input requires private/native reader",
             ));
         }
+        let member = generation
+            .member(&path)
+            .ok_or(SourceCommandError::Conflict(
+                "managed schema resource absent",
+            ))?;
         if selected.files.len() >= SELECTED_SOURCE_MAX_FILES || member.size_bytes > 8_388_608 {
             return Err(SourceCommandError::Invalid(
-                "managed Agent complete input budget",
+                "managed Agent addressed input budget",
             ));
         }
         total = total
@@ -184,12 +223,12 @@ pub fn select_managed_agent_creation_input(
             )
             .filter(|bytes| *bytes <= SELECTED_SOURCE_MAX_BYTES)
             .ok_or(SourceCommandError::Invalid(
-                "managed Agent complete input byte budget",
+                "managed Agent addressed input byte budget",
             ))?;
         let observed = generation.read_current_member(
             coordinator,
             store,
-            &member.path,
+            &path,
             8_388_608,
             deadline,
             cancelled,
@@ -199,8 +238,38 @@ pub fn select_managed_agent_creation_input(
                 "managed Agent selected observation differs",
             ));
         }
+        if path.as_str().starts_with("ToS/contracts/")
+            || [ENTITIES, RELATIONS].contains(&path.as_str())
+        {
+            let expected = schema_cut
+                .read_member(
+                    schema_cut.current().revision(),
+                    &path,
+                    8_388_608,
+                    deadline,
+                    cancelled,
+                )
+                .map_err(|_| {
+                    SourceCommandError::Conflict("independent schema resource unavailable")
+                })?;
+            if observed.raw != expected.raw {
+                return Err(SourceCommandError::Conflict(
+                    "managed resource differs from independent schema cut",
+                ));
+            }
+        }
+        for dependency in observed.dependency_claims.as_deref().unwrap_or(&[]) {
+            if generation.member(dependency).is_none() {
+                return Err(SourceCommandError::Conflict(
+                    "managed addressed dependency absent",
+                ));
+            }
+            if !observations.contains_key(dependency.as_str()) {
+                paths.insert(dependency.clone());
+            }
+        }
         observations.insert(
-            member.path.as_str().into(),
+            path.as_str().into(),
             ManagedCreationObservation {
                 metadata: observed.metadata,
                 dependencies: observed.dependency_claims,
@@ -209,17 +278,21 @@ pub fn select_managed_agent_creation_input(
             },
         );
         selected.files.push(SourceFile {
-            path: member.path.clone(),
+            path,
             raw: observed.raw,
         });
     }
     selected.files.sort_by(|a, b| a.path.cmp(&b.path));
     selected.check()?;
+    let inventory = coordinator
+        .select_agent_inventory(generation, &selected, deadline, cancelled)
+        .map_err(crate::source_current_cut::durable)?;
     Ok(ManagedCreationInput {
         context: selected,
         basis: ManagedCreationBasis::from_generation(generation),
         observations,
         components: components.clone(),
+        inventory: Some(inventory),
     })
 }
 
@@ -284,6 +357,9 @@ impl<'a> CreationPackage<'a> {
     pub(crate) fn observations(self) -> Option<&'a BTreeMap<String, ManagedCreationObservation>> {
         self.prepared().managed_observations.as_ref()
     }
+    pub(crate) fn inventory(self) -> Option<&'a crate::source_cohort::ManagedAgentInventory> {
+        self.prepared().managed_inventory.as_ref()
+    }
     pub(crate) fn managed_basis(self) -> Option<&'a ManagedCreationBasis> {
         match self {
             Self::V1(_) => None,
@@ -332,6 +408,7 @@ pub struct PreparedCreation {
     context: CommandContext,
     managed_basis: Option<ManagedCreationBasis>,
     managed_observations: Option<BTreeMap<String, ManagedCreationObservation>>,
+    managed_inventory: Option<crate::source_cohort::ManagedAgentInventory>,
     family: CreationFamily,
     home: RelativePath,
     subject: JsonValue,
@@ -1533,15 +1610,23 @@ fn prepare_creation(
             "creation source home already occupied",
         ));
     }
-    let mut inventory = if managed.is_some() {
-        claims::maintained_agent_inventory_from_managed(&ctx, worker, deadline, cancelled)?
+    let indexed = managed.and_then(|input| input.inventory.as_ref());
+    let mut inventory = if indexed.is_some() {
+        None
     } else {
-        claims::maintained_inventory_from_cut(&ctx, cut, worker, deadline, cancelled)?
+        Some(if managed.is_some() {
+            claims::maintained_agent_inventory_from_managed(
+                &ctx, false, worker, deadline, cancelled,
+            )?
+        } else {
+            claims::maintained_inventory_from_cut(&ctx, cut, worker, deadline, cancelled)?
+        })
     };
-    if inventory
-        .objects
-        .contains_key(cmd::text(record, "record_id")?)
-    {
+    if inventory.as_ref().is_some_and(|inventory| {
+        inventory
+            .objects
+            .contains_key(cmd::text(record, "record_id").unwrap_or(""))
+    }) {
         return Err(SourceCommandError::Conflict(
             "source identity exists in authored inventory",
         ));
@@ -1566,10 +1651,12 @@ fn prepare_creation(
         }
     }
     if family != CreationFamily::HistoricalV1
-        && inventory
-            .events
-            .object_get(cmd::text(&config, "provenance_event_id")?)
-            .is_some()
+        && inventory.as_ref().is_some_and(|inventory| {
+            inventory
+                .events
+                .object_get(cmd::text(&config, "provenance_event_id").unwrap_or(""))
+                .is_some()
+        })
     {
         return Err(SourceCommandError::Conflict(
             "creation event identity exists",
@@ -1641,54 +1728,57 @@ fn prepare_creation(
     )?;
     let mut form_inputs = cmd::object(vec![]);
     let mut form_paths = BTreeSet::new();
-    for entry in inventory.objects.values() {
-        let name = cmd::text(entry, "source_record_ref")?;
-        form_paths.insert(format!(
-            "{}.human-forms.json",
-            name.strip_suffix(".json")
-                .ok_or(SourceCommandError::Invalid("catalog form record path"))?
-        ));
-    }
-    for entry in inventory.claims.values() {
-        let name = cmd::text(entry, "source_claim_file_ref")?;
-        if name.ends_with("/source-claims.jsonl") || name.ends_with("/historical-claims.jsonl") {
-            let (h, f) = name.rsplit_once('/').unwrap();
+    if let Some(inventory) = &inventory {
+        for entry in inventory.objects.values() {
+            let name = cmd::text(entry, "source_record_ref")?;
             form_paths.insert(format!(
-                "{h}/{}.{}.human-forms.json",
-                f.strip_suffix(".jsonl").unwrap(),
-                Digest256::of_bytes(cmd::text(entry, "claim_id")?.as_bytes()).to_hex()
+                "{}.human-forms.json",
+                name.strip_suffix(".json")
+                    .ok_or(SourceCommandError::Invalid("catalog form record path"))?
             ));
         }
-    }
-    for name in form_paths {
-        let Some(raw) = ctx.file(&relative(&name)?)? else {
-            continue;
-        };
-        let prior = cmd::parse(raw)?;
-        forms::apply_form_changes(Some(&prior), cmd::field(&prior, "subject")?, &[])?;
-        revisions::schema(
-            worker,
-            deadline,
-            cancelled,
-            &ctx,
-            &["ToS/contracts/human-form-set.schema.json".into()],
-            "ToS/contracts/human-form-set.schema.json",
-            &prior,
-        )?;
-        for section in ["forms", "prior_forms"] {
-            for form in cmd::array(&prior, section)? {
-                if seen.contains(cmd::text(form, "form_id")?) {
-                    return Err(SourceCommandError::Conflict(
-                        "form identity already allocated on another subject",
-                    ));
-                }
+        for entry in inventory.claims.values() {
+            let name = cmd::text(entry, "source_claim_file_ref")?;
+            if name.ends_with("/source-claims.jsonl") || name.ends_with("/historical-claims.jsonl")
+            {
+                let (h, f) = name.rsplit_once('/').unwrap();
+                form_paths.insert(format!(
+                    "{h}/{}.{}.human-forms.json",
+                    f.strip_suffix(".jsonl").unwrap(),
+                    Digest256::of_bytes(cmd::text(entry, "claim_id")?.as_bytes()).to_hex()
+                ));
             }
         }
-        cmd::set(
-            &mut form_inputs,
-            &name,
-            cmd::string(&Digest256::of_bytes(raw).to_prefixed()),
-        )?;
+        for name in form_paths {
+            let Some(raw) = ctx.file(&relative(&name)?)? else {
+                continue;
+            };
+            let prior = cmd::parse(raw)?;
+            forms::apply_form_changes(Some(&prior), cmd::field(&prior, "subject")?, &[])?;
+            revisions::schema(
+                worker,
+                deadline,
+                cancelled,
+                &ctx,
+                &["ToS/contracts/human-form-set.schema.json".into()],
+                "ToS/contracts/human-form-set.schema.json",
+                &prior,
+            )?;
+            for section in ["forms", "prior_forms"] {
+                for form in cmd::array(&prior, section)? {
+                    if seen.contains(cmd::text(form, "form_id")?) {
+                        return Err(SourceCommandError::Conflict(
+                            "form identity already allocated on another subject",
+                        ));
+                    }
+                }
+            }
+            cmd::set(
+                &mut form_inputs,
+                &name,
+                cmd::string(&Digest256::of_bytes(raw).to_prefixed()),
+            )?;
+        }
     }
     let source_path = cmd::text(&config, "source_path")?;
     let filename = source_path.rsplit('/').next().unwrap();
@@ -1709,7 +1799,9 @@ fn prepare_creation(
             &config,
             record,
             initial_claims,
-            &inventory,
+            inventory.as_ref().ok_or(SourceCommandError::Invalid(
+                "historical inventory unavailable",
+            ))?,
             worker,
             deadline,
             cancelled,
@@ -1717,22 +1809,84 @@ fn prepare_creation(
         )?;
         files.insert("historical-claims.jsonl".into(), raw);
     }
-    for name in profile_resources {
-        cmd::set(
-            &mut inventory.record_inputs,
-            &name,
-            cmd::string(&Digest256::of_bytes(selected(&ctx, &name)?).to_hex()),
+    let dependencies = if let Some(indexed) = indexed {
+        if !profile_resources.is_empty() {
+            return Err(SourceCommandError::Unsupported(
+                "Agent projection resource route changed",
+            ));
+        }
+        indexed.dependencies.clone()
+    } else {
+        let mut inventory = inventory.take().ok_or(SourceCommandError::Invalid(
+            "creation inventory unavailable",
+        ))?;
+        for name in profile_resources {
+            cmd::set(
+                &mut inventory.record_inputs,
+                &name,
+                cmd::string(&Digest256::of_bytes(selected(&ctx, &name)?).to_hex()),
+            )?;
+        }
+        let snapshot = creation_dependency_snapshot(
+            &ctx,
+            family,
+            CreationInventoryEncoding {
+                records: inventory.records,
+                claims: JsonValue::Array(inventory.claims.into_values().collect()),
+                source_profiles: inventory.record_inputs,
+                native_identity_snapshot: inventory.native_identity_snapshot.take().ok_or(
+                    SourceCommandError::Invalid(
+                        "creation native identity inventory was not selected",
+                    ),
+                )?,
+                native_text_snapshot: inventory.native_text_snapshot.take(),
+                claim_profile_inputs: inventory.claim_profile_inputs,
+                events: inventory.events,
+                anchors: inventory.anchors,
+            },
+            evidence,
+            form_inputs,
         )?;
+        cmd::record_digest(&snapshot)?.to_prefixed()
+    };
+    if cancelled.load(Ordering::Relaxed) || Instant::now() >= deadline {
+        return Err(SourceCommandError::Denied(
+            "creation deadline or cancellation",
+        ));
     }
-    let source_profiles = inventory.record_inputs;
-    let native_identity_snapshot =
-        inventory
-            .native_identity_snapshot
-            .take()
-            .ok_or(SourceCommandError::Invalid(
-                "creation native identity inventory was not selected",
-            ))?;
-    let native_text_snapshot = inventory.native_text_snapshot.take();
+    Ok(PreparedCreation {
+        context: ctx,
+        managed_basis: managed.map(|input| input.basis.clone()),
+        managed_observations: managed.map(|input| input.observations.clone()),
+        managed_inventory: managed.and_then(|input| input.inventory.clone()),
+        family,
+        home,
+        subject,
+        dependencies,
+        files,
+        components: components.clone(),
+    })
+}
+
+// Two concrete consumers share the maintained snapshot envelope. The indexed
+// Agent codec streams its four large fields; it never digests the NULL slots.
+struct CreationInventoryEncoding {
+    records: JsonValue,
+    claims: JsonValue,
+    source_profiles: JsonValue,
+    native_identity_snapshot: String,
+    native_text_snapshot: Option<String>,
+    claim_profile_inputs: JsonValue,
+    events: JsonValue,
+    anchors: JsonValue,
+}
+fn creation_dependency_snapshot(
+    ctx: &CommandContext,
+    family: CreationFamily,
+    encoding: CreationInventoryEncoding,
+    evidence: Vec<JsonValue>,
+    form_inputs: JsonValue,
+) -> SourceCommandResult<JsonValue> {
     let provenance_contract = if family == CreationFamily::HistoricalV1 {
         cmd::object(vec![])
     } else {
@@ -1743,27 +1897,25 @@ fn prepare_creation(
         )?
     };
     let mut snapshot = cmd::object(vec![
-        ("records", inventory.records),
-        (
-            "claims",
-            JsonValue::Array(inventory.claims.into_values().collect()),
-        ),
-        ("source_profiles", source_profiles),
+        ("records", encoding.records),
+        ("claims", encoding.claims),
+        ("source_profiles", encoding.source_profiles),
         (
             "native_semantic_identity_snapshot",
-            cmd::string(&native_identity_snapshot),
+            cmd::string(&encoding.native_identity_snapshot),
         ),
         (
             "native_text_binding_snapshot",
-            native_text_snapshot
+            encoding
+                .native_text_snapshot
                 .as_deref()
                 .map(cmd::string)
                 .unwrap_or(JsonValue::Null),
         ),
-        ("source_claim_profiles", inventory.claim_profile_inputs),
+        ("source_claim_profiles", encoding.claim_profile_inputs),
         ("provenance_contract", provenance_contract),
-        ("events", inventory.events),
-        ("anchors", inventory.anchors),
+        ("events", encoding.events),
+        ("anchors", encoding.anchors),
         ("evidence", JsonValue::Array(evidence)),
         ("forms", form_inputs),
         ("contracts", claims::raw_digests(&ctx, CONTRACTS, true)?),
@@ -1783,23 +1935,29 @@ fn prepare_creation(
             ),
         )?;
     }
-    let dependencies = cmd::record_digest(&snapshot)?.to_prefixed();
-    if cancelled.load(Ordering::Relaxed) || Instant::now() >= deadline {
-        return Err(SourceCommandError::Denied(
-            "creation deadline or cancellation",
-        ));
-    }
-    Ok(PreparedCreation {
-        context: ctx,
-        managed_basis: managed.map(|input| input.basis.clone()),
-        managed_observations: managed.map(|input| input.observations.clone()),
-        family,
-        home,
-        subject,
-        dependencies,
-        files,
-        components: components.clone(),
-    })
+    Ok(snapshot)
+}
+
+pub(crate) fn agent_dependency_template(
+    ctx: &CommandContext,
+    source_profiles: JsonValue,
+) -> SourceCommandResult<JsonValue> {
+    creation_dependency_snapshot(
+        ctx,
+        CreationFamily::CorpusV2,
+        CreationInventoryEncoding {
+            records: JsonValue::Null,
+            claims: JsonValue::Array(vec![]),
+            source_profiles,
+            native_identity_snapshot: revisions::python_ascii_digest(&cmd::object(vec![]))?,
+            native_text_snapshot: None,
+            claim_profile_inputs: cmd::object(vec![]),
+            events: JsonValue::Null,
+            anchors: JsonValue::Null,
+        },
+        vec![],
+        JsonValue::Null,
+    )
 }
 
 /// Only the durable committed-attempt reader supplies this original input and

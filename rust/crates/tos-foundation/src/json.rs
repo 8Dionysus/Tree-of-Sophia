@@ -599,6 +599,35 @@ pub fn canonical_count_v1(
     Ok(output.len())
 }
 
+/// Feed one bounded canonical fragment to the actual inventory digest sink.
+/// Same ordering/number/escape/structural limits as canonical_bytes_v1.
+pub fn canonical_feed_digest_v1(
+    value: &JsonValue,
+    profile: CanonicalProfile,
+    limits: JsonLimits,
+    hasher: &mut crate::Digest256Hasher,
+    written: &mut usize,
+    visits: &mut usize,
+    depth: usize,
+) -> Result<()> {
+    limits.validate()?;
+    let mut output = JsonOutput::Digest {
+        hasher,
+        bytes: *written,
+    };
+    let style = if profile == CanonicalProfile::CorpusSnapshotV1 {
+        WriteStyle::PythonCompactLf
+    } else {
+        WriteStyle::PythonCompact
+    };
+    write_value(value, &mut output, depth, visits, limits, style)?;
+    if style.newline() {
+        emit(&mut output, b"\n", limits)?;
+    }
+    *written = output.len();
+    Ok(())
+}
+
 /// Exact published bytes of the legacy public Work/HumanForm set as a whole.
 /// The receipt is an embedded field; this is not a standalone receipt codec.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -712,12 +741,17 @@ impl WriteStyle {
 enum JsonOutput<'a> {
     Bytes(&'a mut Vec<u8>),
     Count(usize),
+    Digest {
+        hasher: &'a mut crate::Digest256Hasher,
+        bytes: usize,
+    },
 }
 impl JsonOutput<'_> {
     fn len(&self) -> usize {
         match self {
             Self::Bytes(bytes) => bytes.len(),
             Self::Count(count) => *count,
+            Self::Digest { bytes, .. } => *bytes,
         }
     }
 }
@@ -751,6 +785,13 @@ fn emit(output: &mut JsonOutput<'_>, bytes: &[u8], limits: JsonLimits) -> Result
     match output {
         JsonOutput::Bytes(output) => output.extend_from_slice(bytes),
         JsonOutput::Count(count) => *count = next,
+        JsonOutput::Digest {
+            hasher,
+            bytes: count,
+        } => {
+            hasher.update(bytes);
+            *count = next;
+        }
     }
     Ok(())
 }

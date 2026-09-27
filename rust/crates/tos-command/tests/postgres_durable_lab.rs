@@ -1026,6 +1026,20 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
         )
         .unwrap();
     assert_eq!(second_receipt.commit_seq, a.commit_seq + 1);
+    let addressed_members = current_package
+        .reads()
+        .iter()
+        .filter(|read| read.path.as_str().starts_with("ToS/"))
+        .count();
+    assert!(
+        addressed_members < reopened.files.len(),
+        "ordinary managed preparation does not read every current body"
+    );
+    assert!(
+        !current_package.reads().iter().any(|read| read.path.as_str()
+            == "ToS/source-witnesses/agents/synthetic-durable-a/agent.human-forms.json"),
+        "prior adjacent-form contribution is consumed from exact projection, not its raw body"
+    );
     assert!(
         current
             .read_current_member(

@@ -24,6 +24,14 @@ const ORIGINAL: &[u8] = b"tos.source-file.original-v1";
 const CREATION: &[u8] = b"tos.source-file.agent-create-v1";
 const OWNER: &str = "native-corpus-create:agent";
 type IndexRows = BTreeSet<(String, String, String)>;
+type ProjectionRows = BTreeMap<String, Vec<u8>>;
+
+/// Exact complete compact inventory basis; not source/semantic admission.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct ManagedAgentInventory {
+    pub root: Digest256,
+    pub dependencies: String,
+}
 
 /// An initial immutable revision names the bootstrap, never later content.
 /// Later completeness is maintained only by this controlled atomic writer.
@@ -234,6 +242,7 @@ pub struct SourceCreationAttempt {
     delta: Digest256,
     reads: SourceReads,
     indexes: IndexRows,
+    projections: ProjectionRows,
 }
 
 pub(super) enum CommitMode<'a> {
@@ -447,6 +456,103 @@ fn verify_manifest_indexes(cut: &CorpusCutReader, rows: &IndexRows) -> DurableRe
     }
     Ok(())
 }
+
+fn inventory_projections(
+    ctx: &CommandContext,
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> DurableResult<ProjectionRows> {
+    let inventory = source_claims::maintained_agent_inventory_from_managed(
+        ctx, true, worker, deadline, cancelled,
+    )
+    .map_err(source_error)?;
+    let mut projections = ProjectionRows::new();
+    let mut projection_bytes = 0usize;
+    for file in ctx
+        .files
+        .iter()
+        .filter(|file| file.path.as_str().starts_with("ToS/"))
+    {
+        active(deadline, cancelled)?;
+        let contribution = source_claims::agent_inventory_contribution(
+            ctx, file, &inventory, worker, deadline, cancelled,
+        )
+        .map_err(source_error)?;
+        let raw = cmd::canonical(&contribution).map_err(source_error)?;
+        // Existing cold metadata-row admission; larger contributions cannot
+        // silently enter the addressed route.
+        if raw.len() > 1_048_576 {
+            return Err(DurableError::Refused(
+                "Agent projection exceeds cold metadata bound",
+            ));
+        }
+        projection_bytes = projection_bytes
+            .checked_add(raw.len())
+            .filter(|bytes| *bytes <= 64 * 1024 * 1024)
+            .ok_or(DurableError::Refused(
+                "Agent projection exceeds cold metadata bound",
+            ))?;
+        projections.insert(file.path.as_str().to_owned(), raw);
+    }
+    Ok(projections)
+}
+
+fn optional_agent_projections(
+    ctx: &CommandContext,
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> DurableResult<Option<ProjectionRows>> {
+    match inventory_projections(ctx, worker, deadline, cancelled) {
+        Ok(rows) => Ok(Some(rows)),
+        Err(DurableError::Source(cmd::SourceCommandError::Unsupported(_)))
+        | Err(DurableError::Refused("Agent projection exceeds cold metadata bound")) => Ok(None),
+        Err(error) => Err(error),
+    }
+}
+
+fn projection_root(projections: &ProjectionRows) -> Digest256 {
+    let mut hash = Digest256Hasher::new();
+    part(&mut hash, b"tos-managed-agent-inventory-coverage-v1");
+    for (path, raw) in projections {
+        part(&mut hash, path.as_bytes());
+        part(&mut hash, Digest256::of_bytes(raw).as_bytes());
+    }
+    hash.finalize()
+}
+
+fn projections_bytes(projections: &ProjectionRows) -> DurableResult<Vec<u8>> {
+    serde_json::to_vec(projections)
+        .map_err(|_| DurableError::Invalid("source projections encoding"))
+}
+
+fn creation_projections(
+    package: CreationPackage<'_>,
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> DurableResult<ProjectionRows> {
+    let mut projections =
+        inventory_projections(&scoped_context(package), worker, deadline, cancelled)?;
+    projections
+        .retain(|path, _| path.starts_with(&format!("{}/", package.prepared().home().as_str())));
+    if projections
+        .keys()
+        .map(String::as_str)
+        .collect::<BTreeSet<_>>()
+        != package
+            .changes()
+            .iter()
+            .map(|change| change.path.as_str())
+            .collect()
+    {
+        return Err(DurableError::Corrupt(
+            "Agent projection omits serialized delta member",
+        ));
+    }
+    Ok(projections)
+}
 fn scoped_context(package: CreationPackage<'_>) -> CommandContext {
     let mut ctx = package.prepared().context().clone();
     // The maintained producer already checks initial identity and source_refs
@@ -621,16 +727,387 @@ fn managed_original(package: CreationPackage<'_>) -> Option<serde_json::Value> {
     let observations = package
         .observations()
         .expect("managed owner package observations");
-    Some(serde_json::json!({
+    let mut original = serde_json::json!({
         "basis":[basis.domain,basis.digest.to_hex(),basis.generation,basis.epoch,basis.definition.to_hex()],
         "context":[context.base_revision.0.to_hex(),context.configuration_raw,context.request_raw,context.recorded_at,context.effective_uid],
         "software":software_value(package.prepared().selected_components()),
         "software_inputs":context.files.iter().filter(|f|!f.path.as_str().starts_with("ToS/")).map(|f|serde_json::json!([f.path.as_str(),Digest256::of_bytes(&f.raw).to_hex(),f.raw.len()])).collect::<Vec<_>>(),
         "observations":observations.values().map(|o|serde_json::json!([member_value(&o.metadata),o.dependencies.as_ref().map(|paths|paths.iter().map(|p|p.as_str()).collect::<Vec<_>>()),o.custody_revision,o.commit_seq])).collect::<Vec<_>>(),
-    }))
+    });
+    if let Some(inventory) = package.inventory() {
+        original["inventory"] =
+            serde_json::json!([inventory.root.to_hex(), inventory.dependencies]);
+    }
+    Some(original)
 }
 fn original_digest(value: &serde_json::Value) -> Digest256 {
     Digest256::of_bytes(&serde_json::to_vec(value).expect("private original primitives encode"))
+}
+
+// Finite Agent dependency snapshot. SQL is only an ordering/cursor carrier;
+// original projection byte values are parsed/emitted by the same FND visitor.
+// This performs O(N) compact passes outside the publication/commit fence.
+const RETAINED_PROJECTIONS: &str = "SELECT DISTINCT ON (subject) subject,content_digest,CASE WHEN octet_length(inventory_projection)<=1048576 THEN inventory_projection ELSE NULL END AS inventory_projection FROM cmd2_history WHERE domain=$1 AND commit_seq<=$2 ORDER BY subject,revision DESC";
+
+struct AgentDigest {
+    hash: Digest256Hasher,
+    bytes: usize,
+    visits: usize,
+    limits: tos_foundation::JsonLimits,
+}
+impl AgentDigest {
+    fn new() -> Self {
+        Self {
+            hash: Digest256Hasher::new(),
+            bytes: 0,
+            visits: 0,
+            limits: tos_foundation::JsonLimits {
+                max_bytes: 8_388_608,
+                ..Default::default()
+            },
+        }
+    }
+    fn framing(&mut self, bytes: &[u8]) -> DurableResult<()> {
+        self.bytes = self
+            .bytes
+            .checked_add(bytes.len())
+            .filter(|n| *n <= self.limits.max_bytes)
+            .ok_or(DurableError::Refused(
+                "Agent dependency canonical byte bound",
+            ))?;
+        self.hash.update(bytes);
+        Ok(())
+    }
+    fn container(&mut self, byte: u8) -> DurableResult<()> {
+        self.visits = self
+            .visits
+            .checked_add(1)
+            .filter(|n| *n <= self.limits.max_visits)
+            .ok_or(DurableError::Refused(
+                "Agent dependency canonical node bound",
+            ))?;
+        self.framing(&[byte])
+    }
+    fn key(&mut self, key: &str) -> DurableResult<()> {
+        self.framing(&cmd::canonical(&cmd::string(key)).map_err(source_error)?)?;
+        self.framing(b":")
+    }
+    fn value(&mut self, value: &tos_foundation::JsonValue, depth: usize) -> DurableResult<()> {
+        tos_foundation::canonical_feed_digest_v1(
+            value,
+            tos_foundation::CanonicalProfile::SourceRecordDigestV1,
+            self.limits,
+            &mut self.hash,
+            &mut self.bytes,
+            &mut self.visits,
+            depth,
+        )
+        .map_err(|_| DurableError::Refused("Agent dependency canonical structural bound"))
+    }
+}
+fn projection_value(row: &postgres::Row) -> DurableResult<tos_foundation::JsonValue> {
+    let raw = row
+        .get::<_, Option<Vec<u8>>>("inventory_projection")
+        .ok_or(DurableError::Refused(
+            "managed inventory projection incomplete; FullOnly required",
+        ))?;
+    if raw.len() > 1_048_576 {
+        return Err(DurableError::Refused(
+            "Agent projection exceeds cold metadata bound",
+        ));
+    }
+    let value = cmd::parse(&raw).map_err(source_error)?;
+    cmd::exact_keys(
+        &value,
+        &[
+            "schema_version",
+            "path",
+            "raw_sha256",
+            "records",
+            "source_profiles",
+            "events",
+            "anchors",
+            "form",
+        ],
+    )
+    .map_err(source_error)?;
+    if cmd::text(&value, "schema_version").map_err(source_error)?
+        != "tos_managed_agent_inventory_member_v1"
+        || cmd::text(&value, "path").map_err(source_error)? != row.get::<_, String>("subject")
+        || cmd::text(&value, "raw_sha256").map_err(source_error)?
+            != row.get::<_, String>("content_digest")
+        || cmd::canonical(&value).map_err(source_error)? != raw
+    {
+        return Err(DurableError::Corrupt(
+            "Agent projection raw/classification binding differs",
+        ));
+    }
+    Ok(value)
+}
+fn retained_projection_root(
+    tx: &mut Transaction<'_>,
+    domain: &str,
+    generation: u64,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> DurableResult<(Digest256, tos_foundation::JsonValue, u64)> {
+    active(deadline, cancelled)?;
+    let admission = format!(
+        "WITH members AS ({RETAINED_PROJECTIONS}) SELECT count(*),coalesce(sum(octet_length(inventory_projection)),0),count(*) FILTER(WHERE inventory_projection IS NULL) FROM members"
+    );
+    let admitted = tx.query_one(&admission, &[&domain, &as_i64(generation)?])?;
+    if as_u64(admitted.get(0))? > MAX_CUT
+        || as_u64(admitted.get(1))? > 64 * 1024 * 1024
+        || admitted.get::<_, i64>(2) != 0
+    {
+        return Err(DurableError::Refused(
+            "Agent projection exceeds existing cold metadata envelope or is incomplete; FullOnly required",
+        ));
+    }
+    let mut root = Digest256Hasher::new();
+    part(&mut root, b"tos-managed-agent-inventory-coverage-v1");
+    let mut profiles = cmd::object(vec![]);
+    let mut cursor = String::new();
+    let mut count = 0u64;
+    active(deadline, cancelled)?;
+    let sql = format!(
+        "WITH members AS ({RETAINED_PROJECTIONS}) SELECT * FROM members ORDER BY subject COLLATE \"C\""
+    );
+    let sequence = as_i64(generation)?;
+    let mut rows = tx.query_raw(
+        &sql,
+        [&domain as &(dyn postgres::types::ToSql + Sync), &sequence],
+    )?;
+    while let Some(row) = rows.next()? {
+        active(deadline, cancelled)?;
+        let value = projection_value(&row)?;
+        let path: String = row.get("subject");
+        if path <= cursor || !path.starts_with("ToS/") {
+            return Err(DurableError::Corrupt(
+                "Agent projection path coverage/order differs",
+            ));
+        }
+        let raw: Vec<u8> = row
+            .get::<_, Option<Vec<u8>>>("inventory_projection")
+            .unwrap();
+        part(&mut root, path.as_bytes());
+        part(&mut root, Digest256::of_bytes(&raw).as_bytes());
+        for (key, digest) in cmd::field(&value, "source_profiles")
+            .map_err(source_error)?
+            .as_object()
+            .ok_or(DurableError::Corrupt("Agent source profile map"))?
+        {
+            let key = key
+                .as_str()
+                .ok_or(DurableError::Corrupt("Agent profile locator"))?;
+            if profiles
+                .object_get(key)
+                .is_some_and(|prior| prior != digest)
+            {
+                return Err(DurableError::Corrupt(
+                    "Agent source profile contributions disagree",
+                ));
+            }
+            cmd::set(&mut profiles, key, digest.clone()).map_err(source_error)?;
+        }
+        // EVERY member is represented, including non-catalogue paths.
+        // Non-Agent/native/Claim scopes cannot obtain these contributions.
+        count = count
+            .checked_add(1)
+            .ok_or(DurableError::Corrupt("Agent projection coverage overflow"))?;
+        cursor = path;
+    }
+    Ok((root.finalize(), profiles, count))
+}
+
+fn stream_projection_section(
+    tx: &mut Transaction<'_>,
+    domain: &str,
+    generation: u64,
+    section: &str,
+    output: &mut AgentDigest,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> DurableResult<()> {
+    // The already verified owner index supplies only stable string ordering
+    // keys. Its controlled writer is initial-only: later identities always
+    // have new paths, so the retained member join excludes future additions.
+    // No PostgreSQL JSON codec touches authored values or number spelling.
+    let expansion = match section {
+        "records" => {
+            "SELECT m.*,i.token AS entry_key FROM members m JOIN cmd2_source_index i ON i.domain=$1 AND i.path=m.subject AND i.kind='metadata' AND i.definition_digest=$3"
+        }
+        "events" => {
+            "SELECT m.*,i.token AS entry_key FROM members m JOIN cmd2_source_index i ON i.domain=$1 AND i.path=m.subject AND i.kind='event' AND i.definition_digest=$3"
+        }
+        "anchors" => {
+            "SELECT m.*,i.token AS entry_key FROM members m JOIN cmd2_source_index i ON i.domain=$1 AND i.path=m.subject AND i.kind='anchor' AND i.definition_digest=$3"
+        }
+        "forms" => {
+            "SELECT m.*,m.subject AS entry_key FROM members m WHERE right(m.subject,length('.human-forms.json'))='.human-forms.json' AND EXISTS(SELECT 1 FROM members p JOIN cmd2_source_index i ON i.domain=$1 AND i.path=p.subject AND i.kind='metadata' AND i.definition_digest=$3 WHERE p.subject=left(m.subject,length(m.subject)-length('.human-forms.json'))||'.json')"
+        }
+        _ => return Err(DurableError::Invalid("Agent dependency section")),
+    };
+    let mut cursor = String::new();
+    let mut first = true;
+    active(deadline, cancelled)?;
+    let sql = format!(
+        "WITH members AS ({RETAINED_PROJECTIONS}), entries AS ({expansion}) SELECT * FROM entries ORDER BY entry_key COLLATE \"C\""
+    );
+    let sequence = as_i64(generation)?;
+    let definition = definition().to_hex();
+    // Keep fixed positional SQL binding; ordering no longer repeats the full
+    // retained scan for each page. RowIter releases each bounded row at once.
+    let mut rows = tx.query_raw(
+        &sql,
+        [
+            &domain as &(dyn postgres::types::ToSql + Sync),
+            &sequence,
+            &definition,
+        ],
+    )?;
+    while let Some(row) = rows.next()? {
+        active(deadline, cancelled)?;
+        let key: String = row.get("entry_key");
+        if key <= cursor {
+            return Err(DurableError::Corrupt(
+                "Agent dependency identity ordering/uniqueness differs",
+            ));
+        }
+        let value = projection_value(&row)?;
+        let entry = match section {
+            "records" => cmd::array(
+                cmd::field(&value, "records").map_err(source_error)?,
+                "agent",
+            )
+            .map_err(source_error)?
+            .iter()
+            .find(|entry| cmd::text(entry, "record_id").ok() == Some(key.as_str()))
+            .ok_or(DurableError::Corrupt("Agent catalogue entry absent"))?,
+            "forms" => cmd::field(
+                cmd::field(&value, "form").map_err(source_error)?,
+                "raw_sha256",
+            )
+            .map_err(source_error)?,
+            _ => cmd::field(cmd::field(&value, section).map_err(source_error)?, &key)
+                .map_err(source_error)?,
+        };
+        if !first {
+            output.framing(b",")?;
+        }
+        first = false;
+        if section != "records" {
+            output.key(&key)?;
+        }
+        output.value(entry, if section == "records" { 3 } else { 2 })?;
+        cursor = key;
+    }
+    Ok(())
+}
+fn retained_agent_inventory(
+    tx: &mut Transaction<'_>,
+    domain: &str,
+    generation: u64,
+    ctx: &CommandContext,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> DurableResult<(ManagedAgentInventory, u64)> {
+    let (root, profiles, count) =
+        retained_projection_root(tx, domain, generation, deadline, cancelled)?;
+    // Resource digests from retained owner contributions must name the exact
+    // independently selected schema bytes read by this operation.
+    for (path, sha) in profiles
+        .as_object()
+        .ok_or(DurableError::Corrupt("Agent profile contribution object"))?
+    {
+        let path = RelativePath::parse(
+            path.as_str()
+                .ok_or(DurableError::Corrupt("Agent profile path"))?,
+        )
+        .map_err(|_| DurableError::Corrupt("Agent profile path"))?;
+        let raw = ctx
+            .file(&path)
+            .map_err(source_error)?
+            .ok_or(DurableError::Conflict(
+                "Agent profile resource not selected",
+            ))?;
+        if sha.as_str() != Some(Digest256::of_bytes(raw).to_hex().as_str()) {
+            return Err(DurableError::Conflict(
+                "Agent profile resource digest differs",
+            ));
+        }
+    }
+    let template =
+        crate::source_creation::agent_dependency_template(ctx, profiles).map_err(source_error)?;
+    let mut fields = template
+        .as_object()
+        .ok_or(DurableError::Corrupt("Agent dependency template"))?
+        .iter()
+        .collect::<Vec<_>>();
+    fields.sort_by(|(a, _), (b, _)| a.as_str().cmp(&b.as_str()));
+    let mut output = AgentDigest::new();
+    output.container(b'{')?;
+    for (index, (key, value)) in fields.into_iter().enumerate() {
+        if index > 0 {
+            output.framing(b",")?;
+        }
+        let key = key
+            .as_str()
+            .ok_or(DurableError::Corrupt("Agent dependency key"))?;
+        output.key(key)?;
+        match key {
+            "records" => {
+                output.container(b'{')?;
+                let mut kinds = source_claims::NATIVE_CATALOG_KINDS
+                    .iter()
+                    .copied()
+                    .collect::<Vec<_>>();
+                kinds.sort_unstable();
+                for (i, kind) in kinds.into_iter().enumerate() {
+                    if i > 0 {
+                        output.framing(b",")?;
+                    }
+                    output.key(kind)?;
+                    output.container(b'[')?;
+                    if kind == "agent" {
+                        stream_projection_section(
+                            tx,
+                            domain,
+                            generation,
+                            "records",
+                            &mut output,
+                            deadline,
+                            cancelled,
+                        )?;
+                    }
+                    output.framing(b"]")?;
+                }
+                output.framing(b"}")?;
+            }
+            "events" | "anchors" | "forms" => {
+                output.container(b'{')?;
+                stream_projection_section(
+                    tx,
+                    domain,
+                    generation,
+                    key,
+                    &mut output,
+                    deadline,
+                    cancelled,
+                )?;
+                output.framing(b"}")?;
+            }
+            _ => output.value(value, 1)?,
+        }
+    }
+    output.framing(b"}")?;
+    Ok((
+        ManagedAgentInventory {
+            root,
+            dependencies: output.hash.finalize().to_prefixed(),
+        },
+        count,
+    ))
 }
 
 fn source_delta(package: CreationPackage<'_>) -> Digest256 {
@@ -704,6 +1181,7 @@ fn source_delta(package: CreationPackage<'_>) -> Digest256 {
 fn registered_source_delta(
     package: CreationPackage<'_>,
     reads: &SourceReads,
+    projections: &ProjectionRows,
 ) -> DurableResult<Digest256> {
     if reads.managed_original != managed_original(package) {
         return Err(DurableError::Conflict(
@@ -718,6 +1196,10 @@ fn registered_source_delta(
     part(&mut h, b"tos-managed-agent-registered-read-closure-v1");
     part(&mut h, delta.as_bytes());
     part(&mut h, Digest256::of_bytes(&reads_bytes(reads)?).as_bytes());
+    part(
+        &mut h,
+        Digest256::of_bytes(&projections_bytes(projections)?).as_bytes(),
+    );
     Ok(h.finalize())
 }
 
@@ -745,6 +1227,106 @@ fn cohort_matches(
 }
 
 impl DurablePgCoordinator {
+    pub(crate) fn select_agent_inventory(
+        &mut self,
+        generation: &crate::source_current_cut::ManagedCurrentSourceGeneration,
+        ctx: &CommandContext,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<ManagedAgentInventory> {
+        active(deadline, cancelled)?;
+        let cohort = generation.cohort();
+        let domain = cohort.domain.as_str();
+        let mut tx = self.client.transaction()?;
+        tx.batch_execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY; SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='15s'")?;
+        let row = tx.query_one("SELECT * FROM cmd2_domain WHERE domain=$1", &[&domain])?;
+        cohort_matches(&row, cohort, true)?;
+        let audit = tx.query_one(
+            "SELECT generation,maintenance_state FROM cmd2_audit_fence WHERE domain=$1",
+            &[&domain],
+        )?;
+        if as_u64(audit.get(0))? != generation.audit_generation()
+            || audit.get::<_, String>(1) != "normal"
+        {
+            return Err(DurableError::Conflict(
+                "managed inventory audit fence differs",
+            ));
+        }
+        if !row.get::<_, bool>("rights_allowed")
+            || as_u64(row.get("head_seq"))? != generation.commit_seq()
+            || row.get::<_, Option<String>>("selected_generation_digest")
+                != Some(generation.digest().to_hex())
+            || tx
+                .query_one(
+                    "SELECT maintenance_state FROM cmd2_audit_fence WHERE domain=$1",
+                    &[&domain],
+                )?
+                .get::<_, String>(0)
+                != "normal"
+        {
+            return Err(DurableError::Conflict(
+                "managed inventory current fence differs",
+            ));
+        }
+        let (inventory, count) = retained_agent_inventory(
+            &mut tx,
+            domain,
+            generation.commit_seq(),
+            ctx,
+            deadline,
+            cancelled,
+        )?;
+        if row.get::<_, Option<String>>("source_projection_digest") != Some(inventory.root.to_hex())
+            || count != generation.members().count() as u64
+        {
+            return Err(DurableError::Refused(
+                "managed projection lacks verified complete coverage; FullOnly required",
+            ));
+        }
+        let config = cmd::parse(&ctx.configuration_raw).map_err(source_error)?;
+        let request = cmd::parse(&ctx.request_raw).map_err(source_error)?;
+        let source_path = cmd::text(&config, "source_path").map_err(source_error)?;
+        let home = source_path
+            .strip_suffix("/agent.json")
+            .ok_or(DurableError::Refused(
+                "managed projection consumes Agent home only",
+            ))?;
+        if tx.query_opt("SELECT 1 FROM cmd2_current WHERE domain=$1 AND (subject=$2 OR left(subject,length($2)+1)=$2||'/') LIMIT 1", &[&domain,&home])?.is_some() {
+            return Err(DurableError::Conflict("creation source home already occupied"));
+        }
+        let mut ids = vec![
+            cmd::text(
+                cmd::field(&request, "record").map_err(source_error)?,
+                "record_id",
+            )
+            .map_err(source_error)?,
+            cmd::text(&config, "provenance_event_id").map_err(source_error)?,
+        ];
+        for form in cmd::array(&request, "forms").map_err(source_error)? {
+            ids.push(cmd::text(form, "form_id").map_err(source_error)?);
+        }
+        if tx.query_opt("SELECT 1 FROM cmd2_source_index WHERE domain=$1 AND kind<>'path' AND token=ANY($2) LIMIT 1", &[&domain,&ids])?.is_some() {
+            return Err(DurableError::Conflict("managed identity already allocated"));
+        }
+        tx.commit()?;
+        active(deadline, cancelled)?;
+        let fresh=self.client.query_one("SELECT d.head_seq,d.source_epoch,d.source_projection_digest,d.selected_generation_digest,d.source_complete,d.rights_allowed,f.generation,f.maintenance_state FROM cmd2_domain d JOIN cmd2_audit_fence f USING(domain) WHERE d.domain=$1", &[&domain])?;
+        if as_u64(fresh.get(0))? != generation.commit_seq()
+            || fresh.get::<_, Option<i64>>(1) != Some(as_i64(cohort.epoch)?)
+            || fresh.get::<_, Option<String>>(2) != Some(inventory.root.to_hex())
+            || fresh.get::<_, Option<String>>(3) != Some(generation.digest().to_hex())
+            || !fresh.get::<_, bool>(4)
+            || !fresh.get::<_, bool>(5)
+            || as_u64(fresh.get(6))? != generation.audit_generation()
+            || fresh.get::<_, String>(7) != "normal"
+        {
+            return Err(DurableError::Conflict(
+                "managed inventory changed during selection",
+            ));
+        }
+        Ok(inventory)
+    }
+
     pub fn read_current_source_member(
         &mut self,
         store: &SegmentStore,
@@ -1132,6 +1714,7 @@ impl DurablePgCoordinator {
         }
         ctx.check().map_err(source_error)?;
         let indexes = index_rows(&ctx, worker, deadline, cancelled)?;
+        let projections = optional_agent_projections(&ctx, worker, deadline, cancelled)?;
         verify_manifest_indexes(cut, &indexes)?;
         let def = definition();
         self.create_domain(domain, contract)?;
@@ -1232,6 +1815,18 @@ impl DurablePgCoordinator {
         lock_audit_fence(&mut tx, domain)?;
         for (kind, token, path) in &indexes {
             tx.execute("INSERT INTO cmd2_source_index(domain,kind,token,path,definition_digest) VALUES($1,$2,$3,$4,$5)", &[&domain,kind,token,path,&def.to_hex()])?;
+        }
+        if let Some(projections) = &projections {
+            for (path, projection) in projections {
+                let current = tx.execute("UPDATE cmd2_current SET inventory_projection=$3 WHERE domain=$1 AND subject=$2", &[&domain,path,projection])?;
+                let history = tx.execute("UPDATE cmd2_history SET inventory_projection=$3 WHERE domain=$1 AND subject=$2 AND revision=1", &[&domain,path,projection])?;
+                let indexed = tx.execute("UPDATE cmd2_source_index SET inventory_projection=$3 WHERE domain=$1 AND kind='path' AND path=$2", &[&domain,path,projection])?;
+                if current != 1 || history != 1 || indexed != 1 {
+                    return Err(DurableError::Corrupt(
+                        "bootstrap projection membership differs",
+                    ));
+                }
+            }
         }
         for (kind, scope, token) in predicates(&indexes) {
             tx.execute("INSERT INTO cmd2_predicate(domain,kind,owner,scope,token,definition_version,generation,complete) VALUES($1,$2,$3,$4,$5,$6,0,false)", &[&domain,&kind,&OWNER,&scope,&token,&def.to_hex()])?;
@@ -1349,10 +1944,13 @@ impl DurablePgCoordinator {
             .filter(|read| read.path.as_str().starts_with("ToS/"))
             .map(|read| (read.path.as_str(), read.raw_sha256))
             .collect::<BTreeMap<_, _>>();
-        if members.len() != generation.members().count()
-            || generation
-                .members()
-                .any(|member| members.get(member.path.as_str()) != Some(&member.sha256))
+        if (view.inventory().is_none() && members.len() != generation.members().count())
+            || members.iter().any(|(path, sha)| {
+                RelativePath::parse(path)
+                    .ok()
+                    .and_then(|p| generation.member(&p))
+                    .is_none_or(|m| &m.sha256 != sha)
+            })
         {
             return Err(DurableError::Conflict(
                 "managed proposal complete inventory differs",
@@ -1362,10 +1960,8 @@ impl DurablePgCoordinator {
             .observations()
             .ok_or(DurableError::Conflict("managed observations absent"))?;
         if observations.len() != members.len()
-            || generation.members().any(|member| {
-                observations
-                    .get(member.path.as_str())
-                    .is_none_or(|observed| &observed.metadata != member)
+            || observations.values().any(|observed| {
+                generation.member(&observed.metadata.path) != Some(&observed.metadata)
             })
         {
             return Err(DurableError::Conflict(
@@ -1547,6 +2143,24 @@ impl DurablePgCoordinator {
         }
         input.context.files.sort_by(|a, b| a.path.cmp(&b.path));
         input.context.check().map_err(source_error)?;
+        if let Some(expected) = &input.inventory {
+            let mut projection_tx = self.client.transaction()?;
+            projection_tx.batch_execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY; SET LOCAL statement_timeout='15s'")?;
+            let (actual, _) = retained_agent_inventory(
+                &mut projection_tx,
+                &cohort.domain,
+                input.basis.generation,
+                &input.context,
+                deadline,
+                cancelled,
+            )?;
+            if &actual != expected {
+                return Err(DurableError::Corrupt(
+                    "original retained Agent projection differs",
+                ));
+            }
+            projection_tx.commit()?;
+        }
         let config = cmd::parse(&input.context.configuration_raw).map_err(source_error)?;
         let source_path = cmd::text(&config, "source_path").map_err(source_error)?;
         let home = source_path
@@ -1604,6 +2218,7 @@ impl DurablePgCoordinator {
             basis: input.basis,
             observations: input.observations,
             components: components.clone(),
+            inventory: input.inventory,
         };
         let package = crate::source_creation::reprepare_managed_agent_creation(
             input,
@@ -1755,6 +2370,7 @@ impl DurablePgCoordinator {
             return Err(DurableError::Conflict("source creation carrier differs"));
         }
         let indexes = creation_indexes(package, worker, deadline, cancelled)?;
+        let projections = creation_projections(package, worker, deadline, cancelled)?;
         let registered_original = managed_original(package);
         let request =
             cmd::parse(&package.prepared().context().request_raw).map_err(source_error)?;
@@ -1763,7 +2379,7 @@ impl DurablePgCoordinator {
         let domain = cohort.domain.as_str();
         let mut tx = self.client.transaction()?;
         tx.batch_execute("SET LOCAL lock_timeout = '5s'; SET LOCAL statement_timeout = '15s'")?;
-        lock_audit_fence(&mut tx, domain)?;
+        let audit_generation = lock_audit_fence(&mut tx, domain)?;
         let row = tx.query_one("SELECT * FROM cmd2_domain WHERE domain=$1", &[&domain])?;
         cohort_matches(&row, cohort, true)?;
         if let SourceRegistrationBasis::Current(current) = &basis {
@@ -1785,6 +2401,10 @@ impl DurablePgCoordinator {
                     != Some(as_i64(generation.commit_seq())?)
                 || row.get::<_, Option<String>>("selected_generation_digest")
                     != Some(generation.digest().to_hex())
+                || package.inventory().is_some_and(|inventory| {
+                    row.get::<_, Option<String>>("source_projection_digest")
+                        != Some(inventory.root.to_hex())
+                })
             {
                 return Err(DurableError::Conflict(
                     "managed proposal generation changed",
@@ -1807,12 +2427,14 @@ impl DurablePgCoordinator {
                 .get::<_, Option<Vec<u8>>>("source_reads")
                 .ok_or(DurableError::Corrupt("source attempt read binding absent"))?;
             let reads = decode_reads(&encoded)?;
-            let delta = registered_source_delta(package, &reads)?;
+            let delta = registered_source_delta(package, &reads, &projections)?;
             if existing.get::<_, String>("command_id") != command_id
                 || existing.get::<_, String>("raw_request_digest") != raw_request_digest.to_hex()
                 || existing.get::<_, String>("delta_digest") != delta.to_hex()
                 || existing.get::<_, Option<Vec<u8>>>("source_indexes")
                     != Some(indexes_bytes(&indexes)?)
+                || existing.get::<_, Option<Vec<u8>>>("source_projections")
+                    != Some(projections_bytes(&projections)?)
                 || (existing.get::<_, String>("state") != "committed"
                     && existing.get::<_, Option<i64>>("source_epoch")
                         != Some(as_i64(cohort.epoch)?))
@@ -1838,12 +2460,20 @@ impl DurablePgCoordinator {
                 delta,
                 reads,
                 indexes,
+                projections,
             });
         }
         if matches!(basis, SourceRegistrationBasis::CommittedReplay) {
             return Err(DurableError::Refused(
                 "source replay attempt does not exist",
             ));
+        }
+        if let SourceRegistrationBasis::Managed(generation) = &basis {
+            if audit_generation != generation.audit_generation() {
+                return Err(DurableError::Conflict(
+                    "managed inventory audit fence changed before registration",
+                ));
+            }
         }
         let mut reads = SourceReads {
             reads: Vec::new(),
@@ -1864,15 +2494,18 @@ impl DurablePgCoordinator {
             .into_iter()
             .map(|r| (r.get::<_, String>("subject"), r))
             .collect::<BTreeMap<_, _>>();
-        let membership_count: i64 = tx
-            .query_one(
-                "SELECT count(*) FROM cmd2_current WHERE domain=$1",
-                &[&domain],
-            )?
-            .get(0);
-        if current_dependencies.len() != dependency_paths.len()
-            || as_u64(membership_count)? != dependency_paths.len() as u64
-        {
+        let whole_membership_differs = if package.inventory().is_none() {
+            let count: i64 = tx
+                .query_one(
+                    "SELECT count(*) FROM cmd2_current WHERE domain=$1",
+                    &[&domain],
+                )?
+                .get(0);
+            as_u64(count)? != dependency_paths.len() as u64
+        } else {
+            false
+        };
+        if current_dependencies.len() != dependency_paths.len() || whole_membership_differs {
             return Err(DurableError::Conflict(
                 "maintained complete source inventory changed since preparation",
             ));
@@ -1988,9 +2621,9 @@ impl DurablePgCoordinator {
                 observed_generation: as_u64(row.get(0))?,
             });
         }
-        let delta = registered_source_delta(package, &reads)?;
-        tx.execute("INSERT INTO cmd2_attempt(domain,prepare_id,command_id,raw_request_digest,delta_digest,state,attempt_fence,source_reads,source_indexes,source_epoch) VALUES($1,$2,$3,$4,$5,'registered',1,$6,$7,$8)",
-            &[&domain,&prepare_id,&command_id,&raw_request_digest.to_hex(),&delta.to_hex(),&reads_bytes(&reads)?,&indexes_bytes(&indexes)?,&as_i64(cohort.epoch)?])?;
+        let delta = registered_source_delta(package, &reads, &projections)?;
+        tx.execute("INSERT INTO cmd2_attempt(domain,prepare_id,command_id,raw_request_digest,delta_digest,state,attempt_fence,source_reads,source_indexes,source_epoch,source_projections) VALUES($1,$2,$3,$4,$5,'registered',1,$6,$7,$8,$9)",
+            &[&domain,&prepare_id,&command_id,&raw_request_digest.to_hex(),&delta.to_hex(),&reads_bytes(&reads)?,&indexes_bytes(&indexes)?,&as_i64(cohort.epoch)?,&projections_bytes(&projections)?])?;
         if reads.managed_original.is_some() {
             let measured:i32=tx.query_one("SELECT octet_length(row_to_json(a)::text) FROM cmd2_attempt a WHERE domain=$1 AND prepare_id=$2", &[&domain,&prepare_id])?.get(0);
             if measured > 1_048_576 {
@@ -2009,6 +2642,7 @@ impl DurablePgCoordinator {
             delta,
             reads,
             indexes,
+            projections,
         })
     }
 
@@ -2086,7 +2720,7 @@ impl DurablePgCoordinator {
         cancelled: &AtomicBool,
     ) -> DurableResult<(DurableCommitReceipt, DurableTiming)> {
         active(deadline, cancelled)?;
-        if attempt.delta != registered_source_delta(package, &attempt.reads)?
+        if attempt.delta != registered_source_delta(package, &attempt.reads, &attempt.projections)?
             || attempt.definition != definition()
             || store.custody_domain() != attempt.domain.as_bytes()
         {
@@ -2383,6 +3017,43 @@ impl DurablePgCoordinator {
         }
         ctx.check().map_err(source_error)?;
         let indexes = index_rows(&ctx, worker, deadline, cancelled)?;
+        let projections = optional_agent_projections(&ctx, worker, deadline, cancelled)?;
+        if let Some(projections) = &projections {
+            for row in &rows {
+                let path: String = row.get("subject");
+                if row
+                    .get::<_, Option<Vec<u8>>>("inventory_projection")
+                    .as_ref()
+                    != projections.get(&path)
+                {
+                    return Err(DurableError::Corrupt(
+                        "current Agent projection differs from original body",
+                    ));
+                }
+            }
+            let history_projections = self.client.query("SELECT h.subject,h.inventory_projection FROM cmd2_history h JOIN cmd2_current c USING(domain,subject,revision) WHERE h.domain=$1 ORDER BY h.subject COLLATE \"C\"", &[&domain])?;
+            if history_projections.len() != projections.len()
+                || history_projections.iter().any(|row| {
+                    row.get::<_, Option<Vec<u8>>>(1).as_ref()
+                        != projections.get(&row.get::<_, String>(0))
+                })
+            {
+                return Err(DurableError::Corrupt(
+                    "retained Agent projection membership differs",
+                ));
+            }
+            let indexed = self.client.query("SELECT path,inventory_projection FROM cmd2_source_index WHERE domain=$1 AND kind='path' ORDER BY path COLLATE \"C\"", &[&domain])?;
+            if indexed.len() != projections.len()
+                || indexed.iter().any(|row| {
+                    row.get::<_, Option<Vec<u8>>>(1).as_ref()
+                        != projections.get(&row.get::<_, String>(0))
+                })
+            {
+                return Err(DurableError::Corrupt(
+                    "Agent index projection coverage differs",
+                ));
+            }
+        }
         verify_manifest_indexes(original, &indexes)?;
         let mut actual = IndexRows::new();
         for row in stored {
@@ -2443,7 +3114,10 @@ impl DurablePgCoordinator {
         }
         // Existing empty/absent predicates must be verified and re-enabled too.
         tx.execute("UPDATE cmd2_predicate SET complete=true WHERE domain=$1 AND owner=$2 AND definition_version=$3", &[&domain,&OWNER,&cohort.definition.to_hex()])?;
-        tx.execute("UPDATE cmd2_domain SET source_complete=true,source_generation=head_seq,selected_generation_digest=NULL,complete_cut_digest=NULL,complete_cut_generation=NULL WHERE domain=$1", &[&domain])?;
+        let projection_digest = projections
+            .as_ref()
+            .map(|rows| projection_root(rows).to_hex());
+        tx.execute("UPDATE cmd2_domain SET source_complete=true,source_generation=head_seq,source_projection_digest=$2,selected_generation_digest=NULL,complete_cut_digest=NULL,complete_cut_generation=NULL WHERE domain=$1", &[&domain,&projection_digest])?;
         tx.commit()?;
         let verified =
             self.cold_verify_cut_with_budget(store, domain, Some((deadline, cancelled)))?;
@@ -2554,6 +3228,8 @@ pub(super) fn check_commit_owner(
                     != Some(reads_bytes(&attempt.reads)?)
                 || registered.get::<_, Option<Vec<u8>>>("source_indexes")
                     != Some(indexes_bytes(&attempt.indexes)?)
+                || registered.get::<_, Option<Vec<u8>>>("source_projections")
+                    != Some(projections_bytes(&attempt.projections)?)
                 || members
                     .iter()
                     .any(|m| m.get::<_, String>("profile_id").as_bytes() != CREATION)
@@ -2708,6 +3384,16 @@ pub(super) fn apply_source_change(
             for (kind, token, path) in &attempt.indexes {
                 tx.execute("INSERT INTO cmd2_source_index(domain,kind,token,path,definition_digest) VALUES($1,$2,$3,$4,$5)", &[&request.domain,kind,token,path,&attempt.definition.to_hex()])?;
             }
+            for (path, projection) in &attempt.projections {
+                let current = tx.execute("UPDATE cmd2_current SET inventory_projection=$3 WHERE domain=$1 AND subject=$2 AND prepare_id=$4", &[&request.domain,path,projection,&request.prepare_id])?;
+                let history = tx.execute("UPDATE cmd2_history SET inventory_projection=$3 WHERE domain=$1 AND subject=$2 AND prepare_id=$4 AND commit_seq=$5", &[&request.domain,path,projection,&request.prepare_id,&as_i64(seq)?])?;
+                let indexed = tx.execute("UPDATE cmd2_source_index SET inventory_projection=$3 WHERE domain=$1 AND kind='path' AND path=$2 AND definition_digest=$4", &[&request.domain,path,projection,&attempt.definition.to_hex()])?;
+                if current != 1 || history != 1 || indexed != 1 {
+                    return Err(DurableError::Corrupt(
+                        "atomic Agent projection membership differs",
+                    ));
+                }
+            }
             for (kind, scope, token) in predicates(&attempt.indexes) {
                 let changed=tx.execute("UPDATE cmd2_predicate SET generation=generation+1 WHERE domain=$1 AND kind=$2 AND owner=$3 AND scope=$4 AND token=$5 AND complete AND definition_version=$6 AND generation<9223372036854775807", &[&request.domain,&kind,&OWNER,&scope,&token,&attempt.definition.to_hex()])?;
                 if changed != 1 {
@@ -2716,7 +3402,7 @@ pub(super) fn apply_source_change(
                     ));
                 }
             }
-            tx.execute("UPDATE cmd2_domain SET source_generation=$2,selected_generation_digest=NULL,complete_cut_digest=NULL,complete_cut_generation=NULL WHERE domain=$1 AND source_complete", &[&request.domain,&as_i64(seq)?])?;
+            tx.execute("UPDATE cmd2_domain SET source_generation=$2,source_projection_digest=NULL,selected_generation_digest=NULL,complete_cut_digest=NULL,complete_cut_generation=NULL WHERE domain=$1 AND source_complete", &[&request.domain,&as_i64(seq)?])?;
             Ok(())
         }
     }
@@ -2841,6 +3527,7 @@ struct RetainedManagedOriginal {
     context: CommandContext,
     basis: ManagedCreationBasis,
     observations: BTreeMap<String, ManagedCreationObservation>,
+    inventory: Option<ManagedAgentInventory>,
 }
 
 fn decode_managed_original(
@@ -2876,6 +3563,22 @@ fn decode_managed_original(
             "original managed basis outside retained cohort",
         ));
     }
+    let inventory = match value.get("inventory") {
+        None | Some(serde_json::Value::Null) => None,
+        Some(value) => {
+            let fields = retained_tuple(value, 2)?;
+            let dependencies = retained_text(&fields[1])?.to_owned();
+            if !dependencies.starts_with("sha256:")
+                || Digest256::from_prefixed(&dependencies).is_err()
+            {
+                return Err(DurableError::Corrupt("original Agent dependency digest"));
+            }
+            Some(ManagedAgentInventory {
+                root: parse_hex(retained_text(&fields[0])?.into())?,
+                dependencies,
+            })
+        }
+    };
     let ctx = retained_tuple(
         value
             .get("context")
@@ -3011,6 +3714,7 @@ fn decode_managed_original(
             context,
             basis,
             observations,
+            inventory,
         },
         software_inputs,
     ))

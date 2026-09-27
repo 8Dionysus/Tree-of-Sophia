@@ -41,6 +41,9 @@ impl ManagedCurrentSourceGeneration {
     pub(crate) fn members(&self) -> impl Iterator<Item = &MemberMetadata> {
         self.metadata.values()
     }
+    pub(crate) fn member(&self, path: &RelativePath) -> Option<&MemberMetadata> {
+        self.metadata.get(path.as_str())
+    }
     pub fn digest(&self) -> Digest256 {
         self.selected.digest()
     }
@@ -52,6 +55,9 @@ impl ManagedCurrentSourceGeneration {
     }
     pub fn epoch(&self) -> u64 {
         self.cohort.epoch()
+    }
+    pub(crate) fn audit_generation(&self) -> u64 {
+        self.selected.cut().audit_generation()
     }
     pub fn cohort(&self) -> &ManagedSourceCohort {
         &self.cohort
@@ -149,7 +155,7 @@ pub fn select_current_source_generation(
     })
 }
 
-fn durable(error: DurableError) -> Error {
+pub(crate) fn durable(error: DurableError) -> Error {
     match error {
         DurableError::Source(error) => error,
         DurableError::Conflict(_) => Error::Conflict("managed current selection changed"),
