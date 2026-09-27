@@ -10,7 +10,7 @@ use crate::{
     Error, Result,
     knowledge_stage::{KnowledgeStage, WritePhase},
 };
-use rusqlite::{Connection, OptionalExtension, params};
+use rusqlite::{Connection, OptionalExtension, params, params_from_iter};
 use tos_foundation::{
     CanonicalProfile, Digest256, Digest256Hasher, JsonLimits, JsonMode, JsonString, JsonValue,
     canonical_bytes_v1, parse_json, python_lower_unicode16_v1,
@@ -18,6 +18,7 @@ use tos_foundation::{
 
 pub const SEARCH_PROFILE: &str = "tos-python-native-unicode-v1";
 const GRAM_N: i64 = 3;
+const MAX_GRAM_BATCH_ROWS: usize = 1024;
 
 #[derive(Clone, Copy, Debug)]
 pub struct SearchBuildLimits {
@@ -48,7 +49,7 @@ impl SearchBuildLimits {
             || self.max_postings == 0
             || self.max_work_bytes == 0
             || self.gram_batch_rows == 0
-            || self.gram_batch_rows > 1024
+            || self.gram_batch_rows > MAX_GRAM_BATCH_ROWS
         {
             return Err(Error::Budget("search build limits"));
         }
@@ -485,20 +486,27 @@ fn insert_pending(stage: &mut KnowledgeStage<'_>, batch: &[Vec<u8>]) -> Result<(
 }
 
 fn insert_pending_batch(db: &mut Connection, batch: &[Vec<u8>]) -> Result<()> {
+    if batch.len() > MAX_GRAM_BATCH_ROWS {
+        return Err(Error::Budget("search gram batch rows"));
+    }
     // Attempted grams were already charged, including duplicates. Avoid
     // spending SQL VM instructions on duplicate keys within this bounded
     // batch; the existing PK still deduplicates across all document batches.
     let mut unique = batch.iter().map(Vec::as_slice).collect::<Vec<_>>();
     unique.sort_unstable();
     unique.dedup();
-    let transaction = db.transaction()?;
-    {
-        let mut statement = transaction
-            .prepare_cached("INSERT OR IGNORE INTO search_pending_grams(n,gram) VALUES (?1,?2)")?;
-        for gram in unique {
-            statement.execute(params![GRAM_N, gram])?;
-        }
+    if unique.is_empty() {
+        return Ok(());
     }
+    let transaction = db.transaction()?;
+    // One bounded statement avoids restarting a VM program for every gram.
+    // Only placeholders and the fixed format gram size enter the SQL text;
+    // every borrowed gram remains a bound blob and the PK owns cross-batch dedup.
+    let sql = format!(
+        "INSERT OR IGNORE INTO search_pending_grams(n,gram) VALUES {}",
+        vec![format!("({GRAM_N},?)"); unique.len()].join(",")
+    );
+    transaction.execute(&sql, params_from_iter(unique))?;
     transaction.commit()?;
     Ok(())
 }
@@ -510,6 +518,9 @@ fn copy_pending_page(
     after: Option<&[u8]>,
     rows_cap: usize,
 ) -> Result<Option<Vec<u8>>> {
+    if rows_cap == 0 || rows_cap > MAX_GRAM_BATCH_ROWS {
+        return Err(Error::Budget("search gram page rows"));
+    }
     // Keep continuation as a direct (n,gram) primary-key seek. A nullable
     // disjunction can revisit the whole n-prefix on every bounded page.
     let sql = if after.is_some() {
@@ -536,13 +547,19 @@ fn copy_pending_page(
     // Any statement error rolls back this page; with_connection poisons the
     // private stage so previously committed pages cannot become a candidate.
     let transaction = db.transaction()?;
-    {
-        let mut insert = transaction.prepare_cached(
-            "INSERT INTO search_grams(kind,n,gram,position) VALUES (?1,?2,?3,?4)",
-        )?;
-        for gram in &grams {
-            insert.execute(params![kind, GRAM_N, gram, position])?;
-        }
+    let copied = if let Some(after) = after {
+        transaction.execute(
+            "INSERT INTO search_grams(kind,n,gram,position) SELECT ?1,n,gram,?2 FROM search_pending_grams WHERE n=?3 AND gram>?4 ORDER BY gram LIMIT ?5",
+            params![kind, position, GRAM_N, after, rows_cap as i64],
+        )?
+    } else {
+        transaction.execute(
+            "INSERT INTO search_grams(kind,n,gram,position) SELECT ?1,n,gram,?2 FROM search_pending_grams WHERE n=?3 ORDER BY gram LIMIT ?4",
+            params![kind, position, GRAM_N, rows_cap as i64],
+        )?
+    };
+    if copied != grams.len() {
+        return Err(Error::Invalid("search gram page copy coverage"));
     }
     transaction.commit()?;
     Ok(grams.pop())
