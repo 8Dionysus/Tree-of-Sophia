@@ -192,6 +192,7 @@ pub(crate) fn mcp_tool_list(executor: &dyn AccessExecutor) -> Result<Vec<u8>, Ac
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum AccessErrorCode {
     InvalidRequest,
+    UnsupportedMediaType,
     UnknownExactId,
     StaleSelection,
     CursorExpired,
@@ -218,6 +219,7 @@ impl AccessError {
     pub fn http_status(&self) -> u16 {
         match self.code {
             AccessErrorCode::InvalidRequest => 400,
+            AccessErrorCode::UnsupportedMediaType => 415,
             AccessErrorCode::UnknownExactId => 404,
             AccessErrorCode::CursorExpired => 410,
             AccessErrorCode::StaleSelection | AccessErrorCode::PublicationPending => 409,
@@ -232,6 +234,7 @@ impl AccessError {
     pub fn code_str(&self) -> &'static str {
         match self.code {
             AccessErrorCode::InvalidRequest => "invalid_request",
+            AccessErrorCode::UnsupportedMediaType => "unsupported_media_type",
             AccessErrorCode::UnknownExactId => "unknown_exact_id",
             AccessErrorCode::CursorExpired => "cursor_expired",
             AccessErrorCode::StaleSelection => "stale_selection",
@@ -458,7 +461,7 @@ pub struct AccessProfile {
     pub max_request_bytes: usize,
     /// Raw query packet cap, shared by CLI, HTTP and MCP.
     pub max_response_bytes: usize,
-    /// Complete MCP tool-result JSON-RPC frame cap, including its newline.
+    /// Complete outgoing MCP JSON-RPC frame cap, including its newline.
     pub max_mcp_frame_bytes: usize,
     pub max_line_bytes: usize,
     /// Caller-selected processing deadline. None does not claim a time cap.

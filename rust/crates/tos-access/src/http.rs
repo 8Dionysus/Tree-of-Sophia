@@ -405,14 +405,7 @@ fn handle_post_with_probe(
     if target.len() > profile.max_request_bytes || body.len() > profile.max_request_bytes {
         return HttpResponse::error(413, "query request byte cap exceeded");
     }
-    let path = target.split_once('?').map(|(p, _)| p).unwrap_or(target);
-    let operation = crate::common::registered_operations()
-        .ok()
-        .and_then(|ops| {
-            ops.iter()
-                .find(|op| op.http_method == "POST" && op.http_path == path)
-        })
-        .and_then(|op| KnowledgeOperation::from_id(&op.operation_id));
+    let operation = post_operation(target);
     let Some(operation) = operation else {
         return HttpResponse::error(404, "not found");
     };
@@ -425,6 +418,14 @@ fn handle_post_with_probe(
         })
         .and_then(|document| KnowledgeRequest::from_body(operation, document.into_root()));
     knowledge_response(executor, request, "POST", profile, probe)
+}
+fn post_operation(target: &str) -> Option<KnowledgeOperation> {
+    let path = target.split_once('?').map_or(target, |(path, _)| path);
+    crate::common::registered_operations()
+        .ok()?
+        .iter()
+        .find(|op| op.http_method == "POST" && op.http_path == path)
+        .and_then(|op| KnowledgeOperation::from_id(&op.operation_id))
 }
 fn post_body(
     stream: &mut TcpStream,
@@ -483,7 +484,7 @@ fn post_body(
             .is_some_and(|v| v.trim().eq_ignore_ascii_case("application/json"))
     }) {
         return Err(AccessError::new(
-            AccessErrorCode::InvalidRequest,
+            AccessErrorCode::UnsupportedMediaType,
             "query requires application/json",
         ));
     }
@@ -571,6 +572,7 @@ pub fn write_response<W: Write>(stream: &mut W, mut response: HttpResponse) -> s
         409 => "Conflict",
         410 => "Gone",
         413 => "Content Too Large",
+        415 => "Unsupported Media Type",
         503 => "Service Unavailable",
         _ => "Error",
     };
@@ -605,7 +607,19 @@ pub fn serve_connection(
                     match first.split_whitespace().collect::<Vec<_>>().as_slice() {
                         [method, target, "HTTP/1.1"] | [method, target, "HTTP/1.0"] => {
                             let body = if *method == "POST" {
-                                post_body(&mut stream, text, profile)
+                                if target.len() > profile.max_request_bytes {
+                                    Err(AccessError::new(
+                                        AccessErrorCode::BudgetExceeded,
+                                        "request target too large",
+                                    ))
+                                } else if post_operation(target).is_none() {
+                                    Err(AccessError::new(
+                                        AccessErrorCode::UnknownExactId,
+                                        "not found",
+                                    ))
+                                } else {
+                                    post_body(&mut stream, text, profile)
+                                }
                             } else {
                                 Ok(Vec::new())
                             };

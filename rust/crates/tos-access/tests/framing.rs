@@ -1,6 +1,7 @@
 use std::io::{Cursor, Read, Write};
 use std::net::{Shutdown, TcpListener, TcpStream};
 use std::sync::{Arc, Mutex};
+use tos_foundation::{JsonLimits, JsonMode, parse_json};
 use tos_query::{AbortProbe, AbortReason};
 
 use tos_access::{
@@ -640,6 +641,11 @@ fn post_socket_requires_one_bounded_complete_json_body() {
             200,
         ),
         (
+            "Content-Type: text/plain\r\nContent-Length: 2\r\n",
+            "{}",
+            415,
+        ),
+        (
             "Content-Type: application/json\r\nContent-Length: 2\r\nContent-Length: 2\r\n",
             "{}",
             400,
@@ -723,4 +729,48 @@ fn post_socket_requires_one_bounded_complete_json_body() {
             );
         }
     }
+}
+
+#[test]
+fn mcp_bounds_metadata_and_refusal_frames_before_output() {
+    let input = br#"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25"}}
+{"jsonrpc":"2.0","method":"notifications/initialized"}
+{"jsonrpc":"2.0","id":"list\n","method":"tools/list"}
+"#;
+    let executor = Synthetic {
+        allowed: true,
+        calls: Mutex::new(vec![]),
+    };
+    let profile = profile().with_mcp_frame_budget(256);
+    let mut output = Vec::new();
+    run_io(Cursor::new(input), &mut output, &executor, profile).unwrap();
+    let lines: Vec<_> = output
+        .split(|b| *b == b'\n')
+        .filter(|line| !line.is_empty())
+        .collect();
+    assert_eq!(lines.len(), 2);
+    for line in &lines {
+        assert!(line.len() + 1 <= profile.max_mcp_frame_bytes);
+    }
+    let result = parse_json(lines[1], JsonMode::PublishedStrict, JsonLimits::default()).unwrap();
+    assert_eq!(
+        result.root().object_get("id").unwrap().as_str(),
+        Some("list\n")
+    );
+    assert!(result.root().object_get("error").is_some());
+    assert!(!String::from_utf8_lossy(lines[1]).contains("inputSchema"));
+    let mut output = Vec::new();
+    assert!(
+        run_io(
+            Cursor::new(input),
+            &mut output,
+            &executor,
+            profile.with_mcp_frame_budget(1)
+        )
+        .is_err()
+    );
+    assert!(
+        output.is_empty(),
+        "unrepresentable refusal must emit no oversized frame"
+    );
 }

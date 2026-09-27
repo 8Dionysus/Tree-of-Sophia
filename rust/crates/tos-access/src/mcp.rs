@@ -52,6 +52,7 @@ pub fn tool_result_frame_byte_bound(
 struct McpSession {
     handshake_accepted: bool,
     initialized: bool,
+    pending_initialize: bool,
     profile: AccessProfile,
     pending_fence: Option<Box<dyn DisclosureFence>>,
     pending_id: Option<Vec<u8>>,
@@ -62,6 +63,7 @@ impl McpSession {
         Self {
             handshake_accepted: false,
             initialized: false,
+            pending_initialize: false,
             profile,
             pending_fence: None,
             pending_id: None,
@@ -69,6 +71,7 @@ impl McpSession {
     }
 
     fn handle_line(&mut self, executor: &dyn AccessExecutor, line: &[u8]) -> Option<Vec<u8>> {
+        self.pending_initialize = false;
         self.pending_fence = None;
         self.pending_id = None;
         if line.len() > self.profile.max_line_bytes {
@@ -91,6 +94,7 @@ impl McpSession {
             }
             _ => return Some(rpc_error(b"null", -32600, "Invalid Request")),
         };
+        self.pending_id = id.clone();
         if value.object_get("jsonrpc").and_then(JsonValue::as_str) != Some("2.0") {
             return Some(rpc_error(
                 id.as_deref().unwrap_or(b"null"),
@@ -125,7 +129,7 @@ impl McpSession {
             if requested != Some("2025-11-25") {
                 return Some(rpc_error(&id, -32602, "Unsupported MCP protocol version"));
             }
-            self.handshake_accepted = true;
+            self.pending_initialize = true;
             return Some(rpc_result(&id, br#"{"protocolVersion":"2025-11-25","capabilities":{"tools":{"listChanged":false}},"serverInfo":{"name":"tree-of-sophia","version":"0.0.0"}}"#));
         }
         if !self.initialized {
@@ -306,6 +310,8 @@ pub fn run_io<R: BufRead, W: Write>(
                 overflow = true;
             }
         }
+        session.pending_id = None;
+        session.pending_initialize = false;
         let response = if overflow {
             Some(rpc_error(b"null", -32700, "MCP frame exceeds byte budget"))
         } else {
@@ -323,9 +329,35 @@ pub fn run_io<R: BufRead, W: Write>(
                     fence = None;
                 }
             }
+            if !frame
+                .len()
+                .checked_add(1)
+                .is_some_and(|bytes| bytes <= profile.max_mcp_frame_bytes)
+            {
+                frame = rpc_error(
+                    session.pending_id.as_deref().unwrap_or(b"null"),
+                    -32603,
+                    "MCP response frame exceeds byte budget",
+                );
+                fence = None;
+                session.pending_initialize = false;
+                if !frame
+                    .len()
+                    .checked_add(1)
+                    .is_some_and(|bytes| bytes <= profile.max_mcp_frame_bytes)
+                {
+                    return Err(io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        "MCP refusal frame exceeds byte budget",
+                    ));
+                }
+            }
             frame.push(b'\n');
             output.write_all(&frame)?;
             output.flush()?;
+            if session.pending_initialize {
+                session.handshake_accepted = true;
+            }
             drop(fence);
         }
     }

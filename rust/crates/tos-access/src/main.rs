@@ -34,12 +34,10 @@ fn main() {
             mcp::run_stdio(&NoOwner, profile).map_err(|error| error.to_string())
         }
         Some("serve") => {
-            let address = args.next().unwrap_or_else(|| "127.0.0.1:8080".to_owned());
-            if args.next().is_some() {
-                Err("usage: tos-access serve [LOOPBACK:PORT]".to_owned())
-            } else {
-                http::serve(&address, Arc::new(NoOwner), profile).map_err(|error| error.to_string())
-            }
+            let options: Vec<String> = args.collect();
+            cli::parse_serve_address(&options).map_err(|error| error.message.to_owned())
+                .and_then(|address| http::serve(&address, Arc::new(NoOwner), profile)
+                    .map_err(|error| error.to_string()))
         }
         Some(route_name @ ("source" | "knowledge" | "lens")) => {
             let mut route = vec![route_name.to_owned()];

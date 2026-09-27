@@ -61,6 +61,7 @@ fn run_indexed_search(
     while at < args.len() {
         let option = args[at].as_str();
         if option == "--sources" {
+            sources.clear();
             at += 1;
             while at < args.len() && !args[at].starts_with("--") {
                 sources.push(args[at].clone());
@@ -147,6 +148,51 @@ pub fn run_cli(
     )
 }
 
+fn expanded_options(args: &[String]) -> Vec<String> {
+    args.iter()
+        .flat_map(|arg| {
+            if arg.starts_with("--") {
+                if let Some((option, value)) = arg.split_once('=') {
+                    return vec![option.to_owned(), value.to_owned()];
+                }
+            }
+            vec![arg.clone()]
+        })
+        .collect()
+}
+
+/// Maintained standalone listener options; binding remains loopback-only in
+/// HTTP and no source owner is selected by a host or port argument.
+pub fn parse_serve_address(args: &[String]) -> Result<String, crate::AccessError> {
+    let invalid = || {
+        crate::AccessError::new(
+            crate::AccessErrorCode::InvalidRequest,
+            "usage: tos-access serve [--host HOST] [--port PORT]",
+        )
+    };
+    if args.len() == 1 && !args[0].starts_with("--") {
+        return Ok(args[0].clone());
+    }
+    let args = expanded_options(args);
+    let mut host = "127.0.0.1";
+    let mut port = 8080u16;
+    let mut at = 0;
+    while at < args.len() {
+        let value = args.get(at + 1).ok_or_else(invalid)?;
+        match args[at].as_str() {
+            "--host" if !value.is_empty() => host = value,
+            "--port" => port = value.parse().map_err(|_| invalid())?,
+            _ => return Err(invalid()),
+        }
+        at += 2;
+    }
+    Ok(if host.contains(':') && !host.starts_with('[') {
+        format!("[{host}]:{port}")
+    } else {
+        format!("{host}:{port}")
+    })
+}
+
 /// Structured queries use the same bounded parser for files and stdin.
 pub fn run_cli_with_input(
     args: &[String],
@@ -156,6 +202,8 @@ pub fn run_cli_with_input(
     stdout: &mut dyn Write,
     stderr: &mut dyn Write,
 ) -> i32 {
+    let expanded = expanded_options(args);
+    let args = expanded.as_slice();
     if let Some(code) = run_knowledge(args, executor, profile, stdin, stdout, stderr) {
         return code;
     }
@@ -252,23 +300,28 @@ fn run_knowledge(
             })
         }
         KnowledgeOperation::Focus if args.len() >= 3 => focus_cli_request(args),
-        KnowledgeOperation::Node
-            if args.len() == 3 || args.len() == 5 && args[3] == "--relation-limit" =>
-        {
-            let relation_limit = if args.len() == 5 {
-                args[4]
-                    .parse::<usize>()
-                    .ok()
+        KnowledgeOperation::Node if args.len() >= 3 => {
+            let mut relation_limit = 200;
+            let mut at = 3;
+            while at < args.len() {
+                if args[at] != "--relation-limit" {
+                    return Err(crate::AccessError::new(
+                        crate::AccessErrorCode::InvalidRequest,
+                        "unsupported node option",
+                    ));
+                }
+                relation_limit = args
+                    .get(at + 1)
+                    .and_then(|value| value.parse::<usize>().ok())
                     .filter(|n| *n <= 1000)
                     .ok_or_else(|| {
                         crate::AccessError::new(
                             crate::AccessErrorCode::InvalidRequest,
                             "relation_limit must be in 0..1000",
                         )
-                    })?
-            } else {
-                200
-            };
+                    })?;
+                at += 2;
+            }
             if args[2].is_empty() || args[2].chars().count() > 4096 {
                 return Err(crate::AccessError::new(
                     crate::AccessErrorCode::InvalidRequest,
@@ -353,6 +406,7 @@ fn focus_cli_request(args: &[String]) -> Result<KnowledgeRequest, crate::AccessE
     while at < args.len() {
         let option = args[at].as_str();
         if option == "--sources" {
+            sources.clear();
             at += 1;
             while at < args.len() && !args[at].starts_with("--") {
                 sources.push(text(&args[at]));

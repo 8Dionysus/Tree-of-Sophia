@@ -1535,4 +1535,415 @@ mod selected_knowledge {
         assert!(!frame.contains("structuredContent"));
         assert_eq!(executor.held.load(Ordering::SeqCst), 0);
     }
+
+    #[test]
+    fn maintained_native_options_files_head_and_mcp_advertisement() {
+        assert_eq!(cli::parse_serve_address(&[]).unwrap(), "127.0.0.1:8080");
+        assert_eq!(
+            cli::parse_serve_address(&["--host=::1".into(), "--port".into(), "8081".into()])
+                .unwrap(),
+            "[::1]:8081"
+        );
+        assert!(cli::parse_serve_address(&["--port=65536".into()]).is_err());
+        let executor = Arc::new(Executor {
+            fixture: build_native_fixture(),
+            controls: Arc::new(Controls::default()),
+            held: Arc::new(AtomicUsize::new(0)),
+            checkpoints: Mutex::new(
+                tos_access::exploration_checkpoints::ProcessExplorationCheckpoints::new(
+                    tos_access::exploration_checkpoints::CheckpointLimits {
+                        ttl: Duration::from_secs(60),
+                        max_entries: 16,
+                        max_encoded_bytes: 2_000_000,
+                    },
+                )
+                .unwrap(),
+            ),
+        });
+        let profile = AccessProfile::new(65_536, 1_048_576, 65_536);
+        let mcp_profile = profile.with_mcp_frame_budget(
+            tos_access::mcp::tool_result_frame_byte_bound(
+                profile.max_response_bytes,
+                profile.max_request_bytes.min(profile.max_line_bytes),
+            )
+            .unwrap(),
+        );
+        let graph = parse_json(
+            &executor.fixture.graph_input_bytes,
+            JsonMode::PublishedStrict,
+            JsonLimits::default(),
+        )
+        .unwrap();
+        let node = graph
+            .root()
+            .object_get("nodes")
+            .unwrap()
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|n| n.object_get("kind_id").and_then(JsonValue::as_str) == Some("claim"))
+            .unwrap();
+        let id = node.object_get("id").unwrap().as_str().unwrap();
+        let source = node.object_get("source_graph").unwrap().as_str().unwrap();
+        let operation = |kind: O| {
+            tos_access::registered_operations()
+                .unwrap()
+                .iter()
+                .find(|op| op.operation_id == kind.id())
+                .unwrap()
+        };
+        let args = |kind: O, suffix: Vec<String>| {
+            let mut args: Vec<String> = operation(kind)
+                .cli_command
+                .as_ref()
+                .unwrap()
+                .split_whitespace()
+                .map(str::to_owned)
+                .collect();
+            args.extend(suffix);
+            args
+        };
+        let mut focus = tos_query::knowledge_focus::KnowledgeFocusRequest::new(id);
+        focus.sources = Some(vec![source.into()]);
+        focus.depth = 0;
+        focus.direction = tos_query::knowledge_focus::FocusDirection::Incoming;
+        focus.profile = tos_query::knowledge_focus::FocusProfile::All;
+        focus.node_limit = 2;
+        focus.relation_limit = 0;
+        let selected = executor
+            .knowledge(R::Focus(focus), Arc::new(NeverAbort))
+            .unwrap();
+        let expected = selected.body.clone();
+        drop(selected);
+        let focus_args = args(
+            O::Focus,
+            vec![
+                id.into(),
+                "--sources".into(),
+                executor
+                    .fixture
+                    .vocabulary
+                    .sources
+                    .iter()
+                    .find(|other| other.source_graph_id != source)
+                    .unwrap()
+                    .source_graph_id
+                    .clone(),
+                "--sources".into(),
+                source.into(),
+                "--depth=0".into(),
+                "--direction=incoming".into(),
+                "--node-limit=2".into(),
+                "--relation-limit=0".into(),
+                "--profile=all".into(),
+            ],
+        );
+        let mut writer = HeldWriter {
+            bytes: vec![],
+            held: executor.held.clone(),
+        };
+        let mut errors = vec![];
+        assert_eq!(
+            cli::run_cli(
+                &focus_args,
+                executor.as_ref(),
+                profile,
+                &mut writer,
+                &mut errors
+            ),
+            0,
+            "{}",
+            String::from_utf8_lossy(&errors)
+        );
+        assert_eq!(&writer.bytes[..writer.bytes.len() - 1], expected);
+        let node_args = args(
+            O::Node,
+            vec![
+                id.into(),
+                "--relation-limit=1".into(),
+                "--relation-limit=0".into(),
+            ],
+        );
+        let packet = executor
+            .knowledge(
+                R::Node {
+                    node_id: id.into(),
+                    relation_limit: 0,
+                },
+                Arc::new(NeverAbort),
+            )
+            .unwrap();
+        let expected = packet.body.clone();
+        drop(packet);
+        let mut writer = HeldWriter {
+            bytes: vec![],
+            held: executor.held.clone(),
+        };
+        let mut errors = vec![];
+        assert_eq!(
+            cli::run_cli(
+                &node_args,
+                executor.as_ref(),
+                profile,
+                &mut writer,
+                &mut errors
+            ),
+            0
+        );
+        assert_eq!(&writer.bytes[..writer.bytes.len() - 1], expected);
+        let path = operation(O::Node)
+            .http_path
+            .replace("{node_id}", &path_id(id));
+        let target = format!("{path}?relation_limit=bad&relation_limit=0");
+        let packet = executor
+            .knowledge(
+                R::Node {
+                    node_id: id.into(),
+                    relation_limit: 200,
+                },
+                Arc::new(NeverAbort),
+            )
+            .unwrap();
+        let expected = packet.body.clone();
+        drop(packet);
+        let response = handle_get(executor.as_ref(), "GET", &target, profile);
+        let mut writer = HeldWriter {
+            bytes: vec![],
+            held: executor.held.clone(),
+        };
+        tos_access::http::write_response(&mut writer, response).unwrap();
+        assert_eq!(
+            http_packet(&writer.bytes),
+            expected,
+            "first repeated malformed integer uses default"
+        );
+        let response = handle_get(executor.as_ref(), "HEAD", &target, profile);
+        assert_eq!(response.status, 200);
+        assert_eq!(response.body, expected);
+        let mut writer = HeldWriter {
+            bytes: vec![],
+            held: executor.held.clone(),
+        };
+        tos_access::http::write_response(&mut writer, response).unwrap();
+        assert!(
+            writer.bytes.ends_with(b"\r\n\r\n"),
+            "HEAD emits headers only"
+        );
+        assert!(
+            String::from_utf8_lossy(&writer.bytes)
+                .contains(&format!("Content-Length: {}\r\n", expected.len()))
+        );
+        assert_eq!(executor.held.load(Ordering::SeqCst), 0);
+        let unknown = format!(
+            "/{}",
+            Digest256::of_bytes(&executor.fixture.descriptor_bytes).to_hex()
+        );
+        let response = handle_get(executor.as_ref(), "HEAD", &unknown, profile);
+        assert_eq!(response.status, 404);
+        let mut output = vec![];
+        tos_access::http::write_response(&mut output, response).unwrap();
+        assert!(output.ends_with(b"\r\n\r\n"));
+        assert_eq!(
+            handle_get(executor.as_ref(), "POST", &path, profile).status,
+            405
+        );
+        // File paths are explicit and bounded; the fixture's existing owned
+        // directory receives request companions and owns their Drop cleanup.
+        let operand = object(vec![
+            ("node_id", text(id)),
+            (
+                "content_revision",
+                node.object_get("content_revision").unwrap().clone(),
+            ),
+        ]);
+        let temporal = object(vec![
+            ("schema_version", text("tos_temporal_comparison_request_v1")),
+            (
+                "source_revision",
+                graph.root().object_get("source_revision").unwrap().clone(),
+            ),
+            ("left", operand.clone()),
+            ("right", operand),
+        ]);
+        let catalog = executor
+            .knowledge(R::Catalog, Arc::new(NeverAbort))
+            .unwrap();
+        let value = parse_json(
+            &catalog.body,
+            JsonMode::PublishedStrict,
+            JsonLimits::default(),
+        )
+        .unwrap();
+        let lens = value
+            .root()
+            .object_get("lenses")
+            .unwrap()
+            .as_array()
+            .unwrap()[0]
+            .clone();
+        drop(catalog);
+        for (request, body) in [
+            (R::Temporal(temporal.clone()), temporal),
+            (R::Lens(lens.clone()), lens),
+        ] {
+            let op = request.operation();
+            let file = executor
+                .fixture
+                .path
+                .with_extension(format!("{}.request.json", op.id()));
+            fs::write(&file, json_bytes(&body)).unwrap();
+            let packet = executor.knowledge(request, Arc::new(NeverAbort)).unwrap();
+            let expected = packet.body.clone();
+            drop(packet);
+            let command = args(op, vec![file.to_str().unwrap().into()]);
+            let mut writer = HeldWriter {
+                bytes: vec![],
+                held: executor.held.clone(),
+            };
+            let mut errors = vec![];
+            assert_eq!(
+                cli::run_cli(
+                    &command,
+                    executor.as_ref(),
+                    profile,
+                    &mut writer,
+                    &mut errors
+                ),
+                0
+            );
+            assert_eq!(&writer.bytes[..writer.bytes.len() - 1], expected);
+            fs::write(&file, b"[]").unwrap();
+            let mut output = vec![];
+            let mut errors = vec![];
+            assert_eq!(
+                cli::run_cli(
+                    &command,
+                    executor.as_ref(),
+                    profile,
+                    &mut output,
+                    &mut errors
+                ),
+                2
+            );
+            assert!(output.is_empty());
+            assert!(String::from_utf8_lossy(&errors).contains("invalid_request"));
+            fs::write(&file, vec![b' '; profile.max_request_bytes + 1]).unwrap();
+            let mut output = vec![];
+            let mut errors = vec![];
+            assert_eq!(
+                cli::run_cli(
+                    &command,
+                    executor.as_ref(),
+                    profile,
+                    &mut output,
+                    &mut errors
+                ),
+                2
+            );
+            assert!(output.is_empty());
+            assert!(String::from_utf8_lossy(&errors).contains("budget_exceeded"));
+            fs::remove_file(&file).unwrap();
+            let mut output = vec![];
+            let mut errors = vec![];
+            assert_eq!(
+                cli::run_cli(
+                    &command,
+                    executor.as_ref(),
+                    profile,
+                    &mut output,
+                    &mut errors
+                ),
+                2
+            );
+            assert!(output.is_empty());
+            assert!(!errors.is_empty());
+        }
+        let mut output = vec![];
+        let mut errors = vec![];
+        assert_eq!(
+            cli::run_cli(
+                &args(O::Focus, vec![id.into(), "--direction=invalid".into()]),
+                executor.as_ref(),
+                profile,
+                &mut output,
+                &mut errors
+            ),
+            2
+        );
+        assert!(output.is_empty());
+        let mut input = mcp_input("", &object(vec![]));
+        // Keep the actual standard handshake, replacing only tools/call with
+        // tools/list; descriptor supplies the expected advertised ready set.
+        let end = input
+            .iter()
+            .enumerate()
+            .filter(|(_, b)| **b == b'\n')
+            .nth(1)
+            .unwrap()
+            .0
+            + 1;
+        input.truncate(end);
+        input.extend_from_slice(b"{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/list\"}\n");
+        let mut output = vec![];
+        run_io(
+            Cursor::new(input),
+            &mut output,
+            executor.as_ref(),
+            mcp_profile,
+        )
+        .unwrap();
+        let value = parse_json(
+            last_frame(&output),
+            JsonMode::PublishedStrict,
+            JsonLimits::default(),
+        )
+        .unwrap();
+        let tools = value
+            .root()
+            .object_get("result")
+            .unwrap()
+            .object_get("tools")
+            .unwrap()
+            .as_array()
+            .unwrap();
+        let mut seen = std::collections::BTreeSet::new();
+        for tool in tools {
+            let name = tool.object_get("name").unwrap().as_str().unwrap();
+            assert!(seen.insert(name));
+            let descriptor = tos_access::registered_operations()
+                .unwrap()
+                .iter()
+                .find(|op| op.mcp_tool == name)
+                .unwrap();
+            let op = O::from_id(&descriptor.operation_id).unwrap();
+            assert!(executor.knowledge_available(op));
+            assert_eq!(
+                tool.object_get("inputSchema").unwrap(),
+                &descriptor.input_schema
+            );
+        }
+        let expected: std::collections::BTreeSet<_> = tos_access::registered_operations()
+            .unwrap()
+            .iter()
+            .filter(|op| {
+                O::from_id(&op.operation_id).is_some_and(|op| executor.knowledge_available(op))
+            })
+            .map(|op| op.mcp_tool.as_str())
+            .collect();
+        assert_eq!(seen, expected);
+        let mut output = vec![];
+        run_io(
+            Cursor::new(mcp_input(
+                &operation(O::Contracts).mcp_tool,
+                &object(vec![]),
+            )),
+            &mut output,
+            executor.as_ref(),
+            mcp_profile,
+        )
+        .unwrap();
+        assert!(String::from_utf8_lossy(last_frame(&output)).contains("error"));
+        assert!(!String::from_utf8_lossy(last_frame(&output)).contains("structuredContent"));
+        assert_eq!(executor.held.load(Ordering::SeqCst), 0);
+    }
 }
