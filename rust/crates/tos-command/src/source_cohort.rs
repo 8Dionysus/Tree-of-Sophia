@@ -950,14 +950,14 @@ fn retained_projection_root(
     Ok((root.finalize(), profiles, count))
 }
 
-fn stream_projection_section(
+fn visit_projection_section(
     tx: &mut Transaction<'_>,
     domain: &str,
     generation: u64,
     section: &str,
-    output: &mut AgentDigest,
     deadline: Instant,
     cancelled: &AtomicBool,
+    mut visit: impl FnMut(&str, &tos_foundation::JsonValue) -> DurableResult<()>,
 ) -> DurableResult<()> {
     // The already verified owner index supplies only stable string ordering
     // keys. Its controlled writer is initial-only: later identities always
@@ -979,7 +979,6 @@ fn stream_projection_section(
         _ => return Err(DurableError::Invalid("Agent dependency section")),
     };
     let mut cursor = String::new();
-    let mut first = true;
     active(deadline, cancelled)?;
     let sql = format!(
         "WITH members AS ({RETAINED_PROJECTIONS}), entries AS ({expansion}) SELECT * FROM entries ORDER BY entry_key COLLATE \"C\""
@@ -1022,18 +1021,41 @@ fn stream_projection_section(
             _ => cmd::field(cmd::field(&value, section).map_err(source_error)?, &key)
                 .map_err(source_error)?,
         };
-        if !first {
-            output.framing(b",")?;
-        }
-        first = false;
-        if section != "records" {
-            output.key(&key)?;
-        }
-        output.value(entry, if section == "records" { 3 } else { 2 })?;
+        visit(&key, entry)?;
         cursor = key;
     }
     Ok(())
 }
+fn stream_projection_section(
+    tx: &mut Transaction<'_>,
+    domain: &str,
+    generation: u64,
+    section: &str,
+    output: &mut AgentDigest,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> DurableResult<()> {
+    let mut first = true;
+    visit_projection_section(
+        tx,
+        domain,
+        generation,
+        section,
+        deadline,
+        cancelled,
+        |key, entry| {
+            if !first {
+                output.framing(b",")?;
+            }
+            first = false;
+            if section != "records" {
+                output.key(key)?;
+            }
+            output.value(entry, if section == "records" { 3 } else { 2 })
+        },
+    )
+}
+
 fn retained_agent_inventory(
     tx: &mut Transaction<'_>,
     domain: &str,
@@ -1256,7 +1278,355 @@ fn cohort_matches(
     Ok(())
 }
 
+// A tentative metadata identity only. Full projection/member coverage and
+// catalogue EOF are still verified by the actual visitor before issuance.
+fn managed_model_projection_identity(
+    tx: &mut Transaction<'_>,
+    generation: &crate::source_current_cut::ManagedCurrentSourceGeneration,
+) -> DurableResult<Digest256> {
+    let domain = generation.cohort().domain();
+    let row = tx.query_one("SELECT d.*,f.generation AS audit_generation,f.maintenance_state FROM cmd2_domain d JOIN cmd2_audit_fence f USING(domain) WHERE d.domain=$1", &[&domain])?;
+    cohort_matches(&row, generation.cohort(), true)?;
+    if as_u64(row.get("audit_generation"))? != generation.audit_generation()
+        || row.get::<_, String>("maintenance_state") != "normal"
+        || !row.get::<_, bool>("rights_allowed")
+        || as_u64(row.get("head_seq"))? != generation.commit_seq()
+        || row.get::<_, Option<i64>>("source_generation") != Some(as_i64(generation.commit_seq())?)
+        || row.get::<_, Option<String>>("selected_generation_digest")
+            != Some(generation.digest().to_hex())
+    {
+        return Err(DurableError::Conflict(
+            "managed model catalogue source changed",
+        ));
+    }
+    let stored = row
+        .get::<_, Option<String>>("source_projection_digest")
+        .ok_or(DurableError::Refused(
+            "managed model projection identity unavailable",
+        ))?;
+    Digest256::from_hex(&stored)
+        .map_err(|_| DurableError::Corrupt("managed model projection identity invalid"))
+}
+
 impl DurablePgCoordinator {
+    pub(crate) fn managed_model_delta_from_commit(
+        &mut self,
+        store: &SegmentStore,
+        parent: &crate::source_current_cut::ManagedCurrentSourceGeneration,
+        current: &crate::source_current_cut::ManagedCurrentSourceGeneration,
+        prepare_id: &[u8],
+        package: &ManagedSerializedCreation,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<DurableCommitReceipt> {
+        active(deadline, cancelled)?;
+        parent.selected().view().audited_root.require_store(store)?;
+        current
+            .selected()
+            .view()
+            .audited_root
+            .require_store(store)?;
+        let view = CreationPackage::Managed(package);
+        if package.basis != ManagedCreationBasis::from_generation(parent)
+            || parent.commit_seq().checked_add(1) != Some(current.commit_seq())
+            || parent.cohort().domain() != current.cohort().domain()
+            || parent.epoch() != current.epoch()
+            || parent.agent_definition_digest() != current.agent_definition_digest()
+        {
+            return Err(DurableError::Conflict(
+                "managed model parent/commit basis differs",
+            ));
+        }
+        let domain = current.cohort().domain();
+        let mut tx = self.client.transaction()?;
+        tx.batch_execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY; SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='15s'")?;
+        let size = tx.query_one("SELECT octet_length(source_reads),octet_length(source_projections) FROM cmd2_attempt WHERE domain=$1 AND prepare_id=$2 AND state='committed'", &[&domain, &prepare_id])?;
+        for column in 0..2 {
+            if size
+                .get::<_, Option<i32>>(column)
+                .is_none_or(|n| n <= 0 || n > 1_048_576)
+            {
+                return Err(DurableError::Refused(
+                    "managed model original attempt exceeds cold row envelope",
+                ));
+            }
+        }
+        let attempt = tx.query_one(
+            "SELECT * FROM cmd2_attempt WHERE domain=$1 AND prepare_id=$2 AND state='committed'",
+            &[&domain, &prepare_id],
+        )?;
+        let reads = decode_reads(&attempt.get::<_, Option<Vec<u8>>>("source_reads").unwrap())?;
+        let projection_raw: Vec<u8> = attempt
+            .get::<_, Option<Vec<u8>>>("source_projections")
+            .unwrap();
+        cmd::parse(&projection_raw).map_err(source_error)?;
+        let projections: ProjectionRows = serde_json::from_slice(&projection_raw)
+            .map_err(|_| DurableError::Corrupt("managed model registered projections"))?;
+        if projections_bytes(&projections)? != projection_raw
+            || projections
+                .keys()
+                .map(String::as_str)
+                .collect::<BTreeSet<_>>()
+                != view
+                    .changes()
+                    .iter()
+                    .map(|change| change.path.as_str())
+                    .collect()
+        {
+            return Err(DurableError::Conflict(
+                "managed model projection delta coverage differs",
+            ));
+        }
+        let receipt = receipt_from_committed_attempt(&mut tx, &attempt)?;
+        let request = cmd::parse(&view.prepared().context().request_raw).map_err(source_error)?;
+        if receipt.commit_seq != current.commit_seq()
+            || receipt.delta_digest != registered_source_delta(view, &reads, &projections)?
+            || receipt.command_id != cmd::text(&request, "command_id").map_err(source_error)?
+            || receipt.raw_request_digest
+                != Digest256::of_bytes(&view.prepared().context().request_raw)
+            || attempt.get::<_, Option<i64>>("source_epoch") != Some(as_i64(current.epoch())?)
+        {
+            return Err(DurableError::Conflict(
+                "managed model actual committed package differs",
+            ));
+        }
+        let members = tx.query("SELECT m.member_slot,m.subject,m.proposed_revision,c.* FROM cmd2_member m JOIN cmd2_current c ON c.domain=m.domain AND c.subject=m.subject WHERE m.domain=$1 AND m.prepare_id=$2 ORDER BY m.member_slot", &[&domain, &prepare_id])?;
+        if members.len() != view.changes().len() {
+            return Err(DurableError::Conflict(
+                "managed model committed members differ",
+            ));
+        }
+        let expected_metadata = creation_metadata(view);
+        for (slot, (member, change)) in members.iter().zip(view.changes()).enumerate() {
+            active(deadline, cancelled)?;
+            let raw = change.after.as_ref().ok_or(DurableError::Refused(
+                "managed model supports initial Agent only",
+            ))?;
+            let metadata = current.member(&change.path).ok_or(DurableError::Conflict(
+                "managed model changed member absent",
+            ))?;
+            if member.get::<_, i32>("member_slot") as usize != slot
+                || member.get::<_, String>("subject") != change.path.as_str()
+                || member.get::<_, i64>("proposed_revision") != 1
+                || member.get::<_, i64>("revision") != 1
+                || as_u64(member.get("commit_seq"))? != current.commit_seq()
+                || member.get::<_, Vec<u8>>("prepare_id") != prepare_id
+                || metadata.sha256 != Digest256::of_bytes(raw)
+                || metadata.size_bytes != raw.len() as u64
+                || row_source_metadata(member)? != expected_metadata[change.path.as_str()]
+                || projection_value(member)?.object_get("raw_sha256")
+                    != Some(&cmd::string(&metadata.sha256.to_hex()))
+            {
+                return Err(DurableError::Conflict(
+                    "managed model changed body/custody differs",
+                ));
+            }
+        }
+        tx.commit()?;
+        active(deadline, cancelled)?;
+        Ok(receipt)
+    }
+
+    pub(crate) fn managed_model_generation_description(
+        generation: &crate::source_current_cut::ManagedCurrentSourceGeneration,
+        projection: Digest256,
+    ) -> tos_compiler::managed_source::ManagedSourceGenerationV1 {
+        let installation = generation.selected().view();
+        let cut = installation.descriptor_cut;
+        let cohort = generation.cohort();
+        tos_compiler::managed_source::ManagedSourceGenerationV1 {
+            domain: cohort.domain().to_owned(),
+            store_id: cut.store_id,
+            installed_generation_sha256: generation.digest().to_hex(),
+            through_commit_seq: generation.commit_seq(),
+            selected_audit_generation: generation.audit_generation(),
+            epoch: cohort.epoch(),
+            definition_sha256: cohort.definition_digest().to_hex(),
+            bootstrap_source_revision: cohort.initial_revision().0.to_hex(),
+            bootstrap_membership_sha256: cohort.initial_membership().digest.to_hex(),
+            bootstrap_members: cohort.initial_membership().count,
+            domain_sha256: cut.domain_digest.to_hex(),
+            database_oid: cut.database_oid,
+            schema_profile_sha256: cut.schema_profile_digest.to_hex(),
+            state_sha256: cut.state_digest.to_hex(),
+            log_sha256: cut.log_digest.to_hex(),
+            current_membership_sha256: cut.current_membership_root.to_hex(),
+            current_members: cut.current_members,
+            history_membership_sha256: cut.history_membership_root.to_hex(),
+            history_members: cut.historical_members,
+            inventory_projection_sha256: projection.to_hex(),
+        }
+    }
+
+    /// Only an optimistic identity for producer setup, never coverage or a
+    /// selected read grant. The actual single full visitor must prove it.
+    pub(crate) fn managed_model_projection_identity(
+        &mut self,
+        generation: &crate::source_current_cut::ManagedCurrentSourceGeneration,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<Digest256> {
+        active(deadline, cancelled)?;
+        let mut tx = self.client.transaction()?;
+        tx.batch_execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY; SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='15s'")?;
+        let identity = managed_model_projection_identity(&mut tx, generation)?;
+        tx.commit()?;
+        active(deadline, cancelled)?;
+        Ok(identity)
+    }
+
+    // The full selected producer consumes these actual retained catalogue
+    // contributions, not a second authored-body inventory. This optimistic
+    // read phase holds no publication locks; selection must recheck currentness.
+    pub(crate) fn visit_managed_model_catalogue(
+        &mut self,
+        generation: &crate::source_current_cut::ManagedCurrentSourceGeneration,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        mut visit: impl FnMut(&tos_foundation::JsonValue) -> DurableResult<()>,
+    ) -> DurableResult<Digest256> {
+        active(deadline, cancelled)?;
+        let domain = generation.cohort().domain();
+        let mut tx = self.client.transaction()?;
+        tx.batch_execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY; SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='15s'")?;
+        let expected_projection = managed_model_projection_identity(&mut tx, generation)?;
+        let (root, _, count) = retained_projection_root(
+            &mut tx,
+            domain,
+            generation.commit_seq(),
+            deadline,
+            cancelled,
+        )?;
+        if count != generation.members().count() as u64 || root != expected_projection {
+            return Err(DurableError::Refused(
+                "managed model catalogue coverage unproved; FullOnly required",
+            ));
+        }
+        visit_projection_section(
+            &mut tx,
+            domain,
+            generation.commit_seq(),
+            "records",
+            deadline,
+            cancelled,
+            |_, entry| visit(entry),
+        )?;
+        tx.commit()?;
+        active(deadline, cancelled)?;
+        Ok(root)
+    }
+
+    // Native selected-model disclosure uses the same real source/owner fences
+    // as creation. A serialized model companion cannot issue this boundary.
+    // Keep both owner and database locks across the actual bounded model seek.
+    pub(crate) fn with_current_managed_model<T>(
+        &mut self,
+        store: &SegmentStore,
+        generation: &crate::source_current_cut::ManagedCurrentSourceGeneration,
+        proof: &tos_compiler::managed_source::ManagedSourceProofV1,
+        filesystem: &CreationFilesystem,
+        package: CreationPackage<'_>,
+        contract: Digest256,
+        rule_version: u64,
+        rights_version: u64,
+        job_id: &str,
+        job_fence: u64,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        seek: impl for<'seek> FnOnce(
+            &crate::source_managed_selection::ManagedCurrentModelLease<'seek>,
+        ) -> T,
+    ) -> DurableResult<T> {
+        active(deadline, cancelled)?;
+        let projection = Digest256::from_hex(&proof.generation.inventory_projection_sha256)
+            .map_err(|_| DurableError::Invalid("managed model projection digest"))?;
+        if proof.generation != Self::managed_model_generation_description(generation, projection) {
+            return Err(DurableError::Conflict(
+                "managed model retained generation differs",
+            ));
+        }
+        let installation = generation.selected().view();
+        installation.audited_root.require_store(store)?;
+        if store.store_id() != installation.descriptor_cut.store_id
+            || store.domain_digest() != installation.descriptor_cut.domain_digest
+            || installation.domain != generation.cohort().domain()
+        {
+            return Err(DurableError::Conflict("managed model source store differs"));
+        }
+        let owner = filesystem
+            .hold_creation_owner(package, deadline, cancelled)
+            .map_err(source_error)?;
+        let mut tx = self.client.transaction()?;
+        tx.batch_execute("SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='15s'")?;
+        let domain = generation.cohort().domain();
+        let audit = tx.query_one(
+            "SELECT generation,maintenance_state FROM cmd2_audit_fence WHERE domain=$1 FOR SHARE",
+            &[&domain],
+        )?;
+        if as_u64(audit.get(0))? != generation.audit_generation()
+            || audit.get::<_, String>(1) != "normal"
+        {
+            return Err(DurableError::Conflict("managed model source audit changed"));
+        }
+        let row = tx.query_one(
+            "SELECT * FROM cmd2_domain WHERE domain=$1 FOR SHARE",
+            &[&domain],
+        )?;
+        cohort_matches(&row, generation.cohort(), true)?;
+        if as_u64(row.get("head_seq"))? != generation.commit_seq()
+            || row.get::<_, Option<i64>>("source_generation")
+                != Some(as_i64(generation.commit_seq())?)
+            || row.get::<_, Option<String>>("selected_generation_digest")
+                != Some(generation.digest().to_hex())
+            || row.get::<_, Option<String>>("source_projection_digest") != Some(projection.to_hex())
+            || row.get::<_, Option<String>>("schema_profile_digest")
+                != Some(schema_profile_digest().to_hex())
+            || database_oid(&mut tx)? != installation.descriptor_cut.database_oid
+            || as_u64(row.get("rule_version"))? != rule_version
+            || row.get::<_, String>("contract_digest") != contract.to_hex()
+        {
+            return Err(DurableError::Conflict(
+                "managed model selected source/contract changed",
+            ));
+        }
+        if !row.get::<_, bool>("rights_allowed")
+            || as_u64(row.get("rights_version"))? != rights_version
+        {
+            return Err(DurableError::Refused(
+                "managed model current rights changed",
+            ));
+        }
+        let lease = tx.query_opt(
+            "SELECT fence_epoch FROM cmd2_job WHERE domain=$1 AND job_id=$2 FOR SHARE",
+            &[&domain, &job_id],
+        )?;
+        if lease.map(|row| row.get::<_, i64>(0)) != Some(as_i64(job_fence)?) {
+            return Err(DurableError::Refused("managed model current job changed"));
+        }
+        owner
+            .verify_current(deadline, cancelled)
+            .map_err(source_error)?;
+        active(deadline, cancelled)?;
+        let lease = crate::source_managed_selection::ManagedCurrentModelLease::under_held_fences(
+            proof,
+            &owner,
+            installation.audited_root,
+            store,
+            deadline,
+            cancelled,
+        );
+        lease.require_managed_basis(proof).map_err(source_error)?;
+        let result = seek(&lease);
+        lease.require_managed_basis(proof).map_err(source_error)?;
+        active(deadline, cancelled)?;
+        owner
+            .verify_current(deadline, cancelled)
+            .map_err(source_error)?;
+        installation.audited_root.require_store(store)?;
+        tx.commit()?;
+        Ok(result)
+    }
+
     pub(crate) fn select_agent_inventory(
         &mut self,
         generation: &crate::source_current_cut::ManagedCurrentSourceGeneration,

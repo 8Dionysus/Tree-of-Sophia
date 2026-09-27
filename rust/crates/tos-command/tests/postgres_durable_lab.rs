@@ -192,6 +192,388 @@ fn contract_digest() -> Digest256 {
     Digest256::of_bytes(b"cmd2.private.shadow.contract.v1")
 }
 
+// Same finite held/revocable projection-grant law as native_corpus_query.
+// These exact produced private carriers are synthetic read authorization only;
+// neither the managed proof nor corpus:create supplies production read admission.
+struct ManagedFixtureStageOwner;
+impl tos_compiler::knowledge_stage::StageOwner for ManagedFixtureStageOwner {
+    fn verify_receipt(
+        &self,
+        _: &tos_compiler::knowledge_stage::ExactInputReceipt,
+    ) -> tos_compiler::Result<()> {
+        Ok(())
+    }
+    fn recheck_sealed_cut(
+        &self,
+        _: &tos_compiler::knowledge_stage::ExactInputReceipt,
+    ) -> tos_compiler::Result<()> {
+        Ok(())
+    }
+}
+struct ManagedFixtureStageIsolation;
+impl tos_compiler::knowledge_stage::StageIsolation for ManagedFixtureStageIsolation {
+    fn verify(
+        &self,
+        _: &std::path::Path,
+        _: tos_compiler::knowledge_stage::StageLimits,
+        _: tos_compiler::knowledge_stage::WritePhase,
+    ) -> tos_compiler::Result<()> {
+        Ok(())
+    }
+}
+#[derive(Clone)]
+struct ManagedFixtureCarrier {
+    kind: tos_query::search_v2::SearchKind,
+    id: String,
+    graph: String,
+    position: u64,
+    sha: Digest256,
+}
+fn managed_fixture_carriers(
+    stage: &mut tos_compiler::knowledge_stage::KnowledgeStage<'_>,
+    limits: tos_compiler::knowledge_stage::StageLimits,
+) -> tos_compiler::Result<Vec<ManagedFixtureCarrier>> {
+    stage.with_connection(tos_compiler::knowledge_stage::WritePhase::Finalize, |db| {
+        let mut facts = Vec::new();
+        let mut state_bytes = 0u64;
+        for (table, kind) in [("knowledge_nodes", tos_query::search_v2::SearchKind::Nodes),
+            ("knowledge_relations", tos_query::search_v2::SearchKind::Relations)] {
+            let mut statement = db.prepare(&format!("SELECT id,source_graph,source_order,lower(hex(payload_sha256)) FROM {table} ORDER BY source_order,id"))?;
+            let mut rows = statement.query([])?;
+            while let Some(row) = rows.next()? {
+                if facts.len() as u64 >= limits.sqlite.max_rows { return Err(tos_compiler::Error::Budget("finite managed fixture carrier scope")); }
+                let sha: String = row.get(3)?;
+                let id: String = row.get(0)?;
+                let graph: String = row.get(1)?;
+                state_bytes = state_bytes.checked_add((id.len() + graph.len() + std::mem::size_of::<ManagedFixtureCarrier>()) as u64)
+                    .filter(|n| *n <= limits.max_seek_bytes)
+                    .ok_or(tos_compiler::Error::Budget("finite managed fixture carrier metadata state"))?;
+                facts.push(ManagedFixtureCarrier { kind, id, graph, position: row.get(2)?,
+                    sha: Digest256::from_hex(&sha).map_err(|_| tos_compiler::Error::Invalid("fixture produced carrier digest"))? });
+            }
+        }
+        Ok(facts)
+    })
+}
+#[derive(Clone)]
+struct ManagedFixtureReadGrant {
+    selected: tos_compiler::KnowledgeSelectedExpectation,
+    original: tos_compiler::NavigationOriginalReceipt,
+    carriers: std::sync::Arc<Vec<ManagedFixtureCarrier>>,
+    operation: String,
+    withdrawn: std::sync::Arc<AtomicBool>,
+    active: std::sync::Arc<AtomicU64>,
+}
+impl ManagedFixtureReadGrant {
+    fn new(
+        parent: &tos_command::source_managed_selection::ManagedAgentSelectedParent,
+        carriers: Vec<ManagedFixtureCarrier>,
+    ) -> Self {
+        Self {
+            selected: parent.selection_expectation().clone(),
+            original: parent.navigation_original_receipt().clone(),
+            carriers: std::sync::Arc::new(carriers),
+            operation: tos_query::NODE_INSPECT_OPERATION.into(),
+            withdrawn: std::sync::Arc::new(AtomicBool::new(false)),
+            active: std::sync::Arc::new(AtomicU64::new(0)),
+        }
+    }
+    fn policy(&self) -> tos_query::search_v2::CurrentPolicyBinding {
+        tos_query::search_v2::CurrentPolicyBinding {
+            scope: "private-synthetic-produced-agent-carriers".into(),
+            issuer_ref: "synthetic-test-only:no-production-read-authority".into(),
+            authorization_receipt_id: "synthetic-private-agent-disclosure".into(),
+            policy_epoch: "fixture-1".into(),
+            withdrawal_generation: "fixture-1".into(),
+        }
+    }
+    fn inspect_check(&self) -> Result<(), tos_query::search_v2::SearchV2Error> {
+        if self.withdrawn.load(Ordering::SeqCst) {
+            Err(tos_query::search_v2::SearchV2Error {
+                code: tos_query::search_v2::SearchV2ErrorCode::StalePolicy,
+                message: "finite projection hold withdrawn",
+            })
+        } else {
+            Ok(())
+        }
+    }
+    fn catalog_check(&self) -> Result<(), tos_query::CatalogError> {
+        if self.withdrawn.load(Ordering::SeqCst) {
+            Err(tos_query::CatalogError {
+                code: tos_query::CatalogErrorCode::Unauthorized,
+                message: "finite projection hold withdrawn",
+            })
+        } else {
+            Ok(())
+        }
+    }
+    fn inspect_scope(&self) -> tos_query::IndexedDisclosureScope {
+        let policy = self.policy();
+        tos_query::IndexedDisclosureScope {
+            operation_id: self.operation.clone(),
+            carrier_layer: "tos_knowledge_public_graph_projection_v1".into(),
+            intended_use: tos_query::INSPECT_INTENDED_USE.into(),
+            selected_model_receipt_id: self.selected.owner_receipt_id.clone(),
+            source_cut: self.selected.source_cut.clone(),
+            through_commit_seq: self.selected.through_commit_seq,
+            source_membership_root: Digest256::from_hex(&self.selected.membership_root).unwrap(),
+            descriptor_sha256: Digest256::from_hex(&self.selected.descriptor_sha256).unwrap(),
+            selected_index_sha256: Digest256::from_hex(&self.selected.model_sha256).unwrap(),
+            policy_issuer_ref: policy.issuer_ref,
+            policy_receipt_id: policy.authorization_receipt_id,
+            policy_scope: policy.scope,
+            policy_epoch: policy.policy_epoch,
+            withdrawal_generation: policy.withdrawal_generation,
+        }
+    }
+    fn catalog_scope(&self) -> tos_query::CatalogDisclosureScope {
+        let s = self.inspect_scope();
+        tos_query::CatalogDisclosureScope {
+            operation_id: "tos.knowledge.catalog".into(),
+            carrier_layer: s.carrier_layer,
+            intended_use: "read_only_public_knowledge_catalog_v1".into(),
+            selected_model_receipt_id: s.selected_model_receipt_id,
+            source_cut: s.source_cut,
+            through_commit_seq: s.through_commit_seq,
+            source_membership_root: s.source_membership_root,
+            descriptor_sha256: s.descriptor_sha256,
+            selected_index_sha256: s.selected_index_sha256,
+            catalog_packet_sha256: Digest256::from_hex(&self.selected.catalog_packet_sha256)
+                .unwrap(),
+            policy_issuer_ref: s.policy_issuer_ref,
+            policy_receipt_id: s.policy_receipt_id,
+            policy_scope: s.policy_scope,
+            policy_epoch: s.policy_epoch,
+            withdrawal_generation: s.withdrawal_generation,
+        }
+    }
+    fn hold(&self) -> ManagedFixtureReadHold {
+        self.active.fetch_add(1, Ordering::SeqCst);
+        ManagedFixtureReadHold {
+            withdrawn: self.withdrawn.clone(),
+            active: self.active.clone(),
+        }
+    }
+}
+struct ManagedFixtureReadHold {
+    withdrawn: std::sync::Arc<AtomicBool>,
+    active: std::sync::Arc<AtomicU64>,
+}
+impl Drop for ManagedFixtureReadHold {
+    fn drop(&mut self) {
+        assert!(self.active.fetch_sub(1, Ordering::SeqCst) > 0);
+    }
+}
+impl tos_query::InspectDisclosureLease for ManagedFixtureReadHold {
+    fn recheck(&mut self) -> Result<(), tos_query::search_v2::SearchV2Error> {
+        if self.withdrawn.load(Ordering::SeqCst) {
+            Err(tos_query::search_v2::SearchV2Error {
+                code: tos_query::search_v2::SearchV2ErrorCode::StalePolicy,
+                message: "finite projection hold withdrawn",
+            })
+        } else {
+            Ok(())
+        }
+    }
+}
+impl tos_query::CatalogDisclosureLease for ManagedFixtureReadHold {
+    fn recheck(&mut self) -> Result<(), tos_query::CatalogError> {
+        if self.withdrawn.load(Ordering::SeqCst) {
+            Err(tos_query::CatalogError {
+                code: tos_query::CatalogErrorCode::Unauthorized,
+                message: "finite projection hold withdrawn",
+            })
+        } else {
+            Ok(())
+        }
+    }
+}
+impl<'hold> tos_query::CatalogCurrentAuthority<'hold> for ManagedFixtureReadGrant {
+    fn policy_binding(&self) -> tos_query::search_v2::CurrentPolicyBinding {
+        self.policy()
+    }
+    fn disclosure_scope(&self) -> tos_query::CatalogDisclosureScope {
+        self.catalog_scope()
+    }
+    fn check_selected(&mut self) -> Result<(), tos_query::CatalogError> {
+        self.catalog_check()
+    }
+    fn authorize_current(&mut self, sha: Digest256) -> Result<(), tos_query::CatalogError> {
+        self.catalog_check()?;
+        assert_eq!(
+            sha,
+            Digest256::from_hex(&self.selected.catalog_packet_sha256).unwrap()
+        );
+        Ok(())
+    }
+    fn acquire_disclosure(
+        &mut self,
+        scope: &tos_query::CatalogDisclosureScope,
+        sha: Digest256,
+    ) -> Result<Box<dyn tos_query::CatalogDisclosureLease + 'hold>, tos_query::CatalogError> {
+        self.catalog_check()?;
+        assert_eq!(scope, &self.catalog_scope());
+        assert_eq!(
+            sha,
+            Digest256::from_hex(&self.selected.catalog_packet_sha256).unwrap()
+        );
+        Ok(Box::new(self.hold()))
+    }
+}
+impl<'hold> tos_query::InspectCurrentAuthority<'hold> for ManagedFixtureReadGrant {
+    fn policy_binding(&self) -> tos_query::search_v2::CurrentPolicyBinding {
+        self.policy()
+    }
+    fn disclosure_scope(&self) -> tos_query::IndexedDisclosureScope {
+        self.inspect_scope()
+    }
+    fn check_selected(&mut self) -> Result<(), tos_query::search_v2::SearchV2Error> {
+        self.inspect_check()
+    }
+    fn authorize_current(
+        &mut self,
+        carrier: &tos_query::InspectedCarrier,
+    ) -> Result<(), tos_query::search_v2::SearchV2Error> {
+        self.inspect_check()?;
+        assert!(self.carriers.iter().any(|r| r.kind == carrier.kind
+            && r.id == carrier.id
+            && r.position == carrier.position
+            && r.sha == carrier.payload_sha256));
+        Ok(())
+    }
+    fn authorize_navigation_original_current(
+        &mut self,
+        receipt: &tos_compiler::NavigationOriginalReceipt,
+        position: i64,
+        raw: &[u8],
+        sha: Digest256,
+    ) -> Result<(), tos_query::search_v2::SearchV2Error> {
+        self.inspect_check()?;
+        assert_eq!(
+            serde_json::to_value(receipt).unwrap(),
+            serde_json::to_value(&self.original).unwrap()
+        );
+        assert!(position >= -1 && position < receipt.rights as i64);
+        assert_eq!(Digest256::of_bytes(raw), sha);
+        Ok(())
+    }
+    fn acquire_disclosure(
+        &mut self,
+        scope: &tos_query::IndexedDisclosureScope,
+        consulted: &[tos_query::ObservedInspectCarrier],
+    ) -> Result<
+        Box<dyn tos_query::InspectDisclosureLease + 'hold>,
+        tos_query::search_v2::SearchV2Error,
+    > {
+        self.inspect_check()?;
+        assert_eq!(scope, &self.inspect_scope());
+        assert!(
+            consulted
+                .iter()
+                .all(|c| self.carriers.iter().any(|r| r.kind == c.kind
+                    && r.id == c.id
+                    && r.graph == c.source_graph
+                    && r.position == c.position
+                    && r.sha == c.payload_sha256))
+        );
+        Ok(Box::new(self.hold()))
+    }
+}
+struct ManagedFixtureOutput {
+    bytes: Vec<u8>,
+    active: std::sync::Arc<AtomicU64>,
+    flushed: bool,
+}
+impl std::io::Write for ManagedFixtureOutput {
+    fn write(&mut self, raw: &[u8]) -> io::Result<usize> {
+        assert!(
+            self.active.load(Ordering::SeqCst) > 0,
+            "actual fixture read lease held during write"
+        );
+        self.bytes.extend_from_slice(raw);
+        Ok(raw.len())
+    }
+    fn flush(&mut self) -> io::Result<()> {
+        assert!(
+            self.active.load(Ordering::SeqCst) > 0,
+            "actual fixture read lease held through final flush"
+        );
+        self.flushed = true;
+        Ok(())
+    }
+}
+struct ManagedFixtureNoCheckpoints;
+impl tos_query::knowledge_exploration::ExplorationCheckpoints for ManagedFixtureNoCheckpoints {
+    fn load(
+        &mut self,
+        _: &str,
+        _: &str,
+    ) -> Result<
+        tos_query::knowledge_exploration::ExplorationCheckpoint,
+        tos_query::search_v2::SearchV2Error,
+    > {
+        Err(tos_query::search_v2::SearchV2Error {
+            code: tos_query::search_v2::SearchV2ErrorCode::Unavailable,
+            message: "fixture grants catalog/node/relation only",
+        })
+    }
+    fn prepare(
+        &mut self,
+        _: Option<&str>,
+        _: &str,
+        _: Option<&tos_query::knowledge_exploration::ExplorationState>,
+        _: &tos_foundation::JsonValue,
+        _: tos_query::knowledge_exploration::ExplorationBudget,
+    ) -> Result<
+        Box<dyn tos_query::knowledge_exploration::PreparedExplorationCheckpoint>,
+        tos_query::search_v2::SearchV2Error,
+    > {
+        Err(tos_query::search_v2::SearchV2Error {
+            code: tos_query::search_v2::SearchV2ErrorCode::Unavailable,
+            message: "fixture grants catalog/node/relation only",
+        })
+    }
+}
+fn managed_fixture_query_budgets() -> tos_access::knowledge::SelectedKnowledgeBudgets {
+    let read = tos_query::InspectBudget {
+        max_open_vm_steps: 100_000_000,
+        max_read_vm_steps: 1_000_000,
+        max_matches: 64,
+        max_rows: 1000,
+        max_field_bytes: 8192,
+        max_payload_bytes: 1_000_000,
+        max_decoded_bytes: 8_000_000,
+        max_response_bytes: 1_000_000,
+        json: tos_foundation::JsonLimits::default(),
+    };
+    tos_access::knowledge::SelectedKnowledgeBudgets {
+        catalog: tos_query::CatalogBudget {
+            max_open_vm_steps: 100_000_000,
+            max_read_vm_steps: 1_000_000,
+            max_packet_bytes: 1_000_000,
+            max_decoded_bytes: 1_000_032,
+            json: tos_foundation::JsonLimits::default(),
+        },
+        inspect: read,
+        lens: tos_query::knowledge_lens::LensBudget {
+            inspect: read,
+            max_candidates: 1000,
+            max_path_steps: 1000,
+            max_adjacency_rows: 1000,
+            block_size: 64,
+        },
+        exploration: tos_query::knowledge_exploration::ExplorationBudget {
+            read,
+            max_work_units: 1,
+            max_session_nodes: 1000,
+            max_session_relations: 1000,
+            max_state_bytes: 1_000_000,
+            max_checkpoint_bytes: 2_000_000,
+            max_checkpoints: 8,
+        },
+    }
+}
+
 #[test]
 fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes() {
     use std::collections::BTreeMap;
@@ -259,6 +641,7 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
         "rust/crates/tos-command/src/source_creation.rs",
         "rust/crates/tos-command/src/source_creation_store.rs",
         "rust/crates/tos-command/src/source_serialization.rs",
+        "rust/crates/tos-compiler/src/knowledge_normalization.rs",
         "ToS/contracts/historical-record.schema.json",
         "ToS/contracts/corpus-record.schema.json",
         "ToS/contracts/historical-claim.schema.json",
@@ -273,10 +656,28 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
         "ToS/doctrine/semantic-interchange/entity-types.v1.json",
         "ToS/doctrine/semantic-interchange/relation-types.v1.json",
     ];
-    let files = inputs
+    let mut files = inputs
         .iter()
         .map(|p| (p.to_string(), fs::read(repository.join(p)).unwrap()))
         .collect::<BTreeMap<_, _>>();
+    // The actual catalog constructor validates every registry-declared route,
+    // including unused profiles. Reuse the source-case's complete finite
+    // contract resource closure; do not fake empty routes or patch registries.
+    for entry in fs::read_dir(repository.join("ToS/contracts")).unwrap() {
+        let entry = entry.unwrap();
+        if entry.file_type().unwrap().is_file()
+            && entry
+                .file_name()
+                .to_str()
+                .unwrap()
+                .ends_with(".schema.json")
+        {
+            let path = format!("ToS/contracts/{}", entry.file_name().to_str().unwrap());
+            files.insert(path, fs::read(entry.path()).unwrap());
+        }
+    }
+    assert!(files.len() <= 512);
+    assert!(files.values().map(Vec::len).sum::<usize>() <= 16 * 1024 * 1024);
     fs::create_dir_all(isolated.path().join("ToS/source-witnesses/agents")).unwrap();
     for (path, raw) in &files {
         let target = isolated.path().join(path);
@@ -912,9 +1313,9 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
         .unwrap();
     assert!(restored_replay.replayed);
     assert_eq!(restored_replay.commit_seq, a.commit_seq);
-    // After a cold restore, select a real immutable CURRENT cut and prepare
-    // a second maintained Agent that reads the earlier authored Agent body.
-    let current = tos_command::source_current_cut::select_current_source_generation(
+    // A genuine complete v1 export establishes the initial full producer
+    // correspondence once. Warm successors do not re-export authored bodies.
+    let export = tos_command::source_current_cut::select_current_source_cut(
         &mut reopened_db,
         &reopened_store,
         &lab.domain,
@@ -925,10 +1326,258 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
         &software,
         &components,
         &mut new_worker(&cut),
+        &isolated,
+        None,
+        read_limits,
+        CutReadLimits {
+            max_revisions: 4,
+            max_members: 2048,
+            max_total_bytes: 33_554_432,
+            max_member_bytes: 8_388_608,
+        },
         deadline,
         &cancelled,
     )
     .unwrap();
+    let mut descriptor: serde_json::Value = serde_json::from_slice(
+        &fs::read(
+            repository.join("rust/crates/tos-compiler/tests/fixtures/query-vocabulary.v1.json"),
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    descriptor["descriptor_id"] = serde_json::json!("synthetic.private.managed-agent-query");
+    descriptor["owner_ref"] = serde_json::json!("synthetic-test-only:no-production-read-authority");
+    descriptor["purpose"] = serde_json::json!(
+        "Private Agent-only selected-consumer conformance; no production read, source, rights or semantic admission"
+    );
+    descriptor["sources"]
+        .as_array_mut()
+        .unwrap()
+        .retain(|s| s["source_graph_id"] == "source-navigation");
+    assert_eq!(descriptor["sources"].as_array().unwrap().len(), 1);
+    let descriptor_raw = canonical(&descriptor);
+    let descriptor_digest = Digest256::of_bytes(&descriptor_raw);
+    fs::write(
+        root.0.join("private-agent-descriptor.json"),
+        &descriptor_raw,
+    )
+    .unwrap();
+    let vocabulary = tos_compiler::QueryVocabulary::parse(
+        &descriptor_raw,
+        tos_compiler::NATIVE_KNOWLEDGE_ADAPTER_PROFILES,
+    )
+    .unwrap();
+    let processor_path =
+        RelativePath::parse("rust/crates/tos-compiler/src/knowledge_normalization.rs").unwrap();
+    let processor_raw = software
+        .read_selected_component(
+            &components,
+            &processor_path,
+            8_388_608,
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+    let processor_digest = Digest256::of_bytes(&processor_raw);
+    assert_eq!(processor_raw, files[processor_path.as_str()]);
+    // Actual selected source-component/configuration pins are evidence for this
+    // declared fixture profile, not an ELF/compiler closure or Python identity.
+    let selected_stage_limits = tos_compiler::knowledge_stage::StageLimits {
+        sqlite: tos_compiler::Limits {
+            max_rows: 8192,
+            max_row_bytes: 2 * 1024 * 1024,
+            max_output_bytes: 64 * 1024 * 1024,
+            max_work_bytes: 128 * 1024 * 1024,
+            sqlite_cache_kib: 512,
+            max_sql_vm_steps: 20_000_000,
+        },
+        max_temp_bytes: 64 * 1024 * 1024,
+        max_seek_rows: 16,
+        max_seek_bytes: 32 * 1024 * 1024,
+    };
+    let native_limits = tos_compiler::knowledge_full_fixture::native_fixture_limits(100, 200);
+    let full_limits = tos_compiler::knowledge_full_fixture::native_fixture_full_limits(1);
+    let process_limits =
+        tos_compiler::knowledge_full_fixture::NATIVE_SOFTWARE_FIXTURE_PROCESS_LIMITS;
+    let cold_limits =
+        tos_compiler::knowledge_full_fixture::native_fixture_cold_limits(full_limits, 1);
+    let original_limits = tos_compiler::NavigationOriginalLimits {
+        max_rows: 200,
+        max_row_bytes: 65536,
+        max_total_bytes: 262144,
+    };
+    let bibliographic_limits = tos_compiler::source_bibliographic::BibliographicLimits {
+        catalog: tos_compiler::source_witness_catalog::SourceCatalogLimits {
+            max_files: 512,
+            max_rows: 4096,
+            max_file_bytes: 2 * 1024 * 1024,
+            max_row_bytes: 1024 * 1024,
+            max_contract_bytes: 16 * 1024 * 1024,
+            max_output_row_bytes: 1024 * 1024,
+        },
+        max_claim_cohort_rows: 16,
+        max_claim_cohort_bytes: 16 * 1024 * 1024,
+        max_output_rows: 4096,
+        max_output_bytes: 16 * 1024 * 1024,
+        deadline,
+    };
+    let selected_owner = ManagedFixtureStageOwner;
+    let selected_isolation = ManagedFixtureStageIsolation;
+    let entity_raw = &files["ToS/doctrine/semantic-interchange/entity-types.v1.json"];
+    let relation_raw = &files["ToS/doctrine/semantic-interchange/relation-types.v1.json"];
+    let entities: serde_json::Value = serde_json::from_slice(entity_raw).unwrap();
+    let binding_for = |proof: &tos_compiler::ManagedSourceProofV1| tos_compiler::SourceBinding {
+        owner_profile: "synthetic-private-managed-agent-consumer".into(),
+        source_cut: proof.initial_export_source_revision.clone(),
+        through_commit_seq: proof.generation.through_commit_seq,
+        membership_root: proof.generation.current_membership_sha256.clone(),
+        index_generation: proof.generation.installed_generation_sha256.clone(),
+        route_map_version: "private-managed-agent-v1".into(),
+        reader_abi: "private-managed-agent-v1".into(),
+        projection_root_sha256: proof.generation.inventory_projection_sha256.clone(),
+        complete: true,
+    };
+    let validator_for = |schema_cut: &CorpusCutReader| {
+        let mut operation = tos_validation::executor::BatchStreamBudget::laboratory();
+        operation.max_chunks = bibliographic_limits.max_output_rows;
+        operation.max_total_units = bibliographic_limits.max_output_rows;
+        operation.total_execution_wall = deadline.saturating_duration_since(Instant::now());
+        operation.operation_cpu_seconds =
+            operation.total_execution_wall.as_secs().saturating_add(1);
+        operation.operation_address_space_bytes = ExecutorBudget::laboratory().address_space_bytes;
+        tos_compiler::source_witness_catalog::SourceCatalogValidator::from_cut(
+            schema_cut,
+            &worker_identity,
+            ExecutorBudget::laboratory(),
+            CutWorkerLimits {
+                max_receipts: 4096,
+                max_receipt_bytes: 16 * 1024 * 1024,
+            },
+            operation,
+            deadline,
+            &cancelled,
+        )
+    };
+    let mut initial_carriers = Vec::new();
+    let initial_selected =
+        tos_command::source_managed_selection::prepare_managed_agent_selected_parent(
+            &mut reopened_db,
+            &reopened_store,
+            export,
+            &owners[0],
+            &packages[0],
+            contract_digest(),
+            0,
+            0,
+            "private-job",
+            1,
+            process_limits,
+            cold_limits,
+            deadline,
+            &cancelled,
+            |export, proof| {
+                let selected_cut = export.cut();
+                let selected_revision = selected_cut.current().revision();
+                let selected_membership = selected_cut
+                    .stream(selected_revision)
+                    .map_err(|_| tos_compiler::Error::Invalid("fixture selected export stream"))?
+                    .expectation();
+                let mut binding = binding_for(&proof);
+                binding.membership_root = selected_membership.digest.to_hex();
+                binding.index_generation = selected_revision.0.to_hex();
+                let plan = tos_compiler::plan_source_catalog_inputs(
+                    selected_cut,
+                    selected_revision,
+                    selected_membership,
+                    &binding,
+                    tos_compiler::SourceCatalogInputLimits {
+                        max_manifest_members: 512,
+                        max_selected_members: 512,
+                        max_plan_bytes: 16 * 1024 * 1024,
+                        max_work_bytes: 64 * 1024 * 1024,
+                    },
+                    bibliographic_limits,
+                    &cancelled,
+                )?;
+                let mut stage = tos_compiler::knowledge_stage::KnowledgeStage::create(
+                    &root.0.join("initial-agent-catalog.sqlite"),
+                    selected_stage_limits,
+                    plan.input_receipt(),
+                    &selected_owner,
+                    &selected_isolation,
+                )?;
+                let validator = validator_for(selected_cut)?;
+                let mut forms = tos_command::source_forms_compiler::NativeBibliographicForms;
+                let candidate = tos_compiler::render_source_bibliographic_plan(
+                    &plan,
+                    selected_cut,
+                    selected_revision,
+                    selected_membership,
+                    &mut stage,
+                    &validator,
+                    &mut forms,
+                    bibliographic_limits,
+                    512,
+                    16 * 1024 * 1024,
+                )?;
+                let source = tos_compiler::source_bibliographic::BibliographicSourceCut {
+                    cut: selected_cut,
+                    expected_revision: selected_revision,
+                    expected_membership: selected_membership,
+                    stage_source_cut: &binding.source_cut,
+                    max_read_files: 512,
+                    max_read_bytes: 16 * 1024 * 1024,
+                };
+                let navigation =
+                    tos_compiler::source_navigation_source::project_source_navigation_from_cut(
+                        &mut stage,
+                        &candidate.catalog,
+                        &source,
+                        &validator,
+                        &entities,
+                        &mut forms,
+                        bibliographic_limits,
+                    )?;
+                let basis = tos_compiler::KnowledgeSourceBasis::ManagedCurrent {
+                    proof: proof.clone(),
+                };
+                tos_compiler::managed_source::prepare_managed_agent_selected_model(
+                    &plan,
+                    &navigation,
+                    &validator,
+                    proof,
+                    &root.0.join("initial-agent-selected.sqlite"),
+                    binding,
+                    selected_stage_limits,
+                    &selected_owner,
+                    &selected_isolation,
+                    entity_raw,
+                    relation_raw,
+                    &descriptor_raw,
+                    tos_compiler::NATIVE_KNOWLEDGE_ADAPTER_PROFILES,
+                    native_limits,
+                    original_limits,
+                    full_limits,
+                    &[],
+                    "synthetic-agent-initial-model".into(),
+                    |stage, registry| {
+                        initial_carriers = managed_fixture_carriers(stage, selected_stage_limits)?;
+                        tos_compiler::knowledge_full_fixture::native_fixture_header_with_binding(
+                            stage,
+                            registry,
+                            entity_raw,
+                            &basis,
+                            processor_digest,
+                            descriptor_digest,
+                        )
+                    },
+                )
+            },
+        )
+        .unwrap();
+    assert!(!initial_carriers.is_empty());
+    let current = initial_selected.generation();
     assert_eq!(current.commit_seq(), a.commit_seq);
     let mut current_context = contexts[1].clone();
     current_context
@@ -1084,6 +1733,247 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
             .iter()
             .any(|path| path.as_str() == earlier_path)
     );
+    let mut successor_carriers = Vec::new();
+    let second_selected =
+        tos_command::source_managed_selection::prepare_managed_agent_selected_successor(
+            &mut reopened_db,
+            &reopened_store,
+            &initial_selected,
+            successor,
+            b"agent-current-second",
+            &current_package,
+            &current_filesystem,
+            contract_digest(),
+            0,
+            0,
+            "private-job",
+            1,
+            process_limits,
+            cold_limits,
+            deadline,
+            &cancelled,
+            |old, parent, proof, catalogue, record_path, record_raw, forms_raw| {
+                let binding = binding_for(&proof);
+                let basis = tos_compiler::KnowledgeSourceBasis::ManagedCurrent {
+                    proof: proof.clone(),
+                };
+                let validator = validator_for(&cut)?;
+                let mut forms = tos_command::source_forms_compiler::NativeBibliographicForms;
+                tos_compiler::managed_source::prepare_managed_agent_selected_successor(
+                    old,
+                    parent,
+                    proof,
+                    |accept| catalogue(accept),
+                    record_path,
+                    record_raw,
+                    forms_raw,
+                    &mut forms,
+                    &validator,
+                    revision,
+                    bibliographic_limits,
+                    &root.0.join("successor-agent-selected.sqlite"),
+                    binding,
+                    selected_stage_limits,
+                    &selected_owner,
+                    &selected_isolation,
+                    entity_raw,
+                    relation_raw,
+                    &descriptor_raw,
+                    tos_compiler::NATIVE_KNOWLEDGE_ADAPTER_PROFILES,
+                    native_limits,
+                    original_limits,
+                    full_limits,
+                    &[],
+                    "synthetic-agent-successor-model".into(),
+                    |stage, registry| {
+                        successor_carriers =
+                            managed_fixture_carriers(stage, selected_stage_limits)?;
+                        tos_compiler::knowledge_full_fixture::native_fixture_header_with_binding(
+                            stage,
+                            registry,
+                            entity_raw,
+                            &basis,
+                            processor_digest,
+                            descriptor_digest,
+                        )
+                    },
+                )
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        second_selected.source_proof().generation.through_commit_seq,
+        second_receipt.commit_seq
+    );
+    assert_eq!(
+        second_selected.selection_expectation().descriptor_sha256,
+        descriptor_digest.to_hex()
+    );
+    assert_ne!(
+        second_selected.selection_expectation().model_sha256,
+        initial_selected.selection_expectation().model_sha256
+    );
+    assert_eq!(
+        second_selected.source_catalog_root_sha256(),
+        initial_selected.source_catalog_root_sha256()
+    );
+    let mut synthetic_read = ManagedFixtureReadGrant::new(&second_selected, successor_carriers);
+    let mut no_checkpoints = ManagedFixtureNoCheckpoints;
+    let query_budgets = managed_fixture_query_budgets();
+    let query_profile = tos_access::AccessProfile::new(65536, 1024 * 1024, 1024 * 1024)
+        .with_query_timeout(Duration::from_secs(10));
+    let history_edge = synthetic_read
+        .carriers
+        .iter()
+        .find(|row| row.kind == tos_query::search_v2::SearchKind::Relations)
+        .expect("actual retained record-history relation")
+        .id
+        .clone();
+    for request in [
+        tos_access::KnowledgeRequest::Catalog,
+        tos_access::KnowledgeRequest::Node {
+            node_id: "tos.agent.synthetic-durable-current".into(),
+            relation_limit: 16,
+        },
+        tos_access::KnowledgeRequest::Relation {
+            relation_id: history_edge.clone(),
+        },
+    ] {
+        let mut catalog = synthetic_read.clone();
+        let mut inspect = synthetic_read.clone();
+        inspect.operation = if matches!(&request, tos_access::KnowledgeRequest::Relation { .. }) {
+            tos_query::RELATION_INSPECT_OPERATION
+        } else {
+            tos_query::NODE_INSPECT_OPERATION
+        }
+        .into();
+        let expected_schema = match &request {
+            tos_access::KnowledgeRequest::Node { .. } => Some("tos_knowledge_node_packet_v2"),
+            tos_access::KnowledgeRequest::Relation { .. } => {
+                Some("tos_knowledge_relation_packet_v2")
+            }
+            _ => None,
+        };
+        let mut output = ManagedFixtureOutput {
+            bytes: Vec::new(),
+            active: synthetic_read.active.clone(),
+            flushed: false,
+        };
+        let mut errors = Vec::new();
+        let result = second_selected
+            .write_current_knowledge(
+                &mut reopened_db,
+                &reopened_store,
+                &current_filesystem,
+                &current_package,
+                contract_digest(),
+                0,
+                0,
+                "private-job",
+                1,
+                &vocabulary,
+                &descriptor_raw,
+                &mut catalog,
+                &mut inspect,
+                &mut no_checkpoints,
+                request,
+                query_budgets,
+                query_profile,
+                &mut output,
+                &mut errors,
+                deadline,
+                &cancelled,
+            )
+            .unwrap();
+        assert_eq!(
+            result,
+            0,
+            "actual current held selected transport: {}",
+            String::from_utf8_lossy(&errors)
+        );
+        assert_eq!(output.bytes.last(), Some(&b'\n'));
+        assert!(output.flushed);
+        assert_eq!(synthetic_read.active.load(Ordering::SeqCst), 0);
+        let packet: serde_json::Value = serde_json::from_slice(&output.bytes).unwrap();
+        if let Some(schema) = expected_schema {
+            assert_eq!(packet["schema"], schema);
+            assert_eq!(packet["source_basis"]["kind"], "managed_current");
+            assert_eq!(
+                packet["managed_source_root_sha256"],
+                second_selected.source_proof().root_sha256().unwrap()
+            );
+            assert!(packet.get("source_revision").is_none());
+            if schema == "tos_knowledge_node_packet_v2" {
+                assert_eq!(packet["matches"].as_array().unwrap().len(), 1);
+                let attributes = &packet["matches"][0]["attributes"];
+                let body: serde_json::Value =
+                    serde_json::from_slice(&current_package.files()[second_path.as_str()]).unwrap();
+                let form_path = second_path
+                    .as_str()
+                    .strip_suffix(".json")
+                    .unwrap()
+                    .to_owned()
+                    + ".human-forms.json";
+                let set: serde_json::Value =
+                    serde_json::from_slice(&current_package.files()[&form_path]).unwrap();
+                assert_eq!(attributes["source_record"], body);
+                assert_eq!(
+                    attributes["human_forms"],
+                    serde_json::json!(
+                        tos_command::source_forms_compiler::materialize_compiler_forms(
+                            &body, &set, 262_144
+                        )
+                        .unwrap()
+                    )
+                );
+                assert_eq!(attributes["record_history"]["status"], "available");
+                assert_eq!(attributes["record_history"]["current_ref"], set["subject"]);
+                assert_eq!(
+                    attributes["record_history"]["refs"],
+                    serde_json::json!([set["subject"].clone()])
+                );
+                assert_eq!(attributes["record_history"]["grants_current_use"], false);
+            }
+        }
+    }
+    // The explicit fixture read grant has a real retained withdrawal/recheck
+    // through the same transport lease. It is independent of create authority.
+    synthetic_read.withdrawn.store(true, Ordering::SeqCst);
+    let mut catalog = synthetic_read.clone();
+    let mut inspect = synthetic_read.clone();
+    let mut denied_output = Vec::new();
+    let mut denied_errors = Vec::new();
+    assert_ne!(
+        second_selected
+            .write_current_knowledge(
+                &mut reopened_db,
+                &reopened_store,
+                &current_filesystem,
+                &current_package,
+                contract_digest(),
+                0,
+                0,
+                "private-job",
+                1,
+                &vocabulary,
+                &descriptor_raw,
+                &mut catalog,
+                &mut inspect,
+                &mut no_checkpoints,
+                tos_access::KnowledgeRequest::Catalog,
+                query_budgets,
+                query_profile,
+                &mut denied_output,
+                &mut denied_errors,
+                deadline,
+                &cancelled,
+            )
+            .unwrap(),
+        0
+    );
+    assert!(denied_output.is_empty());
+    synthetic_read.withdrawn.store(false, Ordering::SeqCst);
+    let successor = second_selected.generation();
     // The next real command consumes the returned warm successor, without
     // cold re-auditing unchanged source bodies or exporting a v1 manifest.
     let mut warm_context = current_context.clone();
@@ -1191,6 +2081,39 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
             < reopened.files.len(),
         "warm preparation remains addressed"
     );
+    let mut catalog = synthetic_read.clone();
+    let mut inspect = synthetic_read.clone();
+    let mut stale_output = Vec::new();
+    let mut stale_errors = Vec::new();
+    assert!(
+        second_selected
+            .write_current_knowledge(
+                &mut reopened_db,
+                &reopened_store,
+                &current_filesystem,
+                &current_package,
+                contract_digest(),
+                0,
+                0,
+                "private-job",
+                1,
+                &vocabulary,
+                &descriptor_raw,
+                &mut catalog,
+                &mut inspect,
+                &mut no_checkpoints,
+                tos_access::KnowledgeRequest::Catalog,
+                query_budgets,
+                query_profile,
+                &mut stale_output,
+                &mut stale_errors,
+                deadline,
+                &cancelled,
+            )
+            .is_err(),
+        "the selected full successor cannot disclose after the next actual committed generation"
+    );
+    assert!(stale_output.is_empty());
     let expected_current_head = warm_receipt.commit_seq;
     drop(warm_package);
     drop(warm_receipt);
@@ -1219,8 +2142,10 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
     drop(current_request);
     drop(current_config);
     drop(current_filesystem);
-    drop(current);
     drop(successor);
+    drop(current);
+    drop(second_selected);
+    drop(initial_selected);
     drop(successor_member);
     drop(initial);
     drop(verified);

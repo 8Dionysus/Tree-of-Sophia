@@ -128,6 +128,9 @@ impl ManagedCurrentSourceCut {
     pub(crate) fn files(&self) -> &BTreeMap<String, Vec<u8>> {
         &self.files
     }
+    pub(crate) fn into_generation(self) -> ManagedCurrentSourceGeneration {
+        self.generation
+    }
 }
 
 /// Explicit cold selection of existing durable roots without a v1 export.

@@ -9,6 +9,8 @@ pub mod source_command;
 pub mod source_creation;
 pub mod source_creation_store;
 pub mod source_current_cut;
+mod source_managed_query;
+pub mod source_managed_selection;
 pub use durable_adapter::source_cohort;
 mod source_assessment_journal;
 pub mod source_forms;
