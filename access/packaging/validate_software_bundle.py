@@ -100,7 +100,7 @@ def verify_archive(bundle: Path) -> dict:
                 raise RuntimeError("native software manifest exceeds delivery cap")
             static_members = [item for item in members if item["path"].startswith("access/src/tos_access/web_dist/")]
             if any(item["size_bytes"] > MAX_STATIC_BYTES for item in static_members) or sum(item["size_bytes"] for item in static_members) > 2**64 - 1:
-                raise RuntimeError("native static member/aggregate size exceeds profile")
+                raise RuntimeError("native static member exceeds cap or total is not representable")
             if "access/src/tos_access/web_dist/assets/tos-graph.css" not in names:
                 raise RuntimeError("native site stylesheet missing")
             if manifest["source_dirty"] or NATIVE_MEMBER not in names or any(name not in names for name in NATIVE_PROOF_MEMBERS):
@@ -125,9 +125,20 @@ def verify_archive(bundle: Path) -> dict:
     return manifest
 
 
+def extract_verified_archive(bundle: Path, destination: Path) -> dict:
+    """Extract the existing exact software closure; never execute members."""
+    manifest = verify_archive(bundle)
+    destination.mkdir()  # A fresh target is required; no installation overwrite.
+    with zipfile.ZipFile(bundle) as archive:
+        archive.extractall(destination)
+    if manifest.get("native_access") is not None:
+        # zipfile drops Unix modes. Only the exact verified member is executable.
+        (destination / NATIVE_MEMBER).chmod(0o755)
+    return manifest
+
+
 def installed_probe(bundle: Path) -> dict:
     """Build a real wheel and install it in a fresh, dependency-free venv."""
-    manifest = verify_archive(bundle)
     env = {key: value for key, value in os.environ.items()
            if key != "PYTHONPATH" and not key.startswith(("TOS_", "AOA_"))}
     env["PIP_DISABLE_PIP_VERSION_CHECK"] = "1"
@@ -135,12 +146,7 @@ def installed_probe(bundle: Path) -> dict:
         root = Path(raw)
         source, outside, wheels, venv = (root / part for part in ("source", "outside", "wheels", "venv"))
         outside.mkdir()
-        with zipfile.ZipFile(bundle) as archive:
-            archive.extractall(source)
-        if manifest.get("native_access") is not None:
-            # zipfile extraction does not preserve Unix mode. Only this exact
-            # integrity-verified native member receives its declared mode.
-            (source / NATIVE_MEMBER).chmod(0o755)
+        manifest = extract_verified_archive(bundle, source)
 
         def run(command):
             result = subprocess.run(command, cwd=outside, env=env, text=True, capture_output=True)

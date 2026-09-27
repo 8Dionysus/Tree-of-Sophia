@@ -4305,4 +4305,196 @@ json.dump({'capture':str(capture),'restored':str(restored),'commit':commit,'tree
         // The real installed binary/layout acceptance is a separate admitted
         // assembly stage. This test never executes the integrity fixture ELF.
     }
+    #[test]
+    #[ignore = "requires OPS-admitted native build receipt, frontend products and assembly space"]
+    fn actual_native_software_archive_startup_and_unavailable_boot() {
+        use std::process::{Command, Stdio};
+        // This is a required host case when selected. Missing product custody
+        // fails, rather than substituting CARGO_BIN_EXE or the tiny ELF fixture.
+        let binary = std::env::var_os("TOS_NATIVE_MANAGED_CONSUMER_BIN")
+            .expect("OPS must provide the exact admitted current native binary");
+        let receipt = std::env::var_os("TOS_NATIVE_ACCESS_BUILD_RECEIPT")
+            .expect("OPS must provide its exact build-owned receipt");
+        let repository = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../../..")
+            .canonicalize()
+            .unwrap();
+        let tick = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let root =
+            std::env::temp_dir().join(format!("tos-native-software-{}-{tick}", std::process::id()));
+        fs::create_dir(&root).unwrap();
+        let package = root.join("software.zip");
+        let installed = root.join("installed");
+        let assembly = Command::new("python3")
+            .args(["-I", "-c", r#"
+import pathlib, subprocess, sys
+repo, binary, receipt, archive, installed = map(pathlib.Path, sys.argv[1:])
+sys.path.insert(0, str(repo / 'access/packaging'))
+from build_software_bundle import build_software_bundle
+from validate_software_bundle import extract_verified_archive
+ref = subprocess.run(['git','rev-parse','HEAD'],cwd=repo,check=True,capture_output=True,text=True).stdout.strip()
+build_software_bundle(repo, archive, source_ref=ref, native_access_binary=binary, native_access_receipt=receipt)
+manifest = extract_verified_archive(archive, installed)
+assert manifest['software_ref'] == ref and manifest['source_dirty'] is False
+assert manifest['data_included'] is False and manifest['native_access']['source_commit'] == ref
+"#])
+            .arg(&repository).arg(binary).arg(receipt).arg(&package).arg(&installed)
+            .output().unwrap();
+        assert!(
+            assembly.status.success(),
+            "native software assembly: {}",
+            String::from_utf8_lossy(&assembly.stderr)
+        );
+        let program = installed.join("access/src/tos_access/tos-access");
+        let outside = root.join("outside");
+        fs::create_dir(&outside).unwrap();
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let address = listener.local_addr().unwrap();
+        drop(listener);
+        struct StopChild(std::process::Child);
+        impl Drop for StopChild {
+            fn drop(&mut self) {
+                let _ = self.0.kill();
+                let _ = self.0.wait();
+            }
+        }
+        // Assembly remains transitional Python. The actual software entrypoint
+        // now runs without Python/checkout discovery or a selected data owner.
+        let mut server = StopChild(
+            Command::new(&program)
+                .arg("serve")
+                .arg(address.to_string())
+                .current_dir(&outside)
+                .env_clear()
+                .env("PATH", "")
+                .stdout(Stdio::null())
+                .stderr(Stdio::piped())
+                .spawn()
+                .unwrap(),
+        );
+        let deadline = std::time::Instant::now() + Duration::from_secs(30);
+        loop {
+            if TcpStream::connect(address).is_ok() {
+                break;
+            }
+            assert!(
+                server.0.try_wait().unwrap().is_none(),
+                "native software entrypoint exited before loopback readiness"
+            );
+            assert!(
+                std::time::Instant::now() < deadline,
+                "native software entrypoint readiness timeout"
+            );
+            std::thread::sleep(Duration::from_millis(20));
+        }
+        let request = |method: &str, path: &str| {
+            let mut stream = TcpStream::connect(address).unwrap();
+            stream
+                .set_read_timeout(Some(Duration::from_secs(30)))
+                .unwrap();
+            write!(
+                stream,
+                "{method} {path} HTTP/1.1\r\nHost: localhost\r\n\r\n"
+            )
+            .unwrap();
+            let mut wire = Vec::new();
+            stream
+                .take(16 * 1024 * 1024 + 65_537)
+                .read_to_end(&mut wire)
+                .unwrap();
+            assert!(
+                wire.len() <= 16 * 1024 * 1024 + 65_536,
+                "bounded software wire"
+            );
+            wire
+        };
+        let split = |wire: &[u8]| {
+            wire.windows(4)
+                .position(|part| part == b"\r\n\r\n")
+                .unwrap()
+                + 4
+        };
+        let shell = request("GET", "/");
+        let head_end = split(&shell);
+        let headers = String::from_utf8_lossy(&shell[..head_end]);
+        assert!(headers.starts_with("HTTP/1.1 200 "));
+        assert!(headers.contains("Content-Type: text/html; charset=utf-8\r\n"));
+        assert!(headers.contains("Cache-Control: no-cache\r\n"));
+        assert!(headers.contains("Content-Security-Policy:") && headers.contains("'nonce-"));
+        assert!(headers.contains("X-Content-Type-Options: nosniff\r\n"));
+        assert!(headers.contains(&format!("Content-Length: {}\r\n", shell.len() - head_end)));
+        let html = std::str::from_utf8(&shell[head_end..]).unwrap();
+        let boot = html
+            .split("window.__TOS_GRAPH_BOOT__=")
+            .nth(1)
+            .unwrap()
+            .split(";</script>")
+            .next()
+            .unwrap();
+        let boot = parse_json(
+            boot.as_bytes(),
+            JsonMode::PublishedStrict,
+            JsonLimits::default(),
+        )
+        .unwrap()
+        .into_root();
+        for field in ["default_view", "default_philosophy_view"] {
+            assert_eq!(boot.object_get(field).unwrap().as_str(), Some(""));
+        }
+        assert_eq!(
+            boot.object_get("write_enabled"),
+            Some(&JsonValue::Bool(false))
+        );
+        for capability in ["corpus", "philosophy"] {
+            assert_eq!(
+                boot.object_get("capabilities")
+                    .unwrap()
+                    .object_get(capability),
+                Some(&JsonValue::Bool(false))
+            );
+        }
+        let head = request("HEAD", "/");
+        assert_eq!(split(&head), head.len());
+        assert!(
+            String::from_utf8_lossy(&head)
+                .contains(&format!("Content-Length: {}\r\n", shell.len() - head_end))
+        );
+        for (asset, mime) in [
+            ("tos-graph.js", "text/javascript"),
+            ("tos-graph.css", "text/css"),
+        ] {
+            let path = format!("/static/assets/{asset}");
+            let member = installed
+                .join("access/src/tos_access/web_dist/assets")
+                .join(asset);
+            assert!(fs::metadata(&member).unwrap().len() <= 16 * 1024 * 1024);
+            let expected = fs::read(&member).unwrap();
+            let wire = request("GET", &path);
+            assert_eq!(http_packet(&wire), expected);
+            let headers = String::from_utf8_lossy(&wire[..split(&wire)]);
+            assert!(headers.contains(&format!("Content-Type: {mime}\r\n")));
+            assert!(headers.contains("Cache-Control: no-cache\r\n"));
+            let head = request("HEAD", &path);
+            assert_eq!(split(&head), head.len());
+            assert!(
+                String::from_utf8_lossy(&head)
+                    .contains(&format!("Content-Length: {}\r\n", expected.len()))
+            );
+        }
+        let unavailable = request("GET", "/api/knowledge/catalog");
+        assert!(unavailable.starts_with(b"HTTP/1.1 503 "));
+        let traversal = request("GET", "/static/%2e%2e/Cargo.lock");
+        assert!(!traversal.starts_with(b"HTTP/1.1 200 "));
+        // A live process must refuse disappearance of its exact software image.
+        let moved = program.with_extension("held");
+        fs::rename(&program, &moved).unwrap();
+        let refused = request("GET", "/");
+        assert!(refused.starts_with(b"HTTP/1.1 503 "));
+        assert!(!String::from_utf8_lossy(&refused).contains("window.__TOS_GRAPH_BOOT__"));
+        drop(server);
+        // Keep admitted package/installation evidence in TMPDIR for OPS custody.
+    }
 }
