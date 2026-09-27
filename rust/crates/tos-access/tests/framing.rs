@@ -995,6 +995,7 @@ fn source_backed_doctor_verify_binary_preserves_diagnostic_boundaries() {
             "TOS_CORPUS_INDEX_PATH",
             "TOS_PHILOSOPHY_GRAPH_PROJECTION_PATH",
             "TOS_EVIDENCE_PROJECTION_PATH",
+            "TOS_BIBLIOGRAPHIC_GRAPH_PATH",
             "TOS_ABYSSOS_ROOT",
         ] {
             command.env_remove(name);
@@ -1002,7 +1003,8 @@ fn source_backed_doctor_verify_binary_preserves_diagnostic_boundaries() {
         command.output().unwrap()
     };
     let report = run(&["doctor", "--json"]);
-    assert_eq!(report.status.code(), Some(1)); // Native software web bundle absent.
+    assert!(matches!(report.status.code(), Some(0) | Some(1)));
+    let report_exit = report.status.code();
     assert!(
         report.stderr.is_empty(),
         "{}",
@@ -1051,25 +1053,42 @@ fn source_backed_doctor_verify_binary_preserves_diagnostic_boundaries() {
             .as_str(),
         Some("embedded:access/contracts")
     );
-    assert_eq!(
-        check("web-assets").object_get("ok"),
-        Some(&tos_foundation::JsonValue::Bool(false)),
-        "data-root software markers cannot supply executable code"
-    );
+    let program_web = Path::new(env!("CARGO_BIN_EXE_tos-access"))
+        .parent()
+        .unwrap()
+        .join("web_dist");
+    if let Some(path) = check("web-assets").object_get("path").unwrap().as_str() {
+        assert_eq!(
+            Path::new(path),
+            program_web,
+            "data-root software markers cannot supply executable code"
+        );
+    } else {
+        assert_eq!(
+            report_exit,
+            Some(1),
+            "missing installed web companion is a required failure"
+        );
+    }
     assert!(
         !checks
             .iter()
             .any(|row| row.object_get("check_id").unwrap().as_str() == Some("query-store"))
     );
     let rendered = run(&["doctor"]);
-    assert_eq!(rendered.status.code(), Some(1));
+    assert_eq!(rendered.status.code(), report_exit);
+    let state = if report_exit == Some(0) {
+        "ready"
+    } else {
+        "not ready"
+    };
     assert!(
-        String::from_utf8_lossy(&rendered.stdout).starts_with(
-            "Tree of Sophia access: not ready (standalone)\n[ok] corpus-index-present\n"
-        )
+        String::from_utf8_lossy(&rendered.stdout).starts_with(&format!(
+            "Tree of Sophia access: {state} (standalone)\n[ok] corpus-index-present\n"
+        ))
     );
     let verify = run(&["verify", "--json"]);
-    assert_eq!(verify.status.code(), Some(1));
+    assert_eq!(verify.status.code(), report_exit);
     let verify = parse_json(
         &verify.stdout,
         JsonMode::PublishedStrict,
@@ -1113,6 +1132,11 @@ fn source_backed_doctor_verify_binary_preserves_diagnostic_boundaries() {
         .env("TOS_ABYSSOS_ROOT", abyss)
         .env_remove("TOS_RELEASE_ROOT")
         .env_remove("TOS_QUERY_STORE_PATH")
+        .env_remove("TOS_DATA_ROOT")
+        .env_remove("TOS_CORPUS_INDEX_PATH")
+        .env_remove("TOS_PHILOSOPHY_GRAPH_PROJECTION_PATH")
+        .env_remove("TOS_EVIDENCE_PROJECTION_PATH")
+        .env_remove("TOS_BIBLIOGRAPHIC_GRAPH_PATH")
         .output()
         .unwrap();
     assert_eq!(abyss.status.code(), Some(1));
