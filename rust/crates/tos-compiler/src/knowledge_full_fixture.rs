@@ -3,6 +3,7 @@
 //! Its owner/quota/custody stubs are not production authority.
 
 use super::*;
+use crate::knowledge_source_claims::ClaimNormalizeLimits;
 use crate::{
     ColdOpenLimits, ExpectedSourceScope, ImmutableKnowledgeCustody, IndexedLimits,
     KnowledgeSelectedExpectation, Limits, SourceBinding,
@@ -702,7 +703,6 @@ fn build_native_fixture_inner(
         &std::sync::atomic::AtomicBool,
     )>,
 ) -> FullKnowledgeFixture {
-    use crate::knowledge_source_claims::ClaimNormalizeLimits;
     let entity_bytes =
         include_bytes!("../../../../ToS/doctrine/semantic-interchange/entity-types.v1.json");
     let relation_bytes =
