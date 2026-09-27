@@ -1674,26 +1674,22 @@ impl WorkExpression<'_> {
         ]);
         let parent_receipt = decode(&canonical_ordered(&parent_receipt_ordered)?)?;
         work_parent_receipt(&parent_receipt)?;
-        let mut history_ordered = match before.get(HISTORY) {
-            Some(raw) => ordered(raw)?,
-            None => object(vec![
-                ("schema_version", string("tos_source_revision_history_v1")),
-                ("record_id", j(&scope["work_id"])?),
-                ("receipts", JsonValue::Array(vec![])),
-            ]),
+        let mut receipts = match before.get(HISTORY) {
+            Some(raw) => ordered(raw)?
+                .object_get("receipts")
+                .and_then(JsonValue::as_array)
+                .ok_or_else(|| bad("ordered receipt chain"))?
+                .to_vec(),
+            None => vec![],
         };
-        set(
-            &mut history_ordered,
-            "schema_version",
-            string("tos_source_revision_history_v2"),
-        )?;
-        let mut receipts = history_ordered
-            .object_get("receipts")
-            .and_then(JsonValue::as_array)
-            .ok_or_else(|| bad("ordered receipt chain"))?
-            .to_vec();
         receipts.push(parent_receipt_ordered.clone());
-        set(&mut history_ordered, "receipts", JsonValue::Array(receipts))?;
+        // Maintained _compose creates this outer dict afresh in fixed order;
+        // retained receipt object order, but not prior outer order, survives.
+        let history_ordered = object(vec![
+            ("schema_version", string("tos_source_revision_history_v2")),
+            ("record_id", j(&scope["work_id"])?),
+            ("receipts", JsonValue::Array(receipts)),
+        ]);
         let parent_files: Vec<(String, Vec<u8>)> = vec![
             ("work.json".into(), parent_raw),
             (form_name.into(), pretty(&parent_forms)?),
