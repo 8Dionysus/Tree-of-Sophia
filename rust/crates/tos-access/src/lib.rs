@@ -17,6 +17,7 @@ pub mod http;
 pub mod mcp;
 pub mod search;
 pub mod site;
+pub mod software_archive;
 
 pub use common::{
     AccessError, AccessErrorCode, AccessExecutor, AccessProfile, DisclosureFence,

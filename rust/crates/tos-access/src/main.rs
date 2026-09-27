@@ -24,6 +24,13 @@ impl AccessExecutor for NoOwner {
 }
 fn main() {
     let mut args: Vec<String> = std::env::args().skip(1).collect();
+    if let Some(code) = tos_access::software_archive::run_if_requested(
+        &args,
+        &mut std::io::stdout(),
+        &mut std::io::stderr(),
+    ) {
+        std::process::exit(code);
+    }
     if let Some(code) =
         tos_access::doctor::run_if_requested(&args, &mut std::io::stdout(), &mut std::io::stderr())
     {

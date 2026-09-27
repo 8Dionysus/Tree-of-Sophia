@@ -11,6 +11,10 @@ tos-foundation = { path = "../tos-foundation" }
 tos-fd-open = { path = "../tos-fd-open" }
 tos-query = { path = "../tos-query" }
 tos-compiler = { path = "../tos-compiler" }
+toml = { version = "=0.9.11", default-features = false, features = ["std", "parse", "serde"] }
+rawzip = { version = "=0.5.1", default-features = false, features = ["std"] }
+zip = { version = "=2.4.2", default-features = false, features = ["deflate-flate2", "flate2"] }
+flate2 = { version = "=1.1.10", default-features = false, features = ["rust_backend"] }
 
 [lib]
 name = "tos_access"

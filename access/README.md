@@ -1322,3 +1322,37 @@ packet remain held until the shell's final write/flush, with currentness and
 cancellation checked at the existing disclosure boundary. Software assembly,
 installed no-Python startup, kernel custody, activation and deployment remain
 separate acceptance steps.
+
+
+The native software tooling entrypoint is `tos-access software build`,
+`software verify`, and `software extract`. It runs before data-owner selection.
+Build requires the clean source root/ref, the admitted native ELF and its exact
+nine-field receipt, and an explicit `--web-dist` directory containing the real
+frontend build handoff. It does not write or discover a frontend under the
+source checkout. Each action requires positive `--max-total-bytes`,
+`--max-archive-bytes`, `--max-members`, and `--max-metadata-bytes` operation
+budgets. `max-total-bytes` includes the embedded manifest; metadata admission
+bounds reader buffers, directory scan bytes and retained typed/name structures,
+with manifest parsing independently bounded to 1 MiB. These limits do not
+promise allocator RSS, aggregate process memory or concurrent capacity.
+
+Build streams contained retained source FDs into the existing software-only
+ZIP member layout with fixed timestamps, sorted names, DEFLATE and exact member
+modes. The pinned Rust encoder has its own deterministic byte representation;
+compact manifest JSON and compressed ZIP bytes are not claimed identical to
+the Python encoder. Verification streams the complete expanded members through
+CRC, exact size and SHA-256 checks, validates local/central metadata and exact
+manifest/sidecar closure, and never executes an archive member. Extraction
+retains the verified archive object, rechecks its identity and whole digest,
+creates a fresh contained destination and files, preserves verified modes, and
+rechecks every extracted member and the archive before reporting success. A
+failure can leave an incomplete owned candidate, which is never startup or
+installation evidence and is not overwritten by another invocation.
+
+The existing Python software CLI, validator and unique unsafe/integrity checks
+remain available during this transition; the native route does not invoke
+Python packaging. The legacy wheel backend and `pip install ./access` still
+install the Python entrypoint and do not include the native ELF. Native archive
+assembly and actual extracted startup require their own admitted product and
+runtime evidence; they do not establish wheel migration or managed data
+custody.

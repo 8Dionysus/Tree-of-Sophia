@@ -4306,7 +4306,203 @@ json.dump({'capture':str(capture),'restored':str(restored),'commit':commit,'tree
         // assembly stage. This test never executes the integrity fixture ELF.
     }
     #[test]
-    #[ignore = "requires OPS-admitted native build receipt, frontend products and assembly space"]
+    fn native_software_archive_streaming_and_retained_identity_refuse_rebinding() {
+        use tos_access::software_archive::{ArchiveLimits, VerifiedArchive};
+        use zip::{ZipWriter, write::SimpleFileOptions};
+        // A small integrity-only image. It is never executed or represented as
+        // admitted software/startup; the required actual case below owns that.
+        let base = std::env::temp_dir().join(format!(
+            "tos-archive-integrity-{}-{}",
+            std::process::id(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        fs::create_dir(&base).unwrap();
+        let path = base.join("software.zip");
+        let mut elf = vec![0u8; 64];
+        elf[..7].copy_from_slice(b"\x7fELF\x02\x01\x01");
+        elf[18..20].copy_from_slice(&[0x3e, 0]);
+        let lock = b"version = 4\n".to_vec();
+        let pin = include_bytes!("../../../../rust-toolchain.toml").to_vec();
+        let files = std::collections::BTreeMap::from([
+            ("Cargo.lock", lock.clone()),
+            ("rust-toolchain.toml", pin.clone()),
+            ("access/src/tos_access/tos-access", elf.clone()),
+            (
+                "access/src/tos_access/web_dist/assets/tos-graph.css",
+                b"body{}".to_vec(),
+            ),
+            (
+                "access/src/tos_access/web_dist/assets/tos-graph.js",
+                b"fixture-static-js".to_vec(),
+            ),
+        ]);
+        let number = |n: usize| {
+            JsonValue::Number(tos_foundation::JsonNumber {
+                kind: tos_foundation::JsonNumberKind::Int,
+                lexeme: n.to_string(),
+            })
+        };
+        let source = Digest256::of_bytes(b"integrity-only-source").to_hex();
+        let manifest = object(vec![
+            ("schema_version", text("tos_software_bundle_manifest_v1")),
+            ("software_ref", text(&source)),
+            ("source_dirty", JsonValue::Bool(false)),
+            ("data_included", JsonValue::Bool(false)),
+            (
+                "native_access",
+                object(vec![
+                    ("schema_version", text("tos_native_access_build_v1")),
+                    ("target", text("x86_64-unknown-linux-gnu")),
+                    ("source_commit", text(&source)),
+                    ("source_tree", text(&source)),
+                    ("profile", text("debug")),
+                    ("sha256", text(&Digest256::of_bytes(&elf).to_hex())),
+                    ("size_bytes", number(elf.len())),
+                    ("lock_sha256", text(&Digest256::of_bytes(&lock).to_hex())),
+                    (
+                        "toolchain",
+                        text(
+                            toml::from_str::<toml::Value>(std::str::from_utf8(&pin).unwrap())
+                                .unwrap()
+                                .get("toolchain")
+                                .unwrap()
+                                .get("channel")
+                                .unwrap()
+                                .as_str()
+                                .unwrap(),
+                        ),
+                    ),
+                ]),
+            ),
+            (
+                "members",
+                JsonValue::Array(
+                    files
+                        .iter()
+                        .map(|(name, bytes)| {
+                            object(vec![
+                                ("path", text(name)),
+                                ("size_bytes", number(bytes.len())),
+                                ("sha256", text(&Digest256::of_bytes(bytes).to_hex())),
+                            ])
+                        })
+                        .collect(),
+                ),
+            ),
+        ]);
+        let mut writer = ZipWriter::new(Cursor::new(Vec::new()));
+        for (name, raw) in files
+            .iter()
+            .map(|(n, b)| (*n, b.clone()))
+            .chain(std::iter::once((
+                "software.manifest.json",
+                json_bytes(&manifest),
+            )))
+        {
+            writer
+                .start_file(
+                    name,
+                    SimpleFileOptions::default()
+                        .compression_method(zip::CompressionMethod::Stored)
+                        .unix_permissions(if name.ends_with("tos-access") {
+                            0o755
+                        } else {
+                            0o644
+                        }),
+                )
+                .unwrap();
+            writer.write_all(&raw).unwrap();
+        }
+        let original = writer.finish().unwrap().into_inner();
+        let sidecar = path.with_extension("zip.manifest.json");
+        let mut external = manifest.clone();
+        let JsonValue::Object(fields) = &mut external else {
+            unreachable!()
+        };
+        fields.push((
+            tos_foundation::JsonString::from_utf8("archive_sha256"),
+            text(&Digest256::of_bytes(&original).to_hex()),
+        ));
+        fields.push((
+            tos_foundation::JsonString::from_utf8("archive_size_bytes"),
+            number(original.len()),
+        ));
+        fs::write(&path, &original).unwrap();
+        fs::write(&sidecar, json_bytes(&external)).unwrap();
+        let limits = ArchiveLimits {
+            max_total_bytes: 100_000,
+            max_archive_bytes: 100_000,
+            max_members: 16,
+            max_metadata_bytes: 16_384,
+        };
+        let mut verified = VerifiedArchive::open(&path, limits).unwrap();
+        assert_eq!(verified.manifest(), &manifest);
+        let intact = base.join("intact");
+        verified.extract(&intact).unwrap();
+        assert_eq!(
+            fs::read(intact.join("access/src/tos_access/tos-access")).unwrap(),
+            elf
+        );
+        assert!(
+            VerifiedArchive::open(
+                &path,
+                ArchiveLimits {
+                    max_metadata_bytes: 224,
+                    ..limits
+                }
+            )
+            .is_err(),
+            "finite metadata admission rejects before owned central expansion"
+        );
+        // Whole archive SHA is updated, but the member CRC/SHA must still fail.
+        let mut changed = original.clone();
+        let offset = changed
+            .windows(b"fixture-static-js".len())
+            .position(|p| p == b"fixture-static-js")
+            .unwrap();
+        changed[offset] ^= 1;
+        let JsonValue::Object(fields) = &mut external else {
+            unreachable!()
+        };
+        let (_, digest) = fields
+            .iter_mut()
+            .find(|(k, _)| k.as_str() == Some("archive_sha256"))
+            .unwrap();
+        *digest = text(&Digest256::of_bytes(&changed).to_hex());
+        fs::write(&path, &changed).unwrap();
+        fs::write(&sidecar, json_bytes(&external)).unwrap();
+        assert!(
+            VerifiedArchive::open(&path, limits).is_err(),
+            "CRC/SHA failure cannot be repaired by sidecar SHA"
+        );
+        let destination = base.join("extracted");
+        assert!(
+            verified.extract(&destination).is_err(),
+            "previous verification does not survive retained-byte mutation"
+        );
+        assert!(!destination.exists());
+        // A rebound pathname cannot replace the verified archive object.
+        fs::write(&path, &original).unwrap();
+        let JsonValue::Object(fields) = &mut external else {
+            unreachable!()
+        };
+        let (_, digest) = fields
+            .iter_mut()
+            .find(|(k, _)| k.as_str() == Some("archive_sha256"))
+            .unwrap();
+        *digest = text(&Digest256::of_bytes(&original).to_hex());
+        fs::write(&sidecar, json_bytes(&external)).unwrap();
+        let mut retained = VerifiedArchive::open(&path, limits).unwrap();
+        fs::remove_file(&path).unwrap();
+        fs::write(&path, b"different mutable name").unwrap();
+        assert!(retained.extract(&destination).is_err());
+        assert!(!destination.exists());
+    }
+    #[test]
+    #[ignore = "requires OPS-admitted native receipt, frontend products and finite archive budgets"]
     fn actual_native_software_archive_startup_and_unavailable_boot() {
         use std::process::{Command, Stdio};
         // This is a required host case when selected. Missing product custody
@@ -4328,25 +4524,117 @@ json.dump({'capture':str(capture),'restored':str(restored),'commit':commit,'tree
         fs::create_dir(&root).unwrap();
         let package = root.join("software.zip");
         let installed = root.join("installed");
-        let assembly = Command::new("python3")
-            .args(["-I", "-c", r#"
-import pathlib, subprocess, sys
-repo, binary, receipt, archive, installed = map(pathlib.Path, sys.argv[1:])
-sys.path.insert(0, str(repo / 'access/packaging'))
-from build_software_bundle import build_software_bundle
-from validate_software_bundle import extract_verified_archive
-ref = subprocess.run(['git','rev-parse','HEAD'],cwd=repo,check=True,capture_output=True,text=True).stdout.strip()
-build_software_bundle(repo, archive, source_ref=ref, native_access_binary=binary, native_access_receipt=receipt)
-manifest = extract_verified_archive(archive, installed)
-assert manifest['software_ref'] == ref and manifest['source_dirty'] is False
-assert manifest['data_included'] is False and manifest['native_access']['source_commit'] == ref
-"#])
-            .arg(&repository).arg(binary).arg(receipt).arg(&package).arg(&installed)
-            .output().unwrap();
+        let web_dist = std::env::var_os("TOS_NATIVE_SOFTWARE_WEB_DIST")
+            .expect("OPS must provide the genuine admitted current frontend handoff");
+        let total = std::env::var("TOS_NATIVE_SOFTWARE_MAX_TOTAL_BYTES")
+            .expect("OPS must provide the admitted uncompressed closure budget");
+        let compressed = std::env::var("TOS_NATIVE_SOFTWARE_MAX_ARCHIVE_BYTES")
+            .expect("OPS must provide the admitted compressed archive budget");
+        let count = std::env::var("TOS_NATIVE_SOFTWARE_MAX_MEMBERS")
+            .expect("OPS must provide the finite software metadata/member budget");
+        let metadata = std::env::var("TOS_NATIVE_SOFTWARE_MAX_METADATA_BYTES")
+            .expect("OPS must provide the finite archive metadata structural budget");
+        let source = Command::new("git")
+            .args(["rev-parse", "HEAD"])
+            .current_dir(&repository)
+            .output()
+            .unwrap();
+        assert!(source.status.success());
+        let source = String::from_utf8(source.stdout).unwrap();
+        let limits = || {
+            [
+                "--max-total-bytes",
+                total.as_str(),
+                "--max-archive-bytes",
+                compressed.as_str(),
+                "--max-members",
+                count.as_str(),
+                "--max-metadata-bytes",
+                metadata.as_str(),
+            ]
+        };
+        let assembly = Command::new(&binary)
+            .args(["software", "build"])
+            .arg("--root")
+            .arg(&repository)
+            .arg("--web-dist")
+            .arg(web_dist)
+            .arg("--output")
+            .arg(&package)
+            .arg("--source-ref")
+            .arg(source.trim())
+            .arg("--native-access-binary")
+            .arg(&binary)
+            .arg("--native-access-receipt")
+            .arg(receipt)
+            .args(limits())
+            .output()
+            .unwrap();
         assert!(
             assembly.status.success(),
-            "native software assembly: {}",
+            "native Rust assembly: {}",
             String::from_utf8_lossy(&assembly.stderr)
+        );
+        let manifest = parse_json(
+            &assembly.stdout,
+            JsonMode::PublishedStrict,
+            JsonLimits {
+                max_bytes: 1_049_600,
+                ..JsonLimits::default()
+            },
+        )
+        .unwrap()
+        .into_root();
+        assert_eq!(
+            manifest.object_get("software_ref").unwrap().as_str(),
+            Some(source.trim())
+        );
+        assert_eq!(
+            manifest.object_get("data_included"),
+            Some(&JsonValue::Bool(false))
+        );
+        assert_eq!(
+            manifest.object_get("source_dirty"),
+            Some(&JsonValue::Bool(false))
+        );
+        let verified = Command::new(&binary)
+            .args(["software", "verify"])
+            .arg("--archive")
+            .arg(&package)
+            .args(limits())
+            .output()
+            .unwrap();
+        assert!(
+            verified.status.success(),
+            "native Rust verification: {}",
+            String::from_utf8_lossy(&verified.stderr)
+        );
+        let extracted = Command::new(&binary)
+            .args(["software", "extract"])
+            .arg("--archive")
+            .arg(&package)
+            .arg("--destination")
+            .arg(&installed)
+            .args(limits())
+            .output()
+            .unwrap();
+        assert!(
+            extracted.status.success(),
+            "native Rust extraction: {}",
+            String::from_utf8_lossy(&extracted.stderr)
+        );
+        let overwrite = Command::new(&binary)
+            .args(["software", "extract"])
+            .arg("--archive")
+            .arg(&package)
+            .arg("--destination")
+            .arg(&installed)
+            .args(limits())
+            .output()
+            .unwrap();
+        assert!(
+            !overwrite.status.success(),
+            "fresh extraction refuses overwrite"
         );
         let program = installed.join("access/src/tos_access/tos-access");
         let outside = root.join("outside");
@@ -4361,8 +4649,8 @@ assert manifest['data_included'] is False and manifest['native_access']['source_
                 let _ = self.0.wait();
             }
         }
-        // Assembly remains transitional Python. The actual software entrypoint
-        // now runs without Python/checkout discovery or a selected data owner.
+        // Assembly/verification/extraction are the real Rust tooling entrypoint.
+        // The installed serve child has no Python/checkout discovery/data owner.
         let mut server = StopChild(
             Command::new(&program)
                 .arg("serve")
