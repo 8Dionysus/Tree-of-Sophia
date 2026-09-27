@@ -221,37 +221,18 @@ impl tos_compiler::knowledge_stage::StageIsolation for ManagedFixtureStageIsolat
         Ok(())
     }
 }
-#[derive(Clone)]
-struct ManagedFixtureCarrier {
-    kind: tos_query::search_v2::SearchKind,
-    id: String,
-    graph: String,
-    position: u64,
-    sha: Digest256,
-}
-fn managed_fixture_carriers(
-    stage: &mut tos_compiler::knowledge_stage::KnowledgeStage<'_>,
-    limits: tos_compiler::knowledge_stage::StageLimits,
-) -> tos_compiler::Result<Vec<ManagedFixtureCarrier>> {
-    use tos_compiler::knowledge_full_fixture::NativeFixtureCarrierKind;
-    tos_compiler::knowledge_full_fixture::native_fixture_produced_carriers(stage, limits).map(
-        |rows| {
-            rows.into_iter()
-                .map(|row| ManagedFixtureCarrier {
-                    kind: match row.kind {
-                        NativeFixtureCarrierKind::Node => tos_query::search_v2::SearchKind::Nodes,
-                        NativeFixtureCarrierKind::Relation => {
-                            tos_query::search_v2::SearchKind::Relations
-                        }
-                    },
-                    id: row.id,
-                    graph: row.source_graph,
-                    position: row.source_order,
-                    sha: row.payload_sha256,
-                })
-                .collect()
-        },
-    )
+type ManagedFixtureCarrier = tos_compiler::knowledge_full_fixture::NativeFixtureProducedCarrier;
+fn fixture_search_kind(
+    kind: tos_compiler::knowledge_full_fixture::NativeFixtureCarrierKind,
+) -> tos_query::search_v2::SearchKind {
+    match kind {
+        tos_compiler::knowledge_full_fixture::NativeFixtureCarrierKind::Node => {
+            tos_query::search_v2::SearchKind::Nodes
+        }
+        tos_compiler::knowledge_full_fixture::NativeFixtureCarrierKind::Relation => {
+            tos_query::search_v2::SearchKind::Relations
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -434,10 +415,14 @@ impl<'hold> tos_query::InspectCurrentAuthority<'hold> for ManagedFixtureReadGran
         carrier: &tos_query::InspectedCarrier,
     ) -> Result<(), tos_query::search_v2::SearchV2Error> {
         self.inspect_check()?;
-        assert!(self.carriers.iter().any(|r| r.kind == carrier.kind
-            && r.id == carrier.id
-            && r.position == carrier.position
-            && r.sha == carrier.payload_sha256));
+        assert!(
+            self.carriers
+                .iter()
+                .any(|r| fixture_search_kind(r.kind) == carrier.kind
+                    && r.id == carrier.id
+                    && r.source_order == carrier.position
+                    && r.payload_sha256 == carrier.payload_sha256)
+        );
         Ok(())
     }
     fn authorize_navigation_original_current(
@@ -469,11 +454,14 @@ impl<'hold> tos_query::InspectCurrentAuthority<'hold> for ManagedFixtureReadGran
         assert!(
             consulted
                 .iter()
-                .all(|c| self.carriers.iter().any(|r| r.kind == c.kind
-                    && r.id == c.id
-                    && r.graph == c.source_graph
-                    && r.position == c.position
-                    && r.sha == c.payload_sha256))
+                .all(|c| self
+                    .carriers
+                    .iter()
+                    .any(|r| fixture_search_kind(r.kind) == c.kind
+                        && r.id == c.id
+                        && r.source_graph == c.source_graph
+                        && r.source_order == c.position
+                        && r.payload_sha256 == c.payload_sha256))
         );
         Ok(Box::new(self.hold()))
     }
@@ -1561,7 +1549,11 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
                     &[],
                     "synthetic-agent-initial-model".into(),
                     |stage, registry| {
-                        initial_carriers = managed_fixture_carriers(stage, selected_stage_limits)?;
+                        initial_carriers =
+                            tos_compiler::knowledge_full_fixture::native_fixture_produced_carriers(
+                                stage,
+                                selected_stage_limits,
+                            )?;
                         tos_compiler::knowledge_full_fixture::native_fixture_header_with_binding(
                             stage,
                             registry,
@@ -1576,6 +1568,7 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
         )
         .unwrap();
     assert!(!initial_carriers.is_empty());
+    drop(initial_carriers); // the next selected model has its own finite carrier set
     let current = initial_selected.generation();
     assert_eq!(current.commit_seq(), a.commit_seq);
     let mut current_context = contexts[1].clone();
@@ -1786,7 +1779,10 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
                     "synthetic-agent-successor-model".into(),
                     |stage, registry| {
                         successor_carriers =
-                            managed_fixture_carriers(stage, selected_stage_limits)?;
+                            tos_compiler::knowledge_full_fixture::native_fixture_produced_carriers(
+                                stage,
+                                selected_stage_limits,
+                            )?;
                         tos_compiler::knowledge_full_fixture::native_fixture_header_with_binding(
                             stage,
                             registry,
@@ -1824,7 +1820,9 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
     let history_edge = synthetic_read
         .carriers
         .iter()
-        .find(|row| row.kind == tos_query::search_v2::SearchKind::Relations)
+        .find(|row| {
+            row.kind == tos_compiler::knowledge_full_fixture::NativeFixtureCarrierKind::Relation
+        })
         .expect("actual retained record-history relation")
         .id
         .clone();
