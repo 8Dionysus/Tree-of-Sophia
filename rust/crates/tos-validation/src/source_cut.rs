@@ -559,18 +559,16 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
             .preflight(deadline, cancelled)
             .map_err(operation_failure)?;
         if self.receipts.len() >= self.limits.max_receipts {
-            return Err(ItemRefusal::Budget);
+            return Err(ItemRefusal::BudgetCheck {check:"Cut scalar receipt count",used:(self.receipts.len() as u64).checked_add(1),limit:Some(self.limits.max_receipts as u64)});
         }
         let receipt_bytes = path
             .len()
             .checked_add(contract.len())
             .and_then(|n| n.checked_add(192))
             .ok_or(ItemRefusal::Budget)?;
-        let next_bytes = self
-            .receipt_bytes
-            .checked_add(receipt_bytes)
-            .filter(|n| *n <= self.limits.max_receipt_bytes)
-            .ok_or(ItemRefusal::Budget)?;
+        let attempted_bytes=self.receipt_bytes.checked_add(receipt_bytes);
+        let next_bytes=attempted_bytes.filter(|n|*n<=self.limits.max_receipt_bytes)
+            .ok_or(ItemRefusal::BudgetCheck {check:"Cut scalar receipt bytes",used:attempted_bytes.map(|n|n as u64),limit:Some(self.limits.max_receipt_bytes as u64)})?;
         let (uri, worker_raw) = self.decoded_input(raw, contract)?;
         let decoded_digest = Digest256::of_bytes(&worker_raw);
         let mut budget = self.budget;

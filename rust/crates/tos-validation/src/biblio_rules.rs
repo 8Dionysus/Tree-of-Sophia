@@ -79,7 +79,11 @@ impl Rules<'_> {
     fn issue(&mut self, code: &'static str, location: &str) -> Result<(), ItemRefusal> {
         check(self.limits.deadline, self.cancelled)?;
         if self.shadow.issues.len() >= self.limits.max_issues {
-            return Err(ItemRefusal::Budget);
+            return Err(ItemRefusal::BudgetCheck {
+                check: "bibliography issue count",
+                used: (self.shadow.issues.len() as u64).checked_add(1),
+                limit: Some(self.limits.max_issues as u64),
+            });
         }
         reserve(
             &mut self.state,
@@ -378,7 +382,11 @@ pub fn inspect_bibliography_from_cut(
         check(limits.deadline, cancelled)?;
         account(&mut rules.bytes, member.raw.len(), limits.max_total_bytes)?;
         if member.raw.len() > limits.max_member_bytes {
-            return Err(ItemRefusal::Budget);
+            return Err(ItemRefusal::BudgetCheck {
+                check: "bibliography member bytes",
+                used: Some(member.raw.len() as u64),
+                limit: Some(limits.max_member_bytes as u64),
+            });
         }
         let path = member.path.as_str();
         if !owned(path) {
@@ -2066,11 +2074,18 @@ mod tests {
                 namespace: "test".into(),
                 key: "x".into()
             }),
-            Err(ItemRefusal::Budget)
+            Err(ItemRefusal::BudgetCheck { .. })
         ));
         let mut r = rules(&cancelled);
         r.limits.max_issues = 0;
-        assert_eq!(r.issue("example", "x"), Err(ItemRefusal::Budget));
+        assert_eq!(
+            r.issue("example", "x"),
+            Err(ItemRefusal::BudgetCheck {
+                check: "bibliography issue count",
+                used: Some(1),
+                limit: Some(0)
+            })
+        );
     }
 }
 

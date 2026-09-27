@@ -90,6 +90,11 @@ pub struct OperationLimits {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum OperationRefusal {
     Budget,
+    BudgetCheck {check: &'static str, used: Option<u64>, limit: Option<u64>},
+    FamilyRefusal {stage: &'static str, refusal: ItemRefusal},
+    ExecutorRefusal {stage: &'static str, refusal: crate::executor::ExecutorFailure},
+    RetirementRefusal {stage: &'static str, refusal: RetirementRefusal},
+    Stage {stage: &'static str, refusal: Box<OperationRefusal>},
     Deadline,
     InvalidProposal(&'static str),
     Source(String),
@@ -523,6 +528,7 @@ fn worker_matches(
 fn item_error(error: ItemRefusal) -> OperationRefusal {
     match error {
         ItemRefusal::Budget => OperationRefusal::Budget,
+        ItemRefusal::BudgetCheck {check,used,limit} => OperationRefusal::BudgetCheck {check,used,limit},
         ItemRefusal::Deadline => OperationRefusal::Deadline,
         ItemRefusal::Source(reason) => OperationRefusal::Source(reason),
         ItemRefusal::Unsupported(reason) => OperationRefusal::Unsupported(reason),
@@ -605,6 +611,7 @@ pub fn inspect_retirement_operation(
     let result = inspect_retirements_from_cut(cut, retirement_limits, cancelled, schemas).map_err(
         |error| match error {
             RetirementRefusal::Budget => OperationRefusal::Budget,
+            RetirementRefusal::Schema(refusal) => item_error(refusal),
             RetirementRefusal::Deadline => OperationRefusal::Deadline,
             RetirementRefusal::Source(reason) => OperationRefusal::Source(reason),
             RetirementRefusal::Unsupported(reason) => OperationRefusal::Unsupported(reason),
@@ -691,22 +698,26 @@ pub fn inspect_general_operation(
         .checked_mul(7)
         .and_then(|n| n.checked_add(limits.operation.max_state_bytes))
         .and_then(|n| n.checked_add(schemas.receipt_limit_bytes()))
-        .ok_or(OperationRefusal::Budget)?;
+        .ok_or(OperationRefusal::BudgetCheck {check:"composed state reservation overflow",used:None,limit:Some(limits.max_composed_state_bytes as u64)})?;
     let read_reservation = limits
         .family
         .max_total_bytes
         .checked_mul(7)
         .and_then(|n| n.checked_add(limits.operation.max_total_bytes))
-        .ok_or(OperationRefusal::Budget)?;
+        .ok_or(OperationRefusal::BudgetCheck {check:"composed read reservation overflow",used:None,limit:Some(limits.max_composed_read_bytes)})?;
     if limits.max_composed_state_bytes == 0
         || limits.max_composed_state_bytes == usize::MAX
         || limits.max_composed_read_bytes == 0
         || limits.max_composed_read_bytes == u64::MAX
-        || state_reservation > limits.max_composed_state_bytes
-        || read_reservation > limits.max_composed_read_bytes
         || limits.family.deadline > limits.operation.deadline
     {
-        return Err(OperationRefusal::Budget);
+        return Err(OperationRefusal::Stage {stage:"composed limit/deadline declarations",refusal:Box::new(OperationRefusal::Budget)});
+    }
+    if state_reservation>limits.max_composed_state_bytes {
+        return Err(OperationRefusal::BudgetCheck {check:"composed reserved state bytes",used:Some(state_reservation as u64),limit:Some(limits.max_composed_state_bytes as u64)});
+    }
+    if read_reservation>limits.max_composed_read_bytes {
+        return Err(OperationRefusal::BudgetCheck {check:"composed reserved read bytes",used:Some(read_reservation),limit:Some(limits.max_composed_read_bytes)});
     }
     if !schemas.receipts().is_empty() || !record_executor.is_unused() {
         return Err(OperationRefusal::InvalidProposal(
@@ -717,24 +728,24 @@ pub fn inspect_general_operation(
     let record_envelope = record_executor.operation_budget();
     cut_envelope
         .validate()
-        .map_err(|_| OperationRefusal::Budget)?;
+        .map_err(|refusal|OperationRefusal::ExecutorRefusal {stage:"Cut envelope declaration",refusal})?;
     record_envelope
         .validate()
-        .map_err(|_| OperationRefusal::Budget)?;
+        .map_err(|refusal|OperationRefusal::ExecutorRefusal {stage:"record envelope declaration",refusal})?;
     if limits.max_composed_schema_cpu_seconds == 0
         || limits.max_composed_schema_cpu_seconds == u64::MAX
         || limits.max_composed_schema_wire_bytes == 0
         || limits.max_composed_schema_wire_bytes == u64::MAX
-        || cut_envelope
-            .operation_cpu_seconds
-            .checked_add(record_envelope.operation_cpu_seconds)
-            .is_none_or(|sum| sum > limits.max_composed_schema_cpu_seconds)
-        || cut_envelope
-            .max_total_wire_bytes
-            .checked_add(record_envelope.max_total_wire_bytes)
-            .is_none_or(|sum| sum > limits.max_composed_schema_wire_bytes)
     {
-        return Err(OperationRefusal::Budget);
+        return Err(OperationRefusal::Stage {stage:"composed schema limit declarations",refusal:Box::new(OperationRefusal::Budget)});
+    }
+    let cpu=cut_envelope.operation_cpu_seconds.checked_add(record_envelope.operation_cpu_seconds);
+    if cpu.is_none_or(|sum|sum>limits.max_composed_schema_cpu_seconds) {
+        return Err(OperationRefusal::BudgetCheck {check:"composed schema CPU seconds",used:cpu,limit:Some(limits.max_composed_schema_cpu_seconds)});
+    }
+    let wire=cut_envelope.max_total_wire_bytes.checked_add(record_envelope.max_total_wire_bytes);
+    if wire.is_none_or(|sum|sum>limits.max_composed_schema_wire_bytes) {
+        return Err(OperationRefusal::BudgetCheck {check:"composed schema wire bytes",used:wire,limit:Some(limits.max_composed_schema_wire_bytes)});
     }
     worker_matches(cut, schemas)?;
     let worker = schemas.execution_binding();
@@ -759,27 +770,28 @@ pub fn inspect_general_operation(
             "Item record registry selected another cut",
         ));
     }
-    let binding = bind_operation_from_cut(cut, proposal, limits.operation, cancelled)?;
+    let binding = bind_operation_from_cut(cut, proposal, limits.operation, cancelled)
+        .map_err(|refusal|OperationRefusal::Stage {stage:"operation binding",refusal:Box::new(refusal)})?;
     let receipt_start = schemas.receipts().len();
     let source_shapes = inspect_source_shapes_from_cut(cut, limits.family, cancelled, schemas)
-        .map_err(item_error)?;
+        .map_err(|refusal|OperationRefusal::FamilyRefusal {stage:"source-shapes",refusal})?;
     // Preserve source-shape failure priority and retained output/issue order.
     // Reap its healthy child before Biblio, then continue Cut's same envelope.
     schemas
         .release_child(limits.operation.deadline, cancelled)
-        .map_err(item_error)?;
+        .map_err(|refusal|OperationRefusal::FamilyRefusal {stage:"source-shapes child close",refusal})?;
     let records = inspect_records_from_cut(cut, limits.family, cancelled, record_executor)
-        .map_err(item_error)?;
+        .map_err(|refusal|OperationRefusal::FamilyRefusal {stage:"records",refusal})?;
     record_executor
         .finish(limits.operation.deadline, cancelled)
-        .map_err(item_error)?;
+        .map_err(|refusal|OperationRefusal::FamilyRefusal {stage:"records finalization",refusal})?;
     let bibliography =
         inspect_bibliography_from_cut(cut, &records, limits.family, cancelled, schemas)
-            .map_err(item_error)?;
+            .map_err(|refusal|OperationRefusal::FamilyRefusal {stage:"bibliography",refusal})?;
     let layers =
-        inspect_layers_from_cut(cut, limits.family, cancelled, schemas).map_err(item_error)?;
+        inspect_layers_from_cut(cut, limits.family, cancelled, schemas).map_err(|refusal|OperationRefusal::FamilyRefusal {stage:"layers",refusal})?;
     let rights =
-        inspect_rights_from_cut(cut, limits.family, cancelled, schemas).map_err(item_error)?;
+        inspect_rights_from_cut(cut, limits.family, cancelled, schemas).map_err(|refusal|OperationRefusal::FamilyRefusal {stage:"rights",refusal})?;
     let item = inspect_items_from_cut(
         cut,
         limits.family,
@@ -789,7 +801,7 @@ pub fn inspect_general_operation(
         schemas,
         payloads,
     )
-    .map_err(item_error)?;
+    .map_err(|refusal|OperationRefusal::FamilyRefusal {stage:"items",refusal})?;
     let retirement = inspect_retirements_from_cut(
         cut,
         RetirementLimits {
@@ -802,12 +814,7 @@ pub fn inspect_general_operation(
         cancelled,
         schemas,
     )
-    .map_err(|error| match error {
-        RetirementRefusal::Budget => OperationRefusal::Budget,
-        RetirementRefusal::Deadline => OperationRefusal::Deadline,
-        RetirementRefusal::Source(reason) => OperationRefusal::Source(reason),
-        RetirementRefusal::Unsupported(reason) => OperationRefusal::Unsupported(reason),
-    })?;
+    .map_err(|refusal|OperationRefusal::RetirementRefusal {stage:"retirement",refusal})?;
     if source_shapes.carrier_membership != binding.candidate_carrier
         || records.current_membership != binding.candidate_carrier
         || bibliography.carrier_membership != binding.candidate_carrier
@@ -823,10 +830,9 @@ pub fn inspect_general_operation(
     let mut report_bytes = state_reservation;
     let mut issues = Vec::new();
     let mut add_issue = |path: &str, code: &str| -> Result<(), OperationRefusal> {
-        report_bytes = report_bytes
-            .checked_add(path.len() + code.len() + 96)
-            .filter(|n| *n <= limits.max_composed_state_bytes)
-            .ok_or(OperationRefusal::Budget)?;
+        let next=report_bytes.checked_add(path.len() + code.len() + 96);
+        report_bytes=next.filter(|n|*n<=limits.max_composed_state_bytes)
+            .ok_or(OperationRefusal::BudgetCheck {check:"composed issue state bytes",used:next.map(|n|n as u64),limit:Some(limits.max_composed_state_bytes as u64)})?;
         issues.push(OperationIssue {
             path: path.into(),
             code: code.into(),
@@ -854,10 +860,9 @@ pub fn inspect_general_operation(
         add_issue(&issue.path, issue.code)?;
     }
     for receipt in &schemas.receipts()[receipt_start..] {
-        report_bytes = report_bytes
-            .checked_add(receipt.path.len() + receipt.contract.len() + 256)
-            .filter(|n| *n <= limits.max_composed_state_bytes)
-            .ok_or(OperationRefusal::Budget)?;
+        let next=report_bytes.checked_add(receipt.path.len() + receipt.contract.len() + 256);
+        report_bytes=next.filter(|n|*n<=limits.max_composed_state_bytes)
+            .ok_or(OperationRefusal::BudgetCheck {check:"composed receipt state bytes",used:next.map(|n|n as u64),limit:Some(limits.max_composed_state_bytes as u64)})?;
     }
     let state = if issues.is_empty() {
         OperationFamilyState::MissingRules {
@@ -872,7 +877,7 @@ pub fn inspect_general_operation(
     check(limits.operation, cancelled)?;
     schemas
         .finish(limits.operation.deadline, cancelled)
-        .map_err(item_error)?;
+        .map_err(|refusal|OperationRefusal::FamilyRefusal {stage:"Cut finalization",refusal})?;
     Ok(GeneralOperationFamilyReport {
         operation: OperationFamilyReport {
             binding,

@@ -817,7 +817,7 @@ finally:c.doCleanups()
                 &mut MetadataOnlyPayloads,
                 false
             ),
-            Err(OperationRefusal::Budget)
+            Err(OperationRefusal::BudgetCheck { .. })
         ));
         assert!(schemas.receipts().is_empty());
     }

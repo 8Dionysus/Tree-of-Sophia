@@ -139,8 +139,11 @@ impl BiblioRecordExecutor {
             return Err(ItemRefusal::Deadline);
         }
         check(limits.deadline, cancelled)?;
-        if self.executions >= self.max_executions || raw.len() > limits.max_member_bytes {
-            return Err(ItemRefusal::Budget);
+        if self.executions >= self.max_executions {
+            return Err(ItemRefusal::BudgetCheck {check:"record schema executions",used:(self.executions as u64).checked_add(1),limit:Some(self.max_executions as u64)});
+        }
+        if raw.len() > limits.max_member_bytes {
+            return Err(ItemRefusal::BudgetCheck {check:"record schema member bytes",used:Some(raw.len() as u64),limit:Some(limits.max_member_bytes as u64)});
         }
         self.executions += 1;
         let mut budget = self.budget;
@@ -587,17 +590,15 @@ pub(crate) fn check(deadline: Instant, cancelled: &AtomicBool) -> Result<(), Ite
     Ok(())
 }
 pub(crate) fn reserve(used: &mut usize, amount: usize, max: usize) -> Result<(), ItemRefusal> {
-    *used = used
-        .checked_add(amount)
-        .filter(|n| *n <= max)
-        .ok_or(ItemRefusal::Budget)?;
+    let next=used.checked_add(amount);
+    *used=next.filter(|n|*n<=max).ok_or(ItemRefusal::BudgetCheck {
+        check:"record/bibliography logical state bytes",used:next.map(|n|n as u64),limit:Some(max as u64)})?;
     Ok(())
 }
 pub(crate) fn account(used: &mut u64, amount: usize, max: u64) -> Result<(), ItemRefusal> {
-    *used = used
-        .checked_add(amount as u64)
-        .filter(|n| *n <= max)
-        .ok_or(ItemRefusal::Budget)?;
+    let next=used.checked_add(amount as u64);
+    *used=next.filter(|n|*n<=max).ok_or(ItemRefusal::BudgetCheck {
+        check:"record/bibliography read bytes",used:next,limit:Some(max)})?;
     Ok(())
 }
 pub(crate) fn current(
@@ -634,7 +635,7 @@ pub(crate) fn store_error(error: tos_source_store::StoreError) -> ItemRefusal {
 }
 fn record_error(error: RecordRuleError) -> ItemRefusal {
     match error {
-        RecordRuleError::Budget { .. } => ItemRefusal::Budget,
+        RecordRuleError::Budget { code } => ItemRefusal::BudgetCheck {check:code,used:None,limit:None},
         RecordRuleError::Sink { detail } if detail == "budget" => ItemRefusal::Budget,
         RecordRuleError::Sink { detail } if detail == "deadline" => ItemRefusal::Deadline,
         RecordRuleError::Sink { detail } if detail == "cancelled" => {

@@ -25,6 +25,10 @@ pub struct ItemLimits {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ItemRefusal {
     Budget,
+    /// A named rejected budget guard. None preserves an owner that did not
+    /// supply a counter/limit, or arithmetic overflow, without inventing data.
+    /// Uninstrumented guards retain Budget.
+    BudgetCheck { check: &'static str, used: Option<u64>, limit: Option<u64> },
     Deadline,
     Source(String),
     Unsupported(String),

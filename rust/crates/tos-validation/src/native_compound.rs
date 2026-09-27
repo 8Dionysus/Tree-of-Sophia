@@ -346,16 +346,16 @@ fn json_storage_cost(
         + 128;
     let visits = available
         .checked_sub(string_storage)
-        .ok_or(ItemRefusal::Budget)?
+        .ok_or(ItemRefusal::BudgetCheck {check:"compound costing parse string state",used:Some(string_storage as u64),limit:Some(available as u64)})?
         / node_storage;
     if visits == 0 {
-        return Err(ItemRefusal::Budget);
+        return Err(ItemRefusal::BudgetCheck {check:"compound costing parse node state",used:Some(node_storage as u64),limit:Some(available.saturating_sub(string_storage) as u64)});
     }
     let mut parse_limits = limits();
     parse_limits.max_visits = parse_limits.max_visits.min(visits);
     let parsed = parse_json(raw, JsonMode::PublishedStrict, parse_limits).map_err(|e| {
         if e.code == tos_foundation::FoundationErrorCode::BudgetExceeded {
-            ItemRefusal::Budget
+            ItemRefusal::BudgetCheck {check:"compound costing strict JSON structural/integer/input limits",used:None,limit:None}
         } else {
             ItemRefusal::Unsupported(format!("compound costing JSON: {e:?}"))
         }
@@ -554,13 +554,15 @@ impl<'a> NativeCompoundReader<'a> {
     }
     pub(crate) fn set_remaining_state(&mut self, available: usize) -> Result<(), ItemRefusal> {
         if self.state > available {
-            return Err(ItemRefusal::Budget);
+            return Err(ItemRefusal::BudgetCheck {check:"compound retained state after Rules growth",used:Some(self.state as u64),limit:Some(available as u64)});
         }
         self.limits.max_state_bytes = available;
         Ok(())
     }
     fn temporary(&mut self, amount: usize) -> Result<(), ItemRefusal> {
-        reserve(&mut self.state, amount, self.limits.max_state_bytes)?;
+        let next=self.state.checked_add(amount);
+        self.state=next.filter(|n|*n<=self.limits.max_state_bytes)
+            .ok_or(ItemRefusal::BudgetCheck {check:"compound live reconstruction/history state",used:next.map(|n|n as u64),limit:Some(self.limits.max_state_bytes as u64)})?;
         self.temporary_state = self
             .temporary_state
             .checked_add(amount)
@@ -576,7 +578,7 @@ impl<'a> NativeCompoundReader<'a> {
         check(self.limits.deadline, self.cancelled)?;
         if let Some(raw) = self.raw.get(path) {
             if raw.len() > cap {
-                return Err(ItemRefusal::Budget);
+                return Err(ItemRefusal::BudgetCheck {check:"compound cached member bytes",used:Some(raw.len() as u64),limit:Some(cap as u64)});
             }
             return Ok(Some(raw.clone()));
         }
@@ -585,7 +587,7 @@ impl<'a> NativeCompoundReader<'a> {
         }
         let raw = current(self.cut, path, self.limits, self.cancelled, &mut self.bytes)?;
         if raw.len() > cap {
-            return Err(ItemRefusal::Budget);
+            return Err(ItemRefusal::BudgetCheck {check:"compound selected member bytes",used:Some(raw.len() as u64),limit:Some(cap as u64)});
         }
         reserve(
             &mut self.state,
@@ -630,7 +632,7 @@ impl<'a> NativeCompoundReader<'a> {
             if let Some(raw) = self.optional(&format!("{home}/{name}"), MAX_FILE)? {
                 total += raw.len();
                 if total > MAX_SIDE {
-                    return Err(ItemRefusal::Budget);
+                    return Err(ItemRefusal::BudgetCheck {check:"compound selected package bytes",used:Some(total as u64),limit:Some(MAX_SIDE as u64)});
                 }
                 files.insert(name, raw);
             }
@@ -713,7 +715,7 @@ impl<'a> NativeCompoundReader<'a> {
         }
         let directories = array(plan, "new_directories")?;
         if directories.len() > 64 {
-            return Err(ItemRefusal::Budget);
+            return Err(ItemRefusal::BudgetCheck {check:"compound new directory count",used:Some(directories.len() as u64),limit:Some(64)});
         }
         let dirs: Vec<_> = directories
             .iter()
@@ -729,7 +731,7 @@ impl<'a> NativeCompoundReader<'a> {
         }
         let rows = array(plan, "files")?;
         if !(1..=64).contains(&rows.len()) {
-            return Err(ItemRefusal::Budget);
+            return Err(ItemRefusal::BudgetCheck {check:"compound plan file count (minimum 1)",used:Some(rows.len() as u64),limit:Some(64)});
         }
         let mut files = BTreeMap::new();
         let mut blobs = BTreeMap::<String, Vec<u8>>::new();
@@ -770,12 +772,12 @@ impl<'a> NativeCompoundReader<'a> {
                     usize::try_from(integer(binding, "bytes")?).map_err(|_| ItemRefusal::Budget)?;
                 sides[i] = sides[i].checked_add(size).ok_or(ItemRefusal::Budget)?;
                 if size > MAX_SIDE || sides[i] > MAX_SIDE {
-                    return Err(ItemRefusal::Budget);
+                    return Err(ItemRefusal::BudgetCheck {check:"compound transaction side bytes",used:Some(sides[i].max(size) as u64),limit:Some(MAX_SIDE as u64)});
                 }
                 if !blobs.contains_key(sha) {
                     total = total.checked_add(size).ok_or(ItemRefusal::Budget)?;
                     if total > 2 * MAX_SIDE {
-                        return Err(ItemRefusal::Budget);
+                        return Err(ItemRefusal::BudgetCheck {check:"compound unique transaction blob bytes",used:Some(total as u64),limit:Some((2*MAX_SIDE) as u64)});
                     }
                     let raw = self.required(&format!("{directory}/{}.blob", hash(sha)?), size)?;
                     if raw.len() != size || Digest256::of_bytes(&raw).to_prefixed() != sha {
@@ -970,7 +972,7 @@ impl<'a> NativeCompoundReader<'a> {
             .as_object()
             .ok_or_else(|| bad("archive files"))?;
         if bindings.len() > 64 {
-            return Err(ItemRefusal::Budget);
+            return Err(ItemRefusal::BudgetCheck {check:"compound archived package file count",used:Some(bindings.len() as u64),limit:Some(64)});
         }
         let mut files = Package::new();
         let mut expected = BTreeSet::from(["manifest.json".to_owned()]);
@@ -990,7 +992,7 @@ impl<'a> NativeCompoundReader<'a> {
             let raw = self.required(&format!("{home}/{blob}"), size.min(MAX_FILE))?;
             total = total.checked_add(raw.len()).ok_or(ItemRefusal::Budget)?;
             if total > MAX_SIDE + MAX_FILE {
-                return Err(ItemRefusal::Budget);
+                return Err(ItemRefusal::BudgetCheck {check:"compound archived package plus manifest bytes",used:Some(total as u64),limit:Some((MAX_SIDE+MAX_FILE) as u64)});
             }
             if raw.len() != size || Digest256::of_bytes(&raw).to_prefixed() != sha {
                 return Err(bad("archive exact blob bytes"));
