@@ -514,7 +514,7 @@ impl<'a> KnowledgeStage<'a> {
         result
     }
     /// The existing row/byte ceilings for an atomic raw-input chunk.
-    pub fn input_batch_limits(&self) -> (usize, u64) {
+    pub(crate) fn input_batch_limits(&self) -> (usize, u64) {
         (self.limits.max_seek_rows, self.limits.max_seek_bytes)
     }
     /// Atomic finite input chunk using the existing seek row/byte ceilings.
