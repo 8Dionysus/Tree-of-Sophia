@@ -92,6 +92,22 @@ pub enum ExecutorFailure {
     CoverageMismatch,
 }
 
+/// A child status observed before any parent cleanup signal. This is not an
+/// inference from elapsed time or a status caused by parent-directed SIGKILL.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ChildTermination {
+    Exited(i32),
+    Signalled(i32),
+}
+
+/// Context for the actual failed exchange guard; no acceptance is carried.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ExchangeFailureContext {
+    pub boundary: &'static str,
+    pub failure: ExecutorFailure,
+    pub natural_termination: Option<ChildTermination>,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ExecutorOutcome {
     SchemaValid(ExecutionIdentity),
@@ -100,6 +116,7 @@ pub enum ExecutorOutcome {
     Indeterminate {
         reason: ExecutorFailure,
         identity: Option<ExecutionIdentity>,
+        exchange: Option<ExchangeFailureContext>,
     },
 }
 
@@ -214,6 +231,7 @@ pub enum BatchOutcome {
         receipts: Vec<BatchUnitReceipt>,
         checkpoint: BatchCoverageCheckpoint,
         reason: ExecutorFailure,
+        exchange: Option<ExchangeFailureContext>,
     },
 }
 
@@ -327,7 +345,7 @@ impl BatchCoverageExpectation {
 }
 
 fn unknown(reason: ExecutorFailure, identity: Option<ExecutionIdentity>) -> ExecutorOutcome {
-    ExecutorOutcome::Indeterminate { reason, identity }
+    ExecutorOutcome::Indeterminate { reason, identity, exchange: None }
 }
 
 pub struct BoundedSchemaExecutor;
@@ -426,6 +444,7 @@ impl BoundedSchemaExecutor {
                     result_stream_sha256: Digest256::of_bytes(b""),
                 },
                 reason: ExecutorFailure::UnsupportedHost,
+                exchange: None,
             }
         }
     }
@@ -469,6 +488,7 @@ impl BoundedSchemaExecutor {
                     result_stream_sha256: Digest256::of_bytes(b""),
                 },
                 reason: ExecutorFailure::UnsupportedHost,
+                exchange: None,
             }
         }
     }
@@ -617,6 +637,7 @@ impl PreparedSchemaWorker {
                 result_stream_sha256: Digest256::of_bytes(b""),
             },
             reason: ExecutorFailure::UnsupportedHost,
+            exchange: None,
         }
     }
 }
@@ -743,6 +764,7 @@ mod native {
         BatchOutcome::Incomplete {
             receipts: Vec::new(),
             reason,
+            exchange: None,
             checkpoint: BatchCoverageCheckpoint {
                 worker_sha256: worker,
                 request_sha256: Digest256::of_bytes(b""),
@@ -1464,7 +1486,7 @@ mod native {
                     }
                 }
                 BatchOutcome::Incomplete {
-                    reason, checkpoint, ..
+                    reason, checkpoint, exchange, ..
                 } => {
                     let identity = ExecutionIdentity {
                         worker_sha256: checkpoint.worker_sha256,
@@ -1476,7 +1498,7 @@ mod native {
                     if reason == ExecutorFailure::ParseRejected {
                         ExecutorOutcome::InputRejected(identity)
                     } else {
-                        unknown(reason, Some(identity))
+                        ExecutorOutcome::Indeterminate { reason, identity: Some(identity), exchange }
                     }
                 }
             }
@@ -1822,6 +1844,7 @@ mod native {
                         ..checkpoint
                     },
                     reason,
+                    exchange: None,
                 },
             },
             other => other,
@@ -1855,6 +1878,7 @@ mod native {
             receipts,
             checkpoint,
             reason,
+            exchange: None,
         }
     }
 
@@ -2203,7 +2227,7 @@ mod native {
             max_total_raw_bytes: crate::SchemaBackendProbe::MAX_INSTANCE_BYTES,
         };
         match run_batch_image_cancellable(image, prepared, results, batch, start, argv, cancelled) {
-            BatchOutcome::Incomplete { reason, .. } => unknown(reason, Some(identity)),
+            BatchOutcome::Incomplete { reason, exchange, .. } => ExecutorOutcome::Indeterminate { reason, identity: Some(identity), exchange },
             BatchOutcome::Complete { .. } => unknown(ExecutorFailure::Protocol, Some(identity)),
         }
     }
@@ -2225,6 +2249,7 @@ mod native {
         input: File,
         output: File,
         status: Option<i32>,
+        natural_status: Option<i32>,
         cleanup_grace: Duration,
         cleanup_result: Option<Result<(), ExecutorFailure>>,
     }
@@ -2233,7 +2258,12 @@ mod native {
             if let Some(result) = self.cleanup_result {
                 return result;
             }
-            let result = kill_and_reap(self.pid, &mut self.status, self.cleanup_grace);
+            // Observe once immediately before any cleanup kill. A status
+            // collected after that kill belongs only to cleanup, never origin.
+            let observed = poll_exit(self.pid, &mut self.status);
+            self.natural_status = self.status;
+            let reaped = kill_and_reap(self.pid, &mut self.status, self.cleanup_grace);
+            let result = reaped.and(observed);
             self.cleanup_result = Some(result);
             result
         }
@@ -2295,6 +2325,7 @@ mod native {
             input: input_parent,
             output: output_parent,
             status: None,
+            natural_status: None,
             cleanup_grace: budget.cleanup_grace,
             cleanup_result: None,
         })
@@ -2362,19 +2393,23 @@ mod native {
             !output_eof || status.is_none() || receipts.len() != prepared.units.len()
         } {
             if cancelled.is_some_and(|flag| flag.load(Ordering::Relaxed)) {
-                failure = Some(ExecutorFailure::Cancelled);
+                failure = Some((ExecutorFailure::Cancelled, "cancellation"));
                 break;
             }
             let now = Instant::now();
-            if now.duration_since(start) >= budget.total_execution_wall
-                || (!ack && now.duration_since(start) >= budget.startup_wall)
-                || unit_deadline.is_some_and(|deadline| now >= deadline)
-            {
-                failure = Some(ExecutorFailure::Timeout);
+            let timeout_boundary = if now.duration_since(start) >= budget.total_execution_wall {
+                Some("exchange-wall")
+            } else if !ack && now.duration_since(start) >= budget.startup_wall {
+                Some("ack-startup-wall")
+            } else if unit_deadline.is_some_and(|deadline| now >= deadline) {
+                Some("unit-wall")
+            } else { None };
+            if let Some(boundary) = timeout_boundary {
+                failure = Some((ExecutorFailure::Timeout, boundary));
                 break;
             }
             if let Err(reason) = poll_exit(pid, &mut status) {
-                failure = Some(reason);
+                failure = Some((reason, "child-status-poll"));
                 break;
             }
             if !retained && written == prepared.frame.len() {
@@ -2400,7 +2435,7 @@ mod native {
             ];
             if unsafe { libc::poll(fds.as_mut_ptr(), 2, 2) } < 0 {
                 if io::Error::last_os_error().kind() != io::ErrorKind::Interrupted {
-                    failure = Some(ExecutorFailure::Protocol);
+                    failure = Some((ExecutorFailure::Protocol, "poll-system-call"));
                     break;
                 }
                 continue;
@@ -2419,7 +2454,7 @@ mod native {
                 } else if count == 0
                     || (count < 0 && io::Error::last_os_error().kind() != io::ErrorKind::WouldBlock)
                 {
-                    failure = Some(ExecutorFailure::Protocol);
+                    failure = Some((ExecutorFailure::Protocol, "request-send"));
                     break;
                 }
             }
@@ -2438,7 +2473,7 @@ mod native {
                 } else if count > 0 {
                     response.extend_from_slice(&buffer[..count as usize]);
                     if response.len() > expected_bytes {
-                        failure = Some(ExecutorFailure::Protocol);
+                        failure = Some((ExecutorFailure::Protocol, "response-byte-count"));
                         break;
                     }
                     loop {
@@ -2456,7 +2491,7 @@ mod native {
                                 || u32::from_be_bytes(bytes[72..76].try_into().unwrap()) as usize
                                     != prepared.units.len()
                             {
-                                failure = Some(ExecutorFailure::Protocol);
+                                failure = Some((ExecutorFailure::Protocol, "ack-identity"));
                                 break;
                             }
                             parsed += BATCH_ACK_BYTES;
@@ -2473,7 +2508,7 @@ mod native {
                                     != meta.ordinal
                                 || &bytes[16..48] != meta.unit_sha256.as_bytes()
                             {
-                                failure = Some(ExecutorFailure::Protocol);
+                                failure = Some((ExecutorFailure::Protocol, "unit-identity"));
                                 break;
                             }
                             let verdict = match (bytes[48], bytes[49]) {
@@ -2481,15 +2516,15 @@ mod native {
                                 (1, 0) => BatchUnitVerdict::SchemaInvalid,
                                 (2, 1) => BatchUnitVerdict::InputRejected,
                                 (3, 1) => {
-                                    failure = Some(ExecutorFailure::InputBudget);
+                                    failure = Some((ExecutorFailure::InputBudget, "worker-unit-input-budget"));
                                     break;
                                 }
                                 (3, 2) => {
-                                    failure = Some(ExecutorFailure::Backend);
+                                    failure = Some((ExecutorFailure::Backend, "worker-unit-backend"));
                                     break;
                                 }
                                 _ => {
-                                    failure = Some(ExecutorFailure::Protocol);
+                                    failure = Some((ExecutorFailure::Protocol, "unit-verdict"));
                                     break;
                                 }
                             };
@@ -2506,7 +2541,7 @@ mod native {
                                 verdict,
                             });
                             if verdict == BatchUnitVerdict::InputRejected {
-                                failure = Some(ExecutorFailure::ParseRejected);
+                                failure = Some((ExecutorFailure::ParseRejected, "worker-unit-parse"));
                                 break;
                             }
                             unit_deadline = Some(Instant::now() + budget.per_unit_wall);
@@ -2521,13 +2556,13 @@ mod native {
                                 || u32::from_be_bytes(end[72..76].try_into().unwrap()) as usize
                                     != receipts.len()
                             {
-                                failure = Some(ExecutorFailure::Protocol);
+                                failure = Some((ExecutorFailure::Protocol, "terminal-identity"));
                                 break;
                             }
                             parsed += OPERATION_END_BYTES;
                             terminal = true;
                         } else {
-                            failure = Some(ExecutorFailure::Protocol);
+                            failure = Some((ExecutorFailure::Protocol, "trailing-response"));
                             break;
                         }
                     }
@@ -2535,7 +2570,7 @@ mod native {
                         break;
                     }
                 } else if io::Error::last_os_error().kind() != io::ErrorKind::WouldBlock {
-                    failure = Some(ExecutorFailure::Protocol);
+                    failure = Some((ExecutorFailure::Protocol, "response-receive"));
                     break;
                 }
             }
@@ -2543,22 +2578,22 @@ mod native {
                 .iter()
                 .any(|fd| fd.revents & (libc::POLLERR | libc::POLLNVAL) != 0)
             {
-                failure = Some(ExecutorFailure::Protocol);
+                failure = Some((ExecutorFailure::Protocol, "socket-events"));
                 break;
             }
             if retained && (output_eof || status.is_some()) {
-                failure = Some(ExecutorFailure::Protocol);
+                failure = Some((ExecutorFailure::Protocol, if output_eof {"early-output-eof"} else {"early-child-exit"}));
                 break;
             }
             if output_eof
                 && (parsed != response.len() || !ack || receipts.len() != prepared.units.len())
             {
-                failure = Some(ExecutorFailure::Protocol);
+                failure = Some((ExecutorFailure::Protocol, "incomplete-eof"));
                 break;
             }
         }
         if retained && failure.is_none() && written != prepared.frame.len() {
-            failure = Some(ExecutorFailure::Protocol);
+            failure = Some((ExecutorFailure::Protocol, "incomplete-request-write"));
         }
         if retained && failure.is_none() {
             let mut extra = [0u8; 1];
@@ -2571,21 +2606,24 @@ mod native {
                 )
             };
             if count >= 0 || io::Error::last_os_error().kind() != io::ErrorKind::WouldBlock {
-                failure = Some(ExecutorFailure::Protocol);
+                failure = Some((ExecutorFailure::Protocol, if count == 0 {"post-terminal-eof"} else if count > 0 {"post-terminal-extra-byte"} else {"post-terminal-receive"}));
             }
         }
         child.status = status;
-        if let Some(reason) = failure {
-            let observed_failure = status.and_then(status_failure);
-            let result = child.cleanup();
-            return batch_incomplete(
-                prepared,
-                receipts,
-                results,
-                result
-                    .err()
-                    .unwrap_or_else(|| observed_failure.unwrap_or(reason)),
-            );
+        if let Some((reason, boundary)) = failure {
+            let cleanup = child.cleanup();
+            let observed_failure = child.natural_status.and_then(status_failure);
+            let natural_termination = child.natural_status.map(|status| {
+                let signal = status & 0x7f;
+                if signal == 0 { ChildTermination::Exited((status >> 8) & 0xff) }
+                else { ChildTermination::Signalled(signal) }
+            });
+            let mut outcome = batch_incomplete(prepared, receipts, results,
+                cleanup.err().unwrap_or_else(|| observed_failure.unwrap_or(reason)));
+            if let BatchOutcome::Incomplete { exchange, .. } = &mut outcome {
+                *exchange = Some(ExchangeFailureContext { boundary, failure: reason, natural_termination });
+            }
+            return outcome;
         }
         if status.and_then(status_failure).is_some() {
             return batch_incomplete(
@@ -3658,6 +3696,45 @@ mod native {
                     }
                 ));
             }
+            // A status observed before cleanup is source of the termination
+            // detail; unlike a cleanup SIGKILL, it may explain missing output.
+            for (script, expected) in [
+                (c"import sys; sys.exit(17)", ChildTermination::Exited(17)),
+                (c"import os,signal; os.kill(os.getpid(),signal.SIGTERM)", ChildTermination::Signalled(libc::SIGTERM)),
+            ] {
+                let budget = BatchBudget::laboratory();
+                let argv = [c"python3".as_ptr() as *mut libc::c_char,
+                    c"-c".as_ptr() as *mut libc::c_char, script.as_ptr() as *mut libc::c_char,
+                    std::ptr::null_mut()];
+                let mut child = spawn_operation_child(&image, ExecutorBudget::laboratory(), &argv).unwrap();
+                let start = Instant::now();
+                while child.status.is_none() && start.elapsed() < Duration::from_millis(700) {
+                    poll_exit(child.pid, &mut child.status).unwrap();
+                    if child.status.is_none() { thread::sleep(Duration::from_millis(1)); }
+                }
+                assert!(child.status.is_some(), "natural child exit was not observed");
+                let prepared = make_batch_request(Digest256::of_bytes(b"fixture-worker"),
+                    &batch_schema(), FormatProfile::AssertedSourceCandidateV1,
+                    [batch_unit(0, b"7")], budget).unwrap();
+                let mut results = Digest256Hasher::new();
+                results.update(b"tos-val2-batch-results-v1\0");
+                let outcome = run_batch_exchange(&mut child, prepared, results, budget,
+                    Instant::now(), None, true);
+                match outcome {
+                    BatchOutcome::Incomplete { reason, receipts, exchange: Some(context), .. } => {
+                        assert_eq!(reason, match expected { ChildTermination::Exited(code)=>ExecutorFailure::CrashExit(code), ChildTermination::Signalled(signal)=>ExecutorFailure::CrashSignal(signal) });
+                        assert!(receipts.is_empty());
+                        assert_eq!(context.failure, ExecutorFailure::Protocol);
+                        assert_eq!(context.natural_termination, Some(expected));
+                        assert!(!context.boundary.is_empty());
+                    },
+                    other => panic!("missing natural termination context: {other:?}"),
+                }
+                // Latched cleanup cannot overwrite the independently observed
+                // original status on a second call or signal a reused PID.
+                child.cleanup().unwrap();
+                assert_eq!(child.natural_status, child.status);
+            }
         }
 
         #[test]
@@ -3685,13 +3762,18 @@ mod native {
             let start = Instant::now();
             let outcome = run_batch_image(&image, prepared, results, budget, start, &argv);
             assert!(matches!(
-                outcome,
+                &outcome,
                 BatchOutcome::Incomplete {
                     reason: ExecutorFailure::Timeout,
                     receipts,
                     ..
                 } if receipts.is_empty()
             ));
+            if let BatchOutcome::Incomplete { exchange: Some(context), .. } = outcome {
+                assert_eq!(context.failure, ExecutorFailure::Timeout);
+                assert_eq!(context.boundary, "ack-startup-wall");
+                assert_eq!(context.natural_termination, None, "cleanup SIGKILL is not natural termination");
+            } else { panic!("missing timeout exchange context"); }
             assert!(start.elapsed() < Duration::from_millis(700));
         }
 
