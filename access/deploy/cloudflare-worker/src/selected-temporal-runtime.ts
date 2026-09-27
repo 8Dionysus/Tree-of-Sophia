@@ -1,7 +1,7 @@
 /** Request-local transport over the Rust temporal continuation. This module
- * selects no publication and issues no authority. It is deliberately unbound
- * until a source owner supplies verified selected reads and a current lease.
- * Private capture and owner-bound response-body handoff are separate APIs.
+ * selects no publication and issues no authority. Published snapshot delivery
+ * checks its epoch/revision; stronger private native capture separately needs
+ * its selected owner and current lease. The two APIs keep those scopes apart.
  */
 export interface TemporalReplayStep {
   need(): string | undefined;
@@ -35,8 +35,9 @@ export interface SelectedTemporalAccess extends TemporalReadAccess {
    * selected model receipt and every consulted carrier, holds its current
    * disclosure lease through private capture, rechecks selection/current policy
    * and releases the lease when the callback settles. This does not bind later
-   * Worker body consumption/enqueue; public delivery needs an owner primitive
-   * covering that actual lifecycle. */
+   * Worker body consumption/enqueue. Delivery under this stronger native profile
+   * would need its owner to cover that lifecycle; the published snapshot API
+   * below instead checks the publication epoch/revision. */
   withCurrentDisclosure<T>(capture: () => Promise<T>): Promise<T>;
 }
 
