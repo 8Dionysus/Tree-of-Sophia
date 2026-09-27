@@ -1,14 +1,21 @@
 //! Maintained philosophy read rules over exact original logical projection inputs.
-//! The selected carrier/held-owner adapter is required before any disclosure.
+//! Selected disclosure requires the held-owner adapter. Source diagnostics use
+//! the separate bounded View-only entry and convey no selected runtime grant.
 use crate::knowledge_inspect::{Reader, execute_selected_carrier_packet};
 use crate::search_v2::{SearchV2Error, SearchV2ErrorCode};
 use crate::source_read_projection::{object, text};
-use crate::{BoundCmpKnowledge, DisclosableInspect, InspectBudget, InspectCurrentAuthority};
+use crate::{
+    AbortProbe, AbortReason, BoundCmpKnowledge, DisclosableInspect, InspectBudget,
+    InspectCurrentAuthority,
+};
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use tos_compiler::{
     PhilosophyOriginalCollection, PhilosophyOriginalReceipt, VerifiedKnowledgeModel,
 };
-use tos_foundation::{JsonNumber, JsonNumberKind, JsonString, JsonValue};
+use tos_foundation::{
+    CanonicalProfile, FoundationErrorCode, JsonMode, JsonNumber, JsonNumberKind, JsonString,
+    JsonValue, canonical_bytes_v1, parse_json,
+};
 
 pub const PHILOSOPHY_INTENDED_USE: &str = "read_only_public_philosophy_projection_v1";
 pub const PHILOSOPHY_CARRIER_LAYER: &str = crate::knowledge_packet::INDEXED_SEARCH_CARRIER_LAYER;
@@ -19,6 +26,128 @@ pub const PHILOSOPHY_CARRIER_LAYER: &str = crate::knowledge_packet::INDEXED_SEAR
 pub struct PhilosophyReadBudget {
     pub inspect: InspectBudget,
     pub max_work_steps: u64,
+}
+
+/// Materialize one monolithic source view for doctor/verify, using the same
+/// maintained View algorithm as selected reads. The caller selects and bounds
+/// the source file; this function neither opens files nor establishes custody,
+/// publication, current policy or a disclosure lease.
+///
+/// `inspect.json` bounds the input parse, `max_decoded_bytes` bounds raw input,
+/// `max_rows` includes base and all inline-view node/edge entries, and
+/// `max_response_bytes` bounds the complete canonical packet. `max_work_steps`
+/// counts the existing kernel's logical steps; SQL/open VM fields are unused.
+/// Parsing and emission are bounded synchronous phases, with probe checks at
+/// their boundaries and during the kernel's existing work steps. Last-member
+/// wins matches the diagnostic source reader's json.loads, not source admission.
+pub fn compute_source_philosophy_view_diagnostic(
+    raw_graph: &[u8],
+    view_id: &str,
+    budget: PhilosophyReadBudget,
+    probe: &dyn AbortProbe,
+) -> Result<Vec<u8>, SearchV2Error> {
+    if view_id.is_empty() || view_id.len() > budget.inspect.max_field_bytes {
+        return Err(invalid());
+    }
+    let request = PhilosophyReadRequest::View {
+        view_id: view_id.to_owned(),
+        limit: 1000,
+    };
+    request.validate(budget.inspect)?;
+    if budget.max_work_steps == 0
+        || budget.inspect.max_rows == 0
+        || budget.inspect.max_response_bytes == 0
+    {
+        return Err(invalid());
+    }
+    let exhausted = || {
+        failure(
+            SearchV2ErrorCode::BudgetExceeded,
+            "source philosophy diagnostic budget exceeded",
+        )
+    };
+    let mut interrupt = || match probe.reason() {
+        Some(AbortReason::Cancelled) => Err(failure(
+            SearchV2ErrorCode::Cancelled,
+            "source philosophy diagnostic cancelled",
+        )),
+        Some(AbortReason::DeadlineExceeded) => Err(failure(
+            SearchV2ErrorCode::DeadlineExceeded,
+            "source philosophy diagnostic deadline exceeded",
+        )),
+        None => Ok(()),
+    };
+    interrupt()?;
+    if u64::try_from(raw_graph.len()).map_err(|_| exhausted())? > budget.inspect.max_decoded_bytes {
+        return Err(exhausted());
+    }
+    let document =
+        parse_json(raw_graph, JsonMode::RequestLastWins, budget.inspect.json).map_err(|error| {
+            if error.code == FoundationErrorCode::BudgetExceeded {
+                exhausted()
+            } else {
+                invalid()
+            }
+        })?;
+    interrupt()?;
+    let graph = document.root();
+    if graph.as_object().is_none() {
+        return Err(invalid());
+    }
+    if !matches!(
+        get(graph, "schema_version").as_str(),
+        Some("tos_philosophy_graph_projection_v1" | "tos_philosophy_graph_projection_v2")
+    ) {
+        return Err(failure(
+            SearchV2ErrorCode::UnsupportedProfile,
+            "source philosophy diagnostic requires a monolithic graph",
+        ));
+    }
+    let nodes = arr(get(graph, "nodes"));
+    let edges = arr(get(graph, "edges"));
+    let mut rows = 0u64;
+    let mut charge = |count: usize| -> Result<(), SearchV2Error> {
+        rows = rows
+            .checked_add(u64::try_from(count).map_err(|_| exhausted())?)
+            .ok_or_else(exhausted)?;
+        if rows > budget.inspect.max_rows {
+            return Err(exhausted());
+        }
+        interrupt()
+    };
+    charge(nodes.len())?;
+    charge(edges.len())?;
+    for view in arr(get(graph, "views")) {
+        if view.as_object().is_some() {
+            charge(arr(get(view, "nodes")).len())?;
+            charge(arr(get(view, "edges")).len())?;
+        }
+    }
+    let packet = compute_philosophy_read(
+        graph,
+        nodes,
+        edges,
+        &request,
+        budget.max_work_steps,
+        &mut interrupt,
+    )?;
+    interrupt()?;
+    let mut output_limits = budget.inspect.json;
+    output_limits.max_bytes = budget.inspect.max_response_bytes;
+    let body = canonical_bytes_v1(
+        &packet,
+        CanonicalProfile::SourceRecordDigestV1,
+        output_limits,
+    )
+    .map_err(|error| {
+        if error.code == FoundationErrorCode::BudgetExceeded {
+            exhausted()
+        } else {
+            invalid()
+        }
+    })?;
+    interrupt()?;
+    Ok(body)
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
