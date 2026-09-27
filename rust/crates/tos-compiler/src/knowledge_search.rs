@@ -481,21 +481,26 @@ fn default_spaced_json(compact: &[u8], cap: usize) -> Result<Vec<u8>> {
 }
 
 fn insert_pending(stage: &mut KnowledgeStage<'_>, batch: &[Vec<u8>]) -> Result<()> {
-    stage.with_connection(WritePhase::Search, |db| {
-        // The caller caps each batch at 1024 three-character grams. Commit
-        // once per bounded batch, retaining the stage's durable SQLite policy.
-        let transaction = db.transaction()?;
-        {
-            let mut statement = transaction.prepare_cached(
-                "INSERT OR IGNORE INTO search_pending_grams(n,gram) VALUES (?1,?2)",
-            )?;
-            for gram in batch {
-                statement.execute(params![GRAM_N, gram])?;
-            }
+    stage.with_connection(WritePhase::Search, |db| insert_pending_batch(db, batch))
+}
+
+fn insert_pending_batch(db: &mut Connection, batch: &[Vec<u8>]) -> Result<()> {
+    // Attempted grams were already charged, including duplicates. Avoid
+    // spending SQL VM instructions on duplicate keys within this bounded
+    // batch; the existing PK still deduplicates across all document batches.
+    let mut unique = batch.iter().map(Vec::as_slice).collect::<Vec<_>>();
+    unique.sort_unstable();
+    unique.dedup();
+    let transaction = db.transaction()?;
+    {
+        let mut statement = transaction
+            .prepare_cached("INSERT OR IGNORE INTO search_pending_grams(n,gram) VALUES (?1,?2)")?;
+        for gram in unique {
+            statement.execute(params![GRAM_N, gram])?;
         }
-        transaction.commit()?;
-        Ok(())
-    })
+    }
+    transaction.commit()?;
+    Ok(())
 }
 
 fn copy_pending_page(
@@ -698,13 +703,15 @@ mod tests {
     fn gram_copy_is_disk_deduped_and_keyset_paged() {
         let mut db = Connection::open_in_memory().unwrap();
         db.execute_batch(SCHEMA).unwrap();
-        for gram in [b"aaa".as_slice(), b"bbb", b"aaa", b"ccc"] {
-            db.execute(
-                "INSERT OR IGNORE INTO search_pending_grams(n,gram) VALUES (3,?1)",
-                [gram],
-            )
-            .unwrap();
-        }
+        let pending = [
+            b"aaa".to_vec(),
+            b"bbb".to_vec(),
+            b"aaa".to_vec(),
+            b"ccc".to_vec(),
+        ];
+        insert_pending_batch(&mut db, &pending).unwrap();
+        // The SQL primary key still owns dedup across separate batches.
+        insert_pending_batch(&mut db, &pending[..1]).unwrap();
         let first = copy_pending_page(&mut db, "nodes", 7, None, 2)
             .unwrap()
             .unwrap();
