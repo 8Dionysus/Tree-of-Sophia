@@ -81,6 +81,16 @@ pub trait InspectDisclosureLease: Send {
     fn recheck(&mut self) -> Result<(), SearchV2Error>;
 }
 pub trait InspectCurrentAuthority {
+    /// Exact owner-carried registry bytes, never ambient data-root discovery.
+    /// A contracts disclosure lease must cover both grants through final flush.
+    fn authorize_registry_current(
+        &mut self,
+        _: &str,
+        _: &[u8],
+        _: Digest256,
+    ) -> Result<(), SearchV2Error> {
+        Err(error(SearchV2ErrorCode::Unavailable, "selected registry authorization unavailable"))
+    }
     /// Stored-lens discovery consults the exact selected public catalog.
     /// The acquired disclosure lease must also cover this catalog grant.
     fn authorize_catalog_current(&mut self, _: Digest256) -> Result<(), SearchV2Error> {
@@ -128,6 +138,16 @@ pub(crate) struct Reader<'a, 'b, A: ?Sized> {
     scope: &'a IndexedDisclosureScope,
 }
 impl<A: InspectCurrentAuthority + ?Sized> Reader<'_, '_, A> {
+    pub(crate) fn registry_current(&mut self, id: &str, raw: &[u8], sha: Digest256) -> Result<(), SearchV2Error> {
+        self.check_interrupt()?;
+        self.rows = self.rows.checked_add(1).ok_or_else(budget_error)?;
+        self.decoded = self.decoded.checked_add(raw.len() as u64).ok_or_else(budget_error)?;
+        if self.rows > self.budget.max_rows || self.decoded > self.budget.max_decoded_bytes {
+            return Err(budget_error());
+        }
+        self.authority.authorize_registry_current(id, raw, sha)?;
+        self.check_interrupt()
+    }
     /// Use the same transport probe between bounded non-SQL work units.
     pub(crate) fn check_interrupt(&mut self) -> Result<(), SearchV2Error> {
         match self

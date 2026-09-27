@@ -47,6 +47,8 @@ struct Authority {
     consulted: Vec<String>,
     catalog_denied: bool,
     catalog_consulted: usize,
+    registry_denied: bool,
+    registry_consulted: Vec<tos_foundation::Digest256>,
 }
 impl Authority {
     fn new(bound: &BoundCmpKnowledge<'_>) -> Self {
@@ -79,10 +81,29 @@ impl Authority {
             consulted: vec![],
             catalog_denied: false,
             catalog_consulted: 0,
+            registry_denied: true,
+            registry_consulted: vec![],
         }
     }
 }
 impl InspectCurrentAuthority for Authority {
+    fn authorize_registry_current(
+        &mut self,
+        _: &str,
+        raw: &[u8],
+        sha: tos_foundation::Digest256,
+    ) -> Result<(), SearchV2Error> {
+        self.check_selected()?;
+        if self.registry_denied {
+            return Err(SearchV2Error {
+                code: SearchV2ErrorCode::Unavailable,
+                message: "synthetic registry grant unavailable",
+            });
+        }
+        assert_eq!(tos_foundation::Digest256::of_bytes(raw), sha);
+        self.registry_consulted.push(sha);
+        Ok(())
+    }
     fn policy_binding(&self) -> CurrentPolicyBinding {
         self.policy.clone()
     }
@@ -123,6 +144,10 @@ impl InspectCurrentAuthority for Authority {
         self.check_selected()?;
         if self.scope.operation_id == STORED_LENS_OPERATION {
             assert_eq!(self.catalog_consulted, 1);
+        }
+        if self.scope.operation_id == tos_query::knowledge_contracts::KNOWLEDGE_CONTRACTS_OPERATION
+        {
+            assert_eq!(self.registry_consulted.len(), 2);
         }
         assert_eq!(
             consulted.iter().map(|r| &r.id).collect::<Vec<_>>(),
@@ -661,5 +686,122 @@ json.dump({'cases':cases,'capabilities':ToSAccessCore.knowledge_search_capabilit
     assert!(
         execute_selected_legacy_search(&mut model, &bound, &mut wrong_scope, &request, caps)
             .is_err()
+    );
+}
+
+#[test]
+fn normalized_selected_contracts_require_exact_registry_carriers_and_current_hold() {
+    use tos_query::knowledge_contracts::{
+        KNOWLEDGE_CONTRACTS_INTENDED_USE, KNOWLEDGE_CONTRACTS_OPERATION, KnowledgeContractBudget,
+        execute_selected_knowledge_contracts,
+    };
+    let fixture = build_native_fixture();
+    let raw = fixture.registry_originals();
+    let cold = fixture.open().unwrap();
+    let bound =
+        bind_verified_knowledge(&cold, &fixture.vocabulary, &fixture.descriptor_bytes).unwrap();
+    assert_eq!(
+        tos_foundation::Digest256::of_bytes(raw[0]),
+        bound.selection().entity_registry_sha256
+    );
+    assert_eq!(
+        tos_foundation::Digest256::of_bytes(raw[1]),
+        bound.selection().relation_registry_sha256
+    );
+    let script = r#"
+import json,sys
+from pathlib import Path
+from types import SimpleNamespace
+sys.path.insert(0,sys.argv[1])
+from tos_access import core
+raw=json.load(sys.stdin)
+selected={str(Path('/selected-owner')/core.KNOWLEDGE_CONTRACT_RELATIVE_PATHS[key]):json.loads(value)
+          for key,value in zip(('entity_type_registry','relation_type_registry'),raw)}
+original=core._read_json
+core._read_json=lambda path:selected[str(path)] if str(path) in selected else original(path)
+json.dump(core.ToSAccessCore.knowledge_contracts(SimpleNamespace(tos_root=Path('/selected-owner'),_data_guard=None)),sys.stdout,ensure_ascii=False)
+"#;
+    let mut child = Command::new("python3")
+        .arg("-c")
+        .arg(script)
+        .arg(concat!(env!("CARGO_MANIFEST_DIR"), "/../../../access/src"))
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .spawn()
+        .unwrap();
+    let input = JsonValue::Array(
+        raw.iter()
+            .map(|raw| {
+                JsonValue::String(tos_foundation::JsonString::from_utf8(
+                    std::str::from_utf8(raw).unwrap(),
+                ))
+            })
+            .collect(),
+    );
+    child
+        .stdin
+        .take()
+        .unwrap()
+        .write_all(&canonical(&input))
+        .unwrap();
+    let output = child.wait_with_output().unwrap();
+    assert!(output.status.success());
+    let oracle = parse_json(
+        &output.stdout,
+        JsonMode::PublishedStrict,
+        JsonLimits::default(),
+    )
+    .unwrap()
+    .into_root();
+    let mut model = cold
+        .fork_reader_with_vm_budget(budget().inspect.max_read_vm_steps)
+        .unwrap();
+    let contract_budget = KnowledgeContractBudget {
+        max_input_bytes: 4_000_000,
+        max_registry_bytes: 1_000_000,
+        max_response_bytes: 4_000_000,
+        json: JsonLimits::default(),
+    };
+    let authority = |granted: bool| {
+        let mut a = Authority::new(&bound);
+        a.scope.operation_id = KNOWLEDGE_CONTRACTS_OPERATION.into();
+        a.scope.intended_use = KNOWLEDGE_CONTRACTS_INTENDED_USE.into();
+        a.registry_denied = !granted;
+        a
+    };
+    let mut granted = authority(true);
+    let mut result = execute_selected_knowledge_contracts(
+        &mut model,
+        &bound,
+        &mut granted,
+        raw,
+        contract_budget,
+        budget().inspect,
+    )
+    .unwrap();
+    assert_eq!(
+        canonical(
+            parse_json(&result, JsonMode::PublishedStrict, JsonLimits::default())
+                .unwrap()
+                .root()
+        ),
+        canonical(&oracle)
+    );
+    granted.withdrawn.store(true, Ordering::SeqCst);
+    assert!(matches!(result.recheck(),Err(ref e) if e.code==SearchV2ErrorCode::StalePolicy));
+    let mut denied = authority(false);
+    assert!(
+        matches!(execute_selected_knowledge_contracts(&mut model,&bound,&mut denied,raw,contract_budget,budget().inspect),Err(ref e) if e.code==SearchV2ErrorCode::Unavailable)
+    );
+    let mut changed = raw[0].to_vec();
+    changed.push(b' ');
+    let mut a = authority(true);
+    assert!(
+        matches!(execute_selected_knowledge_contracts(&mut model,&bound,&mut a,[&changed,raw[1]],contract_budget,budget().inspect),Err(ref e) if e.code==SearchV2ErrorCode::StaleSelection)
+    );
+    assert!(a.registry_consulted.is_empty());
+    let mut a = authority(true);
+    assert!(
+        matches!(execute_selected_knowledge_contracts(&mut model,&bound,&mut a,raw,KnowledgeContractBudget {max_registry_bytes:1,..contract_budget},budget().inspect),Err(ref e) if e.code==SearchV2ErrorCode::BudgetExceeded)
     );
 }
