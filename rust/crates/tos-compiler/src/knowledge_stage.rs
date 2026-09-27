@@ -372,7 +372,11 @@ impl<'a> KnowledgeStage<'a> {
         }
         let mut result = (|| {
             self.check(phase)?;
-            let value = f(self.db.as_mut().expect("stage database open"))?;
+            let value =
+                f(self.db.as_mut().expect("stage database open")).map_err(|error| match error {
+                    Error::Sql(error) => Error::SqlitePhase { phase, error },
+                    other => other,
+                })?;
             self.check(phase)?;
             Ok(value)
         })();

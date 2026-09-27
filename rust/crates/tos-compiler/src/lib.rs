@@ -215,6 +215,10 @@ pub const SELECTION_PROFILE: &str = "tos_source_navigation_visible_v1";
 pub enum Error {
     Io(std::io::Error),
     Sql(rusqlite::Error),
+    SqlitePhase {
+        phase: knowledge_stage::WritePhase,
+        error: rusqlite::Error,
+    },
     Invalid(&'static str),
     ManagedSourceUnsupported(&'static str),
     Source(String),
@@ -230,6 +234,7 @@ impl fmt::Display for Error {
         match self {
             Self::Io(e) => write!(f, "I/O: {e}"),
             Self::Sql(e) => write!(f, "SQLite: {e}"),
+            Self::SqlitePhase { phase, error } => write!(f, "SQLite in {phase:?}: {error}"),
             Self::Invalid(s) => write!(f, "invalid compiler input: {s}"),
             Self::ManagedSourceUnsupported(s) => {
                 write!(f, "unsupported managed selected source: {s}")
