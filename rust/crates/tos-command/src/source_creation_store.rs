@@ -3,7 +3,7 @@
 //! The corpus lock name and rename-no-replace protocol interoperate with Python.
 
 use crate::source_command::{self as cmd, SourceCommandError, SourceCommandResult};
-use crate::source_creation::SerializedCreation;
+use crate::source_creation::{CreationPackage, SerializedCreation};
 use rustix::fs::{AtFlags, FlockOperation, Mode, OFlags, RenameFlags};
 use rustix::io::Errno;
 use std::collections::{BTreeMap, BTreeSet};
@@ -169,7 +169,7 @@ pub struct CreationFilesystem {
 /// and says nothing about the managed cohort's index completeness.
 pub(crate) struct CreationOwnerFence<'a> {
     filesystem: &'a CreationFilesystem,
-    package: &'a SerializedCreation,
+    package: CreationPackage<'a>,
     witness: File,
     lock: File,
 }
@@ -179,7 +179,8 @@ impl CreationOwnerFence<'_> {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<()> {
-        self.filesystem.current(self.package, deadline, cancelled)?;
+        self.filesystem
+            .current_package(self.package, deadline, cancelled)?;
         let current = tos_fd_open::open_regular_at(&self.witness, Path::new(CORPUS_LOCK))
             .map_err(|_| SourceCommandError::Conflict("creation corpus lock path changed"))?;
         if inode(&owned(&self.lock, self.filesystem.uid, false)?)
@@ -325,6 +326,14 @@ impl CreationFilesystem {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<()> {
+        self.current_package(CreationPackage::V1(package), deadline, cancelled)
+    }
+    fn current_package(
+        &self,
+        package: CreationPackage<'_>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()> {
         active(deadline, cancelled)?;
         if rustix::process::geteuid().as_raw() != self.uid
             || rustix::process::getuid().as_raw() != self.uid
@@ -349,7 +358,8 @@ impl CreationFilesystem {
             ));
         }
         let bytes = raw(&mut fd, 1_048_576, deadline, cancelled)?;
-        if bytes != self.configuration_raw || bytes != package.prepared.context().configuration_raw
+        if bytes != self.configuration_raw
+            || bytes != package.prepared().context().configuration_raw
         {
             return Err(SourceCommandError::Conflict(
                 "creation delegation changed before publication",
@@ -360,7 +370,7 @@ impl CreationFilesystem {
             cmd::text(&config, "expires_at")?,
             &crate::source_serialization::instant()?,
         )?;
-        if package.prepared.context().effective_uid != u64::from(self.uid) {
+        if package.prepared().context().effective_uid != u64::from(self.uid) {
             return Err(SourceCommandError::Denied(
                 "creation prepared account differs",
             ));
@@ -370,13 +380,13 @@ impl CreationFilesystem {
 
     /// Acquire before STO/PG commit locks and retain until the actual outcome.
     /// The consumer rechecks this fence at its final atomic write edge.
-    pub(crate) fn hold_current_owner<'a>(
+    pub(crate) fn hold_creation_owner<'a>(
         &'a self,
-        package: &'a SerializedCreation,
+        package: CreationPackage<'a>,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<CreationOwnerFence<'a>> {
-        self.current(package, deadline, cancelled)?;
+        self.current_package(package, deadline, cancelled)?;
         let witness = walk(&self.root, "ToS/source-witnesses", self.uid)?;
         let lock = self.lock(&witness, deadline, cancelled)?;
         let fence = CreationOwnerFence {

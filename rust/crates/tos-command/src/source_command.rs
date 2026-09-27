@@ -57,6 +57,9 @@ pub struct SourceFile {
     pub raw: Vec<u8>,
 }
 
+pub(crate) const SELECTED_SOURCE_MAX_FILES: usize = 4096;
+pub(crate) const SELECTED_SOURCE_MAX_BYTES: usize = 33_554_432;
+
 /// The independently selected protected configuration remains outside the
 /// authored source cut. This value records observations, not account authority.
 #[derive(Clone, Debug)]
@@ -96,6 +99,36 @@ pub struct PreparedCommand {
     pub changes: Vec<SourceChange>,
     pub reads: Vec<SourceDependency>,
     pub replayed: bool,
+}
+
+/// Shared proposal content; authored selection is supplied by its concrete owner.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct CommandPlan {
+    pub handler_id: String,
+    pub operation: String,
+    pub request_canonical_sha256: Digest256,
+    pub configuration_raw_sha256: Digest256,
+    pub configuration_canonical_sha256: Digest256,
+    pub response: JsonValue,
+    pub changes: Vec<SourceChange>,
+    pub reads: Vec<SourceDependency>,
+    pub replayed: bool,
+}
+impl CommandPlan {
+    pub(crate) fn into_v1(self, base_revision: SourceRevision) -> PreparedCommand {
+        PreparedCommand {
+            base_revision,
+            handler_id: self.handler_id,
+            operation: self.operation,
+            request_canonical_sha256: self.request_canonical_sha256,
+            configuration_raw_sha256: self.configuration_raw_sha256,
+            configuration_canonical_sha256: self.configuration_canonical_sha256,
+            response: self.response,
+            changes: self.changes,
+            reads: self.reads,
+            replayed: self.replayed,
+        }
+    }
 }
 
 impl CommandContext {
@@ -199,7 +232,9 @@ impl CommandContext {
             .files
             .iter()
             .try_fold(0usize, |total, file| total.checked_add(file.raw.len()));
-        if self.files.len() > 4096 || total.is_none_or(|total| total > 33_554_432) {
+        if self.files.len() > SELECTED_SOURCE_MAX_FILES
+            || total.is_none_or(|total| total > SELECTED_SOURCE_MAX_BYTES)
+        {
             return Err(SourceCommandError::Invalid("selected source byte budget"));
         }
         let paths: BTreeSet<_> = self.files.iter().map(|f| &f.path).collect();
@@ -219,9 +254,20 @@ impl CommandContext {
         &self,
         handler: &str,
         response: JsonValue,
-        mut changes: Vec<SourceChange>,
+        changes: Vec<SourceChange>,
         replayed: bool,
     ) -> SourceCommandResult<PreparedCommand> {
+        Ok(self
+            .plan_content(handler, response, changes, replayed)?
+            .into_v1(self.base_revision))
+    }
+    pub(crate) fn plan_content(
+        &self,
+        handler: &str,
+        response: JsonValue,
+        mut changes: Vec<SourceChange>,
+        replayed: bool,
+    ) -> SourceCommandResult<CommandPlan> {
         self.check()?;
         changes.sort_by(|a, b| a.path.cmp(&b.path));
         if changes.windows(2).any(|p| p[0].path == p[1].path) {
@@ -245,10 +291,9 @@ impl CommandContext {
         }
         let request = parse(&self.request_raw)?;
         let config = parse(&self.configuration_raw)?;
-        Ok(PreparedCommand {
+        Ok(CommandPlan {
             handler_id: handler.into(),
             operation: text(&request, "operation")?.into(),
-            base_revision: self.base_revision,
             request_canonical_sha256: Digest256::of_bytes(&canonical(&request)?),
             configuration_raw_sha256: Digest256::of_bytes(&self.configuration_raw),
             configuration_canonical_sha256: Digest256::of_bytes(&canonical(&config)?),

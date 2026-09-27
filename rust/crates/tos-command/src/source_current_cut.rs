@@ -35,8 +35,12 @@ pub struct ManagedCurrentSourceGeneration {
     store_id: [u8; 16],
     cohort: ManagedSourceCohort,
     selected: VerifiedSelectedGeneration,
+    metadata: BTreeMap<String, MemberMetadata>,
 }
 impl ManagedCurrentSourceGeneration {
+    pub(crate) fn members(&self) -> impl Iterator<Item = &MemberMetadata> {
+        self.metadata.values()
+    }
     pub fn digest(&self) -> Digest256 {
         self.selected.digest()
     }
@@ -141,6 +145,7 @@ pub fn select_current_source_generation(
         store_id: store.store_id(),
         cohort: reopened.cohort,
         selected: reopened.selected,
+        metadata: reopened.metadata,
     })
 }
 
@@ -711,6 +716,7 @@ pub fn select_current_source_cut(
             store_id: store.store_id(),
             cohort: reopened.cohort,
             selected: reopened.selected,
+            metadata: reopened.metadata,
         },
         cut,
         membership: reopened.current_membership,

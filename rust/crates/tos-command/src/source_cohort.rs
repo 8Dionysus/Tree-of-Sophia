@@ -3,7 +3,10 @@
 
 use super::*;
 use crate::source_command::{self as cmd, CommandContext, SourceFile};
-use crate::source_creation::{CreationFamily, SerializedCreation};
+use crate::source_creation::{
+    CreationFamily, CreationPackage, ManagedCreationBasis, ManagedSerializedCreation,
+    SerializedCreation,
+};
 use crate::source_creation_store::{CreationFilesystem, CreationOwnerFence};
 use crate::{PredicateKind, PredicateRead, PredicateToken, source_claims, source_forms};
 use std::collections::{BTreeMap, BTreeSet};
@@ -102,10 +105,9 @@ fn original_metadata(cut: &CorpusCutReader) -> SourceMetadata {
         })
         .collect()
 }
-fn creation_metadata(package: &SerializedCreation) -> SourceMetadata {
+fn creation_metadata(package: CreationPackage<'_>) -> SourceMetadata {
     let dependencies = package
-        .command()
-        .reads
+        .reads()
         .iter()
         .filter(|r| r.path.as_str().starts_with("ToS/"))
         .map(|r| r.path.as_str().to_owned())
@@ -113,8 +115,7 @@ fn creation_metadata(package: &SerializedCreation) -> SourceMetadata {
         .into_iter()
         .collect::<Vec<_>>();
     package
-        .command()
-        .changes
+        .changes()
         .iter()
         .map(|c| {
             (
@@ -215,6 +216,7 @@ fn expose_metadata(
 enum SourceRegistrationBasis<'a> {
     Original,
     Current(&'a crate::source_current_cut::ManagedCurrentSourceCut),
+    Managed(&'a crate::source_current_cut::ManagedCurrentSourceGeneration),
     CommittedReplay,
 }
 
@@ -444,7 +446,7 @@ fn verify_manifest_indexes(cut: &CorpusCutReader, rows: &IndexRows) -> DurableRe
     }
     Ok(())
 }
-fn scoped_context(package: &SerializedCreation) -> CommandContext {
+fn scoped_context(package: CreationPackage<'_>) -> CommandContext {
     let mut ctx = package.prepared().context().clone();
     // The maintained producer already checks initial identity and source_refs
     // against its complete inventory. Derive only this package's new indexed
@@ -461,7 +463,7 @@ fn scoped_context(package: &SerializedCreation) -> CommandContext {
     ctx
 }
 fn creation_indexes(
-    package: &SerializedCreation,
+    package: CreationPackage<'_>,
     worker: &mut CutWorkerSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
@@ -470,8 +472,8 @@ fn creation_indexes(
     if !matches!(
         prepared.family(),
         CreationFamily::CorpusV1 | CreationFamily::CorpusV2
-    ) || package.command().handler_id != "native-corpus-create"
-        || package.command().operation != "source.create"
+    ) || package.handler() != "native-corpus-create"
+        || package.operation() != "source.create"
     {
         return Err(DurableError::Refused(
             "affected creation is limited to maintained initial native Agent",
@@ -499,10 +501,10 @@ fn creation_indexes(
             "serialized Agent differs from actual prepared record",
         ));
     }
-    if package.command().changes.len() != prepared.files().len() {
+    if package.changes().len() != prepared.files().len() {
         return Err(DurableError::Corrupt("source package membership differs"));
     }
-    for change in &package.command().changes {
+    for change in package.changes() {
         let name = change
             .path
             .as_str()
@@ -580,16 +582,48 @@ fn reads_bytes(reads: &SourceReads) -> DurableResult<Vec<u8>> {
         .collect::<Vec<_>>();
     serde_json::to_vec(&values).map_err(|_| DurableError::Invalid("source reads encode"))
 }
-fn source_delta(package: &SerializedCreation) -> Digest256 {
+fn source_delta(package: CreationPackage<'_>) -> Digest256 {
     let mut h = Digest256Hasher::new();
-    part(&mut h, package.command().base_revision.0.as_bytes());
+    if let Some(revision) = package.v1_revision() {
+        part(&mut h, revision.0.as_bytes());
+    } else {
+        let basis = package
+            .managed_basis()
+            .expect("managed concrete package owns its basis");
+        part(&mut h, b"tos-managed-source-generation-basis-v1");
+        part(&mut h, basis.domain.as_bytes());
+        part(&mut h, basis.digest.as_bytes());
+        part(&mut h, &basis.generation.to_be_bytes());
+        part(&mut h, &basis.epoch.to_be_bytes());
+        part(&mut h, basis.definition.as_bytes());
+        part(
+            &mut h,
+            package.prepared().context().base_revision.0.as_bytes(),
+        );
+    }
+    if let Some(observations) = package.observations() {
+        for (path, observed) in observations {
+            part(&mut h, path.as_bytes());
+            part(&mut h, &observed.metadata.mode.to_be_bytes());
+            part(&mut h, &observed.metadata.size_bytes.to_be_bytes());
+            part(&mut h, observed.metadata.sha256.as_bytes());
+            part(&mut h, &observed.custody_revision.to_be_bytes());
+            part(&mut h, &observed.commit_seq.to_be_bytes());
+            match &observed.dependencies {
+                None => part(&mut h, b"none"),
+                Some(paths) => {
+                    part(&mut h, b"some");
+                    for path in paths {
+                        part(&mut h, path.as_str().as_bytes());
+                    }
+                }
+            }
+        }
+    }
     part(&mut h, b"tos-managed-agent-create-delta-v1");
-    part(
-        &mut h,
-        package.command().configuration_raw_sha256.as_bytes(),
-    );
+    part(&mut h, package.configuration_digest().as_bytes());
     part(&mut h, package.prepared().dependencies().as_bytes());
-    for change in &package.command().changes {
+    for change in package.changes() {
         part(&mut h, change.path.as_str().as_bytes());
         part(
             &mut h,
@@ -876,6 +910,67 @@ impl DurablePgCoordinator {
         Ok((serialized, receipt, timing))
     }
 
+    /// Same actual creation owner, with authored generation separate from schemas.
+    pub fn execute_managed_agent_creation_from_captures(
+        &mut self,
+        store: &SegmentStore,
+        generation: &crate::source_current_cut::ManagedCurrentSourceGeneration,
+        schema_cut: &CorpusCutReader,
+        prepare_id: &[u8],
+        filesystem: &CreationFilesystem,
+        context: &CommandContext,
+        software: &SoftwareCaptureReader,
+        components: &SoftwareComponentSelectionV1,
+        worker: &mut CutWorkerSchemaExecutor,
+        contract: Digest256,
+        rule_version: u64,
+        rights_version: u64,
+        job_id: &str,
+        job_fence: u64,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<(
+        ManagedSerializedCreation,
+        DurableCommitReceipt,
+        DurableTiming,
+    )> {
+        let input = crate::source_creation::select_managed_agent_creation_input(
+            self, store, generation, context, schema_cut, software, components, deadline, cancelled,
+        )
+        .map_err(source_error)?;
+        let prepared = crate::source_creation::prepare_managed_agent_creation(
+            &input, schema_cut, software, components, worker, deadline, cancelled,
+        )
+        .map_err(source_error)?;
+        let serialized = prepared
+            .serialize(software, components, worker, deadline, cancelled)
+            .map_err(source_error)?;
+        let attempt = self.register_managed_source_creation(
+            store,
+            generation,
+            prepare_id,
+            &serialized,
+            worker,
+            deadline,
+            cancelled,
+        )?;
+        finish_worker(worker, deadline, cancelled)?;
+        let (receipt, timing) = self.commit_managed_source_creation(
+            store,
+            &attempt,
+            &serialized,
+            filesystem,
+            contract,
+            rule_version,
+            rights_version,
+            job_id,
+            job_fence,
+            deadline,
+            cancelled,
+        )?;
+        Ok((serialized, receipt, timing))
+    }
+
     /// Bootstrap a fresh private domain; neither a caller SQL complete flag nor
     /// an authored mutable directory can construct the returned source basis.
     pub fn bootstrap_source_cohort(
@@ -1101,7 +1196,7 @@ impl DurablePgCoordinator {
             store,
             cohort,
             prepare_id,
-            package,
+            CreationPackage::V1(package),
             SourceRegistrationBasis::Original,
             worker,
             deadline,
@@ -1149,8 +1244,84 @@ impl DurablePgCoordinator {
             store,
             current.cohort(),
             prepare_id,
-            package,
+            CreationPackage::V1(package),
             SourceRegistrationBasis::Current(current),
+            worker,
+            deadline,
+            cancelled,
+        )
+    }
+
+    pub fn register_managed_source_creation(
+        &mut self,
+        store: &SegmentStore,
+        generation: &crate::source_current_cut::ManagedCurrentSourceGeneration,
+        prepare_id: &[u8],
+        package: &ManagedSerializedCreation,
+        worker: &mut CutWorkerSchemaExecutor,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<SourceCreationAttempt> {
+        let view = CreationPackage::Managed(package);
+        if view.managed_basis() != Some(&ManagedCreationBasis::from_generation(generation)) {
+            return Err(DurableError::Conflict("managed proposal selection differs"));
+        }
+        let members = view
+            .reads()
+            .iter()
+            .filter(|read| read.path.as_str().starts_with("ToS/"))
+            .map(|read| (read.path.as_str(), read.raw_sha256))
+            .collect::<BTreeMap<_, _>>();
+        if members.len() != generation.members().count()
+            || generation
+                .members()
+                .any(|member| members.get(member.path.as_str()) != Some(&member.sha256))
+        {
+            return Err(DurableError::Conflict(
+                "managed proposal complete inventory differs",
+            ));
+        }
+        let observations = view
+            .observations()
+            .ok_or(DurableError::Conflict("managed observations absent"))?;
+        if observations.len() != members.len()
+            || generation.members().any(|member| {
+                observations
+                    .get(member.path.as_str())
+                    .is_none_or(|observed| &observed.metadata != member)
+            })
+        {
+            return Err(DurableError::Conflict(
+                "managed observed membership differs",
+            ));
+        }
+        self.register_source_creation_bound(
+            store,
+            generation.cohort(),
+            prepare_id,
+            view,
+            SourceRegistrationBasis::Managed(generation),
+            worker,
+            deadline,
+            cancelled,
+        )
+    }
+    pub fn reopen_committed_managed_creation_attempt(
+        &mut self,
+        store: &SegmentStore,
+        cohort: &ManagedSourceCohort,
+        prepare_id: &[u8],
+        package: &ManagedSerializedCreation,
+        worker: &mut CutWorkerSchemaExecutor,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<SourceCreationAttempt> {
+        self.register_source_creation_bound(
+            store,
+            cohort,
+            prepare_id,
+            CreationPackage::Managed(package),
+            SourceRegistrationBasis::CommittedReplay,
             worker,
             deadline,
             cancelled,
@@ -1175,7 +1346,7 @@ impl DurablePgCoordinator {
             store,
             cohort,
             prepare_id,
-            package,
+            CreationPackage::V1(package),
             SourceRegistrationBasis::CommittedReplay,
             worker,
             deadline,
@@ -1188,7 +1359,7 @@ impl DurablePgCoordinator {
         store: &SegmentStore,
         cohort: &ManagedSourceCohort,
         prepare_id: &[u8],
-        package: &SerializedCreation,
+        package: CreationPackage<'_>,
         basis: SourceRegistrationBasis<'_>,
         worker: &mut CutWorkerSchemaExecutor,
         deadline: Instant,
@@ -1220,6 +1391,19 @@ impl DurablePgCoordinator {
             {
                 return Err(DurableError::Conflict(
                     "selected current source generation changed",
+                ));
+            }
+        }
+        if let SourceRegistrationBasis::Managed(generation) = &basis {
+            if package.managed_basis() != Some(&ManagedCreationBasis::from_generation(generation))
+                || as_u64(row.get("head_seq"))? != generation.commit_seq()
+                || row.get::<_, Option<i64>>("source_generation")
+                    != Some(as_i64(generation.commit_seq())?)
+                || row.get::<_, Option<String>>("selected_generation_digest")
+                    != Some(generation.digest().to_hex())
+            {
+                return Err(DurableError::Conflict(
+                    "managed proposal generation changed",
                 ));
             }
         }
@@ -1281,8 +1465,7 @@ impl DurablePgCoordinator {
             locators: BTreeMap::new(),
         };
         let dependency_paths = package
-            .command()
-            .reads
+            .reads()
             .iter()
             .filter(|r| r.path.as_str().starts_with("ToS/"))
             .map(|r| r.path.as_str())
@@ -1308,7 +1491,7 @@ impl DurablePgCoordinator {
                 "maintained complete source inventory changed since preparation",
             ));
         }
-        for dependency in &package.command().reads {
+        for dependency in package.reads() {
             if !dependency.path.as_str().starts_with("ToS/") {
                 continue;
             }
@@ -1318,6 +1501,27 @@ impl DurablePgCoordinator {
                 .ok_or(DurableError::Conflict("exact source dependency missing"))?;
             if current.get::<_, String>("content_digest") != dependency.raw_sha256.to_hex() {
                 return Err(DurableError::Conflict("exact source dependency changed"));
+            }
+            if let Some(observations) = package.observations() {
+                let observed = observations.get(key).ok_or(DurableError::Conflict(
+                    "managed dependency observation missing",
+                ))?;
+                let actual_metadata = row_source_metadata(current)?;
+                let dependencies = observed.dependencies.as_ref().map(|paths| {
+                    paths
+                        .iter()
+                        .map(|path| path.as_str().to_owned())
+                        .collect::<Vec<_>>()
+                });
+                if actual_metadata.mode != observed.metadata.mode
+                    || actual_metadata.dependencies != dependencies
+                    || as_u64(current.get("revision"))? != observed.custody_revision
+                    || as_u64(current.get("commit_seq"))? != observed.commit_seq
+                {
+                    return Err(DurableError::Conflict(
+                        "managed dependency metadata changed",
+                    ));
+                }
             }
             reads
                 .locators
@@ -1329,7 +1533,7 @@ impl DurablePgCoordinator {
                 expected_digest: Some(dependency.raw_sha256),
             });
         }
-        for change in &package.command().changes {
+        for change in package.changes() {
             if tx
                 .query_opt(
                     "SELECT 1 FROM cmd2_current WHERE domain=$1 AND subject=$2",
@@ -1430,6 +1634,62 @@ impl DurablePgCoordinator {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> DurableResult<(DurableCommitReceipt, DurableTiming)> {
+        self.commit_creation_package(
+            store,
+            attempt,
+            CreationPackage::V1(package),
+            filesystem,
+            contract,
+            rule_version,
+            rights_version,
+            job_id,
+            job_fence,
+            deadline,
+            cancelled,
+        )
+    }
+    pub fn commit_managed_source_creation(
+        &mut self,
+        store: &SegmentStore,
+        attempt: &SourceCreationAttempt,
+        package: &ManagedSerializedCreation,
+        filesystem: &CreationFilesystem,
+        contract: Digest256,
+        rule_version: u64,
+        rights_version: u64,
+        job_id: &str,
+        job_fence: u64,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<(DurableCommitReceipt, DurableTiming)> {
+        self.commit_creation_package(
+            store,
+            attempt,
+            CreationPackage::Managed(package),
+            filesystem,
+            contract,
+            rule_version,
+            rights_version,
+            job_id,
+            job_fence,
+            deadline,
+            cancelled,
+        )
+    }
+    fn commit_creation_package(
+        &mut self,
+        store: &SegmentStore,
+        attempt: &SourceCreationAttempt,
+        package: CreationPackage<'_>,
+        filesystem: &CreationFilesystem,
+        contract: Digest256,
+        rule_version: u64,
+        rights_version: u64,
+        job_id: &str,
+        job_fence: u64,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<(DurableCommitReceipt, DurableTiming)> {
         active(deadline, cancelled)?;
         if attempt.delta != source_delta(package)
             || attempt.definition != definition()
@@ -1439,11 +1699,10 @@ impl DurablePgCoordinator {
         }
         // Acquire the real maintained owner mutex before STO and PG locks.
         let owner = filesystem
-            .hold_current_owner(package, deadline, cancelled)
+            .hold_creation_owner(package, deadline, cancelled)
             .map_err(source_error)?;
         let identities = package
-            .command()
-            .changes
+            .changes()
             .iter()
             .enumerate()
             .map(|(slot, c)| ShadowWriteIdentity {

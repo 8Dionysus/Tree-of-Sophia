@@ -100,10 +100,238 @@ impl CreationFamily {
     }
 }
 
+/// Concrete controlled generation identity, distinct from schema SourceRevision.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct ManagedCreationBasis {
+    pub domain: String,
+    pub digest: Digest256,
+    pub generation: u64,
+    pub epoch: u64,
+    pub definition: Digest256,
+}
+impl ManagedCreationBasis {
+    pub(crate) fn from_generation(
+        generation: &crate::source_current_cut::ManagedCurrentSourceGeneration,
+    ) -> Self {
+        Self {
+            domain: generation.cohort().domain().into(),
+            digest: generation.digest(),
+            generation: generation.commit_seq(),
+            epoch: generation.epoch(),
+            definition: generation.agent_definition_digest(),
+        }
+    }
+}
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct ManagedCreationObservation {
+    pub metadata: tos_source_store::MemberMetadata,
+    pub dependencies: Option<Vec<RelativePath>>,
+    pub custody_revision: u64,
+    pub commit_seq: u64,
+}
+/// Private-issued complete Agent input; the context revision binds schemas only.
+pub struct ManagedCreationInput {
+    context: CommandContext,
+    basis: ManagedCreationBasis,
+    observations: BTreeMap<String, ManagedCreationObservation>,
+    components: SoftwareComponentSelectionV1,
+}
+pub fn select_managed_agent_creation_input(
+    coordinator: &mut crate::durable_adapter::DurablePgCoordinator,
+    store: &tos_segment_store::SegmentStore,
+    generation: &crate::source_current_cut::ManagedCurrentSourceGeneration,
+    context: &CommandContext,
+    schema_cut: &CorpusCutReader,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<ManagedCreationInput> {
+    let mut selected = context.clone();
+    selected
+        .files
+        .retain(|file| !file.path.as_str().starts_with("ToS/"));
+    // Existing v1 check is used only for separately selected software/schema
+    // context here; no generation-authored instance passes its equality gate.
+    selected.check_from_selected_captures(schema_cut, software, components, deadline, cancelled)?;
+    let mut total = selected
+        .files
+        .iter()
+        .map(|file| file.raw.len())
+        .sum::<usize>();
+    let mut observations = BTreeMap::new();
+    for member in generation.members() {
+        if !member.path.as_str().starts_with("ToS/")
+            || member
+                .path
+                .as_str()
+                .split('/')
+                .any(|part| ["owner-local", "payload", "local-content"].contains(&part))
+        {
+            return Err(SourceCommandError::Unsupported(
+                "managed Agent selected scope requires separate private/native reader",
+            ));
+        }
+        if selected.files.len() >= SELECTED_SOURCE_MAX_FILES || member.size_bytes > 8_388_608 {
+            return Err(SourceCommandError::Invalid(
+                "managed Agent complete input budget",
+            ));
+        }
+        total = total
+            .checked_add(
+                usize::try_from(member.size_bytes)
+                    .map_err(|_| SourceCommandError::Invalid("managed member size"))?,
+            )
+            .filter(|bytes| *bytes <= SELECTED_SOURCE_MAX_BYTES)
+            .ok_or(SourceCommandError::Invalid(
+                "managed Agent complete input byte budget",
+            ))?;
+        let observed = generation.read_current_member(
+            coordinator,
+            store,
+            &member.path,
+            8_388_608,
+            deadline,
+            cancelled,
+        )?;
+        if &observed.metadata != member || observed.current_generation != generation.commit_seq() {
+            return Err(SourceCommandError::Conflict(
+                "managed Agent selected observation differs",
+            ));
+        }
+        observations.insert(
+            member.path.as_str().into(),
+            ManagedCreationObservation {
+                metadata: observed.metadata,
+                dependencies: observed.dependency_claims,
+                custody_revision: observed.custody_revision,
+                commit_seq: observed.commit_seq,
+            },
+        );
+        selected.files.push(SourceFile {
+            path: member.path.clone(),
+            raw: observed.raw,
+        });
+    }
+    selected.files.sort_by(|a, b| a.path.cmp(&b.path));
+    selected.check()?;
+    Ok(ManagedCreationInput {
+        context: selected,
+        basis: ManagedCreationBasis::from_generation(generation),
+        observations,
+        components: components.clone(),
+    })
+}
+
+/// The managed wrapper shares the actual creation payload, never a v1 command.
+pub struct ManagedPreparedCreation {
+    prepared: PreparedCreation,
+}
+pub struct ManagedSerializedCreation {
+    pub(crate) prepared: PreparedCreation,
+    pub(crate) plan: cmd::CommandPlan,
+    pub(crate) basis: ManagedCreationBasis,
+}
+/// Borrowed actual payload shared by the two concrete registration consumers.
+#[derive(Clone, Copy)]
+pub(crate) enum CreationPackage<'a> {
+    V1(&'a SerializedCreation),
+    Managed(&'a ManagedSerializedCreation),
+}
+impl<'a> CreationPackage<'a> {
+    pub(crate) fn prepared(self) -> &'a PreparedCreation {
+        match self {
+            Self::V1(p) => &p.prepared,
+            Self::Managed(p) => &p.prepared,
+        }
+    }
+    pub(crate) fn reads(self) -> &'a [SourceDependency] {
+        match self {
+            Self::V1(p) => &p.command.reads,
+            Self::Managed(p) => &p.plan.reads,
+        }
+    }
+    pub(crate) fn changes(self) -> &'a [SourceChange] {
+        match self {
+            Self::V1(p) => &p.command.changes,
+            Self::Managed(p) => &p.plan.changes,
+        }
+    }
+    pub(crate) fn handler(self) -> &'a str {
+        match self {
+            Self::V1(p) => &p.command.handler_id,
+            Self::Managed(p) => &p.plan.handler_id,
+        }
+    }
+    pub(crate) fn operation(self) -> &'a str {
+        match self {
+            Self::V1(p) => &p.command.operation,
+            Self::Managed(p) => &p.plan.operation,
+        }
+    }
+    pub(crate) fn configuration_digest(self) -> Digest256 {
+        match self {
+            Self::V1(p) => p.command.configuration_raw_sha256,
+            Self::Managed(p) => p.plan.configuration_raw_sha256,
+        }
+    }
+    pub(crate) fn v1_revision(self) -> Option<tos_foundation::SourceRevision> {
+        match self {
+            Self::V1(p) => Some(p.command.base_revision),
+            Self::Managed(_) => None,
+        }
+    }
+    pub(crate) fn observations(self) -> Option<&'a BTreeMap<String, ManagedCreationObservation>> {
+        self.prepared().managed_observations.as_ref()
+    }
+    pub(crate) fn managed_basis(self) -> Option<&'a ManagedCreationBasis> {
+        match self {
+            Self::V1(_) => None,
+            Self::Managed(p) => Some(&p.basis),
+        }
+    }
+}
+
+impl ManagedPreparedCreation {
+    pub fn preview(&self) -> SourceCommandResult<JsonValue> {
+        self.prepared.preview()
+    }
+    pub fn serialize(
+        self,
+        software: &SoftwareCaptureReader,
+        components: &SoftwareComponentSelectionV1,
+        worker: &mut CutWorkerSchemaExecutor,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<ManagedSerializedCreation> {
+        let (prepared, plan) = self
+            .prepared
+            .serialize_content(software, components, worker, deadline, cancelled)?;
+        let basis = prepared
+            .managed_basis
+            .clone()
+            .ok_or(SourceCommandError::Conflict("managed package basis absent"))?;
+        Ok(ManagedSerializedCreation {
+            prepared,
+            plan,
+            basis,
+        })
+    }
+}
+impl ManagedSerializedCreation {
+    pub fn files(&self) -> &BTreeMap<String, Vec<u8>> {
+        self.prepared.files()
+    }
+    pub fn reads(&self) -> &[SourceDependency] {
+        &self.plan.reads
+    }
+}
 /// Private construction retains exact request/configuration, selected current
 /// source/software observations and pending files. It is not a commit grant.
 pub struct PreparedCreation {
     context: CommandContext,
+    managed_basis: Option<ManagedCreationBasis>,
+    managed_observations: Option<BTreeMap<String, ManagedCreationObservation>>,
     family: CreationFamily,
     home: RelativePath,
     subject: JsonValue,
@@ -186,13 +414,31 @@ impl PreparedCreation {
     /// Observe native serialization in this process, validate its event and
     /// issue the maintained byte receipt. No caller event/digest is admitted.
     pub fn serialize(
-        mut self,
+        self,
         software: &SoftwareCaptureReader,
         components: &SoftwareComponentSelectionV1,
         worker: &mut CutWorkerSchemaExecutor,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<SerializedCreation> {
+        if self.managed_basis.is_some() {
+            return Err(SourceCommandError::Conflict(
+                "managed payload cannot become v1 command",
+            ));
+        }
+        let (prepared, plan) =
+            self.serialize_content(software, components, worker, deadline, cancelled)?;
+        let command = plan.into_v1(prepared.context.base_revision);
+        Ok(SerializedCreation { prepared, command })
+    }
+    fn serialize_content(
+        mut self,
+        software: &SoftwareCaptureReader,
+        components: &SoftwareComponentSelectionV1,
+        worker: &mut CutWorkerSchemaExecutor,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<(PreparedCreation, cmd::CommandPlan)> {
         if components != &self.components || software.selection() != self.components.capture() {
             return Err(SourceCommandError::Conflict(
                 "creation software capture selection changed before serialization",
@@ -346,7 +592,7 @@ impl PreparedCreation {
                 })
             })
             .collect::<SourceCommandResult<Vec<_>>>()?;
-        let command = self.context.plan(
+        let command = self.context.plan_content(
             self.family.handler_id(),
             cmd::object(vec![
                 ("receipt", receipt),
@@ -356,10 +602,7 @@ impl PreparedCreation {
             changes,
             false,
         )?;
-        Ok(SerializedCreation {
-            prepared: self,
-            command,
-        })
+        Ok((self, command))
     }
 }
 
@@ -1051,8 +1294,41 @@ pub fn prepare_source_creation_from_captures(
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<PreparedCreation> {
     prepare_creation(
-        context, cut, software, components, worker, deadline, cancelled, None,
+        context, cut, software, components, worker, deadline, cancelled, None, None,
     )
+}
+
+pub fn prepare_managed_agent_creation(
+    input: &ManagedCreationInput,
+    schema_cut: &CorpusCutReader,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<ManagedPreparedCreation> {
+    if schema_cut.current().revision() != input.context.base_revision
+        || worker.source_revision() != input.context.base_revision
+        || components != &input.components
+        || software.selection() != input.components.capture()
+    {
+        return Err(SourceCommandError::Conflict(
+            "managed creation schema/software selection differs",
+        ));
+    }
+    Ok(ManagedPreparedCreation {
+        prepared: prepare_creation(
+            &input.context,
+            schema_cut,
+            software,
+            components,
+            worker,
+            deadline,
+            cancelled,
+            None,
+            Some(input),
+        )?,
+    })
 }
 
 /// Sign has a distinct current owner read, using the actual protected journal
@@ -1112,6 +1388,7 @@ pub fn prepare_sign_promotion_from_captures(
         limits.deadline,
         cancelled,
         Some(&basis),
+        None,
     )
 }
 
@@ -1124,8 +1401,11 @@ fn prepare_creation(
     deadline: Instant,
     cancelled: &AtomicBool,
     promotion: Option<&JsonValue>,
+    managed: Option<&ManagedCreationInput>,
 ) -> SourceCommandResult<PreparedCreation> {
-    context.check_from_selected_captures(cut, software, components, deadline, cancelled)?;
+    if managed.is_none() {
+        context.check_from_selected_captures(cut, software, components, deadline, cancelled)?;
+    }
     let mut ctx = context.clone();
     let software_files = ctx
         .files
@@ -1133,9 +1413,13 @@ fn prepare_creation(
         .filter(|f| !f.path.as_str().starts_with("ToS/"))
         .cloned()
         .collect::<Vec<_>>();
-    ctx.files = claims::complete_authored_inputs(context, cut, deadline, cancelled)?;
-    ctx.files.extend(software_files);
-    ctx.check_from_selected_captures(cut, software, components, deadline, cancelled)?;
+    if managed.is_none() {
+        ctx.files = claims::complete_authored_inputs(context, cut, deadline, cancelled)?;
+        ctx.files.extend(software_files);
+        ctx.check_from_selected_captures(cut, software, components, deadline, cancelled)?;
+    } else {
+        ctx.check()?;
+    }
     let (family, config, home) = configuration(&ctx)?;
     revisions::validate_source_profile_registry(worker, deadline, cancelled, &ctx)?;
     let request = cmd::parse(&cmd::canonical(&cmd::parse(&ctx.request_raw)?)?)?;
@@ -1168,6 +1452,11 @@ fn prepare_creation(
         ));
     }
     let record = cmd::field(&request, "record")?;
+    if managed.is_some() && (!family.corpus() || cmd::text(record, "record_type")? != "agent") {
+        return Err(SourceCommandError::Unsupported(
+            "managed creation consumer is initial native Agent only",
+        ));
+    }
     if family == CreationFamily::Sign {
         let basis = promotion.ok_or(SourceCommandError::Unsupported(
             "Sign requires actual protected current assessment reader",
@@ -1192,16 +1481,33 @@ fn prepare_creation(
     let profile_resources = initial(
         &ctx, cut, worker, &config, family, record, deadline, cancelled,
     )?;
-    if cut.current().members().any(|m| {
-        m.path.as_str() == home.as_str()
-            || m.path.as_str().starts_with(&format!("{}/", home.as_str()))
-    }) {
+    let occupied = if managed.is_some() {
+        ctx.files.iter().any(|member| {
+            member.path.as_str() == home.as_str()
+                || member
+                    .path
+                    .as_str()
+                    .starts_with(&format!("{}/", home.as_str()))
+        })
+    } else {
+        cut.current().members().any(|member| {
+            member.path.as_str() == home.as_str()
+                || member
+                    .path
+                    .as_str()
+                    .starts_with(&format!("{}/", home.as_str()))
+        })
+    };
+    if occupied {
         return Err(SourceCommandError::Conflict(
             "creation source home already occupied",
         ));
     }
-    let mut inventory =
-        claims::maintained_inventory_from_cut(&ctx, cut, worker, deadline, cancelled)?;
+    let mut inventory = if managed.is_some() {
+        claims::maintained_agent_inventory_from_managed(&ctx, worker, deadline, cancelled)?
+    } else {
+        claims::maintained_inventory_from_cut(&ctx, cut, worker, deadline, cancelled)?
+    };
     if inventory
         .objects
         .contains_key(cmd::text(record, "record_id")?)
@@ -1455,6 +1761,8 @@ fn prepare_creation(
     }
     Ok(PreparedCreation {
         context: ctx,
+        managed_basis: managed.map(|input| input.basis.clone()),
+        managed_observations: managed.map(|input| input.observations.clone()),
         family,
         home,
         subject,

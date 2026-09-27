@@ -1979,6 +1979,51 @@ pub(crate) fn maintained_inventory_from_cut(
     maintained_inventory_inner(&complete, Some(cut), executor, deadline, cancelled)
 }
 
+/// Only the privately verified complete managed Agent input may use this route.
+/// Native packet/profile/Claim scopes remain unported rather than inheriting
+/// the schema cut's authored completeness.
+pub(crate) fn maintained_agent_inventory_from_managed(
+    ctx: &CommandContext,
+    executor: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<MaintainedInventory> {
+    for file in &ctx.files {
+        let path = file.path.as_str();
+        let name = path.rsplit('/').next().unwrap_or(path);
+        if path.starts_with("ToS/source-witnesses/")
+            && !path
+                .split('/')
+                .any(|p| ["catalog", "payload", "local-content", ".record-revisions"].contains(&p))
+            && (name.starts_with("semantic-annotation") && name.ends_with(".json")
+                || name == CLAIM_STREAM
+                || LEGACY_CLAIM_STREAMS.contains(&name)
+                || name == "historical-claims.jsonl")
+        {
+            return Err(SourceCommandError::Unsupported(
+                "managed Agent inventory native/Claim scope requires owner reader",
+            ));
+        }
+    }
+    let mut inventory = maintained_inventory_inner(ctx, None, executor, deadline, cancelled)?;
+    if !inventory.claims.is_empty()
+        || inventory
+            .objects
+            .values()
+            .any(|entry| text(entry, "record_type").ok() != Some("agent"))
+    {
+        return Err(SourceCommandError::Unsupported(
+            "managed Agent inventory has unported record scope",
+        ));
+    }
+    // Same maintained empty native-packet map encoding, after complete
+    // controlled membership has proved absence, never a caller sentinel.
+    inventory.native_identity_snapshot = Some(crate::source_revisions::python_ascii_digest(
+        &object(vec![]),
+    )?);
+    Ok(inventory)
+}
+
 fn maintained_inventory_inner(
     ctx: &CommandContext,
     cut: Option<&CorpusCutReader>,

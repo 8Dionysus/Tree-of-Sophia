@@ -914,7 +914,7 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
     assert_eq!(restored_replay.commit_seq, a.commit_seq);
     // After a cold restore, select a real immutable CURRENT cut and prepare
     // a second maintained Agent that reads the earlier authored Agent body.
-    let current = tos_command::source_current_cut::select_current_source_cut(
+    let current = tos_command::source_current_cut::select_current_source_generation(
         &mut reopened_db,
         &reopened_store,
         &lab.domain,
@@ -925,39 +925,15 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
         &software,
         &components,
         &mut new_worker(&cut),
-        &isolated,
-        None,
-        read_limits,
-        CutReadLimits {
-            max_revisions: 4,
-            max_members: 2048,
-            max_total_bytes: 33_554_432,
-            max_member_bytes: 8_388_608,
-        },
         deadline,
         &cancelled,
     )
     .unwrap();
-    let current_revision = current.cut().current().revision();
-    assert_ne!(
-        current_revision, revision,
-        "created body requires a distinct source revision"
-    );
+    assert_eq!(current.commit_seq(), a.commit_seq);
     let mut current_context = contexts[1].clone();
-    current_context.base_revision = current_revision;
     current_context
         .files
         .retain(|f| !f.path.as_str().starts_with("ToS/"));
-    let mut current_stream = current.cut().stream(current_revision).unwrap();
-    let current_membership = current_stream.expectation();
-    while let Some(member) = current_stream.next_member(deadline, &cancelled).unwrap() {
-        current_context.files.push(SourceFile {
-            path: member.path,
-            raw: member.raw,
-        });
-    }
-    assert_eq!(current_stream.coverage(), Some(current_membership));
-    current_context.files.sort_by(|a, b| a.path.cmp(&b.path));
     let mut current_config: serde_json::Value =
         serde_json::from_slice(&current_context.configuration_raw).unwrap();
     current_config["source_path"] =
@@ -992,10 +968,22 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
     current_request["forms"][0]["form_id"] =
         serde_json::json!("tos.form.synthetic-durable-current");
     current_context.request_raw = canonical(&current_request);
-    let mut current_worker = new_worker(current.cut());
-    let preview = prepare_source_creation_from_captures(
+    let mut current_worker = new_worker(&cut);
+    let input = tos_command::source_creation::select_managed_agent_creation_input(
+        &mut reopened_db,
+        &reopened_store,
+        &current,
         &current_context,
-        current.cut(),
+        &cut,
+        &software,
+        &components,
+        deadline,
+        &cancelled,
+    )
+    .unwrap();
+    let preview = tos_command::source_creation::prepare_managed_agent_creation(
+        &input,
+        &cut,
         &software,
         &components,
         &mut current_worker,
@@ -1018,9 +1006,10 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
     current_request["expected_revision"] = serde_json::Value::Null;
     current_context.request_raw = canonical(&current_request);
     let (current_package, second_receipt, _) = reopened_db
-        .execute_current_agent_creation_from_captures(
+        .execute_managed_agent_creation_from_captures(
             &reopened_store,
             &current,
+            &cut,
             b"agent-current-second",
             &current_filesystem,
             &current_context,
@@ -1038,15 +1027,27 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
         .unwrap();
     assert_eq!(second_receipt.commit_seq, a.commit_seq + 1);
     assert!(
+        current
+            .read_current_member(
+                &mut reopened_db,
+                &reopened_store,
+                &RelativePath::parse(earlier_path).unwrap(),
+                8_388_608,
+                deadline,
+                &cancelled
+            )
+            .is_err(),
+        "a stale selected generation cannot disclose unchanged current bytes"
+    );
+    assert!(
         current_package
-            .command()
-            .reads
+            .reads()
             .iter()
             .any(|r| r.path.as_str() == earlier_path
                 && r.raw_sha256 == Digest256::of_bytes(&reopened.files[earlier_path])),
         "second maintained command consumes exact first authored body"
     );
-    let successor = tos_command::source_current_cut::select_current_source_cut(
+    let successor = tos_command::source_current_cut::select_current_source_generation(
         &mut reopened_db,
         &reopened_store,
         &lab.domain,
@@ -1057,33 +1058,32 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
         &software,
         &components,
         &mut new_worker(&cut),
-        &isolated,
-        Some(&current),
-        read_limits,
-        CutReadLimits {
-            max_revisions: 4,
-            max_members: 2048,
-            max_total_bytes: 33_554_432,
-            max_member_bytes: 8_388_608,
-        },
         deadline,
         &cancelled,
     )
     .unwrap();
-    assert_ne!(successor.cut().current().revision(), current_revision);
+    assert_ne!(successor.digest(), current.digest());
+    assert_eq!(successor.commit_seq(), second_receipt.commit_seq);
     let second_path =
         RelativePath::parse("ToS/source-witnesses/agents/synthetic-durable-current/agent.json")
             .unwrap();
-    assert!(successor.cut().current().member(&second_path).is_some());
-    assert_eq!(
-        successor
-            .cut()
-            .current()
-            .indexed_dependencies(&second_path)
+    let successor_member = successor
+        .read_current_member(
+            &mut reopened_db,
+            &reopened_store,
+            &second_path,
+            8_388_608,
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+    assert!(
+        successor_member
+            .dependency_claims
+            .as_ref()
             .unwrap()
             .iter()
-            .any(|p| p.as_str() == earlier_path),
-        true
+            .any(|path| path.as_str() == earlier_path)
     );
     let current_reopened = tos_command::source_current_cut::select_current_source_generation(
         &mut reopened_db,
@@ -1112,18 +1112,14 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
         .unwrap();
     assert_eq!(
         &second_member.raw,
-        current_package
-            .prepared()
-            .files()
-            .get("agent.json")
-            .unwrap()
+        current_package.files().get("agent.json").unwrap()
     );
     assert_eq!(second_member.current_generation, second_receipt.commit_seq);
     // Replay revalidates this package against its exact selected proposal
     // base, while the durable owner independently checks the current cohort.
-    let mut second_replay_worker = new_worker(current.cut());
+    let mut second_replay_worker = new_worker(&cut);
     let second_replay = reopened_db
-        .reopen_committed_source_creation_attempt(
+        .reopen_committed_managed_creation_attempt(
             &reopened_store,
             current_reopened.cohort(),
             b"agent-current-second",
@@ -1135,7 +1131,7 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
         .unwrap();
     second_replay_worker.finish(deadline, &cancelled).unwrap();
     let (second_replayed, _) = reopened_db
-        .commit_source_creation(
+        .commit_managed_source_creation(
             &reopened_store,
             &second_replay,
             &current_package,
