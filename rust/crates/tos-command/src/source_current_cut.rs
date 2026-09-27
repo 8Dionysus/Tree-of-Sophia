@@ -25,7 +25,7 @@ use tos_source_store::{
     CorpusCutReader, CorpusReader, CutReadLimits, MemberMetadata, ReadLimits, RetirementMetadata,
     Snapshot, SoftwareCaptureReader, SoftwareComponentSelectionV1, SourceMembershipV1,
 };
-use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
+use tos_validation::source_cut::CutWorkerSchemaExecutor;
 
 /// Constructed only by an actual cold/current owner selection and verified v1
 /// export. The bootstrap revision and current managed generation stay distinct.
@@ -459,17 +459,8 @@ pub fn select_current_source_cut(
             cancel,
         )
         .map_err(durable)?;
-    worker
-        .finish(deadline, cancel)
-        .map_err(|error| match error {
-            tos_validation::item_rules::ItemRefusal::Deadline => {
-                Error::Denied("current source schema operation deadline")
-            }
-            tos_validation::item_rules::ItemRefusal::Budget => {
-                Error::Invalid("current source schema operation budget")
-            }
-            _ => Error::Unsupported("current source selection schema operation incomplete"),
-        })?;
+    // The cold owner finalized every schema frame before publishing its
+    // complete generation. This export performs no further schema operation.
     let total = reopened
         .files
         .values()
