@@ -64,6 +64,11 @@ accepted private capture ABI. Physical D1 admission stays bounded by the
 existing reader; replay retains at most six 1 MiB rows, seven executions and a
 16 MiB packet, with the existing JSON depth/visit/integer limits. Replay byte
 admission follows those explicit roles and caps, not claimed CPU measurement.
+Published core canonical work uses the declared 16 MiB output cap separately
+from the 1 MiB request/carrier parser cap: Python float spelling can expand a
+valid retained row. The common temporal core still decides its 262 KiB exact
+source-binding limit and emits its undetermined reason. The private canonical
+profile retains its existing limits.
 
 Existing TS domain functions remain pending retirement until actual maintained
 published Worker parity is accepted. Inspection/lens/exploration selected native

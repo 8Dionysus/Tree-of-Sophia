@@ -158,6 +158,18 @@ impl TemporalSession {
         // JsonLimits bound each parser/canonical operation, while the replay
         // count and retained input cap bound repetition. Aggregate canonical
         // bytes and CPU instructions are not measured by this core API.
+        // Published Python number spelling can expand a bounded retained row.
+        // Canonical work uses the declared output cap, so the shared core can
+        // report its source-binding size reason instead of a hidden row cutoff.
+        // Request/carrier parsing still uses the original input byte cap.
+        let core_limits = if self.published_output {
+            JsonLimits {
+                max_bytes: self.budget.max_output_bytes,
+                ..self.budget.json
+            }
+        } else {
+            self.budget.json
+        };
         let mut need = None;
         let result = compare_temporal_operands(
             &self.revision,
@@ -173,7 +185,7 @@ impl TemporalSession {
                     "temporal exact carrier needed",
                 ))
             },
-            self.budget.json,
+            core_limits,
         );
         if let Some(id) = need {
             if self.rows.len() >= 6 {
