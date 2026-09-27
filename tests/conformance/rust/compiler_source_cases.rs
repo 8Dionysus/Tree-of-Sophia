@@ -1369,9 +1369,21 @@ sys.stdout.write(owner.render_payload(payload))
     let selected_dir = fixture.path().join("native-selected");
     fs::create_dir(&selected_dir).unwrap();
     let selected_path = selected_dir.join("knowledge.sqlite3");
+    // Keep the actual SQLite allocation compatible with the existing final
+    // VACUUM's two-database temp reserve. This narrows output, not host quota.
+    let mut selected_stage_limits = stage_limits;
+    selected_stage_limits.sqlite.max_output_bytes = stage_limits
+        .sqlite
+        .max_output_bytes
+        .min(stage_limits.max_temp_bytes / 2);
+    // Every attempted trigram charges at least three UTF-8 bytes before SQL;
+    // per-document dedup can only reduce the resulting posting count. Derive
+    // this guard from existing work, not the current corpus's observed count.
+    let search_work_bytes = (100 * 1024 * 1024u64).min(stage_limits.sqlite.max_work_bytes);
+    let search_postings = search_work_bytes / 3;
     let mut selected_stage = KnowledgeStage::create(
         &selected_path,
-        stage_limits,
+        selected_stage_limits,
         ExactInputReceipt {
             binding: selected_binding.clone(),
             collections: selected_collections,
@@ -1540,8 +1552,8 @@ sys.stdout.write(owner.render_payload(payload))
                 max_document_chars: limits.catalog.max_output_row_bytes,
                 max_document_bytes: 4 * 1024 * 1024,
                 max_rank_field_bytes: limits.catalog.max_output_row_bytes,
-                max_postings: 100_000,
-                max_work_bytes: 100 * 1024 * 1024,
+                max_postings: search_postings,
+                max_work_bytes: search_work_bytes,
                 gram_batch_rows: 64,
             },
             seal: tos_compiler::SealLimits {
