@@ -7,7 +7,7 @@ use std::{
     sync::{Arc, Mutex},
     time::{Duration, Instant},
 };
-use tos_foundation::{CanonicalProfile, Digest256, JsonString, JsonValue, canonical_bytes_v1};
+use tos_foundation::{Digest256, JsonString, JsonValue};
 use tos_query::{
     knowledge_exploration::{
         ExplorationBudget, ExplorationCheckpoint, ExplorationCheckpoints, ExplorationState,
@@ -275,6 +275,16 @@ impl ExplorationCheckpoints for ProcessExplorationCheckpoints {
                     state: None,
                     state_bytes: 0,
                     replay: None,
+                    replay_packet: None,
+                    response_staged: false,
+                    response_cap: limits
+                        .read
+                        .max_response_bytes
+                        .min(limits.read.json.max_bytes),
+                    checkpoint_cap: self
+                        .limits
+                        .max_encoded_bytes
+                        .min(limits.max_checkpoint_bytes),
                     replay_bytes: 0,
                     reserved: 0,
                     ttl: self.limits.ttl,
@@ -284,29 +294,22 @@ impl ExplorationCheckpoints for ProcessExplorationCheckpoints {
             (result, retired)
         };
         drop(retired);
-        // RAII releases the input/token reservation on every serialization or
+        // RAII releases the input/token reservation on every structural/count or
         // byte admission failure, preserving the original input unchanged.
         let mut staged = reservation?;
         let mut json = limits.read.json;
         json.max_bytes = json.max_bytes.min(limits.max_state_bytes);
         staged.state_bytes = successor
-            .map(|state| state.encoded_state(json).map(|b| b.len()))
+            .map(|state| state.encoded_state_count(json))
             .transpose()?
             .unwrap_or(0);
-        let replay = set_cursor(packet, staged.next.as_deref())?;
-        let mut json = limits.read.json;
-        json.max_bytes = json.max_bytes.min(limits.read.max_response_bytes);
-        let bytes = canonical_bytes_v1(&replay, CanonicalProfile::SourceRecordDigestV1, json)
-            .map_err(|_| budget())?;
-        staged.replay_bytes = if input.is_some() { bytes.len() } else { 0 };
-        let reserved = staged
-            .state_bytes
-            .checked_add(staged.replay_bytes)
-            .ok_or_else(budget)?;
-        let cap = self
-            .limits
-            .max_encoded_bytes
-            .min(limits.max_checkpoint_bytes);
+        // Only parsed replay ownership is retained. Its exact encoded length
+        // and digest arrive from QRY's one final emission before disclosure.
+        if input.is_some() {
+            staged.replay_packet = Some(set_cursor(packet, staged.next.as_deref())?);
+        }
+        let reserved = staged.state_bytes;
+        let cap = staged.checkpoint_cap;
         {
             let mut store = lock(&self.store)?;
             // Input and successor tokens have been protected since lookup.
@@ -325,12 +328,6 @@ impl ExplorationCheckpoints for ProcessExplorationCheckpoints {
         staged.state = successor
             .cloned()
             .map(|state| Arc::new(ExplorationCheckpoint::State(state)));
-        if input.is_some() {
-            staged.replay = Some(Arc::new(ExplorationCheckpoint::Replay {
-                packet: replay,
-                packet_sha256: Digest256::of_bytes(&bytes),
-            }));
-        }
         Ok(Box::new(staged))
     }
 }
@@ -343,6 +340,10 @@ struct Staged {
     state: Option<Arc<ExplorationCheckpoint>>,
     state_bytes: usize,
     replay: Option<Arc<ExplorationCheckpoint>>,
+    replay_packet: Option<JsonValue>,
+    response_staged: bool,
+    response_cap: usize,
+    checkpoint_cap: usize,
     replay_bytes: usize,
     reserved: usize,
     ttl: Duration,
@@ -352,8 +353,46 @@ impl PreparedExplorationCheckpoint for Staged {
     fn next_cursor(&self) -> Option<&str> {
         self.next.as_deref()
     }
+    fn stage_response(&mut self, body: &[u8]) -> Result<(), SearchV2Error> {
+        if self.done || self.response_staged {
+            return Err(corrupt());
+        }
+        if body.len() > self.response_cap {
+            return Err(budget());
+        }
+        let replay_bytes = if self.input.is_some() { body.len() } else { 0 };
+        let digest = if self.input.is_some() {
+            Some(Digest256::of_bytes(body))
+        } else {
+            None
+        };
+        // Hashing and typed ownership transfer stay outside the global lock.
+        {
+            let mut store = lock(&self.store)?;
+            if store
+                .encoded_bytes
+                .checked_add(store.reserved_bytes)
+                .and_then(|n| n.checked_add(replay_bytes))
+                .is_none_or(|n| n > self.checkpoint_cap)
+            {
+                return Err(budget());
+            }
+            store.reserved_bytes += replay_bytes;
+            self.reserved += replay_bytes;
+        }
+        if let Some(digest) = digest {
+            let packet = self.replay_packet.take().ok_or_else(corrupt)?;
+            self.replay = Some(Arc::new(ExplorationCheckpoint::Replay {
+                packet,
+                packet_sha256: digest,
+            }));
+        }
+        self.replay_bytes = replay_bytes;
+        self.response_staged = true;
+        Ok(())
+    }
     fn commit(&mut self) -> Result<(), SearchV2Error> {
-        if self.done {
+        if self.done || !self.response_staged {
             return Err(corrupt());
         }
         let expires = Instant::now().checked_add(self.ttl).ok_or_else(corrupt)?;

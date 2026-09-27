@@ -1286,13 +1286,18 @@ mod selected_knowledge {
         // Failure after token/input reservation must release both atomically.
         let mut tiny_response = budgets().exploration;
         tiny_response.read.max_response_bytes = 1;
+        let mut oversized = store
+            .prepare(Some(cursor), revision, Some(&state), &first, tiny_response)
+            .unwrap();
         assert!(matches!(
-            store.prepare(Some(cursor), revision, Some(&state), &first, tiny_response),
+            oversized.stage_response(b"{}"),
             Err(SearchV2Error {
                 code: tos_query::search_v2::SearchV2ErrorCode::BudgetExceeded,
                 ..
             })
         ));
+        assert!(oversized.commit().is_err(), "unstaged body cannot commit");
+        drop(oversized);
         assert!(matches!(
             store.load(cursor, revision),
             Ok(ExplorationCheckpoint::State(_))
