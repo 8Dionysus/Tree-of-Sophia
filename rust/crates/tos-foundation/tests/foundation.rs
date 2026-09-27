@@ -92,6 +92,15 @@ fn canonical_profile_sorts_and_distinguishes_surrogate_boundary() {
         .unwrap(),
         "{\"a\":\"é\",\"b\":2}\n".as_bytes()
     );
+    assert_eq!(
+        canonical_count_v1(
+            doc.root(),
+            CanonicalProfile::CorpusSnapshotV1,
+            JsonLimits::default()
+        )
+        .unwrap(),
+        "{\"a\":\"é\",\"b\":2}\n".as_bytes().len()
+    );
     let surrogate = parse_json(
         br#""\ud800""#,
         JsonMode::PublishedStrict,
@@ -104,6 +113,16 @@ fn canonical_profile_sorts_and_distinguishes_surrogate_boundary() {
     );
     assert_eq!(
         canonical_bytes_v1(
+            surrogate.root(),
+            CanonicalProfile::CorpusSnapshotV1,
+            JsonLimits::default()
+        )
+        .unwrap_err()
+        .code,
+        FoundationErrorCode::InvalidUnicodeScalar
+    );
+    assert_eq!(
+        canonical_count_v1(
             surrogate.root(),
             CanonicalProfile::CorpusSnapshotV1,
             JsonLimits::default()
@@ -147,12 +166,24 @@ fn canonical_output_rejects_unparsed_values_with_invalid_shape() {
             .code,
         FoundationErrorCode::InvalidNumber
     );
+    assert_eq!(
+        canonical_count_v1(&number, CanonicalProfile::CorpusSnapshotV1, limits)
+            .unwrap_err()
+            .code,
+        FoundationErrorCode::InvalidNumber
+    );
     let duplicate = JsonValue::Object(vec![
         (JsonString::from_utf8("a"), JsonValue::Null),
         (JsonString::from_utf8("a"), JsonValue::Bool(true)),
     ]);
     assert_eq!(
         canonical_bytes_v1(&duplicate, CanonicalProfile::CorpusSnapshotV1, limits)
+            .unwrap_err()
+            .code,
+        FoundationErrorCode::DuplicateMember
+    );
+    assert_eq!(
+        canonical_count_v1(&duplicate, CanonicalProfile::CorpusSnapshotV1, limits)
             .unwrap_err()
             .code,
         FoundationErrorCode::DuplicateMember
@@ -179,6 +210,26 @@ fn writer_enforces_byte_limit_before_expanding_escapes() {
         FoundationErrorCode::BudgetExceeded
     );
     assert_eq!(
+        canonical_count_v1(document.root(), CanonicalProfile::CorpusSnapshotV1, limits)
+            .unwrap_err()
+            .code,
+        FoundationErrorCode::BudgetExceeded
+    );
+    let nested = JsonValue::Array(vec![JsonValue::Array(vec![JsonValue::Null])]);
+    for limit in [
+        JsonLimits::new(100, 1, 100, 100).unwrap(),
+        JsonLimits::new(100, 64, 2, 100).unwrap(),
+    ] {
+        assert_eq!(
+            canonical_count_v1(&nested, CanonicalProfile::SourceCommandInputV1, limit)
+                .unwrap_err()
+                .code,
+            canonical_bytes_v1(&nested, CanonicalProfile::SourceCommandInputV1, limit)
+                .unwrap_err()
+                .code
+        );
+    }
+    assert_eq!(
         JsonLimits::new(100, usize::MAX, 100, 100).unwrap_err().code,
         FoundationErrorCode::BudgetExceeded
     );
@@ -203,12 +254,33 @@ fn named_profiles_keep_their_distinct_exact_bytes() {
             canonical_bytes_v1(parsed.root(), profile, limits).unwrap(),
             no_lf
         );
+        assert_eq!(
+            canonical_count_v1(parsed.root(), profile, limits).unwrap(),
+            no_lf.len()
+        );
     }
     let mut snapshot = no_lf.to_vec();
     snapshot.push(b'\n');
     assert_eq!(
         canonical_bytes_v1(parsed.root(), CanonicalProfile::CorpusSnapshotV1, limits).unwrap(),
         snapshot
+    );
+    assert_eq!(
+        canonical_count_v1(parsed.root(), CanonicalProfile::CorpusSnapshotV1, limits).unwrap(),
+        snapshot.len()
+    );
+    let exact = JsonLimits::new(no_lf.len(), 64, 100, 100).unwrap();
+    assert_eq!(
+        canonical_count_v1(parsed.root(), CanonicalProfile::SourceCommandInputV1, exact).unwrap(),
+        no_lf.len()
+    );
+    assert_eq!(
+        canonical_count_v1(parsed.root(), CanonicalProfile::CorpusSnapshotV1, exact)
+            .unwrap_err()
+            .code,
+        canonical_bytes_v1(parsed.root(), CanonicalProfile::CorpusSnapshotV1, exact)
+            .unwrap_err()
+            .code
     );
     assert_eq!(
         CanonicalProfile::from_profile("unknown").unwrap_err().code,
@@ -257,6 +329,16 @@ fn python_float_layout_boundaries() {
             )
             .unwrap(),
             expected.as_bytes(),
+            "{raw}"
+        );
+        assert_eq!(
+            canonical_count_v1(
+                parsed.root(),
+                CanonicalProfile::SourceRecordDigestV1,
+                limits
+            )
+            .unwrap(),
+            expected.len(),
             "{raw}"
         );
     }

@@ -582,6 +582,23 @@ pub fn canonical_bytes_v1(
     }
 }
 
+/// Count canonical bytes through the same closed output visitor without retaining discarded bytes.
+pub fn canonical_count_v1(
+    value: &JsonValue,
+    profile: CanonicalProfile,
+    limits: JsonLimits,
+) -> Result<usize> {
+    let style = match profile {
+        CanonicalProfile::CorpusSnapshotV1 => WriteStyle::PythonCompactLf,
+        CanonicalProfile::SourceRecordDigestV1 | CanonicalProfile::SourceCommandInputV1 => {
+            WriteStyle::PythonCompact
+        }
+    };
+    let mut output = JsonOutput::Count(0);
+    write_document_into(value, limits, style, &mut output)?;
+    Ok(output.len())
+}
+
 /// Exact published bytes of the legacy public Work/HumanForm set as a whole.
 /// The receipt is an embedded field; this is not a standalone receipt codec.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -691,25 +708,50 @@ impl WriteStyle {
     }
 }
 
-fn write_document(value: &JsonValue, limits: JsonLimits, style: WriteStyle) -> Result<Vec<u8>> {
-    limits.validate()?;
-    let mut output = Vec::new();
-    let mut visits = 0;
-    write_value(value, &mut output, 0, &mut visits, limits, style)?;
-    if style.newline() {
-        emit(&mut output, b"\n", limits)?;
-    }
-    Ok(output)
+// Closed sinks share the existing visitor, styles, escaping and budget law.
+enum JsonOutput<'a> {
+    Bytes(&'a mut Vec<u8>),
+    Count(usize),
 }
-
-fn emit(output: &mut Vec<u8>, bytes: &[u8], limits: JsonLimits) -> Result<()> {
-    if bytes.len() > limits.max_bytes.saturating_sub(output.len()) {
-        return Err(FoundationError::new(
-            Code::BudgetExceeded,
-            "JSON output byte budget exceeded",
-        ));
+impl JsonOutput<'_> {
+    fn len(&self) -> usize {
+        match self {
+            Self::Bytes(bytes) => bytes.len(),
+            Self::Count(count) => *count,
+        }
     }
-    output.extend_from_slice(bytes);
+}
+fn write_document(value: &JsonValue, limits: JsonLimits, style: WriteStyle) -> Result<Vec<u8>> {
+    let mut bytes = Vec::new();
+    write_document_into(value, limits, style, &mut JsonOutput::Bytes(&mut bytes))?;
+    Ok(bytes)
+}
+fn write_document_into(
+    value: &JsonValue,
+    limits: JsonLimits,
+    style: WriteStyle,
+    output: &mut JsonOutput<'_>,
+) -> Result<()> {
+    limits.validate()?;
+    let mut visits = 0;
+    write_value(value, output, 0, &mut visits, limits, style)?;
+    if style.newline() {
+        emit(output, b"\n", limits)?;
+    }
+    Ok(())
+}
+fn emit(output: &mut JsonOutput<'_>, bytes: &[u8], limits: JsonLimits) -> Result<()> {
+    let next = output
+        .len()
+        .checked_add(bytes.len())
+        .filter(|next| *next <= limits.max_bytes)
+        .ok_or_else(|| {
+            FoundationError::new(Code::BudgetExceeded, "JSON output byte budget exceeded")
+        })?;
+    match output {
+        JsonOutput::Bytes(output) => output.extend_from_slice(bytes),
+        JsonOutput::Count(count) => *count = next,
+    }
     Ok(())
 }
 
@@ -787,7 +829,7 @@ fn python_float_text(value: f64) -> String {
 
 fn write_value(
     value: &JsonValue,
-    output: &mut Vec<u8>,
+    output: &mut JsonOutput<'_>,
     depth: usize,
     visits: &mut usize,
     limits: JsonLimits,
@@ -920,7 +962,7 @@ fn write_value(
     Ok(())
 }
 
-fn emit_indent(output: &mut Vec<u8>, depth: usize, limits: JsonLimits) -> Result<()> {
+fn emit_indent(output: &mut JsonOutput<'_>, depth: usize, limits: JsonLimits) -> Result<()> {
     const SPACES: [u8; 256] = [b' '; 256];
     let count = depth.checked_mul(2).ok_or_else(|| {
         FoundationError::new(Code::BudgetExceeded, "JSON indentation depth exceeded")
@@ -933,7 +975,7 @@ fn emit_indent(output: &mut Vec<u8>, depth: usize, limits: JsonLimits) -> Result
 
 fn write_string(
     value: &JsonString,
-    output: &mut Vec<u8>,
+    output: &mut JsonOutput<'_>,
     strict_utf8: bool,
     limits: JsonLimits,
 ) -> Result<()> {
@@ -979,7 +1021,7 @@ fn write_string(
     Ok(())
 }
 
-fn write_unicode_escape(unit: u16, output: &mut Vec<u8>, limits: JsonLimits) -> Result<()> {
+fn write_unicode_escape(unit: u16, output: &mut JsonOutput<'_>, limits: JsonLimits) -> Result<()> {
     const HEX: &[u8; 16] = b"0123456789abcdef";
     let mut escaped = *b"\\u0000";
     for (index, shift) in [12, 8, 4, 0].into_iter().enumerate() {

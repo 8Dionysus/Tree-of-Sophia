@@ -9,7 +9,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::sync::atomic::AtomicBool;
 use tos_foundation::{
     CanonicalProfile, Digest256, JsonEmissionProfile, JsonLimits, JsonMode, JsonValue,
-    RelativePath, canonical_bytes_v1, emit_json_profile, parse_json,
+    RelativePath, canonical_bytes_v1, canonical_count_v1, emit_json_profile, parse_json,
 };
 use tos_source_store::CorpusCutReader;
 
@@ -2018,13 +2018,14 @@ fn forms(
     let guard=|used:usize|if used>available {Err(ItemRefusal::BudgetCheck{check:"compound source-copy logical workspace",used:Some(used as u64),limit:Some(available as u64)})}else{Ok(())};
     // Canonical hash/equality helpers emit at most two independent buffers at
     // once. Price the actual selected source/prior bytes, not a raw multiplier.
-    let source_wire=canonical_ordered(source)?;
-    let mut codec_wire=source_wire.len();let mut codec_indexes=crate::record_biblio_cut::ordered_emit_state(source)?;
-    drop(source_wire);
+    let mut codec_indexes=crate::record_biblio_cut::ordered_emit_state(source)?;
+    guard(fields_state.checked_add(codec_indexes).ok_or(ItemRefusal::Budget)?)?;
+    let mut codec_wire=canonical_count_v1(source,CanonicalProfile::SourceCommandInputV1,limits()).map_err(|error|ItemRefusal::Unsupported(format!("compound canonical: {error:?}")))?;
     let prior_codec=if let Some(previous)=previous {
-        let raw=canonical_ordered(previous)?;
-        codec_wire=codec_wire.max(raw.len());codec_indexes=codec_indexes.max(crate::record_biblio_cut::ordered_emit_state(previous)?);
-        raw.len().checked_add(crate::record_biblio_cut::ordered_codec_state(previous)?).ok_or(ItemRefusal::Budget)?
+        guard(fields_state.checked_add(crate::record_biblio_cut::ordered_emit_state(previous)?).ok_or(ItemRefusal::Budget)?)?;
+        let bytes=canonical_count_v1(previous,CanonicalProfile::SourceCommandInputV1,limits()).map_err(|error|ItemRefusal::Unsupported(format!("compound canonical: {error:?}")))?;
+        codec_wire=codec_wire.max(bytes);codec_indexes=codec_indexes.max(crate::record_biblio_cut::ordered_emit_state(previous)?);
+        bytes.checked_add(crate::record_biblio_cut::ordered_codec_state(previous)?).ok_or(ItemRefusal::Budget)?
     }else{0};
     guard(fields_state.checked_add(codec_wire.checked_add(codec_indexes).ok_or(ItemRefusal::Budget)?).ok_or(ItemRefusal::Budget)?)?;
     let subject=kernel::metadata_subject(source).map_err(fail)?;
@@ -2045,9 +2046,10 @@ fn forms(
                 selected,
             ).map_err(fail)?;
         changes_state=changes_state.checked_add(crate::record_biblio_cut::ordered_state(&change)?).ok_or(ItemRefusal::Budget)?;
-        let wire=canonical_ordered(&change)?;
-        codec_wire=codec_wire.max(wire.len());codec_indexes=codec_indexes.max(crate::record_biblio_cut::ordered_emit_state(&change)?);
-        drop(wire);
+        let indexes=crate::record_biblio_cut::ordered_emit_state(&change)?;
+        guard(fields_state.checked_add(changes_state).and_then(|n|n.checked_add(subject_state)).and_then(|n|n.checked_add(empty_state)).and_then(|n|n.checked_add(indexes)).ok_or(ItemRefusal::Budget)?)?;
+        let bytes=canonical_count_v1(&change,CanonicalProfile::SourceCommandInputV1,limits()).map_err(|error|ItemRefusal::Unsupported(format!("compound canonical: {error:?}")))?;
+        codec_wire=codec_wire.max(bytes);codec_indexes=codec_indexes.max(crate::record_biblio_cut::ordered_emit_state(&change)?);
         guard(fields_state.checked_add(changes_state).and_then(|n|n.checked_add(subject_state)).and_then(|n|n.checked_add(empty_state)).and_then(|n|n.checked_add(codec_wire.checked_add(codec_indexes)?)).ok_or(ItemRefusal::Budget)?)?;
         changes.push(change);
     }
@@ -2058,8 +2060,9 @@ fn forms(
     let result = kernel::apply_form_changes(previous, &subject, &changes).map_err(fail)?;
     let result_state=crate::record_biblio_cut::ordered_state(&result)?;
     let base=fields_state.checked_add(changes_state).and_then(|n|n.checked_add(subject_state)).and_then(|n|n.checked_add(result_state)).ok_or(ItemRefusal::Budget)?;
-    let result_wire=canonical_ordered(&result)?;
-    codec_wire=codec_wire.max(result_wire.len());codec_indexes=codec_indexes.max(crate::record_biblio_cut::ordered_emit_state(&result)?);drop(result_wire);
+    guard(base.checked_add(crate::record_biblio_cut::ordered_emit_state(&result)?).ok_or(ItemRefusal::Budget)?)?;
+    let result_bytes=canonical_count_v1(&result,CanonicalProfile::SourceCommandInputV1,limits()).map_err(|error|ItemRefusal::Unsupported(format!("compound canonical: {error:?}")))?;
+    codec_wire=codec_wire.max(result_bytes);codec_indexes=codec_indexes.max(crate::record_biblio_cut::ordered_emit_state(&result)?);
     let equality_buffers=codec_wire.checked_add(codec_wire.checked_add(codec_indexes).ok_or(ItemRefusal::Budget)?).ok_or(ItemRefusal::Budget)?;
     let forms=result.object_get("forms").and_then(JsonValue::as_array).map_or(0,|v|v.len());
     let prior=result.object_get("prior_forms").and_then(JsonValue::as_array).map_or(0,|v|v.len());

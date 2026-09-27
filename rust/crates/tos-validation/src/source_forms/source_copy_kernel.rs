@@ -3,7 +3,7 @@
 use std::collections::{HashMap, HashSet};
 use tos_foundation::{
     CanonicalProfile, Digest256, JsonLimits, JsonMode, JsonNumber, JsonNumberKind, JsonString,
-    JsonValue, canonical_bytes_v1, parse_json,
+    JsonValue, canonical_bytes_v1, canonical_count_v1, parse_json,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -43,6 +43,9 @@ fn canonical(value: &JsonValue) -> Result<Vec<u8>> {
         },
     )
     .map_err(|_| Error::Invalid("source canonical input"))
+}
+fn canonical_size(value:&JsonValue)->Result<usize> {
+    canonical_count_v1(value,CanonicalProfile::SourceCommandInputV1,JsonLimits{max_bytes:8_388_608,..JsonLimits::default()}).map_err(|_|Error::Invalid("source canonical input"))
 }
 fn record_digest(value: &JsonValue) -> Result<Digest256> {
     Ok(Digest256::of_bytes(&canonical(value)?))
@@ -559,15 +562,14 @@ fn materialize_source_forms_impl(source:&JsonValue,set:&JsonValue,selected_field
         }
         // Existing output byte law; the private compound caller additionally
         // bounds the temporary emission while earlier views remain retained.
-        let wire=if let Some(limit)=logical_limit {
+        let wire_size=if let Some(limit)=logical_limit {
             let tree=crate::record_biblio_cut::ordered_state(&view).map_err(|_|MaterializeError::Logical{used:None,limit})?;
             let indexes=crate::record_biblio_cut::ordered_emit_state(&view).map_err(|_|MaterializeError::Logical{used:None,limit})?;
             let base=logical.checked_add(tree).and_then(|n|n.checked_add(indexes)).ok_or(MaterializeError::Logical{used:None,limit})?;
-            let room=limit.checked_sub(base).ok_or(MaterializeError::Logical{used:Some(base),limit})?;
-            canonical_bytes_v1(&view,CanonicalProfile::SourceCommandInputV1,JsonLimits{max_bytes:room.min(8_388_608),..JsonLimits::default()}).map_err(|error|if error.code==tos_foundation::FoundationErrorCode::BudgetExceeded {MaterializeError::Logical{used:None,limit}}else{MaterializeError::Form(Error::Invalid("source canonical input"))})?
-        }else{canonical(&view)?};
-        bytes = bytes.checked_add(wire.len()).filter(|size| *size <= 262_144).ok_or(Error::Invalid("form materialization output budget"))?;
-        drop(wire);
+            if base>limit {return Err(MaterializeError::Logical{used:Some(base),limit});}
+            canonical_size(&view)?
+        }else{canonical_size(&view)?};
+        bytes = bytes.checked_add(wire_size).filter(|size| *size <= 262_144).ok_or(Error::Invalid("form materialization output budget"))?;
         if let Some(limit)=logical_limit {
             logical=logical.checked_add(crate::record_biblio_cut::ordered_state(&view).map_err(|_|MaterializeError::Logical{used:None,limit})?).ok_or(MaterializeError::Logical{used:None,limit})?;
             if logical>limit {return Err(MaterializeError::Logical{used:Some(logical),limit});}
@@ -740,15 +742,14 @@ fn materialize_one(
         let used=crate::record_biblio_cut::ordered_state(&view).map_err(|_|MaterializeError::Logical{used:None,limit})?;
         if used>limit {return Err(MaterializeError::Logical{used:Some(used),limit});}
     }
-    let view_wire=if let Some(limit)=logical_limit {
+    let view_size=if let Some(limit)=logical_limit {
         let tree=crate::record_biblio_cut::ordered_state(&view).map_err(|_|MaterializeError::Logical{used:None,limit})?;
         let indexes=crate::record_biblio_cut::ordered_emit_state(&view).map_err(|_|MaterializeError::Logical{used:None,limit})?;
         let base=tree.checked_add(indexes).ok_or(MaterializeError::Logical{used:None,limit})?;
-        let room=limit.checked_sub(base).ok_or(MaterializeError::Logical{used:Some(base),limit})?;
-        canonical_bytes_v1(&view,CanonicalProfile::SourceCommandInputV1,JsonLimits{max_bytes:room.min(8_388_608),..JsonLimits::default()}).map_err(|error|if error.code==tos_foundation::FoundationErrorCode::BudgetExceeded {MaterializeError::Logical{used:None,limit}}else{MaterializeError::Form(Error::Invalid("source canonical input"))})?
-    }else{canonical(&view)?};
-    let over_wire=view_wire.len()>65_536;
-    drop(view_wire);
+        if base>limit {return Err(MaterializeError::Logical{used:Some(base),limit});}
+        canonical_size(&view)?
+    }else{canonical_size(&view)?};
+    let over_wire=view_size>65_536;
     if over_wire {
         view = stopped(
             form,
