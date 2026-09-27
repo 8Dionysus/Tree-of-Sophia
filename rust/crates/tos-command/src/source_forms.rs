@@ -19,7 +19,11 @@ fn schema_check(
 ) -> Result<()> {
     if !worker
         .check(path, raw, contract, deadline, cancelled)
-        .map_err(|_| Error::Unsupported("exact source schema worker unavailable"))?
+        .map_err(|reason| Error::SchemaExecution {
+            path: path.to_owned(),
+            root: contract.to_owned(),
+            reason,
+        })?
     {
         return Err(Error::Invalid("exact source schema rejected bytes"));
     }

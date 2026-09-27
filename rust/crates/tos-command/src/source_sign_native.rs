@@ -295,9 +295,11 @@ impl<R: SignNativeRead + ?Sized> Native<'_, R> {
             Ok(false) => Err(SourceCommandError::Invalid(
                 "native value violates exact source grammar",
             )),
-            Err(_) => Err(SourceCommandError::Unsupported(
-                "native actual schema worker unavailable",
-            )),
+            Err(reason) => Err(SourceCommandError::SchemaExecution {
+                path: name.clone(),
+                root: name,
+                reason,
+            }),
         }
     }
     fn metadata(&self, raw: &[u8], name: &str, kind: &str) -> SourceCommandResult<()> {

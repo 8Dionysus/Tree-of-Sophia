@@ -2450,9 +2450,11 @@ pub(crate) fn schema(
         Ok(false) => Err(SourceCommandError::Invalid(
             "source violates selected schema",
         )),
-        Err(_) => Err(SourceCommandError::Unsupported(
-            "exact source schema worker execution unavailable",
-        )),
+        Err(reason) => Err(SourceCommandError::SchemaExecution {
+            path: source_path,
+            root: root.to_owned(),
+            reason,
+        }),
     }
 }
 

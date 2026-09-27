@@ -436,7 +436,11 @@ fn schema(
             deadline,
             cancelled,
         )
-        .map_err(|_| Error::Unsupported("Sign selected source schema execution"))?
+        .map_err(|reason| Error::SchemaExecution {
+            path: "Sign selected source".to_owned(),
+            root: name.to_owned(),
+            reason,
+        })?
     {
         return Err(Error::Invalid("Sign selected source violates schema"));
     }

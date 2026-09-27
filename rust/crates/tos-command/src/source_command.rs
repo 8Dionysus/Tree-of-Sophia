@@ -21,6 +21,11 @@ pub enum SourceCommandError {
     Conflict(&'static str),
     Denied(&'static str),
     Unsupported(&'static str),
+    SchemaExecution {
+        path: String,
+        root: String,
+        reason: tos_validation::item_rules::ItemRefusal,
+    },
     MissingProductionAdmission,
 }
 pub type SourceCommandResult<T> = Result<T, SourceCommandError>;
