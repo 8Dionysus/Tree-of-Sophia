@@ -777,6 +777,7 @@ pub struct SerializedClaimCreation {
     command: PreparedCommand,
     home: RelativePath,
     files: BTreeMap<String, Vec<u8>>,
+    operational_sidecars: BTreeSet<String>,
     components: SoftwareComponentSelectionV1,
 }
 
@@ -795,6 +796,9 @@ impl SerializedClaimCreation {
     }
     pub(crate) fn components(&self) -> &SoftwareComponentSelectionV1 {
         &self.components
+    }
+    pub(crate) fn operational_sidecars(&self) -> &BTreeSet<String> {
+        &self.operational_sidecars
     }
 }
 
@@ -872,6 +876,11 @@ fn claim_creation_from_captures(
             .ok_or(SourceCommandError::Invalid("Claim creation home"))?
             .0,
     )?;
+    let operational_sidecars = claim_creation_allowed_names(&request)?
+        .into_iter()
+        .filter(|name| name.ends_with(".writer.lock"))
+        .map(|name| format!("{}/{name}", home.as_str()))
+        .collect();
     let stream = preview.changes[0]
         .after
         .as_ref()
@@ -966,6 +975,7 @@ fn claim_creation_from_captures(
         command,
         home,
         files,
+        operational_sidecars,
         components: components.clone(),
     })
 }
@@ -1114,7 +1124,10 @@ pub fn execute_isolated_claim_creation_from_captures(
             .ok_or(SourceCommandError::Invalid("Claim creation source parent"))?
             .0,
     )?;
-    let retained = filesystem.read_claim_retained(ctx, &home, deadline, cancelled)?;
+    let request = parse(&ctx.request_raw)?;
+    let allowed_names = claim_creation_allowed_names(&request)?;
+    let retained =
+        filesystem.read_claim_retained(ctx, &home, &allowed_names, deadline, cancelled)?;
     let mut current = None;
     let serialized = if let Some(retained) = &retained {
         let current_context = CommandContext {
@@ -1298,12 +1311,7 @@ fn retained_claim_creation_files(
             text(claim, "claim_id")?,
         );
     }
-    let mut allowed = required.clone();
-    allowed.insert(CLAIM_HISTORY.into());
-    for name in form_targets.keys() {
-        allowed.insert(name.clone());
-        allowed.insert(format!(".{name}.writer.lock"));
-    }
+    let allowed = claim_creation_allowed_names(request)?;
     if direct.keys().any(|name| !allowed.contains(name)) {
         return Err(SourceCommandError::Conflict(
             "Claim package contains unrelated member",
@@ -1367,6 +1375,32 @@ fn retained_claim_creation_files(
         ));
     }
     Ok(original)
+}
+
+fn claim_creation_allowed_names(request: &JsonValue) -> SourceCommandResult<BTreeSet<String>> {
+    let claims = array(request, "claims")?;
+    if claims.is_empty() || claims.len() > 32 {
+        return Err(SourceCommandError::Invalid("initial Claim batch capacity"));
+    }
+    let mut names = BTreeSet::from([
+        CLAIM_STREAM.to_owned(),
+        "source-create-request.json".to_owned(),
+        "source-create-environment.json".to_owned(),
+        "source-create-provenance.jsonl".to_owned(),
+        "source-create-receipt.json".to_owned(),
+        CLAIM_HISTORY.to_owned(),
+    ]);
+    let mut ids = BTreeSet::new();
+    for claim in claims {
+        let id = text(claim, "claim_id")?;
+        if !ids.insert(id) {
+            return Err(SourceCommandError::Conflict("duplicate initial Claim"));
+        }
+        let form = form_name(id);
+        names.insert(format!(".{form}.writer.lock"));
+        names.insert(form);
+    }
+    Ok(names)
 }
 
 pub(crate) fn complete_authored_inputs(

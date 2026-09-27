@@ -483,6 +483,7 @@ impl CreationFilesystem {
             package.context(),
             package.home(),
             package.files(),
+            Some(package.operational_sidecars()),
             cut,
             None,
             false,
@@ -511,6 +512,7 @@ impl CreationFilesystem {
                 package.context(),
                 package.home(),
                 package.files(),
+                Some(package.operational_sidecars()),
                 cut,
                 Some(&stage.name),
                 false,
@@ -596,6 +598,7 @@ impl CreationFilesystem {
             current_context,
             package.home(),
             &BTreeMap::new(),
+            Some(package.operational_sidecars()),
             current_cut,
             None,
             false,
@@ -632,6 +635,7 @@ impl CreationFilesystem {
         &self,
         context: &cmd::CommandContext,
         home: &RelativePath,
+        allowed_names: &BTreeSet<String>,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<Option<BTreeMap<String, Vec<u8>>>> {
@@ -657,7 +661,10 @@ impl CreationFilesystem {
                 .file_name()
                 .into_string()
                 .map_err(|_| SourceCommandError::Invalid("Claim retained name"))?;
-            if !names.insert(name) || names.len() > 64 {
+            if !allowed_names.contains(&name)
+                || !names.insert(name)
+                || names.len() > allowed_names.len()
+            {
                 return Err(SourceCommandError::Invalid("Claim retained entry budget"));
             }
         }
@@ -671,6 +678,15 @@ impl CreationFilesystem {
         if !required.is_subset(&names) {
             return Err(SourceCommandError::Conflict(
                 "Claim retained package incomplete",
+            ));
+        }
+        // Maintained unrevised creation reads only its named adjacent members
+        // with a per-file limit. Once HISTORY exists, its revision owner uses
+        // the stricter flat-package 64-file/8 MiB aggregate contract.
+        let revised = names.contains("claim-revision-history.json");
+        if revised && names.len() > 64 {
+            return Err(SourceCommandError::Invalid(
+                "Claim revised package file budget",
             ));
         }
         let mut files = BTreeMap::new();
@@ -692,8 +708,10 @@ impl CreationFilesystem {
             total = total
                 .checked_add(bytes.len())
                 .ok_or(SourceCommandError::Invalid("Claim retained byte overflow"))?;
-            if total > MAX_BYTES {
-                return Err(SourceCommandError::Invalid("Claim retained byte budget"));
+            if revised && total > 8_388_608 {
+                return Err(SourceCommandError::Invalid(
+                    "Claim revised package byte budget",
+                ));
             }
             files.insert(name, bytes);
         }
@@ -1111,6 +1129,7 @@ impl CreationFilesystem {
             package.prepared.context(),
             package.prepared.home(),
             package.prepared.files(),
+            None,
             cut,
             staging,
             published,
@@ -1123,6 +1142,7 @@ impl CreationFilesystem {
         context: &cmd::CommandContext,
         home: &RelativePath,
         package_files: &BTreeMap<String, Vec<u8>>,
+        operational_sidecars: Option<&BTreeSet<String>>,
         cut: &CorpusCutReader,
         staging: Option<&str>,
         published: bool,
@@ -1141,6 +1161,7 @@ impl CreationFilesystem {
             "ToS",
             self.uid,
             staging,
+            operational_sidecars,
             &mut observed,
             &mut total,
             &mut directories,
@@ -1205,6 +1226,7 @@ fn scan(
     prefix: &str,
     uid: u32,
     staging: Option<&str>,
+    operational_sidecars: Option<&BTreeSet<String>>,
     files: &mut BTreeMap<String, (Digest256, u64, u32)>,
     total: &mut usize,
     directories: &mut usize,
@@ -1247,6 +1269,37 @@ fn scan(
         {
             continue;
         }
+        if path.ends_with(".writer.lock") && operational_sidecars.is_some() {
+            if !operational_sidecars.is_some_and(|sidecars| sidecars.contains(&path)) {
+                return Err(SourceCommandError::Conflict(
+                    "Claim current operational lock path is not delegated",
+                ));
+            }
+            let mut sidecar = tos_fd_open::open_regular_at(directory, Path::new(&name))
+                .map_err(|_| SourceCommandError::Denied("Claim operational lock unsafe"))?;
+            let before = owned(&sidecar, uid, false)?;
+            if before.mode() & 0o777 != 0o600
+                || !raw(&mut sidecar, 1, deadline, cancelled)?.is_empty()
+            {
+                return Err(SourceCommandError::Conflict(
+                    "Claim operational lock mode or contents changed",
+                ));
+            }
+            let after = tos_fd_open::open_regular_at(directory, Path::new(&name))
+                .map_err(|_| SourceCommandError::Conflict("Claim operational lock detached"))?;
+            if stamp(&before)
+                != stamp(
+                    &after
+                        .metadata()
+                        .map_err(|_| SourceCommandError::Invalid("Claim lock metadata"))?,
+                )
+            {
+                return Err(SourceCommandError::Conflict(
+                    "Claim operational lock replaced",
+                ));
+            }
+            continue;
+        }
         // Directory traversal and file membership are different: weak output
         // parents can contain authored Markdown. Use the existing cut owner's
         // shared component exclusions without reading its excluded payloads.
@@ -1263,6 +1316,7 @@ fn scan(
                 &path,
                 uid,
                 staging,
+                operational_sidecars,
                 files,
                 total,
                 directories,

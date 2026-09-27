@@ -779,6 +779,60 @@ fn initial_claim_creation_publishes_five_native_files_and_cold_replays() {
         "tos_local_claim_create_receipt_v1"
     );
     assert_eq!(result["receipt"]["grants_admission"], false);
+    // The maintained form writer's operational lock is a private 0600
+    // sidecar, not an authored cut member. Exercise the actual owner writer
+    // spelling and mode while leaving the original five creation files intact.
+    let lock_stdout = temporary.path().join("claim-form-lock.stdout");
+    let lock_stderr = temporary.path().join("claim-form-lock.stderr");
+    let lock_script = "import sys;from pathlib import Path;r=Path(sys.argv[1]);sys.path[:0]=[str(r/'mechanics/growth-cycle/parts/branch-growth-cycle/scripts'),str(r/'scripts')];import source_commands as c;form=c.claim_forms_path(Path(sys.argv[2]),sys.argv[3]);\nwith c._locked(form): pass";
+    let mut lock_writer = std::process::Command::new("python3")
+        .args(["-c", lock_script])
+        .arg(&repository)
+        .arg(isolated.path().join(&source_path))
+        .arg(claim["claim_id"].as_str().unwrap())
+        .env_remove("PYTHONPATH")
+        .env_remove("PYTHONHOME")
+        .env("PYTHONDONTWRITEBYTECODE", "1")
+        .stdout(std::process::Stdio::from(
+            fs::File::create(&lock_stdout).unwrap(),
+        ))
+        .stderr(std::process::Stdio::from(
+            fs::File::create(&lock_stderr).unwrap(),
+        ))
+        .spawn()
+        .unwrap();
+    let lock_status = loop {
+        if let Some(status) = lock_writer.try_wait().unwrap() {
+            break status;
+        }
+        if Instant::now() >= deadline
+            || fs::metadata(&lock_stdout).unwrap().len() > 1_048_576
+            || fs::metadata(&lock_stderr).unwrap().len() > 1_048_576
+        {
+            lock_writer.kill().unwrap();
+            lock_writer.wait().unwrap();
+            panic!("bounded maintained Claim form lock writer refused");
+        }
+        std::thread::sleep(Duration::from_millis(10));
+    };
+    assert!(
+        lock_status.success(),
+        "{}",
+        String::from_utf8_lossy(&fs::read(&lock_stderr).unwrap())
+    );
+    let form_name = format!(
+        "source-claims.{}.human-forms.json",
+        Digest256::of_bytes(claim["claim_id"].as_str().unwrap().as_bytes()).to_hex()
+    );
+    let lock_path = isolated
+        .path()
+        .join(&source_path)
+        .with_file_name(format!(".{form_name}.writer.lock"));
+    assert_eq!(
+        fs::metadata(&lock_path).unwrap().permissions().mode() & 0o777,
+        0o600
+    );
+    assert!(fs::read(&lock_path).unwrap().is_empty());
     let mut current_files = authored.clone();
     for (name, raw) in created.files() {
         current_files.insert(format!("{}/{name}", created.home().as_str()), raw.clone());
@@ -801,6 +855,7 @@ fn initial_claim_creation_publishes_five_native_files_and_cold_replays() {
     )
     .unwrap();
     assert!(replayed.replayed);
+    assert!(fs::read(&lock_path).unwrap().is_empty());
     assert!(restored.command().changes.is_empty());
     assert_eq!(replay_result, restored.command().response);
     assert_eq!(
@@ -813,6 +868,24 @@ fn initial_claim_creation_publishes_five_native_files_and_cold_replays() {
         )
         .unwrap()
     );
+    fs::write(&lock_path, b"unexpected operational lock data").unwrap();
+    let mut nonempty_lock_worker = schemas(&cut, deadline, &cancellation);
+    assert!(matches!(
+        execute_isolated_claim_creation_from_captures(
+            &filesystem,
+            &context,
+            &cut,
+            &current_cut,
+            &software,
+            &components,
+            &mut nonempty_lock_worker,
+            None,
+            deadline,
+            &cancellation,
+        ),
+        Err(SourceCommandError::Conflict(_))
+    ));
+    fs::write(&lock_path, b"").unwrap();
     let evidence_path = isolated
         .path()
         .join(claim["evidence_refs"][0].as_str().unwrap());
