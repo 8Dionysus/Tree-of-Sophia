@@ -81,6 +81,18 @@ pub trait InspectDisclosureLease: Send {
     fn recheck(&mut self) -> Result<(), SearchV2Error>;
 }
 pub trait InspectCurrentAuthority {
+    /// Exact captured/public corpus originals, under the same current release
+    /// projection hold. This does not grant source text or authored admission.
+    fn authorize_corpus_original_current(
+        &mut self,
+        _: &tos_compiler::CorpusOriginalReceipt,
+        _: tos_compiler::CorpusOriginalCollection,
+        _: u64,
+        _: &[u8],
+        _: Digest256,
+    ) -> Result<(), SearchV2Error> {
+        Err(error(SearchV2ErrorCode::Unavailable, "selected corpus original authorization unavailable"))
+    }
     /// The current projection hold covers the exact selected philosophy
     /// header and every consulted original row. Custody alone is not a grant.
     fn authorize_philosophy_original_current(
@@ -199,6 +211,31 @@ impl<A: InspectCurrentAuthority + ?Sized> Reader<'_, '_, A> {
         let rows = receipt.nodes.checked_add(receipt.edges).and_then(|n| n.checked_add(1)).ok_or_else(budget_error)?;
         if rows > self.budget.max_rows.saturating_sub(self.rows) || receipt.total_bytes > self.budget.max_decoded_bytes.saturating_sub(self.decoded) { return Err(budget_error()); }
         Ok(receipt)
+    }
+    pub(crate) fn corpus_receipt(&mut self) -> Result<tos_compiler::CorpusOriginalReceipt, SearchV2Error> {
+        self.check_interrupt()?;
+        if !self.model.corpus_original_available() { return Err(error(SearchV2ErrorCode::Unavailable, "selected corpus originals unavailable")); }
+        self.model.corpus_original_receipt().map(Clone::clone).map_err(|reason| match reason {
+            tos_compiler::Error::Budget(_) => budget_error(),
+            _ => corrupt("selected corpus original receipt invalid"),
+        })
+    }
+    pub(crate) fn corpus_row(&mut self, receipt: &tos_compiler::CorpusOriginalReceipt, collection: tos_compiler::CorpusOriginalCollection, selector: &tos_compiler::CorpusOriginalSelector, after: Option<u64>) -> Result<Option<(u64, JsonValue)>, SearchV2Error> {
+        self.check_interrupt()?;
+        let bytes = self.budget.max_decoded_bytes.saturating_sub(self.decoded).min(self.budget.max_payload_bytes as u64);
+        let row_cap = usize::try_from(bytes).map_err(|_| budget_error())?;
+        let page = self.model.corpus_original_page_under_caller_budget(collection, selector, after, 1, row_cap, bytes).map_err(|reason| match reason {
+            tos_compiler::Error::Budget(_) => budget_error(),
+            _ => corrupt("selected corpus original read failed"),
+        })?;
+        self.charge_original(page.rows.len(), page.decoded_bytes)?;
+        let Some(row) = page.rows.into_iter().next() else { return Ok(None); };
+        let sha = Digest256::of_bytes(&row.raw);
+        if sha.to_hex() != row.raw_sha256 { return Err(corrupt("selected corpus original digest differs")); }
+        self.authority.authorize_corpus_original_current(receipt, collection, row.ordinal, &row.raw, sha)?;
+        self.check_interrupt()?;
+        let value = parse_json(&row.raw, JsonMode::PublishedStrict, self.budget.json).map_err(|_| corrupt("selected corpus original JSON invalid"))?.into_root();
+        Ok(Some((row.ordinal, value)))
     }
     pub(crate) fn philosophy_row(&mut self, receipt: &tos_compiler::PhilosophyOriginalReceipt, collection: tos_compiler::PhilosophyOriginalCollection, after: Option<u64>) -> Result<Option<(u64, JsonValue)>, SearchV2Error> {
         self.check_interrupt()?;

@@ -2289,40 +2289,8 @@ class CoreContractTests(unittest.TestCase):
     def test_corpus_route_and_promotion_views_preserve_relation_topology(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw)
-            write_fixture(root)
-            index_path = root / "ToS/derived-exports/tos_corpus_index.min.json"
-            index = json.loads(index_path.read_text(encoding="utf-8"))
-            index["graph_views"].extend(
-                [
-                    {"view_id": "route-graph", "title": "Routes"},
-                    {"view_id": "promotion-flow", "title": "Promotion"},
-                ]
-            )
-            index["nodes"] = [
-                {"node_id": "a", "label": "Alpha"},
-                {"node_id": "b", "label": "Beta"},
-            ]
-            index["relation_packs"] = [
-                {"pack_id": "candidate-intake/fixture", "owner_branch": "ToS/candidate-intake", "path": "ToS/candidate-intake/fixture/edges.csv"},
-                {"pack_id": "canon/fixture", "owner_branch": "ToS/canon", "path": "ToS/canon/fixture/edges.csv"},
-            ]
-            index["relation_edges"] = [
-                {
-                    "edge_id": "candidate-edge",
-                    "owner_branch": "ToS/candidate-intake",
-                    "pack_id": "candidate-intake/fixture",
-                    "from_id": "candidate-a",
-                    "to_id": "candidate-b",
-                },
-                {
-                    "edge_id": "canon-edge",
-                    "owner_branch": "ToS/canon",
-                    "pack_id": "canon/fixture",
-                    "from_id": "a",
-                    "to_id": "b",
-                },
-            ]
-            index_path.write_text(json.dumps(index), encoding="utf-8")
+            from fixture_support import write_corpus_topology_fixture
+            write_corpus_topology_fixture(root)
             core = ToSAccessCore.discover(tos_root=root)
 
             routes = core.graph_view("route-graph")

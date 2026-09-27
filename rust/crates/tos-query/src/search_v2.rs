@@ -15,6 +15,7 @@ pub const SEARCH_READ_MODEL_ABI_V1: &str = "tos_knowledge_read_model_v1";
 pub const SEARCH_READ_MODEL_ABI_V2: &str = "tos_knowledge_read_model_v2";
 pub const SEARCH_READ_MODEL_ABI_V3: &str = "tos_knowledge_read_model_v3";
 pub const SEARCH_READ_MODEL_ABI_V4: &str = "tos_knowledge_read_model_v4";
+pub const SEARCH_READ_MODEL_ABI_V5: &str = "tos_knowledge_read_model_v5";
 pub const QUERY_PRIMITIVE_PROFILE: &str = "tos-query-primitives-v1";
 pub const SEARCH_UNICODE_PROFILE: &str = "tos-python-native-unicode-v1";
 pub const SEARCH_QUERY_MAX_CODE_POINTS: usize = 256;
@@ -290,6 +291,7 @@ fn validate_selection<V: SelectedQueryVocabulary + ?Sized>(
         && selection.model_abi != SEARCH_READ_MODEL_ABI_V2
         && selection.model_abi != SEARCH_READ_MODEL_ABI_V3
         && selection.model_abi != SEARCH_READ_MODEL_ABI_V4
+        && selection.model_abi != SEARCH_READ_MODEL_ABI_V5
     {
         return Err(SearchV2Error::new(
             SearchV2ErrorCode::UnsupportedModel,

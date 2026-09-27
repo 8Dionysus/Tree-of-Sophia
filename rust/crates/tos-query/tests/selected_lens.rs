@@ -54,6 +54,7 @@ struct Authority {
     original_rights: u64,
     philosophy_rows: Vec<(tos_compiler::PhilosophyOriginalCollection, u64)>,
     philosophy_counts: Option<(u64, u64)>,
+    corpus_rows: Vec<(tos_compiler::CorpusOriginalCollection, u64)>,
 }
 impl Authority {
     fn new(bound: &BoundCmpKnowledge<'_>) -> Self {
@@ -93,10 +94,39 @@ impl Authority {
             original_rights: 0,
             philosophy_rows: vec![],
             philosophy_counts: None,
+            corpus_rows: vec![],
         }
     }
 }
 impl InspectCurrentAuthority for Authority {
+    fn authorize_corpus_original_current(
+        &mut self,
+        receipt: &tos_compiler::CorpusOriginalReceipt,
+        collection: tos_compiler::CorpusOriginalCollection,
+        ordinal: u64,
+        raw: &[u8],
+        sha: tos_foundation::Digest256,
+    ) -> Result<(), SearchV2Error> {
+        self.check_selected()?;
+        if self.originals_denied {
+            return Err(SearchV2Error {
+                code: SearchV2ErrorCode::Unavailable,
+                message: "synthetic corpus original grant unavailable",
+            });
+        }
+        assert_eq!(receipt.source_cut, self.scope.source_cut);
+        assert_eq!(
+            receipt.membership_root,
+            self.scope.source_membership_root.to_hex()
+        );
+        assert_eq!(
+            receipt.descriptor_sha256,
+            self.scope.descriptor_sha256.to_hex()
+        );
+        assert_eq!(tos_foundation::Digest256::of_bytes(raw), sha);
+        self.corpus_rows.push((collection, ordinal));
+        Ok(())
+    }
     fn authorize_philosophy_original_current(
         &mut self,
         receipt: &tos_compiler::PhilosophyOriginalReceipt,
@@ -232,6 +262,12 @@ impl InspectCurrentAuthority for Authority {
                 .chain((0..edges).map(|i| (Edges, i)))
                 .collect::<Vec<_>>();
             assert_eq!(self.philosophy_rows, expected);
+        }
+        if self.scope.intended_use == tos_query::corpus_read::CORPUS_INTENDED_USE {
+            assert_eq!(
+                self.corpus_rows.first(),
+                Some(&(tos_compiler::CorpusOriginalCollection::Header, 0))
+            );
         }
         assert_eq!(
             consulted.iter().map(|r| &r.id).collect::<Vec<_>>(),
@@ -1399,4 +1435,231 @@ json.dump({'records':records,'cases':cases},sys.stdout,ensure_ascii=False,allow_
             .code,
         SearchV2ErrorCode::CorruptSelectedCarrier
     );
+}
+
+#[test]
+fn captured_selected_corpus_reads_match_maintained_packets_and_addressed_cost() {
+    use tos_compiler::knowledge_full_fixture::build_native_fixture_with_captured_corpus;
+    use tos_query::corpus_read::{
+        CORPUS_INTENDED_USE, CorpusReadBudget, CorpusReadContext, CorpusReadRequest,
+        execute_selected_corpus,
+    };
+    // Reuse the maintained finite topology fixture and real Git software
+    // capture/restore. Its independent capture identity is not an authored cut.
+    // Duplicates and nonobjects protect original ordinal custody; the indexed
+    // addressed read must fit below the complete component's row count.
+    let script = r#"
+import hashlib,json,subprocess,sys,tempfile
+from pathlib import Path
+repo=Path(sys.argv[1]);sys.path[:0]=[str(repo/'access/src'),str(repo/'access/tests'),str(repo/'scripts')]
+from fixture_support import write_corpus_topology_fixture
+from corpus_archive import capture_git,restore_capture
+from tos_access.core import ToSAccessCore
+base=Path(tempfile.mkdtemp(prefix='tos-query-corpus-'));source=base/'source';source.mkdir()
+write_corpus_topology_fixture(source)
+source_path='ToS/derived-exports/tos_corpus_index.min.json'
+index_path=source/source_path;payload=json.loads(index_path.read_text())
+# Reuse existing identities: plural matches and last-row resolution cannot be
+# silently collapsed by the selected component's indexes.
+payload['nodes'].append({**payload['nodes'][0], 'label':payload['nodes'][0]['label']+' duplicate'})
+payload['relation_packs'].append(dict(payload['relation_packs'][-1]))
+payload['branches']=[None, {'id':payload['relation_packs'][-1]['owner_branch'],'path':payload['relation_packs'][-1]['path']}]
+payload['resources']=[{**payload['nodes'][0],'resource_kind':'json','owner_branch':payload['relation_packs'][-1]['owner_branch']}]
+index_path.write_text(json.dumps(payload),encoding='utf-8')
+def git(*args):
+ return subprocess.check_output(['git','-C',str(source),*args],stderr=subprocess.PIPE,text=True).strip()
+git('init','-q');git('add',source_path);git('-c','user.name=ToS Software Fixture','-c','user.email=fixture@example.invalid','commit','-qm','existing corpus read input')
+commit=git('rev-parse','HEAD');tree=git('rev-parse','HEAD^{tree}')
+capture=base/'capture';restored=base/'restored'
+capture_git(source,commit,[source_path],capture);restore_capture(capture,restored)
+core=ToSAccessCore.discover(tos_root=restored)
+node=payload['nodes'][0]['node_id'];pack=payload['relation_packs'][-1]['pack_id']
+endpoint=payload['relation_edges'][0]['from_id'];kind=payload['resources'][0]['resource_kind'];branch=payload['resources'][0]['owner_branch']
+cases={
+ 'status':core.status(),'summary':core.summary(),
+ 'search':core.search(payload['nodes'][0]['label'],limit=2),
+ 'search-filtered':core.search('',limit=2,resource_kind=kind),
+ 'resources':core.resources(resource_kind=kind,owner_branch=branch,limit=1),
+ 'node':core.node(node),'endpoint':core.node(endpoint),'pack':core.relation_pack(pack),
+ 'topology':core.graph_view('corpus-topology',limit=1),
+ 'route':core.graph_view('route-graph',limit=1),
+ 'promotion':core.graph_view('promotion-flow',limit=1),
+ 'packet':core.packet(query=' ',view_id='route-graph',limit=1),
+ 'packet-empty':core.packet(query='',view_id='',limit=1),
+}
+json.dump({'base':str(base),'capture':str(capture),'restored':str(restored),'commit':commit,'tree':tree,
+ 'manifest_sha':hashlib.sha256((capture/'capture.json').read_bytes()).hexdigest(),'source_path':source_path,
+ 'source_sha':hashlib.sha256((restored/source_path).read_bytes()).hexdigest(),
+ 'root':core.tos_root.as_posix(),'index':core.index_path.as_posix(),
+ 'node':node,'endpoint':endpoint,'pack':pack,'query':payload['nodes'][0]['label'],'kind':kind,'branch':branch,'cases':cases},sys.stdout,ensure_ascii=False,allow_nan=False)
+"#;
+    let output = Command::new("python3")
+        .arg("-c")
+        .arg(script)
+        .arg(concat!(env!("CARGO_MANIFEST_DIR"), "/../../.."))
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let oracle = parse_json(
+        &output.stdout,
+        JsonMode::PublishedStrict,
+        budget().inspect.json,
+    )
+    .unwrap()
+    .into_root();
+    let s = |name| field(&oracle, name).as_str().unwrap().to_owned();
+    let fixture = build_native_fixture_with_captured_corpus(
+        std::path::Path::new(&s("capture")),
+        std::path::Path::new(&s("restored")),
+        &s("commit"),
+        &s("tree"),
+        &s("manifest_sha"),
+        &s("source_path"),
+    );
+    let mut cold = fixture.open().unwrap();
+    let receipt = cold.corpus_original_receipt().unwrap().clone();
+    assert_eq!(receipt.origin.source_sha256, s("source_sha"));
+    assert_eq!(receipt.origin.source_path, s("source_path"));
+    let bound =
+        bind_verified_knowledge(&cold, &fixture.vocabulary, &fixture.descriptor_bytes).unwrap();
+    let context = CorpusReadContext {
+        tos_root: s("root"),
+        index_path: s("index"),
+    };
+    let caps = CorpusReadBudget {
+        inspect: budget().inspect,
+        max_work_steps: u64::try_from(budget().max_path_steps).unwrap(),
+    };
+    let current = |request: &CorpusReadRequest| {
+        let mut authority = Authority::new(&bound);
+        authority.scope.operation_id = request.operation_id().into();
+        authority.scope.intended_use = CORPUS_INTENDED_USE.into();
+        authority.originals_denied = false;
+        authority
+    };
+    let view = |id: &str| CorpusReadRequest::GraphView {
+        view_id: id.into(),
+        limit: 1,
+    };
+    let requests = vec![
+        ("status", CorpusReadRequest::Status),
+        ("summary", CorpusReadRequest::Summary),
+        (
+            "search",
+            CorpusReadRequest::Search {
+                query: s("query"),
+                limit: 2,
+                resource_kind: None,
+            },
+        ),
+        (
+            "search-filtered",
+            CorpusReadRequest::Search {
+                query: String::new(),
+                limit: 2,
+                resource_kind: Some(s("kind")),
+            },
+        ),
+        (
+            "resources",
+            CorpusReadRequest::Resources {
+                resource_kind: Some(s("kind")),
+                owner_branch: Some(s("branch")),
+                limit: 1,
+            },
+        ),
+        ("node", CorpusReadRequest::Node { node_id: s("node") }),
+        (
+            "endpoint",
+            CorpusReadRequest::Node {
+                node_id: s("endpoint"),
+            },
+        ),
+        (
+            "pack",
+            CorpusReadRequest::RelationPack { pack_id: s("pack") },
+        ),
+        ("topology", view("corpus-topology")),
+        ("route", view("route-graph")),
+        ("promotion", view("promotion-flow")),
+        (
+            "packet",
+            CorpusReadRequest::Packet {
+                query: " ".into(),
+                view_id: Some("route-graph".into()),
+                limit: 1,
+            },
+        ),
+        (
+            "packet-empty",
+            CorpusReadRequest::Packet {
+                query: String::new(),
+                view_id: Some(String::new()),
+                limit: 1,
+            },
+        ),
+    ];
+    for (name, request) in &requests {
+        let mut packet = execute_selected_corpus(
+            &mut cold,
+            &bound,
+            &mut current(request),
+            &context,
+            request,
+            caps,
+        )
+        .unwrap();
+        assert_eq!(
+            &*packet,
+            canonical(field(field(&oracle, "cases"), name)),
+            "{name}"
+        );
+        packet.recheck().unwrap();
+    }
+    let request = CorpusReadRequest::Node { node_id: s("node") };
+    let mut tiny = caps;
+    tiny.inspect.max_rows = 6;
+    assert!(receipt.collections.iter().map(|c| c.rows).sum::<u64>() > tiny.inspect.max_rows);
+    let mut authority = current(&request);
+    let mut held =
+        execute_selected_corpus(&mut cold, &bound, &mut authority, &context, &request, tiny)
+            .unwrap();
+    assert_eq!(authority.corpus_rows.len(), 6);
+    authority.withdrawn.store(true, Ordering::SeqCst);
+    assert_eq!(
+        held.recheck().unwrap_err().code,
+        SearchV2ErrorCode::StalePolicy
+    );
+    drop(held);
+    tiny.inspect.max_rows = 5;
+    assert_eq!(
+        execute_selected_corpus(
+            &mut cold,
+            &bound,
+            &mut current(&request),
+            &context,
+            &request,
+            tiny
+        )
+        .err()
+        .unwrap()
+        .code,
+        SearchV2ErrorCode::BudgetExceeded
+    );
+    let mut denied = current(&request);
+    denied.originals_denied = true;
+    assert_eq!(
+        execute_selected_corpus(&mut cold, &bound, &mut denied, &context, &request, caps)
+            .err()
+            .unwrap()
+            .code,
+        SearchV2ErrorCode::Unavailable
+    );
+    drop(cold);
+    drop(fixture);
+    std::fs::remove_dir_all(s("base")).unwrap();
 }
