@@ -62,8 +62,10 @@ fn executable(deadline: Instant, cancelled: &AtomicBool) -> SourceCommandResult<
     let before = file
         .metadata()
         .map_err(|_| SourceCommandError::Invalid("native executable metadata"))?;
-    if !before.is_file() || before.len() == 0 || before.len() > 268_435_456 {
-        return Err(SourceCommandError::Invalid("native executable byte budget"));
+    if !before.is_file() || before.len() == 0 {
+        return Err(SourceCommandError::Invalid(
+            "running native executable metadata",
+        ));
     }
     let mut hasher = Digest256Hasher::new();
     let mut total = 0u64;
@@ -81,12 +83,17 @@ fn executable(deadline: Instant, cancelled: &AtomicBool) -> SourceCommandResult<
                 "running native image is not ELF",
             ));
         }
-        total += n as u64;
+        total = total
+            .checked_add(n as u64)
+            .ok_or(SourceCommandError::Invalid(
+                "running executable length overflow",
+            ))?;
         if total > before.len() {
             return Err(SourceCommandError::Conflict("running executable grew"));
         }
         hasher.update(&buffer[..n]);
     }
+    active(deadline, cancelled)?;
     let after = file
         .metadata()
         .map_err(|_| SourceCommandError::Invalid("native executable readback metadata"))?;
@@ -113,6 +120,7 @@ fn executable(deadline: Instant, cancelled: &AtomicBool) -> SourceCommandResult<
             "running executable changed during capture",
         ));
     }
+    active(deadline, cancelled)?;
     Ok(hasher.finalize())
 }
 
