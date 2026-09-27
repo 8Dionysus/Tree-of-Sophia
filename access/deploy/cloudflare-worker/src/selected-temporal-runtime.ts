@@ -85,6 +85,11 @@ async function computeSelectedTemporal(runtime: TemporalReplayModule, selected: 
       }
       return bytes;
     }
+  } catch (error) {
+    // wasm-bindgen Result errors from provide() are string domain codes, like
+    // constructor errors; preserve their transport class instead of Worker 500.
+    if (typeof error === 'string') throw new SelectedTemporalError(error);
+    throw error;
   } finally { session.free(); }
 }
 

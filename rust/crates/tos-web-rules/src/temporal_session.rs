@@ -2,7 +2,7 @@
 //! carrier integrity, visibility, or disclosure authority is established here.
 use std::collections::BTreeMap;
 use tos_foundation::{
-    CanonicalProfile, JsonLimits, JsonMode, JsonValue, canonical_bytes_v1,
+    CanonicalProfile, FoundationErrorCode, JsonLimits, JsonMode, JsonValue, canonical_bytes_v1,
     emit_python_compact_json, parse_json,
 };
 use tos_query::{
@@ -195,10 +195,14 @@ impl TemporalSession {
         } else {
             canonical_bytes_v1(&packet, CanonicalProfile::SourceRecordDigestV1, limits)
         }
-        .map_err(|_| {
+        .map_err(|reason| {
             error(
-                SearchV2ErrorCode::BudgetExceeded,
-                "temporal packet output cap",
+                if self.published_output && reason.code != FoundationErrorCode::BudgetExceeded {
+                    SearchV2ErrorCode::CorruptSelectedCarrier
+                } else {
+                    SearchV2ErrorCode::BudgetExceeded
+                },
+                "temporal packet emission refused",
             )
         })?;
         self.terminal = true;
