@@ -1265,14 +1265,33 @@ finally:c.doCleanups()
 
 #[test]
 fn actual_native_object_link_binds_committed_origin_and_corrected_lineage() {
+    use std::process::Stdio;
     use tos_validation::record_biblio_cut::BiblioRecordExecutor;
     use tos_validation::source_cut::CutSchemaExecutor;
 
+    // One absolute case envelope includes both maintained producers, all
+    // corrections, selected-cut preparation and all three validation branches.
+    let deadline = Instant::now() + Duration::from_secs(360);
+    let worker_path = selected_worker_path();
+    let worker = ExactWorkerIdentity {
+        sha256: Digest256::of_bytes(&fs::read(&worker_path).unwrap()),
+        absolute_path: worker_path,
+    };
+    let remaining_budget = || ExecutorBudget {
+        execution_wall: deadline
+            .checked_duration_since(Instant::now())
+            .filter(|remaining| !remaining.is_zero())
+            .expect("ObjectLink whole-case deadline"),
+        ..ExecutorBudget::laboratory()
+    };
     // Use the maintained ObjectLink factory, including its actual source
     // writer. Work exercises independent Link/Claim corrections; Artifact
     // exercises native identity without recasting it as a Corpus record.
     for kind in ["work", "artifact"] {
-        let oracle = std::process::Command::new("python3")
+        let output_dir = tempfile::tempdir().unwrap();
+        let stdout_path = output_dir.path().join("object-link-oracle.stdout");
+        let stderr_path = output_dir.path().join("object-link-oracle.stderr");
+        let mut oracle = std::process::Command::new("python3")
             .arg("-c")
             .arg(r#"
 import json,sys
@@ -1310,12 +1329,36 @@ finally:c.doCleanups()
 "#)
             .arg(repository())
             .arg(kind)
+            .env_remove("PYTHONPATH")
+            .env_remove("PYTHONHOME")
             .env("PYTHONDONTWRITEBYTECODE", "1")
-            .output()
+            .stdout(Stdio::from(fs::File::create(&stdout_path).unwrap()))
+            .stderr(Stdio::from(fs::File::create(&stderr_path).unwrap()))
+            .spawn()
             .unwrap();
-        assert!(oracle.status.success(), "maintained ObjectLink oracle: {}",
-            String::from_utf8_lossy(&oracle.stderr));
-        let packet: Value = serde_json::from_slice(&oracle.stdout).unwrap();
+        // Same bounded subprocess pattern as the existing Claim oracle. File
+        // redirection prevents a full selected-source packet from blocking on
+        // a pipe before the parent can observe the deadline.
+        let oracle_status = loop {
+            if let Some(status) = oracle.try_wait().unwrap() {
+                break status;
+            }
+            if Instant::now() >= deadline
+                || fs::metadata(&stdout_path).unwrap().len() > 67_108_864
+                || fs::metadata(&stderr_path).unwrap().len() > 1_048_576
+            {
+                let _ = oracle.kill();
+                oracle.wait().unwrap();
+                panic!("bounded maintained ObjectLink oracle refused");
+            }
+            std::thread::sleep(Duration::from_millis(10));
+        };
+        assert!(fs::metadata(&stdout_path).unwrap().len() <= 67_108_864);
+        assert!(fs::metadata(&stderr_path).unwrap().len() <= 1_048_576);
+        assert!(Instant::now() < deadline, "ObjectLink whole-case deadline");
+        assert!(oracle_status.success(), "maintained ObjectLink oracle: {}",
+            String::from_utf8_lossy(&fs::read(&stderr_path).unwrap()));
+        let packet: Value = serde_json::from_slice(&fs::read(&stdout_path).unwrap()).unwrap();
         let claim_path = required(&packet, "claim_path").to_owned();
         let mut files = selected_item_sources();
         let relation = "ToS/doctrine/semantic-interchange/relation-types.v1.json";
@@ -1340,7 +1383,6 @@ finally:c.doCleanups()
         let root = temporary.path().join("store");
         let revision = write_cut_store(&files, &root);
         let cancelled = AtomicBool::new(false);
-        let deadline = Instant::now() + Duration::from_secs(120);
         let reader = CorpusReader::open_existing(&root, ReadLimits {
             max_manifest_bytes: 1_048_576, max_manifest_entries: 1024,
             max_selected_object_bytes: 2_097_152, json: JsonLimits::default(),
@@ -1349,28 +1391,25 @@ finally:c.doCleanups()
             max_revisions: 4, max_members: 2048, max_total_bytes: 32_000_000,
             max_member_bytes: 2_097_152,
         }, deadline, &cancelled).unwrap();
-        let worker_path = selected_worker_path();
-        let worker = ExactWorkerIdentity {
-            sha256: Digest256::of_bytes(&fs::read(&worker_path).unwrap()),
-            absolute_path: worker_path,
-        };
         let limits = ItemLimits {
             max_member_bytes: 2_097_152, max_total_bytes: 64_000_000,
             max_state_bytes: 16_777_216, max_issues: 256, deadline,
         };
         let mut records = BiblioRecordExecutor::new(worker.clone(),
-            ExecutorBudget::laboratory(), FormatProfile::LegacyPythonObserved20260923, 256);
+            remaining_budget(), FormatProfile::LegacyPythonObserved20260923, 256);
         let current = tos_validation::record_biblio_cut::inspect_records_from_cut(
             &cut, limits, &cancelled, &mut records).unwrap();
         records.finish(deadline, &cancelled).unwrap();
+        drop(records);
         let mut schemas = CutWorkerSchemaExecutor::from_cut(&cut,
             FormatProfile::LegacyPythonObserved20260923, worker.clone(),
-            ExecutorBudget::laboratory(), CutWorkerLimits {
+            remaining_budget(), CutWorkerLimits {
                 max_receipts: 256, max_receipt_bytes: 262_144,
             }, deadline, &cancelled).unwrap();
         let report = tos_validation::biblio_rules::inspect_bibliography_from_cut(
             &cut, &current, limits, &cancelled, &mut schemas).unwrap();
         schemas.finish(deadline, &cancelled).unwrap();
+        drop(schemas);
         assert!(report.native_compounds.iter().any(|observed|
             observed.claim_path == claim_path
                 && observed.transport == tos_validation::native_compound::NativeTransportState::Committed),
@@ -1387,25 +1426,25 @@ finally:c.doCleanups()
             let mut damaged = files.clone();
             damaged.remove(link_history).unwrap();
             let damaged_revision = write_cut_store_on_base(&damaged, &root, Some(revision));
-            let negative_deadline = Instant::now() + Duration::from_secs(120);
             let damaged_cut = reader.open_source_cut(damaged_revision, CutReadLimits {
                 max_revisions: 4, max_members: 2048, max_total_bytes: 32_000_000,
                 max_member_bytes: 2_097_152,
-            }, negative_deadline, &cancelled).unwrap();
-            let negative_limits = ItemLimits { deadline: negative_deadline, ..limits };
+            }, deadline, &cancelled).unwrap();
             let mut negative_records = BiblioRecordExecutor::new(worker.clone(),
-                ExecutorBudget::laboratory(), FormatProfile::LegacyPythonObserved20260923, 256);
+                remaining_budget(), FormatProfile::LegacyPythonObserved20260923, 256);
             let retained = tos_validation::record_biblio_cut::inspect_records_from_cut(
-                &damaged_cut, negative_limits, &cancelled, &mut negative_records).unwrap();
-            negative_records.finish(negative_deadline, &cancelled).unwrap();
+                &damaged_cut, limits, &cancelled, &mut negative_records).unwrap();
+            negative_records.finish(deadline, &cancelled).unwrap();
+            drop(negative_records);
             let mut negative_schemas = CutWorkerSchemaExecutor::from_cut(&damaged_cut,
-                FormatProfile::LegacyPythonObserved20260923, worker,
-                ExecutorBudget::laboratory(), CutWorkerLimits {
+                FormatProfile::LegacyPythonObserved20260923, worker.clone(),
+                remaining_budget(), CutWorkerLimits {
                     max_receipts: 256, max_receipt_bytes: 262_144,
-                }, negative_deadline, &cancelled).unwrap();
+                }, deadline, &cancelled).unwrap();
             let refused = tos_validation::biblio_rules::inspect_bibliography_from_cut(
-                &damaged_cut, &retained, negative_limits, &cancelled, &mut negative_schemas).unwrap();
-            negative_schemas.finish(negative_deadline, &cancelled).unwrap();
+                &damaged_cut, &retained, limits, &cancelled, &mut negative_schemas).unwrap();
+            negative_schemas.finish(deadline, &cancelled).unwrap();
+            drop(negative_schemas);
             assert!(refused.shadow.issues.iter().any(|issue|
                 issue.code == "native-object-link-compound-evidence"
                     && issue.location.starts_with(&claim_path)));

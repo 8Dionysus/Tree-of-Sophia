@@ -5480,6 +5480,9 @@ impl NativeCompoundReader<'_> {
                 return Err(bad("object-Link contract fixity dependency"));
             }
         }
+        let mut claim_raw = self.canonical_buffer(claim)?;
+        claim_raw.push(b'\n');
+        let claim_raw = self.buffer(claim_raw)?;
         let mut local_limits = self.limits;
         local_limits.max_state_bytes = local_limits
             .max_state_bytes
@@ -5489,9 +5492,7 @@ impl NativeCompoundReader<'_> {
             .max_total_bytes
             .checked_sub(self.bytes)
             .ok_or(ItemRefusal::Budget)?;
-        let mut claim_raw = self.canonical_buffer(claim)?;
-        claim_raw.push(b'\n');
-        let local = crate::record_rules::validate_source_claim_from_cut(
+        let mut local = crate::record_rules::validate_source_claim_from_cut(
             self.cut,
             &claim_raw,
             schemas,
@@ -5507,7 +5508,35 @@ impl NativeCompoundReader<'_> {
                 return Err(bad("object-Link local Claim owner contract binding"));
             }
         }
+        let dependency_digests = std::mem::take(&mut local.dependency_digests);
         drop(local);
+        let dependencies_state = dependency_digests
+            .keys()
+            .try_fold(0usize, |n, path| {
+                n.checked_add(std::mem::size_of::<(String, Digest256)>() + path.len())
+            })
+            .ok_or(ItemRefusal::Budget)?;
+        self.temporary(dependencies_state)?;
+        for (path, sha) in dependency_digests {
+            let relative =
+                RelativePath::parse(&path).map_err(|_| bad("object-Link Claim dependency path"))?;
+            let size = self
+                .cut
+                .current()
+                .member(&relative)
+                .ok_or_else(|| bad("object-Link Claim dependency membership"))?
+                .size_bytes;
+            account(
+                &mut self.bytes,
+                usize::try_from(size).map_err(|_| ItemRefusal::Budget)?,
+                self.limits.max_total_bytes,
+            )?;
+            self.release_temporary(std::mem::size_of::<(String, Digest256)>() + path.len());
+            self.record_read(PredicateRead::ExactPath {
+                path,
+                digest: sha.to_prefixed(),
+            })?;
+        }
         let ordered_request = self.ordered_value(request_raw)?;
         let link_ordered = ordered_request
             .object_get("link")
@@ -5521,19 +5550,19 @@ impl NativeCompoundReader<'_> {
         if canonical_claim != claim_raw {
             return Err(bad("object-Link canonical Claim bytes"));
         }
+        self.release_temporary(std::mem::size_of::<Vec<u8>>() + claim_raw.len());
+        drop(claim_raw);
         let principal = text(authority, "principal_id")?;
-        let form_budget = self
-            .limits
-            .max_state_bytes
-            .checked_sub(self.state)
-            .ok_or(ItemRefusal::Budget)?;
         let (link_forms, link_refs) = forms(
             link_ordered,
             None,
             &request["forms"],
             principal,
             false,
-            form_budget,
+            self.limits
+                .max_state_bytes
+                .checked_sub(self.state)
+                .ok_or(ItemRefusal::Budget)?,
         )?;
         self.temporary(
             crate::record_biblio_cut::ordered_state(&link_forms)?
@@ -5546,7 +5575,10 @@ impl NativeCompoundReader<'_> {
             &request["claim_forms"],
             principal,
             true,
-            form_budget,
+            self.limits
+                .max_state_bytes
+                .checked_sub(self.state)
+                .ok_or(ItemRefusal::Budget)?,
         )?;
         self.temporary(
             crate::record_biblio_cut::ordered_state(&claim_forms)?
@@ -5600,7 +5632,8 @@ impl NativeCompoundReader<'_> {
             .iter()
             .map(|(path, raw)| (path.clone(), raw.as_slice()))
             .collect();
-        self.temporary(slice_rows_state(&outputs)?)?;
+        let outputs_state = slice_rows_state(&outputs)?;
+        self.temporary(outputs_state)?;
         let event = object_link_event(
             scope,
             &request,
@@ -5613,6 +5646,8 @@ impl NativeCompoundReader<'_> {
                 .checked_sub(self.state)
                 .ok_or(ItemRefusal::Budget)?,
         )?;
+        drop(outputs);
+        self.release_temporary(outputs_state);
         self.temporary(crate::record_biblio_cut::decoded_state(&event)?)?;
         if event != actual_event {
             return Err(bad("object-Link exact source provenance event"));
@@ -5656,6 +5691,9 @@ impl NativeCompoundReader<'_> {
         .into_iter()
         .map(|path| (path.to_owned(), files[path].as_slice()))
         .collect();
+        let moved_form_refs_state = crate::record_biblio_cut::ordered_state(&link_refs)?
+            .checked_add(crate::record_biblio_cut::ordered_state(&claim_refs)?)
+            .ok_or(ItemRefusal::Budget)?;
         let receipt_ordered = object(vec![
             ("schema_version", string("tos_object_link_receipt_v1")),
             ("operation", string(OBJECT_LINK_OPERATION)),
@@ -5693,7 +5731,14 @@ impl NativeCompoundReader<'_> {
             ("files", refs_ordered(&refs)),
             ("grants_admission", JsonValue::Bool(false)),
         ]);
+        // The two form-reference trees moved into the receipt. Transfer their
+        // existing charge before accounting the complete receipt tree.
+        self.release_temporary(moved_form_refs_state);
+        let receipt_tree_state = crate::record_biblio_cut::ordered_state(&receipt_ordered)?;
+        self.temporary(receipt_tree_state)?;
         let receipt_bytes = pretty(&receipt_ordered)?;
+        drop(receipt_ordered);
+        self.release_temporary(receipt_tree_state);
         if receipt_bytes != *receipt_raw {
             return Err(bad("object-Link exact reconstructed receipt bytes"));
         }
@@ -5861,6 +5906,7 @@ impl NativeCompoundReader<'_> {
         // values, display, visibility and layer predicates after correction.
         let mut current_claim_raw = self.canonical_buffer(claim)?;
         current_claim_raw.push(b'\n');
+        let current_claim_raw = self.buffer(current_claim_raw)?;
         let mut current_limits = self.limits;
         current_limits.max_state_bytes = current_limits
             .max_state_bytes
@@ -5870,7 +5916,7 @@ impl NativeCompoundReader<'_> {
             .max_total_bytes
             .checked_sub(self.bytes)
             .ok_or(ItemRefusal::Budget)?;
-        let current_local = crate::record_rules::validate_source_claim_from_cut(
+        let mut current_local = crate::record_rules::validate_source_claim_from_cut(
             self.cut,
             &current_claim_raw,
             schemas,
@@ -5880,7 +5926,37 @@ impl NativeCompoundReader<'_> {
         if !current_local.issues.is_empty() {
             return Err(bad("object-Link current Claim owner profile"));
         }
+        let dependency_digests = std::mem::take(&mut current_local.dependency_digests);
         drop(current_local);
+        self.release_temporary(std::mem::size_of::<Vec<u8>>() + current_claim_raw.len());
+        drop(current_claim_raw);
+        let dependencies_state = dependency_digests
+            .keys()
+            .try_fold(0usize, |n, path| {
+                n.checked_add(std::mem::size_of::<(String, Digest256)>() + path.len())
+            })
+            .ok_or(ItemRefusal::Budget)?;
+        self.temporary(dependencies_state)?;
+        for (path, sha) in dependency_digests {
+            let relative = RelativePath::parse(&path)
+                .map_err(|_| bad("object-Link current Claim dependency path"))?;
+            let size = self
+                .cut
+                .current()
+                .member(&relative)
+                .ok_or_else(|| bad("object-Link current Claim dependency membership"))?
+                .size_bytes;
+            account(
+                &mut self.bytes,
+                usize::try_from(size).map_err(|_| ItemRefusal::Budget)?,
+                self.limits.max_total_bytes,
+            )?;
+            self.release_temporary(std::mem::size_of::<(String, Digest256)>() + path.len());
+            self.record_read(PredicateRead::ExactPath {
+                path,
+                digest: sha.to_prefixed(),
+            })?;
+        }
         if current_link["association_claim_refs"] != json!([scope["claim_id"]])
             || current_link["provenance_event_ref"] != scope["provenance_event_id"]
             || current_link["uri"] != scope["uri"]
