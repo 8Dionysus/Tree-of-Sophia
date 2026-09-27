@@ -1361,12 +1361,15 @@ name = "tos-command"
 version = "0.0.0"
 dependencies = [
  "postgres",
+ "rustix",
  "serde_json",
  "tos-compiler",
+ "tos-fd-open",
  "tos-foundation",
  "tos-segment-store",
  "tos-source-store",
  "tos-validation",
+ "unicode-normalization",
 ]
 
 [[package]]

@@ -467,5 +467,7 @@ pub fn is_authored_source_path_v1(path: &str) -> bool {
 /// neither file membership, completeness nor a read permission.
 pub fn has_authored_source_descendants_v1(path: &str) -> bool {
     (path == "ToS" || path.starts_with("ToS/"))
-        && !path.split('/').any(|p| matches!(p, ".git" | "payload" | "owner-local"))
+        && !path
+            .split('/')
+            .any(|p| matches!(p, ".git" | "payload" | "owner-local"))
 }

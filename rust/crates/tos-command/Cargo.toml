@@ -17,6 +17,9 @@ tos-validation = { path = "../tos-validation" }
 tos-compiler = { path = "../tos-compiler" }
 serde_json = { version = "1", features = ["arbitrary_precision"] }
 postgres = "0.19"
+tos-fd-open = { path = "../tos-fd-open" }
+rustix = { version = "=1.1.5", features = ["fs", "process"] }
+unicode-normalization = "=0.1.24"
 
 [lib]
 name = "tos_command"
