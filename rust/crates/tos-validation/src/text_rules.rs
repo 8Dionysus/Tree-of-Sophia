@@ -215,6 +215,182 @@ fn span(value: &JsonValue) -> Option<(usize, usize)> {
     ))
 }
 
+fn append_replay(replay: &mut String, text: &str) -> Result<(), crate::item_rules::ItemRefusal> {
+    if replay
+        .len()
+        .checked_add(text.len())
+        .is_none_or(|n| n > MAX_TEXT_BYTES)
+    {
+        return Err(crate::item_rules::ItemRefusal::Budget);
+    }
+    replay.push_str(text);
+    Ok(())
+}
+
+fn replay_layer_edit_step(
+    operation: &JsonValue,
+    input: Option<(&str, &[usize])>,
+    anchor_ids: Option<&BTreeSet<&str>>,
+    cursor: &mut (usize, usize, usize),
+    replay: &mut String,
+    out: &mut TextRuleReport,
+) -> Result<(), crate::item_rules::ItemRefusal> {
+    let edit_id = string(operation, "edit_id").unwrap_or("");
+    let input_span = field(operation, "input_span").and_then(span);
+    let output_span = field(operation, "output_span").and_then(span);
+    let input_exact = string(operation, "input_exact").unwrap_or("");
+    let output_exact = string(operation, "output_exact").unwrap_or("");
+    if string(operation, "input_sha256")
+        != Some(
+            Digest256::of_bytes(input_exact.as_bytes())
+                .to_hex()
+                .as_str(),
+        )
+    {
+        out.issue("layer_edit_input_digest_drift", edit_id);
+    }
+    if string(operation, "output_sha256")
+        != Some(
+            Digest256::of_bytes(output_exact.as_bytes())
+                .to_hex()
+                .as_str(),
+        )
+    {
+        out.issue("layer_edit_output_digest_drift", edit_id);
+    }
+    let (Some((ins, ine)), Some((outs, oute))) = (input_span, output_span) else {
+        out.issue("layer_edit_span_missing", edit_id);
+        return Ok(());
+    };
+    if ine < ins || oute < outs || ins < cursor.0 || outs < cursor.1 {
+        out.issue("layer_edit_span_order_drift", edit_id);
+    }
+    if ine.saturating_sub(ins) != input_exact.chars().count()
+        || oute.saturating_sub(outs) != output_exact.chars().count()
+    {
+        out.issue("layer_edit_span_length_drift", edit_id);
+    }
+    if let Some(anchor_ids) = anchor_ids {
+        for anchor in strings(operation, "evidence_anchor_refs") {
+            if !anchor_ids.contains(anchor) {
+                out.issue("layer_edit_anchor_outside_binding", edit_id);
+            }
+        }
+        if rows(operation, "evidence_anchor_refs").is_empty() {
+            out.issue("layer_edit_anchor_missing", edit_id);
+        }
+    }
+    if let (Some(text), Some(points)) =
+        (input.map(|(text, _)| text), input.map(|(_, points)| points))
+    {
+        if cursor.0 < points.len()
+            && ins < points.len()
+            && ine < points.len()
+            && cursor.0 <= ins
+            && ins <= ine
+        {
+            let unchanged = &text[points[cursor.0]..points[ins]];
+            append_replay(replay, unchanged)?;
+            cursor.2 += ins - cursor.0;
+            if &text[points[ins]..points[ine]] != input_exact {
+                out.issue("layer_edit_input_text_drift", edit_id);
+            }
+            if outs != cursor.2 || outs.checked_add(output_exact.chars().count()) != Some(oute) {
+                out.issue("layer_edit_output_alignment_drift", edit_id);
+            }
+            append_replay(replay, output_exact)?;
+            cursor.2 += output_exact.chars().count();
+        } else {
+            out.issue("layer_edit_input_outside_predecessor", edit_id);
+        }
+    }
+    cursor.0 = cursor.0.max(ine);
+    cursor.1 = cursor.1.max(oute);
+    Ok(())
+}
+
+/// Replay explicit edits against independently selected predecessor and output
+/// text. This checks content arithmetic and fixity only; it does not verify
+/// custody, layer responsibility, normalization, rights or source admission.
+pub fn replay_source_text_layer_edits(
+    input: &str,
+    output: &str,
+    operations: &[JsonValue],
+    deadline: std::time::Instant,
+    cancelled: &std::sync::atomic::AtomicBool,
+) -> Result<(), crate::item_rules::ItemRefusal> {
+    use crate::item_rules::ItemRefusal;
+    let checkpoint = || {
+        if cancelled.load(std::sync::atomic::Ordering::Relaxed) {
+            return Err(ItemRefusal::Unsupported(
+                "text edit replay cancelled".into(),
+            ));
+        }
+        if std::time::Instant::now() >= deadline {
+            return Err(ItemRefusal::Deadline);
+        }
+        Ok(())
+    };
+    checkpoint()?;
+    if input.len() > MAX_TEXT_BYTES || output.len() > MAX_TEXT_BYTES || operations.len() > MAX_ROWS
+    {
+        return Err(ItemRefusal::Budget);
+    }
+    let mut edit_bytes = 0usize;
+    for operation in operations {
+        checkpoint()?;
+        if field(operation, "input_span").and_then(span).is_none()
+            || field(operation, "output_span").and_then(span).is_none()
+            || [
+                "input_exact",
+                "output_exact",
+                "input_sha256",
+                "output_sha256",
+            ]
+            .iter()
+            .any(|key| string(operation, key).is_none())
+        {
+            return Err(ItemRefusal::Source("layer_edit_required_fields".into()));
+        }
+        edit_bytes = edit_bytes
+            .checked_add(string(operation, "input_exact").unwrap().len())
+            .and_then(|n| n.checked_add(string(operation, "output_exact").unwrap().len()))
+            .filter(|n| *n <= MAX_TEXT_BYTES * 2)
+            .ok_or(ItemRefusal::Budget)?;
+    }
+    let points: Vec<usize> = input
+        .char_indices()
+        .map(|(i, _)| i)
+        .chain(std::iter::once(input.len()))
+        .collect();
+    let mut cursor = (0, 0, 0);
+    let mut replay = String::new();
+    let mut report = TextRuleReport::new_for(TEXT_LAYER_RULE_ID);
+    for operation in operations {
+        checkpoint()?;
+        replay_layer_edit_step(
+            operation,
+            Some((input, &points)),
+            None,
+            &mut cursor,
+            &mut replay,
+            &mut report,
+        )?;
+        if let Some(issue) = report.issues.first() {
+            return Err(ItemRefusal::Source(format!(
+                "{}: {}",
+                issue.code, issue.subject
+            )));
+        }
+    }
+    append_replay(&mut replay, &input[points[cursor.0]..])?;
+    checkpoint()?;
+    if replay != output {
+        return Err(ItemRefusal::Source("layer_edit_replay_output_drift".into()));
+    }
+    Ok(())
+}
+
 /// One exact snapshot resource. The caller must bind these bytes to the same
 /// serializable cut as the layer; the helper never reopens a path.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -996,9 +1172,7 @@ pub fn inspect_source_text_layer_v1(
         out.unsupported_profiles
             .push("explicit-operations-multiple-inputs".into());
     }
-    let mut in_end = 0usize;
-    let mut out_end = 0usize;
-    let mut output_cursor = 0usize;
+    let mut cursor = (0usize, 0usize, 0usize);
     let mut replay = String::new();
     let input_points: Option<Vec<usize>> = input_text.as_deref().map(|text| {
         text.char_indices()
@@ -1007,7 +1181,6 @@ pub fn inspect_source_text_layer_v1(
             .collect()
     });
     for operation in operations {
-        let edit_id = string(operation, "edit_id").unwrap_or("");
         layer_maker_configuration(
             id,
             field(operation, "responsibility").unwrap_or(&NULL_JSON),
@@ -1019,80 +1192,29 @@ pub fn inspect_source_text_layer_v1(
             out.unsupported_profiles
                 .push("unicode-normalization-edit".into());
         }
-        let input_span = field(operation, "input_span").and_then(span);
-        let output_span = field(operation, "output_span").and_then(span);
-        let input_exact = string(operation, "input_exact").unwrap_or("");
-        let output_exact = string(operation, "output_exact").unwrap_or("");
-        if string(operation, "input_sha256")
-            != Some(
-                Digest256::of_bytes(input_exact.as_bytes())
-                    .to_hex()
-                    .as_str(),
-            )
+        let input = input_text.as_deref().zip(input_points.as_deref());
+        if replay_layer_edit_step(
+            operation,
+            input,
+            Some(&anchor_ids),
+            &mut cursor,
+            &mut replay,
+            &mut out,
+        )
+        .is_err()
         {
-            out.issue("layer_edit_input_digest_drift", edit_id);
+            out.state = TextRuleState::BudgetExceeded;
+            return out;
         }
-        if string(operation, "output_sha256")
-            != Some(
-                Digest256::of_bytes(output_exact.as_bytes())
-                    .to_hex()
-                    .as_str(),
-            )
-        {
-            out.issue("layer_edit_output_digest_drift", edit_id);
-        }
-        let (Some((ins, ine)), Some((outs, oute))) = (input_span, output_span) else {
-            out.issue("layer_edit_span_missing", edit_id);
-            continue;
-        };
-        if ine < ins || oute < outs || ins < in_end || outs < out_end {
-            out.issue("layer_edit_span_order_drift", edit_id);
-        }
-        if ine.saturating_sub(ins) != input_exact.chars().count()
-            || oute.saturating_sub(outs) != output_exact.chars().count()
-        {
-            out.issue("layer_edit_span_length_drift", edit_id);
-        }
-        for anchor in strings(operation, "evidence_anchor_refs") {
-            if !anchor_ids.contains(anchor) {
-                out.issue("layer_edit_anchor_outside_binding", edit_id);
-            }
-        }
-        if rows(operation, "evidence_anchor_refs").is_empty() {
-            out.issue("layer_edit_anchor_missing", edit_id);
-        }
-        if let (Some(text), Some(points)) = (input_text.as_deref(), input_points.as_deref()) {
-            if in_end < points.len()
-                && ins < points.len()
-                && ine < points.len()
-                && in_end <= ins
-                && ins <= ine
-            {
-                let unchanged = &text[points[in_end]..points[ins]];
-                replay.push_str(unchanged);
-                output_cursor += ins - in_end;
-                if &text[points[ins]..points[ine]] != input_exact {
-                    out.issue("layer_edit_input_text_drift", edit_id);
-                }
-                if outs != output_cursor
-                    || outs.checked_add(output_exact.chars().count()) != Some(oute)
-                {
-                    out.issue("layer_edit_output_alignment_drift", edit_id);
-                }
-                replay.push_str(output_exact);
-                output_cursor += output_exact.chars().count();
-            } else {
-                out.issue("layer_edit_input_outside_predecessor", edit_id);
-            }
-        }
-        in_end = in_end.max(ine);
-        out_end = out_end.max(oute);
     }
     if let (Some(input), Some(output)) = (input_text.as_deref(), selected) {
         if !operations.is_empty() {
             if let Some(points) = input_points.as_deref() {
-                if in_end < points.len() {
-                    replay.push_str(&input[points[in_end]..]);
+                if cursor.0 < points.len() {
+                    if append_replay(&mut replay, &input[points[cursor.0]..]).is_err() {
+                        out.state = TextRuleState::BudgetExceeded;
+                        return out;
+                    }
                 }
             }
             if replay != output {
