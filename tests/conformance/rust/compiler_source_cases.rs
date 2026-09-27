@@ -1373,7 +1373,7 @@ sys.stdout.write(owner.render_payload(payload))
         &selected_path,
         stage_limits,
         ExactInputReceipt {
-            binding: selected_binding,
+            binding: selected_binding.clone(),
             collections: selected_collections,
         },
         &owner,
@@ -1452,7 +1452,7 @@ sys.stdout.write(owner.render_payload(payload))
     let original = tos_compiler::prepare_native_corpus_original(
         &projection,
         &tos_foundation::RelativePath::parse(&output_path).unwrap(),
-        &selected_stage.exact_receipt().binding,
+        &selected_binding,
         &vocabulary,
         tos_compiler::CorpusOriginalSourceLimits {
             originals,
