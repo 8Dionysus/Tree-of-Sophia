@@ -1069,7 +1069,8 @@ fn normalized_selected_philosophy_reads_match_original_python_packets_and_hold_p
     ));
     let projection = JsonValue::Object(projection);
     let script = r#"
-import json,sys
+import json,sys,tempfile
+from pathlib import Path
 sys.path.insert(0,sys.argv[1])
 from tos_access.core import ToSAccessCore
 payload=json.load(sys.stdin)
@@ -1077,7 +1078,8 @@ payload=json.load(sys.stdin)
 # the software oracle supplies no native current/disclosure authority.
 class OriginalProjectionCore(ToSAccessCore):
  def philosophy_projection(self):return payload
-core=OriginalProjectionCore.__new__(OriginalProjectionCore)
+oracle_root=tempfile.TemporaryDirectory(prefix='tos-query-phi-oracle-')
+core=OriginalProjectionCore.discover(tos_root=Path(oracle_root.name))
 left,right=payload['nodes'][0]['node_id'],payload['nodes'][1]['node_id']
 edge=payload['edges'][0]['edge_id'];view=payload['views'][0]['view_id']
 cases={
