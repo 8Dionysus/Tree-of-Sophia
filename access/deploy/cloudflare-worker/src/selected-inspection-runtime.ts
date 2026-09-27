@@ -52,7 +52,7 @@ export async function respondInspectionSnapshot(runtime:InspectionModule, select
       const raw=session.need();
       if(raw===undefined){bytes=session.finish();break;}
       // This is the pinned Rust physical need, not a caller-supplied query.
-      const need=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(raw)) as InspectionNeed;
+      const need=JSON.parse(new TextDecoder('utf-8',{fatal:true,ignoreBOM:true}).decode(raw)) as InspectionNeed;
       switch(need.operation) {
         case 'lookup': {
           const rows=await selected.lookup(need);await check();session.resume_lookup(rows);break;
