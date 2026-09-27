@@ -1356,3 +1356,12 @@ install the Python entrypoint and do not include the native ELF. Native archive
 assembly and actual extracted startup require their own admitted product and
 runtime evidence; they do not establish wheel migration or managed data
 custody.
+
+Software source observations use the same retained source-directory descriptor
+as member reads, including the final Git check. Renaming or replacing the
+original directory pathname does not select another checkout for those
+observations. Changed HEAD/tree, a dirty selected closure, changed retained
+member identity/size/SHA, inaccessible retained Git state or a failed/bounded
+Git observation refuses the candidate. Git subdirectory and linked-worktree
+discovery is preserved; ambient Git directory/worktree/index overrides cannot
+select another source.

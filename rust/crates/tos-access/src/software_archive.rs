@@ -316,35 +316,54 @@ fn walk(
     }
     Ok(())
 }
-fn git(root: &Path, args: &[&str]) -> Result<String> {
+fn git(root: &File, args: &[&str]) -> Result<String> {
+    // The child changes directory through this parent's retained descriptor.
+    // Git discovers the actual checkout from that directory, preserving its
+    // normal subdirectory and linked-worktree semantics after a path rename.
+    let cwd = format!("/proc/{}/fd/{}", std::process::id(), root.as_raw_fd());
     let mut process = Command::new("git")
         .args(args)
-        .current_dir(root)
+        .current_dir(cwd)
+        .env_remove("GIT_DIR")
+        .env_remove("GIT_WORK_TREE")
+        .env_remove("GIT_INDEX_FILE")
+        .env_remove("GIT_COMMON_DIR")
         .stdout(Stdio::piped())
         .stderr(Stdio::null())
         .spawn()
         .checked()?;
     let mut raw = Vec::new();
-    process
-        .stdout
-        .take()
-        .ok_or("git stdout absent")?
-        .take(65_537)
-        .read_to_end(&mut raw)
-        .checked()?;
+    let Some(stdout) = process.stdout.take() else {
+        let _ = process.kill();
+        let _ = process.wait();
+        return Err("git stdout absent".into());
+    };
+    if let Err(error) = stdout.take(65_537).read_to_end(&mut raw) {
+        let _ = process.kill();
+        let _ = process.wait();
+        return Err(error.to_string());
+    }
     if raw.len() > 65_536 {
         let _ = process.kill();
         let _ = process.wait();
         return Err("software Git status exceeds bounded output".into());
     }
-    if !process.wait().checked()?.success() {
+    let status = match process.wait() {
+        Ok(status) => status,
+        Err(error) => {
+            let _ = process.kill();
+            let _ = process.wait();
+            return Err(error.to_string());
+        }
+    };
+    if !status.success() {
         return Err("software Git command failed".into());
     }
     String::from_utf8(raw)
         .checked()
         .map(|s| s.trim().to_owned())
 }
-fn source(root: &Path) -> Result<(String, String)> {
+fn source(root: &File) -> Result<(String, String)> {
     let head = git(root, &["rev-parse", "HEAD"])?;
     let tree = git(root, &["rev-parse", "HEAD^{tree}"])?;
     let status = git(
@@ -581,7 +600,7 @@ pub fn build(
         }
     }
     let root_fd = tos_fd_open::open_absolute_directory(root).checked()?;
-    let (head, tree) = source(root)?;
+    let (head, tree) = source(&root_fd)?;
     if head != source_ref {
         return Err("source_ref differs from HEAD".into());
     }
@@ -850,7 +869,7 @@ pub fn build(
         return Err("compressed software archive exceeds budget".into());
     }
     // Current Git and all retained source identities must still hold at finish.
-    if source(root)? != (head.clone(), tree) {
+    if source(&root_fd)? != (head.clone(), tree) {
         return Err("software source changed during assembly".into());
     }
     for m in inputs.values() {
