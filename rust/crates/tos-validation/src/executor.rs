@@ -319,7 +319,10 @@ impl BatchCoverageExpectation {
             }
             manifest.update(batch_unit_digest(unit)?.as_bytes());
         }
-        Ok(Self { count: units.len() as u64, ordered_manifest_sha256: manifest.finalize() })
+        Ok(Self {
+            count: units.len() as u64,
+            ordered_manifest_sha256: manifest.finalize(),
+        })
     }
 }
 
@@ -439,11 +442,21 @@ impl BoundedSchemaExecutor {
     ) -> BatchOutcome {
         #[cfg(all(target_os = "linux", target_pointer_width = "64"))]
         {
-            native::evaluate_batch(worker, resources, profile, units, expected, budget, Some(cancelled))
+            native::evaluate_batch(
+                worker,
+                resources,
+                profile,
+                units,
+                expected,
+                budget,
+                Some(cancelled),
+            )
         }
         #[cfg(not(all(target_os = "linux", target_pointer_width = "64")))]
         {
-            let _ = (worker, resources, profile, units, expected, budget, cancelled);
+            let _ = (
+                worker, resources, profile, units, expected, budget, cancelled,
+            );
             BatchOutcome::Incomplete {
                 receipts: Vec::new(),
                 checkpoint: BatchCoverageCheckpoint {
@@ -2491,23 +2504,47 @@ mod native {
                 uri: target.into(),
                 raw: format!(r#"{{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"{target}","$defs":{{"code":{{"const":"owned"}}}}}}"#).into_bytes(),
             }];
-            let mut units = vec![batch_unit(0, br#""owned""#), batch_unit(1, br#""other""#), batch_unit(2, b"3")];
+            let mut units = vec![
+                batch_unit(0, br#""owned""#),
+                batch_unit(1, br#""other""#),
+                batch_unit(2, b"3"),
+            ];
             units[0].root_uri = format!("{root}#/$defs/scoped/properties/a~1b~0c");
             units[1].root_uri = units[0].root_uri.clone();
             units[2].root_uri = format!("{root}#/$defs/deny");
             let expected = BatchCoverageExpectation::from_units(&units).unwrap();
-            let prepared = make_batch_request(Digest256::of_bytes(b"fixture-worker"),
-                &resources, FormatProfile::AssertedSourceCandidateV1, units, BatchBudget::laboratory()).unwrap();
-            assert_eq!(prepared.ordered_manifest_sha256, expected.ordered_manifest_sha256);
+            let prepared = make_batch_request(
+                Digest256::of_bytes(b"fixture-worker"),
+                &resources,
+                FormatProfile::AssertedSourceCandidateV1,
+                units,
+                BatchBudget::laboratory(),
+            )
+            .unwrap();
+            assert_eq!(
+                prepared.ordered_manifest_sha256,
+                expected.ordered_manifest_sha256
+            );
             let mut output = Vec::new();
-            batch_worker_once(std::io::Cursor::new(&prepared.frame[8..]), &mut output, *BATCH_REQUEST_MAGIC).unwrap();
+            batch_worker_once(
+                std::io::Cursor::new(&prepared.frame[8..]),
+                &mut output,
+                *BATCH_REQUEST_MAGIC,
+            )
+            .unwrap();
             assert_eq!(output.len(), BATCH_ACK_BYTES + 3 * BATCH_UNIT_BYTES);
             assert_eq!(&output[8..40], prepared.request_sha256.as_bytes());
             assert_eq!(&output[40..72], prepared.schema_set_sha256.as_bytes());
             for (ordinal, verdict) in [0u8, 1, 1].into_iter().enumerate() {
                 let start = BATCH_ACK_BYTES + ordinal * BATCH_UNIT_BYTES;
-                assert_eq!(&output[start + 8..start + 16], &(ordinal as u64).to_be_bytes());
-                assert_eq!(&output[start + 16..start + 48], prepared.units[ordinal].unit_sha256.as_bytes());
+                assert_eq!(
+                    &output[start + 8..start + 16],
+                    &(ordinal as u64).to_be_bytes()
+                );
+                assert_eq!(
+                    &output[start + 16..start + 48],
+                    prepared.units[ordinal].unit_sha256.as_bytes()
+                );
                 assert_eq!(output[start + 48], verdict);
             }
         }
@@ -2517,15 +2554,35 @@ mod native {
             let units = vec![batch_unit(0, b"7")];
             let expected = BatchCoverageExpectation::from_units(&units).unwrap();
             let outcome = BoundedSchemaExecutor::evaluate_batch_cancellable(
-                &ExactWorkerIdentity { absolute_path: PathBuf::from("/absent-worker"), sha256: Digest256::of_bytes(b"") },
-                &batch_schema(), FormatProfile::AssertedSourceCandidateV1, units,
-                expected, BatchBudget::laboratory(), &AtomicBool::new(true));
-            assert!(matches!(outcome, BatchOutcome::Incomplete { reason: ExecutorFailure::Cancelled, receipts, .. } if receipts.is_empty()));
+                &ExactWorkerIdentity {
+                    absolute_path: PathBuf::from("/absent-worker"),
+                    sha256: Digest256::of_bytes(b""),
+                },
+                &batch_schema(),
+                FormatProfile::AssertedSourceCandidateV1,
+                units,
+                expected,
+                BatchBudget::laboratory(),
+                &AtomicBool::new(true),
+            );
+            assert!(
+                matches!(outcome, BatchOutcome::Incomplete { reason: ExecutorFailure::Cancelled, receipts, .. } if receipts.is_empty())
+            );
             let image = fixture_image("/usr/bin/sleep");
-            let argv = [c"sleep".as_ptr() as *mut libc::c_char, c"2".as_ptr() as *mut libc::c_char, std::ptr::null_mut()];
+            let argv = [
+                c"sleep".as_ptr() as *mut libc::c_char,
+                c"2".as_ptr() as *mut libc::c_char,
+                std::ptr::null_mut(),
+            ];
             let budget = BatchBudget::laboratory();
-            let prepared = make_batch_request(Digest256::of_bytes(b"fixture-worker"), &batch_schema(),
-                FormatProfile::AssertedSourceCandidateV1, [batch_unit(0, b"7")], budget).unwrap();
+            let prepared = make_batch_request(
+                Digest256::of_bytes(b"fixture-worker"),
+                &batch_schema(),
+                FormatProfile::AssertedSourceCandidateV1,
+                [batch_unit(0, b"7")],
+                budget,
+            )
+            .unwrap();
             let mut results = Digest256Hasher::new();
             results.update(b"tos-val2-batch-results-v1\0");
             let cancelled = AtomicBool::new(false);
@@ -2535,9 +2592,19 @@ mod native {
                     std::thread::sleep(Duration::from_millis(20));
                     cancelled.store(true, Ordering::Relaxed);
                 });
-                run_batch_image_cancellable(image, prepared, results, budget, start, &argv, Some(&cancelled))
+                run_batch_image_cancellable(
+                    image,
+                    prepared,
+                    results,
+                    budget,
+                    start,
+                    &argv,
+                    Some(&cancelled),
+                )
             });
-            assert!(matches!(outcome, BatchOutcome::Incomplete { reason: ExecutorFailure::Cancelled, receipts, .. } if receipts.is_empty()));
+            assert!(
+                matches!(outcome, BatchOutcome::Incomplete { reason: ExecutorFailure::Cancelled, receipts, .. } if receipts.is_empty())
+            );
             assert!(start.elapsed() < Duration::from_millis(700));
         }
 

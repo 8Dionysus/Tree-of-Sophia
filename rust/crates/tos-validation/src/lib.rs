@@ -23,8 +23,8 @@ pub mod layer_family_cut;
 pub mod layer_family_rules;
 pub mod operation;
 pub mod provenance_rules;
-pub mod record_rules;
 pub mod record_biblio_cut;
+pub mod record_rules;
 pub mod relation_rules;
 pub mod retirement_rules;
 pub mod rights_rules;
@@ -32,8 +32,8 @@ pub mod source_copy;
 pub mod source_cut;
 pub mod source_forms;
 pub mod source_shapes;
-pub mod text_rules;
 pub mod text_metadata_rules;
+pub mod text_rules;
 
 /// An immutable private prepare view over an exact base plus proposed delta.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -382,15 +382,24 @@ fn published_value(raw: &[u8], max_bytes: usize) -> Result<Value, SchemaProbeErr
 /// Native source loaders retain last decoded field semantics, while FND owns
 /// parsing budgets. A Python-admitted WTF-16 scalar gap is Unsupported, never
 /// relabeled as an invalid source instance by serde's narrower representation.
-pub(crate) fn native_decoded_value(raw: &[u8], max_bytes: usize) -> Result<Value, crate::item_rules::ItemRefusal> {
+pub(crate) fn native_decoded_value(
+    raw: &[u8],
+    max_bytes: usize,
+) -> Result<Value, crate::item_rules::ItemRefusal> {
     use crate::item_rules::ItemRefusal;
-    let limits=JsonLimits::new(max_bytes,64,300_000,4_300).map_err(|_|ItemRefusal::Budget)?;
-    parse_json(raw,JsonMode::RequestLastWins,limits).map_err(|error|{
-        if error.code==FoundationErrorCode::BudgetExceeded {ItemRefusal::Budget}
-        else {ItemRefusal::Source("invalid finite native JSON".into())}
+    let limits = JsonLimits::new(max_bytes, 64, 300_000, 4_300).map_err(|_| ItemRefusal::Budget)?;
+    parse_json(raw, JsonMode::RequestLastWins, limits).map_err(|error| {
+        if error.code == FoundationErrorCode::BudgetExceeded {
+            ItemRefusal::Budget
+        } else {
+            ItemRefusal::Source("invalid finite native JSON".into())
+        }
     })?;
-    serde_json::from_slice(raw).map_err(|_|ItemRefusal::Unsupported(
-        "native JSON representation outside the scalar-string Rust profile".into()))
+    serde_json::from_slice(raw).map_err(|_| {
+        ItemRefusal::Unsupported(
+            "native JSON representation outside the scalar-string Rust profile".into(),
+        )
+    })
 }
 
 pub struct SchemaBackendProbe {
@@ -506,7 +515,10 @@ impl SchemaBackendProbe {
     }
 
     /// Keep fragment resolution inside the original registry and its $id scopes.
-    fn selected_schema(&self, root_uri: &str) -> Result<std::borrow::Cow<'_, Value>, SchemaProbeError> {
+    fn selected_schema(
+        &self,
+        root_uri: &str,
+    ) -> Result<std::borrow::Cow<'_, Value>, SchemaProbeError> {
         let (base_uri, fragment) = match root_uri.split_once('#') {
             Some((base, fragment))
                 if !base.is_empty() && fragment.starts_with('/') && !fragment.contains('#') =>
