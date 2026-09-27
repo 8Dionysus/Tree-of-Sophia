@@ -422,8 +422,11 @@ impl SourceCatalogValidator<'_> {
             ExecutorOutcome::SchemaInvalid(_) | ExecutorOutcome::InputRejected(_) => Err(
                 Error::Invalid("source catalog exact native schema rejected"),
             ),
-            _ => Err(Error::Invalid(
-                "source catalog native validation indeterminate",
+            ExecutorOutcome::Indeterminate { reason, identity } => Err(Error::Source(format!(
+                "catalog schema execution incomplete: root={root}; reason={reason:?}; identity={identity:?}"
+            ))),
+            ExecutorOutcome::SchemaValid(_) => Err(Error::Invalid(
+                "source catalog native validation identity mismatch",
             )),
         }
     }
