@@ -60,9 +60,19 @@ pub struct FullKnowledgeFixture {
     pub vocabulary: QueryVocabulary,
     pub descriptor_bytes: Vec<u8>,
     pub graph_input_bytes: Vec<u8>,
+    entity_registry_bytes: Vec<u8>,
+    relation_registry_bytes: Vec<u8>,
     custody: FixtureCustody,
 }
 impl FullKnowledgeFixture {
+    /// Original caller inputs already bound by compile_full_knowledge_components.
+    /// The selected consumer still checks exact registry identity/version/SHA.
+    pub fn entity_registry_bytes(&self) -> &[u8] {
+        &self.entity_registry_bytes
+    }
+    pub fn relation_registry_bytes(&self) -> &[u8] {
+        &self.relation_registry_bytes
+    }
     pub fn open(&self) -> Result<VerifiedKnowledgeModel<'_>> {
         open_selected_knowledge_model(
             &self.path,
@@ -425,6 +435,8 @@ fn finish_fixture(
         vocabulary,
         descriptor_bytes,
         graph_input_bytes: serde_json::to_vec(&graph).unwrap(),
+        entity_registry_bytes: entity_bytes.to_vec(),
+        relation_registry_bytes: relation_bytes.to_vec(),
         custody: FixtureCustody,
     }
 }
