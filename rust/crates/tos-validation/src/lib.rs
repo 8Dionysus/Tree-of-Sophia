@@ -14,11 +14,9 @@ use tos_foundation::{
     Digest256, Digest256Hasher, FoundationErrorCode, JsonLimits, JsonMode, JsonValue, parse_json,
 };
 
-mod audit;
 pub mod assessment;
 pub mod biblio_rules;
 pub mod executor;
-mod global_facts;
 pub mod item_rules;
 pub mod layer_family_cut;
 pub mod layer_family_rules;

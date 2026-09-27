@@ -666,7 +666,7 @@ fn layer_maker_configuration(
 }
 
 /// Mechanical source-text-layer v1 observation over exact snapshot bytes.
-/// This probe is not an AuditRule while schema_checked is caller asserted.
+/// This probe does not establish schema validation while schema_checked is caller asserted.
 /// Every declared external reference must be present in `resources`; otherwise
 /// the result is Unsupported. Unicode normalization profiles remain explicit
 /// Unsupported until a pinned Unicode algorithm is available.

@@ -15,6 +15,26 @@ use tos_foundation::{
 };
 use tos_source_store::{CorpusCutReader, SourceMembershipV1};
 
+/// The source-derived, general-audit rows. A source operation may exclude a
+/// row only through a separately reviewed owner profile, never by omission
+/// from a caller-supplied module list.
+pub(crate) const REQUIRED_GENERAL_ROWS: [&str; 14] = [
+    "tos.val.source.member-shape.v1",
+    "tos.val.source.profile-route.v1",
+    "tos.val.source.identity-version.v1",
+    "tos.val.source.bibliographic-links.v1",
+    "tos.val.source.item-fixity.v1",
+    "tos.val.source.rights-visibility.v1",
+    "tos.val.source.provenance.v1",
+    "tos.val.source.claim-closure.v1",
+    "tos.val.source.bibliographic-topology.v1",
+    "tos.val.source.artifact-representation.v1",
+    "tos.val.source.text-layers.v1",
+    "tos.val.source.transfer-research.v1",
+    "tos.val.source.catalog-currentness.v1",
+    "tos.val.source.retirement.v1",
+];
+
 use crate::PredicateRead;
 use crate::biblio_rules::{SourceCutBiblioReport, inspect_bibliography_from_cut};
 use crate::item_rules::{ItemFamilyReport, ItemLimits, ItemRefusal};
@@ -480,7 +500,7 @@ impl OperationFamilyReport {
     pub fn general_source_missing_rules(&self) -> Vec<String> {
         // Local family results cannot satisfy any entire general row merely
         // because a positive fixture or a worker instance was green.
-        crate::audit::REQUIRED_GENERAL_ROWS
+        REQUIRED_GENERAL_ROWS
             .iter()
             .map(|rule| (*rule).into())
             .collect()
@@ -591,7 +611,7 @@ pub fn inspect_retirement_operation(
         OperationFamilyState::MechanicsComplete
     } else {
         OperationFamilyState::MissingRules {
-            rule_ids: crate::audit::REQUIRED_GENERAL_ROWS
+            rule_ids: REQUIRED_GENERAL_ROWS
                 .iter()
                 .map(|rule| (*rule).into())
                 .collect(),
@@ -793,7 +813,7 @@ pub fn inspect_general_operation(
     }
     let state = if issues.is_empty() {
         OperationFamilyState::MissingRules {
-            rule_ids: crate::audit::REQUIRED_GENERAL_ROWS
+            rule_ids: REQUIRED_GENERAL_ROWS
                 .iter()
                 .map(|rule| (*rule).into())
                 .collect(),

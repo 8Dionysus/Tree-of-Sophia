@@ -15,8 +15,8 @@ use tos_source_store::{
 
 use crate::executor::{
     BatchBudget, BatchCoverageCheckpoint, BatchCoverageExpectation, BatchOutcome, BatchUnit,
-    BatchUnitVerdict, BoundedSchemaExecutor, ExactWorkerIdentity, ExecutionIdentity,
-    ExecutorBudget, ExecutorFailure, ExecutorOutcome,
+    BatchUnitVerdict, ExactWorkerIdentity, ExecutionIdentity, ExecutorBudget, ExecutorFailure,
+    ExecutorOutcome, PreparedSchemaWorker,
 };
 use crate::item_rules::{
     ItemFamilyReport, ItemLimits, ItemPayload, ItemRefusal, ItemRules, ItemSource,
@@ -101,7 +101,7 @@ pub struct CutExecutionBinding {
 
 pub struct CutWorkerSchemaExecutor {
     revision: SourceRevision,
-    resources: Vec<SchemaResource>,
+    prepared: PreparedSchemaWorker,
     contracts: BTreeMap<String, (String, Digest256)>,
     schema_set_digest: Digest256,
     profile: FormatProfile,
@@ -177,9 +177,20 @@ impl CutWorkerSchemaExecutor {
             })?
             .schema_set_digest();
         check(deadline, cancelled)?;
+        let prepared = PreparedSchemaWorker::prepare(
+            &worker, &resources, profile, budget, deadline, cancelled,
+        )
+        .map_err(|reason| match reason {
+            ExecutorFailure::Timeout => ItemRefusal::Deadline,
+            ExecutorFailure::Cancelled => {
+                ItemRefusal::Source("schema preparation cancelled".into())
+            }
+            other => ItemRefusal::Unsupported(format!("schema worker preparation: {other:?}")),
+        })?;
+        check(deadline, cancelled)?;
         Ok(Self {
             revision,
-            resources,
+            prepared,
             contracts,
             schema_set_digest,
             profile,
@@ -303,15 +314,9 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
         budget.total_execution_wall = budget.total_execution_wall.min(remaining);
         budget.startup_wall = budget.startup_wall.min(budget.total_execution_wall);
         budget.per_unit_wall = budget.per_unit_wall.min(budget.total_execution_wall);
-        let outcome = BoundedSchemaExecutor::evaluate_batch_cancellable(
-            &self.worker,
-            &self.resources,
-            self.profile,
-            units.clone(),
-            expected,
-            budget,
-            cancelled,
-        );
+        let outcome = self
+            .prepared
+            .evaluate_batch(&units, expected, budget, deadline, cancelled);
         check(deadline, cancelled)?;
         let (receipts, checkpoint) = match outcome {
             BatchOutcome::Complete {
@@ -454,15 +459,9 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
             .checked_duration_since(Instant::now())
             .ok_or(ItemRefusal::Deadline)?;
         budget.execution_wall = budget.execution_wall.min(remaining);
-        let result = BoundedSchemaExecutor::evaluate_cancellable(
-            &self.worker,
-            &self.resources,
-            self.profile,
-            &uri,
-            &worker_raw,
-            budget,
-            cancelled,
-        );
+        let result = self
+            .prepared
+            .evaluate(&uri, &worker_raw, budget, deadline, cancelled);
         check(deadline, cancelled)?;
         let (execution, valid) = match result {
             ExecutorOutcome::SchemaValid(identity) => (identity, true),

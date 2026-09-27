@@ -1,7 +1,7 @@
 //! Source-cut composition of existing record rules and bounded schema plans.
 //! Retained cuts are read to EOF but never enter current identity joins.
 use crate::executor::{
-    BoundedSchemaExecutor, ExactWorkerIdentity, ExecutorBudget, ExecutorFailure, ExecutorOutcome,
+    ExactWorkerIdentity, ExecutorBudget, ExecutorFailure, ExecutorOutcome, VerifiedWorkerImage,
 };
 use crate::item_rules::{ItemLimits, ItemRefusal};
 use crate::record_rules::{
@@ -21,12 +21,15 @@ const REGISTRY_SCHEMA: &str = "ToS/contracts/semantic-entity-type-registry.schem
 
 /// Resource-plan execution reuses the same disposable Draft2020-12 worker;
 /// common-schema plans do not fit a contract-path-only schema interface.
+/// The exact image is retained through this operation's first deadline; each
+/// varying schema plan still has its own isolated invocation and digest.
 pub struct BiblioRecordExecutor {
     pub worker: ExactWorkerIdentity,
     pub budget: ExecutorBudget,
     pub profile: FormatProfile,
     pub max_executions: usize,
     executions: usize,
+    image: Option<VerifiedWorkerImage>,
 }
 impl BiblioRecordExecutor {
     pub fn new(
@@ -41,6 +44,7 @@ impl BiblioRecordExecutor {
             profile,
             max_executions,
             executions: 0,
+            image: None,
         }
     }
     fn evaluate(
@@ -64,13 +68,41 @@ impl BiblioRecordExecutor {
                 .checked_duration_since(Instant::now())
                 .ok_or(ItemRefusal::Deadline)?,
         );
-        let result = BoundedSchemaExecutor::evaluate_cancellable(
-            &self.worker,
+        if self
+            .image
+            .as_ref()
+            .is_some_and(|image| !image.matches(&self.worker))
+        {
+            return Err(ItemRefusal::Source(
+                "record operation worker identity changed".into(),
+            ));
+        }
+        let started = Instant::now();
+        if self.image.is_none() {
+            self.image = Some(
+                VerifiedWorkerImage::prepare(&self.worker, budget, limits.deadline, cancelled)
+                    .map_err(|reason| match reason {
+                        ExecutorFailure::Timeout => ItemRefusal::Deadline,
+                        ExecutorFailure::Cancelled => {
+                            ItemRefusal::Source("record schema cancelled".into())
+                        }
+                        other => ItemRefusal::Unsupported(format!(
+                            "record worker preparation: {other:?}"
+                        )),
+                    })?,
+            );
+        }
+        budget.execution_wall = budget.execution_wall.saturating_sub(started.elapsed());
+        if budget.execution_wall.is_zero() {
+            return Err(ItemRefusal::Deadline);
+        }
+        let result = self.image.as_ref().unwrap().evaluate(
             resources,
             self.profile,
             root,
             raw,
             budget,
+            limits.deadline,
             cancelled,
         );
         check(limits.deadline, cancelled)?;
