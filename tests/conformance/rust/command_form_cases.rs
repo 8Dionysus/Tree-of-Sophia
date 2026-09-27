@@ -648,7 +648,10 @@ fn maintained_forms_propose_exact_bytes_bind_real_cut_and_refuse_unissued_admiss
                     "recast" => {
                         source["schema_version"] = serde_json::json!("tos_corpus_record_v1")
                     }
-                    "private" => source["visibility"] = serde_json::json!("local_only"),
+                    "private" => {
+                        assert_eq!(source["authority"]["visibility"], "public_metadata_only");
+                        source["authority"]["visibility"] = serde_json::json!("local_only");
+                    }
                     "version" => {
                         source["record_version"] =
                             serde_json::json!(source["record_version"].as_u64().unwrap() + 1)
