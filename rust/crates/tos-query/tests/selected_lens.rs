@@ -1454,44 +1454,58 @@ from pathlib import Path
 repo=Path(sys.argv[1]);sys.path[:0]=[str(repo/'access/src'),str(repo/'access/tests'),str(repo/'scripts')]
 from fixture_support import write_corpus_topology_fixture
 from corpus_archive import capture_git,restore_capture
+from partitioned_projection_common import write_partitioned_payload
+from tos_access.projection_store import load_projection
 from tos_access.core import ToSAccessCore
-base=Path(tempfile.mkdtemp(prefix='tos-query-corpus-'));source=base/'source';source.mkdir()
-write_corpus_topology_fixture(source)
-source_path='ToS/derived-exports/tos_corpus_index.min.json'
-index_path=source/source_path;payload=json.loads(index_path.read_text())
-# Reuse existing identities: plural matches and last-row resolution cannot be
-# silently collapsed by the selected component's indexes.
-payload['nodes'].append({**payload['nodes'][0], 'label':payload['nodes'][0]['label']+' duplicate'})
-payload['relation_packs'].append(dict(payload['relation_packs'][-1]))
-payload['branches']=[None, {'id':payload['relation_packs'][-1]['owner_branch'],'path':payload['relation_packs'][-1]['path']}]
-payload['resources']=[{**payload['nodes'][0],'resource_kind':'json','owner_branch':payload['relation_packs'][-1]['owner_branch']}]
-index_path.write_text(json.dumps(payload),encoding='utf-8')
-def git(*args):
- return subprocess.check_output(['git','-C',str(source),*args],stderr=subprocess.PIPE,text=True).strip()
-git('init','-q');git('add',source_path);git('-c','user.name=ToS Software Fixture','-c','user.email=fixture@example.invalid','commit','-qm','existing corpus read input')
-commit=git('rev-parse','HEAD');tree=git('rev-parse','HEAD^{tree}')
-capture=base/'capture';restored=base/'restored'
-capture_git(source,commit,[source_path],capture);restore_capture(capture,restored)
-core=ToSAccessCore.discover(tos_root=restored)
-node=payload['nodes'][0]['node_id'];pack=payload['relation_packs'][-1]['pack_id']
-endpoint=payload['relation_edges'][0]['from_id'];kind=payload['resources'][0]['resource_kind'];branch=payload['resources'][0]['owner_branch']
-cases={
- 'status':core.status(),'summary':core.summary(),
- 'search':core.search(payload['nodes'][0]['label'],limit=2),
- 'search-filtered':core.search('',limit=2,resource_kind=kind),
- 'resources':core.resources(resource_kind=kind,owner_branch=branch,limit=1),
- 'node':core.node(node),'endpoint':core.node(endpoint),'pack':core.relation_pack(pack),
- 'topology':core.graph_view('corpus-topology',limit=1),
- 'route':core.graph_view('route-graph',limit=1),
- 'promotion':core.graph_view('promotion-flow',limit=1),
- 'packet':core.packet(query=' ',view_id='route-graph',limit=1),
- 'packet-empty':core.packet(query='',view_id='',limit=1),
-}
-json.dump({'base':str(base),'capture':str(capture),'restored':str(restored),'commit':commit,'tree':tree,
- 'manifest_sha':hashlib.sha256((capture/'capture.json').read_bytes()).hexdigest(),'source_path':source_path,
- 'source_sha':hashlib.sha256((restored/source_path).read_bytes()).hexdigest(),
- 'root':core.tos_root.as_posix(),'index':core.index_path.as_posix(),
- 'node':node,'endpoint':endpoint,'pack':pack,'query':payload['nodes'][0]['label'],'kind':kind,'branch':branch,'cases':cases},sys.stdout,ensure_ascii=False,allow_nan=False)
+results=[]
+for transport in ('monolithic','partitioned'):
+ base=Path(tempfile.mkdtemp(prefix='tos-query-corpus-'));source=base/'source';source.mkdir()
+ write_corpus_topology_fixture(source)
+ source_path='ToS/derived-exports/tos_corpus_index.min.json'
+ index_path=source/source_path;payload=json.loads(index_path.read_text())
+ if transport == 'monolithic':
+  # Reuse existing identities: plural matches and last-row resolution cannot be
+  # silently collapsed by the selected component's indexes.
+  payload['nodes'].append({**payload['nodes'][0], 'label':payload['nodes'][0]['label']+' duplicate'})
+  payload['relation_packs'].append(dict(payload['relation_packs'][-1]))
+  payload['branches']=[None, {'id':payload['relation_packs'][-1]['owner_branch'],'path':payload['relation_packs'][-1]['path']}]
+  payload['resources']=[{**payload['nodes'][0],'resource_kind':'json','owner_branch':payload['relation_packs'][-1]['owner_branch']}]
+  index_path.write_text(json.dumps(payload),encoding='utf-8')
+ else:
+  write_partitioned_payload(index_path,payload)
+ def git(*args):
+  return subprocess.check_output(['git','-C',str(source),*args],stderr=subprocess.PIPE,text=True).strip()
+ prefixes=[source_path]
+ if transport == 'partitioned': prefixes.append(str(Path(source_path).with_suffix('.parts')))
+ git('init','-q');git('add',*prefixes);git('-c','user.name=ToS Software Fixture','-c','user.email=fixture@example.invalid','commit','-qm','existing corpus read input')
+ commit=git('rev-parse','HEAD');tree=git('rev-parse','HEAD^{tree}')
+ capture=base/'capture';restored=base/'restored'
+ capture_git(source,commit,prefixes,capture);restore_capture(capture,restored)
+ payload=load_projection(restored/source_path)
+ core=ToSAccessCore.discover(tos_root=restored)
+ node=payload['nodes'][0]['node_id'];pack=payload['relation_packs'][-1]['pack_id']
+ endpoint=payload['relation_edges'][0]['from_id'];kind=payload['resources'][0]['resource_kind'] if payload['resources'] else None;branch=payload['relation_packs'][-1]['owner_branch']
+ cases={
+  'status':core.status(),'summary':core.summary(),
+  'search':core.search(payload['nodes'][0]['label'],limit=2),
+  'search-filtered':core.search('',limit=2,resource_kind=kind),
+  'resources':core.resources(resource_kind=kind,owner_branch=branch,limit=1),
+  'node':core.node(node),'endpoint':core.node(endpoint),'pack':core.relation_pack(pack),
+  'topology':core.graph_view('corpus-topology',limit=1),
+  'route':core.graph_view('route-graph',limit=1),
+  'promotion':core.graph_view('promotion-flow',limit=1),
+  'packet':core.packet(query=' ',view_id='route-graph',limit=1),
+  'packet-empty':core.packet(query='',view_id='',limit=1),
+ }
+ collections=('nodes','resources','manifests','branches','graph_views','relation_packs','relation_edges')
+ originals={name:payload[name] for name in collections}
+ originals['header']=[{key:value for key,value in payload.items() if key not in (*collections,'source_navigation')}]
+ results.append({'transport':transport,'originals':originals,'base':str(base),'capture':str(capture),'restored':str(restored),'commit':commit,'tree':tree,
+  'manifest_sha':hashlib.sha256((capture/'capture.json').read_bytes()).hexdigest(),'source_path':source_path,
+  'source_sha':hashlib.sha256((restored/source_path).read_bytes()).hexdigest(),
+  'root':core.tos_root.as_posix(),'index':core.index_path.as_posix(),
+  'node':node,'endpoint':endpoint,'pack':pack,'query':payload['nodes'][0]['label'],'kind':kind,'branch':branch,'cases':cases})
+json.dump(results,sys.stdout,ensure_ascii=False,allow_nan=False)
 "#;
     let output = Command::new("python3")
         .arg("-c")
@@ -1511,168 +1525,229 @@ json.dump({'base':str(base),'capture':str(capture),'restored':str(restored),'com
     )
     .unwrap()
     .into_root();
-    let s = |name| field(&oracle, name).as_str().unwrap().to_owned();
-    let mut fixture = build_native_fixture_with_captured_corpus(
-        std::path::Path::new(&s("capture")),
-        std::path::Path::new(&s("restored")),
-        &s("commit"),
-        &s("tree"),
-        &s("manifest_sha"),
-        &s("source_path"),
-    );
-    let mut cold = fixture.open().unwrap();
-    let receipt = cold.corpus_original_receipt().unwrap().clone();
-    assert_eq!(receipt.origin.source_sha256, s("source_sha"));
-    assert_eq!(receipt.origin.source_path, s("source_path"));
-    let bound =
-        bind_verified_knowledge(&cold, &fixture.vocabulary, &fixture.descriptor_bytes).unwrap();
-    let context = CorpusReadContext {
-        tos_root: s("root"),
-        index_path: s("index"),
-    };
-    let caps = CorpusReadBudget {
-        inspect: budget().inspect,
-        max_work_steps: u64::try_from(budget().max_path_steps).unwrap(),
-    };
-    let current = |request: &CorpusReadRequest| {
-        let mut authority = Authority::new(&bound);
-        authority.scope.operation_id = request.operation_id().into();
-        authority.scope.intended_use = CORPUS_INTENDED_USE.into();
-        authority.originals_denied = false;
-        authority
-    };
-    let view = |id: &str| CorpusReadRequest::GraphView {
-        view_id: id.into(),
-        limit: 1,
-    };
-    let requests = vec![
-        ("status", CorpusReadRequest::Status),
-        ("summary", CorpusReadRequest::Summary),
-        (
-            "search",
-            CorpusReadRequest::Search {
-                query: s("query"),
-                limit: 2,
-                resource_kind: None,
-            },
-        ),
-        (
-            "search-filtered",
-            CorpusReadRequest::Search {
-                query: String::new(),
-                limit: 2,
-                resource_kind: Some(s("kind")),
-            },
-        ),
-        (
-            "resources",
-            CorpusReadRequest::Resources {
-                resource_kind: Some(s("kind")),
-                owner_branch: Some(s("branch")),
-                limit: 1,
-            },
-        ),
-        ("node", CorpusReadRequest::Node { node_id: s("node") }),
-        (
-            "endpoint",
-            CorpusReadRequest::Node {
-                node_id: s("endpoint"),
-            },
-        ),
-        (
-            "pack",
-            CorpusReadRequest::RelationPack { pack_id: s("pack") },
-        ),
-        ("topology", view("corpus-topology")),
-        ("route", view("route-graph")),
-        ("promotion", view("promotion-flow")),
-        (
-            "packet",
-            CorpusReadRequest::Packet {
-                query: " ".into(),
-                view_id: Some("route-graph".into()),
-                limit: 1,
-            },
-        ),
-        (
-            "packet-empty",
-            CorpusReadRequest::Packet {
-                query: String::new(),
-                view_id: Some(String::new()),
-                limit: 1,
-            },
-        ),
-    ];
-    for (name, request) in &requests {
-        let mut packet = execute_selected_corpus(
-            &mut cold,
-            &bound,
-            &mut current(request),
-            &context,
-            request,
-            caps,
-        )
-        .unwrap();
-        assert_eq!(
-            &*packet,
-            canonical(field(field(&oracle, "cases"), name)),
-            "{name}"
+    for oracle in oracle.as_array().unwrap() {
+        let s = |name| field(oracle, name).as_str().unwrap().to_owned();
+        let mut fixture = build_native_fixture_with_captured_corpus(
+            std::path::Path::new(&s("capture")),
+            std::path::Path::new(&s("restored")),
+            &s("commit"),
+            &s("tree"),
+            &s("manifest_sha"),
+            &s("source_path"),
         );
-        packet.recheck().unwrap();
-    }
-    let request = CorpusReadRequest::Node { node_id: s("node") };
-    let mut tiny = caps;
-    tiny.inspect.max_rows = 6;
-    assert!(receipt.collections.iter().map(|c| c.rows).sum::<u64>() > tiny.inspect.max_rows);
-    let mut authority = current(&request);
-    let mut held =
-        execute_selected_corpus(&mut cold, &bound, &mut authority, &context, &request, tiny)
-            .unwrap();
-    assert_eq!(authority.corpus_rows.len(), 6);
-    authority.withdrawn.store(true, Ordering::SeqCst);
-    assert_eq!(
-        held.recheck().unwrap_err().code,
-        SearchV2ErrorCode::StalePolicy
-    );
-    drop(held);
-    tiny.inspect.max_rows = 5;
-    assert_eq!(
-        execute_selected_corpus(
-            &mut cold,
-            &bound,
-            &mut current(&request),
-            &context,
-            &request,
-            tiny
-        )
-        .err()
-        .unwrap()
-        .code,
-        SearchV2ErrorCode::BudgetExceeded
-    );
-    let mut denied = current(&request);
-    denied.originals_denied = true;
-    assert_eq!(
-        execute_selected_corpus(&mut cold, &bound, &mut denied, &context, &request, caps)
+        let mut cold = fixture.open().unwrap();
+        let receipt = cold.corpus_original_receipt().unwrap().clone();
+        assert_eq!(receipt.origin.source_sha256, s("source_sha"));
+        assert_eq!(receipt.origin.source_path, s("source_path"));
+        for collection in std::iter::once(tos_compiler::CorpusOriginalCollection::Header)
+            .chain(tos_compiler::CorpusOriginalCollection::ROWS)
+        {
+            let expected = field(field(oracle, "originals"), collection.as_str())
+                .as_array()
+                .unwrap();
+            let mut after = None;
+            let mut ordinal = 0usize;
+            loop {
+                let page = cold
+                    .corpus_original_page_under_caller_budget(
+                        collection,
+                        &tos_compiler::CorpusOriginalSelector::All,
+                        after,
+                        2,
+                        budget().inspect.max_payload_bytes,
+                        u64::try_from(budget().inspect.max_payload_bytes)
+                            .unwrap()
+                            .checked_mul(2)
+                            .unwrap(),
+                    )
+                    .unwrap();
+                for row in &page.rows {
+                    assert_eq!(row.ordinal, u64::try_from(ordinal).unwrap());
+                    assert_eq!(
+                        row.raw_sha256,
+                        tos_foundation::Digest256::of_bytes(&row.raw).to_hex()
+                    );
+                    let actual =
+                        parse_json(&row.raw, JsonMode::PublishedStrict, budget().inspect.json)
+                            .unwrap()
+                            .into_root();
+                    assert_eq!(
+                        canonical(&actual),
+                        canonical(&expected[ordinal]),
+                        "{} {} ordinal {ordinal}",
+                        s("transport"),
+                        collection.as_str()
+                    );
+                    ordinal += 1;
+                }
+                // Advance through the final empty page as well as partial pages:
+                // no retained row may be omitted or appended after logical EOF.
+                if page.rows.is_empty() {
+                    break;
+                }
+                after = page.rows.last().map(|row| row.ordinal);
+            }
+            assert_eq!(
+                ordinal,
+                expected.len(),
+                "{} {} EOF",
+                s("transport"),
+                collection.as_str()
+            );
+        }
+        let bound =
+            bind_verified_knowledge(&cold, &fixture.vocabulary, &fixture.descriptor_bytes).unwrap();
+        let context = CorpusReadContext {
+            tos_root: s("root"),
+            index_path: s("index"),
+        };
+        let caps = CorpusReadBudget {
+            inspect: budget().inspect,
+            max_work_steps: u64::try_from(budget().max_path_steps).unwrap(),
+        };
+        let current = |request: &CorpusReadRequest| {
+            let mut authority = Authority::new(&bound);
+            authority.scope.operation_id = request.operation_id().into();
+            authority.scope.intended_use = CORPUS_INTENDED_USE.into();
+            authority.originals_denied = false;
+            authority
+        };
+        let view = |id: &str| CorpusReadRequest::GraphView {
+            view_id: id.into(),
+            limit: 1,
+        };
+        let requests = vec![
+            ("status", CorpusReadRequest::Status),
+            ("summary", CorpusReadRequest::Summary),
+            (
+                "search",
+                CorpusReadRequest::Search {
+                    query: s("query"),
+                    limit: 2,
+                    resource_kind: None,
+                },
+            ),
+            (
+                "search-filtered",
+                CorpusReadRequest::Search {
+                    query: String::new(),
+                    limit: 2,
+                    resource_kind: field(oracle, "kind").as_str().map(str::to_owned),
+                },
+            ),
+            (
+                "resources",
+                CorpusReadRequest::Resources {
+                    resource_kind: field(oracle, "kind").as_str().map(str::to_owned),
+                    owner_branch: Some(s("branch")),
+                    limit: 1,
+                },
+            ),
+            ("node", CorpusReadRequest::Node { node_id: s("node") }),
+            (
+                "endpoint",
+                CorpusReadRequest::Node {
+                    node_id: s("endpoint"),
+                },
+            ),
+            (
+                "pack",
+                CorpusReadRequest::RelationPack { pack_id: s("pack") },
+            ),
+            ("topology", view("corpus-topology")),
+            ("route", view("route-graph")),
+            ("promotion", view("promotion-flow")),
+            (
+                "packet",
+                CorpusReadRequest::Packet {
+                    query: " ".into(),
+                    view_id: Some("route-graph".into()),
+                    limit: 1,
+                },
+            ),
+            (
+                "packet-empty",
+                CorpusReadRequest::Packet {
+                    query: String::new(),
+                    view_id: Some(String::new()),
+                    limit: 1,
+                },
+            ),
+        ];
+        let mut addressed_rows = 0;
+        for (name, request) in &requests {
+            let mut authority = current(request);
+            let mut packet =
+                execute_selected_corpus(&mut cold, &bound, &mut authority, &context, request, caps)
+                    .unwrap();
+            assert_eq!(
+                &*packet,
+                canonical(field(field(oracle, "cases"), name)),
+                "{name}"
+            );
+            packet.recheck().unwrap();
+            if *name == "node" {
+                addressed_rows = authority.corpus_rows.len();
+            }
+        }
+        let request = CorpusReadRequest::Node { node_id: s("node") };
+        let mut tiny = caps;
+        if s("transport") == "monolithic" {
+            assert_eq!(addressed_rows, 6);
+        }
+        assert!(addressed_rows > 0);
+        tiny.inspect.max_rows = u64::try_from(addressed_rows).unwrap();
+        assert!(receipt.collections.iter().map(|c| c.rows).sum::<u64>() > tiny.inspect.max_rows);
+        let mut authority = current(&request);
+        let mut held =
+            execute_selected_corpus(&mut cold, &bound, &mut authority, &context, &request, tiny)
+                .unwrap();
+        assert_eq!(authority.corpus_rows.len(), addressed_rows);
+        authority.withdrawn.store(true, Ordering::SeqCst);
+        assert_eq!(
+            held.recheck().unwrap_err().code,
+            SearchV2ErrorCode::StalePolicy
+        );
+        drop(held);
+        tiny.inspect.max_rows -= 1;
+        assert_eq!(
+            execute_selected_corpus(
+                &mut cold,
+                &bound,
+                &mut current(&request),
+                &context,
+                &request,
+                tiny
+            )
             .err()
             .unwrap()
             .code,
-        SearchV2ErrorCode::Unavailable
-    );
-    drop(cold);
-    // An outer model rehash must not make a changed addressed index key
-    // trustworthy while the root-bound original packet remains unchanged.
-    {
-        let db = rusqlite::Connection::open(&fixture.path).unwrap();
-        assert!(db.execute(
+            SearchV2ErrorCode::BudgetExceeded
+        );
+        let mut denied = current(&request);
+        denied.originals_denied = true;
+        assert_eq!(
+            execute_selected_corpus(&mut cold, &bound, &mut denied, &context, &request, caps)
+                .err()
+                .unwrap()
+                .code,
+            SearchV2ErrorCode::Unavailable
+        );
+        drop(cold);
+        // An outer model rehash must not make a changed addressed index key
+        // trustworthy while the root-bound original packet remains unchanged.
+        {
+            let db = rusqlite::Connection::open(&fixture.path).unwrap();
+            assert!(db.execute(
             "UPDATE corpus_original_rows SET node_id=?1 WHERE collection='nodes' AND node_id=?2",
             rusqlite::params![format!("{}!", s("node")), s("node")],
         ).unwrap() > 0);
+        }
+        let bytes = std::fs::read(&fixture.path).unwrap();
+        fixture.expectation.model_sha256 = tos_foundation::Digest256::of_bytes(&bytes).to_hex();
+        fixture.expectation.model_size_bytes = u64::try_from(bytes.len()).unwrap();
+        assert!(fixture.open().is_err());
+        drop(fixture);
+        std::fs::remove_dir_all(s("base")).unwrap();
     }
-    let bytes = std::fs::read(&fixture.path).unwrap();
-    fixture.expectation.model_sha256 = tos_foundation::Digest256::of_bytes(&bytes).to_hex();
-    fixture.expectation.model_size_bytes = u64::try_from(bytes.len()).unwrap();
-    assert!(fixture.open().is_err());
-    drop(fixture);
-    std::fs::remove_dir_all(s("base")).unwrap();
 }
