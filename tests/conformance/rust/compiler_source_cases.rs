@@ -387,7 +387,7 @@ print(json.dumps(result,ensure_ascii=False,sort_keys=True,separators=(',',':')))
         plan.root_input(),
         TopologyLimits {
             max_rows: 4096,
-            max_page_rows: 128,
+            max_page_rows: 32,
             max_row_bytes: 2 * 1024 * 1024,
             max_work_bytes: 64 * 1024 * 1024,
         },
