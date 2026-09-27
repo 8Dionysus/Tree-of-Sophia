@@ -97,24 +97,7 @@ impl FullKnowledgeFixture {
     /// Per-table row guards cover the declared producer workload, never counts
     /// observed after a successful build. Physical/VM/total work caps are fixed.
     pub fn cold_limits(&self) -> ColdOpenLimits {
-        let declared = self.producer_limits;
-        let max_rows = declared
-            .scope
-            .max_rows
-            .max(declared.scope.max_sources as u64)
-            .max(declared.search.max_postings)
-            .max(declared.catalog.max_catalog_entries)
-            .max(declared.catalog_index.max_index_rows);
-        ColdOpenLimits {
-            max_file_bytes: 64 * 1024 * 1024,
-            max_vm_steps: 100_000_000,
-            sqlite_cache_kib: 8192,
-            max_rows,
-            max_work_bytes: 100 * 1024 * 1024,
-            max_row_bytes: 1024 * 1024,
-            max_metadata_bytes: 256 * 1024,
-            max_sources: self.vocabulary.sources.len(),
-        }
+        native_fixture_cold_limits(self.producer_limits, self.vocabulary.sources.len())
     }
     pub fn open(&self) -> Result<VerifiedKnowledgeModel<'_>> {
         open_selected_knowledge_model(
@@ -125,6 +108,31 @@ impl FullKnowledgeFixture {
         )
     }
 }
+/// The same finite fixture cold envelope derived from declared producer work,
+/// never observed successful output counts. This is not host admission.
+pub fn native_fixture_cold_limits(
+    declared: FullKnowledgeLimits,
+    source_count: usize,
+) -> ColdOpenLimits {
+    let max_rows = declared
+        .scope
+        .max_rows
+        .max(declared.scope.max_sources as u64)
+        .max(declared.search.max_postings)
+        .max(declared.catalog.max_catalog_entries)
+        .max(declared.catalog_index.max_index_rows);
+    ColdOpenLimits {
+        max_file_bytes: 64 * 1024 * 1024,
+        max_vm_steps: 100_000_000,
+        sqlite_cache_kib: 8192,
+        max_rows,
+        max_work_bytes: 100 * 1024 * 1024,
+        max_row_bytes: 1024 * 1024,
+        max_metadata_bytes: 256 * 1024,
+        max_sources: source_count,
+    }
+}
+
 impl Drop for FullKnowledgeFixture {
     fn drop(&mut self) {
         fs::remove_dir_all(self.path.parent().expect("fixture parent")).ok();
@@ -364,24 +372,12 @@ pub fn build_fixture() -> FullKnowledgeFixture {
     )
 }
 
-#[allow(clippy::too_many_arguments)]
-fn finish_fixture(
-    stage: KnowledgeStage<'_>,
-    path: PathBuf,
-    registry: KnowledgeRegistry,
-    entity_bytes: &[u8],
-    relation_bytes: &[u8],
-    vocabulary: QueryVocabulary,
-    descriptor_bytes: Vec<u8>,
-    header: Value,
-    saved_lenses: &[Value],
-    navigation_original: Option<crate::NavigationOriginalReceipt>,
-    philosophy_original: Option<crate::PhilosophyOriginalReceipt>,
-    corpus_original: Option<crate::CorpusOriginalReceipt>,
-) -> FullKnowledgeFixture {
-    let limits = FullKnowledgeLimits {
+/// Unchanged finite full-component limits used by the default fixture.
+/// Real supplied-input callers reuse these caps without inventing a profile.
+pub fn native_fixture_full_limits(source_count: usize) -> FullKnowledgeLimits {
+    FullKnowledgeLimits {
         scope: ScopeLimits {
-            max_sources: vocabulary.sources.len(),
+            max_sources: source_count,
             max_rows: 1000,
             max_index_work_bytes: 1024 * 1024,
         },
@@ -400,7 +396,25 @@ fn finish_fixture(
             max_header_bytes: 1024 * 1024,
         },
         max_registry_bytes: 4 * 1024 * 1024,
-    };
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn finish_fixture(
+    stage: KnowledgeStage<'_>,
+    path: PathBuf,
+    registry: KnowledgeRegistry,
+    entity_bytes: &[u8],
+    relation_bytes: &[u8],
+    vocabulary: QueryVocabulary,
+    descriptor_bytes: Vec<u8>,
+    header: Value,
+    saved_lenses: &[Value],
+    navigation_original: Option<crate::NavigationOriginalReceipt>,
+    philosophy_original: Option<crate::PhilosophyOriginalReceipt>,
+    corpus_original: Option<crate::CorpusOriginalReceipt>,
+) -> FullKnowledgeFixture {
+    let limits = native_fixture_full_limits(vocabulary.sources.len());
     finish_fixture_with_limits(
         stage,
         path,
@@ -1015,9 +1029,9 @@ fn build_native_fixture_inner(
     )
 }
 
-// Existing software fixture engineering profile. Source composition uses its
-// independently declared row envelope; per-row/cache/work limits stay shared.
-fn native_fixture_limits(row_limit: u64, final_limit: u64) -> NativeProducerLimits {
+/// Existing software fixture engineering profile. Source composition uses its
+/// independently declared row envelope; per-row/cache/work limits stay shared.
+pub fn native_fixture_limits(row_limit: u64, final_limit: u64) -> NativeProducerLimits {
     NativeProducerLimits {
         navigation_prepare: NavigationPrepareLimits {
             max_nodes: row_limit,
