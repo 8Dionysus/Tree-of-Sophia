@@ -17,7 +17,7 @@ use std::{
 };
 use tos_compiler::VerifiedKnowledgeModel;
 use tos_foundation::{
-    CanonicalProfile, Digest256, JsonLimits, JsonMode, JsonValue,
+    CanonicalProfile, Digest256, FoundationErrorCode, JsonLimits, JsonMode, JsonValue,
     canonical_bytes_v1, parse_json,
 };
 
@@ -830,6 +830,26 @@ pub(crate) fn execute_selected_carrier_packet<A: InspectCurrentAuthority + ?Size
 where
     F: FnOnce(&mut Reader<'_, '_, A>) -> Result<JsonValue, SearchV2Error>,
 {
+    execute_selected_carrier_packet_observed(model, bound, authority, operation, intended_use, budget, compute, |_| Ok(()))
+}
+
+// E3 alone needs the actual emitted response for staged checkpoint accounting.
+// The observer cannot return/substitute bytes. Failure drops the staged hold
+// before disclosure; successful commit remains outside this common read path.
+pub(crate) fn execute_selected_carrier_packet_observed<A: InspectCurrentAuthority + ?Sized, F, O>(
+    model: &mut VerifiedKnowledgeModel<'_>,
+    bound: &BoundCmpKnowledge<'_>,
+    authority: &mut A,
+    operation: &str,
+    intended_use: &str,
+    budget: InspectBudget,
+    compute: F,
+    observe: O,
+) -> Result<DisclosableInspect, SearchV2Error>
+where
+    F: FnOnce(&mut Reader<'_, '_, A>) -> Result<JsonValue, SearchV2Error>,
+    O: FnOnce(&[u8]) -> Result<(), SearchV2Error>,
+{
     if budget.max_open_vm_steps == 0
         || model.open_vm_steps() > budget.max_open_vm_steps
         || budget.max_read_vm_steps == 0
@@ -880,7 +900,12 @@ where
         let mut limits = budget.json;
         limits.max_bytes = limits.max_bytes.min(budget.max_response_bytes);
         let body = canonical_bytes_v1(&value, CanonicalProfile::SourceRecordDigestV1, limits)
-            .map_err(|_| budget_error())?;
+            .map_err(|reason| {
+                if reason.code == FoundationErrorCode::BudgetExceeded { budget_error() }
+                else { corrupt("selected knowledge response cannot be emitted") }
+            })?;
+        observe(&body)?;
+        check_abort()?;
         read.authority.check_selected()?;
         bound.check_model(read.model)?;
         let mut lease = read.authority.acquire_disclosure(&scope, &read.consulted)?;

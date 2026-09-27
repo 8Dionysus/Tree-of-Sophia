@@ -12,15 +12,16 @@ use crate::{
 use crate::{
     knowledge_binding::BoundCmpKnowledge,
     knowledge_inspect::{
-        DisclosableInspect, InspectCurrentAuthority, Reader, execute_selected_carrier_packet,
+        DisclosableInspect, InspectCurrentAuthority, Reader,
+        execute_selected_carrier_packet_observed,
     },
 };
 use std::collections::{BTreeSet, VecDeque};
 #[cfg(not(target_arch = "wasm32"))]
 use tos_compiler::VerifiedKnowledgeModel;
 use tos_foundation::{
-    CanonicalProfile, Digest256, JsonLimits, JsonMode, JsonValue, canonical_bytes_v1, parse_json,
-    python_strip_unicode16_v1,
+    CanonicalProfile, Digest256, FoundationErrorCode, JsonLimits, JsonMode, JsonValue,
+    canonical_bytes_v1, canonical_count_v1, parse_json, python_strip_unicode16_v1,
 };
 
 pub const EXPLORATION_OPERATION: &str = "tos.knowledge.explore";
@@ -387,8 +388,8 @@ impl ExplorationState {
     pub fn snapshot_revision(&self) -> &str {
         &self.snapshot_revision
     }
-    pub fn encoded_state(&self, limits: JsonLimits) -> Result<Vec<u8>, SearchV2Error> {
-        let value = object(vec![
+    fn state_value(&self) -> JsonValue {
+        object(vec![
             ("schema", text("tos_rust_exploration_state_v1")),
             ("snapshot_revision", text(&self.snapshot_revision)),
             ("query", self.query.clone()),
@@ -436,13 +437,35 @@ impl ExplorationState {
                     .as_deref()
                     .map_or(JsonValue::Null, text),
             ),
-        ]);
-        canonical_bytes_v1(&value, CanonicalProfile::SourceRecordDigestV1, limits).map_err(|_| {
-            error(
-                SearchV2ErrorCode::BudgetExceeded,
-                "exploration state byte cap exceeded",
-            )
-        })
+        ])
+    }
+    pub fn encoded_state(&self, limits: JsonLimits) -> Result<Vec<u8>, SearchV2Error> {
+        canonical_bytes_v1(
+            &self.state_value(),
+            CanonicalProfile::SourceRecordDigestV1,
+            limits,
+        )
+        .map_err(state_emission_error)
+    }
+    /// Exact native checkpoint admission through the existing FND count visitor,
+    /// using the same state value/profile as actual published persistence.
+    pub fn encoded_state_count(&self, limits: JsonLimits) -> Result<usize, SearchV2Error> {
+        canonical_count_v1(
+            &self.state_value(),
+            CanonicalProfile::SourceRecordDigestV1,
+            limits,
+        )
+        .map_err(state_emission_error)
+    }
+}
+fn state_emission_error(reason: tos_foundation::FoundationError) -> SearchV2Error {
+    if reason.code == FoundationErrorCode::BudgetExceeded {
+        error(
+            SearchV2ErrorCode::BudgetExceeded,
+            "exploration state byte cap exceeded",
+        )
+    } else {
+        corrupt("exploration state cannot be emitted")
     }
 }
 
@@ -758,6 +781,10 @@ pub enum ExplorationCheckpoint {
 /// from eviction during admission, and discard an uncommitted preparation.
 pub trait PreparedExplorationCheckpoint: Send {
     fn next_cursor(&self) -> Option<&str>;
+    /// Admit the one final response emitted by QRY, after cursor insertion and
+    /// response cap, before acquiring disclosure. May stage size/digest only;
+    /// the checkpoint never supplies or substitutes response bytes.
+    fn stage_response(&mut self, body: &[u8]) -> Result<(), SearchV2Error>;
     fn commit(&mut self) -> Result<(), SearchV2Error>;
 }
 /// Clock, expiry, opaque-token generation, replay and bounded checkpoint storage
@@ -1706,8 +1733,8 @@ pub fn execute_selected_exploration<
     budget: ExplorationBudget,
 ) -> Result<DisclosableInspect, SearchV2Error> {
     validate_budget(budget)?;
-    let mut prepared: Option<Box<dyn PreparedExplorationCheckpoint>> = None;
-    let packet = execute_selected_carrier_packet(
+    let prepared = std::cell::RefCell::new(None::<Box<dyn PreparedExplorationCheckpoint>>);
+    let packet = execute_selected_carrier_packet_observed(
         model,
         bound,
         authority,
@@ -1805,9 +1832,6 @@ pub fn execute_selected_exploration<
             )?;
             let state = output.state;
             let mut packet = output.packet;
-            let mut limits = budget.read.json;
-            limits.max_bytes = limits.max_bytes.min(budget.max_state_bytes);
-            state.encoded_state(limits)?;
             let successor = (string(get(&packet, "status")) == "paused").then_some(&state);
             let staged = checkpoints.prepare(cursor, &revision, successor, &packet, budget)?;
             if staged.next_cursor().is_some() != successor.is_some()
@@ -1822,11 +1846,17 @@ pub fn execute_selected_exploration<
                 staged.next_cursor().map_or(JsonValue::Null, text),
             );
             set(&mut packet, "page", page);
-            prepared = Some(staged);
+            *prepared.borrow_mut() = Some(staged);
             Ok(packet)
         },
+        |body| {
+            if let Some(staged) = prepared.borrow_mut().as_mut() {
+                staged.stage_response(body)?;
+            }
+            Ok(())
+        },
     )?;
-    if let Some(mut staged) = prepared {
+    if let Some(mut staged) = prepared.into_inner() {
         staged.commit()?;
     }
     Ok(packet)

@@ -12,7 +12,7 @@ use std::{
     rc::{Rc, Weak},
     task::{Context, Poll, Waker},
 };
-use tos_foundation::{CanonicalProfile, FoundationErrorCode, JsonValue, canonical_bytes_v1};
+use tos_foundation::JsonValue;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ExplorationProfile {
@@ -621,23 +621,8 @@ impl ExplorationPlan {
             };
             let packet =
                 rules::advance(&mut state, &mut rows, &vocab, &revision, &boundary, budget).await?;
-            let mut limits = budget.read.json;
-            limits.max_bytes = limits.max_bytes.min(budget.max_state_bytes);
-            state.encoded_state(limits)?;
-            limits.max_bytes = budget
-                .read
-                .json
-                .max_bytes
-                .min(budget.read.max_response_bytes);
-            canonical_bytes_v1(&packet, CanonicalProfile::SourceRecordDigestV1, limits).map_err(
-                |reason| {
-                    if reason.code == FoundationErrorCode::BudgetExceeded {
-                        exhausted()
-                    } else {
-                        corrupt("exploration packet cannot be emitted")
-                    }
-                },
-            )?;
+            // Host consumers perform the one actual state/response emission:
+            // published before CAS, native before disclosure/checkpoint commit.
             Ok(ExplorationOutput { state, packet })
         });
         Ok(Self {
