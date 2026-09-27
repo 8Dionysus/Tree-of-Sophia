@@ -463,10 +463,8 @@ fn header(f: &mut File) -> Result<()> {
     Ok(())
 }
 fn toolchain(raw: &[u8]) -> Result<String> {
-    let parsed = std::str::from_utf8(raw)
-        .checked()?
-        .parse::<toml::Value>()
-        .checked()?;
+    // rust-toolchain.toml is a document; Value::from_str parses one TOML value.
+    let parsed = toml::from_str::<toml::Value>(std::str::from_utf8(raw).checked()?).checked()?;
     parsed
         .get("toolchain")
         .and_then(|v| v.get("channel"))
