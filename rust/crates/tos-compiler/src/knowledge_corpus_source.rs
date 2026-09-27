@@ -62,11 +62,11 @@ impl Source<'_> {
         {
             return Err(Error::Budget("corpus capture member count"));
         }
+        self.charge(member.size_bytes)?;
         let raw = self
             .reader
             .read_selected_component(&selection, path, cap as u64, self.deadline, self.cancelled)
             .map_err(|e| Error::Source(e.to_string()))?;
-        self.charge(raw.len() as u64)?;
         self.members.insert(
             path.as_str().into(),
             CorpusOriginalMember {
@@ -139,6 +139,7 @@ impl Source<'_> {
             return Err(Error::Budget("corpus partition bytes"));
         }
         let stored = self.read(&path, size as usize)?;
+        self.charge(decoded)?;
         let raw = crate::legacy::decode_partition_part(
             &stored,
             kind,
@@ -147,7 +148,6 @@ impl Source<'_> {
             sha,
             decoded_sha,
         )?;
-        self.charge(raw.len() as u64)?;
         Ok(raw)
     }
     fn walk(
@@ -156,7 +156,7 @@ impl Source<'_> {
         prefix: &str,
         key: &Value,
         root_count: u64,
-        sink: &mut dyn FnMut(&str, Value) -> Result<()>,
+        sink: &mut dyn FnMut(&mut Source<'_>, &str, Value) -> Result<()>,
     ) -> Result<u64> {
         let raw = self.part(d, prefix)?;
         let wanted = number(d, "count")?;
@@ -253,7 +253,7 @@ impl Source<'_> {
             if !valid {
                 return Err(Error::Invalid("corpus partition key identity"));
             }
-            sink(id, value.clone())?;
+            sink(self, id, value.clone())?;
             previous = Some(id.into());
             n = n.checked_add(1).ok_or(Error::Budget("corpus leaf count"))?;
         }
@@ -361,7 +361,12 @@ fn original_packets(
 fn visit_captured_rows(
     source: &mut Source<'_>,
     root: &Value,
-    sink_row: &mut dyn FnMut(CorpusOriginalCollection, &[String], &Value) -> Result<()>,
+    sink_row: &mut dyn FnMut(
+        &mut Source<'_>,
+        CorpusOriginalCollection,
+        &[String],
+        &Value,
+    ) -> Result<()>,
 ) -> Result<Vec<u8>> {
     let limits = source.limits;
     if root["schema_version"] == "tos_partitioned_projection_v1" {
@@ -437,7 +442,7 @@ fn visit_captured_rows(
                 .iter()
                 .copied()
                 .find(|c| c.as_str() == name);
-            let mut sink = |_: &str, v: Value| -> Result<()> {
+            let mut sink = |source: &mut Source<'_>, _: &str, v: Value| -> Result<()> {
                 if !keep {
                     return Ok(());
                 }
@@ -452,6 +457,7 @@ fn visit_captured_rows(
                     })
                     .collect::<Result<Vec<_>>>()?;
                 sink_row(
+                    source,
                     collection.ok_or(Error::Invalid("corpus original collection"))?,
                     &sort,
                     &v,
@@ -478,7 +484,7 @@ fn visit_captured_rows(
                 .ok_or(Error::Invalid("corpus original required array"))?
             {
                 source.check()?;
-                sink_row(collection, &[], value)?;
+                sink_row(source, collection, &[], value)?;
             }
         }
         return detached_header(payload, limits.originals.max_row_bytes);
@@ -493,7 +499,7 @@ fn visit_captured_rows(
             .ok_or(Error::Invalid("corpus original required array"))?
         {
             source.check()?;
-            sink_row(collection, &[], value)?;
+            sink_row(source, collection, &[], value)?;
         }
     }
     detached_header(root, limits.originals.max_row_bytes)
@@ -550,7 +556,7 @@ fn captured_source<'a>(
     })
 }
 fn captured_receipt(
-    source: Source<'_>,
+    source: &mut Source<'_>,
     binding: &SourceBinding,
     vocab: &QueryVocabulary,
     root_raw: &[u8],
@@ -558,7 +564,9 @@ fn captured_receipt(
     collections: Vec<CorpusOriginalCollectionReceipt>,
     total: u64,
 ) -> Result<CorpusOriginalReceipt> {
-    let members = source.members.into_values().collect::<Vec<_>>();
+    let members = std::mem::take(&mut source.members)
+        .into_values()
+        .collect::<Vec<_>>();
     let mut member_root = Digest256Hasher::new();
     text(&mut member_root, "tos-captured-corpus-members-v1");
     for m in &members {
@@ -615,23 +623,27 @@ pub fn prepare_captured_corpus_original(
     let mut packets = BTreeMap::<String, Vec<(Vec<String>, Vec<u8>)>>::new();
     let mut count = 1u64;
     let mut total = 0u64;
-    let mut sink =
-        |collection: CorpusOriginalCollection, sort: &[String], v: &Value| -> Result<()> {
-            indexed_fields(collection, v)?;
-            let raw = encode(v, limits.originals.max_row_bytes)?;
-            charge_packet(&mut count, &mut total, &raw, limits.originals)?;
-            packets
-                .entry(collection.as_str().into())
-                .or_default()
-                .push((sort.to_vec(), raw));
-            Ok(())
-        };
+    let mut sink = |source: &mut Source<'_>,
+                    collection: CorpusOriginalCollection,
+                    sort: &[String],
+                    v: &Value|
+     -> Result<()> {
+        indexed_fields(collection, v)?;
+        let raw = encode(v, limits.originals.max_row_bytes)?;
+        charge_packet(&mut count, &mut total, &raw, limits.originals)?;
+        source.charge(raw.len() as u64)?;
+        packets
+            .entry(collection.as_str().into())
+            .or_default()
+            .push((sort.to_vec(), raw));
+        Ok(())
+    };
     let header = visit_captured_rows(&mut source, &root, &mut sink)?;
     total = total
         .checked_add(header.len() as u64)
         .filter(|n| *n <= limits.originals.max_total_bytes)
         .ok_or(Error::Budget("corpus original header bytes"))?;
-    source.charge(total)?;
+    source.charge(header.len() as u64)?;
     let rows = CorpusOriginalCollection::ROWS
         .into_iter()
         .map(|c| {
@@ -648,7 +660,15 @@ pub fn prepare_captured_corpus_original(
             ordered_root_sha256: ordered_root(c.as_str(), r),
         })
         .collect();
-    let receipt = captured_receipt(source, binding, vocab, &raw, &header, collections, total)?;
+    let receipt = captured_receipt(
+        &mut source,
+        binding,
+        vocab,
+        &raw,
+        &header,
+        collections,
+        total,
+    )?;
     Ok(CapturedCorpusOriginalPlan {
         binding: binding.clone(),
         receipt,
@@ -754,24 +774,29 @@ pub fn retain_captured_corpus_original_from_capture(
         let mut page = Vec::new();
         let mut count = 1u64;
         let mut total = 0u64;
-        let mut sink =
-            |collection: CorpusOriginalCollection, sort: &[String], value: &Value| -> Result<()> {
-                check_originals(deadline, cancelled)?;
-                indexed_fields(collection, value)?;
-                let raw = encode(value, limits.originals.max_row_bytes)?;
-                charge_packet(&mut count, &mut total, &raw, limits.originals)?;
-                page.push(PendingRow {
-                    collection,
-                    sort0: sort.first().cloned().unwrap_or_default(),
-                    sort1: sort.get(1).cloned().unwrap_or_default(),
-                    encounter: count - 2,
-                    raw,
-                });
-                if page.len() == page_rows {
-                    flush_capture_page(stage, &mut page)?;
-                }
-                Ok(())
-            };
+        let mut sink = |source: &mut Source<'_>,
+                        collection: CorpusOriginalCollection,
+                        sort: &[String],
+                        value: &Value|
+         -> Result<()> {
+            check_originals(deadline, cancelled)?;
+            indexed_fields(collection, value)?;
+            let raw = encode(value, limits.originals.max_row_bytes)?;
+            charge_packet(&mut count, &mut total, &raw, limits.originals)?;
+            // Reserve each pending row before it can enter a write batch.
+            source.charge(raw.len() as u64)?;
+            page.push(PendingRow {
+                collection,
+                sort0: sort.first().cloned().unwrap_or_default(),
+                sort1: sort.get(1).cloned().unwrap_or_default(),
+                encounter: count - 2,
+                raw,
+            });
+            if page.len() == page_rows {
+                flush_capture_page(stage, &mut page)?;
+            }
+            Ok(())
+        };
         let header = visit_captured_rows(&mut source, &root, &mut sink)?;
         drop(sink);
         flush_capture_page(stage, &mut page)?;
@@ -779,12 +804,8 @@ pub fn retain_captured_corpus_original_from_capture(
             .checked_add(header.len() as u64)
             .filter(|n| *n <= limits.originals.max_total_bytes)
             .ok_or(Error::Budget("corpus original header bytes"))?;
-        // Account both private sort writes and final original row copies.
-        source.charge(
-            total
-                .checked_mul(2)
-                .ok_or(Error::Budget("corpus capture work"))?,
-        )?;
+        // Header is not a pending row: reserve its one actual final copy.
+        source.charge(header.len() as u64)?;
         stage.charge_materialized(1, header.len() as u64)?;
         stage.with_connection(WritePhase::Finalize, |db| {
             let tx = db.transaction()?;
@@ -836,6 +857,7 @@ pub fn retain_captured_corpus_original_from_capture(
                     break;
                 }
                 let bytes = rows.iter().map(|r| r.3.len() as u64).sum();
+                source.charge(bytes)?;
                 stage.charge_materialized(rows.len() as u64, bytes)?;
                 stage.with_connection(WritePhase::Finalize, |db| {
                     let tx = db.transaction()?;
@@ -865,7 +887,7 @@ pub fn retain_captured_corpus_original_from_capture(
             return Err(Error::Invalid("corpus import EOF closure"));
         }
         let receipt = captured_receipt(
-            source,
+            &mut source,
             &binding,
             vocab,
             &root_raw,
@@ -878,6 +900,7 @@ pub fn retain_captured_corpus_original_from_capture(
         if raw.len() > JsonLimits::default().max_bytes {
             return Err(Error::Budget("corpus original receipt bytes"));
         }
+        source.charge(raw.len() as u64)?;
         stage.charge_materialized(1, raw.len() as u64)?;
         stage.with_connection(WritePhase::Finalize, |db| {
             let tx = db.transaction()?;
