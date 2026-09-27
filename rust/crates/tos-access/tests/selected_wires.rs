@@ -4702,9 +4702,9 @@ json.dump({'capture':str(capture),'restored':str(restored),'commit':commit,'tree
         assert!(usage.stdout.is_empty());
         assert!(String::from_utf8_lossy(&usage.stderr).starts_with("usage:"));
         // The same installed bin/tos provides actual stdio MCP without Python.
-        let catalog = tos_access::registered_operations()
-            .unwrap()
-            .into_iter()
+        let operations = tos_access::registered_operations().unwrap();
+        let catalog = operations
+            .iter()
             .find(|op| op.operation_id == tos_access::KnowledgeOperation::Catalog.id())
             .unwrap();
         let mut input = mcp_input(&catalog.mcp_tool, &object(vec![]));
@@ -4718,8 +4718,7 @@ json.dump({'capture':str(capture),'restored':str(restored),'commit':commit,'tree
             + 1;
         input.truncate(end);
         input.extend_from_slice(b"{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/list\"}\n");
-        let contracts = tos_access::registered_operations()
-            .unwrap()
+        let contracts = operations
             .iter()
             .find(|op| op.operation_id == tos_access::KnowledgeOperation::ExplorationContracts.id())
             .unwrap();
