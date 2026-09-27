@@ -76,6 +76,11 @@ try:
         ref=p.relative_to(root).as_posix()
         return p.is_file() and not {'.git','payload','owner-local'}.intersection(p.relative_to(root).parts) and (not (ref.startswith('ToS/derived-exports/') or ref.startswith('ToS/source-witnesses/catalog/')) or ref.endswith('.md'))
     selected=[p for p in sorted((root/'ToS').rglob('*')) if eligible(p)]
+    # Construct only this synthetic authored fixture in the supported v1 modes.
+    # Private root/owner/journal permissions and content bytes stay independent.
+    for p in selected:
+        if p.is_symlink(): raise RuntimeError('synthetic authored symlink')
+        p.chmod(0o755 if stat.S_IMODE(p.stat().st_mode)&0o111 else 0o644)
     authored={p.relative_to(root).as_posix():p.read_bytes().hex() for p in selected}
     modes={p.relative_to(root).as_posix():stat.S_IMODE(p.stat().st_mode) for p in selected}
     head=root/'assessment-journal'/__import__('hashlib').sha256(f.identifier.encode()).hexdigest()/'head'
