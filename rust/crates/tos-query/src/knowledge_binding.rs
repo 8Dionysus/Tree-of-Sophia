@@ -68,7 +68,7 @@ impl BoundCmpKnowledge<'_> {
         packet: &tos_foundation::JsonValue,
         limits: tos_foundation::JsonLimits,
     ) -> Result<(), SearchV2Error> {
-        use tos_foundation::{CanonicalProfile, JsonValue, canonical_bytes_v1};
+        use tos_foundation::JsonValue;
         let invalid = || SearchV2Error {
             code: SearchV2ErrorCode::CorruptSelectedCarrier,
             message: "selected catalog identity differs",
@@ -86,41 +86,59 @@ impl BoundCmpKnowledge<'_> {
                     return Err(invalid());
                 }
             }
-            KnowledgeSourceBasis::ManagedCurrent { proof } => {
+            KnowledgeSourceBasis::ManagedCurrent { .. } => {
                 if packet.object_get("schema").and_then(JsonValue::as_str)
                     != Some(tos_compiler::managed_source::MANAGED_CATALOG_SCHEMA)
                     || packet.object_get("source_revision").is_some()
                 {
                     return Err(invalid());
                 }
-                let basis = packet.object_get("source_basis").ok_or_else(invalid)?;
-                if basis.as_object().map(|fields| fields.len()) != Some(2)
-                    || basis.object_get("kind").and_then(JsonValue::as_str)
-                        != Some("managed_current")
-                {
-                    return Err(invalid());
-                }
-                let actual = canonical_bytes_v1(
-                    basis.object_get("proof").ok_or_else(invalid)?,
-                    CanonicalProfile::SourceRecordDigestV1,
+                self.validate_managed_basis(
+                    packet.object_get("source_basis").ok_or_else(invalid)?,
                     limits,
-                )
-                .map_err(|reason| SearchV2Error {
-                    code: if reason.code == tos_foundation::ErrorCode::BudgetExceeded {
-                        SearchV2ErrorCode::BudgetExceeded
-                    } else {
-                        SearchV2ErrorCode::CorruptSelectedCarrier
-                    },
-                    message: "selected catalog source basis cannot be checked",
-                })?;
-                let expected = proof.root_sha256().map_err(|_| invalid())?;
-                if Digest256::of_bytes(&actual) != digest(&expected)? {
-                    return Err(invalid());
-                }
+                )?;
             }
         }
         Ok(())
     }
+    /// Compare the retained tagged basis with the one owner proof already
+    /// bound to the cold model. Descriptive equality is never a read grant.
+    pub(crate) fn validate_managed_basis(
+        &self,
+        basis: &tos_foundation::JsonValue,
+        limits: tos_foundation::JsonLimits,
+    ) -> Result<String, SearchV2Error> {
+        use tos_foundation::{CanonicalProfile, JsonValue, canonical_bytes_v1};
+        let invalid = || SearchV2Error {
+            code: SearchV2ErrorCode::CorruptSelectedCarrier,
+            message: "selected managed source basis differs",
+        };
+        let proof = self.source_basis.managed_source().ok_or_else(invalid)?;
+        if basis.as_object().map(|fields| fields.len()) != Some(2)
+            || basis.object_get("kind").and_then(JsonValue::as_str) != Some("managed_current")
+        {
+            return Err(invalid());
+        }
+        let actual = canonical_bytes_v1(
+            basis.object_get("proof").ok_or_else(invalid)?,
+            CanonicalProfile::SourceRecordDigestV1,
+            limits,
+        )
+        .map_err(|reason| SearchV2Error {
+            code: if reason.code == tos_foundation::ErrorCode::BudgetExceeded {
+                SearchV2ErrorCode::BudgetExceeded
+            } else {
+                SearchV2ErrorCode::CorruptSelectedCarrier
+            },
+            message: "selected managed source basis cannot be checked",
+        })?;
+        let expected = proof.root_sha256().map_err(|_| invalid())?;
+        if Digest256::of_bytes(&actual) != digest(&expected)? {
+            return Err(invalid());
+        }
+        Ok(expected)
+    }
+
     pub(crate) fn source_for_adapter(&self, adapter: &str) -> Option<&str> {
         let mut sources = self
             .vocabulary

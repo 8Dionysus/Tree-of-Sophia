@@ -182,9 +182,17 @@ pub enum InspectNeed {
         ids: Vec<String>,
     },
 }
+enum InspectIdentity {
+    Cut(String),
+    #[cfg(not(target_arch = "wasm32"))]
+    Managed {
+        basis: JsonValue,
+        root: String,
+    },
+}
 pub struct InspectPlan {
     request: InspectRequest,
-    revision: String,
+    identity: InspectIdentity,
     authority: JsonValue,
     budget: InspectBudget,
     need: Option<InspectNeed>,
@@ -200,6 +208,101 @@ impl InspectPlan {
     pub fn new(
         request: InspectRequest,
         revision: String,
+        authority_boundary: JsonValue,
+        budget: InspectBudget,
+    ) -> Result<Self, SearchV2Error> {
+        Self::with_identity(
+            request,
+            InspectIdentity::Cut(revision),
+            authority_boundary,
+            budget,
+        )
+    }
+    /// Native-only identity construction from the actual selected header.
+    /// The adapter verifies its digest before this call; bound comparison here
+    /// rejects a different proof. Current authority and custody remain outside
+    /// the domain plan, held throughout seek and final disclosure.
+    #[cfg(not(target_arch = "wasm32"))]
+    pub(crate) fn from_managed_header(
+        request: InspectRequest,
+        header: JsonValue,
+        bound: &crate::knowledge_binding::BoundCmpKnowledge<'_>,
+        budget: InspectBudget,
+        decoded: &mut u64,
+    ) -> Result<Self, SearchV2Error> {
+        if header.object_get("schema").and_then(JsonValue::as_str)
+            != Some(tos_compiler::managed_source::MANAGED_GRAPH_SCHEMA)
+            || header.object_get("source_revision").is_some()
+        {
+            return Err(error(
+                SearchV2ErrorCode::CorruptSelectedCarrier,
+                "managed inspect graph identity invalid",
+            ));
+        }
+        let JsonValue::Object(mut fields) = header else {
+            return Err(error(
+                SearchV2ErrorCode::CorruptSelectedCarrier,
+                "managed inspect graph header invalid",
+            ));
+        };
+        let basis_position = fields
+            .iter()
+            .position(|(key, _)| key.as_str() == Some("source_basis"))
+            .ok_or_else(|| {
+                error(
+                    SearchV2ErrorCode::CorruptSelectedCarrier,
+                    "managed inspect basis absent",
+                )
+            })?;
+        let (_, basis) = fields.remove(basis_position);
+        // Admit the one serialized basis working representation before
+        // proof hashing. The final whole packet writer independently
+        // enforces the response cap, including every target root ref.
+        let mut identity_limits = budget.json;
+        identity_limits.max_bytes = identity_limits.max_bytes.min(budget.max_response_bytes);
+        let basis_bytes = tos_foundation::canonical_count_v1(
+            &basis,
+            tos_foundation::CanonicalProfile::SourceRecordDigestV1,
+            identity_limits,
+        )
+        .map_err(|reason| {
+            error(
+                if reason.code == tos_foundation::FoundationErrorCode::BudgetExceeded {
+                    SearchV2ErrorCode::BudgetExceeded
+                } else {
+                    SearchV2ErrorCode::CorruptSelectedCarrier
+                },
+                "managed inspect basis cannot be admitted",
+            )
+        })?;
+        *decoded = decoded
+            .checked_add(basis_bytes as u64)
+            .and_then(|bytes| bytes.checked_add(64))
+            .ok_or_else(budget_error)?;
+        if *decoded > budget.max_decoded_bytes {
+            return Err(budget_error());
+        }
+        let root = bound.validate_managed_basis(&basis, identity_limits)?;
+        let authority_position = fields
+            .iter()
+            .position(|(key, _)| key.as_str() == Some("authority_boundary"))
+            .ok_or_else(|| {
+                error(
+                    SearchV2ErrorCode::CorruptSelectedCarrier,
+                    "managed inspect authority boundary absent",
+                )
+            })?;
+        let (_, authority_boundary) = fields.remove(authority_position);
+        Self::with_identity(
+            request,
+            InspectIdentity::Managed { basis, root },
+            authority_boundary,
+            budget,
+        )
+    }
+    fn with_identity(
+        request: InspectRequest,
+        identity: InspectIdentity,
         authority_boundary: JsonValue,
         budget: InspectBudget,
     ) -> Result<Self, SearchV2Error> {
@@ -226,7 +329,7 @@ impl InspectPlan {
         });
         Ok(Self {
             request,
-            revision,
+            identity,
             authority: authority_boundary,
             budget,
             need,
@@ -433,22 +536,43 @@ impl InspectPlan {
             }
         }
         let node = self.request.kind == SearchKind::Nodes;
-        let mut fields = vec![
-            (
-                "schema",
-                text(if node {
+        let (schema, identity_fields, targets) = match self.identity {
+            InspectIdentity::Cut(revision) => (
+                if node {
                     "tos_knowledge_node_packet_v1"
                 } else {
                     "tos_knowledge_relation_packet_v1"
-                }),
+                },
+                vec![("source_revision", text(&revision))],
+                source_read_targets(&items, &revision, self.budget.json),
             ),
-            ("source_revision", text(&self.revision)),
+            #[cfg(not(target_arch = "wasm32"))]
+            InspectIdentity::Managed { basis, root } => (
+                if node {
+                    "tos_knowledge_node_packet_v2"
+                } else {
+                    "tos_knowledge_relation_packet_v2"
+                },
+                vec![
+                    ("source_basis", basis),
+                    ("managed_source_root_sha256", text(&root)),
+                ],
+                crate::source_read_projection::managed_source_read_targets(
+                    &items,
+                    &root,
+                    self.budget.json,
+                ),
+            ),
+        };
+        let mut fields = vec![("schema", text(schema))];
+        fields.extend(identity_fields);
+        fields.extend(vec![
             ("requested_id", text(&self.request.identifier)),
             (
                 "ambiguous_native_id",
                 JsonValue::Bool(self.field == "native_id" && self.matches.len() > 1),
             ),
-        ];
+        ]);
         if node {
             fields.push((
                 "shared_entity_id",
@@ -486,10 +610,7 @@ impl InspectPlan {
             JsonValue::Array(refs.into_iter().map(|v| text(&v)).collect()),
         ));
         fields.push(("authority_boundary", self.authority));
-        fields.push((
-            "source_read_targets",
-            source_read_targets(&items, &self.revision, self.budget.json),
-        ));
+        fields.push(("source_read_targets", targets));
         Ok(object(fields))
     }
 }

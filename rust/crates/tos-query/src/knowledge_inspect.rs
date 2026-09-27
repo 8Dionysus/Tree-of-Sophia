@@ -815,7 +815,6 @@ pub fn execute_selected_inspect<'hold, A: InspectCurrentAuthority<'hold> + ?Size
     budget: InspectBudget,
 ) -> Result<DisclosableInspect<'hold>, SearchV2Error> {
     let request = crate::InspectRequest::new(kind, identifier, relation_limit, budget)?;
-    bound.require_source_revision()?;
     let operation = if kind == SearchKind::Nodes {
         NODE_INSPECT_OPERATION
     } else {
@@ -829,10 +828,16 @@ pub fn execute_selected_inspect<'hold, A: InspectCurrentAuthority<'hold> + ?Size
         INSPECT_INTENDED_USE,
         budget,
         |read| {
-            let authority_boundary = parse_json(
-                bound.authority_boundary().as_bytes(), JsonMode::PublishedStrict, budget.json,
-            ).map_err(|_| corrupt("inspect authority boundary invalid"))?.root().clone();
-            let mut plan = crate::InspectPlan::new(request, bound.require_source_revision()?.to_owned(), authority_boundary, budget)?;
+            let mut plan = if let Some(revision) = bound.source_revision() {
+                let authority_boundary = parse_json(
+                    bound.authority_boundary().as_bytes(), JsonMode::PublishedStrict, budget.json,
+                ).map_err(|_| corrupt("inspect authority boundary invalid"))?.into_root();
+                crate::InspectPlan::new(request, revision.to_owned(), authority_boundary, budget)?
+            } else {
+                // Only this adapter supplies the digest-bound selected header.
+                let header = read.header()?;
+                crate::InspectPlan::from_managed_header(request, header, bound, budget, &mut read.decoded)?
+            };
             let probe = read.authority.abort_probe();
             while let Some(need) = plan.need().cloned() {
                 read.check_interrupt()?;

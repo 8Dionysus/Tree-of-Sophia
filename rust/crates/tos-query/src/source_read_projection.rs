@@ -214,6 +214,22 @@ pub(crate) fn source_read_targets(
     if !digest(revision) {
         return object(vec![]);
     }
+    project_targets(items, "source_revision", revision, limits)
+}
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) fn managed_source_read_targets(
+    items: &[JsonValue],
+    root: &str,
+    limits: JsonLimits,
+) -> JsonValue {
+    project_targets(items, "managed_source_root_sha256", root, limits)
+}
+fn project_targets(
+    items: &[JsonValue],
+    identity_field: &str,
+    identity: &str,
+    limits: JsonLimits,
+) -> JsonValue {
     let mut seen: BTreeMap<String, (Option<JsonValue>, bool)> = BTreeMap::new();
     for item in items {
         let Some(id) = get(item, "id").filter(|id| !id.is_empty()) else {
@@ -232,10 +248,7 @@ pub(crate) fn source_read_targets(
                 }
                 Some((
                     JsonString::from_utf8(&id),
-                    object(vec![
-                        ("source_revision", text(revision)),
-                        ("target", target?),
-                    ]),
+                    object(vec![(identity_field, text(identity)), ("target", target?)]),
                 ))
             })
             .collect(),
