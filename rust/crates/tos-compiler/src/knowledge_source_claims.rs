@@ -2,8 +2,8 @@
 //!
 //! Prepared bibliographic rows remain the authority for associations. This
 //! module writes private base rows and Claim semantics, never admits them.
-use crate::knowledge_global_titles::{GlobalTitleReceipt, endpoint_title, verify_global_titles};
-use crate::knowledge_normalization::{SourceRow, stable_digest, stamp_content_revision};
+use crate::knowledge_global_titles::{endpoint_title, verify_global_titles, GlobalTitleReceipt};
+use crate::knowledge_normalization::{stable_digest, stamp_content_revision, SourceRow};
 use crate::knowledge_philosophy_display::{
     ordinary_philosophy_relation_display, source_navigation_node_display,
 };
@@ -13,11 +13,11 @@ use crate::knowledge_source_navigation_node::{
 };
 use crate::knowledge_stage::{KnowledgeStage, NodeRow, RelationRow, SeekRow, WritePhase};
 use crate::{Error, KnowledgeRegistry, QueryVocabulary, Result};
-use rusqlite::{OptionalExtension, params};
-use serde_json::{Value, json};
+use rusqlite::{params, OptionalExtension};
+use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet};
 use tos_foundation::{
-    CanonicalProfile, Digest256, Digest256Hasher, JsonLimits, canonical_raw_bytes_v1,
+    canonical_raw_bytes_v1, CanonicalProfile, Digest256, Digest256Hasher, JsonLimits,
 };
 
 const PROFILE: &str = "reified-bibliographic-claims-v1";
@@ -26,7 +26,7 @@ const PROFILE: &str = "reified-bibliographic-claims-v1";
 /// normalization. Preserve the original member order for readable copies;
 /// this is a derived source carrier, not a replacement owner record.
 pub(crate) fn ordered_claim_node_material(raw: &[u8], max_bytes: usize) -> Result<Vec<u8>> {
-    use tos_foundation::{JsonMode, JsonValue, parse_json};
+    use tos_foundation::{parse_json, JsonMode, JsonValue};
     let owner = SourceRow::parse(raw, max_bytes)?;
     let mut layers = unique(owner.value().get("graph_layers"));
     layers.push("bibliographic-claim".into());
@@ -74,7 +74,7 @@ fn ordered_claim_relation_material(
     material: &Value,
     max_bytes: usize,
 ) -> Result<Vec<u8>> {
-    use tos_foundation::{JsonMode, JsonValue, parse_json};
+    use tos_foundation::{parse_json, JsonMode, JsonValue};
     let original = SourceRow::parse(raw, max_bytes)?;
     let original_object = original
         .value()
@@ -601,21 +601,17 @@ impl<'a> ClaimNormalizer<'a> {
             ("object_entity_id", object["entity_id"].clone()),
             (
                 "normalized_identity_node_ids",
-                json!(
-                    strings(trace.get("normalized_identity_node_ids"))
-                        .iter()
-                        .map(|s| format!("{}:{s}", self.source_graph))
-                        .collect::<Vec<_>>()
-                ),
+                json!(strings(trace.get("normalized_identity_node_ids"))
+                    .iter()
+                    .map(|s| format!("{}:{s}", self.source_graph))
+                    .collect::<Vec<_>>()),
             ),
             (
                 "evidence_node_ids",
-                json!(
-                    strings(trace.get("evidence_node_ids"))
-                        .iter()
-                        .map(|s| format!("{}:{s}", self.source_graph))
-                        .collect::<Vec<_>>()
-                ),
+                json!(strings(trace.get("evidence_node_ids"))
+                    .iter()
+                    .map(|s| format!("{}:{s}", self.source_graph))
+                    .collect::<Vec<_>>()),
             ),
             ("review_status", trace["review_status"].clone()),
             ("epistemic_status", trace["epistemic_status"].clone()),
@@ -628,12 +624,10 @@ impl<'a> ClaimNormalizer<'a> {
         {
             contract.insert(
                 "value_member_node_ids".into(),
-                json!(
-                    strings(Some(members))
-                        .iter()
-                        .map(|s| format!("{}:{s}", self.source_graph))
-                        .collect::<Vec<_>>()
-                ),
+                json!(strings(Some(members))
+                    .iter()
+                    .map(|s| format!("{}:{s}", self.source_graph))
+                    .collect::<Vec<_>>()),
             );
         }
         if text(profile.get("reader")) == Some("document-catalogue-temporal-v1") {
@@ -652,10 +646,8 @@ impl<'a> ClaimNormalizer<'a> {
             contract.insert(
                 "source_canonical_json".into(),
                 if raw.len() <= 262144 {
-                    json!(
-                        String::from_utf8(raw)
-                            .map_err(|_| Error::Invalid("Claim canonical UTF8"))?
-                    )
+                    json!(String::from_utf8(raw)
+                        .map_err(|_| Error::Invalid("Claim canonical UTF8"))?)
                 } else {
                     Value::Null
                 },
@@ -691,10 +683,8 @@ impl<'a> ClaimNormalizer<'a> {
             .unwrap_or("related_to")
             .to_owned();
         item["predicate_id"] = json!(predicate);
-        item["source_ref"] = json!(
-            text(item.get("source_claim_file_ref"))
-                .unwrap_or("ToS/source-witnesses/catalog/claims.jsonl")
-        );
+        item["source_ref"] = json!(text(item.get("source_claim_file_ref"))
+            .unwrap_or("ToS/source-witnesses/catalog/claims.jsonl"));
         item["graph_layers"] = json!(["bibliographic-claim"]);
         let mut props = item
             .get("properties")
@@ -868,6 +858,7 @@ fn node(stage: &mut KnowledgeStage<'_>, id: &str, cap: usize) -> Result<Value> {
 fn update_node(stage: &mut KnowledgeStage<'_>, value: &Value, cap: usize) -> Result<()> {
     let bytes = encode(value, cap)?;
     let sha = Digest256::of_bytes(&bytes);
+    stage.charge_materialized(1, bytes.len() as u64)?;
     stage.with_connection(WritePhase::Normalized, |db| {
         if db.execute(
             "UPDATE knowledge_nodes SET payload_len=?1,payload_sha256=?2,payload=?3 WHERE id=?4",
@@ -1057,12 +1048,15 @@ pub fn materialize_source_claim_nodes(
             )?)
         })?;
         loop {
-            let page = stage.scan_input(
-                &prepared.source_graph,
-                "nodes",
-                after.as_deref(),
-                normalizer.limits.max_page_rows,
-            )?;
+            let (write_rows, write_bytes) = stage.write_page_limits();
+            let page_rows = normalizer
+                .limits
+                .max_page_rows
+                .min(write_rows)
+                .min(write_bytes as usize / normalizer.limits.max_output_bytes);
+            let page =
+                stage.scan_input(&prepared.source_graph, "nodes", after.as_deref(), page_rows)?;
+            stage.with_write_page(WritePhase::Normalized, page_rows, (page_rows * normalizer.limits.max_output_bytes) as u64, |stage| {
             for raw in page.rows {
                 charge(
                     &mut work,
@@ -1100,6 +1094,8 @@ pub fn materialize_source_claim_nodes(
                     .checked_add(1)
                     .ok_or(Error::Budget("Claim node order"))?;
             }
+            Ok(())
+            })?;
             match page.next_id {
                 Some(id) => after = Some(id),
                 None => break,
@@ -1338,12 +1334,15 @@ pub fn materialize_source_claim_relations(
             )?)
         })?;
         loop {
-            let page = stage.scan_input(
-                &prepared.source_graph,
-                "edges",
-                after.as_deref(),
-                normalizer.limits.max_page_rows,
-            )?;
+            let (write_rows, write_bytes) = stage.write_page_limits();
+            let page_rows = normalizer
+                .limits
+                .max_page_rows
+                .min(write_rows)
+                .min(write_bytes as usize / normalizer.limits.max_output_bytes);
+            let page =
+                stage.scan_input(&prepared.source_graph, "edges", after.as_deref(), page_rows)?;
+            stage.with_write_page(WritePhase::Normalized, page_rows, (page_rows * normalizer.limits.max_output_bytes) as u64, |stage| {
             for raw in page.rows {
                 charge(
                     &mut work,
@@ -1428,6 +1427,8 @@ pub fn materialize_source_claim_relations(
                     .checked_add(1)
                     .ok_or(Error::Budget("Claim relation order"))?;
             }
+            Ok(())
+            })?;
             match page.next_id {
                 Some(id) => after = Some(id),
                 None => break,
@@ -1460,76 +1461,93 @@ pub fn finalize_source_claims(
         let mut root = Digest256Hasher::new();
         let mut work = 0;
         loop {
+            let (write_rows, write_bytes) = stage.write_page_limits();
+            let page_rows = normalizer
+                .limits
+                .max_page_rows
+                .min(write_rows / 2)
+                .min(write_bytes as usize / (2 * normalizer.limits.max_output_bytes));
             let page = stage.scan_input(
                 &prepared.source_graph,
                 "claim_traces",
                 after.as_deref(),
-                normalizer.limits.max_page_rows,
+                page_rows,
             )?;
-            for raw in page.rows {
-                charge(
-                    &mut work,
-                    raw.payload.len(),
-                    normalizer.limits.max_work_bytes,
-                )?;
-                root_item(
-                    &mut root,
-                    &raw.id,
-                    Digest256::of_bytes(&raw.payload).as_bytes(),
-                );
-                let source = SourceRow::parse(&raw.payload, normalizer.limits.max_raw_bytes)?;
-                let trace = source.value();
-                let mut endpoints = Vec::new();
-                for field in ["claim_node_id", "subject_node_id", "object_node_id"] {
-                    endpoints.push(node(
-                        stage,
-                        &format!("{}:{}", prepared.source_graph, required(trace, field)?),
-                        normalizer.limits.max_output_bytes,
-                    )?);
-                }
-                let output = normalizer.finalize_claim(
-                    &endpoints[0],
-                    &endpoints[1],
-                    &endpoints[2],
-                    trace,
-                )?;
-                update_node(stage, &output, normalizer.limits.max_output_bytes)?;
-                if endpoints[2]
-                    .pointer("/source_record/payload/node_kind")
-                    .and_then(Value::as_str)
-                    == Some("literal")
-                {
-                    let group = claim_contexts(
-                        stage,
-                        contexts,
-                        &prepared.source_graph,
-                        &raw.id,
-                        normalizer.limits,
-                    )?;
-                    if !group.is_empty() {
-                        let object = &mut endpoints[2];
-                        let semantics = object["semantics"]
-                            .as_object_mut()
-                            .ok_or(Error::Invalid("Claim literal semantics"))?;
-                        let existing = semantics
-                            .entry("assertion_contexts")
-                            .or_insert_with(|| json!([]))
-                            .as_array_mut()
-                            .ok_or(Error::Invalid("Claim literal contexts"))?;
-                        for context in group {
-                            if !existing.contains(&context) {
-                                existing.push(context);
+            stage.with_write_page(
+                WritePhase::Normalized,
+                page_rows * 2,
+                (page_rows * 2 * normalizer.limits.max_output_bytes) as u64,
+                |stage| {
+                    for raw in page.rows {
+                        charge(
+                            &mut work,
+                            raw.payload.len(),
+                            normalizer.limits.max_work_bytes,
+                        )?;
+                        root_item(
+                            &mut root,
+                            &raw.id,
+                            Digest256::of_bytes(&raw.payload).as_bytes(),
+                        );
+                        let source =
+                            SourceRow::parse(&raw.payload, normalizer.limits.max_raw_bytes)?;
+                        let trace = source.value();
+                        let mut endpoints = Vec::new();
+                        for field in ["claim_node_id", "subject_node_id", "object_node_id"] {
+                            endpoints.push(node(
+                                stage,
+                                &format!("{}:{}", prepared.source_graph, required(trace, field)?),
+                                normalizer.limits.max_output_bytes,
+                            )?);
+                        }
+                        let output = normalizer.finalize_claim(
+                            &endpoints[0],
+                            &endpoints[1],
+                            &endpoints[2],
+                            trace,
+                        )?;
+                        update_node(stage, &output, normalizer.limits.max_output_bytes)?;
+                        if endpoints[2]
+                            .pointer("/source_record/payload/node_kind")
+                            .and_then(Value::as_str)
+                            == Some("literal")
+                        {
+                            let group = claim_contexts(
+                                stage,
+                                contexts,
+                                &prepared.source_graph,
+                                &raw.id,
+                                normalizer.limits,
+                            )?;
+                            if !group.is_empty() {
+                                let object = &mut endpoints[2];
+                                let semantics = object["semantics"]
+                                    .as_object_mut()
+                                    .ok_or(Error::Invalid("Claim literal semantics"))?;
+                                let existing = semantics
+                                    .entry("assertion_contexts")
+                                    .or_insert_with(|| json!([]))
+                                    .as_array_mut()
+                                    .ok_or(Error::Invalid("Claim literal contexts"))?;
+                                for context in group {
+                                    if !existing.contains(&context) {
+                                        existing.push(context);
+                                    }
+                                }
+                                if existing.len() > normalizer.limits.max_contexts {
+                                    return Err(Error::Budget(
+                                        "Claim literal accumulated contexts",
+                                    ));
+                                }
+                                stamp_content_revision(object, normalizer.limits.max_output_bytes)?;
+                                update_node(stage, object, normalizer.limits.max_output_bytes)?;
                             }
                         }
-                        if existing.len() > normalizer.limits.max_contexts {
-                            return Err(Error::Budget("Claim literal accumulated contexts"));
-                        }
-                        stamp_content_revision(object, normalizer.limits.max_output_bytes)?;
-                        update_node(stage, object, normalizer.limits.max_output_bytes)?;
+                        count += 1;
                     }
-                }
-                count += 1;
-            }
+                    Ok(())
+                },
+            )?;
             match page.next_id {
                 Some(id) => after = Some(id),
                 None => break,

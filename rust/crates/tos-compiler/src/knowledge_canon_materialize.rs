@@ -2,14 +2,14 @@
 //! The complete assembler supplies endpoint titles, placeholders and finalizers.
 use crate::knowledge_base::{BaseNodeOverrides, BaseNormalizationLimits, KnowledgeBaseNormalizer};
 use crate::knowledge_canon_prepare::{
-    CANDIDATE_PROFILE, CANON_PROFILE, CanonPrepareReceipt, canonical_digest, dependency_root,
-    required, text,
+    canonical_digest, dependency_root, required, text, CanonPrepareReceipt, CANDIDATE_PROFILE,
+    CANON_PROFILE,
 };
-use crate::knowledge_normalization::{SourceRow, stamp_content_revision};
+use crate::knowledge_normalization::{stamp_content_revision, SourceRow};
 use crate::knowledge_stage::{KnowledgeStage, NodeRow, RelationRow, WritePhase};
 use crate::{Error, KnowledgeRegistry, QueryVocabulary, Result};
-use rusqlite::{OptionalExtension, params};
-use serde_json::{Value, json};
+use rusqlite::{params, OptionalExtension};
+use serde_json::{json, Value};
 use tos_foundation::Digest256;
 
 #[derive(Clone, Copy, Debug)]
@@ -397,23 +397,24 @@ where
     let mut work = 0u64;
     let mut after = None;
     loop {
+        let (write_rows, write_bytes) = stage.write_page_limits();
+        let page_rows = normalizer
+            .limits
+            .max_page_rows
+            .min(write_rows)
+            .min(write_bytes as usize / normalizer.limits.max_output_bytes);
         let batch = if relation {
             scan_canon_relations(
                 stage,
                 prepared,
                 after.as_deref(),
-                normalizer.limits.max_page_rows,
+                page_rows,
                 normalizer.limits.max_raw_bytes,
                 normalizer.limits.max_page_bytes,
             )?
         } else {
             stage
-                .scan_input(
-                    &prepared.source_graph,
-                    "nodes",
-                    after.as_deref(),
-                    normalizer.limits.max_page_rows,
-                )?
+                .scan_input(&prepared.source_graph, "nodes", after.as_deref(), page_rows)?
                 .rows
                 .into_iter()
                 .map(|r| CanonPreparedRelation {
@@ -428,57 +429,71 @@ where
         if batch.is_empty() {
             break;
         }
-        for row in batch {
-            let value = if relation {
-                let (left, right) = titles(stage, &row.from_id, &row.to_id)?;
-                normalizer.normalize_relation(stage, prepared, &row.identity_id, &left, &right)?
-            } else {
-                normalizer.normalize_node(stage, prepared, &row.native_id)?
-            };
-            let bytes =
-                serde_json::to_vec(&value).map_err(|_| Error::Invalid("canon normalized JSON"))?;
-            rows = rows
-                .checked_add(1)
-                .ok_or(Error::Budget("canon materialize rows"))?;
-            work = work
-                .checked_add(row.material.len() as u64)
-                .and_then(|n| n.checked_add(bytes.len() as u64))
-                .ok_or(Error::Budget("canon materialize work"))?;
-            if rows > expected
-                || work > normalizer.limits.max_work_bytes
-                || bytes.len() > normalizer.limits.max_output_bytes
-            {
-                return Err(Error::Budget("canon materialize work/bytes"));
-            }
-            if relation {
-                stage.insert_relation(RelationRow {
-                    id: required(&value, "id")?,
-                    source_graph: &prepared.source_graph,
-                    native_id: Some(&row.native_id),
-                    from_id: required(&value, "from_id")?,
-                    to_id: required(&value, "to_id")?,
-                    predicate_id: required(&value, "predicate_id")?,
-                    relation_type_id: required(&value, "relation_type_id")?,
-                    source_order: order,
-                    payload: &bytes,
-                })?;
-            } else {
-                stage.insert_node(NodeRow {
-                    id: required(&value, "id")?,
-                    source_graph: &prepared.source_graph,
-                    native_id: Some(&row.native_id),
-                    entity_id: Some(required(&value, "entity_id")?),
-                    kind_id: required(&value, "kind_id")?,
-                    type_id: required(&value, "type_id")?,
-                    source_order: order,
-                    payload: &bytes,
-                })?;
-            }
-            order = order
-                .checked_add(1)
-                .ok_or(Error::Budget("canon materialize order"))?;
-            after = Some(row.identity_id);
-        }
+        stage.with_write_page(
+            WritePhase::Normalized,
+            page_rows,
+            (page_rows * normalizer.limits.max_output_bytes) as u64,
+            |stage| {
+                for row in batch {
+                    let value = if relation {
+                        let (left, right) = titles(stage, &row.from_id, &row.to_id)?;
+                        normalizer.normalize_relation(
+                            stage,
+                            prepared,
+                            &row.identity_id,
+                            &left,
+                            &right,
+                        )?
+                    } else {
+                        normalizer.normalize_node(stage, prepared, &row.native_id)?
+                    };
+                    let bytes = serde_json::to_vec(&value)
+                        .map_err(|_| Error::Invalid("canon normalized JSON"))?;
+                    rows = rows
+                        .checked_add(1)
+                        .ok_or(Error::Budget("canon materialize rows"))?;
+                    work = work
+                        .checked_add(row.material.len() as u64)
+                        .and_then(|n| n.checked_add(bytes.len() as u64))
+                        .ok_or(Error::Budget("canon materialize work"))?;
+                    if rows > expected
+                        || work > normalizer.limits.max_work_bytes
+                        || bytes.len() > normalizer.limits.max_output_bytes
+                    {
+                        return Err(Error::Budget("canon materialize work/bytes"));
+                    }
+                    if relation {
+                        stage.insert_relation(RelationRow {
+                            id: required(&value, "id")?,
+                            source_graph: &prepared.source_graph,
+                            native_id: Some(&row.native_id),
+                            from_id: required(&value, "from_id")?,
+                            to_id: required(&value, "to_id")?,
+                            predicate_id: required(&value, "predicate_id")?,
+                            relation_type_id: required(&value, "relation_type_id")?,
+                            source_order: order,
+                            payload: &bytes,
+                        })?;
+                    } else {
+                        stage.insert_node(NodeRow {
+                            id: required(&value, "id")?,
+                            source_graph: &prepared.source_graph,
+                            native_id: Some(&row.native_id),
+                            entity_id: Some(required(&value, "entity_id")?),
+                            kind_id: required(&value, "kind_id")?,
+                            type_id: required(&value, "type_id")?,
+                            source_order: order,
+                            payload: &bytes,
+                        })?;
+                    }
+                    order = order
+                        .checked_add(1)
+                        .ok_or(Error::Budget("canon materialize order"))?;
+                    after = Some(row.identity_id);
+                }
+                Ok(())
+            },
+        )?;
     }
     if rows != expected {
         return Err(Error::Invalid("canon materialize completeness"));
@@ -550,7 +565,7 @@ mod tests {
     use crate::knowledge_candidates::{
         candidate_normalizer, materialize_candidate_relations, prepare_candidate_inputs,
     };
-    use crate::knowledge_canon_prepare::{CanonPrepareLimits, prepare_canon_inputs};
+    use crate::knowledge_canon_prepare::{prepare_canon_inputs, CanonPrepareLimits};
     use crate::knowledge_stage::{
         ExactInputReceipt, InputCollectionReceipt, InputRow, StageIsolation, StageLimits,
         StageOwner,

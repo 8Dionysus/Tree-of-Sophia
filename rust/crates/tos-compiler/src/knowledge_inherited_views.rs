@@ -5,7 +5,7 @@
 //! not create nodes, relations, or a selected output file.
 
 use crate::knowledge_stage::{KnowledgeStage, WritePhase};
-use crate::{Error, Result, knowledge_normalization::SourceRow};
+use crate::{knowledge_normalization::SourceRow, Error, Result};
 use rusqlite::params;
 use serde_json::Value;
 use std::collections::BTreeSet;
@@ -173,23 +173,21 @@ fn insert_relation(
     views: &BTreeSet<String>,
 ) -> Result<()> {
     stage.with_connection(WritePhase::Normalized, |db| {
-        let tx = db.transaction()?;
         for endpoint in [&relation.from_id, &relation.to_id]
             .into_iter()
             .collect::<BTreeSet<_>>()
         {
-            tx.execute(
+            db.execute(
                 "INSERT INTO knowledge_global_inherited_endpoint_evidence VALUES (?1,?2)",
                 params![endpoint, relation.id],
             )?;
             for view in views {
-                tx.execute(
+                db.execute(
                     "INSERT OR IGNORE INTO knowledge_global_inherited_views VALUES (?1,?2)",
                     params![endpoint, view],
                 )?;
             }
         }
-        tx.commit()?;
         Ok(())
     })
 }
@@ -255,69 +253,79 @@ fn prepare_inner(
             break;
         }
         let page_len = page.len();
-        for relation in page {
-            count = count
-                .checked_add(1)
-                .ok_or(Error::Budget("inherited relation count"))?;
-            if count > limits.max_relations {
-                return Err(Error::Budget("inherited relation count"));
-            }
-            if relation.order < 0 || relation.order as u64 != count - 1 {
-                return Err(Error::Invalid("inherited relation source order"));
-            }
-            work = work
-                .checked_add(relation.payload.len() as u64)
-                .ok_or(Error::Budget("inherited work bytes"))?;
-            if work > limits.max_work_bytes {
-                return Err(Error::Budget("inherited work bytes"));
-            }
-            if Digest256::of_bytes(&relation.payload).as_bytes() != &relation.payload_sha {
-                return Err(Error::Invalid("inherited relation payload digest"));
-            }
-            root_item(&mut hash, &relation.id, &relation.payload_sha);
-            let parsed = SourceRow::parse(&relation.payload, limits.max_row_bytes)?;
-            let value = parsed.value();
-            for (field, expected) in [
-                ("id", relation.id.as_str()),
-                ("source_graph", relation.source_graph.as_str()),
-                ("from_id", relation.from_id.as_str()),
-                ("to_id", relation.to_id.as_str()),
-            ] {
-                if text(value, field)? != expected {
-                    return Err(Error::Invalid("inherited relation column/payload mismatch"));
+        stage.with_write_page(
+            WritePhase::Normalized,
+            page_len,
+            limits.max_page_bytes,
+            |stage| {
+                for relation in &page {
+                    count = count
+                        .checked_add(1)
+                        .ok_or(Error::Budget("inherited relation count"))?;
+                    if count > limits.max_relations {
+                        return Err(Error::Budget("inherited relation count"));
+                    }
+                    if relation.order < 0 || relation.order as u64 != count - 1 {
+                        return Err(Error::Invalid("inherited relation source order"));
+                    }
+                    work = work
+                        .checked_add(relation.payload.len() as u64)
+                        .ok_or(Error::Budget("inherited work bytes"))?;
+                    if work > limits.max_work_bytes {
+                        return Err(Error::Budget("inherited work bytes"));
+                    }
+                    if Digest256::of_bytes(&relation.payload).as_bytes() != &relation.payload_sha {
+                        return Err(Error::Invalid("inherited relation payload digest"));
+                    }
+                    root_item(&mut hash, &relation.id, &relation.payload_sha);
+                    let parsed = SourceRow::parse(&relation.payload, limits.max_row_bytes)?;
+                    let value = parsed.value();
+                    for (field, expected) in [
+                        ("id", relation.id.as_str()),
+                        ("source_graph", relation.source_graph.as_str()),
+                        ("from_id", relation.from_id.as_str()),
+                        ("to_id", relation.to_id.as_str()),
+                    ] {
+                        if text(value, field)? != expected {
+                            return Err(Error::Invalid(
+                                "inherited relation column/payload mismatch",
+                            ));
+                        }
+                    }
+                    let view_values = value
+                        .get("view_ids")
+                        .and_then(Value::as_array)
+                        .ok_or(Error::Invalid("inherited normalized relation view list"))?;
+                    view_tokens = view_tokens
+                        .checked_add(view_values.len() as u64)
+                        .ok_or(Error::Budget("inherited view tokens"))?;
+                    if view_tokens > limits.max_view_tokens {
+                        return Err(Error::Budget("inherited view tokens"));
+                    }
+                    let mut views = BTreeSet::new();
+                    for view in view_values {
+                        let text = view
+                            .as_str()
+                            .filter(|v| !v.is_empty() && v.len() <= 4096)
+                            .ok_or(Error::Invalid("inherited normalized relation view member"))?;
+                        views.insert(text.to_owned());
+                    }
+                    endpoint_evidence_limit_count = endpoint_evidence_limit_count
+                        .checked_add(if relation.from_id == relation.to_id {
+                            1
+                        } else {
+                            2
+                        })
+                        .ok_or(Error::Budget("inherited endpoint evidence"))?;
+                    if endpoint_evidence_limit_count > limits.max_endpoint_evidence_rows {
+                        return Err(Error::Budget("inherited endpoint evidence"));
+                    }
+                    insert_relation(stage, &relation, &views)?;
+                    after = Some((relation.source_graph.clone(), relation.id.clone()));
                 }
-            }
-            let view_values = value
-                .get("view_ids")
-                .and_then(Value::as_array)
-                .ok_or(Error::Invalid("inherited normalized relation view list"))?;
-            view_tokens = view_tokens
-                .checked_add(view_values.len() as u64)
-                .ok_or(Error::Budget("inherited view tokens"))?;
-            if view_tokens > limits.max_view_tokens {
-                return Err(Error::Budget("inherited view tokens"));
-            }
-            let mut views = BTreeSet::new();
-            for view in view_values {
-                let text = view
-                    .as_str()
-                    .filter(|v| !v.is_empty() && v.len() <= 4096)
-                    .ok_or(Error::Invalid("inherited normalized relation view member"))?;
-                views.insert(text.to_owned());
-            }
-            endpoint_evidence_limit_count = endpoint_evidence_limit_count
-                .checked_add(if relation.from_id == relation.to_id {
-                    1
-                } else {
-                    2
-                })
-                .ok_or(Error::Budget("inherited endpoint evidence"))?;
-            if endpoint_evidence_limit_count > limits.max_endpoint_evidence_rows {
-                return Err(Error::Budget("inherited endpoint evidence"));
-            }
-            insert_relation(stage, &relation, &views)?;
-            after = Some((relation.source_graph, relation.id));
-        }
+                Ok(())
+            },
+        )?;
         if page_len < limits.max_page_rows {
             break;
         }
@@ -589,17 +597,15 @@ mod tests {
         assert!(run(&incomplete, seal(), limits()).is_err());
         let mut malformed = ROWS.to_vec();
         malformed[0].4 = r#"{"id":"canon:e1","source_graph":"canon","from_id":"wrong","to_id":"philosophy:n:a","view_ids":["route"]}"#;
-        assert!(
-            run(
-                &malformed,
-                CompleteRelationSeal {
-                    relation_root_sha256: raw_root(&malformed),
-                    ..seal()
-                },
-                limits()
-            )
-            .is_err()
-        );
+        assert!(run(
+            &malformed,
+            CompleteRelationSeal {
+                relation_root_sha256: raw_root(&malformed),
+                ..seal()
+            },
+            limits()
+        )
+        .is_err());
         let mut small = limits();
         small.max_view_tokens = 3;
         assert!(run(ROWS, seal(), small).is_err());
@@ -617,17 +623,15 @@ mod tests {
         assert!(run(&duplicate, seal(), limits()).is_err());
         let mut invalid_views = ROWS.to_vec();
         invalid_views[0].4 = r#"{"id":"canon:e1","source_graph":"canon","from_id":"canon:a","to_id":"philosophy:n:a","view_ids":[1]}"#;
-        assert!(
-            run(
-                &invalid_views,
-                CompleteRelationSeal {
-                    relation_root_sha256: raw_root(&invalid_views),
-                    ..seal()
-                },
-                limits()
-            )
-            .is_err()
-        );
+        assert!(run(
+            &invalid_views,
+            CompleteRelationSeal {
+                relation_root_sha256: raw_root(&invalid_views),
+                ..seal()
+            },
+            limits()
+        )
+        .is_err());
     }
     fn raw_root(rows: &[FixtureRow]) -> String {
         let mut hash = Digest256Hasher::new();

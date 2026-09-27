@@ -3,12 +3,12 @@
 //! source meaning or implement other registered source adapters.
 
 use crate::{
-    Error, KnowledgeRegistry, QueryVocabulary, Result,
     knowledge_stage::{ExactInputReceipt, KnowledgeStage, NodeRow, RelationRow},
+    Error, KnowledgeRegistry, QueryVocabulary, Result,
 };
 use serde_json::Value;
 use std::collections::BTreeSet;
-use tos_foundation::{Digest256, JsonLimits, JsonMode, parse_json};
+use tos_foundation::{parse_json, Digest256, JsonLimits, JsonMode};
 
 const PROFILE: &str = "indexed-node-edge-v1";
 
@@ -302,28 +302,48 @@ fn materialize_indexed_sources_inner(
                 after.as_deref(),
                 limits.max_page_rows,
             )?;
-            for raw in page.rows {
-                let row = parse_carrier(&raw.payload, limits.max_row_bytes)?;
-                let (native, entity, kind, type_id) =
-                    checked_node(&row, &source.source_graph_id, &raw.id, registry)?;
-                let source_order = i64::try_from(
-                    node_base
-                        .checked_add(node_count)
-                        .ok_or(Error::Budget("indexed node count"))?,
-                )
-                .map_err(|_| Error::Budget("knowledge node order"))?;
-                stage.insert_node(NodeRow {
-                    id: &raw.id,
-                    source_graph: &source.source_graph_id,
-                    native_id: Some(native),
-                    entity_id: Some(entity),
-                    kind_id: kind,
-                    type_id,
-                    source_order,
-                    payload: &raw.payload,
-                })?;
-                node_count += 1;
+            if page.rows.is_empty() {
+                break;
             }
+            let page_rows = page.rows.len();
+            let page_bytes = page
+                .rows
+                .iter()
+                .try_fold(0u64, |sum, row| {
+                    sum.checked_add(row.payload.len() as u64)
+                        .ok_or(Error::Budget("indexed page bytes"))
+                })?
+                .max(1);
+            stage.with_write_page(
+                crate::knowledge_stage::WritePhase::Normalized,
+                page_rows,
+                page_bytes,
+                |stage| {
+                    for raw in page.rows {
+                        let row = parse_carrier(&raw.payload, limits.max_row_bytes)?;
+                        let (native, entity, kind, type_id) =
+                            checked_node(&row, &source.source_graph_id, &raw.id, registry)?;
+                        let source_order = i64::try_from(
+                            node_base
+                                .checked_add(node_count)
+                                .ok_or(Error::Budget("indexed node count"))?,
+                        )
+                        .map_err(|_| Error::Budget("knowledge node order"))?;
+                        stage.insert_node(NodeRow {
+                            id: &raw.id,
+                            source_graph: &source.source_graph_id,
+                            native_id: Some(native),
+                            entity_id: Some(entity),
+                            kind_id: kind,
+                            type_id,
+                            source_order,
+                            payload: &raw.payload,
+                        })?;
+                        node_count += 1;
+                    }
+                    Ok(())
+                },
+            )?;
             match page.next_id {
                 Some(next) => after = Some(next),
                 None => break,
@@ -339,29 +359,49 @@ fn materialize_indexed_sources_inner(
                 after.as_deref(),
                 limits.max_page_rows,
             )?;
-            for raw in page.rows {
-                let row = parse_carrier(&raw.payload, limits.max_row_bytes)?;
-                let (native, from_id, to_id, predicate, relation_type) =
-                    checked_relation(&row, &source.source_graph_id, &raw.id, registry)?;
-                let source_order = i64::try_from(
-                    relation_base
-                        .checked_add(relation_count)
-                        .ok_or(Error::Budget("indexed relation count"))?,
-                )
-                .map_err(|_| Error::Budget("knowledge relation order"))?;
-                stage.insert_relation(RelationRow {
-                    id: &raw.id,
-                    source_graph: &source.source_graph_id,
-                    native_id: Some(native),
-                    from_id,
-                    to_id,
-                    predicate_id: predicate,
-                    relation_type_id: relation_type,
-                    source_order,
-                    payload: &raw.payload,
-                })?;
-                relation_count += 1;
+            if page.rows.is_empty() {
+                break;
             }
+            let page_rows = page.rows.len();
+            let page_bytes = page
+                .rows
+                .iter()
+                .try_fold(0u64, |sum, row| {
+                    sum.checked_add(row.payload.len() as u64)
+                        .ok_or(Error::Budget("indexed page bytes"))
+                })?
+                .max(1);
+            stage.with_write_page(
+                crate::knowledge_stage::WritePhase::Normalized,
+                page_rows,
+                page_bytes,
+                |stage| {
+                    for raw in page.rows {
+                        let row = parse_carrier(&raw.payload, limits.max_row_bytes)?;
+                        let (native, from_id, to_id, predicate, relation_type) =
+                            checked_relation(&row, &source.source_graph_id, &raw.id, registry)?;
+                        let source_order = i64::try_from(
+                            relation_base
+                                .checked_add(relation_count)
+                                .ok_or(Error::Budget("indexed relation count"))?,
+                        )
+                        .map_err(|_| Error::Budget("knowledge relation order"))?;
+                        stage.insert_relation(RelationRow {
+                            id: &raw.id,
+                            source_graph: &source.source_graph_id,
+                            native_id: Some(native),
+                            from_id,
+                            to_id,
+                            predicate_id: predicate,
+                            relation_type_id: relation_type,
+                            source_order,
+                            payload: &raw.payload,
+                        })?;
+                        relation_count += 1;
+                    }
+                    Ok(())
+                },
+            )?;
             match page.next_id {
                 Some(next) => after = Some(next),
                 None => break,
@@ -379,11 +419,10 @@ fn materialize_indexed_sources_inner(
 mod tests {
     use super::*;
     use crate::{
-        Limits, ScopeLimits, SourceBinding,
         knowledge_stage::{
             InputCollectionReceipt, InputRow, StageIsolation, StageLimits, StageOwner, WritePhase,
         },
-        write_source_scope,
+        write_source_scope, Limits, ScopeLimits, SourceBinding,
     };
     use std::{
         fs,
@@ -641,18 +680,16 @@ mod tests {
             &isolation,
         )
         .unwrap();
-        assert!(
-            materialize_indexed_sources(
-                &mut stage,
-                &vocabulary,
-                &registry,
-                IndexedLimits {
-                    max_row_bytes: 1024 * 1024,
-                    max_page_rows: 1
-                }
-            )
-            .is_err()
-        );
+        assert!(materialize_indexed_sources(
+            &mut stage,
+            &vocabulary,
+            &registry,
+            IndexedLimits {
+                max_row_bytes: 1024 * 1024,
+                max_page_rows: 1
+            }
+        )
+        .is_err());
         assert!(stage.finish().is_err());
         assert!(!path.exists());
         fs::remove_dir_all(path.parent().unwrap()).unwrap();

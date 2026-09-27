@@ -245,18 +245,32 @@ pub fn materialize_navigation_nodes(
         let mut walk = Walk::new();
         let mut output = Digest256Hasher::new();
         loop {
+            let (write_rows, write_bytes) = stage.write_page_limits();
+            let page_rows = limits
+                .max_page_rows
+                .min(write_rows)
+                .min((write_bytes as usize / limits.max_output_bytes).max(1));
             let page = stage.scan_input(
                 &prepared.source_graph,
                 "nodes",
                 walk.after.as_deref(),
-                limits.max_page_rows,
+                page_rows,
             )?;
-            for raw in &page.rows {
-                walk.add(raw, limits.max_nodes, limits)?;
-                let base = normalizer.normalize_base(raw, prepared)?;
-                let sha = append_node(stage, base.value(), &mut order, limits, &mut walk.work)?;
-                root_item(&mut output, required(base.value(), "id")?, &sha)?;
-            }
+            stage.with_write_page(
+                WritePhase::Normalized,
+                page_rows,
+                (page_rows * limits.max_output_bytes) as u64,
+                |stage| {
+                    for raw in &page.rows {
+                        walk.add(raw, limits.max_nodes, limits)?;
+                        let base = normalizer.normalize_base(raw, prepared)?;
+                        let sha =
+                            append_node(stage, base.value(), &mut order, limits, &mut walk.work)?;
+                        root_item(&mut output, required(base.value(), "id")?, &sha)?;
+                    }
+                    Ok(())
+                },
+            )?;
             match page.next_id {
                 Some(next) => walk.after = Some(next),
                 None => break,
@@ -315,56 +329,79 @@ pub fn materialize_navigation_placeholders(
         let mut order = next_order(stage, false)?;
         let mut walk = Walk::new();
         loop {
+            let (seek_rows, _) = stage.input_batch_limits();
+            let (write_rows, write_bytes) = stage.write_page_limits();
+            let page_rows = limits
+                .max_page_rows
+                .min(seek_rows)
+                .min(write_rows / 2)
+                .min(write_bytes as usize / (2 * limits.max_output_bytes));
             let page = stage.scan_input(
                 &prepared.source_graph,
                 "edges",
                 walk.after.as_deref(),
-                limits.max_page_rows,
+                page_rows,
             )?;
-            for raw in &page.rows {
-                walk.add(raw, limits.max_edges, limits)?;
-                let source = SourceRow::parse(&raw.payload, limits.max_raw_bytes)?;
-                for (endpoint, key, source_key, role) in [
-                    (
-                        NavigationEndpoint::From,
-                        "from_id",
-                        "from_source_graph",
-                        "from",
-                    ),
-                    (NavigationEndpoint::To, "to_id", "to_source_graph", "to"),
-                ] {
-                    let native = required(source.value(), key)?;
-                    let graph = source
-                        .value()
-                        .get(source_key)
-                        .and_then(Value::as_str)
-                        .unwrap_or(&prepared.source_graph);
-                    let id = format!("{graph}:{native}");
-                    let exists = stage.with_connection(WritePhase::Sort, |db| {
-                        Ok(db.query_row(
-                            "SELECT EXISTS(SELECT 1 FROM knowledge_nodes WHERE id=?1)",
-                            [&id],
-                            |r| r.get::<_, bool>(0),
-                        )?)
-                    })?;
-                    if exists {
-                        continue;
+            stage.with_write_page(
+                WritePhase::Normalized,
+                page_rows * 2,
+                (page_rows * 2 * limits.max_output_bytes) as u64,
+                |stage| {
+                    for raw in &page.rows {
+                        walk.add(raw, limits.max_edges, limits)?;
+                        let source = SourceRow::parse(&raw.payload, limits.max_raw_bytes)?;
+                        for (endpoint, key, source_key, role) in [
+                            (
+                                NavigationEndpoint::From,
+                                "from_id",
+                                "from_source_graph",
+                                "from",
+                            ),
+                            (NavigationEndpoint::To, "to_id", "to_source_graph", "to"),
+                        ] {
+                            let native = required(source.value(), key)?;
+                            let graph = source
+                                .value()
+                                .get(source_key)
+                                .and_then(Value::as_str)
+                                .unwrap_or(&prepared.source_graph);
+                            let id = format!("{graph}:{native}");
+                            let exists = stage.with_connection(WritePhase::Sort, |db| {
+                                Ok(db.query_row(
+                                    "SELECT EXISTS(SELECT 1 FROM knowledge_nodes WHERE id=?1)",
+                                    [&id],
+                                    |r| r.get::<_, bool>(0),
+                                )?)
+                            })?;
+                            if exists {
+                                continue;
+                            }
+                            let base = normalizer.normalize_placeholder(raw, prepared, endpoint)?;
+                            if required(base.value(), "id")? != id {
+                                return Err(Error::Invalid(
+                                    "navigation placeholder endpoint identity",
+                                ));
+                            }
+                            count = count
+                                .checked_add(1)
+                                .filter(|n| *n <= limits.max_placeholders)
+                                .ok_or(Error::Budget("navigation placeholder rows"))?;
+                            root_item(&mut absent, &raw.id, &raw.payload_sha256)?;
+                            root_text(&mut absent, role);
+                            root_text(&mut absent, &id);
+                            let sha = append_node(
+                                stage,
+                                base.value(),
+                                &mut order,
+                                limits,
+                                &mut walk.work,
+                            )?;
+                            root_item(&mut output, &id, &sha)?;
+                        }
                     }
-                    let base = normalizer.normalize_placeholder(raw, prepared, endpoint)?;
-                    if required(base.value(), "id")? != id {
-                        return Err(Error::Invalid("navigation placeholder endpoint identity"));
-                    }
-                    count = count
-                        .checked_add(1)
-                        .filter(|n| *n <= limits.max_placeholders)
-                        .ok_or(Error::Budget("navigation placeholder rows"))?;
-                    root_item(&mut absent, &raw.id, &raw.payload_sha256)?;
-                    root_text(&mut absent, role);
-                    root_text(&mut absent, &id);
-                    let sha = append_node(stage, base.value(), &mut order, limits, &mut walk.work)?;
-                    root_item(&mut output, &id, &sha)?;
-                }
-            }
+                    Ok(())
+                },
+            )?;
             match page.next_id {
                 Some(next) => walk.after = Some(next),
                 None => break,
@@ -428,76 +465,89 @@ where
         let mut walk = Walk::new();
         let mut output = Digest256Hasher::new();
         loop {
+            let (write_rows, write_bytes) = stage.write_page_limits();
+            let page_rows = limits
+                .max_page_rows
+                .min(write_rows)
+                .min((write_bytes as usize / limits.max_output_bytes).max(1));
             let page = stage.scan_input(
                 &prepared.source_graph,
                 "edges",
                 walk.after.as_deref(),
-                limits.max_page_rows,
+                page_rows,
             )?;
-            for raw in &page.rows {
-                walk.add(raw, limits.max_edges, limits)?;
-                let source = SourceRow::parse(&raw.payload, limits.max_raw_bytes)?;
-                let item = source.value();
-                let address = |key, graph_key| -> Result<String> {
-                    Ok(format!(
-                        "{}:{}",
-                        item.get(graph_key)
-                            .and_then(Value::as_str)
-                            .unwrap_or(&prepared.source_graph),
-                        required(item, key)?
-                    ))
-                };
-                let from = address("from_id", "from_source_graph")?;
-                let to = address("to_id", "to_source_graph")?;
-                let (left, right, contexts) = global_inputs(
-                    stage,
-                    &from,
-                    &to,
-                    item.get("claim_ref").and_then(Value::as_str),
-                )?;
-                // normalize_indexed performs a second exact raw seek.
-                charge(&mut walk.work, raw.payload.len(), limits)?;
-                let base = normalizer.normalize_indexed(
-                    stage,
-                    &raw.id,
-                    prepared,
-                    dependency,
-                    NavigationRelationGlobalInputs {
-                        source_cut: &prepared.source_cut,
-                        endpoint_title_root_sha256,
-                        claim_group_root_sha256,
-                        left_title: &left,
-                        right_title: &right,
-                        referenced_claim_contexts: &contexts,
-                    },
-                )?;
-                let value = base.value();
-                let payload = serde_json::to_vec(value)
-                    .map_err(|_| Error::Invalid("navigation relation output JSON"))?;
-                if payload.len() > limits.max_output_bytes {
-                    return Err(Error::Budget("navigation relation output bytes"));
-                }
-                charge(&mut walk.work, payload.len(), limits)?;
-                stage.insert_relation(RelationRow {
-                    id: required(value, "id")?,
-                    source_graph: required(value, "source_graph")?,
-                    native_id: Some(required(value, "native_id")?),
-                    from_id: required(value, "from_id")?,
-                    to_id: required(value, "to_id")?,
-                    predicate_id: required(value, "predicate_id")?,
-                    relation_type_id: required(value, "relation_type_id")?,
-                    source_order: order,
-                    payload: &payload,
-                })?;
-                order = order
-                    .checked_add(1)
-                    .ok_or(Error::Budget("navigation source order"))?;
-                root_item(
-                    &mut output,
-                    required(value, "id")?,
-                    &Digest256::of_bytes(&payload).to_hex(),
-                )?;
-            }
+            stage.with_write_page(
+                WritePhase::Normalized,
+                page_rows,
+                (page_rows * limits.max_output_bytes) as u64,
+                |stage| {
+                    for raw in &page.rows {
+                        walk.add(raw, limits.max_edges, limits)?;
+                        let source = SourceRow::parse(&raw.payload, limits.max_raw_bytes)?;
+                        let item = source.value();
+                        let address = |key, graph_key| -> Result<String> {
+                            Ok(format!(
+                                "{}:{}",
+                                item.get(graph_key)
+                                    .and_then(Value::as_str)
+                                    .unwrap_or(&prepared.source_graph),
+                                required(item, key)?
+                            ))
+                        };
+                        let from = address("from_id", "from_source_graph")?;
+                        let to = address("to_id", "to_source_graph")?;
+                        let (left, right, contexts) = global_inputs(
+                            stage,
+                            &from,
+                            &to,
+                            item.get("claim_ref").and_then(Value::as_str),
+                        )?;
+                        // normalize_indexed performs a second exact raw seek.
+                        charge(&mut walk.work, raw.payload.len(), limits)?;
+                        let base = normalizer.normalize_indexed(
+                            stage,
+                            &raw.id,
+                            prepared,
+                            dependency,
+                            NavigationRelationGlobalInputs {
+                                source_cut: &prepared.source_cut,
+                                endpoint_title_root_sha256,
+                                claim_group_root_sha256,
+                                left_title: &left,
+                                right_title: &right,
+                                referenced_claim_contexts: &contexts,
+                            },
+                        )?;
+                        let value = base.value();
+                        let payload = serde_json::to_vec(value)
+                            .map_err(|_| Error::Invalid("navigation relation output JSON"))?;
+                        if payload.len() > limits.max_output_bytes {
+                            return Err(Error::Budget("navigation relation output bytes"));
+                        }
+                        charge(&mut walk.work, payload.len(), limits)?;
+                        stage.insert_relation(RelationRow {
+                            id: required(value, "id")?,
+                            source_graph: required(value, "source_graph")?,
+                            native_id: Some(required(value, "native_id")?),
+                            from_id: required(value, "from_id")?,
+                            to_id: required(value, "to_id")?,
+                            predicate_id: required(value, "predicate_id")?,
+                            relation_type_id: required(value, "relation_type_id")?,
+                            source_order: order,
+                            payload: &payload,
+                        })?;
+                        order = order
+                            .checked_add(1)
+                            .ok_or(Error::Budget("navigation source order"))?;
+                        root_item(
+                            &mut output,
+                            required(value, "id")?,
+                            &Digest256::of_bytes(&payload).to_hex(),
+                        )?;
+                    }
+                    Ok(())
+                },
+            )?;
             match page.next_id {
                 Some(next) => walk.after = Some(next),
                 None => break,
@@ -530,10 +580,10 @@ mod tests {
         StageOwner,
     };
     use crate::{
-        KnowledgeRegistry, Limits, NavigationHeaderClaim, NavigationNodeLimits,
-        NavigationPrepareLimits, NavigationRelationLimits, NavigationRelationNormalizeLimits,
-        QueryVocabulary, SourceBinding, prepare_navigation_relation_dependencies,
-        prepare_source_navigation,
+        prepare_navigation_relation_dependencies, prepare_source_navigation, KnowledgeRegistry,
+        Limits, NavigationHeaderClaim, NavigationNodeLimits, NavigationPrepareLimits,
+        NavigationRelationLimits, NavigationRelationNormalizeLimits, QueryVocabulary,
+        SourceBinding,
     };
     use serde_json::json;
     use std::{

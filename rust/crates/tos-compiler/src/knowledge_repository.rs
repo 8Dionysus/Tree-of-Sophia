@@ -6,8 +6,8 @@ use crate::knowledge_global_titles::CompleteBaseNodes;
 use crate::knowledge_normalization::SourceRow;
 use crate::knowledge_stage::{KnowledgeStage, NodeRow, RelationRow, WritePhase};
 use crate::{Error, QueryVocabulary, Result};
-use rusqlite::{OptionalExtension, params};
-use serde_json::{Value, json};
+use rusqlite::{params, OptionalExtension};
+use serde_json::{json, Value};
 use std::collections::BTreeSet;
 use tos_foundation::{Digest256, Digest256Hasher};
 
@@ -595,6 +595,42 @@ pub fn scan_repository_relation_sources<F>(
     stage: &mut KnowledgeStage<'_>,
     receipt: &RepositoryPrepareReceipt,
     limits: TopologyLimits,
+    visit: F,
+) -> Result<()>
+where
+    F: FnMut(&mut KnowledgeStage<'_>, &str, &SourceRow) -> Result<()>,
+{
+    scan_repository_relation_sources_inner(stage, receipt, limits, None, visit)
+}
+
+/// The native placeholder consumer emits at most two bounded nodes per row.
+pub(crate) fn scan_repository_placeholder_sources<F>(
+    stage: &mut KnowledgeStage<'_>,
+    receipt: &RepositoryPrepareReceipt,
+    limits: TopologyLimits,
+    max_placeholder_bytes: usize,
+    visit: F,
+) -> Result<()>
+where
+    F: FnMut(&mut KnowledgeStage<'_>, &str, &SourceRow) -> Result<()>,
+{
+    if max_placeholder_bytes == 0 || max_placeholder_bytes > 8 * 1024 * 1024 {
+        return Err(Error::Budget("repository placeholder row bytes"));
+    }
+    scan_repository_relation_sources_inner(
+        stage,
+        receipt,
+        limits,
+        Some(max_placeholder_bytes),
+        visit,
+    )
+}
+
+fn scan_repository_relation_sources_inner<F>(
+    stage: &mut KnowledgeStage<'_>,
+    receipt: &RepositoryPrepareReceipt,
+    limits: TopologyLimits,
+    max_placeholder_bytes: Option<usize>,
     mut visit: F,
 ) -> Result<()>
 where
@@ -604,14 +640,38 @@ where
         verify(stage, receipt, limits)?;
         let mut after = String::new();
         loop {
-            let rows = material_page(stage, 1, &after, limits)?;
+            let page_rows = if let Some(max_bytes) = max_placeholder_bytes {
+                let (write_rows, write_bytes) = stage.write_page_limits();
+                limits
+                    .max_page_rows
+                    .min(write_rows / 2)
+                    .min(write_bytes as usize / (2 * max_bytes))
+            } else {
+                limits.max_page_rows
+            };
+            let mut page_limits = limits;
+            page_limits.max_page_rows = page_rows;
+            let rows = material_page(stage, 1, &after, page_limits)?;
             if rows.is_empty() {
                 break;
             }
-            for row in rows {
-                after = row.key.clone();
-                let source = SourceRow::parse(&row.material, limits.max_row_bytes)?;
-                visit(stage, &receipt.source_graph, &source)?;
+            let mut write_page = |stage: &mut KnowledgeStage<'_>| -> Result<()> {
+                for row in &rows {
+                    after = row.key.clone();
+                    let source = SourceRow::parse(&row.material, limits.max_row_bytes)?;
+                    visit(stage, &receipt.source_graph, &source)?;
+                }
+                Ok(())
+            };
+            if let Some(max_bytes) = max_placeholder_bytes {
+                stage.with_write_page(
+                    WritePhase::Normalized,
+                    page_rows * 2,
+                    (page_rows * 2 * max_bytes) as u64,
+                    &mut write_page,
+                )?;
+            } else {
+                write_page(stage)?;
             }
         }
         Ok(())
@@ -644,40 +704,48 @@ pub fn materialize_repository_nodes(
             if batch.is_empty() {
                 break;
             }
-            for row in batch {
-                if row.relation {
-                    break;
-                }
-                after = row.key.clone();
-                let source = SourceRow::parse(&row.material, limits.max_row_bytes)?;
-                let value = normalizer.normalize_node(
-                    &source,
-                    &receipt.source_graph,
-                    false,
-                    BaseNodeOverrides {
-                        native_id: Some(&row.native),
-                        identity_id: Some(&row.identity),
-                        kind_id: if row.kind.is_empty() {
-                            None
-                        } else {
-                            Some(&row.kind)
-                        },
-                    },
-                )?;
-                let payload = bytes(&value, limits)?;
-                stage.insert_node(NodeRow {
-                    id: required(&value, "id")?,
-                    source_graph: &receipt.source_graph,
-                    native_id: Some(required(&value, "native_id")?),
-                    entity_id: Some(required(&value, "entity_id")?),
-                    kind_id: required(&value, "kind_id")?,
-                    type_id: required(&value, "type_id")?,
-                    source_order: order,
-                    payload: &payload,
-                })?;
-                order += 1;
-                rows += 1;
-            }
+            stage.with_write_page(
+                WritePhase::Normalized,
+                limits.max_page_rows,
+                (limits.max_page_rows * limits.max_row_bytes) as u64,
+                |stage| {
+                    for row in batch {
+                        if row.relation {
+                            break;
+                        }
+                        after = row.key.clone();
+                        let source = SourceRow::parse(&row.material, limits.max_row_bytes)?;
+                        let value = normalizer.normalize_node(
+                            &source,
+                            &receipt.source_graph,
+                            false,
+                            BaseNodeOverrides {
+                                native_id: Some(&row.native),
+                                identity_id: Some(&row.identity),
+                                kind_id: if row.kind.is_empty() {
+                                    None
+                                } else {
+                                    Some(&row.kind)
+                                },
+                            },
+                        )?;
+                        let payload = bytes(&value, limits)?;
+                        stage.insert_node(NodeRow {
+                            id: required(&value, "id")?,
+                            source_graph: &receipt.source_graph,
+                            native_id: Some(required(&value, "native_id")?),
+                            entity_id: Some(required(&value, "entity_id")?),
+                            kind_id: required(&value, "kind_id")?,
+                            type_id: required(&value, "type_id")?,
+                            source_order: order,
+                            payload: &payload,
+                        })?;
+                        order += 1;
+                        rows += 1;
+                    }
+                    Ok(())
+                },
+            )?;
             // Node scan must stop before the relation key space.
             let remaining=stage.with_connection(WritePhase::Sort,|db|Ok(db.query_row("SELECT EXISTS(SELECT 1 FROM knowledge_repository_material WHERE relation=0 AND material_key>?1)",[&after],|r|r.get::<_,bool>(0))?))?;
             if !remaining {
@@ -728,37 +796,46 @@ where
             if rows.is_empty() {
                 break;
             }
-            for row in rows {
-                after = row.key;
-                let source = SourceRow::parse(&row.material, limits.max_row_bytes)?;
-                let item = source.value();
-                let from = format!("{}:{}", receipt.source_graph, required(item, "from_id")?);
-                let to = format!("{}:{}", receipt.source_graph, required(item, "to_id")?);
-                let (left, right) = titles(stage, &from, &to)?;
-                let value = normalizer.normalize_relation(
-                    &source,
-                    &receipt.source_graph,
-                    None,
-                    &left,
-                    &right,
-                    "derived-export",
-                )?;
-                let payload = bytes(&value, limits)?;
-                charge(&mut work, payload.len() + row.material.len(), limits)?;
-                stage.insert_relation(RelationRow {
-                    id: required(&value, "id")?,
-                    source_graph: &receipt.source_graph,
-                    native_id: Some(required(&value, "native_id")?),
-                    from_id: required(&value, "from_id")?,
-                    to_id: required(&value, "to_id")?,
-                    predicate_id: required(&value, "predicate_id")?,
-                    relation_type_id: required(&value, "relation_type_id")?,
-                    source_order: order,
-                    payload: &payload,
-                })?;
-                order += 1;
-                count += 1;
-            }
+            stage.with_write_page(
+                WritePhase::Normalized,
+                limits.max_page_rows,
+                (limits.max_page_rows * limits.max_row_bytes) as u64,
+                |stage| {
+                    for row in rows {
+                        after = row.key;
+                        let source = SourceRow::parse(&row.material, limits.max_row_bytes)?;
+                        let item = source.value();
+                        let from =
+                            format!("{}:{}", receipt.source_graph, required(item, "from_id")?);
+                        let to = format!("{}:{}", receipt.source_graph, required(item, "to_id")?);
+                        let (left, right) = titles(stage, &from, &to)?;
+                        let value = normalizer.normalize_relation(
+                            &source,
+                            &receipt.source_graph,
+                            None,
+                            &left,
+                            &right,
+                            "derived-export",
+                        )?;
+                        let payload = bytes(&value, limits)?;
+                        charge(&mut work, payload.len() + row.material.len(), limits)?;
+                        stage.insert_relation(RelationRow {
+                            id: required(&value, "id")?,
+                            source_graph: &receipt.source_graph,
+                            native_id: Some(required(&value, "native_id")?),
+                            from_id: required(&value, "from_id")?,
+                            to_id: required(&value, "to_id")?,
+                            predicate_id: required(&value, "predicate_id")?,
+                            relation_type_id: required(&value, "relation_type_id")?,
+                            source_order: order,
+                            payload: &payload,
+                        })?;
+                        order += 1;
+                        count += 1;
+                    }
+                    Ok(())
+                },
+            )?;
         }
         if count != receipt.relations {
             return Err(Error::Invalid("repository relation completeness"));
@@ -818,7 +895,7 @@ pub fn clear_repository_topology(
 }
 
 fn ordered_branch_material(raw: &[u8], views: &Value, limits: TopologyLimits) -> Result<Vec<u8>> {
-    use tos_foundation::{JsonLimits, JsonMode, JsonValue, parse_json};
+    use tos_foundation::{parse_json, JsonLimits, JsonMode, JsonValue};
     let jl = JsonLimits {
         max_bytes: limits.max_row_bytes,
         ..JsonLimits::default()

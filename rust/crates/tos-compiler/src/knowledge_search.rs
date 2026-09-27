@@ -7,13 +7,13 @@
 //! claimed to bound a single SQLite statement's external spill.
 
 use crate::{
-    Error, Result,
     knowledge_stage::{KnowledgeStage, WritePhase},
+    Error, Result,
 };
-use rusqlite::{Connection, OptionalExtension, Transaction, params, params_from_iter};
+use rusqlite::{params, params_from_iter, Connection, OptionalExtension, Statement};
 use tos_foundation::{
-    CanonicalProfile, Digest256, Digest256Hasher, JsonLimits, JsonMode, JsonString, JsonValue,
-    canonical_bytes_v1, parse_json, python_lower_unicode16_v1,
+    canonical_bytes_v1, parse_json, python_lower_unicode16_v1, CanonicalProfile, Digest256,
+    Digest256Hasher, JsonLimits, JsonMode, JsonString, JsonValue,
 };
 
 pub const SEARCH_PROFILE: &str = "tos-python-native-unicode-v1";
@@ -467,16 +467,32 @@ fn write_document(
     )?;
     check()?;
     let mut document_postings = 0u64;
+    // A document has one SQL shape for every full chunk and at most one
+    // shorter tail. Prepare the full shape once inside this transaction.
+    let mut full_statement = if offsets.len() >= limits.gram_batch_rows {
+        Some(transaction.prepare(&posting_batch_sql(limits.gram_batch_rows)?)?)
+    } else {
+        None
+    };
     for batch in offsets.chunks(limits.gram_batch_rows) {
         check()?;
-        document_postings = document_postings
-            .checked_add(insert_posting_batch(
-                &transaction,
+        let inserted = if batch.len() == limits.gram_batch_rows {
+            insert_posting_batch(
+                full_statement
+                    .as_mut()
+                    .expect("prepared full posting shape"),
                 kind,
                 row.position,
                 &doc.text,
                 batch,
-            )?)
+            )?
+        } else {
+            let tail_sql = posting_batch_sql(batch.len())?;
+            let mut tail_statement = transaction.prepare(&tail_sql)?;
+            insert_posting_batch(&mut tail_statement, kind, row.position, &doc.text, batch)?
+        };
+        document_postings = document_postings
+            .checked_add(inserted)
             .ok_or(Error::Budget("search postings"))?;
         receipt
             .postings
@@ -504,6 +520,7 @@ fn write_document(
     // A late guard refusal must happen while rollback still covers the source
     // document row and every directly inserted posting batch.
     check()?;
+    drop(full_statement);
     transaction.commit()?;
     receipt.postings = next_postings;
     receipt.document_chars = next_chars;
@@ -523,8 +540,21 @@ fn gram_slice(text: &str, start: usize) -> &[u8] {
     &text.as_bytes()[start..start + third + character.len_utf8()]
 }
 
+fn posting_batch_sql(rows: usize) -> Result<String> {
+    if rows == 0 || rows > MAX_GRAM_BATCH_ROWS {
+        return Err(Error::Budget("search gram batch rows"));
+    }
+    Ok(format!(
+        "INSERT OR IGNORE INTO search_grams(kind,n,gram,position) VALUES {}",
+        (0..rows)
+            .map(|index| format!("(?1,{GRAM_N},?{},?2)", index + 3))
+            .collect::<Vec<_>>()
+            .join(",")
+    ))
+}
+
 fn insert_posting_batch(
-    db: &Transaction<'_>,
+    statement: &mut Statement<'_>,
     kind: &str,
     position: i64,
     text: &str,
@@ -536,15 +566,8 @@ fn insert_posting_batch(
     if batch.is_empty() {
         return Ok(0);
     }
-    // The document's borrowed offsets are already sorted and deduplicated.
-    // Only placeholders and the fixed gram size enter the SQL text.
-    let sql = format!(
-        "INSERT OR IGNORE INTO search_grams(kind,n,gram,position) VALUES {}",
-        (0..batch.len())
-            .map(|index| format!("(?1,{GRAM_N},?{},?2)", index + 3))
-            .collect::<Vec<_>>()
-            .join(",")
-    );
+    // Each call binds every parameter anew; rusqlite resets the statement on
+    // execute, and the next chunk may reuse this same prepared SQL shape.
     let grams = batch
         .iter()
         .map(|offset| gram_slice(text, *offset))
@@ -553,7 +576,7 @@ fn insert_posting_batch(
     parameters.push(&kind);
     parameters.push(&position);
     parameters.extend(grams.iter().map(|gram| gram as &dyn rusqlite::ToSql));
-    let inserted = db.execute(&sql, params_from_iter(parameters))?;
+    let inserted = statement.execute(params_from_iter(parameters))?;
     u64::try_from(inserted).map_err(|_| Error::Budget("search postings"))
 }
 
@@ -758,13 +781,24 @@ mod tests {
                     .count()
                     > limits().gram_batch_rows
             );
+            let mut batch_limits = limits();
+            if position == 8 {
+                // The second real document has two reusable full statements
+                // and one tail, while the first keeps the narrow late-batch
+                // boundary used by the rollback cases below.
+                assert!(expected.len() >= 8);
+                batch_limits.gram_batch_rows = (expected.len() - 1) / 2;
+                assert!(batch_limits.gram_batch_rows <= MAX_GRAM_BATCH_ROWS);
+                assert_eq!(expected.len() / batch_limits.gram_batch_rows, 2);
+                assert_ne!(expected.len() % batch_limits.gram_batch_rows, 0);
+            }
             write_document(
                 &mut db,
                 &|| Ok(()),
                 &row,
                 &doc,
                 "nodes",
-                limits(),
+                batch_limits,
                 &mut receipt,
             )
             .unwrap();
@@ -828,18 +862,16 @@ mod tests {
             limits(),
         )
         .unwrap();
-        assert!(
-            write_document(
-                &mut db,
-                &|| Ok(()),
-                &refused,
-                &refused_doc,
-                "nodes",
-                limits(),
-                &mut receipt
-            )
-            .is_err()
-        );
+        assert!(write_document(
+            &mut db,
+            &|| Ok(()),
+            &refused,
+            &refused_doc,
+            "nodes",
+            limits(),
+            &mut receipt
+        )
+        .is_err());
         let guarded = make_row(11, "n11");
         let guarded_doc = document(
             &guarded,

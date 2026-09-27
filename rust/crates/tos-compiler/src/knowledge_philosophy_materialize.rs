@@ -342,72 +342,87 @@ where
         .map_err(Error::from)
     })?;
     loop {
+        let (write_rows, write_bytes) = stage.write_page_limits();
+        let page_rows = normalizer
+            .limits
+            .max_page_rows
+            .min(write_rows)
+            .min(write_bytes as usize / normalizer.limits.max_output_bytes);
         let page = stage.scan_input(
             &normalizer.source_graph,
             if relation { "edges" } else { "nodes" },
             after.as_deref(),
-            normalizer.limits.max_page_rows,
+            page_rows,
         )?;
-        for raw in page.rows {
-            let base = if relation {
-                let (from, to) = normalizer.relation_endpoints(stage, prepared, &raw.id)?;
-                let (left, right) = titles(stage, &from, &to)?;
-                normalizer.normalize_relation(
-                    stage,
-                    prepared,
-                    &raw.id,
-                    PhilosophyRelationGlobalInputs {
-                        source_cut: &prepared.source_cut,
-                        endpoint_title_root_sha256: title_root
-                            .ok_or(Error::Invalid("philosophy missing global title root"))?,
-                        left_title: &left,
-                        right_title: &right,
-                    },
-                )?
-            } else {
-                normalizer.normalize_node(stage, prepared, &raw.id)?
-            };
-            let value = base.value();
-            let bytes = serde_json::to_vec(value)
-                .map_err(|_| Error::Invalid("philosophy normalized serialization"))?;
-            work_bytes = work_bytes
-                .checked_add(raw.payload.len() as u64)
-                .and_then(|n| n.checked_add(bytes.len() as u64))
-                .ok_or(Error::Budget("philosophy materialization work"))?;
-            rows = rows
-                .checked_add(1)
-                .ok_or(Error::Budget("philosophy materialization rows"))?;
-            if work_bytes > normalizer.limits.max_work_bytes || rows > expected {
-                return Err(Error::Budget("philosophy materialization work/rows"));
-            }
-            if relation {
-                stage.insert_relation(RelationRow {
-                    id: required(value, "id")?,
-                    source_graph: &normalizer.source_graph,
-                    native_id: Some(&raw.id),
-                    from_id: required(value, "from_id")?,
-                    to_id: required(value, "to_id")?,
-                    predicate_id: required(value, "predicate_id")?,
-                    relation_type_id: required(value, "relation_type_id")?,
-                    source_order: order,
-                    payload: &bytes,
-                })?;
-            } else {
-                stage.insert_node(NodeRow {
-                    id: required(value, "id")?,
-                    source_graph: &normalizer.source_graph,
-                    native_id: Some(&raw.id),
-                    entity_id: Some(required(value, "entity_id")?),
-                    kind_id: required(value, "kind_id")?,
-                    type_id: required(value, "type_id")?,
-                    source_order: order,
-                    payload: &bytes,
-                })?;
-            }
-            order = order
-                .checked_add(1)
-                .ok_or(Error::Budget("philosophy materialization order"))?;
-        }
+        stage.with_write_page(
+            WritePhase::Normalized,
+            page_rows,
+            (page_rows * normalizer.limits.max_output_bytes) as u64,
+            |stage| {
+                for raw in page.rows {
+                    let base = if relation {
+                        let (from, to) = normalizer.relation_endpoints(stage, prepared, &raw.id)?;
+                        let (left, right) = titles(stage, &from, &to)?;
+                        normalizer.normalize_relation(
+                            stage,
+                            prepared,
+                            &raw.id,
+                            PhilosophyRelationGlobalInputs {
+                                source_cut: &prepared.source_cut,
+                                endpoint_title_root_sha256: title_root.ok_or(Error::Invalid(
+                                    "philosophy missing global title root",
+                                ))?,
+                                left_title: &left,
+                                right_title: &right,
+                            },
+                        )?
+                    } else {
+                        normalizer.normalize_node(stage, prepared, &raw.id)?
+                    };
+                    let value = base.value();
+                    let bytes = serde_json::to_vec(value)
+                        .map_err(|_| Error::Invalid("philosophy normalized serialization"))?;
+                    work_bytes = work_bytes
+                        .checked_add(raw.payload.len() as u64)
+                        .and_then(|n| n.checked_add(bytes.len() as u64))
+                        .ok_or(Error::Budget("philosophy materialization work"))?;
+                    rows = rows
+                        .checked_add(1)
+                        .ok_or(Error::Budget("philosophy materialization rows"))?;
+                    if work_bytes > normalizer.limits.max_work_bytes || rows > expected {
+                        return Err(Error::Budget("philosophy materialization work/rows"));
+                    }
+                    if relation {
+                        stage.insert_relation(RelationRow {
+                            id: required(value, "id")?,
+                            source_graph: &normalizer.source_graph,
+                            native_id: Some(&raw.id),
+                            from_id: required(value, "from_id")?,
+                            to_id: required(value, "to_id")?,
+                            predicate_id: required(value, "predicate_id")?,
+                            relation_type_id: required(value, "relation_type_id")?,
+                            source_order: order,
+                            payload: &bytes,
+                        })?;
+                    } else {
+                        stage.insert_node(NodeRow {
+                            id: required(value, "id")?,
+                            source_graph: &normalizer.source_graph,
+                            native_id: Some(&raw.id),
+                            entity_id: Some(required(value, "entity_id")?),
+                            kind_id: required(value, "kind_id")?,
+                            type_id: required(value, "type_id")?,
+                            source_order: order,
+                            payload: &bytes,
+                        })?;
+                    }
+                    order = order
+                        .checked_add(1)
+                        .ok_or(Error::Budget("philosophy materialization order"))?;
+                }
+                Ok(())
+            },
+        )?;
         match page.next_id {
             Some(next) => after = Some(next),
             None => break,

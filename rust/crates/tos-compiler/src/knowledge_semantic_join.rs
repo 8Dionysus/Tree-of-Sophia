@@ -3,14 +3,14 @@
 
 use crate::knowledge_base::KnowledgeBaseNormalizer;
 use crate::knowledge_global_titles::CompleteBaseNodes;
-use crate::knowledge_normalization::{SourceRow, stable_digest};
+use crate::knowledge_normalization::{stable_digest, SourceRow};
 use crate::knowledge_repository::{
-    TopologyLimits, bytes, charge, required, root_item, source_for, strings, text,
+    bytes, charge, required, root_item, source_for, strings, text, TopologyLimits,
 };
 use crate::knowledge_stage::{KnowledgeStage, RelationRow, WritePhase};
 use crate::{Error, QueryVocabulary, Result};
-use rusqlite::{OptionalExtension, params};
-use serde_json::{Value, json};
+use rusqlite::{params, OptionalExtension};
+use serde_json::{json, Value};
 use std::collections::BTreeSet;
 use tos_foundation::{Digest256, Digest256Hasher};
 
@@ -460,45 +460,53 @@ where
             if rows.is_empty() {
                 break;
             }
-            for (id, raw) in rows {
-                after = id;
-                let source = SourceRow::parse(&raw, limits.max_row_bytes)?;
-                let item = source.value();
-                let from = format!(
-                    "{}:{}",
-                    required(item, "from_source_graph")?,
-                    required(item, "from_id")?
-                );
-                let to = format!(
-                    "{}:{}",
-                    required(item, "to_source_graph")?,
-                    required(item, "to_id")?
-                );
-                let (left, right) = titles(stage, &from, &to)?;
-                let value = normalizer.normalize_relation(
-                    &source,
-                    &receipt.source_graph,
-                    None,
-                    &left,
-                    &right,
-                    "derived-export",
-                )?;
-                let payload = bytes(&value, limits)?;
-                charge(&mut work, raw.len() + payload.len(), limits)?;
-                stage.insert_relation(RelationRow {
-                    id: required(&value, "id")?,
-                    source_graph: &receipt.source_graph,
-                    native_id: Some(required(&value, "native_id")?),
-                    from_id: required(&value, "from_id")?,
-                    to_id: required(&value, "to_id")?,
-                    predicate_id: required(&value, "predicate_id")?,
-                    relation_type_id: required(&value, "relation_type_id")?,
-                    source_order: order,
-                    payload: &payload,
-                })?;
-                order += 1;
-                count += 1;
-            }
+            stage.with_write_page(
+                WritePhase::Normalized,
+                limits.max_page_rows,
+                (limits.max_page_rows * limits.max_row_bytes) as u64,
+                |stage| {
+                    for (id, raw) in rows {
+                        after = id;
+                        let source = SourceRow::parse(&raw, limits.max_row_bytes)?;
+                        let item = source.value();
+                        let from = format!(
+                            "{}:{}",
+                            required(item, "from_source_graph")?,
+                            required(item, "from_id")?
+                        );
+                        let to = format!(
+                            "{}:{}",
+                            required(item, "to_source_graph")?,
+                            required(item, "to_id")?
+                        );
+                        let (left, right) = titles(stage, &from, &to)?;
+                        let value = normalizer.normalize_relation(
+                            &source,
+                            &receipt.source_graph,
+                            None,
+                            &left,
+                            &right,
+                            "derived-export",
+                        )?;
+                        let payload = bytes(&value, limits)?;
+                        charge(&mut work, raw.len() + payload.len(), limits)?;
+                        stage.insert_relation(RelationRow {
+                            id: required(&value, "id")?,
+                            source_graph: &receipt.source_graph,
+                            native_id: Some(required(&value, "native_id")?),
+                            from_id: required(&value, "from_id")?,
+                            to_id: required(&value, "to_id")?,
+                            predicate_id: required(&value, "predicate_id")?,
+                            relation_type_id: required(&value, "relation_type_id")?,
+                            source_order: order,
+                            payload: &payload,
+                        })?;
+                        order += 1;
+                        count += 1;
+                    }
+                    Ok(())
+                },
+            )?;
         }
         if count != receipt.relations {
             return Err(Error::Invalid("semantic final relations"));

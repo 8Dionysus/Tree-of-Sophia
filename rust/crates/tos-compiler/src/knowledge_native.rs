@@ -5,23 +5,23 @@
 
 use crate::knowledge_candidates::{candidate_normalizer, prepare_candidate_inputs};
 use crate::knowledge_canon_materialize::{
-    CanonMaterializeLimits, CanonNormalizer, materialize_canon_nodes, materialize_canon_relations,
-    scan_canon_relations, source_material,
+    materialize_canon_nodes, materialize_canon_relations, scan_canon_relations, source_material,
+    CanonMaterializeLimits, CanonNormalizer,
 };
 use crate::knowledge_canon_prepare::{
-    CanonPrepareLimits, clear_canon_prepare, prepare_canon_inputs,
+    clear_canon_prepare, prepare_canon_inputs, CanonPrepareLimits,
 };
 use crate::knowledge_normalization::SourceRow;
 use crate::knowledge_source_claims::{
-    ClaimNormalizeLimits, ClaimNormalizer, claim_context_sources, claim_contexts,
-    clear_source_claim_indices, finalize_source_claims, materialize_source_claim_nodes,
-    materialize_source_claim_relations, prepare_claim_context_groups,
+    claim_context_sources, claim_contexts, clear_source_claim_indices, finalize_source_claims,
+    materialize_source_claim_nodes, materialize_source_claim_relations,
+    prepare_claim_context_groups, ClaimNormalizeLimits, ClaimNormalizer,
 };
 use crate::knowledge_source_navigation_prepare::{
-    NavigationJoinClosure, clear_source_navigation_prepare,
+    clear_source_navigation_prepare, NavigationJoinClosure,
 };
 use crate::knowledge_source_navigation_relation::{
-    NavigationRelationCompletionProof, clear_navigation_relation_dependencies,
+    clear_navigation_relation_dependencies, NavigationRelationCompletionProof,
 };
 use crate::knowledge_stage::{KnowledgeStage, NodeRow, WritePhase};
 use crate::*;
@@ -171,101 +171,114 @@ fn other_placeholders(
         let mut count = 0u64;
         let mut root = Digest256Hasher::new();
         loop {
-            let page = stage.scan_input(
-                &entry.source_graph,
-                "edges",
-                after.as_deref(),
-                limits.max_page_rows,
+            let (seek_rows, _) = stage.input_batch_limits();
+            let (write_rows, write_bytes) = stage.write_page_limits();
+            let page_rows = limits
+                .max_page_rows
+                .min(seek_rows)
+                .min(write_rows / 2)
+                .min(write_bytes as usize / (2 * limits.max_output_bytes));
+            let page =
+                stage.scan_input(&entry.source_graph, "edges", after.as_deref(), page_rows)?;
+            stage.with_write_page(
+                WritePhase::Normalized,
+                page_rows * 2,
+                (page_rows * 2 * limits.max_output_bytes) as u64,
+                |stage| {
+                    for raw in &page.rows {
+                        if raw.payload.len() > limits.max_raw_bytes {
+                            return Err(Error::Budget("native placeholder raw bytes"));
+                        }
+                        count = count
+                            .checked_add(1)
+                            .ok_or(Error::Budget("native placeholder rows"))?;
+                        work = work
+                            .checked_add(raw.payload.len() as u64)
+                            .ok_or(Error::Budget("native placeholder work"))?;
+                        if count > entry.expected_count || work > limits.max_work_bytes {
+                            return Err(Error::Budget("native placeholder scan"));
+                        }
+                        root.update(&(raw.id.len() as u64).to_be_bytes());
+                        root.update(raw.id.as_bytes());
+                        root.update(Digest256::of_bytes(&raw.payload).as_bytes());
+                        let source = SourceRow::parse(&raw.payload, limits.max_raw_bytes)?;
+                        for (endpoint, key, source_key) in [
+                            (NavigationEndpoint::From, "from_id", "from_source_graph"),
+                            (NavigationEndpoint::To, "to_id", "to_source_graph"),
+                        ] {
+                            let native = source
+                                .value()
+                                .get(key)
+                                .and_then(Value::as_str)
+                                .ok_or(Error::Invalid("native placeholder endpoint"))?;
+                            let graph = source
+                                .value()
+                                .get(source_key)
+                                .and_then(Value::as_str)
+                                .unwrap_or(&entry.source_graph);
+                            let id = format!("{graph}:{native}");
+                            let exists = stage.with_connection(WritePhase::Sort, |db| {
+                                Ok(db.query_row(
+                                    "SELECT EXISTS(SELECT 1 FROM knowledge_nodes WHERE id=?1)",
+                                    [&id],
+                                    |r| r.get::<_, bool>(0),
+                                )?)
+                            })?;
+                            if exists {
+                                continue;
+                            }
+                            let base = normalizer.normalize_relation_endpoint(
+                                &raw,
+                                &cut,
+                                &entry.expected_root_sha256,
+                                endpoint,
+                            )?;
+                            let value = base.value();
+                            let bytes = serde_json::to_vec(value)
+                                .map_err(|_| Error::Invalid("native placeholder JSON"))?;
+                            if bytes.len() > limits.max_output_bytes {
+                                return Err(Error::Budget("native placeholder output bytes"));
+                            }
+                            work = work
+                                .checked_add(bytes.len() as u64)
+                                .ok_or(Error::Budget("native placeholder output work"))?;
+                            placeholders = placeholders
+                                .checked_add(1)
+                                .ok_or(Error::Budget("native placeholders"))?;
+                            if placeholders > limits.max_placeholders
+                                || work > limits.max_work_bytes
+                            {
+                                return Err(Error::Budget("native placeholders"));
+                            }
+                            let field = |name: &str| {
+                                value
+                                    .get(name)
+                                    .and_then(Value::as_str)
+                                    .ok_or(Error::Invalid("native placeholder field"))
+                            };
+                            stage.insert_node(NodeRow {
+                                id: field("id")?,
+                                source_graph: field("source_graph")?,
+                                native_id: Some(field("native_id")?),
+                                entity_id: Some(field("entity_id")?),
+                                kind_id: field("kind_id")?,
+                                type_id: field("type_id")?,
+                                source_order: order,
+                                payload: &bytes,
+                            })?;
+                            order = order
+                                .checked_add(1)
+                                .ok_or(Error::Budget("native placeholder order"))?;
+                            for text in [&entry.source_graph, &raw.id, key, &id] {
+                                evidence.update(&(text.len() as u64).to_be_bytes());
+                                evidence.update(text.as_bytes());
+                            }
+                            evidence.update(Digest256::of_bytes(&raw.payload).as_bytes());
+                        }
+                    }
+                    Ok(())
+                },
             )?;
-            for raw in page.rows {
-                if raw.payload.len() > limits.max_raw_bytes {
-                    return Err(Error::Budget("native placeholder raw bytes"));
-                }
-                count = count
-                    .checked_add(1)
-                    .ok_or(Error::Budget("native placeholder rows"))?;
-                work = work
-                    .checked_add(raw.payload.len() as u64)
-                    .ok_or(Error::Budget("native placeholder work"))?;
-                if count > entry.expected_count || work > limits.max_work_bytes {
-                    return Err(Error::Budget("native placeholder scan"));
-                }
-                root.update(&(raw.id.len() as u64).to_be_bytes());
-                root.update(raw.id.as_bytes());
-                root.update(Digest256::of_bytes(&raw.payload).as_bytes());
-                let source = SourceRow::parse(&raw.payload, limits.max_raw_bytes)?;
-                for (endpoint, key, source_key) in [
-                    (NavigationEndpoint::From, "from_id", "from_source_graph"),
-                    (NavigationEndpoint::To, "to_id", "to_source_graph"),
-                ] {
-                    let native = source
-                        .value()
-                        .get(key)
-                        .and_then(Value::as_str)
-                        .ok_or(Error::Invalid("native placeholder endpoint"))?;
-                    let graph = source
-                        .value()
-                        .get(source_key)
-                        .and_then(Value::as_str)
-                        .unwrap_or(&entry.source_graph);
-                    let id = format!("{graph}:{native}");
-                    let exists = stage.with_connection(WritePhase::Sort, |db| {
-                        Ok(db.query_row(
-                            "SELECT EXISTS(SELECT 1 FROM knowledge_nodes WHERE id=?1)",
-                            [&id],
-                            |r| r.get::<_, bool>(0),
-                        )?)
-                    })?;
-                    if exists {
-                        continue;
-                    }
-                    let base = normalizer.normalize_relation_endpoint(
-                        &raw,
-                        &cut,
-                        &entry.expected_root_sha256,
-                        endpoint,
-                    )?;
-                    let value = base.value();
-                    let bytes = serde_json::to_vec(value)
-                        .map_err(|_| Error::Invalid("native placeholder JSON"))?;
-                    if bytes.len() > limits.max_output_bytes {
-                        return Err(Error::Budget("native placeholder output bytes"));
-                    }
-                    work = work
-                        .checked_add(bytes.len() as u64)
-                        .ok_or(Error::Budget("native placeholder output work"))?;
-                    placeholders = placeholders
-                        .checked_add(1)
-                        .ok_or(Error::Budget("native placeholders"))?;
-                    if placeholders > limits.max_placeholders || work > limits.max_work_bytes {
-                        return Err(Error::Budget("native placeholders"));
-                    }
-                    let field = |name: &str| {
-                        value
-                            .get(name)
-                            .and_then(Value::as_str)
-                            .ok_or(Error::Invalid("native placeholder field"))
-                    };
-                    stage.insert_node(NodeRow {
-                        id: field("id")?,
-                        source_graph: field("source_graph")?,
-                        native_id: Some(field("native_id")?),
-                        entity_id: Some(field("entity_id")?),
-                        kind_id: field("kind_id")?,
-                        type_id: field("type_id")?,
-                        source_order: order,
-                        payload: &bytes,
-                    })?;
-                    order = order
-                        .checked_add(1)
-                        .ok_or(Error::Budget("native placeholder order"))?;
-                    for text in [&entry.source_graph, &raw.id, key, &id] {
-                        evidence.update(&(text.len() as u64).to_be_bytes());
-                        evidence.update(text.as_bytes());
-                    }
-                    evidence.update(Digest256::of_bytes(&raw.payload).as_bytes());
-                }
-            }
             match page.next_id {
                 Some(id) => after = Some(id),
                 None => break,
@@ -402,33 +415,50 @@ fn prepared_family_placeholders(
     for prepared in canon {
         let mut after = None;
         loop {
+            let (write_rows, write_bytes) = stage.write_page_limits();
+            let page_rows = canon_limits
+                .max_page_rows
+                .min(write_rows / 2)
+                .min(write_bytes as usize / (2 * limits.max_output_bytes));
             let rows = scan_canon_relations(
                 stage,
                 prepared,
                 after.as_deref(),
-                canon_limits.max_page_rows,
+                page_rows,
                 canon_limits.max_raw_bytes,
                 canon_limits.max_page_bytes,
             )?;
             if rows.is_empty() {
                 break;
             }
-            for row in rows {
-                after = Some(row.identity_id);
-                let source = SourceRow::parse(&row.material, canon_limits.max_raw_bytes)?;
-                visit(
-                    stage,
-                    &prepared.source_graph,
-                    &source,
-                    &prepared.dependency_root_sha256,
-                )?;
-            }
+            stage.with_write_page(
+                WritePhase::Normalized,
+                page_rows * 2,
+                (page_rows * 2 * limits.max_output_bytes) as u64,
+                |stage| {
+                    for row in &rows {
+                        after = Some(row.identity_id.clone());
+                        let source = SourceRow::parse(&row.material, canon_limits.max_raw_bytes)?;
+                        visit(
+                            stage,
+                            &prepared.source_graph,
+                            &source,
+                            &prepared.dependency_root_sha256,
+                        )?;
+                    }
+                    Ok(())
+                },
+            )?;
         }
     }
     if let Some(prepared) = repository {
-        scan_repository_relation_sources(stage, prepared, topology, |stage, graph, source| {
-            visit(stage, graph, source, &prepared.dependency_root_sha256)
-        })?;
+        crate::knowledge_repository::scan_repository_placeholder_sources(
+            stage,
+            prepared,
+            topology,
+            limits.max_output_bytes,
+            |stage, graph, source| visit(stage, graph, source, &prepared.dependency_root_sha256),
+        )?;
     }
     Ok(hash.finalize().to_hex())
 }
@@ -443,13 +473,22 @@ fn bind_native_claim_contexts(
     claims: ClaimNormalizeLimits,
     limits: NativeFinalizeLimits,
 ) -> Result<()> {
+    if limits.max_row_bytes == 0 || limits.max_page_rows == 0 {
+        return Err(Error::Budget("native Claim join page limits"));
+    }
     let mut after = -1i64;
     let mut work = 0u64;
     let mut count = 0u64;
     loop {
-        // One carrier at a time keeps source plus derived context memory
-        // bounded independently of graph size and relation degree.
-        let row: Option<(i64, String, String, Vec<u8>, Vec<u8>)> =
+        let (write_rows, write_bytes) = stage.write_page_limits();
+        let page_rows = (write_bytes as usize / limits.max_row_bytes)
+            .min(write_rows)
+            .min(limits.max_page_rows);
+        let mut exhausted = false;
+        let mut write_page = |stage: &mut KnowledgeStage<'_>| -> Result<()> {
+            for _ in 0..page_rows {
+                // Only one carrier and its derived context are resident at a time.
+                let row: Option<(i64, String, String, Vec<u8>, Vec<u8>)> =
             stage.with_connection(WritePhase::Finalize, |db| {
                 use rusqlite::OptionalExtension;
                 Ok(db.query_row(
@@ -458,79 +497,95 @@ fn bind_native_claim_contexts(
                     |r| Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?,r.get(4)?)),
                 ).optional()?)
             })?;
-        let Some((order, id, graph, raw, sha)) = row else {
-            break;
-        };
-        count = count
-            .checked_add(1)
-            .ok_or(Error::Budget("native Claim join rows"))?;
-        work = work
-            .checked_add(raw.len() as u64)
-            .ok_or(Error::Budget("native Claim join work"))?;
-        if count > limits.max_rows || work > limits.max_work_bytes {
-            return Err(Error::Budget("native Claim join limits"));
-        }
-        if order <= after || sha.as_slice() != Digest256::of_bytes(&raw).as_bytes() {
-            return Err(Error::Invalid("native Claim join row digest/order"));
-        }
-        after = order;
-        if vocabulary
-            .sources
-            .iter()
-            .any(|s| s.source_graph_id == graph && s.adapter_profile == "indexed-node-edge-v1")
-        {
-            continue;
-        }
-        let mut value = SourceRow::parse(&raw, limits.max_row_bytes)?
-            .value()
-            .clone();
-        if value.get("id").and_then(Value::as_str) != Some(id.as_str())
-            || value.get("source_graph").and_then(Value::as_str) != Some(graph.as_str())
-        {
-            return Err(Error::Invalid("native Claim join row identity"));
-        }
-        let Some(reference) = value
-            .pointer("/source_record/payload/claim_ref")
-            .and_then(Value::as_str)
-            .map(str::to_owned)
-        else {
-            continue;
-        };
-        let referenced = claim_contexts(stage, groups, &graph, &reference, claims)?;
-        let mut contexts: Vec<Value> = value
-            .pointer("/semantics/assertion_contexts")
-            .and_then(Value::as_array)
-            .into_iter()
-            .flatten()
-            .filter(|c| c.get("binding_role").and_then(Value::as_str) != Some("referenced-claim"))
-            .cloned()
-            .collect();
-        contexts.extend(referenced);
-        if contexts.is_empty() {
-            continue;
-        }
-        let next = Value::Array(contexts);
-        if value.pointer("/semantics/assertion_contexts") == Some(&next) {
-            continue;
-        }
-        value["semantics"]["assertion_contexts"] = next;
-        crate::knowledge_normalization::stamp_content_revision(&mut value, limits.max_row_bytes)?;
-        let output =
-            serde_json::to_vec(&value).map_err(|_| Error::Invalid("native Claim join JSON"))?;
-        work = work
-            .checked_add(output.len() as u64)
-            .ok_or(Error::Budget("native Claim join work"))?;
-        if output.len() > limits.max_row_bytes || work > limits.max_work_bytes {
-            return Err(Error::Budget("native Claim join output"));
-        }
-        stage.charge_materialized(1, output.len() as u64)?;
-        let digest = Digest256::of_bytes(&output);
-        let changed = stage.with_connection(WritePhase::Finalize, |db| {
+                let Some((order, id, graph, raw, sha)) = row else {
+                    exhausted = true;
+                    break;
+                };
+                count = count
+                    .checked_add(1)
+                    .ok_or(Error::Budget("native Claim join rows"))?;
+                work = work
+                    .checked_add(raw.len() as u64)
+                    .ok_or(Error::Budget("native Claim join work"))?;
+                if count > limits.max_rows || work > limits.max_work_bytes {
+                    return Err(Error::Budget("native Claim join limits"));
+                }
+                if order <= after || sha.as_slice() != Digest256::of_bytes(&raw).as_bytes() {
+                    return Err(Error::Invalid("native Claim join row digest/order"));
+                }
+                after = order;
+                if vocabulary.sources.iter().any(|s| {
+                    s.source_graph_id == graph && s.adapter_profile == "indexed-node-edge-v1"
+                }) {
+                    continue;
+                }
+                let mut value = SourceRow::parse(&raw, limits.max_row_bytes)?
+                    .value()
+                    .clone();
+                if value.get("id").and_then(Value::as_str) != Some(id.as_str())
+                    || value.get("source_graph").and_then(Value::as_str) != Some(graph.as_str())
+                {
+                    return Err(Error::Invalid("native Claim join row identity"));
+                }
+                let Some(reference) = value
+                    .pointer("/source_record/payload/claim_ref")
+                    .and_then(Value::as_str)
+                    .map(str::to_owned)
+                else {
+                    continue;
+                };
+                let referenced = claim_contexts(stage, groups, &graph, &reference, claims)?;
+                let mut contexts: Vec<Value> = value
+                    .pointer("/semantics/assertion_contexts")
+                    .and_then(Value::as_array)
+                    .into_iter()
+                    .flatten()
+                    .filter(|c| {
+                        c.get("binding_role").and_then(Value::as_str) != Some("referenced-claim")
+                    })
+                    .cloned()
+                    .collect();
+                contexts.extend(referenced);
+                if contexts.is_empty() {
+                    continue;
+                }
+                let next = Value::Array(contexts);
+                if value.pointer("/semantics/assertion_contexts") == Some(&next) {
+                    continue;
+                }
+                value["semantics"]["assertion_contexts"] = next;
+                crate::knowledge_normalization::stamp_content_revision(
+                    &mut value,
+                    limits.max_row_bytes,
+                )?;
+                let output = serde_json::to_vec(&value)
+                    .map_err(|_| Error::Invalid("native Claim join JSON"))?;
+                work = work
+                    .checked_add(output.len() as u64)
+                    .ok_or(Error::Budget("native Claim join work"))?;
+                if output.len() > limits.max_row_bytes || work > limits.max_work_bytes {
+                    return Err(Error::Budget("native Claim join output"));
+                }
+                stage.charge_materialized(1, output.len() as u64)?;
+                let digest = Digest256::of_bytes(&output);
+                let changed = stage.with_connection(WritePhase::Finalize, |db| {
             Ok(db.execute("UPDATE knowledge_relations SET payload_len=?1,payload_sha256=?2,payload=?3 WHERE id=?4 AND payload_sha256=?5",
                 rusqlite::params![output.len(),digest.as_bytes().as_slice(),output,id,sha])?)
         })?;
-        if changed != 1 {
-            return Err(Error::Invalid("native Claim join concurrent row change"));
+                if changed != 1 {
+                    return Err(Error::Invalid("native Claim join concurrent row change"));
+                }
+            }
+            Ok(())
+        };
+        stage.with_write_page(
+            WritePhase::Finalize,
+            page_rows,
+            limits.max_page_bytes as u64,
+            &mut write_page,
+        )?;
+        if exhausted {
+            break;
         }
     }
     Ok(())
