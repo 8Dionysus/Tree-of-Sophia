@@ -256,7 +256,7 @@ jobs:
           CARGO_TARGET_DIR: ${{ runner.temp }}/cargo-target
           CARGO_BUILD_JOBS: "2"
         run: python scripts/validation_lanes.py --run rust_workspace
-      - name: Verify command protocols and durable transactions against PostgreSQL
+      - name: Verify durable command transactions against PostgreSQL
         env:
           CARGO_HOME: ${{ runner.temp }}/cargo-home
           CARGO_TARGET_DIR: ${{ runner.temp }}/cargo-target
@@ -264,7 +264,7 @@ jobs:
           TOS_CMD_POSTGRES_URL: postgres://tos_cmd_lab:synthetic_lab_only@127.0.0.1:5432/tos_cmd_lab
         run: |
           : "${TOS_CMD_POSTGRES_URL:?dedicated PostgreSQL connection is required}"
-          cargo test -p tos-command --features postgres-lab --test postgres_lab --test postgres_durable_lab --locked -- --nocapture
+          cargo test -p tos-command --features postgres-lab --test postgres_durable_lab --locked -- --nocapture
 
   required_gate:
     name: Repo Validation

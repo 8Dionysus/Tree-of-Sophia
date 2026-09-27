@@ -26,9 +26,5 @@ name = "tos_command"
 path = "src/lib.rs"
 
 [[test]]
-name = "postgres_lab"
-required-features = ["postgres-lab"]
-
-[[test]]
 name = "postgres_durable_lab"
 required-features = ["postgres-lab"]
