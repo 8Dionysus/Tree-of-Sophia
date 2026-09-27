@@ -1392,18 +1392,52 @@ sys.stdout.write(owner.render_payload(payload))
         &cancelled,
     )
     .unwrap();
-    render_canon_source_plan(
-        &mut canon_planner,
-        &canon_plan,
-        &cut,
-        revision,
-        membership,
-        &mut selected_stage,
-        canon_limits,
-        deadline,
-        &cancelled,
-    )
-    .unwrap();
+    // The source planner is consumed by its first successful render above.
+    // Continue from that actual frozen output, never reopen an erased plan or
+    // recreate private tables in the independent selected stage.
+    let mut transfer_work = 0u64;
+    for collection in &canon_plan.receipt().collections {
+        let mut after = None;
+        let mut count = 0u64;
+        let mut root = tos_foundation::Digest256Hasher::new();
+        loop {
+            assert!(Instant::now() < deadline);
+            assert!(!cancelled.load(std::sync::atomic::Ordering::Relaxed));
+            let page = target
+                .scan_input(
+                    &collection.source_graph,
+                    &collection.collection,
+                    after.as_deref(),
+                    16,
+                )
+                .unwrap();
+            for row in page.rows {
+                transfer_work = transfer_work
+                    .checked_add(u64::try_from(row.id.len() + row.payload.len()).unwrap())
+                    .filter(|n| *n <= stage_limits.sqlite.max_work_bytes)
+                    .expect("native selected transfer work budget");
+                count += 1;
+                assert!(count <= collection.count);
+                root.update(&(row.id.len() as u64).to_be_bytes());
+                root.update(row.id.as_bytes());
+                root.update(Digest256::of_bytes(&row.payload).as_bytes());
+                selected_stage
+                    .ingest_input(InputRow {
+                        source_graph: &collection.source_graph,
+                        collection: &collection.collection,
+                        id: &row.id,
+                        payload: &row.payload,
+                    })
+                    .unwrap();
+            }
+            after = page.next_id;
+            if after.is_none() {
+                break;
+            }
+        }
+        assert_eq!(count, collection.count);
+        assert_eq!(root.finalize().to_hex(), collection.root_sha256);
+    }
     for ((source, collection), rows) in &selected_rows {
         for (id, raw) in rows {
             selected_stage
