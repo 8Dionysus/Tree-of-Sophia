@@ -477,10 +477,30 @@ impl SchemaBackendProbe {
     /// Internal structural probe. Public callers enter through `is_valid_raw`
     /// so an already-collapsed JSON object cannot bypass `PublishedStrict`.
     fn is_valid(&self, root_uri: &str, instance: &Value) -> Result<bool, SchemaProbeError> {
-        let schema = self
+        let (base_uri, fragment) = match root_uri.split_once('#') {
+            Some((base, fragment))
+                if !base.is_empty() && fragment.starts_with('/') && !fragment.contains('#') =>
+            {
+                (base, Some(fragment))
+            }
+            Some(_) => return Err(SchemaProbeError::InvalidResourceId),
+            None => (root_uri, None),
+        };
+        let root_schema = self
             .resources
-            .get(root_uri)
+            .get(base_uri)
             .ok_or(SchemaProbeError::MissingResource)?;
+        // Resolve a selected JSON Pointer through the original registry. Taking
+        // a Value::pointer subtree and compiling it alone would lose enclosing
+        // $id scopes and relative $ref resolution. This selector adds no resource
+        // bytes, identity, network retrieval or alternative schema engine.
+        let selector;
+        let schema = if fragment.is_some() {
+            selector = serde_json::json!({"$ref": root_uri});
+            &selector
+        } else {
+            root_schema
+        };
         let registry = Registry::new()
             .extend(
                 self.resources
@@ -942,6 +962,53 @@ mod tests {
             probe(&unavailable_format)
                 .is_valid(root, &json!("x"))
                 .is_err()
+        );
+    }
+
+    #[test]
+    fn selected_json_pointer_keeps_original_resource_scope_and_failures() {
+        let root = "https://tree-of-sophia.local/schemas/root.json";
+        let types = "https://tree-of-sophia.local/schemas/nested/types.json";
+        let source = format!(
+            r#"{{"$schema":"{DRAFT}","$id":"{root}","$defs":{{"scoped":{{"$id":"nested/child.json","properties":{{"a/b~c":{{"$ref":"types.json#/$defs/code"}}}}}},"allow":true,"deny":false}}}}"#
+        );
+        let target = format!(
+            r#"{{"$schema":"{DRAFT}","$id":"{types}","$defs":{{"code":{{"type":"string","const":"owned"}}}}}}"#
+        );
+        let backend = SchemaBackendProbe::new(
+            [resource(root, &source), resource(types, &target)],
+            FormatProfile::AssertedSourceCandidateV1,
+        )
+        .unwrap();
+        let digest = backend.schema_set_digest();
+        let selected = format!("{root}#/$defs/scoped/properties/a~1b~0c");
+        assert_eq!(backend.is_valid_raw(&selected, br#""owned""#), Ok(true));
+        assert_eq!(backend.is_valid_raw(&selected, br#""other""#), Ok(false));
+        assert_eq!(
+            backend.is_valid_raw(&format!("{root}#/$defs/allow"), b"3"),
+            Ok(true)
+        );
+        assert_eq!(
+            backend.is_valid_raw(&format!("{root}#/$defs/deny"), b"3"),
+            Ok(false)
+        );
+        assert!(
+            backend
+                .is_valid_raw(&format!("{root}#/$defs/absent"), b"3")
+                .is_err()
+        );
+        assert_eq!(
+            backend.is_valid_raw(&format!("{root}#named-anchor"), b"3"),
+            Err(SchemaProbeError::InvalidResourceId)
+        );
+        assert_eq!(
+            backend.is_valid_raw("https://tree-of-sophia.local/absent#/type", b"3"),
+            Err(SchemaProbeError::MissingResource)
+        );
+        assert_eq!(backend.schema_set_digest(), digest);
+        assert_eq!(
+            backend.resource_digest(root),
+            Some(Digest256::of_bytes(source.as_bytes()))
         );
     }
 
