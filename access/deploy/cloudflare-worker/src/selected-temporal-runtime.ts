@@ -38,7 +38,11 @@ export interface SelectedTemporalAccess {
 }
 
 export class SelectedTemporalError extends Error {
-  constructor(readonly code: string) { super(`selected temporal continuation: ${code}`); }
+  readonly code: string;
+  constructor(code: string) {
+    super(`selected temporal continuation: ${code}`);
+    this.code = code;
+  }
 }
 
 function checkAbort(signal?: AbortSignal): void { signal?.throwIfAborted(); }
