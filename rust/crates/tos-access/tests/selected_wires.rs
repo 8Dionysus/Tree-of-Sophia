@@ -1344,8 +1344,22 @@ mod selected_knowledge {
                     profile,
                 )
             } else {
-                handle_get(executor.as_ref(), &path, "GET", profile)
+                handle_get(executor.as_ref(), "GET", &path, profile)
             };
+            assert_eq!(
+                response.status,
+                200,
+                "{}: HTTP {} {} response: {}",
+                operation.operation_id,
+                operation.http_method,
+                path,
+                String::from_utf8_lossy(&response.body)
+            );
+            assert!(
+                executor.held.load(Ordering::SeqCst) > 0,
+                "{}: successful prepared HTTP packet must retain disclosure hold",
+                operation.operation_id
+            );
             let mut writer = HeldWriter {
                 bytes: Vec::new(),
                 held: Arc::clone(&executor.held),
