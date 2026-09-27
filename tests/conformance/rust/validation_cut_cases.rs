@@ -1264,6 +1264,159 @@ finally:c.doCleanups()
 }
 
 #[test]
+fn actual_native_object_link_binds_committed_origin_and_corrected_lineage() {
+    use tos_validation::record_biblio_cut::BiblioRecordExecutor;
+    use tos_validation::source_cut::CutSchemaExecutor;
+
+    // Use the maintained ObjectLink factory, including its actual source
+    // writer. Work exercises independent Link/Claim corrections; Artifact
+    // exercises native identity without recasting it as a Corpus record.
+    for kind in ["work", "artifact"] {
+        let oracle = std::process::Command::new("python3")
+            .arg("-c")
+            .arg(r#"
+import json,sys
+from pathlib import Path
+root=Path(sys.argv[1]);kind=sys.argv[2]
+sys.path.insert(0,str(root/'mechanics/growth-cycle/tests'))
+from test_source_link_commands import NativeObjectLinkTests,commands,links,revisions,ROOT
+c=NativeObjectLinkTests();c.setUp()
+try:
+    if kind=='artifact':
+        sample='ToS/source-witnesses/artifacts/old-babylonian/uncertain/penn-cbs-07771/artifact-witness.json'
+        c.subject=json.loads((ROOT/sample).read_bytes())
+        c.subject.update(artifact_id='tos.artifact.synthetic.object-link',record_version=1)
+        c.subject_ref='ToS/source-witnesses/artifacts/synthetic/site/object/artifact-witness.json'
+        c.subject_path=c.root/c.subject_ref;c.write(c.subject_ref,c.subject)
+        from build_source_witness_catalog import native_witness_contract
+        schema_ref=native_witness_contract(c.subject,c.subject_ref)[0]
+        c.write(schema_ref,(ROOT/schema_ref).read_bytes())
+        c.config.update(subject_id=c.subject['artifact_id'],subject_record_type='artifact',subject_source_path=c.subject_ref)
+        c.config['uri']='http://[fe80::1%25eth0]:00080/object'
+        c.save_config();c.rebuild()
+    else:
+        c.config['uri']='https://例え.テスト/object'
+        c.save_config();c.rebuild()
+    request=c.request();commands.run_local_command(c.owner,request);c.rebuild()
+    if kind=='work':
+        c.revise_link();c.rebuild();c.revise_claim();c.rebuild()
+    claim=json.loads((c.root/c.config['claim_source_path']).read_bytes())
+    links.verify_compound(c.root,c.config['claim_source_path'],claim)
+    files={p.relative_to(c.root).as_posix():p.read_bytes().hex()
+           for p in sorted((c.root/'ToS').rglob('*')) if p.is_file()}
+    print(json.dumps({'files':files,'claim_path':c.config['claim_source_path'],
+        'link_history':str(Path(c.config['link_source_path']).with_name(revisions.HISTORY))}))
+finally:c.doCleanups()
+"#)
+            .arg(repository())
+            .arg(kind)
+            .env("PYTHONDONTWRITEBYTECODE", "1")
+            .output()
+            .unwrap();
+        assert!(oracle.status.success(), "maintained ObjectLink oracle: {}",
+            String::from_utf8_lossy(&oracle.stderr));
+        let packet: Value = serde_json::from_slice(&oracle.stdout).unwrap();
+        let claim_path = required(&packet, "claim_path").to_owned();
+        let mut files = selected_item_sources();
+        let relation = "ToS/doctrine/semantic-interchange/relation-types.v1.json";
+        files.insert(relation.into(), fs::read(repository().join(relation)).unwrap());
+        for (path, hex) in packet["files"].as_object().unwrap() {
+            if !tos_source_store::is_authored_source_path_v1(path) {
+                assert!(path.starts_with("ToS/source-witnesses/catalog/"),
+                    "unexpected generated ObjectLink fixture member {path}");
+                continue;
+            }
+            let hex = hex.as_str().unwrap();
+            assert_eq!(hex.len() % 2, 0);
+            let raw = (0..hex.len()).step_by(2)
+                .map(|i| u8::from_str_radix(&hex[i..i + 2], 16).unwrap())
+                .collect::<Vec<_>>();
+            if let Some(existing) = files.get(path) {
+                assert_eq!(existing, &raw, "selected common source {path}");
+            }
+            files.insert(path.clone(), raw);
+        }
+        let temporary = tempfile::tempdir().unwrap();
+        let root = temporary.path().join("store");
+        let revision = write_cut_store(&files, &root);
+        let cancelled = AtomicBool::new(false);
+        let deadline = Instant::now() + Duration::from_secs(120);
+        let reader = CorpusReader::open_existing(&root, ReadLimits {
+            max_manifest_bytes: 1_048_576, max_manifest_entries: 1024,
+            max_selected_object_bytes: 2_097_152, json: JsonLimits::default(),
+        }).unwrap();
+        let cut = reader.open_source_cut(revision, CutReadLimits {
+            max_revisions: 4, max_members: 2048, max_total_bytes: 32_000_000,
+            max_member_bytes: 2_097_152,
+        }, deadline, &cancelled).unwrap();
+        let worker_path = selected_worker_path();
+        let worker = ExactWorkerIdentity {
+            sha256: Digest256::of_bytes(&fs::read(&worker_path).unwrap()),
+            absolute_path: worker_path,
+        };
+        let limits = ItemLimits {
+            max_member_bytes: 2_097_152, max_total_bytes: 64_000_000,
+            max_state_bytes: 16_777_216, max_issues: 256, deadline,
+        };
+        let mut records = BiblioRecordExecutor::new(worker.clone(),
+            ExecutorBudget::laboratory(), FormatProfile::LegacyPythonObserved20260923, 256);
+        let current = tos_validation::record_biblio_cut::inspect_records_from_cut(
+            &cut, limits, &cancelled, &mut records).unwrap();
+        records.finish(deadline, &cancelled).unwrap();
+        let mut schemas = CutWorkerSchemaExecutor::from_cut(&cut,
+            FormatProfile::LegacyPythonObserved20260923, worker.clone(),
+            ExecutorBudget::laboratory(), CutWorkerLimits {
+                max_receipts: 256, max_receipt_bytes: 262_144,
+            }, deadline, &cancelled).unwrap();
+        let report = tos_validation::biblio_rules::inspect_bibliography_from_cut(
+            &cut, &current, limits, &cancelled, &mut schemas).unwrap();
+        schemas.finish(deadline, &cancelled).unwrap();
+        assert!(report.native_compounds.iter().any(|observed|
+            observed.claim_path == claim_path
+                && observed.transport == tos_validation::native_compound::NativeTransportState::Committed),
+            "native ObjectLink source issue: {:?}", report.shadow.issues);
+        assert!(report.shadow.checked_profiles.contains(
+            "native-object-link-exact-compound-plan-and-current-lineage@1"));
+        assert!(!report.shadow.issues.iter().any(|issue|
+            issue.code == "native-object-link-compound-evidence"));
+
+        if kind == "work" {
+            // Removing the retained Link correction cannot be repaired by the
+            // current Claim, URI or a successful schema check.
+            let link_history = required(&packet, "link_history");
+            let mut damaged = files.clone();
+            damaged.remove(link_history).unwrap();
+            let damaged_revision = write_cut_store_on_base(&damaged, &root, Some(revision));
+            let negative_deadline = Instant::now() + Duration::from_secs(120);
+            let damaged_cut = reader.open_source_cut(damaged_revision, CutReadLimits {
+                max_revisions: 4, max_members: 2048, max_total_bytes: 32_000_000,
+                max_member_bytes: 2_097_152,
+            }, negative_deadline, &cancelled).unwrap();
+            let negative_limits = ItemLimits { deadline: negative_deadline, ..limits };
+            let mut negative_records = BiblioRecordExecutor::new(worker.clone(),
+                ExecutorBudget::laboratory(), FormatProfile::LegacyPythonObserved20260923, 256);
+            let retained = tos_validation::record_biblio_cut::inspect_records_from_cut(
+                &damaged_cut, negative_limits, &cancelled, &mut negative_records).unwrap();
+            negative_records.finish(negative_deadline, &cancelled).unwrap();
+            let mut negative_schemas = CutWorkerSchemaExecutor::from_cut(&damaged_cut,
+                FormatProfile::LegacyPythonObserved20260923, worker,
+                ExecutorBudget::laboratory(), CutWorkerLimits {
+                    max_receipts: 256, max_receipt_bytes: 262_144,
+                }, negative_deadline, &cancelled).unwrap();
+            let refused = tos_validation::biblio_rules::inspect_bibliography_from_cut(
+                &damaged_cut, &retained, negative_limits, &cancelled, &mut negative_schemas).unwrap();
+            negative_schemas.finish(negative_deadline, &cancelled).unwrap();
+            assert!(refused.shadow.issues.iter().any(|issue|
+                issue.code == "native-object-link-compound-evidence"
+                    && issue.location.starts_with(&claim_path)));
+            assert!(!refused.native_compounds.iter().any(|observed|
+                observed.claim_path == claim_path
+                    && observed.transport == tos_validation::native_compound::NativeTransportState::Committed));
+        }
+    }
+}
+
+#[test]
 fn actual_cut_schema_batch_binds_ordered_units_and_refuses_partial_receipts() {
     use tos_validation::executor::BatchBudget;
     use tos_validation::source_cut::{CutSchemaCheck, CutSchemaExecutor};

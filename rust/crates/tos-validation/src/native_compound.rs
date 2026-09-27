@@ -24,6 +24,340 @@ const MAX_SIDE: usize = 8 * 1024 * 1024;
 const MAX_FILE: usize = 2 * 1024 * 1024;
 const MAX_MANIFEST: usize = 512 * 1024;
 const MAX_HISTORY: usize = 128;
+const OBJECT_LINK_RECEIPT: &str = "object-link-creation-receipt.json";
+const OBJECT_LINK_CLAIM: &str = "tos_object_link_claim_v2";
+const OBJECT_LINK_OPERATION: &str = "object.link.create";
+const OBJECT_LINK_MODULE: &str =
+    "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_link_commands.py";
+const OBJECT_LINK_SCOPE: [&str; 14] = [
+    "subject_id",
+    "subject_source_path",
+    "subject_record_type",
+    "link_id",
+    "link_source_path",
+    "claim_id",
+    "claim_source_path",
+    "predicate",
+    "provenance_event_id",
+    "allowed_link_form_ids",
+    "allowed_claim_form_ids",
+    "allowed_evidence_refs",
+    "uri",
+    "observation_ref",
+];
+fn object_link_predicate(predicate: &str) -> bool {
+    matches!(
+        predicate,
+        "described_by" | "metadata_at" | "downloadable_at" | "rights_statement_at"
+    )
+}
+fn object_link_scope(scope: &Value, request: &Value, authority: &Value) -> Result<(), ItemRefusal> {
+    keys(scope, &OBJECT_LINK_SCOPE)?;
+    let kind = text(scope, "subject_record_type")?;
+    if !matches!(
+        kind,
+        "work" | "expression" | "edition" | "collection" | "item" | "artifact"
+    ) || !object_link_predicate(text(scope, "predicate")?)
+    {
+        return Err(bad("object-Link delegated type/predicate"));
+    }
+    for (field, kind) in [
+        ("subject_id", kind),
+        ("link_id", "link"),
+        ("claim_id", "claim"),
+        ("provenance_event_id", "event"),
+    ] {
+        if !typed_id(text(scope, field)?, kind) {
+            return Err(bad("object-Link typed identity"));
+        }
+    }
+    let subject = text(scope, "subject_source_path")?;
+    let link = text(scope, "link_source_path")?;
+    let claim = text(scope, "claim_source_path")?;
+    for path in [subject, link, claim] {
+        metadata_path(path, false)?;
+    }
+    if kind == "artifact" && !subject.starts_with("ToS/source-witnesses/artifacts/") {
+        return Err(bad("object-Link artifact owner path"));
+    }
+    if !subject.ends_with(if kind == "artifact" {
+        "/artifact-witness.json"
+    } else if kind == "work" {
+        "/work.json"
+    } else if kind == "item" {
+        "/item.json"
+    } else if kind == "edition" {
+        "/edition.json"
+    } else if kind == "expression" {
+        "/expression.json"
+    } else {
+        "/collection.json"
+    }) || !link.starts_with("ToS/source-witnesses/links/")
+        || link.split('/').count() != 5
+        || !link.ends_with("/link.json")
+        || !claim.starts_with("ToS/source-witnesses/relations/")
+        || claim.split('/').count() != 5
+        || !claim.ends_with("/source-claims.jsonl")
+        || parent(link)? == parent(claim)?
+    {
+        return Err(bad("object-Link separate exact homes"));
+    }
+    let mut forms = BTreeSet::new();
+    for field in ["allowed_link_form_ids", "allowed_claim_form_ids"] {
+        let ids = array(scope, field)?;
+        if !(1..=32).contains(&ids.len()) {
+            return Err(bad("object-Link form grants"));
+        }
+        for value in ids {
+            let id = value
+                .as_str()
+                .ok_or_else(|| bad("object-Link form grant"))?;
+            let tail = id.strip_prefix("tos.form.").unwrap_or("");
+            if tail.is_empty()
+                || !tail
+                    .as_bytes()
+                    .first()
+                    .is_some_and(u8::is_ascii_alphanumeric)
+                || !tail.bytes().all(|c| {
+                    c.is_ascii_lowercase() || c.is_ascii_digit() || matches!(c, b'.' | b'_' | b'-')
+                })
+                || !forms.insert(id)
+            {
+                return Err(bad("object-Link disjoint form grants"));
+            }
+        }
+    }
+    let evidence = array(scope, "allowed_evidence_refs")?;
+    if !(1..=128).contains(&evidence.len())
+        || evidence.iter().any(|v| {
+            v.as_str()
+                .is_none_or(|s| s.trim().is_empty() || s.chars().count() > 4096)
+        })
+        || evidence
+            .iter()
+            .filter_map(Value::as_str)
+            .collect::<BTreeSet<_>>()
+            .len()
+            != evidence.len()
+        || !evidence.contains(&scope["observation_ref"])
+    {
+        return Err(bad("object-Link evidence grant"));
+    }
+    for value in evidence {
+        let _ = value
+            .as_str()
+            .ok_or_else(|| bad("object-Link evidence reference"))?;
+    }
+    object_link_address(text(scope, "uri")?)?;
+    let subject_record = &request["subject"];
+    let link_record = &request["link"];
+    let claim_record = &request["claim"];
+    let subject_id = if kind == "artifact" {
+        text(subject_record, "artifact_id")?
+    } else {
+        text(subject_record, "record_id")?
+    };
+    if subject_id != text(scope, "subject_id")?
+        || text(link_record, "record_id")? != text(scope, "link_id")?
+        || kind != "artifact" && subject_record["record_type"] != kind
+        || link_record["record_type"] != "link"
+        || link_record["uri"] != scope["uri"]
+        || link_record["observation_ref"] != scope["observation_ref"]
+        || link_record["association_claim_refs"] != json!([scope["claim_id"]])
+        || link_record["provenance_event_ref"] != scope["provenance_event_id"]
+        || integer(link_record, "record_version")? != 1
+        || !link_record["supersedes_ref"].is_null()
+        || link_record["identity_status"] != "provisional"
+        || !matches!(
+            text(link_record, "same_as_posture")?,
+            "not_assessed" | "no_equivalence_claim"
+        )
+        || !array(link_record, "external_identifiers")?.is_empty()
+        || !array(link_record, "variant_labels")?.is_empty()
+        || text(claim_record, "claim_id")? != text(scope, "claim_id")?
+        || integer(claim_record, "claim_version")? != 1
+        || claim_record["subject_ref"] != scope["subject_id"]
+        || claim_record["object"] != scope["link_id"]
+        || claim_record["predicate"] != scope["predicate"]
+        || claim_record["provenance_event_ref"] != scope["provenance_event_id"]
+        || claim_record["maker"]
+            != json!({"maker_type":authority["maker_type"],"agent_ref":authority["principal_id"]})
+        || claim_record
+            .get("assessment_refs")
+            .is_some_and(|value| value.as_array().is_none_or(|refs| !refs.is_empty()))
+        || !claim_record["supersedes_claim_ref"].is_null()
+        || claim_record["schema_version"] != OBJECT_LINK_CLAIM
+    {
+        return Err(bad("object-Link exact initial scope"));
+    }
+    let q = &claim_record["qualifiers"];
+    if q["availability_is_rights_conclusion"] != false
+        || [
+            "statement",
+            "statement_language",
+            "statement_script",
+            "link_role",
+        ]
+        .iter()
+        .any(|k| text(q, k).is_err_or(|s| s.trim().is_empty()))
+    {
+        return Err(bad("object-Link qualified no-rights statement"));
+    }
+    for values in [
+        array(link_record, "source_refs")?,
+        array(claim_record, "evidence_refs")?,
+    ] {
+        if values.iter().any(|v| !evidence.contains(v)) {
+            return Err(bad("object-Link evidence outside grant"));
+        }
+        for value in values {
+            let reference = value.as_str().ok_or_else(|| bad("object-Link evidence"))?;
+            if !reference.starts_with("ToS/") {
+                object_link_address(reference)?;
+            } else {
+                RelativePath::parse(reference).map_err(|_| bad("object-Link evidence locator"))?;
+            }
+        }
+    }
+    if claim_record.get("counterevidence_refs").is_some() {
+        for value in array(claim_record, "counterevidence_refs")? {
+            if !evidence.contains(value) {
+                return Err(bad("object-Link counterevidence outside grant"));
+            }
+            let reference = value
+                .as_str()
+                .ok_or_else(|| bad("object-Link counterevidence"))?;
+            if !reference.starts_with("ToS/") {
+                object_link_address(reference)?;
+            } else {
+                RelativePath::parse(reference)
+                    .map_err(|_| bad("object-Link counterevidence locator"))?;
+            }
+        }
+    }
+    let observation = text(scope, "observation_ref")?;
+    if !observation.starts_with("ToS/") {
+        object_link_address(observation)?;
+    } else {
+        RelativePath::parse(observation).map_err(|_| bad("object-Link observation locator"))?;
+    }
+    for (selection, grant) in [
+        ("forms", "allowed_link_form_ids"),
+        ("claim_forms", "allowed_claim_form_ids"),
+    ] {
+        let rows = array(request, selection)?;
+        if !(1..=32).contains(&rows.len()) {
+            return Err(bad("object-Link bounded form selections"));
+        }
+        let mut ids = BTreeSet::new();
+        for row in rows {
+            keys(row, &["form_id", "field_id"])?;
+            let id = text(row, "form_id")?;
+            if !array(scope, grant)?.contains(&json!(id)) || !ids.insert(id) {
+                return Err(bad("object-Link form selection grant"));
+            }
+        }
+    }
+    Ok(())
+}
+fn object_link_address(uri: &str) -> Result<(), ItemRefusal> {
+    use unicode_normalization::UnicodeNormalization;
+    if !(1..=4096).contains(&uri.chars().count())
+        || uri.chars().any(|c| {
+            c.is_whitespace()
+                || unicode_general_category::get_general_category(c)
+                    .abbreviation()
+                    .starts_with('C')
+                || c == '\\'
+        })
+    {
+        return Err(bad("object-Link unsafe external address"));
+    }
+    let (scheme, rest) = uri
+        .split_once("://")
+        .ok_or_else(|| bad("object-Link HTTP(S) address"))?;
+    if !scheme.eq_ignore_ascii_case("http") && !scheme.eq_ignore_ascii_case("https") {
+        return Err(bad("object-Link HTTP(S) address"));
+    }
+    let authority = rest.split(&['/', '?', '#'][..]).next().unwrap_or("");
+    if authority.is_empty() || authority.contains('@') {
+        return Err(bad("object-Link credential-free host"));
+    }
+    // urllib.parse rejects a netloc whose NFKC form creates a delimiter.
+    // The source string itself is never normalized or used for a network read.
+    if !authority.is_ascii() {
+        let without_delimiters: String = authority
+            .chars()
+            .filter(|c| !matches!(c, '@' | ':' | '#' | '?'))
+            .collect();
+        let normalized: String = without_delimiters.nfkc().collect();
+        if normalized != without_delimiters
+            && normalized
+                .chars()
+                .any(|c| matches!(c, '/' | '?' | '#' | '@' | ':'))
+        {
+            return Err(bad("object-Link NFKC netloc delimiter"));
+        }
+    }
+    // Match urllib.parse.urlsplit's netloc/hostname/port boundary. In
+    // particular an empty port is allowed, while any non-decimal port or a
+    // nonempty suffix after ']' without ':' is not. No address is fetched.
+    let (host, port) = if authority.starts_with('[') {
+        let end = authority
+            .find(']')
+            .ok_or_else(|| bad("object-Link bracketed host"))?;
+        let inside = &authority[1..end];
+        if inside.starts_with('v') || inside.starts_with('V') {
+            let (version, address) = inside[1..]
+                .split_once('.')
+                .ok_or_else(|| bad("object-Link IPvFuture host"))?;
+            if version.is_empty()
+                || !version.bytes().all(|b| b.is_ascii_hexdigit())
+                || address.is_empty()
+            {
+                return Err(bad("object-Link IPvFuture host"));
+            }
+        } else {
+            let address = if let Some((base, zone)) = inside.split_once('%') {
+                if zone.is_empty() || zone.contains('%') {
+                    return Err(bad("object-Link IPv6 zone"));
+                }
+                base
+            } else {
+                inside
+            };
+            address
+                .parse::<std::net::Ipv6Addr>()
+                .map_err(|_| bad("object-Link IPv6 host"))?;
+        }
+        let suffix = &authority[end + 1..];
+        let port = if suffix.is_empty() {
+            ""
+        } else {
+            suffix
+                .strip_prefix(':')
+                .ok_or_else(|| bad("object-Link bracketed host suffix"))?
+        };
+        (inside, port)
+    } else {
+        if authority.contains('[') || authority.contains(']') {
+            return Err(bad("object-Link malformed bracketed host"));
+        }
+        authority
+            .split_once(':')
+            .map_or((authority, ""), |(h, p)| (h, p))
+    };
+    let significant_port = port.trim_start_matches('0');
+    if host.is_empty()
+        || (!port.is_empty()
+            && (!port.bytes().all(|b| b.is_ascii_digit())
+                || significant_port.len() > 5
+                || (!significant_port.is_empty() && significant_port.parse::<u16>().is_err())))
+    {
+        return Err(bad("object-Link address port/host"));
+    }
+    Ok(())
+}
 pub(crate) type Package = BTreeMap<String, Vec<u8>>;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -1217,28 +1551,29 @@ impl<'a> NativeCompoundReader<'a> {
         Ok(tx)
     }
     fn archive(&mut self, path: &str, id: &str, receipt: &Value) -> Result<Package, ItemRefusal> {
+        self.archive_typed(path, id, receipt, "record_id")
+    }
+    fn archive_typed(
+        &mut self,
+        path: &str,
+        id: &str,
+        receipt: &Value,
+        identity_field: &str,
+    ) -> Result<Package, ItemRefusal> {
         let before = self.temporary_state;
-        let result = self.archive_inner(path, id, receipt);
+        let result = self.archive_files_inner(path, id, receipt, Some(identity_field));
         self.release_temporary_since(before);
         if let Ok(files) = &result {
             self.temporary(package_state(files)?)?;
         }
         result
     }
-    fn archive_inner(
-        &mut self,
-        path: &str,
-        id: &str,
-        receipt: &Value,
-    ) -> Result<Package, ItemRefusal> {
-        self.archive_files_inner(path, id, receipt, true)
-    }
     fn archive_files_inner(
         &mut self,
         path: &str,
         id: &str,
         receipt: &Value,
-        record_semantics: bool,
+        identity_field: Option<&str>,
     ) -> Result<Package, ItemRefusal> {
         let rev = text(receipt, "previous_revision")?;
         let home = format!(
@@ -1351,9 +1686,9 @@ impl<'a> NativeCompoundReader<'a> {
         if self.package_revision(&files)? != rev {
             return Err(bad("archive package revision"));
         }
-        if !record_semantics {
+        let Some(identity_field) = identity_field else {
             return Ok(files);
-        }
+        };
         let names = selected_names(path)?;
         let old = self.decoded(
             files
@@ -1362,7 +1697,7 @@ impl<'a> NativeCompoundReader<'a> {
         )?;
         if !self.reference_matches(
             &old,
-            "record_id",
+            identity_field,
             "record_version",
             &receipt["previous_source"],
         )? {
@@ -1393,7 +1728,7 @@ impl<'a> NativeCompoundReader<'a> {
             )?;
             if !self.reference_matches(
                 &revised,
-                "record_id",
+                identity_field,
                 "record_version",
                 &receipt["source"],
             )? {
@@ -1628,7 +1963,7 @@ impl<'a> NativeCompoundReader<'a> {
                 path,
                 text(&receipt["previous_source"], "id")?,
                 receipt,
-                false,
+                None,
             )?;
             let before = archived
                 .get("source-claims.jsonl")
@@ -2155,6 +2490,7 @@ pub fn inspect_record_history(
         files,
         &record,
         &history,
+        "record_id",
         deadline,
         cancelled,
         &mut canonical_observation,
@@ -2165,6 +2501,7 @@ fn validate_record_history_values(
     files: &Package,
     record: &Value,
     history: &Value,
+    identity_field: &str,
     deadline: Instant,
     cancelled: &AtomicBool,
     observe: &mut impl FnMut(&Value) -> Result<(String, usize), ItemRefusal>,
@@ -2174,7 +2511,7 @@ fn validate_record_history_values(
         return Err(bad("positive record version"));
     }
     let subject =
-        json!({"id":text(record,"record_id")?,"version":version,"digest":observe(record)?.0});
+        json!({"id":text(record,identity_field)?,"version":version,"digest":observe(record)?.0});
     keys(&history, &["schema_version", "record_id", "receipts"])?;
     if !matches!(
         text(&history, "schema_version")?,
@@ -2299,13 +2636,260 @@ fn validate_record_history_values(
 }
 
 impl NativeCompoundReader<'_> {
+    fn object_link_subject_binding(
+        &mut self,
+        scope: &Value,
+        initial: &Value,
+        expected_sha: &str,
+    ) -> Result<(), ItemRefusal> {
+        let path = text(scope, "subject_source_path")?;
+        let id = text(scope, "subject_id")?;
+        let identity = if scope["subject_record_type"] == "artifact" {
+            "artifact_id"
+        } else {
+            "record_id"
+        };
+        let selected = self.selected(path)?;
+        let name = path
+            .rsplit('/')
+            .next()
+            .ok_or_else(|| bad("object-Link subject basename"))?;
+        let raw = selected
+            .get(name)
+            .ok_or_else(|| bad("object-Link current subject absent"))?;
+        let current = self.decoded(raw)?;
+        if text(&current, identity)? != id {
+            return Err(bad("object-Link current subject identity"));
+        }
+        let history = self.history_typed(path, &selected, identity)?;
+        let wanted =
+            Digest256::from_hex(expected_sha).map_err(|_| bad("object-Link subject raw SHA"))?;
+        let mut matched = false;
+        if Digest256::of_bytes(raw) == wanted {
+            if &current != initial {
+                return Err(bad("object-Link exact current subject payload"));
+            }
+            matched = true;
+        }
+        for receipt in array(&history, "receipts")? {
+            check(self.limits.deadline, self.cancelled)?;
+            let before = self.temporary_state;
+            let archived = self.archive_typed(path, id, receipt, identity)?;
+            if let Some(publication) = receipt.get("publication") {
+                let transaction = self.transaction(text(publication, "transaction_id")?)?;
+                let (prior, next) = transaction
+                    .files
+                    .get(path)
+                    .ok_or_else(|| bad("object-Link selected subject transition"))?;
+                if transaction.status != "committed"
+                    || prior.as_ref() != archived.get(name)
+                    || next.as_ref().is_none_or(|bytes| {
+                        self.decoded(bytes).is_err_or(|value| {
+                            self.reference_matches(
+                                &value,
+                                identity,
+                                "record_version",
+                                &receipt["source"],
+                            )
+                            .is_err_or(|valid| !valid)
+                        })
+                    })
+                {
+                    return Err(bad("object-Link committed subject transition"));
+                }
+            }
+            let previous = archived
+                .get(name)
+                .ok_or_else(|| bad("object-Link archived subject absent"))?;
+            if Digest256::of_bytes(previous) == wanted {
+                let payload = self.decoded(previous)?;
+                if &payload != initial {
+                    return Err(bad("object-Link retained subject payload"));
+                }
+                if matched {
+                    return Err(bad("object-Link ambiguous original subject bytes"));
+                }
+                matched = true;
+            }
+            drop(archived);
+            self.release_temporary_since(before);
+        }
+        if !matched {
+            return Err(bad(
+                "object-Link original subject bytes not continuously retained",
+            ));
+        }
+        Ok(())
+    }
+    fn object_link_initial_forms(
+        &mut self,
+        path: &str,
+        expected: &[u8],
+    ) -> Result<(), ItemRefusal> {
+        use crate::source_forms::source_copy_kernel as kernel;
+        let current_raw = self.required(path, MAX_FILE)?;
+        let current = self.ordered_value(&current_raw)?;
+        let subject = current
+            .object_get("subject")
+            .ok_or_else(|| bad("object-Link current form subject"))?;
+        kernel::validate_history(&current, subject)
+            .map_err(|_| bad("object-Link continuous source-copy Form history"))?;
+        // Source _validate_history uses logical Python dict equality for the
+        // retained Form, independent of published object-key insertion order.
+        let current_logical = self.decoded(&current_raw)?;
+        let original_logical = self.decoded(expected)?;
+        let rows = array(&current_logical, "forms")?;
+        let prior = array(&current_logical, "prior_forms")?;
+        let initial = array(&original_logical, "forms")?;
+        for form in initial {
+            check(self.limits.deadline, self.cancelled)?;
+            let retained = rows
+                .iter()
+                .chain(prior)
+                .find(|candidate| {
+                    candidate["form_id"] == form["form_id"]
+                        && candidate["form_version"] == form["form_version"]
+                })
+                .ok_or_else(|| bad("object-Link original Form lost from continuous history"))?;
+            if retained != form {
+                return Err(bad(
+                    "object-Link original Form lost from continuous history",
+                ));
+            }
+        }
+        Ok(())
+    }
+    fn object_link_current_lineage(
+        &mut self,
+        scope: &Value,
+        initial: &Value,
+        initial_raw: &[u8],
+    ) -> Result<Value, ItemRefusal> {
+        let path = text(scope, "link_source_path")?;
+        let id = text(scope, "link_id")?;
+        let files = self.selected(path)?;
+        let current_raw = files
+            .get("link.json")
+            .ok_or_else(|| bad("object-Link current source absent"))?;
+        let current = self.decoded(current_raw)?;
+        if text(&current, "record_id")? != id || current["record_type"] != "link" {
+            return Err(bad("object-Link current typed identity"));
+        }
+        let history = self.history(path, &files)?;
+        let initial_ref = self.canonical_observation(initial)?.0;
+        let mut original = current_raw.as_slice() == initial_raw;
+        for (index, receipt) in array(&history, "receipts")?.iter().enumerate() {
+            check(self.limits.deadline, self.cancelled)?;
+            let request = &receipt["request"];
+            let fields = request["fields"]
+                .as_object()
+                .ok_or_else(|| bad("object-Link correction fields"))?;
+            if request["schema_version"] != "tos_local_source_command_v1"
+                || request["operation"] != "record.revise"
+                || fields.is_empty()
+                || fields.keys().any(|key| {
+                    ![
+                        "preferred_label",
+                        "variant_labels",
+                        "notes",
+                        "source_refs",
+                        "provider_label",
+                    ]
+                    .contains(&key.as_str())
+                })
+                || receipt["publication"]["protocol"] != PROTOCOL
+                || receipt["publication"]["selected_files"]
+                    != json!(["link.human-forms.json", "link.json", HISTORY])
+            {
+                return Err(bad("object-Link descriptive selected correction"));
+            }
+            let before = self.temporary_state;
+            let archive = self.archive(path, id, receipt)?;
+            let old_raw = archive
+                .get("link.json")
+                .ok_or_else(|| bad("object-Link archived source absent"))?;
+            let old = self.decoded(old_raw)?;
+            let mut successor = self.value_copy(&old)?;
+            let map = successor
+                .as_object_mut()
+                .ok_or_else(|| bad("object-Link record"))?;
+            for (key, value) in fields {
+                map.insert(key.clone(), value.clone());
+            }
+            map.insert(
+                "record_version".into(),
+                json!(
+                    integer(&old, "record_version")?
+                        .checked_add(1)
+                        .ok_or(ItemRefusal::Budget)?
+                ),
+            );
+            if fields.keys().any(|key| {
+                ![
+                    "preferred_label",
+                    "variant_labels",
+                    "notes",
+                    "source_refs",
+                    "provider_label",
+                ]
+                .contains(&key.as_str())
+            }) || !self.reference_matches(
+                &successor,
+                "record_id",
+                "record_version",
+                &receipt["source"],
+            )? {
+                return Err(bad("object-Link correction identity/allowed fields"));
+            }
+            let tx = self.transaction(text(&receipt["publication"], "transaction_id")?)?;
+            let (prior, after) = tx
+                .files
+                .get(path)
+                .ok_or_else(|| bad("object-Link correction transaction source"))?;
+            if tx.status != "committed"
+                || prior.as_ref() != Some(old_raw)
+                || after
+                    .as_ref()
+                    .is_none_or(|raw| self.decoded(raw).is_err_or(|value| value != successor))
+            {
+                return Err(bad("object-Link exact committed correction"));
+            }
+            if index == 0
+                && old_raw.as_slice() == initial_raw
+                && receipt["previous_source"] == json!({"id":id,"version":1,"digest":initial_ref})
+            {
+                original = true;
+            }
+            drop(archive);
+            self.release_temporary_since(before);
+        }
+        if !original {
+            return Err(bad(
+                "object-Link committed initial source absent from continuous lineage",
+            ));
+        }
+        if current["association_claim_refs"] != json!([scope["claim_id"]])
+            || current["provenance_event_ref"] != scope["provenance_event_id"]
+        {
+            return Err(bad("object-Link current association closure"));
+        }
+        Ok(current)
+    }
     fn history(
         &mut self,
         path: &str,
         files: &Package,
     ) -> Result<std::sync::Arc<Value>, ItemRefusal> {
+        self.history_typed(path, files, "record_id")
+    }
+    fn history_typed(
+        &mut self,
+        path: &str,
+        files: &Package,
+        identity_field: &str,
+    ) -> Result<std::sync::Arc<Value>, ItemRefusal> {
         let before = self.temporary_state;
-        let result = self.history_inner(path, files);
+        let result = self.history_inner(path, files, identity_field);
         self.release_temporary_since(before);
         result
     }
@@ -2313,6 +2897,7 @@ impl NativeCompoundReader<'_> {
         &mut self,
         path: &str,
         files: &Package,
+        identity_field: &str,
     ) -> Result<std::sync::Arc<Value>, ItemRefusal> {
         check(self.limits.deadline, self.cancelled)?;
         // Bind memoized lineage to the whole selected package, not its subject
@@ -2334,7 +2919,7 @@ impl NativeCompoundReader<'_> {
             .get(name)
             .ok_or_else(|| bad("history source absent"))?;
         let record = self.decoded(raw)?;
-        let id = text(&record, "record_id")?;
+        let id = text(&record, identity_field)?;
         let history = match files.get(HISTORY) {
             Some(raw) => self.decoded(raw)?,
             None => {
@@ -2345,7 +2930,7 @@ impl NativeCompoundReader<'_> {
         };
         // The commands index borrows retained history strings. Field-name
         // vectors contain only references; the exact subject is one owned value.
-        let history_validation_state = reference_state(&record, "record_id", "record_version")?
+        let history_validation_state = reference_state(&record, identity_field, "record_version")?
             + array(&history, "receipts")?.len() * std::mem::size_of::<&str>()
             + 17 * std::mem::size_of::<&str>();
         self.temporary(history_validation_state)?;
@@ -2353,6 +2938,7 @@ impl NativeCompoundReader<'_> {
             files,
             &record,
             &history,
+            identity_field,
             self.limits.deadline,
             self.cancelled,
             &mut |value| self.canonical_observation(value),
@@ -2361,7 +2947,7 @@ impl NativeCompoundReader<'_> {
         for (index, receipt) in array(&history, "receipts")?.iter().enumerate() {
             check(self.limits.deadline, self.cancelled)?;
             let previous_temporary = self.temporary_state;
-            let archived = self.archive(path, id, receipt)?;
+            let archived = self.archive_typed(path, id, receipt, identity_field)?;
             let predecessor_record = self.decoded(
                 archived
                     .get(name)
@@ -2376,7 +2962,7 @@ impl NativeCompoundReader<'_> {
                 }
             };
             let predecessor_subject_state =
-                reference_state(&predecessor_record, "record_id", "record_version")?;
+                reference_state(&predecessor_record, identity_field, "record_version")?;
             let predecessor_indexes = array(&predecessor, "receipts")?.len()
                 * std::mem::size_of::<&str>()
                 + 17 * std::mem::size_of::<&str>();
@@ -2389,6 +2975,7 @@ impl NativeCompoundReader<'_> {
                 &archived,
                 &predecessor_record,
                 &predecessor,
+                identity_field,
                 self.limits.deadline,
                 self.cancelled,
                 &mut |value| self.canonical_observation(value),
@@ -3644,6 +4231,12 @@ struct Reconstructed {
     child: Package,
     receipt: Value,
 }
+struct ObjectLinkReconstructed {
+    scope: Value,
+    request: Value,
+    receipt: Value,
+    files: Package,
+}
 impl NativeCompoundReader<'_> {
     fn reconstruct(
         &mut self,
@@ -4446,6 +5039,18 @@ impl NativeCompoundReader<'_> {
     }
 }
 
+struct CompoundEventProfile<'a> {
+    home: &'a str,
+    receipt_file: &'static str,
+    module: &'static str,
+    warning: &'static str,
+    executor: &'static str,
+    procedure: &'static str,
+    purpose: &'static str,
+    component: &'static str,
+    parent_id: Option<&'a str>,
+    forensic_media: bool,
+}
 fn compound_event(
     kind: CompoundKind,
     scope: &Value,
@@ -4457,19 +5062,103 @@ fn compound_event(
     recorded_at: &str,
     available: usize,
 ) -> Result<Value, ItemRefusal> {
-    let module = kind.module();
-    let home = kind.publication_home(scope)?;
+    let profile = CompoundEventProfile {
+        home: kind.publication_home(scope)?,
+        receipt_file: kind.receipt_file(),
+        module: kind.module(),
+        warning: if kind == CompoundKind::ExpressionResponsibility {
+            "A qualified attribution is supplied by the caller; serialization and URL presence do not prove source reading or its truth."
+        } else if kind == CompoundKind::CollectionWork {
+            "A qualified membership account is supplied by the caller; serialization and URL presence do not prove source reading or its truth."
+        } else {
+            "Observed denotes the declared record link, not accepted bibliographic or textual truth."
+        },
+        executor: kind.executor(),
+        procedure: kind.procedure(),
+        purpose: if kind == CompoundKind::ExpressionResponsibility {
+            "Serialize one qualified translator Claim and an Expression responsibility reference without judging attribution."
+        } else if kind == CompoundKind::CollectionWork {
+            "Serialize one qualified membership Claim and a Collection membership reference without judging membership."
+        } else {
+            "Serialize one declared parent link and explicit source-copy forms without judging their content."
+        },
+        component: kind.component(),
+        parent_id: Some(text(scope, kind.parent_key())?),
+        forensic_media: kind == CompoundKind::EditionItem,
+    };
+    compound_event_profile(
+        profile,
+        scope,
+        request,
+        before,
+        outputs,
+        environment,
+        dependencies,
+        recorded_at,
+        available,
+    )
+}
+fn object_link_event(
+    scope: &Value,
+    request: &Value,
+    outputs: &[(String, &[u8])],
+    environment: &Value,
+    dependencies: &Value,
+    recorded_at: &str,
+    available: usize,
+) -> Result<Value, ItemRefusal> {
+    let profile = CompoundEventProfile {
+        home: parent(text(scope, "claim_source_path")?)?,
+        receipt_file: OBJECT_LINK_RECEIPT,
+        module: OBJECT_LINK_MODULE,
+        warning: "The caller supplies the link observation and qualification. No remote content is fetched or rights conclusion reached.",
+        executor: "software:tos-source-link-commands",
+        procedure: "native-object-link-metadata-serialization",
+        purpose: "Serialize one native Link and its qualified association Claim without observing a remote provider.",
+        component: "ToS native object-Link adapter",
+        parent_id: None,
+        forensic_media: false,
+    };
+    compound_event_profile(
+        profile,
+        scope,
+        request,
+        &Package::new(),
+        outputs,
+        environment,
+        dependencies,
+        recorded_at,
+        available,
+    )
+}
+fn compound_event_profile(
+    profile: CompoundEventProfile<'_>,
+    scope: &Value,
+    request: &Value,
+    before: &Package,
+    outputs: &[(String, &[u8])],
+    environment: &Value,
+    dependencies: &Value,
+    recorded_at: &str,
+    available: usize,
+) -> Result<Value, ItemRefusal> {
+    let module = profile.module;
+    let home = profile.home;
     let request_ref = format!("{home}/source-create-request.json");
     let environment_ref = format!("{home}/source-create-environment.json");
     let mut request_raw = canonical(request)?;
     request_raw.push(b'\n');
     let mut environment_raw = canonical(environment)?;
     environment_raw.push(b'\n');
-    let archive = format!(
-        "{HOME}/.record-revisions/{}-{}",
-        Digest256::of_bytes(text(scope, kind.parent_key())?.as_bytes()).to_hex(),
-        hash(text(request, "expected_revision")?)?
-    );
+    let archive = if let Some(id) = profile.parent_id {
+        format!(
+            "{HOME}/.record-revisions/{}-{}",
+            Digest256::of_bytes(id.as_bytes()).to_hex(),
+            hash(text(request, "expected_revision")?)?
+        )
+    } else {
+        String::new()
+    };
     let prior: BTreeMap<_, _> = before
         .values()
         .map(|raw| {
@@ -4480,7 +5169,7 @@ fn compound_event(
         })
         .collect();
     let output: BTreeMap<_, _> = outputs.iter().map(|(p, r)| (p, r)).collect();
-    let entity = |reference: &str, raw: &[u8], role: &str| json!({"entity_ref":reference,"role":role,"sha256":Digest256::of_bytes(raw).to_hex(),"size_bytes":raw.len(),"media_type":if reference.ends_with(".jsonl"){"application/x-ndjson"}else if kind==CompoundKind::EditionItem && reference.ends_with("/forensic-report.md"){"text/markdown"}else if kind==CompoundKind::EditionItem && reference.ends_with("/fixity.sha256"){"text/plain"}else{"application/json"},"availability":"owner_local","content_disclosure":"public_metadata_only","fixity_verified":false,"fixity_verified_at":null});
+    let entity = |reference: &str, raw: &[u8], role: &str| json!({"entity_ref":reference,"role":role,"sha256":Digest256::of_bytes(raw).to_hex(),"size_bytes":raw.len(),"media_type":if reference.ends_with(".jsonl"){"application/x-ndjson"}else if profile.forensic_media && reference.ends_with("/forensic-report.md"){"text/markdown"}else if profile.forensic_media && reference.ends_with("/fixity.sha256"){"text/plain"}else{"application/json"},"availability":"owner_local","content_disclosure":"public_metadata_only","fixity_verified":false,"fixity_verified_at":null});
     let mut inputs = vec![entity(
         &request_ref,
         &request_raw,
@@ -4533,12 +5222,12 @@ fn compound_event(
         .ok_or(ItemRefusal::Budget)?;
     let result = json!({
         "$schema":"https://tree-of-sophia.local/ToS/contracts/provenance-event-v2.schema.json","schema_version":"tos_provenance_event_v2","event_id":scope["provenance_event_id"],"event_version":1,"supersedes_event_ref":null,
-        "record_binding":{"manifest_ref":format!("{home}/{}",kind.receipt_file()),"digest_algorithm":"sha256","digest_scope":"exact_event_record_bytes"},
-        "activity":{"event_type":"annotation","started_at":recorded_at,"ended_at":recorded_at,"status":"completed_with_warnings","terminal_reason":null,"exit_code":0,"warnings":["Captured prepared metadata buffers; the committed transaction is a separate verification.",if kind==CompoundKind::ExpressionResponsibility {"A qualified attribution is supplied by the caller; serialization and URL presence do not prove source reading or its truth."}else if kind==CompoundKind::CollectionWork {"A qualified membership account is supplied by the caller; serialization and URL presence do not prove source reading or its truth."}else{"Observed denotes the declared record link, not accepted bibliographic or textual truth."}]},
+        "record_binding":{"manifest_ref":format!("{home}/{}",profile.receipt_file),"digest_algorithm":"sha256","digest_scope":"exact_event_record_bytes"},
+        "activity":{"event_type":"annotation","started_at":recorded_at,"ended_at":recorded_at,"status":"completed_with_warnings","terminal_reason":null,"exit_code":0,"warnings":["Captured prepared metadata buffers; the committed transaction is a separate verification.",profile.warning]},
         "entities":{"inputs":inputs,"outputs":output.iter().map(|(p,r)|entity(p,r,"prepared-compound-source-metadata")).collect::<Vec<_>>(),"byproducts":[entity(&environment_ref,&environment_raw,"runtime-description")]},
         "derivations":output.keys().enumerate().map(|(index,p)|json!({"derivation_id":format!("{derivation}.output-{index}"),"input_entity_ref":request_ref,"output_entity_ref":p,"relation":"was_derived_from","influence_asserted":true,"description":"Technical source metadata serialization; no historical influence or textual identity is asserted."})).collect::<Vec<_>>(),
-        "responsibility":[{"agent_ref":kind.executor(),"agent_kind":"software","role":"executor","responsibility_posture":"performed","evidence_binding":{"ref":module,"sha256":script},"human_evidence_status":"not_applicable"}],
-        "method":{"procedure":{"name":kind.procedure(),"version":"1","purpose":if kind==CompoundKind::ExpressionResponsibility {"Serialize one qualified translator Claim and an Expression responsibility reference without judging attribution."}else if kind==CompoundKind::CollectionWork {"Serialize one qualified membership Claim and a Collection membership reference without judging membership."}else{"Serialize one declared parent link and explicit source-copy forms without judging their content."}},"command_capture":{"disclosure":"withheld_digest_only","argv":null,"argv_sha256":environment["argv_sha256"],"withholding_reason":"Process arguments may contain a private owner-configuration path."},"configuration_binding":{"ref":request_ref,"sha256":Digest256::of_bytes(&request_raw).to_hex()},"software_components":[{"name":kind.component(),"version":"1","role":"serialization-runner","artifact_ref":module,"artifact_sha256":script,"verification_status":"verified"}],"model_invocations":[],"environment":env},
+        "responsibility":[{"agent_ref":profile.executor,"agent_kind":"software","role":"executor","responsibility_posture":"performed","evidence_binding":{"ref":module,"sha256":script},"human_evidence_status":"not_applicable"}],
+        "method":{"procedure":{"name":profile.procedure,"version":"1","purpose":profile.purpose},"command_capture":{"disclosure":"withheld_digest_only","argv":null,"argv_sha256":environment["argv_sha256"],"withholding_reason":"Process arguments may contain a private owner-configuration path."},"configuration_binding":{"ref":request_ref,"sha256":Digest256::of_bytes(&request_raw).to_hex()},"software_components":[{"name":profile.component,"version":"1","role":"serialization-runner","artifact_ref":module,"artifact_sha256":script,"verification_status":"verified"}],"model_invocations":[],"environment":env},
         "manual_changes":{"status":"none_declared","change_receipts":[],"statement":"Caller authorship precedes this operation; no manual edits are performed inside serialization."},
         "measurements":[{"metric":"output_bytes","status":"measured","value":output_bytes,"unit":"bytes","method":"Sum of prepared source record, form and parent history buffers; excludes capture and receipt.","evidence_binding":null}],
         "evidence_authentication":{"capture_posture":"tool_captured","signature_status":"unsigned","signature_bindings":[],"verification_status":"unverified","producer_control_boundary":"The same unsigned local process serializes and records; hashes do not authenticate execution truth."},
@@ -4561,6 +5250,489 @@ fn compound_event(
 }
 
 impl NativeCompoundReader<'_> {
+    fn reconstruct_object_link(
+        &mut self,
+        tx: &Transaction,
+        schemas: &mut CutWorkerSchemaExecutor,
+    ) -> Result<ObjectLinkReconstructed, ItemRefusal> {
+        let plan = &tx.manifest["plan"];
+        keys(plan, &["authorization", "new_directories", "files"])?;
+        let authority = &plan["authorization"];
+        keys(
+            authority,
+            &[
+                "schema_version",
+                "scope",
+                "principal_id",
+                "maker_type",
+                "authority_ref",
+                "owner_configuration",
+                "command_id",
+                "request_digest",
+                "dependency_bindings",
+            ],
+        )?;
+        if authority["schema_version"] != "tos_object_link_authorization_v1" {
+            return Err(bad("object-Link exact adapter authorization"));
+        }
+        let scope = &authority["scope"];
+        let link_path = text(scope, "link_source_path")?;
+        let claim_path = text(scope, "claim_source_path")?;
+        let claim_home = parent(claim_path)?;
+        let link_home = parent(link_path)?;
+        // The selected transaction already retains one copy of every blob.
+        // Reconstructed output buffers are a second, simultaneous copy.
+        if tx
+            .files
+            .values()
+            .any(|(before, after)| before.is_some() || after.is_none())
+        {
+            return Err(bad("object-Link new-only exact plan"));
+        }
+        let output_state = tx
+            .files
+            .iter()
+            .try_fold(std::mem::size_of::<Package>(), |n, (path, (_, after))| {
+                n.checked_add(std::mem::size_of::<(String, Vec<u8>)>())?
+                    .checked_add(path.len())?
+                    .checked_add(after.as_ref()?.len())
+            })
+            .ok_or(ItemRefusal::Budget)?;
+        self.temporary(output_state)?;
+        if plan["new_directories"]
+            != json!(
+                [link_home, claim_home]
+                    .into_iter()
+                    .collect::<BTreeSet<_>>()
+                    .into_iter()
+                    .collect::<Vec<_>>()
+            )
+        {
+            return Err(bad("object-Link new home plan"));
+        }
+        let request_path = format!("{claim_home}/source-create-request.json");
+        let receipt_path = format!("{claim_home}/{OBJECT_LINK_RECEIPT}");
+        let environment_path = format!("{claim_home}/source-create-environment.json");
+        let event_path = format!("{claim_home}/source-create-provenance.jsonl");
+        let after = |path: &str| {
+            tx.files
+                .get(path)
+                .and_then(|(before, after)| {
+                    if before.is_none() {
+                        after.as_ref()
+                    } else {
+                        None
+                    }
+                })
+                .ok_or_else(|| bad("object-Link new-only exact plan"))
+        };
+        let request_raw = after(&request_path)?;
+        let request = self.decoded(request_raw)?;
+        let environment = self.decoded(after(&environment_path)?)?;
+        let receipt_raw = after(&receipt_path)?;
+        let actual_receipt = self.decoded(receipt_raw)?;
+        let event_raw = after(&event_path)?;
+        let actual_event = self.decoded(event_raw)?;
+        keys(
+            &request,
+            &[
+                "schema_version",
+                "operation",
+                "subject",
+                "link",
+                "claim",
+                "forms",
+                "claim_forms",
+                "reason",
+                "command_id",
+                "expected_configuration",
+                "expected_dependencies",
+                "expected_publication",
+            ],
+        )?;
+        if request["schema_version"] != "tos_local_object_link_command_v1"
+            || request["operation"] != OBJECT_LINK_OPERATION
+            || self.canonical_observation(&request)?.1 > 1_048_576
+            || text(&request, "reason")?.trim().is_empty()
+            || text(&request, "reason")?.chars().count() > 4096
+            || !(1..=256).contains(&text(&request, "command_id")?.chars().count())
+            || request["expected_configuration"] != authority["owner_configuration"]
+            || request["command_id"] != authority["command_id"]
+            || self.canonical_observation(&request)?.0 != text(authority, "request_digest")?
+            || self
+                .canonical_observation(&authority["dependency_bindings"])?
+                .0
+                != text(&request, "expected_dependencies")?
+        {
+            return Err(bad("object-Link exact retained request"));
+        }
+        for field in ["expected_configuration", "expected_dependencies"] {
+            hash(text(&request, field)?)?;
+        }
+        if !request["expected_publication"].is_null() {
+            hash(text(&request, "expected_publication")?)?;
+        }
+        object_link_scope(scope, &request, authority)?;
+        let request_digest = self.canonical_observation(&request)?.0;
+        let transaction_id=self.canonical_observation(&json!({"operation":OBJECT_LINK_OPERATION,"command_id":request["command_id"],"owner_configuration":request["expected_configuration"],"request_digest":request_digest}))?.0;
+        if text(&tx.manifest, "transaction_id")? != transaction_id {
+            return Err(bad("object-Link transaction identity"));
+        }
+        let dependencies = &authority["dependency_bindings"];
+        keys(
+            dependencies,
+            &[
+                "catalog_and_sources",
+                "contracts",
+                "implementation",
+                "retained_transactions",
+            ],
+        )?;
+        if dependencies["retained_transactions"]
+            .as_object()
+            .is_none_or(|rows| !rows.is_empty())
+        {
+            return Err(bad(
+                "object-Link unexpected retained transaction dependency",
+            ));
+        }
+        for group in ["catalog_and_sources", "contracts", "implementation"] {
+            let rows = dependencies[group]
+                .as_object()
+                .ok_or_else(|| bad("object-Link dependency bindings"))?;
+            for (path, digest) in rows {
+                check(self.limits.deadline, self.cancelled)?;
+                if Digest256::from_hex(
+                    digest
+                        .as_str()
+                        .ok_or_else(|| bad("object-Link dependency SHA"))?,
+                )
+                .is_err()
+                    || path.is_empty()
+                {
+                    return Err(bad("object-Link dependency binding"));
+                }
+            }
+        }
+        let contract_bindings = dependencies["contracts"]
+            .as_object()
+            .ok_or_else(|| bad("object-Link source contract bindings"))?;
+        for (path, digest) in contract_bindings {
+            let relative =
+                RelativePath::parse(path).map_err(|_| bad("object-Link contract locator"))?;
+            let member = self
+                .cut
+                .current()
+                .member(&relative)
+                .ok_or_else(|| bad("object-Link selected contract absent"))?;
+            if digest.as_str() != Some(member.sha256.to_hex().as_str()) {
+                return Err(bad("object-Link current source contract digest"));
+            }
+        }
+        let expected_sha = text(
+            &dependencies["catalog_and_sources"],
+            text(scope, "subject_source_path")?,
+        )?;
+        if actual_receipt["subject_source_sha256"] != expected_sha
+            || Digest256::from_hex(expected_sha).is_err()
+        {
+            return Err(bad("object-Link exact subject raw dependency"));
+        }
+        let subject = &request["subject"];
+        let link = &request["link"];
+        let claim = &request["claim"];
+        let subject_schema = if scope["subject_record_type"] == "artifact" {
+            match text(subject, "schema_version")? {
+                "tos_artifact_source_witness_v1" => {
+                    "ToS/contracts/artifact-source-witness.schema.json"
+                }
+                "tos_artifact_source_witness_v2" => {
+                    "ToS/contracts/artifact-source-witness-v2.schema.json"
+                }
+                _ => return Err(bad("object-Link artifact native schema")),
+            }
+        } else {
+            "ToS/contracts/corpus-record.schema.json"
+        };
+        for (value, contract) in [
+            (subject, subject_schema),
+            (link, "ToS/contracts/source-link.schema.json"),
+            (claim, "ToS/contracts/object-link-claim-v2.schema.json"),
+        ] {
+            let raw = self.canonical_buffer(value)?;
+            if !schemas.check_reusing_scalar(
+                "object-link-retained-input",
+                &raw,
+                contract,
+                self.limits.deadline,
+                self.cancelled,
+            )? {
+                return Err(bad("object-Link selected source schema"));
+            }
+            let contract_path =
+                RelativePath::parse(contract).map_err(|_| bad("object-Link contract path"))?;
+            let selected = self
+                .cut
+                .current()
+                .member(&contract_path)
+                .ok_or_else(|| bad("object-Link selected contract absent"))?;
+            if dependencies["contracts"][contract] != selected.sha256.to_hex() {
+                return Err(bad("object-Link contract fixity dependency"));
+            }
+        }
+        let mut local_limits = self.limits;
+        local_limits.max_state_bytes = local_limits
+            .max_state_bytes
+            .checked_sub(self.state)
+            .ok_or(ItemRefusal::Budget)?;
+        local_limits.max_total_bytes = local_limits
+            .max_total_bytes
+            .checked_sub(self.bytes)
+            .ok_or(ItemRefusal::Budget)?;
+        let mut claim_raw = self.canonical_buffer(claim)?;
+        claim_raw.push(b'\n');
+        let local = crate::record_rules::validate_source_claim_from_cut(
+            self.cut,
+            &claim_raw,
+            schemas,
+            local_limits,
+            self.cancelled,
+        )?;
+        if !local.issues.is_empty() {
+            return Err(bad("object-Link exact local Claim profile"));
+        }
+        for (path, digest) in &local.dependency_digests {
+            if contract_bindings.get(path).and_then(Value::as_str) != Some(digest.to_hex().as_str())
+            {
+                return Err(bad("object-Link local Claim owner contract binding"));
+            }
+        }
+        drop(local);
+        let ordered_request = self.ordered_value(request_raw)?;
+        let link_ordered = ordered_request
+            .object_get("link")
+            .ok_or_else(|| bad("ordered object-Link source"))?;
+        let claim_ordered = ordered_request
+            .object_get("claim")
+            .ok_or_else(|| bad("ordered object-Link Claim"))?;
+        let link_raw = pretty(link_ordered)?;
+        let mut canonical_claim = canonical_ordered(claim_ordered)?;
+        canonical_claim.push(b'\n');
+        if canonical_claim != claim_raw {
+            return Err(bad("object-Link canonical Claim bytes"));
+        }
+        let principal = text(authority, "principal_id")?;
+        let form_budget = self
+            .limits
+            .max_state_bytes
+            .checked_sub(self.state)
+            .ok_or(ItemRefusal::Budget)?;
+        let (link_forms, link_refs) = forms(
+            link_ordered,
+            None,
+            &request["forms"],
+            principal,
+            false,
+            form_budget,
+        )?;
+        self.temporary(
+            crate::record_biblio_cut::ordered_state(&link_forms)?
+                .checked_add(crate::record_biblio_cut::ordered_state(&link_refs)?)
+                .ok_or(ItemRefusal::Budget)?,
+        )?;
+        let (claim_forms, claim_refs) = forms(
+            claim_ordered,
+            None,
+            &request["claim_forms"],
+            principal,
+            true,
+            form_budget,
+        )?;
+        self.temporary(
+            crate::record_biblio_cut::ordered_state(&claim_forms)?
+                .checked_add(crate::record_biblio_cut::ordered_state(&claim_refs)?)
+                .ok_or(ItemRefusal::Budget)?,
+        )?;
+        let link_form_path = format!("{link_home}/link.human-forms.json");
+        let claim_form_path = format!(
+            "{claim_home}/source-claims.{}.human-forms.json",
+            Digest256::of_bytes(text(scope, "claim_id")?.as_bytes()).to_hex()
+        );
+        let mut files = Package::new();
+        files.insert(link_path.into(), link_raw);
+        files.insert(link_form_path.clone(), pretty(&link_forms)?);
+        files.insert(claim_path.into(), canonical_claim);
+        files.insert(claim_form_path.clone(), pretty(&claim_forms)?);
+        let recorded_at = text(&actual_receipt, "recorded_at")?;
+        crate::retirement_rules::observed_instant_order(recorded_at, recorded_at)
+            .map_err(|_| bad("object-Link aware recorded instant"))?;
+        keys(
+            &environment,
+            &[
+                "runtime",
+                "runtime_version",
+                "runtime_artifact_sha256",
+                "backend",
+                "hardware_target",
+                "unicode_version",
+                "argv_sha256",
+            ],
+        )?;
+        for field in [
+            "runtime",
+            "runtime_version",
+            "runtime_artifact_sha256",
+            "backend",
+            "hardware_target",
+            "unicode_version",
+            "argv_sha256",
+        ] {
+            if text(&environment, field)?.is_empty() {
+                return Err(bad("object-Link retained runtime"));
+            }
+        }
+        for field in ["runtime_artifact_sha256", "argv_sha256"] {
+            if Digest256::from_hex(text(&environment, field)?).is_err() {
+                return Err(bad("object-Link runtime digest"));
+            }
+        }
+        let outputs: Vec<_> = files
+            .iter()
+            .map(|(path, raw)| (path.clone(), raw.as_slice()))
+            .collect();
+        self.temporary(slice_rows_state(&outputs)?)?;
+        let event = object_link_event(
+            scope,
+            &request,
+            &outputs,
+            &environment,
+            dependencies,
+            recorded_at,
+            self.limits
+                .max_state_bytes
+                .checked_sub(self.state)
+                .ok_or(ItemRefusal::Budget)?,
+        )?;
+        self.temporary(crate::record_biblio_cut::decoded_state(&event)?)?;
+        if event != actual_event {
+            return Err(bad("object-Link exact source provenance event"));
+        }
+        let mut event_bytes = self.canonical_buffer(&event)?;
+        event_bytes.push(b'\n');
+        if event_bytes != *event_raw
+            || !schemas.check_reusing_scalar(
+                &event_path,
+                &event_bytes,
+                "ToS/contracts/provenance-event-v2.schema.json",
+                self.limits.deadline,
+                self.cancelled,
+            )?
+        {
+            return Err(bad("object-Link event schema/exact bytes"));
+        }
+        let mut request_bytes = self.canonical_buffer(&request)?;
+        request_bytes.push(b'\n');
+        let mut environment_bytes = self.canonical_buffer(&environment)?;
+        environment_bytes.push(b'\n');
+        files.insert(request_path.clone(), request_bytes);
+        files.insert(environment_path.clone(), environment_bytes);
+        files.insert(event_path.clone(), event_bytes);
+        let mut scope_fields = Vec::new();
+        for key in OBJECT_LINK_SCOPE {
+            scope_fields.push((key, j(&scope[key])?));
+        }
+        scope_fields.sort_by_key(|(key, _)| *key);
+        // Maintained receipt bytes retain the writer's insertion order, while
+        // the transaction's file rows are sorted independently.
+        let refs: Vec<_> = [
+            link_path,
+            &link_form_path,
+            claim_path,
+            &claim_form_path,
+            &request_path,
+            &environment_path,
+            &event_path,
+        ]
+        .into_iter()
+        .map(|path| (path.to_owned(), files[path].as_slice()))
+        .collect();
+        let receipt_ordered = object(vec![
+            ("schema_version", string("tos_object_link_receipt_v1")),
+            ("operation", string(OBJECT_LINK_OPERATION)),
+            ("transaction_id", string(&transaction_id)),
+            ("command_id", j(&request["command_id"])?),
+            ("request_digest", string(&request_digest)),
+            (
+                "owner_configuration",
+                j(&request["expected_configuration"])?,
+            ),
+            ("principal_id", j(&authority["principal_id"])?),
+            ("authority_ref", j(&authority["authority_ref"])?),
+            ("recorded_at", string(recorded_at)),
+            ("scope", object(scope_fields)),
+            ("dependencies", j(&request["expected_dependencies"])?),
+            (
+                "subject",
+                ref_ordered(
+                    subject,
+                    if scope["subject_record_type"] == "artifact" {
+                        "artifact_id"
+                    } else {
+                        "record_id"
+                    },
+                    "record_version",
+                )?,
+            ),
+            ("subject_source_sha256", string(expected_sha)),
+            ("link", ref_ordered(link, "record_id", "record_version")?),
+            ("claim", ref_ordered(claim, "claim_id", "claim_version")?),
+            (
+                "forms",
+                object(vec![("link", link_refs), ("claim", claim_refs)]),
+            ),
+            ("files", refs_ordered(&refs)),
+            ("grants_admission", JsonValue::Bool(false)),
+        ]);
+        let receipt_bytes = pretty(&receipt_ordered)?;
+        if receipt_bytes != *receipt_raw {
+            return Err(bad("object-Link exact reconstructed receipt bytes"));
+        }
+        let receipt = self.decoded(&receipt_bytes)?;
+        if receipt != actual_receipt {
+            return Err(bad("object-Link receipt logical binding"));
+        }
+        files.insert(receipt_path, receipt_bytes);
+        if files.len() != tx.files.len()
+            || files.iter().any(|(path, raw)| {
+                tx.files
+                    .get(path)
+                    .is_none_or(|(before, after)| before.is_some() || after.as_ref() != Some(raw))
+            })
+        {
+            return Err(bad("object-Link complete before/after transaction plan"));
+        }
+        if files.values().any(|raw| raw.len() > MAX_FILE) {
+            return Err(ItemRefusal::BudgetCheck {
+                check: "object-Link prepared file bytes",
+                used: None,
+                limit: Some(MAX_FILE as u64),
+            });
+        }
+        let state = crate::record_biblio_cut::decoded_state(scope)?
+            .checked_add(crate::record_biblio_cut::decoded_state(&request)?)
+            .and_then(|n| n.checked_add(crate::record_biblio_cut::decoded_state(&receipt).ok()?))
+            .ok_or(ItemRefusal::Budget)?;
+        self.temporary(state)?;
+        Ok(ObjectLinkReconstructed {
+            scope: scope.clone(),
+            request,
+            receipt,
+            files,
+        })
+    }
+}
+
+impl NativeCompoundReader<'_> {
     pub(crate) fn verify(
         &mut self,
         path: &str,
@@ -4568,10 +5740,169 @@ impl NativeCompoundReader<'_> {
         schemas: &mut CutWorkerSchemaExecutor,
     ) -> Result<NativeCompoundObservation, ItemRefusal> {
         let before = self.temporary_state;
-        let result = self.verify_inner(path, claim, schemas);
+        let result = if claim.get("schema_version").and_then(Value::as_str)
+            == Some(OBJECT_LINK_CLAIM)
+            && claim
+                .get("predicate")
+                .and_then(Value::as_str)
+                .is_some_and(object_link_predicate)
+        {
+            self.verify_object_link(path, claim, schemas)
+        } else {
+            self.verify_inner(path, claim, schemas)
+        };
         self.release_temporary_since(before);
         self.release_raw_cache();
         result
+    }
+    fn verify_object_link(
+        &mut self,
+        path: &str,
+        claim: &Value,
+        schemas: &mut CutWorkerSchemaExecutor,
+    ) -> Result<NativeCompoundObservation, ItemRefusal> {
+        check(self.limits.deadline, self.cancelled)?;
+        if !path.ends_with("/source-claims.jsonl")
+            || !object_link_predicate(text(claim, "predicate")?)
+            || text(claim, "schema_version")? != OBJECT_LINK_CLAIM
+        {
+            return Err(bad("object-Link exact Claim carrier"));
+        }
+        metadata_path(path, false)?;
+        let home = parent(path)?;
+        let receipt_raw = self.required(&format!("{home}/{OBJECT_LINK_RECEIPT}"), MAX_FILE)?;
+        let receipt = self.decoded(&receipt_raw)?;
+        if receipt["schema_version"] != "tos_object_link_receipt_v1" {
+            return Err(bad("object-Link native receipt"));
+        }
+        let id = text(&receipt, "transaction_id")?;
+        let tx = self.transaction(id)?;
+        let transport = match tx.status.as_str() {
+            "committed" => NativeTransportState::Committed,
+            "rolled-back" => NativeTransportState::RolledBack,
+            "pending" => NativeTransportState::Pending,
+            "orphan" => NativeTransportState::Orphan,
+            _ => return Err(bad("object-Link transport state")),
+        };
+        let observation = NativeCompoundObservation {
+            claim_path: path.into(),
+            claim_id: text(claim, "claim_id")?.into(),
+            transaction_id: id.into(),
+            manifest_sha256: tx.manifest_sha256.clone(),
+            transport,
+        };
+        if transport != NativeTransportState::Committed {
+            return Ok(observation);
+        }
+        if self
+            .publication
+            .as_ref()
+            .is_some_and(|state| state["phase"] != "ready")
+        {
+            return Err(bad("object-Link pending owner recovery"));
+        }
+        let original = self.reconstruct_object_link(&tx, schemas)?;
+        let scope = &original.scope;
+        if path != text(scope, "claim_source_path")?
+            || receipt != original.receipt
+            || receipt_raw != original.files[&format!("{home}/{OBJECT_LINK_RECEIPT}")]
+        {
+            return Err(bad("object-Link exact current receipt"));
+        }
+        for name in [
+            "source-create-request.json",
+            "source-create-environment.json",
+            "source-create-provenance.jsonl",
+        ] {
+            let path = format!("{home}/{name}");
+            if self.required(&path, MAX_FILE)? != original.files[&path] {
+                return Err(bad("object-Link immutable capture changed"));
+            }
+        }
+        let initial = self.attachment_claim_initial(path, claim)?;
+        if initial != original.files[path] {
+            return Err(bad("object-Link exact original association Claim"));
+        }
+        let link_path = text(scope, "link_source_path")?;
+        let current_link = self.object_link_current_lineage(
+            scope,
+            &original.request["link"],
+            &original.files[link_path],
+        )?;
+        let link_forms = format!("{}/link.human-forms.json", parent(link_path)?);
+        let claim_forms = format!(
+            "{home}/source-claims.{}.human-forms.json",
+            Digest256::of_bytes(text(scope, "claim_id")?.as_bytes()).to_hex()
+        );
+        self.object_link_initial_forms(&link_forms, &original.files[&link_forms])?;
+        self.object_link_initial_forms(&claim_forms, &original.files[&claim_forms])?;
+        self.object_link_subject_binding(
+            scope,
+            &original.request["subject"],
+            text(&receipt, "subject_source_sha256")?,
+        )?;
+        for (value, contract) in [
+            (&current_link, "ToS/contracts/source-link.schema.json"),
+            (claim, "ToS/contracts/object-link-claim-v2.schema.json"),
+        ] {
+            let raw = self.canonical_buffer(value)?;
+            if !schemas.check_reusing_scalar(
+                "object-link-current",
+                &raw,
+                contract,
+                self.limits.deadline,
+                self.cancelled,
+            )? {
+                return Err(bad("object-Link current grammar"));
+            }
+        }
+        // The Python owner reruns SourceClaimProfiles on the current Claim.
+        // Schema validity alone does not cover relation registry, shared
+        // values, display, visibility and layer predicates after correction.
+        let mut current_claim_raw = self.canonical_buffer(claim)?;
+        current_claim_raw.push(b'\n');
+        let mut current_limits = self.limits;
+        current_limits.max_state_bytes = current_limits
+            .max_state_bytes
+            .checked_sub(self.state)
+            .ok_or(ItemRefusal::Budget)?;
+        current_limits.max_total_bytes = current_limits
+            .max_total_bytes
+            .checked_sub(self.bytes)
+            .ok_or(ItemRefusal::Budget)?;
+        let current_local = crate::record_rules::validate_source_claim_from_cut(
+            self.cut,
+            &current_claim_raw,
+            schemas,
+            current_limits,
+            self.cancelled,
+        )?;
+        if !current_local.issues.is_empty() {
+            return Err(bad("object-Link current Claim owner profile"));
+        }
+        drop(current_local);
+        if current_link["association_claim_refs"] != json!([scope["claim_id"]])
+            || current_link["provenance_event_ref"] != scope["provenance_event_id"]
+            || current_link["uri"] != scope["uri"]
+            || current_link["observation_ref"] != scope["observation_ref"]
+            || claim["subject_ref"] != scope["subject_id"]
+            || claim["object"] != scope["link_id"]
+            || claim["predicate"] != scope["predicate"]
+            || claim["provenance_event_ref"] != scope["provenance_event_id"]
+            || claim["qualifiers"]["availability_is_rights_conclusion"] != false
+            || [
+                "statement",
+                "statement_language",
+                "statement_script",
+                "link_role",
+            ]
+            .iter()
+            .any(|key| text(&claim["qualifiers"], key).is_err_or(|s| s.trim().is_empty()))
+        {
+            return Err(bad("object-Link current qualified association closure"));
+        }
+        check(self.limits.deadline, self.cancelled)?;
+        Ok(observation)
     }
     fn verify_inner(
         &mut self,

@@ -815,9 +815,9 @@ pub fn inspect_bibliography_from_cut(
         std::mem::size_of_val(&verified_native) + std::mem::size_of_val(&native_compounds),
         limits.max_state_bytes,
     )?;
-    if claims.iter().any(|claim| {
+    let selected_compound = |claim: &BiblioClaim| {
         claim.native
-            && matches!(
+            && (matches!(
                 s(&claim.value, "predicate"),
                 Some(
                     "contains_work"
@@ -826,8 +826,15 @@ pub fn inspect_bibliography_from_cut(
                         | "embodied_by"
                         | "exemplified_by"
                 )
-            )
-    }) {
+            ) || s(&claim.value, "schema_version") == Some("tos_object_link_claim_v2")
+                && matches!(
+                    s(&claim.value, "predicate"),
+                    Some(
+                        "described_by" | "metadata_at" | "downloadable_at" | "rights_statement_at"
+                    )
+                ))
+    };
+    if claims.iter().any(|claim| selected_compound(claim)) {
         let mut compound_limits = limits;
         compound_limits.max_state_bytes = limits
             .max_state_bytes
@@ -839,19 +846,7 @@ pub fn inspect_bibliography_from_cut(
             .ok_or(ItemRefusal::Budget)?;
         let mut compounds =
             crate::native_compound::NativeCompoundReader::new(cut, compound_limits, cancelled)?;
-        for claim in claims.iter().filter(|c| {
-            c.native
-                && matches!(
-                    s(&c.value, "predicate"),
-                    Some(
-                        "contains_work"
-                            | "translated_by"
-                            | "has_expression"
-                            | "embodied_by"
-                            | "exemplified_by"
-                    )
-                )
-        }) {
+        for claim in claims.iter().filter(|c| selected_compound(c)) {
             let location_state = std::mem::size_of::<String>()
                 + claim.path.len()
                 + 1
@@ -917,9 +912,10 @@ pub fn inspect_bibliography_from_cut(
                                 Some("embodied_by") => {
                                     "native-expression-edition-exact-compound-plan-and-current-lineage@1"
                                 }
-                                _ => {
+                                Some("exemplified_by") => {
                                     "native-edition-item-exact-compound-plan-and-current-lineage@1"
                                 }
+                                _ => "native-object-link-exact-compound-plan-and-current-lineage@1",
                             };
                             rules.checked(profile)?;
                         }
@@ -937,7 +933,8 @@ pub fn inspect_bibliography_from_cut(
                                 Some("embodied_by") => {
                                     "native-expression-edition-transaction-pending"
                                 }
-                                _ => "native-edition-item-transaction-pending",
+                                Some("exemplified_by") => "native-edition-item-transaction-pending",
+                                _ => "native-object-link-transaction-pending",
                             },
                             &location,
                         )?,
@@ -955,7 +952,10 @@ pub fn inspect_bibliography_from_cut(
                                 Some("embodied_by") => {
                                     "native-expression-edition-transaction-rolled-back"
                                 }
-                                _ => "native-edition-item-transaction-rolled-back",
+                                Some("exemplified_by") => {
+                                    "native-edition-item-transaction-rolled-back"
+                                }
+                                _ => "native-object-link-transaction-rolled-back",
                             },
                             &location,
                         )?,
@@ -973,7 +973,8 @@ pub fn inspect_bibliography_from_cut(
                                 Some("embodied_by") => {
                                     "native-expression-edition-transaction-orphan"
                                 }
-                                _ => "native-edition-item-transaction-orphan",
+                                Some("exemplified_by") => "native-edition-item-transaction-orphan",
+                                _ => "native-object-link-transaction-orphan",
                             },
                             &location,
                         )?,
@@ -997,7 +998,8 @@ pub fn inspect_bibliography_from_cut(
                         }
                         Some("has_expression") => "native-work-expression-compound-evidence",
                         Some("embodied_by") => "native-expression-edition-compound-evidence",
-                        _ => "native-edition-item-compound-evidence",
+                        Some("exemplified_by") => "native-edition-item-compound-evidence",
+                        _ => "native-object-link-compound-evidence",
                     },
                     &location,
                 )?,
@@ -1530,11 +1532,15 @@ fn inspect_claim_inner(
                 rules.checked_parts(&[predicate, "@", s(row, "schema_version").unwrap_or("")])?;
                 // Ordinary domain/range checking does not accept the compound
                 // append/revision plan or specialized semantic ownership.
-                if (matches!(predicate, "contains_work" | "translated_by") && !compound_verified)
-                    || matches!(
-                        predicate,
-                        "described_by" | "metadata_at" | "downloadable_at" | "rights_statement_at"
-                    )
+                if matches!(
+                    predicate,
+                    "contains_work"
+                        | "translated_by"
+                        | "described_by"
+                        | "metadata_at"
+                        | "downloadable_at"
+                        | "rights_statement_at"
+                ) && !compound_verified
                 {
                     rules.skip_parts(&["native-compound-owner-evidence:", predicate])?;
                 }
