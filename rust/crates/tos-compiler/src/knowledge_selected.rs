@@ -24,7 +24,8 @@ pub use crate::knowledge_seal::KNOWLEDGE_MODEL_ABI;
 // search-index Unicode normalization profile.
 pub const KNOWLEDGE_QUERY_PRIMITIVE_PROFILE: &str = "tos-query-primitives-v1";
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ExpectedSourceScope {
     pub source_graph: String,
     pub input_role: String,
@@ -38,7 +39,8 @@ pub struct ExpectedSourceScope {
 
 /// Every field comes from the independently sealed selection and producer
 /// receipt. An SQLite metadata value or selected.json cannot manufacture it.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct KnowledgeSelectedExpectation {
     pub model_sha256: String,
     pub model_size_bytes: u64,
@@ -57,6 +59,7 @@ pub struct KnowledgeSelectedExpectation {
     pub relation_registry_version: String,
     pub relation_registry_sha256: String,
     pub graph_root_sha256: String,
+    pub navigation_original_root_sha256: Option<String>,
     pub catalog_packet_sha256: String,
     pub catalog_index_root_sha256: String,
     pub source_scope_root_sha256: String,
@@ -71,7 +74,8 @@ pub struct KnowledgeSelectedExpectation {
     pub complete: bool,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ColdOpenLimits {
     pub max_file_bytes: u64,
     pub max_vm_steps: u64,
@@ -100,13 +104,28 @@ pub trait ImmutableKnowledgeCustody: Send + Sync {
     fn verify_cold_resources(&self, limits: ColdOpenLimits) -> Result<()>;
 }
 
+#[derive(Clone)]
+enum CustodyRef<'a> {
+    Borrowed(&'a dyn ImmutableKnowledgeCustody),
+    Owned(Arc<dyn ImmutableKnowledgeCustody>),
+}
+impl<'a> std::ops::Deref for CustodyRef<'a> {
+    type Target = dyn ImmutableKnowledgeCustody + 'a;
+    fn deref(&self) -> &Self::Target {
+        match self {
+            Self::Borrowed(value) => *value,
+            Self::Owned(value) => value.as_ref(),
+        }
+    }
+}
+
 pub struct VerifiedKnowledgeModel<'a> {
     connection: Connection,
     pinned: File,
     selection: KnowledgeSelectedExpectation,
     source_revision: String,
     navigation_original: Option<crate::NavigationOriginalReceipt>,
-    custody: &'a dyn ImmutableKnowledgeCustody,
+    custody: CustodyRef<'a>,
     max_cold_vm_steps: u64,
     sqlite_cache_kib: u64,
     open_vm_steps: u64,
@@ -242,7 +261,7 @@ impl<'a> VerifiedKnowledgeModel<'a> {
             selection: self.selection.clone(),
             source_revision: self.source_revision.clone(),
             navigation_original: self.navigation_original.clone(),
-            custody: self.custody,
+            custody: self.custody.clone(),
             max_cold_vm_steps: max_vm_steps,
             sqlite_cache_kib: self.sqlite_cache_kib,
             open_vm_steps: counter.load(Ordering::Relaxed),
@@ -255,7 +274,10 @@ fn checked_digest(value: &str) -> Result<()> {
     Ok(())
 }
 
-fn validate(expected: &KnowledgeSelectedExpectation, limits: ColdOpenLimits) -> Result<()> {
+pub(crate) fn validate(
+    expected: &KnowledgeSelectedExpectation,
+    limits: ColdOpenLimits,
+) -> Result<()> {
     if limits.max_file_bytes == 0
         || limits.max_vm_steps == 0
         || limits.sqlite_cache_kib == 0
@@ -280,6 +302,18 @@ fn validate(expected: &KnowledgeSelectedExpectation, limits: ColdOpenLimits) -> 
         || expected.source_scopes.len() > limits.max_sources
     {
         return Err(Error::Invalid("knowledge selection expectation incomplete"));
+    }
+    match (
+        &expected.navigation_original_root_sha256,
+        expected.model_abi.as_str(),
+    ) {
+        (Some(root), crate::KNOWLEDGE_NAVIGATION_MODEL_ABI) => checked_digest(root)?,
+        (None, KNOWLEDGE_MODEL_ABI) => (),
+        _ => {
+            return Err(Error::Invalid(
+                "knowledge independent original component expectation",
+            ));
+        }
     }
     for text in [
         &expected.owner_receipt_id,
@@ -877,6 +911,26 @@ pub fn open_selected_knowledge_model<'a>(
     path: &Path,
     expected: KnowledgeSelectedExpectation,
     custody: &'a dyn ImmutableKnowledgeCustody,
+    limits: ColdOpenLimits,
+) -> Result<VerifiedKnowledgeModel<'a>> {
+    open_selected_inner(path, expected, CustodyRef::Borrowed(custody), limits)
+}
+
+/// Retain one admitted selected generation without borrowing an external
+/// self-referential holder. Warm forks share this exact owned custody guard.
+pub fn open_selected_knowledge_model_owned(
+    path: &Path,
+    expected: KnowledgeSelectedExpectation,
+    custody: Arc<dyn ImmutableKnowledgeCustody>,
+    limits: ColdOpenLimits,
+) -> Result<VerifiedKnowledgeModel<'static>> {
+    open_selected_inner(path, expected, CustodyRef::Owned(custody), limits)
+}
+
+fn open_selected_inner<'a>(
+    path: &Path,
+    expected: KnowledgeSelectedExpectation,
+    custody: CustodyRef<'a>,
     limits: ColdOpenLimits,
 ) -> Result<VerifiedKnowledgeModel<'a>> {
     validate(&expected, limits)?;
@@ -1988,6 +2042,7 @@ mod tests {
             relation_registry_version: "1".into(),
             relation_registry_sha256: EMPTY.into(),
             graph_root_sha256: GRAPH_ROOT.into(),
+            navigation_original_root_sha256: None,
             catalog_packet_sha256: EMPTY.into(),
             catalog_index_root_sha256: EMPTY.into(),
             source_scope_root_sha256: EMPTY.into(),

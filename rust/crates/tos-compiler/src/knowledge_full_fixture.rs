@@ -60,6 +60,9 @@ pub struct FullKnowledgeFixture {
     pub vocabulary: QueryVocabulary,
     pub descriptor_bytes: Vec<u8>,
     pub graph_input_bytes: Vec<u8>,
+    pub stage_receipt: crate::knowledge_stage::StageReceipt,
+    pub seal_receipt: crate::KnowledgeSealReceipt,
+    pub navigation_original: Option<crate::NavigationOriginalReceipt>,
     entity_registry_bytes: Vec<u8>,
     relation_registry_bytes: Vec<u8>,
     custody: FixtureCustody,
@@ -327,6 +330,7 @@ pub fn build_fixture() -> FullKnowledgeFixture {
         descriptor_bytes,
         header,
         &[],
+        None,
     )
 }
 
@@ -341,6 +345,7 @@ fn finish_fixture(
     descriptor_bytes: Vec<u8>,
     header: Value,
     saved_lenses: &[Value],
+    navigation_original: Option<crate::NavigationOriginalReceipt>,
 ) -> FullKnowledgeFixture {
     let full = compile_full_knowledge_components(
         &mut stage,
@@ -405,20 +410,21 @@ fn finish_fixture(
         model_sha256: output.sqlite_sha256.clone(),
         model_size_bytes: output.sqlite_size_bytes,
         owner_receipt_id: "fixture-owner-receipt".into(),
-        model_abi: full.seal.model_abi,
+        model_abi: full.seal.model_abi.clone(),
+        navigation_original_root_sha256: full.seal.navigation_original_root_sha256.clone(),
         descriptor_sha256: vocabulary.descriptor_sha256.clone(),
         descriptor_version: vocabulary.descriptor_version,
         semantic_primitive_profile: vocabulary.semantic_primitive_profile.clone(),
-        source_cut: output.source_cut,
+        source_cut: output.source_cut.clone(),
         through_commit_seq: 7,
-        membership_root: output.membership_root,
+        membership_root: output.membership_root.clone(),
         entity_registry_id: registry.entity_registry_id.clone(),
         entity_registry_version: registry.entity_registry_version.to_string(),
         entity_registry_sha256: registry.entity_sha256.clone(),
         relation_registry_id: registry.relation_registry_id.clone(),
         relation_registry_version: registry.relation_registry_version.to_string(),
         relation_registry_sha256: registry.relation_sha256.clone(),
-        graph_root_sha256: full.seal.graph_root_sha256,
+        graph_root_sha256: full.seal.graph_root_sha256.clone(),
         catalog_packet_sha256: full.catalog.catalog_packet_sha256,
         catalog_index_root_sha256: full.catalog.catalog_index_root_sha256,
         source_scope_root_sha256: full.source_scope.source_scope_root_sha256,
@@ -438,6 +444,9 @@ fn finish_fixture(
         vocabulary,
         descriptor_bytes,
         graph_input_bytes: serde_json::to_vec(&graph).unwrap(),
+        stage_receipt: output,
+        seal_receipt: full.seal,
+        navigation_original,
         entity_registry_bytes: entity_bytes.to_vec(),
         relation_registry_bytes: relation_bytes.to_vec(),
         custody: FixtureCustody,
@@ -756,7 +765,7 @@ fn build_native_fixture_inner(
             },
         });
     }
-    materialize_native_sources_with_inputs(
+    let native = materialize_native_sources_with_inputs(
         &mut stage,
         &registry,
         entity_bytes,
@@ -791,6 +800,7 @@ fn build_native_fixture_inner(
         descriptor_bytes,
         graph_header,
         &saved_lenses,
+        native.navigation_original,
     )
 }
 

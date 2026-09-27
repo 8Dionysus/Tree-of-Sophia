@@ -48,6 +48,7 @@ mod knowledge_source_navigation_prepare;
 mod knowledge_source_navigation_relation;
 pub mod knowledge_stage;
 mod legacy;
+mod native_knowledge_selection;
 mod publication;
 mod safe_open;
 mod selected;
@@ -86,8 +87,8 @@ pub use knowledge_inherited_views::{
     endpoint_inherited_views, prepare_global_inherited_views,
 };
 pub use knowledge_native::{
-    NativeFamilyInputs, NativeProducerLimits, NativeProducerReceipt, materialize_native_sources,
-    materialize_native_sources_with_inputs,
+    NATIVE_KNOWLEDGE_ADAPTER_PROFILES, NativeFamilyInputs, NativeProducerLimits,
+    NativeProducerReceipt, materialize_native_sources, materialize_native_sources_with_inputs,
 };
 pub use knowledge_native_finalize::{
     NativeFinalizeLimits, NativeFinalizeReceipt, finalize_native_graph_rows,
@@ -131,7 +132,7 @@ pub use knowledge_seal::{
 pub use knowledge_search::{SearchBuildLimits, SearchIndexReceipt, build_search_index};
 pub use knowledge_selected::{
     ColdOpenLimits, ExpectedSourceScope, ImmutableKnowledgeCustody, KnowledgeSelectedExpectation,
-    VerifiedKnowledgeModel, open_selected_knowledge_model,
+    VerifiedKnowledgeModel, open_selected_knowledge_model, open_selected_knowledge_model_owned,
 };
 pub use knowledge_semantic_join::{
     SemanticJoinReceipt, clear_semantic_joins, materialize_semantic_relations,
@@ -154,6 +155,10 @@ pub use knowledge_source_navigation_relation::{
     direct_assertion_context, prepare_navigation_relation_dependencies,
 };
 pub use legacy::LegacyPartitionedNavigation;
+pub use native_knowledge_selection::{
+    LinuxFsVerityCustody, NativeFsVerityMeasurement, NativeKnowledgeSelection, NativeProcessLimits,
+    NativeSelectionPaths, NativeSelectionProducer, prepare_native_knowledge_artifact,
+};
 pub use publication::{PublicationAuthority, PublishedReceipt, SelectionFence, publish_candidate};
 pub use selected::{
     ImmutableModelCustody, SelectedExpectation, VerifiedSelectedModel, VerifiedSelection,
@@ -217,7 +222,8 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 /// The trusted source owner supplies this exact, pinned cut. A projection digest
 /// binds transport bytes but never attests source admission by itself.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct SourceBinding {
     pub owner_profile: String,
     pub source_cut: String,

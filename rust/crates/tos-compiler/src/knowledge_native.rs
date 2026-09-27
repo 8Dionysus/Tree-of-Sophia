@@ -92,9 +92,23 @@ pub struct NativeProducerLimits {
     pub finalize: NativeFinalizeLimits,
 }
 
+/// Adapter implementations accepted by the existing native composition.
+/// Consumers use this capability closure, never derive support from input data.
+pub const NATIVE_KNOWLEDGE_ADAPTER_PROFILES: &[&str] = &[
+    "source-navigation-node-edge-v1",
+    "reified-bibliographic-claims-v1",
+    "philosophy-node-edge-v1",
+    "canon-node-relation-v1",
+    "candidate-relation-v1",
+    "repository-topology-v1",
+    "declared-identity-and-source-ref-joins-v1",
+    "indexed-node-edge-v1",
+];
+
 #[derive(Clone, Debug)]
 pub struct NativeProducerReceipt {
     pub final_rows: NativeFinalizeReceipt,
+    pub navigation_original: Option<crate::NavigationOriginalReceipt>,
     pub base_node_root_sha256: String,
     pub endpoint_title_root_sha256: String,
     pub claim_group_root_sha256: String,
@@ -568,19 +582,10 @@ pub fn materialize_native_sources_with_inputs(
             Ok(count == 1)
         };
         if !selected("source-navigation-node-edge-v1")?
-            || vocabulary.sources.iter().any(|s| {
-                !matches!(
-                    s.adapter_profile.as_str(),
-                    "source-navigation-node-edge-v1"
-                        | "reified-bibliographic-claims-v1"
-                        | "philosophy-node-edge-v1"
-                        | "canon-node-relation-v1"
-                        | "candidate-relation-v1"
-                        | "repository-topology-v1"
-                        | "declared-identity-and-source-ref-joins-v1"
-                        | "indexed-node-edge-v1"
-                )
-            })
+            || vocabulary
+                .sources
+                .iter()
+                .any(|s| !NATIVE_KNOWLEDGE_ADAPTER_PROFILES.contains(&s.adapter_profile.as_str()))
         {
             return Err(Error::Invalid("native source adapter family incomplete"));
         }
@@ -590,8 +595,8 @@ pub fn materialize_native_sources_with_inputs(
             navigation_header,
             limits.navigation_prepare,
         )?;
-        if let Some(original) = additional.navigation_original.as_ref() {
-            retain_navigation_original(
+        let navigation_original = if let Some(original) = additional.navigation_original.as_ref() {
+            Some(retain_navigation_original(
                 stage,
                 vocabulary,
                 &navigation,
@@ -599,8 +604,10 @@ pub fn materialize_native_sources_with_inputs(
                 original.rights,
                 original.expected_rights_root_sha256,
                 original.limits,
-            )?;
-        }
+            )?)
+        } else {
+            None
+        };
         let mut nav_nodes = NavigationNodeNormalizer::new(
             registry,
             entity_bytes,
@@ -1096,6 +1103,7 @@ pub fn materialize_native_sources_with_inputs(
         clear_inherited_views(stage)?;
         Ok(NativeProducerReceipt {
             final_rows,
+            navigation_original,
             base_node_root_sha256: base.node_root_sha256,
             endpoint_title_root_sha256: titles.title_root_sha256,
             claim_group_root_sha256: contexts.root_sha256,

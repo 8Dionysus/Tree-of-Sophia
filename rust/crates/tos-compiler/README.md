@@ -59,3 +59,22 @@ to cover the main database plus journal; monitor actual peak usage and retain
 the exact quota/failure receipt. This library does not certify that launcher
 contract, so a local successful compile alone does not establish bounded
 spill behavior or billion-record admission.
+
+
+The managed native release companion `tos_access_native_knowledge_selection_v1`
+binds independently retained stage/source binding, full seal, navigation-original
+receipt and `KnowledgeSelectedExpectation` to separately declared model,
+descriptor and registry members. Its decoder verifies those exact bytes without
+using the checked SQLite file to manufacture expected roots. ABI3 requires the
+independent original-component root; older ABI2 expectations omit it. The release
+holder supplies current-selection/disclosure authority separately.
+
+`managed-local-linux-fsverity-v1` currently supports Linux x86_64. The producer
+prepares a private artifact with SHA-256 fs-verity (4096-byte blocks, no salt or
+built-in signature) and verifies its frozen raw bytes against the stage receipt.
+The reader retains the FD and kernel measurement, verifies live finite
+`RLIMIT_AS` and `RLIMIT_FSIZE` soft bounds against declared process limits, and
+shares owned custody across warm forks. FSIZE is a per-file write bound, not an
+aggregate SQLite temporary-space quota; existing query/work/private-temp budgets
+remain required. Missing kernel support or wider/unlimited bounds refuses. This
+software preparation neither selects a public release nor admits source/rights.

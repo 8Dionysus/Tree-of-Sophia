@@ -46,7 +46,8 @@ pub struct SealLimits {
     pub max_header_bytes: usize,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct KnowledgeSealReceipt {
     pub model_abi: String,
     pub navigation_original_root_sha256: Option<String>,

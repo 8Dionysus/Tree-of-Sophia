@@ -75,7 +75,8 @@ impl StageLimits {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct InputCollectionReceipt {
     pub source_graph: String,
     pub collection: String,
@@ -92,7 +93,7 @@ pub struct ExactInputReceipt {
     pub collections: Vec<InputCollectionReceipt>,
 }
 impl ExactInputReceipt {
-    fn validate(&self) -> Result<()> {
+    pub(crate) fn validate(&self) -> Result<()> {
         self.binding.validate()?;
         if self.collections.is_empty() || self.collections.len() > MAX_COLLECTIONS {
             return Err(Error::Invalid("input collection registration count"));
@@ -147,8 +148,10 @@ pub struct RelationRow<'a> {
     pub payload: &'a [u8],
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct StageReceipt {
+    pub binding: SourceBinding,
     pub source_cut: String,
     pub membership_root: String,
     pub input_collections: usize,
@@ -893,6 +896,7 @@ impl<'a> KnowledgeStage<'a> {
         self.remove_lease()?;
         self.keep = true;
         Ok(StageReceipt {
+            binding: self.receipt.binding.clone(),
             source_cut: self.receipt.binding.source_cut.clone(),
             membership_root: self.receipt.binding.membership_root.clone(),
             input_collections: self.receipt.collections.len(),

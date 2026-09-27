@@ -40,7 +40,8 @@ pub struct NavigationOriginalInput<'a> {
     pub expected_rights_root_sha256: &'a str,
     pub limits: NavigationOriginalLimits,
 }
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct NavigationOriginalReceipt {
     pub profile: String,
     pub descriptor_sha256: String,
@@ -527,6 +528,34 @@ pub fn navigation_original_rights_root(rights: &[&[u8]]) -> String {
     }
     h.finalize().to_hex()
 }
+/// Reuse the component's own framing law for the independent producer
+/// companion. Source admission remains outside this mechanical consistency.
+pub(crate) fn validate_producer_receipt(
+    receipt: &NavigationOriginalReceipt,
+    inputs: &[crate::knowledge_stage::InputCollectionReceipt],
+) -> Result<()> {
+    if root(receipt)? != receipt.component_root_sha256 {
+        return Err(Error::Invalid(
+            "navigation original producer component root",
+        ));
+    }
+    for (collection, count, digest) in [
+        ("nodes", receipt.nodes, &receipt.node_input_root_sha256),
+        ("edges", receipt.edges, &receipt.edge_input_root_sha256),
+    ] {
+        let selected = inputs
+            .iter()
+            .find(|r| r.source_graph == receipt.source_graph && r.collection == collection)
+            .ok_or(Error::Invalid(
+                "navigation original producer input collection",
+            ))?;
+        if selected.expected_count != count || &selected.expected_root_sha256 != digest {
+            return Err(Error::Invalid("navigation original producer input binding"));
+        }
+    }
+    Ok(())
+}
+
 pub(crate) fn present(db: &Connection) -> Result<bool> {
     let mut seen = 0;
     for name in [META_TABLE, ROW_TABLE, MEMBER_TABLE] {
@@ -677,7 +706,8 @@ pub(crate) fn verify(
     }
     verify_ddl(db)?;
     let r = receipt(db)?;
-    if r.profile != NAVIGATION_ORIGINAL_PROFILE
+    if expected.navigation_original_root_sha256.as_deref() != Some(r.component_root_sha256.as_str())
+        || r.profile != NAVIGATION_ORIGINAL_PROFILE
         || r.descriptor_sha256 != expected.descriptor_sha256
         || r.source_cut != expected.source_cut
         || r.membership_root != expected.membership_root
