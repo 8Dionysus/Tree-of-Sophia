@@ -744,12 +744,16 @@ fn initial_claim_creation_publishes_five_native_files_and_cold_replays() {
         std::thread::sleep(Duration::from_millis(10));
     };
     assert!(
+        Instant::now() < deadline,
+        "maintained Claim oracle deadline"
+    );
+    assert!(fs::metadata(&oracle_stdout).unwrap().len() <= 1_048_576);
+    assert!(fs::metadata(&oracle_stderr).unwrap().len() <= 1_048_576);
+    assert!(
         oracle_status.success(),
         "{}",
         String::from_utf8_lossy(&fs::read(&oracle_stderr).unwrap())
     );
-    assert!(fs::metadata(&oracle_stdout).unwrap().len() <= 1_048_576);
-    assert!(fs::metadata(&oracle_stderr).unwrap().len() <= 1_048_576);
     let oracle: Value = serde_json::from_slice(&fs::read(&oracle_stdout).unwrap()).unwrap();
     assert_eq!(expected["expected_dependencies"], oracle["dependencies"]);
     assert_eq!(expected["source_bindings"], oracle["bindings"]);
@@ -830,6 +834,9 @@ fn initial_claim_creation_publishes_five_native_files_and_cold_replays() {
         }
         std::thread::sleep(Duration::from_millis(10));
     };
+    assert!(Instant::now() < deadline, "maintained form lock deadline");
+    assert!(fs::metadata(&lock_stdout).unwrap().len() <= 1_048_576);
+    assert!(fs::metadata(&lock_stderr).unwrap().len() <= 1_048_576);
     assert!(
         lock_status.success(),
         "{}",
@@ -1014,6 +1021,12 @@ fn initial_claim_creation_publishes_five_native_files_and_cold_replays() {
         }
         std::thread::sleep(Duration::from_millis(10));
     };
+    assert!(
+        Instant::now() < deadline,
+        "maintained Claim correction deadline"
+    );
+    assert!(fs::metadata(&correction_stdout).unwrap().len() <= 1_048_576);
+    assert!(fs::metadata(&correction_stderr).unwrap().len() <= 1_048_576);
     assert!(
         correction_status.success(),
         "{}",
