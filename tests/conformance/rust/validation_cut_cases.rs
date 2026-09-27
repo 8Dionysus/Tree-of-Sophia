@@ -653,7 +653,22 @@ finally:c.doCleanups()
         String::from_utf8_lossy(&oracle.stderr)
     );
     let compound_files: Value = serde_json::from_slice(&oracle.stdout).unwrap();
+    // The maintained preparation oracle rebuilds its generated catalog in the
+    // same directory. Keep those bytes available to that oracle, but use the
+    // source-store's authored carrier law for both immutable source revisions.
+    // All retained control/transaction/archive and human-form bytes stay in
+    // the selected cut; generated catalogs are not read by this verifier.
+    let mut generated_catalog_files = Vec::new();
     for (path, hex) in compound_files.as_object().unwrap() {
+        if !tos_source_store::is_authored_source_path_v1(path) {
+            assert!(
+                path.starts_with("ToS/source-witnesses/catalog/")
+                    && (path.ends_with(".json") || path.ends_with(".jsonl")),
+                "unexpected non-authored fixture member {path}"
+            );
+            generated_catalog_files.push(path.as_str());
+            continue;
+        }
         let hex = hex.as_str().unwrap();
         assert_eq!(hex.len() % 2, 0);
         let raw = (0..hex.len())
@@ -665,6 +680,16 @@ finally:c.doCleanups()
         }
         before.insert(path.clone(), raw);
     }
+    assert!(
+        !generated_catalog_files.is_empty(),
+        "maintained oracle generated catalog present"
+    );
+    assert!(
+        before
+            .keys()
+            .all(|path| tos_source_store::is_authored_source_path_v1(path)),
+        "base/current cut contain only authored source members"
+    );
     let temporary = tempfile::tempdir().unwrap();
     let root = temporary.path().join("store");
     let base = write_cut_store(&before, &root);
