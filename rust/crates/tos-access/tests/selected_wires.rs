@@ -573,6 +573,18 @@ mod selected_knowledge {
         }
     }
     impl InspectCurrentAuthority for Authority {
+        fn authorize_corpus_view_identity_current(
+            &mut self,
+            _: &tos_compiler::CorpusOriginalReceipt,
+            _: u64,
+            _: Option<&str>,
+            _: Digest256,
+        ) -> Result<(), SearchV2Error> {
+            self.check_selected()?;
+            assert_eq!(self.inspect.operation_id, O::CorpusSummary.id());
+            self.corpus_granted = true;
+            Ok(())
+        }
         fn authorize_corpus_original_current(
             &mut self,
             receipt: &tos_compiler::CorpusOriginalReceipt,
@@ -837,7 +849,18 @@ mod selected_knowledge {
                 Arc::clone(&self.controls),
             );
             let budgets = budgets();
-            let packet = if let R::Corpus(request) = &request {
+            let packet = if matches!(request, R::CorpusViewIds) {
+                tos_access::knowledge::execute_selected_corpus_view_ids(
+                    &mut model,
+                    &bound,
+                    &mut inspect,
+                    tos_query::corpus_read::CorpusReadBudget {
+                        inspect: budgets.inspect,
+                        max_work_steps: budgets.inspect.max_read_vm_steps,
+                    },
+                    probe,
+                )?
+            } else if let R::Corpus(request) = &request {
                 tos_access::knowledge::execute_selected_corpus(
                     &mut model,
                     &bound,
@@ -3674,11 +3697,7 @@ with tempfile.TemporaryDirectory() as d:
         // Exact contracts carrier/body lifecycle has its own affected fixture case.
         assert_eq!(executor.held.load(Ordering::SeqCst), 0);
     }
-    #[test]
-    fn captured_selected_corpus_get_head_and_all_mcp_tools_hold_exact_packets() {
-        // The QRY differential owns Python packet comparison. This same finite
-        // maintained input is captured/restored by its real software producer;
-        // here only transport and original-member hold boundaries are exercised.
+    fn captured_corpus_executor_fixture() -> (Executor, JsonValue) {
         let script = r#"
 import hashlib,json,subprocess,sys,tempfile
 from pathlib import Path
@@ -3748,6 +3767,21 @@ json.dump({'capture':str(capture),'restored':str(restored),'commit':commit,'tree
                 )
                 .unwrap(),
             ),
+        };
+        (executor, metadata.into_root())
+    }
+    #[test]
+    fn captured_selected_corpus_get_head_and_all_mcp_tools_hold_exact_packets() {
+        // The QRY differential owns Python packet comparison. This same finite
+        // maintained input is captured/restored by its real software producer;
+        // here only transport and original-member hold boundaries are exercised.
+        let (executor, metadata) = captured_corpus_executor_fixture();
+        let value = |key| {
+            metadata
+                .object_get(key)
+                .and_then(JsonValue::as_str)
+                .unwrap()
+                .to_owned()
         };
         let number = |n: usize| {
             JsonValue::Number(tos_foundation::JsonNumber {
@@ -3922,5 +3956,316 @@ json.dump({'capture':str(capture),'restored':str(restored),'commit':commit,'tree
         .unwrap();
         assert!(String::from_utf8_lossy(last_frame(&wire)).contains("isError"));
         assert_eq!(executor.held.load(Ordering::SeqCst), 0);
+    }
+    #[test]
+    fn installed_software_site_static_and_selected_boot_preserve_delivery_boundaries() {
+        use tos_access::{
+            http::{handle_get_with_software, write_response},
+            site::SoftwareSite,
+        };
+        use tos_compiler::knowledge_full_fixture::build_native_fixture_with_philosophy_original;
+        // Reuse both real selected producer fixtures; the companion ELF below
+        // is only an integrity fixture and is never executed as a product.
+        let (corpus, _) = captured_corpus_executor_fixture();
+        let held = Arc::clone(&corpus.held);
+        let controls = Arc::clone(&corpus.controls);
+        let philosophy = Executor {
+            fixture: build_native_fixture_with_philosophy_original(),
+            corpus_context: None,
+            held: Arc::clone(&held),
+            controls: Arc::clone(&controls),
+            checkpoints: Mutex::new(
+                tos_access::exploration_checkpoints::ProcessExplorationCheckpoints::new(
+                    tos_access::exploration_checkpoints::CheckpointLimits {
+                        ttl: Duration::from_secs(60),
+                        max_entries: 16,
+                        max_encoded_bytes: 2_000_000,
+                    },
+                )
+                .unwrap(),
+            ),
+        };
+        struct Boot {
+            corpus: Executor,
+            philosophy: Executor,
+        }
+        impl AccessExecutor for Boot {
+            fn source_descend_available(&self) -> bool {
+                false
+            }
+            fn source_descend(
+                &self,
+                _: Params,
+                _: Arc<dyn AbortProbe>,
+            ) -> Result<PreparedPacket, AccessError> {
+                unreachable!()
+            }
+            fn knowledge(
+                &self,
+                request: R,
+                probe: Arc<dyn AbortProbe>,
+            ) -> Result<PreparedPacket, AccessError> {
+                match request {
+                    R::CorpusViewIds => self.corpus.knowledge(request, probe),
+                    R::PhilosophyViewIds => self.philosophy.knowledge(request, probe),
+                    _ => unreachable!("boot does not prefetch maintained graph packets"),
+                }
+            }
+        }
+        let boot = Boot { corpus, philosophy };
+        let profile = AccessProfile::new(65_536, 1_048_576, 65_536);
+        let expected_corpus = boot
+            .knowledge(R::CorpusViewIds, Arc::new(Controls::default()))
+            .unwrap();
+        let expected_phi = boot
+            .knowledge(R::PhilosophyViewIds, Arc::new(Controls::default()))
+            .unwrap();
+        let first = |raw: &[u8], field: &str| {
+            let doc = parse_json(raw, JsonMode::PublishedStrict, JsonLimits::default()).unwrap();
+            doc.root().object_get(field).unwrap().as_array().unwrap()[0]
+                .object_get("view_id")
+                .unwrap()
+                .as_str()
+                .unwrap()
+                .to_owned()
+        };
+        let corpus_id = first(&expected_corpus.body, "graph_views");
+        let phi_id = first(&expected_phi.body, "views");
+        drop((expected_corpus, expected_phi));
+        assert_eq!(held.load(Ordering::SeqCst), 0);
+        let base = boot
+            .philosophy
+            .fixture
+            .path
+            .parent()
+            .unwrap()
+            .join("installed-site");
+        fs::create_dir_all(base.join("access/src/tos_access/web_dist/assets")).unwrap();
+        let executable = base.join("access/src/tos_access/tos-access");
+        let mut header = vec![0u8; 64];
+        header[..7].copy_from_slice(b"\x7fELF\x02\x01\x01");
+        header[18..20].copy_from_slice(b"\x3e\x00");
+        fs::write(&executable, &header).unwrap();
+        let js = b"export const softwareOwned=true;\n";
+        let css = b"body{margin:0}\n";
+        std::os::unix::fs::symlink(
+            "tos-graph.js",
+            base.join("access/src/tos_access/web_dist/assets/link.js"),
+        )
+        .unwrap();
+        let js_path = base.join("access/src/tos_access/web_dist/assets/tos-graph.js");
+        fs::write(&js_path, js).unwrap();
+        fs::write(
+            base.join("access/src/tos_access/web_dist/assets/tos-graph.css"),
+            css,
+        )
+        .unwrap();
+        let number = |n: usize| {
+            JsonValue::Number(tos_foundation::JsonNumber {
+                kind: tos_foundation::JsonNumberKind::Int,
+                lexeme: n.to_string(),
+            })
+        };
+        let member = |path: &str, raw: &[u8]| {
+            object(vec![
+                ("path", text(path)),
+                ("size_bytes", number(raw.len())),
+                ("sha256", text(&Digest256::of_bytes(raw).to_hex())),
+            ])
+        };
+        let lock = b"version = 4\n";
+        let pin = include_bytes!("../../../../rust-toolchain.toml");
+        fs::write(base.join("Cargo.lock"), lock).unwrap();
+        fs::write(base.join("rust-toolchain.toml"), pin).unwrap();
+        let source_ref = Digest256::of_bytes(&boot.philosophy.fixture.descriptor_bytes).to_hex();
+        let manifest = object(vec![
+            ("schema_version", text("tos_software_bundle_manifest_v1")),
+            ("software_ref", text(&source_ref)),
+            ("data_included", JsonValue::Bool(false)),
+            ("source_dirty", JsonValue::Bool(false)),
+            (
+                "native_access",
+                object(vec![
+                    ("schema_version", text("tos_native_access_build_v1")),
+                    ("target", text("x86_64-unknown-linux-gnu")),
+                    ("source_commit", text(&source_ref)),
+                    ("source_tree", text(&source_ref)),
+                    ("profile", text("debug")),
+                    ("lock_sha256", text(&Digest256::of_bytes(lock).to_hex())),
+                    (
+                        "toolchain",
+                        text(
+                            include_str!("../../../../rust-toolchain.toml")
+                                .lines()
+                                .find_map(|line| {
+                                    line.trim()
+                                        .strip_prefix("channel = ")
+                                        .and_then(|value| value.strip_prefix('"'))
+                                        .and_then(|value| value.strip_suffix('"'))
+                                })
+                                .unwrap(),
+                        ),
+                    ),
+                    ("sha256", text(&Digest256::of_bytes(&header).to_hex())),
+                    ("size_bytes", number(header.len())),
+                ]),
+            ),
+            (
+                "members",
+                JsonValue::Array(vec![
+                    member("access/src/tos_access/tos-access", &header),
+                    member("Cargo.lock", lock),
+                    member("rust-toolchain.toml", pin),
+                    member("access/src/tos_access/web_dist/assets/tos-graph.js", js),
+                    member("access/src/tos_access/web_dist/assets/link.js", js),
+                    member("access/src/tos_access/web_dist/assets/tos-graph.css", css),
+                ]),
+            ),
+        ]);
+        fs::write(
+            base.join("software.manifest.json"),
+            tos_foundation::emit_value_preserved_json(&manifest, JsonLimits::default()).unwrap(),
+        )
+        .unwrap();
+        let site = SoftwareSite::open(&executable, Arc::new(Controls::default())).unwrap();
+        struct TwoHolds {
+            bytes: Vec<u8>,
+            held: Arc<AtomicUsize>,
+        }
+        impl Write for TwoHolds {
+            fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
+                assert_eq!(self.held.load(Ordering::SeqCst), 2);
+                self.bytes.extend_from_slice(bytes);
+                Ok(bytes.len())
+            }
+            fn flush(&mut self) -> std::io::Result<()> {
+                assert_eq!(self.held.load(Ordering::SeqCst), 2);
+                Ok(())
+            }
+        }
+        let response = handle_get_with_software(&boot, "GET", "/", profile, &site);
+        assert_eq!(response.status, 200);
+        let html = String::from_utf8(response.body.clone()).unwrap();
+        assert!(html.contains(&format!("\"default_view\":\"{corpus_id}\"")));
+        assert!(html.contains(&format!("\"default_philosophy_view\":\"{phi_id}\"")));
+        assert!(html.contains("/static/assets/tos-graph.js"));
+        let mut writer = TwoHolds {
+            bytes: vec![],
+            held: Arc::clone(&held),
+        };
+        write_response(&mut writer, response).unwrap();
+        assert_eq!(held.load(Ordering::SeqCst), 0);
+        let wire = String::from_utf8(writer.bytes).unwrap();
+        for header in [
+            "Content-Type: text/html; charset=utf-8",
+            "Cache-Control: no-cache",
+            "Permissions-Policy: tools=(self)",
+            "Cross-Origin-Embedder-Policy: require-corp",
+            "X-Frame-Options: DENY",
+            "script-src 'self' 'nonce-",
+        ] {
+            assert!(wire.contains(header), "{header}");
+        }
+        let head = handle_get_with_software(&boot, "HEAD", "/", profile, &site);
+        let mut writer = TwoHolds {
+            bytes: vec![],
+            held: Arc::clone(&held),
+        };
+        write_response(&mut writer, head).unwrap();
+        assert!(writer.bytes.ends_with(b"\r\n\r\n"));
+        assert_eq!(held.load(Ordering::SeqCst), 0);
+        for (path, mime, raw) in [
+            (
+                "/static/assets/tos-graph.js",
+                "text/javascript",
+                js.as_slice(),
+            ),
+            ("/static/assets/tos-graph.css", "text/css", css.as_slice()),
+        ] {
+            for method in ["GET", "HEAD"] {
+                let response = handle_get_with_software(&boot, method, path, profile, &site);
+                assert_eq!(response.status, 200);
+                assert_eq!(response.body, raw);
+                let mut wire = vec![];
+                write_response(&mut wire, response).unwrap();
+                let split = wire.windows(4).position(|x| x == b"\r\n\r\n").unwrap() + 4;
+                let headers = String::from_utf8_lossy(&wire[..split]);
+                assert!(headers.contains(mime));
+                assert!(headers.contains(&format!("Content-Length: {}", raw.len())));
+                assert_eq!(
+                    &wire[split..],
+                    if method == "HEAD" {
+                        b"".as_slice()
+                    } else {
+                        raw
+                    }
+                );
+            }
+        }
+        for path in [
+            "/static/../software.manifest.json",
+            "/static/%2e%2e/software.manifest.json",
+            "/static/%2Fetc/passwd",
+            "/static/assets%5Coutside.js",
+            "/static/%00",
+        ] {
+            assert_eq!(
+                handle_get_with_software(&boot, "GET", path, profile, &site).status,
+                400
+            );
+        }
+        assert_eq!(
+            handle_get_with_software(&boot, "GET", "/static/assets/undeclared.js", profile, &site)
+                .status,
+            404
+        );
+        assert_eq!(
+            handle_get_with_software(&boot, "GET", "/static/assets/link.js", profile, &site).status,
+            404
+        );
+        let no_owner = Synthetic {
+            allowed: false,
+            calls: Mutex::new(vec![]),
+        };
+        let unavailable = handle_get_with_software(&no_owner, "GET", "/", profile, &site);
+        assert_eq!(unavailable.status, 200);
+        let html = String::from_utf8(unavailable.body).unwrap();
+        assert!(html.contains("\"default_view\":\"\""));
+        assert!(html.contains("\"philosophy\":false"));
+        let response = handle_get_with_software(&boot, "GET", "/", profile, &site);
+        controls.revoked.store(true, Ordering::SeqCst);
+        let mut wire = vec![];
+        write_response(&mut wire, response).unwrap();
+        assert_eq!(held.load(Ordering::SeqCst), 0);
+        assert!(wire.starts_with(b"HTTP/1.1 409 Conflict"));
+        assert!(!String::from_utf8_lossy(&wire).contains("window.__TOS_GRAPH_BOOT__"));
+        controls.revoked.store(false, Ordering::SeqCst);
+        let response =
+            handle_get_with_software(&boot, "GET", "/static/assets/tos-graph.js", profile, &site);
+        fs::write(&js_path, b"changed").unwrap();
+        let mut wire = vec![];
+        write_response(&mut wire, response).unwrap();
+        assert!(wire.starts_with(b"HTTP/1.1 503 Service Unavailable"));
+        assert!(String::from_utf8_lossy(&wire).contains("Content-Type: application/json"));
+        assert!(!wire.ends_with(js));
+        let timed = handle_get_with_software(
+            &boot,
+            "GET",
+            "/",
+            profile.with_query_timeout(Duration::ZERO),
+            &site,
+        );
+        assert_eq!(timed.status, 408);
+        let cancelled = Arc::new(Controls::default());
+        cancelled.cancelled.store(true, Ordering::SeqCst);
+        assert_eq!(
+            SoftwareSite::open(&executable, cancelled)
+                .err()
+                .unwrap()
+                .code,
+            tos_access::AccessErrorCode::Cancelled
+        );
+        // The real installed binary/layout acceptance is a separate admitted
+        // assembly stage. This test never executes the integrity fixture ELF.
     }
 }

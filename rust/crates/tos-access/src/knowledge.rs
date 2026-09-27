@@ -166,10 +166,15 @@ pub enum KnowledgeRequest {
     },
     Philosophy(tos_query::philosophy_read::PhilosophyReadRequest),
     Corpus(tos_query::corpus_read::CorpusReadRequest),
+    /// Internal boot projections, not separately advertised operations.
+    PhilosophyViewIds,
+    CorpusViewIds,
 }
 impl KnowledgeRequest {
     pub fn operation(&self) -> KnowledgeOperation {
         match self {
+            Self::PhilosophyViewIds => KnowledgeOperation::PhilosophyViews,
+            Self::CorpusViewIds => KnowledgeOperation::CorpusSummary,
             Self::Catalog => KnowledgeOperation::Catalog,
             Self::Node { .. } => KnowledgeOperation::Node,
             Self::Relation { .. } => KnowledgeOperation::Relation,
@@ -684,12 +689,23 @@ pub fn execute_selected_knowledge(
                 "software contracts use the program executor",
             ));
         }
-        KnowledgeRequest::Corpus(_) => {
+        KnowledgeRequest::CorpusViewIds | KnowledgeRequest::Corpus(_) => {
             return Err(AccessError::new(
                 AccessErrorCode::Unavailable,
                 "selected corpus source context unavailable",
             ));
         }
+        KnowledgeRequest::PhilosophyViewIds => from_inspect(
+            tos_query::philosophy_read::execute_selected_philosophy_view_ids(
+                model,
+                bound,
+                &mut inspect,
+                tos_query::philosophy_read::PhilosophyReadBudget {
+                    inspect: budgets.inspect,
+                    max_work_steps: budgets.inspect.max_read_vm_steps,
+                },
+            )?,
+        ),
         KnowledgeRequest::Philosophy(request) => {
             let packet = tos_query::philosophy_read::execute_selected_philosophy(
                 model,
@@ -906,6 +922,16 @@ struct InspectProbe<'a> {
     probe: Arc<dyn AbortProbe>,
 }
 impl tos_query::InspectCurrentAuthority for InspectProbe<'_> {
+    fn authorize_corpus_view_identity_current(
+        &mut self,
+        receipt: &tos_compiler::CorpusOriginalReceipt,
+        ordinal: u64,
+        view_id: Option<&str>,
+        sha: tos_foundation::Digest256,
+    ) -> Result<(), tos_query::search_v2::SearchV2Error> {
+        self.inner
+            .authorize_corpus_view_identity_current(receipt, ordinal, view_id, sha)
+    }
     fn authorize_corpus_original_current(
         &mut self,
         receipt: &tos_compiler::CorpusOriginalReceipt,
@@ -1091,6 +1117,30 @@ pub fn execute_selected_corpus(
         &mut authority,
         context,
         request,
+        budget,
+    )?;
+    check_abort(&probe)?;
+    Ok(from_inspect(packet))
+}
+
+/// Internal site metadata uses the existing Summary scope and current hold.
+pub fn execute_selected_corpus_view_ids(
+    model: &mut tos_compiler::VerifiedKnowledgeModel<'_>,
+    bound: &tos_query::BoundCmpKnowledge<'_>,
+    authority: &mut dyn tos_query::InspectCurrentAuthority,
+    budget: tos_query::corpus_read::CorpusReadBudget,
+    probe: Arc<dyn AbortProbe>,
+) -> Result<PreparedPacket, AccessError> {
+    check_abort(&probe)?;
+    let probe = combined_probe(probe, authority.abort_probe());
+    let mut authority = InspectProbe {
+        inner: authority,
+        probe: Arc::clone(&probe),
+    };
+    let packet = tos_query::corpus_read::execute_selected_corpus_view_ids(
+        model,
+        bound,
+        &mut authority,
         budget,
     )?;
     check_abort(&probe)?;

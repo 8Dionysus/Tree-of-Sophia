@@ -15,6 +15,8 @@ PACKAGING_ROOT = Path(__file__).resolve().parent
 if PACKAGING_ROOT.as_posix() not in sys.path:
     sys.path.insert(0, PACKAGING_ROOT.as_posix())
 
+from native_access_artifact import NATIVE_MEMBER, NATIVE_PROOF_MEMBERS, MAX_STATIC_BYTES, MAX_MANIFEST_BYTES, load_native_handoff
+
 from archive_common import (  # noqa: E402
     _write_deterministic_zip as _write_zip,
     sha256_file,
@@ -33,6 +35,8 @@ TOS_SCHEMA_FILES = (
 SOURCE_STATUS_PATHS = (
     "access/packaging/build_software_bundle.py",
     "access/packaging/archive_common.py",
+    "access/packaging/native_access_artifact.py",
+    "access/packaging/validate_software_bundle.py",
     "access/pyproject.toml",
     "access/README.md",
     "access/packaging/tos_build_backend.py",
@@ -76,6 +80,8 @@ def build_software_bundle(
     *,
     source_ref: str,
     allow_dirty: bool = False,
+    native_access_binary: Path | None = None,
+    native_access_receipt: Path | None = None,
 ) -> dict:
     """Build a deterministic software archive from the exact software allowlist."""
     repo_root = Path(repo_root).resolve()
@@ -186,6 +192,7 @@ def build_software_bundle(
                 "--untracked-files=all",
                 "--",
                 *SOURCE_STATUS_PATHS,
+                *( ("Cargo.toml", "Cargo.lock", "rust-toolchain.toml", "rust") if native_access_binary is not None else () ),
             ],
             cwd=repo_root,
             text=True,
@@ -202,6 +209,30 @@ def build_software_bundle(
     if source_dirty and not allow_dirty:
         raise RuntimeError("refusing to build from a dirty or non-Git source; pass --allow-dirty")
 
+    native_proof = None
+    if (native_access_binary is None) != (native_access_receipt is None):
+        raise RuntimeError("native artifact requires its exact build-owned receipt")
+    if native_access_binary is not None:
+        if source_dirty or not git_available:
+            raise RuntimeError("native artifact requires an exact clean Git source; allow-dirty cannot relabel it")
+        tree_result = subprocess.run(["git", "rev-parse", "HEAD^{tree}"], cwd=repo_root, text=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, check=True)
+        native_proof = load_native_handoff(Path(native_access_binary), Path(native_access_receipt), repo_root, source_ref, tree_result.stdout.strip(), sha256_file)
+        for asset in web_files:
+            if asset.stat().st_size > MAX_STATIC_BYTES:
+                raise RuntimeError("native static member exceeds software delivery cap")
+        if not (web_dist / "assets/tos-graph.css").is_file():
+            raise RuntimeError("native site stylesheet missing")
+        copy_items.append((Path(native_access_binary), Path(NATIVE_MEMBER)))
+        for name in NATIVE_PROOF_MEMBERS:
+            source = repo_root / name
+            if source.is_symlink() or not source.is_file():
+                raise RuntimeError("native proof software companion missing")
+            copy_items.append((source, Path(name)))
+
+    archive_paths = [relative.as_posix() for _, relative in copy_items]
+    if len(archive_paths) != len(set(archive_paths)):
+        raise RuntimeError("native software allowlist produced duplicate archive paths")
+
     output.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="tos-software-build-", dir=output.parent) as raw_temp:
         temp_root = Path(raw_temp)
@@ -213,6 +244,11 @@ def build_software_bundle(
             with source.open("rb") as source_stream, target.open("xb") as target_stream:
                 shutil.copyfileobj(source_stream, target_stream, length=1024 * 1024)
 
+        if native_proof is not None:
+            native_path = stage / NATIVE_MEMBER
+            if native_path.stat().st_size != native_proof["size_bytes"] or sha256_file(native_path) != native_proof["sha256"]:
+                raise RuntimeError("native artifact changed during copy")
+            native_path.chmod(0o755)  # Only the exact copied executable, never the source artifact.
         (stage / "access/src/tos_access/runtime_data/access/contracts").mkdir(parents=True, exist_ok=True)
         (stage / "access/src/tos_access/runtime_data/access/profiles").mkdir(parents=True, exist_ok=True)
         for directory_name in ("contracts", "profiles"):
@@ -255,12 +291,14 @@ def build_software_bundle(
             "data_included": False,
             "members": members,
         }
-        (stage / "software.manifest.json").write_text(
-            json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-            encoding="utf-8",
-        )
+        if native_proof is not None:
+            manifest["native_access"] = native_proof
+        manifest_text = json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+        if native_proof is not None and len(manifest_text.encode("utf-8")) > MAX_MANIFEST_BYTES:
+            raise RuntimeError("native software manifest exceeds delivery cap")
+        (stage / "software.manifest.json").write_text(manifest_text, encoding="utf-8")
         staged_output = temp_root / output.name
-        _write_zip(stage, staged_output)
+        _write_zip(stage, staged_output, executable_members={NATIVE_MEMBER} if native_proof is not None else ())
         sidecar_payload = {
             **manifest,
             "archive_sha256": sha256_file(staged_output),
@@ -289,12 +327,16 @@ if __name__ == "__main__":
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--source-ref", required=True)
     parser.add_argument("--allow-dirty", action="store_true")
+    parser.add_argument("--native-access-binary", type=Path)
+    parser.add_argument("--native-access-receipt", type=Path)
     args = parser.parse_args()
     manifest = build_software_bundle(
         Path.cwd(),
         args.output,
         source_ref=args.source_ref,
         allow_dirty=args.allow_dirty,
+        native_access_binary=args.native_access_binary,
+        native_access_receipt=args.native_access_receipt,
     )
     print(
         json.dumps(

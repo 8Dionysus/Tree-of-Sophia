@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -103,6 +104,65 @@ class SoftwareBundleBoundaryTests(unittest.TestCase):
             for info, payload in entries:
                 archive.writestr(info, payload)
         os.replace(replacement, bundle)
+
+    def test_native_member_requires_clean_build_identity_and_exact_executable_mode(self) -> None:
+        # The tiny ELF is an integrity fixture, never executed or called a
+        # built product. This exercises the archive boundary, not admission.
+        from native_access_artifact import NATIVE_MEMBER, NATIVE_SCHEMA, NATIVE_TARGET
+        with tempfile.TemporaryDirectory() as raw:
+            base = Path(raw)
+            root = base / "source"
+            root.mkdir()
+            self._make_repo(root)
+            (root / "access/web/dist/assets/tos-graph.css").write_bytes(b"body{}")
+            (root / "Cargo.lock").write_bytes(b"version = 4\n")
+            (root / "rust-toolchain.toml").write_bytes(b'[toolchain]\nchannel = "1.98.1"\n')
+            (root / "rust").mkdir()
+            (root / "rust/owner.rs").write_bytes(b"// software identity fixture\n")
+            def git(*args):
+                return subprocess.check_output(["git", "-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", *args], cwd=root, text=True).strip()
+            git("init", "--quiet")
+            git("add", ".")
+            git("commit", "--quiet", "-m", "software fixture")
+            ref = git("rev-parse", "HEAD")
+            header = bytearray(64)
+            header[:7] = b"\x7fELF\x02\x01\x01"
+            header[18:20] = b"\x3e\x00"
+            binary = base / "native"
+            binary.write_bytes(header)
+            binary.chmod(0o755)
+            proof = {"schema_version": NATIVE_SCHEMA, "target": NATIVE_TARGET,
+                     "sha256": self._sha256(header), "size_bytes": len(header),
+                     "source_commit": ref, "source_tree": git("rev-parse", "HEAD^{tree}"),
+                     "lock_sha256": self._sha256((root / "Cargo.lock").read_bytes()),
+                     "toolchain": "1.98.1", "profile": "debug"}
+            receipt = base / "receipt.json"
+            receipt.write_text(json.dumps(proof))
+            bundle = base / "native.zip"
+            build_software_bundle(root, bundle, source_ref=ref, native_access_binary=binary, native_access_receipt=receipt)
+            manifest = verify_archive(bundle)
+            self.assertEqual(manifest["native_access"], proof)
+            with zipfile.ZipFile(bundle) as archive:
+                self.assertEqual((archive.getinfo(NATIVE_MEMBER).external_attr >> 16) & 0o777, 0o755)
+                self.assertEqual(archive.read(NATIVE_MEMBER), header)
+            # Rust source identity is part of this profile, even though no
+            # artifact is executed during integrity validation.
+            (root / "rust/owner.rs").write_bytes(b"// changed native owner\n")
+            with self.assertRaisesRegex(RuntimeError, "dirty"):
+                build_software_bundle(root, base / "dirty.zip", source_ref=ref, allow_dirty=True,
+                                      native_access_binary=binary, native_access_receipt=receipt)
+            entries = self._read_entries(bundle)
+            for info, _ in entries:
+                if info.filename == NATIVE_MEMBER:
+                    info.external_attr = 0o644 << 16
+            self._replace_archive(bundle, entries)
+            sidecar = self._sidecar(bundle)
+            external = json.loads(sidecar.read_text())
+            external["archive_sha256"] = self._sha256(bundle.read_bytes())
+            external["archive_size_bytes"] = bundle.stat().st_size
+            sidecar.write_text(json.dumps(external))
+            with self.assertRaisesRegex(RuntimeError, "size/mode"):
+                verify_archive(bundle)
 
     def test_software_bundle_is_deterministic_and_excludes_corpus(self) -> None:
         with tempfile.TemporaryDirectory() as raw:

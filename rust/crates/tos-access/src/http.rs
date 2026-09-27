@@ -55,6 +55,8 @@ pub struct HttpResponse {
     pub body: Vec<u8>,
     pub head_only: bool,
     fence: Option<Box<dyn DisclosureFence>>,
+    content_type: &'static str,
+    csp_nonce: Option<String>,
 }
 
 impl HttpResponse {
@@ -70,6 +72,8 @@ impl HttpResponse {
             status,
             body: error_json(&error),
             head_only: false,
+            content_type: "application/json; charset=utf-8",
+            csp_nonce: None,
             fence: None,
         }
     }
@@ -254,12 +258,16 @@ fn handle_search(
             status: 200,
             body: packet.body,
             head_only: method == "HEAD",
+            content_type: "application/json; charset=utf-8",
+            csp_nonce: None,
             fence: Some(packet.fence),
         },
         Err(error) => HttpResponse {
             status: error.http_status(),
             body: error_json(&error),
             head_only: method == "HEAD",
+            content_type: "application/json; charset=utf-8",
+            csp_nonce: None,
             fence: None,
         },
     }
@@ -271,7 +279,32 @@ pub fn handle_get(
     target: &str,
     profile: AccessProfile,
 ) -> HttpResponse {
-    handle_get_with_probe(executor, method, target, profile, profile.deadline_probe())
+    handle_get_with_probe(
+        executor,
+        method,
+        target,
+        profile,
+        profile.deadline_probe(),
+        None,
+    )
+}
+
+/// Explicit installed software companion; data roots never select this handle.
+pub fn handle_get_with_software(
+    executor: &dyn AccessExecutor,
+    method: &str,
+    target: &str,
+    profile: AccessProfile,
+    site: &Arc<crate::site::SoftwareSite>,
+) -> HttpResponse {
+    handle_get_with_probe(
+        executor,
+        method,
+        target,
+        profile,
+        profile.deadline_probe(),
+        Some(site),
+    )
 }
 
 fn handle_get_with_probe(
@@ -280,6 +313,7 @@ fn handle_get_with_probe(
     target: &str,
     profile: AccessProfile,
     abort_probe: Arc<dyn AbortProbe>,
+    site: Option<&Arc<crate::site::SoftwareSite>>,
 ) -> HttpResponse {
     if method != "GET" && method != "HEAD" {
         return HttpResponse::error(405, "method not allowed");
@@ -288,6 +322,35 @@ fn handle_get_with_probe(
         return HttpResponse::error_for_method(413, "request target too large", method);
     }
     let (path, query) = target.split_once('?').unwrap_or((target, ""));
+    if path == "/" || path.starts_with("/static/") {
+        let Some(site) = site else {
+            return HttpResponse::error_for_method(
+                503,
+                "installed software site unavailable",
+                method,
+            );
+        };
+        let result = if path == "/" {
+            site.shell(executor, profile, abort_probe)
+                .map(|(packet, nonce)| (packet, "text/html; charset=utf-8", Some(nonce)))
+        } else {
+            percent_decode(&path[8..], false).and_then(|relative| {
+                site.asset(&relative, abort_probe)
+                    .map(|packet| (packet, crate::site::mime(&relative), None))
+            })
+        };
+        return match result {
+            Ok((packet, content_type, csp_nonce)) => HttpResponse {
+                status: 200,
+                body: packet.body,
+                head_only: method == "HEAD",
+                fence: Some(packet.fence),
+                content_type,
+                csp_nonce,
+            },
+            Err(error) => packet_response(Err(error), method, profile),
+        };
+    }
     if path == "/api/source-gaps" {
         let request = tos_query::source_gap::SourceGapRequest {
             query: query_value(query, "query").unwrap_or_default(),
@@ -396,12 +459,16 @@ fn handle_get_with_probe(
             status: 200,
             body: packet.body,
             head_only: method == "HEAD",
+            content_type: "application/json; charset=utf-8",
+            csp_nonce: None,
             fence: Some(packet.fence),
         },
         Err(error) => HttpResponse {
             status: error.http_status(),
             body: error_json(&error),
             head_only: method == "HEAD",
+            content_type: "application/json; charset=utf-8",
+            csp_nonce: None,
             fence: None,
         },
     }
@@ -427,12 +494,16 @@ fn packet_response(
             status: 200,
             body: packet.body,
             head_only: method == "HEAD",
+            content_type: "application/json; charset=utf-8",
+            csp_nonce: None,
             fence: Some(packet.fence),
         },
         Err(error) => HttpResponse {
             status: error.http_status(),
             body: error_json(&error),
             head_only: method == "HEAD",
+            content_type: "application/json; charset=utf-8",
+            csp_nonce: None,
             fence: None,
         },
     }
@@ -637,6 +708,8 @@ pub fn write_response<W: Write>(stream: &mut W, mut response: HttpResponse) -> s
             response.status = error.http_status();
             response.body = error_json(&error);
             response.fence = None;
+            response.content_type = "application/json; charset=utf-8";
+            response.csp_nonce = None;
         }
     }
     let reason = match response.status {
@@ -653,11 +726,24 @@ pub fn write_response<W: Write>(stream: &mut W, mut response: HttpResponse) -> s
         503 => "Service Unavailable",
         _ => "Error",
     };
+    let script_nonce = response
+        .csp_nonce
+        .as_ref()
+        .map(|nonce| format!(" 'nonce-{nonce}'"))
+        .unwrap_or_default();
+    let cache = if response.content_type.starts_with("application/json") {
+        "no-store"
+    } else {
+        "no-cache"
+    };
     let header = format!(
-        "HTTP/1.1 {} {}\r\nContent-Type: application/json; charset=utf-8\r\nContent-Length: {}\r\nCache-Control: no-store\r\nConnection: close\r\nX-Content-Type-Options: nosniff\r\n\r\n",
+        "HTTP/1.1 {} {}\r\nContent-Type: {}\r\nContent-Length: {}\r\nCache-Control: {}\r\nConnection: close\r\nX-Content-Type-Options: nosniff\r\nContent-Security-Policy: default-src 'self'; base-uri 'none'; connect-src 'self'; font-src 'self'; form-action 'self'; frame-ancestors 'none'; img-src 'self' data:; object-src 'none'; script-src 'self'{}; style-src 'self'; worker-src 'self'\r\nPermissions-Policy: tools=(self), accelerometer=(), camera=(), geolocation=(), gyroscope=(), microphone=(), payment=(), usb=()\r\nCross-Origin-Opener-Policy: same-origin\r\nCross-Origin-Embedder-Policy: require-corp\r\nCross-Origin-Resource-Policy: same-origin\r\nOrigin-Agent-Cluster: ?1\r\nReferrer-Policy: no-referrer\r\nX-Frame-Options: DENY\r\n\r\n",
         response.status,
         reason,
-        response.body.len()
+        response.content_type,
+        response.body.len(),
+        cache,
+        script_nonce
     );
     stream.write_all(header.as_bytes())?;
     if !response.head_only {
@@ -670,9 +756,17 @@ pub fn write_response<W: Write>(stream: &mut W, mut response: HttpResponse) -> s
 /// The listener owns admission and concurrency; this entry is useful for
 /// actual socket-level conformance tests without a background server.
 pub fn serve_connection(
+    stream: TcpStream,
+    executor: Arc<dyn AccessExecutor>,
+    profile: AccessProfile,
+) {
+    serve_connection_with_software(stream, executor, profile, None)
+}
+fn serve_connection_with_software(
     mut stream: TcpStream,
     executor: Arc<dyn AccessExecutor>,
     profile: AccessProfile,
+    site: Option<Arc<crate::site::SoftwareSite>>,
 ) {
     let _ = stream.set_read_timeout(Some(Duration::from_secs(5)));
     let _ = stream.set_write_timeout(Some(Duration::from_secs(5)));
@@ -730,6 +824,7 @@ pub fn serve_connection(
                                                 target,
                                                 profile,
                                                 probe,
+                                                site.as_ref(),
                                             )
                                         }
                                     }
@@ -792,6 +887,9 @@ pub fn serve(
             "native access HTTP must bind loopback",
         ));
     }
+    // Missing/unassembled software refuses only site routes; existing APIs
+    // retain their independent explicit selected owner behavior.
+    let site = crate::site::SoftwareSite::installed(profile.deadline_probe()).ok();
     let listener = TcpListener::bind(addresses.as_slice())?;
     let active = Arc::new(AtomicUsize::new(0));
     for accepted in listener.incoming() {
@@ -803,8 +901,9 @@ pub fn serve(
         }
         let active = Arc::clone(&active);
         let executor = Arc::clone(&executor);
+        let site = site.clone();
         std::thread::spawn(move || {
-            serve_connection(stream, executor, profile);
+            serve_connection_with_software(stream, executor, profile, site);
             active.fetch_sub(1, Ordering::AcqRel);
         });
     }

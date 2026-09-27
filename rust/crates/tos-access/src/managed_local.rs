@@ -390,6 +390,21 @@ impl AccessExecutor for ManagedLocalExecutor {
         let operation = request.operation();
         let mut inspect = Authority::new(self, &bound, operation.id(), intended(operation))?;
         let budgets = self.budgets();
+        if matches!(request, R::CorpusViewIds) {
+            if self.corpus_context.is_none() {
+                return Err(unavailable("selected corpus source context unavailable"));
+            }
+            return crate::knowledge::execute_selected_corpus_view_ids(
+                &mut model,
+                &bound,
+                &mut inspect,
+                tos_query::corpus_read::CorpusReadBudget {
+                    inspect: budgets.inspect,
+                    max_work_steps: budgets.inspect.max_read_vm_steps,
+                },
+                probe,
+            );
+        }
         if let R::Corpus(request) = &request {
             let context = self
                 .corpus_context
@@ -561,6 +576,34 @@ impl CatalogDisclosureLease for ReleaseLease {
     }
 }
 impl InspectCurrentAuthority for Authority {
+    fn authorize_corpus_view_identity_current(
+        &mut self,
+        receipt: &tos_compiler::CorpusOriginalReceipt,
+        ordinal: u64,
+        _view_id: Option<&str>,
+        _sha: Digest256,
+    ) -> Result<(), SearchV2Error> {
+        self.check()?;
+        let expected = self
+            .corpus_original
+            .as_ref()
+            .ok_or_else(|| query_error("selected corpus original unavailable"))?;
+        let valid = expected.collections.iter().any(|c| {
+            c.collection == tos_compiler::CorpusOriginalCollection::GraphViews.as_str()
+                && ordinal < c.rows
+        });
+        // QRY's cold-verified index binds ID/SHA; this callback grants only its
+        // exact retained component under the current managed release hold.
+        if self.inspect.operation_id != O::CorpusSummary.id()
+            || self.inspect.intended_use != tos_query::corpus_read::CORPUS_INTENDED_USE
+            || !same_corpus_receipt(receipt, expected)
+            || !valid
+        {
+            return Err(query_error("selected corpus view identity scope changed"));
+        }
+        self.corpus_granted = true;
+        Ok(())
+    }
     fn authorize_corpus_original_current(
         &mut self,
         receipt: &tos_compiler::CorpusOriginalReceipt,

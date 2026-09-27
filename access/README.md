@@ -1283,3 +1283,42 @@ and [bounded Merkle diff](contracts/projection-diff.v1.md) are explicit library
 utilities. Their adoption does not switch source exports, compile a query
 store, change adapters, or activate source-to-prepared updates. The diff requires
 a caller-admitted exact baseline and never certifies skipped target parts.
+
+The native software archive profile has one explicit executable member,
+`access/src/tos_access/tos-access`, beside its software-owned `web_dist`.
+The software builder accepts `--native-access-binary` and
+`--native-access-receipt` only together. The build-owned receipt
+`tos_native_access_build_v1` binds the exact ELF SHA-256/size, Linux x86_64
+target, clean source commit/tree, Cargo.lock SHA-256, pinned toolchain and
+build profile. These are integrity/provenance fields, not release admission.
+Rust owner sources participate in dirty-source detection for this profile;
+`--allow-dirty` cannot relabel a native product. Archive integrity validation
+checks the executable's exact 0755 mode without executing it. An extractor
+must retain that member's declared mode; the existing install probe restores
+only this verified member after Python zipfile extraction. The existing wheel
+backend does not include the ELF: `pip install ./access` remains the Python
+entrypoint, while the extracted archive's explicit native member is the
+transitional native entrypoint.
+
+Native `serve` uses the executable's installed software companion, never the
+selected data root, to serve `/` and `/static/…`. The manifest is bounded to
+1 MiB and each static member to 16 MiB, separately from query packet limits.
+Assembly verifies declared member SHA-256/size and the installed server checks
+its executable binding and required JS/CSS assets before accepting the site
+companion. Static requests use contained regular-file descriptors, verify the
+exact member before disclosure, retain its identity through final flush, and
+refuse undeclared, unsafe, changed or oversized members. GET and HEAD share
+status, MIME, cache/security headers and content length; HEAD omits the body.
+The current transport retains one verified bounded asset buffer. SHA checking
+does not make a second whole-body copy. These per-request bounds are not an
+aggregate process-memory or concurrency guarantee.
+
+The site shell takes default view IDs from held metadata projections of the
+actually selected corpus/philosophy components. It does not invoke full Views
+or CorpusSummary or prefetch graph rows. Missing selection or grants leave an
+empty default and an explicit false capability. Full maintained API responses
+remain separate. The software companion and every successful selected metadata
+packet remain held until the shell's final write/flush, with currentness and
+cancellation checked at the existing disclosure boundary. Software assembly,
+installed no-Python startup, kernel custody, activation and deployment remain
+separate acceptance steps.
