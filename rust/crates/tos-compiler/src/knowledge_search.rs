@@ -533,7 +533,7 @@ fn insert_posting_batch(
     let mut parameters: Vec<&dyn rusqlite::ToSql> = Vec::with_capacity(unique.len() + 2);
     parameters.push(&kind);
     parameters.push(&position);
-    parameters.extend(unique.iter().map(|gram| *gram as &dyn rusqlite::ToSql));
+    parameters.extend(unique.iter().map(|gram| gram as &dyn rusqlite::ToSql));
     let inserted = db.execute(&sql, params_from_iter(parameters))?;
     u64::try_from(inserted).map_err(|_| Error::Budget("search postings"))
 }
