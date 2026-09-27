@@ -6,7 +6,7 @@ use std::collections::BTreeMap;
 use std::sync::atomic::AtomicBool;
 use std::time::{Duration, Instant};
 use tos_command::source_command::{CommandContext, SourceCommandError, SourceFile};
-use tos_command::source_forms::run_form_command_from_captures;
+use tos_command::source_forms::{run_form_command, run_form_command_from_captures};
 use tos_command::source_operation::{SourceOperationError, bind_selected_candidate};
 use tos_source_store::{CorpusCutReader, CutReadLimits, SoftwareCaptureReader};
 use tos_validation::FormatProfile;
@@ -333,6 +333,55 @@ fn maintained_forms_propose_exact_bytes_bind_real_cut_and_refuse_unissued_admiss
                 assert_eq!(actual, oracle, "{profile}: {input}");
             }
         }
+        if profile.is_empty() || matches!(profile, "artifact-v1" | "artifact-v2" | "composite-v1") {
+            // Remaining independent shadow goldens now call the real handler.
+            let previews = if profile.is_empty() {
+                vec![
+                    (
+                        serde_json::json!({"schema_version":"tos_local_source_command_v1","operation":"describe"}),
+                        "describe.response.json",
+                    ),
+                    (
+                        serde_json::json!({"schema_version":"tos_local_source_command_v1","operation":"prepare","form_id":"tos.form.jenseits-von-gut-und-boese.name-original","field_id":"metadata.preferred-name"}),
+                        "prepare.preferred.response.json",
+                    ),
+                    (
+                        serde_json::json!({"schema_version":"tos_local_source_command_v1","operation":"prepare","form_id":"tos.form.oracle.jgb-name-ru-copy","field_id":"metadata.variant-name:0"}),
+                        "prepare.russian.response.json",
+                    ),
+                ]
+            } else {
+                [
+                    ("describe.request.json", "describe.response.json"),
+                    ("prepare.note.request.json", "prepare.note.response.json"),
+                    ("prepare.name.request.json", "prepare.name.response.json"),
+                ]
+                .into_iter()
+                .map(|(input, expected)| {
+                    (
+                        serde_json::from_slice(&fs::read(packet.join(input)).unwrap()).unwrap(),
+                        expected,
+                    )
+                })
+                .collect()
+            };
+            for (input, expected) in previews {
+                let mut observed = ctx.clone();
+                observed.request_raw = serde_json::to_vec(&input).unwrap();
+                let result = run_form_command_from_captures(
+                    &observed,
+                    &cut,
+                    &software,
+                    &components,
+                    &mut worker,
+                    deadline,
+                    &cancel,
+                )
+                .unwrap();
+                assert!(result.changes.is_empty());
+                assert_form_oracle_response(&result.response, &packet.join(expected));
+            }
+        }
         if claim_profile {
             let mut operations = vec![
                 ("describe_request.json", "describe.json"),
@@ -502,6 +551,174 @@ fn maintained_forms_propose_exact_bytes_bind_real_cut_and_refuse_unissued_admiss
                 "field revocation applies before new Claim apply"
             );
         }
+        if profile.is_empty() {
+            // Preserve distinct request, local identity and immutable-read risks
+            // on the actual consumer, without prototype-only error strings.
+            let original: Value = serde_json::from_slice(&request).unwrap();
+            for mutation in ["stale-source", "creator", "duplicate-form", "context"] {
+                let mut bad = original.clone();
+                match mutation {
+                    "stale-source" => {
+                        bad["expected_source"]["digest"] = serde_json::json!(
+                            "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+                        )
+                    }
+                    "creator" => {
+                        bad["changes"][0]["form"]["creator_id"] = serde_json::json!("impostor")
+                    }
+                    "duplicate-form" => {
+                        bad["changes"][1]["form"]["form_id"] =
+                            bad["changes"][0]["form"]["form_id"].clone()
+                    }
+                    "context" => {
+                        let raw = serde_json::to_string(&bad).unwrap();
+                        assert!(raw.contains("/identity_status"));
+                        bad = serde_json::from_str(
+                            &raw.replace("/identity_status", "/forged-context"),
+                        )
+                        .unwrap();
+                    }
+                    _ => unreachable!(),
+                }
+                let mut bad_ctx = ctx.clone();
+                bad_ctx.request_raw = serde_json::to_vec(&bad).unwrap();
+                assert!(
+                    run_form_command_from_captures(
+                        &bad_ctx,
+                        &cut,
+                        &software,
+                        &components,
+                        &mut worker,
+                        deadline,
+                        &cancel
+                    )
+                    .is_err(),
+                    "actual request guard: {mutation}"
+                );
+            }
+            let mut wrong_uid = ctx.clone();
+            wrong_uid.effective_uid += 1;
+            assert!(matches!(
+                run_form_command_from_captures(
+                    &wrong_uid,
+                    &cut,
+                    &software,
+                    &components,
+                    &mut worker,
+                    deadline,
+                    &cancel
+                ),
+                Err(SourceCommandError::Denied(_))
+            ));
+            for raw in [
+                b"{\"schema_version\":\"x\",\"schema_version\":\"y\"}".to_vec(),
+                vec![b' '; 1_048_577],
+            ] {
+                let mut malformed = ctx.clone();
+                malformed.request_raw = raw;
+                assert!(matches!(
+                    run_form_command_from_captures(
+                        &malformed,
+                        &cut,
+                        &software,
+                        &components,
+                        &mut worker,
+                        deadline,
+                        &cancel
+                    ),
+                    Err(SourceCommandError::Invalid(_))
+                ));
+            }
+        }
+        if matches!(profile, "artifact-v1" | "artifact-v2" | "composite-v1") {
+            let owner: Value = serde_json::from_slice(&config).unwrap();
+            let source_path = owner["source_path"].as_str().unwrap();
+            // Payload-law denials use the actual proposal engine and selected
+            // schemas. Substituted payloads have no authenticated cut claim;
+            // the separate capture wrapper must reject them as well.
+            for mutation in ["recast", "private", "version"] {
+                let mut substituted = ctx.clone();
+                let input = substituted
+                    .files
+                    .iter_mut()
+                    .find(|f| f.path.as_str() == source_path)
+                    .unwrap();
+                let mut source: Value = serde_json::from_slice(&input.raw).unwrap();
+                match mutation {
+                    "recast" => {
+                        source["schema_version"] = serde_json::json!("tos_corpus_record_v1")
+                    }
+                    "private" => source["visibility"] = serde_json::json!("local_only"),
+                    "version" => {
+                        source["record_version"] =
+                            serde_json::json!(source["record_version"].as_u64().unwrap() + 1)
+                    }
+                    _ => unreachable!(),
+                }
+                input.raw = serde_json::to_vec(&source).unwrap();
+                assert!(
+                    run_form_command(&substituted, &cut, &mut worker, deadline, &cancel).is_err(),
+                    "{profile}: payload owner law {mutation}"
+                );
+                assert!(matches!(
+                    run_form_command_from_captures(
+                        &substituted,
+                        &cut,
+                        &software,
+                        &components,
+                        &mut worker,
+                        deadline,
+                        &cancel
+                    ),
+                    Err(SourceCommandError::Conflict(_))
+                ));
+            }
+            let schema_path = match profile {
+                "artifact-v1" => "ToS/contracts/artifact-source-witness.schema.json",
+                "artifact-v2" => "ToS/contracts/artifact-source-witness-v2.schema.json",
+                "composite-v1" => "ToS/contracts/scholarly-composite-witness.schema.json",
+                _ => unreachable!(),
+            };
+            let mut drifted_schema = ctx.clone();
+            drifted_schema
+                .files
+                .iter_mut()
+                .find(|f| f.path.as_str() == schema_path)
+                .unwrap()
+                .raw
+                .push(b'\n');
+            assert!(matches!(
+                run_form_command_from_captures(
+                    &drifted_schema,
+                    &cut,
+                    &software,
+                    &components,
+                    &mut worker,
+                    deadline,
+                    &cancel
+                ),
+                Err(SourceCommandError::Conflict(_))
+            ));
+            let mut wrong_route = ctx.clone();
+            let mut owner = owner.clone();
+            owner["source_path"] = serde_json::json!(format!(
+                "ToS/source-witnesses/works/native/{}",
+                source_path.rsplit('/').next().unwrap()
+            ));
+            wrong_route.configuration_raw = serde_json::to_vec(&owner).unwrap();
+            assert!(
+                run_form_command_from_captures(
+                    &wrong_route,
+                    &cut,
+                    &software,
+                    &components,
+                    &mut worker,
+                    deadline,
+                    &cancel
+                )
+                .is_err()
+            );
+        }
         let prepared = run_form_command_from_captures(
             &ctx,
             &cut,
@@ -513,23 +730,14 @@ fn maintained_forms_propose_exact_bytes_bind_real_cut_and_refuse_unissued_admiss
         )
         .unwrap();
         assert_eq!(prepared.changes.len(), 1, "{profile}");
-        if independent_work || claim_profile {
-            let actual: Value = serde_json::from_slice(
-                &tos_foundation::canonical_bytes_v1(
-                    &prepared.response,
-                    tos_foundation::CanonicalProfile::SourceCommandInputV1,
-                    JsonLimits::default(),
-                )
-                .unwrap(),
-            )
-            .unwrap();
-            let oracle: Value =
-                serde_json::from_slice(&fs::read(packet.join("apply.json")).unwrap()).unwrap();
-            assert_eq!(
-                actual, oracle,
-                "{profile}: independent maintained apply result"
-            );
-        }
+        assert_form_oracle_response(
+            &prepared.response,
+            &packet.join(if independent_work || claim_profile {
+                "apply.json"
+            } else {
+                "apply.response.json"
+            }),
+        );
         let raw = prepared.changes[0].after.as_ref().unwrap();
         assert_eq!(
             *raw,
@@ -545,7 +753,7 @@ fn maintained_forms_propose_exact_bytes_bind_real_cut_and_refuse_unissued_admiss
             prepared.commit(),
             Err(SourceCommandError::MissingProductionAdmission)
         );
-        files.insert(target, raw.clone());
+        files.insert(target.clone(), raw.clone());
         let candidate = successor(&files, &root, base);
         let candidate_cut = open_cut(&root, candidate, deadline, &cancel);
         if profile.is_empty() {
@@ -728,19 +936,61 @@ fn maintained_forms_propose_exact_bytes_bind_real_cut_and_refuse_unissued_admiss
         .unwrap();
         assert!(replay.replayed);
         assert!(replay.changes.is_empty());
-        if independent_work || claim_profile {
-            let actual: Value = serde_json::from_slice(
-                &tos_foundation::canonical_bytes_v1(
-                    &replay.response,
-                    tos_foundation::CanonicalProfile::SourceCommandInputV1,
-                    JsonLimits::default(),
-                )
-                .unwrap(),
-            )
-            .unwrap();
-            let oracle: Value =
-                serde_json::from_slice(&fs::read(packet.join("replay.json")).unwrap()).unwrap();
-            assert_eq!(actual, oracle, "{profile}: whole replay result");
+        assert_form_oracle_response(
+            &replay.response,
+            &packet.join(if independent_work || claim_profile {
+                "replay.json"
+            } else {
+                "replay.response.json"
+            }),
+        );
+        if profile.is_empty() {
+            // Reusing a command ID for a different request must not replay.
+            let mut reused = replay_ctx.clone();
+            let mut changed: Value = serde_json::from_slice(&request).unwrap();
+            changed["expected_revision"] = serde_json::json!(
+                "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+            );
+            reused.request_raw = serde_json::to_vec(&changed).unwrap();
+            assert!(matches!(
+                run_form_command_from_captures(
+                    &reused,
+                    &candidate_cut,
+                    &software,
+                    &components,
+                    &mut worker,
+                    deadline,
+                    &cancel
+                ),
+                Err(SourceCommandError::Conflict(_))
+            ));
+            // Even re-derived public context cannot replace retained bytes.
+            let mut corrupted = replay_ctx.clone();
+            let retained = corrupted
+                .files
+                .iter_mut()
+                .find(|f| f.path.as_str() == target.as_str())
+                .unwrap();
+            let mut set: Value = serde_json::from_slice(&retained.raw).unwrap();
+            set["prior_forms"] = serde_json::json!([]);
+            retained.raw = serde_json::to_vec(&set).unwrap();
+            assert!(
+                run_form_command(&corrupted, &candidate_cut, &mut worker, deadline, &cancel)
+                    .is_err(),
+                "retained lineage must reconstruct, even before custody binding"
+            );
+            assert!(matches!(
+                run_form_command_from_captures(
+                    &corrupted,
+                    &candidate_cut,
+                    &software,
+                    &components,
+                    &mut worker,
+                    deadline,
+                    &cancel
+                ),
+                Err(SourceCommandError::Conflict(_))
+            ));
         }
         if profile == "claim_v2" {
             let mut narrowed: Value = serde_json::from_slice(&config).unwrap();
