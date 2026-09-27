@@ -506,7 +506,8 @@ def run_command(owner, config, configuration_digest, path, request):
                 raise source.JournalConflict('recovery selects another pending transaction')
             decision = request['decision'] if recovery else 'resume'
             authority = pending['plan']['authorization']
-            guard = common._guard(sys.modules[__name__], owner, config, configuration_digest, scope, original, {}, authority, recovery=recovery)
+            # Link and Claim are new homes; there is no parent revision archive.
+            guard = common._guard(sys.modules[__name__], owner, config, configuration_digest, scope, original, None, authority, recovery=recovery)
             renewal = {'schema_version': RECOVERY_AUTHORIZATION, 'principal_id': config['principal_id'],
                 'authority_ref': config['authority_ref'], 'owner_configuration': configuration_digest,
                 'transaction_id': identifier, 'decision': decision} if recovery else None
@@ -539,7 +540,9 @@ def run_command(owner, config, configuration_digest, path, request):
         authority = _authorization(config, request, dependencies)
         plan = _plan(config, authority, files)
         _validate_plan(root, plan)
-        guard = common._guard(sys.modules[__name__], owner, config, configuration_digest, config, request, {}, authority, recovery=False)
+        # Exact new-only plan validation remains with this adapter and the
+        # transaction reader; no parent record is revised here.
+        guard = common._guard(sys.modules[__name__], owner, config, configuration_digest, config, request, None, authority, recovery=False)
         transactions.apply_transaction(root, plan, expected_snapshot=snapshot, authorization_guard=guard,
                                        transaction_id=receipt['transaction_id'])
         return _result(config, configuration_digest, receipt=receipt, views=views)
