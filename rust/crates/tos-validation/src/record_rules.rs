@@ -2570,21 +2570,28 @@ mod tests {
             deadline: std::time::Instant::now()+std::time::Duration::from_secs(30),
         };
         let cancel=std::sync::atomic::AtomicBool::new(false);
-        let routes=compile_local_claim_routes(&entities,&relations,limits,&cancel).unwrap();
+        let base_state=crate::record_biblio_cut::decoded_state(&entities).unwrap()
+            .checked_add(crate::record_biblio_cut::decoded_state(&relations).unwrap()).unwrap();
+        let routes=compile_local_claim_routes(&entities,&relations,base_state,limits,&cancel).unwrap();
         let count:usize=relations["relations"].as_array().unwrap().iter()
             .filter_map(|e|e.get("source_claim_profile")).map(|p|p["schemas"].as_array().unwrap().len()).sum();
         assert_eq!(routes.len(),count);
         assert!(routes.contains_key(&("subject_identity_transition_proposal".into(),"tos_subject_identity_transition_claim_v1".into())));
+        drop(routes);
         let mut duplicated=relations.clone();
         let entry=duplicated["relations"].as_array().unwrap().iter().find(|e|e.get("source_claim_profile").is_some()).unwrap().clone();
         duplicated["relations"].as_array_mut().unwrap().push(entry);
-        assert!(matches!(compile_local_claim_routes(&entities,&duplicated,limits,&cancel),Err(LocalClaimCompileError::Rule("claim-relation-id-duplicate",_))));
+        assert!(matches!(compile_local_claim_routes(&entities,&duplicated,
+            base_state.checked_add(crate::record_biblio_cut::decoded_state(&duplicated).unwrap()).unwrap(),limits,&cancel),Err(LocalClaimCompileError::Rule("claim-relation-id-duplicate",_))));
+        drop(duplicated);
         let mut changed=entities.clone();
         let entry=changed["types"].as_array_mut().unwrap().iter_mut().find(|e|e["source_record_profile"].get("identity_proposal_adapter").is_some()).unwrap();
         entry["source_record_profile"]["graph_layer"]=json!("invented");
-        assert!(matches!(compile_local_claim_routes(&changed,&relations,limits,&cancel),Err(LocalClaimCompileError::Rule("claim-semantic-identity-adapter",_))));
+        assert!(matches!(compile_local_claim_routes(&changed,&relations,
+            base_state.checked_add(crate::record_biblio_cut::decoded_state(&changed).unwrap()).unwrap(),limits,&cancel),Err(LocalClaimCompileError::Rule("claim-semantic-identity-adapter",_))));
+        drop(changed);
         cancel.store(true,std::sync::atomic::Ordering::Relaxed);
-        assert!(matches!(compile_local_claim_routes(&entities,&relations,limits,&cancel),Err(LocalClaimCompileError::Refusal(_))));
+        assert!(matches!(compile_local_claim_routes(&entities,&relations,base_state,limits,&cancel),Err(LocalClaimCompileError::Refusal(_))));
     }
 
     #[test]
