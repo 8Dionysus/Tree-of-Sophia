@@ -831,7 +831,7 @@ fn prepared_change(
     ]))
 }
 
-fn validate_history(set: &JsonValue, subject: &JsonValue) -> Result<()> {
+pub fn validate_history(set: &JsonValue, subject: &JsonValue) -> Result<()> {
     if text(set, "schema_version")? != "tos_human_form_set_v1" {
         return Err(Error::Unsupported("other HumanForm set schema"));
     }
