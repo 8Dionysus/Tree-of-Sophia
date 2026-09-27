@@ -167,7 +167,7 @@ fn run_with_cut(
     let root = temporary.path().join("store");
     let authored = files
         .iter()
-        .filter(|(name, _)| !profile_cut || name.starts_with("ToS/"))
+        .filter(|(name, _)| name.starts_with("ToS/"))
         .map(|(name, raw)| (name.clone(), raw.clone()))
         .collect::<BTreeMap<_, _>>();
     let revision = super::validation_cut_cases::write_cut_store(&authored, &root);
@@ -183,13 +183,13 @@ fn run_with_cut(
     );
     bound.recorded_at = ctx.recorded_at.clone();
     bound.effective_uid = ctx.effective_uid;
+    assert!(
+        cut.current()
+            .members()
+            .all(|member| member.path.as_str().starts_with("ToS/"))
+    );
+    let (_capture, software, components) = captured_components(&files, deadline, &cancel);
     if profile_cut {
-        assert!(
-            cut.current()
-                .members()
-                .all(|member| member.path.as_str().starts_with("ToS/"))
-        );
-        let (_capture, software, components) = captured_components(&files, deadline, &cancel);
         assert!(matches!(
             prepare_record_revision_with_profile_cut(
                 &bound,
@@ -201,19 +201,17 @@ fn run_with_cut(
             ),
             Err(SourceCommandError::Unsupported(_))
         ));
-        prepare_record_revision_from_captures(
-            &bound,
-            publication,
-            &cut,
-            &software,
-            &components,
-            &mut worker,
-            deadline,
-            &cancel,
-        )
-    } else {
-        prepare_record_revision(&bound, publication, &mut worker, deadline, &cancel)
     }
+    prepare_record_revision_from_captures(
+        &bound,
+        publication,
+        &cut,
+        &software,
+        &components,
+        &mut worker,
+        deadline,
+        &cancel,
+    )
 }
 fn captured_components(
     files: &BTreeMap<String, Vec<u8>>,
