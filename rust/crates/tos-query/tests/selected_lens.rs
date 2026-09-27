@@ -1512,7 +1512,7 @@ json.dump({'base':str(base),'capture':str(capture),'restored':str(restored),'com
     .unwrap()
     .into_root();
     let s = |name| field(&oracle, name).as_str().unwrap().to_owned();
-    let fixture = build_native_fixture_with_captured_corpus(
+    let mut fixture = build_native_fixture_with_captured_corpus(
         std::path::Path::new(&s("capture")),
         std::path::Path::new(&s("restored")),
         &s("commit"),
@@ -1660,6 +1660,19 @@ json.dump({'base':str(base),'capture':str(capture),'restored':str(restored),'com
         SearchV2ErrorCode::Unavailable
     );
     drop(cold);
+    // An outer model rehash must not make a changed addressed index key
+    // trustworthy while the root-bound original packet remains unchanged.
+    {
+        let db = rusqlite::Connection::open(&fixture.path).unwrap();
+        assert!(db.execute(
+            "UPDATE corpus_original_rows SET node_id=?1 WHERE collection='nodes' AND node_id=?2",
+            rusqlite::params![format!("{}!", s("node")), s("node")],
+        ).unwrap() > 0);
+    }
+    let bytes = std::fs::read(&fixture.path).unwrap();
+    fixture.expectation.model_sha256 = tos_foundation::Digest256::of_bytes(&bytes).to_hex();
+    fixture.expectation.model_size_bytes = u64::try_from(bytes.len()).unwrap();
+    assert!(fixture.open().is_err());
     drop(fixture);
     std::fs::remove_dir_all(s("base")).unwrap();
 }
