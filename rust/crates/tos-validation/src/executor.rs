@@ -2076,7 +2076,7 @@ mod native {
     fn kill_and_reap(
         pid: i32,
         status: &mut Option<i32>,
-        cleanup_grace: Duration,
+        reap_deadline: Instant,
     ) -> Result<(), ExecutorFailure> {
         // waitpid already released this PID/PGID for reuse. Never signal it
         // after that point, even if a descendant kept a protocol socket open.
@@ -2087,12 +2087,16 @@ mod native {
             libc::kill(-pid, libc::SIGKILL);
             libc::kill(pid, libc::SIGKILL);
         }
-        let reap_deadline = Instant::now() + cleanup_grace;
-        while status.is_none() && Instant::now() < reap_deadline {
+        // Always attempt a nonblocking reap after signalling, even when the
+        // shared cleanup deadline has just elapsed.
+        loop {
             poll_exit(pid, status)?;
-            if status.is_none() {
-                thread::sleep(Duration::from_millis(1));
+            if status.is_some() || Instant::now() >= reap_deadline {
+                break;
             }
+            thread::sleep(Duration::from_millis(1).min(
+                reap_deadline.saturating_duration_since(Instant::now()),
+            ));
         }
         if status.is_none() {
             // A kernel-uninterruptible child cannot be reaped on a deadline.
@@ -2270,14 +2274,33 @@ mod native {
     }
     impl OperationChild {
         fn cleanup(&mut self) -> Result<(), ExecutorFailure> {
+            self.cleanup_inner(false)
+        }
+        fn cleanup_after_eof(&mut self) -> Result<(), ExecutorFailure> {
+            self.cleanup_inner(true)
+        }
+        fn cleanup_inner(&mut self, observe_eof_exit: bool) -> Result<(), ExecutorFailure> {
             if let Some(result) = self.cleanup_result {
                 return result;
             }
-            // Observe once immediately before any cleanup kill. A status
-            // collected after that kill belongs only to cleanup, never origin.
-            let observed = poll_exit(self.pid, &mut self.status);
+            let started = Instant::now();
+            let reap_deadline = started + self.cleanup_grace;
+            // EOF can precede a waitable status. Reserve at least half of the
+            // same cleanup grace for forced termination/reaping; this is a
+            // best-effort natural observation, not a promised cause capture.
+            let observation_deadline = started + self.cleanup_grace / 2;
+            let mut observed = poll_exit(self.pid, &mut self.status);
+            while observe_eof_exit && observed.is_ok() && self.status.is_none()
+                && Instant::now() < observation_deadline
+            {
+                thread::sleep(Duration::from_millis(1).min(
+                    observation_deadline.saturating_duration_since(Instant::now()),
+                ));
+                observed = poll_exit(self.pid, &mut self.status);
+            }
+            // Only status collected before any parent kill belongs to origin.
             self.natural_status = self.status;
-            let reaped = kill_and_reap(self.pid, &mut self.status, self.cleanup_grace);
+            let reaped = kill_and_reap(self.pid, &mut self.status, reap_deadline);
             let result = reaped.and(observed);
             self.cleanup_result = Some(result);
             result
@@ -2621,12 +2644,18 @@ mod native {
                 )
             };
             if count >= 0 || io::Error::last_os_error().kind() != io::ErrorKind::WouldBlock {
+                output_eof |= count == 0;
                 failure = Some((ExecutorFailure::Protocol, if count == 0 {"post-terminal-eof"} else if count > 0 {"post-terminal-extra-byte"} else {"post-terminal-receive"}));
             }
         }
         child.status = status;
         if let Some((reason, boundary)) = failure {
-            let cleanup = child.cleanup();
+            // Timeout/cancellation and non-EOF failures keep prompt cleanup.
+            let cleanup = if reason == ExecutorFailure::Protocol && output_eof {
+                child.cleanup_after_eof()
+            } else {
+                child.cleanup()
+            };
             let observed_failure = child.natural_status.and_then(status_failure);
             let natural_termination = child.natural_status.map(|status| {
                 let signal = status & 0x7f;
@@ -3711,6 +3740,64 @@ mod native {
                     }
                 ));
             }
+            // Force EOF while the child is still blocked on input, then let
+            // it exit naturally. EOF must not make cleanup immediately kill it.
+            let script = c"import os,sys; os.close(1); sys.stdin.buffer.read(1); sys.exit(17)";
+            let argv = [c"python3".as_ptr() as *mut libc::c_char,
+                c"-c".as_ptr() as *mut libc::c_char, script.as_ptr() as *mut libc::c_char,
+                std::ptr::null_mut()];
+            let mut child = spawn_operation_child(&image, ExecutorBudget::laboratory(), &argv).unwrap();
+            let eof_deadline = Instant::now() + Duration::from_millis(700);
+            loop {
+                let mut byte = [0u8; 1];
+                let count = unsafe { libc::recv(child.output.as_raw_fd(), byte.as_mut_ptr().cast(), 1, libc::MSG_DONTWAIT) };
+                if count == 0 { break; }
+                assert!(count < 0 && io::Error::last_os_error().kind() == io::ErrorKind::WouldBlock);
+                assert!(Instant::now() < eof_deadline, "child did not close output");
+                thread::sleep(Duration::from_millis(1).min(eof_deadline.saturating_duration_since(Instant::now())));
+            }
+            poll_exit(child.pid, &mut child.status).unwrap();
+            assert!(child.status.is_none(), "EOF fixture must still be awaiting input");
+            assert_eq!(unsafe { libc::send(child.input.as_raw_fd(), b"x".as_ptr().cast(), 1, libc::MSG_NOSIGNAL) }, 1);
+            let cleanup_started = Instant::now();
+            child.cleanup_after_eof().unwrap();
+            assert_eq!(child.natural_status.map(status_failure), Some(Some(ExecutorFailure::CrashExit(17))));
+            assert_eq!(child.status, child.natural_status);
+            assert!(cleanup_started.elapsed() < Duration::from_millis(700));
+            child.cleanup().unwrap();
+            assert_eq!(child.status, child.natural_status);
+
+            // Closing stdout does not imply process exit. A live EOF child
+            // receives only the original cleanup envelope and then is killed;
+            // that SIGKILL is cleanup evidence, never natural termination.
+            let script = c"import os,time; os.close(1); time.sleep(2)";
+            let argv = [c"python3".as_ptr() as *mut libc::c_char,
+                c"-c".as_ptr() as *mut libc::c_char, script.as_ptr() as *mut libc::c_char,
+                std::ptr::null_mut()];
+            let mut child = spawn_operation_child(&image, ExecutorBudget::laboratory(), &argv).unwrap();
+            let prepared = make_batch_request(Digest256::of_bytes(b"fixture-worker"),
+                &batch_schema(), FormatProfile::AssertedSourceCandidateV1,
+                [batch_unit(0, b"7")], budget).unwrap();
+            let mut results = Digest256Hasher::new();
+            results.update(b"tos-val2-batch-results-v1\0");
+            let started = Instant::now();
+            let outcome = run_batch_exchange(&mut child, prepared, results, budget, started, None, true);
+            match outcome {
+                BatchOutcome::Incomplete { reason: ExecutorFailure::Protocol, receipts,
+                    exchange: Some(context), .. } => {
+                    assert!(receipts.is_empty());
+                    assert_eq!(context.boundary, "early-output-eof");
+                    assert_eq!(context.failure, ExecutorFailure::Protocol);
+                    assert_eq!(context.natural_termination, None);
+                },
+                other => panic!("live EOF child did not preserve failure origin: {other:?}"),
+            }
+            assert!(started.elapsed() < Duration::from_millis(700));
+            assert_eq!(child.status.map(status_failure), Some(Some(ExecutorFailure::CrashSignal(libc::SIGKILL))));
+            assert_eq!(child.natural_status, None);
+            child.cleanup_after_eof().unwrap();
+            assert_eq!(child.natural_status, None);
+
             // A status observed before cleanup is source of the termination
             // detail; unlike a cleanup SIGKILL, it may explain missing output.
             for (script, expected) in [
