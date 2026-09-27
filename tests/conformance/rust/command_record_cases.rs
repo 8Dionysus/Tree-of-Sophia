@@ -860,10 +860,40 @@ fn native_profile_context() -> CommandContext {
     let mut layer = parse(include_bytes!(
         "../../fixtures/native-text-binding/source-text-layer-abc/variant-a.layer.json"
     ));
-    let anchor = parse(include_bytes!(
+    let mut anchor = parse(include_bytes!(
         "../../fixtures/native-text-binding/source-anchor-v2-abc/variant-b.anchor.json"
     ));
     let source_binding = layer.object_get("source_binding").unwrap().clone();
+    // The three borrowed metadata packets are separate synthetic exercises.
+    // This explicitly constructed joint fixture uses the layer's existing
+    // unknown-language declaration and exact source item/file binding. It
+    // does not alter owner schemas or claim actual content/rights admission.
+    nested(
+        &mut packet,
+        &["source_layer", "language"],
+        layer
+            .object_get("representation")
+            .unwrap()
+            .object_get("language")
+            .unwrap()
+            .clone(),
+    );
+    nested(
+        &mut anchor,
+        &["target", "item_id"],
+        source_binding.object_get("item_ref").unwrap().clone(),
+    );
+    assert_eq!(
+        anchor.object_get("target").unwrap().object_get("file_id"),
+        source_binding.object_get("source_file_ref")
+    );
+    assert_eq!(
+        anchor
+            .object_get("target")
+            .unwrap()
+            .object_get("file_sha256"),
+        source_binding.object_get("source_file_sha256")
+    );
     let content_sha = packet
         .object_get("source_layer")
         .unwrap()

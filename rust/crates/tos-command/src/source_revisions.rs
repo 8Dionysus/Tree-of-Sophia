@@ -410,7 +410,10 @@ fn history(files: &Package, record: &JsonValue) -> SourceCommandResult<JsonValue
         if !commands.insert(cmd::text(receipt, "command_id")?)
             || cmd::text(receipt, "request_digest")? != cmd::record_digest(request)?.to_prefixed()
             || cmd::field(receipt, "command_id")? != cmd::field(request, "command_id")?
-            || cmd::field(receipt, "previous_source")? != cmd::field(request, "expected_source")?
+            || !cmd::same(
+                cmd::field(receipt, "previous_source")?,
+                cmd::field(request, "expected_source")?,
+            )?
             || cmd::field(receipt, "previous_revision")?
                 != cmd::field(request, "expected_revision")?
             || cmd::field(receipt, "owner_configuration")?
@@ -424,7 +427,10 @@ fn history(files: &Package, record: &JsonValue) -> SourceCommandResult<JsonValue
                 != cmd::field(&subject, "id")?
             || cmd::integer(cmd::field(receipt, "previous_source")?, "version")?.checked_add(1)
                 != Some(cmd::integer(cmd::field(receipt, "source")?, "version")?)
-            || previous.is_some_and(|p| Some(p) != receipt.object_get("previous_source"))
+            || previous
+                .map(|p| cmd::same(p, cmd::field(receipt, "previous_source")?))
+                .transpose()?
+                .is_some_and(|same| !same)
         {
             return Err(SourceCommandError::Conflict(
                 "broken retained source revision lineage",
@@ -457,7 +463,9 @@ fn history(files: &Package, record: &JsonValue) -> SourceCommandResult<JsonValue
         }
         previous = Some(cmd::field(receipt, "source")?);
     }
-    if previous.is_some_and(|p| p != &subject) {
+    if let Some(previous) = previous
+        && !cmd::same(previous, &subject)?
+    {
         return Err(SourceCommandError::Conflict(
             "current record is not retained revision head",
         ));
@@ -492,7 +500,10 @@ fn read_archive(
     if !selected && cmd::text(&manifest, "schema_version")? != "tos_source_package_archive_v1"
         || selected && cmd::text(&manifest, "publication_protocol")? != PROTOCOL
         || cmd::field(&manifest, "source_path")? != cmd::field(config, "source_path")?
-        || cmd::field(&manifest, "source")? != cmd::field(receipt, "previous_source")?
+        || !cmd::same(
+            cmd::field(&manifest, "source")?,
+            cmd::field(receipt, "previous_source")?,
+        )?
         || cmd::field(&manifest, "revision")? != cmd::field(receipt, "previous_revision")?
     {
         return Err(SourceCommandError::Conflict(
@@ -574,14 +585,20 @@ fn read_archive(
             .get(base)
             .ok_or(SourceCommandError::Conflict("archive record missing"))?,
     )?;
-    if source_forms::metadata_subject(&old)? != *cmd::field(receipt, "previous_source")? {
+    if !cmd::same(
+        &source_forms::metadata_subject(&old)?,
+        cmd::field(receipt, "previous_source")?,
+    )? {
         return Err(SourceCommandError::Conflict(
             "archive exact source mismatch",
         ));
     }
     if let Some(request) = receipt.object_get("request") {
         let successor = revised(&old, request)?;
-        if source_forms::metadata_subject(&successor)? != *cmd::field(receipt, "source")? {
+        if !cmd::same(
+            &source_forms::metadata_subject(&successor)?,
+            cmd::field(receipt, "source")?,
+        )? {
             return Err(SourceCommandError::Conflict(
                 "retained request does not reconstruct successor",
             ));
@@ -606,7 +623,10 @@ fn verify_history(
                 .ok_or(SourceCommandError::Conflict("archived source missing"))?,
         )?;
         let retained = history(&archived, &previous)?;
-        if cmd::array(&retained, "receipts")? != &receipts[..index] {
+        if !cmd::same(
+            cmd::field(&retained, "receipts")?,
+            &JsonValue::Array(receipts[..index].to_vec()),
+        )? {
             return Err(SourceCommandError::Conflict(
                 "retained predecessor history prefix differs",
             ));
@@ -1364,7 +1384,7 @@ fn reconstruct_transaction(
             "retained successor must append exactly one receipt",
         ));
     }
-    if cmd::field(original, "expected_source")? != &before.subject
+    if !cmd::same(cmd::field(original, "expected_source")?, &before.subject)?
         || cmd::text(original, "expected_revision")? != revision(&before.files)?
         || cmd::text(original, "expected_dependencies")?
             != dependencies(ctx, config, family, &before)?
@@ -1386,7 +1406,7 @@ fn reconstruct_transaction(
         cmd::text(receipt, "recorded_at")?,
         scope_operation,
     )?;
-    if output != after.files || receipt != &reconstructed {
+    if output != after.files || !cmd::same(receipt, &reconstructed)? {
         return Err(SourceCommandError::Conflict(
             "retained bytes do not reconstruct exact delegated successor",
         ));
@@ -1637,7 +1657,7 @@ fn prepare_record_revision_inner(
     if operation == "inspect-version" {
         let requested = cmd::field(&request_value, "source")?;
         for receipt in cmd::array(&inspection.history, "receipts")? {
-            if cmd::field(receipt, "previous_source")? == requested {
+            if cmd::same(cmd::field(receipt, "previous_source")?, requested)? {
                 let (files, locations) = read_archive(ctx, &config, receipt)?;
                 let (_, base) = split(cmd::text(&config, "source_path")?)?;
                 cmd::set(
@@ -1739,7 +1759,7 @@ fn prepare_record_revision_inner(
                     retained,
                     "record.revise",
                 )?;
-                if !cmd::same(&original, &request_value)? || &reconstructed != receipt {
+                if !cmd::same(&original, &request_value)? || !cmd::same(&reconstructed, receipt)? {
                     return Err(SourceCommandError::Conflict(
                         "retained publication differs from correction receipt",
                     ));
@@ -1761,7 +1781,10 @@ fn prepare_record_revision_inner(
         }
     }
     if cmd::text(&request_value, "expected_configuration")? != configuration
-        || cmd::field(&request_value, "expected_source")? != &inspection.subject
+        || !cmd::same(
+            cmd::field(&request_value, "expected_source")?,
+            &inspection.subject,
+        )?
         || cmd::text(&request_value, "expected_revision")? != revision(&inspection.files)?
         || cmd::text(&request_value, "expected_dependencies")?
             != dependencies(ctx, &config, family, &inspection)?
@@ -3687,11 +3710,11 @@ pub fn resolve_record_version(
     )?;
     let files = package(&routed, location, true)?;
     let retained = verify_history(&routed, &descriptor, &files, &record)?;
-    if &subject == exact {
+    if cmd::same(&subject, exact)? {
         return Ok((record, location.into()));
     }
     for receipt in cmd::array(&retained, "receipts")? {
-        if cmd::field(receipt, "previous_source")? == exact {
+        if cmd::same(cmd::field(receipt, "previous_source")?, exact)? {
             let (archived, _) = read_archive(&routed, &descriptor, receipt)?;
             let (_, base) = split(location)?;
             let record = cmd::parse(archived.get(base).ok_or(SourceCommandError::Conflict(
