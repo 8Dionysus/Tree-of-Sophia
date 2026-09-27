@@ -1351,6 +1351,7 @@ name = "tos-access"
 version = "0.0.0"
 dependencies = [
  "tos-compiler",
+ "tos-fd-open",
  "tos-foundation",
  "tos-query",
 ]
@@ -1377,6 +1378,7 @@ dependencies = [
  "libc",
  "regex",
  "rusqlite",
+ "serde",
  "serde_json",
  "tos-fd-open",
  "tos-foundation",
