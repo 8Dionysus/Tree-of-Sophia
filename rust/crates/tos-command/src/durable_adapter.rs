@@ -2022,6 +2022,7 @@ impl DurablePgCoordinator {
 
     pub fn seal_shadow_cut(&mut self, cut: &ColdCut) -> DurableResult<()> {
         let mut tx = self.client.transaction()?;
+        tx.batch_execute("SET LOCAL lock_timeout = '5s'; SET LOCAL statement_timeout = '15s'")?;
         // The audit fence is the first metadata lock for every laboratory
         // writer. Its generation substitutes for a full scan under this
         // short publication transaction.
@@ -2107,6 +2108,7 @@ impl DurablePgCoordinator {
             return Err(DurableError::Corrupt("complete generation binding differs"));
         }
         let mut tx = self.client.transaction()?;
+        tx.batch_execute("SET LOCAL lock_timeout = '5s'; SET LOCAL statement_timeout = '15s'")?;
         let generation = lock_audit_fence(&mut tx, &cut.domain)?;
         let row = tx.query_one(
             "SELECT head_seq,published_seq,complete_cut_digest,complete_cut_generation,

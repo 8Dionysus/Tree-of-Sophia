@@ -70,8 +70,14 @@ fn limits() -> SegmentLimits {
     }
 }
 
-fn database_url() -> Option<String> {
-    std::env::var("TOS_CMD_POSTGRES_URL").ok()
+fn database_url() -> String {
+    let url = std::env::var("TOS_CMD_POSTGRES_URL")
+        .expect("postgres_durable_lab requires an explicitly selected PostgreSQL URL");
+    assert!(
+        !url.trim().is_empty(),
+        "postgres_durable_lab requires a nonempty PostgreSQL URL"
+    );
+    url
 }
 
 fn unique_domain() -> String {
@@ -353,7 +359,7 @@ impl<'a> MemberSpec<'a> {
 
 #[test]
 fn exact_locator_commit_replay_and_command_collision() {
-    let Some(url) = database_url() else { return };
+    let url = database_url();
     let mut lab = Lab::new(&url);
     let members = lab.prepare(
         b"prepare-A",
@@ -419,7 +425,7 @@ fn exact_locator_commit_replay_and_command_collision() {
 
 #[test]
 fn replay_rejects_forged_outbox_and_receipt_identity() {
-    let Some(url) = database_url() else { return };
+    let url = database_url();
     let mut lab = Lab::new(&url);
     let members = lab.prepare(
         b"prepare-replay-integrity",
@@ -477,7 +483,7 @@ fn replay_rejects_forged_outbox_and_receipt_identity() {
 
 #[test]
 fn stale_job_and_full_base_refuse_without_partial_commit() {
-    let Some(url) = database_url() else { return };
+    let url = database_url();
     let mut lab = Lab::new(&url);
     let stale_lease = lab.prepare(
         b"prepare-lease",
@@ -504,11 +510,50 @@ fn stale_job_and_full_base_refuse_without_partial_commit() {
     ));
     assert_eq!(lab.head_seq(), 1);
     assert_eq!(lab.count("history"), 1);
+
+    // These independent owner-contract fences were previously exercised only
+    // by CMD.1's synthetic byte coordinator. Here each stale proposal owns
+    // actual sealed STO bytes and must leave every committed projection empty.
+    for rule_drift in [true, false] {
+        let mut drift = Lab::new(&url);
+        let members = drift.prepare(
+            b"prepare-contract-drift",
+            "contract-drift",
+            &[MemberSpec::first("subject-contract", b"private contract")],
+        );
+        let mut owner = Client::connect(&url, NoTls).unwrap();
+        if rule_drift {
+            owner
+                .execute(
+                    "UPDATE cmd2_domain SET rule_version=1 WHERE domain=$1",
+                    &[&drift.domain],
+                )
+                .unwrap();
+        } else {
+            owner
+                .execute(
+                    "UPDATE cmd2_domain SET contract_digest=$2 WHERE domain=$1",
+                    &[
+                        &drift.domain,
+                        &Digest256::of_bytes(b"changed schema/registry/backend").to_hex(),
+                    ],
+                )
+                .unwrap();
+        }
+        assert!(matches!(
+            drift.commit(b"prepare-contract-drift", &members, 0, 1),
+            Err(DurableError::Conflict(_))
+        ));
+        assert_eq!(drift.head_seq(), 0);
+        for table in ["current", "history", "receipt", "log", "outbox"] {
+            assert_eq!(drift.count(table), 0);
+        }
+    }
 }
 
 #[test]
 fn compound_second_member_conflict_rolls_back_every_projection() {
-    let Some(url) = database_url() else { return };
+    let url = database_url();
     let mut lab = Lab::new(&url);
     let first = lab.prepare(
         b"prepare-existing",
@@ -548,7 +593,7 @@ fn compound_second_member_conflict_rolls_back_every_projection() {
 
 #[test]
 fn different_prepare_cannot_reuse_command_identity() {
-    let Some(url) = database_url() else { return };
+    let url = database_url();
     let mut lab = Lab::new(&url);
     let first = lab.prepare(
         b"prepare-original",
@@ -570,7 +615,7 @@ fn different_prepare_cannot_reuse_command_identity() {
 
 #[test]
 fn embedded_revision_and_owner_binding_fail_before_attachment() {
-    let Some(url) = database_url() else { return };
+    let url = database_url();
     let mut lab = Lab::new(&url);
     let bytes = lab_record_bytes("subject-A", 1, b"private payload");
     let attempt_fence = lab
@@ -637,7 +682,7 @@ fn embedded_revision_and_owner_binding_fail_before_attachment() {
 
 #[test]
 fn fenced_attempt_and_slot_mismatch_cannot_attach_or_commit() {
-    let Some(url) = database_url() else { return };
+    let url = database_url();
     let mut lab = Lab::new(&url);
     let prepare_id = b"prepare-fence-negative";
     let members = lab.prepare(
@@ -712,7 +757,7 @@ fn fenced_attempt_and_slot_mismatch_cannot_attach_or_commit() {
 
 #[test]
 fn cancel_wins_and_commit_wins_preserve_durable_attempt_decision() {
-    let Some(url) = database_url() else { return };
+    let url = database_url();
     let mut lab = Lab::new(&url);
     let cancelled = lab.prepare(
         b"prepare-cancel",
@@ -772,7 +817,7 @@ fn cancel_wins_and_commit_wins_preserve_durable_attempt_decision() {
 
 #[test]
 fn registered_cancel_survives_without_attached_pin() {
-    let Some(url) = database_url() else { return };
+    let url = database_url();
     let mut lab = Lab::new(&url);
     lab.db
         .register_attempt(&RegisterShadowAttempt {
@@ -805,7 +850,7 @@ fn registered_cancel_survives_without_attached_pin() {
 
 #[test]
 fn cancel_refuses_a_different_domains_store_before_fencing_either_attempt() {
-    let Some(url) = database_url() else { return };
+    let url = database_url();
     let mut a = Lab::new(&url);
     let mut b = Lab::new(&url);
     let prepare_id = b"same-prepare-different-domains";
@@ -848,7 +893,7 @@ fn cancel_refuses_a_different_domains_store_before_fencing_either_attempt() {
 
 #[test]
 fn cancel_during_fenced_seal_retries_after_late_pin_completion() {
-    let Some(url) = database_url() else { return };
+    let url = database_url();
     let mut lab = Lab::new(&url);
     let prepare_id = b"cancel-during-seal";
     let bytes = lab_record_bytes("late-subject", 1, b"late sealed bytes");
@@ -952,7 +997,7 @@ fn cancel_during_fenced_seal_retries_after_late_pin_completion() {
 
 #[test]
 fn rights_revocation_blocks_pending_commit_and_committed_replay() {
-    let Some(url) = database_url() else { return };
+    let url = database_url();
     let mut lab = Lab::new(&url);
     let committed = lab.prepare(
         b"prepare-committed",
@@ -986,7 +1031,7 @@ fn rights_revocation_blocks_pending_commit_and_committed_replay() {
 
 #[test]
 fn cold_reopen_retains_predecessor_bytes_and_detects_locator_tamper() {
-    let Some(url) = database_url() else { return };
+    let url = database_url();
     let mut lab = Lab::new(&url);
     let original = lab.prepare(
         b"prepare-v1",
@@ -1063,7 +1108,7 @@ fn cold_reopen_retains_predecessor_bytes_and_detects_locator_tamper() {
 
 #[test]
 fn selected_history_obeys_current_rights_after_cold_reopen() {
-    let Some(url) = database_url() else { return };
+    let url = database_url();
     let mut lab = Lab::new(&url);
     let members = lab.prepare(
         b"prepare-rights-read",
@@ -1085,7 +1130,7 @@ fn selected_history_obeys_current_rights_after_cold_reopen() {
 
 #[test]
 fn independent_store_copy_requires_exact_v2_attempt_intents() {
-    let Some(url) = database_url() else { return };
+    let url = database_url();
     let mut lab = Lab::new(&url);
     let first = lab.prepare(
         b"copy-prepare-v1",
@@ -1188,9 +1233,46 @@ fn wait_for_pg_row_block(url: &str, worker_pid: i32, blocker_pid: i32) {
     }
 }
 
+// Exercise the actual first publication lock while its owner remains held.
+// A timeout must roll back without publishing; a subsequent exact retry uses
+// the same existing candidate and succeeds after this owner releases the lock.
+fn publication_lock_timeout(
+    url: &str,
+    domain: &str,
+    publish: impl FnOnce(&mut DurablePgCoordinator) -> tos_command::DurableResult<()> + Send + 'static,
+) {
+    let mut blocker = Client::connect(url, NoTls).unwrap();
+    let mut tx = blocker.transaction().unwrap();
+    let blocker_pid: i32 = tx.query_one("SELECT pg_backend_pid()", &[]).unwrap().get(0);
+    tx.query_one(
+        "SELECT 1 FROM cmd2_audit_fence WHERE domain=$1 FOR UPDATE",
+        &[&domain],
+    )
+    .unwrap();
+    let (pid_send, pid_recv) = mpsc::channel();
+    let (result_send, result_recv) = mpsc::channel();
+    let worker_url = url.to_owned();
+    let worker = thread::spawn(move || {
+        let mut db = DurablePgCoordinator::connect(&worker_url).unwrap();
+        pid_send.send(db.backend_pid().unwrap()).unwrap();
+        let result = publish(&mut db);
+        result_send
+            .send(matches!(result,
+                Err(DurableError::Database(ref error))
+                    if error.code() == Some(&postgres::error::SqlState::LOCK_NOT_AVAILABLE)
+            ))
+            .unwrap();
+    });
+    let worker_pid = pid_recv.recv_timeout(Duration::from_secs(5)).unwrap();
+    wait_for_pg_row_block(url, worker_pid, blocker_pid);
+    assert!(result_recv.recv_timeout(Duration::from_secs(8)).unwrap());
+    tx.rollback().unwrap();
+    worker.join().unwrap();
+}
+
 #[test]
 fn rights_change_after_observed_audit_fence_wait_refuses_commit() {
-    let Some(url) = database_url() else { return };
+    let url = database_url();
     let mut lab = Lab::new(&url);
     let members = lab.prepare(
         b"prepare-waiting",
@@ -1273,7 +1355,7 @@ fn rights_change_after_observed_audit_fence_wait_refuses_commit() {
 
 #[test]
 fn verified_guard_blocks_adversarial_pin_abort_until_release() {
-    let Some(url) = database_url() else { return };
+    let url = database_url();
     let mut lab = Lab::new(&url);
     let members = lab.prepare(
         b"prepare-guard",
@@ -1331,7 +1413,7 @@ fn verified_guard_blocks_adversarial_pin_abort_until_release() {
 
 #[test]
 fn cold_cut_seal_is_monotone_and_rejects_forged_digest() {
-    let Some(url) = database_url() else { return };
+    let url = database_url();
     let mut lab = Lab::new(&url);
     let first = lab.prepare(
         b"prepare-cut-a",
@@ -1408,7 +1490,7 @@ fn cold_cut_seal_is_monotone_and_rejects_forged_digest() {
 
 #[test]
 fn cold_audit_pages_log_and_preadmits_metadata_bytes() {
-    let Some(url) = database_url() else { return };
+    let url = database_url();
     let mut lab = Lab::new(&url);
     for expected in 1..=129 {
         assert_eq!(lab.db.revoke_local(&lab.domain).unwrap(), expected);
@@ -1436,7 +1518,7 @@ fn cold_audit_pages_log_and_preadmits_metadata_bytes() {
 
 #[test]
 fn selected_generation_binds_complete_current_and_retained_membership() {
-    let Some(url) = database_url() else { return };
+    let url = database_url();
     let mut lab = Lab::new(&url);
     let first = lab.prepare(
         b"generation-first",
@@ -1580,6 +1662,11 @@ fn selected_generation_binds_complete_current_and_retained_membership() {
         Err(DurableError::Corrupt("installed membership row differs"))
     ));
 
+    let waiting_candidate = candidate.clone();
+    publication_lock_timeout(&url, &lab.domain, move |db| {
+        db.select_complete_generation(&waiting_candidate)
+    });
+    assert_eq!(lab.db.published_seq(&lab.domain).unwrap(), 0);
     lab.db.select_complete_generation(&candidate).unwrap();
     lab.db.select_complete_generation(&candidate).unwrap();
 
@@ -1669,7 +1756,7 @@ fn selected_generation_binds_complete_current_and_retained_membership() {
 
 #[test]
 fn cold_cut_fence_rejects_same_count_mutation_and_aba() {
-    let Some(url) = database_url() else { return };
+    let url = database_url();
     let mut lab = Lab::new(&url);
     let members = lab.prepare(
         b"prepare-cut-fence",
@@ -1788,7 +1875,7 @@ fn cold_cut_fence_rejects_same_count_mutation_and_aba() {
 
 #[test]
 fn seal_waits_on_trigger_ordered_fence_then_refuses_changed_cut() {
-    let Some(url) = database_url() else { return };
+    let url = database_url();
     let mut lab = Lab::new(&url);
     let members = lab.prepare(
         b"prepare-seal-order",
@@ -1798,6 +1885,11 @@ fn seal_waits_on_trigger_ordered_fence_then_refuses_changed_cut() {
     lab.commit(b"prepare-seal-order", &members, 0, 1).unwrap();
     let cold_store = SegmentStore::open_existing(&lab._root.0, limits()).unwrap();
     let cut = lab.db.cold_verify_cut(&cold_store, &lab.domain).unwrap();
+    let waiting_cut = cut.clone();
+    publication_lock_timeout(&url, &lab.domain, move |db| {
+        db.seal_shadow_cut(&waiting_cut)
+    });
+    assert_eq!(lab.db.published_seq(&lab.domain).unwrap(), 0);
     let mut blocker = Client::connect(&url, NoTls).unwrap();
     let mut tx = blocker.transaction().unwrap();
     let blocker_pid: i32 = tx.query_one("SELECT pg_backend_pid()", &[]).unwrap().get(0);
@@ -1838,7 +1930,7 @@ fn seal_waits_on_trigger_ordered_fence_then_refuses_changed_cut() {
 
 #[test]
 fn cold_cut_rejects_locator_and_outbox_tampering() {
-    let Some(url) = database_url() else { return };
+    let url = database_url();
     let mut lab = Lab::new(&url);
     let member = lab.prepare(
         b"prepare-cut-tamper",
@@ -1892,7 +1984,7 @@ fn cold_cut_rejects_locator_and_outbox_tampering() {
 #[test]
 #[ignore = "manual owner-managed PostgreSQL dump and independent STO copy drill"]
 fn export_cold_restore_fixture() {
-    let url = database_url().expect("dedicated synthetic PostgreSQL URL required");
+    let url = database_url();
     let mut lab = Lab::new(&url);
     let first = lab.prepare(
         b"restore-prepare-a1",
@@ -1965,7 +2057,7 @@ fn export_cold_restore_fixture() {
 #[test]
 #[ignore = "manual owner-managed PostgreSQL dump and independent STO copy drill"]
 fn verify_cold_restored_fixture() {
-    let url = database_url().expect("restored synthetic PostgreSQL URL required");
+    let url = database_url();
     let domain = std::env::var("TOS_CMD2_RESTORE_DOMAIN").expect("exported domain required");
     let store_path =
         std::env::var_os("TOS_CMD2_RESTORE_STORE").expect("independent STO copy required");
@@ -2041,7 +2133,7 @@ fn verify_cold_restored_fixture() {
 
 #[test]
 fn sigkill_after_seal_ready_and_commit_has_distinct_recovery() {
-    let Some(url) = database_url() else { return };
+    let url = database_url();
     for phase in ["sealed", "ready", "committed"] {
         let mut lab = Lab::new(&url);
         let status = Command::new(std::env::current_exe().unwrap())
@@ -2141,7 +2233,7 @@ fn sigkill_after_seal_ready_and_commit_has_distinct_recovery() {
 #[ignore = "run only as a child of sigkill_after_seal_ready_and_commit_has_distinct_recovery"]
 fn cmd2_process_kill_child() {
     let phase = std::env::var("TOS_CMD2_KILL_PHASE").expect("parent supplies kill phase");
-    let url = database_url().expect("parent supplies ephemeral PostgreSQL URL");
+    let url = database_url();
     let domain = std::env::var("TOS_CMD2_KILL_DOMAIN").expect("parent supplies domain");
     let root = PathBuf::from(std::env::var_os("TOS_CMD2_KILL_ROOT").expect("parent supplies root"));
     let store = SegmentStore::open_existing(&root, limits()).unwrap();

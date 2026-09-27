@@ -17,8 +17,14 @@ use tos_foundation::Digest256;
 static NEXT_DOMAIN: AtomicU64 = AtomicU64::new(0);
 static INIT_LAB_SCHEMA: Once = Once::new();
 
-fn database_url() -> Option<String> {
-    std::env::var("TOS_CMD_POSTGRES_URL").ok()
+fn database_url() -> String {
+    let url = std::env::var("TOS_CMD_POSTGRES_URL")
+        .expect("postgres_lab requires an explicitly selected PostgreSQL URL");
+    assert!(
+        !url.trim().is_empty(),
+        "postgres_lab requires a nonempty PostgreSQL URL"
+    );
+    url
 }
 
 fn setup(url: &str) -> (PgCoordinator, String) {
@@ -138,7 +144,7 @@ fn wait_for_sequencer_block(url: &str, worker_pid: i32, blocker_pid: i32) {
 
 #[test]
 fn disjoint_commit_order_closed_cut_and_observed_lock_wait() {
-    let Some(url) = database_url() else { return };
+    let url = database_url();
     let (mut db, domain) = setup(&url);
     let a = candidate(&domain, "prepared-A", "A");
     let b = candidate(&domain, "prepared-B", "B");
@@ -184,7 +190,7 @@ fn disjoint_commit_order_closed_cut_and_observed_lock_wait() {
 
 #[test]
 fn commit_reads_current_rights_after_waiting_for_sequencer() {
-    let Some(url) = database_url() else { return };
+    let url = database_url();
     let (mut db, domain) = setup(&url);
     let prepared = candidate(&domain, "waiting-under-revoke", "X");
     let mut owner = Client::connect(&url, NoTls).unwrap();
@@ -243,7 +249,7 @@ fn commit_reads_current_rights_after_waiting_for_sequencer() {
 
 #[test]
 fn absent_and_typed_predicate_phantoms() {
-    let Some(url) = database_url() else { return };
+    let url = database_url();
     let (mut db, domain) = setup(&url);
     let stale = candidate(&domain, "stale-absence", "X");
     db.commit(&candidate(&domain, "creates-X", "X")).unwrap();
@@ -276,7 +282,7 @@ fn absent_and_typed_predicate_phantoms() {
 
 #[test]
 fn revocation_rule_drift_external_refusal_and_current_read_gate() {
-    let Some(url) = database_url() else { return };
+    let url = database_url();
     let (mut db, domain) = setup(&url);
     let prepared = candidate(&domain, "prepared", "X");
     let revoked_seq = db.revoke_local(&domain).unwrap();
@@ -331,7 +337,7 @@ fn revocation_rule_drift_external_refusal_and_current_read_gate() {
 
 #[test]
 fn retained_versions_obey_current_rights() {
-    let Some(url) = database_url() else { return };
+    let url = database_url();
     let (mut db, domain) = setup(&url);
     db.commit(&candidate(&domain, "create-A", "A")).unwrap();
     let original = Digest256::of_bytes(b"A");
@@ -367,7 +373,7 @@ fn retained_versions_obey_current_rights() {
 
 #[test]
 fn closed_cut_detects_missing_committed_history() {
-    let Some(url) = database_url() else { return };
+    let url = database_url();
     let (mut db, domain) = setup(&url);
     db.commit(&candidate(&domain, "create-A", "A")).unwrap();
     assert_eq!(db.read_cut(&domain).unwrap().through_commit_seq, 1);
@@ -383,7 +389,7 @@ fn closed_cut_detects_missing_committed_history() {
 
 #[test]
 fn closed_cut_rejects_same_count_history_member_tamper() {
-    let Some(url) = database_url() else { return };
+    let url = database_url();
     let (mut db, domain) = setup(&url);
     db.commit(&candidate(&domain, "create-A", "A")).unwrap();
     let cut = db.read_cut(&domain).unwrap();
@@ -406,7 +412,7 @@ fn closed_cut_rejects_same_count_history_member_tamper() {
 
 #[test]
 fn seal_rejects_malformed_cut_event_counts_before_publication() {
-    let Some(url) = database_url() else { return };
+    let url = database_url();
     let (mut db, domain) = setup(&url);
     db.commit(&candidate(&domain, "first", "A")).unwrap();
     db.commit(&candidate(&domain, "second", "B")).unwrap();
@@ -433,7 +439,7 @@ fn seal_rejects_malformed_cut_event_counts_before_publication() {
 
 #[test]
 fn replay_lease_compound_rollback_and_mvcc_prefix() {
-    let Some(url) = database_url() else { return };
+    let url = database_url();
     let (mut db, domain) = setup(&url);
     let a = candidate(&domain, "A", "A");
     let first = db.commit(&a).unwrap().0;
