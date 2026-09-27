@@ -115,6 +115,34 @@ native consumer's independent fixture/parity status remains separate. Temporal
 greens were retained without repeating them for this new family; no deployment
 or general WASM coverage is claimed.
 
+## Full published lens/focus/stored continuation
+
+`LensSession` drives the same concrete `tos_query::LensPlan` used by selected
+native lens execution. `validate_lens_request_wasm_v1` checks bounded original
+compile/focus/stored input before D1 access; verified metadata later binds
+properties. The published software-v7 vocabulary and native descriptor law
+remain explicit separate profiles. The compiler retains one continuation and
+one outstanding concrete storage need; no replay or generic provider is added.
+
+Needs preserve existing indexed source/identity keysets, dimensional and
+membership counts, covered compact reads, ordered incidence, alias/source and
+exact payload closure. Rust owns selectors, recursive bounded path witnesses,
+traversal, sorting/grouping/presentation/fingerprint/cursor and packet assembly.
+The host authenticates original lexical rows and physical index/header framing.
+Per-row source size, physical D1 costs, logical work and final emission caps are
+separate. Rust's sole parsed cache and suspended/current row references are
+lexically bounded; transient host/UTF8/WASM copies are not an RSS claim.
+
+The actual default POST compile and GET/HEAD focus/stored routes consume the
+mandatory static product and existing verified publication/catalog/auxiliary
+seams. They reuse the accepted snapshot Response lifecycle and cooperative
+cancellation. FND emits Python compact insertion order and native numeric kinds.
+Matched products/typecheck and23 existing lens plus3 affected knowledge controls
+passed, including real Miniflare compilation/pagination. The exclusive TS lens
+algorithm and dead entries are removed; genuinely used exploration presentation,
+JSON/transport and browser preview helpers remain. Native independent parity,
+deployment, scale and remaining portable families are separate acceptance gates.
+
 The existing `tests/domain-wasm-host.mjs` exercises the real generated binding
 and async driver with a maintained selected-packet oracle carrier, plus
 cancellation, withdrawal, exact absence and terminal duplicate refusal. That

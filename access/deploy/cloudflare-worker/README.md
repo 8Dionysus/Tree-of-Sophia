@@ -79,13 +79,13 @@ the public `/api/knowledge/contracts` schema bundle, focused neighborhoods,
 stored lenses, and arbitrary `tos_lens_spec_v1`
 compilation use the same
 display/provenance envelopes as local Python. D1 narrows identities, dimensions
-and incidence; the bounded native-v7 lens plan evaluates general predicates,
+and incidence; the shared Rust lens plan evaluates general predicates,
 sort/count and traversal before limiting results. A Worker request never materializes the full
 knowledge graph in memory. The lens `POST` is a structured read query and does
 not create server state.
 
 Execution v7 resolves node `property_id` selectors through the v9 snapshot's
-`knowledge_lens_top.query_properties`, including path steps. Native references
+`knowledge_lens_top.query_properties`, including path steps. FND values
 retain raw JSON number kinds, unsafe integers and source member order through
 matching, grouping, v7 fingerprints, pagination and the first wire serialization.
 The read-model revision includes these
@@ -94,6 +94,16 @@ an API-only rebuild. Existing row data is not reinterpreted; the staged metadata
 update remains revision-guarded. An older snapshot without a binding rejects
 the selector until the matching read model is supplied. This is not automatic
 deployment authorization.
+
+Compile, focus and stored-open use the mandatory generated WASM `LensSession`
+and shared pre-D1 request validation. Concrete needs resume once; the native
+consumer uses the same Rust plan. Host code retains indexed SQL, original row
+bytes and publication/digest admission. The exclusively replaced TS lens
+algorithm is removed; shared exploration carrier and browser preview helpers
+remain. A demand-driven Response checks the selected epoch/revision before
+whole-body enqueue/close; abort/cancel discard bytes and HEAD admits the same
+packet without a body. Cooperative cancellation surrounds synchronous WASM;
+there is no in-WASM interruption or remote-flush claim.
 
 The lens/focus route requires matching v9 publication metadata, row digests,
 Unicode 16.0.0 and ordered indexes; older or damaged publication carriers fail
@@ -114,7 +124,7 @@ seeds and exact `view_ids`/`graph_layers` membership indexes. Their offline owne
 API and transaction rules are in
 [`LOCAL_PREPARED_PUBLICATION.md`](../../LOCAL_PREPARED_PUBLICATION.md).
 The extension binds the complete v9 publication header and epoch. Missing
-optional stores retain the old bounded plan; stale or incompatible installed
+optional stores retain the bounded full-row path; stale or incompatible installed
 stores return 503, and invalidation observed during a read returns 409. Native
 numbers, source member order, human-form selection, full inspection and
 uncovered-field predicates retain their existing authority and representation.

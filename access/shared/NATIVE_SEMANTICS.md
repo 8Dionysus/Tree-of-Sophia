@@ -233,39 +233,50 @@ JSON.stringify is used only to escape individual string values/keys.
 
 ## Worker integration boundary
 
-`native-lens.ts` carries original filter references through normalization and
-property binding. Matching, eager filter groups, native set-intersection
-failures, Python value strings, casefold grouping and v7 float64 fingerprints
-operate on references. Native int equality is exact even where v7 fingerprint
-int/float coercion intentionally aliases numeric values. Pagination requires
-integer JSON kinds, not merely integral JavaScript values.
+The maintained lens compile, focus and stored-open routes use the mandatory
+build-owned WASM `LensSession`, which drives the same `tos_query::LensPlan` as
+the native consumer. Shared Rust validation runs on original bounded request
+bytes before any D1 read; verified `knowledge_lens_top` properties bind afterward.
+The published-v7 software vocabulary is explicit; the native consumer retains
+its stronger selected descriptor law. Exact integer equality, eager filter/set
+refusals, grouping, float64 fingerprints and request/cursor last-member-wins
+behavior stay in the shared core. Source carrier duplicates remain refused.
+FND retains original lexical numeric kinds, object order and unknown fields,
+then emits the insertion-ordered Python compact packet with a 16 MiB ceiling.
 
-`native-lens-store.ts` uses the existing v9 publication header, per-row emitted
-byte digests, dimensional histograms and four ordered indexes. It rejects
-incompatible Unicode/schema, damaged row/order closure and changing publication
-clocks. SQL narrows identities, dimensions and incidence only; general matching
-and sort/count execute before bounded selection. Fixed-length path walks allow
-revisits; exhausted negative-path work fails rather than asserting absence.
-Metadata streams one chunk per query with SQL type/UTF-8-length guards against
-both local and remaining aggregate allowances. Selected payload pages use SQL
-length/type and cumulative page-byte guards before JSON or identity text is
-delivered to the Worker. Relation index endpoints must match authoritative row
-headers before use, even when no relation payload will be returned.
-All identity/order/header projections use SQL string-type/1 MiB-cell and
-cumulative remaining-byte guards too. Delivery admission is serialized within
-one request, so concurrently merged streams cannot overbook an allowance.
+`native-lens-store.ts` now retains physical D1 reads and publication admission.
+Rust declares bounded identities, dimensional/membership terms, ordered headers,
+incidence and full/covered-compact payload needs. The host translates them to
+indexed SQL and checks row/digest/identity/order closure before raw delivery.
+The existing SQL type/UTF-8/cumulative guards, per-row 1 MiB, source 16 MiB,
+query/returned-row/rows-read limits remain distinct from logical candidate,
+callback, path and sort work. Rust owns the sole 2 MiB lexical/64-entry parsed
+LRU; selected/suspended carrier references and pending replies share aggregate
+lexical charging. Transient host integrity trees, array framing, UTF-8/WASM
+copies and allocation overhead are not an RSS or precise CPU measurement.
+No whole graph is prefetched and no operation is replayed. Requested auxiliary
+stores remain bound to the verified publication and rechecked at completion.
 
-`native-lens-result.ts` retains source references through compact omissions,
-human-form context transport and pagination. Its scene projection has only
-explicit structural strings/IDs and display states; it is not a second lossy
-source-bearing result. `native-lens-response.ts` writes the plain public
-LensResult JSON directly with a 16 MiB ceiling. Internal `{packet, preview}`
-never appears on the wire. No producer schema or new scalar index is introduced.
-The stored catalog asset is byte-bounded while streaming before strict UTF-8
-decoding/JSON parsing (8 MiB; absent Content-Length does not bypass it). Invalid
-or oversized publication assets return 503. Native execution/response budgets
-return 413 for compilation and stored-lens/focus GET/HEAD; malformed compile
-input remains 400 and damaged source metadata remains 503.
+The actual Response reuses the demand-driven whole-packet snapshot lifecycle:
+final epoch/data_revision check before enqueue/close, cancellation/abort discard,
+and HEAD admission with no body. This is snapshot body handoff, not remote flush
+or writer exclusion. Catalog selection remains the existing separately bounded
+8 MiB digest/revision-verified D1 reader; stored execution shares the same outer
+snapshot. Invalid requests return 400, unknown stored IDs 404, source damage 503,
+publication/cursor change 409 and execution/response budget exhaustion 413.
+Local matched WASM/typecheck and the existing23 lens plus3 affected knowledge
+controls passed, including real Miniflare compilation/pagination. This bounded
+parity does not establish deployment, scale or every portable family.
+
+The replaced TS request/compiler, matcher, path/selector/traversal, group/sort/
+fingerprint/cursor finalizer and dead execute/focus/stored entry points are
+removed. `native-lens.ts` retains only JSON/ref helpers used by D1 custody,
+search, exploration and human forms. `native-lens-result.ts` retains the actually
+used exploration carrier presentation; its scene projection contains structural
+strings/IDs and display states. `native-lens-response.ts` retains ordinary
+bounded search/catalog packet transport. Browser preview helpers and independent
+Python/physical safety controls remain; no retired TS lens executor or fallback
+is retained behind the actual route.
 
 `native-d1-read.ts` is the internal bounded text/payload/digest reader shared
 with `native-inspection-store.ts`. Inspection is an independent v8/v9 plan:

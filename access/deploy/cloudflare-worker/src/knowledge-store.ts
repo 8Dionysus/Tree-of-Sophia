@@ -1,21 +1,15 @@
 import { HttpError, type Item } from "./common.ts";
-import {
-  focusLensSpec,
-  type FocusKnowledgeOptions,
-  type KnowledgeNode,
-  type KnowledgeRelation,
-} from "./knowledge.ts";
-import { jsonRows, rows } from "./store.ts";
+import { rows } from "./store.ts";
 import {nativeLower, codePointCompare, nativeNumberInfo, NativeBudgetExceeded} from '../../../shared/native-semantics.ts';
 import {nativeStrip} from '../../../shared/native-unicode.ts';
 import {NativeSearchDelivery, nativeSearchFailure} from './native-search-store.ts';
-import {executeNativeLensD1,PublishedLensD1Transport,readPublishedLensMetadata} from './native-lens-store.ts';
+import {PublishedLensD1Transport,readPublishedLensMetadata} from './native-lens-store.ts';
 import {admitAuxiliary,readLensPublicationBinding} from './native-lens-auxiliary.ts';
 import {respondLensSnapshot,lensError,SelectedLensError,type PublishedLensModule} from './selected-lens-runtime.ts';
 import {InspectionD1Transport, readNativeInspectionPublication} from './native-inspection-store.ts';
 import {respondInspectionSnapshot, inspectionError, SelectedInspectionError, type InspectionModule} from './selected-inspection-runtime.ts';
 import {respondTemporalSnapshot, SelectedTemporalError, type TemporalPublishedModule} from './selected-temporal-runtime.ts';
-import {parseNativeJson, parseNativeRequest, nativeField,nativePacketJson, arrayRefs, type NativeRef, type NativeLensResult, type NativePacket} from './native-lens.ts';
+import {parseNativeRequest, nativeField,nativePacketJson, type NativeRef, type NativePacket} from './native-lens.ts';
 import {NativeD1Read, NativeD1Rows, nativeD1Limits, readNativePublication, nativeSha256, nativeUnavailable,type NativeD1Limits} from './native-d1-read.ts';
 
 const KNOWLEDGE_SOURCES = new Set(["philosophy", "canon", "candidate-intake", "source-navigation", "source-claims", "semantic-interchange", "repository"]);
@@ -144,10 +138,6 @@ export async function consistentRead<T>(
     throw new HttpError(409, "knowledge snapshot changed during query; retry against the current revision");
   }
   return result;
-}
-
-export async function executeKnowledgeLensD1(db: D1Database, specValue: NativeRef): Promise<NativeLensResult> {
-  return consistentRead(db, snapshot => executeNativeLensD1(db, specValue, {}, snapshot.revision));
 }
 
 /** Whole published lens/focus/stored path. Rust owns normalization, selectors,
@@ -290,18 +280,6 @@ export async function knowledgeCatalogD1(db: D1Database): Promise<NativeRef> {
   return consistentRead(db,snapshot=>publishedCatalog(db,snapshot.revision));
 }
 
-export async function storedKnowledgeLensD1(db: D1Database, lensId: string): Promise<NativeLensResult> {
-  return consistentRead(db,async snapshot=>{
-    const catalog=await publishedCatalog(db,snapshot.revision);
-    const lenses=nativeField(catalog,'lenses');
-    if (!Array.isArray(lenses.value)) nativeUnavailable('published knowledge lens catalog is invalid');
-    const matches=arrayRefs(lenses).filter(ref=>nativeField(ref,'lens_id').value===lensId);
-    if (!matches.length) throw new HttpError(404,`unknown ToS knowledge lens: ${lensId}`);
-    if (matches.length!==1) nativeUnavailable('published knowledge lens identity is ambiguous');
-    return executeNativeLensD1(db,matches[0]!,{},snapshot.revision);
-  });
-}
-
 export async function knowledgeSearchD1(db: D1Database, options: Parameters<typeof knowledgeSearchD1Unchecked>[1]): Promise<NativePacket> {
   return nativeSearchFailure(()=>consistentRead(db, snapshot => knowledgeSearchD1Unchecked(db, options, snapshot)));
 }
@@ -413,80 +391,6 @@ function joinFragments(parts: SqlFragment[]): SqlFragment {
 async function count(db: D1Database, table: string, where: SqlFragment): Promise<number> {
   const result = await rows<CountRow>(db, `SELECT COUNT(*) AS count FROM ${table} WHERE ${where.sql}`, ...where.bindings);
   return Number(result[0]?.count ?? 0);
-}
-
-function asNodes(items: Item[]): KnowledgeNode[] {
-  return items as KnowledgeNode[];
-}
-
-function asRelations(items: Item[]): KnowledgeRelation[] {
-  return items as KnowledgeRelation[];
-}
-
-export async function nodesByIds(db: D1Database, ids: Iterable<string>): Promise<KnowledgeNode[]> {
-  const values = [...new Set(ids)];
-  if (values.length === 0) return [];
-  return asNodes(await jsonRows(
-    db,
-    "SELECT json FROM knowledge_nodes WHERE id IN (SELECT value FROM json_each(?)) ORDER BY id",
-    JSON.stringify(values),
-  ));
-}
-
-export async function relationsByIds(db: D1Database, ids: Iterable<string>): Promise<KnowledgeRelation[]> {
-  const values = [...new Set(ids)];
-  if (values.length === 0) return [];
-  return asRelations(await jsonRows(
-    db,
-    "SELECT json FROM knowledge_relations WHERE id IN (SELECT value FROM json_each(?)) ORDER BY id",
-    JSON.stringify(values),
-  ));
-}
-
-export async function resolveFocusNodeD1(
-  db: D1Database,
-  requestedId: string | null,
-  sources: string[],
-): Promise<KnowledgeNode | null> {
-  if (requestedId === null) return null;
-  const source = sourceFragment("n", sources);
-  const exact = asNodes(await jsonRows(
-    db,
-    `SELECT n.json FROM knowledge_nodes n WHERE ${source.sql} AND n.id = ? ORDER BY n.id`,
-    ...source.bindings,
-    requestedId,
-  ));
-  if (exact.length > 0) return exact[0]!;
-  const entity = asNodes(await jsonRows(
-    db,
-    `SELECT n.json FROM knowledge_nodes n WHERE ${source.sql} AND n.entity_id = ? ORDER BY CASE n.source_graph WHEN 'source-navigation' THEN 0 WHEN 'canon' THEN 1 WHEN 'source-claims' THEN 2 WHEN 'philosophy' THEN 3 WHEN 'candidate-intake' THEN 4 WHEN 'repository' THEN 5 WHEN 'semantic-interchange' THEN 6 ELSE 99 END, n.id`,
-    ...source.bindings,
-    requestedId,
-  ));
-  if (entity.length > 0) return entity[0]!;
-  const native = asNodes(await jsonRows(
-    db,
-    `SELECT n.json FROM knowledge_nodes n WHERE ${source.sql} AND n.native_id = ? ORDER BY n.id`,
-    ...source.bindings,
-    requestedId,
-  ));
-  if (native.length === 0) throw new HttpError(400, `unknown ToS knowledge focus: ${requestedId}`);
-  if (native.length > 1) {
-    throw new HttpError(
-      400,
-      `ambiguous ToS knowledge focus ${requestedId}: ${native.map((item) => item.id).join(", ")}; use a namespaced node id`,
-    );
-  }
-  return native[0]!;
-}
-
-
-export async function focusKnowledgeNodeD1(
-  db: D1Database,
-  nodeId: string,
-  options: FocusKnowledgeOptions = {},
-): Promise<NativeLensResult> {
-  return executeKnowledgeLensD1(db, parseNativeJson(JSON.stringify(focusLensSpec(nodeId, options))));
 }
 
 function normalizedSources(values: string[] | null): string[] {
