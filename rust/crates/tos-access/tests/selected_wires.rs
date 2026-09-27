@@ -447,6 +447,8 @@ mod selected_knowledge {
         inspect: IndexedDisclosureScope,
         held: Arc<AtomicUsize>,
         controls: Arc<Controls>,
+        registries: [(String, Digest256); 2],
+        registry_grants: u8,
     }
     impl Authority {
         fn new(
@@ -464,6 +466,7 @@ mod selected_knowledge {
                 O::SearchCapabilities => {
                     tos_query::knowledge_legacy_search::SEARCH_CAPABILITIES_INTENDED_USE
                 }
+                O::Contracts => tos_query::knowledge_contracts::KNOWLEDGE_CONTRACTS_INTENDED_USE,
                 _ => "read_only_public_knowledge_inspect_v1",
             };
             Self::for_scope(bound, request.operation().id(), intended, held, controls)
@@ -522,6 +525,17 @@ mod selected_knowledge {
                 inspect,
                 held,
                 controls,
+                registries: [
+                    (
+                        selected.entity_registry_id.clone(),
+                        selected.entity_registry_sha256,
+                    ),
+                    (
+                        selected.relation_registry_id.clone(),
+                        selected.relation_registry_sha256,
+                    ),
+                ],
+                registry_grants: 0,
             }
         }
         fn lease(&self) -> Lease {
@@ -555,6 +569,22 @@ mod selected_knowledge {
         fn abort_probe(&self) -> Option<Arc<dyn AbortProbe>> {
             Some(self.controls.clone())
         }
+        fn authorize_registry_current(
+            &mut self,
+            id: &str,
+            raw: &[u8],
+            sha: Digest256,
+        ) -> Result<(), SearchV2Error> {
+            assert_eq!(self.inspect.operation_id, O::Contracts.id());
+            assert_eq!(Digest256::of_bytes(raw), sha);
+            let at = self
+                .registries
+                .iter()
+                .position(|(selected_id, selected_sha)| selected_id == id && *selected_sha == sha)
+                .expect("grant exact selected original registry carrier");
+            self.registry_grants |= 1 << at;
+            Ok(())
+        }
         fn authorize_catalog_current(&mut self, sha: Digest256) -> Result<(), SearchV2Error> {
             assert_eq!(self.inspect.operation_id, O::StoredLens.id());
             assert_eq!(sha, self.catalog.catalog_packet_sha256);
@@ -578,7 +608,16 @@ mod selected_knowledge {
             _: &IndexedDisclosureScope,
             observed: &[ObservedInspectCarrier],
         ) -> Result<Box<dyn InspectDisclosureLease>, SearchV2Error> {
-            if self.inspect.operation_id
+            if self.inspect.operation_id == O::Contracts.id() {
+                assert_eq!(
+                    self.registry_grants, 3,
+                    "one current hold must cover both selected registry grants"
+                );
+                assert!(
+                    observed.is_empty(),
+                    "registry carriers are separately granted, not graph rows"
+                );
+            } else if self.inspect.operation_id
                 == tos_query::knowledge_legacy_search::SEARCH_CAPABILITIES_OPERATION
             {
                 assert!(
@@ -661,6 +700,7 @@ mod selected_knowledge {
                     | O::Focus
                     | O::StoredLens
                     | O::SearchCapabilities
+                    | O::Contracts
             )
         }
         fn knowledge(
@@ -689,16 +729,28 @@ mod selected_knowledge {
                 Arc::clone(&self.controls),
             );
             let budgets = budgets();
-            let packet = tos_access::knowledge::execute_selected_knowledge(
-                &mut model,
-                &bound,
-                &mut catalog,
-                &mut inspect,
-                &mut *self.checkpoints.lock().unwrap(),
-                request,
-                budgets,
-                probe,
-            )?;
+            let packet = if matches!(&request, R::Contracts) {
+                tos_access::knowledge::execute_selected_knowledge_contracts(
+                    &mut model,
+                    &bound,
+                    &mut inspect,
+                    self.fixture.registry_originals(),
+                    contract_budget(),
+                    budgets.inspect,
+                    probe,
+                )?
+            } else {
+                tos_access::knowledge::execute_selected_knowledge(
+                    &mut model,
+                    &bound,
+                    &mut catalog,
+                    &mut inspect,
+                    &mut *self.checkpoints.lock().unwrap(),
+                    request,
+                    budgets,
+                    probe,
+                )?
+            };
             match self.controls.after_prepare.load(Ordering::SeqCst) {
                 1 => self.controls.revoked.store(true, Ordering::SeqCst),
                 2 => self.controls.cancelled.store(true, Ordering::SeqCst),
@@ -744,6 +796,14 @@ mod selected_knowledge {
                 max_checkpoint_bytes: 2_000_000,
                 max_checkpoints: 8,
             },
+        }
+    }
+    fn contract_budget() -> tos_query::knowledge_contracts::KnowledgeContractBudget {
+        tos_query::knowledge_contracts::KnowledgeContractBudget {
+            max_input_bytes: 4_000_000,
+            max_registry_bytes: 1_000_000,
+            max_response_bytes: 1_000_000,
+            json: JsonLimits::default(),
         }
     }
     fn legacy_budget() -> tos_query::knowledge_legacy_search::LegacySearchBudget {
@@ -1624,6 +1684,216 @@ mod selected_knowledge {
     }
 
     #[test]
+    fn maintained_selected_contracts_require_original_carriers_on_all_native_wires() {
+        let executor = Arc::new(Executor {
+            fixture: build_native_fixture(),
+            held: Arc::new(AtomicUsize::new(0)),
+            controls: Arc::new(Controls::default()),
+            checkpoints: Mutex::new(
+                tos_access::exploration_checkpoints::ProcessExplorationCheckpoints::new(
+                    tos_access::exploration_checkpoints::CheckpointLimits {
+                        ttl: Duration::from_secs(60),
+                        max_entries: 16,
+                        max_encoded_bytes: 2_000_000,
+                    },
+                )
+                .unwrap(),
+            ),
+        });
+        let profile = AccessProfile::new(65_536, 1_048_576, 65_536);
+        let mcp_profile = profile.with_mcp_frame_budget(
+            tos_access::mcp::tool_result_frame_byte_bound(
+                profile.max_response_bytes,
+                profile.max_request_bytes.min(profile.max_line_bytes),
+            )
+            .unwrap(),
+        );
+        let operation = tos_access::registered_operations()
+            .unwrap()
+            .iter()
+            .find(|op| op.operation_id == O::Contracts.id())
+            .unwrap();
+        let packet = executor
+            .knowledge(R::Contracts, Arc::new(NeverAbort))
+            .unwrap();
+        let expected = packet.body.clone();
+        drop(packet);
+        let value =
+            parse_json(&expected, JsonMode::PublishedStrict, JsonLimits::default()).unwrap();
+        let originals = executor.fixture.registry_originals();
+        for (at, (key, _)) in tos_query::knowledge_contracts::KNOWLEDGE_REGISTRY_CONTRACTS
+            .iter()
+            .enumerate()
+        {
+            let registry = parse_json(
+                originals[at],
+                JsonMode::PublishedStrict,
+                JsonLimits::default(),
+            )
+            .unwrap();
+            assert_eq!(
+                json_bytes(
+                    value
+                        .root()
+                        .object_get("contracts")
+                        .unwrap()
+                        .object_get(key)
+                        .unwrap()
+                ),
+                json_bytes(registry.root())
+            );
+        }
+        let args: Vec<String> = operation
+            .cli_command
+            .as_ref()
+            .unwrap()
+            .split_whitespace()
+            .map(str::to_owned)
+            .collect();
+        let mut writer = HeldWriter {
+            bytes: vec![],
+            held: executor.held.clone(),
+        };
+        let mut errors = vec![];
+        assert_eq!(
+            cli::run_cli(&args, executor.as_ref(), profile, &mut writer, &mut errors),
+            0,
+            "contracts CLI: {}",
+            String::from_utf8_lossy(&errors)
+        );
+        assert_eq!(&writer.bytes[..writer.bytes.len() - 1], expected);
+        let response = handle_get(executor.as_ref(), "GET", &operation.http_path, profile);
+        assert_eq!(
+            response.status,
+            200,
+            "contracts HTTP: {}",
+            String::from_utf8_lossy(&response.body)
+        );
+        let mut writer = HeldWriter {
+            bytes: vec![],
+            held: executor.held.clone(),
+        };
+        tos_access::http::write_response(&mut writer, response).unwrap();
+        assert_eq!(http_packet(&writer.bytes), expected);
+        let mut writer = McpHeldWriter {
+            bytes: vec![],
+            held: executor.held.clone(),
+            source_frame: false,
+        };
+        run_io(
+            Cursor::new(mcp_input(&operation.mcp_tool, &object(vec![]))),
+            &mut writer,
+            executor.as_ref(),
+            mcp_profile,
+        )
+        .unwrap();
+        check_mcp_packet(
+            last_frame(&writer.bytes),
+            &expected,
+            mcp_profile.max_mcp_frame_bytes,
+        );
+        let response = handle_get(executor.as_ref(), "HEAD", &operation.http_path, profile);
+        assert_eq!(response.status, 200);
+        let mut writer = HeldWriter {
+            bytes: vec![],
+            held: executor.held.clone(),
+        };
+        tos_access::http::write_response(&mut writer, response).unwrap();
+        assert!(writer.bytes.ends_with(b"\r\n\r\n"));
+        assert!(
+            String::from_utf8_lossy(&writer.bytes)
+                .contains(&format!("Content-Length: {}\r\n", expected.len()))
+        );
+        assert_eq!(executor.held.load(Ordering::SeqCst), 0);
+        // The common dispatcher cannot discover registries or issue their grants.
+        let cold = executor.fixture.open().unwrap();
+        let bound = bind_verified_knowledge(
+            &cold,
+            &executor.fixture.vocabulary,
+            &executor.fixture.descriptor_bytes,
+        )
+        .unwrap();
+        let mut model = cold.fork_reader_with_vm_budget(1_000_000).unwrap();
+        let mut catalog = Authority::new(
+            &bound,
+            &R::Contracts,
+            executor.held.clone(),
+            executor.controls.clone(),
+        );
+        let mut inspect = Authority::new(
+            &bound,
+            &R::Contracts,
+            executor.held.clone(),
+            executor.controls.clone(),
+        );
+        let denied = tos_access::knowledge::execute_selected_knowledge(
+            &mut model,
+            &bound,
+            &mut catalog,
+            &mut inspect,
+            &mut *executor.checkpoints.lock().unwrap(),
+            R::Contracts,
+            budgets(),
+            Arc::new(NeverAbort),
+        );
+        assert!(matches!(denied, Err(ref e) if e.code == tos_access::AccessErrorCode::Unavailable));
+        assert_eq!(inspect.registry_grants, 0);
+        let mut changed = originals[0].to_vec();
+        changed.push(b' ');
+        let denied = tos_access::knowledge::execute_selected_knowledge_contracts(
+            &mut model,
+            &bound,
+            &mut inspect,
+            [&changed, originals[1]],
+            contract_budget(),
+            budgets().inspect,
+            Arc::new(NeverAbort),
+        );
+        assert!(denied.is_err());
+        assert_eq!(inspect.registry_grants, 0);
+        assert_eq!(executor.held.load(Ordering::SeqCst), 0);
+        drop(model);
+        drop(bound);
+        drop(cold);
+        for action in [1, 2] {
+            executor
+                .controls
+                .after_prepare
+                .store(action, Ordering::SeqCst);
+            let mut output = vec![];
+            let mut errors = vec![];
+            assert_eq!(
+                cli::run_cli(&args, executor.as_ref(), profile, &mut output, &mut errors),
+                1
+            );
+            assert!(output.is_empty());
+            assert_eq!(executor.held.load(Ordering::SeqCst), 0);
+            executor.controls.revoked.store(false, Ordering::SeqCst);
+            executor.controls.cancelled.store(false, Ordering::SeqCst);
+            let response = handle_get(executor.as_ref(), "GET", &operation.http_path, profile);
+            let mut output = vec![];
+            tos_access::http::write_response(&mut output, response).unwrap();
+            assert!(!output.starts_with(b"HTTP/1.1 200 "));
+            assert!(!output.windows(expected.len()).any(|w| w == expected));
+            assert_eq!(executor.held.load(Ordering::SeqCst), 0);
+            executor.controls.revoked.store(false, Ordering::SeqCst);
+            executor.controls.cancelled.store(false, Ordering::SeqCst);
+            let mut output = vec![];
+            run_io(
+                Cursor::new(mcp_input(&operation.mcp_tool, &object(vec![]))),
+                &mut output,
+                executor.as_ref(),
+                mcp_profile,
+            )
+            .unwrap();
+            assert!(!String::from_utf8_lossy(last_frame(&output)).contains("structuredContent"));
+            assert_eq!(executor.held.load(Ordering::SeqCst), 0);
+            executor.controls.revoked.store(false, Ordering::SeqCst);
+            executor.controls.cancelled.store(false, Ordering::SeqCst);
+        }
+    }
+
+    #[test]
     fn maintained_selected_legacy_search_and_capabilities_all_native_wires() {
         use tos_query::knowledge_legacy_search::LegacySearchRequest;
         let executor = Arc::new(Executor {
@@ -2317,19 +2587,7 @@ mod selected_knowledge {
             .map(|op| op.mcp_tool.as_str())
             .collect();
         assert_eq!(seen, expected);
-        let mut output = vec![];
-        run_io(
-            Cursor::new(mcp_input(
-                &operation(O::Contracts).mcp_tool,
-                &object(vec![]),
-            )),
-            &mut output,
-            executor.as_ref(),
-            mcp_profile,
-        )
-        .unwrap();
-        assert!(String::from_utf8_lossy(last_frame(&output)).contains("error"));
-        assert!(!String::from_utf8_lossy(last_frame(&output)).contains("structuredContent"));
+        // Exact contracts carrier/body lifecycle has its own affected fixture case.
         assert_eq!(executor.held.load(Ordering::SeqCst), 0);
     }
 }

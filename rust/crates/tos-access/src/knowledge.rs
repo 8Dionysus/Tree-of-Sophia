@@ -433,6 +433,38 @@ pub fn execute_selected_legacy_search(
     Ok(packet)
 }
 
+/// Execute contracts only when the trusted selected session supplies both exact
+/// borrowed registry carriers. Its authority hold must cover both grants.
+/// The generic dispatcher remains unavailable without that owner composition.
+pub fn execute_selected_knowledge_contracts(
+    model: &mut tos_compiler::VerifiedKnowledgeModel<'_>,
+    bound: &tos_query::BoundCmpKnowledge<'_>,
+    authority: &mut dyn tos_query::InspectCurrentAuthority,
+    registry_bytes: [&[u8]; 2],
+    budget: tos_query::knowledge_contracts::KnowledgeContractBudget,
+    inspect: tos_query::InspectBudget,
+    probe: Arc<dyn AbortProbe>,
+) -> Result<PreparedPacket, AccessError> {
+    check_abort(&probe)?;
+    let owner_probe = combined_probe(Arc::clone(&probe), authority.abort_probe());
+    let mut authority = InspectProbe {
+        inner: authority,
+        probe: owner_probe,
+    };
+    let packet = from_inspect(
+        tos_query::knowledge_contracts::execute_selected_knowledge_contracts(
+            model,
+            bound,
+            &mut authority,
+            registry_bytes,
+            budget,
+            inspect,
+        )?,
+    );
+    check_abort(&probe)?;
+    Ok(packet)
+}
+
 struct CatalogProbe<'a> {
     inner: &'a mut dyn tos_query::CatalogCurrentAuthority,
     probe: Arc<dyn AbortProbe>,
@@ -480,6 +512,15 @@ impl tos_query::InspectCurrentAuthority for InspectProbe<'_> {
     }
     fn check_selected(&mut self) -> Result<(), tos_query::search_v2::SearchV2Error> {
         self.inner.check_selected()
+    }
+    fn authorize_registry_current(
+        &mut self,
+        registry_id: &str,
+        raw: &[u8],
+        hash: tos_foundation::Digest256,
+    ) -> Result<(), tos_query::search_v2::SearchV2Error> {
+        self.inner
+            .authorize_registry_current(registry_id, raw, hash)
     }
     fn authorize_catalog_current(
         &mut self,

@@ -76,3 +76,12 @@ files, HTTP targets, MCP input and output retain their separate declared caps.
 Legacy ranking, complete counts, normalization and substring semantics remain
 in QRY, with its actual Python differential evidence; the consumer case checks
 complete selected bytes and final-flush custody through the existing wires.
+
+Selected knowledge contracts has an explicit native composition helper taking
+both borrowed original registry carriers. QRY validates their selected identity
+and invokes the existing authority's default-deny registry callback; its one
+disclosure hold must cover both grants through final transport flush. The
+actual fixture executor supplies compiler-retained originals for CLI, GET/HEAD
+and MCP checks. Production without that owner carrier holder still refuses:
+the generic dispatcher and NoOwner binary do not look up ambient ToS files,
+create registry grants or advertise contracts readiness.
