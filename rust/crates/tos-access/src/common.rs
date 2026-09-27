@@ -517,6 +517,17 @@ pub trait AccessExecutor: Send + Sync {
         request: Params,
         abort_probe: Arc<dyn AbortProbe>,
     ) -> Result<PreparedPacket, AccessError>;
+    /// Existing published public-ledger projection; no CLI/MCP operation.
+    fn source_gap(
+        &self,
+        _: tos_query::source_gap::SourceGapRequest,
+        _: Arc<dyn AbortProbe>,
+    ) -> Result<PreparedPacket, AccessError> {
+        Err(AccessError::new(
+            AccessErrorCode::Unavailable,
+            "selected public ledger unavailable",
+        ))
+    }
     /// Maintained v1 is available only with an owner-selected normalized model
     /// and its distinct current search authority.
     fn knowledge_search_legacy_available(&self) -> bool {

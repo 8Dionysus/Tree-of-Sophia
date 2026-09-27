@@ -1326,6 +1326,21 @@ with tempfile.TemporaryDirectory() as d:
         fs::write(data_root.join(&paths.entity_registry), registries[0]).unwrap();
         fs::write(data_root.join(&paths.relation_registry), registries[1]).unwrap();
         fs::write(data_root.join("data/navigation-input.json"), &output.stdout).unwrap();
+        // This public subset is declared by the existing software owner, never
+        // discovered from a runtime checkout or current filename/count rule.
+        let ledger_paths = tos_access::release_state::public_source_gap_paths().unwrap();
+        let source_root = std::path::Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/../../.."));
+        let ledger = ledger_paths
+            .iter()
+            .map(|source| {
+                let raw = fs::read(source_root.join(source)).unwrap();
+                let member = format!("data/{source}");
+                fs::create_dir_all(data_root.join(&member).parent().unwrap()).unwrap();
+                fs::write(data_root.join(&member), &raw).unwrap();
+                (source.clone(), raw)
+            })
+            .collect::<Vec<_>>();
+
         // This explicit ioctl is confined to the fresh isolated owned copy.
         // OPS admits this exact case before execution; unsupported custody is
         // a concrete failure, never a skipped positive/fallback grant.
@@ -1380,6 +1395,7 @@ with tempfile.TemporaryDirectory() as d:
             "data/native-selection.json".into(),
             "data/navigation-input.json".into(),
         ];
+        members.extend(ledger_paths.iter().map(|source| format!("data/{source}")));
         members.sort();
         let members = members
             .into_iter()
@@ -1409,14 +1425,32 @@ with tempfile.TemporaryDirectory() as d:
                 )]),
             ),
         ]);
+        let mut source_bindings = vec![
+            (
+                tos_foundation::JsonString::from_utf8("data/navigation-input.json"),
+                text(&source_sha),
+            ),
+            (
+                tos_foundation::JsonString::from_utf8(
+                    tos_access::release_state::RUNTIME_DATA_DECLARATION_PATH,
+                ),
+                text(
+                    &Digest256::of_bytes(tos_access::release_state::RUNTIME_DATA_DECLARATION)
+                        .to_hex(),
+                ),
+            ),
+        ];
+        source_bindings.extend(ledger.iter().map(|(source, raw)| {
+            (
+                tos_foundation::JsonString::from_utf8(source),
+                text(&Digest256::of_bytes(raw).to_hex()),
+            )
+        }));
         let corpus = fixture.stage_receipt.membership_root.clone();
         let mut manifest = object(vec![
             ("schema_version", text(NATIVE_DATA_SCHEMA)),
             ("corpus_revision", text(&corpus)),
-            (
-                "input_bindings",
-                object(vec![("data/navigation-input.json", text(&source_sha))]),
-            ),
+            ("input_bindings", JsonValue::Object(source_bindings)),
             ("compiler", compiler),
             ("members", JsonValue::Array(members)),
             ("native_selection", text("data/native-selection.json")),
@@ -1502,6 +1536,31 @@ with tempfile.TemporaryDirectory() as d:
             )
             .unwrap()
             .body;
+        let source_gap_request = tos_query::source_gap::SourceGapRequest {
+            query: String::new(),
+            limit: 20,
+        };
+        let source_gap_budget = tos_query::source_gap::SourceGapBudget {
+            json: JsonLimits::default(),
+            max_work_steps: cold_limits.max_vm_steps,
+            max_response_bytes: 1_048_576,
+        };
+        let borrowed_ledger = ledger
+            .iter()
+            .map(
+                |(source, raw)| tos_query::source_gap::PublicSourceGapRecord {
+                    source_ref: source,
+                    raw,
+                },
+            )
+            .collect::<Vec<_>>();
+        let source_gap = tos_query::source_gap::compute_source_gap_packet(
+            &borrowed_ledger,
+            &source_gap_request,
+            source_gap_budget,
+            &NeverAbort,
+        )
+        .unwrap();
         // The established prlimit utility sets live child kernel limits, not an
         // ENV admission boolean. Cargo/test fixture setup remains unrestricted.
         let child = || {
@@ -1585,16 +1644,53 @@ with tempfile.TemporaryDirectory() as d:
             .set_read_timeout(Some(Duration::from_secs(30)))
             .and_then(|_| write!(socket, "GET {path} HTTP/1.1\r\nHost: localhost\r\n\r\n"))
             .and_then(|_| socket.read_to_end(&mut response));
-        server.kill().unwrap();
-        server.wait().unwrap();
         received.unwrap();
         assert_eq!(http_packet(&response), dossier);
+        for method in ["GET", "HEAD"] {
+            let mut socket = TcpStream::connect(address).unwrap();
+            socket
+                .set_read_timeout(Some(Duration::from_secs(30)))
+                .unwrap();
+            write!(
+                socket,
+                "{method} /api/source-gaps HTTP/1.1\r\nHost: localhost\r\n\r\n"
+            )
+            .unwrap();
+            let mut bytes = vec![];
+            socket.read_to_end(&mut bytes).unwrap();
+            assert!(bytes.starts_with(b"HTTP/1.1 200 "));
+            if method == "GET" {
+                assert_eq!(http_packet(&bytes), source_gap);
+            } else {
+                assert!(bytes.ends_with(b"\r\n\r\n"));
+                assert!(
+                    String::from_utf8_lossy(&bytes)
+                        .contains(&format!("Content-Length: {}", source_gap.len()))
+                );
+            }
+        }
+        server.kill().unwrap();
+        server.wait().unwrap();
         let release = ManagedRelease::open(&root).unwrap();
+        let ledger_packet = tos_access::managed_local::execute_selected_source_gap(
+            &release,
+            &source_gap_request,
+            source_gap_budget,
+            cold_limits.max_work_bytes as usize,
+            Arc::new(NeverAbort),
+        )
+        .unwrap();
+        assert_eq!(ledger_packet.body, source_gap);
         let lock = fs::OpenOptions::new()
             .read(true)
             .write(true)
             .open(root.join(".release.lock"))
             .unwrap();
+        assert!(
+            lock.try_lock().is_err(),
+            "prepared public-ledger bytes retain the actual release holder"
+        );
+        drop(ledger_packet);
         lock.try_lock().unwrap();
         lock.unlock().unwrap();
         let lease = release.acquire().unwrap();
@@ -1604,6 +1700,25 @@ with tempfile.TemporaryDirectory() as d:
         );
         drop(lease);
         lock.try_lock().unwrap();
+        lock.unlock().unwrap();
+        // Missing published bytes cannot turn the declared complete subset into
+        // a smaller successful search result, even with an unchanged manifest.
+        lock.try_lock().unwrap();
+        let missing = data_root.join(format!("data/{}", ledger[0].0));
+        fs::remove_file(&missing).unwrap();
+        lock.unlock().unwrap();
+        assert!(
+            tos_access::managed_local::execute_selected_source_gap(
+                &release,
+                &source_gap_request,
+                source_gap_budget,
+                cold_limits.max_work_bytes as usize,
+                Arc::new(NeverAbort)
+            )
+            .is_err()
+        );
+        lock.try_lock().unwrap();
+        fs::write(missing, &ledger[0].1).unwrap();
         lock.unlock().unwrap();
         // An equal-SHA fresh inode without fs-verity is still not custody.
         // Corrupt only this isolated fixture, under its real release lock.

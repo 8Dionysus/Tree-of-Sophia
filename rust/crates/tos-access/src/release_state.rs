@@ -131,6 +131,63 @@ fn input_bindings(value: &JsonValue) -> Result<()> {
     }
     Ok(())
 }
+/// Existing authored software declaration, not an ambient runtime tree glob.
+pub const RUNTIME_DATA_DECLARATION_PATH: &str = "access/contracts/runtime-data.v1.json";
+pub const RUNTIME_DATA_DECLARATION: &[u8] =
+    include_bytes!("../../../../access/contracts/runtime-data.v1.json");
+
+/// Producer layout for the existing allowlisted public query/http ledger subset.
+/// Paths are derived from the owner declaration; identities/counts are not rules.
+pub fn public_source_gap_paths() -> Result<Vec<String>> {
+    use tos_query::source_gap::{SOURCE_GAP_LEDGER_PREFIX, SOURCE_GAP_RECORD_SUFFIX};
+    let document = parse_json(
+        RUNTIME_DATA_DECLARATION,
+        JsonMode::PublishedStrict,
+        METADATA_LIMITS,
+    )
+    .map_err(|_| unavailable("runtime-data declaration invalid"))?;
+    let root = document.root();
+    if text(root, "schema_version")? != "tos_access_runtime_data_allowlist_v1"
+        || text(root, "publication_posture")? != "allowlist-only"
+    {
+        return Err(unavailable("runtime-data declaration profile invalid"));
+    }
+    let mut paths = std::collections::BTreeSet::new();
+    let mut subjects = std::collections::BTreeSet::new();
+    for subject in root
+        .object_get("subjects")
+        .and_then(JsonValue::as_array)
+        .ok_or_else(|| unavailable("runtime-data subjects absent"))?
+    {
+        let path = text(subject, "source_path")?;
+        let Some(filename) = path.strip_prefix(SOURCE_GAP_LEDGER_PREFIX) else {
+            continue;
+        };
+        let roles = subject
+            .object_get("consumer_roles")
+            .and_then(JsonValue::as_array)
+            .ok_or_else(|| unavailable("public ledger consumer roles absent"))?;
+        if !["query-core", "http-reader"]
+            .iter()
+            .all(|role| roles.iter().any(|v| v.as_str() == Some(*role)))
+        {
+            continue;
+        }
+        if RelativePath::parse(path).is_err()
+            || filename.contains('/')
+            || !filename.ends_with(SOURCE_GAP_RECORD_SUFFIX)
+            || !subjects.insert(text(subject, "subject_id")?)
+            || !paths.insert(path.to_owned())
+        {
+            return Err(unavailable("public ledger declaration invalid"));
+        }
+    }
+    if paths.is_empty() {
+        return Err(unavailable("public ledger subset absent"));
+    }
+    Ok(paths.into_iter().collect())
+}
+
 #[derive(Clone)]
 struct Member {
     size: u64,
@@ -156,6 +213,7 @@ pub struct ManagedRelease {
     pub compiler_version: String,
     selection_path: String,
     members: BTreeMap<String, Member>,
+    source_bindings: BTreeMap<String, Digest256>,
 }
 pub struct ReleaseLease {
     release: Arc<ManagedRelease>,
@@ -264,6 +322,20 @@ impl ManagedRelease {
                 .object_get("input_bindings")
                 .ok_or_else(|| unavailable("snapshot input bindings absent"))?,
         )?;
+        let source_bindings = manifest
+            .object_get("input_bindings")
+            .unwrap()
+            .as_object()
+            .unwrap()
+            .iter()
+            .map(|(key, value)| {
+                Ok((
+                    key.as_str().unwrap().to_owned(),
+                    Digest256::from_hex(value.as_str().unwrap())
+                        .map_err(|_| unavailable("snapshot input digest invalid"))?,
+                ))
+            })
+            .collect::<Result<BTreeMap<_, _>>>()?;
         let mut prior = String::new();
         let compiler_paths = compiler
             .object_get("compiler_paths")
@@ -340,6 +412,7 @@ impl ManagedRelease {
             compiler_version: text(&pair, "compiler_version")?.to_owned(),
             selection_path,
             members,
+            source_bindings,
         });
         release.check_locked()?;
         // The native cold owner verifies the selected model and exact companion
@@ -446,6 +519,60 @@ impl ManagedRelease {
     }
 }
 impl ReleaseLease {
+    /// Verify the complete owner-declared subset under this same release hold.
+    /// The native producer keeps original source bindings and the declaration
+    /// digest in the existing manifest; data/<source_path> preserves provenance.
+    pub fn public_source_gap_records(
+        &self,
+        max_input_bytes: usize,
+    ) -> Result<Vec<(String, Vec<u8>)>> {
+        use tos_query::source_gap::{
+            SOURCE_GAP_LEDGER_PREFIX, SOURCE_GAP_MAX_RECORD_BYTES, SOURCE_GAP_MAX_RECORDS,
+        };
+        self.check_hold()?;
+        let release = &self.release;
+        if release.source_bindings.get(RUNTIME_DATA_DECLARATION_PATH)
+            != Some(&Digest256::of_bytes(RUNTIME_DATA_DECLARATION))
+        {
+            return Err(unavailable("public ledger declaration binding unavailable"));
+        }
+        let paths = public_source_gap_paths()?;
+        let member_paths = paths
+            .iter()
+            .map(|path| format!("data/{path}"))
+            .collect::<Vec<_>>();
+        let declared = release
+            .members
+            .keys()
+            .filter(|path| path.starts_with(&format!("data/{SOURCE_GAP_LEDGER_PREFIX}")))
+            .collect::<Vec<_>>();
+        if declared != member_paths.iter().collect::<Vec<_>>() {
+            return Err(unavailable("public ledger subset membership differs"));
+        }
+        let mut total = 0u64;
+        for (source, member_path) in paths.iter().zip(&member_paths) {
+            let member = release.members.get(member_path).unwrap();
+            total = total
+                .checked_add(member.size)
+                .ok_or_else(|| unavailable("public ledger byte budget exceeded"))?;
+            if total > max_input_bytes as u64 || member.size > SOURCE_GAP_MAX_RECORD_BYTES as u64 {
+                return Err(unavailable("public ledger byte budget exceeded"));
+            }
+            if release.source_bindings.get(source) != Some(&member.digest) {
+                return Err(unavailable("public ledger original source binding differs"));
+            }
+        }
+        let mut records = Vec::new();
+        for (index, (source, member_path)) in paths.into_iter().zip(member_paths).enumerate() {
+            let raw = release.member_bytes(&member_path, SOURCE_GAP_MAX_RECORD_BYTES)?;
+            // Verify every declared member, retaining only the maintained first100.
+            if index < SOURCE_GAP_MAX_RECORDS {
+                records.push((source, raw));
+            }
+        }
+        self.check_hold()?;
+        Ok(records)
+    }
     /// The held shared lock serializes legitimate current/revocation writes.
     /// QRY row boundaries need the retained holder identity, not repeated JSON
     /// parsing of the entire manifest. Final packet recheck below verifies the

@@ -50,6 +50,20 @@ descriptor. The model manifest member size/SHA must equal the independent
 expectation; descriptor/registries must match their declared member digests.
 Whole snapshot compilation and publication remain the release builder's job.
 
+The existing public-ledger query/http subset in `runtime-data.v1.json` can be
+included as sorted declared `data/<source_path>` members. The original
+`source_path` SHA and the exact runtime-data declaration SHA are retained in
+manifest `input_bindings`. All owner-declared public members, their order,
+SHA/size and original source bindings must match under the same release hold;
+missing, extra or changed ledger members refuse the read. The producer derives
+identities and paths from the authored declaration, not a copied name/count list.
+This layout adds no corpus payload or ambient tree access. The maintained
+`/api/source-gaps` GET/HEAD route passes the verified bytes to the shared QRY
+string-only public-safe projection and retains the same hold through flush.
+No source-gap CLI or MCP tool is introduced. The managed entrypoint retains its
+existing cold-admission and kernel custody prerequisites for the whole selected
+profile; this additional public projection does not bypass them.
+
 Kernel custody requires fs-verity on the selected artifact, a retained FD and
 matching fs-verity measurement. Chmod/stat or a one-time hash is insufficient.
 Cold resource admission checks finite live soft `RLIMIT_AS` and `RLIMIT_FSIZE`

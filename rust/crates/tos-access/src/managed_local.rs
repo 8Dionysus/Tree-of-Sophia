@@ -248,6 +248,23 @@ impl AccessExecutor for ManagedLocalExecutor {
             "exact source owner is not selected by the release holder",
         ))
     }
+    fn source_gap(
+        &self,
+        request: tos_query::source_gap::SourceGapRequest,
+        probe: Arc<dyn AbortProbe>,
+    ) -> Result<PreparedPacket, AccessError> {
+        execute_selected_source_gap(
+            &self.release,
+            &request,
+            tos_query::source_gap::SourceGapBudget {
+                json: self.budgets().inspect.json,
+                max_work_steps: self.cold.max_vm_steps,
+                max_response_bytes: self.profile.max_response_bytes,
+            },
+            usize::try_from(self.cold.max_work_bytes).unwrap_or(usize::MAX),
+            probe,
+        )
+    }
     fn knowledge_available(&self, operation: O) -> bool {
         if operation.is_philosophy() {
             self.philosophy_original.is_some()
@@ -632,5 +649,49 @@ impl CatalogCurrentAuthority for Authority {
         Ok(Box::new(self.take().map_err(|_| {
             catalog_error("selected local disclosure hold unavailable")
         })?))
+    }
+}
+
+/// Whole published-ledger composition uses the existing release holder only.
+/// It does not manufacture native graph/source CurrentPolicy authority.
+pub fn execute_selected_source_gap(
+    release: &Arc<ManagedRelease>,
+    request: &tos_query::source_gap::SourceGapRequest,
+    budget: tos_query::source_gap::SourceGapBudget,
+    max_input_bytes: usize,
+    probe: Arc<dyn AbortProbe>,
+) -> Result<PreparedPacket, AccessError> {
+    crate::knowledge::check_abort(&probe)?;
+    let mut hold = release.acquire()?;
+    let owned = hold.public_source_gap_records(max_input_bytes)?;
+    let records = owned
+        .iter()
+        .map(|(path, raw)| tos_query::source_gap::PublicSourceGapRecord {
+            source_ref: path,
+            raw,
+        })
+        .collect::<Vec<_>>();
+    let body = tos_query::source_gap::compute_source_gap_packet(
+        &records,
+        request,
+        budget,
+        probe.as_ref(),
+    )?;
+    hold.recheck()?;
+    crate::knowledge::check_abort(&probe)?;
+    Ok(PreparedPacket {
+        body,
+        fence: Box::new(PublicLedgerFence { hold, probe }),
+    })
+}
+struct PublicLedgerFence {
+    hold: ReleaseLease,
+    probe: Arc<dyn AbortProbe>,
+}
+impl crate::DisclosureFence for PublicLedgerFence {
+    fn recheck(&mut self) -> Result<(), AccessError> {
+        crate::knowledge::check_abort(&self.probe)?;
+        self.hold.recheck()?;
+        crate::knowledge::check_abort(&self.probe)
     }
 }

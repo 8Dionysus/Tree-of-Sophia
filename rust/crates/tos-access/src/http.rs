@@ -288,6 +288,17 @@ fn handle_get_with_probe(
         return HttpResponse::error_for_method(413, "request target too large", method);
     }
     let (path, query) = target.split_once('?').unwrap_or((target, ""));
+    if path == "/api/source-gaps" {
+        let request = tos_query::source_gap::SourceGapRequest {
+            query: query_value(query, "query").unwrap_or_default(),
+            limit: bounded_legacy_int(query_value(query, "limit").as_deref(), 20, 1, 100) as usize,
+        };
+        return packet_response(
+            checked_execute(abort_probe, |probe| executor.source_gap(request, probe)),
+            method,
+            profile,
+        );
+    }
     if path == SEARCH_HTTP_PATH {
         return handle_search(executor, method, query, profile, abort_probe);
     }
