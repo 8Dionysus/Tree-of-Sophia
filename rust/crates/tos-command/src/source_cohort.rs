@@ -35,6 +35,7 @@ pub(crate) struct ManagedAgentInventory {
 
 /// An initial immutable revision names the bootstrap, never later content.
 /// Later completeness is maintained only by this controlled atomic writer.
+#[derive(Clone)]
 pub struct ManagedSourceCohort {
     domain: String,
     store_id: [u8; 16],
@@ -243,6 +244,18 @@ pub struct SourceCreationAttempt {
     reads: SourceReads,
     indexes: IndexRows,
     projections: ProjectionRows,
+    continuation: Option<WarmContinuation>,
+}
+struct WarmContinuation {
+    parent: SelectedSourceGeneration,
+    metadata: BTreeMap<String, MemberMetadata>,
+    fence: std::cell::Cell<u64>,
+    committed: std::cell::RefCell<Option<WarmCommitted>>,
+}
+struct WarmCommitted {
+    audit_generation: u64,
+    commit_seq: u64,
+    receipts: Vec<ByteDurabilityReceipt>,
 }
 
 pub(super) enum CommitMode<'a> {
@@ -1609,6 +1622,7 @@ impl DurablePgCoordinator {
         ManagedSerializedCreation,
         DurableCommitReceipt,
         DurableTiming,
+        crate::source_current_cut::ManagedCurrentSourceGeneration,
     )> {
         let input = crate::source_creation::select_managed_agent_creation_input(
             self, store, generation, context, schema_cut, software, components, deadline, cancelled,
@@ -1644,7 +1658,406 @@ impl DurablePgCoordinator {
             deadline,
             cancelled,
         )?;
-        Ok((serialized, receipt, timing))
+        let successor = self.continue_managed_creation(
+            store,
+            generation.cohort(),
+            &attempt,
+            CreationPackage::Managed(&serialized),
+            filesystem,
+            deadline,
+            cancelled,
+        )?;
+        Ok((serialized, receipt, timing, successor))
+    }
+
+    // Continue only the uninterrupted owner-issued register/attach/commit chain.
+    // This does not reopen a lost process or turn a caller descriptor into a cut.
+    fn continue_managed_creation(
+        &mut self,
+        store: &SegmentStore,
+        cohort: &ManagedSourceCohort,
+        attempt: &SourceCreationAttempt,
+        package: CreationPackage<'_>,
+        filesystem: &CreationFilesystem,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<crate::source_current_cut::ManagedCurrentSourceGeneration> {
+        active(deadline, cancelled)?;
+        let continuation = attempt.continuation.as_ref().ok_or(DurableError::Refused(
+            "warm source chain absent; explicit cold reopen required",
+        ))?;
+        let committed = continuation.committed.borrow();
+        let committed = committed.as_ref().ok_or(DurableError::Refused(
+            "warm source commit not observed; explicit cold reopen required",
+        ))?;
+        let parent = continuation.parent.view();
+        parent.audited_root.require_store(store)?;
+        if attempt.domain != cohort.domain
+            || attempt.epoch != cohort.epoch
+            || attempt.definition != cohort.definition
+            || committed.commit_seq
+                != parent
+                    .descriptor_cut
+                    .through_seq
+                    .checked_add(1)
+                    .ok_or(DurableError::Corrupt("warm head overflow"))?
+            || registered_source_delta(package, &attempt.reads, &attempt.projections)?
+                != attempt.delta
+        {
+            return Err(DurableError::Conflict("warm source original basis changed"));
+        }
+        let owner = filesystem
+            .hold_creation_owner(package, deadline, cancelled)
+            .map_err(source_error)?;
+        owner
+            .verify_current(deadline, cancelled)
+            .map_err(source_error)?;
+        drop(owner);
+        let domain = &attempt.domain;
+        let head = committed.commit_seq;
+        let started = Instant::now();
+        let requested = Some((deadline, cancelled));
+        let mut tx = self
+            .client
+            .build_transaction()
+            .isolation_level(IsolationLevel::RepeatableRead)
+            .read_only(true)
+            .start()?;
+        tx.batch_execute("SET LOCAL statement_timeout='60s'; SET LOCAL work_mem='4MB'")?;
+        let row = tx.query_one("SELECT d.*,f.generation AS audit_generation,f.maintenance_state FROM cmd2_domain d JOIN cmd2_audit_fence f USING(domain) WHERE d.domain=$1", &[&domain])?;
+        cohort_matches(&row, cohort, true)?;
+        if as_u64(row.get("audit_generation"))? != committed.audit_generation
+            || as_u64(row.get("head_seq"))? != head
+            || row.get::<_, Option<i64>>("source_generation") != Some(as_i64(head)?)
+            || row.get::<_, String>("maintenance_state") != "normal"
+            || !row.get::<_, bool>("rights_allowed")
+            || row.get::<_, Option<String>>("schema_profile_digest")
+                != Some(schema_profile_digest().to_hex())
+            || database_oid(&mut tx)? != parent.descriptor_cut.database_oid
+        {
+            return Err(DurableError::Conflict(
+                "warm metadata chain lost; explicit cold reopen required",
+            ));
+        }
+        admit_private_metadata(&mut tx, domain, started, requested)?;
+        let registered = tx.query_one(
+            "SELECT * FROM cmd2_attempt WHERE domain=$1 AND prepare_id=$2",
+            &[&domain, &attempt.prepare_id],
+        )?;
+        let receipt = receipt_from_committed_attempt(&mut tx, &registered)?;
+        if receipt.commit_seq != head
+            || receipt.delta_digest != attempt.delta
+            || registered.get::<_, Option<Vec<u8>>>("source_reads")
+                != Some(reads_bytes(&attempt.reads)?)
+            || registered.get::<_, Option<Vec<u8>>>("source_indexes")
+                != Some(indexes_bytes(&attempt.indexes)?)
+            || registered.get::<_, Option<Vec<u8>>>("source_projections")
+                != Some(projections_bytes(&attempt.projections)?)
+        {
+            return Err(DurableError::Corrupt("warm committed attempt differs"));
+        }
+        let members = tx.query(
+            "SELECT * FROM cmd2_member WHERE domain=$1 AND prepare_id=$2 ORDER BY member_slot",
+            &[&domain, &attempt.prepare_id],
+        )?;
+        if members.len() != committed.receipts.len()
+            || members.len() != package.changes().len()
+            || members.is_empty()
+            || members.len() > MAX_MEMBERS
+        {
+            return Err(DurableError::Corrupt(
+                "warm committed member coverage differs",
+            ));
+        }
+        let mut history_rows = parent.history_rows.to_vec();
+        let mut current_rows = parent.current_rows.to_vec();
+        let mut metadata = continuation.metadata.clone();
+        let mut member_root = Digest256Hasher::new();
+        part(&mut member_root, b"cmd2-member-root-v1");
+        part(&mut member_root, &(members.len() as u64).to_be_bytes());
+        let carriers = creation_metadata(package);
+        for (member, change) in members.iter().zip(package.changes()) {
+            active(deadline, cancelled)?;
+            let subject = change.path.as_str();
+            let selected = committed
+                .receipts
+                .iter()
+                .find(|r| r.binding().member_slot == member.get::<_, i32>("member_slot") as u32)
+                .ok_or(DurableError::Corrupt("warm verified frame absent"))?;
+            check_member_row(member, selected, subject, 1)?;
+            if row_source_metadata(member)? != carriers[subject]
+                || metadata.contains_key(subject)
+                || selected.binding().profile_id != CREATION
+                || selected.coordinate().sha256
+                    != Digest256::of_bytes(change.after.as_ref().unwrap())
+            {
+                return Err(DurableError::Corrupt(
+                    "warm initial creation frame/metadata differs",
+                ));
+            }
+            update_member_root(&mut member_root, member);
+            let coordinate = selected.coordinate();
+            history_rows.push(PlacementGenerationRowV1 {
+                key: membership_key(HISTORY_KEY_TAG, domain, subject, Some(1))?,
+                logical_digest: coordinate.sha256,
+                logical_length: coordinate.size_bytes,
+                placement: selected.placement(),
+            });
+            current_rows.push(PlacementGenerationRowV1 {
+                key: membership_key(CURRENT_KEY_TAG, domain, subject, None)?,
+                logical_digest: coordinate.sha256,
+                logical_length: coordinate.size_bytes,
+                placement: selected.placement(),
+            });
+            metadata.insert(
+                subject.into(),
+                MemberMetadata {
+                    path: change.path.clone(),
+                    sha256: coordinate.sha256,
+                    size_bytes: coordinate.size_bytes,
+                    mode: 0o644,
+                },
+            );
+        }
+        if member_root.finalize() != receipt.member_root {
+            return Err(DurableError::Corrupt("warm member root differs"));
+        }
+        sort_complete_membership(&mut history_rows)?;
+        sort_complete_membership(&mut current_rows)?;
+        let keys: usize = history_rows
+            .iter()
+            .chain(&current_rows)
+            .map(|r| r.key.len())
+            .sum();
+        if history_rows.len() > MAX_CUT as usize
+            || current_rows.len() > MAX_CUT as usize
+            || keys > MAX_TOTAL_MEMBERSHIP_KEY_BYTES
+        {
+            return Err(DurableError::Refused(
+                "warm membership exceeds existing complete generation bounds",
+            ));
+        }
+        // Metadata/log scans are explicit O(N), without re-reading old STO bodies.
+        let mut log_hash = Digest256Hasher::new();
+        part(&mut log_hash, b"cmd2-cold-cut-v1");
+        let mut logs=tx.query_raw("SELECT commit_seq,event_kind,command_id,delta_digest,members_root FROM cmd2_log WHERE domain=$1 ORDER BY commit_seq", &[&domain])?;
+        let mut next = 1u64;
+        while let Some(log) = logs.next()? {
+            active(deadline, cancelled)?;
+            let seq = as_u64(log.get(0))?;
+            if seq != next || seq > head {
+                return Err(DurableError::Corrupt("warm log coverage differs"));
+            }
+            let kind: String = log.get(1);
+            let command: String = log.get(2);
+            let delta: String = log.get(3);
+            let root: String = log.get(4);
+            if seq == head
+                && (kind != "command"
+                    || command != receipt.command_id
+                    || delta != receipt.delta_digest.to_hex()
+                    || root != receipt.member_root.to_hex())
+            {
+                return Err(DurableError::Corrupt("warm final log differs"));
+            }
+            for value in [
+                &as_i64(seq)?.to_be_bytes()[..],
+                kind.as_bytes(),
+                command.as_bytes(),
+                delta.as_bytes(),
+                root.as_bytes(),
+            ] {
+                part(&mut log_hash, value);
+            }
+            if seq == parent.descriptor_cut.through_seq
+                && log_hash.clone().finalize() != parent.descriptor_cut.log_digest
+            {
+                return Err(DurableError::Corrupt("warm verified log prefix differs"));
+            }
+            next += 1;
+        }
+        drop(logs);
+        if next != head + 1 {
+            return Err(DurableError::Corrupt("warm log EOF differs"));
+        }
+        let mut state = Digest256Hasher::new();
+        part(&mut state, COLD_AUDIT_PROFILE);
+        part(&mut state, domain.as_bytes());
+        part(&mut state, &head.to_be_bytes());
+        part(
+            &mut state,
+            &parent.descriptor_cut.database_oid.to_be_bytes(),
+        );
+        part(&mut state, schema_profile_digest().to_hex().as_bytes());
+        let expected = history_rows
+            .iter()
+            .map(|r| (r.key.as_slice(), r))
+            .collect::<BTreeMap<_, _>>();
+        let mut seen = BTreeSet::new();
+        let mut latest = BTreeMap::new();
+        let mut histories = tx.query_raw(
+            "SELECT * FROM cmd2_history WHERE domain=$1 ORDER BY commit_seq,member_slot",
+            &[&domain],
+        )?;
+        while let Some(h) = histories.next()? {
+            active(deadline, cancelled)?;
+            let subject: String = h.get("subject");
+            let revision = as_u64(h.get("revision"))?;
+            let key = membership_key(HISTORY_KEY_TAG, domain, &subject, Some(revision))?;
+            let selected = expected
+                .get(key.as_slice())
+                .ok_or(DurableError::Corrupt("warm extra history row"))?;
+            if !seen.insert(key)
+                || as_u64(h.get("commit_seq"))? > head
+                || h.get::<_, String>("content_digest") != selected.logical_digest.to_hex()
+                || as_u64(h.get("content_length"))? != selected.logical_length
+            {
+                return Err(DurableError::Corrupt("warm history row binding differs"));
+            }
+            if as_u64(h.get("commit_seq"))? == head {
+                let frame = committed
+                    .receipts
+                    .iter()
+                    .find(|r| r.receipt_id().to_hex() == h.get::<_, String>("sto_receipt_id"))
+                    .ok_or(DurableError::Corrupt("warm history frame absent"))?;
+                check_history_locator(&h, frame, domain, &subject, revision)?;
+                if row_source_metadata(&h)? != carriers[subject.as_str()]
+                    || h.get::<_, Option<Vec<u8>>>("inventory_projection").as_ref()
+                        != attempt.projections.get(&subject)
+                {
+                    return Err(DurableError::Corrupt("warm appended projection differs"));
+                }
+            }
+            part(&mut state, &selected.placement.encode());
+            if latest
+                .insert(subject, (revision, metadata_locator_digest(&h)))
+                .is_some_and(|prior| prior.0 >= revision)
+            {
+                return Err(DurableError::Corrupt("warm revision order differs"));
+            }
+        }
+        drop(histories);
+        if seen.len() != history_rows.len() {
+            return Err(DurableError::Corrupt("warm history EOF differs"));
+        }
+        let mut currents =
+            tx.query_raw("SELECT * FROM cmd2_current WHERE domain=$1", &[&domain])?;
+        let mut seen_current = BTreeSet::new();
+        while let Some(c) = currents.next()? {
+            active(deadline, cancelled)?;
+            let subject: String = c.get("subject");
+            let path =
+                RelativePath::parse(&subject).map_err(|_| DurableError::Corrupt("warm path"))?;
+            let (actual, _) = expose_metadata(&c, &path)?;
+            if !seen_current.insert(subject.clone())
+                || metadata.get(&subject) != Some(&actual)
+                || latest.get(&subject)
+                    != Some(&(as_u64(c.get("revision"))?, metadata_locator_digest(&c)))
+            {
+                return Err(DurableError::Corrupt(
+                    "warm current metadata/history differs",
+                ));
+            }
+        }
+        drop(currents);
+        if seen_current.len() != current_rows.len() {
+            return Err(DurableError::Corrupt("warm current EOF differs"));
+        }
+        let (projection, _, count) =
+            retained_projection_root(&mut tx, domain, head, deadline, cancelled)?;
+        if count != metadata.len() as u64 {
+            return Err(DurableError::Corrupt("warm projection coverage differs"));
+        }
+        append_private_metadata(&mut tx, domain, &mut state, started, requested)?;
+        let cut = WarmSuccessorCut {
+            audited_root: parent.audited_root.clone(),
+            domain: domain.clone(),
+            descriptor_cut: GenerationCutV1 {
+                store_id: store.store_id(),
+                domain_digest: store.domain_digest(),
+                through_seq: head,
+                audit_generation: committed.audit_generation,
+                database_oid: parent.descriptor_cut.database_oid,
+                schema_profile_digest: schema_profile_digest(),
+                state_digest: state.finalize(),
+                log_digest: log_hash.finalize(),
+                historical_members: history_rows.len() as u64,
+                current_members: current_rows.len() as u64,
+                history_membership_root: logical_membership_root(HISTORY_KEY_TAG, &history_rows),
+                current_membership_root: logical_membership_root(CURRENT_KEY_TAG, &current_rows),
+            },
+            history_rows,
+            current_rows,
+        };
+        tx.commit()?;
+        let (installed, history_coverage, current_coverage) =
+            install_verified_membership(store, cut.installation(), deadline, cancelled)?;
+        if history_coverage.descriptor_digest != installed.digest()
+            || current_coverage.descriptor_digest != installed.digest()
+            || history_coverage.rows != cut.descriptor_cut.historical_members
+            || current_coverage.rows != cut.descriptor_cut.current_members
+        {
+            return Err(DurableError::Corrupt("warm installation coverage differs"));
+        }
+        let owner = filesystem
+            .hold_creation_owner(package, deadline, cancelled)
+            .map_err(source_error)?;
+        owner
+            .verify_current(deadline, cancelled)
+            .map_err(source_error)?;
+        let mut tx = self.client.transaction()?;
+        tx.batch_execute("SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='15s'")?;
+        let audit = lock_audit_fence(&mut tx, domain)?;
+        let row = tx.query_one(
+            "SELECT * FROM cmd2_domain WHERE domain=$1 FOR UPDATE",
+            &[&domain],
+        )?;
+        cohort_matches(&row, cohort, true)?;
+        if audit != committed.audit_generation
+            || as_u64(row.get("head_seq"))? != head
+            || !row.get::<_, bool>("rights_allowed")
+            || database_oid(&mut tx)? != cut.descriptor_cut.database_oid
+            || row.get::<_, Option<String>>("schema_profile_digest")
+                != Some(schema_profile_digest().to_hex())
+        {
+            return Err(DurableError::Conflict(
+                "warm installation raced metadata; explicit cold reopen required",
+            ));
+        }
+        owner
+            .verify_current(deadline, cancelled)
+            .map_err(source_error)?;
+        cut.audited_root.require_installed(&installed)?;
+        // The anticipated value is only DB bookkeeping. Authority is issued
+        // from the actual post-trigger observation below, never counter+N.
+        let bookkeeping = audit
+            .checked_add(1)
+            .ok_or(DurableError::Corrupt("warm audit overflow"))?;
+        tx.execute("UPDATE cmd2_domain SET published_seq=$2,complete_cut_digest=$3,complete_cut_generation=$4,selected_generation_digest=$5,source_projection_digest=$6 WHERE domain=$1", &[&domain,&as_i64(head)?,&cut.descriptor_cut.state_digest.to_hex(),&as_i64(bookkeeping)?,&installed.digest().to_hex(),&projection.to_hex()])?;
+        let selected_audit_generation = lock_audit_fence(&mut tx, domain)?;
+        if selected_audit_generation != bookkeeping {
+            return Err(DurableError::Corrupt(
+                "warm publication trigger observation differs",
+            ));
+        }
+        owner
+            .verify_current(deadline, cancelled)
+            .map_err(source_error)?;
+        tx.commit()?;
+        let mut successor_cohort = cohort.clone();
+        successor_cohort.generation = head;
+        Ok(
+            crate::source_current_cut::ManagedCurrentSourceGeneration::from_verified_successor(
+                store,
+                successor_cohort,
+                VerifiedWarmGeneration {
+                    cut,
+                    installed,
+                    selected_audit_generation,
+                },
+                metadata,
+            ),
+        )
     }
 
     /// Bootstrap a fresh private domain; neither a caller SQL complete flag nor
@@ -2386,6 +2799,13 @@ impl DurablePgCoordinator {
         {
             return Err(DurableError::Conflict("source creation carrier differs"));
         }
+        if let SourceRegistrationBasis::Managed(generation) = &basis {
+            generation
+                .selected()
+                .view()
+                .audited_root
+                .require_store(store)?;
+        }
         let indexes = creation_indexes(package, worker, deadline, cancelled)?;
         let projections = creation_projections(package, worker, deadline, cancelled)?;
         let registered_original = managed_original(package);
@@ -2478,6 +2898,7 @@ impl DurablePgCoordinator {
                 reads,
                 indexes,
                 projections,
+                continuation: None,
             });
         }
         if matches!(basis, SourceRegistrationBasis::CommittedReplay) {
@@ -2649,6 +3070,17 @@ impl DurablePgCoordinator {
                 ));
             }
         }
+        let continuation = match &basis {
+            SourceRegistrationBasis::Managed(generation) if package.inventory().is_some() => {
+                Some(WarmContinuation {
+                    parent: generation.selected().clone(),
+                    metadata: generation.metadata().clone(),
+                    fence: std::cell::Cell::new(lock_audit_fence(&mut tx, domain)?),
+                    committed: std::cell::RefCell::new(None),
+                })
+            }
+            _ => None,
+        };
         tx.commit()?;
         Ok(SourceCreationAttempt {
             domain: domain.into(),
@@ -2660,6 +3092,7 @@ impl DurablePgCoordinator {
             reads,
             indexes,
             projections,
+            continuation,
         })
     }
 
@@ -2743,6 +3176,13 @@ impl DurablePgCoordinator {
         {
             return Err(DurableError::Conflict("registered source package changed"));
         }
+        if let Some(continuation) = &attempt.continuation {
+            continuation
+                .parent
+                .view()
+                .audited_root
+                .require_store(store)?;
+        }
         // Acquire the real maintained owner mutex before STO and PG locks.
         let owner = filesystem
             .hold_creation_owner(package, deadline, cancelled)
@@ -2780,7 +3220,7 @@ impl DurablePgCoordinator {
                             ));
                         }
                     };
-                self.attach_ready_profile(
+                let audit = self.attach_ready_profile_bound(
                     store,
                     &attempt.domain,
                     &attempt.prepare_id,
@@ -2789,7 +3229,14 @@ impl DurablePgCoordinator {
                     CREATION,
                     Some(attempt.delta),
                     Some(&creation_metadata(package)),
+                    attempt
+                        .continuation
+                        .as_ref()
+                        .map(|continuation| continuation.fence.get()),
                 )?;
+                if let Some(continuation) = &attempt.continuation {
+                    continuation.fence.set(audit);
+                }
                 members.into_iter().map(|m| m.receipt).collect::<Vec<_>>()
             }
             AttemptResolution::Ready | AttemptResolution::Committed(_) => {
@@ -3378,6 +3825,41 @@ pub(super) fn check_commit_owner(
                 }
             }
             Ok(())
+        }
+    }
+}
+
+pub(super) fn check_warm_continuation(
+    mode: &CommitMode<'_>,
+    audit: u64,
+    replayed: bool,
+) -> DurableResult<()> {
+    if let CommitMode::Creation { attempt, .. } = mode {
+        if let Some(continuation) = &attempt.continuation {
+            if !replayed
+                && (continuation.fence.get() != audit || continuation.committed.borrow().is_some())
+            {
+                return Err(DurableError::Conflict(
+                    "warm source continuation lost; cold reopen required",
+                ));
+            }
+        }
+    }
+    Ok(())
+}
+pub(super) fn record_warm_commit(
+    mode: &CommitMode<'_>,
+    audit: u64,
+    commit_seq: u64,
+    receipts: &[ByteDurabilityReceipt],
+) {
+    if let CommitMode::Creation { attempt, .. } = mode {
+        if let Some(continuation) = &attempt.continuation {
+            *continuation.committed.borrow_mut() = Some(WarmCommitted {
+                audit_generation: audit,
+                commit_seq,
+                receipts: receipts.to_vec(),
+            });
         }
     }
 }

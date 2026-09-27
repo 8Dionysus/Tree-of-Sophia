@@ -2,7 +2,7 @@
 //! This is not canonical source admission or automatic export on each commit.
 
 use crate::durable_adapter::source_cohort::ManagedSourceCohort;
-use crate::durable_adapter::{DurableError, DurablePgCoordinator, VerifiedSelectedGeneration};
+use crate::durable_adapter::{DurableError, DurablePgCoordinator, SelectedSourceGeneration};
 use crate::source_command::{
     self as cmd, CommandContext, SourceCommandError as Error, SourceCommandResult as Result,
 };
@@ -34,7 +34,7 @@ use tos_validation::source_cut::CutWorkerSchemaExecutor;
 pub struct ManagedCurrentSourceGeneration {
     store_id: [u8; 16],
     cohort: ManagedSourceCohort,
-    selected: VerifiedSelectedGeneration,
+    selected: SelectedSourceGeneration,
     metadata: BTreeMap<String, MemberMetadata>,
 }
 impl ManagedCurrentSourceGeneration {
@@ -48,7 +48,7 @@ impl ManagedCurrentSourceGeneration {
         self.selected.digest()
     }
     pub fn commit_seq(&self) -> u64 {
-        self.selected.cut().through_commit_seq()
+        self.selected.through_seq()
     }
     pub fn agent_definition_digest(&self) -> Digest256 {
         self.cohort.definition_digest()
@@ -57,11 +57,31 @@ impl ManagedCurrentSourceGeneration {
         self.cohort.epoch()
     }
     pub(crate) fn audit_generation(&self) -> u64 {
-        self.selected.cut().audit_generation()
+        self.selected.audit_generation()
     }
     pub fn cohort(&self) -> &ManagedSourceCohort {
         &self.cohort
     }
+    pub(crate) fn selected(&self) -> &SelectedSourceGeneration {
+        &self.selected
+    }
+    pub(crate) fn metadata(&self) -> &BTreeMap<String, MemberMetadata> {
+        &self.metadata
+    }
+    pub(crate) fn from_verified_successor(
+        store: &SegmentStore,
+        cohort: ManagedSourceCohort,
+        selected: crate::durable_adapter::VerifiedWarmGeneration,
+        metadata: BTreeMap<String, MemberMetadata>,
+    ) -> Self {
+        Self {
+            store_id: store.store_id(),
+            cohort,
+            selected: SelectedSourceGeneration::Warm(selected),
+            metadata,
+        }
+    }
+
     pub fn read_current_member(
         &self,
         coordinator: &mut DurablePgCoordinator,
@@ -150,7 +170,7 @@ pub fn select_current_source_generation(
     Ok(ManagedCurrentSourceGeneration {
         store_id: store.store_id(),
         cohort: reopened.cohort,
-        selected: reopened.selected,
+        selected: SelectedSourceGeneration::Cold(reopened.selected),
         metadata: reopened.metadata,
     })
 }
@@ -721,7 +741,7 @@ pub fn select_current_source_cut(
         generation: ManagedCurrentSourceGeneration {
             store_id: store.store_id(),
             cohort: reopened.cohort,
-            selected: reopened.selected,
+            selected: SelectedSourceGeneration::Cold(reopened.selected),
             metadata: reopened.metadata,
         },
         cut,

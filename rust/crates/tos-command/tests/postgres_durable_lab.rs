@@ -1005,7 +1005,7 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
     current_request["expected_source"] = serde_json::Value::Null;
     current_request["expected_revision"] = serde_json::Value::Null;
     current_context.request_raw = canonical(&current_request);
-    let (current_package, second_receipt, _) = reopened_db
+    let (current_package, second_receipt, _, successor) = reopened_db
         .execute_managed_agent_creation_from_captures(
             &reopened_store,
             &current,
@@ -1061,21 +1061,6 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
                 && r.raw_sha256 == Digest256::of_bytes(&reopened.files[earlier_path])),
         "second maintained command consumes exact first authored body"
     );
-    let successor = tos_command::source_current_cut::select_current_source_generation(
-        &mut reopened_db,
-        &reopened_store,
-        &lab.domain,
-        &cut,
-        revision,
-        membership,
-        &contexts[0],
-        &software,
-        &components,
-        &mut new_worker(&cut),
-        deadline,
-        &cancelled,
-    )
-    .unwrap();
     assert_ne!(successor.digest(), current.digest());
     assert_eq!(successor.commit_seq(), second_receipt.commit_seq);
     let second_path =
@@ -1099,6 +1084,124 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
             .iter()
             .any(|path| path.as_str() == earlier_path)
     );
+    // The next real command consumes the returned warm successor, without
+    // cold re-auditing unchanged source bodies or exporting a v1 manifest.
+    let mut warm_context = current_context.clone();
+    let mut warm_config = current_config.clone();
+    warm_config["source_path"] =
+        serde_json::json!("ToS/source-witnesses/agents/synthetic-durable-warm/agent.json");
+    warm_config["record_id"] = serde_json::json!("tos.agent.synthetic-durable-warm");
+    warm_config["allowed_form_ids"] = serde_json::json!(["tos.form.synthetic-durable-warm"]);
+    warm_config["provenance_event_id"] = serde_json::json!("tos.event.synthetic-durable-warm");
+    let warm_owner = isolated.path().join("owner-warm.json");
+    fs::write(&warm_owner, canonical(&warm_config)).unwrap();
+    fs::set_permissions(&warm_owner, fs::Permissions::from_mode(0o600)).unwrap();
+    let warm_filesystem =
+        CreationFilesystem::select_isolated(&isolated, &warm_owner, deadline, &cancelled).unwrap();
+    warm_context.configuration_raw = canonical(&warm_config);
+    let mut warm_request = current_request.clone();
+    for field in [
+        "command_id",
+        "expected_configuration",
+        "expected_dependencies",
+        "expected_source",
+        "expected_revision",
+    ] {
+        warm_request.as_object_mut().unwrap().remove(field);
+    }
+    warm_request["operation"] = serde_json::json!("prepare-create");
+    warm_request["record"]["record_id"] = serde_json::json!("tos.agent.synthetic-durable-warm");
+    warm_request["record"]["source_refs"] = serde_json::json!([second_path.as_str()]);
+    warm_request["forms"][0]["form_id"] = serde_json::json!("tos.form.synthetic-durable-warm");
+    warm_context.request_raw = canonical(&warm_request);
+    let warm_input = tos_command::source_creation::select_managed_agent_creation_input(
+        &mut reopened_db,
+        &reopened_store,
+        &successor,
+        &warm_context,
+        &cut,
+        &software,
+        &components,
+        deadline,
+        &cancelled,
+    )
+    .unwrap();
+    let mut warm_worker = new_worker(&cut);
+    let warm_preview = tos_command::source_creation::prepare_managed_agent_creation(
+        &warm_input,
+        &cut,
+        &software,
+        &components,
+        &mut warm_worker,
+        deadline,
+        &cancelled,
+    )
+    .unwrap()
+    .preview()
+    .unwrap();
+    warm_request["operation"] = serde_json::json!("source.create");
+    warm_request["command_id"] = serde_json::json!("synthetic:durable-current-warm");
+    for (key, field) in [
+        ("expected_configuration", "owner_configuration"),
+        ("expected_dependencies", "expected_dependencies"),
+    ] {
+        warm_request[key] =
+            serde_json::json!(warm_preview.object_get(field).unwrap().as_str().unwrap());
+    }
+    warm_request["expected_source"] = serde_json::Value::Null;
+    warm_request["expected_revision"] = serde_json::Value::Null;
+    warm_context.request_raw = canonical(&warm_request);
+    let (warm_package, warm_receipt, _, warm_successor) = reopened_db
+        .execute_managed_agent_creation_from_captures(
+            &reopened_store,
+            &successor,
+            &cut,
+            b"agent-current-warm",
+            &warm_filesystem,
+            &warm_context,
+            &software,
+            &components,
+            &mut warm_worker,
+            contract_digest(),
+            0,
+            0,
+            "private-job",
+            1,
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+    assert_eq!(warm_receipt.commit_seq, second_receipt.commit_seq + 1);
+    assert_eq!(warm_successor.commit_seq(), warm_receipt.commit_seq);
+    assert_ne!(warm_successor.digest(), successor.digest());
+    assert!(
+        warm_package
+            .reads()
+            .iter()
+            .any(|r| r.path == second_path
+                && r.raw_sha256 == Digest256::of_bytes(&successor_member.raw)),
+        "warm preparation consumes the preceding creation's exact original body"
+    );
+    assert!(
+        warm_package
+            .reads()
+            .iter()
+            .filter(|r| r.path.as_str().starts_with("ToS/"))
+            .count()
+            < reopened.files.len(),
+        "warm preparation remains addressed"
+    );
+    let expected_current_head = warm_receipt.commit_seq;
+    drop(warm_package);
+    drop(warm_receipt);
+    drop(warm_successor);
+    drop(warm_input);
+    drop(warm_preview);
+    drop(warm_worker);
+    drop(warm_context);
+    drop(warm_request);
+    drop(warm_config);
+    drop(warm_filesystem);
     // Retain only independent selection references and an assertion oracle;
     // every managed input/package/generation and original process handle dies.
     let expected_original_files = current_package.files().clone();
@@ -1194,7 +1297,7 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
             )
             .unwrap();
         assert_eq!(&retained.raw, expected, "process-cold original file {name}");
-        assert_eq!(retained.current_generation, expected_commit_seq);
+        assert_eq!(retained.current_generation, expected_current_head);
     }
     let (second_replayed, _) = recovered_db
         .recover_committed_managed_agent_creation(
@@ -1219,7 +1322,7 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
     assert_eq!(second_replayed.commit_seq, expected_commit_seq);
     assert_eq!(
         recovered_db.head_seq(&recovery_domain).unwrap(),
-        expected_commit_seq
+        expected_current_head
     );
     assert!(
         matches!(
@@ -1379,7 +1482,7 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
     fs::write(&current_owner, &original_owner_raw).unwrap();
     assert_eq!(
         recovered_db.head_seq(&recovery_domain).unwrap(),
-        expected_commit_seq
+        expected_current_head
     );
     // Corruption must not be relabelled complete by a cold/open SQL marker.
     sql.execute(

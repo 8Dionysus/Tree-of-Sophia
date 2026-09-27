@@ -282,6 +282,99 @@ pub struct ColdCut {
     current_rows: Vec<PlacementGenerationRowV1>,
 }
 
+// Two real proofs share installation facts, never proof construction.
+#[derive(Clone, Debug)]
+pub(crate) struct WarmSuccessorCut {
+    audited_root: AuditedStoreRoot,
+    domain: String,
+    descriptor_cut: GenerationCutV1,
+    history_rows: Vec<PlacementGenerationRowV1>,
+    current_rows: Vec<PlacementGenerationRowV1>,
+}
+#[derive(Clone, Debug)]
+pub(crate) struct VerifiedWarmGeneration {
+    cut: WarmSuccessorCut,
+    installed: InstalledGenerationV1,
+    selected_audit_generation: u64,
+}
+#[derive(Clone, Debug)]
+pub(crate) enum SelectedSourceGeneration {
+    Cold(VerifiedSelectedGeneration),
+    Warm(VerifiedWarmGeneration),
+}
+impl SelectedSourceGeneration {
+    pub(crate) fn digest(&self) -> Digest256 {
+        match self {
+            Self::Cold(value) => value.digest(),
+            Self::Warm(value) => value.installed.digest(),
+        }
+    }
+    pub(crate) fn through_seq(&self) -> u64 {
+        self.view().descriptor_cut.through_seq
+    }
+    pub(crate) fn audit_generation(&self) -> u64 {
+        match self {
+            Self::Cold(value) => value.cut.audit_generation,
+            Self::Warm(value) => value.selected_audit_generation,
+        }
+    }
+    fn view(&self) -> MembershipInstallation<'_> {
+        match self {
+            Self::Cold(value) => MembershipInstallation {
+                audited_root: &value.cut.audited_root,
+                domain: &value.cut.domain,
+                descriptor_cut: value.installed.descriptor().cut.clone(),
+                history_rows: &value.cut.history_rows,
+                current_rows: &value.cut.current_rows,
+            },
+            Self::Warm(value) => value.cut.installation(),
+        }
+    }
+}
+#[derive(Clone)]
+struct MembershipInstallation<'a> {
+    audited_root: &'a AuditedStoreRoot,
+    domain: &'a str,
+    descriptor_cut: GenerationCutV1,
+    history_rows: &'a [PlacementGenerationRowV1],
+    current_rows: &'a [PlacementGenerationRowV1],
+}
+impl ColdCut {
+    fn installation(&self, store: &SegmentStore) -> MembershipInstallation<'_> {
+        MembershipInstallation {
+            audited_root: &self.audited_root,
+            domain: &self.domain,
+            descriptor_cut: GenerationCutV1 {
+                store_id: store.store_id(),
+                domain_digest: store.domain_digest(),
+                through_seq: self.through_commit_seq,
+                audit_generation: self.audit_generation,
+                database_oid: self.database_oid,
+                schema_profile_digest: self.schema_profile_digest,
+                state_digest: self.state_digest,
+                log_digest: self.log_digest,
+                historical_members: self.historical_members,
+                current_members: self.current_members,
+                history_membership_root: self.history_membership_root,
+                current_membership_root: self.current_membership_root,
+            },
+            history_rows: &self.history_rows,
+            current_rows: &self.current_rows,
+        }
+    }
+}
+impl WarmSuccessorCut {
+    fn installation(&self) -> MembershipInstallation<'_> {
+        MembershipInstallation {
+            audited_root: &self.audited_root,
+            domain: &self.domain,
+            descriptor_cut: self.descriptor_cut.clone(),
+            history_rows: &self.history_rows,
+            current_rows: &self.current_rows,
+        }
+    }
+}
+
 /// Physically installed and independently compared private CMD membership.
 /// This is still a synthetic laboratory cut, never a source admission seal.
 #[derive(Clone, Debug)]
@@ -539,6 +632,107 @@ fn schema_profile_digest() -> Digest256 {
     hasher.finalize()
 }
 
+const METADATA_TABLES: [(&str, &str); 10] = [
+    ("cmd2_job", "job_id"),
+    ("cmd2_predicate", "kind,owner,scope,token"),
+    ("cmd2_attempt", "prepare_id"),
+    ("cmd2_member", "prepare_id,member_slot"),
+    ("cmd2_current", "subject"),
+    ("cmd2_history", "subject,revision"),
+    ("cmd2_receipt", "command_id"),
+    ("cmd2_log", "commit_seq"),
+    ("cmd2_outbox", "commit_seq"),
+    ("cmd2_source_index", "kind,token,path"),
+];
+fn admit_private_metadata(
+    tx: &mut Transaction<'_>,
+    domain: &str,
+    started: Instant,
+    requested: Option<(Instant, &AtomicBool)>,
+) -> DurableResult<()> {
+    let mut admitted_rows = 0u64;
+    let mut admitted_bytes = 0u64;
+    for (table, _) in METADATA_TABLES {
+        check_cold_deadline(started, requested)?;
+        let query = format!(
+            "SELECT count(*),coalesce(max(octet_length(row_to_json(t)::text)),0),
+                        coalesce(sum(octet_length(row_to_json(t)::text)),0)
+                 FROM {table} t WHERE domain=$1"
+        );
+        let row = tx.query_one(&query, &[&domain])?;
+        admitted_rows = admitted_rows
+            .checked_add(as_u64(row.get::<_, i64>(0))?)
+            .ok_or(DurableError::Refused("cold metadata row count overflow"))?;
+        admitted_bytes = admitted_bytes
+            .checked_add(as_u64(row.get::<_, i64>(2))?)
+            .ok_or(DurableError::Refused("cold metadata byte count overflow"))?;
+        if admitted_rows > 100_000
+            || row.get::<_, i32>(1) > 1_048_576
+            || admitted_bytes > 64 * 1024 * 1024
+        {
+            return Err(DurableError::Refused(
+                "cold metadata preadmission budget exceeded",
+            ));
+        }
+    }
+    Ok(())
+}
+fn append_private_metadata(
+    tx: &mut Transaction<'_>,
+    domain: &str,
+    state_hasher: &mut Digest256Hasher,
+    started: Instant,
+    requested: Option<(Instant, &AtomicBool)>,
+) -> DurableResult<()> {
+    let mut audited_rows = 0usize;
+    let mut audited_metadata_bytes = 0usize;
+    for (table, order) in METADATA_TABLES {
+        check_cold_deadline(started, requested)?;
+        part(state_hasher, table.as_bytes());
+        let query =
+            format!("SELECT row_to_json(t)::text FROM {table} t WHERE domain=$1 ORDER BY {order}");
+        let mut rows = tx.query_raw(&query, &[&domain])?;
+        let mut table_rows = 0u64;
+        while let Some(row) = rows.next()? {
+            check_cold_deadline(started, requested)?;
+            audited_rows = audited_rows
+                .checked_add(1)
+                .ok_or(DurableError::Refused("cold metadata row count overflow"))?;
+            if audited_rows > 100_000 {
+                return Err(DurableError::Refused("cold metadata row budget exceeded"));
+            }
+            table_rows += 1;
+            let encoded: String = row.get(0);
+            if encoded.len() > 1_048_576 {
+                return Err(DurableError::Refused(
+                    "cold metadata row exceeds byte budget",
+                ));
+            }
+            audited_metadata_bytes = audited_metadata_bytes
+                .checked_add(encoded.len())
+                .ok_or(DurableError::Refused("cold metadata byte count overflow"))?;
+            if audited_metadata_bytes > 64 * 1024 * 1024 {
+                return Err(DurableError::Refused("cold metadata byte budget exceeded"));
+            }
+            part(state_hasher, encoded.as_bytes());
+        }
+        part(state_hasher, &table_rows.to_be_bytes());
+    }
+    let domain_state: String = tx
+        .query_one(
+            "SELECT row_to_json(d)::text FROM
+             (SELECT domain,head_seq,rights_version,rights_allowed,rule_version,
+                     contract_digest,schema_profile_digest,source_revision,source_membership_digest,
+                     source_membership_count,source_epoch,source_generation,source_complete,
+                     source_definition_digest
+              FROM cmd2_domain WHERE domain=$1) d",
+            &[&domain],
+        )?
+        .get(0);
+    part(state_hasher, domain_state.as_bytes());
+    Ok(())
+}
+
 fn lock_audit_fence(tx: &mut Transaction<'_>, domain: &str) -> DurableResult<u64> {
     let row = tx
         .query_opt(
@@ -720,6 +914,31 @@ impl DurablePgCoordinator {
         registered_delta: Option<Digest256>,
         source_metadata: Option<&source_cohort::SourceMetadata>,
     ) -> DurableResult<()> {
+        self.attach_ready_profile_bound(
+            store,
+            domain,
+            prepare_id,
+            expected_attempt_fence,
+            members,
+            profile,
+            registered_delta,
+            source_metadata,
+            None,
+        )
+        .map(|_| ())
+    }
+    fn attach_ready_profile_bound(
+        &mut self,
+        store: &SegmentStore,
+        domain: &str,
+        prepare_id: &[u8],
+        expected_attempt_fence: u64,
+        members: &[DurableShadowMember],
+        profile: &[u8],
+        registered_delta: Option<Digest256>,
+        source_metadata: Option<&source_cohort::SourceMetadata>,
+        expected_audit: Option<u64>,
+    ) -> DurableResult<u64> {
         if expected_attempt_fence == 0 || members.is_empty() || members.len() > MAX_MEMBERS {
             return Err(DurableError::Invalid("invalid member count"));
         }
@@ -756,7 +975,12 @@ impl DurablePgCoordinator {
             .isolation_level(IsolationLevel::ReadCommitted)
             .start()?;
         tx.batch_execute("SET LOCAL lock_timeout = '5s'; SET LOCAL statement_timeout = '15s'")?;
-        lock_audit_fence(&mut tx, domain)?;
+        let audit = lock_audit_fence(&mut tx, domain)?;
+        if expected_audit.is_some_and(|expected| expected != audit) {
+            return Err(DurableError::Conflict(
+                "warm attach continuation lost; cold reopen required",
+            ));
+        }
         source_cohort::check_writer_profile(&mut tx, domain, profile)?;
         let row = tx.query_one(
             "SELECT state,delta_digest,attempt_fence FROM cmd2_attempt
@@ -794,7 +1018,7 @@ impl DurablePgCoordinator {
                 )?;
             }
             tx.commit()?;
-            return Ok(());
+            return Ok(audit);
         }
         if state != "registered" {
             return Err(DurableError::Refused("attempt is not attachable"));
@@ -854,8 +1078,9 @@ impl DurablePgCoordinator {
             "UPDATE cmd2_attempt SET state='ready' WHERE domain=$1 AND prepare_id=$2",
             &[&domain, &prepare_id],
         )?;
+        let audit = lock_audit_fence(&mut tx, domain)?;
         tx.commit()?;
-        Ok(())
+        Ok(audit)
     }
 
     /// One private shadow commit. STO verifies whole pinned segments before
@@ -901,7 +1126,7 @@ impl DurablePgCoordinator {
             .start()?;
         tx.batch_execute("SET LOCAL lock_timeout = '5s'; SET LOCAL statement_timeout = '15s'")?;
         let lock_start = Instant::now();
-        lock_audit_fence(&mut tx, request.domain)?;
+        let observed_audit = lock_audit_fence(&mut tx, request.domain)?;
         let fence_acquired = Instant::now();
         let attempt = tx.query_one(
             "SELECT * FROM cmd2_attempt WHERE domain=$1 AND prepare_id=$2 FOR UPDATE",
@@ -909,6 +1134,7 @@ impl DurablePgCoordinator {
         )?;
         let state: String = attempt.get("state");
         let replayed = state == "committed";
+        source_cohort::check_warm_continuation(&mode, observed_audit, replayed)?;
         if as_u64(attempt.get::<_, i64>("attempt_fence"))? != request.attempt_fence {
             return Err(DurableError::Conflict("attempt fence changed after seal"));
         }
@@ -1137,9 +1363,11 @@ impl DurablePgCoordinator {
             ],
         )?;
         source_cohort::verify_owner_before_outcome(&mode)?;
+        let committed_audit = lock_audit_fence(&mut tx, request.domain)?;
         let lock_held = fence_acquired.elapsed();
         tx.commit()
             .map_err(|_| DurableError::Indeterminate("commit outcome unknown; retain pin"))?;
+        source_cohort::record_warm_commit(&mode, committed_audit, seq, request.receipts);
         drop(guard);
         Ok((
             DurableCommitReceipt {
@@ -1558,46 +1786,7 @@ impl DurablePgCoordinator {
         if head > MAX_CUT {
             return Err(DurableError::Refused("cold cut exceeds laboratory budget"));
         }
-        let audited_tables = [
-            ("cmd2_job", "job_id"),
-            ("cmd2_predicate", "kind,owner,scope,token"),
-            ("cmd2_attempt", "prepare_id"),
-            ("cmd2_member", "prepare_id,member_slot"),
-            ("cmd2_current", "subject"),
-            ("cmd2_history", "subject,revision"),
-            ("cmd2_receipt", "command_id"),
-            ("cmd2_log", "commit_seq"),
-            ("cmd2_outbox", "commit_seq"),
-            ("cmd2_source_index", "kind,token,path"),
-        ];
-        // Pre-admit every selected row before any client-side materialization.
-        // The PostgreSQL snapshot is stable across this bound and the later
-        // integrity traversal; an oversized row never crosses into a Row.
-        let mut admitted_rows = 0u64;
-        let mut admitted_bytes = 0u64;
-        for (table, _) in audited_tables {
-            check_cold_deadline(started, requested)?;
-            let query = format!(
-                "SELECT count(*),coalesce(max(octet_length(row_to_json(t)::text)),0),
-                        coalesce(sum(octet_length(row_to_json(t)::text)),0)
-                 FROM {table} t WHERE domain=$1"
-            );
-            let row = tx.query_one(&query, &[&domain])?;
-            admitted_rows = admitted_rows
-                .checked_add(as_u64(row.get::<_, i64>(0))?)
-                .ok_or(DurableError::Refused("cold metadata row count overflow"))?;
-            admitted_bytes = admitted_bytes
-                .checked_add(as_u64(row.get::<_, i64>(2))?)
-                .ok_or(DurableError::Refused("cold metadata byte count overflow"))?;
-            if admitted_rows > 100_000
-                || row.get::<_, i32>(1) > 1_048_576
-                || admitted_bytes > 64 * 1024 * 1024
-            {
-                return Err(DurableError::Refused(
-                    "cold metadata preadmission budget exceeded",
-                ));
-            }
-        }
+        admit_private_metadata(&mut tx, domain, started, requested)?;
         let mut recovered_pins = 0usize;
         let mut segment_bytes = 0u64;
         let mut historical_members = 0u64;
@@ -1928,53 +2117,7 @@ impl DurablePgCoordinator {
         // no full scan or segment hashing occurs under the sequencer lock.
         // The row encoding is a PostgreSQL-16 laboratory profile, bound by
         // schema_profile_digest and database_oid, not a portable source codec.
-        let mut audited_rows = 0usize;
-        let mut audited_metadata_bytes = 0usize;
-        for (table, order) in audited_tables {
-            check_cold_deadline(started, requested)?;
-            part(&mut state_hasher, table.as_bytes());
-            let query = format!(
-                "SELECT row_to_json(t)::text FROM {table} t WHERE domain=$1 ORDER BY {order}"
-            );
-            let mut rows = tx.query_raw(&query, &[&domain])?;
-            let mut table_rows = 0u64;
-            while let Some(row) = rows.next()? {
-                check_cold_deadline(started, requested)?;
-                audited_rows = audited_rows
-                    .checked_add(1)
-                    .ok_or(DurableError::Refused("cold metadata row count overflow"))?;
-                if audited_rows > 100_000 {
-                    return Err(DurableError::Refused("cold metadata row budget exceeded"));
-                }
-                table_rows += 1;
-                let encoded: String = row.get(0);
-                if encoded.len() > 1_048_576 {
-                    return Err(DurableError::Refused(
-                        "cold metadata row exceeds byte budget",
-                    ));
-                }
-                audited_metadata_bytes = audited_metadata_bytes
-                    .checked_add(encoded.len())
-                    .ok_or(DurableError::Refused("cold metadata byte count overflow"))?;
-                if audited_metadata_bytes > 64 * 1024 * 1024 {
-                    return Err(DurableError::Refused("cold metadata byte budget exceeded"));
-                }
-                part(&mut state_hasher, encoded.as_bytes());
-            }
-            part(&mut state_hasher, &table_rows.to_be_bytes());
-        }
-        let domain_state: String = tx
-            .query_one(
-                "SELECT row_to_json(d)::text FROM
-             (SELECT domain,head_seq,rights_version,rights_allowed,rule_version,
-                     contract_digest,schema_profile_digest,source_revision,source_membership_digest,
-                     source_membership_count,source_epoch,source_generation,source_complete,
-                     source_definition_digest
-              FROM cmd2_domain WHERE domain=$1) d",
-                &[&domain],
-            )?
-            .get(0);
-        part(&mut state_hasher, domain_state.as_bytes());
+        append_private_metadata(&mut tx, domain, &mut state_hasher, started, requested)?;
         let cut = ColdCut {
             audited_root,
             domain: domain.to_owned(),
@@ -2006,62 +2149,17 @@ impl DurablePgCoordinator {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> DurableResult<CompleteGeneration> {
-        cut.audited_root.require_store(store)?;
-        if store.custody_domain() != cut.domain.as_bytes() {
-            return Err(DurableError::Conflict("STO custody domain differs"));
-        }
-        if cancelled.load(Ordering::Relaxed) || Instant::now() >= deadline {
-            return Err(DurableError::Refused(
-                "generation build cancelled or expired",
-            ));
-        }
-        if cut.schema_profile_digest != schema_profile_digest()
-            || cut.historical_members != cut.history_rows.len() as u64
-            || cut.current_members != cut.current_rows.len() as u64
-            || cut.history_membership_root
-                != logical_membership_root(HISTORY_KEY_TAG, &cut.history_rows)
-            || cut.current_membership_root
-                != logical_membership_root(CURRENT_KEY_TAG, &cut.current_rows)
-        {
-            return Err(DurableError::Corrupt("cold membership certificate differs"));
-        }
-        for rows in [&cut.history_rows, &cut.current_rows] {
-            if rows.windows(2).any(|pair| pair[0].key >= pair[1].key) {
-                return Err(DurableError::Corrupt("cold membership keys are not unique"));
-            }
-        }
-        let limits = generation_limits();
-        let history = install_membership_catalog(
-            store,
-            HISTORY_NAMESPACE,
-            HISTORY_KEY_CODEC,
-            &cut.history_rows,
-            limits,
-        )?;
-        if cancelled.load(Ordering::Relaxed) || Instant::now() >= deadline {
-            return Err(DurableError::Refused(
-                "generation build cancelled or expired",
-            ));
-        }
-        let current = install_membership_catalog(
-            store,
-            CURRENT_NAMESPACE,
-            CURRENT_KEY_CODEC,
-            &cut.current_rows,
-            limits,
-        )?;
-        let descriptor = GenerationDescriptorV1 {
-            cut: generation_cut(store, cut),
-            history,
-            current,
-        };
-        let installed = store.install_generation_candidate(descriptor, limits)?;
-        self.verify_generation_candidate(store, cut, installed, deadline, cancelled)
+        let (installed, history_coverage, current_coverage) =
+            install_verified_membership(store, cut.installation(store), deadline, cancelled)?;
+        Ok(CompleteGeneration {
+            cut: cut.clone(),
+            installed,
+            history_coverage,
+            current_coverage,
+        })
     }
 
-    /// Certify a physically installed candidate only when *both* of its
-    /// complete selected streams match the independent CMD cold audit. This
-    /// also rejects validly re-encoded same-count STO leaves with other keys.
+    /// Compare physical complete streams against the independently verified cold facts.
     pub fn verify_generation_candidate(
         &mut self,
         store: &SegmentStore,
@@ -2070,31 +2168,10 @@ impl DurablePgCoordinator {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> DurableResult<CompleteGeneration> {
-        cut.audited_root.require_store(store)?;
-        cut.audited_root.require_installed(&installed)?;
-        if store.custody_domain() != cut.domain.as_bytes()
-            || installed.descriptor().cut != generation_cut(store, cut)
-            || installed.descriptor().history.key_codec_digest
-                != Digest256::of_bytes(HISTORY_KEY_CODEC)
-            || installed.descriptor().current.key_codec_digest
-                != Digest256::of_bytes(CURRENT_KEY_CODEC)
-        {
-            return Err(DurableError::Conflict("generation candidate cut differs"));
-        }
-        let limits = generation_limits();
-        let history_coverage = compare_installed_membership(
+        let (history_coverage, current_coverage) = verify_installed_membership(
+            store,
+            cut.installation(store),
             &installed,
-            GenerationNamespaceV1::History,
-            &cut.history_rows,
-            limits,
-            deadline,
-            cancelled,
-        )?;
-        let current_coverage = compare_installed_membership(
-            &installed,
-            GenerationNamespaceV1::Current,
-            &cut.current_rows,
-            limits,
             deadline,
             cancelled,
         )?;
@@ -2376,20 +2453,102 @@ fn generation_limits() -> GenerationReadLimits {
 }
 
 fn generation_cut(store: &SegmentStore, cut: &ColdCut) -> GenerationCutV1 {
-    GenerationCutV1 {
-        store_id: store.store_id(),
-        domain_digest: store.domain_digest(),
-        through_seq: cut.through_commit_seq,
-        audit_generation: cut.audit_generation,
-        database_oid: cut.database_oid,
-        schema_profile_digest: cut.schema_profile_digest,
-        state_digest: cut.state_digest,
-        log_digest: cut.log_digest,
-        historical_members: cut.historical_members,
-        current_members: cut.current_members,
-        history_membership_root: cut.history_membership_root,
-        current_membership_root: cut.current_membership_root,
+    cut.installation(store).descriptor_cut
+}
+
+fn install_verified_membership(
+    store: &SegmentStore,
+    facts: MembershipInstallation<'_>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> DurableResult<(
+    InstalledGenerationV1,
+    GenerationCoverageV1,
+    GenerationCoverageV1,
+)> {
+    facts.audited_root.require_store(store)?;
+    if store.custody_domain() != facts.domain.as_bytes() {
+        return Err(DurableError::Conflict("STO custody domain differs"));
     }
+    check_cold_deadline(Instant::now(), Some((deadline, cancelled)))?;
+    let cut = &facts.descriptor_cut;
+    if cut.schema_profile_digest != schema_profile_digest()
+        || cut.historical_members != facts.history_rows.len() as u64
+        || cut.current_members != facts.current_rows.len() as u64
+        || cut.history_membership_root
+            != logical_membership_root(HISTORY_KEY_TAG, facts.history_rows)
+        || cut.current_membership_root
+            != logical_membership_root(CURRENT_KEY_TAG, facts.current_rows)
+    {
+        return Err(DurableError::Corrupt(
+            "verified membership certificate differs",
+        ));
+    }
+    for rows in [facts.history_rows, facts.current_rows] {
+        if rows.windows(2).any(|pair| pair[0].key >= pair[1].key) {
+            return Err(DurableError::Corrupt("membership keys are not unique"));
+        }
+    }
+    let limits = generation_limits();
+    let history = install_membership_catalog(
+        store,
+        HISTORY_NAMESPACE,
+        HISTORY_KEY_CODEC,
+        facts.history_rows,
+        limits,
+    )?;
+    check_cold_deadline(Instant::now(), Some((deadline, cancelled)))?;
+    let current = install_membership_catalog(
+        store,
+        CURRENT_NAMESPACE,
+        CURRENT_KEY_CODEC,
+        facts.current_rows,
+        limits,
+    )?;
+    let descriptor = GenerationDescriptorV1 {
+        cut: facts.descriptor_cut.clone(),
+        history,
+        current,
+    };
+    let installed = store.install_generation_candidate(descriptor, limits)?;
+    let (history_coverage, current_coverage) =
+        verify_installed_membership(store, facts, &installed, deadline, cancelled)?;
+    Ok((installed, history_coverage, current_coverage))
+}
+fn verify_installed_membership(
+    store: &SegmentStore,
+    facts: MembershipInstallation<'_>,
+    installed: &InstalledGenerationV1,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> DurableResult<(GenerationCoverageV1, GenerationCoverageV1)> {
+    facts.audited_root.require_store(store)?;
+    facts.audited_root.require_installed(installed)?;
+    if store.custody_domain() != facts.domain.as_bytes()
+        || installed.descriptor().cut != facts.descriptor_cut
+        || installed.descriptor().history.key_codec_digest != Digest256::of_bytes(HISTORY_KEY_CODEC)
+        || installed.descriptor().current.key_codec_digest != Digest256::of_bytes(CURRENT_KEY_CODEC)
+    {
+        return Err(DurableError::Conflict("generation candidate cut differs"));
+    }
+    let limits = generation_limits();
+    let history = compare_installed_membership(
+        installed,
+        GenerationNamespaceV1::History,
+        facts.history_rows,
+        limits,
+        deadline,
+        cancelled,
+    )?;
+    let current = compare_installed_membership(
+        installed,
+        GenerationNamespaceV1::Current,
+        facts.current_rows,
+        limits,
+        deadline,
+        cancelled,
+    )?;
+    Ok((history, current))
 }
 
 fn install_membership_catalog(
