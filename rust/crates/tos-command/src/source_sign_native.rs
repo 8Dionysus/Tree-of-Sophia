@@ -248,7 +248,12 @@ impl<R: SignNativeRead + ?Sized> Native<'_, R> {
         }
         Ok((value, raw))
     }
-    fn validate(&mut self, value: &JsonValue, basename: &str) -> SourceCommandResult<()> {
+    fn validate(
+        &mut self,
+        value: &JsonValue,
+        basename: &str,
+        locator: &str,
+    ) -> SourceCommandResult<()> {
         let name = format!("ToS/contracts/{basename}");
         let grammar_raw = self.read(&name, None, false, true)?;
         let grammar = cmd::parse(&grammar_raw)?;
@@ -284,8 +289,8 @@ impl<R: SignNativeRead + ?Sized> Native<'_, R> {
                 "native schema worker and selected grammar differ",
             ));
         }
-        match self.worker.check(
-            &name,
+        match self.worker.check_reusing_scalar(
+            locator,
             &cmd::canonical(value)?,
             &name,
             self.deadline,
@@ -296,7 +301,7 @@ impl<R: SignNativeRead + ?Sized> Native<'_, R> {
                 "native value violates exact source grammar",
             )),
             Err(reason) => Err(SourceCommandError::SchemaExecution {
-                path: name.clone(),
+                path: locator.to_owned(),
                 root: name,
                 reason,
             }),
@@ -361,7 +366,7 @@ impl<R: SignNativeRead + ?Sized> Native<'_, R> {
                 ));
             }
             let (record, _) = self.record(name, None)?;
-            self.validate(&record, "corpus-record.schema.json")?;
+            self.validate(&record, "corpus-record.schema.json", name)?;
             let key = format!("{kind}_ref");
             if cmd::text(&record, "record_type")? != kind
                 || cmd::field(&record, "record_id")? != cmd::field(scope, &key)?
@@ -390,7 +395,7 @@ impl<R: SignNativeRead + ?Sized> Native<'_, R> {
             ));
         }
         let (manifest, _) = self.record(name, None)?;
-        self.validate(&manifest, "source-item-manifest.schema.json")?;
+        self.validate(&manifest, "source-item-manifest.schema.json", name)?;
         if cmd::field(&manifest, "item_id")? != cmd::field(scope, "item_ref")?
             || cmd::field(&manifest, "embodiment_ref")? != cmd::field(scope, "edition_ref")?
             || cmd::field(layer_scope, "source_file_ref")? != cmd::field(scope, "file_ref")?
@@ -458,7 +463,7 @@ impl<R: SignNativeRead + ?Sized> Native<'_, R> {
         for target in cmd::array(derivation, "input_layers")? {
             let name = cmd::text(target, "record_ref")?;
             let (value, raw) = self.record(name, Some(cmd::text(target, "record_sha256")?))?;
-            self.validate(&value, "source-text-layer.schema.json")?;
+            self.validate(&value, "source-text-layer.schema.json", name)?;
             if cmd::field(&value, "layer_id")? != cmd::field(target, "layer_id")?
                 || cmd::field(cmd::field(&value, "representation")?, "content_sha256")?
                     != cmd::field(target, "content_sha256")?
@@ -684,7 +689,7 @@ impl<R: SignNativeRead + ?Sized> Native<'_, R> {
             let name = cmd::text(target, "anchor_record_ref")?;
             let (anchor, raw) =
                 self.record(name, Some(cmd::text(target, "anchor_record_sha256")?))?;
-            self.validate(&anchor, "source-anchor-v2.schema.json")?;
+            self.validate(&anchor, "source-anchor-v2.schema.json", name)?;
             self.metadata(&raw, name, "anchor")?;
             let endpoint = cmd::field(&anchor, "target")?;
             if cmd::field(&anchor, "anchor_id")? != cmd::field(target, "anchor_id")?
@@ -736,7 +741,7 @@ impl<R: SignNativeRead + ?Sized> Native<'_, R> {
         for target in refs {
             let name = cmd::text(target, "ref")?;
             let (record, _) = self.record(name, Some(cmd::text(target, "sha256")?))?;
-            self.validate(&record, "rights-record.schema.json")?;
+            self.validate(&record, "rights-record.schema.json", name)?;
             let scope_refs = texts(&record, "scope_refs", 4096)?;
             if !relevant.iter().any(|id| scope_refs.iter().any(|r| r == id))
                 || name == cmd::text(manifest, "rights_ref")?
@@ -853,11 +858,15 @@ impl<R: SignNativeRead + ?Sized> Native<'_, R> {
         Ok(())
     }
     fn resolve_layer_metadata(&mut self, binding: &JsonValue) -> SourceCommandResult<JsonValue> {
-        self.validate(binding, "native-text-layer-binding.schema.json")?;
+        self.validate(
+            binding,
+            "native-text-layer-binding.schema.json",
+            "ToS/contracts/native-text-layer-binding.schema.json",
+        )?;
         let target = cmd::field(binding, "text_layer")?;
         let name = cmd::text(target, "record_ref")?;
         let (layer, raw) = self.record(name, Some(cmd::text(target, "record_sha256")?))?;
-        self.validate(&layer, "source-text-layer.schema.json")?;
+        self.validate(&layer, "source-text-layer.schema.json", name)?;
         if cmd::field(&layer, "layer_id")? != cmd::field(target, "layer_id")?
             || cmd::field(&layer, "layer_version")? != cmd::field(target, "layer_version")?
         {
@@ -1028,11 +1037,19 @@ impl<R: SignNativeRead + ?Sized> Native<'_, R> {
         binding: &JsonValue,
         scope: NativeReadScope,
     ) -> SourceCommandResult<(JsonValue, JsonValue, JsonValue)> {
-        self.validate(binding, "native-text-unit-binding.schema.json")?;
+        self.validate(
+            binding,
+            "native-text-unit-binding.schema.json",
+            "ToS/contracts/native-text-unit-binding.schema.json",
+        )?;
         let packet_path = cmd::text(binding, "packet_ref")?;
         let (packet, packet_raw) =
             self.record(packet_path, Some(cmd::text(binding, "packet_sha256")?))?;
-        self.validate(&packet, "source-text-unit-packet-v1.schema.json")?;
+        self.validate(
+            &packet,
+            "source-text-unit-packet-v1.schema.json",
+            packet_path,
+        )?;
         if cmd::text(&packet, "content_posture")? != "source_bound"
             || cmd::field(&packet, "packet_id")? != cmd::field(binding, "packet_id")?
             || cmd::field(&packet, "packet_version")? != cmd::field(binding, "packet_version")?
@@ -1051,7 +1068,7 @@ impl<R: SignNativeRead + ?Sized> Native<'_, R> {
         }
         let (layer, layer_raw) =
             self.record(layer_path, Some(cmd::text(layer_binding, "record_sha256")?))?;
-        self.validate(&layer, "source-text-layer.schema.json")?;
+        self.validate(&layer, "source-text-layer.schema.json", layer_path)?;
         if cmd::field(&layer, "layer_id")? != cmd::field(layer_binding, "layer_id")?
             || cmd::field(&layer, "layer_version")? != cmd::field(layer_binding, "layer_version")?
         {
@@ -1452,7 +1469,7 @@ pub fn resolve_assessment<R: SignNativeRead + ?Sized>(
         ),
         ("input_snapshot", cmd::string(&input_snapshot)),
     ]);
-    native.validate(&payload, ASSESSMENT_SCHEMA)?;
+    native.validate(&payload, ASSESSMENT_SCHEMA, ASSESSMENT_SCHEMA)?;
     if native.snapshot()? != input_snapshot {
         return Err(SourceCommandError::Conflict(
             "native assessment view changed during assembly",

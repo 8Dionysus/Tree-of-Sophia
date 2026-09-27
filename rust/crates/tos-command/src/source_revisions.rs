@@ -2416,6 +2416,24 @@ pub(crate) fn schema(
     root: &str,
     instance: &JsonValue,
 ) -> SourceCommandResult<()> {
+    schema_at(
+        worker, deadline, cancelled, ctx, refs, root, instance, None, false,
+    )
+}
+
+// Reuse is limited to an actual scalar result from this selected worker operation.
+// The caller still reads and checks the current source/resource dependencies.
+fn schema_at(
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    ctx: &CommandContext,
+    refs: &[String],
+    root: &str,
+    instance: &JsonValue,
+    source_path: Option<&str>,
+    reuse_scalar: bool,
+) -> SourceCommandResult<()> {
     if worker.source_revision() != ctx.base_revision {
         return Err(SourceCommandError::Conflict(
             "schema worker and source command cut differ",
@@ -2438,20 +2456,28 @@ pub(crate) fn schema(
             ));
         }
     }
-    let source_path = cmd::text(&cmd::parse(&ctx.configuration_raw)?, "source_path")?.to_string();
-    match worker.check(
-        &source_path,
-        &cmd::canonical(instance)?,
-        root,
-        deadline,
-        cancelled,
-    ) {
+    let fallback_path;
+    let source_path = match source_path {
+        Some(path) => path,
+        None => {
+            fallback_path =
+                cmd::text(&cmd::parse(&ctx.configuration_raw)?, "source_path")?.to_owned();
+            &fallback_path
+        }
+    };
+    let raw = cmd::canonical(instance)?;
+    let result = if reuse_scalar {
+        worker.check_reusing_scalar(source_path, &raw, root, deadline, cancelled)
+    } else {
+        worker.check(source_path, &raw, root, deadline, cancelled)
+    };
+    match result {
         Ok(true) => Ok(()),
         Ok(false) => Err(SourceCommandError::Invalid(
             "source violates selected schema",
         )),
         Err(reason) => Err(SourceCommandError::SchemaExecution {
-            path: source_path,
+            path: source_path.to_owned(),
             root: root.to_owned(),
             reason,
         }),
@@ -2712,7 +2738,7 @@ fn selected_native_identity_inventory(
                 "native identity packet contract",
             ));
         }
-        schema(
+        schema_at(
             worker,
             deadline,
             cancelled,
@@ -2720,6 +2746,8 @@ fn selected_native_identity_inventory(
             &[contract.into()],
             contract,
             &packet,
+            Some(name),
+            true,
         )?;
         for entity in cmd::array(&packet, "entities")? {
             let entity_id = cmd::text(entity, "entity_id")?;
@@ -2843,7 +2871,12 @@ impl NativeBindingReader<'_> {
         }
         Ok((value, raw))
     }
-    fn validate(&mut self, value: &JsonValue, basename: &str) -> SourceCommandResult<()> {
+    fn validate(
+        &mut self,
+        value: &JsonValue,
+        basename: &str,
+        locator: &str,
+    ) -> SourceCommandResult<()> {
         let name = format!("ToS/contracts/{basename}");
         let grammar = cmd::parse(&self.read(&name, None, false, true)?)?;
         if cmd::text(&grammar, "$id")? != format!("https://tree-of-sophia.local/{name}") {
@@ -2852,7 +2885,7 @@ impl NativeBindingReader<'_> {
             ));
         }
         native_schema_refs(&grammar, 0)?;
-        schema(
+        schema_at(
             self.worker,
             self.deadline,
             self.cancelled,
@@ -2860,6 +2893,8 @@ impl NativeBindingReader<'_> {
             &[name.clone()],
             &name,
             value,
+            Some(locator),
+            true,
         )
     }
     fn metadata(&self, raw: &[u8], name: &str, kind: &str) -> SourceCommandResult<()> {
@@ -2943,7 +2978,7 @@ impl NativeBindingReader<'_> {
         for target in cmd::array(derivation, "input_layers")? {
             let name = cmd::text(target, "record_ref")?;
             let (previous, raw) = self.record(name, Some(cmd::text(target, "record_sha256")?))?;
-            self.validate(&previous, "source-text-layer.schema.json")?;
+            self.validate(&previous, "source-text-layer.schema.json", name)?;
             if cmd::field(&previous, "layer_id")? != cmd::field(target, "layer_id")?
                 || cmd::field(cmd::field(&previous, "representation")?, "content_sha256")?
                     != cmd::field(target, "content_sha256")?
@@ -2975,7 +3010,7 @@ impl NativeBindingReader<'_> {
                 ));
             }
             let (record, _) = self.record(name, None)?;
-            self.validate(&record, "corpus-record.schema.json")?;
+            self.validate(&record, "corpus-record.schema.json", name)?;
             let key = format!("{kind}_ref");
             if cmd::text(&record, "record_type")? != kind
                 || cmd::field(&record, "record_id")? != cmd::field(scope, &key)?
@@ -3004,7 +3039,7 @@ impl NativeBindingReader<'_> {
             ));
         }
         let (manifest, _) = self.record(name, None)?;
-        self.validate(&manifest, "source-item-manifest.schema.json")?;
+        self.validate(&manifest, "source-item-manifest.schema.json", name)?;
         if cmd::field(&manifest, "item_id")? != cmd::field(scope, "item_ref")?
             || cmd::field(&manifest, "embodiment_ref")? != cmd::field(scope, "edition_ref")?
             || cmd::field(layer_scope, "source_file_ref")? != cmd::field(scope, "file_ref")?
@@ -3126,11 +3161,21 @@ fn native_text_binding(
         contracts: BTreeSet::new(),
         remaining: 8_388_608,
     };
-    reader.validate(binding, "native-text-unit-binding.schema.json")?;
+    let binding_locator =
+        cmd::text(&cmd::parse(&ctx.configuration_raw)?, "source_path")?.to_owned();
+    reader.validate(
+        binding,
+        "native-text-unit-binding.schema.json",
+        &binding_locator,
+    )?;
     let packet_path = cmd::text(binding, "packet_ref")?;
     let (packet, packet_raw) =
         reader.record(packet_path, Some(cmd::text(binding, "packet_sha256")?))?;
-    reader.validate(&packet, "source-text-unit-packet-v1.schema.json")?;
+    reader.validate(
+        &packet,
+        "source-text-unit-packet-v1.schema.json",
+        packet_path,
+    )?;
     if cmd::text(&packet, "content_posture")? != "source_bound"
         || cmd::field(&packet, "packet_id")? != cmd::field(binding, "packet_id")?
         || cmd::field(&packet, "packet_version")? != cmd::field(binding, "packet_version")?
@@ -3149,7 +3194,7 @@ fn native_text_binding(
     }
     let (layer, layer_raw) =
         reader.record(layer_path, Some(cmd::text(layer_binding, "record_sha256")?))?;
-    reader.validate(&layer, "source-text-layer.schema.json")?;
+    reader.validate(&layer, "source-text-layer.schema.json", layer_path)?;
     if cmd::field(&layer, "layer_id")? != cmd::field(layer_binding, "layer_id")?
         || cmd::field(&layer, "layer_version")? != cmd::field(layer_binding, "layer_version")?
     {
@@ -3198,7 +3243,7 @@ fn native_text_binding(
         let name = cmd::text(target, "anchor_record_ref")?;
         let (anchor, raw) =
             reader.record(name, Some(cmd::text(target, "anchor_record_sha256")?))?;
-        reader.validate(&anchor, "source-anchor-v2.schema.json")?;
+        reader.validate(&anchor, "source-anchor-v2.schema.json", name)?;
         reader.metadata(&raw, name, "anchor")?;
         let anchor_target = cmd::field(&anchor, "target")?;
         if cmd::field(&anchor, "anchor_id")? != cmd::field(target, "anchor_id")?
@@ -3250,7 +3295,7 @@ fn native_text_binding(
     for target in cmd::array(rep, "rights_record_refs")? {
         let name = cmd::text(target, "ref")?;
         let (record, _) = reader.record(name, Some(cmd::text(target, "sha256")?))?;
-        reader.validate(&record, "rights-record.schema.json")?;
+        reader.validate(&record, "rights-record.schema.json", name)?;
         let scope = texts(&record, "scope_refs", 4096)?
             .into_iter()
             .collect::<BTreeSet<_>>();
@@ -3351,7 +3396,7 @@ pub(crate) fn validate_source_profile_registry(
 ) -> SourceCommandResult<JsonValue> {
     let contract = "ToS/contracts/semantic-entity-type-registry.schema.json";
     let registry = cmd::parse(required(ctx, REGISTRY)?)?;
-    schema(
+    schema_at(
         worker,
         deadline,
         cancelled,
@@ -3359,6 +3404,8 @@ pub(crate) fn validate_source_profile_registry(
         &[contract.into()],
         contract,
         &registry,
+        Some(REGISTRY),
+        true,
     )?;
     let entries = cmd::array(&registry, "types")?;
     let mut entities = BTreeMap::new();
@@ -3591,7 +3638,17 @@ pub(crate) fn public_profile(
     resources.push(root.into());
     let mut seen = BTreeSet::new();
     resources.retain(|r| seen.insert(r.clone()));
-    schema(worker, deadline, cancelled, ctx, &resources, root, record)?;
+    schema_at(
+        worker,
+        deadline,
+        cancelled,
+        ctx,
+        &resources,
+        root,
+        record,
+        Some(source_path),
+        true,
+    )?;
     // This exact source contract supplies the shared Corpus property checks
     // through the same disposable worker, without a synthetic schema issuer.
     let shared = "ToS/contracts/source-metadata-record.schema.json";
@@ -3600,7 +3657,17 @@ pub(crate) fn public_profile(
             "profile shared metadata worker contract absent from exact declared route",
         ));
     }
-    schema(worker, deadline, cancelled, ctx, &resources, shared, record)?;
+    schema_at(
+        worker,
+        deadline,
+        cancelled,
+        ctx,
+        &resources,
+        shared,
+        record,
+        Some(source_path),
+        true,
+    )?;
     if inventory_schema {
         resources.push("ToS/contracts/semantic-annotation-packet-v2.schema.json".into());
     }
