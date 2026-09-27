@@ -724,15 +724,16 @@ finally:c.doCleanups()
         sha256: Digest256::of_bytes(&fs::read(&worker_path).unwrap()),
         absolute_path: worker_path,
     };
+    let schema_limits = CutWorkerLimits {
+        max_receipts: 256,
+        max_receipt_bytes: 262_144,
+    };
     let mut schemas = CutWorkerSchemaExecutor::from_cut(
         &cut,
         FormatProfile::LegacyPythonObserved20260923,
         worker.clone(),
         ExecutorBudget::laboratory(),
-        CutWorkerLimits {
-            max_receipts: 256,
-            max_receipt_bytes: 262_144,
-        },
+        schema_limits,
         deadline,
         &cancelled,
     )
@@ -832,7 +833,13 @@ finally:c.doCleanups()
         &mut MetadataOnlyPayloads,
         false,
     )
-    .unwrap();
+    .unwrap_or_else(|error| {
+        let receipts = schemas.receipts();
+        let locator_bytes = receipts.iter().map(|receipt| receipt.path.len() + receipt.contract.len()).sum::<usize>();
+        let last = receipts.last().map(|receipt| (receipt.path.as_str(), receipt.contract.as_str()));
+        panic!("actual General refusal {error:?}; schema receipts {}/{}, retained locator bytes {locator_bytes}, declared receipt-byte cap {}, last supplied locator/root {last:?}",
+            receipts.len(), schema_limits.max_receipts, schema_limits.max_receipt_bytes);
+    });
     assert_eq!(
         report.operation().scope(),
         OperationFamilyScope::GeneralSource
