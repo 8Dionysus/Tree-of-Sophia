@@ -267,7 +267,7 @@ fn finish_worker(
             ItemRefusal::Deadline => {
                 cmd::SourceCommandError::Denied("source schema operation deadline")
             }
-            ItemRefusal::Budget => {
+            ItemRefusal::Budget | ItemRefusal::BudgetCheck { .. } => {
                 cmd::SourceCommandError::Invalid("source schema operation budget")
             }
             ItemRefusal::Source(_) if cancelled.load(Ordering::Relaxed) => {
