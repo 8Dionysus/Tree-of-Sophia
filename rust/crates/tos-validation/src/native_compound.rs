@@ -3,8 +3,9 @@
 use crate::PredicateRead;
 use crate::item_rules::{ItemLimits, ItemRefusal};
 use crate::record_biblio_cut::{account, check, current, reserve};
-use crate::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
+use crate::source_cut::{CutExecutionBinding, CutSchemaExecutor, CutWorkerSchemaExecutor};
 use serde_json::{Value, json};
+use std::borrow::Cow;
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::atomic::AtomicBool;
 use std::time::Instant;
@@ -24,6 +25,13 @@ const MAX_SIDE: usize = 8 * 1024 * 1024;
 const MAX_FILE: usize = 2 * 1024 * 1024;
 const MAX_MANIFEST: usize = 512 * 1024;
 const MAX_HISTORY: usize = 128;
+const WORK_GRAMMAR_EXTRA: [&str; 5] = [
+    "ToS/contracts/corpus-record.schema.json",
+    "ToS/contracts/human-form.schema.json",
+    "ToS/contracts/human-form-set.schema.json",
+    "ToS/contracts/human-form-template.schema.json",
+    "ToS/contracts/provenance-event-v2.schema.json",
+];
 const OBJECT_LINK_RECEIPT: &str = "object-link-creation-receipt.json";
 const OBJECT_LINK_CLAIM: &str = "tos_object_link_claim_v2";
 const OBJECT_LINK_OPERATION: &str = "object.link.create";
@@ -375,6 +383,29 @@ pub struct NativeCompoundObservation {
     pub transaction_id: String,
     pub manifest_sha256: String,
     pub transport: NativeTransportState,
+    /// Exact reconstructed parent receipt digest after full Work verification.
+    /// None for other families and incomplete transport states.
+    pub work_parent_transition_sha256: Option<String>,
+}
+
+/// Read the exact selected Work compound and its retained/current lineage.
+/// The transport observation is descriptive; CMD still owns the physical
+/// publication, source/software and journal fences for any replay decision.
+pub fn verify_work_expression_from_cut(
+    cut: &CorpusCutReader,
+    schemas: &mut CutWorkerSchemaExecutor,
+    claim_path: &str,
+    claim: &Value,
+    limits: ItemLimits,
+    cancelled: &AtomicBool,
+) -> Result<NativeCompoundObservation, ItemRefusal> {
+    if claim["predicate"] != "has_expression"
+        || schemas.source_revision() != cut.current().revision()
+    {
+        return Err(bad("selected Work compound type/cut"));
+    }
+    let mut reader = NativeCompoundReader::new(cut, limits, cancelled)?;
+    reader.verify(claim_path, claim, schemas)
 }
 
 // Maintained bibliographic recipes share only their transport and exact
@@ -1162,9 +1193,9 @@ impl<'a> NativeCompoundReader<'a> {
         Ok(Some(raw))
     }
     fn release_raw_cache(&mut self) {
-        // Called only after verify_inner has returned: its borrowed/returned
-        // raw buffers are gone. Transaction file copies and decoded histories
-        // have independent charges; the directory and read observations remain.
+        // Called after a verification phase or a prepared Work core no longer
+        // needs selected reads. Owned package buffers, decoded histories and
+        // read observations retain their separate charges.
         self.raw = BTreeMap::new();
         self.state -= self.raw_cache_state;
         self.raw_cache_state = 0;
@@ -4231,6 +4262,414 @@ struct Reconstructed {
     child: Package,
     receipt: Value,
 }
+// The one maintained byte recipe pauses after parent/child buffers exist.
+// The Work writer supplies its real native capture at that boundary; retained
+// readers supply the historical capture and still verify transaction custody.
+struct CompoundCore<'a> {
+    kind: CompoundKind,
+    authority: Cow<'a, Value>,
+    request: Value,
+    request_digest: String,
+    before: Package,
+    old: Value,
+    revised: Value,
+    parent_receipt: Value,
+    parent_receipt_ordered: JsonValue,
+    parent_files: Vec<(String, Vec<u8>)>,
+    child_files: Vec<(String, Vec<u8>)>,
+    parent_forms: JsonValue,
+    expression_forms: JsonValue,
+    claim_forms: JsonValue,
+    parent_refs: JsonValue,
+    expression_refs: JsonValue,
+    claim_refs: JsonValue,
+    grammar_digests: BTreeMap<String, String>,
+    id: String,
+    archive_path: String,
+    recorded_at: String,
+}
+struct WorkGrammar {
+    dependencies: BTreeMap<String, Digest256>,
+    digests: BTreeMap<String, String>,
+    claim_sha256: Digest256,
+    binding: CutExecutionBinding,
+}
+struct FinishedCompound<'a> {
+    kind: CompoundKind,
+    authority: Cow<'a, Value>,
+    request: Value,
+    before: Package,
+    parent_receipt: Value,
+    parent_files: Vec<(String, Vec<u8>)>,
+    child_files: Vec<(String, Vec<u8>)>,
+    receipt: Value,
+    receipt_raw: Vec<u8>,
+    id: String,
+    archive_path: String,
+}
+/// Prepared Work buffers only. This carries no authority to publish them.
+pub struct WorkExpressionCore<'a> {
+    reader: NativeCompoundReader<'a>,
+    prepared: CompoundCore<'a>,
+    schema_binding: CutExecutionBinding,
+}
+pub struct WorkExpressionBytes {
+    pub parent: BTreeMap<String, Vec<u8>>,
+    pub child: BTreeMap<String, Vec<u8>>,
+    pub parent_receipt: Value,
+    pub receipt: Value,
+    pub transaction_id: String,
+    pub archive_path: String,
+    pub reads: Vec<PredicateRead>,
+    pub bytes_read: u64,
+}
+impl WorkExpressionCore<'_> {
+    pub fn authorization(&self) -> &Value {
+        &self.prepared.authority
+    }
+    pub fn archive_path(&self) -> &str {
+        &self.prepared.archive_path
+    }
+    pub fn transaction_id(&self) -> &str {
+        &self.prepared.id
+    }
+    pub fn reads(&self) -> &[PredicateRead] {
+        &self.reader.reads
+    }
+    pub fn bytes_read(&self) -> u64 {
+        self.reader.bytes
+    }
+    /// The maintained Work grammar dependency group, not writer authority.
+    pub fn grammar_digests(&self) -> &BTreeMap<String, String> {
+        &self.prepared.grammar_digests
+    }
+    /// Only path slots are copied; the actual source buffers remain borrowed.
+    pub fn outputs(&self) -> Result<Vec<(String, &[u8])>, ItemRefusal> {
+        let scope = &self.prepared.authority["scope"];
+        let parent_home = parent(text(scope, "work_source_path")?)?;
+        let child_home = parent(text(scope, "expression_source_path")?)?;
+        let mut rows =
+            Vec::with_capacity(self.prepared.parent_files.len() + self.prepared.child_files.len());
+        for (name, raw) in &self.prepared.parent_files {
+            rows.push((format!("{parent_home}/{name}"), raw.as_slice()));
+        }
+        for (name, raw) in &self.prepared.child_files {
+            rows.push((format!("{child_home}/{name}"), raw.as_slice()));
+        }
+        if rows.len() > 64 {
+            return Err(ItemRefusal::Budget);
+        }
+        let slots = slice_rows_state(&rows)?;
+        let used = self
+            .reader
+            .state
+            .checked_add(slots)
+            .ok_or(ItemRefusal::Budget)?;
+        if used > self.reader.limits.max_state_bytes {
+            return Err(ItemRefusal::BudgetCheck {
+                check: "prepared Work output path slots",
+                used: Some(used as u64),
+                limit: Some(self.reader.limits.max_state_bytes as u64),
+            });
+        }
+        Ok(rows)
+    }
+}
+/// Bind actual native capture bytes to prepared buffers. CMD must separately
+/// check selected software, physical source and journal fences before publish.
+pub fn finish_work_expression_bytes(
+    core: WorkExpressionCore<'_>,
+    environment_raw: &[u8],
+    event_raw: &[u8],
+    schemas: &mut CutWorkerSchemaExecutor,
+) -> Result<WorkExpressionBytes, ItemRefusal> {
+    let WorkExpressionCore {
+        mut reader,
+        prepared,
+        schema_binding,
+    } = core;
+    check(reader.limits.deadline, reader.cancelled)?;
+    if schemas.execution_binding() != schema_binding
+        || environment_raw.len() > MAX_FILE
+        || event_raw.len() > MAX_FILE
+    {
+        return Err(bad("native Work capture worker/size binding"));
+    }
+    let environment = reader.decoded(environment_raw)?;
+    keys(
+        &environment,
+        &[
+            "runtime",
+            "runtime_version",
+            "runtime_artifact_sha256",
+            "backend",
+            "hardware_target",
+            "unicode_version",
+            "argv_sha256",
+        ],
+    )?;
+    if environment
+        .as_object()
+        .ok_or_else(|| bad("native Work environment"))?
+        .values()
+        .any(|v| v.as_str().is_none_or(str::is_empty))
+        || environment["runtime"] != "native ELF process"
+        || environment["backend"] != "tos-command source serialization"
+        || environment["unicode_version"] != "16.0.0 source-command whitespace profile"
+        || ["runtime_artifact_sha256", "argv_sha256"]
+            .iter()
+            .any(|key| {
+                hash(&format!(
+                    "sha256:{}",
+                    environment[*key].as_str().unwrap_or("")
+                ))
+                .is_err()
+            })
+    {
+        return Err(bad("native Work observed environment"));
+    }
+    let mut expected_environment_raw = canonical(&environment)?;
+    expected_environment_raw.push(b'\n');
+    if environment_raw != expected_environment_raw {
+        return Err(bad("native Work environment exact canonical bytes"));
+    }
+    let finished = reader.finish_compound_core(prepared, &environment, Some(event_raw), schemas)?;
+    let FinishedCompound {
+        kind: _,
+        authority: _,
+        request: _,
+        before: _,
+        parent_receipt,
+        parent_files,
+        mut child_files,
+        receipt,
+        receipt_raw,
+        id,
+        archive_path,
+    } = finished;
+    if parent_files
+        .iter()
+        .chain(child_files.iter())
+        .any(|(_, raw)| raw.len() > MAX_FILE)
+        || receipt_raw.len() > MAX_FILE
+    {
+        return Err(ItemRefusal::Budget);
+    }
+    child_files.push((
+        CompoundKind::WorkExpression.receipt_file().into(),
+        receipt_raw,
+    ));
+    let parent = parent_files.into_iter().collect::<BTreeMap<_, _>>();
+    let child = child_files.into_iter().collect::<BTreeMap<_, _>>();
+    Ok(WorkExpressionBytes {
+        parent,
+        child,
+        parent_receipt,
+        receipt,
+        transaction_id: id,
+        archive_path,
+        reads: reader.reads,
+        bytes_read: reader.bytes,
+    })
+}
+/// Construct the maintained Work/Expression buffers from a separately selected
+/// current Work package. The caller still owns physical publication authority.
+pub fn prepare_work_expression_bytes<'a>(
+    cut: &'a CorpusCutReader,
+    schemas: &mut CutWorkerSchemaExecutor,
+    scope: &Value,
+    request_raw: &[u8],
+    owned_before: &BTreeMap<String, Vec<u8>>,
+    recorded_at: &str,
+    limits: ItemLimits,
+    cancelled: &'a AtomicBool,
+    authorize: impl FnOnce(&BTreeMap<String, String>) -> Result<Value, ItemRefusal>,
+) -> Result<WorkExpressionCore<'a>, ItemRefusal> {
+    check(limits.deadline, cancelled)?;
+    if schemas.source_revision() != cut.current().revision() || request_raw.len() > MAX_FILE {
+        return Err(bad("Work source/schema revision or request size"));
+    }
+    let kind = CompoundKind::WorkExpression;
+    crate::retirement_rules::observed_instant_order(recorded_at, recorded_at)
+        .map_err(|_| bad("Work recorded aware instant"))?;
+    let mut reader = NativeCompoundReader::new(cut, limits, cancelled)?;
+    reader.temporary(std::mem::size_of::<Vec<u8>>() + request_raw.len())?;
+    let request_raw = request_raw.to_vec();
+    let request = reader.decoded(&request_raw)?;
+    let observation = request_valid_with(&request, kind, &mut |value| {
+        reader.canonical_observation(value)
+    })?;
+    let mut expected_raw = canonical(&request)?;
+    expected_raw.push(b'\n');
+    let expected_raw = reader.buffer(expected_raw)?;
+    if request_raw != expected_raw {
+        return Err(bad("Work request exact canonical bytes"));
+    }
+    let expected_len = expected_raw.len();
+    drop(expected_raw);
+    reader.release_temporary(std::mem::size_of::<Vec<u8>>() + expected_len);
+    let ordered_request = reader.ordered_value(&request_raw)?;
+    let claim_ordered = ordered_request
+        .object_get("claim")
+        .ok_or_else(|| bad("Work ordered Claim"))?;
+    let mut claim_raw = canonical_ordered(claim_ordered)?;
+    claim_raw.push(b'\n');
+    let claim_raw = reader.buffer(claim_raw)?;
+    let ordered_state = crate::record_biblio_cut::ordered_state(&ordered_request)?;
+    drop(ordered_request);
+    reader.release_temporary(ordered_state);
+    let mut local_limits = limits;
+    local_limits.max_state_bytes = limits
+        .max_state_bytes
+        .checked_sub(reader.state)
+        .ok_or(ItemRefusal::Budget)?;
+    local_limits.max_total_bytes = limits
+        .max_total_bytes
+        .checked_sub(reader.bytes)
+        .ok_or(ItemRefusal::Budget)?;
+    let mut local = crate::record_rules::validate_source_claim_from_cut(
+        cut,
+        &claim_raw,
+        schemas,
+        local_limits,
+        cancelled,
+    )?;
+    if !local.issues.is_empty() || local.execution_binding != schemas.execution_binding() {
+        return Err(bad("Work Claim local profile/binding"));
+    }
+    let claim_sha256 = local.source_input_sha256;
+    let local_binding = local.execution_binding.clone();
+    let dependencies = std::mem::take(&mut local.dependency_digests);
+    drop(local);
+    let claim_len = claim_raw.len();
+    drop(claim_raw);
+    reader.release_temporary(std::mem::size_of::<Vec<u8>>() + claim_len);
+    let dependency_slots = dependencies
+        .keys()
+        .try_fold(0usize, |n, path| {
+            n.checked_add(std::mem::size_of::<(String, Digest256)>() + path.len())
+        })
+        .ok_or(ItemRefusal::Budget)?;
+    reader.temporary(
+        dependency_slots
+            .checked_add(std::mem::size_of::<BTreeMap<String, Digest256>>())
+            .ok_or(ItemRefusal::Budget)?,
+    )?;
+    let grammar_slots = dependencies
+        .keys()
+        .map(String::as_str)
+        .chain(
+            WORK_GRAMMAR_EXTRA
+                .into_iter()
+                .filter(|path| !dependencies.contains_key(*path)),
+        )
+        .try_fold(
+            std::mem::size_of::<BTreeMap<String, String>>(),
+            |n, path| n.checked_add(std::mem::size_of::<(String, String)>() + path.len() + 64),
+        )
+        .ok_or(ItemRefusal::Budget)?;
+    reader.temporary(grammar_slots)?;
+    let mut digests = dependencies
+        .iter()
+        .map(|(path, sha)| (path.clone(), sha.to_hex()))
+        .collect::<BTreeMap<_, _>>();
+    for path in WORK_GRAMMAR_EXTRA {
+        if !digests.contains_key(path) {
+            let raw = reader.required(path, MAX_FILE)?;
+            digests.insert(path.into(), Digest256::of_bytes(&raw).to_hex());
+            reader.release_temporary(std::mem::size_of::<Vec<u8>>() + raw.len());
+        }
+    }
+    let authority = authorize(&digests)?;
+    reader.temporary(crate::record_biblio_cut::decoded_state(&authority)?)?;
+    keys(
+        &authority,
+        &[
+            "schema_version",
+            "scope",
+            "principal_id",
+            "maker_type",
+            "authority_ref",
+            "owner_configuration",
+            "command_id",
+            "request_digest",
+            "dependency_bindings",
+        ],
+    )?;
+    if text(&authority, "schema_version")? != kind.authorization_schema()
+        || authority["scope"] != *scope
+    {
+        return Err(bad("Work authorization profile/scope"));
+    }
+    keys(
+        &authority["dependency_bindings"],
+        &[
+            "catalog_and_sources",
+            "contracts",
+            "implementation",
+            "retained_transactions",
+        ],
+    )?;
+    if authority["dependency_bindings"]["contracts"] != json!(digests) {
+        return Err(bad(
+            "Work authorization exact Claim/form/provenance contracts",
+        ));
+    }
+    scope_valid(scope, &request, &authority, kind)?;
+    let work_path = text(scope, kind.parent_path())?;
+    let before = reader.selected(work_path)?;
+    if &before != owned_before {
+        return Err(bad("Work protected/current selected package mismatch"));
+    }
+    let old = reader.decoded(
+        before
+            .get(kind.parent_file())
+            .ok_or_else(|| bad("Work parent absent"))?,
+    )?;
+    if old["record_type"] != "work"
+        || old["record_id"] != scope["work_id"]
+        || !reader.reference_matches(
+            &old,
+            "record_id",
+            "record_version",
+            &request["expected_source"],
+        )?
+        || reader.package_revision(&before)? != text(&request, "expected_revision")?
+        || authority["owner_configuration"] != request["expected_configuration"]
+        || authority["command_id"] != request["command_id"]
+        || text(&authority, "request_digest")? != observation.0
+        || reader
+            .canonical_observation(&authority["dependency_bindings"])?
+            .0
+            != text(&request, "expected_dependencies")?
+    {
+        return Err(bad("Work authorization/request/current source binding"));
+    }
+    let prepared = reader.prepare_compound_core(
+        kind,
+        Cow::Owned(authority),
+        request,
+        request_raw,
+        observation.0,
+        before,
+        old,
+        recorded_at,
+        schemas,
+        &|_| Err(bad("Work has no external companion inputs")),
+        Some(WorkGrammar {
+            dependencies,
+            digests,
+            claim_sha256,
+            binding: local_binding,
+        }),
+    )?;
+    reader.release_raw_cache();
+    Ok(WorkExpressionCore {
+        reader,
+        prepared,
+        schema_binding: schemas.execution_binding(),
+    })
+}
 struct ObjectLinkReconstructed {
     scope: Value,
     request: Value,
@@ -4274,152 +4713,29 @@ impl NativeCompoundReader<'_> {
         }
         result
     }
-    fn reconstruct_inner(
+    fn prepare_compound_core<'b>(
         &mut self,
-        tx: &Transaction,
         kind: CompoundKind,
+        authority: Cow<'b, Value>,
+        request: Value,
+        request_raw: Vec<u8>,
+        request_digest: String,
+        before: Package,
+        old: Value,
+        recorded_at: &str,
         schemas: &mut CutWorkerSchemaExecutor,
-    ) -> Result<Reconstructed, ItemRefusal> {
-        let plan = &tx.manifest["plan"];
-        let authority = &plan["authorization"];
-        keys(
-            authority,
-            &[
-                "schema_version",
-                "scope",
-                "principal_id",
-                "maker_type",
-                "authority_ref",
-                "owner_configuration",
-                "command_id",
-                "request_digest",
-                "dependency_bindings",
-            ],
-        )?;
-        if text(authority, "schema_version")? != kind.authorization_schema() {
-            return Err(bad("native bibliographic authorization profile"));
-        }
+        after: &impl Fn(&str) -> Result<Vec<u8>, ItemRefusal>,
+        work_grammar: Option<WorkGrammar>,
+    ) -> Result<CompoundCore<'b>, ItemRefusal> {
         let scope = &authority["scope"];
         let work_path = text(scope, kind.parent_path())?;
         let expression_path = text(scope, kind.child_path())?;
         let home = kind.publication_home(scope)?;
         let work_home = parent(work_path)?;
-        // Charge the representations this phase actually owns. No allowance
-        // for future forms/events competes with the local Claim constructor.
-        let after = |name: &str| {
-            tx.files
-                .get(&format!("{home}/{name}"))
-                .and_then(|v| v.1.as_ref())
-                .cloned()
-                .ok_or_else(|| bad("missing compound after buffer"))
-        };
-        let request_raw = self.buffer(after("source-create-request.json")?)?;
-        let request = self.decoded(&request_raw)?;
-        let request_observation = request_valid_with(&request, kind, &mut |value| {
-            self.canonical_observation(value)
-        })?;
-        self.temporary(std::mem::size_of::<String>() + request_observation.0.len())?;
-        let scope_scratch = if kind.relation_attachment() {
-            let evidence = array(scope, "allowed_evidence_refs")?;
-            let provenance = if kind == CompoundKind::CollectionWork {
-                array(scope, "retained_membership_provenance_refs")?.len()
-            } else {
-                0
-            };
-            let grants = array(scope, kind.parent_form_grant())?.len()
-                + array(scope, "allowed_claim_form_ids")?.len();
-            let selections = array(&request, "forms")?
-                .len()
-                .max(array(&request, "claim_forms")?.len());
-            // Collection evidence/provenance indexes are dropped before the
-            // form pass. Form seen+current grant+selected indexes coexist;
-            // Unicode strip is borrowed and allocates no string.
-            let current_grant = array(scope, kind.parent_form_grant())?
-                .len()
-                .max(array(scope, "allowed_claim_form_ids")?.len());
-            3 * std::mem::size_of::<BTreeSet<&str>>()
-                + evidence
-                    .len()
-                    .max(provenance)
-                    .max(grants + current_grant + selections)
-                    * std::mem::size_of::<&str>()
-        } else {
-            0
-        };
-        self.temporary(scope_scratch)?;
-        scope_valid(scope, &request, authority, kind)?;
-        self.release_temporary(scope_scratch);
-        let environment_raw = self.buffer(after("source-create-environment.json")?)?;
-        let environment = self.decoded(&environment_raw)?;
-        keys(
-            &environment,
-            &[
-                "runtime",
-                "runtime_version",
-                "runtime_artifact_sha256",
-                "backend",
-                "hardware_target",
-                "unicode_version",
-                "argv_sha256",
-            ],
-        )?;
-        for value in environment.as_object().unwrap().values() {
-            if value.as_str().is_none_or(str::is_empty) {
-                return Err(bad("retained environment fields"));
-            }
-        }
-        for k in ["runtime_artifact_sha256", "argv_sha256"] {
-            hash(&format!("sha256:{}", text(&environment, k)?))?;
-        }
-        let receipt_raw = self.buffer(after(kind.receipt_file())?)?;
-        let actual_receipt = self.decoded(&receipt_raw)?;
-        let recorded_at = text(&actual_receipt, "recorded_at")?;
-        crate::retirement_rules::observed_instant_order(recorded_at, recorded_at)
-            .map_err(|_| bad("compound recorded aware instant"))?;
-        let mut before = Package::new();
-        for name in selected_names(work_path)? {
-            if let Some(raw) = tx
-                .files
-                .get(&format!("{work_home}/{name}"))
-                .and_then(|s| s.0.clone())
-            {
-                let raw = self.buffer(raw)?;
-                self.temporary(std::mem::size_of::<(String, Vec<u8>)>() + name.len())?;
-                before.insert(name, raw);
-            }
-        }
+        self.temporary(std::mem::size_of::<String>() + recorded_at.len())?;
         let old_raw = before
             .get(kind.parent_file())
             .ok_or_else(|| bad("retained parent input missing"))?;
-        let old = self.decoded(old_raw)?;
-        if !self.reference_matches(
-            &old,
-            "record_id",
-            "record_version",
-            &request["expected_source"],
-        )? || self.package_revision(&before)? != text(&request, "expected_revision")?
-        {
-            return Err(bad("retained authorization/request/before binding"));
-        }
-        if authority["owner_configuration"] != request["expected_configuration"]
-            || authority["command_id"] != request["command_id"]
-            || text(authority, "request_digest")? != request_observation.0
-            || self
-                .canonical_observation(&authority["dependency_bindings"])?
-                .0
-                != text(&request, "expected_dependencies")?
-        {
-            return Err(bad("retained authorization/request/before binding"));
-        }
-        let dirs = array(plan, "new_directories")?;
-        if kind.relation_attachment() && (dirs.len() != 1 || dirs[0].as_str() != Some(home))
-            || !kind.relation_attachment()
-                && !(kind == CompoundKind::EditionItem && dirs.is_empty())
-                && *dirs != vec![json!(home)]
-                && *dirs != vec![json!(parent(home)?), json!(home)]
-        {
-            return Err(bad("exact new child directories"));
-        }
         let history = self.history(work_path, &before)?;
         if array(&history, "receipts")?.len() >= MAX_HISTORY {
             return Err(bad("parent history capacity"));
@@ -4476,9 +4792,6 @@ impl NativeCompoundReader<'_> {
         let request_raw_state = std::mem::size_of::<Vec<u8>>() + request_raw.len();
         drop(request_raw);
         self.release_temporary(request_raw_state);
-        let environment_raw_state = std::mem::size_of::<Vec<u8>>() + environment_raw.len();
-        drop(environment_raw);
-        self.release_temporary(environment_raw_state);
         let parent_raw = self.buffer(pretty(&revised_ordered)?)?;
         let expression_raw = self.buffer(pretty(&expression_ordered)?)?;
         let mut claim_raw = canonical_ordered(&claim_ordered)?;
@@ -4547,25 +4860,42 @@ impl NativeCompoundReader<'_> {
             .max_total_bytes
             .checked_sub(self.bytes)
             .ok_or(ItemRefusal::Budget)?;
-        let mut local = crate::record_rules::validate_source_claim_from_cut(
-            self.cut,
-            &claim_raw,
-            schemas,
-            local_limits,
-            self.cancelled,
-        )?;
-        if !local.issues.is_empty() {
-            return Err(bad("compound Claim local owner profile"));
-        }
-        let dependency_digests = std::mem::take(&mut local.dependency_digests);
-        drop(local);
+        let prechecked_grammar = work_grammar.is_some();
+        let (dependency_digests, grammar_digests) = if let Some(grammar) = work_grammar {
+            if kind != CompoundKind::WorkExpression {
+                return Err(bad("prechecked grammar is Work-only"));
+            }
+            if grammar.claim_sha256 != Digest256::of_bytes(&claim_raw)
+                || grammar.binding != schemas.execution_binding()
+            {
+                return Err(bad("Work prechecked Claim/worker input drift"));
+            }
+            (grammar.dependencies, grammar.digests)
+        } else {
+            let mut local = crate::record_rules::validate_source_claim_from_cut(
+                self.cut,
+                &claim_raw,
+                schemas,
+                local_limits,
+                self.cancelled,
+            )?;
+            if !local.issues.is_empty() {
+                return Err(bad("compound Claim local owner profile"));
+            }
+            (
+                std::mem::take(&mut local.dependency_digests),
+                BTreeMap::new(),
+            )
+        };
         let dependencies_state = dependency_digests
             .keys()
             .try_fold(0usize, |n, path| {
                 n.checked_add(std::mem::size_of::<(String, Digest256)>() + path.len())
             })
             .ok_or(ItemRefusal::Budget)?;
-        self.temporary(dependencies_state)?;
+        if !prechecked_grammar {
+            self.temporary(dependencies_state)?;
+        }
         for (path, sha) in dependency_digests {
             let relative = RelativePath::parse(&path).map_err(|_| bad("Claim contract path"))?;
             let size = self
@@ -4580,10 +4910,25 @@ impl NativeCompoundReader<'_> {
                 self.limits.max_total_bytes,
             )?;
             self.release_temporary(std::mem::size_of::<(String, Digest256)>() + path.len());
+            if prechecked_grammar
+                && grammar_digests.get(&path).map(String::as_str) != Some(sha.to_hex().as_str())
+            {
+                return Err(bad("Work prechecked Claim dependency drift"));
+            }
             self.record_read(PredicateRead::ExactPath {
                 path,
                 digest: sha.to_prefixed(),
             })?;
+        }
+        if prechecked_grammar {
+            self.release_temporary(std::mem::size_of::<BTreeMap<String, Digest256>>());
+        }
+        if prechecked_grammar {
+            for path in WORK_GRAMMAR_EXTRA {
+                if !grammar_digests.contains_key(path) {
+                    return Err(bad("Work grammar missing selected contract"));
+                }
+            }
         }
         // The constructor's decoded registries/routes have now been dropped.
         // Acquire the remainder before allocating any generated forms,
@@ -4593,7 +4938,7 @@ impl NativeCompoundReader<'_> {
             .get(form_name)
             .map(|v| self.ordered_value(v))
             .transpose()?;
-        let principal = text(authority, "principal_id")?;
+        let principal = text(&authority, "principal_id")?;
         let (parent_forms, parent_refs) = forms(
             &revised_ordered,
             prior_forms.as_ref(),
@@ -4640,13 +4985,9 @@ impl NativeCompoundReader<'_> {
         for value in [&claim_forms, &claim_refs] {
             self.temporary(crate::record_biblio_cut::ordered_state(value)?)?;
         }
-        let id =
-            transaction_id_with_digest(&request, kind, &request_observation.0, &mut |value| {
-                self.canonical_observation(value)
-            })?;
-        if id != tx.manifest["transaction_id"] {
-            return Err(bad("compound transaction request identity"));
-        }
+        let id = transaction_id_with_digest(&request, kind, &request_digest, &mut |value| {
+            self.canonical_observation(value)
+        })?;
         let archive_path = format!(
             "{HOME}/.record-revisions/{}-{}",
             Digest256::of_bytes(text(scope, kind.parent_key())?.as_bytes()).to_hex(),
@@ -4654,7 +4995,7 @@ impl NativeCompoundReader<'_> {
         );
         let parent_receipt_ordered = object(vec![
             ("command_id", j(&request["command_id"])?),
-            ("request_digest", string(&request_observation.0)),
+            ("request_digest", string(&request_digest)),
             ("principal_id", j(&authority["principal_id"])?),
             ("authority_ref", j(&authority["authority_ref"])?),
             (
@@ -4799,6 +5140,66 @@ impl NativeCompoundReader<'_> {
                 pretty(&ordered(&byte_receipt_raw)?)?,
             ));
         }
+        Ok(CompoundCore {
+            kind,
+            authority,
+            request,
+            request_digest,
+            before,
+            old,
+            revised,
+            parent_receipt,
+            parent_receipt_ordered,
+            parent_files,
+            child_files,
+            parent_forms,
+            expression_forms,
+            claim_forms,
+            parent_refs,
+            expression_refs,
+            claim_refs,
+            grammar_digests,
+            id,
+            archive_path,
+            recorded_at: recorded_at.to_owned(),
+        })
+    }
+    fn finish_compound_core<'b>(
+        &mut self,
+        core: CompoundCore<'b>,
+        environment: &Value,
+        native_event_raw: Option<&[u8]>,
+        schemas: &mut CutWorkerSchemaExecutor,
+    ) -> Result<FinishedCompound<'b>, ItemRefusal> {
+        let CompoundCore {
+            kind,
+            authority,
+            request,
+            request_digest,
+            before,
+            old,
+            revised,
+            parent_receipt,
+            parent_receipt_ordered,
+            parent_files,
+            mut child_files,
+            parent_forms,
+            expression_forms,
+            claim_forms,
+            parent_refs,
+            expression_refs,
+            claim_refs,
+            grammar_digests: _,
+            id,
+            archive_path,
+            recorded_at,
+        } = core;
+        let scope = &authority["scope"];
+        let work_path = text(scope, kind.parent_path())?;
+        let home = kind.publication_home(scope)?;
+        let work_home = parent(work_path)?;
+        let expression = &request[kind.record_key()];
+        let claim = &request["claim"];
         let outputs: Vec<_> = parent_files
             .iter()
             .map(|(n, r)| (format!("{work_home}/{n}"), r.as_slice()))
@@ -4809,26 +5210,80 @@ impl NativeCompoundReader<'_> {
             )
             .collect();
         self.temporary(slice_rows_state(&outputs)?)?;
-        let event = compound_event(
-            kind,
-            scope,
-            &request,
-            &before,
-            &outputs,
-            &environment,
-            &authority["dependency_bindings"],
-            recorded_at,
-            self.limits
-                .max_state_bytes
-                .checked_sub(self.state)
-                .ok_or(ItemRefusal::Budget)?,
-        )?;
+        let mut captured_native = false;
+        let event = if let Some(raw) = native_event_raw {
+            if kind != CompoundKind::WorkExpression {
+                return Err(bad("native capture is Work-only"));
+            }
+            let event = self.decoded(raw)?;
+            let procedure = text(&event["method"]["procedure"], "name")?.to_owned();
+            match procedure.as_str() {
+                "native-work-expression-serialization" => {
+                    native_work_event(
+                        &event,
+                        scope,
+                        &request,
+                        &before,
+                        &outputs,
+                        environment,
+                        &archive_path,
+                        &recorded_at,
+                        self.limits
+                            .max_state_bytes
+                            .checked_sub(self.state)
+                            .ok_or(ItemRefusal::Budget)?,
+                    )?;
+                    captured_native = true;
+                    event
+                }
+                "native-work-expression-metadata-serialization" => {
+                    let state = crate::record_biblio_cut::decoded_state(&event)?;
+                    drop(event);
+                    self.release_temporary(state);
+                    compound_event(
+                        kind,
+                        scope,
+                        &request,
+                        &before,
+                        &outputs,
+                        environment,
+                        &authority["dependency_bindings"],
+                        &recorded_at,
+                        self.limits
+                            .max_state_bytes
+                            .checked_sub(self.state)
+                            .ok_or(ItemRefusal::Budget)?,
+                    )?
+                }
+                _ => return Err(bad("unknown retained Work event profile")),
+            }
+        } else {
+            compound_event(
+                kind,
+                scope,
+                &request,
+                &before,
+                &outputs,
+                &environment,
+                &authority["dependency_bindings"],
+                &recorded_at,
+                self.limits
+                    .max_state_bytes
+                    .checked_sub(self.state)
+                    .ok_or(ItemRefusal::Budget)?,
+            )?
+        };
         let outputs_state = slice_rows_state(&outputs)?;
         drop(outputs);
         self.release_temporary(outputs_state);
-        self.temporary(crate::record_biblio_cut::decoded_state(&event)?)?;
+        if !captured_native {
+            self.temporary(crate::record_biblio_cut::decoded_state(&event)?)?;
+        }
         let mut event_raw = canonical(&event)?;
         event_raw.push(b'\n');
+        if native_event_raw.is_some_and(|raw| raw != event_raw) {
+            return Err(bad("native Work event exact canonical bytes"));
+        }
         let event_raw = self.buffer(event_raw)?;
         if !schemas.check_reusing_scalar(
             &format!("{home}/source-create-provenance.jsonl"),
@@ -4886,14 +5341,14 @@ impl NativeCompoundReader<'_> {
             ("operation", string(kind.operation())),
             ("transaction_id", string(&id)),
             ("command_id", j(&request["command_id"])?),
-            ("request_digest", string(&request_observation.0)),
+            ("request_digest", string(&request_digest)),
             ("principal_id", j(&authority["principal_id"])?),
             ("authority_ref", j(&authority["authority_ref"])?),
             (
                 "owner_configuration",
                 j(&request["expected_configuration"])?,
             ),
-            ("recorded_at", string(recorded_at)),
+            ("recorded_at", string(&recorded_at)),
             ("scope", j(scope)?),
             ("dependencies", j(&request["expected_dependencies"])?),
             (
@@ -4981,6 +5436,208 @@ impl NativeCompoundReader<'_> {
         self.temporary(crate::record_biblio_cut::ordered_state(&receipt_ordered)?)?;
         let expected_raw = self.buffer(pretty(&receipt_ordered)?)?;
         let receipt = self.decoded(&expected_raw)?;
+        Ok(FinishedCompound {
+            kind,
+            authority,
+            request,
+            before,
+            parent_receipt,
+            parent_files,
+            child_files,
+            receipt,
+            receipt_raw: expected_raw,
+            id,
+            archive_path,
+        })
+    }
+    fn reconstruct_inner(
+        &mut self,
+        tx: &Transaction,
+        kind: CompoundKind,
+        schemas: &mut CutWorkerSchemaExecutor,
+    ) -> Result<Reconstructed, ItemRefusal> {
+        let plan = &tx.manifest["plan"];
+        let authority = &plan["authorization"];
+        keys(
+            authority,
+            &[
+                "schema_version",
+                "scope",
+                "principal_id",
+                "maker_type",
+                "authority_ref",
+                "owner_configuration",
+                "command_id",
+                "request_digest",
+                "dependency_bindings",
+            ],
+        )?;
+        if text(authority, "schema_version")? != kind.authorization_schema() {
+            return Err(bad("native bibliographic authorization profile"));
+        }
+        let scope = &authority["scope"];
+        let work_path = text(scope, kind.parent_path())?;
+        let expression_path = text(scope, kind.child_path())?;
+        let home = kind.publication_home(scope)?;
+        let work_home = parent(work_path)?;
+        // Charge the representations this phase actually owns. No allowance
+        // for future forms/events competes with the local Claim constructor.
+        let after = |name: &str| {
+            tx.files
+                .get(&format!("{home}/{name}"))
+                .and_then(|v| v.1.as_ref())
+                .cloned()
+                .ok_or_else(|| bad("missing compound after buffer"))
+        };
+        let request_raw = self.buffer(after("source-create-request.json")?)?;
+        let request = self.decoded(&request_raw)?;
+        let request_observation = request_valid_with(&request, kind, &mut |value| {
+            self.canonical_observation(value)
+        })?;
+        self.temporary(std::mem::size_of::<String>() + request_observation.0.len())?;
+        let scope_scratch = if kind.relation_attachment() {
+            let evidence = array(scope, "allowed_evidence_refs")?;
+            let provenance = if kind == CompoundKind::CollectionWork {
+                array(scope, "retained_membership_provenance_refs")?.len()
+            } else {
+                0
+            };
+            let grants = array(scope, kind.parent_form_grant())?.len()
+                + array(scope, "allowed_claim_form_ids")?.len();
+            let selections = array(&request, "forms")?
+                .len()
+                .max(array(&request, "claim_forms")?.len());
+            // Collection evidence/provenance indexes are dropped before the
+            // form pass. Form seen+current grant+selected indexes coexist;
+            // Unicode strip is borrowed and allocates no string.
+            let current_grant = array(scope, kind.parent_form_grant())?
+                .len()
+                .max(array(scope, "allowed_claim_form_ids")?.len());
+            3 * std::mem::size_of::<BTreeSet<&str>>()
+                + evidence
+                    .len()
+                    .max(provenance)
+                    .max(grants + current_grant + selections)
+                    * std::mem::size_of::<&str>()
+        } else {
+            0
+        };
+        self.temporary(scope_scratch)?;
+        scope_valid(scope, &request, authority, kind)?;
+        self.release_temporary(scope_scratch);
+        let environment_raw = self.buffer(after("source-create-environment.json")?)?;
+        let environment = self.decoded(&environment_raw)?;
+        let environment_raw_state = std::mem::size_of::<Vec<u8>>() + environment_raw.len();
+        drop(environment_raw);
+        self.release_temporary(environment_raw_state);
+        keys(
+            &environment,
+            &[
+                "runtime",
+                "runtime_version",
+                "runtime_artifact_sha256",
+                "backend",
+                "hardware_target",
+                "unicode_version",
+                "argv_sha256",
+            ],
+        )?;
+        for value in environment.as_object().unwrap().values() {
+            if value.as_str().is_none_or(str::is_empty) {
+                return Err(bad("retained environment fields"));
+            }
+        }
+        for k in ["runtime_artifact_sha256", "argv_sha256"] {
+            hash(&format!("sha256:{}", text(&environment, k)?))?;
+        }
+        let receipt_raw = self.buffer(after(kind.receipt_file())?)?;
+        let actual_receipt = self.decoded(&receipt_raw)?;
+        let recorded_at = text(&actual_receipt, "recorded_at")?;
+        crate::retirement_rules::observed_instant_order(recorded_at, recorded_at)
+            .map_err(|_| bad("compound recorded aware instant"))?;
+        let mut before = Package::new();
+        for name in selected_names(work_path)? {
+            if let Some(raw) = tx
+                .files
+                .get(&format!("{work_home}/{name}"))
+                .and_then(|s| s.0.clone())
+            {
+                let raw = self.buffer(raw)?;
+                self.temporary(std::mem::size_of::<(String, Vec<u8>)>() + name.len())?;
+                before.insert(name, raw);
+            }
+        }
+        let old_raw = before
+            .get(kind.parent_file())
+            .ok_or_else(|| bad("retained parent input missing"))?;
+        let old = self.decoded(old_raw)?;
+        if !self.reference_matches(
+            &old,
+            "record_id",
+            "record_version",
+            &request["expected_source"],
+        )? || self.package_revision(&before)? != text(&request, "expected_revision")?
+        {
+            return Err(bad("retained authorization/request/before binding"));
+        }
+        if authority["owner_configuration"] != request["expected_configuration"]
+            || authority["command_id"] != request["command_id"]
+            || text(authority, "request_digest")? != request_observation.0
+            || self
+                .canonical_observation(&authority["dependency_bindings"])?
+                .0
+                != text(&request, "expected_dependencies")?
+        {
+            return Err(bad("retained authorization/request/before binding"));
+        }
+        let dirs = array(plan, "new_directories")?;
+        if kind.relation_attachment() && (dirs.len() != 1 || dirs[0].as_str() != Some(home))
+            || !kind.relation_attachment()
+                && !(kind == CompoundKind::EditionItem && dirs.is_empty())
+                && *dirs != vec![json!(home)]
+                && *dirs != vec![json!(parent(home)?), json!(home)]
+        {
+            return Err(bad("exact new child directories"));
+        }
+        let core = self.prepare_compound_core(
+            kind,
+            Cow::Borrowed(authority),
+            request,
+            request_raw,
+            request_observation.0,
+            before,
+            old,
+            recorded_at,
+            schemas,
+            &after,
+            None,
+        )?;
+        if core.id != tx.manifest["transaction_id"] {
+            return Err(bad("compound transaction request identity"));
+        }
+        let work_event = if kind == CompoundKind::WorkExpression {
+            Some(
+                tx.files
+                    .get(&format!("{home}/source-create-provenance.jsonl"))
+                    .and_then(|pair| pair.1.as_deref())
+                    .ok_or_else(|| bad("retained Work provenance event absent"))?,
+            )
+        } else {
+            None
+        };
+        let FinishedCompound {
+            kind: _,
+            authority: _,
+            request,
+            before,
+            parent_receipt,
+            parent_files,
+            mut child_files,
+            receipt,
+            receipt_raw: expected_raw,
+            id: _,
+            archive_path: _,
+        } = self.finish_compound_core(core, &environment, work_event, schemas)?;
         if actual_receipt != receipt || receipt_raw != expected_raw {
             return Err(bad("exact reconstructed compound receipt bytes"));
         }
@@ -5247,6 +5904,277 @@ fn compound_event_profile(
         });
     }
     Ok(result)
+}
+
+fn work_capture_entity(path: &str, raw: &[u8], role: &str) -> Value {
+    json!({"entity_ref":path,"role":role,"media_type":if path.ends_with(".jsonl") {"application/x-ndjson"} else {"application/json"},
+        "size_bytes":raw.len(),"sha256":Digest256::of_bytes(raw).to_hex(),"availability":"owner_local",
+        "content_disclosure":"public_metadata_only","fixity_verified":false,"fixity_verified_at":null})
+}
+
+/// Check a real, retained native capture against the exact Work buffers. The
+/// selected software and ELF observations are authenticated by the CMD owner;
+/// this mechanical check cannot infer who executed a program from its event.
+fn native_work_event(
+    event: &Value,
+    scope: &Value,
+    request: &Value,
+    before: &Package,
+    outputs: &[(String, &[u8])],
+    environment: &Value,
+    archive: &str,
+    _recorded_at: &str,
+    available: usize,
+) -> Result<(), ItemRefusal> {
+    let home = parent(text(scope, "expression_source_path")?)?;
+    let request_ref = format!("{home}/source-create-request.json");
+    let environment_ref = format!("{home}/source-create-environment.json");
+    let mut request_raw = canonical(request)?;
+    request_raw.push(b'\n');
+    let mut environment_raw = canonical(environment)?;
+    environment_raw.push(b'\n');
+    let mut prior = BTreeMap::new();
+    for raw in before.values() {
+        prior.insert(
+            format!("{archive}/{}.blob", Digest256::of_bytes(raw).to_hex()),
+            raw,
+        );
+    }
+    let mut sorted = outputs.to_vec();
+    sorted.sort_by(|a, b| a.0.cmp(&b.0));
+    if sorted.windows(2).any(|v| v[0].0 == v[1].0) {
+        return Err(bad("native Work duplicate output"));
+    }
+    let mut inputs = vec![work_capture_entity(
+        &request_ref,
+        &request_raw,
+        "caller-supplied-metadata-request",
+    )];
+    inputs.extend(
+        prior
+            .iter()
+            .map(|(path, raw)| work_capture_entity(path, raw, "retained-parent-metadata-input")),
+    );
+    let output_entities = sorted
+        .iter()
+        .map(|(path, raw)| work_capture_entity(path, raw, "prepared-compound-source-metadata"))
+        .collect::<Vec<_>>();
+    let event_id = text(scope, "provenance_event_id")?;
+    let derivation = event_id.replacen("tos.event.", "tos.derivation.", 1);
+    let derivations = sorted.iter().enumerate().map(|(index,(path,_))| json!({
+        "derivation_id":format!("{derivation}.output-{index}"),"input_entity_ref":request_ref,
+        "output_entity_ref":path,"relation":"was_derived_from","influence_asserted":true,
+        "description":"Technical source metadata serialization; no historical influence or textual identity is asserted."
+    })).collect::<Vec<_>>();
+    let mut scratch = request_raw
+        .len()
+        .checked_add(environment_raw.len())
+        .and_then(|n| n.checked_add(std::mem::size_of::<Vec<Value>>() * 3))
+        .and_then(|n| n.checked_add(std::mem::size_of::<BTreeMap<String, &Vec<u8>>>()))
+        .and_then(|n| n.checked_add(std::mem::size_of::<Vec<(String, &[u8])>>()))
+        .and_then(|n| {
+            n.checked_add(
+                std::mem::size_of::<String>() * 3
+                    + request_ref.len()
+                    + environment_ref.len()
+                    + derivation.len(),
+            )
+        })
+        .ok_or(ItemRefusal::Budget)?;
+    for path in prior.keys().chain(sorted.iter().map(|(path, _)| path)) {
+        scratch = scratch
+            .checked_add(std::mem::size_of::<(String, &[u8])>() + path.len())
+            .ok_or(ItemRefusal::Budget)?;
+    }
+    for value in inputs
+        .iter()
+        .chain(output_entities.iter())
+        .chain(derivations.iter())
+    {
+        scratch = scratch
+            .checked_add(crate::record_biblio_cut::decoded_state(value)?)
+            .ok_or(ItemRefusal::Budget)?;
+    }
+    let mut method_environment = environment.clone();
+    method_environment
+        .as_object_mut()
+        .ok_or_else(|| bad("native Work environment object"))?
+        .remove("argv_sha256");
+    method_environment["environment_profile_binding"] = json!({"ref":environment_ref,
+        "sha256":Digest256::of_bytes(&environment_raw).to_hex()});
+    scratch = scratch
+        .checked_add(crate::record_biblio_cut::decoded_state(
+            &method_environment,
+        )?)
+        .ok_or(ItemRefusal::Budget)?;
+    if scratch > available {
+        return Err(ItemRefusal::BudgetCheck {
+            check: "native Work capture reference workspace",
+            used: Some(scratch as u64),
+            limit: Some(available as u64),
+        });
+    }
+    let method = &event["method"];
+    let components = array(method, "software_components")?;
+    let software_index = std::mem::size_of::<BTreeSet<&str>>()
+        .checked_add(
+            components
+                .len()
+                .checked_mul(std::mem::size_of::<&str>())
+                .ok_or(ItemRefusal::Budget)?,
+        )
+        .ok_or(ItemRefusal::Budget)?;
+    if scratch
+        .checked_add(software_index)
+        .is_none_or(|used| used > available)
+    {
+        return Err(ItemRefusal::BudgetCheck {
+            check: "native Work software component index",
+            used: scratch.checked_add(software_index).map(|n| n as u64),
+            limit: Some(available as u64),
+        });
+    }
+    let runtime_sha = text(environment, "runtime_artifact_sha256")?;
+    hash(&format!("sha256:{runtime_sha}"))?;
+    let runtime_rows = components
+        .iter()
+        .filter(|v| {
+            v["artifact_ref"] == "runtime:tos-native-executable"
+                && v["artifact_sha256"] == runtime_sha
+                && v["role"] == "serialization-runner"
+                && v["verification_status"] == "verified"
+        })
+        .count();
+    if runtime_rows != 1
+        || components.len() < 2
+        || components.len() > 129
+        || components
+            .iter()
+            .any(|v| v["artifact_ref"] == "runtime:python-executable")
+        || components[..components.len() - 1].iter().any(|v| {
+            v["role"] != "serialization-source-observation"
+                || v["version"] != "selected-capture-bytes"
+                || v["verification_status"] != "verified"
+                || v["name"] != v["artifact_ref"]
+                || v["artifact_ref"].as_str().is_none_or(|path| {
+                    path.starts_with("ToS/") || RelativePath::parse(path).is_err()
+                })
+                || v["artifact_sha256"]
+                    .as_str()
+                    .is_none_or(|sha| hash(&format!("sha256:{sha}")).is_err())
+        })
+        || components.last().is_none_or(|v| {
+            v["artifact_ref"] != "runtime:tos-native-executable"
+                || v["name"] != "executing native process"
+                || v["version"] != environment["runtime_version"]
+        })
+        || components[..components.len() - 1]
+            .iter()
+            .filter_map(|v| v["artifact_ref"].as_str())
+            .collect::<BTreeSet<_>>()
+            .len()
+            != components.len() - 1
+    {
+        return Err(bad("native Work observed software/ELF closure"));
+    }
+    let start = text(&event["activity"], "started_at")?;
+    let end = text(&event["activity"], "ended_at")?;
+    if crate::retirement_rules::observed_instant_order(start, end)
+        .map_err(|_| bad("native Work capture instants"))?
+        == std::cmp::Ordering::Greater
+    {
+        return Err(bad("native Work capture chronology"));
+    }
+    let measurements = array(event, "measurements")?;
+    if measurements.len() != 1
+        || measurements[0]["metric"] != "wall_duration_ms"
+        || measurements[0]["status"] != "measured"
+        || measurements[0]["unit"] != "ms"
+        || measurements[0]["method"]
+            != "Rust monotonic Instant from capture through native executable/source observation and buffer binding; excludes commit."
+        || measurements[0]["evidence_binding"] != Value::Null
+        || measurements[0]["value"]
+            .as_f64()
+            .is_none_or(|v| !v.is_finite() || v < 0.0)
+    {
+        return Err(bad("native Work observed duration"));
+    }
+    if event["$schema"]
+        != "https://tree-of-sophia.local/ToS/contracts/provenance-event-v2.schema.json"
+        || event["schema_version"] != "tos_provenance_event_v2"
+        || event["event_id"] != event_id
+        || event["event_version"] != 1
+        || !event["supersedes_event_ref"].is_null()
+        || event["record_binding"]
+            != json!({"manifest_ref":format!("{home}/work-expression-receipt.json"),
+            "digest_algorithm":"sha256","digest_scope":"exact_event_record_bytes"})
+        || event["entities"]["inputs"] != json!(inputs)
+        || event["entities"]["outputs"] != json!(output_entities)
+        || event["entities"]["byproducts"]
+            != json!([work_capture_entity(
+                &environment_ref,
+                &environment_raw,
+                "runtime-description"
+            )])
+        || event["derivations"] != json!(derivations)
+        || method["procedure"]
+            != json!({"name":"native-work-expression-serialization","version":"1",
+            "purpose":"Serialize one declared Work/Expression link and explicit source-copy forms without judging content."})
+        || method["configuration_binding"]
+            != json!({"ref":request_ref,"sha256":Digest256::of_bytes(&request_raw).to_hex()})
+        || method["environment"] != method_environment
+        || method["command_capture"]["argv_sha256"] != environment["argv_sha256"]
+        || method["command_capture"]["disclosure"] != "withheld_digest_only"
+        || !method["command_capture"]["argv"].is_null()
+        || event["responsibility"]
+            != json!([{"agent_ref":"software:tos-native-source-commands",
+            "agent_kind":"software","role":"executor","responsibility_posture":"performed",
+            "evidence_binding":null,"human_evidence_status":"not_applicable"}])
+        || event["activity"]["event_type"] != "annotation"
+        || event["activity"]["status"] != "completed_with_warnings"
+        || !event["activity"]["terminal_reason"].is_null()
+        || event["activity"]["exit_code"] != 0
+        || event["activity"]["warnings"]
+            != json!([
+                "Completed in-process Work/Expression buffer serialization; atomic selected-metadata publication occurs afterward.",
+                "The declared record link is not accepted bibliographic or textual truth."
+            ])
+        || !method["model_invocations"]
+            .as_array()
+            .is_some_and(Vec::is_empty)
+        || method["command_capture"]["withholding_reason"]
+            != "Observed process argv may contain private paths; the exact library request is captured separately."
+        || event["manual_changes"]
+            != json!({"status":"none_declared","change_receipts":[],
+            "statement":"Caller authorship precedes this operation; no manual edits occur inside serialization."})
+        || event["rights_and_visibility"]
+            != json!({"rights_record_bindings":[],
+            "intended_uses":["local_research","public_metadata"],"content_visibility":"tracked_public_metadata",
+            "publication_authorized":false,"publication_authority_bindings":[]})
+        || event["review_and_authority"]
+            != json!({"mechanical_validation":"not_run",
+            "human_review_status":"not_performed","review_bindings":[],"accepted_uses":[],
+            "promotion_authorized":false,"competence_evidence_bindings":[]})
+        || event["evidence_authentication"]
+            != json!({"capture_posture":"tool_captured",
+            "signature_status":"unsigned","signature_bindings":[],"verification_status":"unverified",
+            "producer_control_boundary":"The same unsigned native process serializes and observes; hashes do not authenticate execution truth."})
+        || event["reproducibility"]
+            != json!({"classification":"partially_specified",
+            "known_gaps":[
+                "Selected source capture is byte evidence only; compiler, dependencies, build and source-to-ELF relation are not attested.",
+                "Upstream research, reading and model invocation are outside this serialization.",
+                "Clock observations and durations are not deterministic; complete runtime environment is not archived."
+            ],"replay_scope":"Exact retained request and source-copy buffers only, not bibliographic truth."})
+        || event["authority_boundary"]
+            != json!({"validator_role":"mechanics_and_closure_only_not_truth",
+            "claims_not_established":["execution_truth","content_truth","source_fidelity",
+                "translation_quality","semantic_correctness","rights_clearance","human_review",
+                "publication_authority","canon_authority"]})
+    {
+        return Err(bad("native Work capture profile/byte references"));
+    }
+    Ok(())
 }
 
 impl NativeCompoundReader<'_> {
@@ -5835,6 +6763,7 @@ impl NativeCompoundReader<'_> {
             transaction_id: id.into(),
             manifest_sha256: tx.manifest_sha256.clone(),
             transport,
+            work_parent_transition_sha256: None,
         };
         if transport != NativeTransportState::Committed {
             return Ok(observation);
@@ -6007,12 +6936,13 @@ impl NativeCompoundReader<'_> {
             "orphan" => NativeTransportState::Orphan,
             _ => return Err(bad("transaction outcome")),
         };
-        let observation = NativeCompoundObservation {
+        let mut observation = NativeCompoundObservation {
             claim_path: path.into(),
             claim_id: text(claim, "claim_id")?.into(),
             transaction_id: id.into(),
             manifest_sha256: tx.manifest_sha256.clone(),
             transport,
+            work_parent_transition_sha256: None,
         };
         if transport != NativeTransportState::Committed {
             return Ok(observation);
@@ -6131,6 +7061,10 @@ impl NativeCompoundReader<'_> {
             return Err(bad(
                 "current compound child lacks committed initial lineage",
             ));
+        }
+        if kind == CompoundKind::WorkExpression {
+            observation.work_parent_transition_sha256 =
+                Some(text(&reconstructed.receipt, "parent_transition_sha256")?.to_owned());
         }
         check(self.limits.deadline, self.cancelled)?;
         Ok(observation)

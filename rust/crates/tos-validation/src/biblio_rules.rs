@@ -885,6 +885,10 @@ pub fn inspect_bibliography_from_cut(
                             + observation.claim_path.len()
                             + observation.transaction_id.len()
                             + observation.manifest_sha256.len()
+                            + observation
+                                .work_parent_transition_sha256
+                                .as_ref()
+                                .map_or(0, String::len)
                             + std::mem::size_of::<crate::native_compound::NativeCompoundObservation>(
                             ),
                         rules.limits.max_state_bytes,
