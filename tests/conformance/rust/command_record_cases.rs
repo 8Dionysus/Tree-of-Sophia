@@ -21,7 +21,6 @@ fn sign_uses_current_native_content_assessment_and_replays_its_original_package(
     use tos_command::source_creation::prepare_sign_promotion_from_captures;
     use tos_command::source_creation_store::{
         CreationDurability, CreationFilesystem, IsolatedCreationRoot,
-        execute_isolated_creation_from_captures,
     };
     use tos_validation::FormatProfile;
     use tos_validation::assessment::AssessmentLimits;
@@ -741,6 +740,7 @@ fn initial_source_packages_use_real_native_capture_and_isolated_atomic_publicati
     use tos_command::source_creation::prepare_source_creation_from_captures;
     use tos_command::source_creation_store::{
         CreationDurability, CreationFilesystem, IsolatedCreationRoot,
+        execute_isolated_creation_from_captures,
     };
     use tos_validation::source_cut::CutSchemaExecutor;
 
