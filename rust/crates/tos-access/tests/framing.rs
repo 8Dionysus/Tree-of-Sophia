@@ -1129,7 +1129,7 @@ fn source_backed_doctor_verify_binary_preserves_diagnostic_boundaries() {
         .arg("--root")
         .arg(&directory)
         .args(["verify", "--profile=abyssos", "--json"])
-        .env("TOS_ABYSSOS_ROOT", abyss)
+        .env("TOS_ABYSSOS_ROOT", format!(" {} ", abyss.display()))
         .env_remove("TOS_RELEASE_ROOT")
         .env_remove("TOS_QUERY_STORE_PATH")
         .env_remove("TOS_DATA_ROOT")
@@ -1146,6 +1146,20 @@ fn source_backed_doctor_verify_binary_preserves_diagnostic_boundaries() {
         JsonLimits::default(),
     )
     .unwrap();
+    assert_eq!(
+        abyss
+            .root()
+            .object_get("checks")
+            .unwrap()
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|row| row.object_get("check_id").unwrap().as_str() == Some("abyssos-integration"))
+            .unwrap()
+            .object_get("ok"),
+        Some(&tos_foundation::JsonValue::Bool(true)),
+        "maintained profile trims configured root and freeze remains a separate check"
+    );
     assert!(
         abyss
             .root()

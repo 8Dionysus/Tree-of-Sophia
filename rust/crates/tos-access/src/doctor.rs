@@ -464,7 +464,7 @@ pub fn doctor_report(
     );
     let abyss = std::env::var_os("TOS_ABYSSOS_ROOT")
         .filter(|raw| !raw.to_string_lossy().trim().is_empty())
-        .map(PathBuf::from)
+        .map(|raw| PathBuf::from(raw.to_string_lossy().trim()))
         .map(|path| absolute(&path))
         .transpose()?;
     let available = abyss
