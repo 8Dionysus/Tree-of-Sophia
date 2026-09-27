@@ -181,13 +181,13 @@
         }
       },
       "cli": {
-        "command": "knowledge search QUERY --mode indexed"
+        "command": "knowledge search"
       },
       "request": {
-        "query": "Unicode text; indexed v2 requires 3..256 normalized code points",
+        "query": "optional Unicode text; default empty; 0..256 normalized code points for legacy, 3..256 for indexed",
         "sources": "selected source-owned vocabulary IDs",
-        "kind_ids": "selected source-owned vocabulary IDs",
-        "predicate_ids": "selected source-owned vocabulary IDs",
+        "kind_ids": "legacy permits unknown filters (zero matches); indexed requires selected vocabulary",
+        "predicate_ids": "legacy permits unknown filters (zero matches); indexed requires selected vocabulary",
         "cursor": "adapter-local continuation",
         "limit": "1..100; default 40",
         "mode": "legacy default; indexed explicit; compressed unavailable without prepared owner publication",
