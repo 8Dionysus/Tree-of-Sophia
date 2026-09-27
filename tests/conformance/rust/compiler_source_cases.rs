@@ -1318,6 +1318,18 @@ sys.stdout.write(owner.render_payload(payload))
         {
             continue;
         }
+        if source.adapter_profile == "declared-identity-and-source-ref-joins-v1" {
+            // This derived family declares scope, not source node/edge rows.
+            // Its actual relations consume the complete same-cut base seal.
+            selected_collections.push(raw_receipt(
+                &source.source_graph_id,
+                "join_scope",
+                &source.input_role,
+                &source.adapter_profile,
+                &BTreeMap::new(),
+            ));
+            continue;
+        }
         let names: &[&str] = if source.adapter_profile == "reified-bibliographic-claims-v1" {
             &["nodes", "edges", "claim_traces"]
         } else {
@@ -1336,9 +1348,7 @@ sys.stdout.write(owner.render_payload(payload))
                 // The selected authored recipe has no inputs for these raw
                 // families. Zero receipts are explicit; no philosophy original
                 // component or whole-source philosophy parity is claimed.
-                "philosophy-node-edge-v1"
-                | "declared-identity-and-source-ref-joins-v1"
-                | "indexed-node-edge-v1" => &[],
+                "philosophy-node-edge-v1" | "indexed-node-edge-v1" => &[],
                 _ => panic!("unsupported selected source family"),
             };
             let key = match collection {
