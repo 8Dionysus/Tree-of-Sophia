@@ -457,7 +457,7 @@ impl CreationFilesystem {
     /// The Claim owner uses the same held corpus lock, secure directory
     /// staging and NOREPLACE publication as the source creation families.
     /// The package is privately built from a complete selected Claim cut.
-    pub fn publish_claim_isolated(
+    pub(crate) fn publish_claim_isolated(
         &self,
         package: &SerializedClaimCreation,
         cut: &CorpusCutReader,
@@ -559,7 +559,7 @@ impl CreationFilesystem {
     /// Cold exact replay: the caller must first reconstruct this package from
     /// retained bytes and the original selected cut. The current filesystem is
     /// independently reselected under the same corpus lock before success.
-    pub fn replay_claim_isolated(
+    pub(crate) fn replay_claim_isolated(
         &self,
         package: &SerializedClaimCreation,
         original_cut: &CorpusCutReader,
@@ -628,7 +628,7 @@ impl CreationFilesystem {
 
     /// A cold bounded read of the current Claim package. The Claim owner
     /// validates original/revised closure before it becomes a replay.
-    pub fn read_claim_retained(
+    pub(crate) fn read_claim_retained(
         &self,
         context: &cmd::CommandContext,
         home: &RelativePath,

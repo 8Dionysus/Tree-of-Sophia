@@ -800,7 +800,7 @@ impl SerializedClaimCreation {
 
 /// Complete Claim planning, native capture, provenance execution and the
 /// maintained five-file receipt. Publication remains a separate held action.
-pub fn serialize_claim_creation_from_captures(
+fn serialize_claim_creation_from_captures(
     ctx: &CommandContext,
     cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
@@ -817,7 +817,7 @@ pub fn serialize_claim_creation_from_captures(
 /// Rebuild an original Claim creation from its retained package and the
 /// independently selected original source/software captures. The receipt is
 /// compared byte-for-byte; neither its timestamp nor its authority is minted.
-pub fn restore_claim_creation_from_captures(
+fn restore_claim_creation_from_captures(
     ctx: &CommandContext,
     original_cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
