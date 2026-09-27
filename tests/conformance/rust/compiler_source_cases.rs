@@ -797,10 +797,14 @@ fn native_corpus_composition_case(installed: bool) {
     fs::create_dir(&git_root).unwrap();
     git(&git_root, &["init", "-q"]);
     let mut captured = files.clone();
-    captured.insert(
-        "scripts/tos_corpus_index_common.py".into(),
-        fs::read(repository.join("scripts/tos_corpus_index_common.py")).unwrap(),
-    );
+    // The existing capture helper executes this exact commit's archive program;
+    // both actual software owners remain outside the authored source cut.
+    for path in [
+        "scripts/corpus_archive.py",
+        "scripts/tos_corpus_index_common.py",
+    ] {
+        captured.insert(path.into(), fs::read(repository.join(path)).unwrap());
+    }
     let declaration_raw =
         fs::read(repository.join("access/contracts/runtime-data.v1.json")).unwrap();
     let declaration: Value = serde_json::from_slice(&declaration_raw).unwrap();
@@ -816,6 +820,8 @@ fn native_corpus_composition_case(installed: bool) {
         "access/contracts/runtime-data.v1.json".into(),
         declaration_raw,
     );
+    assert!(captured.len() <= 512);
+    assert!(captured.values().map(Vec::len).sum::<usize>() <= 16 * 1024 * 1024);
     for (path, raw) in &captured {
         let target = git_root.join(path);
         fs::create_dir_all(target.parent().unwrap()).unwrap();
@@ -827,7 +833,7 @@ fn native_corpus_composition_case(installed: bool) {
             "add",
             "--",
             "ToS",
-            "scripts/tos_corpus_index_common.py",
+            "scripts",
             "access/contracts/runtime-data.v1.json",
         ],
     );
