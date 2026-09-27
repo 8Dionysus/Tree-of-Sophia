@@ -1818,7 +1818,7 @@ pub(crate) fn reprepare_managed_agent_creation(
         &input, schema_cut, software, components, worker, deadline, cancelled,
     )?
     .prepared;
-    if prepared.family != CreationFamily::AgentCorpus {
+    if !prepared.family.corpus() {
         return Err(SourceCommandError::Unsupported(
             "managed recovery is Agent-only",
         ));
