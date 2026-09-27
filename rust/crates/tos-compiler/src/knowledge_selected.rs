@@ -178,6 +178,37 @@ impl<'a> VerifiedKnowledgeModel<'a> {
         self.check_pin()?;
         Ok(page)
     }
+    /// Bounded GraphViews identity projection under the caller's same VM hook
+    /// and selected lease. This does not authorize disclosure of original rows.
+    pub fn corpus_original_view_identities_under_caller_budget(
+        &self,
+        after: Option<u64>,
+        max_rows: usize,
+        max_id_bytes: usize,
+        max_page_bytes: u64,
+    ) -> Result<crate::CorpusOriginalViewIdentityPage> {
+        let receipt = self.corpus_original_receipt()?;
+        let count = receipt
+            .collections
+            .iter()
+            .find(|r| r.collection == crate::CorpusOriginalCollection::GraphViews.as_str())
+            .ok_or(Error::Invalid(
+                "selected corpus GraphViews receipt unavailable",
+            ))?
+            .rows;
+        let page = crate::knowledge_corpus_original::view_identities(
+            &self.connection,
+            after,
+            max_rows,
+            max_id_bytes,
+            max_page_bytes,
+        )?;
+        if page.rows.iter().any(|r| r.ordinal >= count) {
+            return Err(Error::Invalid("corpus view identity receipt coverage"));
+        }
+        self.check_pin()?;
+        Ok(page)
+    }
     pub fn philosophy_original_receipt(&self) -> Result<&crate::PhilosophyOriginalReceipt> {
         self.check_pin()?;
         self.philosophy_original.as_ref().ok_or(Error::Invalid(

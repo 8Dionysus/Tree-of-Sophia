@@ -16,8 +16,9 @@ pub use knowledge_corpus_original::{
     CORPUS_ORIGINAL_PROFILE, CapturedCorpusOrigin, CapturedCorpusOriginalPlan,
     CorpusOriginalCollection, CorpusOriginalCollectionReceipt, CorpusOriginalMember,
     CorpusOriginalOrigin, CorpusOriginalPage, CorpusOriginalPlan, CorpusOriginalReceipt,
-    CorpusOriginalRow, CorpusOriginalSelector, KNOWLEDGE_CORPUS_MODEL_ABI,
-    NATIVE_CORPUS_ORIGINAL_PROFILE, retain_captured_corpus_original, retain_corpus_original,
+    CorpusOriginalRow, CorpusOriginalSelector, CorpusOriginalViewIdentity,
+    CorpusOriginalViewIdentityPage, KNOWLEDGE_CORPUS_MODEL_ABI, NATIVE_CORPUS_ORIGINAL_PROFILE,
+    retain_captured_corpus_original, retain_corpus_original,
 };
 pub use knowledge_corpus_source::{
     CorpusOriginalSourceLimits, prepare_captured_corpus_original, prepare_native_corpus_original,

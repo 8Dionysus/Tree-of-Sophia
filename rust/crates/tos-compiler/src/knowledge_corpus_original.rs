@@ -13,6 +13,7 @@ use tos_foundation::{Digest256, Digest256Hasher};
 pub const CORPUS_ORIGINAL_PROFILE: &str = "tos_corpus_original_v1";
 pub const NATIVE_CORPUS_ORIGINAL_PROFILE: &str = "tos_corpus_original_native_v1";
 pub const KNOWLEDGE_CORPUS_MODEL_ABI: &str = "tos_knowledge_read_model_v5";
+const MAX_INDEX_TEXT_BYTES: usize = 4096;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum CorpusOriginalCollection {
@@ -123,6 +124,22 @@ pub struct CorpusOriginalPage {
     /// The existing caller progress handler accounts aggregate VM work.
     pub vm_steps: u64,
 }
+/// Cold-verified GraphViews index identity, without the original packet body.
+#[derive(Debug)]
+pub struct CorpusOriginalViewIdentity {
+    pub ordinal: u64,
+    pub view_id: Option<String>,
+    pub raw_sha256: String,
+}
+#[derive(Debug)]
+pub struct CorpusOriginalViewIdentityPage {
+    pub rows: Vec<CorpusOriginalViewIdentity>,
+    pub next_ordinal: Option<u64>,
+    /// Logical returned identity bytes: ordinal, hex digest and optional ID.
+    pub decoded_bytes: u64,
+    /// The existing caller progress handler accounts aggregate VM work.
+    pub vm_steps: u64,
+}
 pub(crate) fn text(h: &mut Digest256Hasher, value: &str) {
     h.update(&(value.len() as u64).to_be_bytes());
     h.update(value.as_bytes());
@@ -223,7 +240,9 @@ pub(crate) fn indexed_fields(
     for &i in used {
         fields[i] = match v.get(FIELDS[i]) {
             None | Some(Value::Null) => None,
-            Some(Value::String(value)) if value.len() <= 4096 => Some(value.as_str()),
+            Some(Value::String(value)) if value.len() <= MAX_INDEX_TEXT_BYTES => {
+                Some(value.as_str())
+            }
             Some(Value::String(_)) => return Err(Error::Budget("corpus indexed key bytes")),
             _ => return Err(Error::Invalid("unsupported corpus indexed scalar kind")),
         };
@@ -497,7 +516,7 @@ fn selection(
     s: &CorpusOriginalSelector,
 ) -> Result<(String, Vec<String>)> {
     let valid = |v: &str| -> Result<String> {
-        if v.len() > 4096 {
+        if v.len() > MAX_INDEX_TEXT_BYTES {
             return Err(Error::Budget("corpus selector bytes"));
         }
         Ok(v.into())
@@ -596,6 +615,77 @@ pub(crate) fn page(
         rows,
         next_ordinal,
         decoded_bytes: bytes,
+        vm_steps: 0,
+    })
+}
+
+pub(crate) fn view_identities(
+    db: &Connection,
+    after: Option<u64>,
+    max_rows: usize,
+    max_id_bytes: usize,
+    max_page_bytes: u64,
+) -> Result<CorpusOriginalViewIdentityPage> {
+    let max_id_bytes = max_id_bytes.min(MAX_INDEX_TEXT_BYTES);
+    if max_id_bytes == 0 {
+        return Err(Error::Budget("corpus view identity ID bytes"));
+    }
+    let row_bytes = max_id_bytes
+        .checked_add(std::mem::size_of::<u64>() + 64)
+        .ok_or(Error::Budget("corpus view identity row bytes"))?;
+    crate::knowledge_original_rows::page_limits(max_rows, row_bytes, max_page_bytes)?;
+    if after.is_some_and(|n| n > i64::MAX as u64) {
+        return Err(Error::Budget("corpus view identity ordinal"));
+    }
+    // The selected cold opener already proves these index values against each
+    // original packet and root. Re-reading bodies would defeat this projection.
+    let mut query = db.prepare(
+        "SELECT ordinal,CASE WHEN view_id IS NULL THEN NULL WHEN typeof(view_id)='text' THEN length(CAST(view_id AS BLOB)) ELSE -1 END,CASE WHEN typeof(view_id)='text' AND length(CAST(view_id AS BLOB))<=?1 THEN view_id ELSE NULL END,CASE WHEN typeof(packet_sha256)='blob' AND length(packet_sha256)=32 THEN lower(hex(packet_sha256)) ELSE NULL END FROM corpus_original_rows WHERE collection='graph_views' AND ordinal>?2 ORDER BY ordinal LIMIT ?3",
+    )?;
+    let mut scan = query.query(params![
+        max_id_bytes as i64,
+        after.map_or(-1, |n| n as i64),
+        max_rows as i64
+    ])?;
+    let mut rows = Vec::new();
+    let mut decoded_bytes = 0u64;
+    let mut previous = after;
+    while let Some(row) = scan.next()? {
+        let ordinal: i64 = row.get(0)?;
+        if ordinal < 0 || previous.is_some_and(|n| ordinal as u64 <= n) {
+            return Err(Error::Invalid("corpus view identity order"));
+        }
+        let id_bytes: Option<i64> = row.get(1)?;
+        if id_bytes.is_some_and(|n| n < 0) {
+            return Err(Error::Invalid("corpus view identity scalar kind"));
+        }
+        if id_bytes.is_some_and(|n| n as u64 > max_id_bytes as u64) {
+            return Err(Error::Budget("corpus view identity ID bytes"));
+        }
+        let view_id: Option<String> = row.get(2)?;
+        if id_bytes != view_id.as_ref().map(|s| s.len() as i64) {
+            return Err(Error::Invalid("corpus view identity ID length"));
+        }
+        let raw_sha256: String = row
+            .get::<_, Option<String>>(3)?
+            .ok_or(Error::Invalid("corpus view identity digest"))?;
+        let bytes =
+            std::mem::size_of::<u64>() + raw_sha256.len() + view_id.as_ref().map_or(0, String::len);
+        decoded_bytes = decoded_bytes
+            .checked_add(bytes as u64)
+            .filter(|n| *n <= max_page_bytes)
+            .ok_or(Error::Budget("corpus view identity page bytes"))?;
+        previous = Some(ordinal as u64);
+        rows.push(CorpusOriginalViewIdentity {
+            ordinal: ordinal as u64,
+            view_id,
+            raw_sha256,
+        });
+    }
+    Ok(CorpusOriginalViewIdentityPage {
+        next_ordinal: (rows.len() == max_rows).then_some(previous).flatten(),
+        rows,
+        decoded_bytes,
         vm_steps: 0,
     })
 }
