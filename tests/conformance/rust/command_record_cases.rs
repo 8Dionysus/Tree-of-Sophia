@@ -64,6 +64,9 @@ try:
         f,owner,config,request=test.sign_command_fixture()
     preview={key:value for key,value in request.items() if key not in {'command_id','expected_configuration','expected_source','expected_revision','expected_dependencies'}}
     preview['operation']='prepare-create'
+    # Mirror run_local_command's actual input freeze before its private builder.
+    # Keep every original ordered output buffer; do not re-encode expected files.
+    preview=commands._json_object(commands._canonical(preview))
     configured,_,_=commands._configuration(owner)
     _,outputs,_=commands._prepare_creation(configured,preview)
     response=commands.run_local_command(owner,preview)
