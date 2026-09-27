@@ -876,7 +876,7 @@ fn claim_ground_refs(
     let entities = cmd::parse(reader.observed.get(ENTITIES).unwrap())?;
     let relations = cmd::parse(reader.observed.get(RELATIONS).unwrap())?;
     let types = cmd::array(&entities, "types")?;
-    let mut grounded = BTreeMap::new();
+    let mut grounded: BTreeMap<String, Vec<JsonValue>> = BTreeMap::new();
     let records = rows
         .iter()
         .map(|row| Ok((cmd::text(row, "id")?, row)))
