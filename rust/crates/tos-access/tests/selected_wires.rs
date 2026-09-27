@@ -1731,16 +1731,20 @@ mod selected_knowledge {
                 JsonLimits::default(),
             )
             .unwrap();
+            // Complete packet emission sorts object keys; source registry
+            // lexical identity is separately checked by QRY's exact SHA gate.
+            // Compare every field/array/numeric kind in the same owner canonical
+            // profile here; transport checks below still compare raw bytes.
+            let identity = |value: &JsonValue| {
+                tos_foundation::canonical_bytes_v1(
+                    value,
+                    tos_foundation::CanonicalProfile::SourceRecordDigestV1,
+                    JsonLimits::default(),
+                ).unwrap()
+            };
             assert_eq!(
-                json_bytes(
-                    value
-                        .root()
-                        .object_get("contracts")
-                        .unwrap()
-                        .object_get(key)
-                        .unwrap()
-                ),
-                json_bytes(registry.root())
+                identity(value.root().object_get("contracts").unwrap().object_get(key).unwrap()),
+                identity(registry.root())
             );
         }
         let args: Vec<String> = operation
