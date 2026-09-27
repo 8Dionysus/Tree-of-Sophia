@@ -21,6 +21,7 @@ fn sign_uses_current_native_content_assessment_and_replays_its_original_package(
     use tos_command::source_creation::prepare_sign_promotion_from_captures;
     use tos_command::source_creation_store::{
         CreationDurability, CreationFilesystem, IsolatedCreationRoot,
+        execute_isolated_creation_from_captures,
     };
     use tos_validation::FormatProfile;
     use tos_validation::assessment::AssessmentLimits;
@@ -1066,28 +1067,71 @@ fn initial_source_packages_use_real_native_capture_and_isolated_atomic_publicati
         ));
         assert!(home.is_dir() && fs::read_dir(&home).unwrap().next().is_none());
         fs::remove_dir(&home).unwrap(); // this test's exact empty competitor only
-        let published = filesystem
-            .publish_isolated(
-                &serialized,
-                &cut,
-                &software,
-                &components,
-                deadline,
-                &cancellation,
-            )
-            .unwrap();
+        // The successful operation must traverse the production whole entry.
+        // It makes its own time/runtime capture, so the earlier serialized
+        // package remains the independent negative oracle rather than a byte
+        // substitute for this newly published package.
+        let mut operation_worker = schemas(&cut, deadline, &cancellation);
+        let (executed, published, published_result) = execute_isolated_creation_from_captures(
+            &filesystem,
+            &context,
+            &cut,
+            &software,
+            &components,
+            &mut operation_worker,
+            deadline,
+            &cancellation,
+        )
+        .unwrap();
         assert!(!published.replayed);
         assert_eq!(published.durability, CreationDurability::DirectoriesSynced);
-        for (name, bytes) in serialized.prepared().files() {
+        assert_eq!(
+            published_result.object_get("target_exists"),
+            Some(&JsonValue::Bool(true))
+        );
+        assert_eq!(
+            published_result.object_get("replayed"),
+            Some(&JsonValue::Bool(false))
+        );
+        assert_eq!(
+            published_result.object_get("grants_admission"),
+            Some(&JsonValue::Bool(false))
+        );
+        assert_eq!(
+            published_result.object_get("receipt"),
+            executed.command().response.object_get("receipt")
+        );
+        assert_eq!(
+            published_result.object_get("record_id"),
+            preview.object_get("record_id")
+        );
+        for (name, hex) in oracle["files"].as_object().unwrap() {
+            let original = decode_hex(hex.as_str().unwrap());
+            assert_eq!(
+                executed.prepared().files().get(name),
+                Some(&original),
+                "{kind} executed original output {name}"
+            );
+            assert_eq!(
+                serialized.prepared().files().get(name),
+                Some(&original),
+                "{kind} independent original output {name}"
+            );
+        }
+        for (name, bytes) in executed.prepared().files() {
             assert_eq!(fs::read(home.join(name)).unwrap(), *bytes);
         }
         assert_eq!(
             fs::read_dir(&home).unwrap().count(),
-            serialized.prepared().files().len()
+            executed.prepared().files().len()
+        );
+        assert_eq!(
+            published.receipt_sha256,
+            Digest256::of_bytes(&executed.prepared().files()["source-create-receipt.json"])
         );
         let replay = filesystem
             .replay_isolated(
-                &serialized,
+                &executed,
                 &cut,
                 &software,
                 &components,
@@ -1096,12 +1140,28 @@ fn initial_source_packages_use_real_native_capture_and_isolated_atomic_publicati
             )
             .unwrap();
         assert!(replay.replayed && replay.receipt_sha256 == published.receipt_sha256);
+        // A separately captured clock/runtime package cannot replay an exact
+        // different publication. If both captures happened to be byte-equal,
+        // the positive replay above already covers that package.
+        if serialized.prepared().files() != executed.prepared().files() {
+            assert!(matches!(
+                filesystem.replay_isolated(
+                    &serialized,
+                    &cut,
+                    &software,
+                    &components,
+                    deadline,
+                    &cancellation
+                ),
+                Err(SourceCommandError::Conflict(_))
+            ));
+        }
         let mut revoked = config.clone();
         revoked["allowed_operations"] = serde_json::json!([]);
         fs::write(&owner, canonical_json(&revoked)).unwrap();
         assert!(matches!(
             filesystem.replay_isolated(
-                &serialized,
+                &executed,
                 &cut,
                 &software,
                 &components,
