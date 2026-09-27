@@ -589,6 +589,7 @@ fn actual_cut_worker_and_pinned_software_preserve_provenance_lab_limits() {
 #[test]
 fn actual_general_operation_keeps_selected_family_coverage_below_source_admission() {
     use tos_validation::record_biblio_cut::BiblioRecordExecutor;
+    use tos_validation::source_cut::CutSchemaExecutor;
     let mut before = selected_item_sources();
     let owner = repository();
     let relation = "ToS/doctrine/semantic-interchange/relation-types.v1.json";
@@ -887,7 +888,7 @@ finally:c.doCleanups()
             .issues
             .iter()
             .any(|issue| matches!(
-                issue.code.as_str(),
+                issue.code,
                 "native-work-expression-compound-evidence"
                     | "native-expression-edition-compound-evidence"
             ))
