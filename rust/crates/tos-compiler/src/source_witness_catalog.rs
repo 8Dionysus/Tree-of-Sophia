@@ -889,8 +889,11 @@ fn entry_record(
             return Err(Error::Invalid("catalog record filename/type"));
         }
         let id = text(v, "record_id")?;
-        public(v)?;
         if let Some((_, p)) = c.records.iter().find(|(k, _)| k == kind) {
+            // The maintained profile reader requires explicit public metadata.
+            // Native Corpus/Link records use their separate exact schemas;
+            // those contracts do not contain a visibility property.
+            public(v)?;
             if let Some(adapter) = p.descriptor.get("native_binding_adapter") {
                 if adapter != "source-text-unit-v1" {
                     return Err(Error::Invalid(
@@ -967,7 +970,7 @@ fn entry_record(
     };
     identity(id, kind)?;
     version(v, "record_version")?;
-    // Validation above owns admission; this shared renderer owns the bytes.
+    // Schema/profile checks retain their scope; the shared renderer owns bytes.
     let _ = (label, status, label_pointer);
     let entry = render_catalog_record(v, ref_, schema, l.max_output_row_bytes)?;
     if entry["record_sha256"] != sha {
