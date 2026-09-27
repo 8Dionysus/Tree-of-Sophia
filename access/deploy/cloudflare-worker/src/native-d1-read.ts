@@ -111,9 +111,9 @@ export class NativeD1Rows {
   compact = false; // Enabled only by a covered lens after exact store admission.
   decoded = 0; cacheBytes = 0;
   cache = new Map<string, {ref: NativeRef; size: number}>();
-  readonly read: NativeD1Read; readonly limits: NativeD1Limits; readonly verifyOrder: boolean;
-  constructor(read: NativeD1Read, limits: NativeD1Limits, verifyOrder = true, readonly cacheEnabled = true) {
-    this.read = read; this.limits = limits; this.verifyOrder = verifyOrder;
+  readonly read: NativeD1Read; readonly limits: NativeD1Limits; readonly verifyOrder: boolean; readonly cacheEnabled: boolean;
+  constructor(read: NativeD1Read, limits: NativeD1Limits, verifyOrder = true, cacheEnabled = true) {
+    this.read = read; this.limits = limits; this.verifyOrder = verifyOrder; this.cacheEnabled = cacheEnabled;
   }
   async load(kind: NativeKind, identifiers: Iterable<string>, retained?: (id: string, raw: string) => void): Promise<Map<string, NativeRef>> {
     const ids = [...new Set(identifiers)].sort(codePointCompare), result = new Map<string, NativeRef>(), missing: string[] = [];

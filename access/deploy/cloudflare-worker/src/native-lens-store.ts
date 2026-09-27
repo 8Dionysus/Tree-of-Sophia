@@ -34,9 +34,11 @@ const INDEXES = ['knowledge_lens_order_sort', 'knowledge_lens_order_from', 'know
  * only transient integrity references before returning original carrier bytes. */
 export class PublishedLensD1Transport {
   private readonly rows:NativeD1Rows;
+  private readonly read:Read;
   private readonly encoder=new TextEncoder();
   private compactInstalled=false;
-  constructor(private readonly read:Read) {
+  constructor(read:Read) {
+    this.read=read;
     this.rows=new NativeD1Rows(read,read.limits,true,false);
   }
   setStores(stores:{compact:boolean;membership:boolean}):void {this.compactInstalled=stores.compact;}
