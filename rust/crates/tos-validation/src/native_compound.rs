@@ -7,6 +7,7 @@ use crate::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
 use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::atomic::AtomicBool;
+use std::time::Instant;
 use tos_foundation::{
     CanonicalProfile, Digest256, JsonEmissionProfile, JsonLimits, JsonMode, JsonValue,
     RelativePath, canonical_bytes_v1, canonical_count_v1, emit_json_profile, parse_json,
@@ -440,6 +441,12 @@ impl<'a> NativeCompoundReader<'a> {
         this.release_temporary_since(startup_temporary);
         this.release_raw_cache();
         Ok(this)
+    }
+    // `verify` has released its reconstruction temporaries and optional raw
+    // cache before bibliography grows Rules. The remaining state still owns
+    // the selected index, publication, transaction/history caches and reads.
+    pub(crate) fn retained_state_bytes(&self) -> usize {
+        self.state
     }
     pub(crate) fn set_remaining_state(&mut self, available: usize) -> Result<(), ItemRefusal> {
         if self.state > available {
