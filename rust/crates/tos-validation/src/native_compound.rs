@@ -995,6 +995,8 @@ impl<'a> NativeCompoundReader<'a> {
             "revision",
             "files",
         ];
+        // V1 Claim corrections bind a flat archive without a record basename;
+        // selected V2 metadata archives retain their three-file scope.
         if v2 {
             wanted.push("publication_protocol");
         }
@@ -1053,14 +1055,17 @@ impl<'a> NativeCompoundReader<'a> {
         if actual != expected {
             return Err(bad("archive extra/nested/unbound files"));
         }
-        let names = selected_names(path)?;
-        if v2 && (files.keys().any(|n| !names.contains(n)) || !files.contains_key(&names[0])) {
-            return Err(bad("selected archive package scope"));
+        if v2 {
+            let names = selected_names(path)?;
+            if files.keys().any(|n| !names.contains(n)) || !files.contains_key(&names[0]) {
+                return Err(bad("selected archive package scope"));
+            }
         }
         if self.package_revision(&files)? != rev {
             return Err(bad("archive package revision"));
         }
         if !record_semantics {return Ok(files);}
+        let names = selected_names(path)?;
         let old = self.decoded(files.get(&names[0]).ok_or_else(||bad("archive source missing"))?)?;
         if !self.reference_matches(&old,"record_id","record_version",&receipt["previous_source"])? {
             return Err(bad("archive previous source"));
