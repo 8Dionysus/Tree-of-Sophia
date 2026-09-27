@@ -6,6 +6,9 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 
+[features]
+postgres-lab = []
+
 [dependencies]
 tos-foundation = { path = "../tos-foundation" }
 tos-segment-store = { path = "../tos-segment-store" }
@@ -18,3 +21,11 @@ postgres = "0.19"
 [lib]
 name = "tos_command"
 path = "src/lib.rs"
+
+[[test]]
+name = "postgres_lab"
+required-features = ["postgres-lab"]
+
+[[test]]
+name = "postgres_durable_lab"
+required-features = ["postgres-lab"]

@@ -35,3 +35,16 @@ and generated WEB.1 codec execution in Node WebAssembly against tiny synthetic
 vectors. The WEB.1 route requires the matching `wasm-bindgen` CLI 0.2.128 and
 Node. It does not prove a released public adapter, browser/Worker bundle
 integration or production-scale runtime.
+
+PostgreSQL integration targets require the explicit `postgres-lab` feature and
+a dedicated ephemeral database. The ordinary workspace lane excludes these
+targets; it does not establish PostgreSQL execution. CI runs the durable target
+with its PostgreSQL service:
+
+```sh
+: "${TOS_CMD_POSTGRES_URL:?dedicated PostgreSQL connection is required}"
+cargo test -p tos-command --features postgres-lab --test postgres_durable_lab --locked -- --nocapture
+```
+
+Ignored restore and child-process probes retain their separate prerequisites and
+are not selected by this command.
