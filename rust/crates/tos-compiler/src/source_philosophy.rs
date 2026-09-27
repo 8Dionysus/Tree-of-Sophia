@@ -20,7 +20,7 @@ use std::time::Instant;
 use tos_foundation::{Digest256, Digest256Hasher, RelativePath, SourceRevision};
 use tos_source_store::{CorpusCutReader, MemberMetadata, SourceMembershipV1};
 use tos_validation::SchemaBackendProbe;
-use tos_validation::executor::BatchBudget;
+use tos_validation::executor::{BatchBudget, BatchStreamBudget};
 use tos_validation::source_cut::{CutSchemaCheck, CutSchemaExecutor};
 pub const PHILOSOPHY_SOURCE_CUSTODY: &str = "philosophy-source-custody";
 pub const PHILOSOPHY_MEMBERS_ROLE: &str = "authored-philosophy-current-members";
@@ -48,7 +48,7 @@ pub struct PhilosophySourceLimits {
     pub views: ViewLimits,
     pub graph: GraphLimits,
     pub multilingual: MultilingualLimits,
-    pub schema_batch: BatchBudget,
+    pub schema_batches: BatchStreamBudget,
 }
 impl Default for PhilosophySourceLimits {
     fn default() -> Self {
@@ -64,7 +64,7 @@ impl Default for PhilosophySourceLimits {
             views: ViewLimits::default(),
             graph: GraphLimits::default(),
             multilingual: MultilingualLimits::default(),
-            schema_batch: BatchBudget::laboratory(),
+            schema_batches: BatchStreamBudget::laboratory(),
         }
     }
 }
@@ -85,10 +85,14 @@ impl PhilosophySourceLimits {
                 .checked_mul(self.max_raw_row_bytes)
                 .is_none_or(|n| n > self.max_page_bytes)
             || self.max_work_bytes == 0
-            || self.schema_batch.max_units == 0
-            || self.schema_batch.max_units > BatchBudget::MAX_UNITS
-            || self.schema_batch.max_total_raw_bytes == 0
-            || self.schema_batch.max_total_raw_bytes > BatchBudget::MAX_RAW_BYTES
+            || self.schema_batches.max_chunks == 0
+            || self.schema_batches.max_total_units == 0
+            || self.schema_batches.max_total_raw_bytes == 0
+            || self.schema_batches.total_execution_wall.is_zero()
+            || self.schema_batches.batch.max_units == 0
+            || self.schema_batches.batch.max_units > BatchBudget::MAX_UNITS
+            || self.schema_batches.batch.max_total_raw_bytes == 0
+            || self.schema_batches.batch.max_total_raw_bytes > BatchBudget::MAX_RAW_BYTES
         {
             return Err(Error::Budget("philosophy source limits"));
         }
@@ -117,6 +121,9 @@ pub struct PhilosophySourceReceipt {
     pub atlas_counts: Value,
     pub graph_counts: Value,
     pub work_bytes: u64,
+    pub schema_batches: u64,
+    pub schema_units: u64,
+    pub schema_raw_bytes: u64,
     pub current_members_only: bool,
     pub final_graph_rows_written: bool,
 }
@@ -381,10 +388,18 @@ impl SourceRead<'_, '_> {
         Ok(member.raw)
     }
 }
+#[derive(Default)]
+struct SchemaWork {
+    batches: u64,
+    units: u64,
+    raw_bytes: u64,
+}
 fn execute_schema_batch(
     executor: &mut impl CutSchemaExecutor,
     checks: &mut Vec<CutSchemaCheck>,
     budget: BatchBudget,
+    aggregate: BatchStreamBudget,
+    schema_work: &mut SchemaWork,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> Result<()> {
@@ -392,6 +407,23 @@ fn execute_schema_batch(
         return Ok(());
     }
     check(deadline, cancelled)?;
+    schema_work.batches = schema_work
+        .batches
+        .checked_add(1)
+        .filter(|n| *n <= aggregate.max_chunks)
+        .ok_or(Error::Budget("philosophy schema aggregate batches"))?;
+    schema_work.units = schema_work
+        .units
+        .checked_add(checks.len() as u64)
+        .filter(|n| *n <= aggregate.max_total_units)
+        .ok_or(Error::Budget("philosophy schema aggregate units"))?;
+    for input in checks.iter() {
+        schema_work.raw_bytes = schema_work
+            .raw_bytes
+            .checked_add(input.raw.len() as u64)
+            .filter(|n| *n <= aggregate.max_total_raw_bytes)
+            .ok_or(Error::Budget("philosophy schema aggregate raw bytes"))?;
+    }
     let results = executor
         .check_batch(checks, budget, deadline, cancelled)
         .map_err(|e| Error::Source(format!("philosophy selected schema batch: {e:?}")))?;
@@ -418,6 +450,7 @@ fn validate_projection(
     deadline: Instant,
     cancelled: &AtomicBool,
     work: &mut u64,
+    schema_work: &mut SchemaWork,
 ) -> Result<()> {
     let row = stage
         .raw_by_id(PHILOSOPHY_SOURCE_CUSTODY, "contracts", contract)?
@@ -460,20 +493,28 @@ fn validate_projection(
     {
         return Err(Error::Invalid("philosophy projection exact header closure"));
     }
-    let mut checks = Vec::with_capacity(l.schema_batch.max_units);
+    let mut checks = Vec::with_capacity(l.schema_batches.batch.max_units);
     let mut pending_bytes = 0usize;
     let mut submit = |path: String, raw: Vec<u8>, contract: String| -> Result<()> {
-        if raw.len() > l.schema_batch.max_total_raw_bytes
+        if raw.len() > l.schema_batches.batch.max_total_raw_bytes
             || raw.len() > SchemaBackendProbe::MAX_INSTANCE_BYTES
         {
             return Err(Error::Budget("philosophy schema batch instance"));
         }
-        if checks.len() == l.schema_batch.max_units
+        if checks.len() == l.schema_batches.batch.max_units
             || pending_bytes
                 .checked_add(raw.len())
-                .is_none_or(|n| n > l.schema_batch.max_total_raw_bytes)
+                .is_none_or(|n| n > l.schema_batches.batch.max_total_raw_bytes)
         {
-            execute_schema_batch(executor, &mut checks, l.schema_batch, deadline, cancelled)?;
+            execute_schema_batch(
+                executor,
+                &mut checks,
+                l.schema_batches.batch,
+                l.schema_batches,
+                schema_work,
+                deadline,
+                cancelled,
+            )?;
             pending_bytes = 0;
         }
         pending_bytes = pending_bytes
@@ -545,7 +586,15 @@ fn validate_projection(
         }
     }
     drop(submit);
-    execute_schema_batch(executor, &mut checks, l.schema_batch, deadline, cancelled)
+    execute_schema_batch(
+        executor,
+        &mut checks,
+        l.schema_batches.batch,
+        l.schema_batches,
+        schema_work,
+        deadline,
+        cancelled,
+    )
 }
 fn insert(
     stage: &mut KnowledgeStage<'_>,
@@ -574,6 +623,74 @@ fn insert(
         )?;
         Ok(())
     })
+}
+fn insert_projection_rows(
+    stage: &mut KnowledgeStage<'_>,
+    collection: &str,
+    key: &str,
+    rows: &[Value],
+    l: PhilosophySourceLimits,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    work: &mut u64,
+) -> Result<()> {
+    let mut pending: Vec<(String, usize, Vec<u8>)> = Vec::with_capacity(l.max_page_rows);
+    let mut pending_bytes = 0usize;
+    let mut flush = |pending: &mut Vec<(String, usize, Vec<u8>)>| -> Result<()> {
+        if pending.is_empty() {
+            return Ok(());
+        }
+        check(deadline, cancelled)?;
+        for (id, _, raw) in pending.iter() {
+            charge(work, raw.len(), l)?;
+            stage.charge_materialized(1, (raw.len() + id.len() + collection.len() + 48) as u64)?;
+        }
+        stage.with_connection(WritePhase::Normalized, |db| {
+            let tx = db.transaction()?;
+            for (id, ordinal, raw) in pending.iter() {
+                check(deadline, cancelled)?;
+                tx.execute(
+                    "INSERT INTO source_philosophy_rows VALUES(?1,?2,?3,?4,?5)",
+                    params![
+                        collection,
+                        id,
+                        *ordinal as i64,
+                        raw,
+                        Digest256::of_bytes(raw).as_bytes().as_slice()
+                    ],
+                )?;
+            }
+            check(deadline, cancelled)?;
+            tx.commit()?;
+            Ok(())
+        })?;
+        pending.clear();
+        Ok(())
+    };
+    for (ordinal, row) in rows.iter().enumerate() {
+        check(deadline, cancelled)?;
+        let id = required(row, key)?;
+        if id.is_empty() || id.len() > 4096 || id.contains('\0') {
+            return Err(Error::Budget("philosophy planned raw row"));
+        }
+        let raw = bytes(row, l.max_raw_row_bytes)?;
+        if pending.len() == l.max_page_rows
+            || pending_bytes
+                .checked_add(raw.len())
+                .is_none_or(|n| n > l.max_page_bytes)
+        {
+            flush(&mut pending)?;
+            pending_bytes = 0;
+        }
+        if raw.len() > l.max_page_bytes {
+            return Err(Error::Budget("philosophy raw insert chunk bytes"));
+        }
+        pending_bytes = pending_bytes
+            .checked_add(raw.len())
+            .ok_or(Error::Budget("philosophy raw insert chunk bytes"))?;
+        pending.push((id.to_owned(), ordinal, raw));
+    }
+    flush(&mut pending)
 }
 fn visit_rows<F>(
     stage: &mut KnowledgeStage<'_>,
@@ -802,6 +919,11 @@ pub fn plan_philosophy_source_inputs(
             (atlas, catalog, graph, reader.seen, reader.work)
         };
         work = next_work;
+        let schema_deadline = Instant::now()
+            .checked_add(limits.schema_batches.total_execution_wall)
+            .ok_or(Error::Budget("philosophy schema aggregate deadline"))?
+            .min(deadline);
+        let mut schema_work = SchemaWork::default();
         validate_projection(
             planner,
             executor,
@@ -809,9 +931,10 @@ pub fn plan_philosophy_source_inputs(
             ATLAS_REF,
             ATLAS_SCHEMA,
             limits,
-            deadline,
+            schema_deadline,
             cancelled,
             &mut work,
+            &mut schema_work,
         )?;
         validate_projection(
             planner,
@@ -820,9 +943,10 @@ pub fn plan_philosophy_source_inputs(
             VIEWS_REF,
             VIEWS_SCHEMA,
             limits,
-            deadline,
+            schema_deadline,
             cancelled,
             &mut work,
+            &mut schema_work,
         )?;
         validate_projection(
             planner,
@@ -831,25 +955,24 @@ pub fn plan_philosophy_source_inputs(
             GRAPH_REF,
             GRAPH_SCHEMA,
             limits,
-            deadline,
+            schema_deadline,
             cancelled,
             &mut work,
+            &mut schema_work,
         )?;
         planner.with_connection(WritePhase::Schema,|db|{db.execute_batch("CREATE TABLE source_philosophy_rows(collection TEXT NOT NULL,id TEXT NOT NULL,ordinal INTEGER NOT NULL CHECK(ordinal>=0),payload BLOB NOT NULL,payload_sha256 BLOB NOT NULL CHECK(length(payload_sha256)=32),PRIMARY KEY(collection,id)) WITHOUT ROWID;CREATE UNIQUE INDEX source_philosophy_order ON source_philosophy_rows(collection,ordinal);")?;Ok(())})?;
         let mut raw_collections = Vec::new();
         for (name, key) in [("nodes", "node_id"), ("edges", "edge_id")] {
-            for (ordinal, row) in array(&graph, name)?.iter().enumerate() {
-                check(deadline, cancelled)?;
-                insert(
-                    planner,
-                    name,
-                    required(row, key)?,
-                    ordinal,
-                    &bytes(row, limits.max_raw_row_bytes)?,
-                    limits,
-                    &mut work,
-                )?;
-            }
+            insert_projection_rows(
+                planner,
+                name,
+                key,
+                array(&graph, name)?,
+                limits,
+                deadline,
+                cancelled,
+                &mut work,
+            )?;
             let (count, root) = visit_rows(
                 planner,
                 name,
@@ -889,18 +1012,16 @@ pub fn plan_philosophy_source_inputs(
             if name == "header" {
                 continue;
             }
-            for (ordinal, row) in array(&graph, name)?.iter().enumerate() {
-                check(deadline, cancelled)?;
-                insert(
-                    planner,
-                    name,
-                    required(row, key)?,
-                    ordinal,
-                    &bytes(row, limits.max_raw_row_bytes)?,
-                    limits,
-                    &mut work,
-                )?;
-            }
+            insert_projection_rows(
+                planner,
+                name,
+                key,
+                array(&graph, name)?,
+                limits,
+                deadline,
+                cancelled,
+                &mut work,
+            )?;
             header.as_object_mut().expect("projection").remove(name);
             let (count, root) = visit_rows(
                 planner,
@@ -979,6 +1100,9 @@ pub fn plan_philosophy_source_inputs(
                 atlas_counts: atlas["counts"].clone(),
                 graph_counts: graph["counts"].clone(),
                 work_bytes: work,
+                schema_batches: schema_work.batches,
+                schema_units: schema_work.units,
+                schema_raw_bytes: schema_work.raw_bytes,
                 current_members_only: true,
                 final_graph_rows_written: false,
             },
@@ -1082,6 +1206,27 @@ pub fn render_philosophy_source_plan(
         }
         target_receipts(target, &plan.receipt)?;
         for c in &plan.receipt.raw_collections {
+            let mut pending: Vec<(String, Vec<u8>)> = Vec::with_capacity(limits.max_page_rows);
+            let mut pending_bytes = 0usize;
+            let mut flush = |pending: &mut Vec<(String, Vec<u8>)>| -> Result<()> {
+                if pending.is_empty() {
+                    return Ok(());
+                }
+                check(deadline, cancelled)?;
+                let rows = pending
+                    .iter()
+                    .map(|(id, raw)| InputRow {
+                        source_graph: &c.source_graph,
+                        collection: &c.collection,
+                        id,
+                        payload: raw,
+                    })
+                    .collect::<Vec<_>>();
+                target.ingest_input_batch(&rows)?;
+                check(deadline, cancelled)?;
+                pending.clear();
+                Ok(())
+            };
             let (count, root) = visit_rows(
                 planner,
                 &c.collection,
@@ -1090,17 +1235,28 @@ pub fn render_philosophy_source_plan(
                 cancelled,
                 &mut work,
                 |_, id, raw| {
-                    target.ingest_input(InputRow {
-                        source_graph: &c.source_graph,
-                        collection: &c.collection,
-                        id,
-                        payload: raw,
-                    })
+                    if pending.len() == limits.max_page_rows
+                        || pending_bytes
+                            .checked_add(raw.len())
+                            .is_none_or(|n| n > limits.max_page_bytes)
+                    {
+                        flush(&mut pending)?;
+                        pending_bytes = 0;
+                    }
+                    if raw.len() > limits.max_page_bytes {
+                        return Err(Error::Budget("philosophy raw transfer chunk bytes"));
+                    }
+                    pending_bytes = pending_bytes
+                        .checked_add(raw.len())
+                        .ok_or(Error::Budget("philosophy raw transfer chunk bytes"))?;
+                    pending.push((id.to_owned(), raw.to_vec()));
+                    Ok(())
                 },
             )?;
             if count != c.count || root != c.root_sha256 {
                 return Err(Error::Invalid("philosophy rendered raw count/root"));
             }
+            flush(&mut pending)?;
         }
         let mut receipt = plan.receipt.clone();
         receipt.work_bytes = work;

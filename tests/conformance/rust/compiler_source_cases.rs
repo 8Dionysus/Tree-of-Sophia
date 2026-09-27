@@ -669,3 +669,450 @@ print(json.dumps({'files':files,'manifest':manifest,'graph':{key:payload[key] fo
     assert_eq!(candidate.bibliographic.node_count, 1);
     assert_eq!(candidate.bibliographic.edge_count, 0);
 }
+
+/// Full authored projection contract. OPS runs this ignored functional case
+/// only after finite batch protocol checks and aggregate resource admission.
+#[test]
+#[ignore = "requires admitted aggregate full authored philosophy batch window"]
+fn actual_whole_authored_philosophy_batch_plan_render_matches_maintained_python() {
+    use std::io::Read;
+    use tos_compiler::knowledge_stage::{InputCollectionReceipt, InputRow};
+    use tos_compiler::source_philosophy::{
+        PHILOSOPHY_CONTRACTS_PROFILE, PHILOSOPHY_CONTRACTS_ROLE, PHILOSOPHY_MEMBERS_PROFILE,
+        PHILOSOPHY_MEMBERS_ROLE, PHILOSOPHY_SOURCE_CUSTODY, PhilosophySourceLimits,
+        philosophy_source_member_packet, plan_philosophy_source_inputs,
+        render_philosophy_projection, render_philosophy_source_plan,
+    };
+    use tos_validation::executor::{BatchBudget, BatchStreamBudget};
+    let window = std::env::var("TOS_PHI_FUNCTIONAL_WINDOW_SECONDS")
+        .expect("OPS must supply the admitted aggregate functional window")
+        .parse::<u64>()
+        .unwrap();
+    assert!(
+        (1..=3600).contains(&window),
+        "finite admitted aggregate window"
+    );
+    let deadline = Instant::now() + Duration::from_secs(window);
+    let cancelled = AtomicBool::new(false);
+    let repository = super::validation_cut_cases::repository()
+        .canonicalize()
+        .unwrap();
+    let mut authored = schema_sources(&repository);
+    // Preserve every tracked eligible authored phi member; no post-derivation
+    // filtering, candidate truncation or separately invented product selection.
+    let names = git(&repository, &["ls-files", "-z", "--", "ToS/philosophy"]);
+    for name in names.split(|b| *b == 0).filter(|v| !v.is_empty()) {
+        let name = std::str::from_utf8(name).unwrap();
+        if !name.split('/').any(|p| p == "payload")
+            && [".json", ".jsonl", ".md"]
+                .iter()
+                .any(|ext| name.ends_with(ext))
+        {
+            let raw = fs::read(repository.join(name)).unwrap();
+            assert!(raw.len() <= 32 * 1024 * 1024);
+            assert!(authored.insert(name.into(), raw).is_none());
+        }
+    }
+    assert!(authored.len() <= 2048);
+    let source_bytes = authored.values().map(Vec::len).sum::<usize>();
+    assert!(source_bytes <= 64 * 1024 * 1024);
+    let fixture = tempfile::tempdir().unwrap();
+    let oracle_root = fixture.path().join("authored-oracle");
+    for (name, raw) in &authored {
+        let path = oracle_root.join(name);
+        fs::create_dir_all(path.parent().unwrap()).unwrap();
+        fs::write(path, raw).unwrap();
+    }
+    let store = fixture.path().join("source-store");
+    let revision = super::validation_cut_cases::write_cut_store(&authored, &store);
+    // Drop duplicate fixture bytes before the two Value-based pure derivations.
+    drop(authored);
+    let read_limits = ReadLimits {
+        max_manifest_bytes: 4 * 1024 * 1024,
+        max_manifest_entries: 2048,
+        max_selected_object_bytes: 32 * 1024 * 1024,
+        json: JsonLimits::default(),
+    };
+    let reader = CorpusReader::open_existing(&store, read_limits).unwrap();
+    let cut = reader
+        .open_source_cut(
+            revision,
+            tos_source_store::CutReadLimits {
+                max_revisions: 1,
+                max_members: 2048,
+                max_total_bytes: 64 * 1024 * 1024,
+                max_member_bytes: 32 * 1024 * 1024,
+            },
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+    let membership = cut.stream(revision).unwrap().expectation();
+    let worker_path = super::validation_cut_cases::selected_worker_path();
+    let mut schemas = CutWorkerSchemaExecutor::from_cut(
+        &cut,
+        tos_validation::FormatProfile::LegacyPythonObserved20260923,
+        ExactWorkerIdentity {
+            sha256: Digest256::of_bytes(&fs::read(&worker_path).unwrap()),
+            absolute_path: worker_path,
+        },
+        ExecutorBudget::laboratory(),
+        CutWorkerLimits {
+            max_receipts: 65_536,
+            max_receipt_bytes: 64 * 1024 * 1024,
+        },
+        deadline,
+        &cancelled,
+    )
+    .unwrap();
+    let descriptor = fs::read(
+        repository.join("rust/crates/tos-compiler/tests/fixtures/query-vocabulary.v1.json"),
+    )
+    .unwrap();
+    let vocabulary = QueryVocabulary::parse(
+        &descriptor,
+        &[
+            "philosophy-node-edge-v1",
+            "canon-node-relation-v1",
+            "candidate-relation-v1",
+            "source-navigation-node-edge-v1",
+            "reified-bibliographic-claims-v1",
+            "declared-identity-and-source-ref-joins-v1",
+            "repository-topology-v1",
+            "indexed-node-edge-v1",
+        ],
+    )
+    .unwrap();
+    let mut inputs = BTreeMap::<String, BTreeMap<String, Vec<u8>>>::new();
+    for member in cut
+        .current()
+        .members()
+        .filter(|m| m.path.as_str().starts_with("ToS/philosophy/"))
+    {
+        inputs.entry("current-members".into()).or_default().insert(
+            member.path.as_str().into(),
+            serde_json::to_vec(&philosophy_source_member_packet(
+                revision, membership, member,
+            ))
+            .unwrap(),
+        );
+    }
+    for contract in [
+        tos_compiler::source_philosophy_atlas::ATLAS_SCHEMA,
+        tos_compiler::source_philosophy_views::VIEWS_SCHEMA,
+        tos_compiler::source_philosophy_graph::GRAPH_SCHEMA,
+    ] {
+        inputs.entry("contracts".into()).or_default().insert(
+            contract.into(),
+            fs::read(oracle_root.join(contract)).unwrap(),
+        );
+    }
+    let collections = inputs
+        .iter()
+        .map(|(name, rows)| {
+            let mut root = tos_foundation::Digest256Hasher::new();
+            for (id, raw) in rows {
+                root.update(&(id.len() as u64).to_be_bytes());
+                root.update(id.as_bytes());
+                root.update(Digest256::of_bytes(raw).as_bytes());
+            }
+            let (role, profile) = if name == "current-members" {
+                (PHILOSOPHY_MEMBERS_ROLE, PHILOSOPHY_MEMBERS_PROFILE)
+            } else {
+                (PHILOSOPHY_CONTRACTS_ROLE, PHILOSOPHY_CONTRACTS_PROFILE)
+            };
+            InputCollectionReceipt {
+                source_graph: PHILOSOPHY_SOURCE_CUSTODY.into(),
+                collection: name.clone(),
+                input_role: role.into(),
+                adapter_profile: profile.into(),
+                expected_count: rows.len() as u64,
+                expected_root_sha256: root.finalize().to_hex(),
+            }
+        })
+        .collect();
+    let binding = SourceBinding {
+        owner_profile: "private-authored-phi-fixture".into(),
+        source_cut: "whole-authored-phi-fixture".into(),
+        through_commit_seq: 0,
+        membership_root: membership.digest.to_hex(),
+        index_generation: revision.0.to_hex(),
+        route_map_version: "fixture-v1".into(),
+        reader_abi: "fixture-v1".into(),
+        projection_root_sha256: Digest256::of_bytes(b"independent-phi-custody").to_hex(),
+        complete: true,
+    };
+    let stage_limits = StageLimits {
+        sqlite: Limits {
+            max_rows: 65_536,
+            max_row_bytes: 8 * 1024 * 1024,
+            max_output_bytes: 256 * 1024 * 1024,
+            max_work_bytes: 512 * 1024 * 1024,
+            sqlite_cache_kib: 1024,
+            max_sql_vm_steps: 100_000_000,
+        },
+        max_temp_bytes: 256 * 1024 * 1024,
+        max_seek_rows: 8,
+        max_seek_bytes: 64 * 1024 * 1024,
+    };
+    let owner = FixtureOwner;
+    let isolation = FixtureIsolation;
+    let mut planner = KnowledgeStage::create(
+        &fixture.path().join("phi-planner.sqlite"),
+        stage_limits,
+        ExactInputReceipt {
+            binding: binding.clone(),
+            collections,
+        },
+        &owner,
+        &isolation,
+    )
+    .unwrap();
+    for (name, rows) in &inputs {
+        let borrowed = rows
+            .iter()
+            .map(|(id, raw)| InputRow {
+                source_graph: PHILOSOPHY_SOURCE_CUSTODY,
+                collection: name,
+                id,
+                payload: raw,
+            })
+            .collect::<Vec<_>>();
+        for chunk in borrowed.chunks(8) {
+            planner.ingest_input_batch(chunk).unwrap();
+        }
+    }
+    drop(inputs);
+    // Existing maintained builders derive the full atlas, view catalog and
+    // graph from this same original cut. Only their generated inputs are bound
+    // to newly derived values; source/schema bytes and all instances stay whole.
+    let python = r#"import hashlib,json,pathlib,sys
+sys.path.insert(0,sys.argv[1]+'/scripts')
+import philosophy_atlas_projection_common as a,philosophy_graph_views_common as v,philosophy_graph_projection_common as g,philosophy_multilingual_common as m
+root=pathlib.Path(sys.argv[2]);out=pathlib.Path(sys.argv[3])
+for owner in (a,v,g):owner.REPO_ROOT=root;owner.TOS_ROOT=root/'ToS'
+m.REPO_ROOT=root;m.LEDGER_PATH=root/m.LEDGER_REF
+atlas=a.build_payload();load=v.load_json
+v.load_json=lambda p:atlas if p==root/v.ATLAS_PROJECTION_REF else load(p)
+views=v.build_payload();loadg=g.load_json
+g.load_json=lambda p:atlas if p==root/g.ATLAS_PROJECTION_REF else views if p==root/g.GRAPH_VIEW_CATALOG_REF else loadg(p)
+graph=g.build_payload()
+def raw(value):return json.dumps(value,ensure_ascii=False,sort_keys=True,separators=(',',':'),allow_nan=False).encode()
+units=total=batches=context=receipt_strings=0;maximum=0
+resources=[json.loads(p.read_text()) for p in sorted((root/'ToS/contracts').glob('*.schema.json'))]
+resource_frame=sum(8+len(x['$id'].encode())+len(p.read_bytes()) for x,p in zip(resources,sorted((root/'ToS/contracts').glob('*.schema.json'))))
+for value,ref,contract in [(atlas,v.ATLAS_PROJECTION_REF,'ToS/contracts/philosophy-atlas-projection.schema.json'),(views,g.GRAPH_VIEW_CATALOG_REF,'ToS/contracts/philosophy-graph-views.schema.json'),(graph,'ToS/derived-exports/philosophy_graph_projection.min.json','ToS/contracts/philosophy-graph-projection.schema.json')]:
+    pending=count=0;schema_id=json.loads((root/contract).read_text())['$id']
+    for key in sorted(value):
+        values=value[key] if isinstance(value[key],list) else [value[key]]
+        for index,instance in enumerate(values):
+            size=len(raw(instance));maximum=max(maximum,size);units+=1;total+=size
+            if count==64 or pending+size>32*1024*1024:batches+=1;pending=count=0
+            pointer='/properties/'+key.replace('~','~0').replace('/','~1')+('/items' if isinstance(value[key],list) else '')
+            path=ref+'#/'+key+('/'+str(index) if isinstance(value[key],list) else '')
+            uri=schema_id+'#'+pointer
+            context+=24+len(str(count).encode())+len(path.encode())+len(uri.encode())
+            receipt_strings+=len(path.encode())+len((contract+'#'+pointer).encode())
+            pending+=size;count+=1
+    if count:batches+=1
+collections={}
+for name,key in [('nodes','node_id'),('edges','edge_id'),('views','view_id'),('clusters','cluster_id'),('review_packets','packet_id'),('unresolved_review_surfaces','surface_id')]:
+    h=hashlib.sha256()
+    for identity,row in sorted((x[key],raw(x)) for x in graph[name]):
+        identity=identity.encode();h.update(len(identity).to_bytes(8,'big'));h.update(identity);h.update(hashlib.sha256(row).digest())
+    collections[name]={'count':len(graph[name]),'root':h.hexdigest()}
+with out.open('wb') as stream:
+    for part in json.JSONEncoder(ensure_ascii=False,sort_keys=True,separators=(',',':'),allow_nan=False).iterencode(graph):stream.write(part.encode())
+    stream.write(b'\n')
+print(json.dumps({'atlas_counts':atlas['counts'],'graph_counts':graph['counts'],'collections':collections,'schema_units':units,'schema_batches':batches,'schema_raw_bytes':total,'schema_context_bytes':context,'schema_resource_frame':resource_frame,'schema_receipt_strings':receipt_strings,'schema_max_instance':maximum,'graph_bytes':out.stat().st_size},sort_keys=True))
+"#;
+    let expected_path = fixture.path().join("expected-whole-graph.json");
+    let output = Command::new("python3")
+        .args(["-c", python])
+        .arg(&repository)
+        .arg(&oracle_root)
+        .arg(&expected_path)
+        .env_remove("PYTHONPATH")
+        .env_remove("PYTHONHOME")
+        .env("PYTHONDONTWRITEBYTECODE", "1")
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "maintained whole phi oracle: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let expected: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert!(expected["schema_units"].as_u64().unwrap() <= 65_536);
+    assert!(expected["schema_batches"].as_u64().unwrap() <= 1024);
+    assert!(expected["schema_raw_bytes"].as_u64().unwrap() <= 256 * 1024 * 1024);
+    assert!(
+        expected["schema_max_instance"].as_u64().unwrap()
+            <= tos_validation::SchemaBackendProbe::MAX_INSTANCE_BYTES as u64
+    );
+    let receipt_bytes = expected["schema_units"].as_u64().unwrap()
+        * std::mem::size_of::<tos_validation::source_cut::CutSchemaReceipt>() as u64
+        + expected["schema_receipt_strings"].as_u64().unwrap();
+    assert!(receipt_bytes <= 64 * 1024 * 1024);
+    let encoded_input = expected["schema_batches"].as_u64().unwrap()
+        * (33 + expected["schema_resource_frame"].as_u64().unwrap())
+        + expected["schema_raw_bytes"].as_u64().unwrap()
+        + expected["schema_context_bytes"].as_u64().unwrap();
+    assert!(encoded_input <= 2 * 1024 * 1024 * 1024u64);
+    let limits = PhilosophySourceLimits {
+        max_manifest_members: 2048,
+        max_custody_members: 2048,
+        max_page_rows: 8,
+        max_page_bytes: 64 * 1024 * 1024,
+        schema_batches: BatchStreamBudget {
+            batch: BatchBudget::laboratory(),
+            max_chunks: 1024,
+            max_total_units: 65_536,
+            max_total_raw_bytes: 256 * 1024 * 1024,
+            total_execution_wall: Duration::from_secs(window),
+        },
+        ..PhilosophySourceLimits::default()
+    };
+    let plan = plan_philosophy_source_inputs(
+        &mut planner,
+        &cut,
+        revision,
+        membership,
+        &vocabulary,
+        &mut schemas,
+        limits,
+        deadline,
+        &cancelled,
+    )
+    .unwrap();
+    assert_eq!(plan.receipt().atlas_counts, expected["atlas_counts"]);
+    assert_eq!(plan.receipt().graph_counts, expected["graph_counts"]);
+    assert_eq!(
+        plan.receipt().schema_units,
+        expected["schema_units"].as_u64().unwrap()
+    );
+    assert_eq!(
+        plan.receipt().schema_batches,
+        expected["schema_batches"].as_u64().unwrap()
+    );
+    assert_eq!(
+        plan.receipt().schema_raw_bytes,
+        expected["schema_raw_bytes"].as_u64().unwrap()
+    );
+    assert_eq!(schemas.receipts().len() as u64, plan.receipt().schema_units);
+    assert!(
+        schemas
+            .receipts()
+            .iter()
+            .all(|r| r.valid && r.batch.is_some() && r.source_revision == revision)
+    );
+    for collection in plan
+        .receipt()
+        .raw_collections
+        .iter()
+        .chain(&plan.receipt().material_collections)
+    {
+        if let Some(expected) = expected["collections"].get(&collection.collection) {
+            assert_eq!(collection.count, expected["count"].as_u64().unwrap());
+            assert_eq!(collection.root_sha256, expected["root"].as_str().unwrap());
+        }
+    }
+    let mut expected_stream = fs::File::open(&expected_path).unwrap();
+    let mut compared = 0u64;
+    let mut expected_hash = tos_foundation::Digest256Hasher::new();
+    let actual_sha = render_philosophy_projection(
+        &mut planner,
+        &plan,
+        &cut,
+        revision,
+        membership,
+        &vocabulary,
+        limits,
+        deadline,
+        &cancelled,
+        |actual| {
+            let mut expected = vec![0; actual.len()];
+            expected_stream.read_exact(&mut expected)?;
+            assert_eq!(
+                actual,
+                expected.as_slice(),
+                "maintained whole phi stream at byte {compared}"
+            );
+            expected_hash.update(&expected);
+            compared += actual.len() as u64;
+            Ok(())
+        },
+    )
+    .unwrap();
+    assert_eq!(actual_sha, expected_hash.finalize().to_hex());
+    assert_eq!(compared, expected["graph_bytes"].as_u64().unwrap());
+    assert_eq!(expected_stream.read(&mut [0]).unwrap(), 0);
+    let target_collections = plan
+        .receipt()
+        .raw_collections
+        .iter()
+        .map(|c| InputCollectionReceipt {
+            source_graph: c.source_graph.clone(),
+            collection: c.collection.clone(),
+            input_role: c.input_role.clone(),
+            adapter_profile: c.adapter_profile.clone(),
+            expected_count: c.count,
+            expected_root_sha256: c.root_sha256.clone(),
+        })
+        .collect();
+    let mut target_binding = binding;
+    target_binding.projection_root_sha256 = actual_sha;
+    let mut target = KnowledgeStage::create(
+        &fixture.path().join("phi-target.sqlite"),
+        stage_limits,
+        ExactInputReceipt {
+            binding: target_binding,
+            collections: target_collections,
+        },
+        &owner,
+        &isolation,
+    )
+    .unwrap();
+    render_philosophy_source_plan(
+        &mut planner,
+        &plan,
+        &cut,
+        revision,
+        membership,
+        &vocabulary,
+        &mut target,
+        limits,
+        deadline,
+        &cancelled,
+    )
+    .unwrap();
+    for c in &plan.receipt().raw_collections {
+        let mut after = None;
+        let mut count = 0u64;
+        let mut root = tos_foundation::Digest256Hasher::new();
+        loop {
+            let page = target
+                .scan_input(&c.source_graph, &c.collection, after.as_deref(), 8)
+                .unwrap();
+            for row in page.rows {
+                count += 1;
+                root.update(&(row.id.len() as u64).to_be_bytes());
+                root.update(row.id.as_bytes());
+                root.update(Digest256::of_bytes(&row.payload).as_bytes());
+            }
+            after = page.next_id;
+            if after.is_none() {
+                break;
+            }
+        }
+        assert_eq!(count, c.count);
+        assert_eq!(root.finalize().to_hex(), c.root_sha256);
+    }
+    eprintln!(
+        "whole_phi source_bytes={source_bytes} encoded_input={encoded_input} receipt_bytes={receipt_bytes} schema_units={} batches={} raw_bytes={} graph_bytes={compared} work_bytes={}",
+        plan.receipt().schema_units,
+        plan.receipt().schema_batches,
+        plan.receipt().schema_raw_bytes,
+        plan.receipt().work_bytes
+    );
+}

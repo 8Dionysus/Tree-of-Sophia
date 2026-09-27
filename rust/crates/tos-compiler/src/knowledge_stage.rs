@@ -419,6 +419,55 @@ impl<'a> KnowledgeStage<'a> {
         self.poisoned |= result.is_err();
         result
     }
+    /// Atomic finite input chunk using the existing seek row/byte ceilings.
+    /// Borrowed original rows are not copied or granted new source custody.
+    /// Failure poisons the private stage and rolls back the current chunk.
+    pub fn ingest_input_batch(&mut self, rows: &[InputRow<'_>]) -> Result<()> {
+        let result = (|| {
+            if self.poisoned {
+                return Err(Error::Invalid("stage poisoned by prior failure"));
+            }
+            if rows.is_empty() || rows.len() > self.limits.max_seek_rows {
+                return Err(Error::Budget("stage input chunk rows"));
+            }
+            let mut bytes = 0usize;
+            for row in rows {
+                bytes = bytes
+                    .checked_add(row.payload.len())
+                    .filter(|n| *n as u64 <= self.limits.max_seek_bytes)
+                    .ok_or(Error::Budget("stage input chunk bytes"))?;
+                if !self.registered(row.source_graph, row.collection) {
+                    return Err(Error::Invalid("unregistered input collection"));
+                }
+                valid_id(row.id)?;
+                self.charge(row.payload)?;
+            }
+            self.check(WritePhase::Input)?;
+            let tx = self
+                .db
+                .as_mut()
+                .expect("stage database open")
+                .transaction()?;
+            for row in rows {
+                let digest = Digest256::of_bytes(row.payload);
+                tx.execute(
+                    "INSERT INTO raw_records VALUES (?1,?2,?3,?4,?5,?6)",
+                    params![
+                        row.source_graph,
+                        row.collection,
+                        row.id,
+                        row.payload.len() as i64,
+                        digest.as_bytes().as_slice(),
+                        row.payload
+                    ],
+                )?;
+            }
+            tx.commit()?;
+            self.check(WritePhase::Input)
+        })();
+        self.poisoned |= result.is_err();
+        result
+    }
     fn ingest_input_inner(&mut self, row: InputRow<'_>) -> Result<()> {
         if !self.registered(row.source_graph, row.collection) {
             return Err(Error::Invalid("unregistered input collection"));
@@ -1545,6 +1594,45 @@ mod tests {
                 payload: b"relation",
             })
             .unwrap();
+    }
+
+    #[test]
+    fn atomic_input_chunk_rolls_back_duplicate_and_poison_cleans_private_stage() {
+        let candidate = stage_path("input-chunk-rollback");
+        let owner = Owner {
+            checks: AtomicUsize::new(0),
+        };
+        let quota = TestQuota {
+            calls: AtomicUsize::new(0),
+            deny: false,
+        };
+        let mut stage = KnowledgeStage::create(
+            &candidate,
+            limits(),
+            exact_receipt(RAW_ROOT),
+            &owner,
+            &quota,
+        )
+        .unwrap();
+        let row = || InputRow {
+            source_graph: "fixture.graph",
+            collection: "fixture/raw",
+            id: "raw.1",
+            payload: b"raw",
+        };
+        assert!(stage.ingest_input_batch(&[row(), row()]).is_err());
+        assert_eq!(
+            stage
+                .db()
+                .query_row("SELECT count(*) FROM raw_records", [], |r| r
+                    .get::<_, u64>(0))
+                .unwrap(),
+            0
+        );
+        assert!(stage.ingest_input_batch(&[row()]).is_err());
+        assert!(stage.finish().is_err());
+        assert!(!candidate.exists());
+        fs::remove_dir_all(candidate.parent().unwrap()).unwrap();
     }
 
     #[test]
