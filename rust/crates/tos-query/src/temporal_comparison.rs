@@ -467,18 +467,9 @@ where
         unique_issues(issues),
     ))
 }
-/// Transport-neutral comparator; selected source graph is descriptor-derived.
-/// All lookup requests use exact normalized IDs, with no alias fallback.
-pub fn compare_temporal_operands<L>(
-    revision: &str,
-    request: &JsonValue,
-    claim_source_graph: &str,
-    mut lookup: L,
-    limits: JsonLimits,
-) -> Result<JsonValue, SearchV2Error>
-where
-    L: FnMut(&str) -> Result<Vec<JsonValue>, SearchV2Error>,
-{
+/// Maintained request validation before any carrier I/O. Revision equality
+/// remains a selected snapshot check in the comparator.
+pub fn validate_temporal_request(request: &JsonValue) -> Result<(), SearchV2Error> {
     if !request.as_object().is_some_and(|fields| fields.len() == 4)
         || !["schema_version", "source_revision", "left", "right"]
             .iter()
@@ -515,6 +506,22 @@ where
             ));
         }
     }
+    Ok(())
+}
+
+/// Transport-neutral comparator; selected source graph is descriptor-derived.
+/// All lookup requests use exact normalized IDs, with no alias fallback.
+pub fn compare_temporal_operands<L>(
+    revision: &str,
+    request: &JsonValue,
+    claim_source_graph: &str,
+    mut lookup: L,
+    limits: JsonLimits,
+) -> Result<JsonValue, SearchV2Error>
+where
+    L: FnMut(&str) -> Result<Vec<JsonValue>, SearchV2Error>,
+{
+    validate_temporal_request(request)?;
     if get(request, "source_revision") != Some(revision) {
         return Err(err(
             SearchV2ErrorCode::StaleSelection,

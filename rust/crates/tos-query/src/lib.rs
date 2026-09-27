@@ -82,5 +82,5 @@ pub use sqlite::{
     SqliteReadModel,
 };
 pub use temporal_comparison::{
-    TEMPORAL_INTENDED_USE, TEMPORAL_OPERATION, compare_temporal_operands,
+    TEMPORAL_INTENDED_USE, TEMPORAL_OPERATION, compare_temporal_operands, validate_temporal_request,
 };
