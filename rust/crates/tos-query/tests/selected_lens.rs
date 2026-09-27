@@ -919,7 +919,8 @@ print(raw({'header':raw(header),'nodes':[raw(v) for v in nav['nodes']],'edges':[
     let caps = DossierBudget {
         inspect: budget().inspect,
         max_candidates: budget().max_candidates,
-        max_work_steps: budget().max_path_steps,
+        max_work_steps: u64::try_from(budget().max_path_steps)
+            .expect("fixture traversal budget fits u64"),
         block_size: budget().block_size,
     };
     let current = || {
