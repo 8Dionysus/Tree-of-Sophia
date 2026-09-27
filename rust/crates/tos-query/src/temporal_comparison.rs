@@ -597,7 +597,15 @@ where
     Ok(object(vec![
         ("schema_version", text("tos_temporal_comparison_result_v1")),
         ("source_revision", text(revision)),
-        ("request", request.clone()),
+        // The maintained normalizer fixes root order while preserving each
+        // accepted operand reference's member order. Native canonical output
+        // remains identical; published compact output retains this order.
+        ("request", object(vec![
+            ("schema_version", field(request, "schema_version").clone()),
+            ("source_revision", field(request, "source_revision").clone()),
+            ("left", field(request, "left").clone()),
+            ("right", field(request, "right").clone()),
+        ])),
         (
             "comparison",
             object(vec![
