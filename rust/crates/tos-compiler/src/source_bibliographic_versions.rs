@@ -189,7 +189,7 @@ impl<'a, 'b> Versions<'a, 'b> {
         self.files.insert(reference.into(), member.raw.clone());
         Ok(Some(member.raw))
     }
-    fn required(
+    pub(crate) fn required(
         &mut self,
         reference: &str,
         validator: &SourceCatalogValidator<'_>,

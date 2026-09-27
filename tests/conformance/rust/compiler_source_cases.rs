@@ -688,6 +688,570 @@ print(json.dumps({'files':files,'manifest':manifest,'graph':{key:payload[key] fo
     assert_eq!(candidate.bibliographic.edge_count, 0);
 }
 
+/// One finite maintained authored recipe exercises real canon/candidate rows
+/// and Claim/endpoint retained history. Capture and source-cut identities stay
+/// distinct; neither the owner stubs nor this oracle issue source admission.
+#[test]
+fn actual_native_corpus_composition_with_retained_claim_matches_maintained_python() {
+    use tos_compiler::knowledge_canon_source::*;
+    use tos_compiler::knowledge_stage::{InputCollectionReceipt, InputRow};
+    use tos_compiler::source_bibliographic::{BibliographicLimits, BibliographicSourceCut};
+    use tos_compiler::source_corpus::*;
+    use tos_compiler::source_navigation_source::project_source_navigation_from_cut;
+    use tos_compiler::source_witness_catalog::{SourceCatalogLimits, SourceCatalogValidator};
+    use tos_compiler::{
+        SourceCatalogInputLimits, plan_source_catalog_inputs, render_source_bibliographic_plan,
+    };
+    fn add_tree(repository: &Path, relative: &str, files: &mut BTreeMap<String, Vec<u8>>) {
+        let mut entries = fs::read_dir(repository.join(relative))
+            .unwrap()
+            .map(|e| e.unwrap().path())
+            .collect::<Vec<_>>();
+        entries.sort();
+        for path in entries {
+            let name = path.strip_prefix(repository).unwrap().to_str().unwrap();
+            assert!(!path.is_symlink());
+            if path.is_dir() {
+                add_tree(repository, name, files);
+            } else {
+                files.insert(name.into(), fs::read(path).unwrap());
+            }
+        }
+    }
+    fn raw_receipt(
+        source: &str,
+        collection: &str,
+        role: &str,
+        profile: &str,
+        rows: &BTreeMap<String, Vec<u8>>,
+    ) -> InputCollectionReceipt {
+        let mut hash = tos_foundation::Digest256Hasher::new();
+        for (id, raw) in rows {
+            hash.update(&(id.len() as u64).to_be_bytes());
+            hash.update(id.as_bytes());
+            hash.update(Digest256::of_bytes(raw).as_bytes());
+        }
+        InputCollectionReceipt {
+            source_graph: source.into(),
+            collection: collection.into(),
+            input_role: role.into(),
+            adapter_profile: profile.into(),
+            expected_count: rows.len() as u64,
+            expected_root_sha256: hash.finalize().to_hex(),
+        }
+    }
+    let repository = super::validation_cut_cases::repository()
+        .canonicalize()
+        .unwrap();
+    let (mut files, _) = sources();
+    for name in ["entity-types.v1.json", "relation-types.v1.json"] {
+        let path = format!("ToS/doctrine/semantic-interchange/{name}");
+        files.insert(path.clone(), fs::read(repository.join(path)).unwrap());
+    }
+    // Complete current canon-node membership for this selected recipe. No row
+    // is synthesized to fit a producer schema, and no post-derivation truncation.
+    let mut canon_tree = BTreeMap::new();
+    add_tree(&repository, "ToS/canon", &mut canon_tree);
+    for (path, raw) in canon_tree {
+        if path.ends_with("/node.json") || path.ends_with("/node.human-forms.json") {
+            files.insert(path, raw);
+        }
+    }
+    for path in [
+        "ToS/canon/relations/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/edges.csv",
+        "ToS/candidate-intake/thus-spoke-zarathustra/prologue-1/mode-b/edges.csv",
+        "ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_LETTER_705_SOURCE_READING_V1.md",
+    ] {
+        files.insert(path.into(), fs::read(repository.join(path)).unwrap());
+    }
+    for path in [
+        "ToS/source-witnesses/relations/nietzsche-letter-705-addressee",
+        "ToS/source-witnesses/agents/constantin-georg-naumann",
+        "ToS/source-witnesses/documents/friedrich-nietzsche/naumann-letter-705",
+        "ToS/source-witnesses/.record-revisions/2c4c3a4f5cb2cbf1713ebdaa0b27dfcb0729cf980f33591a6e1e2ea6296b8d25-f63f2f0562a6a662be9c5340ddde5686a6de35a8991ad2ad7b53e3a8fd134eba",
+        "ToS/source-witnesses/.record-revisions/709df7fb307a1331d25fa253f7159a3ee27b3862898ddf8db74c6cbfc6965438-75afe571bb0254a738c20c0d5d09fac8b11ce0f299068b534ef652ef09575422",
+        "ToS/source-witnesses/.record-revisions/3b6ca195bb9bb9fb57cc1e0d9bece8b18011ef12c3d99d614aac5fa3760ad712-8d38fda8bf756906f8ed3543a8cc069082d39b04b188db5050d76a2ad663a497",
+    ] {
+        add_tree(&repository, path, &mut files);
+    }
+    assert!(files.len() <= 512);
+    assert!(files.values().map(Vec::len).sum::<usize>() <= 16 * 1024 * 1024);
+    let fixture = tempfile::tempdir().unwrap();
+    let git_root = fixture.path().join("selected-git");
+    fs::create_dir(&git_root).unwrap();
+    git(&git_root, &["init", "-q"]);
+    let mut captured = files.clone();
+    captured.insert(
+        "scripts/tos_corpus_index_common.py".into(),
+        fs::read(repository.join("scripts/tos_corpus_index_common.py")).unwrap(),
+    );
+    for (path, raw) in &captured {
+        let target = git_root.join(path);
+        fs::create_dir_all(target.parent().unwrap()).unwrap();
+        fs::write(target, raw).unwrap();
+    }
+    git(
+        &git_root,
+        &["add", "--", "ToS", "scripts/tos_corpus_index_common.py"],
+    );
+    git(
+        &git_root,
+        &[
+            "-c",
+            "user.name=Fixture",
+            "-c",
+            "user.email=fixture@invalid",
+            "-c",
+            "commit.gpgsign=false",
+            "commit",
+            "-qm",
+            "Finite authored corpus recipe",
+        ],
+    );
+    let commit = String::from_utf8(git(&git_root, &["rev-parse", "HEAD^{commit}"]))
+        .unwrap()
+        .trim()
+        .to_owned();
+    let capture =
+        super::source_cut_cases::captured_software_fixture(&git_root, &commit, &["ToS", "scripts"]);
+    let cancelled = AtomicBool::new(false);
+    let deadline = Instant::now() + Duration::from_secs(240);
+    let read_limits = ReadLimits {
+        max_manifest_bytes: 2 * 1024 * 1024,
+        max_manifest_entries: 512,
+        max_selected_object_bytes: 2 * 1024 * 1024,
+        json: JsonLimits::default(),
+    };
+    let software = tos_source_store::SoftwareCaptureReader::open(
+        &capture.capture,
+        &capture.restored,
+        capture.selection.clone(),
+        read_limits,
+        deadline,
+        &cancelled,
+    )
+    .unwrap();
+    let store = fixture.path().join("source-store");
+    let revision = super::validation_cut_cases::write_cut_store(&files, &store);
+    let reader = CorpusReader::open_existing(&store, read_limits).unwrap();
+    let cut = reader
+        .open_source_cut(
+            revision,
+            tos_source_store::CutReadLimits {
+                max_revisions: 1,
+                max_members: 512,
+                max_total_bytes: 16 * 1024 * 1024,
+                max_member_bytes: 2 * 1024 * 1024,
+            },
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+    let membership = cut.stream(revision).unwrap().expectation();
+    let descriptor = fs::read(
+        repository.join("rust/crates/tos-compiler/tests/fixtures/query-vocabulary.v1.json"),
+    )
+    .unwrap();
+    let vocabulary =
+        QueryVocabulary::parse(&descriptor, tos_compiler::NATIVE_KNOWLEDGE_ADAPTER_PROFILES)
+            .unwrap();
+    let binding = SourceBinding {
+        owner_profile: "private-selected-fixture".into(),
+        source_cut: "finite-native-corpus-source".into(),
+        through_commit_seq: 0,
+        membership_root: membership.digest.to_hex(),
+        index_generation: revision.0.to_hex(),
+        route_map_version: "fixture-v1".into(),
+        reader_abi: "fixture-v1".into(),
+        projection_root_sha256: Digest256::of_bytes(b"independent-native-corpus-plan").to_hex(),
+        complete: true,
+    };
+    let limits = BibliographicLimits {
+        catalog: SourceCatalogLimits {
+            max_files: 512,
+            max_rows: 4096,
+            max_file_bytes: 2 * 1024 * 1024,
+            max_row_bytes: 1024 * 1024,
+            max_contract_bytes: 16 * 1024 * 1024,
+            max_output_row_bytes: 1024 * 1024,
+        },
+        max_claim_cohort_rows: 16,
+        max_claim_cohort_bytes: 16 * 1024 * 1024,
+        max_output_rows: 4096,
+        max_output_bytes: 16 * 1024 * 1024,
+        deadline,
+    };
+    let catalog_plan = plan_source_catalog_inputs(
+        &cut,
+        revision,
+        membership,
+        &binding,
+        SourceCatalogInputLimits {
+            max_manifest_members: 512,
+            max_selected_members: 512,
+            max_plan_bytes: 16 * 1024 * 1024,
+            max_work_bytes: 64 * 1024 * 1024,
+        },
+        limits,
+        &cancelled,
+    )
+    .unwrap();
+    let owner = FixtureOwner;
+    let isolation = FixtureIsolation;
+    let stage_limits = StageLimits {
+        sqlite: Limits {
+            max_rows: 8192,
+            max_row_bytes: 2 * 1024 * 1024,
+            max_output_bytes: 64 * 1024 * 1024,
+            max_work_bytes: 128 * 1024 * 1024,
+            sqlite_cache_kib: 512,
+            max_sql_vm_steps: 20_000_000,
+        },
+        max_temp_bytes: 64 * 1024 * 1024,
+        max_seek_rows: 16,
+        max_seek_bytes: 32 * 1024 * 1024,
+    };
+    let mut catalog_stage = KnowledgeStage::create(
+        &fixture.path().join("catalog.sqlite"),
+        stage_limits,
+        catalog_plan.input_receipt(),
+        &owner,
+        &isolation,
+    )
+    .unwrap();
+    let mut operation = tos_validation::executor::BatchStreamBudget::laboratory();
+    operation.max_chunks = limits.max_output_rows;
+    operation.max_total_units = limits.max_output_rows;
+    operation.total_execution_wall = deadline.saturating_duration_since(Instant::now());
+    operation.operation_cpu_seconds = operation.total_execution_wall.as_secs().saturating_add(1);
+    operation.operation_address_space_bytes = ExecutorBudget::laboratory().address_space_bytes;
+    let worker_path = super::validation_cut_cases::selected_worker_path();
+    let worker = ExactWorkerIdentity {
+        sha256: Digest256::of_bytes(&fs::read(&worker_path).unwrap()),
+        absolute_path: worker_path,
+    };
+    let validator = SourceCatalogValidator::from_cut(
+        &cut,
+        &worker,
+        ExecutorBudget::laboratory(),
+        CutWorkerLimits {
+            max_receipts: 4096,
+            max_receipt_bytes: 16 * 1024 * 1024,
+        },
+        operation,
+        deadline,
+        &cancelled,
+    )
+    .unwrap();
+    let mut forms = tos_command::source_forms_compiler::NativeBibliographicForms;
+    let candidate = render_source_bibliographic_plan(
+        &catalog_plan,
+        &cut,
+        revision,
+        membership,
+        &mut catalog_stage,
+        &validator,
+        &mut forms,
+        limits,
+        512,
+        16 * 1024 * 1024,
+    )
+    .unwrap();
+    assert!(candidate.catalog.record_count > 1);
+    assert!(candidate.bibliographic.edge_count > 0);
+    let canon_files = files
+        .iter()
+        .filter(|(p, _)| {
+            (p.starts_with("ToS/canon/")
+                && (p.ends_with("/node.json") || p.ends_with("/node.human-forms.json")))
+                || ((p.starts_with("ToS/canon/") || p.starts_with("ToS/candidate-intake/"))
+                    && p.ends_with("/edges.csv"))
+        })
+        .map(|(p, b)| (p.clone(), b.clone()))
+        .collect::<BTreeMap<_, _>>();
+    let contracts = [
+        "ToS/contracts/tos-node-contract.schema.json",
+        "ToS/contracts/human-form-set.schema.json",
+    ]
+    .into_iter()
+    .map(|p| (p.into(), files[p].clone()))
+    .collect::<BTreeMap<_, _>>();
+    let canon_inputs = vec![
+        raw_receipt(
+            CANON_SOURCE_CUSTODY,
+            "source-files",
+            CANON_SOURCE_FILES_ROLE,
+            CANON_SOURCE_FILES_PROFILE,
+            &canon_files,
+        ),
+        raw_receipt(
+            CANON_SOURCE_CUSTODY,
+            "contracts",
+            CANON_SOURCE_CONTRACTS_ROLE,
+            CANON_SOURCE_CONTRACTS_PROFILE,
+            &contracts,
+        ),
+    ];
+    let mut canon_planner = KnowledgeStage::create(
+        &fixture.path().join("canon.sqlite"),
+        stage_limits,
+        ExactInputReceipt {
+            binding: binding.clone(),
+            collections: canon_inputs,
+        },
+        &owner,
+        &isolation,
+    )
+    .unwrap();
+    for (collection, rows) in [("source-files", &canon_files), ("contracts", &contracts)] {
+        for (id, raw) in rows {
+            canon_planner
+                .ingest_input(InputRow {
+                    source_graph: CANON_SOURCE_CUSTODY,
+                    collection,
+                    id,
+                    payload: raw,
+                })
+                .unwrap();
+        }
+    }
+    let canon_limits = CanonSourceLimits {
+        max_manifest_members: 512,
+        max_selected_members: 512,
+        max_nodes: 128,
+        max_packs: 16,
+        max_edges: 1024,
+        max_source_bytes: 2 * 1024 * 1024,
+        max_raw_row_bytes: 2 * 1024 * 1024,
+        max_csv_fields: 128,
+        max_csv_record_bytes: 2 * 1024 * 1024,
+        max_forms: 256,
+        max_forms_output_bytes: 262144,
+        max_page_rows: 8,
+        max_page_bytes: 16 * 1024 * 1024,
+        max_work_bytes: 64 * 1024 * 1024,
+    };
+    let root_raw = serde_json::to_vec(
+        &json!({"node_id":"fixture-source-root","node_type":"repository-root",
+        "label":"Selected fixture repository","source_ref":"ToS/source_home.manifest.json"}),
+    )
+    .unwrap();
+    let root_sha = Digest256::of_bytes(&root_raw).to_hex();
+    let (repository_plan, canon_plan) = plan_native_corpus_source_families(
+        &mut canon_planner,
+        &cut,
+        &software,
+        &binding,
+        &vocabulary,
+        RepositoryRootInput {
+            source_cut: &binding.source_cut,
+            material: &root_raw,
+            material_sha256: &root_sha,
+            identity_id: "root:fixture-source-root",
+        },
+        &validator,
+        RepositorySourceLimits {
+            max_inventory_members: 512,
+            max_source_bytes: 2 * 1024 * 1024,
+            max_row_bytes: 2 * 1024 * 1024,
+            max_plan_bytes: 16 * 1024 * 1024,
+            max_work_bytes: 32 * 1024 * 1024,
+        },
+        canon_limits,
+        deadline,
+        &cancelled,
+        tos_command::source_forms_compiler::materialize_compiler_forms,
+    )
+    .unwrap();
+    assert!(canon_plan.receipt().nodes > 0);
+    assert!(canon_plan.receipt().packs >= 2);
+    assert!(canon_plan.receipt().edges > 0);
+    let entities: Value =
+        serde_json::from_slice(&files["ToS/doctrine/semantic-interchange/entity-types.v1.json"])
+            .unwrap();
+    let source = BibliographicSourceCut {
+        cut: &cut,
+        expected_revision: revision,
+        expected_membership: membership,
+        stage_source_cut: &binding.source_cut,
+        max_read_files: 512,
+        max_read_bytes: 16 * 1024 * 1024,
+    };
+    let navigation = project_source_navigation_from_cut(
+        &mut catalog_stage,
+        &candidate.catalog,
+        &source,
+        &validator,
+        &entities,
+        &mut forms,
+        limits,
+    )
+    .unwrap();
+    assert!(!navigation.value()["edges"].as_array().unwrap().is_empty());
+    let mut collections = repository_plan.receipt().collections.clone();
+    collections.extend(
+        canon_plan
+            .receipt()
+            .collections
+            .iter()
+            .map(|c| InputCollectionReceipt {
+                source_graph: c.source_graph.clone(),
+                collection: c.collection.clone(),
+                input_role: c.input_role.clone(),
+                adapter_profile: c.adapter_profile.clone(),
+                expected_count: c.count,
+                expected_root_sha256: c.root_sha256.clone(),
+            }),
+    );
+    collections.extend(catalog_plan.input_receipt().collections);
+    let mut target = KnowledgeStage::create(
+        &fixture.path().join("corpus.sqlite"),
+        stage_limits,
+        ExactInputReceipt {
+            binding: binding.clone(),
+            collections,
+        },
+        &owner,
+        &isolation,
+    )
+    .unwrap();
+    render_repository_source_plan(
+        &mut target,
+        &repository_plan,
+        &vocabulary,
+        deadline,
+        &cancelled,
+    )
+    .unwrap();
+    render_canon_source_plan(
+        &mut canon_planner,
+        &canon_plan,
+        &cut,
+        revision,
+        membership,
+        &mut target,
+        canon_limits,
+        deadline,
+        &cancelled,
+    )
+    .unwrap();
+    for input in &catalog_plan.input_receipt().collections {
+        let mut after = None;
+        loop {
+            let page = catalog_stage
+                .scan_input(&input.source_graph, &input.collection, after.as_deref(), 1)
+                .unwrap();
+            for row in page.rows {
+                target
+                    .ingest_input(InputRow {
+                        source_graph: &input.source_graph,
+                        collection: &input.collection,
+                        id: &row.id,
+                        payload: &row.payload,
+                    })
+                    .unwrap();
+            }
+            after = page.next_id;
+            if after.is_none() {
+                break;
+            }
+        }
+    }
+    let originals = tos_compiler::NavigationOriginalLimits {
+        max_rows: 4096,
+        max_row_bytes: 2 * 1024 * 1024,
+        max_total_bytes: 16 * 1024 * 1024,
+    };
+    let projection = project_native_corpus_from_sources(
+        &mut target,
+        &vocabulary,
+        &cut,
+        &software,
+        &repository_plan,
+        &canon_plan,
+        &navigation,
+        &validator,
+        NativeCorpusLimits {
+            originals,
+            max_work_bytes: 128 * 1024 * 1024,
+            schema_work: operation,
+        },
+        deadline,
+        &cancelled,
+    )
+    .unwrap();
+    // The maintained whole oracle receives exactly the selected authored paths.
+    // Generated catalogue companions are private oracle outputs, not new inputs.
+    let oracle_root = fixture.path().join("oracle");
+    for (path, raw) in &files {
+        let to = oracle_root.join(path);
+        fs::create_dir_all(to.parent().unwrap()).unwrap();
+        fs::write(to, raw).unwrap();
+    }
+    let paths = fixture.path().join("source-paths.json");
+    fs::write(
+        &paths,
+        serde_json::to_vec(&files.keys().collect::<Vec<_>>()).unwrap(),
+    )
+    .unwrap();
+    let python = r#"
+import json,pathlib,sys
+sys.path[:0]=[sys.argv[1]+'/scripts',sys.argv[1]+'/access/src']
+import build_source_witness_catalog as catalog
+import tos_corpus_index_common as owner
+root=pathlib.Path(sys.argv[2]);owner.REPO_ROOT=root;owner.TOS_ROOT=root/'ToS'
+for path,text in catalog.render_outputs(root).items():
+    to=root/path;to.parent.mkdir(parents=True,exist_ok=True);to.write_text(text,encoding='utf-8')
+payload=owner.build_payload(source_paths=json.loads(pathlib.Path(sys.argv[3]).read_text()))
+sys.stdout.write(owner.render_payload(payload))
+"#;
+    let output = Command::new("python3")
+        .args(["-c", python])
+        .arg(&repository)
+        .arg(&oracle_root)
+        .arg(&paths)
+        .env_remove("PYTHONPATH")
+        .env_remove("PYTHONHOME")
+        .env("PYTHONDONTWRITEBYTECODE", "1")
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "whole maintained corpus oracle: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let expected: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(projection.value(), &expected);
+    assert_eq!(projection.output_bytes(), output.stdout.as_slice());
+    let original = tos_compiler::prepare_native_corpus_original(
+        &projection,
+        &tos_foundation::RelativePath::parse("ToS/projections/tos-corpus-index.json").unwrap(),
+        &binding,
+        &vocabulary,
+        tos_compiler::CorpusOriginalSourceLimits {
+            originals,
+            max_members: 1,
+            max_work_bytes: 64 * 1024 * 1024,
+        },
+        deadline,
+        &cancelled,
+    )
+    .unwrap();
+    let receipt =
+        tos_compiler::retain_corpus_original(&mut target, &vocabulary, &original).unwrap();
+    assert_eq!(
+        receipt
+            .origin
+            .native_producer
+            .as_ref()
+            .unwrap()
+            .output_sha256,
+        projection.receipt().output_sha256
+    );
+    assert!(receipt.origin.source_git_commit.is_none());
+    assert_eq!(receipt.origin.members.len(), 1);
+}
+
 /// Full authored projection contract. OPS runs this ignored functional case
 /// only after finite batch protocol checks and aggregate resource admission.
 #[test]

@@ -15,10 +15,13 @@ mod knowledge_corpus_source;
 pub use knowledge_corpus_original::{
     CORPUS_ORIGINAL_PROFILE, CapturedCorpusOrigin, CapturedCorpusOriginalPlan,
     CorpusOriginalCollection, CorpusOriginalCollectionReceipt, CorpusOriginalMember,
-    CorpusOriginalPage, CorpusOriginalReceipt, CorpusOriginalRow, CorpusOriginalSelector,
-    KNOWLEDGE_CORPUS_MODEL_ABI, retain_captured_corpus_original,
+    CorpusOriginalOrigin, CorpusOriginalPage, CorpusOriginalPlan, CorpusOriginalReceipt,
+    CorpusOriginalRow, CorpusOriginalSelector, KNOWLEDGE_CORPUS_MODEL_ABI,
+    NATIVE_CORPUS_ORIGINAL_PROFILE, retain_captured_corpus_original, retain_corpus_original,
 };
-pub use knowledge_corpus_source::{CorpusOriginalSourceLimits, prepare_captured_corpus_original};
+pub use knowledge_corpus_source::{
+    CorpusOriginalSourceLimits, prepare_captured_corpus_original, prepare_native_corpus_original,
+};
 mod knowledge_full;
 #[cfg(all(not(target_arch = "wasm32"), any(test, feature = "test-fixture")))]
 pub mod knowledge_full_fixture;
@@ -76,6 +79,9 @@ mod source_bibliographic_source;
 mod source_bibliographic_unicode;
 mod source_bibliographic_values;
 mod source_bibliographic_versions;
+pub mod source_corpus;
+mod source_navigation_packets;
+pub mod source_navigation_source;
 pub mod source_philosophy;
 pub mod source_philosophy_atlas;
 pub mod source_philosophy_graph;

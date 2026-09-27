@@ -299,6 +299,82 @@ pub(crate) fn encode(v: &Value, cap: usize) -> Result<Vec<u8>> {
     )
     .map_err(|e| Error::Source(e.to_string()))
 }
+fn check_originals(deadline: Instant, cancelled: &AtomicBool) -> Result<()> {
+    if cancelled.load(Ordering::Relaxed) {
+        return Err(Error::Invalid("corpus original cancelled"));
+    }
+    if Instant::now() >= deadline {
+        return Err(Error::Budget("corpus original deadline"));
+    }
+    Ok(())
+}
+// The two actual origins share packet framing and its resource contract.
+fn original_packets(
+    payload: &Value,
+    limits: NavigationOriginalLimits,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> Result<(Vec<u8>, Vec<(CorpusOriginalCollection, Vec<Vec<u8>>)>, u64)> {
+    limits.validate()?;
+    let mut rows = Vec::new();
+    let mut total = 0u64;
+    let mut count = 1u64;
+    for collection in CorpusOriginalCollection::ROWS {
+        let values = payload
+            .get(collection.as_str())
+            .and_then(Value::as_array)
+            .ok_or(Error::Invalid("corpus original required array"))?;
+        if count
+            .checked_add(values.len() as u64)
+            .is_none_or(|n| n > limits.max_rows)
+        {
+            return Err(Error::Budget("corpus original complete collection rows"));
+        }
+        let mut encoded = Vec::with_capacity(values.len());
+        for value in values {
+            check_originals(deadline, cancelled)?;
+            super::knowledge_corpus_original::indexed_fields(collection, value)?;
+            let raw = encode(value, limits.max_row_bytes)?;
+            count = count
+                .checked_add(1)
+                .filter(|n| *n <= limits.max_rows)
+                .ok_or(Error::Budget("corpus original rows"))?;
+            total = total
+                .checked_add(raw.len() as u64)
+                .filter(|n| *n <= limits.max_total_bytes)
+                .ok_or(Error::Budget("corpus original bytes"))?;
+            encoded.push(raw);
+        }
+        rows.push((collection, encoded));
+    }
+    let omitted = [
+        "nodes",
+        "edges",
+        "rights",
+        "resources",
+        "manifests",
+        "branches",
+        "relation_edges",
+        "relation_packs",
+        "graph_views",
+        "claim_traces",
+        "input_digests",
+        "source_navigation",
+    ];
+    let header = payload
+        .as_object()
+        .ok_or(Error::Invalid("corpus original header object"))?
+        .iter()
+        .filter(|(field, _)| !omitted.contains(&field.as_str()))
+        .map(|(field, value)| (field.clone(), value.clone()))
+        .collect();
+    let header = encode(&Value::Object(header), limits.max_row_bytes)?;
+    total = total
+        .checked_add(header.len() as u64)
+        .filter(|n| *n <= limits.max_total_bytes)
+        .ok_or(Error::Budget("corpus original header bytes"))?;
+    Ok((header, rows, total))
+}
 /// Exact existing captured member origin, distinct from the selected authored
 /// cut. Caller-selected release composition is checked again before retention.
 pub fn prepare_captured_corpus_original(
@@ -450,58 +526,12 @@ pub fn prepare_captured_corpus_original(
     if payload["schema_version"] != "tos_corpus_index_v1" {
         return Err(Error::Invalid("captured corpus logical schema"));
     }
-    let mut rows = Vec::new();
-    let mut total = 0u64;
-    let mut count = 1u64;
-    for collection in CorpusOriginalCollection::ROWS {
-        let values = payload
-            .get(collection.as_str())
-            .and_then(Value::as_array)
-            .ok_or(Error::Invalid("corpus original required array"))?;
-        let mut encoded = Vec::with_capacity(values.len());
-        for value in values {
-            source.check()?;
-            super::knowledge_corpus_original::indexed_fields(collection, value)?;
-            let raw = encode(value, limits.originals.max_row_bytes)?;
-            count = count
-                .checked_add(1)
-                .filter(|n| *n <= limits.originals.max_rows)
-                .ok_or(Error::Budget("corpus original rows"))?;
-            total = total
-                .checked_add(raw.len() as u64)
-                .filter(|n| *n <= limits.originals.max_total_bytes)
-                .ok_or(Error::Budget("corpus original bytes"))?;
-            source.charge(raw.len() as u64)?;
-            encoded.push(raw);
-        }
-        rows.push((collection, encoded));
-    }
-    let mut header = payload
-        .as_object()
-        .ok_or(Error::Invalid("corpus original header object"))?
-        .clone();
-    for field in [
-        "nodes",
-        "edges",
-        "rights",
-        "resources",
-        "manifests",
-        "branches",
-        "relation_edges",
-        "relation_packs",
-        "graph_views",
-        "claim_traces",
-        "input_digests",
-        "source_navigation",
-    ] {
-        header.remove(field);
-    }
-    let header = encode(&Value::Object(header), limits.originals.max_row_bytes)?;
-    total = total
-        .checked_add(header.len() as u64)
-        .filter(|n| *n <= limits.originals.max_total_bytes)
-        .ok_or(Error::Budget("corpus original header bytes"))?;
-    source.charge(header.len() as u64)?;
+    let mut packet_limits = limits.originals;
+    packet_limits.max_total_bytes = packet_limits
+        .max_total_bytes
+        .min(source.limits.max_work_bytes.saturating_sub(source.work));
+    let (header, rows, total) = original_packets(&payload, packet_limits, deadline, cancelled)?;
+    source.charge(total)?;
     let collections = rows
         .iter()
         .map(|(c, r)| CorpusOriginalCollectionReceipt {
@@ -530,9 +560,10 @@ pub fn prepare_captured_corpus_original(
         membership_root: binding.membership_root.clone(),
         origin: CapturedCorpusOrigin {
             profile: "captured-public-corpus-v1".into(),
-            source_git_commit: pin.source_git_commit.clone(),
-            source_git_tree: pin.source_git_tree.clone(),
-            capture_manifest_sha256: pin.capture_manifest_sha256.to_hex(),
+            source_git_commit: Some(pin.source_git_commit.clone()),
+            source_git_tree: Some(pin.source_git_tree.clone()),
+            capture_manifest_sha256: Some(pin.capture_manifest_sha256.to_hex()),
+            native_producer: None,
             source_path: source_path.as_str().into(),
             source_sha256: Digest256::of_bytes(&raw).to_hex(),
             source_size_bytes: raw.len() as u64,
@@ -547,6 +578,109 @@ pub fn prepare_captured_corpus_original(
     receipt.component_root_sha256 = super::knowledge_corpus_original::component_root(&receipt)?;
     super::knowledge_corpus_original::validate_receipt(&receipt)?;
     Ok(CapturedCorpusOriginalPlan {
+        binding: binding.clone(),
+        receipt,
+        header,
+        rows,
+    })
+}
+
+/// Retain only a real opaque native composition result. Capture metadata is
+/// absent: the public output member and original authored/software proofs are
+/// separate identities, joined by the selected release holder.
+pub fn prepare_native_corpus_original(
+    projection: &crate::source_corpus::NativeCorpusProjection,
+    source_path: &RelativePath,
+    binding: &SourceBinding,
+    vocab: &QueryVocabulary,
+    limits: CorpusOriginalSourceLimits,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> Result<CorpusOriginalPlan> {
+    check_originals(deadline, cancelled)?;
+    limits.originals.validate()?;
+    let producer = projection.receipt();
+    crate::source_corpus::validate_receipt(producer)?;
+    let mut actual_binding = projection.source_binding().clone();
+    let mut target_binding = binding.clone();
+    // Planner and final target have independently computed projection roots.
+    // Every source-selection field must nevertheless belong to the same cut.
+    actual_binding.projection_root_sha256.clear();
+    target_binding.projection_root_sha256.clear();
+    if serde_json::to_vec(&actual_binding)
+        .map_err(|_| Error::Invalid("native corpus source binding"))?
+        != serde_json::to_vec(&target_binding)
+            .map_err(|_| Error::Invalid("native corpus target binding"))?
+    {
+        return Err(Error::Invalid(
+            "native corpus actual source-selection binding",
+        ));
+    }
+    if !binding.complete
+        || limits.max_members == 0
+        || limits.max_members > 65_536
+        || limits.max_work_bytes == 0
+        || limits.max_work_bytes > crate::knowledge_original_rows::MAX_COLD_WORK
+        || producer.source_cut != binding.source_cut
+        || producer.source_membership_sha256 != binding.membership_root
+        || producer.descriptor_sha256 != vocab.descriptor_sha256
+    {
+        return Err(Error::Invalid(
+            "native corpus original producer binding/limits",
+        ));
+    }
+    let mut packet_limits = limits.originals;
+    packet_limits.max_total_bytes = packet_limits
+        .max_total_bytes
+        .min(limits.max_work_bytes.saturating_sub(producer.output_bytes));
+    let (header, rows, total) =
+        original_packets(projection.value(), packet_limits, deadline, cancelled)?;
+    let member = CorpusOriginalMember {
+        path: source_path.as_str().into(),
+        sha256: producer.output_sha256.clone(),
+        size_bytes: producer.output_bytes,
+    };
+    let mut member_root = Digest256Hasher::new();
+    text(&mut member_root, "tos-native-corpus-output-members-v1");
+    text(&mut member_root, &member.path);
+    member_root.update(&member.size_bytes.to_be_bytes());
+    member_root.update(
+        Digest256::from_hex(&member.sha256)
+            .map_err(|_| Error::Invalid("native corpus output member SHA"))?
+            .as_bytes(),
+    );
+    let mut receipt = CorpusOriginalReceipt {
+        profile: NATIVE_CORPUS_ORIGINAL_PROFILE.into(),
+        descriptor_sha256: vocab.descriptor_sha256.clone(),
+        source_cut: binding.source_cut.clone(),
+        membership_root: binding.membership_root.clone(),
+        origin: CorpusOriginalOrigin {
+            profile: "native-corpus-producer-v1".into(),
+            source_git_commit: None,
+            source_git_tree: None,
+            capture_manifest_sha256: None,
+            native_producer: Some(producer.clone()),
+            source_path: member.path.clone(),
+            source_sha256: member.sha256.clone(),
+            source_size_bytes: member.size_bytes,
+            members: vec![member],
+            member_root_sha256: member_root.finalize().to_hex(),
+        },
+        header_sha256: Digest256::of_bytes(&header).to_hex(),
+        collections: rows
+            .iter()
+            .map(|(c, rows)| CorpusOriginalCollectionReceipt {
+                collection: c.as_str().into(),
+                rows: rows.len() as u64,
+                ordered_root_sha256: ordered_root(c.as_str(), rows),
+            })
+            .collect(),
+        total_bytes: total,
+        component_root_sha256: String::new(),
+    };
+    receipt.component_root_sha256 = component_root(&receipt)?;
+    validate_receipt(&receipt)?;
+    Ok(CorpusOriginalPlan {
         binding: binding.clone(),
         receipt,
         header,

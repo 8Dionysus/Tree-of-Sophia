@@ -11,6 +11,7 @@ use tos_foundation::{
 use tos_foundation::{Digest256, Digest256Hasher};
 
 pub const CORPUS_ORIGINAL_PROFILE: &str = "tos_corpus_original_v1";
+pub const NATIVE_CORPUS_ORIGINAL_PROFILE: &str = "tos_corpus_original_native_v1";
 pub const KNOWLEDGE_CORPUS_MODEL_ABI: &str = "tos_knowledge_read_model_v5";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -78,17 +79,23 @@ pub struct CorpusOriginalMember {
 }
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct CapturedCorpusOrigin {
+pub struct CorpusOriginalOrigin {
     pub profile: String,
-    pub source_git_commit: String,
-    pub source_git_tree: String,
-    pub capture_manifest_sha256: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_git_commit: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_git_tree: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub capture_manifest_sha256: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub native_producer: Option<crate::source_corpus::NativeCorpusSourceReceipt>,
     pub source_path: String,
     pub source_sha256: String,
     pub source_size_bytes: u64,
     pub members: Vec<CorpusOriginalMember>,
     pub member_root_sha256: String,
 }
+pub type CapturedCorpusOrigin = CorpusOriginalOrigin;
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct CorpusOriginalReceipt {
@@ -96,7 +103,7 @@ pub struct CorpusOriginalReceipt {
     pub descriptor_sha256: String,
     pub source_cut: String,
     pub membership_root: String,
-    pub origin: CapturedCorpusOrigin,
+    pub origin: CorpusOriginalOrigin,
     pub header_sha256: String,
     pub collections: Vec<CorpusOriginalCollectionReceipt>,
     pub component_root_sha256: String,
@@ -140,17 +147,19 @@ pub(crate) fn ordered_root(collection: &str, rows: &[Vec<u8>]) -> String {
 }
 /// Opaque exact captured projection plan; there is no constructor from SQL or
 /// normalized records. The selected model composition binds distinct origins.
-pub struct CapturedCorpusOriginalPlan {
+pub struct CorpusOriginalPlan {
     pub(crate) binding: SourceBinding,
     pub(crate) receipt: CorpusOriginalReceipt,
     pub(crate) header: Vec<u8>,
     pub(crate) rows: Vec<(CorpusOriginalCollection, Vec<Vec<u8>>)>,
 }
-impl CapturedCorpusOriginalPlan {
+impl CorpusOriginalPlan {
     pub fn receipt(&self) -> &CorpusOriginalReceipt {
         &self.receipt
     }
 }
+
+pub type CapturedCorpusOriginalPlan = CorpusOriginalPlan;
 
 pub(crate) const META_TABLE: &str = "corpus_original_meta";
 pub(crate) const ROW_TABLE: &str = "corpus_original_rows";
@@ -243,8 +252,7 @@ pub(crate) fn component_root(r: &CorpusOriginalReceipt) -> Result<String> {
     Ok(h.finalize().to_hex())
 }
 pub(crate) fn validate_receipt(r: &CorpusOriginalReceipt) -> Result<()> {
-    if r.profile != CORPUS_ORIGINAL_PROFILE
-        || r.origin.profile != "captured-public-corpus-v1"
+    if ![CORPUS_ORIGINAL_PROFILE, NATIVE_CORPUS_ORIGINAL_PROFILE].contains(&r.profile.as_str())
         || r.collections.len() != CorpusOriginalCollection::ROWS.len()
         || r.total_bytes == 0
         || r.total_bytes > crate::knowledge_original_rows::MAX_TOTAL_BYTES
@@ -261,20 +269,60 @@ pub(crate) fn validate_receipt(r: &CorpusOriginalReceipt) -> Result<()> {
     for sha in [
         &r.descriptor_sha256,
         &r.header_sha256,
-        &r.origin.capture_manifest_sha256,
         &r.origin.source_sha256,
         &r.origin.member_root_sha256,
     ] {
         Digest256::from_hex(sha).map_err(|_| Error::Invalid("corpus origin digest"))?;
     }
-    for git in [&r.origin.source_git_commit, &r.origin.source_git_tree] {
-        if ![40, 64].contains(&git.len())
-            || !git
-                .bytes()
-                .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+    let native = r.origin.profile == "native-corpus-producer-v1";
+    if native {
+        if r.profile != NATIVE_CORPUS_ORIGINAL_PROFILE
+            || r.origin.source_git_commit.is_some()
+            || r.origin.source_git_tree.is_some()
+            || r.origin.capture_manifest_sha256.is_some()
         {
-            return Err(Error::Invalid("corpus captured Git identity"));
+            return Err(Error::Invalid("mixed native corpus capture origin"));
         }
+        let producer = r
+            .origin
+            .native_producer
+            .as_ref()
+            .ok_or(Error::Invalid("native corpus producer missing"))?;
+        crate::source_corpus::validate_receipt(producer)?;
+        if producer.source_cut != r.source_cut
+            || producer.descriptor_sha256 != r.descriptor_sha256
+            || producer.source_membership_sha256 != r.membership_root
+            || producer.output_sha256 != r.origin.source_sha256
+            || producer.output_bytes != r.origin.source_size_bytes
+        {
+            return Err(Error::Invalid("native corpus producer selected binding"));
+        }
+    } else {
+        if r.profile != CORPUS_ORIGINAL_PROFILE
+            || r.origin.profile != "captured-public-corpus-v1"
+            || r.origin.native_producer.is_some()
+        {
+            return Err(Error::Invalid("corpus captured profile"));
+        }
+        for git in [&r.origin.source_git_commit, &r.origin.source_git_tree] {
+            let git = git
+                .as_ref()
+                .ok_or(Error::Invalid("corpus captured Git identity missing"))?;
+            if ![40, 64].contains(&git.len())
+                || !git
+                    .bytes()
+                    .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+            {
+                return Err(Error::Invalid("corpus captured Git identity"));
+            }
+        }
+        Digest256::from_hex(
+            r.origin
+                .capture_manifest_sha256
+                .as_deref()
+                .ok_or(Error::Invalid("corpus capture SHA missing"))?,
+        )
+        .map_err(|_| Error::Invalid("corpus capture SHA"))?;
     }
     let mut count = 1u64;
     for (c, expected) in r.collections.iter().zip(CorpusOriginalCollection::ROWS) {
@@ -290,7 +338,14 @@ pub(crate) fn validate_receipt(r: &CorpusOriginalReceipt) -> Result<()> {
     }
     let mut previous = None;
     let mut h = Digest256Hasher::new();
-    text(&mut h, "tos-captured-corpus-members-v1");
+    text(
+        &mut h,
+        if native {
+            "tos-native-corpus-output-members-v1"
+        } else {
+            "tos-captured-corpus-members-v1"
+        },
+    );
     let mut source_found = false;
     for m in &r.origin.members {
         if m.path.len() > 4096 || previous.is_some_and(|p: &str| m.path.as_str() <= p) {
@@ -315,10 +370,10 @@ pub(crate) fn validate_receipt(r: &CorpusOriginalReceipt) -> Result<()> {
 }
 /// The opaque capture plan's original authority stays separate from the stage.
 /// This comparison is release composition, not a fabricated source ancestry.
-pub fn retain_captured_corpus_original(
+pub fn retain_corpus_original(
     stage: &mut KnowledgeStage<'_>,
     vocab: &QueryVocabulary,
-    plan: &CapturedCorpusOriginalPlan,
+    plan: &CorpusOriginalPlan,
 ) -> Result<CorpusOriginalReceipt> {
     let result = (|| {
         let binding = &stage.exact_receipt().binding;
@@ -753,3 +808,6 @@ pub(crate) fn verify(
     sealed_root(db, &r)?;
     Ok(Some(r))
 }
+
+// Existing captured source API is retained without a second implementation.
+pub use retain_corpus_original as retain_captured_corpus_original;
