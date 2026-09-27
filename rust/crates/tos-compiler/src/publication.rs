@@ -2,15 +2,15 @@
 //! check; this module only enforces exact candidate and pointer mechanics.
 
 use crate::{
-    CandidateReceipt, Error, MODEL_ABI, Result, SELECTION_PROFILE, SourceBinding, file_digest,
-    safe_open, stream_digest,
+    CandidateReceipt, Error, MODEL_ABI, Result, SELECTION_PROFILE, SourceBinding, safe_open,
+    stream_digest,
 };
 use fs2::FileExt;
 use serde_json::{Value, json};
 use std::{
     fs,
     io::{Read, Seek, SeekFrom, Write},
-    os::unix::fs::OpenOptionsExt,
+    os::unix::fs::{MetadataExt, OpenOptionsExt},
     path::Path,
     time::{SystemTime, UNIX_EPOCH},
 };
@@ -90,8 +90,28 @@ fn selected_digest(path: &Path) -> Result<Option<String>> {
     }))
 }
 
+// Reads do not change this stamp (atime is deliberately excluded). The final
+// short decision compares the same pinned inode and installed path, without
+// rehashing the complete SQLite file while holding source authority.
+fn pinned_identity(file: &fs::File) -> Result<(u64, u64, u64, i64, i64, i64, i64)> {
+    let m = file.metadata()?;
+    if !m.file_type().is_file() {
+        return Err(Error::Invalid("publication pinned carrier type"));
+    }
+    Ok((
+        m.dev(),
+        m.ino(),
+        m.len(),
+        m.mtime(),
+        m.mtime_nsec(),
+        m.ctime(),
+        m.ctime_nsec(),
+    ))
+}
+
 /// Atomically select an immutable local candidate under a CAS-style pointer
-/// check. The caller's authority hook is invoked under the selection lock.
+/// check after verified durable installation. Only the pointer decision and
+/// caller's authority hook run under the selection lock.
 /// A newer unrelated source cut does not invalidate a still-pinned exact cut.
 pub fn publish_candidate<A: PublicationAuthority>(
     candidate: &Path,
@@ -113,6 +133,70 @@ pub fn publish_candidate<A: PublicationAuthority>(
     {
         return Err(Error::Invalid("candidate source binding mismatch"));
     }
+    let candidate_identity = pinned_identity(&pinned)?;
+    let (digest, size) = stream_digest(&mut pinned)?;
+    if digest != receipt.sqlite_sha256 || size != receipt.sqlite_size_bytes {
+        return Err(Error::Invalid("candidate bytes changed"));
+    }
+    let selected = publication_dir.join(format!("{digest}.sqlite3"));
+    // Complete and durable bytes are prepared before either the CAS lock or
+    // source-owner fence. A private pending file is atomically linked without
+    // overwriting a same-digest installation made by another publisher.
+    if !selected.try_exists()? {
+        let tick = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map_err(|_| Error::Invalid("clock unavailable"))?
+            .as_nanos();
+        let temporary = publication_dir.join(format!(
+            ".candidate-install.{}.{tick}.pending",
+            std::process::id()
+        ));
+        let mut installed = fs::OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create_new(true)
+            .mode(0o600)
+            .custom_flags(libc::O_NOFOLLOW | libc::O_CLOEXEC)
+            .open(&temporary)?;
+        let install_result: Result<()> = (|| {
+            pinned.seek(SeekFrom::Start(0))?;
+            let copied = std::io::copy(
+                &mut Read::by_ref(&mut pinned).take(size.saturating_add(1)),
+                &mut installed,
+            )?;
+            installed.sync_all()?;
+            installed.seek(SeekFrom::Start(0))?;
+            let (installed_digest, installed_size) = stream_digest(&mut installed)?;
+            if copied != size
+                || installed_digest != digest
+                || installed_size != size
+                || pinned_identity(&pinned)? != candidate_identity
+            {
+                return Err(Error::Invalid("installed candidate bytes changed"));
+            }
+            match fs::hard_link(&temporary, &selected) {
+                Ok(()) => Ok(()),
+                Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => Ok(()),
+                Err(error) => Err(Error::Io(error)),
+            }
+        })();
+        drop(installed);
+        let cleanup = fs::remove_file(&temporary);
+        install_result?;
+        cleanup?;
+    }
+    let mut selected_pinned = safe_open::open_regular(&selected, size)?;
+    let selected_identity = pinned_identity(&selected_pinned)?;
+    let (installed_digest, installed_size) = stream_digest(&mut selected_pinned)?;
+    if installed_digest != digest
+        || installed_size != size
+        || pinned_identity(&selected_pinned)? != selected_identity
+        || pinned_identity(&pinned)? != candidate_identity
+    {
+        return Err(Error::Invalid("existing selected artifact mismatch"));
+    }
+    selected_pinned.sync_all()?;
+    fs::File::open(publication_dir)?.sync_all()?;
     let lock_path = publication_dir.join(".selection.lock");
     let lock = fs::OpenOptions::new()
         .create(true)
@@ -132,52 +216,11 @@ pub fn publish_candidate<A: PublicationAuthority>(
         if previous.as_deref() != expected_previous_sha256 {
             return Err(Error::Invalid("selected pointer changed"));
         }
-        let (digest, size) = stream_digest(&mut pinned)?;
-        if digest != receipt.sqlite_sha256 || size != receipt.sqlite_size_bytes {
-            return Err(Error::Invalid("candidate bytes changed"));
-        }
         let fence = authority.acquire_selection_fence(source, receipt)?;
         let owner_receipt = fence.receipt_id().to_owned();
         if owner_receipt.is_empty() {
             return Err(Error::Invalid("empty owner authority receipt"));
         }
-        let selected = publication_dir.join(format!("{digest}.sqlite3"));
-        match fs::OpenOptions::new()
-            .write(true)
-            .create_new(true)
-            .mode(0o600)
-            .open(&selected)
-        {
-            Ok(mut installed) => {
-                let install_result: Result<()> = (|| {
-                    pinned.seek(SeekFrom::Start(0))?;
-                    let copied = std::io::copy(
-                        &mut Read::by_ref(&mut pinned).take(size.saturating_add(1)),
-                        &mut installed,
-                    )?;
-                    installed.sync_all()?;
-                    drop(installed);
-                    let (installed_digest, installed_size) = file_digest(&selected)?;
-                    if copied != size || installed_digest != digest || installed_size != size {
-                        return Err(Error::Invalid("installed candidate bytes changed"));
-                    }
-                    Ok(())
-                })();
-                if install_result.is_err() {
-                    let _ = fs::remove_file(&selected);
-                }
-                install_result?;
-            }
-            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {
-                let (old_digest, old_size) = file_digest(&selected)?;
-                if old_digest != digest || old_size != size {
-                    return Err(Error::Invalid("existing selected artifact mismatch"));
-                }
-            }
-            Err(error) => return Err(Error::Io(error)),
-        }
-        fs::File::open(&selected)?.sync_all()?;
-        fs::File::open(publication_dir)?.sync_all()?;
         let packet = json!({
             "schema":POINTER_SCHEMA,"model_abi":MODEL_ABI,
             "selection_profile":SELECTION_PROFILE,"model_sha256":digest.clone(),
@@ -208,6 +251,14 @@ pub fn publish_candidate<A: PublicationAuthority>(
             file.write_all(b"\n")?;
             file.sync_all()?;
             fence.recheck_held()?;
+            let current = safe_open::open_regular(&selected, size)?;
+            if pinned_identity(&current)? != selected_identity
+                || pinned_identity(&selected_pinned)? != selected_identity
+            {
+                return Err(Error::Invalid(
+                    "prepared selected installation identity changed",
+                ));
+            }
             fs::rename(&temporary, &pointer)?;
             fs::File::open(publication_dir)?.sync_all()?;
             Ok(())

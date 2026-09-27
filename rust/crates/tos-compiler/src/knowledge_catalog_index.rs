@@ -9,7 +9,8 @@ use std::io::{self, Write};
 use tos_foundation::{Digest256, Digest256Hasher};
 
 const SCHEMA: &str = "tos_catalog_index_v1";
-const ORDER_PROFILE: &str = "python-str-casefold-v1-ascii-domain";
+pub(crate) const ORDER_PROFILE: &str = "python-str-casefold-unicode16-v1";
+pub(crate) const LEGACY_ORDER_PROFILE: &str = "python-str-casefold-v1-ascii-domain";
 
 #[derive(Clone, Copy, Debug)]
 pub struct CatalogIndexLimits {
@@ -288,13 +289,6 @@ fn materialize_inner(
     let mut decoded = DecodeBudget::new(limits.max_decoded_bytes);
     work.charge_packet(packet)?;
     let desc = &vocabulary.descriptor_sha256;
-    if vocabulary
-        .sources
-        .iter()
-        .any(|source| !source.source_graph_id.is_ascii())
-    {
-        return Err(Error::Invalid("unsupported Unicode catalog facet casefold"));
-    }
     if string(&receipt.catalog, "schema")? != "tos_knowledge_catalog_v1" {
         return Err(Error::Invalid("catalog index packet schema"));
     }
@@ -340,11 +334,29 @@ fn materialize_inner(
                 .as_array()
                 .ok_or(Error::Invalid("catalog facet array"))?;
             let mut total = 0u64;
+            let mut previous_fold: Option<String> = None;
             for (ordinal, row) in values.iter().enumerate() {
                 let value = string(row, "value")?;
-                if value.is_empty() || !value.is_ascii() {
-                    return Err(Error::Invalid("unsupported Unicode catalog facet casefold"));
+                if value.is_empty() {
+                    return Err(Error::Invalid("empty catalog facet value"));
                 }
+                let folded = tos_foundation::python_casefold_unicode16_v1(
+                    value,
+                    limits.max_row_bytes,
+                    usize::try_from(decoded.max.saturating_sub(decoded.used))
+                        .map_err(|_| Error::Budget("catalog casefold addressable bytes"))?,
+                    usize::try_from(decoded.max.saturating_sub(decoded.used))
+                        .map_err(|_| Error::Budget("catalog casefold addressable bytes"))?,
+                )
+                .map_err(|_| Error::Budget("catalog facet casefold bytes"))?;
+                if previous_fold
+                    .as_ref()
+                    .is_some_and(|previous| previous > &folded)
+                {
+                    return Err(Error::Invalid("catalog facet casefold order"));
+                }
+                decoded.charge(folded.len() as u64)?;
+                previous_fold = Some(folded);
                 let value_json = scalar_json(value, limits.max_row_bytes)?;
                 let count = number(row, "count")?;
                 if count == 0 {
@@ -942,13 +954,13 @@ mod tests {
     }
 
     #[test]
-    fn non_ascii_facet_fails_closed() {
+    fn unicode_facet_preserves_indexed_original_value() {
         let (mut db, mut receipt, vocab, _) = fixture(false);
         receipt.catalog["capabilities"]["facets"]["nodes"]["kind_id"][0]["value"] = json!("Straße");
         let packet = serde_json::to_vec(&receipt.catalog).unwrap();
         receipt.sha256 = Digest256::of_bytes(&packet).to_hex();
         let digest = Digest256::of_bytes(&packet);
-        let error = materialize_inner(
+        materialize_inner(
             &mut db,
             &receipt,
             &vocab,
@@ -956,8 +968,9 @@ mod tests {
             &packet,
             &digest,
         )
-        .unwrap_err();
-        assert!(error.to_string().contains("casefold"));
+        .unwrap();
+        let stored:String=db.query_row("SELECT value_json FROM catalog_facets WHERE domain='node' AND field_id='kind_id' AND ordinal=0",[],|r|r.get(0)).unwrap();
+        assert_eq!(serde_json::from_str::<String>(&stored).unwrap(), "Straße");
     }
 
     #[test]
@@ -980,11 +993,28 @@ mod tests {
     }
 
     #[test]
-    fn zero_count_unicode_registered_source_refuses_whole_candidate() {
+    fn zero_count_unicode_registered_source_retains_exact_codepoints() {
         let (mut db, receipt, mut vocab, packet) = fixture(false);
-        vocab.sources[0].source_graph_id = "Café".into();
+        let previous = vocab
+            .sources
+            .iter()
+            .find(|source| source.source_graph_id != "canon")
+            .unwrap()
+            .source_graph_id
+            .clone();
+        vocab
+            .sources
+            .iter_mut()
+            .find(|source| source.source_graph_id == previous)
+            .unwrap()
+            .source_graph_id = "Café".into();
+        db.execute(
+            "UPDATE source_scope SET source_graph='Café' WHERE source_graph=?1",
+            [previous],
+        )
+        .unwrap();
         let digest = Digest256::of_bytes(&packet);
-        let error = materialize_inner(
+        materialize_inner(
             &mut db,
             &receipt,
             &vocab,
@@ -992,8 +1022,23 @@ mod tests {
             &packet,
             &digest,
         )
-        .unwrap_err();
-        assert!(error.to_string().contains("casefold"));
+        .unwrap();
+        let count: u64 = db
+            .query_row(
+                "SELECT node_count FROM catalog_source_counts WHERE source_graph_id='Café'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(count, 0);
+        let order: Vec<String> = db
+            .prepare("SELECT source_graph_id FROM catalog_source_counts ORDER BY source_graph_id")
+            .unwrap()
+            .query_map([], |r| r.get(0))
+            .unwrap()
+            .collect::<rusqlite::Result<_>>()
+            .unwrap();
+        assert_eq!(order.first().unwrap(), "Café");
     }
 
     struct TestOwner;

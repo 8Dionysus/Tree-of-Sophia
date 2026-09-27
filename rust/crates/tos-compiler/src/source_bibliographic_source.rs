@@ -529,6 +529,7 @@ pub fn render_source_bibliographic_plan(
         {
             return Err(Error::Budget("cold catalog selected version read limits"));
         }
+        drop(validator.schemas(expected_revision)?);
         selected_cut(
             cut,
             expected_revision,

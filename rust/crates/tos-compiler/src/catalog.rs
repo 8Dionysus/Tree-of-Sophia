@@ -266,13 +266,12 @@ fn first_values(
     Ok(out)
 }
 
-fn python_casefold(value: &str) -> Result<String> {
-    // FND must supply a complete versioned Unicode casefold table. Until then
-    // this producer accepts only the domain where ASCII lowercase is exact.
-    if !value.is_ascii() {
-        return Err(Error::Invalid("unsupported Unicode catalog facet casefold"));
-    }
-    Ok(value.to_ascii_lowercase())
+fn python_casefold(value: &str, budget: &ByteBudget) -> Result<String> {
+    let folded =
+        tos_foundation::python_casefold_unicode16_v1(value, value.len(), budget.max, budget.max)
+            .map_err(|_| Error::Budget("catalog facet casefold bytes"))?;
+    budget.charge(folded.len())?;
+    Ok(folded)
 }
 
 fn facet_names(vocab: &Value, kind: &str) -> Result<Vec<String>> {
@@ -905,7 +904,7 @@ fn facets(
                 .as_str()
                 .ok_or(Error::Invalid("catalog facet value"))?
                 .to_owned();
-            decorated.push((python_casefold(&s)?, s));
+            decorated.push((python_casefold(&s, budget)?, s));
         }
         decorated.sort_by(|a, b| a.0.cmp(&b.0));
         let rows = decorated
@@ -1562,22 +1561,38 @@ mod tests {
     }
 
     #[test]
-    fn non_ascii_casefold_requires_pinned_fnd_primitive() {
-        for kind in ["Straße", "ς"] {
-            let (mut db, header, entity, relation, vocab) = fixture(kind);
-            let error = compile_catalog(
-                &mut db,
-                &header,
-                &entity,
-                &relation,
-                &[],
-                &vocab,
-                VOCAB,
-                CatalogLimits::default(),
-            )
-            .unwrap_err();
-            assert!(error.to_string().contains("casefold"));
+    fn unicode_facets_preserve_python_casefold_and_stable_ties() {
+        let (mut db, mut header, entity, relation, vocab) = fixture("Straße");
+        for (position, kind) in ["STRASSE", "ς", "Σ", "İ", "é"].iter().enumerate() {
+            insert_node(
+                &db,
+                &format!("canon:unicode-{position}"),
+                kind,
+                "tos.entity.concept",
+                position as i64 + 2,
+            );
         }
+        header["counts"]["nodes"] = json!(7);
+        let receipt = compile_catalog(
+            &mut db,
+            &header,
+            &entity,
+            &relation,
+            &[],
+            &vocab,
+            VOCAB,
+            CatalogLimits::default(),
+        )
+        .unwrap();
+        let values = receipt.catalog["capabilities"]["facets"]["nodes"]["kind_id"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|r| r["value"].as_str().unwrap())
+            .collect::<Vec<_>>();
+        // Maintained Python stable sorted(values,key=str.casefold): Straße and
+        // STRASSE, and final/ordinary sigma retain original source encounter order.
+        assert_eq!(values, ["İ", "Straße", "STRASSE", "work", "é", "ς", "Σ"]);
     }
 
     #[test]

@@ -19,8 +19,9 @@ source-owned navigation authority string and a per-visible-source adjacency
 count/digest, including explicit zero-edge certificates. A separate local selector requires
 an owner implementation of PublicationAuthority with a fence held through
 the pointer decision, compares the expected
-selected pointer, copies from a verified pinned candidate descriptor, verifies
-installed bytes against the digest and atomically switches the pointer. The
+selected pointer and atomically switches it. The verified pinned candidate is
+copied, hashed and durably installed before the short selection lock and owner
+fence; the final decision rechecks the installed inode and held authority. The
 private candidate remains for owner-stage cleanup; the publication directory
 must be owner-controlled while the selector runs. This does not check current rights at query time; the
 source owner does so separately. No permissive authority implementation is

@@ -330,11 +330,6 @@ fn validate(expected: &KnowledgeSelectedExpectation, limits: ColdOpenLimits) -> 
                 return Err(Error::Invalid("knowledge expected scope field"));
             }
         }
-        if !scope.source_graph.is_ascii() {
-            return Err(Error::Invalid(
-                "catalog source order profile requires ASCII ID",
-            ));
-        }
         if previous.is_some_and(|p| p >= scope.source_graph.as_str()) {
             return Err(Error::Invalid("knowledge expected scope order"));
         }
@@ -579,7 +574,11 @@ fn verify_catalog(
         nonnegative(routes)?,
     );
     if schema != "tos_catalog_index_v1"
-        || order_profile != "python-str-casefold-v1-ascii-domain"
+        || ![
+            crate::knowledge_catalog_index::ORDER_PROFILE,
+            crate::knowledge_catalog_index::LEGACY_ORDER_PROFILE,
+        ]
+        .contains(&order_profile.as_str())
         || catalog_sha != expected.catalog_packet_sha256
         || index_root != expected.catalog_index_root_sha256
         || sources != expected.source_scopes.len() as u64
@@ -589,6 +588,15 @@ fn verify_catalog(
         || catalog_sha != Digest256::of_bytes(&packet).to_hex()
     {
         return Err(Error::Invalid("knowledge catalog packet/meta binding"));
+    }
+    let legacy_ascii = order_profile == crate::knowledge_catalog_index::LEGACY_ORDER_PROFILE;
+    if legacy_ascii
+        && expected
+            .source_scopes
+            .iter()
+            .any(|scope| !scope.source_graph.is_ascii())
+    {
+        return Err(Error::Invalid("legacy catalog ASCII source profile"));
     }
     charge(work, packet.len(), limits.max_work_bytes)?;
     // The catalog owner owns packet interpretation. Cold admission checks
@@ -657,6 +665,7 @@ fn verify_catalog(
     ])?;
     let mut previous_field: Option<(String, String)> = None;
     let mut ordinal_for_field = 0u64;
+    let mut previous_fold: Option<String> = None;
     while let Some(row) = facet_rows.next()? {
         let domain = catalog_text(row, 0)?;
         let field = catalog_text(row, 1)?;
@@ -666,11 +675,34 @@ fn verify_catalog(
         let key = (domain.clone(), field.clone());
         if previous_field.as_ref() != Some(&key) {
             ordinal_for_field = 0;
+            previous_fold = None;
             previous_field = Some(key);
         }
         if ordinal != ordinal_for_field || item_count == 0 {
             return Err(Error::Invalid("knowledge catalog facet ordinal/count"));
         }
+        let value: String = serde_json::from_str(&value_json)
+            .map_err(|_| Error::Invalid("knowledge catalog facet JSON string"))?;
+        if legacy_ascii && !value.is_ascii() {
+            return Err(Error::Invalid("legacy catalog ASCII facet profile"));
+        }
+        let folded = tos_foundation::python_casefold_unicode16_v1(
+            &value,
+            limits.max_row_bytes,
+            usize::try_from(limits.max_work_bytes.saturating_sub(*work))
+                .map_err(|_| Error::Budget("knowledge casefold addressable bytes"))?,
+            usize::try_from(limits.max_work_bytes.saturating_sub(*work))
+                .map_err(|_| Error::Budget("knowledge casefold addressable bytes"))?,
+        )
+        .map_err(|_| Error::Budget("knowledge catalog casefold bytes"))?;
+        charge(work, folded.len(), limits.max_work_bytes)?;
+        if previous_fold
+            .as_ref()
+            .is_some_and(|previous| previous > &folded)
+        {
+            return Err(Error::Invalid("knowledge catalog casefold order"));
+        }
+        previous_fold = Some(folded);
         ordinal_for_field += 1;
         root.update(b"V");
         hash_text(&mut root, &domain);
@@ -1985,7 +2017,7 @@ mod tests {
         assert!(validate(&value, limits()).is_ok());
         let mut unicode = value.clone();
         unicode.source_scopes[0].source_graph = "gé".into();
-        assert!(validate(&unicode, limits()).is_err());
+        assert!(validate(&unicode, limits()).is_ok());
         let mut omitted = value.clone();
         omitted.source_scopes.clear();
         assert!(validate(&omitted, limits()).is_err());

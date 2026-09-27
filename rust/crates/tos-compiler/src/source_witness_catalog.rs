@@ -10,15 +10,18 @@ use crate::knowledge_stage::{KnowledgeStage, WritePhase};
 use crate::{Error, Result};
 use rusqlite::{OptionalExtension, params};
 use serde_json::{Map, Value, json};
+use std::cell::{RefCell, RefMut};
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::atomic::AtomicBool;
+use std::time::Instant;
 use tos_foundation::{
-    CanonicalProfile, Digest256, Digest256Hasher, JsonLimits, canonical_raw_bytes_v1,
+    CanonicalProfile, Digest256, Digest256Hasher, JsonLimits, SourceRevision,
+    canonical_raw_bytes_v1,
 };
-use tos_validation::executor::{
-    BoundedSchemaExecutor, ExactWorkerIdentity, ExecutorBudget, ExecutorOutcome,
-};
-use tos_validation::{FormatProfile, SchemaResource};
+use tos_source_store::CorpusCutReader;
+use tos_validation::executor::{ExactWorkerIdentity, ExecutorBudget};
+use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerLimits, CutWorkerSchemaExecutor};
+use tos_validation::{FormatProfile, SchemaBackendProbe, SchemaResource};
 
 pub const CATALOG_SOURCE: &str = "source-witness-catalog";
 pub const SOURCE_FILES: &str = "source-files";
@@ -165,6 +168,10 @@ pub struct SourceCatalogValidator<'a> {
     pub worker: &'a ExactWorkerIdentity,
     pub budget: ExecutorBudget,
     pub cancelled: &'a AtomicBool,
+    schemas: RefCell<CutWorkerSchemaExecutor>,
+    worker_pin: ExactWorkerIdentity,
+    budget_pin: ExecutorBudget,
+    deadline: Instant,
 }
 
 #[derive(Clone)]
@@ -399,36 +406,122 @@ fn input_root(stage: &KnowledgeStage<'_>, l: SourceCatalogLimits) -> Result<Stri
     Ok(complete.finalize().to_hex())
 }
 
-impl SourceCatalogValidator<'_> {
-    fn check(&self, c: &Contracts, schema_ref: &str, fragment: &str, raw: &[u8]) -> Result<()> {
-        let uri = profile_schema_uri(c, schema_ref)?;
-        let root = format!("{uri}{fragment}");
-        match BoundedSchemaExecutor::evaluate_cancellable(
-            self.worker,
-            &c.resources,
+impl<'a> SourceCatalogValidator<'a> {
+    /// Prepare one exact cut/worker image for this operation. Every check still
+    /// uses a fresh isolated child; supplied bytes remain distinct from decoded
+    /// worker instances and neither receipt grants source admission.
+    pub fn from_cut(
+        cut: &CorpusCutReader,
+        worker: &'a ExactWorkerIdentity,
+        budget: ExecutorBudget,
+        limits: CutWorkerLimits,
+        deadline: Instant,
+        cancelled: &'a AtomicBool,
+    ) -> Result<Self> {
+        let schemas = CutWorkerSchemaExecutor::from_cut(
+            cut,
             FormatProfile::LegacyPythonObserved20260923,
-            &root,
-            raw,
-            self.budget,
-            self.cancelled,
-        ) {
-            ExecutorOutcome::SchemaValid(identity)
-                if identity.worker_sha256 == self.worker.sha256
-                    && identity.instance_sha256 == Digest256::of_bytes(raw)
-                    && identity.profile == FormatProfile::LegacyPythonObserved20260923 =>
-            {
-                Ok(())
-            }
-            ExecutorOutcome::SchemaInvalid(_) | ExecutorOutcome::InputRejected(_) => Err(
-                Error::Invalid("source catalog exact native schema rejected"),
-            ),
-            ExecutorOutcome::Indeterminate { reason, identity } => Err(Error::Source(format!(
-                "catalog schema execution incomplete: root={root}; reason={reason:?}; identity={identity:?}"
-            ))),
-            ExecutorOutcome::SchemaValid(_) => Err(Error::Invalid(
-                "source catalog native validation identity mismatch",
-            )),
+            worker.clone(),
+            budget,
+            limits,
+            deadline,
+            cancelled,
+        )
+        .map_err(|e| Error::Source(format!("catalog exact cut executor:{e:?}")))?;
+        Ok(Self {
+            worker,
+            budget,
+            cancelled,
+            schemas: RefCell::new(schemas),
+            worker_pin: worker.clone(),
+            budget_pin: budget,
+            deadline,
+        })
+    }
+
+    fn guard(&self) -> Result<()> {
+        if self.worker.sha256 != self.worker_pin.sha256
+            || self.worker.absolute_path != self.worker_pin.absolute_path
+            || self.budget.execution_wall != self.budget_pin.execution_wall
+            || self.budget.cleanup_grace != self.budget_pin.cleanup_grace
+            || self.budget.cpu_seconds != self.budget_pin.cpu_seconds
+            || self.budget.address_space_bytes != self.budget_pin.address_space_bytes
+        {
+            return Err(Error::Invalid("catalog prepared worker/budget pin changed"));
         }
+        Ok(())
+    }
+
+    pub(crate) fn schemas(
+        &self,
+        revision: SourceRevision,
+    ) -> Result<RefMut<'_, CutWorkerSchemaExecutor>> {
+        self.guard()?;
+        let schemas = self
+            .schemas
+            .try_borrow_mut()
+            .map_err(|_| Error::Invalid("catalog executor already in use"))?;
+        let binding = schemas.execution_binding();
+        if binding.source_revision != revision
+            || binding.worker_sha256 != self.worker_pin.sha256
+            || binding.schema_profile != FormatProfile::LegacyPythonObserved20260923
+        {
+            return Err(Error::Invalid("catalog exact cut execution binding"));
+        }
+        Ok(schemas)
+    }
+
+    fn bind_contracts(&self, c: &Contracts) -> Result<()> {
+        self.guard()?;
+        let resources = SchemaBackendProbe::new(
+            c.resources.clone(),
+            FormatProfile::LegacyPythonObserved20260923,
+        )
+        .map_err(|e| Error::Source(format!("catalog selected schema inventory:{e:?}")))?;
+        let schemas = self
+            .schemas
+            .try_borrow()
+            .map_err(|_| Error::Invalid("catalog executor already in use"))?;
+        if resources.schema_set_digest() != schemas.execution_binding().schema_set_sha256 {
+            return Err(Error::Invalid("catalog stage/cut schema closure differs"));
+        }
+        Ok(())
+    }
+
+    fn check(&self, c: &Contracts, schema_ref: &str, fragment: &str, raw: &[u8]) -> Result<()> {
+        // This helper also checks derived field/form instances. A diagnostic
+        // digest address identifies supplied bytes without calling it an
+        // authored member or using the schema filename as a source address.
+        let instance = format!(
+            "catalog-generated-instance/{}",
+            Digest256::of_bytes(raw).to_hex()
+        );
+        self.check_at(c, &instance, schema_ref, fragment, raw)
+    }
+
+    fn check_at(
+        &self,
+        c: &Contracts,
+        path: &str,
+        schema_ref: &str,
+        fragment: &str,
+        raw: &[u8],
+    ) -> Result<()> {
+        self.guard()?;
+        let _ = profile_schema_uri(c, schema_ref)?;
+        let contract = format!("{schema_ref}{fragment}");
+        let mut schemas = self
+            .schemas
+            .try_borrow_mut()
+            .map_err(|_| Error::Invalid("catalog executor already in use"))?;
+        let valid = schemas.check(path, raw, &contract, self.deadline, self.cancelled)
+            .map_err(|e| Error::Source(format!("catalog schema execution incomplete: path={path}; contract={contract}; reason={e:?}")))?;
+        if !valid {
+            return Err(Error::Invalid(
+                "source catalog exact native schema rejected",
+            ));
+        }
+        Ok(())
     }
 }
 
@@ -552,12 +645,19 @@ fn contracts(
             break;
         }
     }
+    validator.bind_contracts(&c)?;
     for (ref_, schema) in [(ENTITY, ENTITY_SCHEMA), (RELATION, RELATION_SCHEMA)] {
         let value = c
             .values
             .get(ref_)
             .ok_or(Error::Invalid("catalog source registry missing"))?;
-        validator.check(&c, schema, "", &encode(value, l.max_row_bytes)?)?;
+        validator.check_at(
+            &c,
+            &format!("{ref_}#catalog-decoded"),
+            schema,
+            "",
+            &encode(value, l.max_row_bytes)?,
+        )?;
     }
     let entity = c
         .values
@@ -742,7 +842,7 @@ fn entry_record(
             }
             _ => return Err(Error::Invalid("catalog physical artifact schema")),
         };
-        validator.check(c, route, "", raw)?;
+        validator.check_at(c, ref_, route, "", raw)?;
         schema = Some(route);
         label_pointer = Some("/custody/inventory_numbers/0");
         (
@@ -760,7 +860,7 @@ fn entry_record(
             return Err(Error::Invalid("catalog scholarly composite owner contract"));
         }
         let route = "ToS/contracts/scholarly-composite-witness.schema.json";
-        validator.check(c, route, "", raw)?;
+        validator.check_at(c, ref_, route, "", raw)?;
         schema = Some(route);
         (
             "composite",
@@ -792,9 +892,10 @@ fn entry_record(
                 return Err(Error::Invalid("catalog undeclared native text binding"));
             }
             let route = schema_route(p, v)?;
-            validator.check(c, route, "", raw)?;
-            validator.check(
+            validator.check_at(c, ref_, route, "", raw)?;
+            validator.check_at(
                 c,
+                ref_,
                 "ToS/contracts/source-metadata-record.schema.json",
                 "",
                 raw,
@@ -836,9 +937,9 @@ fn entry_record(
             if !ref_.starts_with("ToS/source-witnesses/links/") {
                 return Err(Error::Invalid("catalog native Link owner path"));
             }
-            validator.check(c, "ToS/contracts/source-link.schema.json", "", raw)?;
+            validator.check_at(c, ref_, "ToS/contracts/source-link.schema.json", "", raw)?;
         } else if BASE.iter().any(|(k, _)| *k == kind) {
-            validator.check(c, CORPUS, "", raw)?;
+            validator.check_at(c, ref_, CORPUS, "", raw)?;
         } else {
             return Err(Error::Invalid("catalog undeclared record family"));
         }
@@ -915,8 +1016,14 @@ fn entry_claim(
             ));
         }
         let route = schema_route(p, v)?;
-        validator.check(c, route, "", raw)?;
-        validator.check(c, "ToS/contracts/source-claim-record.schema.json", "", raw)?;
+        validator.check_at(c, &format!("{ref_}#line={line}"), route, "", raw)?;
+        validator.check_at(
+            c,
+            &format!("{ref_}#line={line}"),
+            "ToS/contracts/source-claim-record.schema.json",
+            "",
+            raw,
+        )?;
         extension = Some(route);
         if matches!(
             reader,
@@ -970,7 +1077,7 @@ fn entry_claim(
     } else if LEGACY_CLAIMS.contains(&basename) && v["schema_version"] == "tos_historical_claim_v1"
     {
         let route = "ToS/contracts/historical-claim.schema.json";
-        validator.check(c, route, "", raw)?;
+        validator.check_at(c, &format!("{ref_}#line={line}"), route, "", raw)?;
         extension = Some(route);
     } else if LEGACY_CLAIMS.contains(&basename) {
         // The full legacy collector preserves these packets; base Claim shape
@@ -985,7 +1092,7 @@ fn entry_claim(
                 ));
             }
         };
-        validator.check(c, route, "", raw)?;
+        validator.check_at(c, &format!("{ref_}#line={line}"), route, "", raw)?;
     } else {
         return Err(Error::Invalid("catalog Claim source filename"));
     }
@@ -1037,8 +1144,9 @@ fn native_inventory(
             if text(packet.value(), "schema_version")? != "tos_semantic_annotation_packet_v2" {
                 return Err(Error::Invalid("catalog native identity packet schema"));
             }
-            validator.check(
+            validator.check_at(
                 c,
+                &row.id,
                 "ToS/contracts/semantic-annotation-packet-v2.schema.json",
                 "",
                 &row.payload,

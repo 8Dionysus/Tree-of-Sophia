@@ -543,6 +543,18 @@ impl PublicationAuthority for SwappingOwner {
         _source: &SourceBinding,
         _receipt: &CandidateReceipt,
     ) -> tos_compiler::Result<Self::Fence> {
+        // Full immutable installation has completed before owner authority is
+        // acquired; swapping the private candidate path cannot rebind it.
+        let installed = self
+            .candidate
+            .parent()
+            .unwrap()
+            .join(format!("{}.sqlite3", _receipt.sqlite_sha256));
+        assert!(installed.is_file());
+        assert_eq!(
+            tos_foundation::Digest256::of_bytes(&fs::read(installed)?).to_hex(),
+            _receipt.sqlite_sha256
+        );
         fs::rename(&self.candidate, self.candidate.with_extension("original"))?;
         fs::write(&self.candidate, b"attacker replacement")?;
         Ok(FixtureFence)
