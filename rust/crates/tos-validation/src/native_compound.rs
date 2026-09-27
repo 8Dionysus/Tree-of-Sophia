@@ -287,81 +287,6 @@ fn decode(raw: &[u8]) -> Result<Value, ItemRefusal> {
     serde_json::from_slice(raw)
         .map_err(|_| ItemRefusal::Unsupported("compound decoded representation".into()))
 }
-// Charge decoded/ordered trees by node and string storage, not serialized size.
-// This covers both representations, Vec growth slack and map entry storage;
-// it is logical retained-state accounting, not a measurement of allocator RSS.
-fn json_storage_cost(
-    raw: &[u8],
-    deadline: std::time::Instant,
-    cancelled: &AtomicBool,
-    available: usize,
-) -> Result<usize, ItemRefusal> {
-    fn node(
-        value: &JsonValue,
-        deadline: std::time::Instant,
-        cancelled: &AtomicBool,
-    ) -> Result<usize, ItemRefusal> {
-        check(deadline, cancelled)?;
-        let mut cost = 2 * (std::mem::size_of::<JsonValue>() + std::mem::size_of::<Value>()) + 64;
-        let mut add = |n: usize| -> Result<(), ItemRefusal> {
-            cost = cost.checked_add(n).ok_or(ItemRefusal::Budget)?;
-            Ok(())
-        };
-        match value {
-            JsonValue::Number(n) => {
-                add(n.lexeme.len().checked_mul(4).ok_or(ItemRefusal::Budget)?)?
-            }
-            JsonValue::String(v) => {
-                add(v.units().len().checked_mul(12).ok_or(ItemRefusal::Budget)?)?
-            }
-            JsonValue::Array(values) => {
-                add(4 * (std::mem::size_of::<JsonValue>() + std::mem::size_of::<Value>()))?;
-                for value in values {
-                    add(node(value, deadline, cancelled)?)?;
-                }
-            }
-            JsonValue::Object(values) => {
-                add(4
-                    * (std::mem::size_of::<(tos_foundation::JsonString, JsonValue)>()
-                        + std::mem::size_of::<(String, Value)>()))?;
-                for (key, value) in values {
-                    add(key
-                        .units()
-                        .len()
-                        .checked_mul(12)
-                        .and_then(|n| n.checked_add(128))
-                        .ok_or(ItemRefusal::Budget)?)?;
-                    add(node(value, deadline, cancelled)?)?;
-                }
-            }
-            _ => {}
-        }
-        Ok(cost)
-    }
-    // Bound the costing parse itself by the same remaining state. The codec
-    // already counts visits; string/input storage is bounded by input bytes.
-    let string_storage = raw.len().checked_mul(8).ok_or(ItemRefusal::Budget)?;
-    let node_storage = 2
-        * (std::mem::size_of::<JsonValue>() + std::mem::size_of::<tos_foundation::JsonString>())
-        + 128;
-    let visits = available
-        .checked_sub(string_storage)
-        .ok_or(ItemRefusal::BudgetCheck {check:"compound costing parse string state",used:Some(string_storage as u64),limit:Some(available as u64)})?
-        / node_storage;
-    if visits == 0 {
-        return Err(ItemRefusal::BudgetCheck {check:"compound costing parse node state",used:Some(node_storage as u64),limit:Some(available.saturating_sub(string_storage) as u64)});
-    }
-    let mut parse_limits = limits();
-    parse_limits.max_visits = parse_limits.max_visits.min(visits);
-    let parsed = parse_json(raw, JsonMode::PublishedStrict, parse_limits).map_err(|e| {
-        if e.code == tos_foundation::FoundationErrorCode::BudgetExceeded {
-            ItemRefusal::BudgetCheck {check:"compound costing strict JSON structural/integer/input limits",used:None,limit:None}
-        } else {
-            ItemRefusal::Unsupported(format!("compound costing JSON: {e:?}"))
-        }
-    })?;
-    node(&parsed.into_root(), deadline, cancelled)
-}
 fn canonical(v: &Value) -> Result<Vec<u8>, ItemRefusal> {
     canonical_ordered(&ordered(
         &serde_json::to_vec(v).map_err(|_| bad("serialization"))?,
@@ -398,9 +323,6 @@ fn file_refs(files: &Package) -> Value {
             })
             .collect(),
     )
-}
-fn revision(files: &Package) -> Result<String, ItemRefusal> {
-    digest(&file_refs(files))
 }
 fn selected_names(path: &str) -> Result<[String; 3], ItemRefusal> {
     let base = path
@@ -445,7 +367,6 @@ fn is_ancestor(a: &str, b: &str) -> bool {
     b.strip_prefix(a).is_some_and(|tail| tail.starts_with('/'))
 }
 
-#[derive(Clone)]
 struct Transaction {
     manifest: Value,
     manifest_sha256: String,
@@ -459,11 +380,11 @@ pub(crate) struct NativeCompoundReader<'a> {
     cut: &'a CorpusCutReader,
     limits: ItemLimits,
     cancelled: &'a AtomicBool,
-    paths: BTreeSet<String>,
+    paths: BTreeSet<&'a str>,
     raw: BTreeMap<String, Vec<u8>>,
     raw_cache_state: usize,
-    transactions: BTreeMap<String, Transaction>,
-    histories: BTreeMap<(String, String), Value>,
+    transactions: BTreeMap<String, std::sync::Arc<Transaction>>,
+    histories: BTreeMap<(String, String), std::sync::Arc<Value>>,
     state: usize,
     temporary_state: usize,
     bytes: u64,
@@ -485,7 +406,7 @@ impl<'a> NativeCompoundReader<'a> {
             raw_cache_state: 0,
             transactions: BTreeMap::new(),
             histories: BTreeMap::new(),
-            state: 0,
+            state: std::mem::size_of::<Self>(),
             temporary_state: 0,
             bytes: 0,
             reads: Vec::new(),
@@ -495,64 +416,24 @@ impl<'a> NativeCompoundReader<'a> {
             check(limits.deadline, cancelled)?;
             reserve(
                 &mut this.state,
-                member.path.as_str().len() + 64,
+                std::mem::size_of::<&str>(),
                 limits.max_state_bytes,
             )?;
-            this.paths.insert(member.path.as_str().into());
+            this.paths.insert(member.path.as_str());
         }
+        let startup_temporary=this.temporary_state;
         if let Some(raw) = this.optional(CONTROL, 8192)? {
-            let decoded_state = this.json_cost(&raw)?;
-            reserve(&mut this.state, decoded_state, limits.max_state_bytes)?;
-            let state = decode(&raw)?;
-            state_valid(&state)?;
-            this.publication = Some(state);
+            let state=this.decoded(&raw)?;
+            let retained=crate::record_biblio_cut::decoded_state(&state)?;
+            let scratch=retained.checked_add(this.canonical_workspace(&state)?).ok_or(ItemRefusal::Budget)?;
+            this.temporary(scratch)?;state_valid(&state)?;this.release_temporary(scratch);
+            // Move the same tree from the temporary scope into publication.
+            this.temporary_state-=retained;
+            this.publication=Some(state);
         }
+        this.release_temporary_since(startup_temporary);
+        this.release_raw_cache();
         Ok(this)
-    }
-    fn json_cost(&self, raw: &[u8]) -> Result<usize, ItemRefusal> {
-        json_storage_cost(
-            raw,
-            self.limits.deadline,
-            self.cancelled,
-            self.limits
-                .max_state_bytes
-                .checked_sub(self.state)
-                .ok_or(ItemRefusal::Budget)?,
-        )
-    }
-    fn carrier_json_cost(&self, path: &str, raw: &[u8]) -> Result<usize, ItemRefusal> {
-        if !(path.ends_with(".json") || path.ends_with(".jsonl")) {
-            return raw.len().checked_mul(2).ok_or(ItemRefusal::Budget);
-        }
-        if !path.ends_with(".jsonl") {
-            return self.json_cost(raw);
-        }
-        // Retained JSONL is a sequence of JSON values, not one JSON document.
-        // This counts storage only; exact reconstructed carrier bytes remain
-        // independently checked below, including blank lines and separators.
-        let available = self
-            .limits
-            .max_state_bytes
-            .checked_sub(self.state)
-            .ok_or(ItemRefusal::Budget)?;
-        let mut cost = 0usize;
-        for line in raw.split(|b| *b == b'\n' || *b == b'\r') {
-            check(self.limits.deadline, self.cancelled)?;
-            if line.iter().all(u8::is_ascii_whitespace) {
-                continue;
-            }
-            let amount = json_storage_cost(
-                line,
-                self.limits.deadline,
-                self.cancelled,
-                available.checked_sub(cost).ok_or(ItemRefusal::Budget)?,
-            )?;
-            cost = cost.checked_add(amount).ok_or(ItemRefusal::Budget)?;
-        }
-        Ok(cost)
-    }
-    pub(crate) fn retained_state_bytes(&self) -> usize {
-        self.state
     }
     pub(crate) fn set_remaining_state(&mut self, available: usize) -> Result<(), ItemRefusal> {
         if self.state > available {
@@ -571,10 +452,66 @@ impl<'a> NativeCompoundReader<'a> {
             .ok_or(ItemRefusal::Budget)?;
         Ok(())
     }
+    fn release_temporary(&mut self, amount:usize) {
+        self.state-=amount;
+        self.temporary_state-=amount;
+    }
     fn release_temporary_since(&mut self, before: usize) {
         let released = self.temporary_state - before;
         self.state -= released;
         self.temporary_state = before;
+    }
+    fn decoded(&mut self, raw:&[u8])->Result<Value,ItemRefusal> {
+        let available=self.limits.max_state_bytes.checked_sub(self.state).ok_or(ItemRefusal::Budget)?;
+        let (value,state)=crate::record_biblio_cut::bounded_decoded_state(raw,limits(),available,self.limits.deadline,self.cancelled)?;
+        self.temporary(state)?;
+        Ok(value)
+    }
+    fn ordered_value(&mut self, raw:&[u8])->Result<JsonValue,ItemRefusal> {
+        let available=self.limits.max_state_bytes.checked_sub(self.state).ok_or(ItemRefusal::Budget)?;
+        let value=crate::record_biblio_cut::bounded_ordered(raw,limits(),available,self.limits.deadline,self.cancelled)?;
+        self.temporary(crate::record_biblio_cut::ordered_state(&value)?)?;
+        Ok(value)
+    }
+    fn canonical_workspace(&self,value:&Value)->Result<usize,ItemRefusal> {
+        let available=self.limits.max_state_bytes.checked_sub(self.state).ok_or(ItemRefusal::Budget)?;
+        crate::record_biblio_cut::decoded_wire_size(value,available)?;
+        let raw=serde_json::to_vec(value).map_err(|_|bad("serialization"))?;
+        let remaining=available.checked_sub(raw.len()).ok_or(ItemRefusal::BudgetCheck{check:"compound canonical input workspace",used:Some(raw.len() as u64),limit:Some(available as u64)})?;
+        let tree=crate::record_biblio_cut::bounded_ordered(&raw,limits(),remaining,self.limits.deadline,self.cancelled)?;
+        let parse_peak=raw.len().checked_add(crate::record_biblio_cut::ordered_codec_state(&tree)?).ok_or(ItemRefusal::Budget)?;
+        let emit_state=crate::record_biblio_cut::ordered_emit_state(&tree)?;
+        let emit_base=raw.len().checked_add(crate::record_biblio_cut::ordered_state(&tree)?).and_then(|n|n.checked_add(emit_state)).ok_or(ItemRefusal::Budget)?;
+        let room=available.checked_sub(emit_base).ok_or(ItemRefusal::BudgetCheck{check:"compound canonical emit indexes",used:Some(emit_base as u64),limit:Some(available as u64)})?;
+        let mut emission=limits();emission.max_bytes=emission.max_bytes.min(room);
+        let output=canonical_bytes_v1(&tree,CanonicalProfile::SourceCommandInputV1,emission).map_err(|error|if error.code==tos_foundation::FoundationErrorCode::BudgetExceeded {ItemRefusal::BudgetCheck{check:"compound canonical output workspace",used:None,limit:Some(room as u64)}}else{ItemRefusal::Unsupported(format!("compound canonical: {error:?}"))})?;
+        let emit_peak=emit_base.checked_add(output.len()).ok_or(ItemRefusal::Budget)?;
+        let peak=parse_peak.max(emit_peak);
+        if peak>available {return Err(ItemRefusal::BudgetCheck{check:"compound canonical codec workspace",used:Some(peak as u64),limit:Some(available as u64)});}
+        Ok(peak)
+    }
+    fn package_revision(&mut self,files:&Package)->Result<String,ItemRefusal> {
+        let refs=file_refs(files);let tree=crate::record_biblio_cut::decoded_state(&refs)?;
+        self.temporary(tree)?;
+        let scratch=self.canonical_workspace(&refs)?;self.temporary(scratch)?;
+        let result=digest(&refs);drop(refs);self.release_temporary(tree+scratch);result
+    }
+    fn reference_matches(&mut self,value:&Value,id:&str,version:&str,expected:&Value)->Result<bool,ItemRefusal> {
+        let scratch=self.canonical_workspace(value)?;self.temporary(scratch)?;
+        let reference=reference(value,id,version)?;let tree=crate::record_biblio_cut::decoded_state(&reference)?;
+        self.temporary(tree)?;let result=&reference==expected;drop(reference);self.release_temporary(tree+scratch);Ok(result)
+    }
+    fn value_copy(&mut self,value:&Value)->Result<Value,ItemRefusal> {
+        self.temporary(crate::record_biblio_cut::decoded_state(value)?)?;
+        Ok(value.clone())
+    }
+    fn ordered_copy(&mut self,value:&JsonValue)->Result<JsonValue,ItemRefusal> {
+        self.temporary(crate::record_biblio_cut::ordered_state(value)?)?;
+        Ok(value.clone())
+    }
+    fn buffer(&mut self,raw:Vec<u8>)->Result<Vec<u8>,ItemRefusal> {
+        self.temporary(std::mem::size_of::<Vec<u8>>().checked_add(raw.len()).ok_or(ItemRefusal::Budget)?)?;
+        Ok(raw)
     }
     fn optional(&mut self, path: &str, cap: usize) -> Result<Option<Vec<u8>>, ItemRefusal> {
         check(self.limits.deadline, self.cancelled)?;
@@ -582,7 +519,9 @@ impl<'a> NativeCompoundReader<'a> {
             if raw.len() > cap {
                 return Err(ItemRefusal::BudgetCheck {check:"compound cached member bytes",used:Some(raw.len() as u64),limit:Some(cap as u64)});
             }
-            return Ok(Some(raw.clone()));
+            let copy = raw.clone();
+            self.temporary(copy.len()+std::mem::size_of::<Vec<u8>>())?;
+            return Ok(Some(copy));
         }
         if !self.paths.contains(path) {
             return Ok(None);
@@ -591,19 +530,15 @@ impl<'a> NativeCompoundReader<'a> {
         if raw.len() > cap {
             return Err(ItemRefusal::BudgetCheck {check:"compound selected member bytes",used:Some(raw.len() as u64),limit:Some(cap as u64)});
         }
-        // The cache and returned copies are retained only through this Claim's
-        // verification. Read observations survive it and are charged separately.
-        let raw_state = raw.len().checked_mul(3)
-            .and_then(|n| n.checked_add(path.len())).ok_or(ItemRefusal::Budget)?;
-        let read_state = path.len().checked_add(128 + 2 * std::mem::size_of::<PredicateRead>())
-            .ok_or(ItemRefusal::Budget)?;
+        // One retained cache buffer, one owned map key and one entry slot.
+        // The returned buffer is a distinct scoped temporary, never a third copy.
+        let raw_state = raw.len().checked_add(path.len())
+            .and_then(|n|n.checked_add(std::mem::size_of::<(String,Vec<u8>)>())).ok_or(ItemRefusal::Budget)?;
         let cache_state = self.raw_cache_state.checked_add(raw_state).ok_or(ItemRefusal::Budget)?;
-        reserve(&mut self.state, raw_state.checked_add(read_state).ok_or(ItemRefusal::Budget)?, self.limits.max_state_bytes)?;
+        reserve(&mut self.state, raw_state, self.limits.max_state_bytes)?;
         self.raw_cache_state = cache_state;
-        self.reads.push(PredicateRead::ExactPath {
-            path: path.into(),
-            digest: Digest256::of_bytes(&raw).to_prefixed(),
-        });
+        self.temporary(raw.len()+std::mem::size_of::<Vec<u8>>())?;
+        self.record_read(PredicateRead::ExactPath {path:path.into(),digest:Digest256::of_bytes(&raw).to_prefixed()})?;
         self.raw.insert(path.into(), raw.clone());
         Ok(Some(raw))
     }
@@ -622,7 +557,7 @@ impl<'a> NativeCompoundReader<'a> {
     fn record_read(&mut self, read: PredicateRead) -> Result<(), ItemRefusal> {
         reserve(
             &mut self.state,
-            format!("{read:?}").len() + 64 + 2 * std::mem::size_of::<PredicateRead>(),
+            crate::record_biblio_cut::predicate_state(&read)?,
             self.limits.max_state_bytes,
         )?;
         self.reads.push(read);
@@ -647,19 +582,27 @@ impl<'a> NativeCompoundReader<'a> {
         }
         Ok(files)
     }
-    fn transaction(&mut self, id: &str) -> Result<Transaction, ItemRefusal> {
+    fn transaction(&mut self, id: &str) -> Result<std::sync::Arc<Transaction>, ItemRefusal> {
+        let before=self.temporary_state;
+        let result=self.transaction_inner(id);
+        self.release_temporary_since(before);
+        if let Ok(tx)=&result {if !self.transactions.contains_key(id) {
+            let mut retained=std::mem::size_of::<Transaction>()+std::mem::size_of::<(String,std::sync::Arc<Transaction>)>()+2*std::mem::size_of::<usize>()+id.len()+tx.manifest_sha256.len()+tx.status.len();
+            retained=retained.checked_add(crate::record_biblio_cut::decoded_state(&tx.manifest)?.checked_sub(std::mem::size_of::<Value>()).ok_or(ItemRefusal::Budget)?).ok_or(ItemRefusal::Budget)?;
+            for (path,(before,after)) in &tx.files {retained=retained.checked_add(std::mem::size_of::<(String,(Option<Vec<u8>>,Option<Vec<u8>>))>()+path.len()).and_then(|n|n.checked_add(before.as_ref().map_or(0,Vec::len))).and_then(|n|n.checked_add(after.as_ref().map_or(0,Vec::len))).ok_or(ItemRefusal::Budget)?;}
+            reserve(&mut self.state,retained,self.limits.max_state_bytes)?;
+            self.transactions.insert(id.into(),tx.clone());
+        }}
+        result
+    }
+    fn transaction_inner(&mut self, id: &str) -> Result<std::sync::Arc<Transaction>, ItemRefusal> {
         hash(id)?;
         if let Some(tx) = self.transactions.get(id) {
             return Ok(tx.clone());
         }
         let directory = format!("{TRANSACTIONS}/{}", hash(id)?);
         let raw = self.required(&format!("{directory}/manifest.json"), MAX_MANIFEST)?;
-        let manifest_state = self
-            .json_cost(&raw)?
-            .checked_mul(2)
-            .ok_or(ItemRefusal::Budget)?;
-        reserve(&mut self.state, manifest_state, self.limits.max_state_bytes)?;
-        let manifest = decode(&raw)?;
+        let manifest=self.decoded(&raw)?;
         keys(
             &manifest,
             &[
@@ -715,9 +658,12 @@ impl<'a> NativeCompoundReader<'a> {
         {
             return Err(bad("transaction version/path profile mismatch"));
         }
-        if !plan["authorization"].is_object() || canonical(&plan["authorization"])?.len() > 65536 {
-            return Err(bad("bounded authorization"));
-        }
+        if !plan["authorization"].is_object() {return Err(bad("bounded authorization"));}
+        let authorization_scratch=self.canonical_workspace(&plan["authorization"])?;
+        self.temporary(authorization_scratch)?;
+        let authorization=canonical(&plan["authorization"])?;
+        let oversized=authorization.len()>65536;drop(authorization);self.release_temporary(authorization_scratch);
+        if oversized {return Err(bad("bounded authorization"));}
         let directories = array(plan, "new_directories")?;
         if directories.len() > 64 {
             return Err(ItemRefusal::BudgetCheck {check:"compound new directory count",used:Some(directories.len() as u64),limit:Some(64)});
@@ -726,6 +672,9 @@ impl<'a> NativeCompoundReader<'a> {
             .iter()
             .map(|v| v.as_str().ok_or_else(|| bad("new directory")))
             .collect::<Result<_, _>>()?;
+        // Three simultaneously live borrowed directory indexes: source Vec,
+        // sorted Vec and uniqueness set; none owns another path payload.
+        self.temporary(2*std::mem::size_of::<Vec<&str>>()+std::mem::size_of::<BTreeSet<&&str>>()+dirs.len()*(2*std::mem::size_of::<&str>()+std::mem::size_of::<&&str>()))?;
         let mut sorted_dirs = dirs.clone();
         sorted_dirs.sort_by_key(|v| (v.split('/').count(), *v));
         if dirs != sorted_dirs || dirs.iter().collect::<BTreeSet<_>>().len() != dirs.len() {
@@ -788,14 +737,11 @@ impl<'a> NativeCompoundReader<'a> {
                     if raw.len() != size || Digest256::of_bytes(&raw).to_prefixed() != sha {
                         return Err(bad("transaction blob fixity"));
                     }
+                    self.temporary(std::mem::size_of::<(String,Vec<u8>)>()+sha.len())?;
                     blobs.insert(sha.into(), raw);
                 }
-                // The cached file map and returned transaction clone coexist.
-                reserve(
-                    &mut self.state,
-                    size.checked_mul(2).ok_or(ItemRefusal::Budget)?,
-                    self.limits.max_state_bytes,
-                )?;
+                // One retained file buffer; the returned transaction shares it.
+                self.temporary(size)?;
                 bytes[i] = Some(blobs[sha].clone());
             }
             files.insert(path.into(), (bytes[0].take(), bytes[1].take()));
@@ -819,9 +765,11 @@ impl<'a> NativeCompoundReader<'a> {
             }
         }
         let mut parents = BTreeSet::from([HOME.to_owned()]);
+        self.temporary(std::mem::size_of::<String>()+HOME.len())?;
         for p in files.keys().map(String::as_str).chain(dirs.iter().copied()) {
             let mut p = parent(p)?;
             while p == HOME || p.starts_with(&format!("{HOME}/")) {
+                if !parents.contains(p) {self.temporary(std::mem::size_of::<String>()+p.len())?;}
                 parents.insert(p.into());
                 if p == HOME {
                     break;
@@ -854,12 +802,13 @@ impl<'a> NativeCompoundReader<'a> {
         let sha = Digest256::of_bytes(&raw).to_prefixed();
         let completion = match self.optional(&format!("{directory}/completion.json"), 8192)? {
             Some(raw) => {
-                let v = decode(&raw)?;
+                let v = self.decoded(&raw)?;
                 keys(&v, &["schema_version", "publication"])?;
                 if text(&v, "schema_version")? != "tos_selected_metadata_completion_v1" {
                     return Err(bad("completion schema"));
                 }
-                state_valid(&v["publication"])?;
+                let scratch=crate::record_biblio_cut::decoded_state(&v["publication"])?.checked_add(self.canonical_workspace(&v["publication"])?).ok_or(ItemRefusal::Budget)?;
+                self.temporary(scratch)?;state_valid(&v["publication"])?;self.release_temporary(scratch);
                 let s = &v["publication"];
                 if text(s, "phase")? != "ready"
                     || text(s, "transaction_id")? != id
@@ -868,7 +817,7 @@ impl<'a> NativeCompoundReader<'a> {
                 {
                     return Err(bad("terminal completion binding"));
                 }
-                Some(s.clone())
+                Some(self.value_copy(s)?)
             }
             None => None,
         };
@@ -901,32 +850,25 @@ impl<'a> NativeCompoundReader<'a> {
                 .transpose()?
                 .unwrap_or("orphan".into())
         };
-        reserve(
-            &mut self.state,
+        self.temporary(
             files
                 .keys()
                 .try_fold(0usize, |sum, path| {
-                    sum.checked_add(path.len().checked_mul(2)?)?.checked_add(
-                        2 * (std::mem::size_of::<(String, (Option<Vec<u8>>, Option<Vec<u8>>))>()
-                            + 64),
+                    sum.checked_add(path.len())?.checked_add(
+                        std::mem::size_of::<(String, (Option<Vec<u8>>, Option<Vec<u8>>))>(),
                     )
                 })
                 .ok_or(ItemRefusal::Budget)?,
-            self.limits.max_state_bytes,
         )?;
-        let tx = Transaction {
-            manifest,
-            manifest_sha256: sha,
-            status,
-            files,
-        };
-        self.transactions.insert(id.into(), tx.clone());
+        self.temporary(id.len()+std::mem::size_of::<(String,std::sync::Arc<Transaction>)>()+2*std::mem::size_of::<usize>()+std::mem::size_of::<Transaction>()+sha.len()+status.len())?;
+        let tx = std::sync::Arc::new(Transaction {manifest,manifest_sha256:sha,status,files});
         Ok(tx)
     }
     fn archive(&mut self, path: &str, id: &str, receipt: &Value) -> Result<Package, ItemRefusal> {
         let before = self.temporary_state;
         let result = self.archive_inner(path, id, receipt);
         self.release_temporary_since(before);
+        if let Ok(files)=&result {self.temporary(package_state(files)?)?;}
         result
     }
     fn archive_inner(
@@ -945,12 +887,7 @@ impl<'a> NativeCompoundReader<'a> {
             return Err(bad("archive exact locator"));
         }
         let raw = self.required(&format!("{home}/manifest.json"), MAX_FILE)?;
-        self.temporary(
-            self.json_cost(&raw)?
-                .checked_mul(2)
-                .ok_or(ItemRefusal::Budget)?,
-        )?;
-        let manifest = decode(&raw)?;
+        let manifest = self.decoded(&raw)?;
         let v2 = text(&manifest, "schema_version")? == "tos_source_package_archive_v2";
         let mut wanted = vec![
             "schema_version",
@@ -1002,16 +939,18 @@ impl<'a> NativeCompoundReader<'a> {
             if raw.len() != size || Digest256::of_bytes(&raw).to_prefixed() != sha {
                 return Err(bad("archive exact blob bytes"));
             }
+            self.temporary(std::mem::size_of::<(String,Vec<u8>)>()+name.len()+std::mem::size_of::<String>()+blob.len())?;
             files.insert(name.clone(), raw);
             expected.insert(blob);
         }
         let prefix = format!("{home}/");
         let actual: BTreeSet<_> = self
             .paths
-            .range(prefix.clone()..)
+            .range::<str,_>((std::ops::Bound::Included(prefix.as_str()),std::ops::Bound::Unbounded))
             .take_while(|p| p.starts_with(&prefix))
             .map(|p| p[prefix.len()..].to_owned())
             .collect();
+        self.temporary(actual.iter().try_fold(0usize,|n,p:&String|n.checked_add(std::mem::size_of::<String>()+p.len())).ok_or(ItemRefusal::Budget)?)?;
         if actual != expected {
             return Err(bad("archive extra/nested/unbound files"));
         }
@@ -1019,28 +958,15 @@ impl<'a> NativeCompoundReader<'a> {
         if v2 && (files.keys().any(|n| !names.contains(n)) || !files.contains_key(&names[0])) {
             return Err(bad("selected archive package scope"));
         }
-        if revision(&files)? != rev {
+        if self.package_revision(&files)? != rev {
             return Err(bad("archive package revision"));
         }
-        self.temporary(
-            self.json_cost(
-                files
-                    .get(&names[0])
-                    .ok_or_else(|| bad("archive source missing"))?,
-            )?
-            .checked_mul(4)
-            .ok_or(ItemRefusal::Budget)?,
-        )?;
-        let old = decode(
-            files
-                .get(&names[0])
-                .ok_or_else(|| bad("archive source missing"))?,
-        )?;
-        if reference(&old, "record_id", "record_version")? != receipt["previous_source"] {
+        let old = self.decoded(files.get(&names[0]).ok_or_else(||bad("archive source missing"))?)?;
+        if !self.reference_matches(&old,"record_id","record_version",&receipt["previous_source"])? {
             return Err(bad("archive previous source"));
         }
         if let Some(request) = receipt.get("request") {
-            let mut revised = old.clone();
+            let mut revised = self.value_copy(&old)?;
             let object = revised
                 .as_object_mut()
                 .ok_or_else(|| bad("source object"))?;
@@ -1058,7 +984,8 @@ impl<'a> NativeCompoundReader<'a> {
                         .ok_or(ItemRefusal::Budget)?
                 ),
             );
-            if reference(&revised, "record_id", "record_version")? != receipt["source"] {
+            self.temporary(crate::record_biblio_cut::decoded_state(&revised)?.saturating_sub(crate::record_biblio_cut::decoded_state(&old)?))?;
+            if !self.reference_matches(&revised,"record_id","record_version",&receipt["source"])? {
                 return Err(bad("retained request successor"));
             }
         }
@@ -1222,13 +1149,15 @@ pub fn inspect_record_history(
 ) -> Result<Value, ItemRefusal> {
     check(deadline, cancelled)?;
     let record = decode(record_raw)?;
-    let subject = reference(&record, "record_id", "record_version")?;
     let history = match files.get(HISTORY) {
         Some(raw) => decode(raw)?,
-        None => {
-            json!({"schema_version":"tos_source_revision_history_v1","record_id":subject["id"],"receipts":[]})
-        }
+        None => json!({"schema_version":"tos_source_revision_history_v1","record_id":record["record_id"],"receipts":[]}),
     };
+    validate_record_history_values(files,&record,&history,deadline,cancelled)?;
+    Ok(history)
+}
+fn validate_record_history_values(files:&Package,record:&Value,history:&Value,deadline:Instant,cancelled:&AtomicBool)->Result<(),ItemRefusal> {
+    let subject = reference(&record, "record_id", "record_version")?;
     keys(&history, &["schema_version", "record_id", "receipts"])?;
     if !matches!(
         text(&history, "schema_version")?,
@@ -1316,7 +1245,7 @@ pub fn inspect_record_history(
         let fields = request["fields"]
             .as_object()
             .ok_or_else(|| bad("retained request fields"))?;
-        if !commands.insert(text(receipt, "command_id")?.to_owned())
+        if !commands.insert(text(receipt, "command_id")?)
             || text(receipt, "request_digest")? != digest(request)?
             || receipt["command_id"] != request["command_id"]
             || receipt["previous_source"] != request["expected_source"]
@@ -1342,21 +1271,23 @@ pub fn inspect_record_history(
         return Err(bad("current source differs from history head"));
     }
     check(deadline, cancelled)?;
-    Ok(history)
+    Ok(())
 }
 
 impl NativeCompoundReader<'_> {
-    fn history(&mut self, path: &str, files: &Package) -> Result<Value, ItemRefusal> {
+    fn history(&mut self, path: &str, files: &Package) -> Result<std::sync::Arc<Value>, ItemRefusal> {
         let before = self.temporary_state;
         let result = self.history_inner(path, files);
         self.release_temporary_since(before);
         result
     }
-    fn history_inner(&mut self, path: &str, files: &Package) -> Result<Value, ItemRefusal> {
+    fn history_inner(&mut self, path: &str, files: &Package) -> Result<std::sync::Arc<Value>, ItemRefusal> {
         check(self.limits.deadline, self.cancelled)?;
         // Bind memoized lineage to the whole selected package, not its subject
         // alone: source-copy forms and history bytes participate in revision.
-        let key = (path.to_owned(), revision(files)?);
+        let key = (path.to_owned(), self.package_revision(files)?);
+        let key_state=std::mem::size_of_val(&key).checked_add(key.0.len()).and_then(|n|n.checked_add(key.1.len())).ok_or(ItemRefusal::Budget)?;
+        self.temporary(key_state)?;
         if let Some(history) = self.histories.get(&key) {
             return Ok(history.clone());
         }
@@ -1367,57 +1298,54 @@ impl NativeCompoundReader<'_> {
         let raw = files
             .get(name)
             .ok_or_else(|| bad("history source absent"))?;
-        let mut scratch = self.json_cost(raw)?;
-        if let Some(history) = files.get(HISTORY) {
-            scratch = scratch
-                .checked_add(self.json_cost(history)?)
-                .ok_or(ItemRefusal::Budget)?;
-        }
-        self.temporary(scratch.checked_mul(3).ok_or(ItemRefusal::Budget)?)?;
-        let record = decode(raw)?;
-        let id = text(&record, "record_id")?;
-        let history = inspect_record_history(files, raw, self.limits.deadline, self.cancelled)?;
+        let record=self.decoded(raw)?;
+        let id=text(&record,"record_id")?;
+        let history=match files.get(HISTORY) {
+            Some(raw)=>self.decoded(raw)?,
+            None=>{let value=json!({"schema_version":"tos_source_revision_history_v1","record_id":id,"receipts":[]});self.temporary(crate::record_biblio_cut::decoded_state(&value)?)?;value}
+        };
+        // The commands index borrows retained history strings. Field-name
+        // vectors contain only references; the exact subject is one owned value.
+        let subject=reference(&record,"record_id","record_version")?;
+        let history_validation_state=crate::record_biblio_cut::decoded_state(&subject)?+array(&history,"receipts")?.len()*std::mem::size_of::<&str>()+17*std::mem::size_of::<&str>();
+        self.temporary(history_validation_state)?;
+        let mut canonical_peak=self.canonical_workspace(&record)?;
+        for receipt in array(&history,"receipts")? {canonical_peak=canonical_peak.max(self.canonical_workspace(&receipt["request"])?);}
+        self.temporary(canonical_peak)?;
+        drop(subject);
+        validate_record_history_values(files,&record,&history,self.limits.deadline,self.cancelled)?;
+        self.release_temporary(canonical_peak+history_validation_state);
         for (index, receipt) in array(&history, "receipts")?.iter().enumerate() {
             check(self.limits.deadline, self.cancelled)?;
-            let archived = self.archive(path, id, receipt)?;
             let previous_temporary = self.temporary_state;
-            self.temporary(
-                self.json_cost(
-                    archived
-                        .get(name)
-                        .ok_or_else(|| bad("archive source absent"))?,
-                )?
-                .checked_mul(2)
-                .ok_or(ItemRefusal::Budget)?,
-            )?;
-            if let Some(raw) = archived.get(HISTORY) {
-                self.temporary(
-                    self.json_cost(raw)?
-                        .checked_mul(2)
-                        .ok_or(ItemRefusal::Budget)?,
-                )?;
-            }
-            let predecessor = inspect_record_history(
-                &archived,
-                archived
-                    .get(name)
-                    .ok_or_else(|| bad("archive source absent"))?,
-                self.limits.deadline,
-                self.cancelled,
-            )?;
+            let archived = self.archive(path, id, receipt)?;
+            let predecessor_record=self.decoded(archived.get(name).ok_or_else(||bad("archive source absent"))?)?;
+            let predecessor=match archived.get(HISTORY) {
+                Some(raw)=>self.decoded(raw)?,
+                None=>{let value=json!({"schema_version":"tos_source_revision_history_v1","record_id":id,"receipts":[]});self.temporary(crate::record_biblio_cut::decoded_state(&value)?)?;value}
+            };
+            let mut predecessor_peak=self.canonical_workspace(&predecessor_record)?;
+            for prior in array(&predecessor,"receipts")? {predecessor_peak=predecessor_peak.max(self.canonical_workspace(&prior["request"])?);}
+            let predecessor_subject=reference(&predecessor_record,"record_id","record_version")?;
+            let predecessor_indexes=array(&predecessor,"receipts")?.len()*std::mem::size_of::<&str>()+17*std::mem::size_of::<&str>();
+            self.temporary(predecessor_peak.checked_add(crate::record_biblio_cut::decoded_state(&predecessor_subject)?).and_then(|n|n.checked_add(predecessor_indexes)).ok_or(ItemRefusal::Budget)?)?;
+            drop(predecessor_subject);
+            validate_record_history_values(&archived,&predecessor_record,&predecessor,self.limits.deadline,self.cancelled)?;
             if array(&predecessor, "receipts")? != &array(&history, "receipts")?[..index] {
                 return Err(bad("retained predecessor receipt prefix"));
             }
             drop(predecessor);
+            drop(predecessor_record);
+            drop(archived);
             self.release_temporary_since(previous_temporary);
         }
-        let history_state = self
-            .json_cost(&canonical(&history)?)?
-            .checked_mul(2)
-            .and_then(|n| n.checked_add(key.0.len() + key.1.len() + 128))
-            .ok_or(ItemRefusal::Budget)?;
+        let history_state = crate::record_biblio_cut::decoded_state(&history)?
+            .checked_add(key.0.len()+key.1.len()+std::mem::size_of::<((String,String),std::sync::Arc<Value>)>()+2*std::mem::size_of::<usize>()).ok_or(ItemRefusal::Budget)?;
+        let tree_state=crate::record_biblio_cut::decoded_state(&history)?;
+        self.state-=tree_state+key_state; self.temporary_state-=tree_state+key_state;
         reserve(&mut self.state, history_state, self.limits.max_state_bytes)?;
-        self.histories.insert(key, history.clone());
+        let history=std::sync::Arc::new(history);
+        self.histories.insert(key,history.clone());
         Ok(history)
     }
 }
@@ -1876,6 +1804,10 @@ fn item_companions(
         ("authority_boundary", string(boundary)),
     ]);
     let rights = j(&request["rights"])?;
+    let guard=|used:usize|if used>limits.max_state_bytes {Err(ItemRefusal::BudgetCheck{check:"compound Item companion logical workspace",used:Some(used as u64),limit:Some(limits.max_state_bytes as u64)})}else{Ok(())};
+    let mut workspace=0usize;
+    for value in [&manifest,&inventory,&rights] {workspace=workspace.checked_add(crate::record_biblio_cut::ordered_state(value)?).ok_or(ItemRefusal::Budget)?;}
+    guard(workspace)?;
     for (name, leaf, value) in [
         ("source-item-manifest", "item.manifest.json", &manifest),
         (
@@ -1885,9 +1817,11 @@ fn item_companions(
         ),
         ("rights-record", "rights.json", &rights),
     ] {
+        let raw=canonical_ordered(value)?;
+        guard(workspace.checked_add(raw.len()).ok_or(ItemRefusal::Budget)?)?;
         if !schemas.check(
             &format!("{}#compound-reconstructed", locator(leaf)),
-            &canonical_ordered(value)?,
+            &raw,
             &format!("ToS/contracts/{name}.schema.json"),
             limits.deadline,
             cancelled,
@@ -1905,6 +1839,8 @@ fn item_companions(
             "transaction_id":identifier,"owner_configuration":request["expected_configuration"],"byte_receipt_ref":locator("item-deposit-receipt.json")}},
         "status":"completed_with_warnings","warnings":["Local retention only; not rights, bibliographic or textual admission."],
         "receipt_refs":[locator("edition-item-receipt.json")],"rights_basis_ref":locator("rights.json"),"event_version":1});
+    workspace=workspace.checked_add(inventory_raw.len()).and_then(|n|n.checked_add(crate::record_biblio_cut::decoded_state(&event).ok()?)).ok_or(ItemRefusal::Budget)?;
+    guard(workspace.checked_add(crate::record_biblio_cut::decoded_state(&event)?).ok_or(ItemRefusal::Budget)?)?;
     let mut enumeration = event.clone();
     for (key, value) in [
         ("event_id", scope["inventory_event_id"].clone()),
@@ -1930,9 +1866,12 @@ fn item_companions(
             .unwrap()
             .insert(key.into(), value);
     }
+    workspace=workspace.checked_add(crate::record_biblio_cut::decoded_state(&enumeration)?).ok_or(ItemRefusal::Budget)?;
+    guard(workspace)?;
     let mut provenance = Vec::new();
     for (index, value) in [&event, &enumeration].into_iter().enumerate() {
         let raw = canonical(value)?;
+        guard(workspace.checked_add(provenance.len()).and_then(|n|n.checked_add(raw.len())).ok_or(ItemRefusal::Budget)?)?;
         if !schemas.check(
             &format!(
                 "{}:{}#compound-reconstructed",
@@ -1954,7 +1893,8 @@ fn item_companions(
         text(scope, "file_id")?,
         text(scope, "sha256")?
     );
-    Ok(vec![
+    let inventory_bytes=inventory_raw.len();
+    let result=vec![
         ("item.manifest.json".into(), pretty(&manifest)?),
         ("rights.json".into(), pretty(&rights)?),
         ("resource-inventory.json".into(), inventory_raw),
@@ -1969,7 +1909,12 @@ fn item_companions(
         ),
         ("forensic-report.md".into(), report.into_bytes()),
         ("provenance.jsonl".into(), provenance),
-    ])
+    ];
+    // inventory/provenance/report bytes move into these output rows, while the
+    // manifest/rights/event trees above remain live until this return.
+    let trees=workspace.checked_sub(inventory_bytes).unwrap_or(workspace);
+    guard(trees.checked_add(rows_state(&result,true)?).ok_or(ItemRefusal::Budget)?)?;
+    Ok(result)
 }
 
 fn j(value: &Value) -> Result<JsonValue, ItemRefusal> {
@@ -2005,7 +1950,7 @@ fn ref_ordered(v: &Value, id: &str, version: &str) -> Result<JsonValue, ItemRefu
         ("digest", j(&r["digest"])?),
     ]))
 }
-fn refs_ordered(files: &[(String, Vec<u8>)]) -> JsonValue {
+fn refs_ordered<T:AsRef<[u8]>>(files: &[(String, T)]) -> JsonValue {
     JsonValue::Object(
         files
             .iter()
@@ -2013,8 +1958,8 @@ fn refs_ordered(files: &[(String, Vec<u8>)]) -> JsonValue {
                 (
                     tos_foundation::JsonString::from_utf8(name),
                     object(vec![
-                        ("sha256", string(&Digest256::of_bytes(raw).to_prefixed())),
-                        ("bytes", j(&json!(raw.len())).expect("bounded byte length")),
+                        ("sha256", string(&Digest256::of_bytes(raw.as_ref()).to_prefixed())),
+                        ("bytes", j(&json!(raw.as_ref().len())).expect("bounded byte length")),
                     ]),
                 )
             })
@@ -2027,6 +1972,7 @@ fn forms(
     selections: &Value,
     principal: &str,
     claim: bool,
+    available:usize,
 ) -> Result<(JsonValue, JsonValue), ItemRefusal> {
     use crate::source_forms::source_copy_kernel as kernel;
     let fail = |e| ItemRefusal::Unsupported(format!("compound source-copy forms: {e:?}"));
@@ -2054,22 +2000,69 @@ fn forms(
             }
         }
     }
+    let fields=kernel::metadata_fields(source).map_err(fail)?;
+    let mut fields_state=std::mem::size_of::<Vec<kernel::FormField>>();
+    for field in &fields {
+        let strings=field.id.len()+field.pointer.len()+field.role.len();
+        let context=field.context.iter().try_fold(0usize,|n,s|n.checked_add(std::mem::size_of::<String>()+s.len())).ok_or(ItemRefusal::Budget)?;
+        fields_state=fields_state.checked_add(std::mem::size_of::<kernel::FormField>()).and_then(|n|n.checked_add(strings)).and_then(|n|n.checked_add(context))
+            .and_then(|n|n.checked_add(crate::record_biblio_cut::ordered_state(&field.language).ok()?.checked_sub(std::mem::size_of::<JsonValue>())?)).and_then(|n|n.checked_add(crate::record_biblio_cut::ordered_state(&field.script).ok()?.checked_sub(std::mem::size_of::<JsonValue>())?)).ok_or(ItemRefusal::Budget)?;
+    }
+    let guard=|used:usize|if used>available {Err(ItemRefusal::BudgetCheck{check:"compound source-copy logical workspace",used:Some(used as u64),limit:Some(available as u64)})}else{Ok(())};
+    // Canonical hash/equality helpers emit at most two independent buffers at
+    // once. Price the actual selected source/prior bytes, not a raw multiplier.
+    let source_wire=canonical_ordered(source)?;
+    let mut codec_wire=source_wire.len();let mut codec_indexes=crate::record_biblio_cut::ordered_emit_state(source)?;
+    drop(source_wire);
+    let prior_codec=if let Some(previous)=previous {
+        let raw=canonical_ordered(previous)?;
+        codec_wire=codec_wire.max(raw.len());codec_indexes=codec_indexes.max(crate::record_biblio_cut::ordered_emit_state(previous)?);
+        raw.len().checked_add(crate::record_biblio_cut::ordered_codec_state(previous)?).ok_or(ItemRefusal::Budget)?
+    }else{0};
+    guard(fields_state.checked_add(codec_wire.checked_add(codec_indexes).ok_or(ItemRefusal::Budget)?).ok_or(ItemRefusal::Budget)?)?;
+    let subject=kernel::metadata_subject(source).map_err(fail)?;
+    let subject_state=crate::record_biblio_cut::ordered_state(&subject)?;
+    let empty=if previous.is_none(){Some(kernel::empty_set(&subject))}else{None};
+    let empty_state=empty.as_ref().map(crate::record_biblio_cut::ordered_state).transpose()?.unwrap_or(0);
+    guard(fields_state.checked_add(subject_state).and_then(|n|n.checked_add(empty_state)).and_then(|n|n.checked_add(codec_wire.checked_add(codec_indexes)?)).ok_or(ItemRefusal::Budget)?)?;
     let mut changes = Vec::new();
+    let mut changes_state=std::mem::size_of::<Vec<JsonValue>>();
     for selection in selections {
-        changes.push(
-            kernel::prepare_form_change(
-                source,
-                previous,
+        let field_id=text(selection,"field_id")?;
+        let selected=fields.iter().find(|field|field.id==field_id).ok_or_else(||fail(kernel::FormMechanicsError::Invalid("unknown source field selector")))?;
+        let change = kernel::prepared_change(
+                previous.or(empty.as_ref()).ok_or_else(||bad("form preparation base"))?,
+                &subject,
                 principal,
                 text(selection, "form_id")?,
-                text(selection, "field_id")?,
-            )
-            .map_err(fail)?,
-        );
+                selected,
+            ).map_err(fail)?;
+        changes_state=changes_state.checked_add(crate::record_biblio_cut::ordered_state(&change)?).ok_or(ItemRefusal::Budget)?;
+        let wire=canonical_ordered(&change)?;
+        codec_wire=codec_wire.max(wire.len());codec_indexes=codec_indexes.max(crate::record_biblio_cut::ordered_emit_state(&change)?);
+        drop(wire);
+        guard(fields_state.checked_add(changes_state).and_then(|n|n.checked_add(subject_state)).and_then(|n|n.checked_add(empty_state)).and_then(|n|n.checked_add(codec_wire.checked_add(codec_indexes)?)).ok_or(ItemRefusal::Budget)?)?;
+        changes.push(change);
     }
-    let subject = kernel::metadata_subject(source).map_err(fail)?;
+    drop(empty);
+    // apply retains one successor clone plus its canonical predecessor parse;
+    // newly prepared forms are already owned by changes above.
+    guard(fields_state.checked_add(changes_state).and_then(|n|n.checked_add(subject_state)).and_then(|n|n.checked_add(prior_codec)).ok_or(ItemRefusal::Budget)?)?;
     let result = kernel::apply_form_changes(previous, &subject, &changes).map_err(fail)?;
-    let views = kernel::materialize_source_forms(source, &result).map_err(fail)?;
+    let result_state=crate::record_biblio_cut::ordered_state(&result)?;
+    let base=fields_state.checked_add(changes_state).and_then(|n|n.checked_add(subject_state)).and_then(|n|n.checked_add(result_state)).ok_or(ItemRefusal::Budget)?;
+    let result_wire=canonical_ordered(&result)?;
+    codec_wire=codec_wire.max(result_wire.len());codec_indexes=codec_indexes.max(crate::record_biblio_cut::ordered_emit_state(&result)?);drop(result_wire);
+    let equality_buffers=codec_wire.checked_add(codec_wire.checked_add(codec_indexes).ok_or(ItemRefusal::Budget)?).ok_or(ItemRefusal::Budget)?;
+    let forms=result.object_get("forms").and_then(JsonValue::as_array).map_or(0,|v|v.len());
+    let prior=result.object_get("prior_forms").and_then(JsonValue::as_array).map_or(0,|v|v.len());
+    // Borrowed history indexes, materializer subject and one field-match Vec.
+    let indexes=(forms+prior)*std::mem::size_of::<((&str,u64),&JsonValue)>()+forms*std::mem::size_of::<&str>()+fields.len()*std::mem::size_of::<&kernel::FormField>();
+    let inner=subject_state.checked_add(indexes).and_then(|n|n.checked_add(equality_buffers)).ok_or(ItemRefusal::Budget)?;
+    guard(base.checked_add(inner).ok_or(ItemRefusal::Budget)?)?;
+    let views = kernel::materialize_source_forms_from_fields(source, &result, &fields,available.checked_sub(base).and_then(|n|n.checked_sub(inner)).ok_or(ItemRefusal::Budget)?)?;
+    let views_state=views.iter().try_fold(std::mem::size_of::<Vec<JsonValue>>(),|n,v|n.checked_add(crate::record_biblio_cut::ordered_state(v).ok()?)).ok_or(ItemRefusal::Budget)?;
+    guard(base.checked_add(views_state).ok_or(ItemRefusal::Budget)?)?;
     if !views
         .iter()
         .all(|v| v.object_get("state").and_then(JsonValue::as_str) == Some("ready"))
@@ -2090,9 +2083,20 @@ fn forms(
             .map_err(fail)
         })
         .collect::<Result<Vec<_>, _>>()?;
-    Ok((result, JsonValue::Array(refs)))
+    let refs=JsonValue::Array(refs);
+    guard(base.checked_add(views_state).and_then(|n|n.checked_add(crate::record_biblio_cut::ordered_state(&refs).ok()?)).ok_or(ItemRefusal::Budget)?)?;
+    Ok((result, refs))
 }
 
+fn slice_rows_state(rows:&[(String,&[u8])])->Result<usize,ItemRefusal> {
+    rows.iter().try_fold(std::mem::size_of::<Vec<(String,&[u8])>>(),|sum,(name,_)|sum.checked_add(std::mem::size_of::<(String,&[u8])>())?.checked_add(name.len())).ok_or(ItemRefusal::Budget)
+}
+fn rows_state(rows:&[(String,Vec<u8>)], payloads:bool)->Result<usize,ItemRefusal> {
+    rows.iter().try_fold(std::mem::size_of::<Vec<(String,Vec<u8>)>>(),|sum,(name,raw)|sum.checked_add(std::mem::size_of::<(String,Vec<u8>)>())?.checked_add(name.len())?.checked_add(if payloads {raw.len()} else {0})).ok_or(ItemRefusal::Budget)
+}
+fn package_state(files:&Package)->Result<usize,ItemRefusal> {
+    files.iter().try_fold(std::mem::size_of::<Package>(),|sum,(name,raw)|sum.checked_add(std::mem::size_of::<(String,Vec<u8>)>())?.checked_add(name.len())?.checked_add(raw.len())).ok_or(ItemRefusal::Budget)
+}
 struct Reconstructed {
     scope: Value,
     request: Value,
@@ -2101,7 +2105,21 @@ struct Reconstructed {
     receipt: Value,
 }
 impl NativeCompoundReader<'_> {
-    fn reconstruct(
+    fn reconstruct(&mut self,tx:&Transaction,kind:CompoundKind,schemas:&mut CutWorkerSchemaExecutor)->Result<Reconstructed,ItemRefusal> {
+        let before=self.temporary_state;
+        let result=self.reconstruct_inner(tx,kind,schemas);
+        self.release_temporary_since(before);
+        if let Ok(value)=&result {
+            let mut amount=std::mem::size_of::<Reconstructed>();
+            for tree in [&value.scope,&value.request,&value.parent_receipt,&value.receipt] {
+                amount=amount.checked_add(crate::record_biblio_cut::decoded_state(tree)?.checked_sub(std::mem::size_of::<Value>()).ok_or(ItemRefusal::Budget)?).ok_or(ItemRefusal::Budget)?;
+            }
+            amount=amount.checked_add(package_state(&value.child)?.checked_sub(std::mem::size_of::<Package>()).ok_or(ItemRefusal::Budget)?).ok_or(ItemRefusal::Budget)?;
+            self.temporary(amount)?;
+        }
+        result
+    }
+    fn reconstruct_inner(
         &mut self,
         tx: &Transaction,
         kind: CompoundKind,
@@ -2131,31 +2149,8 @@ impl NativeCompoundReader<'_> {
         let expression_path = text(scope, kind.child_path())?;
         let home = parent(expression_path)?;
         let work_home = parent(work_path)?;
-        // Keep the original whole reconstruction allowance, but do not make
-        // future forms/companion/event trees coexist with the local Claim
-        // constructor before those trees are built. The transaction itself,
-        // retained histories and returned raw copies have separate charges.
-        let mut whole_workspace = self.json_cost(&canonical(&tx.manifest)?)?;
-        let mut initial_workspace = self.json_cost(&canonical(authority)?)?;
-        let parent_inputs = selected_names(work_path)?;
-        for (path, (before, after)) in &tx.files {
-            for (is_before, raw) in [(true, before), (false, after)] {
-                let Some(raw) = raw else { continue; };
-                let amount = raw.len().checked_add(self.carrier_json_cost(path, raw)?)
-                    .ok_or(ItemRefusal::Budget)?;
-                whole_workspace = whole_workspace.checked_add(amount).ok_or(ItemRefusal::Budget)?;
-                if is_before && parent_inputs.iter().any(|name| path == &format!("{work_home}/{name}"))
-                    || !is_before && ["source-create-request.json", "source-create-environment.json", kind.receipt_file()]
-                        .iter().any(|name| path == &format!("{home}/{name}"))
-                {
-                    initial_workspace = initial_workspace.checked_add(amount).ok_or(ItemRefusal::Budget)?;
-                }
-            }
-        }
-        let whole_workspace = whole_workspace.checked_mul(8).ok_or(ItemRefusal::Budget)?;
-        let initial_workspace = initial_workspace.checked_mul(8).ok_or(ItemRefusal::Budget)?;
-        let remaining_workspace = whole_workspace.checked_sub(initial_workspace).ok_or(ItemRefusal::Budget)?;
-        self.temporary(initial_workspace)?;
+        // Charge the representations this phase actually owns. No allowance
+        // for future forms/events competes with the local Claim constructor.
         let after = |name: &str| {
             tx.files
                 .get(&format!("{home}/{name}"))
@@ -2163,12 +2158,12 @@ impl NativeCompoundReader<'_> {
                 .cloned()
                 .ok_or_else(|| bad("missing compound after buffer"))
         };
-        let request_raw = after("source-create-request.json")?;
-        let request = decode(&request_raw)?;
+        let request_raw = self.buffer(after("source-create-request.json")?)?;
+        let request = self.decoded(&request_raw)?;
         request_valid(&request, kind)?;
         scope_valid(scope, &request, authority, kind)?;
-        let environment_raw = after("source-create-environment.json")?;
-        let environment = decode(&environment_raw)?;
+        let environment_raw = self.buffer(after("source-create-environment.json")?)?;
+        let environment = self.decoded(&environment_raw)?;
         keys(
             &environment,
             &[
@@ -2189,8 +2184,8 @@ impl NativeCompoundReader<'_> {
         for k in ["runtime_artifact_sha256", "argv_sha256"] {
             hash(&format!("sha256:{}", text(&environment, k)?))?;
         }
-        let receipt_raw = after(kind.receipt_file())?;
-        let actual_receipt = decode(&receipt_raw)?;
+        let receipt_raw = self.buffer(after(kind.receipt_file())?)?;
+        let actual_receipt = self.decoded(&receipt_raw)?;
         let recorded_at = text(&actual_receipt, "recorded_at")?;
         crate::retirement_rules::observed_instant_order(recorded_at, recorded_at)
             .map_err(|_| bad("compound recorded aware instant"))?;
@@ -2201,16 +2196,22 @@ impl NativeCompoundReader<'_> {
                 .get(&format!("{work_home}/{name}"))
                 .and_then(|s| s.0.clone())
             {
+                let raw=self.buffer(raw)?;
+                self.temporary(std::mem::size_of::<(String,Vec<u8>)>()+name.len())?;
                 before.insert(name, raw);
             }
         }
         let old_raw = before
             .get(kind.parent_file())
             .ok_or_else(|| bad("retained parent input missing"))?;
-        let old = decode(old_raw)?;
-        if reference(&old, "record_id", "record_version")? != request["expected_source"]
-            || revision(&before)? != text(&request, "expected_revision")?
-            || authority["owner_configuration"] != request["expected_configuration"]
+        let old = self.decoded(old_raw)?;
+        let mut canonical_peak=self.canonical_workspace(&old)?.max(self.canonical_workspace(&request)?).max(self.canonical_workspace(&authority["dependency_bindings"])?);
+        if !self.reference_matches(&old,"record_id","record_version",&request["expected_source"])?
+            || self.package_revision(&before)? != text(&request, "expected_revision")? {
+            return Err(bad("retained authorization/request/before binding"));
+        }
+        self.temporary(canonical_peak)?;
+        if authority["owner_configuration"] != request["expected_configuration"]
             || authority["command_id"] != request["command_id"]
             || text(authority, "request_digest")? != digest(&request)?
             || digest(&authority["dependency_bindings"])?
@@ -2229,7 +2230,7 @@ impl NativeCompoundReader<'_> {
         if array(&history, "receipts")?.len() >= MAX_HISTORY {
             return Err(bad("parent history capacity"));
         }
-        let mut revised = old.clone();
+        let mut revised = self.value_copy(&old)?;
         let map = revised
             .as_object_mut()
             .ok_or_else(|| bad("parent object"))?;
@@ -2244,7 +2245,16 @@ impl NativeCompoundReader<'_> {
                     .ok_or(ItemRefusal::Budget)?
             ),
         );
-        let mut revised_ordered = ordered(old_raw)?;
+        // Inserts replace old subtrees; charge only positive growth of the
+        // retained revised tree, not another full cloned profile.
+        self.release_temporary(canonical_peak);
+        canonical_peak=canonical_peak.max(self.canonical_workspace(&revised)?);
+        self.temporary(canonical_peak)?;
+        let old_state=crate::record_biblio_cut::decoded_state(&old)?;
+        let revised_state=crate::record_biblio_cut::decoded_state(&revised)?;
+        self.temporary(revised_state.saturating_sub(old_state))?;
+        let mut revised_ordered = self.ordered_value(old_raw)?;
+        let original_state=crate::record_biblio_cut::ordered_state(&revised_ordered)?;
         set(
             &mut revised_ordered,
             kind.field(),
@@ -2255,20 +2265,23 @@ impl NativeCompoundReader<'_> {
             "record_version",
             j(&revised["record_version"])?,
         )?;
+        self.temporary(crate::record_biblio_cut::ordered_state(&revised_ordered)?.saturating_sub(original_state))?;
         let expression = &request["record"];
         let claim = &request["claim"];
-        let expression_ordered = ordered(&request_raw)?
-            .object_get("record")
-            .ok_or_else(|| bad("ordered child record"))?
-            .clone();
-        let claim_ordered = ordered(&request_raw)?
-            .object_get("claim")
-            .ok_or_else(|| bad("ordered Claim"))?
-            .clone();
-        let parent_raw = pretty(&revised_ordered)?;
-        let expression_raw = pretty(&expression_ordered)?;
+        let ordered_request=self.ordered_value(&request_raw)?;
+        let expression_ordered=self.ordered_copy(ordered_request.object_get("record").ok_or_else(||bad("ordered child record"))?)?;
+        let claim_ordered=self.ordered_copy(ordered_request.object_get("claim").ok_or_else(||bad("ordered Claim"))?)?;
+        let request_raw_state=std::mem::size_of::<Vec<u8>>()+request_raw.len();
+        drop(request_raw);
+        self.release_temporary(request_raw_state);
+        let environment_raw_state=std::mem::size_of::<Vec<u8>>()+environment_raw.len();
+        drop(environment_raw);
+        self.release_temporary(environment_raw_state);
+        let parent_raw = self.buffer(pretty(&revised_ordered)?)?;
+        let expression_raw = self.buffer(pretty(&expression_ordered)?)?;
         let mut claim_raw = canonical_ordered(&claim_ordered)?;
         claim_raw.push(b'\n');
+        let claim_raw=self.buffer(claim_raw)?;
         let mut delta_limits = self.limits;
         delta_limits.max_state_bytes = self
             .limits
@@ -2297,7 +2310,10 @@ impl NativeCompoundReader<'_> {
         if !delta.issues.is_empty() {
             return Err(bad("native bibliographic append/delta mechanics"));
         }
+        let delta_reads_state=delta.reads.iter().try_fold(0usize,|n,r|n.checked_add(crate::record_biblio_cut::predicate_state(r).ok()?)).ok_or(ItemRefusal::Budget)?;
+        self.temporary(delta_reads_state)?;
         for read in delta.reads {
+            self.release_temporary(crate::record_biblio_cut::predicate_state(&read)?);
             self.record_read(read)?;
         }
         if kind == CompoundKind::WorkExpression
@@ -2334,6 +2350,8 @@ impl NativeCompoundReader<'_> {
         }
         let dependency_digests = std::mem::take(&mut local.dependency_digests);
         drop(local);
+        let dependencies_state=dependency_digests.keys().try_fold(0usize,|n,path|n.checked_add(std::mem::size_of::<(String,Digest256)>()+path.len())).ok_or(ItemRefusal::Budget)?;
+        self.temporary(dependencies_state)?;
         for (path, sha) in dependency_digests {
             let relative = RelativePath::parse(&path).map_err(|_| bad("Claim contract path"))?;
             let size = self
@@ -2347,17 +2365,14 @@ impl NativeCompoundReader<'_> {
                 usize::try_from(size).map_err(|_| ItemRefusal::Budget)?,
                 self.limits.max_total_bytes,
             )?;
-            self.record_read(PredicateRead::ExactPath {
-                path,
-                digest: sha.to_prefixed(),
-            })?;
+            self.release_temporary(std::mem::size_of::<(String,Digest256)>()+path.len());
+            self.record_read(PredicateRead::ExactPath {path,digest:sha.to_prefixed()})?;
         }
         // The constructor's decoded registries/routes have now been dropped.
         // Acquire the remainder before allocating any generated forms,
         // Item companions, provenance event or whole output maps.
-        self.temporary(remaining_workspace)?;
         let form_name = kind.parent_forms();
-        let prior_forms = before.get(form_name).map(|v| ordered(v)).transpose()?;
+        let prior_forms = before.get(form_name).map(|v| self.ordered_value(v)).transpose()?;
         let principal = text(authority, "principal_id")?;
         let (parent_forms, parent_refs) = forms(
             &revised_ordered,
@@ -2365,21 +2380,29 @@ impl NativeCompoundReader<'_> {
             &request["forms"],
             principal,
             false,
+            self.limits.max_state_bytes.checked_sub(self.state).ok_or(ItemRefusal::Budget)?,
         )?;
+        for value in [&parent_forms,&parent_refs] {self.temporary(crate::record_biblio_cut::ordered_state(value)?)?;}
         let (expression_forms, expression_refs) = forms(
             &expression_ordered,
             None,
             &request[kind.child_form_request()],
             principal,
             false,
+            self.limits.max_state_bytes.checked_sub(self.state).ok_or(ItemRefusal::Budget)?,
         )?;
+        for value in [&expression_forms,&expression_refs] {self.temporary(crate::record_biblio_cut::ordered_state(value)?)?;}
         let (claim_forms, claim_refs) = forms(
             &claim_ordered,
             None,
             &request["claim_forms"],
             principal,
             true,
+            self.limits.max_state_bytes.checked_sub(self.state).ok_or(ItemRefusal::Budget)?,
         )?;
+        for value in [&claim_forms,&claim_refs] {
+            self.temporary(crate::record_biblio_cut::ordered_state(value)?)?;
+        }
         let id = transaction_id(&request, kind)?;
         if id != tx.manifest["transaction_id"] {
             return Err(bad("compound transaction request identity"));
@@ -2414,7 +2437,7 @@ impl NativeCompoundReader<'_> {
             ("changed_fields", j(&json!([kind.field()]))?),
             ("forms", parent_refs.clone()),
             ("grants_admission", JsonValue::Bool(false)),
-            ("request", ordered(&request_raw)?),
+            ("request", self.ordered_copy(&ordered_request)?),
             (
                 "publication",
                 object(vec![
@@ -2431,16 +2454,23 @@ impl NativeCompoundReader<'_> {
                 ]),
             ),
         ]);
-        let parent_receipt = decode(&canonical_ordered(&parent_receipt_ordered)?)?;
+        self.temporary(crate::record_biblio_cut::ordered_state(&parent_receipt_ordered)?)?;
+        let parent_receipt_raw=self.buffer(canonical_ordered(&parent_receipt_ordered)?)?;
+        let parent_receipt = self.decoded(&parent_receipt_raw)?;
         parent_receipt_shape(&parent_receipt, kind)?;
-        let mut receipts = match before.get(HISTORY) {
-            Some(raw) => ordered(raw)?
-                .object_get("receipts")
-                .and_then(JsonValue::as_array)
-                .ok_or_else(|| bad("ordered receipt chain"))?
-                .to_vec(),
-            None => vec![],
+        let (mut receipts,mut receipt_array_state)=match before.get(HISTORY) {
+            Some(raw)=>{
+                let prior=self.ordered_value(raw)?;
+                let prior_state=crate::record_biblio_cut::ordered_state(&prior)?;
+                let rows=prior.object_get("receipts").and_then(JsonValue::as_array).ok_or_else(||bad("ordered receipt chain"))?;
+                let cost=rows.iter().try_fold(std::mem::size_of::<Vec<JsonValue>>(),|n,row|n.checked_add(crate::record_biblio_cut::ordered_state(row).ok()?)).ok_or(ItemRefusal::Budget)?;
+                self.temporary(cost)?;let rows=rows.to_vec();
+                drop(prior);self.release_temporary(prior_state);(rows,cost)
+            },
+            None=>{let cost=std::mem::size_of::<Vec<JsonValue>>();self.temporary(cost)?;(vec![],cost)},
         };
+        let new_receipt_state=crate::record_biblio_cut::ordered_state(&parent_receipt_ordered)?;
+        self.temporary(new_receipt_state)?;receipt_array_state=receipt_array_state.checked_add(new_receipt_state).ok_or(ItemRefusal::Budget)?;
         receipts.push(parent_receipt_ordered.clone());
         // Maintained _compose creates this outer dict afresh in fixed order;
         // retained receipt object order, but not prior outer order, survives.
@@ -2449,10 +2479,12 @@ impl NativeCompoundReader<'_> {
             ("record_id", j(&scope[kind.parent_key()])?),
             ("receipts", JsonValue::Array(receipts)),
         ]);
+        self.release_temporary(receipt_array_state);
+        self.temporary(crate::record_biblio_cut::ordered_state(&history_ordered)?)?;
         let parent_files: Vec<(String, Vec<u8>)> = vec![
             (kind.parent_file().into(), parent_raw),
-            (form_name.into(), pretty(&parent_forms)?),
-            (HISTORY.into(), pretty(&history_ordered)?),
+            (form_name.into(), self.buffer(pretty(&parent_forms)?)?),
+            (HISTORY.into(), self.buffer(pretty(&history_ordered)?)?),
         ];
         let claim_form_name = format!(
             "source-claims.{}.human-forms.json",
@@ -2460,23 +2492,30 @@ impl NativeCompoundReader<'_> {
         );
         let mut child_files: Vec<(String, Vec<u8>)> = vec![
             (kind.child_file().into(), expression_raw),
-            (kind.child_forms().into(), pretty(&expression_forms)?),
+            (kind.child_forms().into(), self.buffer(pretty(&expression_forms)?)?),
             ("source-claims.jsonl".into(), claim_raw),
-            (claim_form_name, pretty(&claim_forms)?),
+            (claim_form_name, self.buffer(pretty(&claim_forms)?)?),
         ];
+        self.temporary(rows_state(&parent_files,false)?)?;
+        self.temporary(rows_state(&child_files,false)?)?;
         if kind == CompoundKind::EditionItem {
-            let byte_receipt_raw = after("item-deposit-receipt.json")?;
-            let byte_receipt = decode(&byte_receipt_raw)?;
-            let inventory = decode(&after("resource-inventory.json")?)?;
-            child_files.extend(item_companions(
+            let byte_receipt_raw = self.buffer(after("item-deposit-receipt.json")?)?;
+            let byte_receipt = self.decoded(&byte_receipt_raw)?;
+            let inventory_raw=self.buffer(after("resource-inventory.json")?)?;
+            let inventory = self.decoded(&inventory_raw)?;
+            let mut companion_limits=self.limits;
+            companion_limits.max_state_bytes=self.limits.max_state_bytes.checked_sub(self.state).ok_or(ItemRefusal::Budget)?;
+            let companions=item_companions(
                 scope,
                 &request,
                 &byte_receipt,
                 text(&inventory["generator"], "version")?,
                 schemas,
-                self.limits,
+                companion_limits,
                 self.cancelled,
-            )?);
+            )?;
+            self.temporary(rows_state(&companions,true)?)?;
+            child_files.extend(companions);
             child_files.push((
                 "item-deposit-receipt.json".into(),
                 pretty(&ordered(&byte_receipt_raw)?)?,
@@ -2484,13 +2523,14 @@ impl NativeCompoundReader<'_> {
         }
         let outputs: Vec<_> = parent_files
             .iter()
-            .map(|(n, r)| (format!("{work_home}/{n}"), r.clone()))
+            .map(|(n, r)| (format!("{work_home}/{n}"), r.as_slice()))
             .chain(
                 child_files
                     .iter()
-                    .map(|(n, r)| (format!("{home}/{n}"), r.clone())),
+                    .map(|(n, r)| (format!("{home}/{n}"), r.as_slice())),
             )
             .collect();
+        self.temporary(slice_rows_state(&outputs)?)?;
         let event = compound_event(
             kind,
             scope,
@@ -2500,9 +2540,15 @@ impl NativeCompoundReader<'_> {
             &environment,
             &authority["dependency_bindings"],
             recorded_at,
+            self.limits.max_state_bytes.checked_sub(self.state).ok_or(ItemRefusal::Budget)?,
         )?;
+        let outputs_state=slice_rows_state(&outputs)?;
+        drop(outputs);
+        self.release_temporary(outputs_state);
+        self.temporary(crate::record_biblio_cut::decoded_state(&event)?)?;
         let mut event_raw = canonical(&event)?;
         event_raw.push(b'\n');
+        let event_raw=self.buffer(event_raw)?;
         if !schemas.check(
             &format!("{home}/source-create-provenance.jsonl"),
             &event_raw,
@@ -2527,28 +2573,30 @@ impl NativeCompoundReader<'_> {
             ("source-create-request.json".into(), {
                 let mut r = canonical(&request)?;
                 r.push(b'\n');
-                r
+                self.buffer(r)?
             }),
             ("source-create-environment.json".into(), {
                 let mut r = canonical(&environment)?;
                 r.push(b'\n');
-                r
+                self.buffer(r)?
             }),
             ("source-create-provenance.jsonl".into(), event_raw),
         ]);
         let files: Vec<_> = parent_files
             .iter()
-            .map(|(n, r)| (format!("{work_home}/{n}"), r.clone()))
+            .map(|(n, r)| (format!("{work_home}/{n}"), r.as_slice()))
             .chain(
                 child_files
                     .iter()
-                    .map(|(n, r)| (format!("{home}/{n}"), r.clone())),
+                    .map(|(n, r)| (format!("{home}/{n}"), r.as_slice())),
             )
             .collect();
+        self.temporary(slice_rows_state(&files)?)?;
         let before_refs: Vec<_> = selected_names(work_path)?
             .iter()
-            .filter_map(|n| before.get(n).map(|r| (n.clone(), r.clone())))
+            .filter_map(|n| before.get(n).map(|r| (n.clone(), r.as_slice())))
             .collect();
+        self.temporary(slice_rows_state(&before_refs)?)?;
         let receipt_ordered = object(vec![
             ("schema_version", string(kind.receipt_schema())),
             ("operation", string(kind.operation())),
@@ -2598,8 +2646,12 @@ impl NativeCompoundReader<'_> {
             ("files", refs_ordered(&files)),
             ("grants_admission", JsonValue::Bool(false)),
         ]);
-        let expected_raw = pretty(&receipt_ordered)?;
-        let receipt = decode(&expected_raw)?;
+        let rows_state=slice_rows_state(&files)?.checked_add(slice_rows_state(&before_refs)?).ok_or(ItemRefusal::Budget)?;
+        drop(files);drop(before_refs);
+        self.release_temporary(rows_state);
+        self.temporary(crate::record_biblio_cut::ordered_state(&receipt_ordered)?)?;
+        let expected_raw = self.buffer(pretty(&receipt_ordered)?)?;
+        let receipt = self.decoded(&expected_raw)?;
         if actual_receipt != receipt || receipt_raw != expected_raw {
             return Err(bad("exact reconstructed compound receipt bytes"));
         }
@@ -2611,28 +2663,20 @@ impl NativeCompoundReader<'_> {
         {
             return Err(ItemRefusal::Budget);
         }
-        let expected: BTreeMap<_, _> = parent_files
-            .into_iter()
-            .map(|(n, r)| {
-                (
-                    format!("{work_home}/{n}"),
-                    (before.get(&n).cloned(), Some(r)),
-                )
-            })
-            .chain(
-                child_files
-                    .iter()
-                    .map(|(n, r)| (format!("{home}/{n}"), (None, Some(r.clone())))),
-            )
-            .collect();
-        if tx.files != expected {
+        let expected:BTreeMap<_,_>=parent_files.iter().map(|(name,raw)|(format!("{work_home}/{name}"),(before.get(name).map(Vec::as_slice),Some(raw.as_slice()))))
+            .chain(child_files.iter().map(|(name,raw)|(format!("{home}/{name}"),(None,Some(raw.as_slice()))))).collect();
+        let expected_state=expected.keys().try_fold(0usize,|sum,path|sum.checked_add(std::mem::size_of::<(String,(Option<&[u8]>,Option<&[u8]>))>()+path.len())).ok_or(ItemRefusal::Budget)?;
+        self.temporary(expected_state)?;
+        if tx.files.len()!=expected.len() || expected.iter().any(|(path,(before,after))|tx.files.get(path).is_none_or(|(old,new)|old.as_deref()!=*before || new.as_deref()!=*after)) {
             return Err(bad("exact whole retained before/after plan"));
         }
+        drop(expected);
+        self.release_temporary(expected_state);
         if self.archive(work_path, text(scope, kind.parent_key())?, &parent_receipt)? != before {
             return Err(bad("parent archive versus transaction inputs"));
         }
         Ok(Reconstructed {
-            scope: scope.clone(),
+            scope: self.value_copy(scope)?,
             request,
             parent_receipt,
             child: child_files.into_iter().collect(),
@@ -2646,10 +2690,11 @@ fn compound_event(
     scope: &Value,
     request: &Value,
     before: &Package,
-    outputs: &[(String, Vec<u8>)],
+    outputs: &[(String, &[u8])],
     environment: &Value,
     dependencies: &Value,
     recorded_at: &str,
+    available:usize,
 ) -> Result<Value, ItemRefusal> {
     let module = kind.module();
     let home = parent(text(scope, kind.child_path())?)?;
@@ -2699,7 +2744,10 @@ fn compound_event(
         .values()
         .try_fold(0usize, |sum, raw| sum.checked_add(raw.len()))
         .ok_or(ItemRefusal::Budget)?;
-    Ok(json!({
+    let mut scratch=request_raw.len().checked_add(environment_raw.len()).and_then(|n|n.checked_add(crate::record_biblio_cut::decoded_state(&env).ok()?)).ok_or(ItemRefusal::Budget)?;
+    scratch=scratch.checked_add(inputs.iter().try_fold(0usize,|n,v|n.checked_add(crate::record_biblio_cut::decoded_state(v).ok()?)).ok_or(ItemRefusal::Budget)?).ok_or(ItemRefusal::Budget)?;
+    scratch=scratch.checked_add(prior.keys().try_fold(0usize,|n,p|n.checked_add(std::mem::size_of::<(String,&Vec<u8>)>()+p.len())).ok_or(ItemRefusal::Budget)?).and_then(|n|n.checked_add(output.len()*std::mem::size_of::<(&String,&&[u8])>())).ok_or(ItemRefusal::Budget)?;
+    let result=json!({
         "$schema":"https://tree-of-sophia.local/ToS/contracts/provenance-event-v2.schema.json","schema_version":"tos_provenance_event_v2","event_id":scope["provenance_event_id"],"event_version":1,"supersedes_event_ref":null,
         "record_binding":{"manifest_ref":format!("{home}/{}",kind.receipt_file()),"digest_algorithm":"sha256","digest_scope":"exact_event_record_bytes"},
         "activity":{"event_type":"annotation","started_at":recorded_at,"ended_at":recorded_at,"status":"completed_with_warnings","terminal_reason":null,"exit_code":0,"warnings":["Captured prepared metadata buffers; the committed transaction is a separate verification.","Observed denotes the declared record link, not accepted bibliographic or textual truth."]},
@@ -2714,7 +2762,10 @@ fn compound_event(
         "review_and_authority":{"mechanical_validation":"not_run","human_review_status":"not_performed","review_bindings":[],"accepted_uses":[],"promotion_authorized":false,"competence_evidence_bindings":[]},
         "reproducibility":{"classification":"partially_specified","known_gaps":["Upstream research, source reading and model invocations are outside this operation.","Runtime metadata is captured, not a complete archived execution environment."],"replay_scope":"Exact retained request, metadata and source-copy buffer construction; not bibliographic truth."},
         "authority_boundary":{"validator_role":"mechanics_and_closure_only_not_truth","claims_not_established":["execution_truth","content_truth","source_fidelity","translation_quality","semantic_correctness","rights_clearance","human_review","publication_authority","canon_authority"]}
-    }))
+    });
+    let used=scratch.checked_add(crate::record_biblio_cut::decoded_state(&result)?).ok_or(ItemRefusal::Budget)?;
+    if used>available {return Err(ItemRefusal::BudgetCheck{check:"compound provenance logical workspace",used:Some(used as u64),limit:Some(available as u64)});}
+    Ok(result)
 }
 
 impl NativeCompoundReader<'_> {
@@ -2744,8 +2795,7 @@ impl NativeCompoundReader<'_> {
         }
         let home = parent(path)?;
         let receipt_raw = self.required(&format!("{home}/{}", kind.receipt_file()), MAX_FILE)?;
-        self.temporary(self.json_cost(&receipt_raw)?)?;
-        let receipt = decode(&receipt_raw)?;
+        let receipt = self.decoded(&receipt_raw)?;
         if text(&receipt, "schema_version")? != kind.receipt_schema() {
             return Err(bad("native Claim compound receipt"));
         }
@@ -2813,8 +2863,7 @@ impl NativeCompoundReader<'_> {
             }
         }
         let parent_files = self.selected(work)?;
-        self.temporary(self.json_cost(&parent_files[kind.parent_file()])?)?;
-        let parent_record = decode(&parent_files[kind.parent_file()])?;
+        let parent_record = self.decoded(&parent_files[kind.parent_file()])?;
         if parent_record["record_id"] != scope[kind.parent_key()]
             || parent_record["record_type"] != kind.parent_kind()
             || kind == CompoundKind::ExpressionEdition
@@ -2827,8 +2876,7 @@ impl NativeCompoundReader<'_> {
             return Err(bad("compound transition missing in current parent lineage"));
         }
         let child_files = self.selected(expression)?;
-        self.temporary(self.json_cost(&child_files[kind.child_file()])?)?;
-        let child_record = decode(&child_files[kind.child_file()])?;
+        let child_record = self.decoded(&child_files[kind.child_file()])?;
         if child_record["record_id"] != scope[kind.child_key()]
             || child_record["record_type"] != kind.child_kind()
             || !kind.initial_backlink(&child_record, &scope[kind.parent_key()])
@@ -2842,6 +2890,7 @@ impl NativeCompoundReader<'_> {
         let mut initial = child_files[kind.child_file()] == reconstructed.child[kind.child_file()];
         for receipt in array(&child_history, "receipts")? {
             check(self.limits.deadline, self.cancelled)?;
+            let before_archive=self.temporary_state;
             let archive = self.archive(expression, text(scope, kind.child_key())?, receipt)?;
             if receipt["previous_source"] == reconstructed.receipt[kind.child_kind()] {
                 if archive[kind.child_file()] != reconstructed.child[kind.child_file()] {
@@ -2849,6 +2898,8 @@ impl NativeCompoundReader<'_> {
                 }
                 initial = true;
             }
+            drop(archive);
+            self.release_temporary_since(before_archive);
         }
         if !initial {
             return Err(bad(
