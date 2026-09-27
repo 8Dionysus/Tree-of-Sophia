@@ -978,6 +978,57 @@ fn native_profile_context() -> CommandContext {
     scope_fields.push((JsonString::from_utf8("file_sha256"), original_sha.clone()));
     set(&mut packet, "source_scope", JsonValue::Object(scope_fields));
     set(&mut packet, "content_posture", text("source_bound"));
+    // Follow the maintained NativeTextBindingFixture's synthetic native
+    // proposal posture (tests/test_native_text_binding.py), rather than
+    // promoting the laboratory's synthetic maker or source-attested units.
+    // These declarations describe this fixture constructor, not a retained
+    // production producer, content verification or source assessment.
+    let mut schemes = packet
+        .object_get("schemes")
+        .unwrap()
+        .as_array()
+        .unwrap()
+        .to_vec();
+    let scheme = &mut schemes[0];
+    nested(scheme, &["method", "maker_kind"], text("software"));
+    nested(
+        scheme,
+        &["method", "agent_ref"],
+        text("software:synthetic-test-fixture"),
+    );
+    nested(scheme, &["method", "method_name"], text(notice));
+    nested(scheme, &["method", "configuration_ref"], text(&policy_path));
+    nested(scheme, &["method", "locale"], text("und"));
+    nested(scheme, &["method", "software_refs"], arr(&[&policy_path]));
+    let method = scheme.object_get("method").unwrap().clone();
+    set(&mut packet, "schemes", JsonValue::Array(schemes));
+    let mut units = packet
+        .object_get("units")
+        .unwrap()
+        .as_array()
+        .unwrap()
+        .to_vec();
+    for unit in &mut units {
+        set(unit, "boundary_posture", text("method_proposed"));
+        set(unit, "status_reason", text(notice));
+    }
+    set(&mut packet, "units", JsonValue::Array(units));
+    let mut segmentations = packet
+        .object_get("segmentations")
+        .unwrap()
+        .as_array()
+        .unwrap()
+        .to_vec();
+    for segmentation in &mut segmentations {
+        set(segmentation, "status", text("proposed"));
+        set(segmentation, "status_reason", text(notice));
+        set(segmentation, "maker", method.clone());
+    }
+    set(
+        &mut packet,
+        "segmentations",
+        JsonValue::Array(segmentations),
+    );
     nested(
         &mut packet,
         &["source_layer", "text_layer_ref"],
@@ -1292,11 +1343,87 @@ fn native_profile_context() -> CommandContext {
 
 #[test]
 fn profile_native_binding_checks_metadata_closure_without_content_read() {
+    use tos_validation::text_metadata_rules::{
+        TextMetadataLimits, TextMetadataState, inspect_source_anchor_v2_metadata,
+        inspect_source_text_layer_metadata, inspect_source_text_unit_v1_metadata,
+    };
     let ctx = native_profile_context();
     assert!(
         !ctx.files
             .iter()
             .any(|f| f.path.as_str().ends_with(".txt") || f.path.as_str().contains("/payload/"))
+    );
+    let cancelled = AtomicBool::new(false);
+    let limits = TextMetadataLimits {
+        max_packet_bytes: 1_048_576,
+        max_state_bytes: 8_388_608,
+        max_issues: 128,
+        deadline: Instant::now() + Duration::from_secs(30),
+    };
+    let packet = ctx
+        .files
+        .iter()
+        .find(|f| f.path.as_str().ends_with("/source-text-unit.fixture.json"))
+        .unwrap();
+    let layer = ctx
+        .files
+        .iter()
+        .find(|f| f.path.as_str().ends_with("/source-text-layer.fixture.json"))
+        .unwrap();
+    let anchor = ctx
+        .files
+        .iter()
+        .find(|f| f.path.as_str().ends_with("/source-anchor-v2.fixture.json"))
+        .unwrap();
+    for report in [
+        inspect_source_text_unit_v1_metadata(&packet.raw, packet.path.as_str(), limits, &cancelled)
+            .unwrap(),
+        inspect_source_text_layer_metadata(&layer.raw, layer.path.as_str(), limits, &cancelled)
+            .unwrap(),
+        inspect_source_anchor_v2_metadata(&anchor.raw, anchor.path.as_str(), limits, &cancelled)
+            .unwrap(),
+    ] {
+        assert_eq!(
+            report.state,
+            TextMetadataState::CheckedMetadata,
+            "{report:?}"
+        );
+        assert!(report.issues.is_empty(), "{report:?}");
+        assert_eq!(report.scope, "owner-metadata-predicates-only");
+    }
+    // Retaining the original laboratory maker after changing source posture
+    // must still be rejected by the actual owner rule.
+    let mut incompatible = parse(&packet.raw);
+    let mut schemes = incompatible
+        .object_get("schemes")
+        .unwrap()
+        .as_array()
+        .unwrap()
+        .to_vec();
+    nested(
+        &mut schemes[0],
+        &["method", "maker_kind"],
+        text("synthetic_fixture"),
+    );
+    set(&mut incompatible, "schemes", JsonValue::Array(schemes));
+    let rejected = inspect_source_text_unit_v1_metadata(
+        &bytes(&incompatible),
+        packet.path.as_str(),
+        limits,
+        &cancelled,
+    )
+    .unwrap();
+    assert_eq!(rejected.state, TextMetadataState::InvalidInput);
+    assert!(
+        rejected
+            .issues
+            .iter()
+            .any(|issue| issue.code == "metadata-owner-predicate"
+                && issue.subject == packet.path.as_str()
+                && issue
+                    .message
+                    .starts_with("synthetic scheme maker escaped the synthetic laboratory:")),
+        "{rejected:?}"
     );
     let prepared = run_with_cut(&ctx, None, true).unwrap();
     assert_eq!(prepared.handler_id, "public-profile-revision");
