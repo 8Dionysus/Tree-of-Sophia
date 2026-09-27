@@ -1294,11 +1294,12 @@ fn actual_native_object_link_binds_committed_origin_and_corrected_lineage() {
         let mut oracle = std::process::Command::new("python3")
             .arg("-c")
             .arg(r#"
-import json,sys
+import json,os,sys
 from pathlib import Path
 root=Path(sys.argv[1]);kind=sys.argv[2]
 sys.path.insert(0,str(root/'mechanics/growth-cycle/tests'))
 from test_source_link_commands import NativeObjectLinkTests,commands,links,revisions,ROOT
+from corpus_source_validation import FORBIDDEN_PARTS,is_source_member
 c=NativeObjectLinkTests();c.setUp()
 try:
     if kind=='artifact':
@@ -1321,8 +1322,20 @@ try:
         c.revise_link();c.rebuild();c.revise_claim();c.rebuild()
     claim=json.loads((c.root/c.config['claim_source_path']).read_bytes())
     links.verify_compound(c.root,c.config['claim_source_path'],claim)
-    files={p.relative_to(c.root).as_posix():p.read_bytes().hex()
-           for p in sorted((c.root/'ToS').rglob('*')) if p.is_file()}
+    # Select the authored carrier before reading any bytes. The owner fixture
+    # deliberately keeps an opaque payload beside the Work; generated catalog
+    # rows remain available to the Python producer but never enter this cut.
+    files={}
+    for directory,dirs,names in os.walk(c.root/'ToS'):
+        dirs[:]=sorted(d for d in dirs if d not in FORBIDDEN_PARTS)
+        for name in sorted(names):
+            p=Path(directory)/name
+            ref=p.relative_to(c.root).as_posix()
+            if not is_source_member(ref):
+                continue
+            if p.is_symlink() or not p.is_file():
+                raise RuntimeError('selected ObjectLink member is not a regular file: '+ref)
+            files[ref]=p.read_bytes().hex()
     print(json.dumps({'files':files,'claim_path':c.config['claim_source_path'],
         'link_history':str(Path(c.config['link_source_path']).with_name(revisions.HISTORY))}))
 finally:c.doCleanups()
@@ -1364,11 +1377,8 @@ finally:c.doCleanups()
         let relation = "ToS/doctrine/semantic-interchange/relation-types.v1.json";
         files.insert(relation.into(), fs::read(repository().join(relation)).unwrap());
         for (path, hex) in packet["files"].as_object().unwrap() {
-            if !tos_source_store::is_authored_source_path_v1(path) {
-                assert!(path.starts_with("ToS/source-witnesses/catalog/"),
-                    "unexpected generated ObjectLink fixture member {path}");
-                continue;
-            }
+            assert!(tos_source_store::is_authored_source_path_v1(path),
+                "unexpected non-authored ObjectLink fixture member {path}");
             let hex = hex.as_str().unwrap();
             assert_eq!(hex.len() % 2, 0);
             let raw = (0..hex.len()).step_by(2)
