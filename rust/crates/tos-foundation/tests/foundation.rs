@@ -1,10 +1,9 @@
 use tos_foundation::{
-    CanonicalProfile, CodePointSpan, ContractDescriptor, ContractKey, DescriptorRegistry,
-    Digest256, Digest256Hasher, FoundationErrorCode, JsonEmissionProfile, JsonLimits, JsonMode,
-    JsonNumber, JsonNumberKind, JsonString, JsonValue, LogicalRecordRefV1, OperationDescriptor,
-    OperationEffect, RelativePath, StableId, UnicodeProfile, canonical_bytes_v1, emit_json_profile,
-    emit_preserved_json, parse_json, python_casefold_unicode16_v1, python_lower_unicode16_v1,
-    python_strip_unicode16_v1,
+    CanonicalProfile, CodePointSpan, Digest256, Digest256Hasher, FoundationErrorCode,
+    JsonEmissionProfile, JsonLimits, JsonMode, JsonNumber, JsonNumberKind, JsonString, JsonValue,
+    LogicalRecordRefV1, RelativePath, StableId, UnicodeProfile, canonical_bytes_v1,
+    emit_json_profile, emit_preserved_json, parse_json, python_casefold_unicode16_v1,
+    python_lower_unicode16_v1, python_strip_unicode16_v1,
 };
 
 #[test]
@@ -133,40 +132,6 @@ fn code_point_offsets_bind_exact_utf8_bytes() {
     let bytes = span.byte_span_in(text).unwrap();
     assert_eq!((bytes.start, bytes.end), (1, 5));
     assert!(span.byte_span_in("AéO").is_err());
-}
-
-#[test]
-fn descriptors_are_extensible_but_not_authority() {
-    let mut registry = DescriptorRegistry::new();
-    let input = ContractKey::new("tos.source.new-kind", "v1").unwrap();
-    let output = ContractKey::new("tos.access.new-kind-view", "v2").unwrap();
-    for key in [input.clone(), output.clone()] {
-        registry
-            .register_contract(
-                ContractDescriptor::new(
-                    key,
-                    "ToS/contracts/owner.json",
-                    Digest256::of_bytes(b"schema"),
-                    "tos_foundation_json_v1",
-                )
-                .unwrap(),
-            )
-            .unwrap();
-    }
-    registry
-        .register_operation(
-            OperationDescriptor::new(
-                "tos.new-kind.read",
-                "v1",
-                input,
-                output,
-                OperationEffect::Read,
-            )
-            .unwrap(),
-        )
-        .unwrap();
-    assert!(registry.operation("tos.new-kind.read", "v1").is_some());
-    assert!(registry.operation("tos.unknown", "v1").is_none());
 }
 
 #[test]

@@ -1,13 +1,17 @@
-use crate::descriptor::DESCRIPTOR_FORMAT_VERSION;
 use crate::json::{CanonicalProfile, FORMAT_VERSION, JsonEmissionProfile, JsonMode};
 use crate::logical_ref::LogicalRecordRefV1;
 use crate::unicode::UnicodeProfile;
+
+// Retained only for the existing web-codec capability wire. No in-memory
+// descriptor registry or descriptor-construction API is supplied by Foundation.
+const LEGACY_DESCRIPTOR_WIRE_TAG: &str = "tos_foundation_descriptors_v1";
 
 /// Versioned disclosure of what this small foundation package actually supports.
 /// A caller must not infer source admission or complete schema validation from it.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct FoundationCapabilities {
     pub json_format: &'static str,
+    /// Compatibility wire tag; it does not advertise a descriptor registry.
     pub descriptor_format: &'static str,
     pub json_profiles: [&'static str; 2],
     pub canonical_profile: &'static str,
@@ -26,7 +30,7 @@ pub struct FoundationCapabilities {
 pub const fn capabilities() -> FoundationCapabilities {
     FoundationCapabilities {
         json_format: FORMAT_VERSION,
-        descriptor_format: DESCRIPTOR_FORMAT_VERSION,
+        descriptor_format: LEGACY_DESCRIPTOR_WIRE_TAG,
         json_profiles: [
             JsonMode::PublishedStrict.as_str(),
             JsonMode::RequestLastWins.as_str(),

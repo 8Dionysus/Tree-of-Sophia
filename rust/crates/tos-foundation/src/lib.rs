@@ -4,7 +4,6 @@
 
 mod capability;
 mod coordinates;
-mod descriptor;
 mod digest;
 mod error;
 mod identity;
@@ -15,9 +14,6 @@ mod unicode;
 
 pub use capability::{FoundationCapabilities, capabilities};
 pub use coordinates::{ByteSpan, CodePointSpan};
-pub use descriptor::{
-    ContractDescriptor, ContractKey, DescriptorRegistry, OperationDescriptor, OperationEffect,
-};
 pub use digest::{Digest256, Digest256Hasher};
 pub use error::{FoundationError, FoundationErrorCode, Result};
 pub use identity::{ExactRecordRef, RecordVersion, SourceRevision, StableId};
