@@ -78,6 +78,7 @@ pub struct FullKnowledgeFixture {
     pub corpus_original: Option<crate::CorpusOriginalReceipt>,
     entity_registry_bytes: Vec<u8>,
     relation_registry_bytes: Vec<u8>,
+    producer_limits: FullKnowledgeLimits,
     custody: FixtureCustody,
 }
 impl FullKnowledgeFixture {
@@ -93,12 +94,22 @@ impl FullKnowledgeFixture {
         [&self.entity_registry_bytes, &self.relation_registry_bytes]
     }
     /// Existing cold fixture limits, shared with its actual native companion.
+    /// Per-table row guards cover the declared producer workload, never counts
+    /// observed after a successful build. Physical/VM/total work caps are fixed.
     pub fn cold_limits(&self) -> ColdOpenLimits {
+        let declared = self.producer_limits;
+        let max_rows = declared
+            .scope
+            .max_rows
+            .max(declared.scope.max_sources as u64)
+            .max(declared.search.max_postings)
+            .max(declared.catalog.max_catalog_entries)
+            .max(declared.catalog_index.max_index_rows);
         ColdOpenLimits {
             max_file_bytes: 64 * 1024 * 1024,
             max_vm_steps: 100_000_000,
             sqlite_cache_kib: 8192,
-            max_rows: 100_000,
+            max_rows,
             max_work_bytes: 100 * 1024 * 1024,
             max_row_bytes: 1024 * 1024,
             max_metadata_bytes: 256 * 1024,
@@ -570,6 +581,7 @@ fn finish_fixture_with_limits(
         corpus_original,
         entity_registry_bytes: entity_bytes.to_vec(),
         relation_registry_bytes: relation_bytes.to_vec(),
+        producer_limits: limits,
         custody: FixtureCustody,
     }
 }
