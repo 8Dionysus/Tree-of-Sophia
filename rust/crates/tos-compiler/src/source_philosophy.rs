@@ -19,6 +19,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Instant;
 use tos_foundation::{Digest256, Digest256Hasher, RelativePath, SourceRevision};
 use tos_source_store::{CorpusCutReader, MemberMetadata, SourceMembershipV1};
+use tos_validation::SchemaBackendProbe;
 use tos_validation::executor::BatchBudget;
 use tos_validation::source_cut::{CutSchemaCheck, CutSchemaExecutor};
 pub const PHILOSOPHY_SOURCE_CUSTODY: &str = "philosophy-source-custody";
@@ -85,9 +86,9 @@ impl PhilosophySourceLimits {
                 .is_none_or(|n| n > self.max_page_bytes)
             || self.max_work_bytes == 0
             || self.schema_batch.max_units == 0
-            || self.schema_batch.max_units > 64
+            || self.schema_batch.max_units > BatchBudget::MAX_UNITS
             || self.schema_batch.max_total_raw_bytes == 0
-            || self.schema_batch.max_total_raw_bytes > 32 * 1024 * 1024
+            || self.schema_batch.max_total_raw_bytes > BatchBudget::MAX_RAW_BYTES
         {
             return Err(Error::Budget("philosophy source limits"));
         }
@@ -462,7 +463,9 @@ fn validate_projection(
     let mut checks = Vec::with_capacity(l.schema_batch.max_units);
     let mut pending_bytes = 0usize;
     let mut submit = |path: String, raw: Vec<u8>, contract: String| -> Result<()> {
-        if raw.len() > l.schema_batch.max_total_raw_bytes {
+        if raw.len() > l.schema_batch.max_total_raw_bytes
+            || raw.len() > SchemaBackendProbe::MAX_INSTANCE_BYTES
+        {
             return Err(Error::Budget("philosophy schema batch instance"));
         }
         if checks.len() == l.schema_batch.max_units
