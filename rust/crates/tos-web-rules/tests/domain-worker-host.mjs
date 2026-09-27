@@ -22,7 +22,7 @@ const temporalDriver = (await transform(await readFile(new URL('../../../../acce
   {loader:'ts',format:'esm',target:'es2022'})).code;
 const entry = `
 import { initSync, compact_knowledge_search_page_wasm_v1, workspace_proposal_digest_wasm_v1, workspace_transition_wasm_v1, TemporalReplaySession } from './tos_web_rules.mjs';
-import { captureSelectedTemporal } from './selected-temporal-runtime.mjs';
+import { captureSelectedTemporal, SelectedTemporalError } from './selected-temporal-runtime.mjs';
 import rulesModule from './tos_web_rules_bg.wasm';
 let ready = false;
 export default { async fetch(request) {
@@ -48,7 +48,13 @@ export default { async fetch(request) {
       // Test-only transport after capture; no lease is held over platform body
       // consumption, and this fixture is not public delivery acceptance.
       return new Response(captured,{headers:{'content-type':'application/json'}});
-    }catch(error){return Response.json({error:error.code??error.name,message:error.message});}
+    }catch(error){
+      // DOMException.code is a legacy number (AbortError uses ABORT_ERR), not
+      // a selected-query domain code. Only our typed error owns string codes;
+      // host exceptions retain their actual name instead of accepting numbers.
+      return Response.json({error:error instanceof SelectedTemporalError?error.code:error.name,
+        name:error.name,message:error.message});
+    }
   }
   if (new URL(request.url).pathname === '/envelope') {
     const result = compact_knowledge_search_page_wasm_v1(raw);
@@ -134,7 +140,8 @@ try {
       max_source_bytes:1048576,max_replay_bytes:8388608,max_output_bytes:1048576})};
   const temporal=await call('/temporal',temporalFixture);
   assert.equal(temporal.comparison.status,'unsupported');assert.deepEqual(temporal.left.claim,node);assert.deepEqual(temporal.right.claim,node);
-  assert.equal((await call('/temporal',{...temporalFixture,cancel:true})).error,'AbortError');
+  const cancelled=await call('/temporal',{...temporalFixture,cancel:true});
+  assert.equal(cancelled.error,'AbortError');assert.equal(cancelled.name,'AbortError');
   assert.equal((await call('/temporal',{...temporalFixture,withdrawn:true})).message,'withdrawn');
   assert.equal((await call('/temporal',{...temporalFixture,absent:true})).error,'UnknownIdentifier');
   assert.equal((await call('/temporal',{...temporalFixture,return_response:true})).error,'response_delivery_lifecycle_unavailable');
