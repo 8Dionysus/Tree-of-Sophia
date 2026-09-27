@@ -1,13 +1,11 @@
 # Native-v7 bounded Worker semantics
 
-The shared helpers preserve Python values independently of a runtime. The
-Worker's lens/focus route uses them from raw request and D1 row text through
-bounded selection, grouping, pagination and the first wire serialization.
-Node/relation inspection and temporal comparison separately retain full raw
-rows through their first wire serialization. Resumable exploration preserves
-native compact packets through checkpoint persistence and replay. Legacy v1 and
-indexed v2 search retain native full rows and authority metadata through the
-first wire serialization as well.
+The shared JSON helpers preserve Python values during host custody and bounded
+legacy/indexed search transport. Maintained Worker temporal, inspection,
+lens/focus/stored and exploration domain execution uses the build-owned shared
+Rust/WASM module. Hosts retain original row bytes through digest/identity checks;
+Rust preserves source numeric kinds and ordered packet emission. Exploration
+keeps exact compact packet text through checkpoint persistence and replay.
 
 ## Entry and reference API
 
@@ -108,29 +106,46 @@ local-prepared search is outside this correction.
 
 ## Resumable exploration boundary
 
-`native-exploration-store.ts` reads bounded identity/adjacency windows and verifies
-selected full rows against emitted digests and index identity before producing
-compact `nativeCarrier` packets. Arbitrary retained source fields, including
-unknown semantics, numeric kinds, negative zero, unsafe integers and source
-member order, remain native references. The existing compact projection still
-omits attributes, source records, readable context and the Claim canonical-JSON
-companion; it does not synthesize missing input. Scenes use the same bounded
-structural projection as lenses, without executing a lens.
+The maintained POST uses `explorationSnapshotResponseD1` and the generated
+`ExplorationSession`. Shared Rust owns pre-I/O request validation, exact origins,
+BFS/identity/inclusion, compact presentation/scene, state codec and replay shape.
+Its one exploration-specific suspended algorithm is consumed by both native
+and published adapters under explicit distinct software profiles; its future
+is not persisted or replayed. `PublishedExplorationD1Transport` serves concrete
+bounded focus/row/identity/adjacency needs with static indexed SQL and verifies
+original carrier digests and identity columns before passing lexical bytes.
+There is no TS domain executor or fallback. Public origin constants/types remain
+in `exploration-origin.ts`; its old normalizer/binder is removed. The exclusively
+replaced carrier/scene/native human-form bridge is also removed; shared browser
+presentation and independently used human-form helpers remain.
 
-The exploration adapter serializes the native page once, before the atomic D1
-checkpoint batch, with its existing 1 MiB response cap. That same JSON text is
-returned on first delivery, persisted replay and concurrent CAS-winner delivery;
-replay validation never round-trips it through an ordinary JavaScript packet.
-Private state contains only normalized request options, string identities,
-bounded integer counters, queue/depth pairs and structural origin descriptors.
-Explicit key/type/range/closure guards precede cloning this private state.
-No source-valued carrier enters traversal state.
+Rust owns the sole parsed-row directory and bounded strong LRU (2 MiB / 64 entries).
+Suspended/current row references share one lexical live-source charge, bounded
+by 16 MiB; this is not allocator RSS. Host custody trees/raw strings/UTF8 arrays,
+parsed replies, checkpoint state and final output are distinct bounded phases.
+Cancellation is cooperative around bounded sync WASM and D1, not an in-WASM
+interrupt. Actual packet emission happens once after final cursor insertion,
+with the existing 1 MiB limit, before atomic D1 checkpoint CAS. Paused state is
+encoded once for persistence; finished state is not encoded. Native checkpoint
+admission counts its state with the existing exact writer visitor and observes
+the actual final response bytes. There are no discarded state/packet encodes.
+
+The host retains opaque tokens, TTL, checkpoint framing, atomic CAS/successor
+and eviction. Stored replay and concurrent winner text retain exact emitted
+bytes and are validated without ordinary JS packet reserialization. Shared
+snapshotPacketResponse checks epoch/data/source revisions at demand pull before
+whole enqueue/close and discards on abort/cancel; this proves platform body
+handoff, not network flush or writer exclusion. Private state contains normalized
+request options, string identities, bounded counters, queue/depth and structural
+origin descriptors. Shared codec key/type/range/closure checks protect canonical
+state roundtrips and restore maintained packet member order. Source carriers
+are not persisted in traversal state.
 
 The public v1/v2 schemas, `tos-exploration-d1-execution-v6`, traversal scheduling,
 24 adjacency windows/512 work-unit bounds, TTL and cache capacities are unchanged.
 The private checkpoint `version` now uses
-`tos-exploration-d1-execution-v6/native-json-v1`. Old v6 cache records may already
-contain rounded numbers: they return 409 and require a fresh start, without
+`tos-exploration-d1-execution-v6/rust-state-v1`. Old private TS cache records
+return 409 and require a fresh start, without
 rewriting/migrating/deleting source data or changing the cache-table schema.
 Oversized state/replay cells are masked in SQL before delivery. Expiry, successor
 admission and eviction share the batch's publication-epoch guard, so a crossed
@@ -270,10 +285,10 @@ parity does not establish deployment, scale or every portable family.
 
 The replaced TS request/compiler, matcher, path/selector/traversal, group/sort/
 fingerprint/cursor finalizer and dead execute/focus/stored entry points are
-removed. `native-lens.ts` retains only JSON/ref helpers used by D1 custody,
-search, exploration and human forms. `native-lens-result.ts` retains the actually
-used exploration carrier presentation; its scene projection contains structural
-strings/IDs and display states. `native-lens-response.ts` retains ordinary
+removed. `native-lens.ts` retains JSON/ref helpers used by D1 custody and
+search. The exploration carrier presentation and its exclusively used native
+human-form bridge have since been replaced by the real Rust consumer.
+`native-lens-response.ts` retains ordinary
 bounded search/catalog packet transport. Browser preview helpers and independent
 Python/physical safety controls remain; no retired TS lens executor or fallback
 is retained behind the actual route.
