@@ -89,6 +89,10 @@ impl PhilosophySourceLimits {
             || self.schema_batches.max_total_units == 0
             || self.schema_batches.max_total_raw_bytes == 0
             || self.schema_batches.total_execution_wall.is_zero()
+            || self.schema_batches.operation_cpu_seconds == 0
+            || self.schema_batches.operation_address_space_bytes == 0
+            || self.schema_batches.max_total_wire_bytes == 0
+            || self.schema_batches.max_distinct_selectors == 0
             || self.schema_batches.batch.max_units == 0
             || self.schema_batches.batch.max_units > BatchBudget::MAX_UNITS
             || self.schema_batches.batch.max_total_raw_bytes == 0
@@ -417,13 +421,6 @@ fn execute_schema_batch(
         .checked_add(checks.len() as u64)
         .filter(|n| *n <= aggregate.max_total_units)
         .ok_or(Error::Budget("philosophy schema aggregate units"))?;
-    for input in checks.iter() {
-        schema_work.raw_bytes = schema_work
-            .raw_bytes
-            .checked_add(input.raw.len() as u64)
-            .filter(|n| *n <= aggregate.max_total_raw_bytes)
-            .ok_or(Error::Budget("philosophy schema aggregate raw bytes"))?;
-    }
     let results = executor
         .check_batch(checks, budget, deadline, cancelled)
         .map_err(|e| Error::Source(format!("philosophy selected schema batch: {e:?}")))?;
@@ -582,16 +579,23 @@ fn validate_projection(
 ) -> Result<()> {
     let mut checks = Vec::with_capacity(l.schema_batches.batch.max_units);
     let mut pending_bytes = 0usize;
-    let mut submit = |path: String, raw: Vec<u8>, contract: String| -> Result<()> {
-        if raw.len() > l.schema_batches.batch.max_total_raw_bytes
-            || raw.len() > SchemaBackendProbe::MAX_INSTANCE_BYTES
-        {
+    let mut submit = |path: String, raw: Vec<u8>, contract: String, work: &mut u64| -> Result<()> {
+        if raw.len() > SchemaBackendProbe::MAX_INSTANCE_BYTES {
             return Err(Error::Budget("philosophy schema batch instance"));
+        }
+        let cost = executor
+            .schema_input_cost(&path, &raw, &contract, checks.len() as u64)
+            .map_err(|e| Error::Source(format!("philosophy schema input cost:{e:?}")))?;
+        let decoded_bytes = usize::try_from(cost.decoded_instance_bytes)
+            .map_err(|_| Error::Budget("philosophy schema decoded instance"))?;
+        charge(work, decoded_bytes, l)?;
+        if decoded_bytes > l.schema_batches.batch.max_total_raw_bytes {
+            return Err(Error::Budget("philosophy schema decoded instance"));
         }
         if schema_batch_full(
             checks.len(),
             pending_bytes,
-            raw.len(),
+            decoded_bytes,
             l.schema_batches.batch,
         ) {
             execute_schema_batch(
@@ -606,8 +610,13 @@ fn validate_projection(
             pending_bytes = 0;
         }
         pending_bytes = pending_bytes
-            .checked_add(raw.len())
+            .checked_add(decoded_bytes)
             .ok_or(Error::Budget("philosophy schema batch bytes"))?;
+        schema_work.raw_bytes = schema_work
+            .raw_bytes
+            .checked_add(cost.decoded_instance_bytes)
+            .filter(|n| *n <= l.schema_batches.max_total_raw_bytes)
+            .ok_or(Error::Budget("philosophy schema aggregate raw bytes"))?;
         checks.push(CutSchemaCheck {
             path,
             raw,
@@ -627,7 +636,7 @@ fn validate_projection(
         |instance, path, contract, cap, work| {
             let raw = bytes(instance, cap)?;
             charge(work, raw.len(), l)?;
-            submit(path, raw, contract)
+            submit(path, raw, contract, work)
         },
     )?;
     drop(submit);
@@ -974,6 +983,10 @@ pub fn plan_philosophy_source_inputs(
         // visit law as execution; $ref-only arrays remain whole-field instances.
         let preflight_start_work = work;
         let mut planned = SchemaWork::default();
+        let mut planned_selectors = BTreeSet::new();
+        let mut planned_wire = 0u64;
+        let mut planned_receipt_bytes = 0u64;
+        let mut operation_wire_charged = false;
         for (projection, path, contract) in [
             (&atlas, ATLAS_REF, ATLAS_SCHEMA),
             (&catalog, VIEWS_REF, VIEWS_SCHEMA),
@@ -990,16 +1003,31 @@ pub fn plan_philosophy_source_inputs(
                 schema_deadline,
                 cancelled,
                 &mut work,
-                |instance, _, _, cap, work| {
+                |instance, path, contract, cap, work| {
                     // Use the execution serialization law, retaining only one
                     // bounded instance at a time. No complete serialized copy
                     // or schema child is created by this preflight.
                     let raw = bytes(instance, cap)?;
                     charge(work, raw.len(), limits)?;
-                    if raw.len() > SchemaBackendProbe::MAX_INSTANCE_BYTES
-                        || raw.len() > limits.schema_batches.batch.max_total_raw_bytes
-                    {
+                    if raw.len() > SchemaBackendProbe::MAX_INSTANCE_BYTES {
                         return Err(Error::Budget("philosophy schema preflight instance"));
+                    }
+                    let mut cost = executor
+                        .schema_input_cost(&path, &raw, &contract, count as u64)
+                        .map_err(|e| {
+                            Error::Source(format!("philosophy schema preflight cost:{e:?}"))
+                        })?;
+                    let decoded_bytes = usize::try_from(cost.decoded_instance_bytes)
+                        .map_err(|_| Error::Budget("philosophy schema preflight decoded bytes"))?;
+                    charge(work, decoded_bytes, limits)?;
+                    if decoded_bytes > limits.schema_batches.batch.max_total_raw_bytes {
+                        return Err(Error::Budget(
+                            "philosophy schema preflight decoded instance",
+                        ));
+                    }
+                    planned_selectors.insert(cost.selector.clone());
+                    if planned_selectors.len() > limits.schema_batches.max_distinct_selectors {
+                        return Err(Error::Budget("philosophy schema preflight selectors"));
                     }
                     planned.units = planned
                         .units
@@ -1008,13 +1036,13 @@ pub fn plan_philosophy_source_inputs(
                         .ok_or(Error::Budget("philosophy schema preflight units"))?;
                     planned.raw_bytes = planned
                         .raw_bytes
-                        .checked_add(raw.len() as u64)
+                        .checked_add(cost.decoded_instance_bytes)
                         .filter(|n| *n <= limits.schema_batches.max_total_raw_bytes)
                         .ok_or(Error::Budget("philosophy schema preflight raw bytes"))?;
                     if schema_batch_full(
                         count,
                         pending_bytes,
-                        raw.len(),
+                        decoded_bytes,
                         limits.schema_batches.batch,
                     ) {
                         planned.batches = planned
@@ -1024,10 +1052,37 @@ pub fn plan_philosophy_source_inputs(
                             .ok_or(Error::Budget("philosophy schema preflight chunks"))?;
                         count = 0;
                         pending_bytes = 0;
+                        cost = executor
+                            .schema_input_cost(&path, &raw, &contract, 0)
+                            .map_err(|e| {
+                                Error::Source(format!("philosophy schema preflight cost:{e:?}"))
+                            })?;
+                        charge(work, decoded_bytes, limits)?;
+                    }
+                    if !operation_wire_charged {
+                        planned_wire = cost.operation_wire_bytes;
+                        operation_wire_charged = true;
+                    }
+                    let frame_wire = if count == 0 { cost.frame_wire_bytes } else { 0 };
+                    planned_wire = planned_wire
+                        .checked_add(frame_wire)
+                        .and_then(|n| n.checked_add(cost.unit_wire_bytes))
+                        .filter(|n| *n <= limits.schema_batches.max_total_wire_bytes)
+                        .ok_or(Error::Budget("philosophy schema preflight wire bytes"))?;
+                    planned_receipt_bytes =
+                        planned_receipt_bytes
+                            .checked_add(cost.receipt_bytes)
+                            .ok_or(Error::Budget("philosophy schema preflight receipt bytes"))?;
+                    if planned.units > cost.remaining_receipts
+                        || planned_receipt_bytes > cost.remaining_receipt_bytes
+                    {
+                        return Err(Error::Budget(
+                            "philosophy schema preflight receipt capacity",
+                        ));
                     }
                     count += 1;
                     pending_bytes = pending_bytes
-                        .checked_add(raw.len())
+                        .checked_add(decoded_bytes)
                         .ok_or(Error::Budget("philosophy schema preflight pending bytes"))?;
                     Ok(())
                 },
@@ -1045,6 +1100,9 @@ pub fn plan_philosophy_source_inputs(
         work.checked_add(work - preflight_start_work)
             .filter(|n| *n <= limits.max_work_bytes)
             .ok_or(Error::Budget("philosophy schema execution work preflight"))?;
+        executor
+            .set_operation_budget(limits.schema_batches)
+            .map_err(|e| Error::Source(format!("philosophy schema operation budget:{e:?}")))?;
         let mut schema_work = SchemaWork::default();
         validate_projection(
             planner,
@@ -1085,6 +1143,9 @@ pub fn plan_philosophy_source_inputs(
         if schema_work.units != planned.units {
             return Err(Error::Invalid("philosophy schema planned unit coverage"));
         }
+        executor
+            .finish(schema_deadline, cancelled)
+            .map_err(|e| Error::Source(format!("philosophy schema operation finish:{e:?}")))?;
         planner.with_connection(WritePhase::Schema,|db|{db.execute_batch("CREATE TABLE source_philosophy_rows(collection TEXT NOT NULL,id TEXT NOT NULL,ordinal INTEGER NOT NULL CHECK(ordinal>=0),payload BLOB NOT NULL,payload_sha256 BLOB NOT NULL CHECK(length(payload_sha256)=32),PRIMARY KEY(collection,id)) WITHOUT ROWID;CREATE UNIQUE INDEX source_philosophy_order ON source_philosophy_rows(collection,ordinal);")?;Ok(())})?;
         let mut raw_collections = Vec::new();
         for (name, key) in [("nodes", "node_id"), ("edges", "edge_id")] {

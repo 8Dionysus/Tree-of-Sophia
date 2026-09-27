@@ -17,7 +17,7 @@ use tos_compiler::{
     prepare_repository_topology,
 };
 use tos_validation::executor::{ExactWorkerIdentity, ExecutorBudget};
-use tos_validation::source_cut::{CutWorkerLimits, CutWorkerSchemaExecutor};
+use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerLimits, CutWorkerSchemaExecutor};
 
 struct FixtureOwner;
 impl StageOwner for FixtureOwner {
@@ -259,6 +259,7 @@ fn actual_selected_capture_repository_plan_render_matches_maintained_python() {
         )
         .is_err()
     );
+    schemas.finish(deadline, &cancelled).unwrap();
     let receipt = ExactInputReceipt {
         binding: SourceBinding {
             owner_profile: "private-selected-fixture".into(),
@@ -577,6 +578,14 @@ fn actual_selected_catalog_and_native_forms_match_maintained_python() {
         sha256: Digest256::of_bytes(&fs::read(&worker_path).unwrap()),
         absolute_path: worker_path,
     };
+    // One explicit finite envelope for this complete catalog/schema operation.
+    // Limits derive from the declared output/receipt budget and common deadline.
+    let mut operation = tos_validation::executor::BatchStreamBudget::laboratory();
+    operation.max_chunks = limits.max_output_rows;
+    operation.max_total_units = limits.max_output_rows;
+    operation.total_execution_wall = deadline.saturating_duration_since(Instant::now());
+    operation.operation_cpu_seconds = operation.total_execution_wall.as_secs().saturating_add(1);
+    operation.operation_address_space_bytes = ExecutorBudget::laboratory().address_space_bytes;
     let validator = SourceCatalogValidator::from_cut(
         &cut,
         &worker,
@@ -585,6 +594,7 @@ fn actual_selected_catalog_and_native_forms_match_maintained_python() {
             max_receipts: usize::try_from(limits.max_output_rows).unwrap(),
             max_receipt_bytes: usize::try_from(limits.max_output_bytes).unwrap(),
         },
+        operation,
         deadline,
         &cancelled,
     )
@@ -602,6 +612,7 @@ fn actual_selected_catalog_and_native_forms_match_maintained_python() {
         16 * 1024 * 1024,
     )
     .unwrap();
+    validator.finish().unwrap();
     let mut actual_catalog = CatalogOutput::default();
     render_source_witness_catalog(
         &mut stage,
@@ -981,6 +992,10 @@ print(json.dumps({'atlas_counts':atlas['counts'],'graph_counts':graph['counts'],
             max_total_units: 65_536,
             max_total_raw_bytes: 256 * 1024 * 1024,
             total_execution_wall: Duration::from_secs(window),
+            operation_cpu_seconds: window,
+            operation_address_space_bytes: BatchBudget::laboratory().address_space_bytes,
+            max_total_wire_bytes: 2 * 1024 * 1024 * 1024,
+            max_distinct_selectors: BatchBudget::MAX_UNITS,
         },
         ..PhilosophySourceLimits::default()
     };

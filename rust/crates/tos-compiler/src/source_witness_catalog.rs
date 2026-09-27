@@ -19,7 +19,7 @@ use tos_foundation::{
     canonical_raw_bytes_v1,
 };
 use tos_source_store::CorpusCutReader;
-use tos_validation::executor::{ExactWorkerIdentity, ExecutorBudget};
+use tos_validation::executor::{BatchStreamBudget, ExactWorkerIdentity, ExecutorBudget};
 use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerLimits, CutWorkerSchemaExecutor};
 use tos_validation::{FormatProfile, SchemaBackendProbe, SchemaResource};
 
@@ -407,18 +407,19 @@ fn input_root(stage: &KnowledgeStage<'_>, l: SourceCatalogLimits) -> Result<Stri
 }
 
 impl<'a> SourceCatalogValidator<'a> {
-    /// Prepare one exact cut/worker image for this operation. Every check still
-    /// uses a fresh isolated child; supplied bytes remain distinct from decoded
+    /// Prepare one exact cut/worker image and bounded isolated operation.
+    /// Supplied bytes remain distinct from decoded
     /// worker instances and neither receipt grants source admission.
     pub fn from_cut(
         cut: &CorpusCutReader,
         worker: &'a ExactWorkerIdentity,
         budget: ExecutorBudget,
         limits: CutWorkerLimits,
+        operation: BatchStreamBudget,
         deadline: Instant,
         cancelled: &'a AtomicBool,
     ) -> Result<Self> {
-        let schemas = CutWorkerSchemaExecutor::from_cut(
+        let mut schemas = CutWorkerSchemaExecutor::from_cut(
             cut,
             FormatProfile::LegacyPythonObserved20260923,
             worker.clone(),
@@ -428,6 +429,9 @@ impl<'a> SourceCatalogValidator<'a> {
             cancelled,
         )
         .map_err(|e| Error::Source(format!("catalog exact cut executor:{e:?}")))?;
+        schemas
+            .set_operation_budget(operation)
+            .map_err(|e| Error::Source(format!("catalog schema operation budget:{e:?}")))?;
         Ok(Self {
             worker,
             budget,
@@ -437,6 +441,17 @@ impl<'a> SourceCatalogValidator<'a> {
             budget_pin: budget,
             deadline,
         })
+    }
+
+    /// Close the shared schema operation before returning successful owner output.
+    /// Call this once after all catalog/navigation phases sharing this executor.
+    pub fn finish(&self) -> Result<()> {
+        self.guard()?;
+        self.schemas
+            .try_borrow_mut()
+            .map_err(|_| Error::Invalid("catalog executor already in use"))?
+            .finish(self.deadline, self.cancelled)
+            .map_err(|e| Error::Source(format!("catalog schema operation finish:{e:?}")))
     }
 
     fn guard(&self) -> Result<()> {
