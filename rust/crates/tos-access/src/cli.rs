@@ -399,6 +399,12 @@ fn run_knowledge(
                     "cannot read structured query input",
                 )
             })?;
+            if raw.len() > profile.max_request_bytes {
+                return Err(crate::AccessError::new(
+                    crate::AccessErrorCode::BudgetExceeded,
+                    "structured query input byte budget exceeded",
+                ));
+            }
             let document = parse_json(&raw, JsonMode::RequestLastWins, profile.json_limits())
                 .map_err(|_| {
                     crate::AccessError::new(

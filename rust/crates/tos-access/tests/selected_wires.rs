@@ -2211,7 +2211,11 @@ mod selected_knowledge {
                 2
             );
             assert!(output.is_empty());
-            assert!(String::from_utf8_lossy(&errors).contains("budget_exceeded"));
+            assert!(
+                String::from_utf8_lossy(&errors).contains("budget_exceeded"),
+                "file byte refusal: {}",
+                String::from_utf8_lossy(&errors)
+            );
             fs::remove_file(&file).unwrap();
             let mut output = vec![];
             let mut errors = vec![];
