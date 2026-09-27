@@ -536,15 +536,37 @@ pub fn decode_published_exploration_state(
         }
         Ok(result)
     };
-    let query = get(value, "query").clone();
-    if normalize_for_profile(
-        &query,
+    let stored_query = get(value, "query");
+    let query = normalize_for_profile(
+        stored_query,
         &LensVocabulary::published_shape(),
         ExplorationProfile::PublishedD1,
     )
-    .map_err(|_| corrupt("checkpoint query invalid"))?
-        != query
-    {
+    .map_err(|_| corrupt("checkpoint query invalid"))?;
+    // The checkpoint codec sorts object members. Compare this closed query
+    // shape by field name, retaining exact scalar kinds/lexemes and array order;
+    // continue with the normalizer's maintained published constructor order.
+    if !stored_query.as_object().is_some_and(|fields| {
+        fields.len() == query.as_object().unwrap().len()
+            && fields.iter().all(|(key, stored)| {
+                let Some(key) = key.as_str() else {
+                    return false;
+                };
+                if key == "origin" {
+                    stored.as_object().is_some_and(|origin| {
+                        origin.len() == 3
+                            && origin.iter().all(|(key, stored)| {
+                                key.as_str().is_some_and(|key| {
+                                    ["kind", "id", "content_revision"].contains(&key)
+                                        && get(&query, "origin").object_get(key) == Some(stored)
+                                })
+                            })
+                    })
+                } else {
+                    query.object_get(key) == Some(stored)
+                }
+            })
+    }) {
         return Err(corrupt("checkpoint query is not normalized"));
     }
     let pairs = get(value, "queue")
@@ -622,7 +644,7 @@ pub fn decode_published_exploration_state(
     {
         return Err(corrupt("checkpoint closure invalid"));
     }
-    let origin = if get(value, "origin") == &JsonValue::Null {
+    let mut origin = if get(value, "origin") == &JsonValue::Null {
         None
     } else {
         Some(get(value, "origin").clone())
@@ -677,6 +699,32 @@ pub fn decode_published_exploration_state(
         || !seed_relations.is_empty()
     {
         return Err(corrupt("checkpoint focus closure invalid"));
+    }
+    // Restore only the validated resolved-origin fields after canonical
+    // checkpoint decoding; packet/source carrier values are not reserialized.
+    if let Some(resolved) = origin.take() {
+        let mut resolved = ordered(resolved, &["kind", "id", "content_revision", "endpoints"]);
+        if string(get(&resolved, "kind")) == "relation" {
+            let endpoints = get(&resolved, "endpoints");
+            let endpoints = object(vec![
+                (
+                    "from",
+                    ordered(
+                        get(endpoints, "from").clone(),
+                        &["node_id", "entity_id", "content_revision"],
+                    ),
+                ),
+                (
+                    "to",
+                    ordered(
+                        get(endpoints, "to").clone(),
+                        &["node_id", "entity_id", "content_revision"],
+                    ),
+                ),
+            ]);
+            set(&mut resolved, "endpoints", endpoints);
+        }
+        origin = Some(resolved);
     }
     Ok(ExplorationState {
         snapshot_revision: snapshot_revision.into(),
