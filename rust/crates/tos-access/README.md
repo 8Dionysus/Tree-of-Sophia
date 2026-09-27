@@ -115,3 +115,5 @@ checkpoint/work/session limits. The managed selected executor reports its real
 process checkpoint and QRY budgets only while its current release is available;
 it never claims restart survival. This capability snapshot issues no source
 grant and does not close a selected exploration execution or public activation.
+
+Corpus reads reuse the selected ABI5 original component and the real managed release's declared captured index/member closure. The maintained six HTTP GET/HEAD routes and eight MCP tools share the QRY kernel, with resources/packet MCP-only. Availability requires the original component plus verified raw source members under the release holder; status paths identify those actual selected members. No corpus CLI or raw source/payload grant is added.

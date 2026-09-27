@@ -32,6 +32,9 @@ pub struct ManagedLocalExecutor {
     registries: [Vec<u8>; 2],
     original: Option<NavigationOriginalReceipt>,
     philosophy_original: Option<PhilosophyOriginalReceipt>,
+    corpus_original: Option<tos_compiler::CorpusOriginalReceipt>,
+    corpus_context: Option<tos_query::corpus_read::CorpusReadContext>,
+    corpus_guards: Vec<crate::release_state::ReleaseMemberGuard>,
     cold: ColdOpenLimits,
     profile: AccessProfile,
     checkpoints: ProcessExplorationCheckpoints,
@@ -119,6 +122,17 @@ impl ManagedLocalExecutor {
             selection.cold_limits(),
         )
         .map_err(|_| unavailable("native selected model cold admission refused"))?;
+        let corpus_original = selection.producer().corpus_original.clone();
+        let (corpus_context, corpus_guards) = match &corpus_original {
+            Some(receipt) => {
+                let (context, guards) = cold_hold.admit_corpus_members(
+                    receipt,
+                    usize::try_from(selection.cold_limits().max_work_bytes).unwrap_or(usize::MAX),
+                )?;
+                (Some(context), guards)
+            }
+            None => (None, vec![]),
+        };
         cold_hold.recheck()?;
         Self::from_admitted_selection(
             release,
@@ -128,6 +142,9 @@ impl ManagedLocalExecutor {
             [entity, relation],
             selection.producer().navigation_original.clone(),
             selection.producer().philosophy_original.clone(),
+            corpus_original,
+            corpus_context,
+            corpus_guards,
             selection.cold_limits(),
             profile,
         )
@@ -141,6 +158,9 @@ impl ManagedLocalExecutor {
         registries: [Vec<u8>; 2],
         original: Option<NavigationOriginalReceipt>,
         philosophy_original: Option<PhilosophyOriginalReceipt>,
+        corpus_original: Option<tos_compiler::CorpusOriginalReceipt>,
+        corpus_context: Option<tos_query::corpus_read::CorpusReadContext>,
+        corpus_guards: Vec<crate::release_state::ReleaseMemberGuard>,
         cold: ColdOpenLimits,
         profile: AccessProfile,
     ) -> Result<Self, AccessError> {
@@ -162,6 +182,9 @@ impl ManagedLocalExecutor {
             registries,
             original,
             philosophy_original,
+            corpus_original,
+            corpus_context,
+            corpus_guards,
             cold,
             profile,
             checkpoints,
@@ -216,6 +239,9 @@ impl ManagedLocalExecutor {
     }
 }
 fn intended(operation: O) -> &'static str {
+    if operation.is_corpus() {
+        return tos_query::corpus_read::CORPUS_INTENDED_USE;
+    }
     if operation.is_philosophy() {
         return tos_query::philosophy_read::PHILOSOPHY_INTENDED_USE;
     }
@@ -277,6 +303,15 @@ impl AccessExecutor for ManagedLocalExecutor {
         )
     }
     fn knowledge_available(&self, operation: O) -> bool {
+        if operation.is_corpus() {
+            return self.corpus_original.is_some()
+                && self.corpus_context.is_some()
+                && self
+                    .release
+                    .acquire()
+                    .and_then(|mut hold| hold.retain_member_guards(&self.corpus_guards))
+                    .is_ok();
+        }
         if operation.is_philosophy() {
             self.philosophy_original.is_some()
         } else {
@@ -352,6 +387,24 @@ impl AccessExecutor for ManagedLocalExecutor {
         let operation = request.operation();
         let mut inspect = Authority::new(self, &bound, operation.id(), intended(operation))?;
         let budgets = self.budgets();
+        if let R::Corpus(request) = &request {
+            let context = self
+                .corpus_context
+                .as_ref()
+                .ok_or_else(|| unavailable("selected corpus source context unavailable"))?;
+            return crate::knowledge::execute_selected_corpus(
+                &mut model,
+                &bound,
+                &mut inspect,
+                context,
+                request,
+                tos_query::corpus_read::CorpusReadBudget {
+                    inspect: budgets.inspect,
+                    max_work_steps: budgets.inspect.max_read_vm_steps,
+                },
+                probe,
+            );
+        }
         if matches!(request, R::Contracts) {
             let budget = tos_query::knowledge_contracts::KnowledgeContractBudget {
                 max_input_bytes: usize::try_from(self.cold.max_work_bytes).unwrap_or(usize::MAX),
@@ -394,6 +447,8 @@ struct Authority {
     original_granted: bool,
     philosophy_original: Option<PhilosophyOriginalReceipt>,
     philosophy_granted: bool,
+    corpus_original: Option<tos_compiler::CorpusOriginalReceipt>,
+    corpus_granted: bool,
 }
 impl Authority {
     fn new(
@@ -402,7 +457,10 @@ impl Authority {
         operation: &str,
         intended: &str,
     ) -> Result<Self, AccessError> {
-        let lease = owner.release.acquire()?;
+        let mut lease = owner.release.acquire()?;
+        if owner.corpus_original.is_some() {
+            lease.retain_member_guards(&owner.corpus_guards)?;
+        }
         // These fields identify the existing local holder and selected release;
         // they are not a source-rights receipt or a public issuer credential.
         let policy = CurrentPolicyBinding {
@@ -469,6 +527,8 @@ impl Authority {
             original_granted: false,
             philosophy_original: owner.philosophy_original.clone(),
             philosophy_granted: false,
+            corpus_original: owner.corpus_original.clone(),
+            corpus_granted: false,
         })
     }
     fn check(&mut self) -> Result<(), SearchV2Error> {
@@ -498,6 +558,39 @@ impl CatalogDisclosureLease for ReleaseLease {
     }
 }
 impl InspectCurrentAuthority for Authority {
+    fn authorize_corpus_original_current(
+        &mut self,
+        receipt: &tos_compiler::CorpusOriginalReceipt,
+        collection: tos_compiler::CorpusOriginalCollection,
+        ordinal: u64,
+        raw: &[u8],
+        sha: Digest256,
+    ) -> Result<(), SearchV2Error> {
+        self.check()?;
+        let expected = self
+            .corpus_original
+            .as_ref()
+            .ok_or_else(|| query_error("selected corpus original unavailable"))?;
+        let ordinal_valid = match collection {
+            tos_compiler::CorpusOriginalCollection::Header => {
+                ordinal == 0 && sha.to_hex() == expected.header_sha256
+            }
+            _ => expected
+                .collections
+                .iter()
+                .any(|c| c.collection == collection.as_str() && ordinal < c.rows),
+        };
+        if self.inspect.intended_use != tos_query::corpus_read::CORPUS_INTENDED_USE
+            || !same_corpus_receipt(receipt, expected)
+            || !ordinal_valid
+            || Digest256::of_bytes(raw) != sha
+        {
+            return Err(query_error("selected corpus original scope changed"));
+        }
+        self.corpus_granted = true;
+        Ok(())
+    }
+
     fn authorize_philosophy_original_current(
         &mut self,
         receipt: &PhilosophyOriginalReceipt,
@@ -626,6 +719,8 @@ impl InspectCurrentAuthority for Authority {
         if scope != &self.inspect
             || (scope.operation_id == O::Contracts.id() && self.registry_grants != 3)
             || (scope.operation_id == O::Dossier.id() && !self.original_granted)
+            || (scope.intended_use == tos_query::corpus_read::CORPUS_INTENDED_USE
+                && !self.corpus_granted)
             || (scope.intended_use == tos_query::philosophy_read::PHILOSOPHY_INTENDED_USE
                 && !self.philosophy_granted)
         {
@@ -708,4 +803,37 @@ impl crate::DisclosureFence for PublicLedgerFence {
         self.hold.recheck()?;
         crate::knowledge::check_abort(&self.probe)
     }
+}
+
+fn same_corpus_receipt(
+    a: &tos_compiler::CorpusOriginalReceipt,
+    b: &tos_compiler::CorpusOriginalReceipt,
+) -> bool {
+    a.profile == b.profile
+        && a.descriptor_sha256 == b.descriptor_sha256
+        && a.source_cut == b.source_cut
+        && a.membership_root == b.membership_root
+        && a.header_sha256 == b.header_sha256
+        && a.component_root_sha256 == b.component_root_sha256
+        && a.total_bytes == b.total_bytes
+        && a.collections.len() == b.collections.len()
+        && a.collections.iter().zip(&b.collections).all(|(a, b)| {
+            a.collection == b.collection
+                && a.rows == b.rows
+                && a.ordered_root_sha256 == b.ordered_root_sha256
+        })
+        && a.origin.profile == b.origin.profile
+        && a.origin.source_git_commit == b.origin.source_git_commit
+        && a.origin.source_git_tree == b.origin.source_git_tree
+        && a.origin.capture_manifest_sha256 == b.origin.capture_manifest_sha256
+        && a.origin.source_path == b.origin.source_path
+        && a.origin.source_sha256 == b.origin.source_sha256
+        && a.origin.source_size_bytes == b.origin.source_size_bytes
+        && a.origin.member_root_sha256 == b.origin.member_root_sha256
+        && a.origin.members.len() == b.origin.members.len()
+        && a.origin
+            .members
+            .iter()
+            .zip(&b.origin.members)
+            .all(|(a, b)| a.path == b.path && a.size_bytes == b.size_bytes && a.sha256 == b.sha256)
 }

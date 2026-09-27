@@ -971,6 +971,240 @@
           "additionalProperties": false
         }
       }
+    },
+    {
+      "operation_id": "tos_corpus_status",
+      "execution_version": "tos_corpus_original_v1",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_corpus_original_declared_source_members_and_current_release_hold",
+      "mcp": {
+        "tool": "tos_corpus_status",
+        "description": "Read the selected corpus status projection",
+        "input_schema": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        }
+      },
+      "http": {
+        "method": "GET",
+        "path_template": "/api/corpus/status"
+      }
+    },
+    {
+      "operation_id": "tos_corpus_summary",
+      "execution_version": "tos_corpus_original_v1",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_corpus_original_declared_source_members_and_current_release_hold",
+      "mcp": {
+        "tool": "tos_corpus_summary",
+        "description": "Read the selected corpus summary projection",
+        "input_schema": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        }
+      },
+      "http": {
+        "method": "GET",
+        "path_template": "/api/corpus/summary"
+      }
+    },
+    {
+      "operation_id": "tos_corpus_search",
+      "execution_version": "tos_corpus_original_v1",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_corpus_original_declared_source_members_and_current_release_hold",
+      "mcp": {
+        "tool": "tos_corpus_search",
+        "description": "Read the selected corpus search projection",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            },
+            "resource_kind": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "default": null
+            }
+          },
+          "required": [
+            "query"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "http": {
+        "method": "GET",
+        "path_template": "/api/corpus/search"
+      }
+    },
+    {
+      "operation_id": "tos_corpus_resources",
+      "execution_version": "tos_corpus_original_v1",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_corpus_original_declared_source_members_and_current_release_hold",
+      "mcp": {
+        "tool": "tos_corpus_resources",
+        "description": "Read the selected corpus resources projection",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "resource_kind": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "default": null
+            },
+            "owner_branch": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "default": null
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000,
+              "default": 100
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "operation_id": "tos_corpus_node",
+      "execution_version": "tos_corpus_original_v1",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_corpus_original_declared_source_members_and_current_release_hold",
+      "mcp": {
+        "tool": "tos_corpus_node",
+        "description": "Read the selected corpus node projection",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "node_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "node_id"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "http": {
+        "method": "GET",
+        "path_template": "/api/corpus/nodes/{node_id}"
+      }
+    },
+    {
+      "operation_id": "tos_corpus_relation_pack",
+      "execution_version": "tos_corpus_original_v1",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_corpus_original_declared_source_members_and_current_release_hold",
+      "mcp": {
+        "tool": "tos_corpus_relation_pack",
+        "description": "Read the selected corpus relation pack projection",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "pack_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "pack_id"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "http": {
+        "method": "GET",
+        "path_template": "/api/corpus/relation-packs/{pack_id}"
+      }
+    },
+    {
+      "operation_id": "tos_corpus_graph_view",
+      "execution_version": "tos_corpus_original_v1",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_corpus_original_declared_source_members_and_current_release_hold",
+      "mcp": {
+        "tool": "tos_corpus_graph_view",
+        "description": "Read the selected corpus graph view projection",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "view_id": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000,
+              "default": 100
+            }
+          },
+          "required": [
+            "view_id"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "http": {
+        "method": "GET",
+        "path_template": "/api/corpus/graph-views/{view_id}"
+      }
+    },
+    {
+      "operation_id": "tos_corpus_packet",
+      "execution_version": "tos_corpus_original_v1",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_corpus_original_declared_source_members_and_current_release_hold",
+      "mcp": {
+        "tool": "tos_corpus_packet",
+        "description": "Read the selected corpus packet projection",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "default": ""
+            },
+            "view_id": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "default": null
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        }
+      }
     }
   ]
 }

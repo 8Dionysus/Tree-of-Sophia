@@ -109,8 +109,9 @@ pub fn registered_operations() -> Result<&'static [RegisteredOperation], AccessE
                 if !known
                     || !op.is_some_and(|id| seen_ops.insert(id))
                     || !tool.is_some_and(|id| !id.is_empty() && seen_tools.insert(id))
-                    || !matches!(method, Some("GET" | "POST"))
-                    || !path.is_some_and(|p| p.starts_with("/api/"))
+                    || (http.is_some()
+                        && (!matches!(method, Some("GET" | "POST"))
+                            || !path.is_some_and(|p| p.starts_with("/api/"))))
                     || schema.and_then(JsonValue::as_object).is_none()
                     || description.is_none()
                 {
@@ -124,8 +125,8 @@ pub fn registered_operations() -> Result<&'static [RegisteredOperation], AccessE
                     mcp_tool: tool.unwrap().to_owned(),
                     mcp_description: description.unwrap().to_owned(),
                     input_schema: schema.unwrap().clone(),
-                    http_method: method.unwrap().to_owned(),
-                    http_path: path.unwrap().to_owned(),
+                    http_method: method.unwrap_or_default().to_owned(),
+                    http_path: path.unwrap_or_default().to_owned(),
                     cli_command: item
                         .object_get("cli")
                         .and_then(|c| c.object_get("command"))

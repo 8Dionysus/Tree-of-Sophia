@@ -215,9 +215,29 @@ pub struct ManagedRelease {
     members: BTreeMap<String, Member>,
     source_bindings: BTreeMap<String, Digest256>,
 }
+#[derive(Clone)]
+pub struct ReleaseMemberGuard {
+    path: String,
+    identity: (u64, u64, u64, i64, i64, i64, i64),
+}
+fn member_identity(file: &File) -> Result<(u64, u64, u64, i64, i64, i64, i64)> {
+    let m = file
+        .metadata()
+        .map_err(|_| unavailable("declared corpus member metadata unavailable"))?;
+    Ok((
+        m.dev(),
+        m.ino(),
+        m.size(),
+        m.mtime(),
+        m.mtime_nsec(),
+        m.ctime(),
+        m.ctime_nsec(),
+    ))
+}
 pub struct ReleaseLease {
     release: Arc<ManagedRelease>,
     _lock: File,
+    member_guards: Vec<ReleaseMemberGuard>,
 }
 impl ManagedRelease {
     /// Selection is explicit; no data or authority is discovered through cwd.
@@ -480,6 +500,7 @@ impl ManagedRelease {
         Ok(ReleaseLease {
             release: Arc::clone(self),
             _lock: lock,
+            member_guards: vec![],
         })
     }
     pub fn selection_bytes(&self) -> Result<Vec<u8>> {
@@ -519,6 +540,102 @@ impl ManagedRelease {
     }
 }
 impl ReleaseLease {
+    /// Full raw closure is verified once at cold admission; subsequent addressed
+    /// reads retain DataGuard identity checks under the existing release lock.
+    pub fn admit_corpus_members(
+        &mut self,
+        receipt: &tos_compiler::CorpusOriginalReceipt,
+        max_bytes: usize,
+    ) -> Result<(
+        tos_query::corpus_read::CorpusReadContext,
+        Vec<ReleaseMemberGuard>,
+    )> {
+        self.check_hold()?;
+        let release = &self.release;
+        let declaration = parse_json(
+            RUNTIME_DATA_DECLARATION,
+            JsonMode::PublishedStrict,
+            METADATA_LIMITS,
+        )
+        .map_err(|_| unavailable("runtime-data declaration invalid"))?;
+        let source = declaration
+            .root()
+            .object_get("subjects")
+            .and_then(JsonValue::as_array)
+            .and_then(|subjects| {
+                subjects.iter().find(|subject| {
+                    subject.object_get("subject_id").and_then(JsonValue::as_str)
+                        == Some("tos-corpus-index")
+                })
+            })
+            .ok_or_else(|| unavailable("declared corpus index absent"))?;
+        let path = text(source, "source_path")?;
+        let roles = source
+            .object_get("consumer_roles")
+            .and_then(JsonValue::as_array)
+            .ok_or_else(|| unavailable("corpus consumer roles absent"))?;
+        if path != receipt.origin.source_path
+            || !["query-core", "http-reader", "native-mcp"]
+                .iter()
+                .all(|role| roles.iter().any(|v| v.as_str() == Some(*role)))
+            || release.source_bindings.get(RUNTIME_DATA_DECLARATION_PATH)
+                != Some(&Digest256::of_bytes(RUNTIME_DATA_DECLARATION))
+        {
+            return Err(unavailable("corpus original declaration binding differs"));
+        }
+        let mut total = 0u64;
+        let mut guards = vec![];
+        let mut source_seen = false;
+        for member in &receipt.origin.members {
+            let selected = format!("data/{}", member.path);
+            let (size, sha) = release.member_binding(&selected)?;
+            if size != member.size_bytes
+                || sha.to_hex() != member.sha256
+                || release.source_bindings.get(&member.path) != Some(&sha)
+            {
+                return Err(unavailable("corpus source member binding differs"));
+            }
+            total = total
+                .checked_add(size)
+                .filter(|n| *n <= max_bytes as u64)
+                .ok_or_else(|| unavailable("corpus original closure exceeds cold envelope"))?;
+            let before = member_identity(&child(&release.data, &selected)?)?;
+            release.member_bytes(&selected, max_bytes)?;
+            if before != member_identity(&child(&release.data, &selected)?)? {
+                return Err(unavailable("corpus member changed during admission"));
+            }
+            if member.path == path {
+                source_seen = size == receipt.origin.source_size_bytes
+                    && member.sha256 == receipt.origin.source_sha256;
+            }
+            guards.push(ReleaseMemberGuard {
+                path: selected,
+                identity: before,
+            });
+        }
+        if !source_seen {
+            return Err(unavailable("complete corpus index source member absent"));
+        }
+        let index = release.member_path(&format!("data/{path}"))?;
+        let root = release.data_path.join("data");
+        let context = tos_query::corpus_read::CorpusReadContext {
+            tos_root: root
+                .to_str()
+                .ok_or_else(|| unavailable("corpus root path is not UTF-8"))?
+                .to_owned(),
+            index_path: index
+                .to_str()
+                .ok_or_else(|| unavailable("corpus index path is not UTF-8"))?
+                .to_owned(),
+        };
+        self.member_guards = guards.clone();
+        self.recheck()?;
+        Ok((context, guards))
+    }
+    pub fn retain_member_guards(&mut self, guards: &[ReleaseMemberGuard]) -> Result<()> {
+        self.member_guards = guards.to_vec();
+        self.check_hold()
+    }
     /// Verify the complete owner-declared subset under this same release hold.
     /// The native producer keeps original source bindings and the declaration
     /// digest in the existing manifest; data/<source_path> preserves provenance.
@@ -578,9 +695,16 @@ impl ReleaseLease {
     /// parsing of the entire manifest. Final packet recheck below verifies the
     /// exact control bytes and revocation state again before disclosure.
     pub fn check_hold(&self) -> Result<()> {
-        self.release.check_holder_identity()
+        self.release.check_holder_identity()?;
+        for guard in &self.member_guards {
+            if member_identity(&child(&self.release.data, &guard.path)?)? != guard.identity {
+                return Err(unavailable("declared corpus member changed"));
+            }
+        }
+        Ok(())
     }
     pub fn recheck(&mut self) -> Result<()> {
+        self.check_hold()?;
         self.release.check_locked()
     }
 }

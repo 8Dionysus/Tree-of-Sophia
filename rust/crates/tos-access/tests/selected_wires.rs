@@ -450,6 +450,7 @@ mod selected_knowledge {
         registries: [(String, Digest256); 2],
         registry_grants: u8,
         philosophy_granted: bool,
+        corpus_granted: bool,
     }
     impl Authority {
         fn new(
@@ -459,6 +460,7 @@ mod selected_knowledge {
             controls: Arc<Controls>,
         ) -> Self {
             let intended = match request.operation() {
+                op if op.is_corpus() => tos_query::corpus_read::CORPUS_INTENDED_USE,
                 op if op.is_philosophy() => tos_query::philosophy_read::PHILOSOPHY_INTENDED_USE,
                 O::Dossier => tos_query::source_dossier::DOSSIER_INTENDED_USE,
                 O::Explore => tos_query::knowledge_exploration::EXPLORATION_INTENDED_USE,
@@ -540,6 +542,7 @@ mod selected_knowledge {
                 ],
                 registry_grants: 0,
                 philosophy_granted: false,
+                corpus_granted: false,
             }
         }
         fn lease(&self) -> Lease {
@@ -570,6 +573,44 @@ mod selected_knowledge {
         }
     }
     impl InspectCurrentAuthority for Authority {
+        fn authorize_corpus_original_current(
+            &mut self,
+            receipt: &tos_compiler::CorpusOriginalReceipt,
+            collection: tos_compiler::CorpusOriginalCollection,
+            ordinal: u64,
+            raw: &[u8],
+            sha: Digest256,
+        ) -> Result<(), SearchV2Error> {
+            assert_eq!(
+                self.inspect.intended_use,
+                tos_query::corpus_read::CORPUS_INTENDED_USE
+            );
+            assert_eq!(
+                receipt.descriptor_sha256,
+                self.inspect.descriptor_sha256.to_hex()
+            );
+            assert_eq!(receipt.source_cut, self.inspect.source_cut);
+            assert_eq!(
+                receipt.membership_root,
+                self.inspect.source_membership_root.to_hex()
+            );
+            assert_eq!(Digest256::of_bytes(raw), sha);
+            match collection {
+                tos_compiler::CorpusOriginalCollection::Header => {
+                    assert_eq!(ordinal, 0);
+                    assert_eq!(sha.to_hex(), receipt.header_sha256);
+                }
+                _ => assert!(
+                    receipt
+                        .collections
+                        .iter()
+                        .any(|c| c.collection == collection.as_str() && ordinal < c.rows)
+                ),
+            }
+            self.corpus_granted = true;
+            Ok(()) // Fixture-only transport reference, never installed authority.
+        }
+
         fn abort_probe(&self) -> Option<Arc<dyn AbortProbe>> {
             Some(self.controls.clone())
         }
@@ -658,7 +699,12 @@ mod selected_knowledge {
             _: &IndexedDisclosureScope,
             observed: &[ObservedInspectCarrier],
         ) -> Result<Box<dyn InspectDisclosureLease>, SearchV2Error> {
-            if self.inspect.intended_use == tos_query::philosophy_read::PHILOSOPHY_INTENDED_USE {
+            if self.inspect.intended_use == tos_query::corpus_read::CORPUS_INTENDED_USE {
+                assert!(self.corpus_granted);
+                assert!(observed.is_empty());
+            } else if self.inspect.intended_use
+                == tos_query::philosophy_read::PHILOSOPHY_INTENDED_USE
+            {
                 assert!(self.philosophy_granted);
                 assert!(
                     observed.is_empty(),
@@ -688,6 +734,7 @@ mod selected_knowledge {
     }
     struct Executor {
         fixture: FullKnowledgeFixture,
+        corpus_context: Option<tos_query::corpus_read::CorpusReadContext>,
         held: Arc<AtomicUsize>,
         checkpoints: Mutex<tos_access::exploration_checkpoints::ProcessExplorationCheckpoints>,
         controls: Arc<Controls>,
@@ -745,7 +792,10 @@ mod selected_knowledge {
             Ok(packet)
         }
         fn knowledge_available(&self, operation: O) -> bool {
-            (operation.is_philosophy() && self.fixture.philosophy_original.is_some())
+            (operation.is_corpus()
+                && self.fixture.corpus_original.is_some()
+                && self.corpus_context.is_some())
+                || (operation.is_philosophy() && self.fixture.philosophy_original.is_some())
                 || (operation == O::Dossier && self.fixture.navigation_original.is_some())
                 || matches!(
                     operation,
@@ -787,7 +837,20 @@ mod selected_knowledge {
                 Arc::clone(&self.controls),
             );
             let budgets = budgets();
-            let packet = if matches!(&request, R::Contracts) {
+            let packet = if let R::Corpus(request) = &request {
+                tos_access::knowledge::execute_selected_corpus(
+                    &mut model,
+                    &bound,
+                    &mut inspect,
+                    self.corpus_context.as_ref().expect("actual corpus context"),
+                    request,
+                    tos_query::corpus_read::CorpusReadBudget {
+                        inspect: budgets.inspect,
+                        max_work_steps: budgets.inspect.max_read_vm_steps,
+                    },
+                    probe,
+                )?
+            } else if matches!(&request, R::Contracts) {
                 tos_access::knowledge::execute_selected_knowledge_contracts(
                     &mut model,
                     &bound,
@@ -936,6 +999,7 @@ mod selected_knowledge {
     fn real_selected_catalog_and_inspect_packets_survive_all_native_wires() {
         let executor = Arc::new(Executor {
             fixture: build_fixture(),
+            corpus_context: None,
             controls: Arc::new(Controls::default()),
             held: Arc::new(AtomicUsize::new(0)),
             checkpoints: Mutex::new(
@@ -1356,6 +1420,7 @@ with tempfile.TemporaryDirectory() as d:
                 seal: fixture.seal_receipt.clone(),
                 navigation_original: fixture.navigation_original.clone(),
                 philosophy_original: None,
+                corpus_original: None,
             },
             fixture.expectation.clone(),
             measurement,
@@ -1509,6 +1574,7 @@ with tempfile.TemporaryDirectory() as d:
         .unwrap();
         let reference = Executor {
             fixture,
+            corpus_context: None,
             held: Arc::new(AtomicUsize::new(0)),
             checkpoints: Mutex::new(
                 tos_access::exploration_checkpoints::ProcessExplorationCheckpoints::new(
@@ -1876,6 +1942,7 @@ with tempfile.TemporaryDirectory() as d:
     fn real_selected_query_families_survive_native_wires_and_disclosure_changes() {
         let executor = Arc::new(Executor {
             fixture: build_native_fixture(),
+            corpus_context: None,
             held: Arc::new(AtomicUsize::new(0)),
             controls: Arc::new(Controls::default()),
             checkpoints: Mutex::new(
@@ -2300,6 +2367,7 @@ with tempfile.TemporaryDirectory() as d:
     fn maintained_selected_contracts_require_original_carriers_on_all_native_wires() {
         let executor = Arc::new(Executor {
             fixture: build_native_fixture(),
+            corpus_context: None,
             held: Arc::new(AtomicUsize::new(0)),
             controls: Arc::new(Controls::default()),
             checkpoints: Mutex::new(
@@ -2559,6 +2627,7 @@ with tempfile.TemporaryDirectory() as d:
         drop(cold);
         let executor = Executor {
             fixture,
+            corpus_context: None,
             held: Arc::new(AtomicUsize::new(0)),
             controls: Arc::new(Controls::default()),
             checkpoints: Mutex::new(
@@ -2843,6 +2912,7 @@ with tempfile.TemporaryDirectory() as d:
         use tos_query::knowledge_legacy_search::LegacySearchRequest;
         let executor = Arc::new(Executor {
             fixture: build_native_fixture(),
+            corpus_context: None,
             held: Arc::new(AtomicUsize::new(0)),
             controls: Arc::new(Controls::default()),
             checkpoints: Mutex::new(
@@ -3132,6 +3202,7 @@ with tempfile.TemporaryDirectory() as d:
         assert!(cli::parse_serve_address(&["--port=65536".into()]).is_err());
         let executor = Arc::new(Executor {
             fixture: build_native_fixture(),
+            corpus_context: None,
             controls: Arc::new(Controls::default()),
             held: Arc::new(AtomicUsize::new(0)),
             checkpoints: Mutex::new(
@@ -3536,6 +3607,255 @@ with tempfile.TemporaryDirectory() as d:
             .collect();
         assert_eq!(seen, expected);
         // Exact contracts carrier/body lifecycle has its own affected fixture case.
+        assert_eq!(executor.held.load(Ordering::SeqCst), 0);
+    }
+    #[test]
+    fn captured_selected_corpus_get_head_and_all_mcp_tools_hold_exact_packets() {
+        // The QRY differential owns Python packet comparison. This same finite
+        // maintained input is captured/restored by its real software producer;
+        // here only transport and original-member hold boundaries are exercised.
+        let script = r#"
+import hashlib,json,subprocess,sys,tempfile
+from pathlib import Path
+repo=Path(sys.argv[1]);sys.path[:0]=[str(repo/'access/src'),str(repo/'access/tests'),str(repo/'scripts')]
+from fixture_support import write_corpus_topology_fixture
+from corpus_archive import capture_git,restore_capture
+base=Path(tempfile.mkdtemp(prefix='tos-access-corpus-'));source=base/'source';source.mkdir()
+write_corpus_topology_fixture(source)
+source_path='ToS/derived-exports/tos_corpus_index.min.json'
+payload=json.loads((source/source_path).read_text())
+def git(*args):
+ return subprocess.check_output(['git','-C',str(source),*args],stderr=subprocess.PIPE,text=True).strip()
+git('init','-q');git('add',source_path);git('-c','user.name=ToS Software Fixture','-c','user.email=fixture@example.invalid','commit','-qm','existing corpus read input')
+commit=git('rev-parse','HEAD');tree=git('rev-parse','HEAD^{tree}')
+capture=base/'capture';restored=base/'restored';capture_git(source,commit,[source_path],capture);restore_capture(capture,restored)
+json.dump({'capture':str(capture),'restored':str(restored),'commit':commit,'tree':tree,'manifest_sha':hashlib.sha256((capture/'capture.json').read_bytes()).hexdigest(),'source_path':source_path,'node':payload['nodes'][0]['node_id'],'pack':payload['relation_packs'][-1]['pack_id'],'view':payload['graph_views'][0]['view_id'],'query':payload['nodes'][0]['label']},sys.stdout)
+"#;
+        let output = std::process::Command::new("python3")
+            .arg("-c")
+            .arg(script)
+            .arg(concat!(env!("CARGO_MANIFEST_DIR"), "/../../.."))
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        let metadata = parse_json(
+            &output.stdout,
+            JsonMode::PublishedStrict,
+            JsonLimits::default(),
+        )
+        .unwrap();
+        let value = |key| {
+            metadata
+                .root()
+                .object_get(key)
+                .and_then(JsonValue::as_str)
+                .unwrap()
+                .to_owned()
+        };
+        let fixture =
+            tos_compiler::knowledge_full_fixture::build_native_fixture_with_captured_corpus(
+                std::path::Path::new(&value("capture")),
+                std::path::Path::new(&value("restored")),
+                &value("commit"),
+                &value("tree"),
+                &value("manifest_sha"),
+                &value("source_path"),
+            );
+        let executor = Executor {
+            fixture,
+            corpus_context: Some(tos_query::corpus_read::CorpusReadContext {
+                tos_root: value("restored"),
+                index_path: format!("{}/{}", value("restored"), value("source_path")),
+            }),
+            held: Arc::new(AtomicUsize::new(0)),
+            controls: Arc::new(Controls::default()),
+            checkpoints: Mutex::new(
+                tos_access::exploration_checkpoints::ProcessExplorationCheckpoints::new(
+                    tos_access::exploration_checkpoints::CheckpointLimits {
+                        ttl: Duration::from_secs(60),
+                        max_entries: 16,
+                        max_encoded_bytes: 2_000_000,
+                    },
+                )
+                .unwrap(),
+            ),
+        };
+        let number = |n: usize| {
+            JsonValue::Number(tos_foundation::JsonNumber {
+                kind: tos_foundation::JsonNumberKind::Int,
+                lexeme: n.to_string(),
+            })
+        };
+        let cases = vec![
+            (
+                O::CorpusStatus,
+                object(vec![]),
+                String::new(),
+                String::new(),
+            ),
+            (
+                O::CorpusSummary,
+                object(vec![]),
+                String::new(),
+                String::new(),
+            ),
+            (
+                O::CorpusSearch,
+                object(vec![("query", text(&value("query"))), ("limit", number(2))]),
+                String::new(),
+                format!("?query={}&limit=2", path_id(&value("query"))),
+            ),
+            (
+                O::CorpusResources,
+                object(vec![
+                    ("resource_kind", text("")),
+                    ("owner_branch", text("")),
+                    ("limit", number(1)),
+                ]),
+                String::new(),
+                String::new(),
+            ),
+            (
+                O::CorpusNode,
+                object(vec![("node_id", text(&value("node")))]),
+                path_id(&value("node")),
+                String::new(),
+            ),
+            (
+                O::CorpusRelationPack,
+                object(vec![("pack_id", text(&value("pack")))]),
+                path_id(&value("pack")),
+                String::new(),
+            ),
+            (
+                O::CorpusGraphView,
+                object(vec![
+                    ("view_id", text(&value("view"))),
+                    ("limit", number(1)),
+                ]),
+                path_id(&value("view")),
+                "?limit=1".into(),
+            ),
+            (
+                O::CorpusPacket,
+                object(vec![
+                    ("query", text("")),
+                    ("view_id", text("")),
+                    ("limit", number(1)),
+                ]),
+                String::new(),
+                String::new(),
+            ),
+        ];
+        let profile = AccessProfile::new(65_536, 1_048_576, 65_536);
+        let mcp_profile = profile.with_mcp_frame_budget(
+            tos_access::mcp::tool_result_frame_byte_bound(
+                profile.max_response_bytes,
+                profile.max_request_bytes,
+            )
+            .unwrap(),
+        );
+        let mut http_count = 0;
+        for (op, args, encoded, query) in &cases {
+            let route = tos_access::registered_operations()
+                .unwrap()
+                .iter()
+                .find(|row| row.operation_id == op.id())
+                .unwrap();
+            assert!(route.cli_command.is_none());
+            assert!(executor.knowledge_available(*op));
+            let prepared = executor
+                .knowledge(R::from_arguments(*op, args).unwrap(), Arc::new(NeverAbort))
+                .unwrap();
+            let expected = prepared.body.clone();
+            drop(prepared);
+            if !route.http_method.is_empty() {
+                http_count += 1;
+                assert_eq!(route.http_method, "GET");
+                let target = format!(
+                    "{}{}{}",
+                    route.http_path.split('{').next().unwrap(),
+                    encoded,
+                    query
+                );
+                for method in ["GET", "HEAD"] {
+                    let response = handle_get(&executor, method, &target, profile);
+                    assert_eq!(
+                        response.status,
+                        200,
+                        "{op:?}: {}",
+                        String::from_utf8_lossy(&response.body)
+                    );
+                    let mut writer = HeldWriter {
+                        bytes: vec![],
+                        held: executor.held.clone(),
+                    };
+                    tos_access::http::write_response(&mut writer, response).unwrap();
+                    if method == "GET" {
+                        assert_eq!(http_packet(&writer.bytes), expected);
+                    } else {
+                        assert!(writer.bytes.ends_with(b"\r\n\r\n"));
+                        assert!(
+                            String::from_utf8_lossy(&writer.bytes)
+                                .contains(&format!("Content-Length: {}", expected.len()))
+                        );
+                    }
+                    assert_eq!(executor.held.load(Ordering::SeqCst), 0);
+                }
+            } else {
+                assert!(matches!(op, O::CorpusResources | O::CorpusPacket));
+                assert!(route.http_path.is_empty());
+            }
+            let mut writer = McpHeldWriter {
+                bytes: vec![],
+                held: executor.held.clone(),
+                source_frame: false,
+            };
+            run_io(
+                Cursor::new(mcp_input(&route.mcp_tool, args)),
+                &mut writer,
+                &executor,
+                mcp_profile,
+            )
+            .unwrap();
+            check_mcp_packet(
+                last_frame(&writer.bytes),
+                &expected,
+                mcp_profile.max_mcp_frame_bytes,
+            );
+            assert_eq!(executor.held.load(Ordering::SeqCst), 0);
+        }
+        assert_eq!(http_count, 6);
+        // Original grants alone do not replace a current final delivery check.
+        let (op, args, _, _) = &cases[0];
+        let route = tos_access::registered_operations()
+            .unwrap()
+            .iter()
+            .find(|row| row.operation_id == op.id())
+            .unwrap();
+        executor.controls.after_prepare.store(1, Ordering::SeqCst);
+        let response = handle_get(&executor, "GET", &route.http_path, profile);
+        let mut wire = vec![];
+        tos_access::http::write_response(&mut wire, response).unwrap();
+        assert!(wire.starts_with(b"HTTP/1.1 409 "));
+        assert!(!String::from_utf8_lossy(&wire).contains("\"index_exists\":true"));
+        assert_eq!(executor.held.load(Ordering::SeqCst), 0);
+        executor.controls.after_prepare.store(0, Ordering::SeqCst);
+        executor.controls.revoked.store(false, Ordering::SeqCst);
+        executor.controls.after_prepare.store(2, Ordering::SeqCst);
+        let mut wire = vec![];
+        run_io(
+            Cursor::new(mcp_input(&route.mcp_tool, args)),
+            &mut wire,
+            &executor,
+            mcp_profile,
+        )
+        .unwrap();
+        assert!(String::from_utf8_lossy(last_frame(&wire)).contains("isError"));
         assert_eq!(executor.held.load(Ordering::SeqCst), 0);
     }
 }

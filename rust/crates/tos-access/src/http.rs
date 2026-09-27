@@ -320,6 +320,9 @@ fn handle_get_with_probe(
                 continue;
             };
             let request = match op {
+                operation if operation.is_corpus() => {
+                    corpus_http_request(operation, encoded, query)
+                }
                 operation if operation.is_philosophy() => {
                     philosophy_http_request(operation, encoded, query)
                 }
@@ -960,4 +963,40 @@ fn focus_http_request(encoded: &str, query: &str) -> Result<KnowledgeRequest, Ac
             .collect(),
     );
     crate::knowledge::focus_from_arguments(&args).map(KnowledgeRequest::Focus)
+}
+
+fn corpus_http_request(
+    operation: KnowledgeOperation,
+    encoded: &str,
+    query: &str,
+) -> Result<KnowledgeRequest, AccessError> {
+    use KnowledgeOperation as O;
+    use tos_query::corpus_read::CorpusReadRequest as R;
+    let request = match operation {
+        O::CorpusStatus => R::Status,
+        O::CorpusSummary => R::Summary,
+        O::CorpusSearch => R::Search {
+            query: query_value(query, "query").unwrap_or_default(),
+            limit: bounded_legacy_int(query_value(query, "limit").as_deref(), 20, 1, 100) as usize,
+            resource_kind: None,
+        },
+        O::CorpusNode => R::Node {
+            node_id: percent_decode(encoded, false)?,
+        },
+        O::CorpusRelationPack => R::RelationPack {
+            pack_id: percent_decode(encoded, false)?,
+        },
+        O::CorpusGraphView => R::GraphView {
+            view_id: percent_decode(encoded, false)?,
+            limit: bounded_legacy_int(query_value(query, "limit").as_deref(), 100, 1, 1000)
+                as usize,
+        },
+        _ => {
+            return Err(AccessError::new(
+                AccessErrorCode::InvalidRequest,
+                "corpus HTTP route unavailable",
+            ));
+        }
+    };
+    Ok(KnowledgeRequest::Corpus(request))
 }

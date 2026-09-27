@@ -29,6 +29,14 @@ pub enum KnowledgeOperation {
     PhilosophyReview,
     PhilosophySnapshot,
     PhilosophyUnresolved,
+    CorpusStatus,
+    CorpusSummary,
+    CorpusSearch,
+    CorpusResources,
+    CorpusNode,
+    CorpusRelationPack,
+    CorpusGraphView,
+    CorpusPacket,
 }
 impl KnowledgeOperation {
     pub fn from_id(id: &str) -> Option<Self> {
@@ -56,6 +64,14 @@ impl KnowledgeOperation {
             "tos_philosophy_graph_review_packet" => Self::PhilosophyReview,
             "tos.snapshot" => Self::PhilosophySnapshot,
             "tos_philosophy_graph_unresolved" => Self::PhilosophyUnresolved,
+            "tos_corpus_status" => Self::CorpusStatus,
+            "tos_corpus_summary" => Self::CorpusSummary,
+            "tos_corpus_search" => Self::CorpusSearch,
+            "tos_corpus_resources" => Self::CorpusResources,
+            "tos_corpus_node" => Self::CorpusNode,
+            "tos_corpus_relation_pack" => Self::CorpusRelationPack,
+            "tos_corpus_graph_view" => Self::CorpusGraphView,
+            "tos_corpus_packet" => Self::CorpusPacket,
             _ => return None,
         })
     }
@@ -84,7 +100,28 @@ impl KnowledgeOperation {
             Self::PhilosophyReview => "tos_philosophy_graph_review_packet",
             Self::PhilosophySnapshot => "tos.snapshot",
             Self::PhilosophyUnresolved => "tos_philosophy_graph_unresolved",
+            Self::CorpusStatus => "tos_corpus_status",
+            Self::CorpusSummary => "tos_corpus_summary",
+            Self::CorpusSearch => "tos_corpus_search",
+            Self::CorpusResources => "tos_corpus_resources",
+            Self::CorpusNode => "tos_corpus_node",
+            Self::CorpusRelationPack => "tos_corpus_relation_pack",
+            Self::CorpusGraphView => "tos_corpus_graph_view",
+            Self::CorpusPacket => "tos_corpus_packet",
         }
+    }
+    pub fn is_corpus(self) -> bool {
+        matches!(
+            self,
+            Self::CorpusStatus
+                | Self::CorpusSummary
+                | Self::CorpusSearch
+                | Self::CorpusResources
+                | Self::CorpusNode
+                | Self::CorpusRelationPack
+                | Self::CorpusGraphView
+                | Self::CorpusPacket
+        )
     }
     pub fn is_philosophy(self) -> bool {
         matches!(
@@ -128,6 +165,7 @@ pub enum KnowledgeRequest {
         limit: usize,
     },
     Philosophy(tos_query::philosophy_read::PhilosophyReadRequest),
+    Corpus(tos_query::corpus_read::CorpusReadRequest),
 }
 impl KnowledgeRequest {
     pub fn operation(&self) -> KnowledgeOperation {
@@ -144,6 +182,9 @@ impl KnowledgeRequest {
             Self::Contracts => KnowledgeOperation::Contracts,
             Self::SearchCapabilities => KnowledgeOperation::SearchCapabilities,
             Self::Dossier { .. } => KnowledgeOperation::Dossier,
+            Self::Corpus(request) => {
+                KnowledgeOperation::from_id(request.operation_id()).expect("typed corpus scope")
+            }
             Self::Philosophy(request) => {
                 use tos_query::philosophy_read::PhilosophyReadRequest as P;
                 match request {
@@ -166,6 +207,9 @@ impl KnowledgeRequest {
         operation: KnowledgeOperation,
         args: &JsonValue,
     ) -> Result<Self, AccessError> {
+        if operation.is_corpus() {
+            return corpus_from_arguments(operation, args).map(Self::Corpus);
+        }
         if operation.is_philosophy() {
             return philosophy_from_arguments(operation, args).map(Self::Philosophy);
         }
@@ -274,6 +318,82 @@ impl KnowledgeRequest {
             _ => Err(invalid("operation does not accept a structured body")),
         }
     }
+}
+fn corpus_from_arguments(
+    operation: KnowledgeOperation,
+    args: &JsonValue,
+) -> Result<tos_query::corpus_read::CorpusReadRequest, AccessError> {
+    use KnowledgeOperation as O;
+    use tos_query::corpus_read::CorpusReadRequest as R;
+    let allowed: &[&str] = match operation {
+        O::CorpusStatus | O::CorpusSummary => &[],
+        O::CorpusSearch => &["query", "limit", "resource_kind"],
+        O::CorpusResources => &["resource_kind", "owner_branch", "limit"],
+        O::CorpusNode => &["node_id"],
+        O::CorpusRelationPack => &["pack_id"],
+        O::CorpusGraphView => &["view_id", "limit"],
+        O::CorpusPacket => &["query", "view_id", "limit"],
+        _ => return Err(invalid("not a corpus operation")),
+    };
+    let fields = args
+        .as_object()
+        .ok_or_else(|| invalid("tool arguments must be an object"))?;
+    if fields
+        .iter()
+        .any(|(key, _)| !key.as_str().is_some_and(|key| allowed.contains(&key)))
+    {
+        return Err(invalid("unknown tool argument"));
+    }
+    let optional = |key: &str| -> Result<Option<String>, AccessError> {
+        match args.object_get(key) {
+            None | Some(JsonValue::Null) => Ok(None),
+            Some(value) => value
+                .as_str()
+                .map(|v| Some(v.to_owned()))
+                .ok_or_else(|| invalid("corpus argument must be a bounded string")),
+        }
+    };
+    let required = |key: &str| optional(key)?.ok_or_else(|| invalid("corpus argument required"));
+    let count = |default: usize, max: u64| -> Result<usize, AccessError> {
+        match args.object_get("limit") {
+            None => Ok(default),
+            Some(value) => value
+                .as_u64()
+                .filter(|v| *v >= 1 && *v <= max)
+                .map(|v| v as usize)
+                .ok_or_else(|| invalid("corpus limit out of range")),
+        }
+    };
+    Ok(match operation {
+        O::CorpusStatus => R::Status,
+        O::CorpusSummary => R::Summary,
+        O::CorpusSearch => R::Search {
+            query: required("query")?,
+            limit: count(20, 100)?,
+            resource_kind: optional("resource_kind")?,
+        },
+        O::CorpusResources => R::Resources {
+            resource_kind: optional("resource_kind")?,
+            owner_branch: optional("owner_branch")?,
+            limit: count(100, 1000)?,
+        },
+        O::CorpusNode => R::Node {
+            node_id: required("node_id")?,
+        },
+        O::CorpusRelationPack => R::RelationPack {
+            pack_id: required("pack_id")?,
+        },
+        O::CorpusGraphView => R::GraphView {
+            view_id: required("view_id")?,
+            limit: count(100, 1000)?,
+        },
+        O::CorpusPacket => R::Packet {
+            query: optional("query")?.unwrap_or_default(),
+            view_id: optional("view_id")?,
+            limit: count(20, 100)?,
+        },
+        _ => unreachable!(),
+    })
 }
 fn philosophy_from_arguments(
     operation: KnowledgeOperation,
@@ -564,6 +684,12 @@ pub fn execute_selected_knowledge(
                 "software contracts use the program executor",
             ));
         }
+        KnowledgeRequest::Corpus(_) => {
+            return Err(AccessError::new(
+                AccessErrorCode::Unavailable,
+                "selected corpus source context unavailable",
+            ));
+        }
         KnowledgeRequest::Philosophy(request) => {
             let packet = tos_query::philosophy_read::execute_selected_philosophy(
                 model,
@@ -780,6 +906,18 @@ struct InspectProbe<'a> {
     probe: Arc<dyn AbortProbe>,
 }
 impl tos_query::InspectCurrentAuthority for InspectProbe<'_> {
+    fn authorize_corpus_original_current(
+        &mut self,
+        receipt: &tos_compiler::CorpusOriginalReceipt,
+        collection: tos_compiler::CorpusOriginalCollection,
+        ordinal: u64,
+        raw: &[u8],
+        hash: tos_foundation::Digest256,
+    ) -> Result<(), tos_query::search_v2::SearchV2Error> {
+        self.inner
+            .authorize_corpus_original_current(receipt, collection, ordinal, raw, hash)
+    }
+
     fn authorize_philosophy_original_current(
         &mut self,
         receipt: &tos_compiler::PhilosophyOriginalReceipt,
@@ -929,4 +1067,32 @@ pub(crate) fn focus_from_arguments(
         },
     };
     Ok(request)
+}
+
+/// Corpus context is supplied only by the declared original-member holder.
+pub fn execute_selected_corpus(
+    model: &mut tos_compiler::VerifiedKnowledgeModel<'_>,
+    bound: &tos_query::BoundCmpKnowledge<'_>,
+    authority: &mut dyn tos_query::InspectCurrentAuthority,
+    context: &tos_query::corpus_read::CorpusReadContext,
+    request: &tos_query::corpus_read::CorpusReadRequest,
+    budget: tos_query::corpus_read::CorpusReadBudget,
+    probe: Arc<dyn AbortProbe>,
+) -> Result<PreparedPacket, AccessError> {
+    check_abort(&probe)?;
+    let probe = combined_probe(probe, authority.abort_probe());
+    let mut authority = InspectProbe {
+        inner: authority,
+        probe: Arc::clone(&probe),
+    };
+    let packet = tos_query::corpus_read::execute_selected_corpus(
+        model,
+        bound,
+        &mut authority,
+        context,
+        request,
+        budget,
+    )?;
+    check_abort(&probe)?;
+    Ok(from_inspect(packet))
 }
