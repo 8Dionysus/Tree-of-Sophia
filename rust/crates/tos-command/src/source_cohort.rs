@@ -4,8 +4,8 @@
 use super::*;
 use crate::source_command::{self as cmd, CommandContext, SourceFile};
 use crate::source_creation::{
-    CreationFamily, CreationPackage, ManagedCreationBasis, ManagedSerializedCreation,
-    SerializedCreation,
+    CreationFamily, CreationPackage, ManagedCreationBasis, ManagedCreationInput,
+    ManagedCreationObservation, ManagedSerializedCreation, SerializedCreation,
 };
 use crate::source_creation_store::{CreationFilesystem, CreationOwnerFence};
 use crate::{PredicateKind, PredicateRead, PredicateToken, source_claims, source_forms};
@@ -223,6 +223,7 @@ enum SourceRegistrationBasis<'a> {
 struct SourceReads {
     reads: Vec<PredicateRead>,
     locators: BTreeMap<String, Digest256>,
+    managed_original: Option<serde_json::Value>,
 }
 pub struct SourceCreationAttempt {
     domain: String,
@@ -580,8 +581,58 @@ fn reads_bytes(reads: &SourceReads) -> DurableResult<Vec<u8>> {
             ]),
         })
         .collect::<Vec<_>>();
-    serde_json::to_vec(&values).map_err(|_| DurableError::Invalid("source reads encode"))
+    let value = match &reads.managed_original {
+        None => serde_json::Value::Array(values),
+        Some(original) => {
+            serde_json::json!({"profile":"tos.managed-agent-original-reads-v1","reads":values,"original":original})
+        }
+    };
+    let encoded =
+        serde_json::to_vec(&value).map_err(|_| DurableError::Invalid("source reads encode"))?;
+    if reads.managed_original.is_some() && encoded.len() > 1_048_576 {
+        return Err(DurableError::Refused(
+            "managed reads cannot fit existing cold metadata row bound",
+        ));
+    }
+    Ok(encoded)
 }
+fn member_value(member: &MemberMetadata) -> serde_json::Value {
+    serde_json::json!([
+        member.path.as_str(),
+        member.sha256.to_hex(),
+        member.size_bytes,
+        member.mode
+    ])
+}
+fn software_value(components: &SoftwareComponentSelectionV1) -> serde_json::Value {
+    let selected = components.capture();
+    serde_json::json!([
+        [
+            selected.source_git_commit,
+            selected.source_git_tree,
+            selected.capture_manifest_sha256.to_hex()
+        ],
+        components.members().map(member_value).collect::<Vec<_>>()
+    ])
+}
+fn managed_original(package: CreationPackage<'_>) -> Option<serde_json::Value> {
+    let basis = package.managed_basis()?;
+    let context = package.prepared().context();
+    let observations = package
+        .observations()
+        .expect("managed owner package observations");
+    Some(serde_json::json!({
+        "basis":[basis.domain,basis.digest.to_hex(),basis.generation,basis.epoch,basis.definition.to_hex()],
+        "context":[context.base_revision.0.to_hex(),context.configuration_raw,context.request_raw,context.recorded_at,context.effective_uid],
+        "software":software_value(package.prepared().selected_components()),
+        "software_inputs":context.files.iter().filter(|f|!f.path.as_str().starts_with("ToS/")).map(|f|serde_json::json!([f.path.as_str(),Digest256::of_bytes(&f.raw).to_hex(),f.raw.len()])).collect::<Vec<_>>(),
+        "observations":observations.values().map(|o|serde_json::json!([member_value(&o.metadata),o.dependencies.as_ref().map(|paths|paths.iter().map(|p|p.as_str()).collect::<Vec<_>>()),o.custody_revision,o.commit_seq])).collect::<Vec<_>>(),
+    }))
+}
+fn original_digest(value: &serde_json::Value) -> Digest256 {
+    Digest256::of_bytes(&serde_json::to_vec(value).expect("private original primitives encode"))
+}
+
 fn source_delta(package: CreationPackage<'_>) -> Digest256 {
     let mut h = Digest256Hasher::new();
     if let Some(revision) = package.v1_revision() {
@@ -641,7 +692,33 @@ fn source_delta(package: CreationPackage<'_>) -> Digest256 {
             part(&mut h, dependency.as_bytes());
         }
     }
+    if let Some(original) = managed_original(package) {
+        part(&mut h, b"tos-managed-agent-original-companion-v1");
+        part(&mut h, original_digest(&original).as_bytes());
+    }
     h.finalize()
+}
+
+// The managed owner records its entire derived read closure in the durable delta.
+// Legacy v1 retains its original byte encoding and delta law.
+fn registered_source_delta(
+    package: CreationPackage<'_>,
+    reads: &SourceReads,
+) -> DurableResult<Digest256> {
+    if reads.managed_original != managed_original(package) {
+        return Err(DurableError::Conflict(
+            "registered original managed input differs",
+        ));
+    }
+    let delta = source_delta(package);
+    if package.managed_basis().is_none() {
+        return Ok(delta);
+    }
+    let mut h = Digest256Hasher::new();
+    part(&mut h, b"tos-managed-agent-registered-read-closure-v1");
+    part(&mut h, delta.as_bytes());
+    part(&mut h, Digest256::of_bytes(&reads_bytes(reads)?).as_bytes());
+    Ok(h.finalize())
 }
 
 fn cohort_matches(
@@ -1306,6 +1383,313 @@ impl DurablePgCoordinator {
             cancelled,
         )
     }
+    /// Process-loss recovery owns the original managed input and exact output
+    /// buffers through retained history. No caller package can issue a write.
+    pub fn recover_committed_managed_agent_creation(
+        &mut self,
+        store: &SegmentStore,
+        cohort: &ManagedSourceCohort,
+        prepare_id: &[u8],
+        filesystem: &CreationFilesystem,
+        schema_cut: &CorpusCutReader,
+        software: &SoftwareCaptureReader,
+        components: &SoftwareComponentSelectionV1,
+        worker: &mut CutWorkerSchemaExecutor,
+        contract: Digest256,
+        rule_version: u64,
+        rights_version: u64,
+        job_id: &str,
+        job_fence: u64,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<(DurableCommitReceipt, DurableTiming)> {
+        active(deadline, cancelled)?;
+        if store.store_id() != cohort.store_id || store.custody_domain() != cohort.domain.as_bytes()
+        {
+            return Err(DurableError::Conflict("recovery custody domain differs"));
+        }
+        // Global retained-pin custody spans all original observation and output reads.
+        let custody = store.hold_audit_root()?;
+        let mut tx = self.client.transaction()?;
+        tx.batch_execute("SET LOCAL lock_timeout = '5s'; SET LOCAL statement_timeout = '15s'")?;
+        lock_audit_fence(&mut tx, &cohort.domain)?;
+        let domain = tx.query_one(
+            "SELECT * FROM cmd2_domain WHERE domain=$1 FOR SHARE",
+            &[&cohort.domain],
+        )?;
+        cohort_matches(&domain, cohort, true)?;
+        if !domain.get::<_, bool>("rights_allowed") {
+            return Err(DurableError::Refused(
+                "recovery current source rights revoked",
+            ));
+        }
+        let gate=tx.query_opt("SELECT state,octet_length(row_to_json(a)::text) FROM cmd2_attempt a WHERE domain=$1 AND prepare_id=$2 FOR SHARE",&[&cohort.domain,&prepare_id])?.ok_or(DurableError::Refused("recovery attempt absent"))?;
+        if gate.get::<_, String>(0) != "committed" {
+            return Err(DurableError::Refused("recovery requires committed attempt"));
+        }
+        if gate
+            .get::<_, Option<i32>>(1)
+            .is_none_or(|n| n < 0 || n > 1_048_576)
+        {
+            return Err(DurableError::Refused(
+                "recovery attempt exceeds existing cold metadata row bound",
+            ));
+        }
+        let attempt = tx.query_one(
+            "SELECT * FROM cmd2_attempt WHERE domain=$1 AND prepare_id=$2",
+            &[&cohort.domain, &prepare_id],
+        )?;
+        let committed_seq = as_u64(
+            attempt
+                .get::<_, Option<i64>>("commit_seq")
+                .ok_or(DurableError::Corrupt("recovery commit sequence absent"))?,
+        )?;
+        let reads = decode_reads(
+            &attempt
+                .get::<_, Option<Vec<u8>>>("source_reads")
+                .ok_or(DurableError::Corrupt("recovery original reads absent"))?,
+        )?;
+        let original = reads
+            .managed_original
+            .as_ref()
+            .ok_or(DurableError::Refused(
+                "attempt has no original managed recovery basis",
+            ))?;
+        let (mut input, software_inputs) = decode_managed_original(
+            original,
+            cohort,
+            committed_seq,
+            schema_cut,
+            software,
+            components,
+            worker,
+        )?;
+        if attempt.get::<_, Option<i64>>("source_epoch") != Some(as_i64(input.basis.epoch)?)
+            || Digest256::of_bytes(&input.context.request_raw).to_hex()
+                != attempt.get::<_, String>("raw_request_digest")
+        {
+            return Err(DurableError::Corrupt(
+                "original managed request/epoch binding differs",
+            ));
+        }
+        let exact_reads = reads
+            .reads
+            .iter()
+            .filter_map(|r| match r {
+                PredicateRead::Exact {
+                    namespace,
+                    key,
+                    expected_version,
+                    expected_digest,
+                } => Some((key, (namespace, expected_version, expected_digest))),
+                _ => None,
+            })
+            .collect::<BTreeMap<_, _>>();
+        if exact_reads.len() != input.observations.len()
+            || input.observations.iter().any(|(path, o)| {
+                exact_reads.get(path).is_none_or(|(ns, version, digest)| {
+                    ns.as_str() != "source"
+                        || **version != Some(o.custody_revision)
+                        || **digest != Some(o.metadata.sha256)
+                })
+            })
+        {
+            return Err(DurableError::Corrupt(
+                "original managed observation/read closure differs",
+            ));
+        }
+        let paths = input.observations.keys().collect::<Vec<_>>();
+        let revisions = input
+            .observations
+            .values()
+            .map(|o| as_i64(o.custody_revision))
+            .collect::<DurableResult<Vec<_>>>()?;
+        let history=tx.query("SELECT h.* FROM cmd2_history h JOIN unnest($2::text[],$3::bigint[]) AS wanted(subject,revision) ON h.subject=wanted.subject AND h.revision=wanted.revision WHERE h.domain=$1 ORDER BY h.subject,h.revision",&[&cohort.domain,&paths,&revisions])?.into_iter().map(|r|((r.get::<_,String>("subject"),r.get::<_,i64>("revision")),r)).collect::<BTreeMap<_,_>>();
+        let outputs=tx.query("SELECT * FROM cmd2_history WHERE domain=$1 AND prepare_id=$2 AND commit_seq=$3 ORDER BY subject",&[&cohort.domain,&prepare_id,&as_i64(committed_seq)?])?;
+        tx.commit()?;
+        let mut total = 0usize;
+        for (path, expected_sha, expected_size) in software_inputs {
+            let raw = software
+                .read_selected_component(components, &path, 8_388_608, deadline, cancelled)
+                .map_err(|_| {
+                    DurableError::Refused("recovery original software bytes unavailable")
+                })?;
+            if Digest256::of_bytes(&raw) != expected_sha || raw.len() as u64 != expected_size {
+                return Err(DurableError::Corrupt(
+                    "recovery original software input differs",
+                ));
+            }
+            retain_context_file(&mut input.context, &mut total, path, raw)?;
+        }
+        for (path, observed) in &input.observations {
+            let row = history
+                .get(&(path.clone(), as_i64(observed.custody_revision)?))
+                .ok_or(DurableError::Corrupt(
+                    "recovery retained observation absent",
+                ))?;
+            let (metadata, dependencies) = expose_metadata(row, &observed.metadata.path)?;
+            if metadata != observed.metadata
+                || dependencies != observed.dependencies
+                || as_u64(row.get("commit_seq"))? != observed.commit_seq
+                || reads.locators.get(path) != Some(&metadata_locator_digest(row))
+            {
+                return Err(DurableError::Corrupt(
+                    "recovery original metadata/locator differs",
+                ));
+            }
+            let raw = self.read_retained_source_row(store, cohort, row, deadline, cancelled)?;
+            retain_context_file(
+                &mut input.context,
+                &mut total,
+                observed.metadata.path.clone(),
+                raw,
+            )?;
+        }
+        input.context.files.sort_by(|a, b| a.path.cmp(&b.path));
+        input.context.check().map_err(source_error)?;
+        let config = cmd::parse(&input.context.configuration_raw).map_err(source_error)?;
+        let source_path = cmd::text(&config, "source_path").map_err(source_error)?;
+        let home = source_path
+            .strip_suffix("/agent.json")
+            .ok_or(DurableError::Refused(
+                "recovery is limited to actual Agent home",
+            ))?;
+        RelativePath::parse(home).map_err(|_| DurableError::Corrupt("original Agent home path"))?;
+        let absent = reads
+            .reads
+            .iter()
+            .filter_map(|r| match r {
+                PredicateRead::Absent { namespace, key } if namespace == "source" => {
+                    Some(key.as_str())
+                }
+                _ => None,
+            })
+            .collect::<BTreeSet<_>>();
+        if outputs.is_empty() || outputs.len() > MAX_MEMBERS || absent.len() != outputs.len() {
+            return Err(DurableError::Corrupt(
+                "recovery complete output membership differs",
+            ));
+        }
+        let mut original_files = BTreeMap::new();
+        let mut output_bytes = 0usize;
+        for row in outputs {
+            let path: String = row.get("subject");
+            if !absent.contains(path.as_str())
+                || row.get::<_, String>("profile_id").as_bytes() != CREATION
+                || as_u64(row.get("revision"))? != 1
+            {
+                return Err(DurableError::Corrupt(
+                    "recovery output outside registered creation delta",
+                ));
+            }
+            let name = path
+                .strip_prefix(&format!("{home}/"))
+                .ok_or(DurableError::Corrupt("recovery output escapes Agent home"))?
+                .to_owned();
+            RelativePath::parse(&name)
+                .map_err(|_| DurableError::Corrupt("recovery output relative path"))?;
+            let raw = self.read_retained_source_row(store, cohort, &row, deadline, cancelled)?;
+            output_bytes = output_bytes
+                .checked_add(raw.len())
+                .filter(|n| *n <= cmd::SELECTED_SOURCE_MAX_BYTES)
+                .ok_or(DurableError::Refused(
+                    "recovery outputs exceed existing byte bound",
+                ))?;
+            if original_files.insert(name, raw).is_some() {
+                return Err(DurableError::Corrupt("recovery duplicate output path"));
+            }
+        }
+        let input = ManagedCreationInput {
+            context: input.context,
+            basis: input.basis,
+            observations: input.observations,
+            components: components.clone(),
+        };
+        let package = crate::source_creation::reprepare_managed_agent_creation(
+            input,
+            schema_cut,
+            software,
+            components,
+            original_files,
+            worker,
+            deadline,
+            cancelled,
+        )
+        .map_err(source_error)?;
+        // Same producer and registered delta/index/original companion reconcile.
+        let restored = self.reopen_committed_managed_creation_attempt(
+            store, cohort, prepare_id, &package, worker, deadline, cancelled,
+        )?;
+        finish_worker(worker, deadline, cancelled)?;
+        drop(custody);
+        self.commit_managed_source_creation(
+            store,
+            &restored,
+            &package,
+            filesystem,
+            contract,
+            rule_version,
+            rights_version,
+            job_id,
+            job_fence,
+            deadline,
+            cancelled,
+        )
+    }
+
+    fn read_retained_source_row(
+        &mut self,
+        store: &SegmentStore,
+        cohort: &ManagedSourceCohort,
+        expected: &postgres::Row,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<Vec<u8>> {
+        active(deadline, cancelled)?;
+        let path: String = expected.get("subject");
+        let revision = as_u64(expected.get("revision"))?;
+        if as_u64(expected.get("content_length"))? > 8_388_608 {
+            return Err(DurableError::Refused(
+                "retained source member exceeds existing cap",
+            ));
+        }
+        let recovered = self.cold_recover_exact(store, &cohort.domain, &path, revision)?;
+        let custody = store.hold_audit_root()?;
+        let mut tx = self.client.transaction()?;
+        tx.batch_execute("SET LOCAL lock_timeout = '5s'; SET LOCAL statement_timeout = '15s'")?;
+        let fence = tx.query_one(
+            "SELECT maintenance_state FROM cmd2_audit_fence WHERE domain=$1 FOR SHARE",
+            &[&cohort.domain],
+        )?;
+        if fence.get::<_, String>(0) != "normal" {
+            return Err(DurableError::Refused("retained source maintenance active"));
+        }
+        let domain = tx.query_one(
+            "SELECT * FROM cmd2_domain WHERE domain=$1 FOR SHARE",
+            &[&cohort.domain],
+        )?;
+        cohort_matches(&domain, cohort, true)?;
+        if !domain.get::<_, bool>("rights_allowed") {
+            return Err(DurableError::Refused(
+                "retained source current rights revoked",
+            ));
+        }
+        let row = tx.query_one(
+            "SELECT * FROM cmd2_history WHERE domain=$1 AND subject=$2 AND revision=$3",
+            &[&cohort.domain, &path, &as_i64(revision)?],
+        )?;
+        if metadata_locator_digest(&row) != metadata_locator_digest(expected) {
+            return Err(DurableError::Conflict("retained source locator changed"));
+        }
+        check_history_locator(&row, &recovered.receipt, &cohort.domain, &path, revision)?;
+        let mut raw = Vec::new();
+        store.read_selected(&recovered.receipt, 8_388_608, &mut raw)?;
+        active(deadline, cancelled)?;
+        tx.commit()?;
+        drop(custody);
+        Ok(raw)
+    }
+
     pub fn reopen_committed_managed_creation_attempt(
         &mut self,
         store: &SegmentStore,
@@ -1371,7 +1755,7 @@ impl DurablePgCoordinator {
             return Err(DurableError::Conflict("source creation carrier differs"));
         }
         let indexes = creation_indexes(package, worker, deadline, cancelled)?;
-        let delta = source_delta(package);
+        let registered_original = managed_original(package);
         let request =
             cmd::parse(&package.prepared().context().request_raw).map_err(source_error)?;
         let command_id = cmd::text(&request, "command_id").map_err(source_error)?;
@@ -1419,6 +1803,11 @@ impl DurablePgCoordinator {
                     "source replay requires committed exact attempt",
                 ));
             }
+            let encoded = existing
+                .get::<_, Option<Vec<u8>>>("source_reads")
+                .ok_or(DurableError::Corrupt("source attempt read binding absent"))?;
+            let reads = decode_reads(&encoded)?;
+            let delta = registered_source_delta(package, &reads)?;
             if existing.get::<_, String>("command_id") != command_id
                 || existing.get::<_, String>("raw_request_digest") != raw_request_digest.to_hex()
                 || existing.get::<_, String>("delta_digest") != delta.to_hex()
@@ -1433,10 +1822,6 @@ impl DurablePgCoordinator {
                     "source attempt exact identity differs",
                 ));
             }
-            let encoded = existing
-                .get::<_, Option<Vec<u8>>>("source_reads")
-                .ok_or(DurableError::Corrupt("source attempt read binding absent"))?;
-            let reads = decode_reads(&encoded)?;
             let fence = as_u64(existing.get("attempt_fence"))?;
             let epoch = as_u64(
                 existing
@@ -1463,6 +1848,7 @@ impl DurablePgCoordinator {
         let mut reads = SourceReads {
             reads: Vec::new(),
             locators: BTreeMap::new(),
+            managed_original: registered_original,
         };
         let dependency_paths = package
             .reads()
@@ -1602,8 +1988,17 @@ impl DurablePgCoordinator {
                 observed_generation: as_u64(row.get(0))?,
             });
         }
+        let delta = registered_source_delta(package, &reads)?;
         tx.execute("INSERT INTO cmd2_attempt(domain,prepare_id,command_id,raw_request_digest,delta_digest,state,attempt_fence,source_reads,source_indexes,source_epoch) VALUES($1,$2,$3,$4,$5,'registered',1,$6,$7,$8)",
             &[&domain,&prepare_id,&command_id,&raw_request_digest.to_hex(),&delta.to_hex(),&reads_bytes(&reads)?,&indexes_bytes(&indexes)?,&as_i64(cohort.epoch)?])?;
+        if reads.managed_original.is_some() {
+            let measured:i32=tx.query_one("SELECT octet_length(row_to_json(a)::text) FROM cmd2_attempt a WHERE domain=$1 AND prepare_id=$2", &[&domain,&prepare_id])?.get(0);
+            if measured > 1_048_576 {
+                return Err(DurableError::Refused(
+                    "managed attempt exceeds existing cold metadata row bound",
+                ));
+            }
+        }
         tx.commit()?;
         Ok(SourceCreationAttempt {
             domain: domain.into(),
@@ -1691,7 +2086,7 @@ impl DurablePgCoordinator {
         cancelled: &AtomicBool,
     ) -> DurableResult<(DurableCommitReceipt, DurableTiming)> {
         active(deadline, cancelled)?;
-        if attempt.delta != source_delta(package)
+        if attempt.delta != registered_source_delta(package, &attempt.reads)?
             || attempt.definition != definition()
             || store.custody_domain() != attempt.domain.as_bytes()
         {
@@ -2386,14 +2781,271 @@ fn seal_members(
         .collect())
 }
 
+fn retained_tuple(value: &serde_json::Value, length: usize) -> DurableResult<&[serde_json::Value]> {
+    value
+        .as_array()
+        .filter(|v| v.len() == length)
+        .map(Vec::as_slice)
+        .ok_or(DurableError::Corrupt("original companion tuple shape"))
+}
+fn retained_text(value: &serde_json::Value) -> DurableResult<&str> {
+    value
+        .as_str()
+        .ok_or(DurableError::Corrupt("original companion text"))
+}
+fn retained_u64(value: &serde_json::Value) -> DurableResult<u64> {
+    value
+        .as_u64()
+        .ok_or(DurableError::Corrupt("original companion integer"))
+}
+fn retained_member(value: &serde_json::Value) -> DurableResult<MemberMetadata> {
+    let m = retained_tuple(value, 4)?;
+    let path = RelativePath::parse(retained_text(&m[0])?)
+        .map_err(|_| DurableError::Corrupt("original member path"))?;
+    let size = retained_u64(&m[2])?;
+    let mode = u32::try_from(retained_u64(&m[3])?)
+        .map_err(|_| DurableError::Corrupt("original member mode"))?;
+    if size > 8_388_608 || ![0o644, 0o755].contains(&mode) {
+        return Err(DurableError::Refused(
+            "original member outside existing source profile",
+        ));
+    }
+    Ok(MemberMetadata {
+        path,
+        sha256: parse_hex(retained_text(&m[1])?.into())?,
+        size_bytes: size,
+        mode,
+    })
+}
+fn retain_context_file(
+    context: &mut CommandContext,
+    total: &mut usize,
+    path: RelativePath,
+    raw: Vec<u8>,
+) -> DurableResult<()> {
+    if context.files.len() >= cmd::SELECTED_SOURCE_MAX_FILES || raw.len() > 8_388_608 {
+        return Err(DurableError::Refused(
+            "recovery input exceeds existing file/member bound",
+        ));
+    }
+    *total = total
+        .checked_add(raw.len())
+        .filter(|n| *n <= cmd::SELECTED_SOURCE_MAX_BYTES)
+        .ok_or(DurableError::Refused(
+            "recovery input exceeds existing aggregate byte bound",
+        ))?;
+    context.files.push(SourceFile { path, raw });
+    Ok(())
+}
+struct RetainedManagedOriginal {
+    context: CommandContext,
+    basis: ManagedCreationBasis,
+    observations: BTreeMap<String, ManagedCreationObservation>,
+}
+
+fn decode_managed_original(
+    value: &serde_json::Value,
+    cohort: &ManagedSourceCohort,
+    committed_seq: u64,
+    schema_cut: &CorpusCutReader,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    worker: &CutWorkerSchemaExecutor,
+) -> DurableResult<(RetainedManagedOriginal, Vec<(RelativePath, Digest256, u64)>)> {
+    let basis = retained_tuple(
+        value
+            .get("basis")
+            .ok_or(DurableError::Corrupt("original basis absent"))?,
+        5,
+    )?;
+    let basis = ManagedCreationBasis {
+        domain: retained_text(&basis[0])?.into(),
+        digest: parse_hex(retained_text(&basis[1])?.into())?,
+        generation: retained_u64(&basis[2])?,
+        epoch: retained_u64(&basis[3])?,
+        definition: parse_hex(retained_text(&basis[4])?.into())?,
+    };
+    if basis.domain != cohort.domain
+        || basis.definition != cohort.definition
+        || basis.epoch == 0
+        || basis.epoch > cohort.epoch
+        || basis.generation >= committed_seq
+        || committed_seq > cohort.generation
+    {
+        return Err(DurableError::Corrupt(
+            "original managed basis outside retained cohort",
+        ));
+    }
+    let ctx = retained_tuple(
+        value
+            .get("context")
+            .ok_or(DurableError::Corrupt("original context absent"))?,
+        5,
+    )?;
+    let revision = SourceRevision(parse_hex(retained_text(&ctx[0])?.into())?);
+    if schema_cut.current().revision() != revision
+        || worker.source_revision() != revision
+        || software.selection() != components.capture()
+        || value.get("software") != Some(&software_value(components))
+    {
+        return Err(DurableError::Conflict(
+            "original independent schema/software selection differs",
+        ));
+    }
+    let context = CommandContext {
+        base_revision: revision,
+        configuration_raw: serde_json::from_value(ctx[1].clone())
+            .map_err(|_| DurableError::Corrupt("original configuration bytes"))?,
+        request_raw: serde_json::from_value(ctx[2].clone())
+            .map_err(|_| DurableError::Corrupt("original request bytes"))?,
+        recorded_at: retained_text(&ctx[3])?.into(),
+        effective_uid: retained_u64(&ctx[4])?,
+        files: Vec::new(),
+    };
+    context.check().map_err(source_error)?;
+    let mut observations = BTreeMap::new();
+    for observed in value
+        .get("observations")
+        .and_then(serde_json::Value::as_array)
+        .filter(|a| a.len() <= cmd::SELECTED_SOURCE_MAX_FILES)
+        .ok_or(DurableError::Refused(
+            "original observations outside existing input bound",
+        ))?
+    {
+        let o = retained_tuple(observed, 4)?;
+        let metadata = retained_member(&o[0])?;
+        if !metadata.path.as_str().starts_with("ToS/") {
+            return Err(DurableError::Corrupt(
+                "original authored observation namespace",
+            ));
+        }
+        let dependencies = if o[1].is_null() {
+            None
+        } else {
+            Some(
+                o[1].as_array()
+                    .ok_or(DurableError::Corrupt("original dependency claims array"))?
+                    .iter()
+                    .map(|p| {
+                        RelativePath::parse(retained_text(p)?)
+                            .map_err(|_| DurableError::Corrupt("original dependency path"))
+                    })
+                    .collect::<DurableResult<Vec<_>>>()?,
+            )
+        };
+        let custody_revision = retained_u64(&o[2])?;
+        let commit_seq = retained_u64(&o[3])?;
+        if custody_revision == 0
+            || commit_seq == 0
+            || commit_seq > basis.generation
+            || dependencies
+                .as_ref()
+                .is_some_and(|p| p.windows(2).any(|v| v[0] >= v[1]))
+        {
+            return Err(DurableError::Corrupt(
+                "original source observation custody/dependencies",
+            ));
+        }
+        let path = metadata.path.as_str().to_owned();
+        if observations
+            .insert(
+                path,
+                ManagedCreationObservation {
+                    metadata,
+                    dependencies,
+                    custody_revision,
+                    commit_seq,
+                },
+            )
+            .is_some()
+        {
+            return Err(DurableError::Corrupt("original duplicate observation"));
+        }
+    }
+    if observations
+        .values()
+        .filter_map(|o| o.dependencies.as_ref())
+        .flatten()
+        .any(|p| !observations.contains_key(p.as_str()))
+    {
+        return Err(DurableError::Corrupt(
+            "original dependency outside observation membership",
+        ));
+    }
+    let mut software_inputs = Vec::new();
+    let mut previous: Option<RelativePath> = None;
+    for member in value
+        .get("software_inputs")
+        .and_then(serde_json::Value::as_array)
+        .ok_or(DurableError::Corrupt("original software inputs absent"))?
+    {
+        let row = retained_tuple(member, 3)?;
+        let path = RelativePath::parse(retained_text(&row[0])?)
+            .map_err(|_| DurableError::Corrupt("original software path"))?;
+        let sha = parse_hex(retained_text(&row[1])?.into())?;
+        let size = retained_u64(&row[2])?;
+        if path.as_str().starts_with("ToS/")
+            || previous.as_ref().is_some_and(|p| p >= &path)
+            || components
+                .member(&path)
+                .is_none_or(|m| m.sha256 != sha || m.size_bytes != size)
+        {
+            return Err(DurableError::Corrupt(
+                "original software input selection differs",
+            ));
+        }
+        previous = Some(path.clone());
+        software_inputs.push((path, sha, size));
+    }
+    if observations
+        .len()
+        .checked_add(software_inputs.len())
+        .is_none_or(|n| n > cmd::SELECTED_SOURCE_MAX_FILES)
+    {
+        return Err(DurableError::Refused(
+            "original total input count exceeds existing bound",
+        ));
+    }
+    Ok((
+        RetainedManagedOriginal {
+            context,
+            basis,
+            observations,
+        },
+        software_inputs,
+    ))
+}
+
 fn decode_reads(raw: &[u8]) -> DurableResult<SourceReads> {
     let value: serde_json::Value = serde_json::from_slice(raw)
         .map_err(|_| DurableError::Corrupt("persisted source reads JSON"))?;
     let mut reads = SourceReads {
         reads: Vec::new(),
         locators: BTreeMap::new(),
+        managed_original: None,
     };
-    for row in value
+    let tuples = if value.is_array() {
+        &value
+    } else {
+        if value.get("profile").and_then(serde_json::Value::as_str)
+            != Some("tos.managed-agent-original-reads-v1")
+        {
+            return Err(DurableError::Corrupt("persisted managed reads profile"));
+        }
+        reads.managed_original = Some(
+            value
+                .get("original")
+                .filter(|v| v.is_object())
+                .ok_or(DurableError::Corrupt(
+                    "persisted managed original companion",
+                ))?
+                .clone(),
+        );
+        value
+            .get("reads")
+            .ok_or(DurableError::Corrupt("persisted managed read tuples"))?
+    };
+    for row in tuples
         .as_array()
         .ok_or(DurableError::Corrupt("persisted source reads array"))?
     {

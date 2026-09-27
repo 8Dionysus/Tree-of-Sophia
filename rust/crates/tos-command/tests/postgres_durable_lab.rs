@@ -1085,14 +1085,78 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
             .iter()
             .any(|path| path.as_str() == earlier_path)
     );
+    // Retain only independent selection references and an assertion oracle;
+    // every managed input/package/generation and original process handle dies.
+    let expected_original_files = current_package.files().clone();
+    let expected_commit_seq = second_receipt.commit_seq;
+    let recovery_domain = lab.domain.clone();
+    let recovery_software_selection = software.selection().clone();
+    let bootstrap_context = contexts.remove(0);
+    drop(current_package);
+    drop(attempts);
+    drop(second_receipt);
+    drop(current_worker);
+    drop(input);
+    drop(preview);
+    drop(current_context);
+    drop(current_request);
+    drop(current_config);
+    drop(current_filesystem);
+    drop(current);
+    drop(successor);
+    drop(successor_member);
+    drop(initial);
+    drop(verified);
+    drop(replay_attempt);
+    drop(packages);
+    drop(contexts);
+    drop(owners);
+    drop(reopened);
+    drop(reopened_db);
+    drop(reopened_store);
+    drop(software);
+    drop(components);
+    drop(cut);
+    drop(lab);
+    let recovered_root = ScratchRoot::new();
+    copy_store_tree(&copied.0, &recovered_root.0);
+    let recovered_store = SegmentStore::open_existing(&recovered_root.0, limits()).unwrap();
+    let mut recovered_db = DurablePgCoordinator::connect(&url).unwrap();
+    let cut = CorpusReader::open_existing(&source_root, read_limits)
+        .unwrap()
+        .open_source_cut(
+            revision,
+            CutReadLimits {
+                max_revisions: 4,
+                max_members: 2048,
+                max_total_bytes: 33_554_432,
+                max_member_bytes: 8_388_608,
+            },
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+    let software = SoftwareCaptureReader::open(
+        &capture,
+        &restored,
+        recovery_software_selection,
+        read_limits,
+        deadline,
+        &cancelled,
+    )
+    .unwrap();
+    let components = software.select_components(&paths).unwrap();
+    let current_filesystem =
+        CreationFilesystem::select_isolated(&isolated, &current_owner, deadline, &cancelled)
+            .unwrap();
     let current_reopened = tos_command::source_current_cut::select_current_source_generation(
-        &mut reopened_db,
-        &reopened_store,
-        &lab.domain,
+        &mut recovered_db,
+        &recovered_store,
+        &recovery_domain,
         &cut,
         revision,
         membership,
-        &contexts[0],
+        &bootstrap_context,
         &software,
         &components,
         &mut new_worker(&cut),
@@ -1100,42 +1164,34 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
         &cancelled,
     )
     .unwrap();
-    let second_member = current_reopened
-        .read_current_member(
-            &mut reopened_db,
-            &reopened_store,
-            &second_path,
-            8_388_608,
-            deadline,
-            &cancelled,
-        )
+    for (name, expected) in &expected_original_files {
+        let path = RelativePath::parse(&format!(
+            "ToS/source-witnesses/agents/synthetic-durable-current/{name}"
+        ))
         .unwrap();
-    assert_eq!(
-        &second_member.raw,
-        current_package.files().get("agent.json").unwrap()
-    );
-    assert_eq!(second_member.current_generation, second_receipt.commit_seq);
-    // Replay revalidates this package against its exact selected proposal
-    // base, while the durable owner independently checks the current cohort.
-    let mut second_replay_worker = new_worker(&cut);
-    let second_replay = reopened_db
-        .reopen_committed_managed_creation_attempt(
-            &reopened_store,
+        let retained = current_reopened
+            .read_current_member(
+                &mut recovered_db,
+                &recovered_store,
+                &path,
+                8_388_608,
+                deadline,
+                &cancelled,
+            )
+            .unwrap();
+        assert_eq!(&retained.raw, expected, "process-cold original file {name}");
+        assert_eq!(retained.current_generation, expected_commit_seq);
+    }
+    let (second_replayed, _) = recovered_db
+        .recover_committed_managed_agent_creation(
+            &recovered_store,
             current_reopened.cohort(),
             b"agent-current-second",
-            &current_package,
-            &mut second_replay_worker,
-            deadline,
-            &cancelled,
-        )
-        .unwrap();
-    second_replay_worker.finish(deadline, &cancelled).unwrap();
-    let (second_replayed, _) = reopened_db
-        .commit_managed_source_creation(
-            &reopened_store,
-            &second_replay,
-            &current_package,
             &current_filesystem,
+            &cut,
+            &software,
+            &components,
+            &mut new_worker(&cut),
             contract_digest(),
             0,
             0,
@@ -1146,22 +1202,186 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
         )
         .unwrap();
     assert!(second_replayed.replayed);
-    assert_eq!(second_replayed.commit_seq, second_receipt.commit_seq);
-    // Corruption must not be relabelled complete by a cold/open SQL marker.
+    assert_eq!(second_replayed.commit_seq, expected_commit_seq);
+    assert_eq!(
+        recovered_db.head_seq(&recovery_domain).unwrap(),
+        expected_commit_seq
+    );
+    assert!(
+        matches!(
+            recovered_db.recover_committed_managed_agent_creation(
+                &recovered_store,
+                current_reopened.cohort(),
+                b"agent-1",
+                &current_filesystem,
+                &cut,
+                &software,
+                &components,
+                &mut new_worker(&cut),
+                contract_digest(),
+                0,
+                0,
+                "private-job",
+                1,
+                deadline,
+                &cancelled,
+            ),
+            Err(DurableError::Refused(_))
+        ),
+        "recovery cannot turn a pending attempt into a write"
+    );
+    let original_reads: Vec<u8> = sql
+        .query_one(
+            "SELECT source_reads FROM cmd2_attempt WHERE domain=$1 AND prepare_id=$2",
+            &[&recovery_domain, &&b"agent-current-second"[..]],
+        )
+        .unwrap()
+        .get(0);
+    for corruption in [
+        "original-basis",
+        "registered-read-closure",
+        "legacy-managed-no-companion",
+    ] {
+        let mut corrupt: serde_json::Value = serde_json::from_slice(&original_reads).unwrap();
+        match corruption {
+            "original-basis" => {
+                corrupt["original"]["basis"][2] = serde_json::json!(expected_commit_seq)
+            }
+            "registered-read-closure" => {
+                let generation = corrupt["reads"]
+                    .as_array_mut()
+                    .unwrap()
+                    .iter_mut()
+                    .find(|read| read[0] == "generation")
+                    .unwrap();
+                generation[6] = serde_json::json!(generation[6].as_u64().unwrap() + 1);
+            }
+            _ => corrupt = corrupt["reads"].clone(),
+        }
+        let corrupt_bytes = serde_json::to_vec(&corrupt).unwrap();
+        sql.execute(
+            "UPDATE cmd2_attempt SET source_reads=$3 WHERE domain=$1 AND prepare_id=$2",
+            &[
+                &recovery_domain,
+                &&b"agent-current-second"[..],
+                &corrupt_bytes,
+            ],
+        )
+        .unwrap();
+        assert!(
+            recovered_db
+                .recover_committed_managed_agent_creation(
+                    &recovered_store,
+                    current_reopened.cohort(),
+                    b"agent-current-second",
+                    &current_filesystem,
+                    &cut,
+                    &software,
+                    &components,
+                    &mut new_worker(&cut),
+                    contract_digest(),
+                    0,
+                    0,
+                    "private-job",
+                    1,
+                    deadline,
+                    &cancelled,
+                )
+                .is_err(),
+            "corrupt or missing original managed binding cannot recover: {corruption}"
+        );
+        sql.execute(
+            "UPDATE cmd2_attempt SET source_reads=$3 WHERE domain=$1 AND prepare_id=$2",
+            &[
+                &recovery_domain,
+                &&b"agent-current-second"[..],
+                &original_reads,
+            ],
+        )
+        .unwrap();
+    }
     sql.execute(
-        "DELETE FROM cmd2_source_index WHERE domain=$1 AND kind='metadata' AND token=$2",
-        &[&lab.domain, &"tos.agent.synthetic-durable-a"],
+        "UPDATE cmd2_domain SET rights_allowed=false WHERE domain=$1",
+        &[&recovery_domain],
     )
     .unwrap();
     assert!(
-        reopened_db
+        matches!(
+            recovered_db.recover_committed_managed_agent_creation(
+                &recovered_store,
+                current_reopened.cohort(),
+                b"agent-current-second",
+                &current_filesystem,
+                &cut,
+                &software,
+                &components,
+                &mut new_worker(&cut),
+                contract_digest(),
+                0,
+                0,
+                "private-job",
+                1,
+                deadline,
+                &cancelled,
+            ),
+            Err(DurableError::Refused(_))
+        ),
+        "process-cold recovery still needs current rights"
+    );
+    sql.execute(
+        "UPDATE cmd2_domain SET rights_allowed=true WHERE domain=$1",
+        &[&recovery_domain],
+    )
+    .unwrap();
+    let original_owner_raw = fs::read(&current_owner).unwrap();
+    let mut changed_owner: serde_json::Value = serde_json::from_slice(&original_owner_raw).unwrap();
+    changed_owner["principal_id"] = serde_json::json!("software:changed-owner-after-process-loss");
+    fs::write(&current_owner, canonical(&changed_owner)).unwrap();
+    let changed_filesystem =
+        CreationFilesystem::select_isolated(&isolated, &current_owner, deadline, &cancelled)
+            .unwrap();
+    assert!(
+        recovered_db
+            .recover_committed_managed_agent_creation(
+                &recovered_store,
+                current_reopened.cohort(),
+                b"agent-current-second",
+                &changed_filesystem,
+                &cut,
+                &software,
+                &components,
+                &mut new_worker(&cut),
+                contract_digest(),
+                0,
+                0,
+                "private-job",
+                1,
+                deadline,
+                &cancelled,
+            )
+            .is_err(),
+        "original capture cannot override changed current protected owner"
+    );
+    fs::write(&current_owner, &original_owner_raw).unwrap();
+    assert_eq!(
+        recovered_db.head_seq(&recovery_domain).unwrap(),
+        expected_commit_seq
+    );
+    // Corruption must not be relabelled complete by a cold/open SQL marker.
+    sql.execute(
+        "DELETE FROM cmd2_source_index WHERE domain=$1 AND kind='metadata' AND token=$2",
+        &[&recovery_domain, &"tos.agent.synthetic-durable-a"],
+    )
+    .unwrap();
+    assert!(
+        recovered_db
             .cold_reopen_source_cohort(
-                &reopened_store,
-                &lab.domain,
+                &recovered_store,
+                &recovery_domain,
                 &cut,
                 revision,
                 membership,
-                &contexts[0],
+                &bootstrap_context,
                 &software,
                 &components,
                 &mut new_worker(&cut),
