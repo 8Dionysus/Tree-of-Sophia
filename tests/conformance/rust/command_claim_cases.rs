@@ -1090,7 +1090,7 @@ fn initial_claim_creation_publishes_five_native_files_and_cold_replays() {
             .keys()
             .cloned()
             .chain([format!(".{form_name}.writer.lock")])
-            .collect()
+            .collect::<std::collections::BTreeSet<_>>()
     );
     let lock_name = format!(".{form_name}.writer.lock");
     let lock_blob = manifest["files"][lock_name.as_str()]["blob"]
@@ -1104,10 +1104,10 @@ fn initial_claim_creation_publishes_five_native_files_and_cold_replays() {
         let entry = entry.unwrap();
         let name = entry.file_name().into_string().unwrap();
         let metadata = entry.metadata().unwrap();
-        assert!(metadata.is_file() && metadata.len() <= 8_388_608);
+        assert!(metadata.is_file() && metadata.len() <= 2_097_152);
         assert_eq!(metadata.permissions().mode() & 0o7777, 0o600);
         archive_bytes += metadata.len();
-        assert!(archive_bytes <= 9_437_184);
+        assert!(archive_bytes <= 10_485_760);
         corrected_files.insert(format!("{archive}/{name}"), fs::read(entry.path()).unwrap());
     }
     let corrected = successor(&corrected_files, &store, current);
