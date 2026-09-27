@@ -811,27 +811,48 @@ mod selected_knowledge {
             assert!(last.len() + 1 <= mcp_profile.max_mcp_frame_bytes);
             assert_eq!(executor.held.load(Ordering::SeqCst), 0);
         }
-        let raw = format!(
-            "{{\"focus_node_id\":\"{}\",\"page_nodes\":1,\"page_relations\":1,\"max_depth\":2}}",
-            id("nodes")
-        );
-        let request = parse_json(
-            raw.as_bytes(),
-            JsonMode::PublishedStrict,
-            JsonLimits::default(),
-        )
-        .unwrap()
-        .into_root();
-        let first = executor
-            .knowledge(R::Explore(request), Arc::new(NeverAbort))
-            .unwrap();
-        let first = parse_json(
-            &first.body,
-            JsonMode::PublishedStrict,
-            JsonLimits::default(),
-        )
-        .unwrap()
-        .into_root();
+        // A fixture node may be isolated or finish within one page. Select a
+        // genuine paused result from the maintained graph instead of treating
+        // array order as a traversal guarantee. Each attempt uses the actual
+        // selected producer/query path and leaves no invented continuation.
+        let first = graph
+            .root()
+            .object_get("nodes")
+            .unwrap()
+            .as_array()
+            .unwrap()
+            .iter()
+            .find_map(|node| {
+                let node_id = node.object_get("id").unwrap().as_str().unwrap();
+                let raw = format!(
+                    "{{\"focus_node_id\":\"{node_id}\",\"page_nodes\":1,\"page_relations\":1,\"max_depth\":2}}"
+                );
+                let request = parse_json(
+                    raw.as_bytes(),
+                    JsonMode::PublishedStrict,
+                    JsonLimits::default(),
+                )
+                .unwrap()
+                .into_root();
+                let packet = executor
+                    .knowledge(R::Explore(request), Arc::new(NeverAbort))
+                    .unwrap();
+                let page = parse_json(
+                    &packet.body,
+                    JsonMode::PublishedStrict,
+                    JsonLimits::default(),
+                )
+                .unwrap()
+                .into_root();
+                page.object_get("page")
+                    .unwrap()
+                    .object_get("next_cursor")
+                    .unwrap()
+                    .as_str()
+                    .is_some()
+                    .then_some(page)
+            })
+            .expect("genuine selected fixture has a resumable neighborhood");
         let cursor = first
             .object_get("page")
             .unwrap()
