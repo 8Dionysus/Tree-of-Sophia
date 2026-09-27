@@ -576,7 +576,7 @@ test("indexed D1 path conditions and inclusion agree with the pure engine", asyn
       relationIds.push(...(page.relations as {id:string}[]).map(r=>r.id));
       cursor = info.next_cursor;
       if (!cursor) break;
-      await assert.rejects(executePublishedFixtureLens(db,{...spec,lens_id:'different',pagination:{...spec.pagination,cursor}}), /query or snapshot changed/);
+      await assert.rejects(executePublishedFixtureLens(db,{...spec,lens_id:'different',pagination:{...spec.pagination,cursor}}), error=>typeof error==='object'&&error!==null&&'status' in error&&error.status===409);
     }
     assert.deepEqual(nodeIds, whole.nodes.map(n=>n.id));
     assert.deepEqual(relationIds, whole.relations.map(r=>r.id));

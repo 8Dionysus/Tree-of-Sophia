@@ -9,12 +9,14 @@ import { jsonRows, rows } from "./store.ts";
 import {nativeLower, codePointCompare, nativeNumberInfo, NativeBudgetExceeded} from '../../../shared/native-semantics.ts';
 import {nativeStrip} from '../../../shared/native-unicode.ts';
 import {NativeSearchDelivery, nativeSearchFailure} from './native-search-store.ts';
-import {executeNativeLensD1} from './native-lens-store.ts';
+import {executeNativeLensD1,PublishedLensD1Transport,readPublishedLensMetadata} from './native-lens-store.ts';
+import {admitAuxiliary,readLensPublicationBinding} from './native-lens-auxiliary.ts';
+import {respondLensSnapshot,lensError,SelectedLensError,type PublishedLensModule} from './selected-lens-runtime.ts';
 import {InspectionD1Transport, readNativeInspectionPublication} from './native-inspection-store.ts';
 import {respondInspectionSnapshot, inspectionError, SelectedInspectionError, type InspectionModule} from './selected-inspection-runtime.ts';
 import {respondTemporalSnapshot, SelectedTemporalError, type TemporalPublishedModule} from './selected-temporal-runtime.ts';
-import {parseNativeJson, parseNativeRequest, nativeField, arrayRefs, type NativeRef, type NativeLensResult, type NativePacket} from './native-lens.ts';
-import {NativeD1Read, NativeD1Rows, nativeD1Limits, readNativePublication, nativeSha256, nativeUnavailable} from './native-d1-read.ts';
+import {parseNativeJson, parseNativeRequest, nativeField,nativePacketJson, arrayRefs, type NativeRef, type NativeLensResult, type NativePacket} from './native-lens.ts';
+import {NativeD1Read, NativeD1Rows, nativeD1Limits, readNativePublication, nativeSha256, nativeUnavailable,type NativeD1Limits} from './native-d1-read.ts';
 
 const KNOWLEDGE_SOURCES = new Set(["philosophy", "canon", "candidate-intake", "source-navigation", "source-claims", "semantic-interchange", "repository"]);
 const SEARCH_NGRAM_SIZE = 3;
@@ -148,6 +150,71 @@ export async function executeKnowledgeLensD1(db: D1Database, specValue: NativeRe
   return consistentRead(db, snapshot => executeNativeLensD1(db, specValue, {}, snapshot.revision));
 }
 
+/** Whole published lens/focus/stored path. Rust owns normalization, selectors,
+ * fast-path eligibility, traversal, presentation and packet construction. */
+export async function lensSnapshotResponseD1(db:D1Database,runtime:PublishedLensModule,
+  request:Uint8Array,operation:'compile'|'focus'|'stored',signal?:AbortSignal,method='GET',
+  overrides:Partial<NativeD1Limits>={}):Promise<Response> {
+  const limits={...nativeD1Limits,...overrides};
+  if(Object.values(limits).some(value=>!Number.isSafeInteger(value)||value<1)||limits.blockSize>64)throw new Error('invalid native lens budgets');
+  const encoder=new TextEncoder();
+  const admission=encoder.encode(JSON.stringify({max_open_vm_steps:limits.maxSqlReads,
+    max_read_vm_steps:limits.maxSqlReads,max_matches:limits.maxCandidates,max_rows:limits.maxRows,
+    max_field_bytes:1048576,max_payload_bytes:1048576,max_decoded_bytes:limits.maxDecodedBytes,
+    max_response_bytes:16*1048576,max_json_bytes:16*1048576,max_json_depth:64,
+    max_json_visits:300000,max_integer_digits:4300,max_candidates:limits.maxCandidates,
+    max_path_steps:limits.maxPathSteps,max_adjacency_rows:limits.maxSqlReads,block_size:limits.blockSize,
+    max_callbacks:limits.maxCallbacks,max_sort_bytes:limits.maxSortBytes,
+    max_cache_bytes:limits.maxCacheBytes,max_cache_entries:limits.maxCacheEntries}));
+  try {
+    signal?.throwIfAborted();
+    if(typeof runtime?.LensSession!=='function'||typeof runtime.validate_lens_request_wasm_v1!=='function')throw new SelectedLensError('selected_runtime_unavailable');
+    try {runtime.validate_lens_request_wasm_v1(request,operation,admission);}catch(error){lensError(error);}
+    signal?.throwIfAborted();
+    const read=new NativeD1Read(db,limits,true,signal);
+    const publication=await consistentRead(db,async snapshot=>{
+      const top=await readNativePublication(read,snapshot.revision);
+      const metadata=await readPublishedLensMetadata(read,top);
+      // Catalog custody remains the existing separate bounded reader. Rust
+      // receives its exact bytes and selects the unique stored specification.
+      const catalog=operation==='stored'?(await publishedCatalogDocument(db,snapshot.revision,signal)).raw:'';
+      const binding=nativePacketJson(await readLensPublicationBinding(read,top,snapshot.epoch));
+      return {snapshot,top,metadata,catalog,binding};
+    });
+    let verifyAuxiliary=async():Promise<void>=>{};
+    const checkSelected=async():Promise<void>=>{
+      signal?.throwIfAborted();
+      const current=await knowledgeSnapshot(db);
+      if(!sameKnowledgeSnapshot(current,publication.snapshot))throw new HttpError(409,'knowledge snapshot changed during query; retry against the current revision');
+      await verifyAuxiliary();signal?.throwIfAborted();
+    };
+    const physical=new PublishedLensD1Transport(read);
+    const selected={sourceRevision:nativeField(publication.top.ref,'source_revision').value as string,
+      top:encoder.encode(publication.top.raw),metadata:encoder.encode(publication.metadata.raw),
+      catalog:encoder.encode(publication.catalog),publication:encoder.encode(publication.binding),admission,checkSelected,
+      payloads:physical.payloads.bind(physical),candidates:physical.candidates.bind(physical),focus:physical.focus.bind(physical),
+      incident:physical.incident.bind(physical),ordered:physical.ordered.bind(physical),aliases:physical.aliases.bind(physical),
+      sources:physical.sources.bind(physical),count:physical.count.bind(physical),
+      async auxiliary(need:{compact:boolean;membership:boolean}):Promise<{compact:boolean;membership:boolean}> {
+        const requested=[...(need.compact?['compact' as const]:[]),...(need.membership?['membership' as const]:[])];
+        const auxiliary=await admitAuxiliary(read,publication.top,requested);
+        const stores={compact:auxiliary.installed.includes('compact'),membership:auxiliary.installed.includes('membership')};
+        verifyAuxiliary=auxiliary.verify;physical.setStores(stores);return stores;
+      },
+    };
+    try {return await respondLensSnapshot(runtime,selected,request,operation,signal,method);}
+    catch(error){await checkSelected();throw error;}
+  }catch(error){
+    signal?.throwIfAborted();
+    if(error instanceof HttpError)throw error;
+    if(error instanceof NativeBudgetExceeded)throw new HttpError(413,error.message);
+    if(error instanceof SelectedLensError){const status=error.code==='UnknownIdentifier'?(operation==='stored'?404:400)
+      :error.code==='StaleSelection'?409:error.code==='BudgetExceeded'?413
+      :error.code==='InvalidRequest'||error.code==='InvalidJson'?400:503;throw new HttpError(status,error.message);}
+    throw error;
+  }
+}
+
 /** The publisher/import selects the public snapshot. This reader validates
  * publication framing and retained exact rows; it issues no runtime rights. */
 export async function temporalSnapshotResponseD1(db: D1Database, runtime: TemporalPublishedModule,
@@ -204,8 +271,8 @@ export async function temporalSnapshotResponseD1(db: D1Database, runtime: Tempor
   return respondTemporalSnapshot(runtime, selected, request, signal);
 }
 
-async function publishedCatalog(db: D1Database, revision: string): Promise<NativeRef> {
-  const read=new NativeD1Read(db,nativeD1Limits,true);
+async function publishedCatalogDocument(db: D1Database, revision: string, signal?:AbortSignal): Promise<{raw:string;ref:NativeRef}> {
+  const read=new NativeD1Read(db,nativeD1Limits,true,signal);
   const top=await readNativePublication(read,revision,'inspection');
   const catalog=await read.metadata('knowledge_catalog',8*1024*1024);
   if (await nativeSha256(catalog.raw)!==nativeField(top.ref,'catalog_sha256').value
@@ -213,7 +280,10 @@ async function publishedCatalog(db: D1Database, revision: string): Promise<Nativ
       || nativeField(catalog.ref,'source_revision').value!==nativeField(top.ref,'source_revision').value) {
     nativeUnavailable('published knowledge catalog differs from its reader binding');
   }
-  return catalog.ref;
+  return catalog;
+}
+async function publishedCatalog(db:D1Database,revision:string):Promise<NativeRef> {
+  return (await publishedCatalogDocument(db,revision)).ref;
 }
 
 export async function knowledgeCatalogD1(db: D1Database): Promise<NativeRef> {

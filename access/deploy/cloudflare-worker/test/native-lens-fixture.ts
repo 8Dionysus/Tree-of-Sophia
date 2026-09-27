@@ -8,24 +8,38 @@ import {fileURLToPath} from 'node:url';
 import {readFileSync} from 'node:fs';
 import {join} from 'node:path';
 import {build} from 'esbuild';
-import {executeKnowledgeLensD1} from '../src/knowledge-store.ts';
-import {nativePacketJson, parseNativeRequest, parseNativeJson, type NativeRef} from '../src/native-lens.ts';
+import {lensSnapshotResponseD1} from '../src/knowledge-store.ts';
+import {initSync,LensSession,validate_lens_request_wasm_v1} from '../generated/tos_web_rules.js';
+import type {NativeD1Limits} from '../src/native-d1-read.ts';
+import {parseNativeJson, type NativeRef} from '../src/native-lens.ts';
 import {HttpError} from '../src/common.ts';
 import {nativeLower, codePointCompare, nativeUnicodeVersion} from '../../../shared/native-semantics.ts';
 import type {executeKnowledgeLens} from '../src/knowledge.ts';
 const initialized = new WeakSet<object>();
 const sha = (raw: string) => createHash('sha256').update(raw).digest('hex');
 
+// Direct consumer checks with selected host budgets use the same mandatory
+// generated binding as the actual route. wasm-bindgen owns initialization;
+// there is no fetched product, alternate executor, or runtime availability cache.
+initSync({module:new WebAssembly.Module(Uint8Array.from(readFileSync(new URL('../generated/tos_web_rules_bg.wasm',import.meta.url))))});
+export const publishedFixtureLensRuntime={LensSession,validate_lens_request_wasm_v1};
+export function executePublishedLensResponse(db:D1Database,raw:string,operation:'compile'|'focus'|'stored'='compile',
+  limits:Partial<NativeD1Limits>={},method='GET'):Promise<Response> {
+  return lensSnapshotResponseD1(db,publishedFixtureLensRuntime,new TextEncoder().encode(raw),operation,undefined,method,limits);
+}
+
 // Existing tiny-fixture inspection checks consume the maintained HTTP route.
 // Its WASM module is the build-owned product, never a TS inspection executor.
 let inspectionWorker: Promise<{fetch(request: Request, env: Env, context: unknown): Promise<Response>}> | undefined;
-async function inspectFixture(db: D1Database, kind: 'node' | 'relation', id: string, limit = 200): Promise<NativeRef> {
-  inspectionWorker ??= build({entryPoints:[fileURLToPath(new URL('../src/index.ts',import.meta.url))],
+export function publishedNodeFixtureWorker() {
+  return inspectionWorker ??= build({entryPoints:[fileURLToPath(new URL('../src/index.ts',import.meta.url))],
     bundle:true,write:false,format:'esm',platform:'browser',target:'es2022',
     plugins:[{name:'existing-node-wasm-module',setup(build){build.onLoad({filter:/\.wasm$/},({path})=>({
       contents:`export default new WebAssembly.Module(Uint8Array.from(atob(${JSON.stringify(readFileSync(path).toString('base64'))}),c=>c.charCodeAt(0)))`,loader:'js'}));}}]})
     .then(async bundle=>(await import('data:text/javascript;base64,'+Buffer.from(bundle.outputFiles[0]!.text).toString('base64'))).default);
-  const response = await (await inspectionWorker).fetch(new Request(
+}
+async function inspectFixture(db: D1Database, kind: 'node' | 'relation', id: string, limit = 200): Promise<NativeRef> {
+  const response = await (await publishedNodeFixtureWorker()).fetch(new Request(
     `https://tos.test/api/knowledge/${kind}s/${encodeURIComponent(id)}?relation_limit=${limit}`),
     {DB:db,ASSETS:{fetch(){throw new Error('inspection must not read static assets');}}} as unknown as Env, {});
   const raw = await response.text();
@@ -95,7 +109,7 @@ export async function publishNativeLensFixture(db: D1Database): Promise<void> {
 }
 export async function executePublishedFixtureLens(db: D1Database, spec: unknown): Promise<Awaited<ReturnType<typeof executeKnowledgeLens>>> {
   await publishNativeLensFixture(db);
-  return JSON.parse(nativePacketJson((await executeKnowledgeLensD1(db,parseNativeRequest(JSON.stringify(spec)))).packet,{maxBytes:16*1024*1024}));
+  return JSON.parse(await (await executePublishedLensResponse(db,JSON.stringify(spec))).text());
 }
 
 /** Exact Python oracle for publication-bound cursors, not in-memory cursors. */

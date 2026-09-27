@@ -8,6 +8,8 @@
 #[cfg(feature = "wasm")]
 mod inspection_session;
 mod knowledge_envelope;
+#[cfg(feature = "wasm")]
+mod lens_session;
 mod search_mode;
 mod temporal_session;
 mod workspace_machine;
@@ -37,6 +39,147 @@ mod wasm {
         workspace_proposal_digest_v1, workspace_transition_v1,
     };
     use wasm_bindgen::prelude::*;
+
+    fn lens_json_limits(admission: &[u8]) -> Result<tos_foundation::JsonLimits, JsValue> {
+        let document = tos_foundation::parse_json(
+            admission,
+            tos_foundation::JsonMode::PublishedStrict,
+            tos_foundation::JsonLimits {
+                max_bytes: 4096,
+                ..Default::default()
+            },
+        )
+        .map_err(|_| JsValue::from_str("invalid_lens_admission"))?;
+        let cap = |name| {
+            document
+                .root()
+                .object_get(name)
+                .and_then(tos_foundation::JsonValue::as_u64)
+                .and_then(|value| usize::try_from(value).ok())
+                .filter(|value| *value > 0)
+                .ok_or_else(|| JsValue::from_str("invalid_lens_admission"))
+        };
+        Ok(tos_foundation::JsonLimits {
+            max_bytes: cap("max_json_bytes")?,
+            max_depth: cap("max_json_depth")?,
+            max_visits: cap("max_json_visits")?,
+            max_integer_digits: cap("max_integer_digits")?,
+            ..Default::default()
+        })
+    }
+
+    /** The same shared shape parser used by the actual continuation runs
+     * before any publication/D1 read. Registry binding follows verified I/O. */
+    #[wasm_bindgen]
+    pub fn validate_lens_request_wasm_v1(
+        request: &[u8],
+        operation: &str,
+        admission: &[u8],
+    ) -> Result<(), JsValue> {
+        super::lens_session::request(request, operation, lens_json_limits(admission)?)
+            .map(|_| ())
+            .map_err(|error| JsValue::from_str(&format!("{:?}", error.code)))
+    }
+
+    fn lens_budget(admission: &[u8]) -> Result<tos_query::lens_plan::PublishedLensBudget, JsValue> {
+        let inspect = inspection_budget(admission)?;
+        let document = tos_foundation::parse_json(
+            admission,
+            tos_foundation::JsonMode::PublishedStrict,
+            tos_foundation::JsonLimits {
+                max_bytes: 4096,
+                ..Default::default()
+            },
+        )
+        .map_err(|_| JsValue::from_str("invalid_lens_admission"))?;
+        let cap = |name| {
+            document
+                .root()
+                .object_get(name)
+                .and_then(tos_foundation::JsonValue::as_u64)
+                .and_then(|n| usize::try_from(n).ok())
+                .filter(|n| *n > 0)
+                .ok_or_else(|| JsValue::from_str("invalid_lens_admission"))
+        };
+        Ok(tos_query::lens_plan::PublishedLensBudget {
+            lens: tos_query::knowledge_lens::LensBudget {
+                inspect,
+                max_candidates: cap("max_candidates")?,
+                max_path_steps: cap("max_path_steps")?,
+                max_adjacency_rows: cap("max_adjacency_rows")?,
+                block_size: cap("block_size")?,
+            },
+            max_callbacks: cap("max_callbacks")?,
+            max_sort_bytes: cap("max_sort_bytes")?,
+            max_cache_bytes: cap("max_cache_bytes")?,
+            max_cache_entries: cap("max_cache_entries")?,
+        })
+    }
+    fn lens_error(error: tos_query::search_v2::SearchV2Error) -> JsValue {
+        JsValue::from_str(&format!("{:?}", error.code))
+    }
+
+    #[wasm_bindgen]
+    pub struct LensSession {
+        inner: super::lens_session::LensSession,
+    }
+    #[wasm_bindgen]
+    impl LensSession {
+        #[wasm_bindgen(constructor)]
+        pub fn new(
+            request: &[u8],
+            operation: &str,
+            revision: &str,
+            top: &[u8],
+            metadata: &[u8],
+            catalog: &[u8],
+            publication: &[u8],
+            admission: &[u8],
+        ) -> Result<LensSession, JsValue> {
+            Ok(Self {
+                inner: super::lens_session::LensSession::new(
+                    request,
+                    operation,
+                    revision,
+                    top,
+                    metadata,
+                    catalog,
+                    publication,
+                    lens_budget(admission)?,
+                )
+                .map_err(lens_error)?,
+            })
+        }
+        pub fn need(&mut self) -> Result<Option<Vec<u8>>, JsValue> {
+            self.inner.need_bytes().map_err(lens_error)
+        }
+        pub fn resume_rows(&mut self, rows: &[u8], sizes: &[u32]) -> Result<(), JsValue> {
+            self.inner.resume_rows(rows, sizes).map_err(lens_error)
+        }
+        pub fn resume_candidates(&mut self, rows: &[u8]) -> Result<(), JsValue> {
+            self.inner.resume_candidates(rows).map_err(lens_error)
+        }
+        pub fn resume_ids(&mut self, ids: &[u8]) -> Result<(), JsValue> {
+            self.inner.resume_ids(ids).map_err(lens_error)
+        }
+        pub fn resume_headers(&mut self, headers: &[u8]) -> Result<(), JsValue> {
+            self.inner.resume_headers(headers).map_err(lens_error)
+        }
+        pub fn resume_sources(&mut self, sources: &[u8]) -> Result<(), JsValue> {
+            self.inner.resume_sources(sources).map_err(lens_error)
+        }
+        pub fn resume_count(&mut self, count: u64) -> Result<(), JsValue> {
+            self.inner.resume_count(count).map_err(lens_error)
+        }
+        pub fn resume_stores(&mut self, compact: bool, membership: bool) -> Result<(), JsValue> {
+            self.inner
+                .resume_stores(compact, membership)
+                .map_err(lens_error)
+        }
+        pub fn finish(&mut self) -> Result<Vec<u8>, JsValue> {
+            self.inner.finish().map_err(lens_error)
+        }
+    }
 
     fn inspection_budget(admission: &[u8]) -> Result<tos_query::InspectBudget, JsValue> {
         let document = tos_foundation::parse_json(

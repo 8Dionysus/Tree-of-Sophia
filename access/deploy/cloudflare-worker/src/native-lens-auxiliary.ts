@@ -20,10 +20,18 @@ export function compactCovered(spec: NativeSpec): boolean {
   return fields.every(field=>!OMITTED.some(omitted=>field===omitted || field.startsWith(omitted+'.') || omitted.startsWith(field+'.')));
 }
 
-export async function readLensPublicationBinding(read: NativeD1Read, top: {raw: string; ref: NativeRef}) {
-  const clock=await read.query<{epoch:number; kind:string}>('SELECT epoch,typeof(epoch) AS kind FROM knowledge_exploration_clock WHERE singleton=1 LIMIT 2');
-  if (clock.length!==1 || clock[0]!.kind!=='integer' || !Number.isSafeInteger(clock[0]!.epoch) || clock[0]!.epoch<0) nativeUnavailable('lens publication epoch invalid');
-  return derived({schema:'tos_published_knowledge_snapshot_v1',publication_epoch:clock[0]!.epoch,
+export async function readLensPublicationBinding(read: NativeD1Read, top: {raw: string; ref: NativeRef}, selectedEpoch?: number) {
+  // The actual snapshot driver already admits this epoch before and after
+  // metadata selection. Reuse that value; legacy/auxiliary callers still read
+  // their own current clock. Neither value is a policy or rights grant.
+  let epoch=selectedEpoch;
+  if(epoch===undefined) {
+    const clock=await read.query<{epoch:number; kind:string}>('SELECT epoch,typeof(epoch) AS kind FROM knowledge_exploration_clock WHERE singleton=1 LIMIT 2');
+    if(clock.length!==1||clock[0]!.kind!=='integer')nativeUnavailable('lens publication epoch invalid');
+    epoch=clock[0]!.epoch;
+  }
+  if(!Number.isSafeInteger(epoch)||epoch!<0)nativeUnavailable('lens publication epoch invalid');
+  return derived({schema:'tos_published_knowledge_snapshot_v1',publication_epoch:epoch!,
     metadata_sha256:await nativeSha256(top.raw),...Object.fromEntries(['read_model_schema','source_revision','data_revision','graph_schema','normalization_binding'].map(key=>[key,nativeChild(top.ref,key)]))});
 }
 

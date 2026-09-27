@@ -112,7 +112,7 @@ export class NativeD1Rows {
   decoded = 0; cacheBytes = 0;
   cache = new Map<string, {ref: NativeRef; size: number}>();
   readonly read: NativeD1Read; readonly limits: NativeD1Limits; readonly verifyOrder: boolean;
-  constructor(read: NativeD1Read, limits: NativeD1Limits, verifyOrder = true) {
+  constructor(read: NativeD1Read, limits: NativeD1Limits, verifyOrder = true, readonly cacheEnabled = true) {
     this.read = read; this.limits = limits; this.verifyOrder = verifyOrder;
   }
   async load(kind: NativeKind, identifiers: Iterable<string>, retained?: (id: string, raw: string) => void): Promise<Map<string, NativeRef>> {
@@ -169,7 +169,7 @@ export class NativeD1Rows {
         if (this.verifyOrder && (!order || order.kind !== kind || order.sort_key !== nativeLower(id) || order.from_id !== (kind === 'relation' ? stringField(ref, 'from_id') : '') || order.to_id !== (kind === 'relation' ? stringField(ref, 'to_id') : ''))) nativeUnavailable('native lens ordered carrier differs from payload');
         result.set(id, ref);
         retained?.(id, raw);
-        if (size <= this.limits.maxCacheBytes) {
+        if (this.cacheEnabled && size <= this.limits.maxCacheBytes) {
           while (this.cache.size && (this.cache.size >= this.limits.maxCacheEntries || this.cacheBytes + size > this.limits.maxCacheBytes)) {
             const [key, retired] = this.cache.entries().next().value!; this.cache.delete(key); this.cacheBytes -= retired.size;
           }

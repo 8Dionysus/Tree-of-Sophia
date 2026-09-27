@@ -17,15 +17,13 @@ import {
 } from "./queries";
 import { scaleExportResponse } from "./scale";
 import {
-  executeKnowledgeLensD1,
-  focusKnowledgeNodeD1,
+  lensSnapshotResponseD1,
   inspectionSnapshotResponseD1,
   knowledgeSearchD1,
   knowledgeSearchCapabilitiesD1,
   knowledgeSearchD1Indexed,
   temporalSnapshotResponseD1,
   knowledgeCatalogD1,
-  storedKnowledgeLensD1,
 } from "./knowledge-store";
 import { SourceNavigationError } from "./source-navigation";
 import { sourceDescendD1, sourceDossierD1 } from "./source-navigation-store";
@@ -33,18 +31,19 @@ import { metaItem } from "./store";
 import { KnowledgeRevisionConflict } from "./lens-pagination";
 import { exploreD1, explorationCapabilitiesD1 } from "./exploration";
 import {parseNativeRequest, type NativeRef} from './native-lens.ts';
-import {nativeLensResponse, nativePacketResponse} from './native-lens-response.ts';
+import {nativePacketResponse} from './native-lens-response.ts';
 import {NativeBudgetExceeded} from '../../../shared/native-semantics.ts';
 import {nativeStrip,nativeIntegerString} from '../../../shared/native-unicode.ts';
 import {SelectedTemporalError} from './selected-temporal-runtime.ts';
 import {initSync, TemporalReplaySession, validate_temporal_request_wasm_v1,
-  InspectionSession, validate_inspect_request_wasm_v1} from '../generated/tos_web_rules.js';
+  InspectionSession, validate_inspect_request_wasm_v1, LensSession, validate_lens_request_wasm_v1} from '../generated/tos_web_rules.js';
 import temporalWasm from '../generated/tos_web_rules_bg.wasm';
 
 // wasm-bindgen owns module initialization; no second host cache or fetch.
 initSync({module: temporalWasm});
 const temporalRuntime = {TemporalReplaySession, validate_temporal_request_wasm_v1};
 const inspectionRuntime = {InspectionSession, validate_inspect_request_wasm_v1};
+const lensRuntime={LensSession,validate_lens_request_wasm_v1};
 
 const STATIC_CORPUS_LIMITS = new Set([1, 100, 700, 1000]);
 const STATIC_PHILOSOPHY_LIMITS = new Set([1, 1000]);
@@ -150,6 +149,7 @@ async function lensCompileResponse(request: Request, env: Env,
       throw error;
     }
   }
+  if(operation==='lens')return withSecurity(await lensSnapshotResponseD1(env.DB,lensRuntime,bytes,'compile',request.signal,request.method));
   let spec: unknown, nativeSpec: NativeRef | null = null;
   try {
     const raw = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(bytes);
@@ -159,14 +159,12 @@ async function lensCompileResponse(request: Request, env: Env,
   }
   if (!spec || typeof spec !== "object" || Array.isArray(spec)) throw new HttpError(400, "lens spec must be an object");
   try {
-    if (nativeSpec && operation === 'lens') return nativeLensResponse(await executeKnowledgeLensD1(env.DB, nativeSpec), 200, request.method);
     return withSecurity(new Response(await exploreD1(env.DB,spec,nativeSpec??undefined),{status:200,
       headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'}}));
   } catch (error) {
     if (error instanceof KnowledgeRevisionConflict) throw error;
     if (error instanceof HttpError) throw error;
     if (error instanceof NativeBudgetExceeded) throw new HttpError(413, error.message);
-    if (operation === 'lens' && error instanceof Error) throw new HttpError(400, error.message);
     throw error;
   }
 }
@@ -313,26 +311,20 @@ async function apiResponse(request: Request, env: Env, url: URL): Promise<Respon
   const knowledgeFocusPrefix = "/api/knowledge/focus/";
   if (path.startsWith(knowledgeFocusPrefix)) {
     const profile = search.get("profile") || "overview";
-    if (profile !== "overview" && profile !== "all") throw new HttpError(400, "profile must be overview or all");
     const direction = (search.get("direction") || "either").trim().toLowerCase();
-    if (direction !== "outgoing" && direction !== "incoming" && direction !== "either") {
-      throw new HttpError(400, "direction must be outgoing, incoming, or either");
-    }
     const sources = listParam(search, "sources");
-    return nativeLensResponse(await focusKnowledgeNodeD1(env.DB, segment(path, knowledgeFocusPrefix), {
-      ...(sources.length ? { sources } : {}),
-      depth: boundedInt(search.get("depth"), 1, 0, 5),
-      direction,
-      profile,
-      predicateIds: listParam(search, "predicates"),
-      nodeLimit: boundedInt(search.get("node_limit"), 200, 1, 1000),
-      relationLimit: boundedInt(search.get("relation_limit"), 400, 0, 2000),
-    }), 200, method);
+    const focus={node_id:segment(path,knowledgeFocusPrefix),
+      ...(sources.length?{sources}:{}),depth:boundedInt(search.get("depth"),1,0,5),direction,profile,
+      predicate_ids:listParam(search,"predicates"),node_limit:boundedInt(search.get("node_limit"),200,1,1000),
+      relation_limit:boundedInt(search.get("relation_limit"),400,0,2000)};
+    return withSecurity(await lensSnapshotResponseD1(env.DB,lensRuntime,new TextEncoder().encode(JSON.stringify(focus)),
+      'focus',request.signal,method));
   }
   const knowledgeLensPrefix = "/api/knowledge/lenses/";
   if (path.startsWith(knowledgeLensPrefix)) {
     const lensId = segment(path, knowledgeLensPrefix);
-    return nativeLensResponse(await storedKnowledgeLensD1(env.DB, lensId), 200, method);
+    return withSecurity(await lensSnapshotResponseD1(env.DB,lensRuntime,new TextEncoder().encode(JSON.stringify(lensId)),
+      'stored',request.signal,method));
   }
 
 
