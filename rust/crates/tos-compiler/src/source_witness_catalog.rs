@@ -401,10 +401,7 @@ fn input_root(stage: &KnowledgeStage<'_>, l: SourceCatalogLimits) -> Result<Stri
 
 impl SourceCatalogValidator<'_> {
     fn check(&self, c: &Contracts, schema_ref: &str, fragment: &str, raw: &[u8]) -> Result<()> {
-        let uri = c
-            .ids
-            .get(schema_ref)
-            .ok_or(Error::Invalid("catalog exact schema absent"))?;
+        let uri = profile_schema_uri(c, schema_ref)?;
         let root = format!("{uri}{fragment}");
         match BoundedSchemaExecutor::evaluate_cancellable(
             self.worker,
@@ -432,23 +429,35 @@ impl SourceCatalogValidator<'_> {
     }
 }
 
+// source_record_profiles._schema_route binds consumed profile resources to
+// their declared owner path. The complete selected contracts inventory also
+// contains schemas with other genuine declared $ids; their identity is the
+// exact selected bytes and $id, checked by the schema worker.
+fn profile_schema_uri<'a>(c: &'a Contracts, schema_ref: &str) -> Result<&'a str> {
+    let uri = c
+        .ids
+        .get(schema_ref)
+        .ok_or(Error::Invalid("catalog exact schema absent"))?;
+    if uri != &format!("https://tree-of-sophia.local/{schema_ref}")
+        && uri != &format!("https://treeofsophia.local/{schema_ref}")
+    {
+        return Err(Error::Invalid("catalog schema owner identity"));
+    }
+    Ok(uri)
+}
+
 fn routes(profile: &Value, c: &Contracts) -> Result<BTreeMap<String, String>> {
     let mut result = BTreeMap::new();
     for route in array(profile, "schemas")? {
         let schema = text(route, "schema_ref")?;
-        if !c.ids.contains_key(schema) {
-            return Err(Error::Invalid("catalog declared schema missing"));
-        }
+        profile_schema_uri(c, schema)?;
         for dependency in array(route, "schema_dependencies")? {
-            if !c.ids.contains_key(
+            profile_schema_uri(
+                c,
                 dependency
                     .as_str()
                     .ok_or(Error::Invalid("catalog schema dependency"))?,
-            ) {
-                return Err(Error::Invalid(
-                    "catalog exact declared schema dependency missing",
-                ));
-            }
+            )?;
         }
         if result
             .insert(text(route, "schema_version")?.into(), schema.into())
@@ -524,11 +533,6 @@ fn contracts(
                 .clone();
             if row.id.ends_with(".schema.json") {
                 let uri = text(&value, "$id")?.to_owned();
-                if uri != format!("https://tree-of-sophia.local/{}", row.id)
-                    && uri != format!("https://treeofsophia.local/{}", row.id)
-                {
-                    return Err(Error::Invalid("catalog schema owner identity"));
-                }
                 if !uri_seen.insert(uri.clone()) {
                     return Err(Error::Invalid("catalog duplicate schema owner URI"));
                 }
@@ -869,6 +873,13 @@ fn entry_claim(
     version(v, "claim_version")?;
     let mut extension = None;
     if basename == "source-claims.jsonl" {
+        for shared in [
+            CLAIM,
+            "ToS/contracts/knowledge-assessment.schema.json",
+            "ToS/contracts/source-claim-record.schema.json",
+        ] {
+            profile_schema_uri(c, shared)?;
+        }
         let p = c
             .claims
             .get(text(v, "predicate")?)
