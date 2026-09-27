@@ -664,6 +664,13 @@ pub fn clear_philosophy_prepare(
     result
 }
 
+// Exact existing native phi preparation carriers, shared by its tests and cold fixture.
+#[cfg(any(test, feature = "test-fixture"))]
+pub(crate) const PHILOSOPHY_FIXTURE_0: &str = r#"{"node_id":"n:a","label":"Alpha","multilingual":{"schema_version":"tos_multilingual_label_v1","label":{"ru":"Альфа","en":"Alpha"},"source_ref":"ToS/philosophy/a.md"},"node_type":"concept","graph_layers":["philosophy"],"view_ids":["atlas"],"source_ref":"ToS/philosophy/a.md","properties":{"original_node_type":" concept "}}"#;
+#[cfg(any(test, feature = "test-fixture"))]
+pub(crate) const PHILOSOPHY_FIXTURE_1: &str = r#"{"node_id":"n:b","label":"Beta","multilingual":{"schema_version":"tos_multilingual_label_v1","label":{"ru":"Бета","en":"Beta"},"source_ref":"ToS/philosophy/b.md"},"node_type":"concept","graph_layers":["philosophy"],"view_ids":[],"source_ref":"ToS/philosophy/b.md","properties":{}}"#;
+#[cfg(any(test, feature = "test-fixture"))]
+pub(crate) const PHILOSOPHY_FIXTURE_2: &str = r#"{"edge_id":"e:ab","from_id":"n:a","to_id":"n:b","predicate_id":"relates","graph_layers":["philosophy"],"view_ids":["atlas","atlas","route"],"source_ref":"ToS/philosophy/relations.md","properties":{}}"#;
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -733,9 +740,9 @@ mod tests {
     }
     fn fixture() -> Vec<FixtureRow> {
         vec![
-            ("nodes","n:a",r#"{"node_id":"n:a","label":"Alpha","multilingual":{"schema_version":"tos_multilingual_label_v1","label":{"ru":"Альфа","en":"Alpha"},"source_ref":"ToS/philosophy/a.md"},"node_type":"concept","graph_layers":["philosophy"],"view_ids":["atlas"],"source_ref":"ToS/philosophy/a.md","properties":{"original_node_type":" concept "}}"#.into()),
-            ("nodes","n:b",r#"{"node_id":"n:b","label":"Beta","multilingual":{"schema_version":"tos_multilingual_label_v1","label":{"ru":"Бета","en":"Beta"},"source_ref":"ToS/philosophy/b.md"},"node_type":"concept","graph_layers":["philosophy"],"view_ids":[],"source_ref":"ToS/philosophy/b.md","properties":{}}"#.into()),
-            ("edges","e:ab",r#"{"edge_id":"e:ab","from_id":"n:a","to_id":"n:b","predicate_id":"relates","graph_layers":["philosophy"],"view_ids":["atlas","atlas","route"],"source_ref":"ToS/philosophy/relations.md","properties":{}}"#.into()),
+            ("nodes", "n:a", super::PHILOSOPHY_FIXTURE_0.into()),
+            ("nodes", "n:b", super::PHILOSOPHY_FIXTURE_1.into()),
+            ("edges", "e:ab", super::PHILOSOPHY_FIXTURE_2.into()),
         ]
     }
     fn input_root(rows: &[FixtureRow], collection: &str) -> (u64, String) {

@@ -19,6 +19,13 @@ mod knowledge_inherited_views;
 mod knowledge_native;
 mod knowledge_native_finalize;
 mod knowledge_navigation_finalize;
+mod knowledge_original_rows;
+mod knowledge_philosophy_original;
+pub use knowledge_philosophy_original::{
+    KNOWLEDGE_PHILOSOPHY_MODEL_ABI, PHILOSOPHY_ORIGINAL_PROFILE, PhilosophyOriginalCollection,
+    PhilosophyOriginalInput, PhilosophyOriginalPage, PhilosophyOriginalReceipt,
+    PhilosophyOriginalRow, philosophy_original_rows_root, retain_philosophy_original,
+};
 mod knowledge_navigation_original;
 pub use knowledge_navigation_original::{
     KNOWLEDGE_NAVIGATION_MODEL_ABI, NAVIGATION_ORIGINAL_PROFILE, NavigationOriginalInput,

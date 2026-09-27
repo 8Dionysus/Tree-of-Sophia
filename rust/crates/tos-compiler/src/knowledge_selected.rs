@@ -60,6 +60,8 @@ pub struct KnowledgeSelectedExpectation {
     pub relation_registry_sha256: String,
     pub graph_root_sha256: String,
     pub navigation_original_root_sha256: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub philosophy_original_root_sha256: Option<String>,
     pub catalog_packet_sha256: String,
     pub catalog_index_root_sha256: String,
     pub source_scope_root_sha256: String,
@@ -125,6 +127,7 @@ pub struct VerifiedKnowledgeModel<'a> {
     selection: KnowledgeSelectedExpectation,
     source_revision: String,
     navigation_original: Option<crate::NavigationOriginalReceipt>,
+    philosophy_original: Option<crate::PhilosophyOriginalReceipt>,
     custody: CustodyRef<'a>,
     max_cold_vm_steps: u64,
     sqlite_cache_kib: u64,
@@ -134,6 +137,39 @@ pub struct VerifiedKnowledgeModel<'a> {
 impl<'a> VerifiedKnowledgeModel<'a> {
     /// Exact bounded original carrier under this same immutable selected lease.
     /// Legacy snapshots explicitly refuse; this is not a current rights grant.
+    /// Mechanical retained-component presence, never an authority grant.
+    pub fn navigation_original_available(&self) -> bool {
+        self.navigation_original.is_some()
+    }
+    pub fn philosophy_original_available(&self) -> bool {
+        self.philosophy_original.is_some()
+    }
+    pub fn philosophy_original_receipt(&self) -> Result<&crate::PhilosophyOriginalReceipt> {
+        self.check_pin()?;
+        self.philosophy_original.as_ref().ok_or(Error::Invalid(
+            "selected philosophy original component unavailable",
+        ))
+    }
+    pub fn philosophy_original_page_under_caller_budget(
+        &self,
+        collection: crate::PhilosophyOriginalCollection,
+        after: Option<u64>,
+        max_rows: usize,
+        max_row_bytes: usize,
+        max_page_bytes: u64,
+    ) -> Result<crate::PhilosophyOriginalPage> {
+        self.philosophy_original_receipt()?;
+        let page = crate::knowledge_philosophy_original::page(
+            &self.connection,
+            collection,
+            after,
+            max_rows,
+            max_row_bytes,
+            max_page_bytes,
+        )?;
+        self.check_pin()?;
+        Ok(page)
+    }
     pub fn navigation_original_receipt(&self) -> Result<&crate::NavigationOriginalReceipt> {
         self.check_pin()?;
         self.navigation_original.as_ref().ok_or(Error::Invalid(
@@ -261,6 +297,7 @@ impl<'a> VerifiedKnowledgeModel<'a> {
             selection: self.selection.clone(),
             source_revision: self.source_revision.clone(),
             navigation_original: self.navigation_original.clone(),
+            philosophy_original: self.philosophy_original.clone(),
             custody: self.custody.clone(),
             max_cold_vm_steps: max_vm_steps,
             sqlite_cache_kib: self.sqlite_cache_kib,
@@ -295,8 +332,12 @@ pub(crate) fn validate(
     }
     if expected.model_size_bytes == 0
         || expected.model_size_bytes > limits.max_file_bytes
-        || ![KNOWLEDGE_MODEL_ABI, crate::KNOWLEDGE_NAVIGATION_MODEL_ABI]
-            .contains(&expected.model_abi.as_str())
+        || ![
+            KNOWLEDGE_MODEL_ABI,
+            crate::KNOWLEDGE_NAVIGATION_MODEL_ABI,
+            crate::KNOWLEDGE_PHILOSOPHY_MODEL_ABI,
+        ]
+        .contains(&expected.model_abi.as_str())
         || !expected.complete
         || expected.source_scopes.is_empty()
         || expected.source_scopes.len() > limits.max_sources
@@ -304,11 +345,18 @@ pub(crate) fn validate(
         return Err(Error::Invalid("knowledge selection expectation incomplete"));
     }
     match (
-        &expected.navigation_original_root_sha256,
         expected.model_abi.as_str(),
+        &expected.navigation_original_root_sha256,
+        &expected.philosophy_original_root_sha256,
     ) {
-        (Some(root), crate::KNOWLEDGE_NAVIGATION_MODEL_ABI) => checked_digest(root)?,
-        (None, KNOWLEDGE_MODEL_ABI) => (),
+        (KNOWLEDGE_MODEL_ABI, None, None) => (),
+        (crate::KNOWLEDGE_NAVIGATION_MODEL_ABI, Some(nav), None) => checked_digest(nav)?,
+        (crate::KNOWLEDGE_PHILOSOPHY_MODEL_ABI, nav, Some(phi)) => {
+            checked_digest(phi)?;
+            if let Some(nav) = nav {
+                checked_digest(nav)?;
+            }
+        }
         _ => {
             return Err(Error::Invalid(
                 "knowledge independent original component expectation",
@@ -958,6 +1006,8 @@ fn open_selected_inner<'a>(
     verify_catalog(&db, &expected, limits, &mut work)?;
     let navigation_original =
         crate::knowledge_navigation_original::verify(&db, &expected, limits, &mut work)?;
+    let philosophy_original =
+        crate::knowledge_philosophy_original::verify(&db, &expected, limits, &mut work)?;
     custody.verify_cold_resources(limits)?;
     custody.verify(&pinned, &expected)?;
     Ok(VerifiedKnowledgeModel {
@@ -966,6 +1016,7 @@ fn open_selected_inner<'a>(
         selection: expected,
         source_revision,
         navigation_original,
+        philosophy_original,
         custody,
         max_cold_vm_steps: limits.max_vm_steps,
         sqlite_cache_kib: limits.sqlite_cache_kib,
@@ -1251,6 +1302,12 @@ fn verify_selected_table_allowlist(db: &Connection) -> Result<()> {
             crate::knowledge_navigation_original::MEMBER_TABLE,
         ]);
     }
+    if crate::knowledge_philosophy_original::present(db)? {
+        expected.extend([
+            crate::knowledge_philosophy_original::META_TABLE,
+            crate::knowledge_philosophy_original::ROW_TABLE,
+        ]);
+    }
     expected.sort_unstable();
     let mut table_statement=db.prepare("SELECT CASE WHEN typeof(name)='text' AND length(CAST(name AS BLOB))<=128 THEN name ELSE NULL END FROM sqlite_master WHERE type='table' ORDER BY name")?;
     let mut rows = table_statement.query([])?;
@@ -1275,6 +1332,9 @@ pub(crate) fn verify_schema(db: &Connection) -> Result<()> {
     knowledge_stage::selected_table_closure(db)?;
     if crate::knowledge_navigation_original::present(db)? {
         crate::knowledge_navigation_original::verify_ddl(db)?;
+    }
+    if crate::knowledge_philosophy_original::present(db)? {
+        crate::knowledge_philosophy_original::verify_ddl(db)?;
     }
     for (table, expected_ddl_sha256) in SELECTED_TABLES {
         let ddl: Option<Vec<u8>> = db
@@ -2043,6 +2103,7 @@ mod tests {
             relation_registry_sha256: EMPTY.into(),
             graph_root_sha256: GRAPH_ROOT.into(),
             navigation_original_root_sha256: None,
+            philosophy_original_root_sha256: None,
             catalog_packet_sha256: EMPTY.into(),
             catalog_index_root_sha256: EMPTY.into(),
             source_scope_root_sha256: EMPTY.into(),

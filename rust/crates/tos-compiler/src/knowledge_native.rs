@@ -33,6 +33,7 @@ use tos_foundation::{Digest256, Digest256Hasher};
 pub struct NativeFamilyInputs<'a> {
     pub repository_root: Option<RepositoryRootInput<'a>>,
     pub navigation_original: Option<NavigationOriginalInput<'a>>,
+    pub philosophy_original: Option<crate::PhilosophyOriginalInput<'a>>,
     pub topology: TopologyLimits,
     pub canon_prepare: CanonPrepareLimits,
     pub canon: CanonMaterializeLimits,
@@ -44,6 +45,7 @@ impl NativeFamilyInputs<'_> {
         Self {
             repository_root: None,
             navigation_original: None,
+            philosophy_original: None,
             topology: TopologyLimits {
                 max_rows: limits.finalize.max_rows,
                 max_page_rows: limits.finalize.max_page_rows,
@@ -109,6 +111,7 @@ pub const NATIVE_KNOWLEDGE_ADAPTER_PROFILES: &[&str] = &[
 pub struct NativeProducerReceipt {
     pub final_rows: NativeFinalizeReceipt,
     pub navigation_original: Option<crate::NavigationOriginalReceipt>,
+    pub philosophy_original: Option<crate::PhilosophyOriginalReceipt>,
     pub base_node_root_sha256: String,
     pub endpoint_title_root_sha256: String,
     pub claim_group_root_sha256: String,
@@ -643,8 +646,14 @@ pub fn materialize_native_sources_with_inputs(
         } else {
             None
         };
+        let mut philosophy_original = None;
         let philosophy = if selected("philosophy-node-edge-v1")? {
             let prepared = prepare_philosophy(stage, vocabulary, limits.philosophy_prepare)?;
+            if let Some(original) = additional.philosophy_original.as_ref() {
+                philosophy_original = Some(crate::retain_philosophy_original(
+                    stage, vocabulary, &prepared, original,
+                )?);
+            }
             let normalizer = PhilosophyNormalizer::new(
                 registry,
                 entity_bytes,
@@ -658,6 +667,11 @@ pub fn materialize_native_sources_with_inputs(
         } else {
             None
         };
+        if additional.philosophy_original.is_some() && philosophy.is_none() {
+            return Err(Error::Invalid(
+                "philosophy originals without selected producer",
+            ));
+        }
         let canon = if selected("canon-node-relation-v1")? {
             let prepared = prepare_canon_inputs(stage, vocabulary, additional.canon_prepare)?;
             let normalizer = CanonNormalizer::new(
@@ -1104,6 +1118,7 @@ pub fn materialize_native_sources_with_inputs(
         Ok(NativeProducerReceipt {
             final_rows,
             navigation_original,
+            philosophy_original,
             base_node_root_sha256: base.node_root_sha256,
             endpoint_title_root_sha256: titles.title_root_sha256,
             claim_group_root_sha256: contexts.root_sha256,

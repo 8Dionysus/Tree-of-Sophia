@@ -73,6 +73,7 @@ pub struct FullKnowledgeFixture {
     pub stage_receipt: crate::knowledge_stage::StageReceipt,
     pub seal_receipt: crate::KnowledgeSealReceipt,
     pub navigation_original: Option<crate::NavigationOriginalReceipt>,
+    pub philosophy_original: Option<crate::PhilosophyOriginalReceipt>,
     entity_registry_bytes: Vec<u8>,
     relation_registry_bytes: Vec<u8>,
     custody: FixtureCustody,
@@ -345,6 +346,7 @@ pub fn build_fixture() -> FullKnowledgeFixture {
         header,
         &[],
         None,
+        None,
     )
 }
 
@@ -360,6 +362,7 @@ fn finish_fixture(
     header: Value,
     saved_lenses: &[Value],
     navigation_original: Option<crate::NavigationOriginalReceipt>,
+    philosophy_original: Option<crate::PhilosophyOriginalReceipt>,
 ) -> FullKnowledgeFixture {
     let full = compile_full_knowledge_components(
         &mut stage,
@@ -426,6 +429,7 @@ fn finish_fixture(
         owner_receipt_id: "fixture-owner-receipt".into(),
         model_abi: full.seal.model_abi.clone(),
         navigation_original_root_sha256: full.seal.navigation_original_root_sha256.clone(),
+        philosophy_original_root_sha256: full.seal.philosophy_original_root_sha256.clone(),
         descriptor_sha256: vocabulary.descriptor_sha256.clone(),
         descriptor_version: vocabulary.descriptor_version,
         semantic_primitive_profile: vocabulary.semantic_primitive_profile.clone(),
@@ -461,6 +465,7 @@ fn finish_fixture(
         stage_receipt: output,
         seal_receipt: full.seal,
         navigation_original,
+        philosophy_original,
         entity_registry_bytes: entity_bytes.to_vec(),
         relation_registry_bytes: relation_bytes.to_vec(),
         custody: FixtureCustody,
@@ -471,12 +476,12 @@ fn finish_fixture(
 /// Claim bytes and a bounded navigation owner carrier for its exact subject.
 /// No pre-normalized Claim, time envelope or final row is a test input.
 pub fn build_native_fixture() -> FullKnowledgeFixture {
-    build_native_fixture_inner(false, None)
+    build_native_fixture_inner(false, None, None)
 }
 /// Existing native raw fixture with one explicitly synthetic rights declaration
 /// retained through normal assembler/seal/cold-open. This grants no authority.
 pub fn build_native_fixture_with_navigation_original() -> FullKnowledgeFixture {
-    build_native_fixture_inner(true, None)
+    build_native_fixture_inner(true, None, None)
 }
 /// Caller supplies complete original owner fixture packets. They traverse the
 /// same raw ingestion, native normalization, catalog, seal and cold-open path.
@@ -487,12 +492,70 @@ pub fn build_native_fixture_with_navigation_inputs(
     edges: &[&[u8]],
     rights: &[&[u8]],
 ) -> FullKnowledgeFixture {
-    build_native_fixture_inner(true, Some((header, nodes, edges, rights)))
+    build_native_fixture_inner(true, Some((header, nodes, edges, rights)), None)
 }
+use crate::knowledge_philosophy_prepare::{
+    PHILOSOPHY_FIXTURE_0, PHILOSOPHY_FIXTURE_1, PHILOSOPHY_FIXTURE_2,
+};
+/// One finite synthetic software fixture, using the unchanged existing native
+/// preparation inputs; no authored-growth, rights or review admission is claimed.
+pub fn build_native_fixture_with_philosophy_original() -> FullKnowledgeFixture {
+    let nodes = [
+        PHILOSOPHY_FIXTURE_0.as_bytes(),
+        PHILOSOPHY_FIXTURE_1.as_bytes(),
+    ];
+    let edges = [PHILOSOPHY_FIXTURE_2.as_bytes()];
+    let nv = nodes
+        .iter()
+        .map(|r| serde_json::from_slice::<Value>(r).unwrap())
+        .collect::<Vec<_>>();
+    let ev = edges
+        .iter()
+        .map(|r| serde_json::from_slice::<Value>(r).unwrap())
+        .collect::<Vec<_>>();
+    let node_ids = nv.iter().map(|v| v["node_id"].clone()).collect::<Vec<_>>();
+    let edge_ids = ev.iter().map(|v| v["edge_id"].clone()).collect::<Vec<_>>();
+    let mut views = Vec::new();
+    for v in ev.iter().chain(&nv) {
+        for id in v["view_ids"].as_array().unwrap() {
+            if !views.contains(id) {
+                views.push(id.clone());
+            }
+        }
+    }
+    let refs = nv
+        .iter()
+        .chain(&ev)
+        .map(|v| v["source_ref"].clone())
+        .collect::<Vec<_>>();
+    let source = ev[0]["source_ref"].clone();
+    let view_records=views.iter().map(|id|json!({"view_id":id,"title":id,"graph_layers":["philosophy"],"node_ids":node_ids,"edge_ids":edge_ids,"source_refs":refs,"source_ref":source})).collect::<Vec<_>>();
+    let review = views
+        .iter()
+        .map(|id| json!({"view_id":id,"unresolved_diagnostics":[]}))
+        .collect::<Vec<_>>();
+    let header = json!({"schema_version":"tos_philosophy_graph_projection_v2","counts":{"nodes":nodes.len(),"edges":edges.len(),"views":views.len(),"clusters":1},
+      "graph_layers":[{"layer_id":"philosophy","label":"Philosophy"}],"layer_counts":[{"layer_id":"philosophy","nodes":nodes.len(),"edges":edges.len()}],
+      "visibility_model":{},"runtime_projection_boundary":{"is_source_authority":false,"writes_to_tree":false,"scope":"synthetic-native-philosophy-fixture"},
+      "views":view_records,"clusters":[{"cluster_id":"fixture-phi-pair","cluster_kind":"pair","label":"Pair","view_ids":views,"member_node_ids":node_ids,"member_edge_ids":edge_ids,"source_ref":source,"properties":{"member_count":nodes.len(),"edge_count":edges.len()}}],
+      "review_packets":review,"snapshot_review":{"snapshot_schema_version":"tos_philosophy_graph_projection_snapshot_v1"},"unresolved_review_surfaces":[],"source_refs":{}});
+    let raw = serde_json::to_vec(&header).unwrap();
+    build_native_fixture_with_philosophy_inputs(&raw, &nodes, &edges)
+}
+/// Exact ordered phi owner input through the existing native assembler and cold opener.
+pub fn build_native_fixture_with_philosophy_inputs(
+    header: &[u8],
+    nodes: &[&[u8]],
+    edges: &[&[u8]],
+) -> FullKnowledgeFixture {
+    build_native_fixture_inner(false, None, Some((header, nodes, edges)))
+}
+type PhilosophyFixtureInputs<'a> = (&'a [u8], &'a [&'a [u8]], &'a [&'a [u8]]);
 type NavigationFixtureInputs<'a> = (&'a [u8], &'a [&'a [u8]], &'a [&'a [u8]], &'a [&'a [u8]]);
 fn build_native_fixture_inner(
     retain_original: bool,
     originals: Option<NavigationFixtureInputs<'_>>,
+    philosophy_originals: Option<PhilosophyFixtureInputs<'_>>,
 ) -> FullKnowledgeFixture {
     use crate::knowledge_source_claims::ClaimNormalizeLimits;
     let entity_bytes =
@@ -510,7 +573,8 @@ fn build_native_fixture_inner(
             matches!(
                 source["adapter_profile"].as_str(),
                 Some("source-navigation-node-edge-v1" | "reified-bibliographic-claims-v1")
-            )
+            ) || philosophy_originals.is_some()
+                && source["adapter_profile"] == "philosophy-node-edge-v1"
         });
     let descriptor_bytes = serde_json::to_vec(&descriptor).unwrap();
     let vocabulary = QueryVocabulary::parse(
@@ -519,6 +583,7 @@ fn build_native_fixture_inner(
             "source-navigation-node-edge-v1",
             "reified-bibliographic-claims-v1",
             "indexed-node-edge-v1",
+            "philosophy-node-edge-v1",
         ],
     )
     .unwrap();
@@ -587,6 +652,25 @@ fn build_native_fixture_inner(
                     source.source_graph_id.clone(),
                     collection.into(),
                     value[id_field].as_str().unwrap().into(),
+                    raw.to_vec(),
+                ));
+            }
+        }
+    }
+    if let Some((_, nodes, edges)) = philosophy_originals {
+        let source = vocabulary
+            .sources
+            .iter()
+            .find(|s| s.adapter_profile == "philosophy-node-edge-v1")
+            .unwrap();
+        for (collection, key, packets) in [("nodes", "node_id", nodes), ("edges", "edge_id", edges)]
+        {
+            for raw in packets {
+                let v: Value = serde_json::from_slice(raw).unwrap();
+                rows.push((
+                    source.source_graph_id.clone(),
+                    collection.into(),
+                    v[key].as_str().unwrap().into(),
                     raw.to_vec(),
                 ));
             }
@@ -779,6 +863,29 @@ fn build_native_fixture_inner(
             },
         });
     }
+    let phi_header_sha =
+        philosophy_originals.map(|(header, _, _)| Digest256::of_bytes(header).to_hex());
+    let phi_nodes_root = philosophy_originals.map(|(_, nodes, _)| {
+        crate::philosophy_original_rows_root(crate::PhilosophyOriginalCollection::Nodes, nodes)
+    });
+    let phi_edges_root = philosophy_originals.map(|(_, _, edges)| {
+        crate::philosophy_original_rows_root(crate::PhilosophyOriginalCollection::Edges, edges)
+    });
+    if let Some((header, nodes, edges)) = philosophy_originals {
+        additional.philosophy_original = Some(crate::PhilosophyOriginalInput {
+            header,
+            nodes,
+            edges,
+            expected_header_sha256: phi_header_sha.as_deref().unwrap(),
+            expected_nodes_root_sha256: phi_nodes_root.as_deref().unwrap(),
+            expected_edges_root_sha256: phi_edges_root.as_deref().unwrap(),
+            limits: NavigationOriginalLimits {
+                max_rows: 200,
+                max_row_bytes: 65536,
+                max_total_bytes: 262144,
+            },
+        });
+    }
     let native = materialize_native_sources_with_inputs(
         &mut stage,
         &registry,
@@ -815,6 +922,7 @@ fn build_native_fixture_inner(
         graph_header,
         &saved_lenses,
         native.navigation_original,
+        native.philosophy_original,
     )
 }
 

@@ -324,6 +324,100 @@ mod tests {
             old.navigation_original_page(None, 100_000, 1, 65536, 65536)
                 .is_err()
         );
+        assert!(!old.philosophy_original_available());
+        assert!(old.philosophy_original_receipt().is_err());
+        // The same cold-custody boundary now retains phi originals and their
+        // encounter order; expected roots remain independent after outer rehash.
+        let mut phi =
+            crate::knowledge_full_fixture::build_native_fixture_with_philosophy_original();
+        {
+            let selected = phi.open().unwrap();
+            assert_eq!(
+                selected.selection().model_abi,
+                crate::KNOWLEDGE_PHILOSOPHY_MODEL_ABI
+            );
+            assert!(selected.philosophy_original_available());
+            assert!(!selected.navigation_original_available());
+            let r = selected.philosophy_original_receipt().unwrap();
+            assert_eq!(
+                r.component_root_sha256,
+                phi.philosophy_original
+                    .as_ref()
+                    .unwrap()
+                    .component_root_sha256
+            );
+            let page = selected
+                .philosophy_original_page_under_caller_budget(
+                    crate::PhilosophyOriginalCollection::Nodes,
+                    None,
+                    2,
+                    65536,
+                    131072,
+                )
+                .unwrap();
+            assert_eq!(page.rows.len() as u64, r.nodes);
+            assert_eq!(page.rows[0].ordinal, 0);
+            assert_eq!(
+                page.rows[0].raw.as_slice(),
+                crate::knowledge_philosophy_prepare::PHILOSOPHY_FIXTURE_0.as_bytes()
+            );
+            assert_eq!(
+                page.rows[1].raw.as_slice(),
+                crate::knowledge_philosophy_prepare::PHILOSOPHY_FIXTURE_1.as_bytes()
+            );
+            assert!(
+                selected
+                    .philosophy_original_page_under_caller_budget(
+                        crate::PhilosophyOriginalCollection::Nodes,
+                        page.next_ordinal,
+                        2,
+                        65536,
+                        131072
+                    )
+                    .unwrap()
+                    .rows
+                    .is_empty()
+            );
+            let header = selected
+                .philosophy_original_page_under_caller_budget(
+                    crate::PhilosophyOriginalCollection::Header,
+                    None,
+                    1,
+                    65536,
+                    65536,
+                )
+                .unwrap();
+            assert_eq!(header.rows[0].raw_sha256, r.header_sha256);
+            assert!(
+                selected
+                    .philosophy_original_page_under_caller_budget(
+                        crate::PhilosophyOriginalCollection::Header,
+                        None,
+                        1,
+                        1,
+                        1
+                    )
+                    .is_err()
+            );
+            let fork = selected.fork_reader_with_vm_budget(100_000_000).unwrap();
+            assert_eq!(
+                fork.philosophy_original_receipt()
+                    .unwrap()
+                    .component_root_sha256,
+                r.component_root_sha256
+            );
+        }
+        let db = rusqlite::Connection::open(&phi.path).unwrap();
+        db.execute(
+            "UPDATE philosophy_original_rows SET ordinal=ordinal+100 WHERE collection='nodes'",
+            [],
+        )
+        .unwrap();
+        drop(db);
+        let raw = std::fs::read(&phi.path).unwrap();
+        phi.expectation.model_sha256 = Digest256::of_bytes(&raw).to_hex();
+        phi.expectation.model_size_bytes = raw.len() as u64;
+        assert!(phi.open().is_err());
     }
 
     #[test]

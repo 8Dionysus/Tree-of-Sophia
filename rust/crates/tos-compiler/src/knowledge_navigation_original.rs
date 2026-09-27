@@ -22,13 +22,13 @@ pub struct NavigationOriginalLimits {
     pub max_total_bytes: u64,
 }
 impl NavigationOriginalLimits {
-    fn validate(self) -> Result<()> {
+    pub(crate) fn validate(self) -> Result<()> {
         if self.max_rows == 0
-            || self.max_rows > 1_000_000
+            || self.max_rows > crate::knowledge_original_rows::MAX_ROWS
             || self.max_row_bytes == 0
-            || self.max_row_bytes > 8 * 1024 * 1024
+            || self.max_row_bytes > crate::knowledge_original_rows::MAX_ROW_BYTES
             || self.max_total_bytes == 0
-            || self.max_total_bytes > 256 * 1024 * 1024
+            || self.max_total_bytes > crate::knowledge_original_rows::MAX_TOTAL_BYTES
         {
             return Err(Error::Budget("navigation original limits"));
         }
@@ -627,18 +627,9 @@ pub(crate) fn page(
     max_row_bytes: usize,
     max_page_bytes: u64,
 ) -> Result<NavigationOriginalPage> {
-    if max_rows == 0
-        || max_rows > 1024
-        || max_row_bytes == 0
-        || max_row_bytes > 8 * 1024 * 1024
-        || max_page_bytes == 0
-        || max_page_bytes > 64 * 1024 * 1024
-        || max_rows
-            .checked_mul(max_row_bytes)
-            .is_none_or(|n| n as u64 > max_page_bytes)
-        || after.is_some_and(|i| i < -1)
-    {
-        return Err(Error::Budget("navigation original page limits"));
+    crate::knowledge_original_rows::page_limits(max_rows, max_row_bytes, max_page_bytes)?;
+    if after.is_some_and(|i| i < -1) {
+        return Err(Error::Budget("navigation original page ordinal"));
     }
     let mut q=db.prepare("SELECT ordinal,packet_len,CASE WHEN typeof(packet_sha256)='blob' AND length(packet_sha256)=32 THEN packet_sha256 ELSE NULL END,CASE WHEN typeof(packet)='blob' AND packet_len=length(packet) AND length(packet)<=?2 THEN packet ELSE NULL END FROM navigation_original_rows WHERE ordinal>?1 ORDER BY ordinal LIMIT ?3")?;
     let mut scan = q.query(params![
@@ -646,29 +637,7 @@ pub(crate) fn page(
         max_row_bytes as i64,
         max_rows as i64
     ])?;
-    let mut rows = Vec::new();
-    let mut bytes = 0u64;
-    while let Some(row) = scan.next()? {
-        let ordinal: i64 = row.get(0)?;
-        let size: i64 = row.get(1)?;
-        let sha: Vec<u8> = row
-            .get::<_, Option<Vec<u8>>>(2)?
-            .ok_or(Error::Invalid("navigation original row digest"))?;
-        let raw: Vec<u8> = row
-            .get::<_, Option<Vec<u8>>>(3)?
-            .ok_or(Error::Budget("navigation original row bytes"))?;
-        bytes = bytes
-            .checked_add(raw.len() as u64)
-            .filter(|n| *n <= max_page_bytes)
-            .ok_or(Error::Budget("navigation original page bytes"))?;
-        if size < 0
-            || size as usize != raw.len()
-            || sha.as_slice() != Digest256::of_bytes(&raw).as_bytes()
-        {
-            return Err(Error::Invalid("navigation original row identity"));
-        }
-        rows.push((ordinal, raw));
-    }
+    let (rows, bytes) = crate::knowledge_original_rows::read(&mut scan, max_page_bytes)?;
     let next_ordinal = if rows.len() == max_rows {
         rows.last().map(|r| r.0)
     } else {
@@ -688,8 +657,13 @@ pub(crate) fn verify(
     work: &mut u64,
 ) -> Result<Option<NavigationOriginalReceipt>> {
     let present = present(db)?;
-    if expected.model_abi == KNOWLEDGE_NAVIGATION_MODEL_ABI && !present
-        || expected.model_abi != KNOWLEDGE_NAVIGATION_MODEL_ABI && present
+    if present != expected.navigation_original_root_sha256.is_some()
+        || present
+            && ![
+                KNOWLEDGE_NAVIGATION_MODEL_ABI,
+                crate::KNOWLEDGE_PHILOSOPHY_MODEL_ABI,
+            ]
+            .contains(&expected.model_abi.as_str())
     {
         return Err(Error::Invalid("navigation original model ABI coverage"));
     }
@@ -844,16 +818,14 @@ pub(crate) fn verify_stage(
         verify_rows(
             db,
             &r,
-            NavigationOriginalLimits {
-                max_rows: 1_000_000,
-                max_row_bytes: 8 * 1024 * 1024,
-                max_total_bytes: 256 * 1024 * 1024,
-            },
+            crate::knowledge_original_rows::maximum_limits(),
             &mut work,
-            320 * 1024 * 1024,
+            crate::knowledge_original_rows::MAX_COLD_WORK,
         )?;
         if descriptor.is_none() {
-            for (key,wanted) in [("model_abi",KNOWLEDGE_NAVIGATION_MODEL_ABI),("descriptor_sha256",r.descriptor_sha256.as_str()),("navigation_original_root_sha256",r.component_root_sha256.as_str())] {
+            let abi: String=db.query_row("SELECT CAST(value AS TEXT) FROM metadata WHERE key='model_abi'",[],|r|r.get(0))?;
+            if ![KNOWLEDGE_NAVIGATION_MODEL_ABI,crate::KNOWLEDGE_PHILOSOPHY_MODEL_ABI].contains(&abi.as_str()){return Err(Error::Invalid("navigation original finish ABI"));}
+            for (key,wanted) in [("descriptor_sha256",r.descriptor_sha256.as_str()),("navigation_original_root_sha256",r.component_root_sha256.as_str())] {
                 let actual:Option<String>=db.query_row("SELECT CAST(value AS TEXT) FROM metadata WHERE key=?1 AND length(CAST(value AS BLOB))<=128",[key],|r|r.get(0)).optional()?;
                 if actual.as_deref()!=Some(wanted){return Err(Error::Invalid("navigation original finish seal"));}
             }
