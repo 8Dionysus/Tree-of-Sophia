@@ -289,7 +289,12 @@ fn materialize_inner(
     let mut decoded = DecodeBudget::new(limits.max_decoded_bytes);
     work.charge_packet(packet)?;
     let desc = &vocabulary.descriptor_sha256;
-    if string(&receipt.catalog, "schema")? != "tos_knowledge_catalog_v1" {
+    if ![
+        "tos_knowledge_catalog_v1",
+        crate::managed_source::MANAGED_CATALOG_SCHEMA,
+    ]
+    .contains(&string(&receipt.catalog, "schema")?.as_str())
+    {
         return Err(Error::Invalid("catalog index packet schema"));
     }
     if let Some(counts) = receipt.catalog.get("counts") {

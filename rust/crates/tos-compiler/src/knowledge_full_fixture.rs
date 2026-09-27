@@ -539,6 +539,7 @@ fn finish_fixture_with_limits(
         model_size_bytes: output.sqlite_size_bytes,
         owner_receipt_id: "fixture-owner-receipt".into(),
         model_abi: full.seal.model_abi.clone(),
+        managed_source_root_sha256: full.seal.managed_source_root_sha256.clone(),
         navigation_original_root_sha256: full.seal.navigation_original_root_sha256.clone(),
         philosophy_original_root_sha256: full.seal.philosophy_original_root_sha256.clone(),
         corpus_original_root_sha256: full.seal.corpus_original_root_sha256.clone(),

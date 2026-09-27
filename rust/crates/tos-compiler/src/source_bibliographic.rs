@@ -120,6 +120,21 @@ pub(crate) fn forms(
         "",
         &raw,
     )?;
+    materialize_checked_form_set(&raw, reference, source, materializer, l)
+}
+/// The same form binding/materialization law after the owner schema check.
+/// Managed addressed input uses this exact core, never a second renderer.
+pub(crate) fn materialize_checked_form_set(
+    raw: &[u8],
+    reference: &str,
+    source: &Value,
+    materializer: &mut dyn BibliographicForms,
+    l: BibliographicLimits,
+) -> Result<Option<(String, Value)>> {
+    owned_ref(reference)?;
+    if raw.len() > 2_097_152 {
+        return Err(Error::Budget("bibliographic HumanForm set bytes"));
+    }
     let set = SourceRow::parse(&raw, l.catalog.max_row_bytes)?
         .value()
         .clone();

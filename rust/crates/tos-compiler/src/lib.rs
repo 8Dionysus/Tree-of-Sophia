@@ -24,6 +24,7 @@ pub use knowledge_corpus_source::{
     CorpusOriginalSourceLimits, prepare_captured_corpus_original, prepare_native_corpus_original,
     retain_captured_corpus_original_from_capture,
 };
+pub mod managed_agent_producer;
 pub mod managed_source;
 pub use managed_source::{
     KNOWLEDGE_MANAGED_MODEL_ABI, KnowledgeSourceBasis, ManagedSourceDeltaV1,
@@ -215,6 +216,7 @@ pub enum Error {
     Io(std::io::Error),
     Sql(rusqlite::Error),
     Invalid(&'static str),
+    ManagedSourceUnsupported(&'static str),
     Source(String),
     Budget(&'static str),
     SqliteVmBudget {
@@ -229,6 +231,9 @@ impl fmt::Display for Error {
             Self::Io(e) => write!(f, "I/O: {e}"),
             Self::Sql(e) => write!(f, "SQLite: {e}"),
             Self::Invalid(s) => write!(f, "invalid compiler input: {s}"),
+            Self::ManagedSourceUnsupported(s) => {
+                write!(f, "unsupported managed selected source: {s}")
+            }
             Self::Source(s) => write!(f, "source carrier: {s}"),
             Self::Budget(s) => write!(f, "compiler budget exceeded: {s}"),
             Self::SqliteVmBudget {

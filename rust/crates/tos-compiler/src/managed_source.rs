@@ -2,6 +2,10 @@
 //! These packets never issue current authority. The command owner derives and
 //! checks them against its retained generation, committed chain and fences.
 
+pub use crate::managed_agent_producer::{
+    CompletedManagedAgentProducer, prepare_managed_agent_selected_model,
+    prepare_managed_agent_selected_successor,
+};
 use crate::{Error, Result};
 use serde::{Deserialize, Serialize};
 use tos_foundation::{
@@ -106,12 +110,38 @@ impl ManagedSourceProofV1 {
         Ok(())
     }
 
+    /// Explicit installed-current identity in the existing stage source-cut
+    /// string field. This is never a v1 SourceRevision.
+    pub fn stage_source_cut(&self) -> Result<String> {
+        Ok(format!("managed-agent-current:{}", self.root_sha256()?))
+    }
+    pub(crate) fn check_binding(
+        &self,
+        source_cut: &str,
+        membership: &str,
+        through_seq: u64,
+    ) -> Result<()> {
+        if source_cut != self.stage_source_cut()?
+            || membership != self.generation.current_membership_sha256
+            || through_seq != self.generation.through_commit_seq
+        {
+            return Err(Error::Invalid("managed source exact stage binding"));
+        }
+        Ok(())
+    }
+
     /// Mechanical canonical root. Validation does not certify a generation or
     /// accept public receipts as an owner-issued committed delta capability.
     pub fn root_sha256(&self) -> Result<String> {
         self.validate()?;
-        let raw = serde_json::to_vec(self).map_err(|e| Error::Source(e.to_string()))?;
         let limits = JsonLimits::default();
+        let mut out = ProofWriter {
+            bytes: Vec::new(),
+            max: limits.max_bytes,
+        };
+        serde_json::to_writer(&mut out, self)
+            .map_err(|_| Error::Budget("managed source proof bytes"))?;
+        let raw = out.bytes;
         let parsed = parse_json(&raw, JsonMode::PublishedStrict, limits)
             .map_err(|e| Error::Source(e.to_string()))?;
         let bytes = canonical_bytes_v1(
@@ -153,4 +183,57 @@ impl KnowledgeSourceBasis {
             Self::ManagedCurrent { proof } => Some(proof),
         }
     }
+}
+
+struct ProofWriter {
+    bytes: Vec<u8>,
+    max: usize,
+}
+impl std::io::Write for ProofWriter {
+    fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
+        if self
+            .bytes
+            .len()
+            .checked_add(bytes.len())
+            .is_none_or(|n| n > self.max)
+        {
+            return Err(std::io::Error::other("managed source proof bytes"));
+        }
+        self.bytes.extend_from_slice(bytes);
+        Ok(bytes.len())
+    }
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
+}
+
+pub(crate) fn header_basis(header: &serde_json::Value) -> Result<KnowledgeSourceBasis> {
+    let basis = match header.get("schema").and_then(serde_json::Value::as_str) {
+        Some("tos_knowledge_graph_v1") => KnowledgeSourceBasis::V1Cut {
+            source_revision: header
+                .get("source_revision")
+                .and_then(serde_json::Value::as_str)
+                .ok_or(Error::Invalid("knowledge graph cut revision"))?
+                .into(),
+        },
+        Some(MANAGED_GRAPH_SCHEMA) => {
+            if header.get("source_revision").is_some() {
+                return Err(Error::Invalid("managed graph cannot declare v1 revision"));
+            }
+            let basis: KnowledgeSourceBasis = serde_json::from_value(
+                header
+                    .get("source_basis")
+                    .ok_or(Error::Invalid("managed graph source basis"))?
+                    .clone(),
+            )
+            .map_err(|_| Error::Invalid("managed graph source basis shape"))?;
+            if !matches!(basis, KnowledgeSourceBasis::ManagedCurrent { .. }) {
+                return Err(Error::Invalid("managed graph basis profile"));
+            }
+            basis
+        }
+        _ => return Err(Error::Invalid("knowledge graph source schema")),
+    };
+    basis.validate()?;
+    Ok(basis)
 }

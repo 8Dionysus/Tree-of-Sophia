@@ -270,6 +270,48 @@ pub(crate) fn project_source_navigation_record(
     output.check(l)?;
     Ok(output)
 }
+fn metadata_history(current: &Version, id: &str) -> Result<Value> {
+    let mut provenance = current.provenance.clone();
+    let p = provenance
+        .as_object_mut()
+        .ok_or(Error::Invalid("navigation history provenance object"))?;
+    p.remove("source");
+    p.remove("transition");
+    Ok(
+        json!({"status":"available","reason":"verified-record-references","record_id":id,"current_ref":current.current_ref,
+        "refs":current.refs,"provenance":provenance,"grants_current_use":false,"performs_assessment":false,"writes_to_source":false}),
+    )
+}
+/// The used initial-Agent branch shares Versions and the record renderer.
+/// Caller proves committed initial creation and schema/form/current custody.
+pub(crate) fn project_managed_initial_agent(
+    entry: &Value,
+    source: &Value,
+    raw: &[u8],
+    entities: &Value,
+    catalog: (u64, String),
+    forms: Option<(&str, &Value)>,
+    l: BibliographicLimits,
+) -> Result<NavigationRecordProjection> {
+    let version = crate::source_bibliographic_versions::initial_managed_agent_version(
+        entry, source, raw, entities, catalog, l,
+    )?;
+    let history = metadata_history(&version, text(entry, "record_id")?)?;
+    let reference = version.current_ref.clone();
+    let versions = vec![(reference.clone(), resolved(&reference, version))];
+    project_source_navigation_record(
+        NavigationRecordInput {
+            entry,
+            source_record: source,
+            forms,
+            history: Some(&history),
+            versions: &versions,
+            native_composite: false,
+        },
+        l,
+    )
+}
+
 fn resolved(reference: &Value, version: Version) -> Value {
     json!({"status":"available","reason":format!("exact-{}-version",version.version_status),"exact_ref":reference,
         "version_status":version.version_status,"record":version.record,"record_digest":reference["digest"],"provenance":version.provenance,
@@ -301,16 +343,7 @@ pub(crate) fn prepare_navigation_record_from_catalog(
         if current.record != record {
             return Err(Error::Invalid("navigation current/history source equality"));
         }
-        let mut provenance = current.provenance.clone();
-        let p = provenance
-            .as_object_mut()
-            .ok_or(Error::Invalid("navigation history provenance object"))?;
-        p.remove("source");
-        p.remove("transition");
-        Some(
-            json!({"status":"available","reason":"verified-record-references","record_id":id,"current_ref":current.current_ref,
-            "refs":current.refs,"provenance":provenance,"grants_current_use":false,"performs_assessment":false,"writes_to_source":false}),
-        )
+        Some(metadata_history(&current, id)?)
     } else {
         None
     };

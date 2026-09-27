@@ -558,14 +558,25 @@ impl<'a, 'b> Versions<'a, 'b> {
             ));
         }
         let catalog = legacy_catalog(stage, "records", Some(&route.kind), id, l)?;
-        let provenance = json!({"verification_scope":"selected-record-chain","all_package_bytes_verified":false,
+        let provenance = if receipts.is_empty() {
+            initial_metadata_provenance(
+                &route,
+                &record,
+                reference,
+                &current,
+                &catalog,
+                selected_source.clone(),
+            )
+        } else {
+            json!({"verification_scope":"selected-record-chain","all_package_bytes_verified":false,
             "catalog":{"source_ref":format!("ToS/source-witnesses/catalog/{}",route.catalog_filename),"line":catalog.0,
                 "sha256":catalog.1,"source_record_ref":reference,"current_record_ref":current},
             "descriptor":route.descriptor(&record["schema_version"]),
             "history":{"source_ref":history_raw.as_ref().map(|_|history_ref),
                 "sha256":history_raw.as_ref().map(|raw|format!("sha256:{}",Digest256::of_bytes(raw).to_hex())),"receipt_count":receipts.len(),
                 "retained_record_chain_verified":true,"retained_baseline_ref":baseline},
-            "source":selected_source,"transition":transition});
+            "source":selected_source,"transition":transition})
+        };
         Ok(Version {
             record: selected_record,
             provenance,
@@ -1583,6 +1594,62 @@ impl RecordRoute {
             "source_basename":self.basename,"schema_version":schema_version,"schema_ref":self.schema,"type_id":self.type_id})
     }
 }
+/// Exact zero-receipt branch of the maintained metadata Versions provenance.
+/// The independent caller must already prove current original bytes and history
+/// absence. It grants neither a current source read nor retained availability.
+fn initial_metadata_provenance(
+    route: &RecordRoute,
+    record: &Value,
+    reference: &str,
+    current: &Value,
+    catalog: &(u64, String),
+    source: Value,
+) -> Value {
+    json!({"verification_scope":"selected-record-chain","all_package_bytes_verified":false,
+        "catalog":{"source_ref":format!("ToS/source-witnesses/catalog/{}",route.catalog_filename),"line":catalog.0,
+            "sha256":catalog.1,"source_record_ref":reference,"current_record_ref":current},
+        "descriptor":route.descriptor(&record["schema_version"]),
+        "history":{"source_ref":null,"sha256":null,"receipt_count":0,
+            "retained_record_chain_verified":true,"retained_baseline_ref":current},
+        "source":source,"transition":null})
+}
+/// Managed creation consumes only the same current initial Agent branch.
+/// Actual committed creation/history absence is checked by the CMD issuer;
+/// this helper checks the existing registry/route/ref/catalog laws.
+pub(crate) fn initial_managed_agent_version(
+    entry: &Value,
+    record: &Value,
+    raw: &[u8],
+    entities: &Value,
+    catalog: (u64, String),
+    l: BibliographicLimits,
+) -> Result<Version> {
+    if entry["record_type"] != "agent" || record["record_version"] != 1 {
+        return Err(Error::Invalid(
+            "managed successor requires initial Agent creation",
+        ));
+    }
+    let route = RecordRoute::derive(entry, record, entities)?;
+    let current = metadata_ref(record, &route, l)?;
+    route.validate_record(record, &current, &record["schema_version"])?;
+    if entry["record_sha256"] != text(&current, "digest")?.trim_start_matches("sha256:") {
+        return Err(Error::Invalid("managed Agent exact catalog source digest"));
+    }
+    let reference = text(entry, "source_record_ref")?;
+    let source = json!({"source_ref":reference,"record_bytes":raw.len(),
+        "record_sha256":format!("sha256:{}",Digest256::of_bytes(raw).to_hex()),
+        "archive_blob_ref":null,"archive_manifest_ref":null,"archive_manifest_sha256":null,"package_revision":null});
+    let provenance =
+        initial_metadata_provenance(&route, record, reference, &current, &catalog, source);
+    Ok(Version {
+        record: record.clone(),
+        provenance,
+        refs: vec![current.clone()],
+        current_ref: current,
+        version_status: "current",
+    })
+}
+
 fn metadata_ref(record: &Value, route: &RecordRoute, l: BibliographicLimits) -> Result<Value> {
     let reference = json!({"id":record[route.identity],"version":record["record_version"],"digest":format!("sha256:{}",digest(record,l.catalog.max_row_bytes)?)});
     exact_ref(&reference, false)?;

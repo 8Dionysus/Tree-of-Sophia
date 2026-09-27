@@ -88,6 +88,16 @@ impl SourceCatalogInputPlan {
     pub fn observed_work_bytes(&self) -> u64 {
         self.work_bytes
     }
+    pub(crate) fn verify_selected_member_bytes(&self, path: &str, raw: &[u8]) -> Result<()> {
+        let member = self
+            .members
+            .get(path)
+            .ok_or(Error::Invalid("source plan selected member absent"))?;
+        if member.size != raw.len() as u64 || member.sha != Digest256::of_bytes(raw) {
+            return Err(Error::Invalid("source plan exact selected member bytes"));
+        }
+        Ok(())
+    }
 }
 pub struct SourceBibliographicCandidate {
     pub catalog: SourceCatalogReceipt,

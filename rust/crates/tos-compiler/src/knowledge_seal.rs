@@ -50,6 +50,8 @@ pub struct SealLimits {
 #[serde(deny_unknown_fields)]
 pub struct KnowledgeSealReceipt {
     pub model_abi: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub managed_source_root_sha256: Option<String>,
     pub navigation_original_root_sha256: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub philosophy_original_root_sha256: Option<String>,
@@ -95,9 +97,15 @@ fn checked_header(header: &Value, nodes: u64, relations: u64) -> Result<&Value> 
     let object = header
         .as_object()
         .ok_or(Error::Invalid("knowledge graph header object"))?;
+    let basis = crate::managed_source::header_basis(header)?;
+    let identity_field = if basis.managed_source().is_some() {
+        "source_basis"
+    } else {
+        "source_revision"
+    };
     let required = [
         "schema",
-        "source_revision",
+        identity_field,
         "normalization_binding",
         "query_properties",
         "counts",
@@ -106,13 +114,7 @@ fn checked_header(header: &Value, nodes: u64, relations: u64) -> Result<&Value> 
     if object.len() != required.len() || required.iter().any(|key| !object.contains_key(*key)) {
         return Err(Error::Invalid("knowledge graph header fields"));
     }
-    if header.get("schema").and_then(Value::as_str) != Some("tos_knowledge_graph_v1")
-        || header
-            .get("source_revision")
-            .and_then(Value::as_str)
-            .is_none_or(|value| Digest256::from_hex(value).is_err())
-        || !header.get("query_properties").is_some_and(Value::is_array)
-    {
+    if !header.get("query_properties").is_some_and(Value::is_array) {
         return Err(Error::Invalid("knowledge graph header profile"));
     }
     let normalization = header
@@ -323,7 +325,23 @@ fn seal_inner(
     )?;
     let corpus =
         crate::knowledge_corpus_original::verify_stage(stage, Some(&vocabulary.descriptor_sha256))?;
-    let model_abi = if corpus.is_some() {
+    let basis = crate::managed_source::header_basis(header)?;
+    let managed_source_root_sha256 = if let Some(proof) = basis.managed_source() {
+        proof.check_binding(
+            &binding.source_cut,
+            &binding.membership_root,
+            binding.through_commit_seq,
+        )?;
+        if navigation.is_none() || philosophy.is_some() || corpus.is_some() {
+            return Err(Error::Invalid("managed Agent selected family closure"));
+        }
+        Some(proof.root_sha256()?)
+    } else {
+        None
+    };
+    let model_abi = if managed_source_root_sha256.is_some() {
+        crate::KNOWLEDGE_MANAGED_MODEL_ABI
+    } else if corpus.is_some() {
         crate::KNOWLEDGE_CORPUS_MODEL_ABI
     } else if philosophy.is_some() {
         crate::KNOWLEDGE_PHILOSOPHY_MODEL_ABI
@@ -386,6 +404,9 @@ fn seal_inner(
         ("relation_count", roots.relations.to_string()),
         ("complete", "true".to_owned()),
     ];
+    if let Some(root) = &managed_source_root_sha256 {
+        metadata.push(("managed_source_root_sha256", root.clone()));
+    }
     if let Some(r) = &navigation {
         metadata.push((
             "navigation_original_root_sha256",
@@ -450,6 +471,7 @@ fn seal_inner(
     stage.mark_selected_full()?;
     Ok(KnowledgeSealReceipt {
         model_abi: model_abi.into(),
+        managed_source_root_sha256,
         navigation_original_root_sha256: navigation.map(|r| r.component_root_sha256),
         philosophy_original_root_sha256: philosophy.map(|r| r.component_root_sha256),
         corpus_original_root_sha256: corpus.map(|r| r.component_root_sha256),

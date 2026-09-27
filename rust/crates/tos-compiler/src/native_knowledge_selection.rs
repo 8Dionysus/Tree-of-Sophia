@@ -36,6 +36,8 @@ pub struct NativeSelectionProducer {
     pub philosophy_original: Option<crate::PhilosophyOriginalReceipt>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub corpus_original: Option<crate::CorpusOriginalReceipt>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub managed_source: Option<crate::ManagedSourceProofV1>,
 }
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -83,7 +85,9 @@ impl NativeKnowledgeSelection {
         max_bytes: usize,
     ) -> Result<Self> {
         let packet = Packet {
-            schema: if producer.corpus_original.is_some() {
+            schema: if producer.managed_source.is_some() {
+                crate::managed_source::MANAGED_SELECTION_SCHEMA
+            } else if producer.corpus_original.is_some() {
                 CORPUS_SCHEMA
             } else if producer.philosophy_original.is_some() {
                 PHILOSOPHY_SCHEMA
@@ -220,7 +224,9 @@ fn process(value: NativeProcessLimits) -> Result<()> {
     Ok(())
 }
 fn validate_packet(p: &Packet) -> Result<()> {
-    let schema = if p.expectation.model_abi == crate::KNOWLEDGE_CORPUS_MODEL_ABI {
+    let schema = if p.expectation.model_abi == crate::KNOWLEDGE_MANAGED_MODEL_ABI {
+        crate::managed_source::MANAGED_SELECTION_SCHEMA
+    } else if p.expectation.model_abi == crate::KNOWLEDGE_CORPUS_MODEL_ABI {
         CORPUS_SCHEMA
     } else if p.expectation.model_abi == crate::KNOWLEDGE_PHILOSOPHY_MODEL_ABI {
         PHILOSOPHY_SCHEMA
@@ -262,6 +268,7 @@ fn validate_packet(p: &Packet) -> Result<()> {
         || s.node_rows != e.node_count
         || s.relation_rows != e.relation_count
         || seal.model_abi != e.model_abi
+        || seal.managed_source_root_sha256 != e.managed_source_root_sha256
         || seal.node_count != e.node_count
         || seal.relation_count != e.relation_count
         || s.node_root_sha256 != seal.node_root_sha256
@@ -279,6 +286,17 @@ fn validate_packet(p: &Packet) -> Result<()> {
         return Err(Error::Invalid(
             "native independent producer receipt binding",
         ));
+    }
+    match (&p.producer.managed_source, &e.managed_source_root_sha256) {
+        (None, None) => (),
+        (Some(proof), Some(root)) if &proof.root_sha256()? == root => {
+            proof.check_binding(&e.source_cut, &e.membership_root, e.through_commit_seq)?;
+        }
+        _ => {
+            return Err(Error::Invalid(
+                "native managed source independent proof binding",
+            ));
+        }
     }
     let exact = crate::knowledge_stage::ExactInputReceipt {
         binding: s.binding.clone(),

@@ -46,6 +46,8 @@ pub struct KnowledgeSelectedExpectation {
     pub model_size_bytes: u64,
     pub owner_receipt_id: String,
     pub model_abi: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub managed_source_root_sha256: Option<String>,
     pub descriptor_sha256: String,
     pub descriptor_version: u64,
     pub semantic_primitive_profile: String,
@@ -127,7 +129,7 @@ pub struct VerifiedKnowledgeModel<'a> {
     connection: Connection,
     pinned: File,
     selection: KnowledgeSelectedExpectation,
-    source_revision: String,
+    source_basis: crate::KnowledgeSourceBasis,
     navigation_original: Option<crate::NavigationOriginalReceipt>,
     philosophy_original: Option<crate::PhilosophyOriginalReceipt>,
     corpus_original: Option<crate::CorpusOriginalReceipt>,
@@ -328,8 +330,11 @@ impl<'a> VerifiedKnowledgeModel<'a> {
     }
     /// The exact revision in the canonical graph header, verified during
     /// cold admission against the selected graph root and file SHA.
-    pub fn source_revision(&self) -> &str {
-        &self.source_revision
+    pub fn source_revision(&self) -> Option<&str> {
+        self.source_basis.source_revision()
+    }
+    pub fn source_basis(&self) -> &crate::KnowledgeSourceBasis {
+        &self.source_basis
     }
     pub fn connection(&self) -> &Connection {
         &self.connection
@@ -360,7 +365,7 @@ impl<'a> VerifiedKnowledgeModel<'a> {
             connection,
             pinned,
             selection: self.selection.clone(),
-            source_revision: self.source_revision.clone(),
+            source_basis: self.source_basis.clone(),
             navigation_original: self.navigation_original.clone(),
             philosophy_original: self.philosophy_original.clone(),
             corpus_original: self.corpus_original.clone(),
@@ -403,6 +408,7 @@ pub(crate) fn validate(
             crate::KNOWLEDGE_NAVIGATION_MODEL_ABI,
             crate::KNOWLEDGE_PHILOSOPHY_MODEL_ABI,
             crate::KNOWLEDGE_CORPUS_MODEL_ABI,
+            crate::KNOWLEDGE_MANAGED_MODEL_ABI,
         ]
         .contains(&expected.model_abi.as_str())
         || !expected.complete
@@ -418,6 +424,7 @@ pub(crate) fn validate(
         &expected.corpus_original_root_sha256,
     ) {
         (KNOWLEDGE_MODEL_ABI, None, None, None) => (),
+        (crate::KNOWLEDGE_MANAGED_MODEL_ABI, Some(nav), None, None) => checked_digest(nav)?,
         (crate::KNOWLEDGE_NAVIGATION_MODEL_ABI, Some(nav), None, None) => checked_digest(nav)?,
         (crate::KNOWLEDGE_PHILOSOPHY_MODEL_ABI, nav, Some(phi), None) => {
             checked_digest(phi)?;
@@ -439,6 +446,14 @@ pub(crate) fn validate(
                 "knowledge independent original component expectation",
             ));
         }
+    }
+    match (
+        &expected.managed_source_root_sha256,
+        expected.model_abi.as_str(),
+    ) {
+        (Some(root), crate::KNOWLEDGE_MANAGED_MODEL_ABI) => checked_digest(root)?,
+        (None, abi) if abi != crate::KNOWLEDGE_MANAGED_MODEL_ABI => (),
+        _ => return Err(Error::Invalid("knowledge managed source expectation")),
     }
     for text in [
         &expected.owner_receipt_id,
@@ -617,6 +632,12 @@ fn check_metadata(
             return Err(Error::Invalid("knowledge metadata binding"));
         }
     }
+    let managed: Option<String> = db.query_row(
+        "SELECT CASE WHEN typeof(value) IN ('text','blob') AND length(CAST(value AS BLOB))=64 THEN CAST(value AS TEXT) ELSE NULL END FROM metadata WHERE key='managed_source_root_sha256'",
+        [], |r| r.get(0)).optional()?;
+    if managed != expected.managed_source_root_sha256 {
+        return Err(Error::Invalid("knowledge managed source metadata binding"));
+    }
     for (key, value) in [
         ("descriptor_version", expected.descriptor_version),
         ("through_commit_seq", expected.through_commit_seq),
@@ -767,6 +788,34 @@ fn verify_catalog(
             .map_err(|_| Error::Budget("knowledge catalog JSON limits"))?,
     )
     .map_err(|e| Error::Source(e.to_string()))?;
+    if let Some(expected_root) = &expected.managed_source_root_sha256 {
+        let catalog: serde_json::Value = serde_json::from_slice(&packet)
+            .map_err(|_| Error::Invalid("managed catalog packet"))?;
+        if catalog.get("schema").and_then(serde_json::Value::as_str)
+            != Some(crate::managed_source::MANAGED_CATALOG_SCHEMA)
+            || catalog.get("source_revision").is_some()
+        {
+            return Err(Error::Invalid("managed catalog identity fields"));
+        }
+        let basis: crate::KnowledgeSourceBasis = serde_json::from_value(
+            catalog
+                .get("source_basis")
+                .ok_or(Error::Invalid("managed catalog source basis"))?
+                .clone(),
+        )
+        .map_err(|_| Error::Invalid("managed catalog source basis shape"))?;
+        let proof = basis
+            .managed_source()
+            .ok_or(Error::Invalid("managed catalog source profile"))?;
+        if &proof.root_sha256()? != expected_root {
+            return Err(Error::Invalid("managed catalog source root"));
+        }
+        proof.check_binding(
+            &expected.source_cut,
+            &expected.membership_root,
+            expected.through_commit_seq,
+        )?;
+    }
     let mut root = Digest256Hasher::new();
     hash_text(&mut root, &schema);
     hash_text(&mut root, &order_profile);
@@ -1078,7 +1127,7 @@ fn open_selected_inner<'a>(
     check_metadata(&db, &expected, limits.max_metadata_bytes)?;
     let (node_root, relation_root) = verify_core_and_scope(&db, &expected, limits, &mut work)?;
     verify_search(&db, &expected, limits, &mut work)?;
-    let source_revision =
+    let source_basis =
         verify_graph_root(&db, &expected, limits, &mut work, node_root, relation_root)?;
     verify_catalog(&db, &expected, limits, &mut work)?;
     let navigation_original =
@@ -1093,7 +1142,7 @@ fn open_selected_inner<'a>(
         connection: db,
         pinned,
         selection: expected,
-        source_revision,
+        source_basis,
         navigation_original,
         philosophy_original,
         corpus_original,
@@ -1127,7 +1176,7 @@ fn verify_graph_root(
     work: &mut u64,
     node_root: Digest256,
     relation_root: Digest256,
-) -> Result<String> {
+) -> Result<crate::KnowledgeSourceBasis> {
     let mut statement = db.prepare(
         "SELECT singleton,packet_len,CASE WHEN typeof(packet_sha256)='blob' AND length(packet_sha256)=32 THEN packet_sha256 ELSE NULL END,CASE WHEN typeof(packet)='blob' AND length(packet)<=?1 THEN packet ELSE NULL END FROM graph_header"
     )?;
@@ -1165,6 +1214,9 @@ fn verify_graph_root(
     if canonical != packet {
         return Err(Error::Invalid("knowledge graph header canonical bytes"));
     }
+    let header: serde_json::Value = serde_json::from_slice(&packet)
+        .map_err(|_| Error::Invalid("knowledge graph typed header"))?;
+    let basis = crate::managed_source::header_basis(&header)?;
     let fields = parsed
         .root()
         .as_object()
@@ -1180,7 +1232,11 @@ fn verify_graph_root(
             "normalization_binding",
             "query_properties",
             "schema",
-            "source_revision",
+            if basis.managed_source().is_some() {
+                "source_basis"
+            } else {
+                "source_revision"
+            },
         ]
     {
         return Err(Error::Invalid("knowledge graph header keys"));
@@ -1194,9 +1250,18 @@ fn verify_graph_root(
     let schema = required("schema")?
         .as_str()
         .ok_or(Error::Invalid("knowledge graph schema"))?;
-    let revision = required("source_revision")?
-        .as_str()
-        .ok_or(Error::Invalid("knowledge graph revision"))?;
+    if let Some(proof) = basis.managed_source() {
+        if expected.managed_source_root_sha256.as_deref() != Some(proof.root_sha256()?.as_str()) {
+            return Err(Error::Invalid("knowledge managed source root binding"));
+        }
+        proof.check_binding(
+            &expected.source_cut,
+            &expected.membership_root,
+            expected.through_commit_seq,
+        )?;
+    } else if expected.managed_source_root_sha256.is_some() {
+        return Err(Error::Invalid("knowledge cut and managed root conflict"));
+    }
     let authority_value = required("authority_boundary")?;
     if authority_value.as_object().is_none() {
         return Err(Error::Invalid("knowledge graph authority object"));
@@ -1207,8 +1272,12 @@ fn verify_graph_root(
         json_limits,
     )
     .map_err(|e| Error::Source(e.to_string()))?;
-    if schema != "tos_knowledge_graph_v1"
-        || Digest256::from_hex(revision).is_err()
+    if schema
+        != if basis.managed_source().is_some() {
+            crate::managed_source::MANAGED_GRAPH_SCHEMA
+        } else {
+            "tos_knowledge_graph_v1"
+        }
         || authority != expected.authority_boundary.as_bytes()
         || required("query_properties")?.as_array().is_none()
     {
@@ -1307,7 +1376,7 @@ fn verify_graph_root(
     if hash.finalize().to_hex() != expected.graph_root_sha256 {
         return Err(Error::Invalid("knowledge graph root mismatch"));
     }
-    Ok(revision.to_owned())
+    Ok(basis)
 }
 
 // Following physical verifiers are deliberately explicit. Missing tables,
@@ -2178,6 +2247,7 @@ mod tests {
             model_size_bytes: 4096,
             owner_receipt_id: "owner-r".into(),
             model_abi: KNOWLEDGE_MODEL_ABI.into(),
+            managed_source_root_sha256: None,
             descriptor_sha256: EMPTY.into(),
             descriptor_version: 1,
             semantic_primitive_profile: KNOWLEDGE_QUERY_PRIMITIVE_PROFILE.into(),

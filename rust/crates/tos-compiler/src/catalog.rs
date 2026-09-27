@@ -1239,8 +1239,7 @@ fn render(
             return Err(Error::Invalid("catalog graph relation count"));
         }
     }
-    Ok(
-        json!({"schema":SCHEMA,"source_revision":header.get("source_revision"),
+    let mut packet = json!({"schema":SCHEMA,"source_revision":header.get("source_revision"),
         "context_presentation":presentation(entity_registry)?,"contract_refs":contract_refs,
         "counts":counts,"node_kinds":group_catalog(db,NODE,relation_entries,budget)?,
         "predicates":group_catalog(db,RELATION,relation_entries,budget)?,
@@ -1251,8 +1250,20 @@ fn render(
             "relation_types":registry_metadata(relation_registry,relation_entries,&relation_types,
                 "fallback_relation_type_id",RELATION,relation_count,Some(&claim_types))?},
         "lenses":lenses,"capabilities":caps,
-        "authority_boundary":header.get("authority_boundary").cloned().unwrap_or(json!({}))}),
-    )
+        "authority_boundary":header.get("authority_boundary").cloned().unwrap_or(json!({}))});
+    if header.get("schema").and_then(Value::as_str)
+        == Some(crate::managed_source::MANAGED_GRAPH_SCHEMA)
+    {
+        let basis = crate::managed_source::header_basis(header)?;
+        packet["schema"] = json!(crate::managed_source::MANAGED_CATALOG_SCHEMA);
+        packet
+            .as_object_mut()
+            .ok_or(Error::Invalid("catalog object"))?
+            .remove("source_revision");
+        packet["source_basis"] =
+            serde_json::to_value(basis).map_err(|e| Error::Source(e.to_string()))?;
+    }
+    Ok(packet)
 }
 
 /// Reduce a full normalized graph into a private catalog candidate. The caller

@@ -146,7 +146,7 @@ mod tests {
         let fixture = build_fixture();
         let mut selected = fixture.open().unwrap();
         assert_eq!(selected.selection().node_count, 4);
-        assert_eq!(selected.source_revision(), "2".repeat(64));
+        assert_eq!(selected.source_revision(), Some("2".repeat(64).as_str()));
         assert!(selected.open_vm_steps() > 0);
         let fork = selected.fork_reader_with_vm_budget(100_000_000).unwrap();
         assert_eq!(fork.source_revision(), selected.source_revision());
