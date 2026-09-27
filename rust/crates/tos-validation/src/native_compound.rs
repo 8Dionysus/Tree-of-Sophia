@@ -461,6 +461,7 @@ pub(crate) struct NativeCompoundReader<'a> {
     cancelled: &'a AtomicBool,
     paths: BTreeSet<String>,
     raw: BTreeMap<String, Vec<u8>>,
+    raw_cache_state: usize,
     transactions: BTreeMap<String, Transaction>,
     histories: BTreeMap<(String, String), Value>,
     state: usize,
@@ -481,6 +482,7 @@ impl<'a> NativeCompoundReader<'a> {
             cancelled,
             paths: BTreeSet::new(),
             raw: BTreeMap::new(),
+            raw_cache_state: 0,
             transactions: BTreeMap::new(),
             histories: BTreeMap::new(),
             state: 0,
@@ -589,26 +591,29 @@ impl<'a> NativeCompoundReader<'a> {
         if raw.len() > cap {
             return Err(ItemRefusal::BudgetCheck {check:"compound selected member bytes",used:Some(raw.len() as u64),limit:Some(cap as u64)});
         }
-        reserve(
-            &mut self.state,
-            raw.len()
-                .checked_mul(3)
-                .ok_or(ItemRefusal::Budget)?
-                .checked_add(
-                    path.len()
-                        .checked_mul(2)
-                        .and_then(|n| n.checked_add(128 + 2 * std::mem::size_of::<PredicateRead>()))
-                        .ok_or(ItemRefusal::Budget)?,
-                )
-                .ok_or(ItemRefusal::Budget)?,
-            self.limits.max_state_bytes,
-        )?;
+        // The cache and returned copies are retained only through this Claim's
+        // verification. Read observations survive it and are charged separately.
+        let raw_state = raw.len().checked_mul(3)
+            .and_then(|n| n.checked_add(path.len())).ok_or(ItemRefusal::Budget)?;
+        let read_state = path.len().checked_add(128 + 2 * std::mem::size_of::<PredicateRead>())
+            .ok_or(ItemRefusal::Budget)?;
+        let cache_state = self.raw_cache_state.checked_add(raw_state).ok_or(ItemRefusal::Budget)?;
+        reserve(&mut self.state, raw_state.checked_add(read_state).ok_or(ItemRefusal::Budget)?, self.limits.max_state_bytes)?;
+        self.raw_cache_state = cache_state;
         self.reads.push(PredicateRead::ExactPath {
             path: path.into(),
             digest: Digest256::of_bytes(&raw).to_prefixed(),
         });
         self.raw.insert(path.into(), raw.clone());
         Ok(Some(raw))
+    }
+    fn release_raw_cache(&mut self) {
+        // Called only after verify_inner has returned: its borrowed/returned
+        // raw buffers are gone. Transaction file copies and decoded histories
+        // have independent charges; the directory and read observations remain.
+        self.raw = BTreeMap::new();
+        self.state -= self.raw_cache_state;
+        self.raw_cache_state = 0;
     }
     fn required(&mut self, path: &str, cap: usize) -> Result<Vec<u8>, ItemRefusal> {
         self.optional(path, cap)?
@@ -2691,6 +2696,7 @@ impl NativeCompoundReader<'_> {
         let before = self.temporary_state;
         let result = self.verify_inner(path, claim, schemas);
         self.release_temporary_since(before);
+        self.release_raw_cache();
         result
     }
     fn verify_inner(
