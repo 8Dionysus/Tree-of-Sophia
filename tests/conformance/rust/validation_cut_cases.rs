@@ -701,7 +701,12 @@ try:
         assert not r.agent_path.exists();r.agent_path.write_bytes(agent_raw)
         r.owner=c.root/'responsibility-owner.json'
         current_forms=json.loads(r.expression_path.with_name('expression.human-forms.json').read_bytes())['forms']
-        r.forms=[{'form_id':form['form_id'],'field_id':form['field_id']} for form in current_forms]
+        r.forms=c.origin.origin_request['expression_forms']
+        current_by_id={form['form_id']:form for form in current_forms}
+        fields={field['field_id']:field for field in commands.metadata_field_catalog(r.expression)}
+        assert len(current_by_id)==len(current_forms)==len(r.forms)
+        assert all(current_by_id[selection['form_id']]['bindings']['wording']['pointer']
+                   ==fields[selection['field_id']]['pointer'] for selection in r.forms)
         r.config.update(source_root=str(c.root),expression_id=r.expression['record_id'],expression_source_path=r.expression_ref,allowed_expression_form_ids=[form['form_id'] for form in current_forms])
         r.select_claim('first');r.rebuild()
         first_responsibility=r.request();commands.run_local_command(r.owner,first_responsibility)
