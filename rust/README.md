@@ -36,8 +36,8 @@ vectors. The WEB.1 route requires the matching `wasm-bindgen` CLI 0.2.128 and
 Node. It does not prove a released public adapter, browser/Worker bundle
 integration or production-scale runtime.
 
-The PostgreSQL integration target requires the explicit `postgres-lab` feature and
-a dedicated ephemeral database. The ordinary workspace lane excludes these
+The PostgreSQL integration target requires the explicit `postgres-lab` feature
+and a dedicated ephemeral database. The ordinary workspace lane excludes this
 target; it does not establish PostgreSQL execution. CI runs the durable
 target with its PostgreSQL service:
 
