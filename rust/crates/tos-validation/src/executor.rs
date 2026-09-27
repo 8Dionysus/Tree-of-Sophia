@@ -1,10 +1,12 @@
-//! Disposable, fail-closed native boundary for one-shot or bounded batch JSON Schema probes.
+//! Operation-owned, fail-closed isolated JSON Schema worker boundary.
 //!
 //! This module does not create a validation trace or admission attestation.
 //! The caller must pin the dedicated worker's exact ELF digest. Linux copies
 //! that ELF to a sealed executable memfd before launching it; the selected-cut
 //! adapter retains that immutable image within one bounded operation, so a path change
-//! after verification cannot change the worker image.
+//! after verification cannot change the worker image. One bounded child retains
+//! only its exact selected closure/profile and finite selector cache until explicit
+//! finalization; uncertain exchanges poison it permanently.
 
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -14,11 +16,8 @@ use tos_foundation::Digest256;
 
 use crate::{FormatProfile, SchemaResource};
 
-const REQUEST_MAGIC: &[u8; 8] = b"TOSV2RQ1";
-const RESPONSE_MAGIC: &[u8; 8] = b"TOSV2RS1";
 const MAX_URI_BYTES: usize = 4096;
 const MAX_FRAME_BYTES: usize = 36 * 1024 * 1024;
-const RESPONSE_BYTES: usize = 8 + 32 + 32 + 32 + 2;
 const BATCH_REQUEST_MAGIC: &[u8; 8] = b"TOSV2BQ1";
 const BATCH_ACK_MAGIC: &[u8; 8] = b"TOSV2BA1";
 const BATCH_UNIT_MAGIC: &[u8; 8] = b"TOSV2BU1";
@@ -27,6 +26,14 @@ const BATCH_UNIT_BYTES: usize = 8 + 8 + 32 + 2;
 const MAX_BATCH_UNITS: usize = 64;
 const MAX_BATCH_RAW_BYTES: usize = 32 * 1024 * 1024;
 const MAX_BATCH_FRAME_BYTES: usize = 68 * 1024 * 1024;
+const OPERATION_REQUEST_MAGIC: &[u8; 8] = b"TOSV2OP1";
+const OPERATION_END_MAGIC: &[u8; 8] = b"TOSV2OE1";
+const OPERATION_END_BYTES: usize = 8 + 32 + 32 + 4;
+const OPERATION_CLOSE_MAGIC: &[u8; 8] = b"TOSV2OC1";
+const OPERATION_FINAL_MAGIC: &[u8; 8] = b"TOSV2OF1";
+const OPERATION_FINAL_BYTES: usize = 8 + 32 + 32 + 8;
+// nonce, selected schema digest/profile, finite aggregate envelope.
+const OPERATION_HEADER_BYTES: usize = 8 + 16 + 32 + 1 + 8 * 8;
 const MAX_MEMBER_ID_BYTES: usize = 512;
 const MAX_PATH_BYTES: usize = 4096;
 
@@ -122,12 +129,34 @@ pub struct BatchBudget {
     pub cpu_seconds: u64,
     pub address_space_bytes: u64,
     /// Caller may lower these ceilings; the implementation never exceeds 64
-    /// units or 32 MiB raw instances in one disposable process.
+    /// units or 32 MiB raw instances in one request frame.
     pub max_units: usize,
     pub max_total_raw_bytes: usize,
 }
 
 impl BatchBudget {
+    pub(crate) fn validate(self) -> Result<(), ExecutorFailure> {
+        let budget = self;
+        if budget.total_execution_wall.is_zero()
+            || budget.total_execution_wall > Duration::from_secs(3600)
+            || budget.startup_wall.is_zero()
+            || budget.startup_wall > budget.total_execution_wall
+            || budget.per_unit_wall.is_zero()
+            || budget.per_unit_wall > budget.total_execution_wall
+            || budget.cleanup_grace > Duration::from_secs(1)
+            || budget.cpu_seconds == 0
+            || budget.cpu_seconds > 3600
+            || budget.address_space_bytes < 64 * 1024 * 1024
+            || budget.address_space_bytes > 8 * 1024 * 1024 * 1024
+            || budget.max_units == 0
+            || budget.max_units > MAX_BATCH_UNITS
+            || budget.max_total_raw_bytes == 0
+            || budget.max_total_raw_bytes > MAX_BATCH_RAW_BYTES
+        {
+            return Err(ExecutorFailure::ResourceLimitUnknown);
+        }
+        Ok(())
+    }
     pub const MAX_UNITS: usize = MAX_BATCH_UNITS;
     pub const MAX_RAW_BYTES: usize = MAX_BATCH_RAW_BYTES;
     pub fn laboratory() -> Self {
@@ -197,9 +226,38 @@ pub struct BatchStreamBudget {
     pub max_total_units: u64,
     pub max_total_raw_bytes: u64,
     pub total_execution_wall: Duration,
+    /// Cumulative limits for one operation-owned isolated child, not per frame.
+    pub operation_cpu_seconds: u64,
+    pub operation_address_space_bytes: u64,
+    pub max_total_wire_bytes: u64,
+    pub max_distinct_selectors: usize,
 }
 
 impl BatchStreamBudget {
+    pub(crate) fn validate(self) -> Result<(), ExecutorFailure> {
+        let budget = self;
+        budget.batch.validate()?;
+        if budget.max_chunks == 0
+            || budget.max_total_units == 0
+            || budget.max_total_raw_bytes == 0
+            || budget.max_total_wire_bytes == 0
+            || budget.max_distinct_selectors == 0
+            || budget.max_distinct_selectors == usize::MAX
+            || budget.max_chunks == u64::MAX
+            || budget.max_total_units == u64::MAX
+            || budget.max_total_raw_bytes == u64::MAX
+            || budget.max_total_wire_bytes == u64::MAX
+            || budget.total_execution_wall.is_zero()
+            || budget.total_execution_wall > Duration::from_secs(3600)
+            || budget.operation_cpu_seconds == 0
+            || budget.operation_cpu_seconds > 3600
+            || budget.operation_address_space_bytes < 64 * 1024 * 1024
+            || budget.operation_address_space_bytes > 8 * 1024 * 1024 * 1024
+        {
+            return Err(ExecutorFailure::ResourceLimitUnknown);
+        }
+        Ok(())
+    }
     pub fn laboratory() -> Self {
         Self {
             batch: BatchBudget::laboratory(),
@@ -207,11 +265,15 @@ impl BatchStreamBudget {
             max_total_units: 4096,
             max_total_raw_bytes: 128 * 1024 * 1024,
             total_execution_wall: Duration::from_secs(300),
+            operation_cpu_seconds: 30,
+            operation_address_space_bytes: 1024 * 1024 * 1024,
+            max_total_wire_bytes: 2 * 128 * 1024 * 1024 + 32 * 1024 * 1024,
+            max_distinct_selectors: MAX_BATCH_UNITS,
         }
     }
 }
 
-fn batch_unit_digest(unit: &BatchUnit) -> Result<Digest256, ExecutorFailure> {
+pub(crate) fn validate_batch_unit(unit: &BatchUnit) -> Result<(), ExecutorFailure> {
     if unit.member_id.is_empty()
         || unit.member_id.len() > MAX_MEMBER_ID_BYTES
         || unit.relative_path.is_empty()
@@ -223,6 +285,11 @@ fn batch_unit_digest(unit: &BatchUnit) -> Result<Digest256, ExecutorFailure> {
     {
         return Err(ExecutorFailure::InputBudget);
     }
+    Ok(())
+}
+
+pub(crate) fn batch_unit_digest(unit: &BatchUnit) -> Result<Digest256, ExecutorFailure> {
+    validate_batch_unit(unit)?;
     let mut digest = tos_foundation::Digest256Hasher::new();
     digest.update(b"tos-val2-batch-unit-v1\0");
     digest.update(&unit.ordinal.to_be_bytes());
@@ -431,6 +498,23 @@ pub(crate) use native::{PreparedSchemaWorker, VerifiedWorkerImage};
 pub(crate) struct VerifiedWorkerImage;
 #[cfg(not(all(target_os = "linux", target_pointer_width = "64")))]
 impl VerifiedWorkerImage {
+    pub(crate) fn preflight(&mut self, _: Instant, _: &AtomicBool) -> Result<(), ExecutorFailure> {
+        Err(ExecutorFailure::UnsupportedHost)
+    }
+    pub(crate) fn poison(&mut self, reason: ExecutorFailure) -> ExecutorFailure {
+        reason
+    }
+    pub(crate) fn set_operation_budget(
+        &mut self,
+        _: BatchStreamBudget,
+    ) -> Result<(), ExecutorFailure> {
+        Err(ExecutorFailure::UnsupportedHost)
+    }
+    pub(crate) fn finish(&mut self, _: Instant, _: &AtomicBool) -> Result<(), ExecutorFailure> {
+        Err(ExecutorFailure::UnsupportedHost)
+    }
+    pub(crate) fn set_operation_origin(&mut self, _: Instant) {}
+
     pub(crate) fn prepare(
         _: &ExactWorkerIdentity,
         _: ExecutorBudget,
@@ -439,11 +523,11 @@ impl VerifiedWorkerImage {
     ) -> Result<Self, ExecutorFailure> {
         Err(ExecutorFailure::UnsupportedHost)
     }
-    pub(crate) fn matches(&self, _: &ExactWorkerIdentity) -> bool {
+    pub(crate) fn matches(&mut self, _: &ExactWorkerIdentity) -> bool {
         false
     }
     pub(crate) fn evaluate(
-        &self,
+        &mut self,
         _: &[SchemaResource],
         _: FormatProfile,
         _: &str,
@@ -460,6 +544,39 @@ impl VerifiedWorkerImage {
 pub(crate) struct PreparedSchemaWorker;
 #[cfg(not(all(target_os = "linux", target_pointer_width = "64")))]
 impl PreparedSchemaWorker {
+    pub(crate) fn preflight(&mut self, _: Instant, _: &AtomicBool) -> Result<(), ExecutorFailure> {
+        Err(ExecutorFailure::UnsupportedHost)
+    }
+    pub(crate) fn operation_budget(&self) -> BatchStreamBudget {
+        BatchStreamBudget::laboratory()
+    }
+    pub(crate) fn release_child(
+        &mut self,
+        _: Instant,
+        _: &AtomicBool,
+    ) -> Result<(), ExecutorFailure> {
+        Err(ExecutorFailure::UnsupportedHost)
+    }
+    pub(crate) fn wire_cost(
+        &self,
+        _: usize,
+        _: usize,
+        _: usize,
+        _: usize,
+    ) -> Result<(u64, u64, u64), ExecutorFailure> {
+        Err(ExecutorFailure::UnsupportedHost)
+    }
+    pub(crate) fn set_operation_budget(
+        &mut self,
+        _: BatchStreamBudget,
+    ) -> Result<(), ExecutorFailure> {
+        Err(ExecutorFailure::UnsupportedHost)
+    }
+    pub(crate) fn finish(&mut self, _: Instant, _: &AtomicBool) -> Result<(), ExecutorFailure> {
+        Err(ExecutorFailure::UnsupportedHost)
+    }
+    pub(crate) fn set_operation_origin(&mut self, _: Instant) {}
+
     pub(crate) fn prepare(
         _: &ExactWorkerIdentity,
         _: &[SchemaResource],
@@ -471,7 +588,7 @@ impl PreparedSchemaWorker {
         Err(ExecutorFailure::UnsupportedHost)
     }
     pub(crate) fn evaluate(
-        &self,
+        &mut self,
         _: &str,
         _: &[u8],
         _: ExecutorBudget,
@@ -481,7 +598,7 @@ impl PreparedSchemaWorker {
         unknown(ExecutorFailure::UnsupportedHost, None)
     }
     pub(crate) fn evaluate_batch(
-        &self,
+        &mut self,
         _: &[BatchUnit],
         _: BatchCoverageExpectation,
         _: BatchBudget,
@@ -533,22 +650,29 @@ mod native {
         }
     }
 
+    fn operation_header(
+        nonce: [u8; 16],
+        schema_set: Digest256,
+        profile: FormatProfile,
+        limits: [u64; 8],
+    ) -> Vec<u8> {
+        let mut header = Vec::with_capacity(OPERATION_HEADER_BYTES);
+        header.extend_from_slice(OPERATION_REQUEST_MAGIC);
+        header.extend_from_slice(&nonce);
+        header.extend_from_slice(schema_set.as_bytes());
+        header.push(profile_byte(profile));
+        for n in limits {
+            header.extend_from_slice(&n.to_be_bytes());
+        }
+        header
+    }
+
     fn parse_profile(value: u8) -> Option<FormatProfile> {
         match value {
             1 => Some(FormatProfile::LegacyPythonObserved20260923),
             2 => Some(FormatProfile::AssertedSourceCandidateV1),
             _ => None,
         }
-    }
-
-    fn put_bytes(output: &mut Vec<u8>, value: &[u8]) -> Result<(), ExecutorFailure> {
-        let size = u32::try_from(value.len()).map_err(|_| ExecutorFailure::InputBudget)?;
-        output.extend_from_slice(&size.to_be_bytes());
-        output.extend_from_slice(value);
-        if output.len() > MAX_FRAME_BYTES {
-            return Err(ExecutorFailure::InputBudget);
-        }
-        Ok(())
     }
 
     fn put_batch_bytes(output: &mut Vec<u8>, value: &[u8]) -> Result<(), ExecutorFailure> {
@@ -597,6 +721,7 @@ mod native {
         unit_sha256: Digest256,
     }
 
+    #[derive(Clone)]
     struct BatchPrepared {
         frame: Vec<u8>,
         units: Vec<BatchUnitMeta>,
@@ -607,22 +732,26 @@ mod native {
         ordered_manifest_sha256: Digest256,
     }
 
-    fn empty_batch_checkpoint(
+    fn empty_batch_outcome(
         worker: Digest256,
         profile: FormatProfile,
         schema: Digest256,
-        manifest: Digest256,
-    ) -> BatchCoverageCheckpoint {
+        reason: ExecutorFailure,
+    ) -> BatchOutcome {
         let mut results = Digest256Hasher::new();
         results.update(b"tos-val2-batch-results-v1\0");
-        BatchCoverageCheckpoint {
-            worker_sha256: worker,
-            request_sha256: Digest256::of_bytes(b""),
-            profile,
-            schema_set_sha256: schema,
-            ordered_manifest_sha256: manifest,
-            completed_count: 0,
-            result_stream_sha256: results.finalize(),
+        BatchOutcome::Incomplete {
+            receipts: Vec::new(),
+            reason,
+            checkpoint: BatchCoverageCheckpoint {
+                worker_sha256: worker,
+                request_sha256: Digest256::of_bytes(b""),
+                profile,
+                schema_set_sha256: schema,
+                ordered_manifest_sha256: Digest256::of_bytes(b""),
+                completed_count: 0,
+                result_stream_sha256: results.finalize(),
+            },
         }
     }
 
@@ -658,6 +787,24 @@ mod native {
         file: File,
         identity: ExactWorkerIdentity,
         operation_deadline: Instant,
+        operation_budget: BatchStreamBudget,
+        session: Option<OwnedSchemaSession>,
+        poisoned: Option<ExecutorFailure>,
+        operation_started: Option<Instant>,
+        used_frames: u64,
+        used_units: u64,
+        used_raw: u64,
+        used_wire: u64,
+        used_cpu_micros: u64,
+        selectors: std::collections::BTreeSet<(String, String)>,
+        selected_profile: Option<FormatProfile>,
+    }
+
+    struct OwnedSchemaSession {
+        child: OperationChild,
+        header: Vec<u8>,
+        schema_set: Digest256,
+        sequence: u64,
     }
 
     /// One exact encoded resource closure used by the selected-cut adapter.
@@ -688,6 +835,7 @@ mod native {
             operation_deadline: Instant,
             cancelled: &AtomicBool,
         ) -> Result<Self, ExecutorFailure> {
+            let operation_started = Instant::now();
             scalar_budget(budget)?;
             let deadline = Instant::now()
                 .checked_add(budget.execution_wall)
@@ -695,11 +843,508 @@ mod native {
                 .min(operation_deadline);
             let file = sealed_worker_checked(worker, Some(deadline), Some(cancelled))?;
             preparation_check(Some(deadline), Some(cancelled))?;
+            let mut operation_budget = BatchStreamBudget::laboratory();
+            operation_budget.batch.total_execution_wall = budget.execution_wall;
+            operation_budget.batch.startup_wall = budget.execution_wall;
+            operation_budget.batch.per_unit_wall = budget.execution_wall;
+            operation_budget.batch.cleanup_grace = budget.cleanup_grace;
+            operation_budget.operation_cpu_seconds = budget.cpu_seconds;
+            operation_budget.operation_address_space_bytes = budget.address_space_bytes;
             Ok(Self {
                 file,
                 identity: worker.clone(),
                 operation_deadline,
+                operation_budget,
+                session: None,
+                poisoned: None,
+                operation_started: Some(operation_started),
+                used_frames: 0,
+                used_units: 0,
+                used_raw: 0,
+                used_wire: 0,
+                used_cpu_micros: 0,
+                selectors: std::collections::BTreeSet::new(),
+                selected_profile: None,
             })
+        }
+
+        pub(crate) fn set_operation_budget(
+            &mut self,
+            budget: BatchStreamBudget,
+        ) -> Result<(), ExecutorFailure> {
+            if self.used_frames != 0 || self.session.is_some() || self.poisoned.is_some() {
+                return Err(ExecutorFailure::ResourceLimitUnknown);
+            }
+            budget.validate()?;
+            self.operation_budget = budget;
+            Ok(())
+        }
+        pub(crate) fn poison(&mut self, mut reason: ExecutorFailure) -> ExecutorFailure {
+            if let Some(mut session) = self.session.take() {
+                if let Err(cleanup) = session.child.cleanup() {
+                    reason = cleanup;
+                }
+            }
+            self.poisoned = Some(reason);
+            reason
+        }
+        fn finish_session_inner(
+            &mut self,
+            deadline: Instant,
+            cancelled: &AtomicBool,
+        ) -> Result<(), ExecutorFailure> {
+            let deadline = deadline.min(self.operation_deadline).min(
+                self.operation_started
+                    .and_then(|origin| {
+                        origin.checked_add(self.operation_budget.total_execution_wall)
+                    })
+                    .ok_or(ExecutorFailure::ResourceLimitUnknown)?,
+            );
+            preparation_check(Some(deadline), Some(cancelled))?;
+            let Some(mut session) = self.session.take() else {
+                return Ok(());
+            };
+            let result = (|| {
+                let header_sha = Digest256::of_bytes(&session.header);
+                let mut close = Vec::new();
+                close.extend_from_slice(&session.sequence.to_be_bytes());
+                close.extend_from_slice(OPERATION_CLOSE_MAGIC);
+                close.extend_from_slice(header_sha.as_bytes());
+                let mut hash = Digest256Hasher::new();
+                hash.update(&session.header);
+                hash.update(&close);
+                let close_sha = hash.finalize();
+                let mut request = Vec::new();
+                request.extend_from_slice(&(close.len() as u32).to_be_bytes());
+                request.extend_from_slice(&close);
+                self.used_wire = self
+                    .used_wire
+                    .checked_add((request.len() + OPERATION_FINAL_BYTES) as u64)
+                    .filter(|n| *n <= self.operation_budget.max_total_wire_bytes)
+                    .ok_or(ExecutorFailure::InputBudget)?;
+                let mut written = 0usize;
+                let mut response = Vec::new();
+                let mut eof = false;
+                loop {
+                    if let Err(reason) = preparation_check(Some(deadline), Some(cancelled)) {
+                        return Err(self.poison(reason));
+                    }
+                    let mut usage: libc::rusage = unsafe { std::mem::zeroed() };
+                    if session.child.status.is_none() {
+                        let mut status = 0;
+                        let result = unsafe {
+                            libc::wait4(session.child.pid, &mut status, libc::WNOHANG, &mut usage)
+                        };
+                        if result == session.child.pid {
+                            session.child.status = Some(status);
+                            let micros = |v: libc::timeval| -> Option<u64> {
+                                u64::try_from(v.tv_sec)
+                                    .ok()?
+                                    .checked_mul(1_000_000)?
+                                    .checked_add(u64::try_from(v.tv_usec).ok()?)
+                            };
+                            self.used_cpu_micros = self
+                                .used_cpu_micros
+                                .checked_add(
+                                    micros(usage.ru_utime)
+                                        .and_then(|n| n.checked_add(micros(usage.ru_stime)?))
+                                        .ok_or(ExecutorFailure::ResourceLimitUnknown)?,
+                                )
+                                .ok_or(ExecutorFailure::ResourceLimitUnknown)?;
+                            if self.used_cpu_micros
+                                > self
+                                    .operation_budget
+                                    .operation_cpu_seconds
+                                    .checked_mul(1_000_000)
+                                    .ok_or(ExecutorFailure::ResourceLimitUnknown)?
+                            {
+                                return Err(self.poison(ExecutorFailure::CpuLimit));
+                            }
+                        } else if result < 0
+                            && io::Error::last_os_error().kind() != io::ErrorKind::Interrupted
+                        {
+                            return Err(self.poison(ExecutorFailure::ResourceLimitUnknown));
+                        }
+                    }
+                    if written < request.len() {
+                        let n = unsafe {
+                            libc::send(
+                                session.child.input.as_raw_fd(),
+                                request[written..].as_ptr().cast(),
+                                request.len() - written,
+                                libc::MSG_DONTWAIT | libc::MSG_NOSIGNAL,
+                            )
+                        };
+                        if n > 0 {
+                            written += n as usize;
+                        } else if n == 0
+                            || io::Error::last_os_error().kind() != io::ErrorKind::WouldBlock
+                        {
+                            return Err(self.poison(ExecutorFailure::Protocol));
+                        }
+                    }
+                    let mut extra = [0u8; OPERATION_FINAL_BYTES + 1];
+                    let count = unsafe {
+                        libc::recv(
+                            session.child.output.as_raw_fd(),
+                            extra.as_mut_ptr().cast(),
+                            extra.len(),
+                            libc::MSG_DONTWAIT,
+                        )
+                    };
+                    if count > 0 {
+                        response.extend_from_slice(&extra[..count as usize]);
+                        if response.len() > OPERATION_FINAL_BYTES {
+                            return Err(self.poison(ExecutorFailure::Protocol));
+                        }
+                    }
+                    if count == 0 {
+                        eof = true;
+                    }
+                    if count < 0 && io::Error::last_os_error().kind() != io::ErrorKind::WouldBlock {
+                        return Err(self.poison(ExecutorFailure::Protocol));
+                    }
+                    if eof && session.child.status.is_some() {
+                        if let Some(reason) = session.child.status.and_then(status_failure) {
+                            return Err(self.poison(reason));
+                        }
+                        if written != request.len()
+                            || response.len() != OPERATION_FINAL_BYTES
+                            || &response[..8] != OPERATION_FINAL_MAGIC
+                            || &response[8..40] != header_sha.as_bytes()
+                            || &response[40..72] != close_sha.as_bytes()
+                            || u64::from_be_bytes(response[72..80].try_into().unwrap())
+                                != session.sequence
+                        {
+                            return Err(self.poison(ExecutorFailure::Protocol));
+                        }
+                        return Ok(());
+                    }
+                    let mut fd = libc::pollfd {
+                        fd: session.child.output.as_raw_fd(),
+                        events: libc::POLLIN,
+                        revents: 0,
+                    };
+                    unsafe {
+                        libc::poll(&mut fd, 1, 2);
+                    }
+                }
+            })();
+            if let Err(reason) = result {
+                let reason = session.child.cleanup().err().unwrap_or(reason);
+                return Err(self.poison(reason));
+            }
+            result
+        }
+        fn finish_session(
+            &mut self,
+            deadline: Instant,
+            cancelled: &AtomicBool,
+        ) -> Result<(), ExecutorFailure> {
+            match self.finish_session_inner(deadline, cancelled) {
+                Ok(()) => Ok(()),
+                Err(reason) => Err(self.poison(reason)),
+            }
+        }
+        pub(crate) fn finish(
+            &mut self,
+            deadline: Instant,
+            cancelled: &AtomicBool,
+        ) -> Result<(), ExecutorFailure> {
+            if let Some(reason) = self.poisoned {
+                return Err(reason);
+            }
+            let result = self.finish_session(deadline, cancelled);
+            // Finalized operations cannot accept another request or extend their envelope.
+            if result.is_ok() {
+                self.poisoned = Some(ExecutorFailure::CoverageMismatch);
+            }
+            result
+        }
+        fn exchange(
+            &mut self,
+            encoded: &[u8],
+            schema_set: Digest256,
+            profile: FormatProfile,
+            units: &[BatchUnit],
+            expected: BatchCoverageExpectation,
+            mut budget: BatchBudget,
+            deadline: Instant,
+            cancelled: &AtomicBool,
+        ) -> BatchOutcome {
+            let start = Instant::now();
+            budget.max_units = budget.max_units.min(self.operation_budget.batch.max_units);
+            budget.max_total_raw_bytes = budget
+                .max_total_raw_bytes
+                .min(self.operation_budget.batch.max_total_raw_bytes);
+            budget.total_execution_wall = budget
+                .total_execution_wall
+                .min(self.operation_budget.batch.total_execution_wall);
+            budget.startup_wall = budget
+                .startup_wall
+                .min(self.operation_budget.batch.startup_wall)
+                .min(budget.total_execution_wall);
+            budget.per_unit_wall = budget
+                .per_unit_wall
+                .min(self.operation_budget.batch.per_unit_wall)
+                .min(budget.total_execution_wall);
+            budget.cleanup_grace = budget
+                .cleanup_grace
+                .min(self.operation_budget.batch.cleanup_grace);
+            let empty_resources = 0u32.to_be_bytes();
+            let resources = if self
+                .session
+                .as_ref()
+                .is_some_and(|s| s.schema_set == schema_set)
+            {
+                &empty_resources[..]
+            } else {
+                encoded
+            };
+            let prepared = match make_batch_request_encoded(
+                self.identity.sha256,
+                resources,
+                schema_set,
+                profile,
+                units,
+                budget,
+            ) {
+                Ok(x) => x,
+                Err(reason) => {
+                    return empty_batch_outcome(self.identity.sha256, profile, schema_set, reason);
+                }
+            };
+            self.exchange_prepared(
+                prepared, units, expected, budget, deadline, cancelled, start,
+            )
+        }
+
+        fn exchange_prepared(
+            &mut self,
+            mut prepared: BatchPrepared,
+            units: &[BatchUnit],
+            expected: BatchCoverageExpectation,
+            mut budget: BatchBudget,
+            deadline: Instant,
+            cancelled: &AtomicBool,
+            start: Instant,
+        ) -> BatchOutcome {
+            let schema_set = prepared.schema_set_sha256;
+            let profile = prepared.profile;
+            let mut results = Digest256Hasher::new();
+            results.update(b"tos-val2-batch-results-v1\0");
+            let deadline = deadline.min(self.operation_deadline).min(
+                self.operation_started
+                    .get_or_insert(start)
+                    .checked_add(self.operation_budget.total_execution_wall)
+                    .unwrap_or(start),
+            );
+            let refusal = |p, r, why| batch_incomplete(p, Vec::new(), r, why);
+            if let Some(reason) = self.poisoned {
+                return refusal(prepared, results, reason);
+            }
+            if let Err(reason) = preparation_check(Some(deadline), Some(cancelled)) {
+                let why = self.poison(reason);
+                return refusal(prepared, results, why);
+            }
+            if prepared.worker_sha256 != self.identity.sha256 {
+                return refusal(
+                    prepared,
+                    results,
+                    self.poison(ExecutorFailure::WorkerIdentity),
+                );
+            }
+            if expected.count != prepared.units.len() as u64
+                || expected.ordered_manifest_sha256 != prepared.ordered_manifest_sha256
+            {
+                return refusal(
+                    prepared,
+                    results,
+                    self.poison(ExecutorFailure::CoverageMismatch),
+                );
+            }
+            if self.selected_profile.is_some_and(|p| p != profile) {
+                return refusal(prepared, results, self.poison(ExecutorFailure::Protocol));
+            }
+            self.selected_profile = Some(profile);
+            let raw = units
+                .iter()
+                .try_fold(0u64, |sum, u| sum.checked_add(u.raw_instance.len() as u64));
+            let Some(next_frames) = self
+                .used_frames
+                .checked_add(1)
+                .filter(|n| *n <= self.operation_budget.max_chunks)
+            else {
+                return refusal(prepared, results, self.poison(ExecutorFailure::InputBudget));
+            };
+            let Some(next_units) = self
+                .used_units
+                .checked_add(units.len() as u64)
+                .filter(|n| *n <= self.operation_budget.max_total_units)
+            else {
+                return refusal(prepared, results, self.poison(ExecutorFailure::InputBudget));
+            };
+            let Some(next_raw) = raw
+                .and_then(|n| self.used_raw.checked_add(n))
+                .filter(|n| *n <= self.operation_budget.max_total_raw_bytes)
+            else {
+                return refusal(prepared, results, self.poison(ExecutorFailure::InputBudget));
+            };
+            for unit in units {
+                self.selectors
+                    .insert((schema_set.to_hex(), unit.root_uri.clone()));
+                if self.selectors.len() > self.operation_budget.max_distinct_selectors {
+                    return refusal(prepared, results, self.poison(ExecutorFailure::InputBudget));
+                }
+            }
+            if self
+                .session
+                .as_ref()
+                .is_some_and(|s| s.schema_set != schema_set)
+            {
+                if let Err(reason) = self.finish_session(deadline, cancelled) {
+                    return refusal(prepared, results, reason);
+                }
+            }
+            let first = self.session.is_none();
+            let amount = prepared.frame.len() as u64
+                + 8
+                + 4
+                + if first {
+                    OPERATION_HEADER_BYTES as u64
+                } else {
+                    0
+                }
+                + (BATCH_ACK_BYTES + prepared.units.len() * BATCH_UNIT_BYTES + OPERATION_END_BYTES)
+                    as u64;
+            let Some(next_wire) = self.used_wire.checked_add(amount).filter(|n| {
+                n.checked_add((4 + 48 + OPERATION_FINAL_BYTES) as u64)
+                    .is_some_and(|reserved| reserved <= self.operation_budget.max_total_wire_bytes)
+            }) else {
+                return refusal(prepared, results, self.poison(ExecutorFailure::InputBudget));
+            };
+            if first {
+                let mut nonce = [0u8; 16];
+                if File::open("/dev/urandom")
+                    .and_then(|mut f| f.read_exact(&mut nonce))
+                    .is_err()
+                {
+                    return refusal(prepared, results, self.poison(ExecutorFailure::Spawn));
+                }
+                let remaining_cpu = self
+                    .operation_budget
+                    .operation_cpu_seconds
+                    .saturating_sub(self.used_cpu_micros.div_ceil(1_000_000));
+                if remaining_cpu == 0 {
+                    return refusal(prepared, results, self.poison(ExecutorFailure::CpuLimit));
+                }
+                let header = operation_header(
+                    nonce,
+                    schema_set,
+                    profile,
+                    [
+                        self.operation_budget.max_chunks - self.used_frames,
+                        self.operation_budget.max_total_units - self.used_units,
+                        self.operation_budget.max_total_raw_bytes - self.used_raw,
+                        self.operation_budget
+                            .max_total_wire_bytes
+                            .saturating_sub(self.used_wire),
+                        self.operation_budget.max_distinct_selectors as u64,
+                        remaining_cpu,
+                        self.operation_budget.operation_address_space_bytes,
+                        deadline
+                            .saturating_duration_since(start)
+                            .as_nanos()
+                            .min(u64::MAX as u128) as u64,
+                    ],
+                );
+                let argv = [
+                    c"tos-schema-worker".as_ptr() as *mut libc::c_char,
+                    std::ptr::null_mut(),
+                ];
+                let child = match spawn_operation_child(
+                    &self.file,
+                    ExecutorBudget {
+                        execution_wall: deadline.saturating_duration_since(start),
+                        cleanup_grace: budget.cleanup_grace,
+                        cpu_seconds: remaining_cpu,
+                        address_space_bytes: self.operation_budget.operation_address_space_bytes,
+                    },
+                    &argv,
+                ) {
+                    Ok(x) => x,
+                    Err(reason) => return refusal(prepared, results, self.poison(reason)),
+                };
+                self.session = Some(OwnedSchemaSession {
+                    child,
+                    header,
+                    schema_set,
+                    sequence: 0,
+                });
+            }
+            let session = self.session.as_mut().unwrap();
+            // Add the operation framing in place instead of keeping full
+            // batch/body/wire copies of every instance at the same time.
+            let batch_len = prepared.frame.len();
+            let header_len = if first { session.header.len() } else { 0 };
+            let prefix = header_len + 4 + 8;
+            prepared.frame.reserve(prefix);
+            prepared.frame.resize(batch_len + prefix, 0);
+            prepared.frame.copy_within(0..batch_len, prefix);
+            if first {
+                prepared.frame[..header_len].copy_from_slice(&session.header);
+            }
+            prepared.frame[header_len..header_len + 4]
+                .copy_from_slice(&((batch_len + 8) as u32).to_be_bytes());
+            prepared.frame[header_len + 4..prefix].copy_from_slice(&session.sequence.to_be_bytes());
+            let mut request = Digest256Hasher::new();
+            request.update(&session.header);
+            request.update(&prepared.frame[header_len + 4..]);
+            prepared.request_sha256 = request.finalize();
+            self.used_frames = next_frames;
+            self.used_units = next_units;
+            self.used_raw = next_raw;
+            self.used_wire = next_wire;
+            budget.total_execution_wall = budget
+                .total_execution_wall
+                .min(deadline.saturating_duration_since(start));
+            budget.startup_wall = budget.startup_wall.min(budget.total_execution_wall);
+            budget.per_unit_wall = budget.per_unit_wall.min(budget.total_execution_wall);
+            let outcome = run_batch_exchange(
+                &mut session.child,
+                prepared,
+                results,
+                budget,
+                start,
+                Some(cancelled),
+                true,
+            );
+            match &outcome {
+                BatchOutcome::Complete { .. } => session.sequence += 1,
+                BatchOutcome::Incomplete { reason, .. } => {
+                    let why = *reason;
+                    self.poison(why);
+                }
+            }
+            outcome
+        }
+
+        pub(crate) fn preflight(
+            &mut self,
+            deadline: Instant,
+            cancelled: &AtomicBool,
+        ) -> Result<(), ExecutorFailure> {
+            if let Some(reason) = self.poisoned {
+                return Err(reason);
+            }
+            let deadline = deadline.min(self.operation_deadline).min(
+                self.operation_started
+                    .and_then(|origin| {
+                        origin.checked_add(self.operation_budget.total_execution_wall)
+                    })
+                    .ok_or(ExecutorFailure::ResourceLimitUnknown)?,
+            );
+            preparation_check(Some(deadline), Some(cancelled)).map_err(|reason| self.poison(reason))
         }
 
         pub(crate) fn matches(&self, worker: &ExactWorkerIdentity) -> bool {
@@ -708,7 +1353,7 @@ mod native {
         }
 
         pub(crate) fn evaluate(
-            &self,
+            &mut self,
             resources: &[SchemaResource],
             profile: FormatProfile,
             root_uri: &str,
@@ -749,7 +1394,7 @@ mod native {
         }
 
         fn evaluate_encoded(
-            &self,
+            &mut self,
             encoded_resources: &[u8],
             schema_set_sha256: Digest256,
             profile: FormatProfile,
@@ -770,43 +1415,71 @@ mod native {
             budget.execution_wall = budget
                 .execution_wall
                 .min(deadline.saturating_duration_since(start));
-            let (request, request_sha256, schema_set_sha256, instance_sha256) =
-                match make_request_encoded(
-                    encoded_resources,
-                    schema_set_sha256,
-                    profile,
-                    root_uri,
-                    raw_instance,
-                ) {
-                    Ok(value) => value,
-                    Err(reason) => return unknown(reason, None),
-                };
-            let identity = ExecutionIdentity {
-                worker_sha256: self.identity.sha256,
-                request_sha256,
-                schema_set_sha256,
-                instance_sha256,
-                profile,
+            let units = [BatchUnit {
+                ordinal: 0,
+                member_id: "scalar-instance".into(),
+                relative_path: "scalar-instance".into(),
+                root_uri: root_uri.into(),
+                raw_instance: raw_instance.to_vec(),
+            }];
+            let expected = match BatchCoverageExpectation::from_units(&units) {
+                Ok(x) => x,
+                Err(reason) => return unknown(reason, None),
             };
-            if let Err(reason) = preparation_check(Some(deadline), Some(cancelled)) {
-                return unknown(reason, Some(identity));
+            let batch = BatchBudget {
+                total_execution_wall: budget.execution_wall,
+                startup_wall: budget.execution_wall,
+                per_unit_wall: budget.execution_wall,
+                cleanup_grace: budget.cleanup_grace,
+                cpu_seconds: budget.cpu_seconds,
+                address_space_bytes: budget.address_space_bytes,
+                max_units: 1,
+                max_total_raw_bytes: crate::SchemaBackendProbe::MAX_INSTANCE_BYTES,
+            };
+            match self.exchange(
+                encoded_resources,
+                schema_set_sha256,
+                profile,
+                &units,
+                expected,
+                batch,
+                deadline,
+                cancelled,
+            ) {
+                BatchOutcome::Complete {
+                    receipts,
+                    checkpoint,
+                } => {
+                    let identity = ExecutionIdentity {
+                        worker_sha256: checkpoint.worker_sha256,
+                        request_sha256: checkpoint.request_sha256,
+                        schema_set_sha256,
+                        instance_sha256: Digest256::of_bytes(raw_instance),
+                        profile,
+                    };
+                    match receipts[0].verdict {
+                        BatchUnitVerdict::SchemaValid => ExecutorOutcome::SchemaValid(identity),
+                        BatchUnitVerdict::SchemaInvalid => ExecutorOutcome::SchemaInvalid(identity),
+                        BatchUnitVerdict::InputRejected => ExecutorOutcome::InputRejected(identity),
+                    }
+                }
+                BatchOutcome::Incomplete {
+                    reason, checkpoint, ..
+                } => {
+                    let identity = ExecutionIdentity {
+                        worker_sha256: checkpoint.worker_sha256,
+                        request_sha256: checkpoint.request_sha256,
+                        schema_set_sha256,
+                        instance_sha256: Digest256::of_bytes(raw_instance),
+                        profile,
+                    };
+                    if reason == ExecutorFailure::ParseRejected {
+                        ExecutorOutcome::InputRejected(identity)
+                    } else {
+                        unknown(reason, Some(identity))
+                    }
+                }
             }
-            if start.elapsed() >= budget.execution_wall {
-                return unknown(ExecutorFailure::Timeout, Some(identity));
-            }
-            let argv = [
-                c"tos-schema-worker".as_ptr() as *mut libc::c_char,
-                std::ptr::null_mut(),
-            ];
-            run_image(
-                &self.file,
-                request,
-                identity,
-                budget,
-                start,
-                &argv,
-                Some(cancelled),
-            )
         }
     }
 
@@ -845,8 +1518,81 @@ mod native {
             })
         }
 
-        pub(crate) fn evaluate(
+        pub(crate) fn set_operation_budget(
+            &mut self,
+            budget: BatchStreamBudget,
+        ) -> Result<(), ExecutorFailure> {
+            self.image.set_operation_budget(budget)
+        }
+        pub(crate) fn operation_budget(&self) -> BatchStreamBudget {
+            self.image.operation_budget
+        }
+        pub(crate) fn preflight(
+            &mut self,
+            deadline: Instant,
+            cancelled: &AtomicBool,
+        ) -> Result<(), ExecutorFailure> {
+            self.image.preflight(deadline, cancelled)
+        }
+
+        pub(crate) fn release_child(
+            &mut self,
+            deadline: Instant,
+            cancelled: &AtomicBool,
+        ) -> Result<(), ExecutorFailure> {
+            if let Some(reason) = self.image.poisoned {
+                return Err(reason);
+            }
+            self.image.finish_session(deadline, cancelled)
+        }
+
+        pub(crate) fn finish(
+            &mut self,
+            deadline: Instant,
+            cancelled: &AtomicBool,
+        ) -> Result<(), ExecutorFailure> {
+            self.image.finish(deadline, cancelled)
+        }
+        pub(crate) fn set_operation_origin(&mut self, origin: Instant) {
+            self.image.operation_started = Some(origin);
+        }
+        pub(crate) fn wire_cost(
             &self,
+            member_bytes: usize,
+            path_bytes: usize,
+            selector_bytes: usize,
+            instance_bytes: usize,
+        ) -> Result<(u64, u64, u64), ExecutorFailure> {
+            let operation = (OPERATION_HEADER_BYTES + self.encoded_resources.len() - 4
+                + 4
+                + 48
+                + OPERATION_FINAL_BYTES) as u64;
+            let frame = (4
+                + 8
+                + BATCH_REQUEST_MAGIC.len()
+                + 16
+                + 1
+                + 4
+                + 4
+                + BATCH_ACK_BYTES
+                + OPERATION_END_BYTES) as u64;
+            let unit = [
+                8usize,
+                16,
+                member_bytes,
+                path_bytes,
+                selector_bytes,
+                instance_bytes,
+                BATCH_UNIT_BYTES,
+            ]
+            .into_iter()
+            .try_fold(0usize, |sum, n| sum.checked_add(n))
+            .ok_or(ExecutorFailure::InputBudget)?;
+            Ok((operation, frame, unit as u64))
+        }
+
+        pub(crate) fn evaluate(
+            &mut self,
             root_uri: &str,
             raw_instance: &[u8],
             budget: ExecutorBudget,
@@ -866,80 +1612,27 @@ mod native {
         }
 
         pub(crate) fn evaluate_batch(
-            &self,
+            &mut self,
             units: &[BatchUnit],
             expected: BatchCoverageExpectation,
             mut budget: BatchBudget,
             deadline: Instant,
             cancelled: &AtomicBool,
         ) -> BatchOutcome {
-            let start = Instant::now();
-            let deadline = deadline.min(self.image.operation_deadline);
-            let prepared = match preparation_check(Some(deadline), Some(cancelled)).and_then(|()| {
-                make_batch_request_encoded(
-                    self.image.identity.sha256,
-                    &self.encoded_resources,
-                    self.schema_set_sha256,
-                    self.profile,
-                    units,
-                    budget,
-                )
-            }) {
-                Ok(prepared) => prepared,
-                Err(reason) => {
-                    return BatchOutcome::Incomplete {
-                        receipts: Vec::new(),
-                        checkpoint: empty_batch_checkpoint(
-                            self.image.identity.sha256,
-                            self.profile,
-                            self.schema_set_sha256,
-                            expected.ordered_manifest_sha256,
-                        ),
-                        reason,
-                    };
-                }
-            };
-            let mut results = Digest256Hasher::new();
-            results.update(b"tos-val2-batch-results-v1\0");
-            if expected.count != prepared.units.len() as u64
-                || expected.ordered_manifest_sha256 != prepared.ordered_manifest_sha256
-            {
-                return batch_incomplete(
-                    prepared,
-                    Vec::new(),
-                    results,
-                    ExecutorFailure::CoverageMismatch,
-                );
-            }
-            if let Err(reason) = preparation_check(Some(deadline), Some(cancelled)) {
-                return batch_incomplete(prepared, Vec::new(), results, reason);
-            }
-            budget.total_execution_wall = budget
-                .total_execution_wall
-                .min(deadline.saturating_duration_since(start));
-            budget.startup_wall = budget.startup_wall.min(budget.total_execution_wall);
-            budget.per_unit_wall = budget.per_unit_wall.min(budget.total_execution_wall);
-            if start.elapsed() >= budget.total_execution_wall
-                || start.elapsed() >= budget.startup_wall
-            {
-                return batch_incomplete(prepared, Vec::new(), results, ExecutorFailure::Timeout);
-            }
-            let argv = [
-                c"tos-schema-worker".as_ptr() as *mut libc::c_char,
-                std::ptr::null_mut(),
-            ];
-            run_batch_image_cancellable(
-                &self.image.file,
-                prepared,
-                results,
+            self.image.exchange(
+                &self.encoded_resources,
+                self.schema_set_sha256,
+                self.profile,
+                units,
+                expected,
                 budget,
-                start,
-                &argv,
-                Some(cancelled),
+                deadline,
+                cancelled,
             )
         }
     }
 
+    #[cfg(test)]
     fn make_batch_request(
         worker_sha256: Digest256,
         resources: &[SchemaResource],
@@ -966,24 +1659,7 @@ mod native {
         units: impl IntoIterator<Item = U>,
         budget: BatchBudget,
     ) -> Result<BatchPrepared, ExecutorFailure> {
-        if budget.total_execution_wall.is_zero()
-            || budget.total_execution_wall > Duration::from_secs(3600)
-            || budget.startup_wall.is_zero()
-            || budget.startup_wall > budget.total_execution_wall
-            || budget.per_unit_wall.is_zero()
-            || budget.per_unit_wall > budget.total_execution_wall
-            || budget.cleanup_grace > Duration::from_secs(1)
-            || budget.cpu_seconds == 0
-            || budget.cpu_seconds > 3600
-            || budget.address_space_bytes < 64 * 1024 * 1024
-            || budget.address_space_bytes > 8 * 1024 * 1024 * 1024
-            || budget.max_units == 0
-            || budget.max_units > MAX_BATCH_UNITS
-            || budget.max_total_raw_bytes == 0
-            || budget.max_total_raw_bytes > MAX_BATCH_RAW_BYTES
-        {
-            return Err(ExecutorFailure::ResourceLimitUnknown);
-        }
+        budget.validate()?;
         let mut frame = Vec::new();
         frame.extend_from_slice(BATCH_REQUEST_MAGIC);
         let mut nonce = [0u8; 16];
@@ -1001,19 +1677,10 @@ mod native {
         manifest.update(b"tos-val2-batch-manifest-v1\0");
         for unit in units {
             let unit = unit.borrow();
-            if metas.len() >= budget.max_units
-                || unit.ordinal != metas.len() as u64
-                || unit.member_id.is_empty()
-                || unit.member_id.len() > MAX_MEMBER_ID_BYTES
-                || unit.relative_path.is_empty()
-                || unit.relative_path.len() > MAX_PATH_BYTES
-                || unit.relative_path.starts_with('/')
-                || unit.relative_path.split('/').any(|part| part == "..")
-                || unit.root_uri.len() > MAX_URI_BYTES
-                || unit.raw_instance.len() > crate::SchemaBackendProbe::MAX_INSTANCE_BYTES
-            {
+            if metas.len() >= budget.max_units || unit.ordinal != metas.len() as u64 {
                 return Err(ExecutorFailure::InputBudget);
             }
+            validate_batch_unit(unit)?;
             raw_total = raw_total
                 .checked_add(unit.raw_instance.len())
                 .ok_or(ExecutorFailure::InputBudget)?;
@@ -1065,31 +1732,38 @@ mod native {
         budget: BatchBudget,
         cancelled: Option<&AtomicBool>,
     ) -> BatchOutcome {
+        let local_cancelled = AtomicBool::new(false);
+        let cancelled = cancelled.unwrap_or(&local_cancelled);
         let start = Instant::now();
-        let empty_digest = Digest256::of_bytes(b"");
-        let prepared = match if cancelled.is_some_and(|flag| flag.load(Ordering::Relaxed)) {
-            Err(ExecutorFailure::Cancelled)
-        } else {
-            make_batch_request(worker.sha256, resources, profile, units, budget)
-        } {
-            Ok(prepared) => prepared,
+        let deadline = start
+            .checked_add(budget.total_execution_wall)
+            .unwrap_or(start);
+        let units: Vec<_> = units
+            .into_iter()
+            .take(MAX_BATCH_UNITS.saturating_add(1))
+            .collect();
+        // Keep request/manifest preflight before image lookup.
+        let (encoded, set) = match encode_resources(resources) {
+            Ok(x) => x,
             Err(reason) => {
-                return BatchOutcome::Incomplete {
-                    receipts: Vec::new(),
-                    checkpoint: empty_batch_checkpoint(
-                        worker.sha256,
-                        profile,
-                        empty_digest,
-                        empty_digest,
-                    ),
+                return empty_batch_outcome(
+                    worker.sha256,
+                    profile,
+                    Digest256::of_bytes(b""),
                     reason,
-                };
+                );
             }
         };
+        let prepared =
+            match make_batch_request_encoded(worker.sha256, &encoded, set, profile, &units, budget)
+            {
+                Ok(x) => x,
+                Err(reason) => return empty_batch_outcome(worker.sha256, profile, set, reason),
+            };
         let mut results = Digest256Hasher::new();
         results.update(b"tos-val2-batch-results-v1\0");
-        if expected.count != prepared.units.len() as u64
-            || expected.ordered_manifest_sha256 != prepared.ordered_manifest_sha256
+        if prepared.units.len() as u64 != expected.count
+            || prepared.ordered_manifest_sha256 != expected.ordered_manifest_sha256
         {
             return batch_incomplete(
                 prepared,
@@ -1098,25 +1772,60 @@ mod native {
                 ExecutorFailure::CoverageMismatch,
             );
         }
-        if cancelled.is_some_and(|flag| flag.load(Ordering::Relaxed)) {
-            return batch_incomplete(prepared, Vec::new(), results, ExecutorFailure::Cancelled);
-        }
-        let image = match sealed_worker(worker) {
-            Ok(image) => image,
+        let scalar = ExecutorBudget {
+            execution_wall: budget.total_execution_wall,
+            cleanup_grace: budget.cleanup_grace,
+            cpu_seconds: budget.cpu_seconds.min(60),
+            address_space_bytes: budget.address_space_bytes,
+        };
+        let mut image = match VerifiedWorkerImage::prepare(worker, scalar, deadline, cancelled) {
+            Ok(x) => x,
             Err(reason) => return batch_incomplete(prepared, Vec::new(), results, reason),
         };
-        if cancelled.is_some_and(|flag| flag.load(Ordering::Relaxed)) {
-            return batch_incomplete(prepared, Vec::new(), results, ExecutorFailure::Cancelled);
+        let mut work = BatchStreamBudget::laboratory();
+        work.batch = budget;
+        work.max_chunks = 1;
+        work.max_total_units = budget.max_units as u64;
+        work.max_total_raw_bytes = budget.max_total_raw_bytes as u64;
+        work.max_total_wire_bytes = (MAX_BATCH_FRAME_BYTES
+            + BATCH_ACK_BYTES
+            + MAX_BATCH_UNITS * BATCH_UNIT_BYTES
+            + OPERATION_END_BYTES
+            + OPERATION_HEADER_BYTES
+            + OPERATION_FINAL_BYTES
+            + 128) as u64;
+        work.max_distinct_selectors = budget.max_units;
+        work.operation_cpu_seconds = budget.cpu_seconds;
+        work.operation_address_space_bytes = budget.address_space_bytes;
+        work.total_execution_wall = budget.total_execution_wall;
+        if let Err(reason) = image.set_operation_budget(work) {
+            return batch_incomplete(prepared, Vec::new(), results, reason);
         }
-        if start.elapsed() >= budget.total_execution_wall || start.elapsed() >= budget.startup_wall
-        {
-            return batch_incomplete(prepared, Vec::new(), results, ExecutorFailure::Timeout);
+        // The same preflighted immutable frame now enters the owned path;
+        // do not encode/hash/copy the whole request a second time.
+        let outcome = image.exchange_prepared(
+            prepared, &units, expected, budget, deadline, cancelled, start,
+        );
+        match outcome {
+            BatchOutcome::Complete {
+                receipts,
+                checkpoint,
+            } => match image.finish(deadline, cancelled) {
+                Ok(()) => BatchOutcome::Complete {
+                    receipts,
+                    checkpoint,
+                },
+                Err(reason) => BatchOutcome::Incomplete {
+                    receipts: Vec::new(),
+                    checkpoint: BatchCoverageCheckpoint {
+                        completed_count: 0,
+                        ..checkpoint
+                    },
+                    reason,
+                },
+            },
+            other => other,
         }
-        let argv = [
-            c"tos-schema-worker".as_ptr() as *mut libc::c_char,
-            std::ptr::null_mut(),
-        ];
-        run_batch_image_cancellable(&image, prepared, results, budget, start, &argv, cancelled)
     }
 
     fn batch_checkpoint(
@@ -1147,44 +1856,6 @@ mod native {
             checkpoint,
             reason,
         }
-    }
-
-    fn make_request(
-        resources: &[SchemaResource],
-        profile: FormatProfile,
-        root_uri: &str,
-        raw_instance: &[u8],
-    ) -> Result<(Vec<u8>, Digest256, Digest256, Digest256), ExecutorFailure> {
-        let (encoded, schema_digest) = encode_resources(resources)?;
-        make_request_encoded(&encoded, schema_digest, profile, root_uri, raw_instance)
-    }
-
-    fn make_request_encoded(
-        encoded_resources: &[u8],
-        schema_digest: Digest256,
-        profile: FormatProfile,
-        root_uri: &str,
-        raw_instance: &[u8],
-    ) -> Result<(Vec<u8>, Digest256, Digest256, Digest256), ExecutorFailure> {
-        if raw_instance.len() > crate::SchemaBackendProbe::MAX_INSTANCE_BYTES
-            || root_uri.len() > MAX_URI_BYTES
-        {
-            return Err(ExecutorFailure::InputBudget);
-        }
-        let instance_digest = Digest256::of_bytes(raw_instance);
-        let mut nonce = [0u8; 16];
-        File::open("/dev/urandom")
-            .and_then(|mut random| random.read_exact(&mut nonce))
-            .map_err(|_| ExecutorFailure::Spawn)?;
-        let mut frame = Vec::new();
-        frame.extend_from_slice(REQUEST_MAGIC);
-        frame.extend_from_slice(&nonce);
-        frame.push(profile_byte(profile));
-        frame.extend_from_slice(encoded_resources);
-        put_bytes(&mut frame, root_uri.as_bytes())?;
-        put_bytes(&mut frame, raw_instance)?;
-        let request_digest = Digest256::of_bytes(&frame);
-        Ok((frame, request_digest, schema_digest, instance_digest))
     }
 
     /// Snapshot the verified worker into an executable, sealed in-memory file.
@@ -1415,42 +2086,84 @@ mod native {
         budget: ExecutorBudget,
         cancelled: Option<&AtomicBool>,
     ) -> ExecutorOutcome {
-        if cancelled.is_some_and(|flag| flag.load(Ordering::Relaxed)) {
-            return unknown(ExecutorFailure::Cancelled, None);
-        }
-        if let Err(reason) = scalar_budget(budget) {
+        let local_cancelled = AtomicBool::new(false);
+        let cancelled = cancelled.unwrap_or(&local_cancelled);
+        let start = Instant::now();
+        let deadline = start.checked_add(budget.execution_wall).unwrap_or(start);
+        if let Err(reason) =
+            scalar_budget(budget).and_then(|_| preparation_check(Some(deadline), Some(cancelled)))
+        {
             return unknown(reason, None);
         }
-        let (request, request_sha256, schema_set_sha256, instance_sha256) =
-            match make_request(resources, profile, root_uri, raw_instance) {
-                Ok(value) => value,
-                Err(reason) => return unknown(reason, None),
-            };
-        let identity = ExecutionIdentity {
-            worker_sha256: worker.sha256,
-            request_sha256,
-            schema_set_sha256,
-            instance_sha256,
+        if raw_instance.len() > crate::SchemaBackendProbe::MAX_INSTANCE_BYTES
+            || root_uri.len() > MAX_URI_BYTES
+        {
+            return unknown(ExecutorFailure::InputBudget, None);
+        }
+        let (encoded, set) = match encode_resources(resources) {
+            Ok(x) => x,
+            Err(reason) => return unknown(reason, None),
+        };
+        let mut image = match VerifiedWorkerImage::prepare(worker, budget, deadline, cancelled) {
+            Ok(x) => x,
+            Err(reason) => return unknown(reason, None),
+        };
+        let mut work = BatchStreamBudget::laboratory();
+        work.batch = BatchBudget {
+            total_execution_wall: budget.execution_wall,
+            startup_wall: budget.execution_wall,
+            per_unit_wall: budget.execution_wall,
+            cleanup_grace: budget.cleanup_grace,
+            cpu_seconds: budget.cpu_seconds,
+            address_space_bytes: budget.address_space_bytes,
+            max_units: 1,
+            max_total_raw_bytes: crate::SchemaBackendProbe::MAX_INSTANCE_BYTES,
+        };
+        work.max_chunks = 1;
+        work.max_total_units = 1;
+        work.max_total_raw_bytes = crate::SchemaBackendProbe::MAX_INSTANCE_BYTES as u64;
+        work.max_total_wire_bytes = (MAX_FRAME_BYTES
+            + MAX_URI_BYTES
+            + OPERATION_HEADER_BYTES
+            + 2 * OPERATION_FINAL_BYTES
+            + 1024) as u64;
+        work.max_distinct_selectors = 1;
+        work.operation_cpu_seconds = budget.cpu_seconds;
+        work.operation_address_space_bytes = budget.address_space_bytes;
+        work.total_execution_wall = budget.execution_wall;
+        if let Err(reason) = image.set_operation_budget(work) {
+            return unknown(reason, None);
+        }
+        let outcome = image.evaluate_encoded(
+            &encoded,
+            set,
             profile,
-        };
-        let start = Instant::now();
-        let image = match sealed_worker(worker) {
-            Ok(image) => image,
-            Err(reason) => return unknown(reason, Some(identity)),
-        };
-        if cancelled.is_some_and(|flag| flag.load(Ordering::Relaxed)) {
-            return unknown(ExecutorFailure::Cancelled, Some(identity));
+            root_uri,
+            raw_instance,
+            budget,
+            deadline,
+            cancelled,
+        );
+        if matches!(
+            outcome,
+            ExecutorOutcome::SchemaValid(_) | ExecutorOutcome::SchemaInvalid(_)
+        ) {
+            if let Err(reason) = image.finish(deadline, cancelled) {
+                return unknown(
+                    reason,
+                    match outcome {
+                        ExecutorOutcome::SchemaValid(x) | ExecutorOutcome::SchemaInvalid(x) => {
+                            Some(x)
+                        }
+                        _ => None,
+                    },
+                );
+            }
         }
-        if start.elapsed() >= budget.execution_wall {
-            return unknown(ExecutorFailure::Timeout, Some(identity));
-        }
-        let argv = [
-            c"tos-schema-worker".as_ptr() as *mut libc::c_char,
-            std::ptr::null_mut(),
-        ];
-        run_image(&image, request, identity, budget, start, &argv, cancelled)
+        outcome
     }
 
+    #[cfg(test)]
     fn run_image(
         image: &File,
         request: Vec<u8>,
@@ -1460,24 +2173,105 @@ mod native {
         argv: &[*mut libc::c_char],
         cancelled: Option<&AtomicBool>,
     ) -> ExecutorOutcome {
+        // Existing process-custody faults use the same parent I/O/cleanup path.
+        let prepared = BatchPrepared {
+            frame: request,
+            units: vec![BatchUnitMeta {
+                ordinal: 0,
+                member_id: "custody-probe".into(),
+                relative_path: "custody-probe".into(),
+                root_uri: "custody-probe".into(),
+                raw_sha256: identity.instance_sha256,
+                unit_sha256: identity.instance_sha256,
+            }],
+            worker_sha256: identity.worker_sha256,
+            profile: identity.profile,
+            schema_set_sha256: identity.schema_set_sha256,
+            request_sha256: identity.request_sha256,
+            ordered_manifest_sha256: identity.instance_sha256,
+        };
+        let mut results = Digest256Hasher::new();
+        results.update(b"tos-val2-batch-results-v1\0");
+        let batch = BatchBudget {
+            total_execution_wall: budget.execution_wall,
+            startup_wall: budget.execution_wall,
+            per_unit_wall: budget.execution_wall,
+            cleanup_grace: budget.cleanup_grace,
+            cpu_seconds: budget.cpu_seconds,
+            address_space_bytes: budget.address_space_bytes,
+            max_units: 1,
+            max_total_raw_bytes: crate::SchemaBackendProbe::MAX_INSTANCE_BYTES,
+        };
+        match run_batch_image_cancellable(image, prepared, results, batch, start, argv, cancelled) {
+            BatchOutcome::Incomplete { reason, .. } => unknown(reason, Some(identity)),
+            BatchOutcome::Complete { .. } => unknown(ExecutorFailure::Protocol, Some(identity)),
+        }
+    }
+
+    #[cfg(test)]
+    fn run_batch_image(
+        image: &File,
+        prepared: BatchPrepared,
+        results: Digest256Hasher,
+        budget: BatchBudget,
+        start: Instant,
+        argv: &[*mut libc::c_char],
+    ) -> BatchOutcome {
+        run_batch_image_cancellable(image, prepared, results, budget, start, argv, None)
+    }
+
+    struct OperationChild {
+        pid: libc::pid_t,
+        input: File,
+        output: File,
+        status: Option<i32>,
+        cleanup_grace: Duration,
+        cleanup_result: Option<Result<(), ExecutorFailure>>,
+    }
+    impl OperationChild {
+        fn cleanup(&mut self) -> Result<(), ExecutorFailure> {
+            if let Some(result) = self.cleanup_result {
+                return result;
+            }
+            let result = kill_and_reap(self.pid, &mut self.status, self.cleanup_grace);
+            self.cleanup_result = Some(result);
+            result
+        }
+    }
+    impl Drop for OperationChild {
+        fn drop(&mut self) {
+            let _ = self.cleanup();
+        }
+    }
+    fn spawn_operation_child(
+        image: &File,
+        budget: ExecutorBudget,
+        argv: &[*mut libc::c_char],
+    ) -> Result<OperationChild, ExecutorFailure> {
         let (input_parent, input_child) = match socket_pair() {
             Ok(pair) => pair,
-            Err(_) => return unknown(ExecutorFailure::Spawn, Some(identity)),
+            Err(_) => {
+                return Err(ExecutorFailure::Spawn);
+            }
         };
         let (output_parent, output_child) = match socket_pair() {
             Ok(pair) => pair,
-            Err(_) => return unknown(ExecutorFailure::Spawn, Some(identity)),
+            Err(_) => {
+                return Err(ExecutorFailure::Spawn);
+            }
         };
         #[cfg(test)]
         TEST_CHILD_STDOUT_INODE.with(|cell| cell.set(output_child.metadata().unwrap().ino()));
         let null = match OpenOptions::new().write(true).open("/dev/null") {
             Ok(file) => file,
-            Err(_) => return unknown(ExecutorFailure::Spawn, Some(identity)),
+            Err(_) => {
+                return Err(ExecutorFailure::Spawn);
+            }
         };
         let parent_pid = unsafe { libc::getpid() };
         let pid = unsafe { libc::fork() };
         if pid < 0 {
-            return unknown(ExecutorFailure::Spawn, Some(identity));
+            return Err(ExecutorFailure::Spawn);
         }
         if pid == 0 {
             unsafe {
@@ -1495,130 +2289,18 @@ mod native {
         drop(input_child);
         drop(output_child);
         drop(null);
-        let mut input = Some(input_parent);
-        let output = output_parent;
-        let mut written = 0usize;
-        let mut response = Vec::with_capacity(RESPONSE_BYTES + 1);
-        let mut output_eof = false;
-        let mut status = None;
-        let mut failure = None;
-        while !output_eof || written != request.len() || status.is_none() {
-            if cancelled.is_some_and(|flag| flag.load(Ordering::Relaxed)) {
-                failure = Some(ExecutorFailure::Cancelled);
-                break;
-            }
-            if start.elapsed() >= budget.execution_wall {
-                failure = Some(ExecutorFailure::Timeout);
-                break;
-            }
-            if let Err(reason) = poll_exit(pid, &mut status) {
-                failure = Some(reason);
-                break;
-            }
-            if written == request.len() {
-                if let Some(fd) = input.take() {
-                    unsafe { libc::shutdown(fd.as_raw_fd(), libc::SHUT_WR) };
-                }
-            }
-            let mut fds = [
-                libc::pollfd {
-                    fd: input.as_ref().map_or(-1, AsRawFd::as_raw_fd),
-                    events: libc::POLLOUT,
-                    revents: 0,
-                },
-                libc::pollfd {
-                    fd: if output_eof { -1 } else { output.as_raw_fd() },
-                    events: libc::POLLIN,
-                    revents: 0,
-                },
-            ];
-            if unsafe { libc::poll(fds.as_mut_ptr(), 2, 2) } < 0 {
-                if io::Error::last_os_error().kind() != io::ErrorKind::Interrupted {
-                    failure = Some(ExecutorFailure::Protocol);
-                    break;
-                }
-                continue;
-            }
-            if fds[0].revents & libc::POLLOUT != 0 {
-                let count = unsafe {
-                    libc::send(
-                        fds[0].fd,
-                        request[written..].as_ptr().cast(),
-                        request.len() - written,
-                        libc::MSG_DONTWAIT | libc::MSG_NOSIGNAL,
-                    )
-                };
-                if count > 0 {
-                    written += count as usize;
-                } else if count == 0
-                    || (count < 0 && io::Error::last_os_error().kind() != io::ErrorKind::WouldBlock)
-                {
-                    failure = Some(ExecutorFailure::Protocol);
-                    break;
-                }
-            }
-            if fds[1].revents & (libc::POLLIN | libc::POLLHUP) != 0 {
-                let mut buffer = [0u8; 256];
-                let count = unsafe {
-                    libc::recv(
-                        fds[1].fd,
-                        buffer.as_mut_ptr().cast(),
-                        buffer.len(),
-                        libc::MSG_DONTWAIT,
-                    )
-                };
-                if count == 0 {
-                    output_eof = true;
-                } else if count > 0 {
-                    response.extend_from_slice(&buffer[..count as usize]);
-                    if response.len() > RESPONSE_BYTES {
-                        failure = Some(ExecutorFailure::Protocol);
-                        break;
-                    }
-                } else if io::Error::last_os_error().kind() != io::ErrorKind::WouldBlock {
-                    failure = Some(ExecutorFailure::Protocol);
-                    break;
-                }
-            }
-            if fds
-                .iter()
-                .any(|fd| fd.revents & (libc::POLLERR | libc::POLLNVAL) != 0)
-            {
-                failure = Some(ExecutorFailure::Protocol);
-                break;
-            }
-        }
-        if let Some(reason) = failure {
-            let observed_failure = status.and_then(status_failure);
-            let result = kill_and_reap(pid, &mut status, budget.cleanup_grace);
-            return unknown(
-                result
-                    .err()
-                    .unwrap_or_else(|| observed_failure.unwrap_or(reason)),
-                Some(identity),
-            );
-        }
-        let Some(status) = status else {
-            return unknown(ExecutorFailure::ResourceLimitUnknown, Some(identity));
-        };
-        if let Some(reason) = status_failure(status) {
-            return unknown(reason, Some(identity));
-        }
-        interpret_response(&response, identity)
+
+        Ok(OperationChild {
+            pid,
+            input: input_parent,
+            output: output_parent,
+            status: None,
+            cleanup_grace: budget.cleanup_grace,
+            cleanup_result: None,
+        })
     }
 
     #[cfg(test)]
-    fn run_batch_image(
-        image: &File,
-        prepared: BatchPrepared,
-        results: Digest256Hasher,
-        budget: BatchBudget,
-        start: Instant,
-        argv: &[*mut libc::c_char],
-    ) -> BatchOutcome {
-        run_batch_image_cancellable(image, prepared, results, budget, start, argv, None)
-    }
-
     fn run_batch_image_cancellable(
         image: &File,
         prepared: BatchPrepared,
@@ -1628,51 +2310,36 @@ mod native {
         argv: &[*mut libc::c_char],
         cancelled: Option<&AtomicBool>,
     ) -> BatchOutcome {
-        let (input_parent, input_child) = match socket_pair() {
-            Ok(pair) => pair,
-            Err(_) => {
-                return batch_incomplete(prepared, Vec::new(), results, ExecutorFailure::Spawn);
-            }
+        let mut child = match spawn_operation_child(
+            image,
+            ExecutorBudget {
+                execution_wall: budget.total_execution_wall,
+                cleanup_grace: budget.cleanup_grace,
+                cpu_seconds: budget.cpu_seconds,
+                address_space_bytes: budget.address_space_bytes,
+            },
+            argv,
+        ) {
+            Ok(child) => child,
+            Err(reason) => return batch_incomplete(prepared, Vec::new(), results, reason),
         };
-        let (output_parent, output_child) = match socket_pair() {
-            Ok(pair) => pair,
-            Err(_) => {
-                return batch_incomplete(prepared, Vec::new(), results, ExecutorFailure::Spawn);
-            }
-        };
-        let null = match OpenOptions::new().write(true).open("/dev/null") {
-            Ok(file) => file,
-            Err(_) => {
-                return batch_incomplete(prepared, Vec::new(), results, ExecutorFailure::Spawn);
-            }
-        };
-        let parent_pid = unsafe { libc::getpid() };
-        let pid = unsafe { libc::fork() };
-        if pid < 0 {
-            return batch_incomplete(prepared, Vec::new(), results, ExecutorFailure::Spawn);
-        }
-        if pid == 0 {
-            unsafe {
-                child_exec(
-                    image.as_raw_fd(),
-                    input_child.as_raw_fd(),
-                    output_child.as_raw_fd(),
-                    null.as_raw_fd(),
-                    ExecutorBudget {
-                        execution_wall: budget.total_execution_wall,
-                        cleanup_grace: budget.cleanup_grace,
-                        cpu_seconds: budget.cpu_seconds,
-                        address_space_bytes: budget.address_space_bytes,
-                    },
-                    parent_pid,
-                    argv.as_ptr(),
-                )
-            }
-        }
-        drop(input_child);
-        drop(output_child);
-        drop(null);
+        run_batch_exchange(
+            &mut child, prepared, results, budget, start, cancelled, false,
+        )
+    }
 
+    fn run_batch_exchange(
+        child: &mut OperationChild,
+        prepared: BatchPrepared,
+        mut results: Digest256Hasher,
+        budget: BatchBudget,
+        start: Instant,
+        cancelled: Option<&AtomicBool>,
+        retained: bool,
+    ) -> BatchOutcome {
+        let pid = child.pid;
+        let input_parent = &child.input;
+        let output_parent = &child.output;
         let mut input = Some(input_parent);
         let output = output_parent;
         let mut written = 0usize;
@@ -1683,9 +2350,17 @@ mod native {
         let mut unit_deadline = None;
         let mut receipts = Vec::with_capacity(prepared.units.len());
         let mut output_eof = false;
-        let mut status = None;
+        let mut status = child.status;
         let mut failure = None;
-        while !output_eof || status.is_none() || receipts.len() != prepared.units.len() {
+        let mut terminal = false;
+        let expected_bytes = BATCH_ACK_BYTES
+            + prepared.units.len() * BATCH_UNIT_BYTES
+            + if retained { OPERATION_END_BYTES } else { 0 };
+        while if retained {
+            !terminal
+        } else {
+            !output_eof || status.is_none() || receipts.len() != prepared.units.len()
+        } {
             if cancelled.is_some_and(|flag| flag.load(Ordering::Relaxed)) {
                 failure = Some(ExecutorFailure::Cancelled);
                 break;
@@ -1702,14 +2377,18 @@ mod native {
                 failure = Some(reason);
                 break;
             }
-            if written == prepared.frame.len() {
+            if !retained && written == prepared.frame.len() {
                 if let Some(fd) = input.take() {
                     unsafe { libc::shutdown(fd.as_raw_fd(), libc::SHUT_WR) };
                 }
             }
             let mut fds = [
                 libc::pollfd {
-                    fd: input.as_ref().map_or(-1, AsRawFd::as_raw_fd),
+                    fd: if written < prepared.frame.len() {
+                        input.as_ref().map_or(-1, AsRawFd::as_raw_fd)
+                    } else {
+                        -1
+                    },
                     events: libc::POLLOUT,
                     revents: 0,
                 },
@@ -1758,7 +2437,7 @@ mod native {
                     output_eof = true;
                 } else if count > 0 {
                     response.extend_from_slice(&buffer[..count as usize]);
-                    if response.len() > BATCH_ACK_BYTES + prepared.units.len() * BATCH_UNIT_BYTES {
+                    if response.len() > expected_bytes {
                         failure = Some(ExecutorFailure::Protocol);
                         break;
                     }
@@ -1831,6 +2510,22 @@ mod native {
                                 break;
                             }
                             unit_deadline = Some(Instant::now() + budget.per_unit_wall);
+                        } else if retained && !terminal {
+                            if response.len() - parsed < OPERATION_END_BYTES {
+                                break;
+                            }
+                            let end = &response[parsed..parsed + OPERATION_END_BYTES];
+                            if &end[..8] != OPERATION_END_MAGIC
+                                || &end[8..40] != prepared.request_sha256.as_bytes()
+                                || &end[40..72] != results.clone().finalize().as_bytes()
+                                || u32::from_be_bytes(end[72..76].try_into().unwrap()) as usize
+                                    != receipts.len()
+                            {
+                                failure = Some(ExecutorFailure::Protocol);
+                                break;
+                            }
+                            parsed += OPERATION_END_BYTES;
+                            terminal = true;
                         } else {
                             failure = Some(ExecutorFailure::Protocol);
                             break;
@@ -1851,6 +2546,10 @@ mod native {
                 failure = Some(ExecutorFailure::Protocol);
                 break;
             }
+            if retained && (output_eof || status.is_some()) {
+                failure = Some(ExecutorFailure::Protocol);
+                break;
+            }
             if output_eof
                 && (parsed != response.len() || !ack || receipts.len() != prepared.units.len())
             {
@@ -1858,9 +2557,27 @@ mod native {
                 break;
             }
         }
+        if retained && failure.is_none() && written != prepared.frame.len() {
+            failure = Some(ExecutorFailure::Protocol);
+        }
+        if retained && failure.is_none() {
+            let mut extra = [0u8; 1];
+            let count = unsafe {
+                libc::recv(
+                    output.as_raw_fd(),
+                    extra.as_mut_ptr().cast(),
+                    1,
+                    libc::MSG_DONTWAIT,
+                )
+            };
+            if count >= 0 || io::Error::last_os_error().kind() != io::ErrorKind::WouldBlock {
+                failure = Some(ExecutorFailure::Protocol);
+            }
+        }
+        child.status = status;
         if let Some(reason) = failure {
             let observed_failure = status.and_then(status_failure);
-            let result = kill_and_reap(pid, &mut status, budget.cleanup_grace);
+            let result = child.cleanup();
             return batch_incomplete(
                 prepared,
                 receipts,
@@ -1882,25 +2599,6 @@ mod native {
         BatchOutcome::Complete {
             receipts,
             checkpoint,
-        }
-    }
-
-    fn interpret_response(response: &[u8], identity: ExecutionIdentity) -> ExecutorOutcome {
-        if response.len() != RESPONSE_BYTES
-            || &response[..8] != RESPONSE_MAGIC
-            || &response[8..40] != identity.request_sha256.as_bytes()
-            || &response[40..72] != identity.schema_set_sha256.as_bytes()
-            || &response[72..104] != identity.instance_sha256.as_bytes()
-        {
-            return unknown(ExecutorFailure::Protocol, Some(identity));
-        }
-        match (response[104], response[105]) {
-            (0, 0) => ExecutorOutcome::SchemaValid(identity),
-            (1, 0) => ExecutorOutcome::SchemaInvalid(identity),
-            (2, 1) => ExecutorOutcome::InputRejected(identity),
-            (3, 1) => unknown(ExecutorFailure::InputBudget, Some(identity)),
-            (3, 2) => unknown(ExecutorFailure::Backend, Some(identity)),
-            _ => unknown(ExecutorFailure::Protocol, Some(identity)),
         }
     }
 
@@ -1934,87 +2632,13 @@ mod native {
         let mut stdin = io::stdin();
         let mut magic = [0u8; 8];
         stdin.read_exact(&mut magic)?;
-        if &magic == BATCH_REQUEST_MAGIC {
-            return batch_worker_once(stdin, io::stdout(), magic);
-        }
-        let mut frame = magic.to_vec();
-        stdin
-            .take((MAX_FRAME_BYTES - 8 + 1) as u64)
-            .read_to_end(&mut frame)?;
-        if frame.len() > MAX_FRAME_BYTES {
+        if &magic != OPERATION_REQUEST_MAGIC {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
-                "oversize request",
+                "operation protocol version",
             ));
         }
-        let request_sha256 = Digest256::of_bytes(&frame);
-        let mut cursor = Cursor {
-            bytes: &frame,
-            offset: 0,
-        };
-        if cursor.take(8)? != REQUEST_MAGIC {
-            return Err(io::Error::new(
-                io::ErrorKind::InvalidData,
-                "protocol version",
-            ));
-        }
-        let _nonce = cursor.take(16)?;
-        let profile = parse_profile(cursor.take(1)?[0])
-            .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "format profile"))?;
-        let count = u32::from_be_bytes(cursor.take(4)?.try_into().unwrap()) as usize;
-        if count > crate::SchemaBackendProbe::MAX_RESOURCES {
-            return Err(io::Error::new(io::ErrorKind::InvalidData, "resource count"));
-        }
-        let mut total = 0usize;
-        let mut resources = Vec::with_capacity(count);
-        for _ in 0..count {
-            let uri = std::str::from_utf8(cursor.bytes(MAX_URI_BYTES)?)
-                .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "resource uri"))?;
-            let raw = cursor.bytes(crate::SchemaBackendProbe::MAX_RESOURCE_BYTES)?;
-            total = total
-                .checked_add(raw.len())
-                .filter(|total| *total <= crate::SchemaBackendProbe::MAX_TOTAL_BYTES)
-                .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "resource bytes"))?;
-            resources.push(SchemaResource {
-                uri: uri.to_owned(),
-                raw: raw.to_vec(),
-            });
-        }
-        let root_uri = std::str::from_utf8(cursor.bytes(MAX_URI_BYTES)?)
-            .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "root uri"))?;
-        let raw_instance = cursor.bytes(crate::SchemaBackendProbe::MAX_INSTANCE_BYTES)?;
-        if cursor.offset != frame.len() {
-            return Err(io::Error::new(io::ErrorKind::InvalidData, "trailing bytes"));
-        }
-        let schema_set_sha256 = schema_set_digest(&resources)
-            .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "duplicate resource"))?;
-        let instance_sha256 = Digest256::of_bytes(raw_instance);
-        let result = match crate::SchemaBackendProbe::new(resources, profile) {
-            Ok(probe) => {
-                if probe.schema_set_digest() != schema_set_sha256 {
-                    (3, 2)
-                } else {
-                    match probe.is_valid_raw(root_uri, raw_instance) {
-                        Ok(true) => (0, 0),
-                        Ok(false) => (1, 0),
-                        Err(crate::SchemaProbeError::InvalidPublishedJson(_))
-                        | Err(crate::SchemaProbeError::InvalidJson) => (2, 1),
-                        Err(crate::SchemaProbeError::BudgetExceeded) => (3, 1),
-                        Err(_) => (3, 2),
-                    }
-                }
-            }
-            Err(crate::SchemaProbeError::BudgetExceeded) => (3, 1),
-            Err(_) => (3, 2),
-        };
-        let mut response = Vec::with_capacity(RESPONSE_BYTES);
-        response.extend_from_slice(RESPONSE_MAGIC);
-        response.extend_from_slice(request_sha256.as_bytes());
-        response.extend_from_slice(schema_set_sha256.as_bytes());
-        response.extend_from_slice(instance_sha256.as_bytes());
-        response.push(result.0);
-        response.push(result.1);
-        io::stdout().write_all(&response)
+        operation_worker_once(stdin, io::stdout(), magic)
     }
 
     struct BatchParsedUnit<'a> {
@@ -2024,34 +2648,7 @@ mod native {
         unit_sha256: Digest256,
     }
 
-    fn batch_worker_once(
-        stdin: impl Read,
-        mut stdout: impl Write,
-        magic: [u8; 8],
-    ) -> io::Result<()> {
-        use jsonschema::{Draft, Registry, Validator};
-
-        let mut frame = magic.to_vec();
-        stdin
-            .take((MAX_BATCH_FRAME_BYTES - 8 + 1) as u64)
-            .read_to_end(&mut frame)?;
-        if frame.len() > MAX_BATCH_FRAME_BYTES {
-            return Err(io::Error::new(
-                io::ErrorKind::InvalidData,
-                "batch frame cap",
-            ));
-        }
-        let request_sha256 = Digest256::of_bytes(&frame);
-        let mut cursor = Cursor {
-            bytes: &frame,
-            offset: 0,
-        };
-        if cursor.take(8)? != BATCH_REQUEST_MAGIC {
-            return Err(io::Error::new(io::ErrorKind::InvalidData, "batch version"));
-        }
-        let _nonce = cursor.take(16)?;
-        let profile = parse_profile(cursor.take(1)?[0])
-            .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "batch profile"))?;
+    fn parse_batch_resources(cursor: &mut Cursor<'_>) -> io::Result<Vec<SchemaResource>> {
         let resource_count = u32::from_be_bytes(cursor.take(4)?.try_into().unwrap()) as usize;
         if resource_count > crate::SchemaBackendProbe::MAX_RESOURCES {
             return Err(io::Error::new(
@@ -2074,6 +2671,11 @@ mod native {
                 raw: raw.to_vec(),
             });
         }
+        Ok(resources)
+    }
+    fn parse_batch_units<'a>(
+        cursor: &mut Cursor<'a>,
+    ) -> io::Result<(Vec<BatchParsedUnit<'a>>, usize)> {
         let unit_count = u32::from_be_bytes(cursor.take(4)?.try_into().unwrap()) as usize;
         if unit_count == 0 || unit_count > MAX_BATCH_UNITS {
             return Err(io::Error::new(io::ErrorKind::InvalidData, "unit count"));
@@ -2104,7 +2706,7 @@ mod native {
             }
             let mut digest = Digest256Hasher::new();
             digest.update(b"tos-val2-batch-unit-v1\0");
-            digest.update(&frame[start..cursor.offset]);
+            digest.update(&cursor.bytes[start..cursor.offset]);
             units.push(BatchParsedUnit {
                 ordinal: observed_ordinal,
                 root_uri,
@@ -2112,18 +2714,101 @@ mod native {
                 unit_sha256: digest.finalize(),
             });
         }
-        if cursor.offset != frame.len() {
+        Ok((units, raw_total))
+    }
+
+    fn read_operation_frame(reader: &mut impl Read) -> io::Result<Option<Vec<u8>>> {
+        let mut length = [0u8; 4];
+        if reader.read(&mut length[..1])? == 0 {
+            return Ok(None);
+        }
+        reader.read_exact(&mut length[1..])?;
+        let count = u32::from_be_bytes(length) as usize;
+        if count < 8 || count > MAX_BATCH_FRAME_BYTES {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
-                "batch trailing bytes",
+                "operation frame length",
             ));
         }
-        let schema_set_sha256 = schema_set_digest(&resources)
-            .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "duplicate schema"))?;
-        let probe = crate::SchemaBackendProbe::new(resources, profile)
-            .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "schema setup"))?;
-        if probe.schema_set_digest() != schema_set_sha256 {
-            return Err(io::Error::new(io::ErrorKind::InvalidData, "schema digest"));
+        let mut frame = vec![0u8; count];
+        reader.read_exact(&mut frame)?;
+        Ok(Some(frame))
+    }
+
+    fn operation_worker_once(
+        mut input: impl Read,
+        mut output: impl Write,
+        magic: [u8; 8],
+    ) -> io::Result<()> {
+        use jsonschema::{Registry, Validator};
+        let bad = || io::Error::new(io::ErrorKind::InvalidData, "operation identity or budget");
+        let mut header = vec![0u8; OPERATION_HEADER_BYTES];
+        header[..8].copy_from_slice(&magic);
+        input.read_exact(&mut header[8..])?;
+        let mut h = Cursor {
+            bytes: &header,
+            offset: 24,
+        };
+        let expected_schema = h.take(32)?.to_vec();
+        let profile = parse_profile(h.take(1)?[0]).ok_or_else(bad)?;
+        let mut number =
+            || -> io::Result<u64> { Ok(u64::from_be_bytes(h.take(8)?.try_into().unwrap())) };
+        let max_frames = number()?;
+        let max_units = number()?;
+        let max_raw = number()?;
+        let max_wire = number()?;
+        let max_selectors = usize::try_from(number()?).map_err(|_| bad())?;
+        let cpu = number()?;
+        let memory = number()?;
+        let wall_nanos = number()?;
+        if max_frames == 0
+            || max_units == 0
+            || max_raw == 0
+            || max_wire == 0
+            || max_selectors == 0
+            || cpu == 0
+            || cpu > 3600
+            || memory < 64 * 1024 * 1024
+            || memory > 8 * 1024 * 1024 * 1024
+            || wall_nanos == 0
+            || wall_nanos > Duration::from_secs(3600).as_nanos() as u64
+        {
+            return Err(bad());
+        }
+        let start = Instant::now();
+        let mut frame = read_operation_frame(&mut input)?.ok_or_else(bad)?;
+        let mut first = Cursor {
+            bytes: &frame,
+            offset: 8,
+        };
+        if first.take(8)? != BATCH_REQUEST_MAGIC {
+            return Err(bad());
+        }
+        first.take(16)?;
+        if parse_profile(first.take(1)?[0]) != Some(profile) {
+            return Err(bad());
+        }
+        if (header.len()
+            + frame.len()
+            + 4
+            + BATCH_ACK_BYTES
+            + OPERATION_END_BYTES
+            + 4
+            + 48
+            + OPERATION_FINAL_BYTES) as u64
+            > max_wire
+        {
+            return Err(bad());
+        }
+        let resources = parse_batch_resources(&mut first)?;
+        let first_units_offset = first.offset;
+        let schema_set = schema_set_digest(&resources).map_err(|_| bad())?;
+        if expected_schema.as_slice() != schema_set.as_bytes() {
+            return Err(bad());
+        }
+        let probe = crate::SchemaBackendProbe::new(resources, profile).map_err(|_| bad())?;
+        if probe.schema_set_digest() != schema_set {
+            return Err(bad());
         }
         let registry = Registry::new()
             .extend(
@@ -2132,68 +2817,183 @@ mod native {
                     .iter()
                     .map(|(uri, value)| (uri.as_str(), value.clone())),
             )
-            .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "registry"))?
+            .map_err(|_| bad())?
             .prepare()
-            .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "registry closure"))?;
-        let mut validators: BTreeMap<&str, Validator> = BTreeMap::new();
-        for unit in &units {
-            if validators.contains_key(unit.root_uri) {
-                continue;
+            .map_err(|_| bad())?;
+        let mut validators = BTreeMap::<String, Validator>::new();
+        let mut total_units = 0u64;
+        let mut total_raw = 0u64;
+        let mut wire = header.len() as u64;
+        let mut sequence = 0u64;
+        loop {
+            if start.elapsed().as_nanos() >= wall_nanos as u128 {
+                return Err(bad());
             }
-            let schema = probe
-                .selected_schema(unit.root_uri)
-                .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "missing root selector"))?;
-            let mut options = jsonschema::options()
-                .with_draft(Draft::Draft202012)
-                .with_registry(&registry)
-                .offline()
-                .should_validate_formats(true)
-                .should_ignore_unknown_formats(false);
-            if profile == FormatProfile::LegacyPythonObserved20260923 {
-                options = options
-                    .with_format("date-time", |_| true)
-                    .with_format("uri", |_| true)
-                    .with_format("uri-reference", |_| true);
-            }
-            let validator = options
-                .build(schema.as_ref())
-                .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "schema compile"))?;
-            validators.insert(unit.root_uri, validator);
-        }
-        let mut ack = Vec::with_capacity(BATCH_ACK_BYTES);
-        ack.extend_from_slice(BATCH_ACK_MAGIC);
-        ack.extend_from_slice(request_sha256.as_bytes());
-        ack.extend_from_slice(schema_set_sha256.as_bytes());
-        ack.extend_from_slice(&(unit_count as u32).to_be_bytes());
-        stdout.write_all(&ack)?;
-        for unit in units {
-            let result = match crate::published_value(
-                unit.raw,
-                crate::SchemaBackendProbe::MAX_INSTANCE_BYTES,
-            ) {
-                Ok(instance) => {
-                    if validators.get(unit.root_uri).unwrap().is_valid(&instance) {
-                        (0u8, 0u8)
-                    } else {
-                        (1, 0)
-                    }
+            if frame.len() == 48 && &frame[8..16] == OPERATION_CLOSE_MAGIC {
+                let header_sha = Digest256::of_bytes(&header);
+                if u64::from_be_bytes(frame[..8].try_into().unwrap()) != sequence
+                    || &frame[16..48] != header_sha.as_bytes()
+                {
+                    return Err(bad());
                 }
-                Err(crate::SchemaProbeError::InvalidPublishedJson(_))
-                | Err(crate::SchemaProbeError::InvalidJson) => (2, 1),
-                Err(crate::SchemaProbeError::BudgetExceeded) => (3, 1),
-                Err(_) => (3, 2),
-            };
-            let mut response = Vec::with_capacity(BATCH_UNIT_BYTES);
-            response.extend_from_slice(BATCH_UNIT_MAGIC);
-            response.extend_from_slice(&unit.ordinal.to_be_bytes());
-            response.extend_from_slice(unit.unit_sha256.as_bytes());
-            response.extend_from_slice(&[result.0, result.1]);
-            stdout.write_all(&response)?;
-            if result != (0, 0) && result != (1, 0) {
-                break;
+                wire = wire
+                    .checked_add((frame.len() + 4 + OPERATION_FINAL_BYTES) as u64)
+                    .filter(|n| *n <= max_wire)
+                    .ok_or_else(bad)?;
+                let mut request = Digest256Hasher::new();
+                request.update(&header);
+                request.update(&frame);
+                let mut final_ack = Vec::with_capacity(OPERATION_FINAL_BYTES);
+                final_ack.extend_from_slice(OPERATION_FINAL_MAGIC);
+                final_ack.extend_from_slice(header_sha.as_bytes());
+                final_ack.extend_from_slice(request.finalize().as_bytes());
+                final_ack.extend_from_slice(&sequence.to_be_bytes());
+                output.write_all(&final_ack)?;
+                output.flush()?;
+                return Ok(());
             }
+
+            if sequence >= max_frames || start.elapsed().as_nanos() >= wall_nanos as u128 {
+                return Err(bad());
+            }
+            wire = wire
+                .checked_add(frame.len() as u64 + 4)
+                .filter(|n| *n <= max_wire)
+                .ok_or_else(bad)?;
+            let mut cursor = Cursor {
+                bytes: &frame,
+                offset: 0,
+            };
+            if u64::from_be_bytes(cursor.take(8)?.try_into().unwrap()) != sequence {
+                return Err(bad());
+            }
+            if sequence == 0 {
+                cursor.offset = first_units_offset;
+            } else {
+                if cursor.take(8)? != BATCH_REQUEST_MAGIC {
+                    return Err(bad());
+                }
+                cursor.take(16)?;
+                if parse_profile(cursor.take(1)?[0]) != Some(profile)
+                    || !parse_batch_resources(&mut cursor)?.is_empty()
+                {
+                    return Err(bad());
+                }
+            }
+            let (units, raw_total) = parse_batch_units(&mut cursor)?;
+            if cursor.offset != frame.len() {
+                return Err(bad());
+            }
+            total_units = total_units
+                .checked_add(units.len() as u64)
+                .filter(|n| *n <= max_units)
+                .ok_or_else(bad)?;
+            total_raw = total_raw
+                .checked_add(raw_total as u64)
+                .filter(|n| *n <= max_raw)
+                .ok_or_else(bad)?;
+            let response_bytes =
+                BATCH_ACK_BYTES + units.len() * BATCH_UNIT_BYTES + OPERATION_END_BYTES;
+            wire = wire
+                .checked_add(response_bytes as u64)
+                .filter(|n| *n <= max_wire)
+                .ok_or_else(bad)?;
+            for unit in &units {
+                if !validators.contains_key(unit.root_uri) {
+                    if validators.len() >= max_selectors {
+                        return Err(bad());
+                    }
+                    validators.insert(
+                        unit.root_uri.to_owned(),
+                        compile_selected_validator(&probe, &registry, profile, unit.root_uri)?,
+                    );
+                }
+            }
+            let mut request = Digest256Hasher::new();
+            request.update(&header);
+            request.update(&frame);
+            let request_sha = request.finalize();
+            let mut ack = Vec::with_capacity(BATCH_ACK_BYTES);
+            ack.extend_from_slice(BATCH_ACK_MAGIC);
+            ack.extend_from_slice(request_sha.as_bytes());
+            ack.extend_from_slice(schema_set.as_bytes());
+            ack.extend_from_slice(&(units.len() as u32).to_be_bytes());
+            output.write_all(&ack)?;
+            output.flush()?;
+            let mut results = Digest256Hasher::new();
+            results.update(b"tos-val2-batch-results-v1\0");
+            for unit in &units {
+                let result = match crate::published_value(
+                    unit.raw,
+                    crate::SchemaBackendProbe::MAX_INSTANCE_BYTES,
+                ) {
+                    Ok(value) => {
+                        if validators[unit.root_uri].is_valid(&value) {
+                            (0u8, 0u8)
+                        } else {
+                            (1, 0)
+                        }
+                    }
+                    Err(crate::SchemaProbeError::InvalidPublishedJson(_))
+                    | Err(crate::SchemaProbeError::InvalidJson) => (2, 1),
+                    Err(crate::SchemaProbeError::BudgetExceeded) => (3, 1),
+                    Err(_) => (3, 2),
+                };
+                let mut response = Vec::with_capacity(BATCH_UNIT_BYTES);
+                response.extend_from_slice(BATCH_UNIT_MAGIC);
+                response.extend_from_slice(&unit.ordinal.to_be_bytes());
+                response.extend_from_slice(unit.unit_sha256.as_bytes());
+                response.extend_from_slice(&[result.0, result.1]);
+                output.write_all(&response)?;
+                output.flush()?;
+                if !matches!(result, (0, 0) | (1, 0)) {
+                    // The request-bound typed unit refusal remains the failure
+                    // reason. Exit without END/FINAL, so coverage cannot pass.
+                    return Ok(());
+                }
+                results.update(unit.unit_sha256.as_bytes());
+                results.update(&[result.0, result.1]);
+            }
+            let mut end = Vec::with_capacity(OPERATION_END_BYTES);
+            end.extend_from_slice(OPERATION_END_MAGIC);
+            end.extend_from_slice(request_sha.as_bytes());
+            end.extend_from_slice(results.finalize().as_bytes());
+            end.extend_from_slice(&(units.len() as u32).to_be_bytes());
+            output.write_all(&end)?;
+            output.flush()?;
+            drop(units);
+            sequence = sequence.checked_add(1).ok_or_else(bad)?;
+            frame = match read_operation_frame(&mut input)? {
+                Some(next) => next,
+                None => return Err(bad()),
+            };
         }
-        Ok(())
+    }
+
+    fn compile_selected_validator<'a>(
+        probe: &crate::SchemaBackendProbe,
+        registry: &'a jsonschema::Registry<'a>,
+        profile: FormatProfile,
+        root_uri: &str,
+    ) -> io::Result<jsonschema::Validator> {
+        let schema = probe
+            .selected_schema(root_uri)
+            .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "missing root selector"))?;
+        let mut options = jsonschema::options()
+            .with_draft(jsonschema::Draft::Draft202012)
+            .with_registry(registry)
+            .offline()
+            .should_validate_formats(true)
+            .should_ignore_unknown_formats(false);
+        if profile == FormatProfile::LegacyPythonObserved20260923 {
+            options = options
+                .with_format("date-time", |_| true)
+                .with_format("uri", |_| true)
+                .with_format("uri-reference", |_| true);
+        }
+        options
+            .build(schema.as_ref())
+            .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "schema compile"))
     }
 
     #[cfg(test)]
@@ -2217,6 +3017,44 @@ mod native {
             }
         }
 
+        fn operation_fixture(prepared: &[&BatchPrepared]) -> (Vec<u8>, Vec<Digest256>) {
+            let budget = BatchStreamBudget::laboratory();
+            let first = prepared[0];
+            let header = operation_header(
+                [0; 16],
+                first.schema_set_sha256,
+                first.profile,
+                [
+                    budget.max_chunks,
+                    budget.max_total_units,
+                    budget.max_total_raw_bytes,
+                    budget.max_total_wire_bytes,
+                    budget.max_distinct_selectors as u64,
+                    budget.operation_cpu_seconds,
+                    budget.operation_address_space_bytes,
+                    budget.total_execution_wall.as_nanos() as u64,
+                ],
+            );
+            let mut input = header.clone();
+            let mut requests = Vec::new();
+            for (sequence, frame) in prepared.iter().enumerate() {
+                let mut body = (sequence as u64).to_be_bytes().to_vec();
+                body.extend_from_slice(&frame.frame);
+                let mut digest = Digest256Hasher::new();
+                digest.update(&header);
+                digest.update(&body);
+                requests.push(digest.finalize());
+                input.extend_from_slice(&(body.len() as u32).to_be_bytes());
+                input.extend_from_slice(&body);
+            }
+            let mut close = (prepared.len() as u64).to_be_bytes().to_vec();
+            close.extend_from_slice(OPERATION_CLOSE_MAGIC);
+            close.extend_from_slice(Digest256::of_bytes(&header).as_bytes());
+            input.extend_from_slice(&(close.len() as u32).to_be_bytes());
+            input.extend_from_slice(&close);
+            (input, requests)
+        }
+
         fn batch_stream_output(units: Vec<BatchUnit>) -> Vec<u8> {
             let prepared = make_batch_request(
                 Digest256::of_bytes(b"fixture-worker"),
@@ -2227,12 +3065,14 @@ mod native {
             )
             .unwrap();
             let mut output = Vec::new();
-            batch_worker_once(
-                std::io::Cursor::new(&prepared.frame[8..]),
+            let (input, request_sha) = operation_fixture(&[&prepared]);
+            operation_worker_once(
+                std::io::Cursor::new(&input[8..]),
                 &mut output,
-                *BATCH_REQUEST_MAGIC,
+                *OPERATION_REQUEST_MAGIC,
             )
             .unwrap();
+            assert_eq!(&output[8..40], request_sha[0].as_bytes());
             output
         }
 
@@ -2257,68 +3097,42 @@ mod native {
         }
 
         #[test]
-        fn response_requires_exact_request_and_complete_clean_frame() {
-            let identity = ExecutionIdentity {
-                worker_sha256: Digest256::of_bytes(b"worker"),
-                request_sha256: Digest256::of_bytes(b"request"),
-                schema_set_sha256: Digest256::of_bytes(b"schemas"),
-                instance_sha256: Digest256::of_bytes(b"instance"),
-                profile: FormatProfile::AssertedSourceCandidateV1,
-            };
-            let mut response = Vec::new();
-            response.extend_from_slice(RESPONSE_MAGIC);
-            response.extend_from_slice(identity.request_sha256.as_bytes());
-            response.extend_from_slice(identity.schema_set_sha256.as_bytes());
-            response.extend_from_slice(identity.instance_sha256.as_bytes());
-            response.extend_from_slice(&[0, 0]);
-            assert_eq!(
-                interpret_response(&response, identity),
-                ExecutorOutcome::SchemaValid(identity)
-            );
-            for index in [0, 8, 40, 72, 105] {
-                let mut forged = response.clone();
-                forged[index] ^= 1;
-                assert!(matches!(
-                    interpret_response(&forged, identity),
-                    ExecutorOutcome::Indeterminate {
-                        reason: ExecutorFailure::Protocol,
-                        ..
-                    }
-                ));
-            }
-            response.push(0);
-            assert!(matches!(
-                interpret_response(&response, identity),
-                ExecutorOutcome::Indeterminate {
-                    reason: ExecutorFailure::Protocol,
-                    ..
-                }
-            ));
-        }
-
-        #[test]
         fn oversized_and_duplicate_inputs_never_launch_worker() {
             let one = SchemaResource {
                 uri: "https://example.invalid/schema".to_owned(),
                 raw: b"{}".to_vec(),
             };
+            let absent = ExactWorkerIdentity {
+                absolute_path: "/absent-worker".into(),
+                sha256: Digest256::of_bytes(b""),
+            };
             assert!(matches!(
-                make_request(
+                BoundedSchemaExecutor::evaluate(
+                    &absent,
                     &[one.clone()],
                     FormatProfile::AssertedSourceCandidateV1,
                     "root",
-                    &vec![0; crate::SchemaBackendProbe::MAX_INSTANCE_BYTES + 1]
+                    &vec![0; crate::SchemaBackendProbe::MAX_INSTANCE_BYTES + 1],
+                    ExecutorBudget::laboratory()
                 ),
-                Err(ExecutorFailure::InputBudget)
+                ExecutorOutcome::Indeterminate {
+                    reason: ExecutorFailure::InputBudget,
+                    ..
+                }
             ));
             assert!(matches!(
-                make_request(
+                BoundedSchemaExecutor::evaluate(
+                    &absent,
                     &[one.clone(), one],
                     FormatProfile::AssertedSourceCandidateV1,
                     "root",
-                    b"null"
+                    b"null",
+                    ExecutorBudget::laboratory()
                 ),
-                Err(ExecutorFailure::Backend)
+                ExecutorOutcome::Indeterminate {
+                    reason: ExecutorFailure::Backend,
+                    ..
+                }
             ));
         }
 
@@ -2464,7 +3278,13 @@ mod native {
                 batch_unit(1, br#""x""#),
                 batch_unit(2, b"7"),
             ]);
-            assert_eq!(first.len(), BATCH_ACK_BYTES + 3 * BATCH_UNIT_BYTES);
+            assert_eq!(
+                first.len(),
+                BATCH_ACK_BYTES
+                    + 3 * BATCH_UNIT_BYTES
+                    + OPERATION_END_BYTES
+                    + OPERATION_FINAL_BYTES
+            );
             assert_eq!(first[BATCH_ACK_BYTES + 48], 0);
             assert_eq!(first[BATCH_ACK_BYTES + BATCH_UNIT_BYTES + 48], 1);
             assert_eq!(first[BATCH_ACK_BYTES + 2 * BATCH_UNIT_BYTES + 48], 0);
@@ -2511,14 +3331,33 @@ mod native {
                 expected.ordered_manifest_sha256
             );
             let mut output = Vec::new();
-            batch_worker_once(
-                std::io::Cursor::new(&prepared.frame[8..]),
-                &mut output,
-                *BATCH_REQUEST_MAGIC,
+            let mut later_unit = batch_unit(0, br#""owned""#);
+            later_unit.root_uri = format!("{root}#/$defs/scoped/properties/a~1b~0c");
+            let later = make_batch_request_encoded(
+                prepared.worker_sha256,
+                &0u32.to_be_bytes(),
+                prepared.schema_set_sha256,
+                prepared.profile,
+                [later_unit],
+                BatchBudget::laboratory(),
             )
             .unwrap();
-            assert_eq!(output.len(), BATCH_ACK_BYTES + 3 * BATCH_UNIT_BYTES);
-            assert_eq!(&output[8..40], prepared.request_sha256.as_bytes());
+            let (input, request_sha) = operation_fixture(&[&prepared, &later]);
+            operation_worker_once(
+                std::io::Cursor::new(&input[8..]),
+                &mut output,
+                *OPERATION_REQUEST_MAGIC,
+            )
+            .unwrap();
+            assert_eq!(&output[8..40], request_sha[0].as_bytes());
+            assert_eq!(
+                output.len(),
+                2 * BATCH_ACK_BYTES
+                    + 4 * BATCH_UNIT_BYTES
+                    + 2 * OPERATION_END_BYTES
+                    + OPERATION_FINAL_BYTES
+            );
+            assert_eq!(&output[8..40], request_sha[0].as_bytes());
             assert_eq!(&output[40..72], prepared.schema_set_sha256.as_bytes());
             for (ordinal, verdict) in [0u8, 1, 1].into_iter().enumerate() {
                 let start = BATCH_ACK_BYTES + ordinal * BATCH_UNIT_BYTES;
@@ -2531,6 +3370,35 @@ mod native {
                     prepared.units[ordinal].unit_sha256.as_bytes()
                 );
                 assert_eq!(output[start + 48], verdict);
+            }
+            let second = BATCH_ACK_BYTES + 3 * BATCH_UNIT_BYTES + OPERATION_END_BYTES;
+            assert_eq!(&output[second + 8..second + 40], request_sha[1].as_bytes());
+            assert_ne!(request_sha[0], request_sha[1]);
+            assert_eq!(output[second + BATCH_ACK_BYTES + 48], 0);
+            assert_eq!(
+                &output[output.len() - OPERATION_FINAL_BYTES
+                    ..output.len() - OPERATION_FINAL_BYTES + 8],
+                OPERATION_FINAL_MAGIC
+            );
+            // A later malformed frame or omitted CLOSE cannot finalize this operation.
+            let second_input = OPERATION_HEADER_BYTES + 4 + 8 + prepared.frame.len();
+            let mut out_of_order = input.clone();
+            out_of_order[second_input + 4..second_input + 12].copy_from_slice(&0u64.to_be_bytes());
+            for broken in [
+                out_of_order,
+                input[..input.len() - 52].to_vec(),
+                input[..second_input + 6].to_vec(),
+            ] {
+                let mut partial = Vec::new();
+                assert!(
+                    operation_worker_once(
+                        std::io::Cursor::new(&broken[8..]),
+                        &mut partial,
+                        *OPERATION_REQUEST_MAGIC
+                    )
+                    .is_err()
+                );
+                assert!(!partial.windows(8).any(|w| w == OPERATION_FINAL_MAGIC));
             }
         }
 
@@ -2677,11 +3545,18 @@ mod native {
             }] {
                 let mut output = Vec::new();
                 assert!(
-                    batch_worker_once(
-                        std::io::Cursor::new(&changed[8..]),
-                        &mut output,
-                        *BATCH_REQUEST_MAGIC,
-                    )
+                    {
+                        let changed_prepared = BatchPrepared {
+                            frame: changed,
+                            ..prepared.clone()
+                        };
+                        let (input, _) = operation_fixture(&[&changed_prepared]);
+                        operation_worker_once(
+                            std::io::Cursor::new(&input[8..]),
+                            &mut output,
+                            *OPERATION_REQUEST_MAGIC,
+                        )
+                    }
                     .is_err()
                 );
                 assert!(output.is_empty());
@@ -2773,14 +3648,8 @@ mod native {
                 ];
                 let mut results = Digest256Hasher::new();
                 results.update(b"tos-val2-batch-results-v1\0");
-                let outcome = run_batch_image(
-                    &image,
-                    prepared,
-                    results,
-                    budget,
-                    Instant::now(),
-                    &argv,
-                );
+                let outcome =
+                    run_batch_image(&image, prepared, results, budget, Instant::now(), &argv);
                 assert!(matches!(
                     outcome,
                     BatchOutcome::Incomplete {

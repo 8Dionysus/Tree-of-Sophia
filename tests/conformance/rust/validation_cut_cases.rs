@@ -693,28 +693,59 @@ fn actual_general_operation_keeps_selected_family_coverage_below_source_admissio
             after: Some(Digest256::of_bytes(&files[&changed_path])),
         }],
     };
+    let composed_limits = GeneralOperationLimits {
+        operation: OperationLimits {
+            max_member_bytes: 2_097_152,
+            max_total_bytes: 32_000_000,
+            max_state_bytes: 4_194_304,
+            max_reads: 4096,
+            max_changes: 128,
+            deadline,
+        },
+        family: ItemLimits {
+            max_member_bytes: 2_097_152,
+            max_total_bytes: 64_000_000,
+            max_state_bytes: 16_777_216,
+            max_issues: 256,
+            deadline,
+        },
+        max_composed_state_bytes: 134_217_728,
+        max_composed_read_bytes: 500_000_000,
+        max_composed_schema_cpu_seconds: 2 * ExecutorBudget::laboratory().cpu_seconds,
+        max_composed_schema_wire_bytes: 2
+            * tos_validation::executor::BatchStreamBudget::laboratory().max_total_wire_bytes,
+    };
+    // Both already selected envelopes must fit before either child starts.
+    for refused in [
+        GeneralOperationLimits {
+            max_composed_schema_cpu_seconds: composed_limits.max_composed_schema_cpu_seconds - 1,
+            ..composed_limits
+        },
+        GeneralOperationLimits {
+            max_composed_schema_wire_bytes: composed_limits.max_composed_schema_wire_bytes - 1,
+            ..composed_limits
+        },
+    ] {
+        assert!(matches!(
+            inspect_general_operation(
+                &cut,
+                &proposal,
+                refused,
+                &cancelled,
+                &record_routes(&files),
+                &mut record_executor,
+                &mut schemas,
+                &mut MetadataOnlyPayloads,
+                false
+            ),
+            Err(OperationRefusal::Budget)
+        ));
+        assert!(schemas.receipts().is_empty());
+    }
     let report = inspect_general_operation(
         &cut,
         &proposal,
-        GeneralOperationLimits {
-            operation: OperationLimits {
-                max_member_bytes: 2_097_152,
-                max_total_bytes: 32_000_000,
-                max_state_bytes: 4_194_304,
-                max_reads: 4096,
-                max_changes: 128,
-                deadline,
-            },
-            family: ItemLimits {
-                max_member_bytes: 2_097_152,
-                max_total_bytes: 64_000_000,
-                max_state_bytes: 16_777_216,
-                max_issues: 256,
-                deadline,
-            },
-            max_composed_state_bytes: 134_217_728,
-            max_composed_read_bytes: 500_000_000,
-        },
+        composed_limits,
         &cancelled,
         &record_routes(&files),
         &mut record_executor,
@@ -901,6 +932,22 @@ fn actual_cut_schema_batch_binds_ordered_units_and_refuses_partial_receipts() {
         schemas.receipts()[0].source_raw_sha256,
         schemas.receipts()[0].decoded_instance_sha256
     );
+    // A later request in the same operation keeps the selected closure while
+    // receiving a fresh nonce/sequence binding and an independent verdict.
+    let prior = schemas.receipts().len();
+    let repeat = [inputs[0].clone()];
+    assert_eq!(
+        schemas
+            .check_batch(&repeat, BatchBudget::laboratory(), deadline, &cancelled)
+            .unwrap(),
+        vec![true]
+    );
+    let later = schemas.receipts()[prior].batch.unwrap().checkpoint;
+    assert_ne!(later.request_sha256, checkpoint.request_sha256);
+    assert_eq!(later.schema_set_sha256, checkpoint.schema_set_sha256);
+    assert_eq!(later.worker_sha256, checkpoint.worker_sha256);
+    assert_eq!(later.completed_count, 1);
+    let accepted = schemas.receipts().len();
     // The first valid unit is emitted before this second decoded instance
     // exceeds the strict worker's depth budget. Complete coverage must fail;
     // the adapter may not append the provisional first receipt.
@@ -931,12 +978,21 @@ fn actual_cut_schema_batch_binds_ordered_units_and_refuses_partial_receipts() {
         }
         other => panic!("expected actual partial worker refusal, got {other:?}"),
     }
-    assert_eq!(schemas.receipts().len(), inputs.len());
+    assert_eq!(schemas.receipts().len(), accepted);
     assert!(
-        schemas
-            .receipts()
+        schemas.receipts()[..prior]
             .iter()
             .all(|receipt| receipt.batch.unwrap().checkpoint == checkpoint)
+    );
+    assert!(
+        schemas.finish(deadline, &cancelled).is_err(),
+        "partial exchange poisons finalization"
+    );
+    assert!(
+        schemas
+            .check_batch(&inputs, BatchBudget::laboratory(), deadline, &cancelled)
+            .is_err(),
+        "no transparent retry after failed exchange"
     );
     assert!(
         schemas
@@ -958,7 +1014,7 @@ fn actual_cut_schema_batch_binds_ordered_units_and_refuses_partial_receipts() {
             )
             .is_err()
     );
-    assert_eq!(schemas.receipts().len(), inputs.len());
+    assert_eq!(schemas.receipts().len(), accepted);
 }
 
 #[test]

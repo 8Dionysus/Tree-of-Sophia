@@ -14,9 +14,9 @@ use tos_source_store::{
 };
 
 use crate::executor::{
-    BatchBudget, BatchCoverageCheckpoint, BatchCoverageExpectation, BatchOutcome, BatchUnit,
-    BatchUnitVerdict, ExactWorkerIdentity, ExecutionIdentity, ExecutorBudget, ExecutorFailure,
-    ExecutorOutcome, PreparedSchemaWorker,
+    BatchBudget, BatchCoverageCheckpoint, BatchCoverageExpectation, BatchOutcome,
+    BatchStreamBudget, BatchUnit, BatchUnitVerdict, ExactWorkerIdentity, ExecutionIdentity,
+    ExecutorBudget, ExecutorFailure, ExecutorOutcome, PreparedSchemaWorker,
 };
 use crate::item_rules::{
     ItemFamilyReport, ItemLimits, ItemPayload, ItemRefusal, ItemRules, ItemSource,
@@ -37,6 +37,30 @@ pub trait CutSchemaExecutor {
         cancelled: &AtomicBool,
     ) -> Result<bool, ItemRefusal>;
 
+    fn schema_input_cost(
+        &self,
+        _path: &str,
+        _raw: &[u8],
+        _contract: &str,
+        _ordinal: u64,
+    ) -> Result<CutSchemaInputCost, ItemRefusal> {
+        Err(ItemRefusal::Unsupported(
+            "schema input cost unavailable".into(),
+        ))
+    }
+
+    fn set_operation_budget(&mut self, _budget: BatchStreamBudget) -> Result<(), ItemRefusal> {
+        Err(ItemRefusal::Unsupported(
+            "schema operation envelope unavailable".into(),
+        ))
+    }
+
+    fn finish(&mut self, _deadline: Instant, _cancelled: &AtomicBool) -> Result<(), ItemRefusal> {
+        Err(ItemRefusal::Unsupported(
+            "schema operation finalization unavailable".into(),
+        ))
+    }
+
     /// One bounded disposable invocation; no fallback to a weaker executor.
     fn check_batch(
         &mut self,
@@ -56,6 +80,19 @@ pub struct CutSchemaCheck {
     pub path: String,
     pub raw: Vec<u8>,
     pub contract: String,
+}
+
+/// Exact bounded batch framing costs over the selected closure; no execution or receipt.
+#[derive(Debug, Clone)]
+pub struct CutSchemaInputCost {
+    pub decoded_instance_bytes: u64,
+    pub unit_wire_bytes: u64,
+    pub operation_wire_bytes: u64,
+    pub frame_wire_bytes: u64,
+    pub receipt_bytes: u64,
+    pub remaining_receipts: u64,
+    pub remaining_receipt_bytes: u64,
+    pub selector: String,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -122,7 +159,15 @@ impl CutWorkerSchemaExecutor {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> Result<Self, ItemRefusal> {
+        let operation_origin = Instant::now();
         check(deadline, cancelled)?;
+        if limits.max_receipts == 0
+            || limits.max_receipts == usize::MAX
+            || limits.max_receipt_bytes == 0
+            || limits.max_receipt_bytes == usize::MAX
+        {
+            return Err(ItemRefusal::Budget);
+        }
         let revision = cut.current().revision();
         let mut resources = Vec::new();
         let mut contracts = BTreeMap::new();
@@ -177,7 +222,7 @@ impl CutWorkerSchemaExecutor {
             })?
             .schema_set_digest();
         check(deadline, cancelled)?;
-        let prepared = PreparedSchemaWorker::prepare(
+        let mut prepared = PreparedSchemaWorker::prepare(
             &worker, &resources, profile, budget, deadline, cancelled,
         )
         .map_err(|reason| match reason {
@@ -188,6 +233,15 @@ impl CutWorkerSchemaExecutor {
             other => ItemRefusal::Unsupported(format!("schema worker preparation: {other:?}")),
         })?;
         check(deadline, cancelled)?;
+        prepared.set_operation_origin(operation_origin);
+        // Preserve the existing declared receipt-count ceiling as the finite
+        // default operation count; an explicit owner envelope may narrow it.
+        let mut operation = prepared.operation_budget();
+        operation.max_chunks = limits.max_receipts as u64;
+        operation.max_total_units = limits.max_receipts as u64;
+        prepared
+            .set_operation_budget(operation)
+            .map_err(operation_failure)?;
         Ok(Self {
             revision,
             prepared,
@@ -200,6 +254,65 @@ impl CutWorkerSchemaExecutor {
             receipt_bytes: 0,
             receipts: Vec::new(),
         })
+    }
+
+    /// Configure the finite aggregate envelope before the first worker frame.
+    pub fn set_operation_budget(&mut self, budget: BatchStreamBudget) -> Result<(), ItemRefusal> {
+        self.prepared
+            .set_operation_budget(budget)
+            .map_err(operation_failure)
+    }
+
+    fn decoded_input(&self, raw: &[u8], contract: &str) -> Result<(String, Vec<u8>), ItemRefusal> {
+        if raw.len() > SchemaBackendProbe::MAX_INSTANCE_BYTES {
+            return Err(ItemRefusal::Budget);
+        }
+        let (base, fragment) = match contract.split_once('#') {
+            Some((base, fragment))
+                if !base.is_empty() && fragment.starts_with('/') && !fragment.contains('#') =>
+            {
+                (base, Some(fragment))
+            }
+            Some(_) => {
+                return Err(ItemRefusal::Unsupported(
+                    "invalid source schema fragment selector".into(),
+                ));
+            }
+            None => (contract, None),
+        };
+        let base_uri = &self
+            .contracts
+            .get(base)
+            .ok_or_else(|| ItemRefusal::Unsupported(format!("missing source schema {contract}")))?
+            .0;
+        let uri = fragment.map_or_else(|| base_uri.clone(), |f| format!("{base_uri}#{f}"));
+        let decoded: serde_json::Value = serde_json::from_slice(raw).map_err(|_| {
+            ItemRefusal::Unsupported("unsupported native decoded JSON representation".into())
+        })?;
+        let worker_raw = serde_json::to_vec(&decoded)
+            .map_err(|_| ItemRefusal::Unsupported("native decoded JSON serialization".into()))?;
+        if worker_raw.len() > SchemaBackendProbe::MAX_INSTANCE_BYTES {
+            return Err(ItemRefusal::Budget);
+        }
+        Ok((uri, worker_raw))
+    }
+
+    pub(crate) fn operation_budget(&self) -> BatchStreamBudget {
+        self.prepared.operation_budget()
+    }
+    pub(crate) fn receipt_limit_bytes(&self) -> usize {
+        self.limits.max_receipt_bytes
+    }
+    /// Known General owner phase barrier, preserving the original envelope.
+    /// Poisoned operations never resume; this is not failure recovery.
+    pub(crate) fn release_child(
+        &mut self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<(), ItemRefusal> {
+        self.prepared
+            .release_child(deadline, cancelled)
+            .map_err(operation_failure)
     }
 
     pub fn contract_digest(&self, contract: &str) -> Option<Digest256> {
@@ -226,6 +339,62 @@ impl CutWorkerSchemaExecutor {
 }
 
 impl CutSchemaExecutor for CutWorkerSchemaExecutor {
+    fn schema_input_cost(
+        &self,
+        path: &str,
+        raw: &[u8],
+        contract: &str,
+        ordinal: u64,
+    ) -> Result<CutSchemaInputCost, ItemRefusal> {
+        let (uri, worker_raw) = self.decoded_input(raw, contract)?;
+        // The exact same identity guard used by the transport manifest.
+        let unit = BatchUnit {
+            ordinal,
+            member_id: ordinal.to_string(),
+            relative_path: path.into(),
+            root_uri: uri.clone(),
+            raw_instance: worker_raw,
+        };
+        crate::executor::validate_batch_unit(&unit).map_err(|_| ItemRefusal::Budget)?;
+        let (operation, frame, wire) = self
+            .prepared
+            .wire_cost(
+                unit.member_id.len(),
+                path.len(),
+                uri.len(),
+                unit.raw_instance.len(),
+            )
+            .map_err(operation_failure)?;
+        let receipt = path
+            .len()
+            .checked_add(contract.len())
+            .and_then(|n| n.checked_add(std::mem::size_of::<CutSchemaReceipt>()))
+            .ok_or(ItemRefusal::Budget)?;
+        Ok(CutSchemaInputCost {
+            decoded_instance_bytes: unit.raw_instance.len() as u64,
+            unit_wire_bytes: wire,
+            operation_wire_bytes: operation,
+            frame_wire_bytes: frame,
+            receipt_bytes: receipt as u64,
+            remaining_receipts: self.limits.max_receipts.saturating_sub(self.receipts.len()) as u64,
+            remaining_receipt_bytes: self
+                .limits
+                .max_receipt_bytes
+                .saturating_sub(self.receipt_bytes) as u64,
+            selector: uri,
+        })
+    }
+
+    fn set_operation_budget(&mut self, budget: BatchStreamBudget) -> Result<(), ItemRefusal> {
+        CutWorkerSchemaExecutor::set_operation_budget(self, budget)
+    }
+
+    fn finish(&mut self, deadline: Instant, cancelled: &AtomicBool) -> Result<(), ItemRefusal> {
+        self.prepared
+            .finish(deadline, cancelled)
+            .map_err(operation_failure)
+    }
+
     fn check_batch(
         &mut self,
         checks: &[CutSchemaCheck],
@@ -233,7 +402,9 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> Result<Vec<bool>, ItemRefusal> {
-        check(deadline, cancelled)?;
+        self.prepared
+            .preflight(deadline, cancelled)
+            .map_err(operation_failure)?;
         if budget.max_units == 0
             || budget.max_units > BatchBudget::MAX_UNITS
             || budget.max_total_raw_bytes == 0
@@ -254,7 +425,9 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
         let mut units = Vec::with_capacity(checks.len());
         let mut raw_digests = Vec::with_capacity(checks.len());
         for (ordinal, input) in checks.iter().enumerate() {
-            check(deadline, cancelled)?;
+            self.prepared
+                .preflight(deadline, cancelled)
+                .map_err(operation_failure)?;
             next_bytes = input
                 .path
                 .len()
@@ -263,36 +436,7 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
                 .and_then(|n| next_bytes.checked_add(n))
                 .filter(|n| *n <= self.limits.max_receipt_bytes)
                 .ok_or(ItemRefusal::Budget)?;
-            let (base, fragment) = match input.contract.split_once('#') {
-                Some((base, fragment))
-                    if !base.is_empty() && fragment.starts_with('/') && !fragment.contains('#') =>
-                {
-                    (base, Some(fragment))
-                }
-                Some(_) => {
-                    return Err(ItemRefusal::Unsupported(
-                        "invalid source schema fragment selector".into(),
-                    ));
-                }
-                None => (input.contract.as_str(), None),
-            };
-            let base_uri = &self
-                .contracts
-                .get(base)
-                .ok_or_else(|| {
-                    ItemRefusal::Unsupported(format!("missing source schema {}", input.contract))
-                })?
-                .0;
-            let uri = fragment.map_or_else(|| base_uri.clone(), |f| format!("{base_uri}#{f}"));
-            if input.raw.len() > SchemaBackendProbe::MAX_INSTANCE_BYTES {
-                return Err(ItemRefusal::Budget);
-            }
-            let decoded: serde_json::Value = serde_json::from_slice(&input.raw).map_err(|_| {
-                ItemRefusal::Unsupported("unsupported native decoded JSON representation".into())
-            })?;
-            let worker_raw = serde_json::to_vec(&decoded).map_err(|_| {
-                ItemRefusal::Unsupported("native decoded JSON serialization".into())
-            })?;
+            let (uri, worker_raw) = self.decoded_input(&input.raw, &input.contract)?;
             total_raw = total_raw
                 .checked_add(worker_raw.len())
                 .filter(|n| *n <= budget.max_total_raw_bytes)
@@ -317,7 +461,11 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
         let outcome = self
             .prepared
             .evaluate_batch(&units, expected, budget, deadline, cancelled);
-        check(deadline, cancelled)?;
+        if matches!(&outcome, BatchOutcome::Complete { .. }) {
+            self.prepared
+                .preflight(deadline, cancelled)
+                .map_err(operation_failure)?;
+        }
         let (receipts, checkpoint) = match outcome {
             BatchOutcome::Complete {
                 receipts,
@@ -391,7 +539,9 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
             });
             verdicts.push(valid);
         }
-        check(deadline, cancelled)?;
+        self.prepared
+            .preflight(deadline, cancelled)
+            .map_err(operation_failure)?;
         self.receipt_bytes = next_bytes;
         self.receipts.extend(staged);
         Ok(verdicts)
@@ -405,7 +555,9 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> Result<bool, ItemRefusal> {
-        check(deadline, cancelled)?;
+        self.prepared
+            .preflight(deadline, cancelled)
+            .map_err(operation_failure)?;
         if self.receipts.len() >= self.limits.max_receipts {
             return Err(ItemRefusal::Budget);
         }
@@ -419,40 +571,7 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
             .checked_add(receipt_bytes)
             .filter(|n| *n <= self.limits.max_receipt_bytes)
             .ok_or(ItemRefusal::Budget)?;
-        if raw.len() > SchemaBackendProbe::MAX_INSTANCE_BYTES {
-            return Err(ItemRefusal::Budget);
-        }
-        // A source owner may execute a named subschema of one already selected
-        // exact resource. The fragment never supplies a new file/resource or
-        // another engine. Preserve the full selector in the worker request and
-        // receipt, while its fixity stays bound to the base resource bytes.
-        let (base, fragment) = match contract.split_once('#') {
-            Some((base, fragment))
-                if !base.is_empty() && fragment.starts_with('/') && !fragment.contains('#') =>
-            {
-                (base, Some(fragment))
-            }
-            Some(_) => {
-                return Err(ItemRefusal::Unsupported(
-                    "invalid source schema fragment selector".into(),
-                ));
-            }
-            None => (contract, None),
-        };
-        let base_uri = &self
-            .contracts
-            .get(base)
-            .ok_or_else(|| ItemRefusal::Unsupported(format!("missing source schema {contract}")))?
-            .0;
-        let uri = fragment.map_or_else(
-            || base_uri.clone(),
-            |fragment| format!("{base_uri}#{fragment}"),
-        );
-        let decoded: serde_json::Value = serde_json::from_slice(raw).map_err(|_| {
-            ItemRefusal::Unsupported("unsupported native decoded JSON representation".into())
-        })?;
-        let worker_raw = serde_json::to_vec(&decoded)
-            .map_err(|_| ItemRefusal::Unsupported("native decoded JSON serialization".into()))?;
+        let (uri, worker_raw) = self.decoded_input(raw, contract)?;
         let decoded_digest = Digest256::of_bytes(&worker_raw);
         let mut budget = self.budget;
         let remaining = deadline
@@ -462,7 +581,14 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
         let result = self
             .prepared
             .evaluate(&uri, &worker_raw, budget, deadline, cancelled);
-        check(deadline, cancelled)?;
+        if matches!(
+            &result,
+            ExecutorOutcome::SchemaValid(_) | ExecutorOutcome::SchemaInvalid(_)
+        ) {
+            self.prepared
+                .preflight(deadline, cancelled)
+                .map_err(operation_failure)?;
+        }
         let (execution, valid) = match result {
             ExecutorOutcome::SchemaValid(identity) => (identity, true),
             ExecutorOutcome::SchemaInvalid(identity) => (identity, false),
@@ -935,5 +1061,13 @@ fn store_error(error: tos_source_store::StoreError) -> ItemRefusal {
             ItemRefusal::Unsupported(error.to_string())
         }
         _ => ItemRefusal::Source(error.to_string()),
+    }
+}
+
+fn operation_failure(reason: ExecutorFailure) -> ItemRefusal {
+    match reason {
+        ExecutorFailure::Timeout => ItemRefusal::Deadline,
+        ExecutorFailure::Cancelled => ItemRefusal::Source("schema operation cancelled".into()),
+        other => ItemRefusal::Unsupported(format!("schema operation refused: {other:?}")),
     }
 }

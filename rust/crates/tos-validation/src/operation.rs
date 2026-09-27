@@ -48,8 +48,8 @@ use crate::retirement_rules::{
 };
 use crate::rights_rules::{SourceRightsReport, inspect_rights_from_cut};
 use crate::source_cut::{
-    CutExecutionBinding, CutPayloadReader, CutSchemaReceipt, CutWorkerSchemaExecutor,
-    inspect_items_from_cut,
+    CutExecutionBinding, CutPayloadReader, CutSchemaExecutor, CutSchemaReceipt,
+    CutWorkerSchemaExecutor, inspect_items_from_cut,
 };
 use crate::source_shapes::{SourceShapeReport, inspect_source_shapes_from_cut};
 
@@ -571,6 +571,9 @@ pub fn inspect_item_operation(
         })
         .collect::<Vec<_>>();
     check(operation_limits, cancelled)?;
+    schemas
+        .finish(operation_limits.deadline, cancelled)
+        .map_err(item_error)?;
     Ok(OperationFamilyReport {
         binding,
         scope: OperationFamilyScope::ItemCompanions,
@@ -618,6 +621,9 @@ pub fn inspect_retirement_operation(
         }
     };
     check(operation_limits, cancelled)?;
+    schemas
+        .finish(operation_limits.deadline, cancelled)
+        .map_err(item_error)?;
     Ok(OperationFamilyReport {
         binding,
         scope: OperationFamilyScope::RetirementNarrow,
@@ -637,6 +643,11 @@ pub struct GeneralOperationLimits {
     /// outputs. This is not an allocator/RSS or host isolation certificate.
     pub max_composed_state_bytes: usize,
     pub max_composed_read_bytes: u64,
+    /// Host reservation over the two already selected executor envelopes.
+    /// CPU is child CPU; parent preparation is bounded separately by custody,
+    /// source read/state caps and the original common wall deadline.
+    pub max_composed_schema_cpu_seconds: u64,
+    pub max_composed_schema_wire_bytes: u64,
 }
 
 /// Every report is the result of the actual owner function, not supplied
@@ -679,6 +690,7 @@ pub fn inspect_general_operation(
         .max_state_bytes
         .checked_mul(7)
         .and_then(|n| n.checked_add(limits.operation.max_state_bytes))
+        .and_then(|n| n.checked_add(schemas.receipt_limit_bytes()))
         .ok_or(OperationRefusal::Budget)?;
     let read_reservation = limits
         .family
@@ -693,6 +705,34 @@ pub fn inspect_general_operation(
         || state_reservation > limits.max_composed_state_bytes
         || read_reservation > limits.max_composed_read_bytes
         || limits.family.deadline > limits.operation.deadline
+    {
+        return Err(OperationRefusal::Budget);
+    }
+    if !schemas.receipts().is_empty() || !record_executor.is_unused() {
+        return Err(OperationRefusal::InvalidProposal(
+            "general operation requires unused executors",
+        ));
+    }
+    let cut_envelope = schemas.operation_budget();
+    let record_envelope = record_executor.operation_budget();
+    cut_envelope
+        .validate()
+        .map_err(|_| OperationRefusal::Budget)?;
+    record_envelope
+        .validate()
+        .map_err(|_| OperationRefusal::Budget)?;
+    if limits.max_composed_schema_cpu_seconds == 0
+        || limits.max_composed_schema_cpu_seconds == u64::MAX
+        || limits.max_composed_schema_wire_bytes == 0
+        || limits.max_composed_schema_wire_bytes == u64::MAX
+        || cut_envelope
+            .operation_cpu_seconds
+            .checked_add(record_envelope.operation_cpu_seconds)
+            .is_none_or(|sum| sum > limits.max_composed_schema_cpu_seconds)
+        || cut_envelope
+            .max_total_wire_bytes
+            .checked_add(record_envelope.max_total_wire_bytes)
+            .is_none_or(|sum| sum > limits.max_composed_schema_wire_bytes)
     {
         return Err(OperationRefusal::Budget);
     }
@@ -723,7 +763,15 @@ pub fn inspect_general_operation(
     let receipt_start = schemas.receipts().len();
     let source_shapes = inspect_source_shapes_from_cut(cut, limits.family, cancelled, schemas)
         .map_err(item_error)?;
+    // Preserve source-shape failure priority and retained output/issue order.
+    // Reap its healthy child before Biblio, then continue Cut's same envelope.
+    schemas
+        .release_child(limits.operation.deadline, cancelled)
+        .map_err(item_error)?;
     let records = inspect_records_from_cut(cut, limits.family, cancelled, record_executor)
+        .map_err(item_error)?;
+    record_executor
+        .finish(limits.operation.deadline, cancelled)
         .map_err(item_error)?;
     let bibliography =
         inspect_bibliography_from_cut(cut, &records, limits.family, cancelled, schemas)
@@ -822,6 +870,9 @@ pub fn inspect_general_operation(
         OperationFamilyState::Rejected { issues }
     };
     check(limits.operation, cancelled)?;
+    schemas
+        .finish(limits.operation.deadline, cancelled)
+        .map_err(item_error)?;
     Ok(GeneralOperationFamilyReport {
         operation: OperationFamilyReport {
             binding,

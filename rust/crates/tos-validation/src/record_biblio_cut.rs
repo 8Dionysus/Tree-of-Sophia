@@ -1,7 +1,8 @@
 //! Source-cut composition of existing record rules and bounded schema plans.
 //! Retained cuts are read to EOF but never enter current identity joins.
 use crate::executor::{
-    ExactWorkerIdentity, ExecutorBudget, ExecutorFailure, ExecutorOutcome, VerifiedWorkerImage,
+    BatchStreamBudget, ExactWorkerIdentity, ExecutorBudget, ExecutorFailure, ExecutorOutcome,
+    VerifiedWorkerImage,
 };
 use crate::item_rules::{ItemLimits, ItemRefusal};
 use crate::record_rules::{
@@ -22,7 +23,9 @@ const REGISTRY_SCHEMA: &str = "ToS/contracts/semantic-entity-type-registry.schem
 /// Resource-plan execution reuses the same disposable Draft2020-12 worker;
 /// common-schema plans do not fit a contract-path-only schema interface.
 /// The exact image is retained through this operation's first deadline; each
-/// varying schema plan still has its own isolated invocation and digest.
+/// varying schema plan retains its own digest. A deliberate closure change
+/// finalizes/reaps the old child before the same operation-owned image starts
+/// another closure, without resetting aggregate CPU, wall, wire or selector caps.
 pub struct BiblioRecordExecutor {
     pub worker: ExactWorkerIdentity,
     pub budget: ExecutorBudget,
@@ -30,6 +33,8 @@ pub struct BiblioRecordExecutor {
     pub max_executions: usize,
     executions: usize,
     image: Option<VerifiedWorkerImage>,
+    operation_budget: BatchStreamBudget,
+    finished: bool,
 }
 impl BiblioRecordExecutor {
     pub fn new(
@@ -38,6 +43,15 @@ impl BiblioRecordExecutor {
         profile: FormatProfile,
         max_executions: usize,
     ) -> Self {
+        let mut operation_budget = BatchStreamBudget::laboratory();
+        operation_budget.max_chunks = max_executions as u64;
+        operation_budget.max_total_units = max_executions as u64;
+        operation_budget.batch.total_execution_wall = budget.execution_wall;
+        operation_budget.batch.startup_wall = budget.execution_wall;
+        operation_budget.batch.per_unit_wall = budget.execution_wall;
+        operation_budget.batch.cleanup_grace = budget.cleanup_grace;
+        operation_budget.operation_cpu_seconds = budget.cpu_seconds;
+        operation_budget.operation_address_space_bytes = budget.address_space_bytes;
         Self {
             worker,
             budget,
@@ -45,7 +59,54 @@ impl BiblioRecordExecutor {
             max_executions,
             executions: 0,
             image: None,
+            operation_budget,
+            finished: false,
         }
+    }
+    pub fn set_operation_budget(&mut self, budget: BatchStreamBudget) -> Result<(), ItemRefusal> {
+        if self.executions != 0 || self.image.is_some() || self.finished {
+            return Err(ItemRefusal::Unsupported(
+                "record operation already started".into(),
+            ));
+        }
+        budget.validate().map_err(|reason| {
+            ItemRefusal::Unsupported(format!("record operation envelope: {reason:?}"))
+        })?;
+        self.operation_budget = budget;
+        Ok(())
+    }
+    pub(crate) fn is_unused(&self) -> bool {
+        self.executions == 0 && self.image.is_none() && !self.finished
+    }
+
+    pub(crate) fn operation_budget(&self) -> BatchStreamBudget {
+        self.operation_budget
+    }
+
+    pub fn finish(&mut self, deadline: Instant, cancelled: &AtomicBool) -> Result<(), ItemRefusal> {
+        if self.finished {
+            return Err(ItemRefusal::Unsupported(
+                "record operation finalized".into(),
+            ));
+        }
+        self.finished = true;
+        if self.image.is_none() {
+            check(deadline, cancelled)?;
+        }
+        if let Some(image) = self.image.as_mut() {
+            image
+                .finish(deadline, cancelled)
+                .map_err(|reason| match reason {
+                    ExecutorFailure::Timeout => ItemRefusal::Deadline,
+                    ExecutorFailure::Cancelled => {
+                        ItemRefusal::Source("record operation cancelled".into())
+                    }
+                    other => ItemRefusal::Unsupported(format!(
+                        "record operation finalization: {other:?}"
+                    )),
+                })?;
+        }
+        Ok(())
     }
     fn evaluate(
         &mut self,
@@ -56,6 +117,27 @@ impl BiblioRecordExecutor {
         limits: ItemLimits,
         cancelled: &AtomicBool,
     ) -> Result<BoundedSchemaVerdict, ItemRefusal> {
+        if self.finished {
+            return Err(ItemRefusal::Unsupported(
+                "record operation finalized".into(),
+            ));
+        }
+        if let Some(image) = self.image.as_mut() {
+            image
+                .preflight(limits.deadline, cancelled)
+                .map_err(|reason| match reason {
+                    ExecutorFailure::Timeout => ItemRefusal::Deadline,
+                    ExecutorFailure::Cancelled => {
+                        ItemRefusal::Source("record operation cancelled".into())
+                    }
+                    other => {
+                        ItemRefusal::Unsupported(format!("record operation refused: {other:?}"))
+                    }
+                })?;
+        } else if cancelled.load(Ordering::Relaxed) || Instant::now() >= limits.deadline {
+            self.finished = true;
+            return Err(ItemRefusal::Deadline);
+        }
         check(limits.deadline, cancelled)?;
         if self.executions >= self.max_executions || raw.len() > limits.max_member_bytes {
             return Err(ItemRefusal::Budget);
@@ -73,6 +155,10 @@ impl BiblioRecordExecutor {
             .as_ref()
             .is_some_and(|image| !image.matches(&self.worker))
         {
+            self.image
+                .as_mut()
+                .unwrap()
+                .poison(ExecutorFailure::WorkerIdentity);
             return Err(ItemRefusal::Source(
                 "record operation worker identity changed".into(),
             ));
@@ -92,11 +178,20 @@ impl BiblioRecordExecutor {
                     })?,
             );
         }
+        if self.executions == 1 {
+            self.image
+                .as_mut()
+                .unwrap()
+                .set_operation_budget(self.operation_budget)
+                .map_err(|reason| {
+                    ItemRefusal::Unsupported(format!("record operation envelope: {reason:?}"))
+                })?;
+        }
         budget.execution_wall = budget.execution_wall.saturating_sub(started.elapsed());
         if budget.execution_wall.is_zero() {
             return Err(ItemRefusal::Deadline);
         }
-        let result = self.image.as_ref().unwrap().evaluate(
+        let result = self.image.as_mut().unwrap().evaluate(
             resources,
             self.profile,
             root,
@@ -105,7 +200,24 @@ impl BiblioRecordExecutor {
             limits.deadline,
             cancelled,
         );
-        check(limits.deadline, cancelled)?;
+        if matches!(
+            &result,
+            ExecutorOutcome::SchemaValid(_) | ExecutorOutcome::SchemaInvalid(_)
+        ) {
+            self.image
+                .as_mut()
+                .unwrap()
+                .preflight(limits.deadline, cancelled)
+                .map_err(|reason| match reason {
+                    ExecutorFailure::Timeout => ItemRefusal::Deadline,
+                    ExecutorFailure::Cancelled => {
+                        ItemRefusal::Source("record operation cancelled".into())
+                    }
+                    other => {
+                        ItemRefusal::Unsupported(format!("record operation refused: {other:?}"))
+                    }
+                })?;
+        }
         let (identity, valid) = match result {
             ExecutorOutcome::SchemaValid(identity) => (identity, true),
             ExecutorOutcome::SchemaInvalid(identity) => (identity, false),
