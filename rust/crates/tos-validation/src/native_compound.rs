@@ -47,6 +47,7 @@ pub struct NativeCompoundObservation {
 // buffer-construction law. These constants are owner profiles, not grants.
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum CompoundKind {
+    CollectionWork,
     WorkExpression,
     ExpressionEdition,
     EditionItem,
@@ -54,6 +55,7 @@ enum CompoundKind {
 impl CompoundKind {
     fn from_operation(operation: &str) -> Result<Self, ItemRefusal> {
         match operation {
+            "collection.work.attach" => Ok(Self::CollectionWork),
             "work.expression.create" => Ok(Self::WorkExpression),
             "expression.edition.create" => Ok(Self::ExpressionEdition),
             "item.adopt" => Ok(Self::EditionItem),
@@ -64,6 +66,7 @@ impl CompoundKind {
     }
     fn from_predicate(predicate: &str) -> Result<Self, ItemRefusal> {
         match predicate {
+            "contains_work" => Ok(Self::CollectionWork),
             "has_expression" => Ok(Self::WorkExpression),
             "embodied_by" => Ok(Self::ExpressionEdition),
             "exemplified_by" => Ok(Self::EditionItem),
@@ -74,6 +77,7 @@ impl CompoundKind {
     }
     fn parent_kind(self) -> &'static str {
         match self {
+            Self::CollectionWork => "collection",
             Self::WorkExpression => "work",
             Self::ExpressionEdition => "expression",
             Self::EditionItem => "edition",
@@ -81,6 +85,7 @@ impl CompoundKind {
     }
     fn child_kind(self) -> &'static str {
         match self {
+            Self::CollectionWork => "work",
             Self::WorkExpression => "expression",
             Self::ExpressionEdition => "edition",
             Self::EditionItem => "item",
@@ -88,6 +93,7 @@ impl CompoundKind {
     }
     fn parent_key(self) -> &'static str {
         match self {
+            Self::CollectionWork => "collection_id",
             Self::WorkExpression => "work_id",
             Self::ExpressionEdition => "expression_id",
             Self::EditionItem => "edition_id",
@@ -95,6 +101,7 @@ impl CompoundKind {
     }
     fn child_key(self) -> &'static str {
         match self {
+            Self::CollectionWork => "work_id",
             Self::WorkExpression => "expression_id",
             Self::ExpressionEdition => "edition_id",
             Self::EditionItem => "item_id",
@@ -102,6 +109,7 @@ impl CompoundKind {
     }
     fn parent_path(self) -> &'static str {
         match self {
+            Self::CollectionWork => "collection_source_path",
             Self::WorkExpression => "work_source_path",
             Self::ExpressionEdition => "expression_source_path",
             Self::EditionItem => "edition_source_path",
@@ -109,6 +117,7 @@ impl CompoundKind {
     }
     fn child_path(self) -> &'static str {
         match self {
+            Self::CollectionWork => "work_source_path",
             Self::WorkExpression => "expression_source_path",
             Self::ExpressionEdition => "edition_source_path",
             Self::EditionItem => "item_source_path",
@@ -116,6 +125,7 @@ impl CompoundKind {
     }
     fn parent_file(self) -> &'static str {
         match self {
+            Self::CollectionWork => "collection.json",
             Self::WorkExpression => "work.json",
             Self::ExpressionEdition => "expression.json",
             Self::EditionItem => "edition.json",
@@ -123,6 +133,7 @@ impl CompoundKind {
     }
     fn child_file(self) -> &'static str {
         match self {
+            Self::CollectionWork => "work.json",
             Self::WorkExpression => "expression.json",
             Self::ExpressionEdition => "edition.json",
             Self::EditionItem => "item.json",
@@ -130,6 +141,7 @@ impl CompoundKind {
     }
     fn parent_forms(self) -> &'static str {
         match self {
+            Self::CollectionWork => "collection.human-forms.json",
             Self::WorkExpression => "work.human-forms.json",
             Self::ExpressionEdition => "expression.human-forms.json",
             Self::EditionItem => "edition.human-forms.json",
@@ -137,6 +149,7 @@ impl CompoundKind {
     }
     fn child_forms(self) -> &'static str {
         match self {
+            Self::CollectionWork => "work.human-forms.json",
             Self::WorkExpression => "expression.human-forms.json",
             Self::ExpressionEdition => "edition.human-forms.json",
             Self::EditionItem => "item.human-forms.json",
@@ -144,6 +157,7 @@ impl CompoundKind {
     }
     fn child_form_request(self) -> &'static str {
         match self {
+            Self::CollectionWork => "forms",
             Self::WorkExpression => "expression_forms",
             Self::ExpressionEdition => "edition_forms",
             Self::EditionItem => "item_forms",
@@ -151,6 +165,7 @@ impl CompoundKind {
     }
     fn field(self) -> &'static str {
         match self {
+            Self::CollectionWork => "membership_claim_refs",
             Self::WorkExpression => "expression_claim_refs",
             Self::ExpressionEdition => "embodiment_claim_refs",
             Self::EditionItem => "exemplar_claim_refs",
@@ -158,6 +173,7 @@ impl CompoundKind {
     }
     fn predicate(self) -> &'static str {
         match self {
+            Self::CollectionWork => "contains_work",
             Self::WorkExpression => "has_expression",
             Self::ExpressionEdition => "embodied_by",
             Self::EditionItem => "exemplified_by",
@@ -165,6 +181,7 @@ impl CompoundKind {
     }
     fn operation(self) -> &'static str {
         match self {
+            Self::CollectionWork => "collection.work.attach",
             Self::WorkExpression => "work.expression.create",
             Self::ExpressionEdition => "expression.edition.create",
             Self::EditionItem => "item.adopt",
@@ -172,6 +189,7 @@ impl CompoundKind {
     }
     fn request_schema(self) -> &'static str {
         match self {
+            Self::CollectionWork => "tos_local_collection_membership_command_v1",
             Self::WorkExpression => "tos_local_work_expression_command_v1",
             Self::ExpressionEdition => "tos_local_expression_edition_command_v1",
             Self::EditionItem => "tos_local_item_adoption_command_v1",
@@ -179,6 +197,7 @@ impl CompoundKind {
     }
     fn authorization_schema(self) -> &'static str {
         match self {
+            Self::CollectionWork => "tos_collection_membership_authorization_v1",
             Self::WorkExpression => "tos_work_expression_authorization_v1",
             Self::ExpressionEdition => "tos_expression_edition_authorization_v1",
             Self::EditionItem => "tos_item_adoption_authorization_v1",
@@ -186,6 +205,7 @@ impl CompoundKind {
     }
     fn receipt_schema(self) -> &'static str {
         match self {
+            Self::CollectionWork => "tos_collection_membership_receipt_v1",
             Self::WorkExpression => "tos_work_expression_receipt_v1",
             Self::ExpressionEdition => "tos_expression_edition_receipt_v1",
             Self::EditionItem => "tos_edition_item_receipt_v1",
@@ -193,6 +213,7 @@ impl CompoundKind {
     }
     fn receipt_file(self) -> &'static str {
         match self {
+            Self::CollectionWork => "membership-attachment-receipt.json",
             Self::WorkExpression => "work-expression-receipt.json",
             Self::ExpressionEdition => "expression-edition-receipt.json",
             Self::EditionItem => "edition-item-receipt.json",
@@ -200,6 +221,7 @@ impl CompoundKind {
     }
     fn module(self) -> &'static str {
         match self {
+            Self::CollectionWork => "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_collection_commands.py",
             Self::WorkExpression => {
                 "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_expression_commands.py"
             }
@@ -213,6 +235,7 @@ impl CompoundKind {
     }
     fn executor(self) -> &'static str {
         match self {
+            Self::CollectionWork => "software:tos-source-membership-commands",
             Self::WorkExpression => "software:tos-source-expression-commands",
             Self::ExpressionEdition => "software:tos-source-edition-commands",
             Self::EditionItem => "software:tos-source-item-commands",
@@ -220,6 +243,7 @@ impl CompoundKind {
     }
     fn procedure(self) -> &'static str {
         match self {
+            Self::CollectionWork => "native-collection-membership-metadata-serialization",
             Self::WorkExpression => "native-work-expression-metadata-serialization",
             Self::ExpressionEdition => "native-expression-edition-metadata-serialization",
             Self::EditionItem => "native-item-adoption-metadata-serialization",
@@ -227,13 +251,19 @@ impl CompoundKind {
     }
     fn component(self) -> &'static str {
         match self {
+            Self::CollectionWork => "ToS native Collection membership adapter",
             Self::WorkExpression => "ToS native Work Expression adapter",
             Self::ExpressionEdition => "ToS native Expression Edition adapter",
             Self::EditionItem => "ToS native Edition Item adapter",
         }
     }
+    fn record_key(self)->&'static str {if self==Self::CollectionWork {"work"}else{"record"}}
+    fn publication_home<'a>(self,scope:&'a Value)->Result<&'a str,ItemRefusal> {
+        parent(text(scope,if self==Self::CollectionWork {"claim_source_path"}else{self.child_path()})?)
+    }
     fn initial_backlink(self, record: &Value, parent: &Value) -> bool {
         match self {
+            Self::CollectionWork => true, // Existing Work has no invented Collection backlink.
             Self::EditionItem => true, // Item backlink is its exact manifest path, checked at its scope/current read.
             Self::WorkExpression => record["work_ref"] == *parent,
             Self::ExpressionEdition => record["embodies_expression_refs"]
@@ -489,7 +519,7 @@ impl<'a> NativeCompoundReader<'a> {
     // One actual canonicalization supplies the consumed digest and byte length.
     // Counting serialization admits its buffer; no canonical result is built
     // solely to estimate another execution of the same codec pipeline.
-    fn canonical_observation(&self,value:&Value)->Result<(String,usize),ItemRefusal> {
+    fn canonical_buffer(&self,value:&Value)->Result<Vec<u8>,ItemRefusal> {
         let available=self.limits.max_state_bytes.checked_sub(self.state).ok_or(ItemRefusal::Budget)?;
         crate::record_biblio_cut::decoded_wire_size(value,available.saturating_sub(std::mem::size_of::<Vec<u8>>()))?;
         let raw=serde_json::to_vec(value).map_err(|_|bad("serialization"))?;
@@ -504,7 +534,29 @@ impl<'a> NativeCompoundReader<'a> {
         let peak=parse_peak.max(emit_base.checked_add(output.len()).ok_or(ItemRefusal::Budget)?);
         if peak>available {return Err(ItemRefusal::BudgetCheck{check:"compound canonical codec workspace",used:Some(peak as u64),limit:Some(available as u64)});}
         check(self.limits.deadline,self.cancelled)?;
+        Ok(output)
+    }
+    fn canonical_observation(&self,value:&Value)->Result<(String,usize),ItemRefusal> {
+        let output=self.canonical_buffer(value)?;
         Ok((Digest256::of_bytes(&output).to_prefixed(),output.len()))
+    }
+    fn ordered_buffer(&mut self,value:&JsonValue)->Result<Vec<u8>,ItemRefusal> {
+        let available=self.limits.max_state_bytes.checked_sub(self.state).ok_or(ItemRefusal::Budget)?;
+        let base=std::mem::size_of::<Vec<u8>>()+crate::record_biblio_cut::ordered_emit_state(value)?;
+        let room=available.checked_sub(base).ok_or(ItemRefusal::Budget)?;
+        let mut emit=limits();emit.max_bytes=emit.max_bytes.min(room);
+        let bytes=canonical_bytes_v1(value,CanonicalProfile::SourceCommandInputV1,emit).map_err(|error|if error.code==tos_foundation::FoundationErrorCode::BudgetExceeded {ItemRefusal::BudgetCheck{check:"membership ordered canonical buffer",used:None,limit:Some(room as u64)}}else{bad("membership ordered canonical buffer")})?;
+        self.buffer(bytes)
+    }
+    fn advance_claim(&mut self,previous:&Value,request:&Value)->Result<Value,ItemRefusal> {
+        // One previous clone and the exact incoming patch can coexist during
+        // replacement. Removed subtrees are released after the real mutation.
+        let admission=crate::record_biblio_cut::decoded_state(previous)?.checked_add(crate::record_biblio_cut::decoded_state(&request["fields"])?).ok_or(ItemRefusal::Budget)?;
+        self.temporary(admission)?;
+        let result=advance_membership_claim(previous,request)?;
+        let retained=crate::record_biblio_cut::decoded_state(&result)?;
+        if retained>admission {return Err(bad("membership correction shape accounting"));}
+        self.release_temporary(admission-retained);Ok(result)
     }
     fn package_revision(&mut self,files:&Package)->Result<String,ItemRefusal> {
         let refs=file_refs(files);let tree=crate::record_biblio_cut::decoded_state(&refs)?;
@@ -893,6 +945,9 @@ impl<'a> NativeCompoundReader<'a> {
         id: &str,
         receipt: &Value,
     ) -> Result<Package, ItemRefusal> {
+        self.archive_files_inner(path,id,receipt,true)
+    }
+    fn archive_files_inner(&mut self,path:&str,id:&str,receipt:&Value,record_semantics:bool)->Result<Package,ItemRefusal> {
         let rev = text(receipt, "previous_revision")?;
         let home = format!(
             "{HOME}/.record-revisions/{}-{}",
@@ -977,6 +1032,7 @@ impl<'a> NativeCompoundReader<'a> {
         if self.package_revision(&files)? != rev {
             return Err(bad("archive package revision"));
         }
+        if !record_semantics {return Ok(files);}
         let old = self.decoded(files.get(&names[0]).ok_or_else(||bad("archive source missing"))?)?;
         if !self.reference_matches(&old,"record_id","record_version",&receipt["previous_source"])? {
             return Err(bad("archive previous source"));
@@ -1006,6 +1062,157 @@ impl<'a> NativeCompoundReader<'a> {
             }
         }
         Ok(files)
+    }
+    fn flat_package(&mut self,home:&str)->Result<Package,ItemRefusal> {
+        let prefix=format!("{home}/");
+        self.temporary(std::mem::size_of::<String>()+prefix.len())?;
+        let count=self.paths.range::<str,_>((std::ops::Bound::Included(prefix.as_str()),std::ops::Bound::Unbounded)).take_while(|p|p.starts_with(&prefix)).count();
+        if !(1..=64).contains(&count) {return Err(bad("membership flat Claim package count"));}
+        self.temporary(std::mem::size_of::<Vec<&str>>()+count*std::mem::size_of::<&str>())?;
+        let names:Vec<&str>=self.paths.range::<str,_>((std::ops::Bound::Included(prefix.as_str()),std::ops::Bound::Unbounded)).take_while(|p|p.starts_with(&prefix)).map(|p|{let path=*p;&path[prefix.len()..]}).collect();
+        if !(1..=64).contains(&names.len())||names.iter().any(|name|name.contains('/')) {return Err(bad("membership flat Claim package"));}
+        let mut result=Package::new();self.temporary(std::mem::size_of::<Package>())?;let mut total=0usize;
+        for name in names {let raw=self.required(&format!("{home}/{name}"),MAX_FILE)?;total=total.checked_add(raw.len()).ok_or(ItemRefusal::Budget)?;if total>MAX_SIDE {return Err(ItemRefusal::BudgetCheck{check:"membership current Claim package bytes",used:Some(total as u64),limit:Some(MAX_SIDE as u64)});}self.temporary(std::mem::size_of::<(String,Vec<u8>)>()+name.len())?;result.insert(name.into(),raw);}
+        Ok(result)
+    }
+    fn single_membership_claim(&mut self,raw:&[u8],id:&str)->Result<Value,ItemRefusal> {
+        if raw.len()>1_048_576 {return Err(ItemRefusal::BudgetCheck{check:"membership correction stream bytes",used:Some(raw.len() as u64),limit:Some(1_048_576)});}
+        let mut result=None;
+        for (line,_) in claim_lines(raw) {check(self.limits.deadline,self.cancelled)?;if line.iter().all(u8::is_ascii_whitespace) {continue;}if result.is_some() {return Err(bad("membership current stream has another Claim"));}let value=self.decoded(line)?;if text(&value,"claim_id")?!=id {return Err(bad("membership current stream Claim identity"));}result=Some(value);}
+        result.ok_or_else(||bad("membership Claim stream empty"))
+    }
+    fn membership_claim_initial(&mut self,path:&str,claim:&Value)->Result<Vec<u8>,ItemRefusal> {
+        use crate::source_forms::source_copy_kernel as kernel;
+        let files=self.flat_package(parent(path)?)?;let id=text(claim,"claim_id")?;
+        let raw=files.get("source-claims.jsonl").ok_or_else(||bad("membership current stream missing"))?;
+        let current=self.single_membership_claim(raw,id)?;
+        if &current!=claim {return Err(bad("membership current stream differs from observed Claim"));}
+        let history=match files.get("claim-revision-history.json") {Some(raw)=>self.decoded(raw)?,None=>{let value=json!({"schema_version":"tos_claim_revision_history_v1","source_path":path,"receipts":[]});self.temporary(crate::record_biblio_cut::decoded_state(&value)?)?;value}};
+        keys(&history,&["schema_version","source_path","receipts"])?;
+        let receipts=array(&history,"receipts")?;
+        if history["schema_version"]!="tos_claim_revision_history_v1"||history["source_path"]!=path||receipts.len()>MAX_HISTORY {return Err(bad("membership correction history grammar"));}
+        if receipts.is_empty() {if current["claim_version"]!=1 {return Err(bad("membership noninitial Claim lacks history"));}self.temporary(std::mem::size_of::<Vec<u8>>()+raw.len())?;return Ok(raw.clone());}
+        let formname=format!("source-claims.{}.human-forms.json",Digest256::of_bytes(id.as_bytes()).to_hex());
+        self.temporary(std::mem::size_of::<String>()+formname.len())?;
+        let current_forms=self.ordered_value(files.get(&formname).ok_or_else(||bad("membership current correction forms absent"))?)?;
+        let subject=current_forms.object_get("subject").ok_or_else(||bad("membership correction form subject"))?;
+        let form_rows=current_forms.object_get("forms").and_then(JsonValue::as_array).ok_or_else(||bad("membership current forms"))?;
+        let prior_rows=current_forms.object_get("prior_forms").and_then(JsonValue::as_array).ok_or_else(||bad("membership prior forms"))?;
+        let history_scratch=(form_rows.len()+prior_rows.len())*std::mem::size_of::<((&str,u64),&JsonValue)>()+form_rows.len()*std::mem::size_of::<&str>();
+        self.temporary(history_scratch)?;
+        kernel::validate_history(&current_forms,subject).map_err(|_|bad("membership correction form history"))?;
+        self.release_temporary(history_scratch);
+        let mut commands=BTreeSet::new();self.temporary(std::mem::size_of::<BTreeSet<&str>>()+receipts.len()*std::mem::size_of::<&str>())?;
+        let mut expected:Option<Vec<u8>>=None;let mut initial=None;
+        for receipt in receipts {
+            check(self.limits.deadline,self.cancelled)?;
+            keys(receipt,&["command_id","request_digest","principal_id","authority_ref","owner_configuration","recorded_at","reason","previous_source","source","previous_revision","archive_path","dependencies","source_bindings","changed_fields","forms","grants_admission","request"])?;
+            let request=&receipt["request"];
+            crate::retirement_rules::observed_instant_order(text(receipt,"recorded_at")?,text(receipt,"recorded_at")?).map_err(|_|bad("membership correction aware instant"))?;
+            if !commands.insert(text(receipt,"command_id")?)||request["operation"]!="claim.revise"||text(receipt,"request_digest")?!=self.canonical_observation(request)?.0||receipt["grants_admission"]!=false||receipt["source"]["id"]!=receipt["previous_source"]["id"]||integer(&receipt["source"],"version")?!=integer(&receipt["previous_source"],"version")?.checked_add(1).ok_or(ItemRefusal::Budget)? {return Err(bad("membership correction receipt binding"));}
+            for (left,right) in [("command_id","command_id"),("previous_source","expected_source"),("previous_revision","expected_revision"),("owner_configuration","expected_configuration"),("dependencies","expected_dependencies"),("source_bindings","expected_inputs"),("reason","reason")] {if receipt[left]!=request[right] {return Err(bad("membership correction request binding"));}}
+            let fields=request["fields"].as_object().ok_or_else(||bad("membership correction fields"))?;
+            let changed=array(receipt,"changed_fields")?;
+            if changed.len()!=fields.len()||!changed.iter().zip(fields.keys()).all(|(value,key)|value.as_str()==Some(key.as_str())) {return Err(bad("membership correction changed fields"));}
+            let previous_survivors=initial.as_ref().map_or(0,|v:&Vec<u8>|std::mem::size_of::<Vec<u8>>()+v.len())+expected.as_ref().map_or(0,|v|std::mem::size_of::<Vec<u8>>()+v.len());
+            let phase=self.temporary_state.checked_sub(previous_survivors).ok_or(ItemRefusal::Budget)?;
+            let archived=self.archive_files_inner(path,text(&receipt["previous_source"],"id")?,receipt,false)?;
+            let before=archived.get("source-claims.jsonl").ok_or_else(||bad("membership correction archived stream"))?;
+            let previous=self.single_membership_claim(before,id)?;
+            if initial.is_none() {if previous["claim_version"]!=1 {return Err(bad("membership correction lacks initial stream"));}self.temporary(std::mem::size_of::<Vec<u8>>()+before.len())?;initial=Some(before.clone());}
+            if expected.as_ref().is_some_and(|raw|raw!=before)||!self.reference_matches(&previous,"claim_id","claim_version",&receipt["previous_source"])? {return Err(bad("membership correction predecessor bytes"));}
+            let revised=self.advance_claim(&previous,request)?;
+            if !self.reference_matches(&revised,"claim_id","claim_version",&receipt["source"])? {return Err(bad("membership correction successor reference"));}
+            let selections=array(request,"forms")?;
+            if !(1..=32).contains(&selections.len())||!selections.iter().any(|s|s["field_id"]=="claim.statement") {return Err(bad("membership correction statement form"));}
+            let mut seen=BTreeSet::new();self.temporary(std::mem::size_of::<BTreeSet<&str>>()+selections.len()*std::mem::size_of::<&str>())?;
+            for selection in selections {keys(selection,&["form_id","field_id"])?;if !seen.insert(text(selection,"form_id")?) {return Err(bad("membership correction duplicate form selection"));}}
+            let prior=archived.get(&formname).map(|raw|self.ordered_value(raw)).transpose()?;
+            let revised_raw=self.buffer(self.canonical_buffer(&revised)?)?;
+            let revised_ordered=self.ordered_value(&revised_raw)?;
+            let (result,result_refs)=forms(&revised_ordered,prior.as_ref(),&request["forms"],text(receipt,"principal_id")?,true,self.limits.max_state_bytes.checked_sub(self.state).ok_or(ItemRefusal::Budget)?)?;
+            self.temporary(crate::record_biblio_cut::ordered_state(&result)?.checked_add(crate::record_biblio_cut::ordered_state(&result_refs)?).ok_or(ItemRefusal::Budget)?)?;
+            let result_refs_raw=self.ordered_buffer(&result_refs)?;let expected_refs_raw=self.buffer(self.canonical_buffer(&receipt["forms"])?)?;
+            if result_refs_raw!=expected_refs_raw {return Err(bad("membership correction archived form results"));}
+            let reference_buffers=std::mem::size_of::<Vec<u8>>()*2+result_refs_raw.len()+expected_refs_raw.len();drop(result_refs_raw);drop(expected_refs_raw);self.release_temporary(reference_buffers);
+            for reference in array(receipt,"forms")? {
+                let mut retained=false;
+                for form in form_rows.iter().chain(prior_rows) {
+                    let before_form=self.temporary_state;let raw=self.ordered_buffer(form)?;let form=self.decoded(&raw)?;
+                    let matches=self.reference_matches(&form,"form_id","form_version",reference)?;
+                    drop(form);drop(raw);self.release_temporary_since(before_form);if matches {retained=true;break;}
+                }
+                if !retained {return Err(bad("membership correction result forms no longer retained"));}
+            }
+            let output_size=claim_lines(before).try_fold(0usize,|n,(line,ending)|n.checked_add(if line.iter().all(u8::is_ascii_whitespace){line.len()+ending.len()}else{revised_raw.len()+if ending==b"\r\n" {2}else if ending==b"\n" {1}else{0}})).ok_or(ItemRefusal::Budget)?;
+            self.temporary(std::mem::size_of::<Vec<u8>>()+output_size)?;let mut output=Vec::with_capacity(output_size);
+            for (line,ending) in claim_lines(before) {if line.iter().all(u8::is_ascii_whitespace) {output.extend_from_slice(line);output.extend_from_slice(ending);}else{output.extend_from_slice(&revised_raw);if ending==b"\r\n"||ending==b"\n" {output.extend_from_slice(ending);}}}
+            if let Some(old)=expected.replace(output) {let cost=std::mem::size_of::<Vec<u8>>()+old.len();drop(old);self.release_temporary(cost);}
+            // initial+expected survive the archive/reconstruction temporary phase.
+            let survivors=initial.as_ref().map_or(0,|v|std::mem::size_of::<Vec<u8>>()+v.len())+expected.as_ref().map_or(0,|v|std::mem::size_of::<Vec<u8>>()+v.len());
+            drop(archived);drop(previous);drop(revised);drop(prior);drop(revised_ordered);drop(result);drop(result_refs);drop(revised_raw);self.release_temporary_since(phase);self.temporary(survivors)?;
+        }
+        if expected.as_ref()!=Some(raw) {return Err(bad("membership current stream differs from correction head"));}
+        initial.ok_or_else(||bad("membership initial stream absent"))
+    }
+    // Maintained attachment resolves the caller Work through its actual
+    // current/continuously archived lineage; it never creates a Work child.
+    fn membership_work_binding(&mut self,scope:&Value,work:&Value,dependencies:&Value)->Result<JsonValue,ItemRefusal> {
+        let start=self.temporary_state;
+        let result=self.membership_work_binding_inner(scope,work,dependencies);
+        self.release_temporary_since(start);
+        if let Ok(value)=&result {self.temporary(crate::record_biblio_cut::ordered_state(value)?)?;}
+        result
+    }
+    fn membership_work_binding_inner(&mut self,scope:&Value,work:&Value,dependencies:&Value)->Result<JsonValue,ItemRefusal> {
+        let path=text(scope,"work_source_path")?;let id=text(scope,"work_id")?;
+        let sha=text(&dependencies["catalog_and_sources"],path)?;
+        let expected=Digest256::from_hex(sha).map_err(|_|bad("membership exact Work dependency raw hash"))?;
+        let files=self.selected(path)?;let current=self.decoded(&files["work.json"])?;
+        if text(&current,"record_id")?!=id||text(&current,"record_type")?!="work" {return Err(bad("membership Work current typed identity"));}
+        let history=self.history(path,&files)?;
+        self.temporary(std::mem::size_of::<String>()+71)?;
+        let work_digest=self.canonical_observation(work)?.0;
+        let mut matched=None;
+        if Digest256::of_bytes(&files["work.json"])==expected {
+            if self.canonical_observation(&current)?.0!=work_digest {return Err(bad("membership Work current payload binding"));}
+            matched=Some(files["work.json"].len());
+        }
+        for receipt in array(&history,"receipts")? {
+            check(self.limits.deadline,self.cancelled)?;
+            let request=&receipt["request"];
+            if text(request,"operation")?=="work.expression.create" {parent_receipt_shape_with(receipt,CompoundKind::WorkExpression,&mut |value|self.canonical_observation(value))?;}
+            else if request["schema_version"]!="tos_local_source_command_v1"||request["operation"]!="record.revise"||request["fields"].as_object().is_none_or(|fields|fields.is_empty()||fields.keys().any(|key|!["preferred_label","notes","field_languages","source_refs"].contains(&key.as_str()))) {return Err(bad("membership Work undeclared metadata transition"));}
+            let phase=self.temporary_state;
+            let archived=self.archive(path,id,receipt)?;
+            if let Some(publication)=receipt.get("publication") {
+                let tx=self.transaction(text(publication,"transaction_id")?)?;
+                let (before,after)=tx.files.get(path).ok_or_else(||bad("membership Work selected transition absent"))?;
+                if tx.status!="committed"||before.as_ref()!=archived.get("work.json") {return Err(bad("membership Work committed selected before binding"));}
+                let after=self.decoded(after.as_ref().ok_or_else(||bad("membership Work selected successor absent"))?)?;
+                if !self.reference_matches(&after,"record_id","record_version",&receipt["source"])? {return Err(bad("membership Work committed selected successor binding"));}
+            }
+            let raw=&archived["work.json"];
+            if Digest256::of_bytes(raw)==expected {
+                let previous=self.decoded(raw)?;
+                if self.canonical_observation(&previous)?.0!=work_digest {return Err(bad("membership retained Work payload binding"));}
+                matched=Some(raw.len());
+            }
+            drop(archived);self.release_temporary_since(phase);
+        }
+        let size=matched.ok_or_else(||bad("membership Work lacks current continuous raw binding"))?;
+        // The consumed reference reuses the already compared canonical digest.
+        // Admit its two actual ordered object containers and strings before
+        // constructing them; the helper input Vecs coexist during collection.
+        let version=integer(work,"record_version")?;
+        let version_digits=work["record_version"].as_number().ok_or_else(||bad("membership Work version number"))?.as_str().len();let size_digits=if size==0{1}else{size.ilog10() as usize+1};
+        let string_state=|s:&str|s.len()+s.encode_utf16().count()*std::mem::size_of::<u16>();
+        let keys=["source_path","source","source_sha256","source_bytes","id","version","digest"];
+        let retained=std::mem::size_of::<JsonValue>()+keys.len()*std::mem::size_of::<(tos_foundation::JsonString,JsonValue)>()+keys.iter().map(|key|string_state(key)).sum::<usize>()+string_state(path)+string_state(id)+2*string_state(&work_digest)+version_digits+size_digits;
+        let scratch=2*std::mem::size_of::<Vec<(&str,JsonValue)>>()+keys.len()*std::mem::size_of::<(&str,JsonValue)>()+std::mem::size_of::<String>()+71+2*std::mem::size_of::<Value>()+version_digits+size_digits;
+        self.temporary(retained.checked_add(scratch).ok_or(ItemRefusal::Budget)?)?;
+        let result=object(vec![("source_path",string(path)),("source",object(vec![("id",string(id)),("version",j(&json!(version))?),("digest",string(&work_digest))])),("source_sha256",string(&expected.to_prefixed())),("source_bytes",j(&json!(size))?)]);
+        self.release_temporary(scratch);Ok(result)
     }
     pub(crate) fn finish(self) -> (u64, Vec<PredicateRead>) {
         (self.bytes, self.reads)
@@ -1062,7 +1269,7 @@ fn request_valid_with(request: &Value, kind: CompoundKind,observe:&mut impl FnMu
     let mut request_keys = vec![
         "schema_version",
         "operation",
-        "record",
+        kind.record_key(),
         "claim",
         "forms",
         kind.child_form_request(),
@@ -1076,6 +1283,7 @@ fn request_valid_with(request: &Value, kind: CompoundKind,observe:&mut impl FnMu
         "expected_dependencies",
         "expected_publication",
     ];
+    if kind == CompoundKind::CollectionWork {request_keys.retain(|key|*key!=kind.child_form_request());request_keys.push("forms");}
     if kind == CompoundKind::EditionItem {
         request_keys.extend([
             "rights",
@@ -1148,11 +1356,11 @@ fn parent_receipt_shape_with(receipt: &Value, kind: CompoundKind,observe:&mut im
         || receipt["changed_fields"] != json!([kind.field()])
         || request["claim"]["predicate"] != kind.predicate()
         || request["claim"]["subject_ref"] != receipt["previous_source"]["id"]
-        || !kind.initial_backlink(&request["record"], &receipt["previous_source"]["id"])
+        || !kind.initial_backlink(&request[kind.record_key()], &receipt["previous_source"]["id"])
         || kind == CompoundKind::ExpressionEdition
-            && request["record"]["embodies_expression_refs"]
+            && request[kind.record_key()]["embodies_expression_refs"]
                 != json!([receipt["previous_source"]["id"]])
-        || request["claim"]["object"] != request["record"]["record_id"]
+        || request["claim"]["object"] != request[kind.record_key()]["record_id"]
         || refs.last() != request["claim"].get("claim_id")
     {
         return Err(bad("explicit compound parent lineage"));
@@ -1251,7 +1459,7 @@ fn validate_record_history_values(files:&Package,record:&Value,history:&Value,de
         .map_err(|_| bad("history aware instant"))?;
         let request = &receipt["request"];
         let observed_request=match text(request, "operation")? {
-            "work.expression.create" | "expression.edition.create" | "item.adopt" => {
+            "collection.work.attach" | "work.expression.create" | "expression.edition.create" | "item.adopt" => {
                 Some(parent_receipt_shape_with(
                     receipt,
                     CompoundKind::from_operation(text(request, "operation")?)?,observe,
@@ -1409,7 +1617,9 @@ fn scope_valid(
     authority: &Value,
     kind: CompoundKind,
 ) -> Result<(), ItemRefusal> {
-    if kind == CompoundKind::EditionItem {
+    if kind == CompoundKind::CollectionWork {
+        collection_scope_valid(scope,request)?;
+    } else if kind == CompoundKind::EditionItem {
         item_scope_valid(scope, request)?;
     } else {
         keys(
@@ -1470,6 +1680,7 @@ fn scope_valid(
         (
             "forms",
             match kind {
+                CompoundKind::CollectionWork => "allowed_collection_form_ids",
                 CompoundKind::WorkExpression => "allowed_work_form_ids",
                 CompoundKind::ExpressionEdition => "allowed_expression_form_ids",
                 CompoundKind::EditionItem => "allowed_edition_form_ids",
@@ -1478,13 +1689,14 @@ fn scope_valid(
         (
             kind.child_form_request(),
             match kind {
+                CompoundKind::CollectionWork => "allowed_collection_form_ids",
                 CompoundKind::WorkExpression => "allowed_expression_form_ids",
                 CompoundKind::ExpressionEdition => "allowed_edition_form_ids",
                 CompoundKind::EditionItem => "allowed_item_form_ids",
             },
         ),
         ("claim_forms", "allowed_claim_form_ids"),
-    ] {
+    ].into_iter().filter(|(field,_)|kind!=CompoundKind::CollectionWork||*field!="forms").chain((kind==CompoundKind::CollectionWork).then_some(("forms","allowed_collection_form_ids"))) {
         let ids = array(scope, allowed)?;
         if !(1..=32).contains(&ids.len()) {
             return Err(bad("form identity bounds"));
@@ -1520,7 +1732,7 @@ fn scope_valid(
         }
     }
     let claim = &request["claim"];
-    let record = &request["record"];
+    let record = &request[kind.record_key()];
     if record["record_id"] != scope[kind.child_key()]
         || !kind.initial_backlink(record, &scope[kind.parent_key()])
         || kind == CompoundKind::ExpressionEdition
@@ -1540,6 +1752,26 @@ fn scope_valid(
     {
         return Err(bad("exact scope/request endpoints and maker"));
     }
+    Ok(())
+}
+const COLLECTION_SCOPE_KEYS:[&str;12]=["collection_id","collection_source_path","work_id","work_source_path","predicate","claim_id","claim_source_path","provenance_event_id","allowed_collection_form_ids","allowed_claim_form_ids","allowed_evidence_refs","retained_membership_provenance_refs"];
+fn collection_scope_valid(scope:&Value,request:&Value)->Result<(),ItemRefusal> {
+    keys(scope,&COLLECTION_SCOPE_KEYS)?;
+    for (field,kind) in [("collection_id","collection"),("work_id","work"),("claim_id","claim"),("provenance_event_id","event")] {
+        if !typed_id(text(scope,field)?,kind) {return Err(bad("membership typed scope identities"));}
+    }
+    let collection=text(scope,"collection_source_path")?;let work=text(scope,"work_source_path")?;let claim=text(scope,"claim_source_path")?;
+    for path in [collection,work,claim] {metadata_path(path,false)?;}
+    if text(scope,"predicate")?!="contains_work"||!collection.starts_with("ToS/source-witnesses/collections/")||collection.split('/').count()<5||!collection.ends_with("/collection.json")||!work.starts_with("ToS/source-witnesses/works/")||!work.ends_with("/work.json")||!claim.starts_with("ToS/source-witnesses/relations/")||claim.split('/').count()!=5||!claim.ends_with("/source-claims.jsonl")||!segment(parent(claim)?.rsplit('/').next().unwrap()) {return Err(bad("membership separate exact public homes"));}
+    if request["work"]["record_type"]!="work"||request["claim"]["predicate"]!=scope["predicate"] {return Err(bad("membership exact Work/Claim route"));}
+    let evidence=array(scope,"allowed_evidence_refs")?;
+    if !(1..=128).contains(&evidence.len()) {return Err(bad("membership evidence bounds"));}
+    let mut seen=BTreeSet::new();
+    for value in evidence {let value=value.as_str().ok_or_else(||bad("membership evidence strings"))?;if value.chars().count()>4096||tos_foundation::python_strip_unicode16_v1(value,MAX_SIDE).map_err(|_|ItemRefusal::Budget)?.is_empty()||!seen.insert(value) {return Err(bad("membership distinct explicit evidence"));}}
+    for field in ["evidence_refs","counterevidence_refs"] {if let Some(refs)=request["claim"].get(field) {for value in refs.as_array().ok_or_else(||bad("membership evidence array"))? {if !value.is_string()||!evidence.contains(value) {return Err(bad("membership evidence exceeds recorded scope"));}}}}
+    let provenance=array(scope,"retained_membership_provenance_refs")?;
+    if provenance.len()>32 {return Err(bad("membership retained provenance bounds"));}
+    seen.clear();for value in provenance {let path=value.as_str().ok_or_else(||bad("membership provenance path"))?;metadata_path(path,false)?;let name=path.rsplit('/').next().unwrap();if !name.ends_with(".jsonl")||!name.contains("provenance")||!seen.insert(path) {return Err(bad("membership retained provenance grammar"));}}
     Ok(())
 }
 const ITEM_SCOPE_KEYS: [&str; 18] = [
@@ -1931,6 +2163,21 @@ fn item_companions(
     Ok(result)
 }
 
+fn claim_lines(raw:&[u8])->impl Iterator<Item=(&[u8],&[u8])> {
+    let mut offset=0usize;
+    std::iter::from_fn(move||{if offset>=raw.len(){return None;}let start=offset;while offset<raw.len()&&!matches!(raw[offset],b'\n'|b'\r'){offset+=1;}let end=offset;if offset<raw.len(){let marker=raw[offset];offset+=1;if marker==b'\r'&&offset<raw.len()&&raw[offset]==b'\n'{offset+=1;}}Some((&raw[start..end],&raw[end..offset]))})
+}
+fn advance_membership_claim(previous:&Value,request:&Value)->Result<Value,ItemRefusal> {
+    let fields=request["fields"].as_object().ok_or_else(||bad("membership correction field patch"))?;
+    let transition=request.get("layer_transition").filter(|v|!v.is_null());
+    if fields.is_empty()||fields.keys().any(|key|if transition.is_some(){key!="assertion_layer"}else{!["qualifiers","evidence_refs","counterevidence_refs","alternative_claim_refs","supporting_quotes","epistemic_status","confidence","object"].contains(&key.as_str())}) {return Err(bad("membership correction cannot change identity/maker/endpoints"));}
+    if let Some(transition)=transition {keys(transition,&["from","to"])?;let from=text(transition,"from")?;let to=text(transition,"to")?;let layer=|value:&str|!value.is_empty()&&value.len()<=64&&value.as_bytes()[0].is_ascii_lowercase()&&value.bytes().all(|b|b.is_ascii_lowercase()||b.is_ascii_digit()||b==b'_');if !layer(from)||!layer(to)||from==to||previous["assertion_layer"]!=from||fields["assertion_layer"]!=to {return Err(bad("membership exact retained layer transition"));}}
+    if fields.contains_key("object")&&(!previous["object"].is_object()||!fields["object"].is_object()) {return Err(bad("membership correction cannot change identity endpoint"));}
+    let mut result=previous.clone();for (key,value) in fields {if key=="qualifiers" {let patch=value.as_object().ok_or_else(||bad("membership qualifier correction patch"))?;let target=result.as_object_mut().unwrap().entry(key.clone()).or_insert_with(||json!({})).as_object_mut().ok_or_else(||bad("membership qualifiers object"))?;target.extend(patch.iter().map(|(k,v)|(k.clone(),v.clone())));}else{result.as_object_mut().unwrap().insert(key.clone(),value.clone());}}
+    if &result==previous {return Err(bad("membership correction did not change source"));}
+    result.as_object_mut().unwrap().insert("claim_version".into(),json!(integer(previous,"claim_version")?.checked_add(1).ok_or(ItemRefusal::Budget)?));Ok(result)
+}
+
 fn j(value: &Value) -> Result<JsonValue, ItemRefusal> {
     ordered(&serde_json::to_vec(value).map_err(|_| bad("JSON value encoding"))?)
 }
@@ -2164,7 +2411,7 @@ impl NativeCompoundReader<'_> {
         let scope = &authority["scope"];
         let work_path = text(scope, kind.parent_path())?;
         let expression_path = text(scope, kind.child_path())?;
-        let home = parent(expression_path)?;
+        let home = kind.publication_home(scope)?;
         let work_home = parent(work_path)?;
         // Charge the representations this phase actually owns. No allowance
         // for future forms/events competes with the local Claim constructor.
@@ -2179,7 +2426,19 @@ impl NativeCompoundReader<'_> {
         let request = self.decoded(&request_raw)?;
         let request_observation=request_valid_with(&request, kind,&mut |value|self.canonical_observation(value))?;
         self.temporary(std::mem::size_of::<String>()+request_observation.0.len())?;
+        let scope_scratch=if kind==CompoundKind::CollectionWork {
+            let evidence=array(scope,"allowed_evidence_refs")?;let provenance=array(scope,"retained_membership_provenance_refs")?;
+            let grants=array(scope,"allowed_collection_form_ids")?.len()+array(scope,"allowed_claim_form_ids")?.len();
+            let selections=array(&request,"forms")?.len().max(array(&request,"claim_forms")?.len());
+            // Collection evidence/provenance indexes are dropped before the
+            // form pass. Form seen+current grant+selected indexes coexist;
+            // Unicode strip is borrowed and allocates no string.
+            let current_grant=array(scope,"allowed_collection_form_ids")?.len().max(array(scope,"allowed_claim_form_ids")?.len());
+            3*std::mem::size_of::<BTreeSet<&str>>()+evidence.len().max(provenance.len()).max(grants+current_grant+selections)*std::mem::size_of::<&str>()
+        }else{0};
+        self.temporary(scope_scratch)?;
         scope_valid(scope, &request, authority, kind)?;
+        self.release_temporary(scope_scratch);
         let environment_raw = self.buffer(after("source-create-environment.json")?)?;
         let environment = self.decoded(&environment_raw)?;
         keys(
@@ -2236,7 +2495,8 @@ impl NativeCompoundReader<'_> {
             return Err(bad("retained authorization/request/before binding"));
         }
         let dirs = array(plan, "new_directories")?;
-        if !(kind == CompoundKind::EditionItem && dirs.is_empty())
+        if kind==CompoundKind::CollectionWork && (dirs.len()!=1||dirs[0].as_str()!=Some(home))
+            || kind!=CompoundKind::CollectionWork && !(kind == CompoundKind::EditionItem && dirs.is_empty())
             && *dirs != vec![json!(home)]
             && *dirs != vec![json!(parent(home)?), json!(home)]
         {
@@ -2279,10 +2539,10 @@ impl NativeCompoundReader<'_> {
             j(&revised["record_version"])?,
         )?;
         self.temporary(crate::record_biblio_cut::ordered_state(&revised_ordered)?.saturating_sub(original_state))?;
-        let expression = &request["record"];
+        let expression = &request[kind.record_key()];
         let claim = &request["claim"];
         let ordered_request=self.ordered_value(&request_raw)?;
-        let expression_ordered=self.ordered_copy(ordered_request.object_get("record").ok_or_else(||bad("ordered child record"))?)?;
+        let expression_ordered=self.ordered_copy(ordered_request.object_get(kind.record_key()).ok_or_else(||bad("ordered child record"))?)?;
         let claim_ordered=self.ordered_copy(ordered_request.object_get("claim").ok_or_else(||bad("ordered Claim"))?)?;
         let request_raw_state=std::mem::size_of::<Vec<u8>>()+request_raw.len();
         drop(request_raw);
@@ -2332,7 +2592,7 @@ impl NativeCompoundReader<'_> {
         if kind == CompoundKind::WorkExpression
             && (!text(expression, "language").is_ok_and(|v| !v.is_empty())
                 || !text(expression, "expression_role").is_ok_and(|v| !v.is_empty()))
-            || ["variant_labels", "external_identifiers"].iter().any(|k| {
+            || kind!=CompoundKind::CollectionWork && ["variant_labels", "external_identifiers"].iter().any(|k| {
                 !expression[*k]
                     .as_array()
                     .is_some_and(|a| a.iter().all(|v| v["status"] == "unverified"))
@@ -2396,14 +2656,15 @@ impl NativeCompoundReader<'_> {
             self.limits.max_state_bytes.checked_sub(self.state).ok_or(ItemRefusal::Budget)?,
         )?;
         for value in [&parent_forms,&parent_refs] {self.temporary(crate::record_biblio_cut::ordered_state(value)?)?;}
-        let (expression_forms, expression_refs) = forms(
+        let (expression_forms, expression_refs) = if kind==CompoundKind::CollectionWork {(JsonValue::Null,JsonValue::Null)}else{forms(
             &expression_ordered,
             None,
             &request[kind.child_form_request()],
             principal,
             false,
             self.limits.max_state_bytes.checked_sub(self.state).ok_or(ItemRefusal::Budget)?,
-        )?;
+        )?
+        };
         for value in [&expression_forms,&expression_refs] {self.temporary(crate::record_biblio_cut::ordered_state(value)?)?;}
         let (claim_forms, claim_refs) = forms(
             &claim_ordered,
@@ -2504,11 +2765,13 @@ impl NativeCompoundReader<'_> {
             Digest256::of_bytes(text(scope, "claim_id")?.as_bytes()).to_hex()
         );
         let mut child_files: Vec<(String, Vec<u8>)> = vec![
-            (kind.child_file().into(), expression_raw),
-            (kind.child_forms().into(), self.buffer(pretty(&expression_forms)?)?),
             ("source-claims.jsonl".into(), claim_raw),
             (claim_form_name, self.buffer(pretty(&claim_forms)?)?),
         ];
+        if kind!=CompoundKind::CollectionWork {
+            child_files.insert(0,(kind.child_file().into(),expression_raw));
+            child_files.insert(1,(kind.child_forms().into(),self.buffer(pretty(&expression_forms)?)?));
+        }else{let cost=std::mem::size_of::<Vec<u8>>()+expression_raw.len();drop(expression_raw);self.release_temporary(cost);}
         self.temporary(rows_state(&parent_files,false)?)?;
         self.temporary(rows_state(&child_files,false)?)?;
         if kind == CompoundKind::EditionItem {
@@ -2571,7 +2834,10 @@ impl NativeCompoundReader<'_> {
         )? {
             return Err(bad("reconstructed provenance schema"));
         }
-        for raw in [&parent_forms, &expression_forms, &claim_forms] {
+        for raw in [&parent_forms, &expression_forms, &claim_forms]
+            .into_iter()
+            .filter(|raw| !matches!(raw, JsonValue::Null))
+        {
             if !schemas.check_reusing_scalar(
                 "compound-reconstructed-human-form-set",
                 &canonical_ordered(raw)?,
@@ -2610,7 +2876,7 @@ impl NativeCompoundReader<'_> {
             .filter_map(|n| before.get(n).map(|r| (n.clone(), r.as_slice())))
             .collect();
         self.temporary(slice_rows_state(&before_refs)?)?;
-        let receipt_ordered = object(vec![
+        let mut receipt_fields = vec![
             ("schema_version", string(kind.receipt_schema())),
             ("operation", string(kind.operation())),
             ("transaction_id", string(&id)),
@@ -2652,16 +2918,29 @@ impl NativeCompoundReader<'_> {
                 "forms",
                 object(vec![
                     (kind.parent_kind(), parent_refs),
-                    (kind.child_kind(), expression_refs),
                     ("claim", claim_refs),
                 ]),
             ),
             ("files", refs_ordered(&files)),
             ("grants_admission", JsonValue::Bool(false)),
-        ]);
+        ];
+        let mut binding_state=0;
+        if kind!=CompoundKind::CollectionWork {
+            let forms=receipt_fields.iter_mut().find(|(key,_)|*key=="forms").unwrap();
+            if let JsonValue::Object(ref mut fields)=forms.1 {fields.insert(1,(tos_foundation::JsonString::from_utf8(kind.child_kind()),expression_refs));}
+        }else{
+            let binding=self.membership_work_binding(scope,expression,&authority["dependency_bindings"])?;
+            binding_state=crate::record_biblio_cut::ordered_state(&binding)?;
+            let claim_position=receipt_fields.iter().position(|(key,_)|*key=="claim").unwrap();
+            receipt_fields.insert(claim_position,("work_source_binding",binding));
+        }
+        let receipt_ordered=object(receipt_fields);
         let rows_state=slice_rows_state(&files)?.checked_add(slice_rows_state(&before_refs)?).ok_or(ItemRefusal::Budget)?;
         drop(files);drop(before_refs);
         self.release_temporary(rows_state);
+        // The binding moved into this receipt; transfer its existing charge,
+        // rather than counting a second retained tree for the same value.
+        self.release_temporary(binding_state);
         self.temporary(crate::record_biblio_cut::ordered_state(&receipt_ordered)?)?;
         let expected_raw = self.buffer(pretty(&receipt_ordered)?)?;
         let receipt = self.decoded(&expected_raw)?;
@@ -2710,7 +2989,7 @@ fn compound_event(
     available:usize,
 ) -> Result<Value, ItemRefusal> {
     let module = kind.module();
-    let home = parent(text(scope, kind.child_path())?)?;
+    let home = kind.publication_home(scope)?;
     let request_ref = format!("{home}/source-create-request.json");
     let environment_ref = format!("{home}/source-create-environment.json");
     let mut request_raw = canonical(request)?;
@@ -2763,11 +3042,11 @@ fn compound_event(
     let result=json!({
         "$schema":"https://tree-of-sophia.local/ToS/contracts/provenance-event-v2.schema.json","schema_version":"tos_provenance_event_v2","event_id":scope["provenance_event_id"],"event_version":1,"supersedes_event_ref":null,
         "record_binding":{"manifest_ref":format!("{home}/{}",kind.receipt_file()),"digest_algorithm":"sha256","digest_scope":"exact_event_record_bytes"},
-        "activity":{"event_type":"annotation","started_at":recorded_at,"ended_at":recorded_at,"status":"completed_with_warnings","terminal_reason":null,"exit_code":0,"warnings":["Captured prepared metadata buffers; the committed transaction is a separate verification.","Observed denotes the declared record link, not accepted bibliographic or textual truth."]},
+        "activity":{"event_type":"annotation","started_at":recorded_at,"ended_at":recorded_at,"status":"completed_with_warnings","terminal_reason":null,"exit_code":0,"warnings":["Captured prepared metadata buffers; the committed transaction is a separate verification.",if kind==CompoundKind::CollectionWork {"A qualified membership account is supplied by the caller; serialization and URL presence do not prove source reading or its truth."}else{"Observed denotes the declared record link, not accepted bibliographic or textual truth."}]},
         "entities":{"inputs":inputs,"outputs":output.iter().map(|(p,r)|entity(p,r,"prepared-compound-source-metadata")).collect::<Vec<_>>(),"byproducts":[entity(&environment_ref,&environment_raw,"runtime-description")]},
         "derivations":output.keys().enumerate().map(|(index,p)|json!({"derivation_id":format!("{derivation}.output-{index}"),"input_entity_ref":request_ref,"output_entity_ref":p,"relation":"was_derived_from","influence_asserted":true,"description":"Technical source metadata serialization; no historical influence or textual identity is asserted."})).collect::<Vec<_>>(),
         "responsibility":[{"agent_ref":kind.executor(),"agent_kind":"software","role":"executor","responsibility_posture":"performed","evidence_binding":{"ref":module,"sha256":script},"human_evidence_status":"not_applicable"}],
-        "method":{"procedure":{"name":kind.procedure(),"version":"1","purpose":"Serialize one declared parent link and explicit source-copy forms without judging their content."},"command_capture":{"disclosure":"withheld_digest_only","argv":null,"argv_sha256":environment["argv_sha256"],"withholding_reason":"Process arguments may contain a private owner-configuration path."},"configuration_binding":{"ref":request_ref,"sha256":Digest256::of_bytes(&request_raw).to_hex()},"software_components":[{"name":kind.component(),"version":"1","role":"serialization-runner","artifact_ref":module,"artifact_sha256":script,"verification_status":"verified"}],"model_invocations":[],"environment":env},
+        "method":{"procedure":{"name":kind.procedure(),"version":"1","purpose":if kind==CompoundKind::CollectionWork {"Serialize one qualified membership Claim and a Collection membership reference without judging membership."}else{"Serialize one declared parent link and explicit source-copy forms without judging their content."}},"command_capture":{"disclosure":"withheld_digest_only","argv":null,"argv_sha256":environment["argv_sha256"],"withholding_reason":"Process arguments may contain a private owner-configuration path."},"configuration_binding":{"ref":request_ref,"sha256":Digest256::of_bytes(&request_raw).to_hex()},"software_components":[{"name":kind.component(),"version":"1","role":"serialization-runner","artifact_ref":module,"artifact_sha256":script,"verification_status":"verified"}],"model_invocations":[],"environment":env},
         "manual_changes":{"status":"none_declared","change_receipts":[],"statement":"Caller authorship precedes this operation; no manual edits are performed inside serialization."},
         "measurements":[{"metric":"output_bytes","status":"measured","value":output_bytes,"unit":"bytes","method":"Sum of prepared source record, form and parent history buffers; excludes capture and receipt.","evidence_binding":null}],
         "evidence_authentication":{"capture_posture":"tool_captured","signature_status":"unsigned","signature_bindings":[],"verification_status":"unverified","producer_control_boundary":"The same unsigned local process serializes and records; hashes do not authenticate execution truth."},
@@ -2842,11 +3121,11 @@ impl NativeCompoundReader<'_> {
         let scope = &reconstructed.scope;
         let work = text(scope, kind.parent_path())?;
         let expression = text(scope, kind.child_path())?;
-        if path != format!("{}/source-claims.jsonl", parent(expression)?)
-            || claim != &reconstructed.request["claim"]
+        if path != format!("{}/source-claims.jsonl", kind.publication_home(scope)?)
+            || kind!=CompoundKind::CollectionWork && claim != &reconstructed.request["claim"]
             || receipt != reconstructed.receipt
             || receipt_raw != reconstructed.child[kind.receipt_file()]
-            || self.required(path, MAX_FILE)? != reconstructed.child["source-claims.jsonl"]
+            || kind!=CompoundKind::CollectionWork && self.required(path, MAX_FILE)? != reconstructed.child["source-claims.jsonl"]
         {
             return Err(bad("exact current compound Claim/receipt bytes"));
         }
@@ -2887,6 +3166,16 @@ impl NativeCompoundReader<'_> {
         let parent_history = self.history(work, &parent_files)?;
         if !array(&parent_history, "receipts")?.contains(&reconstructed.parent_receipt) {
             return Err(bad("compound transition missing in current parent lineage"));
+        }
+        if kind==CompoundKind::CollectionWork {
+            let initial=self.membership_claim_initial(path,claim)?;
+            if initial!=reconstructed.child["source-claims.jsonl"] {return Err(bad("membership exact committed initial stream"));}
+            for key in ["statement","statement_language","statement_script","membership_scope"] {
+                let value=text(&claim["qualifiers"],key)?;
+                if tos_foundation::python_strip_unicode16_v1(value,MAX_SIDE).map_err(|_|ItemRefusal::Budget)?.is_empty() {return Err(bad("membership current qualified wording"));}
+            }
+            check(self.limits.deadline,self.cancelled)?;
+            return Ok(observation);
         }
         let child_files = self.selected(expression)?;
         let child_record = self.decoded(&child_files[kind.child_file()])?;

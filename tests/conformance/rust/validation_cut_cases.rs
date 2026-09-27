@@ -661,6 +661,33 @@ try:
     for request in (first,second):
         child=request['claim']['evidence_refs'][1]
         item.verify_compound(c.root,str(Path(child).with_name('source-claims.jsonl')),request['claim'])
+    from test_source_collection_commands import NativeCollectionTests,attachment
+    m=NativeCollectionTests();m.setUp()
+    try:
+        # Actual maintained owner preparation shares the same publication root.
+        # Its selected Collection/Work/form inputs are copied before any writes;
+        # the unrelated-note demonstration file is not a consumed carrier.
+        selected=[m.collection_path,m.work_path,m.collection_path.with_name('collection.human-forms.json')]
+        for p in selected:
+            ref=p.relative_to(m.root);target=c.root/ref;target.parent.mkdir(parents=True,exist_ok=True)
+            assert not target.exists();target.write_bytes(p.read_bytes())
+        m.root=c.root;m.collection_path=c.root/m.collection_ref;m.work_path=c.root/m.work_ref
+        m.owner=c.root/'membership-owner.json';m.config['source_root']=str(c.root);m.owner.write_text(json.dumps(m.config))
+        m.rebuild();first_membership=m.request();commands.run_local_command(m.owner,first_membership)
+        m.correct_work();m.work=json.loads(m.work_path.read_bytes());m.rebuild()
+        m.select_claim('second');second_membership=m.request();commands.run_local_command(m.owner,second_membership);m.rebuild()
+        m.select_claim('first');m.rebuild()
+        config={key:m.config[key] for key in ('uid','principal_id','source_root','authority_ref','expires_at')}
+        config.update(schema_version=commands.CLAIM_REVISION_CONFIG,source_path=m.config['claim_source_path'],claim_id=m.config['claim_id'],allowed_operations=['claim.revise'],allowed_fields=['qualifiers'],allowed_evidence_refs=m.config['allowed_evidence_refs'],allowed_form_ids=m.config['allowed_claim_form_ids'])
+        correction_owner=c.root/'claim-correction-owner.json';correction_owner.write_text(json.dumps(config))
+        proposal={'schema_version':'tos_local_source_command_v1','operation':'prepare-revise','fields':{'qualifiers':{'statement':'Corrected wording of the same qualified provider attribution.'}},'forms':m.proposal()['claim_forms'],'reason':'Synthetic qualified statement correction.'}
+        prepared=commands.run_local_command(correction_owner,proposal)
+        correction={**proposal,'operation':'claim.revise','command_id':'synthetic:claim-correction','expected_configuration':prepared['owner_configuration'],'expected_source':prepared['source'],'expected_revision':prepared['revision'],'expected_dependencies':prepared['expected_dependencies'],'expected_inputs':prepared['source_bindings']}
+        commands.run_local_command(correction_owner,correction);m.rebuild()
+        for request in (first_membership,second_membership):
+            ref='ToS/source-witnesses/relations/synthetic-membership-'+request['claim']['claim_id'].rsplit('.',1)[1]+'/source-claims.jsonl'
+            current=json.loads((c.root/ref).read_bytes());attachment.verify_compound(c.root,ref,current)
+    finally:m.doCleanups()
     files={p.relative_to(c.root).as_posix():p.read_bytes().hex()
            for p in sorted((c.root/'ToS').rglob('*')) if p.is_file()}
     print(json.dumps(files))
@@ -912,7 +939,7 @@ finally:c.doCleanups()
     );
     assert_eq!(
         report.bibliography.native_compounds.len(),
-        6,
+        8,
         "native compound coverage: observations {:?}; bibliography issues {:?}; checked {:?}; skipped {:?}",
         report.bibliography.native_compounds,
         report.bibliography.shadow.issues,
@@ -939,7 +966,8 @@ finally:c.doCleanups()
             .bibliography
             .native_compounds
             .iter()
-            .filter(|observed| !observed.claim_path.contains("/editions/"))
+            .filter(|observed| !observed.claim_path.contains("/editions/")
+                && !observed.claim_path.contains("/relations/"))
             .count(),
         2
     );
@@ -984,11 +1012,24 @@ finally:c.doCleanups()
             .iter()
             .any(|issue| matches!(
                 issue.code,
-                "native-work-expression-compound-evidence"
+                "native-collection-work-compound-evidence"
+                    | "native-work-expression-compound-evidence"
                     | "native-expression-edition-compound-evidence"
                     | "native-edition-item-compound-evidence"
             ))
     );
+    assert!(report.bibliography.shadow.checked_profiles.contains(
+        "native-collection-work-exact-compound-plan-and-current-lineage@1"
+    ));
+    assert_eq!(
+        report.bibliography.native_compounds.iter().filter(|observed|
+            observed.claim_path.contains("/relations/synthetic-membership-")).count(),
+        2
+    );
+    assert!(!report.bibliography.shadow.skipped_profiles.contains(
+        "native-compound-owner-evidence:contains_work"
+    ));
+
 
     // Equal decoded JSON is insufficient: retained publication binds exact
     // receipt bytes. Inspect the changed current cut through the same actual
@@ -998,7 +1039,9 @@ finally:c.doCleanups()
         .native_compounds
         .iter()
         .find(|observed| {
-            !observed.claim_path.contains("/editions/") && !observed.claim_path.contains("/items/")
+            !observed.claim_path.contains("/editions/")
+                && !observed.claim_path.contains("/items/")
+                && !observed.claim_path.contains("/relations/")
         })
         .unwrap();
     let receipt_path = origin
@@ -1037,7 +1080,15 @@ finally:c.doCleanups()
         .unwrap()
         .to_owned()
         + "fixity.sha256";
+    let membership = report.bibliography.native_compounds.iter().find(|observed|
+        observed.claim_path.contains("/relations/synthetic-membership-first/")).unwrap();
+    let membership_history = membership.claim_path.strip_suffix("source-claims.jsonl")
+        .unwrap().to_owned() + "claim-revision-history.json";
+    let mut removed_history: Value = serde_json::from_slice(&files[&membership_history]).unwrap();
+    removed_history["receipts"] = serde_json::json!([]);
     for (target, raw, claim_path, code) in [
+        (membership_history, serde_json::to_vec(&removed_history).unwrap(),
+            membership.claim_path.as_str(), "native-collection-work-compound-evidence"),
         (
             receipt_path.clone(),
             {
@@ -1064,6 +1115,7 @@ finally:c.doCleanups()
             item.claim_path.as_str(),
             "native-edition-item-compound-evidence",
         ),
+
     ] {
         let mut damaged = files.clone();
         damaged.insert(target, raw);

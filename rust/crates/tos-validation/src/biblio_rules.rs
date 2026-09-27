@@ -241,16 +241,16 @@ pub fn inspect_bibliography_from_cut(cut: &CorpusCutReader, records: &SourceCutR
     rules.read("source-current-Claim-files".len()+"ToS/source-witnesses/".len()+("sha256:".len()+std::mem::size_of::<Digest256>()*2),||PredicateRead::Prefix { namespace:"source-current-Claim-files".into(),prefix:"ToS/source-witnesses/".into(),generation:membership.digest.to_prefixed() })?;
     let mut identities=BTreeSet::new(); let mut topology=Vec::new();let mut topology_state=std::mem::size_of::<Vec<Value>>();
     reserve(&mut rules.state,std::mem::size_of_val(&identities)+topology_state,limits.max_state_bytes)?;
-    // Only the consumed Work->Expression, Expression->Edition and Edition->Item owners are reconstructed here. One
+    // The consumed Collection membership and three native creation owners are reconstructed here. One
     // invocation shares the exact read/index budget across all its Claims.
     let mut verified_native=BTreeSet::new();let mut native_compounds=Vec::new();
     reserve(&mut rules.state,std::mem::size_of_val(&verified_native)+std::mem::size_of_val(&native_compounds),limits.max_state_bytes)?;
-    if claims.iter().any(|claim|claim.native && matches!(s(&claim.value,"predicate"),Some("has_expression"|"embodied_by"|"exemplified_by"))) {
+    if claims.iter().any(|claim|claim.native && matches!(s(&claim.value,"predicate"),Some("contains_work"|"has_expression"|"embodied_by"|"exemplified_by"))) {
         let mut compound_limits=limits;
         compound_limits.max_state_bytes=limits.max_state_bytes.checked_sub(rules.state).ok_or(ItemRefusal::Budget)?;
         compound_limits.max_total_bytes=limits.max_total_bytes.checked_sub(rules.bytes).ok_or(ItemRefusal::Budget)?;
         let mut compounds=crate::native_compound::NativeCompoundReader::new(cut,compound_limits,cancelled)?;
-        for claim in claims.iter().filter(|c|c.native && matches!(s(&c.value,"predicate"),Some("has_expression"|"embodied_by"|"exemplified_by"))) {
+        for claim in claims.iter().filter(|c|c.native && matches!(s(&c.value,"predicate"),Some("contains_work"|"has_expression"|"embodied_by"|"exemplified_by"))) {
             let location_state=std::mem::size_of::<String>()+claim.path.len()+1+if claim.line==0 {1}else{claim.line.ilog10() as usize+1};
             reserve(&mut rules.state,location_state,rules.limits.max_state_bytes)?;
             let location=format!("{}:{}",claim.path,claim.line);
@@ -264,15 +264,15 @@ pub fn inspect_bibliography_from_cut(cut: &CorpusCutReader, records: &SourceCutR
                     let id=s(&claim.value,"claim_id").ok_or_else(||ItemRefusal::Source("compound Claim identity missing".into()))?;
                     reserve(&mut rules.state,observation.claim_id.len()+observation.claim_path.len()+observation.transaction_id.len()+observation.manifest_sha256.len()+std::mem::size_of::<crate::native_compound::NativeCompoundObservation>(),rules.limits.max_state_bytes)?;
                     match observation.transport {
-                        crate::native_compound::NativeTransportState::Committed=>{if !verified_native.contains(id) {reserve(&mut rules.state,id.len()+std::mem::size_of::<String>(),rules.limits.max_state_bytes)?;}verified_native.insert(id.to_owned());let profile=match s(&claim.value,"predicate") {Some("has_expression")=>"native-work-expression-exact-compound-plan-and-current-lineage@1",Some("embodied_by")=>"native-expression-edition-exact-compound-plan-and-current-lineage@1",_=>"native-edition-item-exact-compound-plan-and-current-lineage@1"};rules.checked(profile)?;},
-                        crate::native_compound::NativeTransportState::Pending=>rules.issue(match s(&claim.value,"predicate") {Some("has_expression")=>"native-work-expression-transaction-pending",Some("embodied_by")=>"native-expression-edition-transaction-pending",_=>"native-edition-item-transaction-pending"},&location)?,
-                        crate::native_compound::NativeTransportState::RolledBack=>rules.issue(match s(&claim.value,"predicate") {Some("has_expression")=>"native-work-expression-transaction-rolled-back",Some("embodied_by")=>"native-expression-edition-transaction-rolled-back",_=>"native-edition-item-transaction-rolled-back"},&location)?,
-                        crate::native_compound::NativeTransportState::Orphan=>rules.issue(match s(&claim.value,"predicate") {Some("has_expression")=>"native-work-expression-transaction-orphan",Some("embodied_by")=>"native-expression-edition-transaction-orphan",_=>"native-edition-item-transaction-orphan"},&location)?,
+                        crate::native_compound::NativeTransportState::Committed=>{if !verified_native.contains(id) {reserve(&mut rules.state,id.len()+std::mem::size_of::<String>(),rules.limits.max_state_bytes)?;}verified_native.insert(id.to_owned());let profile=match s(&claim.value,"predicate") {Some("contains_work")=>"native-collection-work-exact-compound-plan-and-current-lineage@1",Some("has_expression")=>"native-work-expression-exact-compound-plan-and-current-lineage@1",Some("embodied_by")=>"native-expression-edition-exact-compound-plan-and-current-lineage@1",_=>"native-edition-item-exact-compound-plan-and-current-lineage@1"};rules.checked(profile)?;},
+                        crate::native_compound::NativeTransportState::Pending=>rules.issue(match s(&claim.value,"predicate") {Some("contains_work")=>"native-collection-work-transaction-pending",Some("has_expression")=>"native-work-expression-transaction-pending",Some("embodied_by")=>"native-expression-edition-transaction-pending",_=>"native-edition-item-transaction-pending"},&location)?,
+                        crate::native_compound::NativeTransportState::RolledBack=>rules.issue(match s(&claim.value,"predicate") {Some("contains_work")=>"native-collection-work-transaction-rolled-back",Some("has_expression")=>"native-work-expression-transaction-rolled-back",Some("embodied_by")=>"native-expression-edition-transaction-rolled-back",_=>"native-edition-item-transaction-rolled-back"},&location)?,
+                        crate::native_compound::NativeTransportState::Orphan=>rules.issue(match s(&claim.value,"predicate") {Some("contains_work")=>"native-collection-work-transaction-orphan",Some("has_expression")=>"native-work-expression-transaction-orphan",Some("embodied_by")=>"native-expression-edition-transaction-orphan",_=>"native-edition-item-transaction-orphan"},&location)?,
                     }
                     rules.read("transaction:".len()+observation.transaction_id.len()+observation.manifest_sha256.len(),||PredicateRead::ExactBytes {locator:format!("transaction:{}",observation.transaction_id),digest:observation.manifest_sha256.clone()})?;
                     native_compounds.push(observation);
                 },
-                Err(ItemRefusal::Source(_))=>rules.issue(match s(&claim.value,"predicate") {Some("has_expression")=>"native-work-expression-compound-evidence",Some("embodied_by")=>"native-expression-edition-compound-evidence",_=>"native-edition-item-compound-evidence"},&location)?,
+                Err(ItemRefusal::Source(_))=>rules.issue(match s(&claim.value,"predicate") {Some("contains_work")=>"native-collection-work-compound-evidence",Some("has_expression")=>"native-work-expression-compound-evidence",Some("embodied_by")=>"native-expression-edition-compound-evidence",_=>"native-edition-item-compound-evidence"},&location)?,
                 Err(ItemRefusal::Unsupported(reason))=>rules.skip_parts(&["native-bibliographic-compound:",&reason])?,
                 Err(error)=>return Err(error),
             }
@@ -293,7 +293,7 @@ pub fn inspect_bibliography_from_cut(cut: &CorpusCutReader, records: &SourceCutR
         rules.limits.max_state_bytes=limits.max_state_bytes;
     }
     for claim in &claims {
-        inspect_claim(cut,claim,&routes,&types,&kinds,&records.records,&events,schemas,&mut rules)?;
+        inspect_claim(cut,claim,&routes,&types,&kinds,&records.records,&events,schemas,&mut rules,s(&claim.value,"claim_id").is_some_and(|id|verified_native.contains(id)))?;
         if let Some(id)=s(&claim.value,"claim_id") {
             if !identities.contains(id) {reserve(&mut rules.state,id.len()+std::mem::size_of::<String>(),limits.max_state_bytes)?;}
             if !identities.insert(id.to_owned()) { rules.issue("duplicate-claim-id",&format!("{}:{}",claim.path,claim.line))?; }
@@ -387,17 +387,17 @@ fn schema_value(value:&Value,location:&str,contract:&str,schemas:&mut impl CutSc
     drop(raw);rules.state-=temporary;result
 }
 
-fn inspect_claim(cut:&CorpusCutReader, claim:&BiblioClaim, routes:&BTreeMap<&str,Route<'_>>, types:&BTreeMap<&str,&Value>, kinds:&BTreeMap<&str,&str>, records:&BTreeMap<String,BiblioCurrentRecord>, events:&BTreeMap<String,Value>, schemas:&mut impl CutSchemaExecutor, rules:&mut Rules<'_>) -> Result<(),ItemRefusal> {
+fn inspect_claim(cut:&CorpusCutReader, claim:&BiblioClaim, routes:&BTreeMap<&str,Route<'_>>, types:&BTreeMap<&str,&Value>, kinds:&BTreeMap<&str,&str>, records:&BTreeMap<String,BiblioCurrentRecord>, events:&BTreeMap<String,Value>, schemas:&mut impl CutSchemaExecutor, rules:&mut Rules<'_>, compound_verified:bool) -> Result<(),ItemRefusal> {
     let raw_cost=crate::record_biblio_cut::decoded_wire_size(&claim.value,rules.limits.max_state_bytes.checked_sub(rules.state).ok_or(ItemRefusal::Budget)?)?;
     let location_state=std::mem::size_of::<String>()+claim.path.len()+1+if claim.line==0 {1}else{claim.line.ilog10() as usize+1};
     let temporary=raw_cost.checked_add(std::mem::size_of::<Vec<u8>>()).and_then(|n|n.checked_add(location_state)).ok_or(ItemRefusal::Budget)?;
     reserve_check(rules.state,temporary,rules.limits.max_state_bytes)?;
     let bytes=serde_json::to_vec(&claim.value).map_err(|_|ItemRefusal::Unsupported("Claim worker serialization".into()))?;
     let ceiling=rules.limits.max_state_bytes;rules.limits.max_state_bytes=ceiling.checked_sub(temporary).ok_or(ItemRefusal::Budget)?;
-    let result=inspect_claim_inner(cut,claim,routes,types,kinds,records,events,schemas,rules,&bytes);
+    let result=inspect_claim_inner(cut,claim,routes,types,kinds,records,events,schemas,rules,&bytes,compound_verified);
     drop(bytes);rules.limits.max_state_bytes=ceiling;result
 }
-fn inspect_claim_inner(cut:&CorpusCutReader, claim:&BiblioClaim, routes:&BTreeMap<&str,Route<'_>>, types:&BTreeMap<&str,&Value>, kinds:&BTreeMap<&str,&str>, records:&BTreeMap<String,BiblioCurrentRecord>, events:&BTreeMap<String,Value>, schemas:&mut impl CutSchemaExecutor, rules:&mut Rules<'_>,bytes:&[u8]) -> Result<(),ItemRefusal> {
+fn inspect_claim_inner(cut:&CorpusCutReader, claim:&BiblioClaim, routes:&BTreeMap<&str,Route<'_>>, types:&BTreeMap<&str,&Value>, kinds:&BTreeMap<&str,&str>, records:&BTreeMap<String,BiblioCurrentRecord>, events:&BTreeMap<String,Value>, schemas:&mut impl CutSchemaExecutor, rules:&mut Rules<'_>,bytes:&[u8],compound_verified:bool) -> Result<(),ItemRefusal> {
     let row=&claim.value; let location=format!("{}:{}",claim.path,claim.line);
     let basename=claim.path.rsplit('/').next().unwrap_or("");
     let Some(predicate)=s(row,"predicate") else { rules.issue("claim-predicate",&location)?; return Ok(()); };
@@ -430,7 +430,7 @@ fn inspect_claim_inner(cut:&CorpusCutReader, claim:&BiblioClaim, routes:&BTreeMa
                 rules.checked_parts(&[predicate,"@",s(row,"schema_version").unwrap_or("")])?;
                 // Ordinary domain/range checking does not accept the compound
                 // append/revision plan or specialized semantic ownership.
-                if matches!(predicate,"contains_work"|"translated_by"|"described_by"|"metadata_at"|"downloadable_at"|"rights_statement_at") {rules.skip_parts(&["native-compound-owner-evidence:",predicate])?;}
+                if (predicate=="contains_work"&&!compound_verified)||matches!(predicate,"translated_by"|"described_by"|"metadata_at"|"downloadable_at"|"rights_statement_at") {rules.skip_parts(&["native-compound-owner-evidence:",predicate])?;}
             }
             "structured-reference-value-v1" => {
                 let set=&route.profile["object_reference_set"];
