@@ -155,7 +155,10 @@ pub(crate) fn mcp_tool_list(executor: &dyn AccessExecutor) -> Result<Vec<u8>, Ac
         .iter()
         .filter(|operation| match operation.operation_id.as_str() {
             OPERATION_ID => executor.source_descend_available(),
-            SEARCH_OPERATION_ID => executor.knowledge_search_indexed_available(),
+            SEARCH_OPERATION_ID => {
+                executor.knowledge_search_indexed_available()
+                    || executor.knowledge_search_legacy_available()
+            }
             id => crate::knowledge::KnowledgeOperation::from_id(id)
                 .is_some_and(|op| executor.knowledge_available(op)),
         })
@@ -514,8 +517,22 @@ pub trait AccessExecutor: Send + Sync {
         request: Params,
         abort_probe: Arc<dyn AbortProbe>,
     ) -> Result<PreparedPacket, AccessError>;
-    /// The indexed v2 transport is registered only after a complete selected
-    /// knowledge publication and its QRY executor are installed.
+    /// Maintained v1 is available only with an owner-selected normalized model
+    /// and its distinct current search authority.
+    fn knowledge_search_legacy_available(&self) -> bool {
+        false
+    }
+    fn knowledge_search_legacy(
+        &self,
+        _: tos_query::knowledge_legacy_search::LegacySearchRequest,
+        _: Arc<dyn AbortProbe>,
+    ) -> Result<PreparedPacket, AccessError> {
+        Err(AccessError::new(
+            AccessErrorCode::Unavailable,
+            "legacy knowledge search unavailable",
+        ))
+    }
+    /// Indexed v2 requires a complete selected publication and its QRY executor.
     fn knowledge_search_indexed_available(&self) -> bool {
         false
     }

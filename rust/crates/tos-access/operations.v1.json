@@ -55,53 +55,55 @@
     },
     {
       "operation_id": "tos.knowledge.search",
-      "execution_version": "tos_knowledge_search_indexed_v2",
+      "execution_version": "tos_knowledge_search_v1_or_indexed_v2",
       "effect": "read-only",
-      "availability": "only_with_owner_selected_complete_trigram_index_and_current_query_fence",
+      "availability": "only_with_owner_selected_engine_and_current_query_fence",
       "http": {
         "method": "GET",
-        "path_template": "/api/knowledge/search?mode=indexed"
+        "path_template": "/api/knowledge/search"
       },
       "mcp": {
         "tool": "tos_knowledge_search",
-        "description": "Search selected knowledge carriers through the indexed v2 engine",
+        "description": "Search selected knowledge carriers with the maintained legacy or indexed engine; compressed requires a prepared publication",
         "input_schema": {
           "type": "object",
           "properties": {
             "query": {
               "type": "string",
+              "default": "",
               "maxLength": 256
             },
             "sources": {
-              "type": "array",
-              "maxItems": 256,
+              "type": [
+                "array",
+                "null"
+              ],
               "items": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 256
+                "type": "string"
               }
             },
             "kind_ids": {
-              "type": "array",
-              "maxItems": 256,
+              "type": [
+                "array",
+                "null"
+              ],
               "items": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 256
+                "type": "string"
               }
             },
             "predicate_ids": {
-              "type": "array",
-              "maxItems": 256,
+              "type": [
+                "array",
+                "null"
+              ],
               "items": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 256
+                "type": "string"
               }
             },
             "offset": {
               "type": "integer",
-              "const": 0,
+              "minimum": 0,
+              "maximum": 100000,
               "default": 0
             },
             "limit": {
@@ -112,7 +114,12 @@
             },
             "mode": {
               "type": "string",
-              "const": "indexed"
+              "enum": [
+                "legacy",
+                "indexed",
+                "compressed"
+              ],
+              "default": "legacy"
             },
             "cursor": {
               "type": [
@@ -122,10 +129,55 @@
               "maxLength": 65536
             }
           },
-          "required": [
-            "mode"
-          ],
-          "additionalProperties": false
+          "additionalProperties": false,
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "mode": {
+                    "const": "indexed"
+                  }
+                },
+                "required": [
+                  "mode"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "query": {
+                    "maxLength": 256
+                  },
+                  "offset": {
+                    "const": 0
+                  },
+                  "sources": {
+                    "maxItems": 256,
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    }
+                  },
+                  "kind_ids": {
+                    "maxItems": 256,
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    }
+                  },
+                  "predicate_ids": {
+                    "maxItems": 256,
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    }
+                  }
+                }
+              }
+            }
+          ]
         }
       },
       "cli": {
@@ -137,9 +189,11 @@
         "kind_ids": "selected source-owned vocabulary IDs",
         "predicate_ids": "selected source-owned vocabulary IDs",
         "cursor": "adapter-local continuation",
-        "limit": "1..100; default 40"
+        "limit": "1..100; default 40",
+        "mode": "legacy default; indexed explicit; compressed unavailable without prepared owner publication",
+        "offset": "legacy 0..100000; indexed/compressed zero"
       },
-      "result": "tos_knowledge_search_indexed_v2 packet; never a source-content grant"
+      "result": "exact selected engine packet under held current authority"
     },
     {
       "operation_id": "tos.knowledge.catalog",
@@ -440,6 +494,30 @@
       "cli": {
         "command": "knowledge contracts"
       }
+    },
+    {
+      "operation_id": "tos.knowledge.search.capabilities",
+      "execution_version": "tos_knowledge_search_capabilities_v1",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_model_and_current_query_fence",
+      "http": {
+        "method": "GET",
+        "path_template": "/api/knowledge/search/capabilities"
+      },
+      "mcp": {
+        "tool": "tos_knowledge_search_capabilities",
+        "description": "Read selected search engine capabilities; engine selection is not public authorization",
+        "input_schema": {
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false
+        }
+      },
+      "cli": {
+        "command": "knowledge search-capabilities"
+      },
+      "request": {},
+      "result": "selected search capabilities packet under held current authority"
     }
   ]
 }

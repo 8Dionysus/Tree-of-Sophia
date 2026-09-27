@@ -1,11 +1,11 @@
-//! Additive one-shot CLI route for the first native query family.
+//! Maintained one-shot options over owner-selected native query families.
 
 use crate::{KnowledgeOperation, KnowledgeRequest};
 use std::io::{Read, Write};
 use tos_foundation::{JsonMode, JsonNumber, JsonNumberKind, JsonString, JsonValue, parse_json};
 
 use crate::common::{checked_execute, validate_packet};
-use crate::{AccessExecutor, AccessProfile, IndexedSearchParams, Params, PreparedPacket};
+use crate::{AccessExecutor, AccessProfile, Params, PreparedPacket};
 
 fn write_packet(
     mut packet: PreparedPacket,
@@ -37,34 +37,51 @@ fn write_packet(
     0
 }
 
-fn run_indexed_search(
+fn run_search(
     args: &[String],
     executor: &dyn AccessExecutor,
     profile: AccessProfile,
     stdout: &mut dyn Write,
     stderr: &mut dyn Write,
 ) -> i32 {
-    if args.len() < 3 {
-        let _ = writeln!(
-            stderr,
-            "usage: tos-access knowledge search QUERY --mode indexed [--sources ID...] [--kind ID] [--predicate ID] [--cursor TOKEN] [--limit 1..100]"
-        );
-        return 2;
-    }
-    let mut mode = None;
+    let string = |v: &str| JsonValue::String(JsonString::from_utf8(v));
+    let number = |v: usize| {
+        JsonValue::Number(JsonNumber {
+            kind: JsonNumberKind::Int,
+            lexeme: v.to_string(),
+        })
+    };
+    let mut fields = vec![];
     let mut sources = Vec::new();
-    let mut kind_ids = Vec::new();
-    let mut predicate_ids = Vec::new();
-    let mut cursor = None;
-    let mut limit = 40;
-    let mut at = 3;
+    let mut kinds = Vec::new();
+    let mut predicates = Vec::new();
+    let mut at = 2;
+    if args.get(at).is_some_and(|arg| !arg.starts_with("--")) {
+        fields.push((JsonString::from_utf8("query"), string(&args[at])));
+        at += 1;
+    }
     while at < args.len() {
         let option = args[at].as_str();
+        if option == "--" || !option.starts_with("--") {
+            if option == "--" {
+                at += 1;
+            }
+            if fields.iter().any(|(key, _)| key.as_str() == Some("query"))
+                || args.get(at).is_none()
+                || (option == "--" && at + 1 != args.len())
+            {
+                let _ = writeln!(stderr, "search accepts one optional query");
+                return 2;
+            }
+            fields.push((JsonString::from_utf8("query"), string(&args[at])));
+            at += 1;
+            continue;
+        }
         if option == "--sources" {
             sources.clear();
             at += 1;
             while at < args.len() && !args[at].starts_with("--") {
-                sources.push(args[at].clone());
+                sources.push(string(&args[at]));
                 at += 1;
             }
             continue;
@@ -73,58 +90,69 @@ fn run_indexed_search(
             let _ = writeln!(stderr, "missing value for {option}");
             return 2;
         };
-        match option {
-            "--mode" => mode = Some(value.as_str()),
-            "--kind" => kind_ids.push(value.clone()),
-            "--predicate" => predicate_ids.push(value.clone()),
-            "--cursor" => cursor = Some(value.clone()),
-            "--limit" => match value.parse::<usize>() {
-                Ok(parsed) => limit = parsed,
-                Err(_) => {
-                    let _ = writeln!(stderr, "invalid limit");
+        let field = match option {
+            "--kind" => {
+                kinds.push(string(value));
+                None
+            }
+            "--predicate" => {
+                predicates.push(string(value));
+                None
+            }
+            "--mode" => Some(("mode", string(value))),
+            "--cursor" => Some(("cursor", string(value))),
+            "--offset" | "--limit" => {
+                let Ok(value) = value.parse::<usize>() else {
+                    let _ = writeln!(stderr, "invalid value for {option}");
                     return 2;
-                }
-            },
-            "--offset" if value == "0" => {}
+                };
+                Some((
+                    if option == "--offset" {
+                        "offset"
+                    } else {
+                        "limit"
+                    },
+                    number(value),
+                ))
+            }
             _ => {
-                let _ = writeln!(stderr, "unsupported indexed search option: {option}");
+                let _ = writeln!(stderr, "unsupported search option: {option}");
                 return 2;
             }
+        };
+        if let Some((key, value)) = field {
+            fields.retain(|(name, _)| name.as_str() != Some(key));
+            fields.push((JsonString::from_utf8(key), value));
         }
         at += 2;
     }
-    if mode != Some("indexed") {
-        let _ = writeln!(stderr, "indexed mode must be explicit");
-        return 2;
+    for (key, values) in [
+        ("sources", sources),
+        ("kind_ids", kinds),
+        ("predicate_ids", predicates),
+    ] {
+        fields.push((JsonString::from_utf8(key), JsonValue::Array(values)));
     }
-    let params = match IndexedSearchParams::new(
-        args[2].clone(),
-        sources,
-        kind_ids,
-        predicate_ids,
-        cursor,
-        limit,
-    ) {
-        Ok(params) => params,
+    let request = match crate::search::SearchRequest::from_arguments(&JsonValue::Object(fields)) {
+        Ok(value) => value,
         Err(error) => {
             let _ = writeln!(stderr, "{}: {}", error.code_str(), error.message);
             return 2;
         }
     };
-    if !executor.knowledge_search_indexed_available() {
-        let _ = writeln!(
-            stderr,
-            "indexed knowledge search unavailable: no selected complete read model"
-        );
-        return 3;
-    }
     match checked_execute(profile.deadline_probe(), |probe| {
-        executor.knowledge_search_indexed(params, probe)
+        request.execute(executor, probe)
     }) {
         Ok(packet) => write_packet(packet, profile, stdout, stderr),
         Err(error) => {
             let _ = writeln!(stderr, "{}: {}", error.code_str(), error.message);
-            1
+            if error.code == crate::AccessErrorCode::Unavailable {
+                3
+            } else if error.code == crate::AccessErrorCode::InvalidRequest {
+                2
+            } else {
+                1
+            }
         }
     }
 }
@@ -202,13 +230,21 @@ pub fn run_cli_with_input(
     stdout: &mut dyn Write,
     stderr: &mut dyn Write,
 ) -> i32 {
+    if args
+        .iter()
+        .try_fold(0usize, |n, arg| n.checked_add(arg.len()))
+        .is_none_or(|n| n > profile.max_request_bytes)
+    {
+        let _ = writeln!(stderr, "budget_exceeded: argument byte budget exceeded");
+        return 2;
+    }
     let expanded = expanded_options(args);
     let args = expanded.as_slice();
     if let Some(code) = run_knowledge(args, executor, profile, stdin, stdout, stderr) {
         return code;
     }
     if args.len() >= 2 && args[0] == "knowledge" && args[1] == "search" {
-        return run_indexed_search(args, executor, profile, stdout, stderr);
+        return run_search(args, executor, profile, stdout, stderr);
     }
     if args.len() < 3 || args[0] != "source" || args[1] != "descend" {
         let _ = writeln!(
@@ -291,6 +327,9 @@ fn run_knowledge(
     let op = KnowledgeOperation::from_id(&operation.operation_id)?;
     let result: Result<KnowledgeRequest, crate::AccessError> = (|| match op {
         KnowledgeOperation::Catalog if args.len() == 2 => Ok(KnowledgeRequest::Catalog),
+        KnowledgeOperation::SearchCapabilities if args.len() == 2 => {
+            Ok(KnowledgeRequest::SearchCapabilities)
+        }
         KnowledgeOperation::Contracts if args.len() == 2 => Ok(KnowledgeRequest::Contracts),
         KnowledgeOperation::StoredLens
             if args.len() == 3 && !args[2].is_empty() && args[2].chars().count() <= 4096 =>

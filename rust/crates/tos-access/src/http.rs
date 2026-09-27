@@ -160,19 +160,59 @@ fn query_list(query: &str, name: &str) -> Vec<String> {
         .collect()
 }
 
-fn handle_indexed_search(
+fn handle_search(
     executor: &dyn AccessExecutor,
     method: &str,
     query: &str,
     profile: AccessProfile,
     abort_probe: Arc<dyn AbortProbe>,
 ) -> HttpResponse {
-    if query_value(query, "mode").as_deref() != Some("indexed") {
-        return HttpResponse::error_for_method(
-            503,
-            "selected knowledge search mode unavailable",
-            method,
+    let mode = query_value(query, "mode").unwrap_or_else(|| "legacy".into());
+    if mode != "indexed" {
+        use tos_foundation::JsonString;
+        let string = |value: String| JsonValue::String(JsonString::from_utf8(&value));
+        let list = |key| JsonValue::Array(query_list(query, key).into_iter().map(string).collect());
+        let fields = vec![
+            ("mode", string(mode)),
+            (
+                "query",
+                string(query_value(query, "query").unwrap_or_default()),
+            ),
+            ("sources", list("sources")),
+            ("kind_ids", list("kind_ids")),
+            ("predicate_ids", list("predicate_ids")),
+            (
+                "offset",
+                JsonValue::Number(JsonNumber {
+                    kind: JsonNumberKind::Int,
+                    lexeme: bounded_legacy_int(
+                        query_value(query, "offset").as_deref(),
+                        0,
+                        0,
+                        100_000,
+                    )
+                    .to_string(),
+                }),
+            ),
+            (
+                "limit",
+                JsonValue::Number(JsonNumber {
+                    kind: JsonNumberKind::Int,
+                    lexeme: bounded_legacy_int(query_value(query, "limit").as_deref(), 40, 1, 100)
+                        .to_string(),
+                }),
+            ),
+        ];
+        let args = JsonValue::Object(
+            fields
+                .into_iter()
+                .map(|(key, value)| (JsonString::from_utf8(key), value))
+                .collect(),
         );
+        let result = crate::search::SearchRequest::from_arguments(&args).and_then(|request| {
+            checked_execute(abort_probe, |probe| request.execute(executor, probe))
+        });
+        return packet_response(result, method, profile);
     }
     if !executor.knowledge_search_indexed_available() {
         return HttpResponse::error_for_method(503, "indexed knowledge search unavailable", method);
@@ -249,7 +289,7 @@ fn handle_get_with_probe(
     }
     let (path, query) = target.split_once('?').unwrap_or((target, ""));
     if path == SEARCH_HTTP_PATH {
-        return handle_indexed_search(executor, method, query, profile, abort_probe);
+        return handle_search(executor, method, query, profile, abort_probe);
     }
     if let Ok(operations) = crate::common::registered_operations() {
         for operation in operations.iter().filter(|op| op.http_method == "GET") {
@@ -270,6 +310,7 @@ fn handle_get_with_probe(
             };
             let request = match op {
                 KnowledgeOperation::Catalog => Ok(KnowledgeRequest::Catalog),
+                KnowledgeOperation::SearchCapabilities => Ok(KnowledgeRequest::SearchCapabilities),
                 KnowledgeOperation::Contracts => Ok(KnowledgeRequest::Contracts),
                 KnowledgeOperation::StoredLens => percent_decode(encoded, false)
                     .map(|lens_id| KnowledgeRequest::StoredLens { lens_id }),

@@ -455,6 +455,26 @@ mod selected_knowledge {
             held: Arc<AtomicUsize>,
             controls: Arc<Controls>,
         ) -> Self {
+            let intended = match request.operation() {
+                O::Explore => tos_query::knowledge_exploration::EXPLORATION_INTENDED_USE,
+                O::Temporal => tos_query::TEMPORAL_INTENDED_USE,
+                O::Lens => tos_query::knowledge_lens::LENS_INTENDED_USE,
+                O::Focus => tos_query::knowledge_lens::FOCUS_INTENDED_USE,
+                O::StoredLens => tos_query::knowledge_lens::STORED_LENS_INTENDED_USE,
+                O::SearchCapabilities => {
+                    tos_query::knowledge_legacy_search::SEARCH_CAPABILITIES_INTENDED_USE
+                }
+                _ => "read_only_public_knowledge_inspect_v1",
+            };
+            Self::for_scope(bound, request.operation().id(), intended, held, controls)
+        }
+        fn for_scope(
+            bound: &BoundCmpKnowledge<'_>,
+            operation: &str,
+            intended: &str,
+            held: Arc<AtomicUsize>,
+            controls: Arc<Controls>,
+        ) -> Self {
             let policy = CurrentPolicyBinding {
                 scope: "synthetic-wire".into(),
                 issuer_ref: "synthetic-issuer".into(),
@@ -464,17 +484,9 @@ mod selected_knowledge {
             };
             let selected = bound.selection();
             let inspect = IndexedDisclosureScope {
-                operation_id: request.operation().id().into(),
+                operation_id: operation.into(),
                 carrier_layer: "tos_knowledge_public_graph_projection_v1".into(),
-                intended_use: match request.operation() {
-                    O::Explore => tos_query::knowledge_exploration::EXPLORATION_INTENDED_USE,
-                    O::Temporal => tos_query::TEMPORAL_INTENDED_USE,
-                    O::Lens => tos_query::knowledge_lens::LENS_INTENDED_USE,
-                    O::Focus => tos_query::knowledge_lens::FOCUS_INTENDED_USE,
-                    O::StoredLens => tos_query::knowledge_lens::STORED_LENS_INTENDED_USE,
-                    _ => "read_only_public_knowledge_inspect_v1",
-                }
-                .into(),
+                intended_use: intended.into(),
                 selected_model_receipt_id: bound.owner_receipt_id().into(),
                 source_cut: selected.source_cut.clone(),
                 through_commit_seq: selected.through_commit_seq,
@@ -566,7 +578,16 @@ mod selected_knowledge {
             _: &IndexedDisclosureScope,
             observed: &[ObservedInspectCarrier],
         ) -> Result<Box<dyn InspectDisclosureLease>, SearchV2Error> {
-            assert!(!observed.is_empty());
+            if self.inspect.operation_id
+                == tos_query::knowledge_legacy_search::SEARCH_CAPABILITIES_OPERATION
+            {
+                assert!(
+                    observed.is_empty(),
+                    "capabilities authenticates selected engine binding without disclosing graph rows"
+                );
+            } else {
+                assert!(!observed.is_empty());
+            }
             Ok(Box::new(self.lease()))
         }
     }
@@ -587,6 +608,47 @@ mod selected_knowledge {
         ) -> Result<PreparedPacket, AccessError> {
             unreachable!()
         }
+        fn knowledge_search_legacy_available(&self) -> bool {
+            true
+        }
+        fn knowledge_search_legacy(
+            &self,
+            request: tos_query::knowledge_legacy_search::LegacySearchRequest,
+            probe: Arc<dyn AbortProbe>,
+        ) -> Result<PreparedPacket, AccessError> {
+            use tos_query::knowledge_legacy_search::{
+                LEGACY_SEARCH_INTENDED_USE, LEGACY_SEARCH_OPERATION,
+            };
+            let cold = self.fixture.open().unwrap();
+            let bound = bind_verified_knowledge(
+                &cold,
+                &self.fixture.vocabulary,
+                &self.fixture.descriptor_bytes,
+            )
+            .unwrap();
+            let mut model = cold.fork_reader_with_vm_budget(20_000_000).unwrap();
+            let mut authority = Authority::for_scope(
+                &bound,
+                LEGACY_SEARCH_OPERATION,
+                LEGACY_SEARCH_INTENDED_USE,
+                Arc::clone(&self.held),
+                Arc::clone(&self.controls),
+            );
+            let packet = tos_access::knowledge::execute_selected_legacy_search(
+                &mut model,
+                &bound,
+                &mut authority,
+                &request,
+                legacy_budget(),
+                probe,
+            )?;
+            match self.controls.after_prepare.load(Ordering::SeqCst) {
+                1 => self.controls.revoked.store(true, Ordering::SeqCst),
+                2 => self.controls.cancelled.store(true, Ordering::SeqCst),
+                _ => {}
+            }
+            Ok(packet)
+        }
         fn knowledge_available(&self, operation: O) -> bool {
             matches!(
                 operation,
@@ -598,6 +660,7 @@ mod selected_knowledge {
                     | O::Lens
                     | O::Focus
                     | O::StoredLens
+                    | O::SearchCapabilities
             )
         }
         fn knowledge(
@@ -681,6 +744,30 @@ mod selected_knowledge {
                 max_checkpoint_bytes: 2_000_000,
                 max_checkpoints: 8,
             },
+        }
+    }
+    fn legacy_budget() -> tos_query::knowledge_legacy_search::LegacySearchBudget {
+        // Same full-scan work allowances as the QRY actual legacy differential
+        // fixture; the native packet cap remains independently one megabyte.
+        let mut inspect = budgets().inspect;
+        inspect.max_read_vm_steps = 20_000_000;
+        inspect.max_matches = 1000;
+        inspect.max_rows = 100_000;
+        inspect.max_decoded_bytes = 128_000_000;
+        tos_query::knowledge_legacy_search::LegacySearchBudget {
+            inspect,
+            document: tos_query::SearchDocumentBudget {
+                max_carrier_bytes: 1_000_000,
+                max_document_bytes: 4_000_000,
+                max_document_code_points: 4_000_000,
+                json: JsonLimits::default(),
+            },
+            max_candidates: 100_000,
+            max_document_bytes: 128_000_000,
+            max_document_code_points: 128_000_000,
+            max_retained_per_kind: 100_100,
+            max_retained_bytes: 8_000_000,
+            block_size: 64,
         }
     }
     struct HeldWriter {
@@ -1537,6 +1624,291 @@ mod selected_knowledge {
     }
 
     #[test]
+    fn maintained_selected_legacy_search_and_capabilities_all_native_wires() {
+        use tos_query::knowledge_legacy_search::LegacySearchRequest;
+        let executor = Arc::new(Executor {
+            fixture: build_native_fixture(),
+            held: Arc::new(AtomicUsize::new(0)),
+            controls: Arc::new(Controls::default()),
+            checkpoints: Mutex::new(
+                tos_access::exploration_checkpoints::ProcessExplorationCheckpoints::new(
+                    tos_access::exploration_checkpoints::CheckpointLimits {
+                        ttl: Duration::from_secs(60),
+                        max_entries: 16,
+                        max_encoded_bytes: 2_000_000,
+                    },
+                )
+                .unwrap(),
+            ),
+        });
+        let profile = AccessProfile::new(65_536, 1_048_576, 65_536);
+        let mcp_profile = profile.with_mcp_frame_budget(
+            tos_access::mcp::tool_result_frame_byte_bound(
+                profile.max_response_bytes,
+                profile.max_request_bytes.min(profile.max_line_bytes),
+            )
+            .unwrap(),
+        );
+        let search = tos_access::registered_operations()
+            .unwrap()
+            .iter()
+            .find(|op| op.operation_id == tos_access::SEARCH_OPERATION_ID)
+            .unwrap();
+        let graph = parse_json(
+            &executor.fixture.graph_input_bytes,
+            JsonMode::PublishedStrict,
+            JsonLimits::default(),
+        )
+        .unwrap();
+        let claim = graph
+            .root()
+            .object_get("nodes")
+            .unwrap()
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|n| n.object_get("kind_id").and_then(JsonValue::as_str) == Some("claim"))
+            .unwrap();
+        let source = claim.object_get("source_graph").unwrap().as_str().unwrap();
+        let kind = claim.object_get("kind_id").unwrap().as_str().unwrap();
+        let filtered = LegacySearchRequest {
+            sources: Some(vec![source.into()]),
+            kind_ids: vec![kind.into()],
+            offset: 1,
+            limit: 2,
+            ..Default::default()
+        };
+        let cases = [
+            (
+                LegacySearchRequest::default(),
+                vec![],
+                String::new(),
+                object(vec![
+                    ("sources", JsonValue::Null),
+                    ("kind_ids", JsonValue::Null),
+                    ("predicate_ids", JsonValue::Null),
+                    ("cursor", JsonValue::Null),
+                ]),
+            ),
+            (
+                filtered,
+                vec![
+                    "--sources".into(),
+                    source.into(),
+                    "--kind".into(),
+                    kind.into(),
+                    "--offset=1".into(),
+                    "--limit=2".into(),
+                    "--mode=legacy".into(),
+                ],
+                format!(
+                    "?sources={}&kind_ids={}&offset=1&limit=2&mode=legacy",
+                    path_id(source),
+                    path_id(kind)
+                ),
+                object(vec![
+                    ("sources", JsonValue::Array(vec![text(source)])),
+                    ("kind_ids", JsonValue::Array(vec![text(kind)])),
+                    (
+                        "offset",
+                        parse_json(b"1", JsonMode::PublishedStrict, JsonLimits::default())
+                            .unwrap()
+                            .into_root(),
+                    ),
+                    (
+                        "limit",
+                        parse_json(b"2", JsonMode::PublishedStrict, JsonLimits::default())
+                            .unwrap()
+                            .into_root(),
+                    ),
+                    ("mode", text("legacy")),
+                ]),
+            ),
+        ];
+        for (request, suffix, query, arguments) in cases {
+            let packet = executor
+                .knowledge_search_legacy(request, Arc::new(NeverAbort))
+                .unwrap();
+            let expected = packet.body.clone();
+            drop(packet);
+            let mut args: Vec<String> = search
+                .cli_command
+                .as_ref()
+                .unwrap()
+                .split_whitespace()
+                .map(str::to_owned)
+                .collect();
+            args.extend(suffix);
+            let mut writer = HeldWriter {
+                bytes: vec![],
+                held: executor.held.clone(),
+            };
+            let mut errors = vec![];
+            let code = cli::run_cli(&args, executor.as_ref(), profile, &mut writer, &mut errors);
+            assert_eq!(code, 0, "legacy CLI: {}", String::from_utf8_lossy(&errors));
+            assert_eq!(&writer.bytes[..writer.bytes.len() - 1], expected);
+            let response = handle_get(
+                executor.as_ref(),
+                "GET",
+                &format!("{}{query}", search.http_path),
+                profile,
+            );
+            assert_eq!(
+                response.status,
+                200,
+                "legacy HTTP: {}",
+                String::from_utf8_lossy(&response.body)
+            );
+            let mut writer = HeldWriter {
+                bytes: vec![],
+                held: executor.held.clone(),
+            };
+            tos_access::http::write_response(&mut writer, response).unwrap();
+            assert_eq!(http_packet(&writer.bytes), expected);
+            let input = mcp_input(&search.mcp_tool, &arguments);
+            let mut writer = McpHeldWriter {
+                bytes: vec![],
+                held: executor.held.clone(),
+                source_frame: false,
+            };
+            mcp::run_stdio_with_probe(
+                &mut input.as_slice(),
+                &mut writer,
+                executor.as_ref(),
+                mcp_profile,
+                Arc::new(NeverAbort),
+            )
+            .unwrap();
+            check_mcp_packet(
+                last_frame(&writer.bytes),
+                &expected,
+                mcp_profile.max_mcp_frame_bytes,
+            );
+            assert_eq!(executor.held.load(Ordering::SeqCst), 0);
+        }
+        let caps = tos_access::registered_operations()
+            .unwrap()
+            .iter()
+            .find(|op| op.operation_id == O::SearchCapabilities.id())
+            .unwrap();
+        let packet = executor
+            .knowledge(R::SearchCapabilities, Arc::new(NeverAbort))
+            .unwrap();
+        let expected = packet.body.clone();
+        drop(packet);
+        let value =
+            parse_json(&expected, JsonMode::PublishedStrict, JsonLimits::default()).unwrap();
+        assert_eq!(
+            value
+                .root()
+                .object_get("default_mode")
+                .and_then(JsonValue::as_str),
+            Some("legacy")
+        );
+        let modes = value.root().object_get("modes").unwrap();
+        assert_eq!(
+            modes
+                .object_get("compressed")
+                .unwrap()
+                .object_get("available"),
+            Some(&JsonValue::Bool(false))
+        );
+        let args: Vec<String> = caps
+            .cli_command
+            .as_ref()
+            .unwrap()
+            .split_whitespace()
+            .map(str::to_owned)
+            .collect();
+        let mut writer = HeldWriter {
+            bytes: vec![],
+            held: executor.held.clone(),
+        };
+        let mut errors = vec![];
+        assert_eq!(
+            cli::run_cli(&args, executor.as_ref(), profile, &mut writer, &mut errors),
+            0,
+            "{}",
+            String::from_utf8_lossy(&errors)
+        );
+        assert_eq!(&writer.bytes[..writer.bytes.len() - 1], expected);
+        let response = handle_get(executor.as_ref(), "GET", &caps.http_path, profile);
+        assert_eq!(response.status, 200);
+        let mut writer = HeldWriter {
+            bytes: vec![],
+            held: executor.held.clone(),
+        };
+        tos_access::http::write_response(&mut writer, response).unwrap();
+        assert_eq!(http_packet(&writer.bytes), expected);
+        let input = mcp_input(&caps.mcp_tool, &object(vec![]));
+        let mut writer = McpHeldWriter {
+            bytes: vec![],
+            held: executor.held.clone(),
+            source_frame: false,
+        };
+        mcp::run_stdio_with_probe(
+            &mut input.as_slice(),
+            &mut writer,
+            executor.as_ref(),
+            mcp_profile,
+            Arc::new(NeverAbort),
+        )
+        .unwrap();
+        check_mcp_packet(
+            last_frame(&writer.bytes),
+            &expected,
+            mcp_profile.max_mcp_frame_bytes,
+        );
+        // Engine selection never supplies a prepared publication or a current public issuer.
+        let mut output = vec![];
+        let mut errors = vec![];
+        let mut args: Vec<String> = search
+            .cli_command
+            .as_ref()
+            .unwrap()
+            .split_whitespace()
+            .map(str::to_owned)
+            .collect();
+        args.push("--mode=compressed".into());
+        assert_eq!(
+            cli::run_cli(&args, executor.as_ref(), profile, &mut output, &mut errors),
+            3
+        );
+        assert!(output.is_empty());
+        let response = handle_get(
+            executor.as_ref(),
+            "GET",
+            &format!("{}?mode=compressed", search.http_path),
+            profile,
+        );
+        assert_eq!(response.status, 503);
+        // Current withdrawal and caller cancellation share the established final disclosure fence.
+        for action in [1, 2] {
+            executor
+                .controls
+                .after_prepare
+                .store(action, Ordering::SeqCst);
+            let mut output = vec![];
+            let mut errors = vec![];
+            let args: Vec<String> = search
+                .cli_command
+                .as_ref()
+                .unwrap()
+                .split_whitespace()
+                .map(str::to_owned)
+                .collect();
+            assert_eq!(
+                cli::run_cli(&args, executor.as_ref(), profile, &mut output, &mut errors),
+                1
+            );
+            assert!(output.is_empty());
+            assert_eq!(executor.held.load(Ordering::SeqCst), 0);
+            executor.controls.revoked.store(false, Ordering::SeqCst);
+            executor.controls.cancelled.store(false, Ordering::SeqCst);
+        }
+    }
+
+    #[test]
     fn maintained_native_options_files_head_and_mcp_advertisement() {
         assert_eq!(cli::parse_serve_address(&[]).unwrap(), "127.0.0.1:8080");
         assert_eq!(
@@ -1915,8 +2287,15 @@ mod selected_knowledge {
                 .iter()
                 .find(|op| op.mcp_tool == name)
                 .unwrap();
-            let op = O::from_id(&descriptor.operation_id).unwrap();
-            assert!(executor.knowledge_available(op));
+            assert!(
+                if descriptor.operation_id == tos_access::SEARCH_OPERATION_ID {
+                    executor.knowledge_search_legacy_available()
+                        || executor.knowledge_search_indexed_available()
+                } else {
+                    O::from_id(&descriptor.operation_id)
+                        .is_some_and(|op| executor.knowledge_available(op))
+                }
+            );
             assert_eq!(
                 tool.object_get("inputSchema").unwrap(),
                 &descriptor.input_schema
@@ -1926,7 +2305,12 @@ mod selected_knowledge {
             .unwrap()
             .iter()
             .filter(|op| {
-                O::from_id(&op.operation_id).is_some_and(|op| executor.knowledge_available(op))
+                if op.operation_id == tos_access::SEARCH_OPERATION_ID {
+                    executor.knowledge_search_legacy_available()
+                        || executor.knowledge_search_indexed_available()
+                } else {
+                    O::from_id(&op.operation_id).is_some_and(|op| executor.knowledge_available(op))
+                }
             })
             .map(|op| op.mcp_tool.as_str())
             .collect();

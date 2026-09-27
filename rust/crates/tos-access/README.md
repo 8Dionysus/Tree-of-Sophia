@@ -63,3 +63,16 @@ bounded compact JSON and typed native error/exit profile remain explicit:
 0 successful flush, 1 query/disclosure/output failure, 2 request/file/usage
 failure, 3 unavailable selected capability. Maintained Python pretty JSON and
 FastMCP serialization are not silently substituted for this declared profile.
+
+Maintained knowledge search now defaults to the selected legacy v1 engine,
+including the optional empty query, offset, filters and explicit legacy mode.
+Indexed mode retains its own cursor validation and QRY engine; compressed mode
+refuses without an explicitly prepared publication. The transport does not
+translate offsets into cursors or choose a fallback engine. The selected search
+capabilities packet is available through CLI, GET/HEAD and MCP under its own
+held operation scope. Its engine-selection-only readiness does not issue a
+public grant. CLI arguments are bounded before option expansion; structured
+files, HTTP targets, MCP input and output retain their separate declared caps.
+Legacy ranking, complete counts, normalization and substring semantics remain
+in QRY, with its actual Python differential evidence; the consumer case checks
+complete selected bytes and final-flush custody through the existing wires.

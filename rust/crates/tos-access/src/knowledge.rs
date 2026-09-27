@@ -15,6 +15,7 @@ pub enum KnowledgeOperation {
     Focus,
     StoredLens,
     Contracts,
+    SearchCapabilities,
 }
 impl KnowledgeOperation {
     pub fn from_id(id: &str) -> Option<Self> {
@@ -28,6 +29,7 @@ impl KnowledgeOperation {
             "tos.knowledge.focus" => Self::Focus,
             "tos.lens.open" => Self::StoredLens,
             "tos.knowledge.contracts" => Self::Contracts,
+            "tos.knowledge.search.capabilities" => Self::SearchCapabilities,
             _ => return None,
         })
     }
@@ -42,6 +44,7 @@ impl KnowledgeOperation {
             Self::Focus => "tos.knowledge.focus",
             Self::StoredLens => "tos.lens.open",
             Self::Contracts => "tos.knowledge.contracts",
+            Self::SearchCapabilities => "tos.knowledge.search.capabilities",
         }
     }
 }
@@ -63,6 +66,7 @@ pub enum KnowledgeRequest {
         lens_id: String,
     },
     Contracts,
+    SearchCapabilities,
 }
 impl KnowledgeRequest {
     pub fn operation(&self) -> KnowledgeOperation {
@@ -76,6 +80,7 @@ impl KnowledgeRequest {
             Self::Focus(_) => KnowledgeOperation::Focus,
             Self::StoredLens { .. } => KnowledgeOperation::StoredLens,
             Self::Contracts => KnowledgeOperation::Contracts,
+            Self::SearchCapabilities => KnowledgeOperation::SearchCapabilities,
         }
     }
     pub fn from_arguments(
@@ -86,7 +91,9 @@ impl KnowledgeRequest {
             .as_object()
             .ok_or_else(|| invalid("tool arguments must be an object"))?;
         let allowed: &[&str] = match operation {
-            KnowledgeOperation::Catalog | KnowledgeOperation::Contracts => &[],
+            KnowledgeOperation::Catalog
+            | KnowledgeOperation::Contracts
+            | KnowledgeOperation::SearchCapabilities => &[],
             KnowledgeOperation::Focus => &[
                 "node_id",
                 "sources",
@@ -119,6 +126,7 @@ impl KnowledgeRequest {
         Ok(match operation {
             KnowledgeOperation::Catalog => Self::Catalog,
             KnowledgeOperation::Contracts => Self::Contracts,
+            KnowledgeOperation::SearchCapabilities => Self::SearchCapabilities,
             KnowledgeOperation::Focus => Self::Focus(focus_from_arguments(args)?),
             KnowledgeOperation::StoredLens => Self::StoredLens {
                 lens_id: id("lens_id")?,
@@ -305,6 +313,14 @@ pub fn execute_selected_knowledge(
         probe: inspect_probe,
     };
     let packet = match request {
+        KnowledgeRequest::SearchCapabilities => from_inspect(
+            tos_query::knowledge_legacy_search::execute_selected_search_capabilities(
+                model,
+                bound,
+                &mut inspect,
+                budgets.inspect,
+            )?,
+        ),
         KnowledgeRequest::Contracts => {
             return Err(AccessError::new(
                 AccessErrorCode::Unavailable,
@@ -388,6 +404,35 @@ pub fn execute_selected_knowledge(
     check_abort(&probe)?;
     Ok(packet)
 }
+/// Native transport adapter for the maintained v1 engine, with exact owner scope.
+/// The session supplies its selected model, authority and explicit scan budgets.
+pub fn execute_selected_legacy_search(
+    model: &mut tos_compiler::VerifiedKnowledgeModel<'_>,
+    bound: &tos_query::BoundCmpKnowledge<'_>,
+    authority: &mut dyn tos_query::InspectCurrentAuthority,
+    request: &tos_query::knowledge_legacy_search::LegacySearchRequest,
+    budget: tos_query::knowledge_legacy_search::LegacySearchBudget,
+    probe: Arc<dyn AbortProbe>,
+) -> Result<PreparedPacket, AccessError> {
+    check_abort(&probe)?;
+    let owner_probe = combined_probe(Arc::clone(&probe), authority.abort_probe());
+    let mut authority = InspectProbe {
+        inner: authority,
+        probe: owner_probe,
+    };
+    let packet = from_inspect(
+        tos_query::knowledge_legacy_search::execute_selected_legacy_search(
+            model,
+            bound,
+            &mut authority,
+            request,
+            budget,
+        )?,
+    );
+    check_abort(&probe)?;
+    Ok(packet)
+}
+
 struct CatalogProbe<'a> {
     inner: &'a mut dyn tos_query::CatalogCurrentAuthority,
     probe: Arc<dyn AbortProbe>,

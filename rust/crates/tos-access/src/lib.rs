@@ -11,9 +11,10 @@ pub use knowledge::{KnowledgeOperation, KnowledgeRequest};
 mod common;
 pub mod http;
 pub mod mcp;
+pub mod search;
 
 pub use common::{
     AccessError, AccessErrorCode, AccessExecutor, AccessProfile, DisclosureFence,
-    IndexedSearchParams, Params, PreparedPacket, QuerySession, RegisteredOperation, descriptor,
-    registered_operations,
+    IndexedSearchParams, Params, PreparedPacket, QuerySession, RegisteredOperation,
+    SEARCH_OPERATION_ID, descriptor, registered_operations,
 };
