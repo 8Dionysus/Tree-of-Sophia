@@ -2561,32 +2561,73 @@ mod tests {
         let entities: Value = serde_json::from_slice(&source(ENTITY_REGISTRY)).unwrap();
         let relations: Value = serde_json::from_slice(&source(LOCAL_CLAIM_REGISTRY)).unwrap();
         let limits = crate::item_rules::ItemLimits {
-            max_member_bytes: MAX_RECORD_BYTES, max_total_bytes: 32*1_048_576,
-            max_state_bytes: 64*1_048_576, max_issues: 64,
-            deadline: std::time::Instant::now()+std::time::Duration::from_secs(30),
+            max_member_bytes: MAX_RECORD_BYTES,
+            max_total_bytes: 32 * 1_048_576,
+            max_state_bytes: 64 * 1_048_576,
+            max_issues: 64,
+            deadline: std::time::Instant::now() + std::time::Duration::from_secs(30),
         };
-        let cancel=std::sync::atomic::AtomicBool::new(false);
-        let routes=compile_local_claim_routes(&entities,&relations,limits,&cancel).unwrap();
-        let count:usize=relations["relations"].as_array().unwrap().iter()
-            .filter_map(|e|e.get("source_claim_profile")).map(|p|p["schemas"].as_array().unwrap().len()).sum();
-        assert_eq!(routes.len(),count);
-        assert!(routes.contains_key(&("subject_identity_transition_proposal".into(),"tos_subject_identity_transition_claim_v1".into())));
-        let mut duplicated=relations.clone();
-        let entry=duplicated["relations"].as_array().unwrap().iter().find(|e|e.get("source_claim_profile").is_some()).unwrap().clone();
+        let cancel = std::sync::atomic::AtomicBool::new(false);
+        let routes = compile_local_claim_routes(&entities, &relations, limits, &cancel).unwrap();
+        let count: usize = relations["relations"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter_map(|e| e.get("source_claim_profile"))
+            .map(|p| p["schemas"].as_array().unwrap().len())
+            .sum();
+        assert_eq!(routes.len(), count);
+        assert!(routes.contains_key(&(
+            "subject_identity_transition_proposal".into(),
+            "tos_subject_identity_transition_claim_v1".into()
+        )));
+        let mut duplicated = relations.clone();
+        let entry = duplicated["relations"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|e| e.get("source_claim_profile").is_some())
+            .unwrap()
+            .clone();
         duplicated["relations"].as_array_mut().unwrap().push(entry);
-        assert!(matches!(compile_local_claim_routes(&entities,&duplicated,limits,&cancel),Err(LocalClaimCompileError::Rule("claim-relation-id-duplicate",_))));
-        let mut changed=entities.clone();
-        let entry=changed["types"].as_array_mut().unwrap().iter_mut().find(|e|e["source_record_profile"].get("identity_proposal_adapter").is_some()).unwrap();
-        entry["source_record_profile"]["graph_layer"]=json!("invented");
-        assert!(matches!(compile_local_claim_routes(&changed,&relations,limits,&cancel),Err(LocalClaimCompileError::Rule("claim-semantic-identity-adapter",_))));
-        cancel.store(true,std::sync::atomic::Ordering::Relaxed);
-        assert!(matches!(compile_local_claim_routes(&entities,&relations,limits,&cancel),Err(LocalClaimCompileError::Refusal(_))));
+        assert!(matches!(
+            compile_local_claim_routes(&entities, &duplicated, limits, &cancel),
+            Err(LocalClaimCompileError::Rule(
+                "claim-relation-id-duplicate",
+                _
+            ))
+        ));
+        let mut changed = entities.clone();
+        let entry = changed["types"]
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .find(|e| {
+                e["source_record_profile"]
+                    .get("identity_proposal_adapter")
+                    .is_some()
+            })
+            .unwrap();
+        entry["source_record_profile"]["graph_layer"] = json!("invented");
+        assert!(matches!(
+            compile_local_claim_routes(&changed, &relations, limits, &cancel),
+            Err(LocalClaimCompileError::Rule(
+                "claim-semantic-identity-adapter",
+                _
+            ))
+        ));
+        cancel.store(true, std::sync::atomic::Ordering::Relaxed);
+        assert!(matches!(
+            compile_local_claim_routes(&entities, &relations, limits, &cancel),
+            Err(LocalClaimCompileError::Refusal(_))
+        ));
     }
 
     #[test]
     fn local_claim_shared_value_laws_keep_topology_and_exact_basis_local() {
-        let exact=|id:&str|json!({"id":id,"version":1,"digest":format!("sha256:{}","a".repeat(64))});
-        let mut proposal=json!({"claim_id":"tos.claim.proposal","subject_ref":"tos.work.a","supersedes_claim_ref":null,
+        let exact =
+            |id: &str| json!({"id":id,"version":1,"digest":format!("sha256:{}","a".repeat(64))});
+        let mut proposal = json!({"claim_id":"tos.claim.proposal","subject_ref":"tos.work.a","supersedes_claim_ref":null,
             "object":{"operation":"merge","members":["tos.work.a","tos.work.b","tos.work.c"],
                 "predecessors":[exact("tos.work.a"),exact("tos.work.b")],"successors":[exact("tos.work.c")],
                 "mapping":[{"predecessor":"tos.work.a","successor":"tos.work.c"},{"predecessor":"tos.work.b","successor":"tos.work.c"}],
@@ -2594,23 +2635,44 @@ mod tests {
         assert!(local_proposal_participants(&proposal).is_ok());
         proposal["object"]["mapping"].as_array_mut().unwrap().pop();
         assert!(local_proposal_participants(&proposal).is_err());
-        assert!(!local_exact_ref(&json!({"id":"tos.work.a","version":true,"digest":format!("sha256:{}","a".repeat(64))}),false));
-        assert!(!local_tos_id("tos.work.bad..suffix",false));
-        let limits=crate::item_rules::ItemLimits {max_member_bytes:MAX_RECORD_BYTES,max_total_bytes:32*1_048_576,max_state_bytes:64*1_048_576,max_issues:64,deadline:std::time::Instant::now()+std::time::Duration::from_secs(30)};
-        let cancel=std::sync::atomic::AtomicBool::new(false);
-        let mut order=json!({"subject_ref":"tos.collection.one","object":{"kind":"collection-member-order",
+        assert!(!local_exact_ref(
+            &json!({"id":"tos.work.a","version":true,"digest":format!("sha256:{}","a".repeat(64))}),
+            false
+        ));
+        assert!(!local_tos_id("tos.work.bad..suffix", false));
+        let limits = crate::item_rules::ItemLimits {
+            max_member_bytes: MAX_RECORD_BYTES,
+            max_total_bytes: 32 * 1_048_576,
+            max_state_bytes: 64 * 1_048_576,
+            max_issues: 64,
+            deadline: std::time::Instant::now() + std::time::Duration::from_secs(30),
+        };
+        let cancel = std::sync::atomic::AtomicBool::new(false);
+        let mut order = json!({"subject_ref":"tos.collection.one","object":{"kind":"collection-member-order",
             "members":["tos.work.a","tos.work.b"],"ordering":{"mode":"total","precedes":[["tos.work.a","tos.work.b"]]},
             "collection_version":exact("tos.collection.one"),"membership_versions":[exact("tos.claim.a"),exact("tos.claim.b")]}});
-        assert!(local_scoped_member_structure(&order,limits,&cancel).unwrap().is_ok());
-        order["object"]["ordering"]["precedes"]=json!([]);
-        assert_eq!(local_scoped_member_structure(&order,limits,&cancel).unwrap(),Err("claim-structure-total-incomparable"));
-        order["object"]["ordering"]=json!({"mode":"partial","precedes":[["tos.work.a","tos.work.b"],["tos.work.b","tos.work.a"]]});
-        assert_eq!(local_scoped_member_structure(&order,limits,&cancel).unwrap(),Err("claim-structure-cycle"));
-        order["object"]["ordering"]=json!({"mode":"unordered","precedes":[]});
-        order["object"]["membership_versions"][1]=exact("tos.claim.a");
-        assert_eq!(local_scoped_member_structure(&order,limits,&cancel).unwrap(),Err("claim-collection-order-exact-basis"));
+        assert!(
+            local_scoped_member_structure(&order, limits, &cancel)
+                .unwrap()
+                .is_ok()
+        );
+        order["object"]["ordering"]["precedes"] = json!([]);
+        assert_eq!(
+            local_scoped_member_structure(&order, limits, &cancel).unwrap(),
+            Err("claim-structure-total-incomparable")
+        );
+        order["object"]["ordering"] = json!({"mode":"partial","precedes":[["tos.work.a","tos.work.b"],["tos.work.b","tos.work.a"]]});
+        assert_eq!(
+            local_scoped_member_structure(&order, limits, &cancel).unwrap(),
+            Err("claim-structure-cycle")
+        );
+        order["object"]["ordering"] = json!({"mode":"unordered","precedes":[]});
+        order["object"]["membership_versions"][1] = exact("tos.claim.a");
+        assert_eq!(
+            local_scoped_member_structure(&order, limits, &cancel).unwrap(),
+            Err("claim-collection-order-exact-basis")
+        );
     }
-
 }
 
 // Local human-forms Claim route: SourceClaimProfiles.validate(objects=None).
@@ -2658,31 +2720,57 @@ pub fn validate_source_claim_from_cut(
     let revision = cut.current().revision();
     let binding = worker.execution_binding();
     if worker.source_revision() != revision || binding.source_revision != revision {
-        return Err(ItemRefusal::Source("local Claim worker/cut revision differs".into()));
+        return Err(ItemRefusal::Source(
+            "local Claim worker/cut revision differs".into(),
+        ));
     }
     if binding.schema_profile != FormatProfile::LegacyPythonObserved20260923 {
-        return Err(ItemRefusal::Unsupported("local Claim requires the observed Python FormatChecker profile".into()));
+        return Err(ItemRefusal::Unsupported(
+            "local Claim requires the observed Python FormatChecker profile".into(),
+        ));
     }
     if selected_claim_raw.len() > limits.max_member_bytes.min(MAX_RECORD_BYTES)
         || selected_claim_raw.len() as u64 > limits.max_total_bytes
-        || selected_claim_raw.len().checked_mul(4).is_none_or(|n| n > limits.max_state_bytes/2)
-    { return Err(ItemRefusal::Budget); }
+        || selected_claim_raw
+            .len()
+            .checked_mul(4)
+            .is_none_or(|n| n > limits.max_state_bytes / 2)
+    {
+        return Err(ItemRefusal::Budget);
+    }
     // This consumer receives the native owner's decoded JSON transport. A
     // representation Rust cannot retain is Unsupported, never invalid source.
-    let claim: Value = serde_json::from_slice(selected_claim_raw).map_err(|_| ItemRefusal::Unsupported("local Claim decoded JSON representation".into()))?;
-    let decoded = serde_json::to_vec(&claim).map_err(|_| ItemRefusal::Unsupported("local Claim decoded serialization".into()))?;
+    let claim: Value = serde_json::from_slice(selected_claim_raw)
+        .map_err(|_| ItemRefusal::Unsupported("local Claim decoded JSON representation".into()))?;
+    let decoded = serde_json::to_vec(&claim)
+        .map_err(|_| ItemRefusal::Unsupported("local Claim decoded serialization".into()))?;
     let first_receipt = worker.receipts().len();
     let mut report = SourceClaimLocalReport {
         source_revision: revision,
         source_input_sha256: Digest256::of_bytes(selected_claim_raw),
         decoded_input_sha256: Digest256::of_bytes(&decoded),
         execution_binding: binding,
-        dependency_digests: BTreeMap::new(), issues: Vec::new(), schema_receipts: Vec::new(),
+        dependency_digests: BTreeMap::new(),
+        issues: Vec::new(),
+        schema_receipts: Vec::new(),
     };
     let mut bytes = selected_claim_raw.len() as u64;
     let mut inputs = BTreeMap::<String, (Value, Vec<u8>)>::new();
-    for path in [LOCAL_CLAIM_REGISTRY, LOCAL_CLAIM_CONTRACT, ENTITY_REGISTRY, ENTITY_CONTRACT] {
-        local_claim_input(cut, path, limits, cancelled, &mut bytes, &mut inputs, &mut report)?;
+    for path in [
+        LOCAL_CLAIM_REGISTRY,
+        LOCAL_CLAIM_CONTRACT,
+        ENTITY_REGISTRY,
+        ENTITY_CONTRACT,
+    ] {
+        local_claim_input(
+            cut,
+            path,
+            limits,
+            cancelled,
+            &mut bytes,
+            &mut inputs,
+            &mut report,
+        )?;
     }
     // Constructor uses no FormatChecker. Current exact contracts are local,
     // format-free schemas. Refuse a changed contract requiring another profile
@@ -2690,398 +2778,1111 @@ pub fn validate_source_claim_from_cut(
     for path in [LOCAL_CLAIM_CONTRACT, ENTITY_CONTRACT] {
         local_registry_schema(&inputs[path].0)?;
         if worker.contract_digest(path) != report.dependency_digests.get(path).copied() {
-            return Err(ItemRefusal::Source("local Claim registry contract worker digest differs".into()));
+            return Err(ItemRefusal::Source(
+                "local Claim registry contract worker digest differs".into(),
+            ));
         }
     }
-    for (path, schema) in [(LOCAL_CLAIM_REGISTRY, LOCAL_CLAIM_CONTRACT), (ENTITY_REGISTRY, ENTITY_CONTRACT)] {
+    for (path, schema) in [
+        (LOCAL_CLAIM_REGISTRY, LOCAL_CLAIM_CONTRACT),
+        (ENTITY_REGISTRY, ENTITY_CONTRACT),
+    ] {
         if !worker.check(path, &inputs[path].1, schema, limits.deadline, cancelled)? {
             local_claim_issue(&mut report, limits, "claim-registry-schema", path)?;
         }
     }
     if report.issues.is_empty() {
-        match compile_local_claim_routes(&inputs[ENTITY_REGISTRY].0, &inputs[LOCAL_CLAIM_REGISTRY].0, limits, cancelled) {
+        match compile_local_claim_routes(
+            &inputs[ENTITY_REGISTRY].0,
+            &inputs[LOCAL_CLAIM_REGISTRY].0,
+            limits,
+            cancelled,
+        ) {
             Ok(routes) => {
-                let result = validate_local_claim_shape(cut, &claim, selected_claim_raw, &routes, worker, limits, cancelled, &mut bytes, &mut inputs, &mut report);
+                let result = validate_local_claim_shape(
+                    cut,
+                    &claim,
+                    selected_claim_raw,
+                    &routes,
+                    worker,
+                    limits,
+                    cancelled,
+                    &mut bytes,
+                    &mut inputs,
+                    &mut report,
+                );
                 result?;
             }
-            Err(LocalClaimCompileError::Rule(code, detail)) => local_claim_issue(&mut report, limits, code, &detail)?,
+            Err(LocalClaimCompileError::Rule(code, detail)) => {
+                local_claim_issue(&mut report, limits, code, &detail)?
+            }
             Err(LocalClaimCompileError::Refusal(error)) => return Err(error),
         }
     }
     local_claim_checkpoint(limits, cancelled)?;
     // Only this invocation's concrete executed receipts are exposed.
     let receipts = &worker.receipts()[first_receipt..];
-    let receipt_bytes = receipts.iter().try_fold(0usize, |n,r| n.checked_add(r.path.len()+r.contract.len()+256)).ok_or(ItemRefusal::Budget)?;
-    if receipt_bytes.checked_add((bytes as usize).checked_mul(4).ok_or(ItemRefusal::Budget)?).is_none_or(|n|n>limits.max_state_bytes/2) {return Err(ItemRefusal::Budget);}
+    let receipt_bytes = receipts
+        .iter()
+        .try_fold(0usize, |n, r| {
+            n.checked_add(r.path.len() + r.contract.len() + 256)
+        })
+        .ok_or(ItemRefusal::Budget)?;
+    if receipt_bytes
+        .checked_add((bytes as usize).checked_mul(4).ok_or(ItemRefusal::Budget)?)
+        .is_none_or(|n| n > limits.max_state_bytes / 2)
+    {
+        return Err(ItemRefusal::Budget);
+    }
     report.schema_receipts = receipts.to_vec();
     Ok(report)
 }
 
-fn local_claim_checkpoint(limits: crate::item_rules::ItemLimits, cancelled: &std::sync::atomic::AtomicBool) -> Result<(), crate::item_rules::ItemRefusal> {
+fn local_claim_checkpoint(
+    limits: crate::item_rules::ItemLimits,
+    cancelled: &std::sync::atomic::AtomicBool,
+) -> Result<(), crate::item_rules::ItemRefusal> {
     use crate::item_rules::ItemRefusal;
-    if cancelled.load(std::sync::atomic::Ordering::Relaxed) {return Err(ItemRefusal::Source("local Claim cancelled".into()));}
-    if std::time::Instant::now() >= limits.deadline {return Err(ItemRefusal::Deadline);}
+    if cancelled.load(std::sync::atomic::Ordering::Relaxed) {
+        return Err(ItemRefusal::Source("local Claim cancelled".into()));
+    }
+    if std::time::Instant::now() >= limits.deadline {
+        return Err(ItemRefusal::Deadline);
+    }
     Ok(())
 }
-fn local_claim_issue(report: &mut SourceClaimLocalReport, limits: crate::item_rules::ItemLimits, code: &'static str, location: &str) -> Result<(), crate::item_rules::ItemRefusal> {
-    if report.issues.len() >= limits.max_issues {return Err(crate::item_rules::ItemRefusal::Budget);}
-    report.issues.push(crate::relation_rules::RelationIssue {code,location:location.to_owned()}); Ok(())
+fn local_claim_issue(
+    report: &mut SourceClaimLocalReport,
+    limits: crate::item_rules::ItemLimits,
+    code: &'static str,
+    location: &str,
+) -> Result<(), crate::item_rules::ItemRefusal> {
+    if report.issues.len() >= limits.max_issues {
+        return Err(crate::item_rules::ItemRefusal::Budget);
+    }
+    report.issues.push(crate::relation_rules::RelationIssue {
+        code,
+        location: location.to_owned(),
+    });
+    Ok(())
 }
 fn local_claim_input(
-    cut: &tos_source_store::CorpusCutReader, path: &str, limits: crate::item_rules::ItemLimits,
-    cancelled: &std::sync::atomic::AtomicBool, bytes: &mut u64,
-    inputs: &mut BTreeMap<String,(Value,Vec<u8>)>, report: &mut SourceClaimLocalReport,
-) -> Result<(),crate::item_rules::ItemRefusal> {
+    cut: &tos_source_store::CorpusCutReader,
+    path: &str,
+    limits: crate::item_rules::ItemLimits,
+    cancelled: &std::sync::atomic::AtomicBool,
+    bytes: &mut u64,
+    inputs: &mut BTreeMap<String, (Value, Vec<u8>)>,
+    report: &mut SourceClaimLocalReport,
+) -> Result<(), crate::item_rules::ItemRefusal> {
     use crate::item_rules::ItemRefusal;
-    local_claim_checkpoint(limits,cancelled)?;
-    if inputs.contains_key(path) {return Ok(());}
-    if inputs.len() >= MAX_SOURCE_RESOURCES {return Err(ItemRefusal::Budget);}
-    let relative = tos_foundation::RelativePath::new(path).map_err(|_|ItemRefusal::Unsupported("local Claim dependency path".into()))?;
-    let member = cut.read_member(cut.current().revision(), &relative, limits.max_member_bytes.min(MAX_RECORD_BYTES) as u64, limits.deadline,cancelled).map_err(|e|{
-        use tos_source_store::StoreErrorCode;
-        match e.code {StoreErrorCode::BudgetExceeded=>ItemRefusal::Budget, StoreErrorCode::UnsupportedFormat|StoreErrorCode::UnsupportedPlatform=>ItemRefusal::Unsupported(e.to_string()),_=>ItemRefusal::Source(e.to_string())}
-    })?;
-    *bytes=bytes.checked_add(member.raw.len() as u64).filter(|n|*n<=limits.max_total_bytes).ok_or(ItemRefusal::Budget)?;
+    local_claim_checkpoint(limits, cancelled)?;
+    if inputs.contains_key(path) {
+        return Ok(());
+    }
+    if inputs.len() >= MAX_SOURCE_RESOURCES {
+        return Err(ItemRefusal::Budget);
+    }
+    let relative = tos_foundation::RelativePath::new(path)
+        .map_err(|_| ItemRefusal::Unsupported("local Claim dependency path".into()))?;
+    let member = cut
+        .read_member(
+            cut.current().revision(),
+            &relative,
+            limits.max_member_bytes.min(MAX_RECORD_BYTES) as u64,
+            limits.deadline,
+            cancelled,
+        )
+        .map_err(|e| {
+            use tos_source_store::StoreErrorCode;
+            match e.code {
+                StoreErrorCode::BudgetExceeded => ItemRefusal::Budget,
+                StoreErrorCode::UnsupportedFormat | StoreErrorCode::UnsupportedPlatform => {
+                    ItemRefusal::Unsupported(e.to_string())
+                }
+                _ => ItemRefusal::Source(e.to_string()),
+            }
+        })?;
+    *bytes = bytes
+        .checked_add(member.raw.len() as u64)
+        .filter(|n| *n <= limits.max_total_bytes)
+        .ok_or(ItemRefusal::Budget)?;
     // Half the state quota retains decoded inputs and receipts; the other
     // half is reserved for constructor routes and their cloned descriptors.
-    if bytes.checked_mul(4).is_none_or(|n| n>(limits.max_state_bytes/2) as u64) {return Err(ItemRefusal::Budget);}
-    let value=published_value(&member.raw,limits.max_member_bytes.min(MAX_RECORD_BYTES)).map_err(|e|ItemRefusal::Unsupported(format!("local Claim dependency {path}: {e:?}")))?;
-    if !value.is_object() {return Err(ItemRefusal::Unsupported(format!("local Claim dependency must be an object: {path}")));}
-    report.dependency_digests.insert(path.into(),Digest256::of_bytes(&member.raw));
-    inputs.insert(path.into(),(value,member.raw)); Ok(())
+    if bytes
+        .checked_mul(4)
+        .is_none_or(|n| n > (limits.max_state_bytes / 2) as u64)
+    {
+        return Err(ItemRefusal::Budget);
+    }
+    let value = published_value(&member.raw, limits.max_member_bytes.min(MAX_RECORD_BYTES))
+        .map_err(|e| ItemRefusal::Unsupported(format!("local Claim dependency {path}: {e:?}")))?;
+    if !value.is_object() {
+        return Err(ItemRefusal::Unsupported(format!(
+            "local Claim dependency must be an object: {path}"
+        )));
+    }
+    report
+        .dependency_digests
+        .insert(path.into(), Digest256::of_bytes(&member.raw));
+    inputs.insert(path.into(), (value, member.raw));
+    Ok(())
 }
 
 // Inspect schema locations only; arbitrary const/enum/example values remain
 // data. Nested resource identities would need the source owner's exact resolver
 // semantics and therefore retain Unsupported in this fixed local adapter.
-fn local_schema_walk(value:&Value, root:bool, visit:&mut impl FnMut(&str,&Value)->Result<(),crate::item_rules::ItemRefusal>) -> Result<(),crate::item_rules::ItemRefusal> {
-    let Some(object)=value.as_object() else {return Ok(());};
-    for (key,item) in object {
-        if key=="$id" && !root {return Err(crate::item_rules::ItemRefusal::Unsupported("local Claim nested schema identity".into()));}
-        visit(key,item)?;
-        match key.as_str() {
-            "$defs"|"definitions"|"properties"|"patternProperties"|"dependentSchemas"=>if let Some(children)=item.as_object(){for child in children.values(){local_schema_walk(child,false,visit)?;}},
-            "allOf"|"anyOf"|"oneOf"|"prefixItems"=>if let Some(children)=item.as_array(){for child in children{local_schema_walk(child,false,visit)?;}},
-            "items"|"contains"|"additionalProperties"|"unevaluatedProperties"|"unevaluatedItems"|"propertyNames"|"not"|"if"|"then"|"else"=>local_schema_walk(item,false,visit)?,
-            _=>{},
+fn local_schema_walk(
+    value: &Value,
+    root: bool,
+    visit: &mut impl FnMut(&str, &Value) -> Result<(), crate::item_rules::ItemRefusal>,
+) -> Result<(), crate::item_rules::ItemRefusal> {
+    let Some(object) = value.as_object() else {
+        return Ok(());
+    };
+    for (key, item) in object {
+        if key == "$id" && !root {
+            return Err(crate::item_rules::ItemRefusal::Unsupported(
+                "local Claim nested schema identity".into(),
+            ));
         }
-    } Ok(())
+        visit(key, item)?;
+        match key.as_str() {
+            "$defs" | "definitions" | "properties" | "patternProperties" | "dependentSchemas" => {
+                if let Some(children) = item.as_object() {
+                    for child in children.values() {
+                        local_schema_walk(child, false, visit)?;
+                    }
+                }
+            }
+            "allOf" | "anyOf" | "oneOf" | "prefixItems" => {
+                if let Some(children) = item.as_array() {
+                    for child in children {
+                        local_schema_walk(child, false, visit)?;
+                    }
+                }
+            }
+            "items"
+            | "contains"
+            | "additionalProperties"
+            | "unevaluatedProperties"
+            | "unevaluatedItems"
+            | "propertyNames"
+            | "not"
+            | "if"
+            | "then"
+            | "else" => local_schema_walk(item, false, visit)?,
+            _ => {}
+        }
+    }
+    Ok(())
 }
-fn local_registry_schema(schema:&Value)->Result<(),crate::item_rules::ItemRefusal> {
-    local_schema_walk(schema,true,&mut |key,value| {
-        if key=="format" || (matches!(key,"$ref"|"$dynamicRef") && value.as_str().is_none_or(|s|!s.starts_with('#'))) {
+fn local_registry_schema(schema: &Value) -> Result<(), crate::item_rules::ItemRefusal> {
+    local_schema_walk(schema, true, &mut |key, value| {
+        if key == "format"
+            || (matches!(key, "$ref" | "$dynamicRef")
+                && value.as_str().is_none_or(|s| !s.starts_with('#')))
+        {
             return Err(crate::item_rules::ItemRefusal::Unsupported("local Claim changed registry constructor schema requires an exact no-format closure".into()));
-        } Ok(())
+        }
+        Ok(())
     })
 }
 
 #[derive(Debug)]
-enum LocalClaimCompileError {Rule(&'static str,String),Refusal(crate::item_rules::ItemRefusal)}
+enum LocalClaimCompileError {
+    Rule(&'static str, String),
+    Refusal(crate::item_rules::ItemRefusal),
+}
 impl From<RecordRuleError> for LocalClaimCompileError {
-    fn from(error:RecordRuleError)->Self {match error {RecordRuleError::Unsupported{code,detail}=>Self::Rule(code,detail),other=>Self::Refusal(crate::item_rules::ItemRefusal::Unsupported(format!("local Claim registry: {other:?}")))}}
-}
-fn local_route_failure(code:&'static str,detail:&str)->LocalClaimCompileError {LocalClaimCompileError::Rule(code,detail.into())}
-fn local_string<'a>(value:&'a Value,key:&str)->Option<&'a str> {value.get(key).and_then(Value::as_str)}
-fn local_strings<'a>(value:&'a Value,key:&str)->Vec<&'a str> {value[key].as_array().into_iter().flatten().filter_map(Value::as_str).collect()}
-fn local_specific(id:&str)->bool {!matches!(id,"tos.entity.thing"|"tos.entity.identity"|"tos.entity.semantic-object"|"tos.entity.unmapped"|"tos.entity.unresolved-endpoint")}
-fn local_semantic_eligible(entity:&Entity)->bool {
-    let Some(p)=entity.profile.as_ref() else{return false;};
-    let Some(kind)=local_string(p,"record_type") else{return false;};
-    !entity.abstract_type && entity.role=="semantic" && local_string(p,"reader")==Some("semantic-metadata-v1")
-        && local_string(p,"identity_proposal_adapter")==Some("exact-semantic-metadata-v1")
-        && local_string(p,"graph_layer")==Some("source-profile") && source_kind(kind)
-        && !matches!(kind,"claim"|"literal"|"temporal-assertion")
-        && local_string(p,"id_prefix")==Some(format!("tos.{kind}.").as_str())
-        && local_string(p,"source_basename")==Some(format!("{kind}.json").as_str())
-        && p["schemas"].as_array().is_some_and(|s|!s.is_empty())
-        && ["source-claims","source-navigation"].iter().all(|graph|entity.mappings.iter().filter(|(g,k)|g==graph&&k==kind).count()==1)
-}
-fn local_is_proposal(reader:&str)->bool {matches!(reader,"identity-transition-v1"|"identity-transition-v2")}
-fn local_is_structured(reader:&str)->bool {matches!(reader,"structured-value-v1"|"structured-reference-value-v1"|"identity-transition-v1"|"identity-transition-v2")}
-fn local_is_temporal(reader:&str)->bool {matches!(reader,"historical-temporal-v1"|"document-catalogue-temporal-v1")}
-fn local_document_role(predicate:&str)->Option<&'static str> {match predicate {"document_catalogue_date"=>Some("assigned-date"),"document_catalogue_origin"=>Some("origin"),"document_catalogue_destination"=>Some("destination"),_=>None}}
-
-fn compile_local_claim_routes(entities_raw:&Value, relations:&Value, limits:crate::item_rules::ItemLimits, cancelled:&std::sync::atomic::AtomicBool)->Result<BTreeMap<(String,String),LocalClaimRoute>,LocalClaimCompileError> {
-    let entities=compile_entities(entities_raw)?;
-    let mut kinds=BTreeMap::new();
-    for (id,e) in &entities {
-        local_claim_checkpoint(limits,cancelled).map_err(LocalClaimCompileError::Refusal)?;
-        if e.profile.as_ref().is_some_and(|p|p.get("identity_proposal_adapter").is_some()) && !local_semantic_eligible(e) {return Err(local_route_failure("claim-semantic-identity-adapter",id));}
-        for (graph,kind) in &e.mappings {if graph=="source-claims" && kinds.insert(kind.clone(),id.clone()).is_some(){return Err(local_route_failure("claim-source-kind-owner",kind));}}
+    fn from(error: RecordRuleError) -> Self {
+        match error {
+            RecordRuleError::Unsupported { code, detail } => Self::Rule(code, detail),
+            other => Self::Refusal(crate::item_rules::ItemRefusal::Unsupported(format!(
+                "local Claim registry: {other:?}"
+            ))),
+        }
     }
-    let entries=relations["relations"].as_array().ok_or_else(||local_route_failure("claim-relation-registry","relations"))?;
-    let mut ids=BTreeSet::new(); let mut owners=BTreeMap::<&str,usize>::new();
-    for (index,entry) in entries.iter().enumerate() {
-        let id=field_str(entry,"relation_type_id","claim-relation-id")?;
-        if !ids.insert(id) {return Err(local_route_failure("claim-relation-id-duplicate",id));}
+}
+fn local_route_failure(code: &'static str, detail: &str) -> LocalClaimCompileError {
+    LocalClaimCompileError::Rule(code, detail.into())
+}
+fn local_string<'a>(value: &'a Value, key: &str) -> Option<&'a str> {
+    value.get(key).and_then(Value::as_str)
+}
+fn local_strings<'a>(value: &'a Value, key: &str) -> Vec<&'a str> {
+    value[key]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_str)
+        .collect()
+}
+fn local_specific(id: &str) -> bool {
+    !matches!(
+        id,
+        "tos.entity.thing"
+            | "tos.entity.identity"
+            | "tos.entity.semantic-object"
+            | "tos.entity.unmapped"
+            | "tos.entity.unresolved-endpoint"
+    )
+}
+fn local_semantic_eligible(entity: &Entity) -> bool {
+    let Some(p) = entity.profile.as_ref() else {
+        return false;
+    };
+    let Some(kind) = local_string(p, "record_type") else {
+        return false;
+    };
+    !entity.abstract_type
+        && entity.role == "semantic"
+        && local_string(p, "reader") == Some("semantic-metadata-v1")
+        && local_string(p, "identity_proposal_adapter") == Some("exact-semantic-metadata-v1")
+        && local_string(p, "graph_layer") == Some("source-profile")
+        && source_kind(kind)
+        && !matches!(kind, "claim" | "literal" | "temporal-assertion")
+        && local_string(p, "id_prefix") == Some(format!("tos.{kind}.").as_str())
+        && local_string(p, "source_basename") == Some(format!("{kind}.json").as_str())
+        && p["schemas"].as_array().is_some_and(|s| !s.is_empty())
+        && ["source-claims", "source-navigation"].iter().all(|graph| {
+            entity
+                .mappings
+                .iter()
+                .filter(|(g, k)| g == graph && k == kind)
+                .count()
+                == 1
+        })
+}
+fn local_is_proposal(reader: &str) -> bool {
+    matches!(reader, "identity-transition-v1" | "identity-transition-v2")
+}
+fn local_is_structured(reader: &str) -> bool {
+    matches!(
+        reader,
+        "structured-value-v1"
+            | "structured-reference-value-v1"
+            | "identity-transition-v1"
+            | "identity-transition-v2"
+    )
+}
+fn local_is_temporal(reader: &str) -> bool {
+    matches!(
+        reader,
+        "historical-temporal-v1" | "document-catalogue-temporal-v1"
+    )
+}
+fn local_document_role(predicate: &str) -> Option<&'static str> {
+    match predicate {
+        "document_catalogue_date" => Some("assigned-date"),
+        "document_catalogue_origin" => Some("origin"),
+        "document_catalogue_destination" => Some("destination"),
+        _ => None,
+    }
+}
+
+fn compile_local_claim_routes(
+    entities_raw: &Value,
+    relations: &Value,
+    limits: crate::item_rules::ItemLimits,
+    cancelled: &std::sync::atomic::AtomicBool,
+) -> Result<BTreeMap<(String, String), LocalClaimRoute>, LocalClaimCompileError> {
+    let entities = compile_entities(entities_raw)?;
+    let mut kinds = BTreeMap::new();
+    for (id, e) in &entities {
+        local_claim_checkpoint(limits, cancelled).map_err(LocalClaimCompileError::Refusal)?;
+        if e.profile
+            .as_ref()
+            .is_some_and(|p| p.get("identity_proposal_adapter").is_some())
+            && !local_semantic_eligible(e)
+        {
+            return Err(local_route_failure("claim-semantic-identity-adapter", id));
+        }
+        for (graph, kind) in &e.mappings {
+            if graph == "source-claims" && kinds.insert(kind.clone(), id.clone()).is_some() {
+                return Err(local_route_failure("claim-source-kind-owner", kind));
+            }
+        }
+    }
+    let entries = relations["relations"]
+        .as_array()
+        .ok_or_else(|| local_route_failure("claim-relation-registry", "relations"))?;
+    let mut ids = BTreeSet::new();
+    let mut owners = BTreeMap::<&str, usize>::new();
+    for (index, entry) in entries.iter().enumerate() {
+        let id = field_str(entry, "relation_type_id", "claim-relation-id")?;
+        if !ids.insert(id) {
+            return Err(local_route_failure("claim-relation-id-duplicate", id));
+        }
         for mapping in entry["source_mappings"].as_array().into_iter().flatten() {
-            if local_string(mapping,"source_graph")==Some("source-claims") && local_string(mapping,"scope")==Some("claim-predicate") {
-                let predicate=field_str(mapping,"source_predicate_id","claim-predicate-mapping")?;
+            if local_string(mapping, "source_graph") == Some("source-claims")
+                && local_string(mapping, "scope") == Some("claim-predicate")
+            {
+                let predicate =
+                    field_str(mapping, "source_predicate_id", "claim-predicate-mapping")?;
                 // Same-entry duplicates are caught by its exact mapping count.
-                if owners.insert(predicate,index).is_some_and(|prior|prior!=index) {
+                if owners
+                    .insert(predicate, index)
+                    .is_some_and(|prior| prior != index)
+                {
                     // Only predicates with a declared local profile are used.
-                    if entries.iter().any(|e|e.get("source_claim_profile").is_some() && e["source_mappings"].as_array().into_iter().flatten().any(|m|local_string(m,"source_graph")==Some("source-claims")&&local_string(m,"scope")==Some("claim-predicate")&&local_string(m,"source_predicate_id")==Some(predicate))) {return Err(local_route_failure("claim-predicate-owner",predicate));}
+                    if entries.iter().any(|e| {
+                        e.get("source_claim_profile").is_some()
+                            && e["source_mappings"]
+                                .as_array()
+                                .into_iter()
+                                .flatten()
+                                .any(|m| {
+                                    local_string(m, "source_graph") == Some("source-claims")
+                                        && local_string(m, "scope") == Some("claim-predicate")
+                                        && local_string(m, "source_predicate_id") == Some(predicate)
+                                })
+                    }) {
+                        return Err(local_route_failure("claim-predicate-owner", predicate));
+                    }
                 }
             }
         }
     }
-    let mut routes=BTreeMap::new();
-    let mut route_bytes=0usize;
+    let mut routes = BTreeMap::new();
+    let mut route_bytes = 0usize;
     for entry in entries {
-        local_claim_checkpoint(limits,cancelled).map_err(LocalClaimCompileError::Refusal)?;
-        let Some(profile)=entry.get("source_claim_profile") else{continue;};
-        let reader=field_str(profile,"reader","claim-reader")?;
-        let mappings:Vec<_>=entry["source_mappings"].as_array().into_iter().flatten().filter(|m|local_string(m,"source_graph")==Some("source-claims")&&local_string(m,"scope")==Some("claim-predicate")).collect();
-        if mappings.len()!=1 || entry["abstract"]!=false || local_string(entry,"assertion_mode")!=Some("reified-claim") || entry["evidence_required"]!=true {return Err(local_route_failure("claim-profile-reified-evidence","source_claim_profile"));}
-        let predicate=field_str(mappings[0],"source_predicate_id","claim-predicate")?;
-        let domain=field_array_str(entry,"domain_type_ids","claim-domain")?;
-        let range=field_array_str(entry,"range_type_ids","claim-range")?;
-        let schemas=profile["schemas"].as_array().ok_or_else(||local_route_failure("claim-profile-schemas",predicate))?;
-        let exact_schema=|version:&str,path:&str|schemas.len()==1 && local_string(&schemas[0],"schema_version")==Some(version)&&local_string(&schemas[0],"schema_ref")==Some(path);
-        let layers=local_strings(profile,"assertion_layers");
-        if local_document_role(predicate).is_some() || reader=="document-catalogue-temporal-v1" {
-            let date=predicate=="document_catalogue_date";
-            if local_document_role(predicate).is_none() || reader!=if date{"document-catalogue-temporal-v1"}else{"identity-relation-v1"} || domain!=["tos.entity.document"] || range!=[if date{"tos.entity.temporal-assertion"}else{"tos.entity.place"}] || layers!=["bibliographic_assertion"] || !exact_schema("tos_document_catalogue_claim_v1",LOCAL_DOCUMENT) {return Err(local_route_failure("claim-document-exact-profile",predicate));}
+        local_claim_checkpoint(limits, cancelled).map_err(LocalClaimCompileError::Refusal)?;
+        let Some(profile) = entry.get("source_claim_profile") else {
+            continue;
+        };
+        let reader = field_str(profile, "reader", "claim-reader")?;
+        let mappings: Vec<_> = entry["source_mappings"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter(|m| {
+                local_string(m, "source_graph") == Some("source-claims")
+                    && local_string(m, "scope") == Some("claim-predicate")
+            })
+            .collect();
+        if mappings.len() != 1
+            || entry["abstract"] != false
+            || local_string(entry, "assertion_mode") != Some("reified-claim")
+            || entry["evidence_required"] != true
+        {
+            return Err(local_route_failure(
+                "claim-profile-reified-evidence",
+                "source_claim_profile",
+            ));
         }
-        let mut semantic_endpoint=false;
-        for (is_domain,values) in [(true,&domain),(false,&range)] {
+        let predicate = field_str(mappings[0], "source_predicate_id", "claim-predicate")?;
+        let domain = field_array_str(entry, "domain_type_ids", "claim-domain")?;
+        let range = field_array_str(entry, "range_type_ids", "claim-range")?;
+        let schemas = profile["schemas"]
+            .as_array()
+            .ok_or_else(|| local_route_failure("claim-profile-schemas", predicate))?;
+        let exact_schema = |version: &str, path: &str| {
+            schemas.len() == 1
+                && local_string(&schemas[0], "schema_version") == Some(version)
+                && local_string(&schemas[0], "schema_ref") == Some(path)
+        };
+        let layers = local_strings(profile, "assertion_layers");
+        if local_document_role(predicate).is_some() || reader == "document-catalogue-temporal-v1" {
+            let date = predicate == "document_catalogue_date";
+            if local_document_role(predicate).is_none()
+                || reader
+                    != if date {
+                        "document-catalogue-temporal-v1"
+                    } else {
+                        "identity-relation-v1"
+                    }
+                || domain != ["tos.entity.document"]
+                || range
+                    != [if date {
+                        "tos.entity.temporal-assertion"
+                    } else {
+                        "tos.entity.place"
+                    }]
+                || layers != ["bibliographic_assertion"]
+                || !exact_schema("tos_document_catalogue_claim_v1", LOCAL_DOCUMENT)
+            {
+                return Err(local_route_failure(
+                    "claim-document-exact-profile",
+                    predicate,
+                ));
+            }
+        }
+        let mut semantic_endpoint = false;
+        for (is_domain, values) in [(true, &domain), (false, &range)] {
             for type_id in values {
-                if local_is_proposal(reader)&&is_domain {
-                    let (expected_domain,expected_predicate,version,path)=if reader=="identity-transition-v1" {(vec!["tos.entity.identity"],"identity_transition_proposal","tos_source_identity_transition_claim_v1","ToS/contracts/source-identity-transition-claim.schema.json")}else{(vec!["tos.entity.identity","tos.entity.semantic-object"],"subject_identity_transition_proposal","tos_subject_identity_transition_claim_v1","ToS/contracts/subject-identity-transition-claim.schema.json")};
-                    if domain!=expected_domain || predicate!=expected_predicate || layers!=["identity_assertion"] || !exact_schema(version,path) {return Err(local_route_failure("claim-proposal-exact-profile",predicate));}
+                if local_is_proposal(reader) && is_domain {
+                    let (expected_domain, expected_predicate, version, path) =
+                        if reader == "identity-transition-v1" {
+                            (
+                                vec!["tos.entity.identity"],
+                                "identity_transition_proposal",
+                                "tos_source_identity_transition_claim_v1",
+                                "ToS/contracts/source-identity-transition-claim.schema.json",
+                            )
+                        } else {
+                            (
+                                vec!["tos.entity.identity", "tos.entity.semantic-object"],
+                                "subject_identity_transition_proposal",
+                                "tos_subject_identity_transition_claim_v1",
+                                "ToS/contracts/subject-identity-transition-claim.schema.json",
+                            )
+                        };
+                    if domain != expected_domain
+                        || predicate != expected_predicate
+                        || layers != ["identity_assertion"]
+                        || !exact_schema(version, path)
+                    {
+                        return Err(local_route_failure(
+                            "claim-proposal-exact-profile",
+                            predicate,
+                        ));
+                    }
                     continue;
                 }
-                if !local_specific(type_id) {return Err(local_route_failure("claim-specific-endpoint",type_id));}
+                if !local_specific(type_id) {
+                    return Err(local_route_failure("claim-specific-endpoint", type_id));
+                }
                 // Existing ancestry traversal detects missing types and active
                 // cycles even when the requested ancestor has already appeared.
-                let identity=has_ancestor(&entities,type_id,"tos.entity.identity")?;
-                let semantic=has_ancestor(&entities,type_id,"tos.entity.semantic-object")?;
+                let identity = has_ancestor(&entities, type_id, "tos.entity.identity")?;
+                let semantic = has_ancestor(&entities, type_id, "tos.entity.semantic-object")?;
                 if local_is_temporal(reader) {
-                    let expected=if is_domain {if reader=="document-catalogue-temporal-v1"{"tos.entity.document"}else{"tos.entity.historical-situation"}}else{"tos.entity.temporal-assertion"};
-                    if !has_ancestor(&entities,type_id,expected)? {return Err(local_route_failure("claim-temporal-family",type_id));}
+                    let expected = if is_domain {
+                        if reader == "document-catalogue-temporal-v1" {
+                            "tos.entity.document"
+                        } else {
+                            "tos.entity.historical-situation"
+                        }
+                    } else {
+                        "tos.entity.temporal-assertion"
+                    };
+                    if !has_ancestor(&entities, type_id, expected)? {
+                        return Err(local_route_failure("claim-temporal-family", type_id));
+                    }
                 } else if local_is_structured(reader) {
                     if is_domain {
-                        if !identity&&!semantic {return Err(local_route_failure("claim-value-subject-family",type_id));}
+                        if !identity && !semantic {
+                            return Err(local_route_failure("claim-value-subject-family", type_id));
+                        }
                     } else {
-                        let e=&entities[type_id];
-                        if range.len()!=1 || type_id=="tos.entity.literal" || !has_ancestor(&entities,type_id,"tos.entity.literal")? || e.abstract_type || e.role!="literal" || local_string(profile,"value_kind").and_then(|kind|kinds.get(kind))!=Some(type_id) {return Err(local_route_failure("claim-value-concrete-range",type_id));}
+                        let e = &entities[type_id];
+                        if range.len() != 1
+                            || type_id == "tos.entity.literal"
+                            || !has_ancestor(&entities, type_id, "tos.entity.literal")?
+                            || e.abstract_type
+                            || e.role != "literal"
+                            || local_string(profile, "value_kind").and_then(|kind| kinds.get(kind))
+                                != Some(type_id)
+                        {
+                            return Err(local_route_failure("claim-value-concrete-range", type_id));
+                        }
                     }
-                } else if reader=="identity-relation-v1" {
-                    if !identity {return Err(local_route_failure("claim-identity-relation-family",type_id));}
+                } else if reader == "identity-relation-v1" {
+                    if !identity {
+                        return Err(local_route_failure(
+                            "claim-identity-relation-family",
+                            type_id,
+                        ));
+                    }
                 } else {
-                    semantic_endpoint|=semantic;
-                    if !identity&&!semantic {return Err(local_route_failure("claim-semantic-relation-family",type_id));}
+                    semantic_endpoint |= semantic;
+                    if !identity && !semantic {
+                        return Err(local_route_failure(
+                            "claim-semantic-relation-family",
+                            type_id,
+                        ));
+                    }
                 }
             }
         }
-        if reader=="semantic-relation-v1"&&!semantic_endpoint {return Err(local_route_failure("claim-semantic-endpoint-required",predicate));}
-        if reader=="structured-reference-value-v1" {
-            let members=&profile["object_reference_set"];
-            let types=field_array_str(members,"member_type_ids","claim-member-types")?;
-            if (members.get("basis_adapter").is_some()||local_string(profile,"value_kind")==Some("collection-member-order")) && (local_string(members,"basis_adapter")!=Some("collection-membership-versions-v1") || local_string(members,"structure_adapter")!=Some("scoped-members-v1") || local_string(profile,"value_kind")!=Some("collection-member-order") || predicate!="collection_member_order" || domain!=["tos.entity.collection"] || types!=["tos.entity.work"]) {return Err(local_route_failure("claim-collection-order-exact-profile",predicate));}
-            if members["min_items"].as_u64()>members["max_items"].as_u64() {return Err(local_route_failure("claim-member-bounds",predicate));}
-            for id in types {if !local_specific(&id)||(!has_ancestor(&entities,&id,"tos.entity.identity")?&&!has_ancestor(&entities,&id,"tos.entity.semantic-object")?) {return Err(local_route_failure("claim-member-specific-family",&id));}}
+        if reader == "semantic-relation-v1" && !semantic_endpoint {
+            return Err(local_route_failure(
+                "claim-semantic-endpoint-required",
+                predicate,
+            ));
+        }
+        if reader == "structured-reference-value-v1" {
+            let members = &profile["object_reference_set"];
+            let types = field_array_str(members, "member_type_ids", "claim-member-types")?;
+            if (members.get("basis_adapter").is_some()
+                || local_string(profile, "value_kind") == Some("collection-member-order"))
+                && (local_string(members, "basis_adapter")
+                    != Some("collection-membership-versions-v1")
+                    || local_string(members, "structure_adapter") != Some("scoped-members-v1")
+                    || local_string(profile, "value_kind") != Some("collection-member-order")
+                    || predicate != "collection_member_order"
+                    || domain != ["tos.entity.collection"]
+                    || types != ["tos.entity.work"])
+            {
+                return Err(local_route_failure(
+                    "claim-collection-order-exact-profile",
+                    predicate,
+                ));
+            }
+            if members["min_items"].as_u64() > members["max_items"].as_u64() {
+                return Err(local_route_failure("claim-member-bounds", predicate));
+            }
+            for id in types {
+                if !local_specific(&id)
+                    || (!has_ancestor(&entities, &id, "tos.entity.identity")?
+                        && !has_ancestor(&entities, &id, "tos.entity.semantic-object")?)
+                {
+                    return Err(local_route_failure("claim-member-specific-family", &id));
+                }
+            }
         }
         for schema in schemas {
-            if routes.len()>=MAX_COMPILED_ROUTES {return Err(LocalClaimCompileError::Refusal(crate::item_rules::ItemRefusal::Budget));}
-            let version=field_str(schema,"schema_version","claim-schema-version")?;
-            let size=serde_json::to_vec(profile).map_err(|_|local_route_failure("claim-profile-serialization",predicate))?.len()
-                .checked_add(serde_json::to_vec(schema).map_err(|_|local_route_failure("claim-schema-serialization",predicate))?.len())
-                .and_then(|n|n.checked_add(predicate.len()+version.len())).ok_or(LocalClaimCompileError::Refusal(crate::item_rules::ItemRefusal::Budget))?;
-            route_bytes=route_bytes.checked_add(size).filter(|n|*n<=limits.max_state_bytes/2).ok_or(LocalClaimCompileError::Refusal(crate::item_rules::ItemRefusal::Budget))?;
-            if routes.insert((predicate.into(),version.into()),LocalClaimRoute{profile:profile.clone(),schema:schema.clone()}).is_some(){return Err(local_route_failure("claim-schema-route-duplicate",predicate));}
+            if routes.len() >= MAX_COMPILED_ROUTES {
+                return Err(LocalClaimCompileError::Refusal(
+                    crate::item_rules::ItemRefusal::Budget,
+                ));
+            }
+            let version = field_str(schema, "schema_version", "claim-schema-version")?;
+            let size = serde_json::to_vec(profile)
+                .map_err(|_| local_route_failure("claim-profile-serialization", predicate))?
+                .len()
+                .checked_add(
+                    serde_json::to_vec(schema)
+                        .map_err(|_| local_route_failure("claim-schema-serialization", predicate))?
+                        .len(),
+                )
+                .and_then(|n| n.checked_add(predicate.len() + version.len()))
+                .ok_or(LocalClaimCompileError::Refusal(
+                    crate::item_rules::ItemRefusal::Budget,
+                ))?;
+            route_bytes = route_bytes
+                .checked_add(size)
+                .filter(|n| *n <= limits.max_state_bytes / 2)
+                .ok_or(LocalClaimCompileError::Refusal(
+                    crate::item_rules::ItemRefusal::Budget,
+                ))?;
+            if routes
+                .insert(
+                    (predicate.into(), version.into()),
+                    LocalClaimRoute {
+                        profile: profile.clone(),
+                        schema: schema.clone(),
+                    },
+                )
+                .is_some()
+            {
+                return Err(local_route_failure(
+                    "claim-schema-route-duplicate",
+                    predicate,
+                ));
+            }
         }
     }
     Ok(routes)
 }
 
 fn local_claim_resources(
-    cut:&tos_source_store::CorpusCutReader, paths:&[String], worker:&crate::source_cut::CutWorkerSchemaExecutor,
-    limits:crate::item_rules::ItemLimits,cancelled:&std::sync::atomic::AtomicBool,bytes:&mut u64,
-    inputs:&mut BTreeMap<String,(Value,Vec<u8>)>,report:&mut SourceClaimLocalReport,
-)->Result<(),crate::item_rules::ItemRefusal> {
+    cut: &tos_source_store::CorpusCutReader,
+    paths: &[String],
+    worker: &crate::source_cut::CutWorkerSchemaExecutor,
+    limits: crate::item_rules::ItemLimits,
+    cancelled: &std::sync::atomic::AtomicBool,
+    bytes: &mut u64,
+    inputs: &mut BTreeMap<String, (Value, Vec<u8>)>,
+    report: &mut SourceClaimLocalReport,
+) -> Result<(), crate::item_rules::ItemRefusal> {
     use crate::item_rules::ItemRefusal;
-    let mut resources=Vec::new();let mut uris=BTreeSet::new();
+    let mut resources = Vec::new();
+    let mut uris = BTreeSet::new();
     for path in paths {
-        if !is_contract_path(path) {return Err(ItemRefusal::Unsupported(format!("local Claim non-contract schema path: {path}")));}
-        local_claim_input(cut,path,limits,cancelled,bytes,inputs,report)?;
-        let (schema,raw)=&inputs[path];
-        let uri=schema_uri(path,schema).map_err(|e|ItemRefusal::Unsupported(format!("local Claim schema identity: {e:?}")))?;
-        if uri!=format!("https://tree-of-sophia.local/{path}") && uri!=format!("https://treeofsophia.local/{path}") {
-            return Err(ItemRefusal::Unsupported(format!("local Claim schema identity differs from owner path: {path}")));
+        if !is_contract_path(path) {
+            return Err(ItemRefusal::Unsupported(format!(
+                "local Claim non-contract schema path: {path}"
+            )));
         }
-        if worker.contract_digest(path)!=Some(Digest256::of_bytes(raw)) {return Err(ItemRefusal::Source(format!("local Claim schema worker digest differs: {path}")));}
-        if !uris.insert(uri.clone()) {return Err(ItemRefusal::Unsupported("duplicate local Claim schema resource identity".into()));}
-        resources.push(SchemaResource{uri,raw:raw.clone()});
+        local_claim_input(cut, path, limits, cancelled, bytes, inputs, report)?;
+        let (schema, raw) = &inputs[path];
+        let uri = schema_uri(path, schema)
+            .map_err(|e| ItemRefusal::Unsupported(format!("local Claim schema identity: {e:?}")))?;
+        if uri != format!("https://tree-of-sophia.local/{path}")
+            && uri != format!("https://treeofsophia.local/{path}")
+        {
+            return Err(ItemRefusal::Unsupported(format!(
+                "local Claim schema identity differs from owner path: {path}"
+            )));
+        }
+        if worker.contract_digest(path) != Some(Digest256::of_bytes(raw)) {
+            return Err(ItemRefusal::Source(format!(
+                "local Claim schema worker digest differs: {path}"
+            )));
+        }
+        if !uris.insert(uri.clone()) {
+            return Err(ItemRefusal::Unsupported(
+                "duplicate local Claim schema resource identity".into(),
+            ));
+        }
+        resources.push(SchemaResource {
+            uri,
+            raw: raw.clone(),
+        });
     }
     // Metadata/keyword support is the maintained engine's own source parser.
     // No second schema evaluation engine is introduced by this adapter.
-    SchemaBackendProbe::new(resources,FormatProfile::LegacyPythonObserved20260923).map_err(|e|ItemRefusal::Unsupported(format!("local Claim schema resources: {e:?}")))?;
+    SchemaBackendProbe::new(resources, FormatProfile::LegacyPythonObserved20260923)
+        .map_err(|e| ItemRefusal::Unsupported(format!("local Claim schema resources: {e:?}")))?;
     for path in paths {
-        local_claim_checkpoint(limits,cancelled)?;
-        let schema=&inputs[path].0;
-        local_schema_walk(schema,true,&mut |key,value| {
-            if matches!(key,"$ref"|"$dynamicRef") {
-                let reference=value.as_str().ok_or_else(||ItemRefusal::Unsupported("local Claim schema ref representation".into()))?;
-                let base=reference.split('#').next().unwrap_or("");
-                if !base.is_empty()&&!uris.contains(base) {return Err(ItemRefusal::Unsupported(format!("local Claim undeclared schema dependency: {path}: {reference}")));}
-            } Ok(())
+        local_claim_checkpoint(limits, cancelled)?;
+        let schema = &inputs[path].0;
+        local_schema_walk(schema, true, &mut |key, value| {
+            if matches!(key, "$ref" | "$dynamicRef") {
+                let reference = value.as_str().ok_or_else(|| {
+                    ItemRefusal::Unsupported("local Claim schema ref representation".into())
+                })?;
+                let base = reference.split('#').next().unwrap_or("");
+                if !base.is_empty() && !uris.contains(base) {
+                    return Err(ItemRefusal::Unsupported(format!(
+                        "local Claim undeclared schema dependency: {path}: {reference}"
+                    )));
+                }
+            }
+            Ok(())
         })?;
-    } Ok(())
+    }
+    Ok(())
 }
 
 #[allow(clippy::too_many_arguments)]
 fn validate_local_claim_shape(
-    cut:&tos_source_store::CorpusCutReader,claim:&Value,raw:&[u8],routes:&BTreeMap<(String,String),LocalClaimRoute>,
-    worker:&mut crate::source_cut::CutWorkerSchemaExecutor,limits:crate::item_rules::ItemLimits,cancelled:&std::sync::atomic::AtomicBool,
-    bytes:&mut u64,inputs:&mut BTreeMap<String,(Value,Vec<u8>)>,report:&mut SourceClaimLocalReport,
-)->Result<(),crate::item_rules::ItemRefusal> {
+    cut: &tos_source_store::CorpusCutReader,
+    claim: &Value,
+    raw: &[u8],
+    routes: &BTreeMap<(String, String), LocalClaimRoute>,
+    worker: &mut crate::source_cut::CutWorkerSchemaExecutor,
+    limits: crate::item_rules::ItemLimits,
+    cancelled: &std::sync::atomic::AtomicBool,
+    bytes: &mut u64,
+    inputs: &mut BTreeMap<String, (Value, Vec<u8>)>,
+    report: &mut SourceClaimLocalReport,
+) -> Result<(), crate::item_rules::ItemRefusal> {
     use crate::item_rules::ItemRefusal;
     use crate::source_cut::CutSchemaExecutor;
-    if !claim.is_object() || !matches!(local_string(claim,"visibility"),Some("public"|"public_metadata_only")) {
-        return local_claim_issue(report,limits,"claim-public-visibility","claim");
+    if !claim.is_object()
+        || !matches!(
+            local_string(claim, "visibility"),
+            Some("public" | "public_metadata_only")
+        )
+    {
+        return local_claim_issue(report, limits, "claim-public-visibility", "claim");
     }
-    let (Some(predicate),Some(version))=(local_string(claim,"predicate"),local_string(claim,"schema_version")) else{return local_claim_issue(report,limits,"claim-string-predicate-version","claim");};
-    let Some(route)=routes.get(&(predicate.into(),version.into())) else{return local_claim_issue(report,limits,"claim-unrecognized-predicate-version",predicate);};
-    let reader=local_string(&route.profile,"reader").ok_or_else(||ItemRefusal::Unsupported("local Claim compiled reader".into()))?;
-    let value_route=local_is_temporal(reader)||local_is_structured(reader);
-    if local_string(claim,"claim_type")!=Some("relation") || local_string(claim,"subject_ref").is_none()
-        || !(if value_route{claim["object"].is_object()}else{claim["object"].is_string()})
-        || local_string(claim,"assertion_layer").is_none_or(|layer|!local_strings(&route.profile,"assertion_layers").contains(&layer))
-        || claim["claim_id"]==claim["subject_ref"] || claim["claim_id"]==claim["object"]
-    {return local_claim_issue(report,limits,"claim-identity-endpoint-layer",predicate);}
-    let selected=local_string(&route.schema,"schema_ref").ok_or_else(||ItemRefusal::Unsupported("local Claim selected schema".into()))?;
-    let scoped=local_string(&route.profile["object_reference_set"],"structure_adapter")==Some("scoped-members-v1");
-    let mut paths:Vec<String>=["ToS/contracts/claim-packet.schema.json","ToS/contracts/knowledge-assessment.schema.json",LOCAL_CLAIM_BASE].into_iter().map(str::to_owned).collect();
-    if local_is_temporal(reader){paths.push(LOCAL_TEMPORAL.into());}
-    if local_is_structured(reader){paths.extend([CORPUS_CONTRACT.into(),LOCAL_STRUCTURED.into()]);}
-    if scoped {paths.push(LOCAL_MEMBERS.into());}
-    paths.extend(local_strings(&route.schema,"schema_dependencies").into_iter().map(str::to_owned));paths.push(selected.into());
-    let mut unique=BTreeSet::new();paths.retain(|path|unique.insert(path.clone()));
-    local_claim_resources(cut,&paths,worker,limits,cancelled,bytes,inputs,report)?;
-    for contract in [selected,LOCAL_CLAIM_BASE] {
-        if !worker.check("selected Claim",raw,contract,limits.deadline,cancelled)? {local_claim_issue(report,limits,"claim-exact-schema-or-shared-record",contract)?;}
+    let (Some(predicate), Some(version)) = (
+        local_string(claim, "predicate"),
+        local_string(claim, "schema_version"),
+    ) else {
+        return local_claim_issue(report, limits, "claim-string-predicate-version", "claim");
+    };
+    let Some(route) = routes.get(&(predicate.into(), version.into())) else {
+        return local_claim_issue(
+            report,
+            limits,
+            "claim-unrecognized-predicate-version",
+            predicate,
+        );
+    };
+    let reader = local_string(&route.profile, "reader")
+        .ok_or_else(|| ItemRefusal::Unsupported("local Claim compiled reader".into()))?;
+    let value_route = local_is_temporal(reader) || local_is_structured(reader);
+    if local_string(claim, "claim_type") != Some("relation")
+        || local_string(claim, "subject_ref").is_none()
+        || !(if value_route {
+            claim["object"].is_object()
+        } else {
+            claim["object"].is_string()
+        })
+        || local_string(claim, "assertion_layer")
+            .is_none_or(|layer| !local_strings(&route.profile, "assertion_layers").contains(&layer))
+        || claim["claim_id"] == claim["subject_ref"]
+        || claim["claim_id"] == claim["object"]
+    {
+        return local_claim_issue(report, limits, "claim-identity-endpoint-layer", predicate);
     }
-    if !report.issues.is_empty(){return Ok(());}
-    let object_raw=serde_json::to_vec(&claim["object"]).map_err(|_|ItemRefusal::Unsupported("local Claim object serialization".into()))?;
+    let selected = local_string(&route.schema, "schema_ref")
+        .ok_or_else(|| ItemRefusal::Unsupported("local Claim selected schema".into()))?;
+    let scoped = local_string(&route.profile["object_reference_set"], "structure_adapter")
+        == Some("scoped-members-v1");
+    let mut paths: Vec<String> = [
+        "ToS/contracts/claim-packet.schema.json",
+        "ToS/contracts/knowledge-assessment.schema.json",
+        LOCAL_CLAIM_BASE,
+    ]
+    .into_iter()
+    .map(str::to_owned)
+    .collect();
     if local_is_temporal(reader) {
-        let root=if reader=="document-catalogue-temporal-v1"{format!("{LOCAL_DOCUMENT}#/$defs/documentDate")}else{format!("{LOCAL_TEMPORAL}#/$defs/historicalDate")};
-        if !worker.check("selected Claim/object",&object_raw,&root,limits.deadline,cancelled)? {local_claim_issue(report,limits,"claim-shared-temporal-value",&root)?;}
+        paths.push(LOCAL_TEMPORAL.into());
     }
     if local_is_structured(reader) {
-        if !worker.check("selected Claim/object",&object_raw,LOCAL_STRUCTURED,limits.deadline,cancelled)?
-            || claim["object"]["kind"]!=route.profile["value_kind"]
-        {local_claim_issue(report,limits,"claim-shared-value-kind",predicate)?;}
+        paths.extend([CORPUS_CONTRACT.into(), LOCAL_STRUCTURED.into()]);
     }
-    if !report.issues.is_empty(){return Ok(());}
-    let qualifiers=&claim["qualifiers"];
-    if qualifiers["display_fields"].is_object()&&local_string(&qualifiers["display_fields"],"schema_version")==Some("tos_claim_display_fields_v1") {
-        let display_paths=vec![CORPUS_CONTRACT.into(),LOCAL_DISPLAY.into()];
-        local_claim_resources(cut,&display_paths,worker,limits,cancelled,bytes,inputs,report)?;
-        let qualifier_raw=serde_json::to_vec(qualifiers).map_err(|_|ItemRefusal::Unsupported("local Claim qualifiers serialization".into()))?;
-        if !worker.check("selected Claim/qualifiers",&qualifier_raw,LOCAL_DISPLAY,limits.deadline,cancelled)? {local_claim_issue(report,limits,"claim-display-fields",predicate)?;}
+    if scoped {
+        paths.push(LOCAL_MEMBERS.into());
     }
-    if let Some(role)=local_document_role(predicate) {
-        let attribution=&qualifiers["catalogue_attribution"];
-        if local_string(attribution,"field_role")!=Some(role) || !claim["evidence_refs"].as_array().is_some_and(|refs|refs.contains(&attribution["evidence_ref"])) {
-            local_claim_issue(report,limits,"claim-document-field-evidence",predicate)?;
+    paths.extend(
+        local_strings(&route.schema, "schema_dependencies")
+            .into_iter()
+            .map(str::to_owned),
+    );
+    paths.push(selected.into());
+    let mut unique = BTreeSet::new();
+    paths.retain(|path| unique.insert(path.clone()));
+    local_claim_resources(
+        cut, &paths, worker, limits, cancelled, bytes, inputs, report,
+    )?;
+    for contract in [selected, LOCAL_CLAIM_BASE] {
+        if !worker.check("selected Claim", raw, contract, limits.deadline, cancelled)? {
+            local_claim_issue(
+                report,
+                limits,
+                "claim-exact-schema-or-shared-record",
+                contract,
+            )?;
         }
-        if predicate=="document_catalogue_date" && attribution["source_wording"]!=claim["object"]["source_wording"] {
-            local_claim_issue(report,limits,"claim-document-source-wording",predicate)?;
+    }
+    if !report.issues.is_empty() {
+        return Ok(());
+    }
+    let object_raw = serde_json::to_vec(&claim["object"])
+        .map_err(|_| ItemRefusal::Unsupported("local Claim object serialization".into()))?;
+    if local_is_temporal(reader) {
+        let root = if reader == "document-catalogue-temporal-v1" {
+            format!("{LOCAL_DOCUMENT}#/$defs/documentDate")
+        } else {
+            format!("{LOCAL_TEMPORAL}#/$defs/historicalDate")
+        };
+        if !worker.check(
+            "selected Claim/object",
+            &object_raw,
+            &root,
+            limits.deadline,
+            cancelled,
+        )? {
+            local_claim_issue(report, limits, "claim-shared-temporal-value", &root)?;
+        }
+    }
+    if local_is_structured(reader) {
+        if !worker.check(
+            "selected Claim/object",
+            &object_raw,
+            LOCAL_STRUCTURED,
+            limits.deadline,
+            cancelled,
+        )? || claim["object"]["kind"] != route.profile["value_kind"]
+        {
+            local_claim_issue(report, limits, "claim-shared-value-kind", predicate)?;
+        }
+    }
+    if !report.issues.is_empty() {
+        return Ok(());
+    }
+    let qualifiers = &claim["qualifiers"];
+    if qualifiers["display_fields"].is_object()
+        && local_string(&qualifiers["display_fields"], "schema_version")
+            == Some("tos_claim_display_fields_v1")
+    {
+        let display_paths = vec![CORPUS_CONTRACT.into(), LOCAL_DISPLAY.into()];
+        local_claim_resources(
+            cut,
+            &display_paths,
+            worker,
+            limits,
+            cancelled,
+            bytes,
+            inputs,
+            report,
+        )?;
+        let qualifier_raw = serde_json::to_vec(qualifiers)
+            .map_err(|_| ItemRefusal::Unsupported("local Claim qualifiers serialization".into()))?;
+        if !worker.check(
+            "selected Claim/qualifiers",
+            &qualifier_raw,
+            LOCAL_DISPLAY,
+            limits.deadline,
+            cancelled,
+        )? {
+            local_claim_issue(report, limits, "claim-display-fields", predicate)?;
+        }
+    }
+    if let Some(role) = local_document_role(predicate) {
+        let attribution = &qualifiers["catalogue_attribution"];
+        if local_string(attribution, "field_role") != Some(role)
+            || !claim["evidence_refs"]
+                .as_array()
+                .is_some_and(|refs| refs.contains(&attribution["evidence_ref"]))
+        {
+            local_claim_issue(report, limits, "claim-document-field-evidence", predicate)?;
+        }
+        if predicate == "document_catalogue_date"
+            && attribution["source_wording"] != claim["object"]["source_wording"]
+        {
+            local_claim_issue(report, limits, "claim-document-source-wording", predicate)?;
         }
     }
     if local_is_proposal(reader) {
-        if let Err(code)=local_proposal_participants(claim) {local_claim_issue(report,limits,code,predicate)?;}
-    } else if reader=="structured-reference-value-v1" {
-        let constraint=&route.profile["object_reference_set"];
-        let members=claim["object"]["members"].as_array();
-        let valid=members.is_some_and(|members| {
-            let ids:Vec<_>=members.iter().filter_map(Value::as_str).collect();
-            constraint["min_items"].as_u64().zip(constraint["max_items"].as_u64()).is_some_and(|(min,max)|min<=members.len() as u64&&members.len() as u64<=max)
-                && ids.len()==members.len()&&ids.iter().all(|id|local_tos_id(id,false))
-                && ids.iter().copied().collect::<BTreeSet<_>>().len()==members.len()
+        if let Err(code) = local_proposal_participants(claim) {
+            local_claim_issue(report, limits, code, predicate)?;
+        }
+    } else if reader == "structured-reference-value-v1" {
+        let constraint = &route.profile["object_reference_set"];
+        let members = claim["object"]["members"].as_array();
+        let valid = members.is_some_and(|members| {
+            let ids: Vec<_> = members.iter().filter_map(Value::as_str).collect();
+            constraint["min_items"]
+                .as_u64()
+                .zip(constraint["max_items"].as_u64())
+                .is_some_and(|(min, max)| {
+                    min <= members.len() as u64 && members.len() as u64 <= max
+                })
+                && ids.len() == members.len()
+                && ids.iter().all(|id| local_tos_id(id, false))
+                && ids.iter().copied().collect::<BTreeSet<_>>().len() == members.len()
                 && !members.contains(&claim["claim_id"])
-                && (constraint["subject_is_member"]!=true||members.contains(&claim["subject_ref"]))
+                && (constraint["subject_is_member"] != true
+                    || members.contains(&claim["subject_ref"]))
         });
-        if !valid {local_claim_issue(report,limits,"claim-reference-value-members",predicate)?;}
+        if !valid {
+            local_claim_issue(report, limits, "claim-reference-value-members", predicate)?;
+        }
     }
     if scoped {
-        if !worker.check("selected Claim/object",&object_raw,LOCAL_MEMBERS,limits.deadline,cancelled)? {
-            local_claim_issue(report,limits,"claim-shared-member-structure",predicate)?;
-        } else if let Err(code)=local_scoped_member_structure(claim,limits,cancelled)? {
-            local_claim_issue(report,limits,code,predicate)?;
+        if !worker.check(
+            "selected Claim/object",
+            &object_raw,
+            LOCAL_MEMBERS,
+            limits.deadline,
+            cancelled,
+        )? {
+            local_claim_issue(report, limits, "claim-shared-member-structure", predicate)?;
+        } else if let Err(code) = local_scoped_member_structure(claim, limits, cancelled)? {
+            local_claim_issue(report, limits, code, predicate)?;
         }
     }
     Ok(())
 }
 
-fn local_tos_id(id:&str,claim:bool)->bool {
-    if claim {return valid_record_id(id,"tos.claim.");}
-    let Some(rest)=id.strip_prefix("tos.") else{return false;};
-    let Some((kind,_))=rest.split_once('.') else{return false;};
-    let mut chars=kind.bytes();
-    matches!(chars.next(),Some(b'a'..=b'z')) && chars.all(|c|c.is_ascii_lowercase()||c.is_ascii_digit()||c==b'-') && valid_record_id(id,&format!("tos.{kind}."))
+fn local_tos_id(id: &str, claim: bool) -> bool {
+    if claim {
+        return valid_record_id(id, "tos.claim.");
+    }
+    let Some(rest) = id.strip_prefix("tos.") else {
+        return false;
+    };
+    let Some((kind, _)) = rest.split_once('.') else {
+        return false;
+    };
+    let mut chars = kind.bytes();
+    matches!(chars.next(), Some(b'a'..=b'z'))
+        && chars.all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == b'-')
+        && valid_record_id(id, &format!("tos.{kind}."))
 }
-fn local_exact_ref(value:&Value,claim:bool)->bool {
-    value.as_object().is_some_and(|o|o.len()==3&&o.contains_key("id")&&o.contains_key("version")&&o.contains_key("digest"))
-        && local_string(value,"id").is_some_and(|id|local_tos_id(id,claim))
-        && value["version"].as_u64().is_some_and(|n|(1..=9_007_199_254_740_991).contains(&n))
-        && local_string(value,"digest").and_then(|s|s.strip_prefix("sha256:")).is_some_and(|s|s.len()==64&&s.bytes().all(|c|c.is_ascii_digit()||(b'a'..=b'f').contains(&c)))
+fn local_exact_ref(value: &Value, claim: bool) -> bool {
+    value.as_object().is_some_and(|o| {
+        o.len() == 3
+            && o.contains_key("id")
+            && o.contains_key("version")
+            && o.contains_key("digest")
+    }) && local_string(value, "id").is_some_and(|id| local_tos_id(id, claim))
+        && value["version"]
+            .as_u64()
+            .is_some_and(|n| (1..=9_007_199_254_740_991).contains(&n))
+        && local_string(value, "digest")
+            .and_then(|s| s.strip_prefix("sha256:"))
+            .is_some_and(|s| {
+                s.len() == 64
+                    && s.bytes()
+                        .all(|c| c.is_ascii_digit() || (b'a'..=b'f').contains(&c))
+            })
 }
-fn local_proposal_participants(claim:&Value)->Result<(),&'static str> {
-    let object=&claim["object"];
-    let left=object["predecessors"].as_array().ok_or("claim-proposal-participant-shape")?;
-    let right=object["successors"].as_array().ok_or("claim-proposal-participant-shape")?;
-    let members=object["members"].as_array().ok_or("claim-proposal-participant-shape")?;
-    let mapping=object["mapping"].as_array().ok_or("claim-proposal-participant-shape")?;
-    if [left,right].iter().any(|r|!(1..=8).contains(&r.len())||r.iter().any(|v|!local_exact_ref(v,false)))
-        || !(3..=9).contains(&members.len())||members.iter().any(|v|!v.is_string())
-        || !(2..=8).contains(&mapping.len())||mapping.iter().any(|edge|!edge.as_object().is_some_and(|o|o.len()==2&&o.get("predecessor").is_some_and(Value::is_string)&&o.get("successor").is_some_and(Value::is_string)))
-    {return Err("claim-proposal-participant-shape");}
-    let previous=object.get("supersedes_proposal").ok_or("claim-proposal-explicit-predecessor")?;
-    let unresolved=object["unresolved_links"].as_array().ok_or("claim-proposal-related-claims")?;
-    if unresolved.len()>32||unresolved.iter().any(|v|!v.is_object()||!local_exact_ref(&v["claim"],true))||(!previous.is_null()&&!local_exact_ref(previous,true)) {return Err("claim-proposal-related-claims");}
-    let participants:Vec<_>=left.iter().chain(right).map(|v|v["id"].as_str().unwrap()).collect();
-    let distinct:BTreeSet<_>=participants.iter().copied().collect();
-    let declared:BTreeSet<_>=members.iter().map(|v|v.as_str().unwrap()).collect();
-    if distinct.len()!=participants.len()||members.len()!=participants.len()||declared!=distinct||!left.iter().any(|v|v["id"]==claim["subject_ref"])||participants.iter().any(|id|Some(*id)==local_string(claim,"claim_id")) {return Err("claim-proposal-frozen-union");}
-    if !matches!((local_string(object,"operation"),left.len(),right.len()),(Some("merge"),2..=8,1)|(Some("split"),1,2..=8)) {return Err("claim-proposal-topology");}
-    let expected:BTreeSet<_>=left.iter().flat_map(|old|right.iter().map(move|new|(old["id"].as_str().unwrap(),new["id"].as_str().unwrap()))).collect();
-    let actual:BTreeSet<_>=mapping.iter().map(|e|(e["predecessor"].as_str().unwrap(),e["successor"].as_str().unwrap())).collect();
-    if actual!=expected||mapping.len()!=expected.len(){return Err("claim-proposal-complete-mapping");}
-    if claim.get("supersedes_claim_ref").unwrap_or(&Value::Null)!=previous.get("id").unwrap_or(&Value::Null) {return Err("claim-proposal-succession-navigation");}
-    if (!previous.is_null()&&previous["id"]==claim["claim_id"])||unresolved.iter().any(|v|v["claim"]["id"]==claim["claim_id"]) {return Err("claim-proposal-self-related-claim");}
+fn local_proposal_participants(claim: &Value) -> Result<(), &'static str> {
+    let object = &claim["object"];
+    let left = object["predecessors"]
+        .as_array()
+        .ok_or("claim-proposal-participant-shape")?;
+    let right = object["successors"]
+        .as_array()
+        .ok_or("claim-proposal-participant-shape")?;
+    let members = object["members"]
+        .as_array()
+        .ok_or("claim-proposal-participant-shape")?;
+    let mapping = object["mapping"]
+        .as_array()
+        .ok_or("claim-proposal-participant-shape")?;
+    if [left, right]
+        .iter()
+        .any(|r| !(1..=8).contains(&r.len()) || r.iter().any(|v| !local_exact_ref(v, false)))
+        || !(3..=9).contains(&members.len())
+        || members.iter().any(|v| !v.is_string())
+        || !(2..=8).contains(&mapping.len())
+        || mapping.iter().any(|edge| {
+            !edge.as_object().is_some_and(|o| {
+                o.len() == 2
+                    && o.get("predecessor").is_some_and(Value::is_string)
+                    && o.get("successor").is_some_and(Value::is_string)
+            })
+        })
+    {
+        return Err("claim-proposal-participant-shape");
+    }
+    let previous = object
+        .get("supersedes_proposal")
+        .ok_or("claim-proposal-explicit-predecessor")?;
+    let unresolved = object["unresolved_links"]
+        .as_array()
+        .ok_or("claim-proposal-related-claims")?;
+    if unresolved.len() > 32
+        || unresolved
+            .iter()
+            .any(|v| !v.is_object() || !local_exact_ref(&v["claim"], true))
+        || (!previous.is_null() && !local_exact_ref(previous, true))
+    {
+        return Err("claim-proposal-related-claims");
+    }
+    let participants: Vec<_> = left
+        .iter()
+        .chain(right)
+        .map(|v| v["id"].as_str().unwrap())
+        .collect();
+    let distinct: BTreeSet<_> = participants.iter().copied().collect();
+    let declared: BTreeSet<_> = members.iter().map(|v| v.as_str().unwrap()).collect();
+    if distinct.len() != participants.len()
+        || members.len() != participants.len()
+        || declared != distinct
+        || !left.iter().any(|v| v["id"] == claim["subject_ref"])
+        || participants
+            .iter()
+            .any(|id| Some(*id) == local_string(claim, "claim_id"))
+    {
+        return Err("claim-proposal-frozen-union");
+    }
+    if !matches!(
+        (local_string(object, "operation"), left.len(), right.len()),
+        (Some("merge"), 2..=8, 1) | (Some("split"), 1, 2..=8)
+    ) {
+        return Err("claim-proposal-topology");
+    }
+    let expected: BTreeSet<_> = left
+        .iter()
+        .flat_map(|old| {
+            right
+                .iter()
+                .map(move |new| (old["id"].as_str().unwrap(), new["id"].as_str().unwrap()))
+        })
+        .collect();
+    let actual: BTreeSet<_> = mapping
+        .iter()
+        .map(|e| {
+            (
+                e["predecessor"].as_str().unwrap(),
+                e["successor"].as_str().unwrap(),
+            )
+        })
+        .collect();
+    if actual != expected || mapping.len() != expected.len() {
+        return Err("claim-proposal-complete-mapping");
+    }
+    if claim.get("supersedes_claim_ref").unwrap_or(&Value::Null)
+        != previous.get("id").unwrap_or(&Value::Null)
+    {
+        return Err("claim-proposal-succession-navigation");
+    }
+    if (!previous.is_null() && previous["id"] == claim["claim_id"])
+        || unresolved
+            .iter()
+            .any(|v| v["claim"]["id"] == claim["claim_id"])
+    {
+        return Err("claim-proposal-self-related-claim");
+    }
     Ok(())
 }
-fn local_scoped_member_structure(claim:&Value,limits:crate::item_rules::ItemLimits,cancelled:&std::sync::atomic::AtomicBool)->Result<Result<(),&'static str>,crate::item_rules::ItemRefusal> {
-    let object=&claim["object"];
-    let members:BTreeSet<_>=local_strings(object,"members").into_iter().collect();
-    if local_string(claim,"subject_ref").is_some_and(|s|members.contains(s)){return Ok(Err("claim-structure-subject-is-member"));}
-    let edges=object["ordering"]["precedes"].as_array().map(Vec::as_slice).unwrap_or(&[]);
-    if members.len()>128||edges.len()>8128{return Err(crate::item_rules::ItemRefusal::Budget);}
-    let mode=local_string(&object["ordering"],"mode");
-    if mode==Some("unordered")&&!edges.is_empty(){return Ok(Err("claim-structure-unordered-edges"));}
-    let mut outgoing:BTreeMap<_,BTreeSet<&str>>=members.iter().map(|m|(*m,BTreeSet::new())).collect();
-    let mut degree:BTreeMap<_,usize>=members.iter().map(|m|(*m,0)).collect();
+fn local_scoped_member_structure(
+    claim: &Value,
+    limits: crate::item_rules::ItemLimits,
+    cancelled: &std::sync::atomic::AtomicBool,
+) -> Result<Result<(), &'static str>, crate::item_rules::ItemRefusal> {
+    let object = &claim["object"];
+    let members: BTreeSet<_> = local_strings(object, "members").into_iter().collect();
+    if local_string(claim, "subject_ref").is_some_and(|s| members.contains(s)) {
+        return Ok(Err("claim-structure-subject-is-member"));
+    }
+    let edges = object["ordering"]["precedes"]
+        .as_array()
+        .map(Vec::as_slice)
+        .unwrap_or(&[]);
+    if members.len() > 128 || edges.len() > 8128 {
+        return Err(crate::item_rules::ItemRefusal::Budget);
+    }
+    let mode = local_string(&object["ordering"], "mode");
+    if mode == Some("unordered") && !edges.is_empty() {
+        return Ok(Err("claim-structure-unordered-edges"));
+    }
+    let mut outgoing: BTreeMap<_, BTreeSet<&str>> =
+        members.iter().map(|m| (*m, BTreeSet::new())).collect();
+    let mut degree: BTreeMap<_, usize> = members.iter().map(|m| (*m, 0)).collect();
     for edge in edges {
-        local_claim_checkpoint(limits,cancelled)?;
-        let Some((before,after))=edge.as_array().filter(|e|e.len()==2).and_then(|e|e[0].as_str().zip(e[1].as_str()))else{return Ok(Err("claim-structure-edge-shape"));};
-        if !members.contains(before)||!members.contains(after){return Ok(Err("claim-structure-edge-outside-members"));}
+        local_claim_checkpoint(limits, cancelled)?;
+        let Some((before, after)) = edge
+            .as_array()
+            .filter(|e| e.len() == 2)
+            .and_then(|e| e[0].as_str().zip(e[1].as_str()))
+        else {
+            return Ok(Err("claim-structure-edge-shape"));
+        };
+        if !members.contains(before) || !members.contains(after) {
+            return Ok(Err("claim-structure-edge-outside-members"));
+        }
         // Schema uniqueItems already rejects duplicate edges; retaining the
         // set mirrors Python's degree accounting after exact schema success.
-        if outgoing.get_mut(before).unwrap().insert(after){*degree.get_mut(after).unwrap()+=1;}
+        if outgoing.get_mut(before).unwrap().insert(after) {
+            *degree.get_mut(after).unwrap() += 1;
+        }
     }
-    let mut ready:Vec<_>=degree.iter().filter(|(_,n)|**n==0).map(|(m,_)|*m).collect();let mut visited=0;
+    let mut ready: Vec<_> = degree
+        .iter()
+        .filter(|(_, n)| **n == 0)
+        .map(|(m, _)| *m)
+        .collect();
+    let mut visited = 0;
     while !ready.is_empty() {
-        local_claim_checkpoint(limits,cancelled)?;
-        if mode==Some("total")&&ready.len()!=1{return Ok(Err("claim-structure-total-incomparable"));}
-        let member=ready.pop().unwrap();visited+=1;
-        for next in &outgoing[member]{let n=degree.get_mut(next).unwrap();*n-=1;if *n==0{ready.push(*next);}}
+        local_claim_checkpoint(limits, cancelled)?;
+        if mode == Some("total") && ready.len() != 1 {
+            return Ok(Err("claim-structure-total-incomparable"));
+        }
+        let member = ready.pop().unwrap();
+        visited += 1;
+        for next in &outgoing[member] {
+            let n = degree.get_mut(next).unwrap();
+            *n -= 1;
+            if *n == 0 {
+                ready.push(*next);
+            }
+        }
     }
-    if visited!=members.len(){return Ok(Err("claim-structure-cycle"));}
-    if local_string(object,"kind")==Some("collection-member-order") {
-        let collection=&object["collection_version"];let versions=object["membership_versions"].as_array().map(Vec::as_slice).unwrap_or(&[]);
-        let unique:BTreeSet<_>=versions.iter().filter_map(|v|local_string(v,"id")).collect();
-        if !local_exact_ref(collection,false)||collection["id"]!=claim["subject_ref"]||!local_string(collection,"id").is_some_and(|id|id.starts_with("tos.collection."))||versions.len()!=members.len()||unique.len()!=versions.len()||versions.iter().any(|v|!local_exact_ref(v,true)) {return Ok(Err("claim-collection-order-exact-basis"));}
-    } Ok(Ok(()))
+    if visited != members.len() {
+        return Ok(Err("claim-structure-cycle"));
+    }
+    if local_string(object, "kind") == Some("collection-member-order") {
+        let collection = &object["collection_version"];
+        let versions = object["membership_versions"]
+            .as_array()
+            .map(Vec::as_slice)
+            .unwrap_or(&[]);
+        let unique: BTreeSet<_> = versions
+            .iter()
+            .filter_map(|v| local_string(v, "id"))
+            .collect();
+        if !local_exact_ref(collection, false)
+            || collection["id"] != claim["subject_ref"]
+            || !local_string(collection, "id").is_some_and(|id| id.starts_with("tos.collection."))
+            || versions.len() != members.len()
+            || unique.len() != versions.len()
+            || versions.iter().any(|v| !local_exact_ref(v, true))
+        {
+            return Ok(Err("claim-collection-order-exact-basis"));
+        }
+    }
+    Ok(Ok(()))
 }
