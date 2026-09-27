@@ -302,13 +302,13 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
     let directory = source_root.join("revisions").join(revision.0.to_hex());
     fs::create_dir(directory.clone()).unwrap();
     fs::write(directory.join("snapshot.json"), canonical(&manifest)).unwrap();
-    let limits = ReadLimits {
+    let read_limits = ReadLimits {
         max_manifest_bytes: 4_194_304,
         max_manifest_entries: 2048,
         max_selected_object_bytes: 8_388_608,
         json: JsonLimits::default(),
     };
-    let cut = CorpusReader::open_existing(&source_root, limits)
+    let cut = CorpusReader::open_existing(&source_root, read_limits)
         .unwrap()
         .open_source_cut(
             revision,
@@ -393,7 +393,7 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
             source_git_tree: captured["source_git_tree"].as_str().unwrap().into(),
             capture_manifest_sha256: Digest256::of_bytes(&capture_raw),
         },
-        limits,
+        read_limits,
         deadline,
         &cancelled,
     )
@@ -804,7 +804,7 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
         &mut new_worker(),
         &isolated,
         None,
-        limits,
+        read_limits,
         CutReadLimits {
             max_revisions: 4,
             max_members: 2048,
@@ -948,7 +948,7 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
         &mut new_worker(),
         &isolated,
         Some(&current),
-        limits,
+        read_limits,
         CutReadLimits {
             max_revisions: 4,
             max_members: 2048,
