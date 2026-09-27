@@ -118,7 +118,31 @@ fn capability_requires_real_owner_selection() {
         .lines()
         .collect::<Vec<_>>();
     assert_eq!(lines.len(), 2);
-    assert!(lines[1].contains("\"tools\":[]"));
+    let document = parse_json(
+        lines[1].as_bytes(),
+        JsonMode::PublishedStrict,
+        JsonLimits::default(),
+    )
+    .unwrap();
+    let tools = document
+        .root()
+        .object_get("result")
+        .unwrap()
+        .object_get("tools")
+        .unwrap()
+        .as_array()
+        .unwrap();
+    assert_eq!(
+        tools.len(),
+        1,
+        "only software contracts need no source owner"
+    );
+    assert_eq!(
+        tools[0]
+            .object_get("name")
+            .and_then(tos_foundation::JsonValue::as_str),
+        Some(tos_access::exploration_contracts::OPERATION)
+    );
 }
 
 #[test]
@@ -772,5 +796,160 @@ fn mcp_bounds_metadata_and_refusal_frames_before_output() {
     assert!(
         output.is_empty(),
         "unrepresentable refusal must emit no oversized frame"
+    );
+}
+
+#[test]
+fn exploration_software_contracts_survive_unselected_data_and_all_native_wires() {
+    use tos_foundation::{CanonicalProfile, JsonValue, canonical_bytes_v1};
+    let executor = Synthetic {
+        allowed: false,
+        calls: Mutex::new(vec![]),
+    };
+    let profile = profile();
+    let route = tos_access::registered_operations()
+        .unwrap()
+        .iter()
+        .find(|op| op.operation_id == tos_access::exploration_contracts::OPERATION)
+        .unwrap();
+    assert!(route.cli_command.is_none());
+    let response = handle_get(&executor, "GET", &route.http_path, profile);
+    assert_eq!(response.status, 200);
+    let expected = response.body.clone();
+    let document = parse_json(&expected, JsonMode::PublishedStrict, JsonLimits::default()).unwrap();
+    let capabilities = document.root().object_get("capabilities").unwrap();
+    assert_eq!(
+        capabilities.object_get("available"),
+        Some(&JsonValue::Bool(false))
+    );
+    assert_eq!(
+        capabilities.object_get("restart_survival"),
+        Some(&JsonValue::Bool(false))
+    );
+    assert_eq!(
+        capabilities
+            .object_get("storage")
+            .and_then(JsonValue::as_str),
+        Some("unavailable")
+    );
+    assert_eq!(
+        capabilities
+            .object_get("max_checkpoints")
+            .and_then(JsonValue::as_u64),
+        Some(0)
+    );
+    for (key, raw) in tos_access::exploration_contracts::CONTRACTS {
+        let original = parse_json(raw, JsonMode::PublishedStrict, JsonLimits::default()).unwrap();
+        let canonical = |value| {
+            canonical_bytes_v1(
+                value,
+                CanonicalProfile::CorpusSnapshotV1,
+                JsonLimits::default(),
+            )
+            .unwrap()
+        };
+        assert_eq!(
+            canonical(document.root().object_get(key).unwrap()),
+            canonical(original.root())
+        );
+    }
+    // Runtime request/data selection cannot substitute software schema bytes.
+    let attempted = handle_get(
+        &executor,
+        "GET",
+        &format!("{}?root=/missing-data&request=overridden", route.http_path),
+        profile,
+    );
+    assert_eq!(attempted.status, 200);
+    assert_eq!(attempted.body, expected);
+    let head = handle_get(&executor, "HEAD", &route.http_path, profile);
+    assert_eq!(head.status, 200);
+    let mut output = vec![];
+    tos_access::http::write_response(&mut output, head).unwrap();
+    assert!(output.ends_with(b"\r\n\r\n"));
+    assert!(
+        String::from_utf8_lossy(&output).contains(&format!("Content-Length: {}", expected.len()))
+    );
+    let input = format!(
+        "{{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{{\"protocolVersion\":\"2025-11-25\"}}}}\n{{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}}\n{{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/list\"}}\n{{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"tools/call\",\"params\":{{\"name\":\"{}\",\"arguments\":{{}}}}}}\n",
+        route.mcp_tool
+    );
+    let mcp_profile = profile.with_mcp_frame_budget(
+        tos_access::mcp::tool_result_frame_byte_bound(
+            profile.max_response_bytes,
+            profile.max_request_bytes,
+        )
+        .unwrap(),
+    );
+    output.clear();
+    run_io(
+        Cursor::new(input.as_bytes()),
+        &mut output,
+        &executor,
+        mcp_profile,
+    )
+    .unwrap();
+    // The actual installed entrypoint defaults to NoOwner and still serves
+    // packaged software contracts; an unrelated data root cannot replace them.
+    let mut child = std::process::Command::new(env!("CARGO_BIN_EXE_tos-access"))
+        .arg("mcp")
+        .env_remove("TOS_RELEASE_ROOT")
+        .env("TOS_DATA_ROOT", "/unselected-data-cannot-own-software")
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .unwrap();
+    child
+        .stdin
+        .take()
+        .unwrap()
+        .write_all(input.as_bytes())
+        .unwrap();
+    let installed = child.wait_with_output().unwrap();
+    assert!(
+        installed.status.success(),
+        "{}",
+        String::from_utf8_lossy(&installed.stderr)
+    );
+    assert_eq!(installed.stdout, output);
+    let frames = output
+        .split(|b| *b == b'\n')
+        .filter(|frame| !frame.is_empty())
+        .collect::<Vec<_>>();
+    let last = parse_json(
+        frames.last().unwrap(),
+        JsonMode::PublishedStrict,
+        JsonLimits {
+            max_bytes: mcp_profile.max_mcp_frame_bytes,
+            ..JsonLimits::default()
+        },
+    )
+    .unwrap();
+    let result = last.root().object_get("result").unwrap();
+    assert_eq!(
+        result.object_get("content").unwrap().as_array().unwrap()[0]
+            .object_get("text")
+            .unwrap()
+            .as_str()
+            .unwrap()
+            .as_bytes(),
+        expected
+    );
+    assert_eq!(
+        canonical_bytes_v1(
+            result.object_get("structuredContent").unwrap(),
+            CanonicalProfile::CorpusSnapshotV1,
+            JsonLimits::default()
+        )
+        .unwrap(),
+        expected
+    );
+    assert!(executor.calls.lock().unwrap().is_empty());
+    assert!(tos_access::exploration_contracts::execute(&executor, 32).is_err());
+    let deadline = profile.with_query_timeout(std::time::Duration::ZERO);
+    assert_eq!(
+        handle_get(&executor, "GET", &route.http_path, deadline).status,
+        408
     );
 }

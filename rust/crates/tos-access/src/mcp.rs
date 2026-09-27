@@ -165,7 +165,10 @@ impl McpSession {
                         .ok()
                         .and_then(|ops| ops.iter().find(|op| op.mcp_tool == name))
                         .and_then(|op| crate::KnowledgeOperation::from_id(&op.operation_id))
-                        .is_some_and(|op| executor.knowledge_available(op)),
+                        .is_some_and(|op| {
+                            op == crate::KnowledgeOperation::ExplorationContracts
+                                || executor.knowledge_available(op)
+                        }),
                     None => false,
                 };
                 if !known || !available {
@@ -203,7 +206,16 @@ impl McpSession {
                             )
                         })
                         .and_then(|op| crate::KnowledgeRequest::from_arguments(op, arguments))
-                        .and_then(|request| executor.knowledge(request, probe)),
+                        .and_then(|request| {
+                            if matches!(request, crate::KnowledgeRequest::ExplorationContracts) {
+                                crate::exploration_contracts::execute(
+                                    executor,
+                                    self.profile.max_response_bytes,
+                                )
+                            } else {
+                                executor.knowledge(request, probe)
+                            }
+                        }),
                     None => unreachable!(),
                 })
                 .and_then(|packet| {

@@ -6,6 +6,7 @@
 
 pub mod cli;
 pub mod exploration_checkpoints;
+pub mod exploration_contracts;
 pub mod knowledge;
 pub mod managed_local;
 pub mod release_state;

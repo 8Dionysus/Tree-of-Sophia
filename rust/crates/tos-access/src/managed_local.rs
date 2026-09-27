@@ -227,6 +227,9 @@ fn intended(operation: O) -> &'static str {
         O::StoredLens => tos_query::knowledge_lens::STORED_LENS_INTENDED_USE,
         O::Explore => tos_query::knowledge_exploration::EXPLORATION_INTENDED_USE,
         O::Contracts => tos_query::knowledge_contracts::KNOWLEDGE_CONTRACTS_INTENDED_USE,
+        O::ExplorationContracts => {
+            unreachable!("software contracts do not select source authority")
+        }
         O::SearchCapabilities => {
             tos_query::knowledge_legacy_search::SEARCH_CAPABILITIES_INTENDED_USE
         }
@@ -247,6 +250,14 @@ impl AccessExecutor for ManagedLocalExecutor {
         Err(unavailable(
             "exact source owner is not selected by the release holder",
         ))
+    }
+    fn exploration_runtime_capabilities(&self) -> tos_foundation::JsonValue {
+        let selected = self
+            .release
+            .acquire()
+            .ok()
+            .map(|_hold| (self.checkpoints.limits(), self.budgets().exploration));
+        crate::exploration_contracts::runtime_capabilities(selected)
     }
     fn source_gap(
         &self,
@@ -335,6 +346,9 @@ impl AccessExecutor for ManagedLocalExecutor {
             .map_err(|_| unavailable("selected native reader unavailable"))?;
         drop(cold);
         let bound = tos_query::bind_verified_knowledge(&model, &self.vocabulary, &self.descriptor)?;
+        if matches!(request, R::ExplorationContracts) {
+            return crate::exploration_contracts::execute(self, self.profile.max_response_bytes);
+        }
         let operation = request.operation();
         let mut inspect = Authority::new(self, &bound, operation.id(), intended(operation))?;
         let budgets = self.budgets();

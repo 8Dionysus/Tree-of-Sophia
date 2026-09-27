@@ -324,6 +324,9 @@ fn handle_get_with_probe(
                     philosophy_http_request(operation, encoded, query)
                 }
                 KnowledgeOperation::Catalog => Ok(KnowledgeRequest::Catalog),
+                KnowledgeOperation::ExplorationContracts => {
+                    Ok(KnowledgeRequest::ExplorationContracts)
+                }
                 KnowledgeOperation::SearchCapabilities => Ok(KnowledgeRequest::SearchCapabilities),
                 KnowledgeOperation::Contracts => Ok(KnowledgeRequest::Contracts),
                 KnowledgeOperation::Dossier => {
@@ -440,6 +443,11 @@ fn knowledge_response(
 ) -> HttpResponse {
     packet_response(
         request.and_then(|request| {
+            if matches!(request, KnowledgeRequest::ExplorationContracts) {
+                return checked_execute(probe, |_| {
+                    crate::exploration_contracts::execute(executor, profile.max_response_bytes)
+                });
+            }
             if !executor.knowledge_available(request.operation()) {
                 return Err(AccessError::new(
                     AccessErrorCode::Unavailable,

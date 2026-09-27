@@ -3509,8 +3509,9 @@ with tempfile.TemporaryDirectory() as d:
                     executor.knowledge_search_legacy_available()
                         || executor.knowledge_search_indexed_available()
                 } else {
-                    O::from_id(&descriptor.operation_id)
-                        .is_some_and(|op| executor.knowledge_available(op))
+                    O::from_id(&descriptor.operation_id).is_some_and(|op| {
+                        op == O::ExplorationContracts || executor.knowledge_available(op)
+                    })
                 }
             );
             assert_eq!(
@@ -3526,7 +3527,9 @@ with tempfile.TemporaryDirectory() as d:
                     executor.knowledge_search_legacy_available()
                         || executor.knowledge_search_indexed_available()
                 } else {
-                    O::from_id(&op.operation_id).is_some_and(|op| executor.knowledge_available(op))
+                    O::from_id(&op.operation_id).is_some_and(|op| {
+                        op == O::ExplorationContracts || executor.knowledge_available(op)
+                    })
                 }
             })
             .map(|op| op.mcp_tool.as_str())

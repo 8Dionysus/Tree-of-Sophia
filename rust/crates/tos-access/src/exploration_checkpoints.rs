@@ -65,6 +65,9 @@ fn lock(store: &Arc<Mutex<Store>>) -> Result<std::sync::MutexGuard<'_, Store>, S
     store.lock().map_err(|_| corrupt())
 }
 impl ProcessExplorationCheckpoints {
+    pub fn limits(&self) -> CheckpointLimits {
+        self.limits
+    }
     pub fn new(limits: CheckpointLimits) -> Result<Self, SearchV2Error> {
         if limits.ttl.is_zero()
             || limits.max_entries == 0

@@ -12,6 +12,7 @@ pub enum KnowledgeOperation {
     Temporal,
     Lens,
     Explore,
+    ExplorationContracts,
     Focus,
     StoredLens,
     Contracts,
@@ -38,6 +39,7 @@ impl KnowledgeOperation {
             "tos.knowledge.temporal.compare" => Self::Temporal,
             "tos.lens.compile" => Self::Lens,
             "tos.knowledge.explore" => Self::Explore,
+            crate::exploration_contracts::OPERATION => Self::ExplorationContracts,
             "tos.knowledge.focus" => Self::Focus,
             "tos.lens.open" => Self::StoredLens,
             "tos.knowledge.contracts" => Self::Contracts,
@@ -65,6 +67,7 @@ impl KnowledgeOperation {
             Self::Temporal => "tos.knowledge.temporal.compare",
             Self::Lens => "tos.lens.compile",
             Self::Explore => "tos.knowledge.explore",
+            Self::ExplorationContracts => crate::exploration_contracts::OPERATION,
             Self::Focus => "tos.knowledge.focus",
             Self::StoredLens => "tos.lens.open",
             Self::Contracts => "tos.knowledge.contracts",
@@ -113,6 +116,7 @@ pub enum KnowledgeRequest {
     Temporal(JsonValue),
     Lens(JsonValue),
     Explore(JsonValue),
+    ExplorationContracts,
     Focus(tos_query::knowledge_focus::KnowledgeFocusRequest),
     StoredLens {
         lens_id: String,
@@ -134,6 +138,7 @@ impl KnowledgeRequest {
             Self::Temporal(_) => KnowledgeOperation::Temporal,
             Self::Lens(_) => KnowledgeOperation::Lens,
             Self::Explore(_) => KnowledgeOperation::Explore,
+            Self::ExplorationContracts => KnowledgeOperation::ExplorationContracts,
             Self::Focus(_) => KnowledgeOperation::Focus,
             Self::StoredLens { .. } => KnowledgeOperation::StoredLens,
             Self::Contracts => KnowledgeOperation::Contracts,
@@ -170,7 +175,8 @@ impl KnowledgeRequest {
         let allowed: &[&str] = match operation {
             KnowledgeOperation::Catalog
             | KnowledgeOperation::Contracts
-            | KnowledgeOperation::SearchCapabilities => &[],
+            | KnowledgeOperation::SearchCapabilities
+            | KnowledgeOperation::ExplorationContracts => &[],
             KnowledgeOperation::Focus => &[
                 "node_id",
                 "sources",
@@ -204,6 +210,7 @@ impl KnowledgeRequest {
         };
         Ok(match operation {
             KnowledgeOperation::Catalog => Self::Catalog,
+            KnowledgeOperation::ExplorationContracts => Self::ExplorationContracts,
             KnowledgeOperation::Contracts => Self::Contracts,
             KnowledgeOperation::SearchCapabilities => Self::SearchCapabilities,
             KnowledgeOperation::Dossier => Self::Dossier {
@@ -551,6 +558,12 @@ pub fn execute_selected_knowledge(
         probe: inspect_probe,
     };
     let packet = match request {
+        KnowledgeRequest::ExplorationContracts => {
+            return Err(AccessError::new(
+                AccessErrorCode::Unavailable,
+                "software contracts use the program executor",
+            ));
+        }
         KnowledgeRequest::Philosophy(request) => {
             let packet = tos_query::philosophy_read::execute_selected_philosophy(
                 model,

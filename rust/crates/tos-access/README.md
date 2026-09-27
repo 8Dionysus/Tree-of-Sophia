@@ -106,3 +106,12 @@ The existing producer fixture and QRY differential own domain parity; the native
 wire case checks thirteen complete packets, HEAD lengths and final withdrawal,
 cancellation and deadline refusal. These source checks do not establish installed
 managed execution while the named host fs-verity prerequisite remains unavailable.
+
+The maintained exploration-contracts GET/HEAD and MCP tool disclose the four
+packaged v1/v2 request/result schemas independently of source selection. Data
+roots and request parameters cannot override those compiled software bytes.
+Unselected `NoOwner` reports exploration unavailable with zero configured
+checkpoint/work/session limits. The managed selected executor reports its real
+process checkpoint and QRY budgets only while its current release is available;
+it never claims restart survival. This capability snapshot issues no source
+grant and does not close a selected exploration execution or public activation.

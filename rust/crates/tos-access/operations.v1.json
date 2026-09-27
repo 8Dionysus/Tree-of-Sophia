@@ -952,6 +952,25 @@
           "additionalProperties": false
         }
       }
+    },
+    {
+      "operation_id": "tos_knowledge_exploration_contracts",
+      "execution_version": "tos_exploration_capabilities_v1",
+      "effect": "read-only",
+      "availability": "packaged_software_contracts_with_actual_selected_runtime_capabilities",
+      "http": {
+        "method": "GET",
+        "path_template": "/api/knowledge/explore/contracts"
+      },
+      "mcp": {
+        "tool": "tos_knowledge_exploration_contracts",
+        "description": "Read software-owned exploration request/result v1/v2 schemas and actual local runtime capabilities",
+        "input_schema": {
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false
+        }
+      }
     }
   ]
 }

@@ -159,8 +159,10 @@ pub(crate) fn mcp_tool_list(executor: &dyn AccessExecutor) -> Result<Vec<u8>, Ac
                 executor.knowledge_search_indexed_available()
                     || executor.knowledge_search_legacy_available()
             }
-            id => crate::knowledge::KnowledgeOperation::from_id(id)
-                .is_some_and(|op| executor.knowledge_available(op)),
+            id => crate::knowledge::KnowledgeOperation::from_id(id).is_some_and(|op| {
+                op == crate::KnowledgeOperation::ExplorationContracts
+                    || executor.knowledge_available(op)
+            }),
         })
         .map(|operation| {
             object(vec![
@@ -517,6 +519,10 @@ pub trait AccessExecutor: Send + Sync {
         request: Params,
         abort_probe: Arc<dyn AbortProbe>,
     ) -> Result<PreparedPacket, AccessError>;
+    /// Software-only discovery; schema availability never implies a read grant.
+    fn exploration_runtime_capabilities(&self) -> JsonValue {
+        crate::exploration_contracts::runtime_capabilities(None)
+    }
     /// Existing published public-ledger projection; no CLI/MCP operation.
     fn source_gap(
         &self,
