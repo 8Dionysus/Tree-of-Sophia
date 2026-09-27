@@ -75,13 +75,23 @@ pub fn focus_lens_spec(
     {
         return Err(invalid("unknown focus source"));
     }
-    let all = requested.iter().all(|s| s.is_empty());
-    let sources = vocabulary
-        .sources
-        .iter()
-        .filter(|s| all || requested.contains(s))
-        .map(|s| text(s))
-        .collect();
+    let all = if vocabulary.is_published() {
+        request.sources.is_none()
+    } else {
+        requested.iter().all(|s| s.is_empty())
+    };
+    let sources = if vocabulary.is_published() && request.sources.is_some() {
+        // Published focus preserves the requested sequence so the shared
+        // normalizer can reject duplicates and empty/unknown entries.
+        requested.iter().map(|s| text(s)).collect()
+    } else {
+        vocabulary
+            .sources
+            .iter()
+            .filter(|s| all || requested.contains(s))
+            .map(|s| text(s))
+            .collect()
+    };
     Ok(object(vec![
         ("schema_version", text("tos_lens_spec_v1")),
         ("lens_id", text("focus-neighborhood")),
@@ -167,4 +177,91 @@ pub fn focus_lens_spec(
             ]),
         ),
     ]))
+}
+
+/// Parse the actual focus transport argument vocabulary, then reuse the
+/// declared focus-to-LensSpec constructor and normalizer. No I/O is needed.
+pub fn focus_lens_spec_from_json(
+    value: &JsonValue,
+    vocabulary: &LensVocabulary,
+) -> Result<JsonValue, SearchV2Error> {
+    let fields = value
+        .as_object()
+        .ok_or_else(|| invalid("focus request must be an object"))?;
+    if fields.iter().any(|(key, _)| {
+        !matches!(
+            key.as_str(),
+            Some(
+                "node_id"
+                    | "sources"
+                    | "depth"
+                    | "direction"
+                    | "profile"
+                    | "node_limit"
+                    | "relation_limit"
+                    | "predicate_ids"
+            )
+        )
+    }) {
+        return Err(invalid("unknown focus request field"));
+    }
+    let node_id = get(value, "node_id")
+        .as_str()
+        .ok_or_else(|| invalid("knowledge focus identifier is required"))?;
+    let mut request = KnowledgeFocusRequest::new(node_id);
+    fn integer(value: &JsonValue, default: usize) -> Result<usize, SearchV2Error> {
+        if matches!(value, JsonValue::Null) {
+            return Ok(default);
+        }
+        value
+            .as_u64()
+            .and_then(|n| usize::try_from(n).ok())
+            .ok_or_else(|| invalid("invalid focus integer"))
+    }
+    fn strings(value: &JsonValue) -> Result<Vec<String>, SearchV2Error> {
+        value
+            .as_array()
+            .ok_or_else(|| invalid("invalid focus string list"))?
+            .iter()
+            .map(|value| {
+                value
+                    .as_str()
+                    .map(str::to_owned)
+                    .ok_or_else(|| invalid("invalid focus string list"))
+            })
+            .collect()
+    }
+    if value.object_get("sources").is_some() && !matches!(get(value, "sources"), JsonValue::Null) {
+        request.sources = Some(strings(get(value, "sources"))?);
+    }
+    if value.object_get("predicate_ids").is_some()
+        && !matches!(get(value, "predicate_ids"), JsonValue::Null)
+    {
+        request.predicate_ids = strings(get(value, "predicate_ids"))?;
+    }
+    request.depth = integer(get(value, "depth"), request.depth)?;
+    request.node_limit = integer(get(value, "node_limit"), request.node_limit)?;
+    request.relation_limit = integer(get(value, "relation_limit"), request.relation_limit)?;
+    request.direction = match get(value, "direction") {
+        JsonValue::Null => request.direction,
+        value => match value.as_str() {
+            Some("outgoing") => FocusDirection::Outgoing,
+            Some("incoming") => FocusDirection::Incoming,
+            Some("either") => FocusDirection::Either,
+            _ => return Err(invalid("invalid focus direction")),
+        },
+    };
+    request.profile = match get(value, "profile") {
+        JsonValue::Null => request.profile,
+        value => match value.as_str() {
+            Some("all") => FocusProfile::All,
+            Some("overview") => FocusProfile::Overview,
+            _ => return Err(invalid("invalid focus profile")),
+        },
+    };
+    normalize_lens_spec(&focus_lens_spec(&request, vocabulary)?, vocabulary)
+}
+
+pub fn normalize_published_focus_request(value: &JsonValue) -> Result<JsonValue, SearchV2Error> {
+    focus_lens_spec_from_json(value, &LensVocabulary::published_shape())
 }

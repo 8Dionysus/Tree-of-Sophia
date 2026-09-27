@@ -14,6 +14,7 @@ pub mod knowledge_lens_spec;
 pub mod knowledge_contracts;
 pub mod knowledge_focus;
 pub mod knowledge_lens;
+pub mod lens_plan;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod knowledge_exploration;
 #[cfg(not(target_arch = "wasm32"))]

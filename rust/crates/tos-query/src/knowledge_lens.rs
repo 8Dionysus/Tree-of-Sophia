@@ -1,26 +1,24 @@
 //! Complete bounded lens execution on one cold-admitted selected carrier.
 //! General matching streams candidates; only bounded winners retain payloads.
-#[cfg(not(target_arch = "wasm32"))]
 use crate::{
-    knowledge_binding::BoundCmpKnowledge,
-    knowledge_inspect::{
-        DisclosableInspect, InspectBudget, InspectCurrentAuthority, Reader,
-        execute_selected_carrier_packet,
-    },
-    search_v2::SearchKind,
-};
-use crate::{
+    inspect_plan::InspectBudget,
     knowledge_lens_spec::*,
     knowledge_presentation::{knowledge_scene, lens_carrier},
     search_v2::{SearchV2Error, SearchV2ErrorCode},
     source_read_projection::{object, text},
 };
+#[cfg(not(target_arch = "wasm32"))]
+use crate::{
+    knowledge_binding::BoundCmpKnowledge,
+    knowledge_inspect::{
+        DisclosableInspect, InspectCurrentAuthority, execute_selected_carrier_packet,
+    },
+    search_v2::SearchKind,
+};
 use std::collections::{BTreeMap, BTreeSet};
 #[cfg(not(target_arch = "wasm32"))]
 use tos_compiler::VerifiedKnowledgeModel;
-use tos_foundation::{
-    CanonicalProfile, JsonLimits, JsonMode, JsonValue, canonical_bytes_v1, parse_json,
-};
+use tos_foundation::{JsonLimits, JsonMode, JsonValue, parse_json};
 pub const LENS_OPERATION: &str = "tos.lens.compile";
 pub const LENS_INTENDED_USE: &str = "read_only_public_knowledge_lens_v1";
 pub const FOCUS_OPERATION: &str = "tos.knowledge.focus";
@@ -74,7 +72,6 @@ pub fn lens_continuation_binding(
         ("withdrawal_generation", text(&scope.withdrawal_generation)),
     ])
 }
-#[cfg(not(target_arch = "wasm32"))]
 #[derive(Clone, Copy, Debug)]
 pub struct LensBudget {
     pub inspect: InspectBudget,
@@ -85,272 +82,14 @@ pub struct LensBudget {
 }
 #[derive(Clone, Debug, Default)]
 pub struct LensExecutionCounts {
-    pub available_nodes: usize,
-    pub available_relations: usize,
-    pub matched_nodes: usize,
-    pub matched_relations: usize,
-    pub eligible_relations: usize,
+    pub available_nodes: u64,
+    pub available_relations: u64,
+    pub matched_nodes: u64,
+    pub matched_relations: u64,
+    pub eligible_relations: u64,
     pub identity_expansion_limited: bool,
 }
-#[cfg(not(target_arch = "wasm32"))]
-struct Plan<'a, 'r, 'm, A: ?Sized> {
-    read: &'a mut Reader<'r, 'm, A>,
-    vocabulary: &'a LensVocabulary,
-    sources: Vec<String>,
-    budget: LensBudget,
-    candidates: usize,
-    path_steps: usize,
-    adjacency: usize,
-}
-#[cfg(not(target_arch = "wasm32"))]
-impl<A: InspectCurrentAuthority + ?Sized> Plan<'_, '_, '_, A> {
-    fn in_scope(&self, item: &JsonValue) -> bool {
-        self.sources
-            .iter()
-            .any(|s| s == string(get(item, "source_graph")))
-    }
-    fn candidate(&mut self) -> Result<(), SearchV2Error> {
-        self.candidates = self.candidates.checked_add(1).ok_or_else(budget)?;
-        if self.candidates > self.budget.max_candidates {
-            return Err(budget());
-        }
-        Ok(())
-    }
-    fn item(&mut self, kind: SearchKind, id: &str) -> Result<Option<JsonValue>, SearchV2Error> {
-        let rows = self.read.items(kind, "id", id, 1, true)?;
-        if rows.len() > 1 {
-            return Err(corrupt("duplicate exact lens carrier"));
-        }
-        Ok(rows.into_iter().next().filter(|v| self.in_scope(v)))
-    }
-    fn scope_scan<F>(&mut self, kind: SearchKind, mut callback: F) -> Result<(), SearchV2Error>
-    where
-        F: FnMut(&mut Self, JsonValue) -> Result<(), SearchV2Error>,
-    {
-        let mut after = None;
-        loop {
-            let rows = self.read.candidate_ids(
-                kind,
-                &self.sources,
-                after
-                    .as_ref()
-                    .map(|(s, position, _): &(String, i64, String)| (s.as_str(), *position)),
-                self.budget.block_size,
-            )?;
-            if rows.is_empty() {
-                break;
-            }
-            for (source, _, id) in &rows {
-                self.candidate()?;
-                let value = self
-                    .item(kind, id)?
-                    .ok_or_else(|| corrupt("candidate selected carrier missing from scope"))?;
-                if string(get(&value, "source_graph")) != source {
-                    return Err(corrupt("candidate source mirror differs"));
-                }
-                callback(self, value)?;
-            }
-            after = rows.last().cloned();
-        }
-        Ok(())
-    }
-    fn alias_rows(&mut self, field_name: &str, id: &str) -> Result<Vec<JsonValue>, SearchV2Error> {
-        let rows = if field_name == "entity_id" {
-            let mut rows = vec![];
-            let mut after = String::new();
-            loop {
-                let ids =
-                    self.read
-                        .identity_ids(id, &self.sources, &after, self.budget.block_size)?;
-                if ids.is_empty() {
-                    break;
-                }
-                for id in &ids {
-                    self.candidate()?;
-                    rows.push(
-                        self.item(SearchKind::Nodes, id)?
-                            .ok_or_else(|| corrupt("identity carrier closure missing"))?,
-                    );
-                }
-                after = ids.last().unwrap().clone();
-            }
-            rows
-        } else {
-            let values = self.read.items(
-                SearchKind::Nodes,
-                field_name,
-                id,
-                self.budget.max_candidates.saturating_add(1),
-                true,
-            )?;
-            if values.len() > self.budget.max_candidates {
-                return Err(budget());
-            }
-            for _ in &values {
-                self.candidate()?;
-            }
-            values.into_iter().filter(|v| self.in_scope(v)).collect()
-        };
-        Ok(rows)
-    }
-    fn focus(&mut self, requested: &str) -> Result<JsonValue, SearchV2Error> {
-        if let Some(exact) = self.item(SearchKind::Nodes, requested)? {
-            return Ok(exact);
-        }
-        let mut entities = self.alias_rows("entity_id", requested)?;
-        if !entities.is_empty() {
-            entities.sort_by(|a, b| {
-                (self.vocabulary.priority(a), string(get(a, "id")))
-                    .cmp(&(self.vocabulary.priority(b), string(get(b, "id"))))
-            });
-            return Ok(entities.remove(0));
-        }
-        let mut native = self.alias_rows("native_id", requested)?;
-        if native.len() > 1 {
-            return Err(invalid("ambiguous native lens focus"));
-        }
-        native.pop().ok_or_else(|| SearchV2Error {
-            code: SearchV2ErrorCode::UnknownIdentifier,
-            message: "unknown knowledge lens focus",
-        })
-    }
-    fn incident(&mut self, node: &str) -> Result<Vec<JsonValue>, SearchV2Error> {
-        let mut rows = vec![];
-        let mut after = String::new();
-        loop {
-            let ids = self
-                .read
-                .incident_ids(node, &after, self.budget.block_size)?;
-            if ids.is_empty() {
-                break;
-            }
-            for id in &ids {
-                self.adjacency = self.adjacency.checked_add(1).ok_or_else(budget)?;
-                if self.adjacency > self.budget.max_adjacency_rows {
-                    return Err(budget());
-                }
-                if let Some(r) = self.item(SearchKind::Relations, id)? {
-                    rows.push(r)
-                }
-            }
-            after = ids.last().unwrap().clone();
-        }
-        Ok(rows)
-    }
-    fn path(
-        &mut self,
-        start: &str,
-        condition: &JsonValue,
-    ) -> Result<Option<JsonValue>, SearchV2Error> {
-        fn walk<A: InspectCurrentAuthority + ?Sized>(
-            p: &mut Plan<'_, '_, '_, A>,
-            current: &str,
-            index: usize,
-            steps: &[JsonValue],
-            nodes: Vec<JsonValue>,
-            relations: Vec<JsonValue>,
-            id: &str,
-        ) -> Result<Option<JsonValue>, SearchV2Error> {
-            if index == steps.len() {
-                return Ok(Some(object(vec![
-                    ("path_id", text(id)),
-                    ("node_ids", JsonValue::Array(nodes)),
-                    ("relation_ids", JsonValue::Array(relations)),
-                ])));
-            }
-            let step = &steps[index];
-            for relation in p.incident(current)? {
-                p.path_steps = p.path_steps.checked_add(1).ok_or_else(budget)?;
-                if p.path_steps > p.budget.max_path_steps {
-                    return Err(budget());
-                }
-                let rg = get(step, "relation_query");
-                if !boolean(get(rg, "enabled")) || !matches_group(&relation, rg) {
-                    continue;
-                }
-                for neighbor in neighbors(&relation, current, string(get(step, "direction"))) {
-                    let Some(node) = p.item(SearchKind::Nodes, &neighbor)? else {
-                        continue;
-                    };
-                    let ng = get(step, "node_query");
-                    if !boolean(get(ng, "enabled")) || !matches_group(&node, ng) {
-                        continue;
-                    }
-                    let mut n = nodes.clone();
-                    n.push(text(&neighbor));
-                    let mut r = relations.clone();
-                    r.push(get(&relation, "id").clone());
-                    if let Some(found) = walk(p, &neighbor, index + 1, steps, n, r, id)? {
-                        return Ok(Some(found));
-                    }
-                }
-            }
-            Ok(None)
-        }
-        walk(
-            self,
-            start,
-            0,
-            array(get(condition, "steps")),
-            vec![text(start)],
-            vec![],
-            string(get(condition, "path_id")),
-        )
-    }
-    fn scan_nodes<F>(&mut self, spec: &JsonValue, mut callback: F) -> Result<(), SearchV2Error>
-    where
-        F: FnMut(&mut Self, JsonValue) -> Result<(), SearchV2Error>,
-    {
-        let group = get(spec, "node_query");
-        if !boolean(get(group, "enabled")) {
-            return Ok(());
-        }
-        let seed = array(field(spec, "seed.node_ids"));
-        let filters = array(get(group, "filters"));
-        let selectors: Vec<_> = filters.iter().map(|f| identity_selector(f, true)).collect();
-        let group_plan = if string(get(group, "match")) == "all" {
-            selectors.iter().flatten().next().cloned().map(|s| vec![s])
-        } else if !selectors.is_empty() && selectors.iter().all(Option::is_some) {
-            Some(selectors.into_iter().flatten().collect())
-        } else {
-            None
-        };
-        let identities = if !seed.is_empty() {
-            Some(
-                ["id", "entity_id", "native_id"]
-                    .iter()
-                    .map(|f| {
-                        (
-                            (*f).to_owned(),
-                            seed.iter()
-                                .map(|v| string(v).to_owned())
-                                .collect::<Vec<_>>(),
-                        )
-                    })
-                    .collect::<Vec<_>>(),
-            )
-        } else {
-            group_plan
-        };
-        if let Some(selectors) = identities {
-            let mut seen = BTreeSet::new();
-            for (field, values) in selectors {
-                for value in values {
-                    for node in self.alias_rows(&field, &value)? {
-                        if seen.insert(string(get(&node, "id")).to_owned()) {
-                            callback(self, node)?
-                        }
-                    }
-                }
-            }
-            Ok(())
-        } else {
-            self.scope_scan(SearchKind::Nodes, callback)
-        }
-    }
-}
-#[cfg(not(target_arch = "wasm32"))]
-fn identity_selector(rule: &JsonValue, node: bool) -> Option<(String, Vec<String>)> {
+pub(crate) fn identity_selector(rule: &JsonValue, node: bool) -> Option<(String, Vec<String>)> {
     if rule.object_get("_property_binding").is_some() {
         return None;
     }
@@ -375,7 +114,7 @@ fn identity_selector(rule: &JsonValue, node: bool) -> Option<(String, Vec<String
         values.iter().map(|v| string(v).to_owned()).collect(),
     ))
 }
-fn neighbors(r: &JsonValue, node: &str, direction: &str) -> Vec<String> {
+pub(crate) fn neighbors(r: &JsonValue, node: &str, direction: &str) -> Vec<String> {
     let mut out = vec![];
     if direction != "incoming" && string(get(r, "from_id")) == node {
         out.push(string(get(r, "to_id")).to_owned())
@@ -386,7 +125,11 @@ fn neighbors(r: &JsonValue, node: &str, direction: &str) -> Vec<String> {
     out.retain(|s| !s.is_empty());
     out
 }
-fn relation_regime(r: &JsonValue, spec: &JsonValue, vocabulary: &LensVocabulary) -> bool {
+pub(crate) fn relation_regime(
+    r: &JsonValue,
+    spec: &JsonValue,
+    vocabulary: &LensVocabulary,
+) -> bool {
     let predicates = array(field(spec, "traversal.predicate_ids"));
     (predicates.is_empty() || predicates.iter().any(|p| p == get(r, "predicate_id")))
         && (string(field(spec, "traversal.profile")) != "overview"
@@ -398,23 +141,6 @@ fn relation_regime(r: &JsonValue, spec: &JsonValue, vocabulary: &LensVocabulary)
                     .overview_excluded_relation_types
                     .iter()
                     .any(|p| p == string(get(r, "relation_type_id")))))
-}
-fn top_insert(
-    items: &mut Vec<(JsonValue, Vec<JsonValue>)>,
-    item: JsonValue,
-    proofs: Vec<JsonValue>,
-    rules: &JsonValue,
-    limit: usize,
-) {
-    let place = items
-        .binary_search_by(|(v, _)| sort_cmp(v, &item, rules))
-        .unwrap_or_else(|i| i);
-    if place < limit {
-        items.insert(place, (item, proofs));
-        if items.len() > limit {
-            items.pop();
-        }
-    }
 }
 #[cfg(not(target_arch = "wasm32"))]
 pub fn execute_selected_lens<A: InspectCurrentAuthority + ?Sized>(
@@ -514,350 +240,110 @@ fn execute_selected_lens_request<A: InspectCurrentAuthority + ?Sized>(
                 }
                 LensRequest::Stored(identifier) => {
                     let catalog = read.catalog_packet(bound)?;
-                    let matches: Vec<_> = array(get(&catalog, "lenses"))
-                        .iter()
-                        .filter(|spec| string(get(spec, "lens_id")) == identifier)
-                        .collect();
-                    if matches.len() > 1 {
-                        return Err(corrupt("ambiguous selected stored lens identifier"));
-                    }
-                    matches
-                        .into_iter()
-                        .next()
-                        .cloned()
-                        .ok_or_else(|| SearchV2Error {
-                            code: SearchV2ErrorCode::UnknownIdentifier,
-                            message: "unknown selected stored lens",
-                        })?
+                    stored_lens_spec(&catalog, identifier)?
                 }
             };
             let public_spec = normalize_lens_spec(&value, &vocabulary)?;
-            let spec = bind_properties(&public_spec, &vocabulary)?;
-            let sources = array(get(&spec, "sources"))
+            let sources = array(get(&public_spec, "sources"))
                 .iter()
                 .map(|v| string(v).to_owned())
                 .collect::<Vec<_>>();
-            let available_nodes = read.scope_count(SearchKind::Nodes, &sources)? as usize;
-            let available_relations = read.scope_count(SearchKind::Relations, &sources)? as usize;
-            let mut p = Plan {
-                read,
-                vocabulary: &vocabulary,
-                sources,
-                budget: budget_value,
-                candidates: 0,
-                path_steps: 0,
-                adjacency: 0,
-            };
-            let focus = if let Some(id) = field(&spec, "seed.focus_node_id").as_str() {
-                Some(p.focus(id)?)
-            } else {
-                None
-            };
-            let node_limit = uint(field(&spec, "limits.nodes"));
-            let relation_limit = uint(field(&spec, "limits.relations"));
-            let mut matched_nodes = 0;
-            let mut focus_matched = false;
-            let mut winners = vec![];
-            p.scan_nodes(&spec, |p, node| {
-                let selected = array(field(&spec, "seed.node_ids"));
-                if !selected.is_empty()
-                    && !selected.iter().any(|s| {
-                        ["id", "native_id", "entity_id"]
-                            .iter()
-                            .any(|k| get(&node, k) == s)
-                    })
-                {
-                    return Ok(());
-                }
-                let q = lower(string(field(&spec, "seed.text_query")));
-                if !q.is_empty() {
-                    let compact = canonical_bytes_v1(
-                        &node,
-                        CanonicalProfile::SourceRecordDigestV1,
-                        budget_value.inspect.json,
-                    )
-                    .map_err(|_| budget())?;
-                    let source = String::from_utf8(compact)
-                        .map_err(|_| corrupt("lens searchable JSON invalid"))?;
-                    if !lower(&json_spaces(&source)).contains(&q) {
-                        return Ok(());
-                    }
-                }
-                if !matches_group(&node, get(&spec, "node_query")) {
-                    return Ok(());
-                }
-                let mut proofs = vec![];
-                for condition in array(get(&spec, "path_query")) {
-                    let witness = p.path(string(get(&node, "id")), condition)?;
-                    if witness.is_some() != (string(get(condition, "quantifier")) == "exists") {
-                        return Ok(());
-                    }
-                    proofs.push(witness.unwrap_or_else(|| {
-                        object(vec![
-                            ("path_id", get(condition, "path_id").clone()),
-                            ("absence_in_scope", JsonValue::Bool(true)),
-                        ])
-                    }));
-                }
-                matched_nodes += 1;
-                if focus
-                    .as_ref()
-                    .is_some_and(|f| get(f, "id") == get(&node, "id"))
-                {
-                    focus_matched = true;
-                }
-                top_insert(
-                    &mut winners,
-                    node,
-                    proofs,
-                    field(&spec, "composition.sort_nodes"),
-                    node_limit,
-                );
-                Ok(())
-            })?;
-            let mut selected: BTreeMap<String, JsonValue> = BTreeMap::new();
-            let mut inclusion = object(vec![]);
-            let mut selection_order = vec![];
-            if let Some(f) = &focus {
-                let id = string(get(f, "id"));
-                selected.insert(id.to_owned(), f.clone());
-                selection_order.push(id.to_owned());
-                set(&mut inclusion, id, object(vec![("kind", text("focus"))]));
-                if !focus_matched {
-                    matched_nodes += 1;
-                }
-            }
-            for (node, proofs) in winners {
-                if selected.len() >= node_limit {
-                    break;
-                }
-                let id = string(get(&node, "id")).to_owned();
-                if !selected.contains_key(&id) {
-                    selection_order.push(id.clone());
-                    selected.insert(id.clone(), node);
-                    set(
-                        &mut inclusion,
-                        &id,
-                        object(vec![
-                            ("kind", text("selector")),
-                            ("path_witnesses", JsonValue::Array(proofs)),
-                        ]),
-                    );
-                }
-            }
-            // Relations retain only selectors/sort fields while scanning. Full payloads
-            // are authenticated again when consulted for traversal or final delivery.
-            let mut relation_keys = vec![];
-            if boolean(field(&spec, "relation_query.enabled")) {
-                p.scope_scan(SearchKind::Relations, |p, r| {
-                    if relation_regime(&r, &spec, p.vocabulary)
-                        && matches_group(&r, get(&spec, "relation_query"))
-                    {
-                        let mut compact = object(vec![
-                            ("id", get(&r, "id").clone()),
-                            ("from_id", get(&r, "from_id").clone()),
-                            ("to_id", get(&r, "to_id").clone()),
-                        ]);
-                        let mut keys = vec![];
-                        for sort in array(field(&spec, "composition.sort_relations")) {
-                            keys.push(field(&r, string(get(sort, "field"))).clone());
-                        }
-                        set(&mut compact, "_sort", JsonValue::Array(keys));
-                        relation_keys.push(compact);
-                    }
-                    Ok(())
-                })?;
-            }
-            let sort_rules = field(&spec, "composition.sort_relations");
-            relation_keys.sort_by(|a, b| {
-                for (i, rule) in array(sort_rules).iter().enumerate() {
-                    let av = &array(get(a, "_sort"))[i];
-                    let bv = &array(get(b, "_sort"))[i];
-                    let mut ord = lower(&if is_truthy(av) {
-                        py_string(av)
-                    } else {
-                        String::new()
-                    })
-                    .cmp(&lower(&if is_truthy(bv) {
-                        py_string(bv)
-                    } else {
-                        String::new()
-                    }));
-                    if string(get(rule, "direction")) == "desc" {
-                        ord = ord.reverse()
-                    }
-                    if ord != std::cmp::Ordering::Equal {
-                        return ord;
-                    }
-                }
-                string(get(a, "id")).cmp(string(get(b, "id")))
-            });
-            let matched_relations = relation_keys.len();
-            let mut frontier = selection_order.clone();
-            let mut traversed = BTreeSet::new();
-            let mut identity_limited = false;
-            for depth in 0..uint(field(&spec, "traversal.depth")) {
-                let mut origins: BTreeMap<String, String> = BTreeMap::new();
-                for id in frontier.iter().collect::<BTreeSet<_>>() {
-                    let entity = string(get(&selected[id], "entity_id"));
-                    if string(field(&spec, "traversal.profile")) == "overview"
-                        && vocabulary.declared_entity(entity)
-                    {
-                        origins
-                            .entry(entity.to_owned())
-                            .or_insert_with(|| id.clone());
-                    }
-                }
-                let mut aliases = BTreeSet::new();
-                for entity in origins.keys() {
-                    for node in p.alias_rows("entity_id", entity)? {
-                        let id = string(get(&node, "id"));
-                        if !selected.contains_key(id) {
-                            aliases.insert(id.to_owned());
-                        }
-                    }
-                }
-                for id in aliases {
-                    if selected.len() >= node_limit {
-                        identity_limited = true;
-                        break;
-                    }
-                    let n = p
-                        .item(SearchKind::Nodes, &id)?
-                        .ok_or_else(|| corrupt("traversal identity missing"))?;
-                    let entity = string(get(&n, "entity_id")).to_owned();
-                    selected.insert(id.clone(), n);
-                    frontier.push(id.clone());
-                    set(
-                        &mut inclusion,
-                        &id,
-                        object(vec![
-                            ("kind", text("identity-carrier")),
-                            ("via_node_id", text(&origins[&entity])),
-                            ("entity_id", text(&entity)),
-                            ("depth", number(depth)),
-                        ]),
-                    );
-                }
-                let mut next = vec![];
-                let mut incident_ids = BTreeSet::new();
-                for id in &frontier {
-                    for relation in p.incident(id)? {
-                        incident_ids.insert(string(get(&relation, "id")).to_owned());
-                    }
-                }
-                for relation in relation_keys
-                    .iter()
-                    .filter(|r| incident_ids.contains(string(get(r, "id"))))
-                {
-                    let rid = string(get(relation, "id"));
-                    let mut touched = false;
-                    for id in &frontier {
-                        for neighbor in
-                            neighbors(relation, id, string(field(&spec, "traversal.direction")))
-                        {
-                            touched = true;
-                            if !selected.contains_key(&neighbor) && selected.len() < node_limit {
-                                if let Some(node) = p.item(SearchKind::Nodes, &neighbor)? {
-                                    selected.insert(neighbor.clone(), node);
-                                    next.push(neighbor.clone());
-                                    set(
-                                        &mut inclusion,
-                                        &neighbor,
-                                        object(vec![
-                                            ("kind", text("traversal")),
-                                            ("via_node_id", text(id)),
-                                            ("via_relation_id", text(rid)),
-                                            ("depth", number(depth + 1)),
-                                        ]),
-                                    );
-                                }
+            let available = (
+                read.scope_count(SearchKind::Nodes, &sources)?,
+                read.scope_count(SearchKind::Relations, &sources)?,
+            );
+            let mut plan = crate::lens_plan::LensPlan::native(
+                public_spec,
+                vocabulary,
+                bound.source_revision(),
+                get(&header, "authority_boundary").clone(),
+                publication,
+                budget_value,
+                available,
+                read.abort_probe(),
+            )?;
+            while !plan.advance()? {
+                read.check_interrupt()?;
+                let need = plan
+                    .need()
+                    .ok_or_else(|| corrupt("native lens need absent"))?;
+                use crate::lens_plan::{
+                    LensCandidate, LensCandidateCursor, LensCandidatePage, LensNeed, LensReply,
+                };
+                let reply = match &*need {
+                    LensNeed::ExactRows { kind, ids, .. } => {
+                        let mut rows = vec![];
+                        let mut raw_bytes = vec![];
+                        for id in ids {
+                            for (row, size) in read.items_with_sizes(*kind, "id", id, 1, true)? {
+                                rows.push(row);
+                                raw_bytes.push(size);
                             }
                         }
+                        LensReply::Rows { rows, raw_bytes }
                     }
-                    if touched && traversed.len() < relation_limit {
-                        traversed.insert(rid.to_owned());
+                    LensNeed::LookupRows {
+                        field,
+                        identifier,
+                        limit,
+                    } => {
+                        let values = read.items_with_sizes(
+                            SearchKind::Nodes,
+                            field,
+                            identifier,
+                            *limit,
+                            true,
+                        )?;
+                        let (rows, raw_bytes) = values.into_iter().unzip();
+                        LensReply::Rows { rows, raw_bytes }
                     }
-                }
-                frontier = next;
-                if frontier.is_empty() {
-                    break;
-                }
+                    LensNeed::CandidateIds {
+                        kind,
+                        sources,
+                        after,
+                        limit,
+                        ..
+                    } => {
+                        let cursor = match after {
+                            None => None,
+                            Some(LensCandidateCursor::SourceOrder { source, position }) => {
+                                Some((source.as_str(), *position))
+                            }
+                            _ => return Err(corrupt("native lens cursor profile differs")),
+                        };
+                        let rows = read
+                            .candidate_ids(*kind, sources, cursor, *limit)?
+                            .into_iter()
+                            .map(|(source, position, id)| LensCandidate {
+                                id,
+                                source: Some(source),
+                                position: Some(position),
+                            })
+                            .collect();
+                        LensReply::Candidates(LensCandidatePage { rows })
+                    }
+                    LensNeed::IdentityIds {
+                        identifier,
+                        sources,
+                        after,
+                        limit,
+                    } => LensReply::Ids(read.identity_ids(identifier, sources, after, *limit)?),
+                    LensNeed::IncidentIds {
+                        identifier,
+                        after,
+                        limit,
+                    } => LensReply::Ids(read.incident_ids(identifier, after, *limit)?),
+                    _ => return Err(corrupt("published lens read requested by native profile")),
+                };
+                drop(need);
+                plan.resume(reply)?;
             }
-            let basis: BTreeSet<_> = selected.keys().cloned().collect();
-            let policy = string(field(&spec, "composition.endpoint_policy"));
-            let mut eligible = 0;
-            let mut returned_relations = vec![];
-            for key in relation_keys {
-                let id = string(get(&key, "id"));
-                let left = string(get(&key, "from_id"));
-                let right = string(get(&key, "to_id"));
-                let allowed = match policy {
-                    "both" => basis.contains(left) && basis.contains(right),
-                    "either" => basis.contains(left) || basis.contains(right),
-                    "independent" => true,
-                    _ => false,
-                } || traversed.contains(id);
-                if !allowed {
-                    continue;
-                }
-                eligible += 1;
-                if returned_relations.len() >= relation_limit {
-                    continue;
-                }
-                let mut missing = vec![];
-                for endpoint in [left, right] {
-                    if !selected.contains_key(endpoint) && !missing.contains(&endpoint) {
-                        missing.push(endpoint)
-                    }
-                }
-                if selected.len() + missing.len() > node_limit {
-                    continue;
-                }
-                for endpoint in missing {
-                    if let Some(n) = p.item(SearchKind::Nodes, endpoint)? {
-                        selected.insert(endpoint.to_owned(), n);
-                        set(
-                            &mut inclusion,
-                            endpoint,
-                            object(vec![
-                                ("kind", text("endpoint")),
-                                ("via_relation_id", text(id)),
-                            ]),
-                        );
-                    }
-                }
-                if selected.contains_key(left) && selected.contains_key(right) {
-                    let relation = p
-                        .item(SearchKind::Relations, id)?
-                        .ok_or_else(|| corrupt("selected relation closure absent"))?;
-                    returned_relations.push(relation)
-                }
-            }
-            finalize_knowledge_lens(
-                &public_spec,
-                selected.into_values().collect(),
-                returned_relations,
-                bound.source_revision(),
-                get(&header, "authority_boundary"),
-                LensExecutionCounts {
-                    available_nodes,
-                    available_relations,
-                    matched_nodes,
-                    matched_relations,
-                    eligible_relations: eligible,
-                    identity_expansion_limited: identity_limited,
-                },
-                focus.as_ref(),
-                &inclusion,
-                &traversed,
-                Some(&publication),
-                &vocabulary,
-            )
+            read.check_interrupt()?;
+            plan.finish()
         },
     )
 }
-fn is_truthy(v: &JsonValue) -> bool {
+pub(crate) fn is_truthy(v: &JsonValue) -> bool {
     match v {
         JsonValue::Null => false,
         JsonValue::Bool(b) => *b,
@@ -867,7 +353,7 @@ fn is_truthy(v: &JsonValue) -> bool {
         JsonValue::Object(o) => !o.is_empty(),
     }
 }
-fn json_spaces(s: &str) -> String {
+pub(crate) fn json_spaces(s: &str) -> String {
     let mut out = String::new();
     let mut quoted = false;
     let mut escaped = false;
@@ -888,6 +374,13 @@ fn json_spaces(s: &str) -> String {
         }
     }
     out
+}
+
+fn count_number(value: u64) -> JsonValue {
+    JsonValue::Number(tos_foundation::JsonNumber {
+        kind: tos_foundation::JsonNumberKind::Int,
+        lexeme: value.to_string(),
+    })
 }
 
 /// Finalize a bounded, exact selection. Selection/count authority remains with
@@ -983,8 +476,10 @@ pub fn finalize_knowledge_lens(
         .count();
     let truncated_nodes = counts
         .matched_nodes
-        .saturating_sub(uint(field(public, "limits.nodes")));
-    let truncated_relations = counts.eligible_relations.saturating_sub(relations.len());
+        .saturating_sub(uint(field(public, "limits.nodes")) as u64);
+    let truncated_relations = counts
+        .eligible_relations
+        .saturating_sub(relations.len() as u64);
     let mut lens_for_digest = public.clone();
     remove(&mut lens_for_digest, "pagination");
     let pairs = |items: &[JsonValue]| {
@@ -1088,16 +583,22 @@ pub fn finalize_knowledge_lens(
         (
             "counts",
             object(vec![
-                ("available_nodes", number(counts.available_nodes)),
-                ("available_relations", number(counts.available_relations)),
-                ("matched_nodes", number(counts.matched_nodes)),
-                ("matched_relations", number(counts.matched_relations)),
-                ("eligible_relations", number(counts.eligible_relations)),
+                ("available_nodes", count_number(counts.available_nodes)),
+                (
+                    "available_relations",
+                    count_number(counts.available_relations),
+                ),
+                ("matched_nodes", count_number(counts.matched_nodes)),
+                ("matched_relations", count_number(counts.matched_relations)),
+                (
+                    "eligible_relations",
+                    count_number(counts.eligible_relations),
+                ),
                 ("nodes", number(nodes.len())),
                 ("relations", number(relations.len())),
                 ("groups", number(groups.len())),
-                ("truncated_nodes", number(truncated_nodes)),
-                ("truncated_relations", number(truncated_relations)),
+                ("truncated_nodes", count_number(truncated_nodes)),
+                ("truncated_relations", count_number(truncated_relations)),
                 (
                     "identity_expansion_limited",
                     JsonValue::Bool(counts.identity_expansion_limited),
@@ -1170,6 +671,21 @@ pub fn finalize_knowledge_lens(
                 ("authority", text("query-execution-not-semantic-proof")),
             ]),
         );
+        // Published packets retain Python's member order. Native canonical
+        // emission sorts members, so this shared order leaves native bytes
+        // unchanged while avoiding a second published result constructor.
+        if let JsonValue::Object(fields) = &mut out {
+            let position = fields
+                .iter()
+                .position(|(key, _)| key.as_str() == Some("inclusion"))
+                .expect("inclusion was just inserted");
+            let inclusion = fields.remove(position);
+            let focus_position = fields
+                .iter()
+                .position(|(key, _)| key.as_str() == Some("focus"))
+                .expect("lens result contains focus");
+            fields.insert(focus_position + 1, inclusion);
+        }
     }
     out = paginate_lens(out, cursor_fingerprint.as_deref())?;
     let scene = knowledge_scene(

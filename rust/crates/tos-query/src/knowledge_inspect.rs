@@ -290,6 +290,7 @@ impl<A: InspectCurrentAuthority + ?Sized> Reader<'_, '_, A> {
         }
         self.authority.check_selected()
     }
+    pub(crate) fn abort_probe(&self) -> Option<Arc<dyn crate::AbortProbe>> { self.authority.abort_probe() }
     pub(crate) fn disclosure_scope(&self) -> &IndexedDisclosureScope {
         self.scope
     }
@@ -590,6 +591,16 @@ impl<A: InspectCurrentAuthority + ?Sized> Reader<'_, '_, A> {
         limit: usize,
         ordered_id: bool,
     ) -> Result<Vec<JsonValue>, SearchV2Error> {
+        Ok(self.items_with_sizes(kind, field, id, limit, ordered_id)?.into_iter().map(|(value, _)| value).collect())
+    }
+    pub(crate) fn items_with_sizes(
+        &mut self,
+        kind: SearchKind,
+        field: &str,
+        id: &str,
+        limit: usize,
+        ordered_id: bool,
+    ) -> Result<Vec<(JsonValue, usize)>, SearchV2Error> {
         if limit == 0 {
             return Ok(vec![]);
         }
@@ -693,7 +704,7 @@ impl<A: InspectCurrentAuthority + ?Sized> Reader<'_, '_, A> {
                     .ok_or_else(|| corrupt("inspect carrier source invalid"))?
                     .to_owned(),
             });
-            values.push(value);
+            values.push((value, payload.len()));
         }
         Ok(values)
     }
