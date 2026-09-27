@@ -420,6 +420,6 @@ fn producer_selected_indexed_pages_match_python_rank_and_original_carriers() {
     );
     assert_eq!(
         field(packet.root(), "source_revision").as_str(),
-        Some(bound.source_revision())
+        bound.source_revision()
     );
 }

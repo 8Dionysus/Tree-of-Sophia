@@ -2,8 +2,9 @@
 //! This establishes query semantics, not current policy or disclosure rights.
 
 use tos_compiler::{
-    KNOWLEDGE_CORPUS_MODEL_ABI, KNOWLEDGE_MODEL_ABI, KNOWLEDGE_NAVIGATION_MODEL_ABI,
-    KNOWLEDGE_PHILOSOPHY_MODEL_ABI, QueryVocabulary, VerifiedKnowledgeModel,
+    KNOWLEDGE_CORPUS_MODEL_ABI, KNOWLEDGE_MANAGED_MODEL_ABI, KNOWLEDGE_MODEL_ABI,
+    KNOWLEDGE_NAVIGATION_MODEL_ABI, KNOWLEDGE_PHILOSOPHY_MODEL_ABI, KnowledgeSourceBasis,
+    ManagedSourceProofV1, QueryVocabulary, VerifiedKnowledgeModel,
 };
 use tos_foundation::Digest256;
 
@@ -28,7 +29,7 @@ fn digest(raw: &str) -> Result<Digest256, SearchV2Error> {
 pub struct BoundCmpKnowledge<'a> {
     selection: SearchSelectionBinding,
     vocabulary: &'a QueryVocabulary,
-    source_revision: String,
+    source_basis: KnowledgeSourceBasis,
     authority_boundary: String,
     owner_receipt_id: String,
     descriptor: tos_foundation::JsonValue,
@@ -44,14 +45,81 @@ impl BoundCmpKnowledge<'_> {
     pub fn selection(&self) -> &SearchSelectionBinding {
         &self.selection
     }
-    pub fn source_revision(&self) -> &str {
-        &self.source_revision
+    pub fn source_basis(&self) -> &KnowledgeSourceBasis {
+        &self.source_basis
+    }
+    pub fn source_revision(&self) -> Option<&str> {
+        self.source_basis.source_revision()
+    }
+    pub fn require_source_revision(&self) -> Result<&str, SearchV2Error> {
+        self.source_revision().ok_or(SearchV2Error {
+            code: SearchV2ErrorCode::UnsupportedModel,
+            message: "query requires a cut source revision",
+        })
     }
     pub fn authority_boundary(&self) -> &str {
         &self.authority_boundary
     }
     pub fn owner_receipt_id(&self) -> &str {
         &self.owner_receipt_id
+    }
+    pub(crate) fn validate_catalog_identity(
+        &self,
+        packet: &tos_foundation::JsonValue,
+        limits: tos_foundation::JsonLimits,
+    ) -> Result<(), SearchV2Error> {
+        use tos_foundation::{CanonicalProfile, JsonValue, canonical_bytes_v1};
+        let invalid = || SearchV2Error {
+            code: SearchV2ErrorCode::CorruptSelectedCarrier,
+            message: "selected catalog identity differs",
+        };
+        match &self.source_basis {
+            KnowledgeSourceBasis::V1Cut { source_revision } => {
+                if packet.object_get("schema").and_then(JsonValue::as_str)
+                    != Some("tos_knowledge_catalog_v1")
+                    || packet
+                        .object_get("source_revision")
+                        .and_then(JsonValue::as_str)
+                        != Some(source_revision.as_str())
+                    || packet.object_get("source_basis").is_some()
+                {
+                    return Err(invalid());
+                }
+            }
+            KnowledgeSourceBasis::ManagedCurrent { proof } => {
+                if packet.object_get("schema").and_then(JsonValue::as_str)
+                    != Some(tos_compiler::managed_source::MANAGED_CATALOG_SCHEMA)
+                    || packet.object_get("source_revision").is_some()
+                {
+                    return Err(invalid());
+                }
+                let basis = packet.object_get("source_basis").ok_or_else(invalid)?;
+                if basis.as_object().map(|fields| fields.len()) != Some(2)
+                    || basis.object_get("kind").and_then(JsonValue::as_str)
+                        != Some("managed_current")
+                {
+                    return Err(invalid());
+                }
+                let actual = canonical_bytes_v1(
+                    basis.object_get("proof").ok_or_else(invalid)?,
+                    CanonicalProfile::SourceRecordDigestV1,
+                    limits,
+                )
+                .map_err(|reason| SearchV2Error {
+                    code: if reason.code == tos_foundation::ErrorCode::BudgetExceeded {
+                        SearchV2ErrorCode::BudgetExceeded
+                    } else {
+                        SearchV2ErrorCode::CorruptSelectedCarrier
+                    },
+                    message: "selected catalog source basis cannot be checked",
+                })?;
+                let expected = proof.root_sha256().map_err(|_| invalid())?;
+                if Digest256::of_bytes(&actual) != digest(&expected)? {
+                    return Err(invalid());
+                }
+            }
+        }
+        Ok(())
     }
     pub(crate) fn source_for_adapter(&self, adapter: &str) -> Option<&str> {
         let mut sources = self
@@ -74,7 +142,7 @@ impl BoundCmpKnowledge<'_> {
             .check_pin()
             .map_err(|_| stale("selected knowledge pin changed"))?;
         if digest(&model.selection().model_sha256)? != self.selection.index_root_sha256
-            || model.source_revision() != self.source_revision
+            || model.source_basis() != &self.source_basis
             || model.search_index_profile() != self.selection.search_unicode_profile
         {
             return Err(stale("selected knowledge model differs from query binding"));
@@ -103,6 +171,36 @@ pub fn bind_verified_knowledge<'a>(
     vocabulary: &'a QueryVocabulary,
     authored_descriptor: &[u8],
 ) -> Result<BoundCmpKnowledge<'a>, SearchV2Error> {
+    if !matches!(model.source_basis(), KnowledgeSourceBasis::V1Cut { .. }) {
+        return Err(stale("managed source requires its current owner binding"));
+    }
+    bind_knowledge(model, vocabulary, authored_descriptor)
+}
+
+/// Bind a managed selected model only inside its command owner's held current
+/// read. The callback compares the proof to the private parent; every actual
+/// read still requires the matching current authority and disclosure lease.
+pub fn bind_managed_verified_knowledge<'a>(
+    model: &VerifiedKnowledgeModel<'_>,
+    vocabulary: &'a QueryVocabulary,
+    authored_descriptor: &[u8],
+    authorize_current: impl FnOnce(&ManagedSourceProofV1) -> Result<(), SearchV2Error>,
+) -> Result<BoundCmpKnowledge<'a>, SearchV2Error> {
+    let bound = bind_knowledge(model, vocabulary, authored_descriptor)?;
+    let proof = bound
+        .source_basis
+        .managed_source()
+        .ok_or_else(|| stale("managed binding requires a managed selected source"))?;
+    authorize_current(proof)?;
+    bound.check_model(model)?;
+    Ok(bound)
+}
+
+fn bind_knowledge<'a>(
+    model: &VerifiedKnowledgeModel<'_>,
+    vocabulary: &'a QueryVocabulary,
+    authored_descriptor: &[u8],
+) -> Result<BoundCmpKnowledge<'a>, SearchV2Error> {
     vocabulary
         .verify_authored_bytes(authored_descriptor)
         .map_err(|_| stale("authored query vocabulary bytes differ"))?;
@@ -110,11 +208,25 @@ pub fn bind_verified_knowledge<'a>(
         .check_pin()
         .map_err(|_| stale("selected knowledge pin changed"))?;
     let selected = model.selection();
+    model
+        .source_basis()
+        .validate()
+        .map_err(|_| stale("selected knowledge source basis is invalid"))?;
+    if matches!(
+        model.source_basis(),
+        KnowledgeSourceBasis::ManagedCurrent { .. }
+    ) != (selected.model_abi == KNOWLEDGE_MANAGED_MODEL_ABI)
+    {
+        return Err(stale(
+            "selected knowledge source basis and model ABI differ",
+        ));
+    }
     if !selected.complete
         || (selected.model_abi != KNOWLEDGE_MODEL_ABI
             && selected.model_abi != KNOWLEDGE_NAVIGATION_MODEL_ABI
             && selected.model_abi != KNOWLEDGE_PHILOSOPHY_MODEL_ABI
-            && selected.model_abi != KNOWLEDGE_CORPUS_MODEL_ABI)
+            && selected.model_abi != KNOWLEDGE_CORPUS_MODEL_ABI
+            && selected.model_abi != KNOWLEDGE_MANAGED_MODEL_ABI)
         || selected.semantic_primitive_profile != QUERY_PRIMITIVE_PROFILE
         || selected.semantic_primitive_profile != vocabulary.semantic_primitive_profile
         || model.search_index_profile() != SEARCH_UNICODE_PROFILE
@@ -156,7 +268,7 @@ pub fn bind_verified_knowledge<'a>(
         source_cut: selected.source_cut.clone(),
         through_commit_seq: selected.through_commit_seq,
         source_membership_root: digest(&selected.membership_root)?,
-        history_root_sha256: None, // no history-root field in CMP selected v1
+        history_root_sha256: None, // selected envelope has no independent history-root field; managed proof is retained separately
         entity_registry_id: selected.entity_registry_id.clone(),
         entity_registry_version: selected.entity_registry_version.clone(),
         entity_registry_sha256: digest(&selected.entity_registry_sha256)?,
@@ -177,7 +289,7 @@ pub fn bind_verified_knowledge<'a>(
     Ok(BoundCmpKnowledge {
         selection,
         vocabulary,
-        source_revision: model.source_revision().to_owned(),
+        source_basis: model.source_basis().clone(),
         authority_boundary: selected.authority_boundary.clone(),
         owner_receipt_id: selected.owner_receipt_id.clone(),
         descriptor: tos_foundation::parse_json(

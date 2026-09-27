@@ -201,6 +201,7 @@ pub fn execute_selected_catalog<A: CatalogCurrentAuthority + ?Sized>(
     let scope = authority.disclosure_scope();
     scope.validate(bound, &policy)?;
     authority.check_selected()?;
+    if let Some(proof) = bound.source_basis().managed_source() { authority.authorize_managed_source_current(proof)?; }
 
     let connection = model.connection();
     let count = Arc::new(AtomicU64::new(0));
@@ -287,18 +288,11 @@ pub fn execute_selected_catalog<A: CatalogCurrentAuthority + ?Sized>(
         )
     })?;
     let root = parsed.root();
-    if root.object_get("schema").and_then(|value| value.as_str())
-        != Some("tos_knowledge_catalog_v1")
-        || root
-            .object_get("source_revision")
-            .and_then(|value| value.as_str())
-            != Some(bound.source_revision())
-    {
-        return Err(error(
-            CatalogErrorCode::CorruptSelectedCarrier,
-            "selected catalog identity differs",
-        ));
-    }
+    bound.validate_catalog_identity(root, budget.json).map_err(|reason| error(
+        if reason.code == crate::search_v2::SearchV2ErrorCode::BudgetExceeded { CatalogErrorCode::BudgetExceeded }
+        else { CatalogErrorCode::CorruptSelectedCarrier },
+        "selected catalog identity differs",
+    ))?;
     authority.authorize_current(bound.selection().catalog_packet_sha256)?;
     authority.check_selected()?;
     bound.check_model(model).map_err(|_| {
@@ -307,6 +301,7 @@ pub fn execute_selected_catalog<A: CatalogCurrentAuthority + ?Sized>(
             "selected catalog binding changed",
         )
     })?;
+    if let Some(proof) = bound.source_basis().managed_source() { authority.authorize_managed_source_current(proof)?; }
     let mut lease =
         authority.acquire_disclosure(&scope, bound.selection().catalog_packet_sha256)?;
     lease.recheck()?;

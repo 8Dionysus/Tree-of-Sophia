@@ -1619,7 +1619,7 @@ fn snapshot(
         ("descriptor_sha256", text(&scope.descriptor_sha256.to_hex())),
         ("owner_receipt", text(&scope.selected_model_receipt_id)),
         ("source_cut", text(&scope.source_cut)),
-        ("source_revision", text(bound.source_revision())),
+        ("source_revision", text(bound.require_source_revision()?)),
         (
             "through_commit_seq",
             JsonValue::Number(tos_foundation::JsonNumber {
@@ -1826,7 +1826,7 @@ pub fn execute_selected_exploration<
                     return Err(corrupt("exploration replay packet integrity changed"));
                 }
                 if string(get(packet, "snapshot_revision")) != revision
-                    || string(get(packet, "source_revision")) != bound.source_revision()
+                    || string(get(packet, "source_revision")) != bound.require_source_revision()?
                 {
                     return Err(error(
                         SearchV2ErrorCode::StaleContinuation,
@@ -1872,7 +1872,7 @@ pub fn execute_selected_exploration<
             let output = drive_selected(
                 read,
                 input,
-                bound.source_revision(),
+                bound.require_source_revision()?,
                 &revision,
                 boundary,
                 vocabulary,

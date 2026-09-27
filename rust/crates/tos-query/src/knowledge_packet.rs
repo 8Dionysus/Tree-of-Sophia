@@ -302,7 +302,7 @@ fn packet(
     };
     let body = object(vec![
         ("schema", string(INDEXED_SEARCH_V2_OPERATION)),
-        ("source_revision", string(bound.source_revision())),
+        ("source_revision", string(bound.require_source_revision()?)),
         ("query", string(raw_query)),
         ("filters", filters),
         (
@@ -359,6 +359,7 @@ pub fn execute_indexed_search_page<A: IndexedKnowledgeAuthority + ?Sized>(
     cursor_in: Option<&str>,
     budget: IndexedPageBudget,
 ) -> Result<DisclosableIndexedSearch, SearchV2Error> {
+    bound.require_source_revision()?;
     let raw_query = request.query.clone();
     if budget.max_open_vm_steps == 0
         || model.open_vm_steps() > budget.max_open_vm_steps

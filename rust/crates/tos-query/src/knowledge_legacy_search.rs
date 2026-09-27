@@ -389,6 +389,7 @@ pub fn execute_selected_legacy_search<A: InspectCurrentAuthority + ?Sized>(
     {
         return Err(budget());
     }
+    bound.require_source_revision()?;
     execute_selected_carrier_packet(
         model,
         bound,
@@ -426,7 +427,7 @@ pub fn execute_selected_legacy_search<A: InspectCurrentAuthority + ?Sized>(
             )?;
             Ok(object(vec![
                 ("schema", text("tos_knowledge_search_v1")),
-                ("source_revision", text(bound.source_revision())),
+                ("source_revision", text(bound.require_source_revision()?)),
                 ("query", text(query)),
                 (
                     "filters",

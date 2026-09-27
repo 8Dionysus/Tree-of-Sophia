@@ -17,6 +17,7 @@ pub fn execute_selected_temporal<A: InspectCurrentAuthority + ?Sized>(
     request: &JsonValue,
     budget: InspectBudget,
 ) -> Result<DisclosableInspect, SearchV2Error> {
+    bound.require_source_revision()?;
     let claim_source = bound
         .source_for_adapter("reified-bibliographic-claims-v1")
         .ok_or(SearchV2Error {
@@ -32,7 +33,7 @@ pub fn execute_selected_temporal<A: InspectCurrentAuthority + ?Sized>(
         budget,
         |read| {
             compare_temporal_operands(
-                bound.source_revision(),
+                bound.require_source_revision()?,
                 request,
                 claim_source,
                 |id| read.items(SearchKind::Nodes, "id", id, 1, false),

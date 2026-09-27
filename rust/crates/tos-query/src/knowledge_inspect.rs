@@ -431,7 +431,7 @@ impl<A: InspectCurrentAuthority + ?Sized> Reader<'_, '_, A> {
         let payload=row.get::<_,Option<Vec<u8>>>(2).map_err(sql_error)?.ok_or_else(||corrupt("selected catalog length/type invalid"))?;
         if sha.as_slice()!=bound.selection().catalog_packet_sha256.as_bytes()||Digest256::of_bytes(&payload)!=bound.selection().catalog_packet_sha256{return Err(corrupt("selected catalog digest differs"))}
         let packet=parse_json(&payload,JsonMode::PublishedStrict,self.budget.json).map_err(|_|corrupt("selected catalog JSON invalid"))?.into_root();
-        if packet.object_get("schema").and_then(JsonValue::as_str)!=Some("tos_knowledge_catalog_v1")||packet.object_get("source_revision").and_then(JsonValue::as_str)!=Some(bound.source_revision()){return Err(corrupt("selected catalog identity differs"))}
+        bound.validate_catalog_identity(&packet, self.budget.json)?;
         Ok(packet)
     }
     /// Complete retained carrier keysets in source/encounter order. Candidate
@@ -802,6 +802,7 @@ pub fn execute_selected_inspect<A: InspectCurrentAuthority + ?Sized>(
     budget: InspectBudget,
 ) -> Result<DisclosableInspect, SearchV2Error> {
     let request = crate::InspectRequest::new(kind, identifier, relation_limit, budget)?;
+    bound.require_source_revision()?;
     let operation = if kind == SearchKind::Nodes {
         NODE_INSPECT_OPERATION
     } else {
@@ -818,7 +819,7 @@ pub fn execute_selected_inspect<A: InspectCurrentAuthority + ?Sized>(
             let authority_boundary = parse_json(
                 bound.authority_boundary().as_bytes(), JsonMode::PublishedStrict, budget.json,
             ).map_err(|_| corrupt("inspect authority boundary invalid"))?.root().clone();
-            let mut plan = crate::InspectPlan::new(request, bound.source_revision().to_owned(), authority_boundary, budget)?;
+            let mut plan = crate::InspectPlan::new(request, bound.require_source_revision()?.to_owned(), authority_boundary, budget)?;
             let probe = read.authority.abort_probe();
             while let Some(need) = plan.need().cloned() {
                 read.check_interrupt()?;
@@ -904,6 +905,7 @@ where
     let scope = authority.disclosure_scope();
     scope.validate_for(bound, &policy, operation, intended_use)?;
     authority.check_selected()?;
+    if let Some(proof) = bound.source_basis().managed_source() { authority.authorize_managed_source_current(proof)?; }
     let steps = Arc::new(AtomicU64::new(0));
     let observed = Arc::clone(&steps);
     let cap = budget.max_read_vm_steps;
@@ -935,6 +937,7 @@ where
         check_abort()?;
         read.authority.check_selected()?;
         bound.check_model(read.model)?;
+        if let Some(proof) = bound.source_basis().managed_source() { read.authority.authorize_managed_source_current(proof)?; }
         let mut lease = read.authority.acquire_disclosure(&scope, &read.consulted)?;
         lease.recheck()?;
         check_abort()?;

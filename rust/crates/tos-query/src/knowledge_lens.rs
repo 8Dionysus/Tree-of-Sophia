@@ -208,6 +208,7 @@ fn execute_selected_lens_request<A: InspectCurrentAuthority + ?Sized>(
     request: LensRequest<'_>,
     budget_value: LensBudget,
 ) -> Result<DisclosableInspect, SearchV2Error> {
+    bound.require_source_revision()?;
     if budget_value.max_candidates == 0
         || budget_value.max_candidates >= i64::MAX as usize
         || budget_value.max_path_steps == 0
@@ -255,7 +256,7 @@ fn execute_selected_lens_request<A: InspectCurrentAuthority + ?Sized>(
             let mut plan = crate::lens_plan::LensPlan::native(
                 public_spec,
                 vocabulary,
-                bound.source_revision(),
+                bound.require_source_revision()?,
                 get(&header, "authority_boundary").clone(),
                 publication,
                 budget_value,
