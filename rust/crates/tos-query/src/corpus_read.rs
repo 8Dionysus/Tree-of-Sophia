@@ -311,7 +311,9 @@ impl<A: InspectCurrentAuthority + ?Sized> CorpusRead<'_, '_, '_, A> {
         let needle = if lower.is_empty() {
             String::new()
         } else {
-            python_strip_unicode16_v1(&lower, lower.chars().count()).map_err(|_| budget_error())?
+            python_strip_unicode16_v1(&lower, lower.chars().count())
+                .map_err(|_| budget_error())?
+                .to_owned()
         };
         let mut results = Vec::new();
         for (collection, name) in [
