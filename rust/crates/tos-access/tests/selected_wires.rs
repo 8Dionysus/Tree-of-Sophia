@@ -1158,6 +1158,32 @@ mod selected_knowledge {
             assert!(last.len() + 1 <= mcp_profile.max_mcp_frame_bytes);
             assert_eq!(executor.held.load(Ordering::SeqCst), 0);
         }
+    }
+
+    #[test]
+    fn process_exploration_checkpoint_atomic_lifecycle_on_selected_state() {
+        let executor = Arc::new(Executor {
+            fixture: build_fixture(),
+            corpus_context: None,
+            controls: Arc::new(Controls::default()),
+            held: Arc::new(AtomicUsize::new(0)),
+            checkpoints: Mutex::new(
+                tos_access::exploration_checkpoints::ProcessExplorationCheckpoints::new(
+                    tos_access::exploration_checkpoints::CheckpointLimits {
+                        ttl: Duration::from_secs(60),
+                        max_entries: 16,
+                        max_encoded_bytes: 2_000_000,
+                    },
+                )
+                .unwrap(),
+            ),
+        });
+        let graph = parse_json(
+            &executor.fixture.graph_input_bytes,
+            JsonMode::PublishedStrict,
+            JsonLimits::default(),
+        )
+        .unwrap();
         // A fixture node may be isolated or finish within one page. Select a
         // genuine paused result from the maintained graph instead of treating
         // array order as a traversal guarantee. Each attempt uses the actual
@@ -1232,7 +1258,41 @@ mod selected_knowledge {
                 ..
             })
         ));
+        // Another adapter sharing the store cannot prepare the same input
+        // while this reservation is live, even on another thread.
+        let mut peer = store.clone();
+        let input = cursor.to_owned();
+        let snapshot = revision.to_owned();
+        let copied_state = state.clone();
+        let packet = first.clone();
+        std::thread::spawn(move || {
+            assert!(matches!(
+                peer.prepare(
+                    Some(&input),
+                    &snapshot,
+                    Some(&copied_state),
+                    &packet,
+                    budgets().exploration
+                ),
+                Err(SearchV2Error {
+                    code: tos_query::search_v2::SearchV2ErrorCode::Unavailable,
+                    ..
+                })
+            ));
+        })
+        .join()
+        .unwrap();
         drop(staged);
+        // Failure after token/input reservation must release both atomically.
+        let mut tiny_response = budgets().exploration;
+        tiny_response.read.max_response_bytes = 1;
+        assert!(matches!(
+            store.prepare(Some(cursor), revision, Some(&state), &first, tiny_response),
+            Err(SearchV2Error {
+                code: tos_query::search_v2::SearchV2ErrorCode::BudgetExceeded,
+                ..
+            })
+        ));
         assert!(matches!(
             store.load(cursor, revision),
             Ok(ExplorationCheckpoint::State(_))

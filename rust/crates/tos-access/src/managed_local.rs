@@ -164,6 +164,9 @@ impl ManagedLocalExecutor {
         cold: ColdOpenLimits,
         profile: AccessProfile,
     ) -> Result<Self, AccessError> {
+        // This caps canonical encoded checkpoint residency, not parsed RSS.
+        // QRY session node/relation/JSON/work limits bound individual states;
+        // the required live process envelope remains the allocation boundary.
         let checkpoint_bytes = usize::try_from(cold.max_work_bytes)
             .unwrap_or(usize::MAX)
             .min(32 * 1024 * 1024);

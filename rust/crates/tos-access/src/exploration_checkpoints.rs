@@ -20,6 +20,8 @@ use tos_query::{
 pub struct CheckpointLimits {
     pub ttl: Duration,
     pub max_entries: usize,
+    /// Canonical encoded residency/admission cap, not parsed allocation or RSS.
+    /// State cardinalities and JSON limits belong to the QRY caller budget.
     pub max_encoded_bytes: usize,
 }
 #[derive(Clone)]
@@ -37,7 +39,7 @@ struct Store {
 struct Entry {
     revision: String,
     expires: Instant,
-    value: ExplorationCheckpoint,
+    value: Arc<ExplorationCheckpoint>,
     encoded_bytes: usize,
 }
 fn error(code: SearchV2ErrorCode, message: &'static str) -> SearchV2Error {
@@ -93,18 +95,21 @@ impl ProcessExplorationCheckpoints {
     }
     /// Expired entries have no authority value. Active preparations retain
     /// their exact input until either atomic commit or rollback.
-    fn purge(store: &mut Store, now: Instant) {
+    fn purge(store: &mut Store, now: Instant) -> Vec<Entry> {
         let tokens = store
             .entries
             .iter()
             .filter(|(token, entry)| entry.expires <= now && !store.busy.contains(*token))
             .map(|(token, _)| token.clone())
             .collect::<Vec<_>>();
+        let mut retired = Vec::new();
         for token in tokens {
             if let Some(entry) = store.entries.remove(&token) {
                 store.encoded_bytes -= entry.encoded_bytes;
+                retired.push(entry);
             }
         }
+        retired
     }
 }
 fn token() -> Result<String, SearchV2Error> {
@@ -150,22 +155,33 @@ impl ExplorationCheckpoints for ProcessExplorationCheckpoints {
         cursor: &str,
         revision: &str,
     ) -> Result<ExplorationCheckpoint, SearchV2Error> {
-        let mut store = lock(&self.store)?;
-        Self::purge(&mut store, Instant::now());
-        let entry = store.entries.get(cursor).ok_or_else(expired)?;
-        if entry.revision != revision {
-            return Err(error(
-                SearchV2ErrorCode::StaleContinuation,
-                "exploration snapshot or policy changed; restart",
-            ));
-        }
-        if store.busy.contains(cursor) {
-            return Err(error(
-                SearchV2ErrorCode::Unavailable,
-                "exploration continuation already being prepared",
-            ));
-        }
-        Ok(match &entry.value {
+        let (value, retired) = {
+            let mut store = lock(&self.store)?;
+            let retired = Self::purge(&mut store, Instant::now());
+            // Keep retired ownership outside the lock even on an error.
+            let result = (|| {
+                let entry = store.entries.get(cursor).ok_or_else(expired)?;
+                if entry.revision != revision {
+                    return Err(error(
+                        SearchV2ErrorCode::StaleContinuation,
+                        "exploration snapshot or policy changed; restart",
+                    ));
+                }
+                if store.busy.contains(cursor) {
+                    return Err(error(
+                        SearchV2ErrorCode::Unavailable,
+                        "exploration continuation already being prepared",
+                    ));
+                }
+                Ok(Arc::clone(&entry.value))
+            })();
+            (result, retired)
+        };
+        drop(retired);
+        let value = value?;
+        // The immutable snapshot linearizes at lookup; deep copying cannot
+        // block another cursor's lookup/reservation/commit.
+        Ok(match value.as_ref() {
             ExplorationCheckpoint::State(state) => ExplorationCheckpoint::State(state.clone()),
             ExplorationCheckpoint::Replay {
                 packet,
@@ -189,113 +205,144 @@ impl ExplorationCheckpoints for ProcessExplorationCheckpoints {
         {
             return Err(corrupt());
         }
+        // Entropy and all structural/encoded work occur outside the store lock.
+        let candidates = if successor.is_some() {
+            (0..4).map(|_| token()).collect::<Result<Vec<_>, _>>()?
+        } else {
+            Vec::new()
+        };
+        let (reservation, retired) = {
+            let mut store = lock(&self.store)?;
+            let retired = Self::purge(&mut store, Instant::now());
+            let result = (|| {
+                if let Some(input) = input {
+                    let entry = store.entries.get(input).ok_or_else(expired)?;
+                    if entry.revision != revision {
+                        return Err(error(
+                            SearchV2ErrorCode::StaleContinuation,
+                            "exploration snapshot or policy changed; restart",
+                        ));
+                    }
+                    if store.busy.contains(input) {
+                        return Err(error(
+                            SearchV2ErrorCode::Unavailable,
+                            "exploration continuation already being prepared",
+                        ));
+                    }
+                    if !matches!(entry.value.as_ref(), ExplorationCheckpoint::State(_)) {
+                        return Err(corrupt());
+                    }
+                }
+                let next = if successor.is_some() {
+                    Some(
+                        candidates
+                            .into_iter()
+                            .find(|candidate| {
+                                !store.entries.contains_key(candidate)
+                                    && !store.reserved_tokens.contains(candidate)
+                            })
+                            .ok_or_else(|| {
+                                error(
+                                    SearchV2ErrorCode::Unavailable,
+                                    "exploration cursor collision",
+                                )
+                            })?,
+                    )
+                } else {
+                    None
+                };
+                let count_cap = self.limits.max_entries.min(limits.max_checkpoints);
+                if store
+                    .entries
+                    .len()
+                    .checked_add(store.reserved_tokens.len())
+                    .and_then(|n| n.checked_add(usize::from(next.is_some())))
+                    .is_none_or(|n| n > count_cap)
+                {
+                    return Err(budget());
+                }
+                if let Some(input) = input {
+                    store.busy.insert(input.to_owned());
+                }
+                if let Some(next) = &next {
+                    store.reserved_tokens.insert(next.clone());
+                }
+                Ok(Staged {
+                    store: Arc::clone(&self.store),
+                    input: input.map(str::to_owned),
+                    revision: revision.to_owned(),
+                    next,
+                    state: None,
+                    state_bytes: 0,
+                    replay: None,
+                    replay_bytes: 0,
+                    reserved: 0,
+                    ttl: self.limits.ttl,
+                    done: false,
+                })
+            })();
+            (result, retired)
+        };
+        drop(retired);
+        // RAII releases the input/token reservation on every serialization or
+        // byte admission failure, preserving the original input unchanged.
+        let mut staged = reservation?;
         let mut json = limits.read.json;
         json.max_bytes = json.max_bytes.min(limits.max_state_bytes);
-        let state_bytes = successor
-            .map(|state| state.encoded_state(json).map(|bytes| bytes.len()))
+        staged.state_bytes = successor
+            .map(|state| state.encoded_state(json).map(|b| b.len()))
             .transpose()?
             .unwrap_or(0);
-        let mut store = lock(&self.store)?;
-        Self::purge(&mut store, Instant::now());
-        if let Some(input) = input {
-            let entry = store.entries.get(input).ok_or_else(expired)?;
-            if entry.revision != revision {
-                return Err(error(
-                    SearchV2ErrorCode::StaleContinuation,
-                    "exploration snapshot or policy changed; restart",
-                ));
-            }
-            if store.busy.contains(input) {
-                return Err(error(
-                    SearchV2ErrorCode::Unavailable,
-                    "exploration continuation already being prepared",
-                ));
-            }
-            if !matches!(entry.value, ExplorationCheckpoint::State(_)) {
-                return Err(corrupt());
-            }
-        }
-        let next = if successor.is_some() {
-            let mut next = None;
-            for _ in 0..4 {
-                let candidate = token()?;
-                if !store.entries.contains_key(&candidate)
-                    && !store.reserved_tokens.contains(&candidate)
-                {
-                    next = Some(candidate);
-                    break;
-                }
-            }
-            Some(next.ok_or_else(|| {
-                error(
-                    SearchV2ErrorCode::Unavailable,
-                    "exploration cursor collision",
-                )
-            })?)
-        } else {
-            None
-        };
-        let replay = set_cursor(packet, next.as_deref())?;
+        let replay = set_cursor(packet, staged.next.as_deref())?;
         let mut json = limits.read.json;
         json.max_bytes = json.max_bytes.min(limits.read.max_response_bytes);
         let bytes = canonical_bytes_v1(&replay, CanonicalProfile::SourceRecordDigestV1, json)
             .map_err(|_| budget())?;
-        let replay_bytes = if input.is_some() { bytes.len() } else { 0 };
-        let reserved = state_bytes.checked_add(replay_bytes).ok_or_else(budget)?;
+        staged.replay_bytes = if input.is_some() { bytes.len() } else { 0 };
+        let reserved = staged
+            .state_bytes
+            .checked_add(staged.replay_bytes)
+            .ok_or_else(budget)?;
         let cap = self
             .limits
             .max_encoded_bytes
             .min(limits.max_checkpoint_bytes);
-        let count_cap = self.limits.max_entries.min(limits.max_checkpoints);
-        // Staged clones and committed inputs coexist until commit. Account
-        // both, refusing capacity rather than evicting an active continuation.
-        if store
-            .entries
-            .len()
-            .checked_add(store.reserved_tokens.len())
-            .and_then(|n| n.checked_add(usize::from(next.is_some())))
-            .is_none_or(|n| n > count_cap)
-            || store
+        {
+            let mut store = lock(&self.store)?;
+            // Input and successor tokens have been protected since lookup.
+            // Committed inputs and staged successors coexist until commit.
+            if store
                 .encoded_bytes
                 .checked_add(store.reserved_bytes)
                 .and_then(|n| n.checked_add(reserved))
                 .is_none_or(|n| n > cap)
-        {
-            return Err(budget());
+            {
+                return Err(budget());
+            }
+            store.reserved_bytes += reserved;
+            staged.reserved = reserved;
         }
-        store.reserved_bytes += reserved;
-        if let Some(input) = input {
-            store.busy.insert(input.to_owned());
+        staged.state = successor
+            .cloned()
+            .map(|state| Arc::new(ExplorationCheckpoint::State(state)));
+        if input.is_some() {
+            staged.replay = Some(Arc::new(ExplorationCheckpoint::Replay {
+                packet: replay,
+                packet_sha256: Digest256::of_bytes(&bytes),
+            }));
         }
-        if let Some(next) = &next {
-            store.reserved_tokens.insert(next.clone());
-        }
-        drop(store);
-        Ok(Box::new(Staged {
-            store: Arc::clone(&self.store),
-            input: input.map(str::to_owned),
-            revision: revision.to_owned(),
-            next,
-            state: successor.cloned(),
-            state_bytes,
-            replay,
-            replay_sha: Digest256::of_bytes(&bytes),
-            replay_bytes,
-            reserved,
-            ttl: self.limits.ttl,
-            done: false,
-        }))
+        Ok(Box::new(staged))
     }
 }
+
 struct Staged {
     store: Arc<Mutex<Store>>,
     input: Option<String>,
     revision: String,
     next: Option<String>,
-    state: Option<ExplorationState>,
+    state: Option<Arc<ExplorationCheckpoint>>,
     state_bytes: usize,
-    replay: JsonValue,
-    replay_sha: Digest256,
+    replay: Option<Arc<ExplorationCheckpoint>>,
     replay_bytes: usize,
     reserved: usize,
     ttl: Duration,
@@ -312,6 +359,7 @@ impl PreparedExplorationCheckpoint for Staged {
         let expires = Instant::now().checked_add(self.ttl).ok_or_else(corrupt)?;
         let mut store = lock(&self.store)?;
         if self.next.is_some() != self.state.is_some()
+            || self.input.is_some() != self.replay.is_some()
             || self.input.as_ref().is_some_and(|input| {
                 !store.busy.contains(input) || !store.entries.contains_key(input)
             })
@@ -322,21 +370,23 @@ impl PreparedExplorationCheckpoint for Staged {
         {
             return Err(corrupt());
         }
+        let mut retired = None;
         if let Some(input) = &self.input {
             let old = store
                 .entries
                 .remove(input)
                 .expect("held input checked under the same lock");
             store.encoded_bytes -= old.encoded_bytes;
+            retired = Some(old);
             store.entries.insert(
                 input.clone(),
                 Entry {
                     revision: self.revision.clone(),
                     expires,
-                    value: ExplorationCheckpoint::Replay {
-                        packet: std::mem::replace(&mut self.replay, JsonValue::Null),
-                        packet_sha256: self.replay_sha,
-                    },
+                    value: self
+                        .replay
+                        .take()
+                        .expect("staged replay admitted before commit"),
                     encoded_bytes: self.replay_bytes,
                 },
             );
@@ -353,7 +403,7 @@ impl PreparedExplorationCheckpoint for Staged {
                 Entry {
                     revision: self.revision.clone(),
                     expires,
-                    value: ExplorationCheckpoint::State(state),
+                    value: state,
                     encoded_bytes: self.state_bytes,
                 },
             );
@@ -362,6 +412,8 @@ impl PreparedExplorationCheckpoint for Staged {
         }
         store.reserved_bytes -= self.reserved;
         self.done = true;
+        drop(store);
+        drop(retired);
         Ok(())
     }
 }
