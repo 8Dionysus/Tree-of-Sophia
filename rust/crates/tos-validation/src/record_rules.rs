@@ -2883,7 +2883,7 @@ fn local_claim_input(
     if inputs.len() >= MAX_SOURCE_RESOURCES {
         return Err(ItemRefusal::Budget);
     }
-    let relative = tos_foundation::RelativePath::new(path)
+    let relative = tos_foundation::RelativePath::parse(path)
         .map_err(|_| ItemRefusal::Unsupported("local Claim dependency path".into()))?;
     let member = cut
         .read_member(
