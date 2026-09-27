@@ -4323,6 +4323,41 @@ pub struct WorkExpressionBytes {
     pub reads: Vec<PredicateRead>,
     pub bytes_read: u64,
 }
+fn native_work_environment(environment: &Value) -> Result<(), ItemRefusal> {
+    keys(
+        environment,
+        &[
+            "runtime",
+            "runtime_version",
+            "runtime_artifact_sha256",
+            "backend",
+            "hardware_target",
+            "unicode_version",
+            "argv_sha256",
+        ],
+    )?;
+    if environment
+        .as_object()
+        .ok_or_else(|| bad("native Work environment"))?
+        .values()
+        .any(|v| v.as_str().is_none_or(str::is_empty))
+        || environment["runtime"] != "native ELF process"
+        || environment["backend"] != "tos-command source serialization"
+        || environment["unicode_version"] != "16.0.0 source-command whitespace profile"
+        || ["runtime_artifact_sha256", "argv_sha256"]
+            .iter()
+            .any(|key| {
+                hash(&format!(
+                    "sha256:{}",
+                    environment[*key].as_str().unwrap_or("")
+                ))
+                .is_err()
+            })
+    {
+        return Err(bad("native Work observed environment"));
+    }
+    Ok(())
+}
 impl WorkExpressionCore<'_> {
     pub fn authorization(&self) -> &Value {
         &self.prepared.authority
@@ -4396,38 +4431,7 @@ pub fn finish_work_expression_bytes(
         return Err(bad("native Work capture worker/size binding"));
     }
     let environment = reader.decoded(environment_raw)?;
-    keys(
-        &environment,
-        &[
-            "runtime",
-            "runtime_version",
-            "runtime_artifact_sha256",
-            "backend",
-            "hardware_target",
-            "unicode_version",
-            "argv_sha256",
-        ],
-    )?;
-    if environment
-        .as_object()
-        .ok_or_else(|| bad("native Work environment"))?
-        .values()
-        .any(|v| v.as_str().is_none_or(str::is_empty))
-        || environment["runtime"] != "native ELF process"
-        || environment["backend"] != "tos-command source serialization"
-        || environment["unicode_version"] != "16.0.0 source-command whitespace profile"
-        || ["runtime_artifact_sha256", "argv_sha256"]
-            .iter()
-            .any(|key| {
-                hash(&format!(
-                    "sha256:{}",
-                    environment[*key].as_str().unwrap_or("")
-                ))
-                .is_err()
-            })
-    {
-        return Err(bad("native Work observed environment"));
-    }
+    native_work_environment(&environment)?;
     let mut expected_environment_raw = canonical(&environment)?;
     expected_environment_raw.push(b'\n');
     if environment_raw != expected_environment_raw {
@@ -5223,11 +5227,14 @@ impl NativeCompoundReader<'_> {
                         &event,
                         scope,
                         &request,
+                        &authority["dependency_bindings"],
                         &before,
                         &outputs,
                         environment,
                         &archive_path,
                         &recorded_at,
+                        self.limits.deadline,
+                        self.cancelled,
                         self.limits
                             .max_state_bytes
                             .checked_sub(self.state)
@@ -5919,13 +5926,18 @@ fn native_work_event(
     event: &Value,
     scope: &Value,
     request: &Value,
+    dependencies: &Value,
     before: &Package,
     outputs: &[(String, &[u8])],
     environment: &Value,
     archive: &str,
     _recorded_at: &str,
+    deadline: Instant,
+    cancelled: &AtomicBool,
     available: usize,
 ) -> Result<(), ItemRefusal> {
+    check(deadline, cancelled)?;
+    native_work_environment(environment)?;
     let home = parent(text(scope, "expression_source_path")?)?;
     let request_ref = format!("{home}/source-create-request.json");
     let environment_ref = format!("{home}/source-create-environment.json");
@@ -6076,6 +6088,30 @@ fn native_work_event(
             != components.len() - 1
     {
         return Err(bad("native Work observed software/ELF closure"));
+    }
+    // The retained authorization names the required historical source bytes.
+    // Additional captured rows describe the actual selected producer subset;
+    // they do not weaken any required implementation binding or attest a build.
+    let required = dependencies["implementation"]
+        .as_object()
+        .ok_or_else(|| bad("native Work implementation bindings"))?;
+    if required.is_empty() || required.len() > components.len() - 1 {
+        return Err(bad("native Work implementation subset"));
+    }
+    for (path, digest) in required {
+        check(deadline, cancelled)?;
+        if path.starts_with("ToS/")
+            || RelativePath::parse(path).is_err()
+            || digest
+                .as_str()
+                .is_none_or(|sha| Digest256::from_hex(sha).is_err())
+            || !components[..components.len() - 1].iter().any(|row| {
+                row["artifact_ref"] == path.as_str()
+                    && row["artifact_sha256"] == digest.as_str().unwrap_or("")
+            })
+        {
+            return Err(bad("native Work required software source digest"));
+        }
     }
     let start = text(&event["activity"], "started_at")?;
     let end = text(&event["activity"], "ended_at")?;
