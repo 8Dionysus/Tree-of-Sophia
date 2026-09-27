@@ -5,6 +5,7 @@
 //! current-rights fence must be installed by the source owner first.
 
 pub mod cli;
+pub mod doctor;
 pub mod exploration_checkpoints;
 pub mod exploration_contracts;
 pub mod knowledge;

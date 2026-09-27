@@ -117,3 +117,38 @@ it never claims restart survival. This capability snapshot issues no source
 grant and does not close a selected exploration execution or public activation.
 
 Corpus reads reuse the selected ABI5 original component and the real managed release's declared captured index/member closure. The maintained six HTTP GET/HEAD routes and eight MCP tools share the QRY kernel, with resources/packet MCP-only. Availability requires the original component plus verified raw source members under the release holder; status paths identify those actual selected members. No corpus CLI or raw source/payload grant is added.
+
+`tos-access --root SOURCE_DIRECTORY doctor [--json]` and `verify
+[--profile standalone|abyssos] [--json]` inspect the source-backed profile before
+managed-owner admission. `TOS_DATA_ROOT` and the maintained projection path
+selectors choose data; prepared reader/binding or a managed release selector is
+refused for this diagnostic. Default missing data remains beside the installed
+software's `runtime_data`; no checkout is discovered through the working
+directory. Commands never compile data, launch servers, import Python or
+activate integration. A failed required check prints the report and exits 1;
+invalid options/prepared selection exit 2. Text rendering preserves the
+maintained readiness/check/failure lines; JSON preserves the report schema and
+fields using the existing native compact JSON profile plus LF.
+
+Source JSON is limited to 4 MiB per regular retained file, depth 64 and 200,000
+JSON visits, with file identity checked across each read. The shared QRY
+View-only diagnostic materializes the first maintained philosophy view with
+100,000 total base/inline rows, 1,000,000 logical work steps and a 1 MiB packet
+bound; it parses that finite raw document again and grants no selected/current
+policy authority. Missing/invalid/oversized sources are failed checks. A legacy
+configured/present query store or partitioned source requires an explicit
+failed `query-store` check: this native diagnostic does not claim support for
+the Python compiled-store backend or rebuild it. The report is a mechanics
+snapshot, not full standalone cutover or source/rights admission.
+
+Runtime contracts are compiled software bytes. Web assets must be readable,
+nonempty `web_dist/assets/tos-graph.js` companions in the native executable's
+own directory, following the existing installed software web_dist layout;
+selected data cannot replace them. Current native build products without that
+assembled companion correctly fail `web-assets`. Native MCP is built-in Rust
+stdio, so its dependency check validates the packaged operation descriptor
+instead of importing FastMCP. `verify` requires that check; `doctor` retains
+its optional posture. AbyssOS configuration reports only the selected
+`TOS_ABYSSOS_ROOT/abyss-stack` directory, and the packaged paused integration
+posture still blocks the abyssos profile. No directory/configuration check
+proves running integration or authorizes its activation.

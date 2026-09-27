@@ -24,6 +24,11 @@ impl AccessExecutor for NoOwner {
 }
 fn main() {
     let mut args: Vec<String> = std::env::args().skip(1).collect();
+    if let Some(code) =
+        tos_access::doctor::run_if_requested(&args, &mut std::io::stdout(), &mut std::io::stderr())
+    {
+        std::process::exit(code)
+    }
     // This explicit native profile admits the complete duplicated MCP result
     // envelope from declared packet/request caps, including escaping and ID.
     let profile = AccessProfile::new(65_536, 1_048_576, 65_536);

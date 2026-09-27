@@ -954,3 +954,233 @@ fn exploration_software_contracts_survive_unselected_data_and_all_native_wires()
         408
     );
 }
+
+#[test]
+fn source_backed_doctor_verify_binary_preserves_diagnostic_boundaries() {
+    use std::{
+        fs,
+        path::Path,
+        process::Command,
+        time::{SystemTime, UNIX_EPOCH},
+    };
+    let directory = std::env::temp_dir().join(format!(
+        "tos-doctor-{}-{}",
+        std::process::id(),
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    ));
+    fs::create_dir(&directory).unwrap();
+    // Reuse the maintained source-shaped fixture; Python is fixture setup only,
+    // never a diagnostic runtime/backend or packet oracle.
+    let repository = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .ancestors()
+        .nth(3)
+        .unwrap();
+    let setup=Command::new("python3").args(["-c","import sys;from pathlib import Path;sys.path.insert(0,sys.argv[1]);from fixture_support import write_fixture;write_fixture(Path(sys.argv[2]))"])
+        .arg(repository.join("access/tests")).arg(&directory).output().unwrap();
+    assert!(
+        setup.status.success(),
+        "{}",
+        String::from_utf8_lossy(&setup.stderr)
+    );
+    let run = |args: &[&str]| {
+        let mut command = Command::new(env!("CARGO_BIN_EXE_tos-access"));
+        command.arg("--root").arg(&directory).args(args);
+        for name in [
+            "TOS_RELEASE_ROOT",
+            "TOS_DATA_ROOT",
+            "TOS_QUERY_STORE_PATH",
+            "TOS_CORPUS_INDEX_PATH",
+            "TOS_PHILOSOPHY_GRAPH_PROJECTION_PATH",
+            "TOS_EVIDENCE_PROJECTION_PATH",
+            "TOS_ABYSSOS_ROOT",
+        ] {
+            command.env_remove(name);
+        }
+        command.output().unwrap()
+    };
+    let report = run(&["doctor", "--json"]);
+    assert_eq!(report.status.code(), Some(1)); // Native software web bundle absent.
+    assert!(
+        report.stderr.is_empty(),
+        "{}",
+        String::from_utf8_lossy(&report.stderr)
+    );
+    let report = parse_json(
+        &report.stdout,
+        JsonMode::PublishedStrict,
+        JsonLimits::default(),
+    )
+    .unwrap();
+    assert_eq!(
+        report.root().object_get("schema_version").unwrap().as_str(),
+        Some("tos_access_doctor_report_v1")
+    );
+    let checks = report
+        .root()
+        .object_get("checks")
+        .unwrap()
+        .as_array()
+        .unwrap();
+    let check = |id: &str| {
+        checks
+            .iter()
+            .find(|row| row.object_get("check_id").unwrap().as_str() == Some(id))
+            .unwrap()
+    };
+    for id in [
+        "corpus-index-schema",
+        "philosophy-graph-schema",
+        "graph-view-materialization",
+        "evidence-projection-schema",
+        "runtime-contracts",
+        "native-mcp-dependency",
+    ] {
+        assert_eq!(
+            check(id).object_get("ok"),
+            Some(&tos_foundation::JsonValue::Bool(true)),
+            "{id}"
+        );
+    }
+    assert_eq!(
+        check("runtime-contracts")
+            .object_get("path")
+            .unwrap()
+            .as_str(),
+        Some("embedded:access/contracts")
+    );
+    assert_eq!(
+        check("web-assets").object_get("ok"),
+        Some(&tos_foundation::JsonValue::Bool(false)),
+        "data-root software markers cannot supply executable code"
+    );
+    assert!(
+        !checks
+            .iter()
+            .any(|row| row.object_get("check_id").unwrap().as_str() == Some("query-store"))
+    );
+    let rendered = run(&["doctor"]);
+    assert_eq!(rendered.status.code(), Some(1));
+    assert!(
+        String::from_utf8_lossy(&rendered.stdout).starts_with(
+            "Tree of Sophia access: not ready (standalone)\n[ok] corpus-index-present\n"
+        )
+    );
+    let verify = run(&["verify", "--json"]);
+    assert_eq!(verify.status.code(), Some(1));
+    let verify = parse_json(
+        &verify.stdout,
+        JsonMode::PublishedStrict,
+        JsonLimits::default(),
+    )
+    .unwrap();
+    assert_eq!(
+        verify
+            .root()
+            .object_get("checks")
+            .unwrap()
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(
+                |row| row.object_get("check_id").unwrap().as_str() == Some("native-mcp-dependency")
+            )
+            .unwrap()
+            .object_get("required"),
+        Some(&tos_foundation::JsonValue::Bool(true))
+    );
+    let prepared = Command::new(env!("CARGO_BIN_EXE_tos-access"))
+        .args([
+            "--prepared-read-model",
+            "unopened.sqlite",
+            "--prepared-binding",
+            "unopened.json",
+            "doctor",
+        ])
+        .output()
+        .unwrap();
+    assert_eq!(prepared.status.code(), Some(2));
+    assert!(prepared.stdout.is_empty());
+    assert!(String::from_utf8_lossy(&prepared.stderr).contains("source-backed profile"));
+    let abyss = directory.join("AbyssOS");
+    fs::create_dir_all(abyss.join("abyss-stack")).unwrap();
+    let abyss = Command::new(env!("CARGO_BIN_EXE_tos-access"))
+        .arg("--root")
+        .arg(&directory)
+        .args(["verify", "--profile=abyssos", "--json"])
+        .env("TOS_ABYSSOS_ROOT", abyss)
+        .env_remove("TOS_RELEASE_ROOT")
+        .env_remove("TOS_QUERY_STORE_PATH")
+        .output()
+        .unwrap();
+    assert_eq!(abyss.status.code(), Some(1));
+    let abyss = parse_json(
+        &abyss.stdout,
+        JsonMode::PublishedStrict,
+        JsonLimits::default(),
+    )
+    .unwrap();
+    assert!(
+        abyss
+            .root()
+            .object_get("required_failures")
+            .unwrap()
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|id| id.as_str() == Some("abyssos-integration-freeze")),
+        "selected data cannot unpause packaged software integration"
+    );
+    let invalid = run(&["verify", "--profile=unknown"]);
+    assert_eq!(invalid.status.code(), Some(2));
+    assert!(invalid.stdout.is_empty());
+    let store = directory.join("ToS/derived-exports/runtime/knowledge.sqlite3");
+    fs::create_dir_all(store.parent().unwrap()).unwrap();
+    fs::write(&store, []).unwrap();
+    let unsupported = run(&["doctor", "--json"]);
+    assert_eq!(unsupported.status.code(), Some(1));
+    let unsupported = parse_json(
+        &unsupported.stdout,
+        JsonMode::PublishedStrict,
+        JsonLimits::default(),
+    )
+    .unwrap();
+    assert!(
+        unsupported
+            .root()
+            .object_get("required_failures")
+            .unwrap()
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|id| id.as_str() == Some("query-store")),
+        "a store file marker cannot establish native readiness"
+    );
+    fs::remove_file(store).unwrap();
+    let graph = directory.join("ToS/derived-exports/philosophy_graph_projection.min.json");
+    fs::File::create(&graph)
+        .unwrap()
+        .set_len(4 * 1024 * 1024 + 1)
+        .unwrap();
+    let oversized = run(&["doctor", "--json"]);
+    assert_eq!(oversized.status.code(), Some(1));
+    let oversized = parse_json(
+        &oversized.stdout,
+        JsonMode::PublishedStrict,
+        JsonLimits::default(),
+    )
+    .unwrap();
+    assert!(
+        oversized
+            .root()
+            .object_get("required_failures")
+            .unwrap()
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|id| id.as_str() == Some("philosophy-graph-schema"))
+    );
+    fs::remove_dir_all(directory).unwrap();
+}
