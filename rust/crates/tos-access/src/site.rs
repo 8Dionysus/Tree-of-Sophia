@@ -112,9 +112,28 @@ impl SoftwareSite {
     pub fn installed(probe: Arc<dyn AbortProbe>) -> Result<Arc<Self>, AccessError> {
         let executable =
             std::env::current_exe().map_err(|_| unavailable("installed executable unavailable"))?;
-        Self::open(&executable, probe)
+        Self::open_running(&executable, probe)
     }
+    /// Kernel-bound production image. An explicit path can locate the layout,
+    /// but cannot substitute a different ELF for the currently running image.
+    pub fn open_running(
+        executable: &Path,
+        probe: Arc<dyn AbortProbe>,
+    ) -> Result<Arc<Self>, AccessError> {
+        let running = File::open("/proc/self/exe")
+            .map_err(|_| unavailable("actual running image unavailable"))?;
+        Self::open_inner(executable, probe, Some(running))
+    }
+    /// Explicit software integrity fixture/inspection route. This does not
+    /// assert that its ELF is running; the server uses installed/open_running.
     pub fn open(executable: &Path, probe: Arc<dyn AbortProbe>) -> Result<Arc<Self>, AccessError> {
+        Self::open_inner(executable, probe, None)
+    }
+    fn open_inner(
+        executable: &Path,
+        probe: Arc<dyn AbortProbe>,
+        running: Option<File>,
+    ) -> Result<Arc<Self>, AccessError> {
         let root_path = executable
             .parent()
             .and_then(|p| p.parent())
@@ -225,7 +244,16 @@ impl SoftwareSite {
             return Err(unavailable("installed native toolchain receipt differs"));
         }
         proof_guards.push((pin, "rust-toolchain.toml".to_owned(), pin_identity));
-        let executable = child(&root, PROGRAM)?;
+        let path_image = child(&root, PROGRAM)?;
+        let path_identity = identity(&path_image)?;
+        let executable = if let Some(running) = running {
+            if identity(&running)? != path_identity {
+                return Err(unavailable("installed path differs from running image"));
+            }
+            running // Retain the kernel image FD through every final flush.
+        } else {
+            path_image
+        };
         let executable_identity = identity(&executable)?;
         let expected_size = size(proof)?;
         let native_sha = field(proof, "sha256")?.to_owned();
@@ -258,7 +286,9 @@ impl SoftwareSite {
                     .ok_or_else(|| unavailable("installed static aggregate size overflows"))?;
             }
         }
-        let _declared_static_bytes = total;
+        // Only the manifest integer sum is representable. This is not an
+        // aggregate resource quota; the actual body cap is per request.
+        let _encoded_static_size_sum = total;
         for required in [
             PROGRAM,
             "access/src/tos_access/web_dist/assets/tos-graph.js",
@@ -306,13 +336,24 @@ impl SoftwareSite {
     fn check(&self) -> Result<(), AccessError> {
         if identity(&self.manifest_file)? != self.manifest_identity
             || identity(&self.executable)? != self.executable_identity
-            || identity(&child(&self.root, "software.manifest.json")?)? != self.manifest_identity
-            || identity(&child(&self.root, PROGRAM)?)? != self.executable_identity
+            || identity(
+                &child(&self.root, "software.manifest.json")
+                    .map_err(|_| unavailable("installed software manifest changed"))?,
+            )? != self.manifest_identity
+            || identity(
+                &child(&self.root, PROGRAM)
+                    .map_err(|_| unavailable("installed software program changed"))?,
+            )? != self.executable_identity
         {
             return Err(unavailable("installed software changed"));
         }
         for (file, path, original) in &self.required_assets {
-            if identity(file)? != *original || identity(&child(&self.root, path)?)? != *original {
+            if identity(file)? != *original
+                || identity(
+                    &child(&self.root, path)
+                        .map_err(|_| unavailable("installed required software member changed"))?,
+                )? != *original
+            {
                 return Err(unavailable("installed required site asset changed"));
             }
         }

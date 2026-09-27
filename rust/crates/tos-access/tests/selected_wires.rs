@@ -4128,6 +4128,17 @@ json.dump({'capture':str(capture),'restored':str(restored),'commit':commit,'tree
         )
         .unwrap();
         let site = SoftwareSite::open(&executable, Arc::new(Controls::default())).unwrap();
+        // Actual kernel image A cannot be rebound to fixture path/proof B.
+        // No executable copy or additional program is needed.
+        let wrong_running = SoftwareSite::open_running(&executable, Arc::new(Controls::default()))
+            .err()
+            .unwrap();
+        assert_eq!(wrong_running.code, tos_access::AccessErrorCode::Unavailable);
+        assert_eq!(
+            wrong_running.message,
+            "installed path differs from running image"
+        );
+
         struct TwoHolds {
             bytes: Vec<u8>,
             held: Arc<AtomicUsize>,
@@ -4240,6 +4251,32 @@ json.dump({'capture':str(capture),'restored':str(restored),'commit':commit,'tree
         assert!(wire.starts_with(b"HTTP/1.1 409 Conflict"));
         assert!(!String::from_utf8_lossy(&wire).contains("window.__TOS_GRAPH_BOOT__"));
         controls.revoked.store(false, Ordering::SeqCst);
+        // Replacement/deletion refuses without serving a different program.
+        let staged = handle_get_with_software(&no_owner, "GET", "/", profile, &site);
+        fs::rename(&executable, executable.with_extension("old")).unwrap();
+        fs::write(&executable, &header).unwrap();
+        let mut replaced = vec![];
+        write_response(&mut replaced, staged).unwrap();
+        assert!(replaced.starts_with(b"HTTP/1.1 503 Service Unavailable"));
+        fs::remove_file(&executable).unwrap();
+        assert_eq!(
+            handle_get_with_software(&no_owner, "GET", "/", profile, &site).status,
+            503
+        );
+        fs::rename(executable.with_extension("old"), &executable).unwrap();
+        let site = SoftwareSite::open(&executable, Arc::new(Controls::default())).unwrap();
+        let deleted = handle_get_with_software(&no_owner, "GET", "/", profile, &site);
+        assert_eq!(deleted.status, 200);
+        fs::remove_file(&executable).unwrap();
+        let mut wire = vec![];
+        write_response(&mut wire, deleted).unwrap();
+        assert!(wire.starts_with(b"HTTP/1.1 503 Service Unavailable"));
+        assert!(!String::from_utf8_lossy(&wire).contains("window.__TOS_GRAPH_BOOT__"));
+        // Restore only the tiny integrity fixture for the independent asset
+        // lifetime assertion; no real executable is copied or run.
+        fs::write(&executable, &header).unwrap();
+        let site = SoftwareSite::open(&executable, Arc::new(Controls::default())).unwrap();
+
         let response =
             handle_get_with_software(&boot, "GET", "/static/assets/tos-graph.js", profile, &site);
         fs::write(&js_path, b"changed").unwrap();
