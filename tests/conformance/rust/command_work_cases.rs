@@ -213,7 +213,7 @@ print(json.dumps({'request':request,'second_proposal':second_proposal,'second_co
                 .exists()
         );
         assert_eq!(
-            recovered.receipt().object_get("grants_admission"),
+            created_first.receipt().object_get("grants_admission"),
             Some(&JsonValue::Bool(false))
         );
         let current_files = authored_work_files(isolated.path());

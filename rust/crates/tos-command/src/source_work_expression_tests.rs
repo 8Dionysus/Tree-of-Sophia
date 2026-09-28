@@ -311,6 +311,45 @@ fn worker(
     .unwrap()
 }
 
+type Side = Option<(usize, Digest256)>;
+
+struct SelectedWitness {
+    path: String,
+    before: Side,
+    after: Side,
+}
+
+fn side(raw: Option<&[u8]>) -> Side {
+    raw.map(|raw| (raw.len(), Digest256::of_bytes(raw)))
+}
+
+fn current_side(root: &Path, reference: &str) -> Side {
+    match fs::read(root.join(reference)) {
+        Ok(raw) => side(Some(&raw)),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
+        Err(error) => panic!("selected Work member read: {error}"),
+    }
+}
+
+fn mixed_selected(root: &Path, selected: &[SelectedWitness]) -> bool {
+    let mut before = false;
+    let mut after = false;
+    for member in selected {
+        let actual = current_side(root, &member.path);
+        assert!(
+            actual == member.before || actual == member.after,
+            "selected Work member entered a third state: {}",
+            member.path
+        );
+        if member.before == member.after {
+            continue;
+        }
+        before |= actual == member.before;
+        after |= actual == member.after;
+    }
+    before && after
+}
+
 #[test]
 fn real_pending_refuses_changed_dependency_then_resumes_or_rolls_back() {
     let repository = repository();
@@ -420,6 +459,16 @@ print(json.dumps({'request':case.request(),'work_ref':case.work_ref,
         let original = fs::read(&dependency).unwrap();
         let changed = [original.as_slice(), b"\n"].concat();
         let PreparedWorkApplication { plan, guard, .. } = prepared;
+        let selected_witnesses = plan
+            .files
+            .iter()
+            .map(|file| SelectedWitness {
+                path: file.path.as_str().to_owned(),
+                before: side(file.before.as_deref()),
+                after: side(file.after.as_deref()),
+            })
+            .collect::<Vec<_>>();
+        assert!(selected_witnesses.len() > 1);
         let fence =
             work_transaction::WorkCorpusFence::hold(&filesystem, deadline, &cancelled).unwrap();
         let mut switched = false;
@@ -427,7 +476,10 @@ print(json.dumps({'request':case.request(),'work_ref':case.work_ref,
             plan,
             &guard.snapshot,
             |summary, extent| {
-                if extent.control_pending && !switched {
+                if extent.control_pending
+                    && !switched
+                    && mixed_selected(isolated.path(), &selected_witnesses)
+                {
                     fs::write(&dependency, &changed).unwrap();
                     switched = true;
                 }
@@ -448,16 +500,13 @@ print(json.dumps({'request':case.request(),'work_ref':case.work_ref,
         assert!(switched);
         assert!(matches!(result, Err(SourceCommandError::Conflict(_))));
         assert_eq!(fs::read(&dependency).unwrap(), changed);
+        assert!(mixed_selected(isolated.path(), &selected_witnesses));
         let control = isolated
             .path()
             .join("ToS/source-witnesses/.metadata-publication.json");
         let pending: serde_json::Value =
             serde_json::from_slice(&fs::read(&control).unwrap()).unwrap();
         assert_eq!(pending["phase"], "pending");
-        assert_eq!(
-            fs::read(isolated.path().join(fixture["work_ref"].as_str().unwrap())).unwrap(),
-            authored[fixture["work_ref"].as_str().unwrap()],
-        );
         fs::write(&dependency, original).unwrap();
         let mut recovery_worker = worker(&selected, deadline, &cancelled);
         let recovered = recover_isolated_work_expression_from_captures(
@@ -476,6 +525,31 @@ print(json.dumps({'request':case.request(),'work_ref':case.work_ref,
         assert_eq!(
             recovered.transaction_id(),
             pending["transaction_id"].as_str().unwrap()
+        );
+        for member in &selected_witnesses {
+            assert_eq!(
+                current_side(isolated.path(), &member.path),
+                if matches!(decision, WorkRecoveryDecision::Resume) {
+                    member.after
+                } else {
+                    member.before
+                },
+                "selected Work member was not restored: {}",
+                member.path,
+            );
+        }
+        let terminal: serde_json::Value =
+            serde_json::from_slice(&fs::read(&control).unwrap()).unwrap();
+        assert_eq!(terminal["phase"], "ready");
+        assert_eq!(terminal["transaction_id"], pending["transaction_id"]);
+        assert_eq!(terminal["manifest_sha256"], pending["manifest_sha256"]);
+        assert_eq!(
+            terminal["outcome"],
+            if matches!(decision, WorkRecoveryDecision::Resume) {
+                "committed"
+            } else {
+                "rolled-back"
+            }
         );
         if matches!(decision, WorkRecoveryDecision::Resume) {
             assert!(!recovered.replayed());
