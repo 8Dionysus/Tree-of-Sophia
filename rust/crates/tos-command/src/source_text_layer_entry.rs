@@ -374,17 +374,15 @@ fn prepare(
 }
 
 impl PreparedInitial {
-    fn verify_current(
+    fn verify_stage_current(
         &self,
-        software: &SoftwareCaptureReader,
-        components: &SoftwareComponentSelectionV1,
-        exclude: Option<&Path>,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<()> {
         active(deadline, cancelled)?;
         self.context
             .verify_publication(&self.publication, deadline, cancelled)?;
+        self.context.snapshot(deadline, cancelled)?;
         let now = OwnerTextInitialLayerSelection::select(
             &self.context,
             &self.grant.path,
@@ -396,6 +394,18 @@ impl PreparedInitial {
                 "native Text delegation changed",
             ));
         }
+        Ok(())
+    }
+
+    fn verify_current(
+        &self,
+        software: &SoftwareCaptureReader,
+        components: &SoftwareComponentSelectionV1,
+        exclude: Option<&Path>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()> {
+        self.verify_stage_current(deadline, cancelled)?;
         for (reference, digest) in &self.contracts {
             if Digest256::of_bytes(&self.context.read(
                 reference,
@@ -903,7 +913,7 @@ pub fn execute_initial_text_layer_from_captures(
                 verify_retained_initial(&prepared, request, &files, worker, deadline, cancelled)?;
             finish_creation_worker(worker, deadline, cancelled)?;
             let _locks = PrivateTextLocks::acquire(&prepared.context, deadline, cancelled)?;
-            prepared.verify_current(software, components, Some(&target), deadline, cancelled)?;
+            prepared.verify_stage_current(deadline, cancelled)?;
             let current = observe_private_text(
                 &prepared.context,
                 &source_path,
@@ -934,6 +944,7 @@ pub fn execute_initial_text_layer_from_captures(
                 &source_path,
                 request,
                 &files,
+                || prepared.verify_stage_current(deadline, cancelled),
                 || prepared.verify_current(software, components, None, deadline, cancelled),
                 None,
                 deadline,
@@ -1040,6 +1051,7 @@ pub fn execute_initial_text_layer_from_captures(
         &source_path,
         request,
         &prepared.output.files,
+        || prepared.verify_stage_current(deadline, cancelled),
         || prepared.verify_current(software, components, None, deadline, cancelled),
         None,
         deadline,

@@ -363,6 +363,25 @@ fn prepare(
 }
 
 impl PreparedUnit {
+    fn verify_stage_current(
+        &self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()> {
+        active(deadline, cancelled)?;
+        self.context
+            .verify_publication(&self.publication, deadline, cancelled)?;
+        self.context.snapshot(deadline, cancelled)?;
+        let now =
+            OwnerTextUnitSelection::select(&self.context, &self.grant.path, deadline, cancelled)?;
+        if now.raw != self.grant.raw || now.config != self.grant.config {
+            return Err(SourceCommandError::Conflict(
+                "native TextUnit grant changed",
+            ));
+        }
+        Ok(())
+    }
+
     fn verify_current(
         &self,
         software: &SoftwareCaptureReader,
@@ -371,16 +390,7 @@ impl PreparedUnit {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<()> {
-        active(deadline, cancelled)?;
-        self.context
-            .verify_publication(&self.publication, deadline, cancelled)?;
-        let now =
-            OwnerTextUnitSelection::select(&self.context, &self.grant.path, deadline, cancelled)?;
-        if now.raw != self.grant.raw || now.config != self.grant.config {
-            return Err(SourceCommandError::Conflict(
-                "native TextUnit grant changed",
-            ));
-        }
+        self.verify_stage_current(deadline, cancelled)?;
         for (name, digest) in &self.contracts {
             if Digest256::of_bytes(&self.context.read(name, MAX_CONTRACT, deadline, cancelled)?)
                 != *digest
@@ -897,7 +907,7 @@ pub fn execute_first_text_unit_from_captures(
             let receipt = verify_retained(&prepared, request, &files, worker, deadline, cancelled)?;
             finish_creation_worker(worker, deadline, cancelled)?;
             let _locks = PrivateTextLocks::acquire(&prepared.context, deadline, cancelled)?;
-            prepared.verify_current(software, components, Some(&target), deadline, cancelled)?;
+            prepared.verify_stage_current(deadline, cancelled)?;
             let current = observe_private_text(
                 &prepared.context,
                 &source_path,
@@ -932,6 +942,7 @@ pub fn execute_first_text_unit_from_captures(
                 &source_path,
                 request,
                 &files,
+                || prepared.verify_stage_current(deadline, cancelled),
                 || prepared.verify_current(software, components, None, deadline, cancelled),
                 None,
                 deadline,
@@ -1031,6 +1042,7 @@ pub fn execute_first_text_unit_from_captures(
             &source_path,
             request,
             &prepared.files,
+            || prepared.verify_stage_current(deadline, cancelled),
             || prepared.verify_current(software, components, None, deadline, cancelled),
             None,
             deadline,
@@ -1042,6 +1054,7 @@ pub fn execute_first_text_unit_from_captures(
             &source_path,
             request,
             &prepared.files,
+            || prepared.verify_stage_current(deadline, cancelled),
             || prepared.verify_current(software, components, None, deadline, cancelled),
             deadline,
             cancelled,

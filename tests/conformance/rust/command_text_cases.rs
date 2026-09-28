@@ -467,6 +467,7 @@ fn native_text_layer_extracts_private_epub_and_cold_replays() {
         &cancelled,
     )
     .unwrap();
+    drop(unit_replay_worker);
     assert!(unit_replay.replayed);
     assert_eq!(unit_created.receipt, unit_replay.receipt);
     let derived = derived_fixture(
@@ -542,6 +543,7 @@ fn native_text_layer_extracts_private_epub_and_cold_replays() {
         &cancelled,
     )
     .unwrap();
+    drop(derived_replay_worker);
     assert!(derived_replay.replayed);
     assert_eq!(derived_result.receipt, derived_replay.receipt);
     assert!(!public.join(derived_ref).exists());

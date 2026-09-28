@@ -514,17 +514,15 @@ fn prepare(
 }
 
 impl PreparedDerived {
-    fn verify_current(
+    fn verify_stage_current(
         &self,
-        software: &SoftwareCaptureReader,
-        components: &SoftwareComponentSelectionV1,
-        exclude: Option<&Path>,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<()> {
         active(deadline, cancelled)?;
         self.context
             .verify_publication(&self.publication, deadline, cancelled)?;
+        self.context.snapshot(deadline, cancelled)?;
         let now = OwnerTextDerivedSelection::select(
             &self.context,
             &self.grant.path,
@@ -536,6 +534,18 @@ impl PreparedDerived {
                 "native derived delegation changed",
             ));
         }
+        Ok(())
+    }
+
+    fn verify_current(
+        &self,
+        software: &SoftwareCaptureReader,
+        components: &SoftwareComponentSelectionV1,
+        exclude: Option<&Path>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()> {
+        self.verify_stage_current(deadline, cancelled)?;
         for (name, sha) in &self.contracts {
             if Digest256::of_bytes(&self.context.read(name, MAX_CONTRACT, deadline, cancelled)?)
                 != *sha
@@ -1185,7 +1195,7 @@ pub fn execute_derived_text_layer_from_captures(
             )?;
             finish_creation_worker(worker, deadline, cancelled)?;
             let _locks = PrivateTextLocks::acquire(&prepared.context, deadline, cancelled)?;
-            prepared.verify_current(software, components, Some(&target), deadline, cancelled)?;
+            prepared.verify_stage_current(deadline, cancelled)?;
             if !matches!(observe_private_text(&prepared.context,&path,request,expected,deadline,cancelled)?,
                 PrivateTextCustody::Published(ref current) if current==&files)
             {
@@ -1228,6 +1238,7 @@ pub fn execute_derived_text_layer_from_captures(
                 &path,
                 request,
                 &files,
+                || prepared.verify_stage_current(deadline, cancelled),
                 || prepared.verify_current(software, components, None, deadline, cancelled),
                 if owner_ocr { Some(&mut staged) } else { None },
                 deadline,
@@ -1354,6 +1365,7 @@ pub fn execute_derived_text_layer_from_captures(
                 &path,
                 request,
                 &prepared.output.files,
+                || prepared.verify_stage_current(deadline, cancelled),
                 || prepared.verify_current(software, components, None, deadline, cancelled),
                 if owner_ocr { Some(&mut staged) } else { None },
                 deadline,

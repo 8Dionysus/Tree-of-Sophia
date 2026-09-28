@@ -228,8 +228,9 @@ fn record_ids(
 }
 
 /// One complete bounded metadata pass plus a path-membership rewalk. The
-/// returned digest is a current inventory fact; every later publication edge
-/// recomputes it under the held owner lock rather than treating it as a grant.
+/// returned digest is a current inventory fact, not a grant. The owning entry
+/// repeats this complete pass at its final selected publication check; the
+/// intermediate staging checks cover the current owner and control instead.
 pub(crate) fn selected_identity_snapshot(
     context: &OwnerTextContext,
     delegated: &[&str],

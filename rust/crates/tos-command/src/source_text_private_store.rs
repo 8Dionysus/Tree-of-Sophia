@@ -552,13 +552,15 @@ pub(crate) fn publish_private_text(
     target_ref: &str,
     request: &JsonValue,
     files: &BTreeMap<String, Vec<u8>>,
-    mut guard: impl FnMut() -> SourceCommandResult<()>,
+    mut stage_guard: impl FnMut() -> SourceCommandResult<()>,
+    mut final_guard: impl FnMut() -> SourceCommandResult<()>,
     mut verify_staged: Option<&mut dyn FnMut(&Path) -> SourceCommandResult<()>>,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<()> {
-    let mut held = Some(PrivateTextLocks::acquire(context, deadline, cancelled)?);
-    guard()?;
+    // Serialize the complete bounded plan before taking either publication
+    // lock. The locked checks below still authenticate current inputs and the
+    // exact retained plan before any selected destination mutation.
     let target = context.private_new_package_target(target_ref)?;
     let parent_path = target.parent().ok_or(bad_plan())?;
     let target_name = target
@@ -582,6 +584,13 @@ pub(crate) fn publish_private_text(
         .ok_or(bad_plan())?;
     let plan = encode_plan(target_rel, request, files)?;
     let control_name = control_name(&target, request)?;
+    let mut held = Some(PrivateTextLocks::acquire(context, deadline, cancelled)?);
+    stage_guard()?;
+    if context.private_new_package_target(target_ref)? != target {
+        return Err(SourceCommandError::Conflict(
+            "native Text destination changed before staging",
+        ));
+    }
     match rustix::fs::mkdirat(&root, control_name.as_str(), Mode::from_raw_mode(0o700)) {
         Ok(()) => {
             root.sync_all().map_err(|_| bad_plan())?;
@@ -609,7 +618,7 @@ pub(crate) fn publish_private_text(
             "native Text retained plan differs",
         ));
     }
-    guard()?;
+    stage_guard()?;
     if read_at(&control, "plan.json", uid, MAX_CONTROL, deadline, cancelled)?.as_deref()
         != Some(retained_raw.as_slice())
     {
@@ -637,6 +646,9 @@ pub(crate) fn publish_private_text(
     enumerate(&output, &expected, false, deadline, cancelled)?;
     output.sync_all().map_err(|_| bad_plan())?;
     if let Some(verify_staged) = verify_staged.as_mut() {
+        // This is the final source check for the first uninterrupted lock
+        // hold. Owner verification runs only after these locks are released.
+        final_guard()?;
         let root_before = directory(&root, uid, true)?;
         let control_before = directory(&control, uid, true)?;
         let output_before = directory(&output, uid, true)?;
@@ -672,7 +684,9 @@ pub(crate) fn publish_private_text(
             }
         }
     }
-    guard()?;
+    // A fresh complete check is required after owner verification reacquires
+    // the locks; without that release this is the sole complete lock check.
+    final_guard()?;
     if read_at(&control, "plan.json", uid, MAX_CONTROL, deadline, cancelled)?.as_deref()
         != Some(retained_raw.as_slice())
     {
@@ -730,7 +744,8 @@ pub(crate) fn publish_flat_text(
     target_ref: &str,
     request: &JsonValue,
     files: &BTreeMap<String, Vec<u8>>,
-    mut guard: impl FnMut() -> SourceCommandResult<()>,
+    mut stage_guard: impl FnMut() -> SourceCommandResult<()>,
+    mut final_guard: impl FnMut() -> SourceCommandResult<()>,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<()> {
@@ -747,7 +762,7 @@ pub(crate) fn publish_flat_text(
         ));
     }
     let _locks = PrivateTextLocks::acquire(context, deadline, cancelled)?;
-    guard()?;
+    stage_guard()?;
     let target = context.private_new_package_target(target_ref)?;
     let parent_path = target.parent().ok_or(bad_plan())?;
     let target_name = target
@@ -775,7 +790,7 @@ pub(crate) fn publish_flat_text(
             write_new(&stage, member, raw, uid, deadline, cancelled)?;
         }
         enumerate(&stage, &expected, false, deadline, cancelled)?;
-        guard()?;
+        final_guard()?;
         for (member, raw) in files {
             if read_at(&stage, member, uid, raw.len(), deadline, cancelled)?.as_deref()
                 != Some(raw.as_slice())
