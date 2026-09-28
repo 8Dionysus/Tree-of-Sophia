@@ -1373,6 +1373,90 @@ impl PublicCapture {
             .collect()
     }
 
+    /// Measured public inputs for the existing completion manifest. Part rows
+    /// were admitted by the source-owned partition descriptors during capture;
+    /// only their bounded root is exported, never private absolute paths.
+    pub(crate) fn manifest_input_binding(&self) -> Result<serde_json::Value> {
+        self.check_custody()?;
+        let mut sources = self.sources.iter().collect::<Vec<_>>();
+        sources.sort_by(|a, b| a.label.cmp(&b.label));
+        if sources
+            .windows(2)
+            .any(|pair| pair[0].label == pair[1].label)
+        {
+            return Err(Error::Invalid("public D1 duplicate input label"));
+        }
+        let mut entries = Vec::with_capacity(sources.len());
+        let mut ledger = Digest256Hasher::new();
+        ledger.update(b"tos-public-ledger-membership-v1\0");
+        let mut ledger_count = 0u64;
+        for source in sources {
+            self.charge_work(source.label.len() as u64 + 64)?;
+            if source.digest.is_some()
+                && source
+                    .label
+                    .starts_with("ToS/source-witnesses/access-requests/public-ledger/")
+                && source.label.ends_with(".access-request.json")
+            {
+                ledger.update(&(source.label.len() as u64).to_be_bytes());
+                ledger.update(source.label.as_bytes());
+                ledger_count = ledger_count
+                    .checked_add(1)
+                    .ok_or(Error::Budget("public D1 ledger membership count"))?;
+            }
+            entries.push(serde_json::json!({
+                "path":source.label,
+                "size_bytes":source.digest.map(|_|source.len),
+                "sha256":source.digest.map(|digest|digest.to_hex()),
+            }));
+        }
+        let db = self.read_db()?;
+        let mut stmt =
+            db.prepare("SELECT path,sha256,size_bytes FROM capture_sources ORDER BY path")?;
+        let mut rows = stmt.query([])?;
+        let mut parts = Digest256Hasher::new();
+        parts.update(b"tos-public-part-closure-v1\0");
+        let mut part_count = 0u64;
+        while let Some(row) = rows.next()? {
+            let absolute: String = row.get(0)?;
+            let sha: Vec<u8> = row.get(1)?;
+            let size: i64 = row.get(2)?;
+            let label = Path::new(&absolute)
+                .strip_prefix(&self.root)
+                .ok()
+                .and_then(Path::to_str)
+                .filter(|path| !path.is_empty())
+                .ok_or(Error::Invalid("public D1 part logical path"))?;
+            if sha.len() != 32 || size < 0 {
+                return Err(Error::Invalid("public D1 part binding row"));
+            }
+            self.charge_work(label.len() as u64 + sha.len() as u64 + 16)?;
+            parts.update(&(label.len() as u64).to_be_bytes());
+            parts.update(label.as_bytes());
+            parts.update(&(size as u64).to_be_bytes());
+            parts.update(&sha);
+            part_count = part_count
+                .checked_add(1)
+                .ok_or(Error::Budget("public D1 part binding count"))?;
+        }
+        if self.partitioned != (part_count != 0) {
+            return Err(Error::Invalid("public D1 partition binding mode"));
+        }
+        let value = serde_json::json!({
+            "schema":"tos_public_input_binding_v1",
+            "sources":entries,
+            "public_ledger":{"count":ledger_count,"paths_sha256":ledger.finalize().to_hex()},
+            "partitioned":self.partitioned,
+            "partition_parts":{"count":part_count,"root_sha256":parts.finalize().to_hex()},
+        });
+        let bytes = serde_json::to_vec(&value).map_err(|e| Error::Source(e.to_string()))?;
+        if bytes.len() > MAX_HEADER_BYTES {
+            return Err(Error::Budget("public D1 manifest input binding bytes"));
+        }
+        self.charge_work(bytes.len() as u64)?;
+        Ok(value)
+    }
+
     /// Bind the complete allowlisted public snapshot by stable logical labels.
     /// These digests were measured on capture and are independently rechecked
     /// before completion; transient private paths never enter the revision.

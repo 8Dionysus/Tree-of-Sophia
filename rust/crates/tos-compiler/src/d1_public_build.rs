@@ -565,6 +565,7 @@ pub fn build_public_d1(request: PublicD1Build<'_>) -> Result<Value> {
     )?;
     capture.verify_inputs(limits.capture)?;
     static_summary.verify_web_inputs(&capture)?;
+    let public_input_binding = capture.manifest_input_binding()?;
     let counts = json!({
         "philosophy_nodes":source_counts.philosophy_nodes,"philosophy_edges":source_counts.philosophy_edges,
         "philosophy_clusters":source_counts.cluster_node_memberships,
@@ -595,6 +596,7 @@ pub fn build_public_d1(request: PublicD1Build<'_>) -> Result<Value> {
         "build_stages":{"read-model":"computed","static-responses":"computed"},
         "source_owner":"Tree-of-Sophia",
         "source_paths":capture.source_labels(),
+        "public_input_binding":public_input_binding,
         "producer_paths":["rust/crates/tos-compiler/src/d1_public_build.rs",
             "rust/crates/tos-compiler/src/d1_public_capture.rs",
             "rust/crates/tos-compiler/src/d1_public_rows.rs",
