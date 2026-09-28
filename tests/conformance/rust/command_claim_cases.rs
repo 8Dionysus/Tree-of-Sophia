@@ -1868,7 +1868,8 @@ fn initial_collection_order_binds_retained_version_and_cold_replays() {
         "expires_at":"2099-01-01T00:00:00Z",
         "provenance_event_id":claim["provenance_event_ref"],
         "allowed_operations":["claims.create"], "allowed_claim_ids":[claim["claim_id"]],
-        "allowed_subject_refs":[claim["subject_ref"]], "allowed_object_refs":[],
+        "allowed_subject_refs":[claim["subject_ref"]],
+        "allowed_object_refs":claim["object"]["members"],
         "allowed_object_values":[claim["object"]],
         "allowed_predicates":[claim["predicate"]],
         "allowed_evidence_refs":claim["evidence_refs"]
