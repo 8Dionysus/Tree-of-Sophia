@@ -8,7 +8,7 @@ This module has no source, semantic, rights, or runtime admission authority.
 from __future__ import annotations
 
 from collections import OrderedDict
-from collections.abc import Iterable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
 import gzip
 import hashlib
@@ -308,13 +308,20 @@ def write_projection(path: Path, header: dict[str, Any], collections: Mapping[st
 class ProjectionReader:
     """Read one immutable manifest snapshot with a byte-bounded part cache."""
 
-    def __init__(self, path: Path, *, cache_bytes: int = DEFAULT_CACHE_BYTES):
+    def __init__(self, path: Path, *, cache_bytes: int = DEFAULT_CACHE_BYTES,
+                 before_read: Callable[[int, int], None] | None = None):
+        # Optional caller admission sees declared stored/decoded bytes before
+        # each physical read. Ordinary query readers retain their old behavior.
         self.path = Path(path).absolute()
+        self._before_read = before_read
         _check_selected_data(self.path)
         if self.path.is_symlink() or not self.path.is_file():
             raise ProjectionStoreError("projection root must be a regular file")
-        if self.path.stat().st_size > MAX_ROOT_BYTES:
+        root_size = self.path.stat().st_size
+        if root_size > MAX_ROOT_BYTES:
             raise ProjectionStoreError("projection root exceeds bound")
+        if self._before_read is not None:
+            self._before_read(root_size, root_size)
         with self.path.open("rb") as stream:
             self._root_bytes = stream.read(MAX_ROOT_BYTES + 1)
         if len(self._root_bytes) > MAX_ROOT_BYTES:
@@ -396,6 +403,8 @@ class ProjectionReader:
             raise ProjectionStoreError(f"missing or symlink projection part: {path}")
         if path.stat().st_size != descriptor["size_bytes"]:
             raise ProjectionStoreError(f"projection part size mismatch: {path}")
+        if self._before_read is not None:
+            self._before_read(descriptor["size_bytes"], descriptor["decoded_bytes"])
         with path.open("rb") as stream:
             stored = stream.read(descriptor["size_bytes"] + 1)
         if len(stored) != descriptor["size_bytes"]:
@@ -548,12 +557,17 @@ class ProjectionReader:
             raise ProjectionStoreError("projection snapshot changed during operation")
 
 
-def is_partitioned(path: Path) -> bool:
+def is_partitioned(path: Path, *, before_read: Callable[[int, int], None] | None = None) -> bool:
     """Small-root probe; a legacy monolith is never read just for detection."""
     path = Path(path)
     _check_selected_data(path)
-    if not path.is_file() or path.stat().st_size > MAX_ROOT_BYTES:
+    if not path.is_file():
         return False
+    size = path.stat().st_size
+    if size > MAX_ROOT_BYTES:
+        return False
+    if before_read is not None:
+        before_read(size, size)
     with path.open("rb") as stream:
         raw = stream.read(MAX_ROOT_BYTES + 1)
     if len(raw) > MAX_ROOT_BYTES:

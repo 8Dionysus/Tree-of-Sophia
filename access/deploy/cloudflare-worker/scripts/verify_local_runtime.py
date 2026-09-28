@@ -65,8 +65,9 @@ MAX_MANIFEST_BYTES = 2 * 1024 * 1024 + 1
 # Each of the two verification passes uses the public build's existing work cap.
 MAX_SOURCE_PASS_BYTES = 16 * 1024 * 1024 * 1024
 MAX_PART_FILE_BYTES = 8 * 1024 * 1024 + 65536
-# This verifier holds one ordered path list in addition to the existing
-# ProjectionReader's bounded descriptor set, never a graph or part payload.
+# This verifier holds one ordered path list. ProjectionReader also retains its
+# seen paths and up to 64 ancestor child maps during descriptor traversal;
+# each index is format-bounded to 128 KiB before parsing. No graph is loaded.
 MAX_PART_PATHS = 32768
 MAX_PART_PATH_BYTES = 16 * 1024 * 1024
 
@@ -127,14 +128,16 @@ def source_digest(path: Path, size: int | None, work: list[int], deadline: float
         if (not stat.S_ISREG(before.st_mode) or (size is not None and before.st_size != size)
                 or (max_size is not None and before.st_size > max_size)):
             raise AssertionError(f"public D1 source type or size changed: {path}")
+        work[0] += before.st_size
+        if work[0] > MAX_SOURCE_PASS_BYTES:
+            raise AssertionError("public D1 source verification work exceeded bound")
         digest = hashlib.sha256()
         read = 0
         with os.fdopen(fd, "rb", closefd=False) as stream:
             while chunk := stream.read(1024 * 1024):
                 remaining(deadline)
                 read += len(chunk)
-                work[0] += len(chunk)
-                if work[0] > MAX_SOURCE_PASS_BYTES or (size is not None and read > size):
+                if read > before.st_size:
                     raise AssertionError("public D1 source verification work exceeded bound")
                 digest.update(chunk)
         after = os.fstat(fd)
@@ -170,14 +173,15 @@ def verify_inputs(manifest: dict[str, Any], deadline: float) -> None:
             raise AssertionError("public D1 ledger directory changed")
         ledger = []
         entries = 0
-        for child in directory.iterdir():
-            remaining(deadline)
-            entries += 1
-            work[0] += len(child.name.encode("utf-8"))
-            if entries > 4096 or work[0] > MAX_SOURCE_PASS_BYTES:
-                raise AssertionError("public D1 ledger enumeration exceeds builder bound")
-            if child.name.endswith(".access-request.json"):
-                ledger.append(LEDGER_PREFIX + child.name)
+        with os.scandir(directory) as children:
+            for child in children:
+                remaining(deadline)
+                entries += 1
+                work[0] += len(child.name.encode("utf-8"))
+                if entries > 4096 or work[0] > MAX_SOURCE_PASS_BYTES:
+                    raise AssertionError("public D1 ledger enumeration exceeds builder bound")
+                if child.name.endswith(".access-request.json"):
+                    ledger.append(LEDGER_PREFIX + child.name)
         ledger.sort()
     else:
         ledger = []
@@ -219,21 +223,19 @@ def verify_inputs(manifest: dict[str, Any], deadline: float) -> None:
         raise AssertionError("public D1 partition closure exceeds verifier profile")
     paths: list[str] = []
     retained_path_bytes = 0
+    def charge_projection_read(stored: int, decoded: int) -> None:
+        remaining(deadline)
+        work[0] += stored + decoded
+        if work[0] > MAX_SOURCE_PASS_BYTES:
+            raise AssertionError("public D1 descriptor read exceeds verifier work bound")
     for label in SOURCE_INPUTS[:3]:
         path = source_path(label)
-        selected = is_partitioned(path)
+        selected = is_partitioned(path, before_read=charge_projection_read)
         partitioned.append(selected)
         if selected:
-            reader = ProjectionReader(path, cache_bytes=0)
-            charged = 0
+            reader = ProjectionReader(path, cache_bytes=0, before_read=charge_projection_read)
             for part in reader.closure_paths(verify_data=False):
                 remaining(deadline)
-                # The reader may have loaded an index before yielding this
-                # descriptor. Charge it now, not after the whole tree.
-                work[0] += reader.bytes_read - charged
-                charged = reader.bytes_read
-                if work[0] > MAX_SOURCE_PASS_BYTES:
-                    raise AssertionError("public D1 source verification work exceeded bound")
                 if part != path:
                     relative = part.relative_to(REPO_ROOT.resolve()).as_posix()
                     encoded_bytes = len(relative.encode("utf-8"))
@@ -244,9 +246,6 @@ def verify_inputs(manifest: dict[str, Any], deadline: float) -> None:
                             or work[0] > MAX_SOURCE_PASS_BYTES):
                         raise AssertionError("public D1 partition closure exceeds verifier profile")
                     paths.append(relative)
-            work[0] += reader.bytes_read - charged
-            if work[0] > MAX_SOURCE_PASS_BYTES:
-                raise AssertionError("public D1 source verification work exceeded bound")
     if partitioned[0] != partitioned[2] or type(binding["partitioned"]) is not bool or binding["partitioned"] != partitioned[0]:
         raise AssertionError("public D1 projection storage mode differs from build")
     paths.sort()
