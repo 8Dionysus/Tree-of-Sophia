@@ -698,22 +698,35 @@ impl CreationFilesystem {
     ) -> SourceCommandResult<()> {
         let directory = child(home, name)?;
         owned(&directory, self.uid, true)?;
-        let names = std::fs::read_dir(format!("/proc/self/fd/{}", directory.as_raw_fd()))
-            .map_err(|_| SourceCommandError::Denied("Claim retained catalog enumeration"))?
-            .map(|entry| {
-                entry
-                    .map_err(|_| SourceCommandError::Denied("Claim retained catalog entry"))?
-                    .file_name()
-                    .into_string()
-                    .map_err(|_| SourceCommandError::Denied("Claim retained catalog name"))
-            })
-            .collect::<SourceCommandResult<BTreeSet<_>>>()?;
-        if names
-            != expected
-                .iter()
-                .map(|(name, _)| (*name).to_owned())
-                .collect()
-        {
+        if expected.len() > 40 {
+            return Err(SourceCommandError::Unsupported(
+                "Claim retained catalog file count",
+            ));
+        }
+        let mut seen = vec![false; expected.len()];
+        active(deadline, cancelled)?;
+        let entries = std::fs::read_dir(format!("/proc/self/fd/{}", directory.as_raw_fd()))
+            .map_err(|_| SourceCommandError::Denied("Claim retained catalog enumeration"))?;
+        for entry in entries {
+            active(deadline, cancelled)?;
+            let name = entry
+                .map_err(|_| SourceCommandError::Denied("Claim retained catalog entry"))?
+                .file_name()
+                .into_string()
+                .map_err(|_| SourceCommandError::Denied("Claim retained catalog name"))?;
+            let Some(index) = expected.iter().position(|(leaf, _)| *leaf == name.as_str()) else {
+                return Err(SourceCommandError::Conflict(
+                    "Claim retained catalog file set differs",
+                ));
+            };
+            if std::mem::replace(&mut seen[index], true) {
+                return Err(SourceCommandError::Conflict(
+                    "Claim retained catalog file set differs",
+                ));
+            }
+        }
+        active(deadline, cancelled)?;
+        if seen.iter().any(|seen| !seen) {
             return Err(SourceCommandError::Conflict(
                 "Claim retained catalog file set differs",
             ));
@@ -1034,27 +1047,28 @@ impl CreationFilesystem {
                 read_bound(leaf, &bytes_binding, &mut total)?,
             );
         }
-        let actual = std::fs::read_dir(format!("/proc/self/fd/{}", directory.as_raw_fd()))
-            .map_err(|_| SourceCommandError::Denied("Claim retained catalog directory listing"))?
-            .map(|entry| {
-                entry
-                    .map_err(|_| {
-                        SourceCommandError::Denied("Claim retained catalog directory entry")
-                    })?
-                    .file_name()
-                    .into_string()
-                    .map_err(|_| {
-                        SourceCommandError::Denied("Claim retained catalog directory name")
-                    })
-            })
-            .collect::<SourceCommandResult<BTreeSet<_>>>()?;
-        if actual != required {
+        active(deadline, cancelled)?;
+        let entries = std::fs::read_dir(format!("/proc/self/fd/{}", directory.as_raw_fd()))
+            .map_err(|_| SourceCommandError::Denied("Claim retained catalog directory listing"))?;
+        for entry in entries {
+            active(deadline, cancelled)?;
+            let name = entry
+                .map_err(|_| SourceCommandError::Denied("Claim retained catalog directory entry"))?
+                .file_name()
+                .into_string()
+                .map_err(|_| SourceCommandError::Denied("Claim retained catalog directory name"))?;
+            if !required.remove(&name) {
+                return Err(SourceCommandError::Conflict(
+                    "Claim retained catalog file closure",
+                ));
+            }
+        }
+        active(deadline, cancelled)?;
+        if !required.is_empty() {
             return Err(SourceCommandError::Conflict(
                 "Claim retained catalog file closure",
             ));
         }
-        drop(actual);
-        drop(required);
         let capture = ClaimCatalogCapture {
             catalog: None,
             catalog_identity: None,
