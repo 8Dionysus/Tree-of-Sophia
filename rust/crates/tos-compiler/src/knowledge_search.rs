@@ -126,22 +126,30 @@ pub fn build_search_index(
     result
 }
 
+fn initialize_search_storage(db: &Connection) -> Result<()> {
+    // Catalog's rolled-back TEMP tables may have left free pages. Enable
+    // in-place reclamation before this producer creates its own TEMP tree;
+    // the final seal must not retain that tree's file allocation.
+    db.execute_batch("PRAGMA temp.auto_vacuum=INCREMENTAL; VACUUM temp")?;
+    let mode: i64 = db.query_row("PRAGMA temp.auto_vacuum", [], |row| row.get(0))?;
+    if mode != 2 {
+        return Err(Error::Invalid("search TEMP reclamation mode"));
+    }
+    db.execute_batch(SCHEMA)?;
+    Ok(())
+}
+
+fn retire_search_staging(db: &Connection) -> Result<()> {
+    db.execute_batch("DROP TABLE search_ordered_grams; PRAGMA temp.incremental_vacuum")?;
+    Ok(())
+}
+
 fn build_inner(
     stage: &mut KnowledgeStage<'_>,
     limits: SearchBuildLimits,
 ) -> Result<SearchIndexReceipt> {
     limits.validate()?;
-    stage.with_connection(WritePhase::Search, |db| {
-        // Catalog's rolled-back TEMP tables may have left free pages. Enable
-        // in-place reclamation before this producer creates its own TEMP tree;
-        // the final seal must not retain that tree's file allocation.
-        db.execute_batch("PRAGMA temp.auto_vacuum=INCREMENTAL; VACUUM temp")?;
-        let mode: i64 = db.query_row("PRAGMA temp.auto_vacuum", [], |row| row.get(0))?;
-        if mode != 2 {
-            return Err(Error::Invalid("search TEMP reclamation mode"));
-        }
-        db.execute_batch(SCHEMA).map_err(Error::from)
-    })?;
+    stage.with_connection(WritePhase::Search, initialize_search_storage)?;
     let mut receipt = SearchIndexReceipt {
         profile: SEARCH_PROFILE,
         node_documents: 0,
@@ -257,7 +265,7 @@ fn build_inner(
     // Grouping is an external SQLite index scan under the stage VM and host
     // spill quota. A cap failure poisons and removes the private candidate.
     stage.with_connection(WritePhase::Search, |db| {
-        db.execute_batch("DROP TABLE search_ordered_grams; PRAGMA temp.incremental_vacuum")?;
+        retire_search_staging(db)?;
         db.execute("INSERT INTO search_gram_stats(kind,n,gram,postings) SELECT kind,n,gram,COUNT(*) FROM search_grams GROUP BY kind,n,gram", [])?;
         db.execute("CREATE INDEX search_document_filter ON search_documents(kind,source_graph,kind_id,predicate_id,position)", [])?;
         Ok(())
@@ -809,6 +817,7 @@ CREATE TEMP TABLE search_ordered_grams(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::time::{SystemTime, UNIX_EPOCH};
 
     fn limits() -> SearchBuildLimits {
         SearchBuildLimits {
@@ -854,8 +863,29 @@ mod tests {
 
     #[test]
     fn ordered_posting_pages_preserve_unicode_and_rollback_boundaries() {
-        let mut db = Connection::open_in_memory().unwrap();
-        db.execute_batch(SCHEMA).unwrap();
+        let tick = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let dir =
+            std::env::temp_dir().join(format!("tos-search-ordered-{}-{tick}", std::process::id()));
+        std::fs::create_dir(&dir).unwrap();
+        let mut db = Connection::open(dir.join("candidate.sqlite3")).unwrap();
+        let _vm_used = crate::sqlite_budget::configure(
+            &db,
+            crate::Limits {
+                max_output_bytes: 32 * 1024 * 1024,
+                sqlite_cache_kib: 512,
+                max_sql_vm_steps: 20_000_000,
+                ..crate::Limits::default()
+            },
+        )
+        .unwrap();
+        let temp_store: i64 = db
+            .query_row("PRAGMA temp_store", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(temp_store, 1);
+        initialize_search_storage(&db).unwrap();
         let make_row = |position, id: &str| {
             let payload = format!(
                 r#"{{"id":"{id}","source_graph":"g","kind_id":"k","display":{{"title":"aaaaaaaaaá🌳ßá🌳ßá🌳ßbbbccc"}}}}"#
@@ -997,6 +1027,7 @@ mod tests {
             .unwrap();
         let (guarded, _) = prepare(11, "n11", &mut receipt);
         let checks = std::cell::Cell::new(0);
+        let before_guard_changes = db.total_changes();
         assert!(matches!(
             write_document_page(
                 &mut db,
@@ -1015,6 +1046,9 @@ mod tests {
             ),
             Err(Error::Invalid("fixture late guard"))
         ));
+        // The injected check is useful only after a real SQL write. SQLite's
+        // connection total includes completed INSERTs even when rolled back.
+        assert!(db.total_changes() > before_guard_changes + 1);
         assert!(db.is_autocommit());
         let failed_documents: i64 = db
             .query_row(
@@ -1036,6 +1070,7 @@ mod tests {
         // The final ordered copy is page-atomic too. An earlier copied page
         // remains, while the failing page retains its staging keys.
         let (late, expected_late) = prepare(12, "n12", &mut receipt);
+        assert!(expected_late.len() <= MAX_GRAM_BATCH_ROWS);
         write_document_page(
             &mut db,
             &|| Ok(()),
@@ -1085,6 +1120,22 @@ mod tests {
             )
             .unwrap();
         assert_eq!((refused_final, retained_stage), (0, 1));
+        db.execute_batch("DROP TRIGGER refuse_late_final").unwrap();
+        copy_ordered_kind(
+            &mut db,
+            &|| Ok(()),
+            "nodes",
+            limits(),
+            expected_late.len() as u64,
+        )
+        .unwrap();
+        retire_search_staging(&db).unwrap();
+        let freelist: i64 = db
+            .query_row("PRAGMA temp.freelist_count", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(freelist, 0);
+        drop(db);
+        std::fs::remove_dir_all(dir).unwrap();
     }
 
     #[test]
