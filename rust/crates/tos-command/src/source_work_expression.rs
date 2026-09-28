@@ -1483,14 +1483,16 @@ fn after_cut_budget(
     Ok(())
 }
 
-/// Every selected validator read stays current at each mover edge. The two
-/// complete membership passes additionally catch unrelated authored paths;
-/// retained archive/journal reads keep their own exact custody observation.
+/// Current validator reads stay physical at each mover edge. A preview also
+/// contains ExactPath observations of its not-yet-published output bytes;
+/// those must match the prepared buffers rather than the predecessor cut.
+/// Complete membership passes catch unrelated authored paths separately.
 fn selected_reads_current(
     fs: &CreationFilesystem,
     cut: &CorpusCutReader,
     reads: &[PredicateRead],
     selected: &BTreeMap<String, SelectedSides>,
+    projected: &[(String, &[u8])],
     limit: u64,
     deadline: Instant,
     cancelled: &AtomicBool,
@@ -1501,6 +1503,11 @@ fn selected_reads_current(
             continue;
         };
         if selected.contains_key(path) {
+            continue;
+        }
+        if projected.iter().any(|(candidate_path, raw)| {
+            candidate_path == path && Digest256::of_bytes(raw).to_prefixed() == *digest
+        }) {
             continue;
         }
         let retained = path.starts_with("ToS/source-witnesses/.record-revisions/")
@@ -2034,15 +2041,18 @@ pub fn prepare_isolated_work_expression_from_proposal(
         "Work preview full request absent",
     ))?;
     let authorization = foundation_value(core.authorization())?;
+    let outputs = core.outputs().map_err(item_error)?;
     selected_reads_current(
         fs,
         cut,
         core.reads(),
         &BTreeMap::new(),
+        &outputs,
         limits.max_total_bytes,
         limits.deadline,
         cancelled,
     )?;
+    drop(outputs);
     let projected_outputs = core.into_prepared_outputs().map_err(item_error)?;
     worker
         .finish(limits.deadline, cancelled)
@@ -2111,6 +2121,7 @@ impl WorkApplicationGuard {
             cut,
             &self.read_observations,
             &self.selected,
+            &[],
             limits.max_total_bytes,
             limits.deadline,
             cancelled,
@@ -2710,6 +2721,7 @@ pub fn recover_isolated_work_expression_from_captures(
             original_cut,
             &read_observations,
             &selected,
+            &[],
             limits.max_total_bytes,
             limits.deadline,
             cancelled,
