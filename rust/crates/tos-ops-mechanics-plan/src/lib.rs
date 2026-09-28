@@ -2,6 +2,7 @@
 //! Lane selection and the planned tools retain their own authority.
 
 pub mod executor;
+pub mod threshold_registry;
 
 use serde::Serialize;
 use std::collections::BTreeSet;
@@ -114,6 +115,49 @@ fn relative(root: &Path, path: &Path) -> io::Result<String> {
     Ok(rendered.replace(std::path::MAIN_SEPARATOR, "/"))
 }
 
+fn mechanics_command(
+    root: &Path,
+    python: &str,
+    script: &Path,
+    check: bool,
+) -> io::Result<Vec<String>> {
+    let relative = relative(root, script)?;
+    let native_mode = match relative.as_str() {
+        "mechanics/agon/parts/threshold-registry/scripts/build_tos_agon_threshold_intake_registry.py" => {
+            Some("--threshold-registry-build")
+        }
+        "mechanics/agon/parts/threshold-registry/scripts/validate_tos_agon_threshold_intake_registry.py" => {
+            Some("--threshold-registry-validate")
+        }
+        _ => None,
+    };
+    if let Some(mode) = native_mode {
+        let executable = std::env::current_exe()?;
+        let executable = executable
+            .to_str()
+            .ok_or_else(|| invalid("non-UTF-8 native mechanics executable"))?;
+        let root = root
+            .to_str()
+            .ok_or_else(|| invalid("non-UTF-8 mechanics root"))?;
+        let mut argv = vec![
+            executable.to_owned(),
+            "--repo-root".into(),
+            root.into(),
+            mode.into(),
+        ];
+        if check {
+            argv.push("--check".into());
+        }
+        Ok(argv)
+    } else {
+        let mut argv = vec![python.into(), relative];
+        if check {
+            argv.push("--check".into());
+        }
+        Ok(argv)
+    }
+}
+
 /// Discover the same package and part homes as the Python lane oracle.
 ///
 /// The returned argv retains `python` as an explicit host adapter. A caller
@@ -173,14 +217,14 @@ pub fn discover(root: &Path, python: &str) -> io::Result<Plan> {
             builders.push(Command {
                 kind: "builder_check",
                 home: home_string.clone(),
-                argv: vec![python.into(), relative(root, &script)?, "--check".into()],
+                argv: mechanics_command(root, python, &script, true)?,
             });
         }
         for script in named_files(&home.join("scripts"), "validate_", &mut visited)? {
             validators.push(Command {
                 kind: "validator",
                 home: home_string.clone(),
-                argv: vec![python.into(), relative(root, &script)?],
+                argv: mechanics_command(root, python, &script, false)?,
             });
         }
     }

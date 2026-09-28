@@ -7,8 +7,10 @@ rust-version.workspace = true
 license.workspace = true
 
 [dependencies]
+jsonschema = { version = "=0.53.0", default-features = false, features = ["arbitrary-precision"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+tos-foundation = { path = "../tos-foundation" }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 libc = "0.2"
