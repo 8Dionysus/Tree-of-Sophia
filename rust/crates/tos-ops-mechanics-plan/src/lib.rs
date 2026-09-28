@@ -1,6 +1,7 @@
 //! Bounded discovery and dedicated native execution for mechanics-local validation.
 //! Lane selection and the planned tools retain their own authority.
 
+pub mod derived_kag;
 pub mod executor;
 pub mod public_mirror;
 pub mod questbook;
@@ -138,6 +139,9 @@ fn mechanics_command(
         "mechanics/questbook/scripts/validate_questbook_surface.py" => Some("--questbook-validate"),
         "mechanics/boundary-bridge/parts/public-mirror-sync/scripts/validate_tree_example_sync.py" => {
             Some("--public-mirror-validate")
+        }
+        "mechanics/boundary-bridge/parts/derived-kag-seam/scripts/validate_kag_export.py" => {
+            Some("--derived-kag-validate")
         }
         _ => None,
     };

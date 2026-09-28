@@ -17,6 +17,8 @@ enum Action {
     QuestbookValidate,
     PublicMirrorValidate,
     PublicMirrorSync,
+    DerivedKagValidate,
+    DerivedKagGenerate,
 }
 
 #[cfg(target_os = "linux")]
@@ -35,6 +37,8 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits), String> {
     let mut questbook_validate = false;
     let mut public_mirror_validate = false;
     let mut public_mirror_sync = false;
+    let mut derived_kag_validate = false;
+    let mut derived_kag_generate = false;
     let mut check = false;
     let mut limits = Limits::default();
     while let Some(argument) = args.next() {
@@ -46,6 +50,8 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits), String> {
             "--questbook-validate" => questbook_validate = true,
             "--public-mirror-validate" => public_mirror_validate = true,
             "--public-mirror-sync" => public_mirror_sync = true,
+            "--derived-kag-validate" => derived_kag_validate = true,
+            "--derived-kag-generate" => derived_kag_generate = true,
             "--check" => check = true,
             "--repo-root" => root = Some(PathBuf::from(args.next().ok_or("missing repo root")?)),
             "--python" => python = args.next().ok_or("missing Python adapter")?,
@@ -78,6 +84,8 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits), String> {
         + usize::from(questbook_validate)
         + usize::from(public_mirror_validate)
         + usize::from(public_mirror_sync)
+        + usize::from(derived_kag_validate)
+        + usize::from(derived_kag_generate)
         > 1
         || (check && !threshold_build)
     {
@@ -97,6 +105,10 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits), String> {
         Action::PublicMirrorValidate
     } else if public_mirror_sync {
         Action::PublicMirrorSync
+    } else if derived_kag_validate {
+        Action::DerivedKagValidate
+    } else if derived_kag_generate {
+        Action::DerivedKagGenerate
     } else {
         Action::Plan
     };
@@ -110,7 +122,7 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits), String> {
 
 fn main() {
     let (root, python, action, limits) = arguments().unwrap_or_else(|error| {
-        eprintln!("{error}\nusage: tos-ops-mechanics-plan --repo-root PATH [--python COMMAND] [--execute | --threshold-registry-build [--check] | --threshold-registry-validate | --relation-pack-validate | --questbook-validate | --public-mirror-validate | --public-mirror-sync] [--command-timeout-ms N] [--lane-timeout-ms N] [--cleanup-grace-ms N] [--max-output-bytes N]");
+        eprintln!("{error}\nusage: tos-ops-mechanics-plan --repo-root PATH [--python COMMAND] [--execute | --threshold-registry-build [--check] | --threshold-registry-validate | --relation-pack-validate | --questbook-validate | --public-mirror-validate | --public-mirror-sync | --derived-kag-validate | --derived-kag-generate] [--command-timeout-ms N] [--lane-timeout-ms N] [--cleanup-grace-ms N] [--max-output-bytes N]");
         std::process::exit(2);
     });
     let result = match action {
@@ -171,6 +183,20 @@ fn main() {
                 }
                 0
             }),
+        Action::DerivedKagValidate => {
+            tos_ops_mechanics_plan::derived_kag::validate(&root).map(|()| {
+                println!("[ok] validated generated KAG export outputs are up to date");
+                println!("[ok] validated generated KAG export structure");
+                0
+            })
+        }
+        Action::DerivedKagGenerate => tos_ops_mechanics_plan::derived_kag::write_outputs(&root)
+            .map(|written| {
+                for path in written {
+                    println!("[ok] wrote {path}");
+                }
+                0
+            }),
         Action::Plan | Action::Execute => tos_ops_mechanics_plan::discover(&root, &python)
             .and_then(|plan| {
                 if matches!(action, Action::Plan) {
@@ -195,7 +221,10 @@ fn main() {
     let code = match result {
         Ok(code) => code,
         Err(error) => {
-            if matches!(action, Action::QuestbookValidate) {
+            if matches!(
+                action,
+                Action::QuestbookValidate | Action::DerivedKagValidate
+            ) {
                 eprintln!("[error] {error}");
                 std::process::exit(1);
             }
@@ -206,6 +235,7 @@ fn main() {
                 Action::RelationPackValidate => "relation pack",
                 Action::QuestbookValidate => "questbook",
                 Action::PublicMirrorValidate | Action::PublicMirrorSync => "public mirror",
+                Action::DerivedKagValidate | Action::DerivedKagGenerate => "derived KAG",
             };
             let diagnostic = format!("mechanics-local {route}: {error}\n",);
             #[cfg(target_os = "linux")]
