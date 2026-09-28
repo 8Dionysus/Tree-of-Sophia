@@ -1785,6 +1785,33 @@ fn initial_collection_order_binds_retained_version_and_cold_replays() {
             let relative = member.strip_prefix(&repository).unwrap().to_str().unwrap();
             files.insert(relative.into(), fs::read(&member).unwrap());
         }
+        // A historical Collection version is selected with its original
+        // committed transport, not just its archived record package. Keep
+        // the exact retained manifest, blobs and completion in both cuts so
+        // the real native compound reader can authenticate this transition.
+        let transaction_id = receipt["publication"]["transaction_id"]
+            .as_str()
+            .unwrap()
+            .strip_prefix("sha256:")
+            .unwrap();
+        assert_eq!(transaction_id.len(), 64);
+        assert!(transaction_id.bytes().all(|byte| byte.is_ascii_hexdigit()));
+        let transaction = format!("ToS/source-witnesses/.metadata-transactions/{transaction_id}");
+        let mut selected = fs::read_dir(repository.join(&transaction))
+            .unwrap()
+            .map(|entry| entry.unwrap().path())
+            .collect::<Vec<_>>();
+        selected.sort();
+        assert!(selected.len() <= 64);
+        for member in selected {
+            assert!(member.is_file());
+            let relative = member.strip_prefix(&repository).unwrap().to_str().unwrap();
+            assert!(
+                files
+                    .insert(relative.into(), fs::read(&member).unwrap())
+                    .is_none()
+            );
+        }
     }
     for work in [
         "also-sprach-zarathustra",
