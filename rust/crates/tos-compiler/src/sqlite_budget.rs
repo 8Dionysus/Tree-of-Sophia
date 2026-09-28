@@ -3,9 +3,12 @@
 
 use crate::{Error, Limits, Result};
 use rusqlite::Connection;
-use std::sync::{
-    Arc,
-    atomic::{AtomicU64, Ordering},
+use std::{
+    sync::{
+        Arc,
+        atomic::{AtomicU64, Ordering},
+    },
+    time::Instant,
 };
 
 const MAX_PROGRESS_INTERVAL: u64 = 1_000;
@@ -16,6 +19,24 @@ pub(crate) fn effective_vm_cap(limits: Limits) -> u64 {
 }
 
 pub(crate) fn install_progress(db: &Connection, limits: Limits, used: Arc<AtomicU64>) {
+    install_progress_inner(db, limits, used, None);
+}
+
+pub(crate) fn install_progress_until(
+    db: &Connection,
+    limits: Limits,
+    used: Arc<AtomicU64>,
+    deadline: Instant,
+) {
+    install_progress_inner(db, limits, used, Some(deadline));
+}
+
+fn install_progress_inner(
+    db: &Connection,
+    limits: Limits,
+    used: Arc<AtomicU64>,
+    deadline: Option<Instant>,
+) {
     let interval = limits.max_sql_vm_steps.min(MAX_PROGRESS_INTERVAL);
     let effective_cap = effective_vm_cap(limits);
     db.progress_handler(
@@ -24,6 +45,7 @@ pub(crate) fn install_progress(db: &Connection, limits: Limits, used: Arc<Atomic
             used.fetch_add(interval, Ordering::Relaxed)
                 .saturating_add(interval)
                 >= effective_cap
+                || deadline.is_some_and(|limit| Instant::now() >= limit)
         }),
     );
 }
@@ -40,6 +62,20 @@ pub(crate) fn configure_with_counter(
     used: Arc<AtomicU64>,
 ) -> Result<()> {
     install_progress(db, limits, used);
+    configure_limits(db, limits)
+}
+
+pub(crate) fn configure_with_counter_until(
+    db: &Connection,
+    limits: Limits,
+    used: Arc<AtomicU64>,
+    deadline: Instant,
+) -> Result<()> {
+    install_progress_until(db, limits, used, deadline);
+    configure_limits(db, limits)
+}
+
+fn configure_limits(db: &Connection, limits: Limits) -> Result<()> {
     db.execute_batch(
         "PRAGMA journal_mode=DELETE; PRAGMA synchronous=FULL; PRAGMA temp_store=FILE;",
     )?;

@@ -934,7 +934,7 @@ impl PublicCapture {
         };
         let mut db = Connection::open(staging)?;
         let vm_used = Arc::new(AtomicU64::new(0));
-        sqlite_budget::install_progress(&db, limits.sqlite(), Arc::clone(&vm_used));
+        sqlite_budget::install_progress_until(&db, limits.sqlite(), Arc::clone(&vm_used), deadline);
         db.execute_batch("PRAGMA page_size=4096; PRAGMA journal_mode=DELETE; PRAGMA synchronous=FULL; PRAGMA temp_store=FILE;")?;
         let pages = limits.max_staging_bytes / 4096;
         if pages < 16 || pages > i64::MAX as u64 {
@@ -1209,6 +1209,10 @@ impl PublicCapture {
         Arc::clone(&self.vm_used)
     }
 
+    pub(crate) fn deadline(&self) -> Instant {
+        self.deadline
+    }
+
     pub(crate) fn work_counter(&self) -> Rc<Cell<u64>> {
         Rc::clone(&self.work_bytes)
     }
@@ -1228,7 +1232,12 @@ impl PublicCapture {
     pub(crate) fn read_db(&self) -> Result<Connection> {
         self.check_custody()?;
         let db = Connection::open_with_flags(&self.path, OpenFlags::SQLITE_OPEN_READ_ONLY)?;
-        sqlite_budget::install_progress(&db, self.limits.sqlite(), Arc::clone(&self.vm_used));
+        sqlite_budget::install_progress_until(
+            &db,
+            self.limits.sqlite(),
+            Arc::clone(&self.vm_used),
+            self.deadline,
+        );
         db.pragma_update(None, "cache_size", -(self.limits.sqlite_cache_kib as i64))?;
         Ok(db)
     }
@@ -1236,7 +1245,12 @@ impl PublicCapture {
     pub(crate) fn write_db(&self) -> Result<Connection> {
         self.check_custody()?;
         let db = Connection::open(&self.path)?;
-        sqlite_budget::install_progress(&db, self.limits.sqlite(), Arc::clone(&self.vm_used));
+        sqlite_budget::install_progress_until(
+            &db,
+            self.limits.sqlite(),
+            Arc::clone(&self.vm_used),
+            self.deadline,
+        );
         db.pragma_update(None, "cache_size", -(self.limits.sqlite_cache_kib as i64))?;
         db.execute_batch(
             "PRAGMA journal_mode=DELETE; PRAGMA synchronous=FULL; PRAGMA temp_store=FILE",

@@ -19,6 +19,7 @@ use std::{
         Arc,
         atomic::{AtomicU64, Ordering},
     },
+    time::Instant,
 };
 use tos_foundation::{Digest256, Digest256Hasher};
 
@@ -215,6 +216,7 @@ pub struct KnowledgeStage<'a> {
     owner: &'a dyn StageOwner,
     isolation: Option<&'a dyn StageIsolation>,
     public_build: bool,
+    public_deadline: Option<Instant>,
     total_rows: u64,
     work_bytes: u64,
     public_work: Option<(Rc<Cell<u64>>, u64)>,
@@ -283,6 +285,7 @@ impl<'a> KnowledgeStage<'a> {
             Some(isolation),
             None,
             None,
+            None,
         )
     }
 
@@ -297,6 +300,7 @@ impl<'a> KnowledgeStage<'a> {
         vm_used: Arc<AtomicU64>,
         work_used: Rc<Cell<u64>>,
         max_work_bytes: u64,
+        deadline: Instant,
     ) -> Result<Self> {
         Self::create_inner(
             candidate,
@@ -306,6 +310,7 @@ impl<'a> KnowledgeStage<'a> {
             None,
             Some(vm_used),
             Some((work_used, max_work_bytes)),
+            Some(deadline),
         )
     }
 
@@ -317,6 +322,7 @@ impl<'a> KnowledgeStage<'a> {
         isolation: Option<&'a dyn StageIsolation>,
         shared_vm_used: Option<Arc<AtomicU64>>,
         public_work: Option<(Rc<Cell<u64>>, u64)>,
+        public_deadline: Option<Instant>,
     ) -> Result<Self> {
         limits.validate()?;
         receipt.validate()?;
@@ -390,6 +396,7 @@ impl<'a> KnowledgeStage<'a> {
             owner,
             isolation,
             public_build: isolation.is_none(),
+            public_deadline,
             total_rows: 0,
             work_bytes: 0,
             public_work,
@@ -413,7 +420,12 @@ impl<'a> KnowledgeStage<'a> {
         let db = Connection::open(candidate)?;
         stage.db = Some(db);
         stage.vm_used = Some(if let Some(used) = shared_vm_used {
-            sqlite_budget::configure_with_counter(stage.db(), limits.sqlite, Arc::clone(&used))?;
+            sqlite_budget::configure_with_counter_until(
+                stage.db(),
+                limits.sqlite,
+                Arc::clone(&used),
+                public_deadline.ok_or(Error::Invalid("public D1 deadline absent"))?,
+            )?;
             used
         } else {
             sqlite_budget::configure(stage.db(), limits.sqlite)?
@@ -451,6 +463,12 @@ impl<'a> KnowledgeStage<'a> {
         self.db.as_ref().expect("stage database open")
     }
     fn check(&self, phase: WritePhase) -> Result<()> {
+        if self
+            .public_deadline
+            .is_some_and(|limit| Instant::now() >= limit)
+        {
+            return Err(Error::Budget("public D1 build deadline"));
+        }
         Self::check_isolation(
             self.isolation,
             &self.candidate,
@@ -698,9 +716,13 @@ impl<'a> KnowledgeStage<'a> {
     /// custody state without returning a StageReceipt or permitting selection.
     pub(crate) fn complete_public_build(&mut self, nodes: u64, relations: u64) -> Result<()> {
         let result = (|| {
-            if !self.public_build || self.poisoned || self.write_page.is_some()
-                || self.selected_full || self.closed_input_rows.is_none()
-                || !self.db().is_autocommit() {
+            if !self.public_build
+                || self.poisoned
+                || self.write_page.is_some()
+                || self.selected_full
+                || self.closed_input_rows.is_none()
+                || !self.db().is_autocommit()
+            {
                 return Err(Error::Invalid("public D1 stage completion state"));
             }
             self.owner.recheck_sealed_cut(&self.receipt)?;
@@ -785,6 +807,12 @@ impl<'a> KnowledgeStage<'a> {
         result
     }
     fn charge_public_work(&self, bytes: u64) -> Result<()> {
+        if self
+            .public_deadline
+            .is_some_and(|limit| Instant::now() >= limit)
+        {
+            return Err(Error::Budget("public D1 build deadline"));
+        }
         if let Some((used, limit)) = &self.public_work {
             let next = used
                 .get()

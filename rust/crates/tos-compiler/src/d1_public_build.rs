@@ -419,6 +419,7 @@ pub fn build_public_d1(request: PublicD1Build<'_>) -> Result<Value> {
         capture.vm_counter(),
         capture.work_counter(),
         capture.max_work_bytes(),
+        capture.deadline(),
     )?;
     ingest_family_rows(&mut stage, &capture, limits.max_stage_transfer_work_bytes)?;
     let navigation = capture.header_object("corpus", "source_navigation", 1024 * 1024)?;
@@ -475,6 +476,7 @@ pub fn build_public_d1(request: PublicD1Build<'_>) -> Result<Value> {
         )
     })?;
     let search = build_search_index(&mut stage, limits.search)?;
+    capture.charge_work(search.work_bytes)?;
     let metadata = d1_public_metadata::prepare(
         &mut stage,
         &capture,

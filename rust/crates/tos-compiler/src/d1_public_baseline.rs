@@ -74,7 +74,12 @@ impl PublicRowIndex {
             return Err(Error::Invalid("public D1 row index path/budget"));
         }
         let db = Connection::open(path)?;
-        sqlite_budget::install_progress(&db, limits.sqlite(), capture.vm_counter());
+        sqlite_budget::install_progress_until(
+            &db,
+            limits.sqlite(),
+            capture.vm_counter(),
+            capture.deadline(),
+        );
         db.execute_batch("PRAGMA page_size=4096; PRAGMA journal_mode=DELETE; PRAGMA synchronous=FULL; PRAGMA temp_store=FILE;")?;
         let pages = limits.max_staging_bytes / 4096;
         if pages < 16 || pages > i64::MAX as u64 {
