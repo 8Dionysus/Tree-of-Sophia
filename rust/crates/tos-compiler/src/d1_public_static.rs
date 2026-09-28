@@ -870,10 +870,15 @@ fn bounded_clusters(clusters: Vec<Value>, nodes: &[Value], edges: &[Value]) -> V
             cluster["member_edge_ids"] = json!(matched_edges);
             cluster["available_member_node_count"] = json!(member_nodes.len());
             cluster["available_member_edge_count"] = json!(member_edges.len());
-            if cluster["properties"]["member_count"].is_number() {
+            // Python's dict(item.get("properties") or {}) produces an empty
+            // object for both a missing field and an explicit null.
+            if !cluster.get("properties").is_some_and(Value::is_object) {
+                cluster["properties"] = json!({});
+            }
+            if cluster["properties"].get("member_count").is_some() {
                 cluster["properties"]["member_count"] = json!(matched_nodes.len());
             }
-            if cluster["properties"]["edge_count"].is_number() {
+            if cluster["properties"].get("edge_count").is_some() {
                 cluster["properties"]["edge_count"] = json!(matched_edges.len());
             }
             Some(cluster)
@@ -1024,12 +1029,13 @@ fn phi_view_packet(
             .filter(|s| !s.is_empty())
             .collect::<Vec<_>>()
     );
+    let empty_array = json!([]);
     Ok(
         json!({"schema":"tos_philosophy_mcp_view_v1","view":bounded_view,
         "node_count":nodes.len(),"edge_count":edges.len(),"available_node_count":node_count,
         "available_edge_count":edge_count,"limit":limit,"nodes":nodes,"edges":edges,
         "clusters":clusters,"review_packet":review,
-        "source_refs":view["source_refs"],"runtime_projection_boundary":boundary}),
+        "source_refs":view.get("source_refs").unwrap_or(&empty_array),"runtime_projection_boundary":boundary}),
     )
 }
 
@@ -1037,7 +1043,17 @@ fn philosophy(writer: &mut Writer<'_>, root: &str) -> Result<String> {
     let capture = writer.capture;
     let mut header = capture.header_object("philosophy", "", 2 * 1024 * 1024)?;
     portable(&mut header, root);
-    let boundary = header["runtime_projection_boundary"].clone();
+    let empty_object = json!({});
+    let empty_array = json!([]);
+    let boundary = header
+        .get("runtime_projection_boundary")
+        .cloned()
+        .unwrap_or_else(|| json!({}));
+    let status_missing_boundary = json!({"runtime_owner":"abyss-stack",
+        "missing_state":"ToS philosophy graph projection is not present at this MCP path"});
+    let status_boundary = header
+        .get("runtime_projection_boundary")
+        .unwrap_or(&status_missing_boundary);
     let mut views = Vec::new();
     rows(capture, "philosophy", "views", root, |view| {
         if views.len() >= 1000 {
@@ -1065,31 +1081,46 @@ fn philosophy(writer: &mut Writer<'_>, root: &str) -> Result<String> {
     let status = json!({"schema":"tos_philosophy_mcp_status_v1","projection_exists":true,
         "tos_root":"Tree-of-Sophia","projection_path":"ToS/derived-exports/philosophy_graph_projection.min.json",
         "owner_repo":header["owner_repo"],"surface_kind":header["surface_kind"],
-        "counts":header["counts"],"views":view_ids,"graph_layers":layer_ids,
-        "visibility_model":header["visibility_model"],"snapshot_review":header["snapshot_review"],
-        "runtime_projection_boundary":boundary,
+        "counts":header.get("counts").unwrap_or(&empty_object),"views":view_ids,"graph_layers":layer_ids,
+        "visibility_model":header.get("visibility_model").unwrap_or(&empty_object),
+        "snapshot_review":header.get("snapshot_review").unwrap_or(&empty_object),
+        "runtime_projection_boundary":status_boundary,
         "authority_note":"Tree-of-Sophia owns philosophy meaning; this MCP packet is a Tree-of-Sophia standalone access aid."});
     writer.json("__edge/philosophy/status.json", &status)?;
     writer.json(
         "__edge/philosophy/layers.json",
         &json!({"schema":"tos_philosophy_mcp_layers_v1",
-        "graph_layers":layers,"layer_counts":header["layer_counts"],
-        "visibility_model":header["visibility_model"],"runtime_projection_boundary":boundary}),
+        "graph_layers":layers,"layer_counts":header.get("layer_counts").unwrap_or(&empty_array),
+        "visibility_model":header.get("visibility_model").unwrap_or(&empty_object),
+        "runtime_projection_boundary":boundary}),
     )?;
     writer.json("__edge/philosophy/snapshot.json",&json!({"schema":"tos_philosophy_mcp_snapshot_v1",
-        "snapshot_review":header["snapshot_review"],"runtime_projection_boundary":boundary,
+        "snapshot_review":header.get("snapshot_review").unwrap_or(&empty_object),
+        "runtime_projection_boundary":boundary,
         "authority_note":"Tree-of-Sophia owns snapshot semantics; MCP serves fingerprints for review and diff routing."}))?;
     let audit_path =
         "ToS/philosophy/graph-workbench/review-packets/table-i-post-planting-audit.json";
     let audit = capture.read_input(audit_path, 4 * 1024 * 1024)?;
+    let audit_exists = audit.is_some();
+    let audit_note = if audit_exists {
+        "Tree-of-Sophia owns the audit; MCP serves it as an access packet."
+    } else {
+        "Tree-of-Sophia has not published the post-planting audit at this MCP path."
+    };
     writer.json("__edge/philosophy/audit.json",&json!({"schema":"tos_philosophy_mcp_audit_v1",
-        "audit_exists":audit.is_some(),"audit_path":audit_path,
+        "audit_exists":audit_exists,"audit_path":audit_path,
         "audit":audit.map(|raw|serde_json::from_slice::<Value>(&raw).map_err(|e|Error::Source(e.to_string())))
             .transpose()?.unwrap_or_else(||json!({})),
-        "authority_note":"Tree-of-Sophia owns the audit; MCP serves it as an access packet."}))?;
+        "authority_note":audit_note}))?;
     let unresolved = header["unresolved_review_surfaces"]
         .as_array()
-        .cloned()
+        .map(|items| {
+            items
+                .iter()
+                .filter(|item| item.is_object())
+                .cloned()
+                .collect::<Vec<_>>()
+        })
         .unwrap_or_default();
     writer.json(
         "__edge/philosophy/unresolved/all.json",
@@ -1132,14 +1163,16 @@ fn philosophy(writer: &mut Writer<'_>, root: &str) -> Result<String> {
         let (node_kinds, edge_predicates) = phi_view_kinds(capture, view, root)?;
         let (clusters, cluster_count, cluster_kinds) = phi_clusters(capture, view_id, root, 1000)?;
         summaries.push(json!({"view_id":view["view_id"],"title":view["title"],
-            "layout_hint":view["layout_hint"],"graph_layers":view["graph_layers"],
+            "layout_hint":view["layout_hint"],
+            "graph_layers":view.get("graph_layers").unwrap_or(&empty_array),
             "node_count":node_count,"edge_count":edge_count,"cluster_count":cluster_count,
-            "review_intent":view["review_intent"],"collapse_rule":view["collapse_rule"],
+            "review_intent":view["review_intent"],
+            "collapse_rule":view.get("collapse_rule").unwrap_or(&empty_object),
             "source_ref":view["source_ref"],"route_card":view["route_card"]}));
         contracts.push(
             json!({"schema":"tos_philosophy_mcp_view_contract_v1","view_id":view["view_id"],
             "route_card":view["route_card"],"layout_hint":view["layout_hint"],
-            "graph_layers":view["graph_layers"],"node_kinds":node_kinds,
+            "graph_layers":view.get("graph_layers").unwrap_or(&empty_array),"node_kinds":node_kinds,
             "edge_predicates":edge_predicates,
             "cluster_kinds":cluster_kinds.into_iter().collect::<Vec<_>>(),
             "node_count":node_count,"edge_count":edge_count,"cluster_count":cluster_count,
@@ -1152,7 +1185,13 @@ fn philosophy(writer: &mut Writer<'_>, root: &str) -> Result<String> {
         )?;
         let diagnostics = packet["packet"]["unresolved_diagnostics"]
             .as_array()
-            .cloned()
+            .map(|items| {
+                items
+                    .iter()
+                    .filter(|item| item.is_object())
+                    .cloned()
+                    .collect::<Vec<_>>()
+            })
             .unwrap_or_default();
         writer.json(
             &format!("__edge/philosophy/unresolved/{view_id}.json"),
@@ -1171,8 +1210,9 @@ fn philosophy(writer: &mut Writer<'_>, root: &str) -> Result<String> {
     writer.json(
         "__edge/philosophy/views.json",
         &json!({"schema":"tos_philosophy_mcp_views_v1",
-        "views":summaries,"counts":header["counts"],"graph_layers":layers,
-        "layer_counts":header["layer_counts"],"visibility_model":header["visibility_model"],
+        "views":summaries,"counts":header.get("counts").unwrap_or(&empty_object),"graph_layers":layers,
+        "layer_counts":header.get("layer_counts").unwrap_or(&empty_array),
+        "visibility_model":header.get("visibility_model").unwrap_or(&empty_object),
         "runtime_projection_boundary":boundary}),
     )?;
     let source_refs = header["source_refs"]
