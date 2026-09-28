@@ -1899,6 +1899,7 @@ fn initial_collection_order_binds_retained_version_and_cold_replays() {
         "{}/manifest.json",
         history["receipts"][0]["archive_path"].as_str().unwrap()
     );
+    let collection_path = format!("{collection}/collection.json");
     let mut broken_authored = authored.clone();
     assert!(
         broken_authored
