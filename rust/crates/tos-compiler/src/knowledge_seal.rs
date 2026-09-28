@@ -232,6 +232,9 @@ pub fn seal_knowledge_model(
     search: &SearchIndexReceipt,
     limits: SealLimits,
 ) -> Result<KnowledgeSealReceipt> {
+    if stage.public_build() {
+        return Err(Error::Invalid("public D1 stage cannot seal selected model"));
+    }
     let result = seal_inner(
         stage, header, vocabulary, registry, scope, catalog, search, limits,
     );

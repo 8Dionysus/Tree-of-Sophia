@@ -7,12 +7,14 @@ use crate::{
 use fs2::FileExt;
 use rusqlite::{Connection, OpenFlags, OptionalExtension, params};
 use std::{
+    cell::Cell,
     collections::{BTreeMap, BTreeSet},
     fs,
     io::{Read, Seek, SeekFrom, Write},
     os::fd::AsRawFd,
     os::unix::fs::{MetadataExt, OpenOptionsExt, PermissionsExt},
     path::{Path, PathBuf},
+    rc::Rc,
     sync::{
         Arc,
         atomic::{AtomicU64, Ordering},
@@ -64,7 +66,7 @@ pub struct StageLimits {
     pub max_seek_bytes: u64,
 }
 impl StageLimits {
-    fn validate(self) -> Result<()> {
+    pub(crate) fn validate(self) -> Result<()> {
         self.sqlite.validate()?;
         if self.max_temp_bytes == 0
             || self.max_seek_rows == 0
@@ -211,9 +213,11 @@ pub struct KnowledgeStage<'a> {
     receipt: ExactInputReceipt,
     registrations: BTreeMap<String, BTreeSet<String>>,
     owner: &'a dyn StageOwner,
-    isolation: &'a dyn StageIsolation,
+    isolation: Option<&'a dyn StageIsolation>,
+    public_build: bool,
     total_rows: u64,
     work_bytes: u64,
+    public_work: Option<(Rc<Cell<u64>>, u64)>,
     poisoned: bool,
     write_page: Option<WritePageCharge>,
     keep: bool,
@@ -230,6 +234,9 @@ struct WritePageCharge {
 }
 
 impl<'a> KnowledgeStage<'a> {
+    pub(crate) fn public_build(&self) -> bool {
+        self.public_build
+    }
     pub(crate) fn registered_source(&self, source_graph: &str) -> bool {
         self.registrations.contains_key(source_graph)
     }
@@ -247,7 +254,11 @@ impl<'a> KnowledgeStage<'a> {
         self.poisoned = true;
     }
     pub(crate) fn mark_selected_full(&mut self) -> Result<()> {
-        let result = if self.poisoned || self.write_page.is_some() || self.selected_full {
+        let result = if self.public_build
+            || self.poisoned
+            || self.write_page.is_some()
+            || self.selected_full
+        {
             Err(Error::Invalid("selected full-model stage state"))
         } else {
             self.selected_full = true;
@@ -263,6 +274,49 @@ impl<'a> KnowledgeStage<'a> {
         receipt: ExactInputReceipt,
         owner: &'a dyn StageOwner,
         isolation: &'a dyn StageIsolation,
+    ) -> Result<Self> {
+        Self::create_inner(
+            candidate,
+            limits,
+            receipt,
+            owner,
+            Some(isolation),
+            None,
+            None,
+        )
+    }
+
+    /// Disposable public-output staging. Its local inode/lease and SQLite
+    /// limits are not a kernel aggregate-spill quota or selected admission.
+    /// Only the compiler's full public D1 builder may invoke this entry.
+    pub(crate) fn create_public_build(
+        candidate: &Path,
+        limits: StageLimits,
+        receipt: ExactInputReceipt,
+        owner: &'a dyn StageOwner,
+        vm_used: Arc<AtomicU64>,
+        work_used: Rc<Cell<u64>>,
+        max_work_bytes: u64,
+    ) -> Result<Self> {
+        Self::create_inner(
+            candidate,
+            limits,
+            receipt,
+            owner,
+            None,
+            Some(vm_used),
+            Some((work_used, max_work_bytes)),
+        )
+    }
+
+    fn create_inner(
+        candidate: &Path,
+        limits: StageLimits,
+        receipt: ExactInputReceipt,
+        owner: &'a dyn StageOwner,
+        isolation: Option<&'a dyn StageIsolation>,
+        shared_vm_used: Option<Arc<AtomicU64>>,
+        public_work: Option<(Rc<Cell<u64>>, u64)>,
     ) -> Result<Self> {
         limits.validate()?;
         receipt.validate()?;
@@ -294,7 +348,9 @@ impl<'a> KnowledgeStage<'a> {
         if lease_path.exists() || lease_path.is_symlink() {
             return Err(Error::Invalid("stage lease exists"));
         }
-        isolation.verify(candidate, limits, WritePhase::Create)?;
+        if let Some(isolation) = isolation {
+            isolation.verify(candidate, limits, WritePhase::Create)?;
+        }
         let mut lease = fs::OpenOptions::new()
             .read(true)
             .write(true)
@@ -333,8 +389,10 @@ impl<'a> KnowledgeStage<'a> {
             registrations,
             owner,
             isolation,
+            public_build: isolation.is_none(),
             total_rows: 0,
             work_bytes: 0,
+            public_work,
             poisoned: false,
             write_page: None,
             keep: false,
@@ -354,11 +412,35 @@ impl<'a> KnowledgeStage<'a> {
         stage.check(WritePhase::SqliteOpen)?;
         let db = Connection::open(candidate)?;
         stage.db = Some(db);
-        stage.vm_used = Some(sqlite_budget::configure(stage.db(), limits.sqlite)?);
-        // Catalog is the first TEMP consumer on the full-model path. Fix its
-        // physical reclamation mode before any TEMP schema or page is created;
-        // later PRAGMA changes cannot retrofit an existing TEMP database.
+        stage.vm_used = Some(if let Some(used) = shared_vm_used {
+            sqlite_budget::configure_with_counter(stage.db(), limits.sqlite, Arc::clone(&used))?;
+            used
+        } else {
+            sqlite_budget::configure(stage.db(), limits.sqlite)?
+        });
+        // This must precede every TEMP page allocation, including reading its
+        // page geometry for the disposable public-build page cap.
         configure_stage_temp_reclamation(stage.db())?;
+        if stage.public_build {
+            let page_size: u64 = stage
+                .db()
+                .query_row("PRAGMA temp.page_size", [], |row| row.get(0))?;
+            if page_size == 0 {
+                return Err(Error::Invalid("public D1 TEMP page size"));
+            }
+            let pages = limits.max_temp_bytes / page_size;
+            if pages == 0 || pages > i64::MAX as u64 {
+                return Err(Error::Budget("public D1 TEMP page cap"));
+            }
+            let applied: i64 = stage.db().query_row(
+                &format!("PRAGMA temp.max_page_count={pages}"),
+                [],
+                |row| row.get(0),
+            )?;
+            if applied <= 0 || applied as u64 > pages {
+                return Err(Error::Invalid("public D1 TEMP page cap unavailable"));
+            }
+        }
         stage.check(WritePhase::Schema)?;
         stage.db().execute_batch(SCHEMA)?;
         stage.check(WritePhase::Schema)?;
@@ -369,15 +451,38 @@ impl<'a> KnowledgeStage<'a> {
         self.db.as_ref().expect("stage database open")
     }
     fn check(&self, phase: WritePhase) -> Result<()> {
-        Self::check_isolation(self.isolation, &self.candidate, self.limits, phase)
+        Self::check_isolation(
+            self.isolation,
+            &self.candidate,
+            self.inode,
+            &self.lease_path,
+            self.lease_inode,
+            self.limits,
+            phase,
+        )
     }
     fn check_isolation(
-        isolation: &dyn StageIsolation,
+        isolation: Option<&dyn StageIsolation>,
         candidate: &Path,
+        inode: (u64, u64),
+        lease_path: &Path,
+        lease_inode: (u64, u64),
         limits: StageLimits,
         phase: WritePhase,
     ) -> Result<()> {
-        isolation.verify(candidate, limits, phase)
+        let file = fs::symlink_metadata(candidate)?;
+        let lease = fs::symlink_metadata(lease_path)?;
+        if !file.file_type().is_file()
+            || (file.dev(), file.ino()) != inode
+            || !lease.file_type().is_file()
+            || (lease.dev(), lease.ino()) != lease_inode
+        {
+            return Err(Error::Invalid("stage private inode/lease changed"));
+        }
+        if let Some(isolation) = isolation {
+            isolation.verify(candidate, limits, phase)?;
+        }
+        Ok(())
     }
     /// A bounded producer may add catalog/search tables and indexed joins to
     /// this private database. The caller must keep its own row/byte budgets;
@@ -430,10 +535,21 @@ impl<'a> KnowledgeStage<'a> {
     ) -> Result<T> {
         let isolation = self.isolation;
         let candidate = self.candidate.clone();
+        let inode = self.inode;
+        let lease_path = self.lease_path.clone();
+        let lease_inode = self.lease_inode;
         let limits = self.limits;
         self.with_connection(phase, |db| {
             f(db, &|| {
-                Self::check_isolation(isolation, &candidate, limits, phase)
+                Self::check_isolation(
+                    isolation,
+                    &candidate,
+                    inode,
+                    &lease_path,
+                    lease_inode,
+                    limits,
+                    phase,
+                )
             })
         })
     }
@@ -577,6 +693,31 @@ impl<'a> KnowledgeStage<'a> {
             })
         })
     }
+
+    /// Disposable-public completion checks the same private transaction and
+    /// custody state without returning a StageReceipt or permitting selection.
+    pub(crate) fn complete_public_build(&mut self, nodes: u64, relations: u64) -> Result<()> {
+        let result = (|| {
+            if !self.public_build || self.poisoned || self.write_page.is_some()
+                || self.selected_full || self.closed_input_rows.is_none()
+                || !self.db().is_autocommit() {
+                return Err(Error::Invalid("public D1 stage completion state"));
+            }
+            self.owner.recheck_sealed_cut(&self.receipt)?;
+            self.with_connection(WritePhase::Finalize, |db| {
+                let actual_nodes: u64 = db.query_row("SELECT count(*) FROM knowledge_nodes",[],|row|row.get(0))?;
+                let actual_relations: u64 = db.query_row("SELECT count(*) FROM knowledge_relations",[],|row|row.get(0))?;
+                if actual_nodes!=nodes || actual_relations!=relations {
+                    return Err(Error::Invalid("public D1 completed row counts"));
+                }
+                let dangling:Option<i64>=db.query_row("SELECT 1 FROM knowledge_relations r WHERE NOT EXISTS (SELECT 1 FROM knowledge_nodes n WHERE n.id=r.from_id) OR NOT EXISTS (SELECT 1 FROM knowledge_nodes n WHERE n.id=r.to_id) LIMIT 1",[],|row|row.get(0)).optional()?;
+                if dangling.is_some(){return Err(Error::Invalid("public D1 relation endpoint absent"));}
+                Ok(())
+            })
+        })();
+        self.poisoned |= result.is_err();
+        result
+    }
     pub(crate) fn charge(&mut self, payload: &[u8]) -> Result<()> {
         let result = (|| {
             if payload.len() > self.limits.sqlite.max_row_bytes {
@@ -596,6 +737,7 @@ impl<'a> KnowledgeStage<'a> {
             if self.work_bytes > self.limits.sqlite.max_work_bytes {
                 return Err(Error::Budget("stage work bytes"));
             }
+            self.charge_public_work(payload.len() as u64)?;
             self.charge_write_page(1, payload.len() as u64)?;
             Ok(())
         })();
@@ -635,11 +777,23 @@ impl<'a> KnowledgeStage<'a> {
             {
                 return Err(Error::Budget("stage materialized rows/work bytes"));
             }
+            self.charge_public_work(bytes)?;
             self.charge_write_page(rows, bytes)?;
             Ok(())
         })();
         self.poisoned |= result.is_err();
         result
+    }
+    fn charge_public_work(&self, bytes: u64) -> Result<()> {
+        if let Some((used, limit)) = &self.public_work {
+            let next = used
+                .get()
+                .checked_add(bytes)
+                .filter(|next| next <= limit)
+                .ok_or(Error::Budget("public D1 build work bytes"))?;
+            used.set(next);
+        }
+        Ok(())
     }
     pub fn ingest_input(&mut self, row: InputRow<'_>) -> Result<()> {
         let result = self.ingest_input_inner(row);
@@ -1005,6 +1159,9 @@ impl<'a> KnowledgeStage<'a> {
     }
 
     pub fn finish(mut self) -> Result<StageReceipt> {
+        if self.public_build {
+            return Err(Error::Invalid("public D1 stage has no selected finish"));
+        }
         if self.poisoned || self.write_page.is_some() || !self.db().is_autocommit() {
             return Err(Error::Invalid("stage poisoned by prior failed row"));
         }
@@ -1054,6 +1211,7 @@ impl<'a> KnowledgeStage<'a> {
             self.check(WritePhase::Finalize)?;
             let fresh = fresh_selected_path(&self.candidate);
             self.isolation
+                .ok_or(Error::Invalid("selected stage isolation absent"))?
                 .verify(&fresh, self.limits, WritePhase::Finalize)?;
             let fresh_utf8 = fresh
                 .to_str()

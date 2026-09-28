@@ -23,7 +23,7 @@ pub struct ClaimPrepareLimits {
     pub max_work_bytes: u64,
 }
 impl ClaimPrepareLimits {
-    fn validate(self) -> Result<()> {
+    pub(crate) fn validate(self) -> Result<()> {
         if self.max_nodes == 0
             || self.max_edges == 0
             || self.max_claims == 0

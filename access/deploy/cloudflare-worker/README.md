@@ -8,8 +8,8 @@ CSV/JSONL from normalized D1 rows so the browser's download controls do not
 depend on the former Python origin.
 
 The edge is a generated read model. It does not own philosophical meaning,
-review state, rights, or canon. `scripts/build_runtime.py` reads only the
-standalone inputs already allowlisted by `Tree-of-Sophia`:
+review state, rights, or canon. The offline Rust `build:data` producer reads
+only the standalone inputs already allowlisted by `Tree-of-Sophia`:
 
 - `ToS/derived-exports/tos_corpus_index.min.json`
 - `ToS/derived-exports/philosophy_graph_projection.min.json`
@@ -20,6 +20,21 @@ standalone inputs already allowlisted by `Tree-of-Sophia`:
 - `ToS/philosophy/graph-workbench/review-packets/table-i-post-planting-audit.json`
 
 The public source-gap ledger is copied through its existing allowlist route.
+The original `scripts/build_runtime.py` remains an independent Python oracle
+until the full native output has been compared and accepted. It is not invoked
+by `npm run build:data`.
+
+`npm run build:data` invokes `tos-access build-data` and requires a positive
+whole-build `TOS_BUILD_MAX_SECONDS` environment variable. Direct CLI callers
+may override it with `--max-build-seconds N`; the CLI refuses a missing,
+invalid, or overflowing deadline before locking the runtime directory or
+changing completion markers. For example, from this directory, set an
+operation-specific deadline and run `TOS_BUILD_MAX_SECONDS=3600 npm run build:data`.
+The value is a caller decision, not a maintained default or a
+promise that a particular corpus fits. The Rust route always computes the full
+disposable v9 SQL, row baseline, and static outputs. It does not install a
+native-current read model or grant publication authority. Its SQLite page and
+work limits are per component and do not form an aggregate host-disk quota.
 The generated D1 revision binds the source inputs, actual per-item normalized
 content revisions, capability data, and the explicit read-model schema
 version. API, LensSpec grammar, catalog, documentation, and Worker-only code
@@ -736,7 +751,7 @@ See [TOS-D-0050](../../../docs/decisions/TOS-D-0050-incremental-checks-bounded-c
 
 ### Resumable build stages
 
-`build:data` stores disposable stage checkpoints in ignored
+The independent Python oracle `scripts/build_runtime.py` stores disposable stage checkpoints in ignored
 `runtime/build-stages.json`. SQL and static responses have separate inputs and
 outputs. Reuse requires matching source, contract and producer byte digests,
 Python version, path configuration, directory membership and output digests.
@@ -751,7 +766,7 @@ make that distinction explicit; `origin_run_id` refers to earlier processing.
 Input and output bytes are still read for integrity, so this is not constant-time
 source discovery. A static-only rebuild can still materialize the graph.
 
-The offline builder uses a fail-fast Unix OS lock per runtime directory, released
+The offline builders use a fail-fast Unix OS lock per runtime directory, released
 on process exit. Use one output directory per runtime and serialize deployment
 after successful build completion; concurrent external writers/deployments are
 not supported. Inputs must remain quiescent while building: rechecks reject
@@ -760,7 +775,7 @@ and runtime directories separate. CLI guards reject roots, home, source-tree
 outputs and overlapping paths before the producer can replace the output.
 
 Completion manifests are invalidated before rebuilding and written last via
-atomic file replacement. A failed static stage leaves a completed SQL checkpoint
+atomic file replacement. In the Python oracle, a failed static stage leaves a completed SQL checkpoint
 reusable on retry, but no deployable completion manifest. Checkpoints are not
 source history, signatures, review or publication receipts; their checksums
 detect accidental corruption, not a malicious cache writer. Removing a specific

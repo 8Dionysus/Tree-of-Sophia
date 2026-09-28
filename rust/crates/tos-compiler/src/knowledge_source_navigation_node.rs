@@ -28,7 +28,7 @@ pub struct NavigationNodeLimits {
     pub max_ancestor_cache_bytes: usize,
 }
 impl NavigationNodeLimits {
-    fn validate(self) -> Result<()> {
+    pub(crate) fn validate(self) -> Result<()> {
         if self.max_raw_bytes == 0
             || self.max_raw_bytes > 8 * 1024 * 1024
             || self.max_output_bytes == 0

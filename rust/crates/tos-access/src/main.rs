@@ -7,7 +7,7 @@ use tos_access::{
 fn main() {
     let mut args: Vec<String> = std::env::args().skip(1).collect();
     // Software help/version never opens a selected release or grants readiness.
-    let help = "usage: tos [--release-root ABSOLUTE_DIRECTORY] COMMAND\n\nCommands:\n  serve [LOOPBACK:PORT]     local HTTP and installed software site\n  mcp                       MCP JSONL on stdin/stdout\n  knowledge | lens | source bounded read operations\n  doctor | verify           source-backed diagnostic report\n  software build|verify|extract|install OPTIONS\n\nNative install: software install --archive ABS --prefix FRESH_ABS\nwith --max-total-bytes N --max-archive-bytes N --max-members N\nand --max-metadata-bytes N. Installation never selects data or edits PATH.\nData operations without a selected owner report unavailable.\n";
+    let help = "usage: tos [--release-root ABSOLUTE_DIRECTORY] COMMAND\n\nCommands:\n  serve [LOOPBACK:PORT]     local HTTP and installed software site\n  mcp                       MCP JSONL on stdin/stdout\n  knowledge | lens | source bounded read operations\n  doctor | verify           source-backed diagnostic report\n  software build|verify|extract|install OPTIONS\n  build-data --source-root ROOT --output DIST --runtime RUNTIME\n             [--max-build-seconds N]  disposable offline public D1 v9\n\nNative install: software install --archive ABS --prefix FRESH_ABS\nwith --max-total-bytes N --max-archive-bytes N --max-members N\nand --max-metadata-bytes N. Installation never selects data or edits PATH.\nData operations without a selected owner report unavailable.\nPublic build requires TOS_BUILD_MAX_SECONDS unless --max-build-seconds is supplied.\n";
     if args.len() == 1 && matches!(args[0].as_str(), "--version" | "-V") {
         println!("tos {}", env!("CARGO_PKG_VERSION"));
         return;
@@ -21,6 +21,13 @@ fn main() {
         return;
     }
     if let Some(code) = tos_access::software_archive::run_if_requested(
+        &args,
+        &mut std::io::stdout(),
+        &mut std::io::stderr(),
+    ) {
+        std::process::exit(code);
+    }
+    if let Some(code) = tos_access::public_d1_build::run_if_requested(
         &args,
         &mut std::io::stdout(),
         &mut std::io::stderr(),

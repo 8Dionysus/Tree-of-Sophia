@@ -47,7 +47,7 @@ pub struct SearchBuildLimits {
 }
 
 impl SearchBuildLimits {
-    fn validate(self) -> Result<()> {
+    pub(crate) fn validate(self) -> Result<()> {
         if self.max_payload_bytes == 0
             || self.max_payload_bytes > 8_000_000
             || self.max_document_chars == 0
@@ -81,26 +81,26 @@ pub struct SearchIndexReceipt {
     pub search_index_root_sha256: String,
 }
 
-struct SourceRow {
-    position: i64,
-    id: String,
-    source_graph: String,
-    native_id: Option<String>,
-    term_id: String,
-    payload_len: i64,
-    payload_sha256: Vec<u8>,
-    payload: Option<Vec<u8>>,
+pub(crate) struct SourceRow {
+    pub(crate) position: i64,
+    pub(crate) id: String,
+    pub(crate) source_graph: String,
+    pub(crate) native_id: Option<String>,
+    pub(crate) term_id: String,
+    pub(crate) payload_len: i64,
+    pub(crate) payload_sha256: Vec<u8>,
+    pub(crate) payload: Option<Vec<u8>>,
 }
 
-struct Document {
-    id_lower: String,
-    native_id_lower: String,
-    identity_values: String,
-    visible_values: String,
-    text: String,
-    chars: usize,
-    digest: Digest256,
-    serialization_bytes: usize,
+pub(crate) struct Document {
+    pub(crate) id_lower: String,
+    pub(crate) native_id_lower: String,
+    pub(crate) identity_values: String,
+    pub(crate) visible_values: String,
+    pub(crate) text: String,
+    pub(crate) chars: usize,
+    pub(crate) digest: Digest256,
+    pub(crate) serialization_bytes: usize,
 }
 
 struct PreparedDocument {
@@ -334,7 +334,7 @@ fn fetch_next(db: &Connection, table: &str, after: i64, cap: usize) -> Result<Op
     .map_err(Error::from)
 }
 
-fn document(
+pub(crate) fn document(
     row: &SourceRow,
     kind: &str,
     payload: &[u8],

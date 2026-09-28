@@ -48,11 +48,11 @@ fn check_serialized(value: &Value, ceiling: usize) -> Result<()> {
     serde_json::to_writer(&mut writer, value).map_err(|_| Error::Budget("normalization JSON bytes"))
 }
 
-fn write_len(hasher: &mut Digest256Hasher, len: usize) {
+pub(crate) fn write_len(hasher: &mut Digest256Hasher, len: usize) {
     hasher.update(len.to_string().as_bytes());
 }
 
-fn write_string(hasher: &mut Digest256Hasher, value: &str) {
+pub(crate) fn write_string(hasher: &mut Digest256Hasher, value: &str) {
     hasher.update(b"s");
     write_len(hasher, value.len());
     hasher.update(b":");
@@ -62,7 +62,7 @@ fn write_string(hasher: &mut Digest256Hasher, value: &str) {
 /// Python `_stable_digest`: sorted Unicode object keys; UTF-8 string length;
 /// every JSON number coerced to finite binary64 and emitted as its big-endian
 /// hexadecimal bits. Null, boolean, arrays and objects retain distinct tags.
-fn stable_digest_value(value: &Value, hasher: &mut Digest256Hasher) -> Result<()> {
+pub(crate) fn stable_digest_value(value: &Value, hasher: &mut Digest256Hasher) -> Result<()> {
     match value {
         Value::Null => hasher.update(b"n;"),
         Value::Bool(boolean) => hasher.update(if *boolean { b"b1;" } else { b"b0;" }),

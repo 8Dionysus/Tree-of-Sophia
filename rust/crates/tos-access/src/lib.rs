@@ -10,6 +10,7 @@ pub mod exploration_checkpoints;
 pub mod exploration_contracts;
 pub mod knowledge;
 pub mod managed_local;
+pub mod public_d1_build;
 pub mod release_state;
 pub use knowledge::{KnowledgeOperation, KnowledgeRequest};
 mod common;

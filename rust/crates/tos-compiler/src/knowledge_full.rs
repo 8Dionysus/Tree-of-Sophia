@@ -61,6 +61,11 @@ pub fn compile_full_knowledge_components(
     descriptor_bytes: &[u8],
     limits: FullKnowledgeLimits,
 ) -> Result<FullKnowledgeReceipt> {
+    if stage.public_build() {
+        return Err(Error::Invalid(
+            "public D1 stage cannot compile selected full model",
+        ));
+    }
     let result = compile_inner(
         stage,
         graph_header,

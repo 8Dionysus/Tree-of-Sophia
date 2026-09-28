@@ -30,7 +30,16 @@ pub(crate) fn install_progress(db: &Connection, limits: Limits, used: Arc<Atomic
 
 pub(crate) fn configure(db: &Connection, limits: Limits) -> Result<Arc<AtomicU64>> {
     let used = Arc::new(AtomicU64::new(0));
-    install_progress(db, limits, Arc::clone(&used));
+    configure_with_counter(db, limits, Arc::clone(&used))?;
+    Ok(used)
+}
+
+pub(crate) fn configure_with_counter(
+    db: &Connection,
+    limits: Limits,
+    used: Arc<AtomicU64>,
+) -> Result<()> {
+    install_progress(db, limits, used);
     db.execute_batch(
         "PRAGMA journal_mode=DELETE; PRAGMA synchronous=FULL; PRAGMA temp_store=FILE;",
     )?;
@@ -50,5 +59,5 @@ pub(crate) fn configure(db: &Connection, limits: Limits) -> Result<Arc<AtomicU64
     if effective_page_cap > page_cap {
         return Err(Error::Invalid("SQLite output page cap not applied"));
     }
-    Ok(used)
+    Ok(())
 }

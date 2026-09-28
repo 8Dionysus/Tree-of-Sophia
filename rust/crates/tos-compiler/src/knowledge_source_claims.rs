@@ -215,7 +215,7 @@ pub struct ClaimNormalizeLimits {
     pub max_work_bytes: u64,
 }
 impl ClaimNormalizeLimits {
-    fn validate(self) -> Result<()> {
+    pub(crate) fn validate(self) -> Result<()> {
         if self.max_raw_bytes == 0
             || self.max_raw_bytes > 8 * 1024 * 1024
             || self.max_output_bytes == 0

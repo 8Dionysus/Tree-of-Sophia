@@ -89,7 +89,7 @@ pub struct NavigationRelationLimits {
     pub max_work_bytes: u64,
 }
 impl NavigationRelationLimits {
-    fn validate(self) -> Result<()> {
+    pub(crate) fn validate(self) -> Result<()> {
         if self.max_edges == 0
             || self.max_page_rows == 0
             || self.max_page_rows > 1024
@@ -140,7 +140,7 @@ pub struct NavigationRelationNormalizeLimits {
     pub max_global_input_bytes: usize,
 }
 impl NavigationRelationNormalizeLimits {
-    fn validate(self) -> Result<()> {
+    pub(crate) fn validate(self) -> Result<()> {
         if self.max_raw_bytes == 0
             || self.max_raw_bytes > 8 * 1024 * 1024
             || self.max_output_bytes == 0

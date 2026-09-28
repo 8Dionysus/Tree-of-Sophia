@@ -771,6 +771,10 @@ fn vocabulary(
     Ok((reference, routed, known_schemas))
 }
 
+pub(crate) fn validate_current_context_presentation(value: &Value) -> Result<()> {
+    vocabulary(value, MAX_REGISTRY_BYTES).map(|_| ())
+}
+
 impl ReadableContextCompiler {
     /// `None` is the historical no-vocabulary state. The caller owns the
     /// selected registry bytes and all source/rights checks.

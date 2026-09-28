@@ -29,7 +29,7 @@ pub struct GlobalTitleLimits {
     pub max_work_bytes: u64,
 }
 impl GlobalTitleLimits {
-    fn validate(self) -> Result<()> {
+    pub(crate) fn validate(self) -> Result<()> {
         if self.max_nodes == 0
             || self.max_page_rows == 0
             || self.max_page_rows > 1024

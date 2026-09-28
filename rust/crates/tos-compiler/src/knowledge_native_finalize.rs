@@ -25,6 +25,26 @@ pub struct NativeFinalizeLimits {
     pub max_work_bytes: u64,
 }
 
+impl NativeFinalizeLimits {
+    pub(crate) fn validate(self) -> Result<()> {
+        if self.max_rows == 0
+            || self.max_page_rows == 0
+            || self.max_page_rows > 1024
+            || self.max_row_bytes == 0
+            || self.max_row_bytes > 8 * 1024 * 1024
+            || self.max_page_bytes == 0
+            || self.max_page_bytes > 64 * 1024 * 1024
+            || self.max_page_rows.checked_mul(self.max_row_bytes)
+                .is_none_or(|n| n > self.max_page_bytes)
+            || self.max_view_ids_per_node == 0
+            || self.max_context_sources == 0
+            || self.max_context_sources > 64
+            || self.max_work_bytes == 0
+        { return Err(Error::Budget("native finalization limits")); }
+        Ok(())
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct NativeFinalizeReceipt {
     pub source_cut: String,
@@ -124,24 +144,7 @@ where
     G: FnMut(&mut KnowledgeStage<'_>, bool, &str, &str, &str) -> Result<Option<Vec<u8>>>,
 {
     let result = (|| {
-        if limits.max_rows == 0
-            || limits.max_page_rows == 0
-            || limits.max_page_rows > 1024
-            || limits.max_row_bytes == 0
-            || limits.max_row_bytes > 8 * 1024 * 1024
-            || limits.max_page_bytes == 0
-            || limits.max_page_bytes > 64 * 1024 * 1024
-            || limits
-                .max_page_rows
-                .checked_mul(limits.max_row_bytes)
-                .is_none_or(|n| n > limits.max_page_bytes)
-            || limits.max_view_ids_per_node == 0
-            || limits.max_context_sources == 0
-            || limits.max_context_sources > 64
-            || limits.max_work_bytes == 0
-        {
-            return Err(Error::Budget("native finalization limits"));
-        }
+        limits.validate()?;
         if inherited.source_cut != stage.exact_receipt().binding.source_cut
             || inherited.final_graph_rows_written
         {

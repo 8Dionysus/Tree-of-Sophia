@@ -24,7 +24,7 @@ pub struct NavigationMaterializeLimits {
     pub max_work_bytes: u64,
 }
 impl NavigationMaterializeLimits {
-    fn validate(self) -> Result<()> {
+    pub(crate) fn validate(self) -> Result<()> {
         if self.max_nodes == 0
             || self.max_edges == 0
             || self.max_placeholders == 0

@@ -30,7 +30,7 @@ pub struct InheritedViewLimits {
     pub max_work_bytes: u64,
 }
 impl InheritedViewLimits {
-    fn validate(self) -> Result<()> {
+    pub(crate) fn validate(self) -> Result<()> {
         if self.max_relations == 0
             || self.max_endpoint_evidence_rows == 0
             || self.max_view_tokens == 0
